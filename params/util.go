@@ -1,4 +1,4 @@
-// Copyright 2014 The go-ethereum Authors
+// Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,15 +14,17 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package params
 
-import (
-	"errors"
-	"fmt"
+import "math/big"
 
-	"github.com/ethereum/go-ethereum/params"
-)
+// TODO: set exact block number after community consensus is reached.
+var HomesteadBlock *big.Int = big.NewInt(0)
 
-var OutOfGasError = errors.New("Out of gas")
-var CodeStoreOutOfGasError = errors.New("Contract creation code storage out of gas")
-var DepthError = fmt.Errorf("Max call depth exceeded (%d)", params.CallCreateDepth)
+func IsHomestead(blockNumber *big.Int) bool {
+	// for unit tests TODO: flip to true after homestead is live
+	if blockNumber == nil {
+		return false
+	}
+	return blockNumber.Cmp(HomesteadBlock) >= 0
+}
