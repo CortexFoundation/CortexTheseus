@@ -45,6 +45,14 @@ func opAdd(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stac
 	return nil, nil
 }
 
+func opAddExt(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	x, y := stack.pop(), stack.peek()
+	math.U256(y.Add(x, y))
+
+	evm.interpreter.intPool.put(x)
+	return nil, nil
+}
+
 func opSub(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	x, y := stack.pop(), stack.peek()
 	math.U256(y.Sub(x, y))
