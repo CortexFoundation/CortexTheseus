@@ -97,6 +97,24 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	return nil
 }
 
+func isModelMeta(code []byte) bool {
+	for i := 0; i < 16; i++ {
+		if byte[i] != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func isInputMeta(code []byte) bool {
+	for i := 0; i < 16; i++ {
+		if byte[i] != 1 {
+			return false
+		}
+	}
+	return true
+}
+
 // Run loops and evaluates the contract's code with the given input data and returns
 // the return byte-slice and an error if one occurred.
 //
@@ -115,6 +133,14 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	// Don't bother with the execution if there's no code.
 	if len(contract.Code) == 0 {
 		return nil, nil
+	}
+
+	if isModelMeta(contract.Code) {
+		return contract.Code, nil
+	}
+
+	if isInputMeta(contract.Code) {
+		return contract.Code, nil
 	}
 
 	var (
