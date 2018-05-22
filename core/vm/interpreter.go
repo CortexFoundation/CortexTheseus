@@ -99,7 +99,7 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 
 func isModelMeta(code []byte) bool {
 	for i := 0; i < 16; i++ {
-		if byte[i] != 0 {
+		if code[i] != 0 {
 			return false
 		}
 	}
@@ -108,7 +108,7 @@ func isModelMeta(code []byte) bool {
 
 func isInputMeta(code []byte) bool {
 	for i := 0; i < 16; i++ {
-		if byte[i] != 1 {
+		if code[i] != 1 {
 			return false
 		}
 	}
