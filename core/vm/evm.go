@@ -193,12 +193,12 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}
 	}
 
-	if evm.interpreter.IsModelMeta(ret) {
+	//if evm.interpreter.IsModelMeta(ret) {
 		//only if model is exist from ipfs, swarm or libtorrent ext, load model to memory
 		//todo if ret is model meta, pay some fee to model owner depends on set in meta data
 		// if exist
 		//evm.Transfer(evm.StateDB, caller.Address(), model.Owner,model.Fee)
-	}
+	//}
 	return ret, contract.Gas, err
 }
 
