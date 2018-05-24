@@ -97,7 +97,7 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	return nil
 }
 
-func isModelMeta(code []byte) bool {
+func IsModelMeta(code []byte) bool {
 	for i := 0; i < 8; i++ {
 		if code[i] != 0 {
 			return false
@@ -106,7 +106,7 @@ func isModelMeta(code []byte) bool {
 	return true
 }
 
-func isInputMeta(code []byte) bool {
+func IsInputMeta(code []byte) bool {
 	for i := 0; i < 8; i++ {
 		if code[i] != 1 {
 			return false
@@ -135,11 +135,11 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		return nil, nil
 	}
 
-	if isModelMeta(contract.Code) {
+	if IsModelMeta(contract.Code) {
 		return contract.Code, nil
 	}
 
-	if isInputMeta(contract.Code) {
+	if IsInputMeta(contract.Code) {
 		return contract.Code, nil
 	}
 
