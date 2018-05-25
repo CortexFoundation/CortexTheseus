@@ -113,53 +113,6 @@ func DeployContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend Co
 	return c.address, tx, c, nil
 }
 
-func DeployCodeContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
-	// Otherwise try to deploy the contract
-	c := NewBoundContract(common.Address{}, abi, backend, backend, backend)
-
-	input, err := c.abi.Pack("", params...)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	tx, err := c.transact(opts, nil, append(make([]byte{0, 0}),bytecode, input...))
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	c.address = crypto.CreateAddress(opts.From, tx.Nonce())
-	return c.address, tx, c, nil
-}
-func DeployModelMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
-	// Otherwise try to deploy the contract
-	c := NewBoundContract(common.Address{}, abi, backend, backend, backend)
-
-	input, err := c.abi.Pack("", params...)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	tx, err := c.transact(opts, nil, append(make([]byte{0, 1}), bytecode, input...))
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	c.address = crypto.CreateAddress(opts.From, tx.Nonce())
-	return c.address, tx, c, nil
-}
-
-func DeployInputMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
-	// Otherwise try to deploy the contract
-	c := NewBoundContract(common.Address{}, abi, backend, backend, backend)
-
-	input, err := c.abi.Pack("", params...)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	tx, err := c.transact(opts, nil, append(make([]byte{0, 2}), bytecode, input...))
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	c.address = crypto.CreateAddress(opts.From, tx.Nonce())
-	return c.address, tx, c, nil
-}
-
 // Call invokes the (constant) contract method with params as input values and
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
