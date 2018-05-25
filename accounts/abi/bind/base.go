@@ -121,7 +121,7 @@ func DeployModelMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, b
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	tx, err := c.transact(opts, nil, append(make([]byte{'0','1'}),append(bytecode, input...)...))
+	tx, err := c.transact(opts, nil, append([]byte{'0','1'},append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -137,7 +137,7 @@ func DeployInputMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, b
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	tx, err := c.transact(opts, nil, append(make([]byte{'0','2'}),append(bytecode, input...)...))
+	tx, err := c.transact(opts, nil, append([]byte{'0','2'},append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -153,7 +153,7 @@ func DeployCodeContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backen
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	tx, err := c.transact(opts, nil, append(make([]byte{'0','0'}),append(bytecode, input...)...))
+	tx, err := c.transact(opts, nil, append([]byte{'0','0'},append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
