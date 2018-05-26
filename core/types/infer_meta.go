@@ -1,6 +1,10 @@
 package types
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 var (
 	ErrorCodeLengthNotEnough = errors.New("Code length should be larger than 2")
@@ -12,19 +16,22 @@ var (
 type InferMeta interface {
 	TypeCode() []byte
 	RawSize() uint64
-	Gas() uint64
+	// Gas() uint64
+	AuthorAddress() common.Address
 }
 
 type ModelMeta struct {
 	typeCode []byte
 	rawSize  uint64
 	gas      uint64
+	author   common.Address
 }
 
 type InputMeta struct {
 	typeCode []byte
 	rawSize  uint64
 	gas      uint64
+	author   common.Address
 }
 
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
@@ -38,6 +45,7 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 		typeCode: code[:2],
 		rawSize:  uint64(len(code) - 2),
 		gas:      123,
+		author:   common.BytesToAddress([]byte{0x0}),
 	}, nil
 }
 func ParseInputMeta(code []byte) (*InputMeta, error) {
@@ -52,6 +60,7 @@ func ParseInputMeta(code []byte) (*InputMeta, error) {
 		typeCode: code[:2],
 		rawSize:  uint64(len(code) - 2),
 		gas:      123,
+		author:   common.BytesToAddress([]byte{0x1}),
 	}, nil
 }
 
@@ -64,12 +73,19 @@ func (mm *ModelMeta) RawSize() uint64 {
 func (mm *ModelMeta) Gas() uint64 {
 	return mm.gas
 }
+func (mm *ModelMeta) AuthorAddress() common.Address {
+	return mm.author
+}
 func (im *InputMeta) TypeCode() []byte {
 	return im.typeCode
 }
 func (im *InputMeta) RawSize() uint64 {
 	return im.rawSize
 }
-func (im *InputMeta) Gas() uint64 {
-	return im.gas
+
+// func (im *InputMeta) Gas() uint64 {
+// 	return im.gas
+// }
+func (im *InputMeta) AuthorAddress() common.Address {
+	return im.author
 }
