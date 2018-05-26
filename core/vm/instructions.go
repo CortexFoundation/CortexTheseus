@@ -639,8 +639,10 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
     modelAddr := common.BigToAddress(_modelAddr)
     dataAddr := common.BigToAddress(_dataAddr)
     log.Info(fmt.Sprint(modelAddr, dataAddr))
+
     modelMeta := evm.StateDB.GetCode(modelAddr)
     dataMeta := evm.StateDB.GetCode(dataAddr)
+
     (fmt.Println("modelMeta: ", modelMeta))
     (fmt.Println("dataMeta: ", dataMeta))
 	memory.Set(offset.Uint64(), size.Uint64(), []byte{0, 1, 2, 3})

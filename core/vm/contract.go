@@ -18,7 +18,7 @@ package vm
 
 import (
 	"math/big"
-    "fmt"
+    _ "fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 )
