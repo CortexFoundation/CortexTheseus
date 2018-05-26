@@ -25,8 +25,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 var (
@@ -642,18 +642,28 @@ func opGas(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stac
 }
 
 func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	_modelAddr, _dataAddr := stack.pop(), stack.pop()
-    offset, size := stack.pop(), stack.pop()
-    modelAddr := common.BigToAddress(_modelAddr)
-    dataAddr := common.BigToAddress(_dataAddr)
-    log.Info(fmt.Sprint(modelAddr, dataAddr))
+	_modelAddr, _inputAddr := stack.pop(), stack.pop()
+	offset, size := stack.pop(), stack.pop()
+	modelAddr := common.BigToAddress(_modelAddr)
+	inputAddr := common.BigToAddress(_inputAddr)
+	log.Info(fmt.Sprint(modelAddr, inputAddr))
 
-    modelMeta := evm.StateDB.GetCode(modelAddr)
-    dataMeta := evm.StateDB.GetCode(dataAddr)
+	_modelMeta := evm.StateDB.GetCode(modelAddr)
+	_inputMeta := evm.StateDB.GetCode(inputAddr)
 
-    (fmt.Println("modelMeta: ", modelMeta))
-    (fmt.Println("dataMeta: ", dataMeta))
-	memory.Set(offset.Uint64(), size.Uint64(), []byte{0, 1, 2, 3})
+	(fmt.Println("modelMeta: ", _modelMeta))
+	(fmt.Println("dataMeta: ", _inputMeta))
+	modelMeta, err := types.ParseModelMeta(_modelMeta)
+	if err != nil {
+		return nil, err
+	}
+	inputMeta, err := types.ParseInputMeta(_inputMeta)
+
+	if err != nil {
+		return nil, err
+	}
+	//TODO
+	memory.Set(offset.Uint64(), size.Uint64(), []byte{inputMeta.TypeCode()[1], modelMeta.TypeCode()[1]})
 	return nil, nil
 }
 func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
