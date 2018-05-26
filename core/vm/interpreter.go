@@ -96,23 +96,28 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	}
 	return nil
 }
-
-func IsModelMeta(code []byte) bool {
-	for i := 0; i < 8; i++ {
-		if code[i] != 0 {
-			return false
-		}
+func IsCode(code []byte) bool {
+	if code[0] == 0 && code[1] == 0 {
+		return true
 	}
-	return true
+	return false
+}
+func IsModelMeta(code []byte) bool {
+	if code[0] == 0 && code[1] == 1 {
+		return true
+	}
+	return false
 }
 
 func IsInputMeta(code []byte) bool {
-	for i := 0; i < 8; i++ {
-		if code[i] != 1 {
-			return false
-		}
+	if code[0] == 0 && code[1] == 0 {
+		return true
 	}
-	return true
+	return false
+}
+
+func IsInfer(op *operation) bool {
+	return false
 }
 
 // Run loops and evaluates the contract's code with the given input data and returns
@@ -136,10 +141,12 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	}
 
 	if IsModelMeta(contract.Code) {
+		//todo
 		return contract.Code, nil
 	}
 
 	if IsInputMeta(contract.Code) {
+		//todo
 		return contract.Code, nil
 	}
 
@@ -174,6 +181,10 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
+	if IsCode(contract.Code) {
+		contract.Code = contract.Code[2:]
+	}
+
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
@@ -209,43 +220,47 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				return nil, errGasUintOverflow
 			}
 		}
-		// consume the gas and return an error if not enough gas is available.
-		// cost is explicitly set so that the capture state defer method can get the proper cost
-		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
-		if err != nil || !contract.UseGas(cost) {
-			return nil, ErrOutOfGas
-		}
-		if memorySize > 0 {
-			mem.Resize(memorySize)
-		}
+		if IsInfer(&operation) {
+			//todo
+		} else {
+			// consume the gas and return an error if not enough gas is available.
+			// cost is explicitly set so that the capture state defer method can get the proper cost
+			cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
 
-		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
-			logged = true
-		}
+			if err != nil || !contract.UseGas(cost) {
+				return nil, ErrOutOfGas
+			}
+			if memorySize > 0 {
+				mem.Resize(memorySize)
+			}
 
-		// execute the operation
-		res, err := operation.execute(&pc, in.evm, contract, mem, stack)
-		// verifyPool is a build flag. Pool verification makes sure the integrity
-		// of the integer pool by comparing values to a default value.
-		if verifyPool {
-			verifyIntegerPool(in.intPool)
-		}
-		// if the operation clears the return data (e.g. it has returning data)
-		// set the last return to the result of the operation.
-		if operation.returns {
-			in.returnData = res
-		}
+			if in.cfg.Debug {
+				in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
+				logged = true
+			}
 
-		switch {
-		case err != nil:
-			return nil, err
-		case operation.reverts:
-			return res, errExecutionReverted
-		case operation.halts:
-			return res, nil
-		case !operation.jumps:
-			pc++
+			// execute the operation
+			res, err := operation.execute(&pc, in.evm, contract, mem, stack)
+			// verifyPool is a build flag. Pool verification makes sure the integrity
+			// of the integer pool by comparing values to a default value.
+			if verifyPool {
+				verifyIntegerPool(in.intPool)
+			}
+			// if the operation clears the return data (e.g. it has returning data)
+			// set the last return to the result of the operation.
+			if operation.returns {
+				in.returnData = res
+			}
+			switch {
+			case err != nil:
+				return nil, err
+			case operation.reverts:
+				return res, errExecutionReverted
+			case operation.halts:
+				return res, nil
+			case !operation.jumps:
+				pc++
+			}
 		}
 	}
 	return nil, nil
