@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var (
@@ -632,6 +633,19 @@ func opGas(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stac
 	return nil, nil
 }
 
+func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	_modelAddr, _dataAddr := stack.pop(), stack.pop()
+    offset, size := stack.pop(), stack.pop()
+    modelAddr := common.BigToAddress(_modelAddr)
+    dataAddr := common.BigToAddress(_dataAddr)
+    log.Info(fmt.Sprint(modelAddr, dataAddr))
+    modelMeta := evm.StateDB.GetCode(modelAddr)
+    dataMeta := evm.StateDB.GetCode(dataAddr)
+    (fmt.Println("modelMeta: ", modelMeta))
+    (fmt.Println("dataMeta: ", dataMeta))
+	memory.Set(offset.Uint64(), size.Uint64(), []byte{0, 1, 2, 3})
+	return nil, nil
+}
 func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (
 		value        = stack.pop()
