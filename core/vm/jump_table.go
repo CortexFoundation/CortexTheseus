@@ -906,6 +906,15 @@ func NewFrontierInstructionSet() [256]operation {
 			valid:         true,
 			writes:        true,
 		},
+		INFER: {
+			execute:       opInfer,
+			gasCost:       makeGasLog(10000),
+			validateStack: makeStackFunc(4, 1),
+			memorySize:    memoryInfer,
+			valid:         true,
+			writes:        true,
+			returns:       true,
+		},
 		CREATE: {
 			execute:       opCreate,
 			gasCost:       gasCreate,
