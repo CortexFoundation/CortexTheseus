@@ -68,7 +68,7 @@ type Contract struct {
 
 // NewContract returns a new contract environment for the execution of EVM.
 func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
-	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil}
+	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil, ModelGas:make(map[common.Address]uint64)}
 
 	if parent, ok := caller.(*Contract); ok {
 		// Reuse JUMPDEST analysis from parent context if available.
