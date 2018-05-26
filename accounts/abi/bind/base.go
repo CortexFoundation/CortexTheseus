@@ -121,7 +121,7 @@ func DeployModelMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, b
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	tx, err := c.transact(opts, nil, append(make([]byte{0, 0, 0, 0, 0, 0, 0, 0}), bytecode, input...))
+	tx, err := c.transact(opts, nil, append([]byte{'0','1'},append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -137,7 +137,23 @@ func DeployInputMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, b
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	tx, err := c.transact(opts, nil, append(make([]byte{1, 1, 1, 1, 1, 1, 1, 1}), bytecode, input...))
+	tx, err := c.transact(opts, nil, append([]byte{'0','2'},append(bytecode, input...)...))
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	c.address = crypto.CreateAddress(opts.From, tx.Nonce())
+	return c.address, tx, c, nil
+}
+
+func DeployCodeContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
+	// Otherwise try to deploy the contract
+	c := NewBoundContract(common.Address{}, abi, backend, backend, backend)
+
+	input, err := c.abi.Pack("", params...)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	tx, err := c.transact(opts, nil, append([]byte{'0','0'},append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
