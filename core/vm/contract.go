@@ -62,6 +62,7 @@ type Contract struct {
 	Args []byte
 
 	DelegateCall bool
+	ModelGas     map[common.Address]uint64
 }
 
 // NewContract returns a new contract environment for the execution of EVM.
@@ -125,6 +126,16 @@ func (c *Contract) UseGas(gas uint64) (ok bool) {
 		return false
 	}
 	c.Gas -= gas
+	return true
+}
+
+// Use model Gas attempts the use gas and subtracts it and returns true on success
+func (c *Contract) UseModelGas(address common.Address, gas uint64) (ok bool) {
+	if c.Gas < gas {
+		return false
+	}
+	c.ModelGas[address] += gas
+	//c.Gas -= gas
 	return true
 }
 
