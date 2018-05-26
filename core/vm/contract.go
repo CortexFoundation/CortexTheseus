@@ -40,6 +40,11 @@ type AccountRef common.Address
 // Address casts AccountRef to a Address
 func (ar AccountRef) Address() common.Address { return (common.Address)(ar) }
 
+type ModelAddressGas struct {
+	Addr common.Address
+	MGas uint64
+}
+
 // Contract represents an ethereum contract in the state database. It contains
 // the the contract code, calling arguments. Contract implements ContractRef
 type Contract struct {
@@ -62,13 +67,14 @@ type Contract struct {
 
 	Args []byte
 
-	DelegateCall bool
-	ModelGas     map[common.Address]uint64
+	DelegateCall    bool
+	ModelGas        map[common.Address]uint64
+	InferOpModelGas ModelAddressGas
 }
 
 // NewContract returns a new contract environment for the execution of EVM.
 func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
-	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil, ModelGas: make(map[common.Address]uint64)}
+	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil, ModelGas: make(map[common.Address]uint64), InferOpModelGas: ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}}
 
 	if parent, ok := caller.(*Contract); ok {
 		// Reuse JUMPDEST analysis from parent context if available.
