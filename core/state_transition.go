@@ -232,9 +232,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
-	for addr, mgas := range st.modelGas {
-		st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas-mgas/100*95), st.gasPrice))
-		st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(mgas/100*95), st.gasPrice))
+	if st.modelGas != nil {
+		for addr, mgas := range st.modelGas {
+			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas-mgas/100*95), st.gasPrice))
+			st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(mgas/100*95), st.gasPrice))
+		}
 	}
 
 	return ret, st.gasUsed(), vmerr != nil, err
