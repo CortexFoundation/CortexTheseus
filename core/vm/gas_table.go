@@ -430,11 +430,14 @@ func gasDelegateCall(gt params.GasTable, evm *EVM, contract *Contract, stack *St
 
 func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
-    if err != nil {
-        return 0, err
-    }
-    var overflow bool
-	if gas, overflow = math.SafeAdd(gas, 10000); overflow {
+	_modelAddr := stack.Back(0)
+	modelAddr := common.BigToAddress(_modelAddr)
+	if err != nil {
+		return 0, err
+	}
+	var overflow bool
+
+	if gas, overflow = math.SafeAdd(gas, uint64(evm.StateDB.GetCodeSize(modelAddr))); overflow {
 		return 0, errGasUintOverflow
 	}
 	return gas, nil
