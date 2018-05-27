@@ -17,8 +17,8 @@
 package vm
 
 import (
+	_ "fmt"
 	"math/big"
-    _ "fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -39,6 +39,11 @@ type AccountRef common.Address
 
 // Address casts AccountRef to a Address
 func (ar AccountRef) Address() common.Address { return (common.Address)(ar) }
+
+type ModelAddressGas struct {
+	Addr common.Address
+	MGas uint64
+}
 
 // Contract represents an ethereum contract in the state database. It contains
 // the the contract code, calling arguments. Contract implements ContractRef
@@ -62,13 +67,14 @@ type Contract struct {
 
 	Args []byte
 
-	DelegateCall bool
-	ModelGas     map[common.Address]uint64
+	DelegateCall    bool
+	ModelGas        map[common.Address]uint64
+	InferOpModelGas ModelAddressGas
 }
 
 // NewContract returns a new contract environment for the execution of EVM.
 func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
-	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil, ModelGas:make(map[common.Address]uint64)}
+	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil, ModelGas: make(map[common.Address]uint64), InferOpModelGas: ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}}
 
 	if parent, ok := caller.(*Contract); ok {
 		// Reuse JUMPDEST analysis from parent context if available.
@@ -131,14 +137,14 @@ func (c *Contract) UseGas(gas uint64) (ok bool) {
 }
 
 // Use model Gas attempts the use gas and subtracts it and returns true on success
-func (c *Contract) UseModelGas(address common.Address, gas uint64) (ok bool) {
-	if c.Gas < gas {
-		return false
-	}
-	c.ModelGas[address] += gas
-	//c.Gas -= gas
-	return true
-}
+// func (c *Contract) UseModelGas(address common.Address, gas uint64) (ok bool) {
+// 	if c.Gas < gas {
+// 		return false
+// 	}
+// 	common.SafeAdd(c.ModelGas[address], gas)
+// 	c.Gas -= gas
+// 	return true
+// }
 
 // Address returns the contracts address
 func (c *Contract) Address() common.Address {

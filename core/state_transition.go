@@ -18,6 +18,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 
@@ -207,12 +208,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		vmerr error
 	)
 	if contractCreation {
-		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
+		ret, _, st.gas, st.modelGas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 		ret, st.gas, st.modelGas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
+
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
 		// The only possible consensus-error would be if there wasn't
@@ -223,9 +225,22 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.refundGas()
-	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
-	for addr, mgas := range st.modelGas {
-		st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
+	//add by xiao yan todo
+	gu := st.gasUsed()
+	if st.modelGas != nil {
+		for _, mGas := range st.modelGas {
+			gu -= mGas
+		}
+		if gu < 0 {
+			panic(fmt.Errorf("why total model gas is larger than total gas"))
+		}
+	}
+	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
+	if st.modelGas != nil {
+		for addr, mgas := range st.modelGas {
+			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas-mgas/100*95), st.gasPrice))
+			st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(mgas/100*95), st.gasPrice))
+		}
 	}
 
 	return ret, st.gasUsed(), vmerr != nil, err

@@ -9,7 +9,7 @@ var errorCode = []byte{0x0}
 var modelCode = []byte{0x0, 0x1, 0x2}
 var inputCode = []byte{0x0, 0x2, 0x3}
 
-func testGas(im InferMeta) {
+func testGas(im *ModelMeta) {
 	fmt.Println(im.Gas())
 }
 
@@ -89,7 +89,7 @@ func TestMeta(t *testing.T) {
 			if res.RawSize() != testObj.need {
 				t.Errorf("test %d, length should be %d but get %d", i, testObj.need, res.RawSize())
 			}
-			testGas(res)
+			// testGas(res)
 		}
 	}
 }

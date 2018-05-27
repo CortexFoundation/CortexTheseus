@@ -686,7 +686,7 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *S
 	}
 
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := evm.Create(contract, input, gas, value)
+	res, addr, returnGas, modelGas, suberr := evm.Create(contract, input, gas, value)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -699,6 +699,9 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *S
 		stack.push(addr.Big())
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 	evm.interpreter.intPool.put(value, offset, size)
 
 	if suberr == errExecutionReverted {
@@ -721,7 +724,7 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Sta
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, _, err := evm.Call(contract, toAddr, args, gas, value)
+	ret, returnGas, modelGas, err := evm.Call(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 	} else {
@@ -731,6 +734,9 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Sta
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 
 	evm.interpreter.intPool.put(addr, value, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -750,7 +756,7 @@ func opCallCode(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack 
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := evm.CallCode(contract, toAddr, args, gas, value)
+	ret, returnGas, modelGas, err := evm.CallCode(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 	} else {
@@ -760,6 +766,9 @@ func opCallCode(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack 
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 
 	evm.interpreter.intPool.put(addr, value, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -775,7 +784,7 @@ func opDelegateCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, st
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, err := evm.DelegateCall(contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := evm.DelegateCall(contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 	} else {
@@ -785,6 +794,9 @@ func opDelegateCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, st
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 
 	evm.interpreter.intPool.put(addr, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -800,7 +812,7 @@ func opStaticCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stac
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, err := evm.StaticCall(contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := evm.StaticCall(contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 	} else {
@@ -810,6 +822,9 @@ func opStaticCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stac
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 
 	evm.interpreter.intPool.put(addr, inOffset, inSize, retOffset, retSize)
 	return ret, nil
