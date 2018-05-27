@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/params"
 )
@@ -60,24 +61,24 @@ func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 	// We use the STOP instruction whether to see
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
-    fmt.Println("evm.BlockNumber", evm.BlockNumber)
-    fmt.Println(evm.ChainConfig().IsConstantinople(evm.BlockNumber))
-    fmt.Println(evm.ChainConfig().IsByzantium(evm.BlockNumber))
-    fmt.Println(evm.ChainConfig().IsHomestead(evm.BlockNumber))
+	fmt.Println("evm.BlockNumber", evm.BlockNumber)
+	fmt.Println(evm.ChainConfig().IsConstantinople(evm.BlockNumber))
+	fmt.Println(evm.ChainConfig().IsByzantium(evm.BlockNumber))
+	fmt.Println(evm.ChainConfig().IsHomestead(evm.BlockNumber))
 	if !cfg.JumpTable[STOP].valid {
 		switch {
 		case evm.ChainConfig().IsConstantinople(evm.BlockNumber):
 			cfg.JumpTable = constantinopleInstructionSet
-            fmt.Println("constantinopleInstructionSet")
+			fmt.Println("constantinopleInstructionSet")
 		case evm.ChainConfig().IsByzantium(evm.BlockNumber):
 			cfg.JumpTable = byzantiumInstructionSet
-            fmt.Println("byzantiumInstructionSet")
+			fmt.Println("byzantiumInstructionSet")
 		case evm.ChainConfig().IsHomestead(evm.BlockNumber):
 			cfg.JumpTable = homesteadInstructionSet
-            fmt.Println("homesteadInstructionSet")
+			fmt.Println("homesteadInstructionSet")
 		default:
 			cfg.JumpTable = frontierInstructionSet
-            fmt.Println("frontierInstructionSet")
+			fmt.Println("frontierInstructionSet")
 		}
 	}
 
@@ -229,7 +230,14 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			}
 		}
 		if IsInfer(&operation) {
-			//todo
+			//todo add by xiao yan
+			cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+			if err != nil || !contract.UseGas(cost) {
+				return nil, ErrOutOfGas
+			}
+
+			contract.ModelGas[contract.InferOpModelGas.Addr] += contract.InferOpModelGas.MGas
+			contract.InferOpModelGas = ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}
 		} else {
 			// consume the gas and return an error if not enough gas is available.
 			// cost is explicitly set so that the capture state defer method can get the proper cost
