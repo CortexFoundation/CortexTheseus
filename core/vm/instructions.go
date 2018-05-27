@@ -20,12 +20,13 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"encoding/json"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
+	_ "github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -646,24 +647,31 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	offset, size := stack.pop(), stack.pop()
 	modelAddr := common.BigToAddress(_modelAddr)
 	inputAddr := common.BigToAddress(_inputAddr)
-	log.Info(fmt.Sprint(modelAddr, inputAddr))
 
 	_modelMeta := evm.StateDB.GetCode(modelAddr)
 	_inputMeta := evm.StateDB.GetCode(inputAddr)
 
-	(fmt.Println("modelMeta: ", _modelMeta))
-	(fmt.Println("dataMeta: ", _inputMeta))
-	modelMeta, err := types.ParseModelMeta(_modelMeta)
-	if err != nil {
+    fmt.Println("_model: ", _modelMeta)
+    fmt.Println("_input: ", _inputMeta)
+    var (
+        modelMeta *types.ModelMeta
+        inputMeta *types.InputMeta
+    )
+    var err error;
+    if modelMeta, err = types.ParseModelMeta(_modelMeta); err != nil {
 		return nil, err
 	}
-	inputMeta, err := types.ParseInputMeta(_inputMeta)
-
-	if err != nil {
+	if inputMeta, err = types.ParseInputMeta(_inputMeta); err != nil {
 		return nil, err
 	}
+    var model map[string]interface{};
+    json.Unmarshal(modelMeta.TypeCode(), &model);
+    fmt.Println("model: ", model)
 	//TODO
-	memory.Set(offset.Uint64(), size.Uint64(), []byte{inputMeta.TypeCode()[1], modelMeta.TypeCode()[1]})
+	memory.Set(
+        offset.Uint64(),
+        size.Uint64(),
+        []byte{inputMeta.TypeCode()[1], modelMeta.TypeCode()[1]})
 	return nil, nil
 }
 func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
