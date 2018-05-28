@@ -139,7 +139,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	)
 
 	// Call the code with the given configuration.
-	code, address, leftOverGas, err := vmenv.Create(
+	code, address, leftOverGas, _,err := vmenv.Create(
 		sender,
 		input,
 		cfg.GasLimit,
