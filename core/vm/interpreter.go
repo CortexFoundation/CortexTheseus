@@ -125,10 +125,6 @@ func IsInputMeta(code []byte) bool {
 	return false
 }
 
-func IsInfer(op *operation) bool {
-	return false
-}
-
 // Run loops and evaluates the contract's code with the given input data and returns
 // the return byte-slice and an error if one occurred.
 //
@@ -229,23 +225,27 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				return nil, errGasUintOverflow
 			}
 		}
-		if IsInfer(&operation) {
+		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		if err != nil || !contract.UseGas(cost) {
+			return nil, ErrOutOfGas
+		}
+		if op == INFER {
 			//todo add by xiao yan
-			cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
-			if err != nil || !contract.UseGas(cost) {
-				return nil, ErrOutOfGas
-			}
+			//cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+			//if err != nil || !contract.UseGas(cost) {
+			//	return nil, ErrOutOfGas
+			//}
 
 			contract.ModelGas[contract.InferOpModelGas.Addr] += contract.InferOpModelGas.MGas
 			contract.InferOpModelGas = ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}
 		} else {
 			// consume the gas and return an error if not enough gas is available.
 			// cost is explicitly set so that the capture state defer method can get the proper cost
-			cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+			//cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
 
-			if err != nil || !contract.UseGas(cost) {
-				return nil, ErrOutOfGas
-			}
+			//if err != nil || !contract.UseGas(cost) {
+			//	return nil, ErrOutOfGas
+			//}
 			if memorySize > 0 {
 				mem.Resize(memorySize)
 			}
