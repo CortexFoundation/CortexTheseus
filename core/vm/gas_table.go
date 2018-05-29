@@ -17,6 +17,8 @@
 package vm
 
 import (
+	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -431,6 +433,7 @@ func gasDelegateCall(gt params.GasTable, evm *EVM, contract *Contract, stack *St
 
 func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
+	return gas, err
 	if err != nil {
 		return 0, err
 	}
@@ -438,6 +441,7 @@ func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, me
 	modelAddr := common.BigToAddress(_modelAddr)
 	_modelMeta := evm.StateDB.GetCode(modelAddr)
 	modelMeta, err := types.ParseModelMeta(_modelMeta)
+	fmt.Printf("gasInfer: modelMeta %x %v %v\n", _modelAddr, modelMeta, err)
 	if err != nil {
 		return 0, err
 	}

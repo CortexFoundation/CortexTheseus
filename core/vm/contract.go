@@ -38,7 +38,9 @@ type ContractRef interface {
 type AccountRef common.Address
 
 // Address casts AccountRef to a Address
-func (ar AccountRef) Address() common.Address { return (common.Address)(ar) }
+func (ar AccountRef) Address() common.Address {
+	return (common.Address)(ar)
+}
 
 type ModelAddressGas struct {
 	Addr common.Address
