@@ -17,7 +17,6 @@
 package vm
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -652,8 +651,8 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	_modelMeta := evm.StateDB.GetCode(modelAddr)
 	_inputMeta := evm.StateDB.GetCode(inputAddr)
 
-	fmt.Println("_model: ", _modelMeta)
-	fmt.Println("_input: ", _inputMeta)
+	// fmt.Println("_model: ", _modelMeta)
+	// fmt.Println("_input: ", _inputMeta)
 	var (
 		modelMeta *types.ModelMeta
 		inputMeta *types.InputMeta
@@ -665,9 +664,12 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	if inputMeta, err = types.ParseInputMeta(_inputMeta); err != nil {
 		return nil, err
 	}
-	var model map[string]interface{}
-	json.Unmarshal(modelMeta.TypeCode(), &model)
+	var model, _ = modelMeta.EncodeJSON()
+	var input, _ = inputMeta.EncodeJSON()
+	// json.Unmarshal(modelMeta.TypeCode(), &model)
+
 	fmt.Println("model: ", model)
+	fmt.Println("model: ", input)
 	// TODO
 
 	var (

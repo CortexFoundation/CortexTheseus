@@ -444,12 +444,13 @@ func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, me
 		return 0, err
 	}
 	var overflow bool
-	if gas, overflow = math.SafeAdd(gas, modelMeta.Gas()); overflow {
+	if gas, overflow = math.SafeAdd(gas, modelMeta.Gas); overflow {
 		return 0, errGasUintOverflow
 	}
 	contract.InferOpModelGas = ModelAddressGas{
-		Addr: modelMeta.AuthorAddress(),
-		MGas: modelMeta.Gas()}
+		Addr: modelMeta.AuthorAddress,
+		MGas: modelMeta.Gas,
+	}
 	return gas, nil
 }
 func gasStaticCall(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
