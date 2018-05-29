@@ -406,3 +406,7 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // Interpreter returns the EVM interpreter
 func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }
+
+func (evm *EVM) CallExternal() []byte {
+	return []byte{1, 2, 3}
+}
