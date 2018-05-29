@@ -33,11 +33,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -111,22 +114,26 @@ func runCmd(ctx *cli.Context) error {
 	}
 	statedb.CreateAccount(sender)
 
+	testModelMeta, _ := rlp.EncodeToBytes(
+		&types.ModelMeta{
+			Hash:          crypto.Keccak256([]byte{0x12}),
+			RawSize:       10000,
+			InputShape:    []uint64{10, 1},
+			OutputShape:   []uint64{1},
+			Gas:           100000,
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
+		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
-	testModelMeta := `{
-		"hash": "0x00",
-		"ishape": [10, 1],
-		"oshape": [1],
-		"gas": 100000,
-		"creater": "0x00"
-  }`
-	fmt.Println("tmp0:", testModelMeta)
-	testInputMeta := `{
-		"hash": "0x00",
-		"ishape": [10, 1],
-		"oshape": [1],
-		"creater": "0x00"
-  }`
-	fmt.Println("tmp0:", testInputMeta)
+	fmt.Printf("tmp0:%x\n", testModelMeta)
+
+	testInputMeta, _ := rlp.EncodeToBytes(
+		&types.InputMeta{
+			Hash:          crypto.Keccak256([]byte{0x23}),
+			RawSize:       10000,
+			Shape:         []uint64{1},
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
+		})
+	fmt.Printf("tmp0:%x\n", testInputMeta)
 	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta)...))
 	statedb.SetCode(common.HexToAddress("0x2001"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {
