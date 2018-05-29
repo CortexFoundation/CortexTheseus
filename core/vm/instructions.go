@@ -673,6 +673,7 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	var (
 		ret []byte
 	)
+	ret = append(ret, []byte{1, 2, 3}...)
 	memory.Set(offset.Uint64(), size.Uint64(), ret)
 	_, _ = inputMeta, modelMeta
 	return nil, nil

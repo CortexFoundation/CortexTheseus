@@ -1,8 +1,9 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
-	_ "fmt"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -24,7 +25,7 @@ type InferMeta interface {
 type ModelMeta struct {
 	typeCode []byte
 	rawSize  uint64
-	gas      uint64
+	gas      uint64 `json:"gas"`
 	author   common.Address
 }
 
@@ -42,12 +43,13 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if !(code[0] == 0x0 && code[1] == 0x1) {
 		return nil, ErrorCodeTypeModelMeta
 	}
-	return &ModelMeta{
-		typeCode: code[:2],
-		rawSize:  uint64(len(code) - 2),
-		gas:      123,
-		author:   common.BytesToAddress([]byte{0x0}),
-	}, nil
+	var model_meta ModelMeta
+	json.Unmarshal(code[2:], &model_meta)
+	model_meta.typeCode = code[:2]
+	model_meta.rawSize = uint64(len(code) - 2)
+	model_meta.author = common.BytesToAddress([]byte{0x0})
+	fmt.Println("ParseModelMeta", code, model_meta)
+	return &model_meta, nil
 }
 
 func ParseInputMeta(code []byte) (*InputMeta, error) {
