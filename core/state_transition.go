@@ -225,7 +225,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.refundGas()
-	//add by xiao yan todo
+	//TODO(xiaoyan)
 	gu := st.gasUsed()
 	if st.modelGas != nil {
 		for _, mGas := range st.modelGas {
