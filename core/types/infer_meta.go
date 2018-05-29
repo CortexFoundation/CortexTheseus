@@ -44,7 +44,9 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 		return nil, ErrorCodeTypeModelMeta
 	}
 	var model_meta ModelMeta
-	json.Unmarshal(code[2:], &model_meta)
+	err := json.Unmarshal(code[2:], &model_meta)
+	fmt.Println("err", err)
+
 	model_meta.typeCode = code[:2]
 	model_meta.rawSize = uint64(len(code) - 2)
 	model_meta.author = common.BytesToAddress([]byte{0x0})
