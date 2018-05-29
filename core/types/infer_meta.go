@@ -3,15 +3,17 @@ package types
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 var (
 	ErrorCodeLengthNotEnough = errors.New("Code length should be larger than 2")
 	ErrorCodeTypeModelMeta   = errors.New("Model meta should start with 0x0001")
 	ErrorCodeTypeInputMeta   = errors.New("Input meta should start with 0x0002")
+	ErrorDecodeModelMeta     = errors.New("Model meta decode error")
+	ErrorDecodeInputMeta     = errors.New("Input meta decode error")
 )
 
 //InferMeta include ModelMeta struct and InputMeta type
@@ -23,17 +25,27 @@ type InferMeta interface {
 }
 
 type ModelMeta struct {
-	typeCode []byte
-	rawSize  uint64
-	gas      uint64 `json:"gas"`
-	author   common.Address
+	Hash          []byte
+	RawSize       uint64
+	InputShape    []uint64
+	OutputShape   []uint64
+	Gas           uint64
+	AuthorAddress common.Address
+}
+type InputMeta struct {
+	Hash          []byte
+	RawSize       uint64
+	Shape         []uint64
+	AuthorAddress common.Address
 }
 
-type InputMeta struct {
-	typeCode []byte
-	rawSize  uint64
-	gas      uint64
-	author   common.Address
+func (mm *ModelMeta) EncodeJSON() (string, error) {
+	data, err := json.Marshal(mm)
+	return string(data), err
+}
+func (im *InputMeta) EncodeJSON() (string, error) {
+	data, err := json.Marshal(im)
+	return string(data), err
 }
 
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
@@ -43,15 +55,12 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if !(code[0] == 0x0 && code[1] == 0x1) {
 		return nil, ErrorCodeTypeModelMeta
 	}
-	var model_meta ModelMeta
-	err := json.Unmarshal(code[2:], &model_meta)
-	fmt.Println("err", err)
-
-	model_meta.typeCode = code[:2]
-	model_meta.rawSize = uint64(len(code) - 2)
-	model_meta.author = common.BytesToAddress([]byte{0x0})
-	fmt.Println("ParseModelMeta", code, model_meta)
-	return &model_meta, nil
+	var modelMeta ModelMeta
+	err := rlp.DecodeBytes(code[2:], &modelMeta)
+	if err != nil {
+		return nil, err
+	}
+	return &modelMeta, nil
 }
 
 func ParseInputMeta(code []byte) (*InputMeta, error) {
@@ -61,43 +70,11 @@ func ParseInputMeta(code []byte) (*InputMeta, error) {
 	if !(code[0] == 0x0 && code[1] == 0x2) {
 		return nil, ErrorCodeTypeInputMeta
 	}
+	var inputMeta InputMeta
+	err := rlp.DecodeBytes(code[2:], &inputMeta)
+	if err != nil {
+		return nil, err
+	}
 
-	return &InputMeta{
-		typeCode: code[:2],
-		rawSize:  uint64(len(code) - 2),
-		gas:      123,
-		author:   common.BytesToAddress([]byte{0x1}),
-	}, nil
-}
-
-func (mm *ModelMeta) TypeCode() []byte {
-	return mm.typeCode
-}
-
-func (mm *ModelMeta) RawSize() uint64 {
-	return mm.rawSize
-}
-
-func (mm *ModelMeta) Gas() uint64 {
-	return mm.gas
-}
-
-func (mm *ModelMeta) AuthorAddress() common.Address {
-	return mm.author
-}
-
-func (im *InputMeta) TypeCode() []byte {
-	return im.typeCode
-}
-
-func (im *InputMeta) RawSize() uint64 {
-	return im.rawSize
-}
-
-func (im *InputMeta) Gas() uint64 {
-	return im.gas
-}
-
-func (im *InputMeta) AuthorAddress() common.Address {
-	return im.author
+	return &inputMeta, nil
 }
