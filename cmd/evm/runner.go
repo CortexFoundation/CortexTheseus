@@ -113,18 +113,18 @@ func runCmd(ctx *cli.Context) error {
 
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 	testModelMeta := `{
-		'hash': 0x00,
-		'ishape': [10, 1],
-		'oshape': [1],
-		'gas': 100000,
-		'creater' 0x00
+		"hash": "0x00",
+		"ishape": [10, 1],
+		"oshape": [1],
+		"gas": 100000,
+		"creater": "0x00"
   }`
 	fmt.Println("tmp0:", testModelMeta)
 	testInputMeta := `{
-		'hash': 0x00,
-		'ishape': [10, 1],
-		'oshape': [1],
-		'creater' 0x00
+		"hash": "0x00",
+		"ishape": [10, 1],
+		"oshape": [1],
+		"creater": "0x00"
   }`
 	fmt.Println("tmp0:", testInputMeta)
 	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta)...))
