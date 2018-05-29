@@ -230,53 +230,46 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			return nil, ErrOutOfGas
 		}
 		if op == INFER {
-			//todo add by xiao yan
-			//cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
-			//if err != nil || !contract.UseGas(cost) {
-			//	return nil, ErrOutOfGas
-			//}
-
 			contract.ModelGas[contract.InferOpModelGas.Addr] += contract.InferOpModelGas.MGas
 			contract.InferOpModelGas = ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}
-		} else {
-			// consume the gas and return an error if not enough gas is available.
-			// cost is explicitly set so that the capture state defer method can get the proper cost
-			//cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		}
+		// consume the gas and return an error if not enough gas is available.
+		// cost is explicitly set so that the capture state defer method can get the proper cost
+		//cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
 
-			//if err != nil || !contract.UseGas(cost) {
-			//	return nil, ErrOutOfGas
-			//}
-			if memorySize > 0 {
-				mem.Resize(memorySize)
-			}
+		//if err != nil || !contract.UseGas(cost) {
+		//	return nil, ErrOutOfGas
+		//}
+		if memorySize > 0 {
+			mem.Resize(memorySize)
+		}
 
-			if in.cfg.Debug {
-				in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
-				logged = true
-			}
+		if in.cfg.Debug {
+			in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
+			logged = true
+		}
 
-			// execute the operation
-			res, err := operation.execute(&pc, in.evm, contract, mem, stack)
-			// verifyPool is a build flag. Pool verification makes sure the integrity
-			// of the integer pool by comparing values to a default value.
-			if verifyPool {
-				verifyIntegerPool(in.intPool)
-			}
-			// if the operation clears the return data (e.g. it has returning data)
-			// set the last return to the result of the operation.
-			if operation.returns {
-				in.returnData = res
-			}
-			switch {
-			case err != nil:
-				return nil, err
-			case operation.reverts:
-				return res, errExecutionReverted
-			case operation.halts:
-				return res, nil
-			case !operation.jumps:
-				pc++
-			}
+		// execute the operation
+		res, err := operation.execute(&pc, in.evm, contract, mem, stack)
+		// verifyPool is a build flag. Pool verification makes sure the integrity
+		// of the integer pool by comparing values to a default value.
+		if verifyPool {
+			verifyIntegerPool(in.intPool)
+		}
+		// if the operation clears the return data (e.g. it has returning data)
+		// set the last return to the result of the operation.
+		if operation.returns {
+			in.returnData = res
+		}
+		switch {
+		case err != nil:
+			return nil, err
+		case operation.reverts:
+			return res, errExecutionReverted
+		case operation.halts:
+			return res, nil
+		case !operation.jumps:
+			pc++
 		}
 	}
 	return nil, nil
