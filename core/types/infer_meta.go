@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -44,8 +43,8 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 		return nil, ErrorCodeTypeModelMeta
 	}
 	var model_meta ModelMeta
-	err := json.Unmarshal(code[2:], &model_meta)
-	fmt.Println("err", err)
+	// err := json.Unmarshal(code[2:], &model_meta)
+	// fmt.Println("err", err)
 
 	model_meta.typeCode = code[:2]
 	model_meta.rawSize = uint64(len(code) - 2)
