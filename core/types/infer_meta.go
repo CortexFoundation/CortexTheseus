@@ -2,14 +2,15 @@ package types
 
 import (
 	"errors"
+	_ "fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
-    ErrorCodeLengthNotEnough = errors.New("Code length should be larger than 2")
-    ErrorCodeTypeModelMeta   = errors.New("Model meta should start with 0x0001")
-    ErrorCodeTypeInputMeta   = errors.New("Input meta should start with 0x0002")
+	ErrorCodeLengthNotEnough = errors.New("Code length should be larger than 2")
+	ErrorCodeTypeModelMeta   = errors.New("Model meta should start with 0x0001")
+	ErrorCodeTypeInputMeta   = errors.New("Input meta should start with 0x0002")
 )
 
 //InferMeta include ModelMeta struct and InputMeta type
@@ -38,7 +39,7 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if len(code) < 2 {
 		return nil, ErrorCodeLengthNotEnough
 	}
-	if code[0] != 0x0 || code[1] != 0x1 {
+	if !(code[0] == 0x0 && code[1] == 0x1) {
 		return nil, ErrorCodeTypeModelMeta
 	}
 	return &ModelMeta{
@@ -50,12 +51,12 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 }
 
 func ParseInputMeta(code []byte) (*InputMeta, error) {
-    if len(code) < 2 {
-        return nil, ErrorCodeLengthNotEnough
-    }
-    if code[0] != 0x0 || code[1] != 0x2 {
-        return nil, ErrorCodeTypeInputMeta
-    }
+	if len(code) < 2 {
+		return nil, ErrorCodeLengthNotEnough
+	}
+	if !(code[0] == 0x0 && code[1] == 0x2) {
+		return nil, ErrorCodeTypeInputMeta
+	}
 
 	return &InputMeta{
 		typeCode: code[:2],
@@ -66,15 +67,15 @@ func ParseInputMeta(code []byte) (*InputMeta, error) {
 }
 
 func (mm *ModelMeta) TypeCode() []byte {
-    return mm.typeCode
+	return mm.typeCode
 }
 
 func (mm *ModelMeta) RawSize() uint64 {
-    return mm.rawSize
+	return mm.rawSize
 }
 
 func (mm *ModelMeta) Gas() uint64 {
-    return mm.gas
+	return mm.gas
 }
 
 func (mm *ModelMeta) AuthorAddress() common.Address {
@@ -82,15 +83,15 @@ func (mm *ModelMeta) AuthorAddress() common.Address {
 }
 
 func (im *InputMeta) TypeCode() []byte {
-    return im.typeCode
+	return im.typeCode
 }
 
 func (im *InputMeta) RawSize() uint64 {
-    return im.rawSize
+	return im.rawSize
 }
 
 func (im *InputMeta) Gas() uint64 {
-    return im.gas
+	return im.gas
 }
 
 func (im *InputMeta) AuthorAddress() common.Address {
