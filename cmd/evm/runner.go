@@ -18,7 +18,7 @@ package main
 
 import (
 	"bytes"
-	_ "encoding/hex"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -113,10 +113,11 @@ func runCmd(ctx *cli.Context) error {
 		sender = common.HexToAddress(ctx.GlobalString(SenderFlag.Name))
 	}
 	statedb.CreateAccount(sender)
-
+	mh, _ := hex.DecodeString("5c4d1f84063be8e25e83da6452b1821926548b3c2a2a903a0724e14d5c917b00")
+	ih, _ := hex.DecodeString("c0a1f3c82e11e314822679e4834e3bc575bd017d12d888acda4a851a62d261dc")
 	testModelMeta, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
-			Hash:          crypto.Keccak256([]byte{0x12}),
+			Hash:          mh,
 			RawSize:       10000,
 			InputShape:    []uint64{10, 1},
 			OutputShape:   []uint64{1},
@@ -127,7 +128,7 @@ func runCmd(ctx *cli.Context) error {
 
 	testInputMeta, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
-			Hash:          crypto.Keccak256([]byte{0x23}),
+			Hash:          ih,
 			RawSize:       10000,
 			Shape:         []uint64{1},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),

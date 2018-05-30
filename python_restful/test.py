@@ -1,7 +1,6 @@
 import requests
 import json
 import os
-fp = open("Block.py",'rb')
 nonce = 0
 miner = "0x0000000000000000000000000000000000000000001"
 def getState():

@@ -35,7 +35,7 @@ class Node:
                         f=request.files["params_file"]
                         sha=SHA256.new()
                         sha.update(f.read())
-                        
+
                         f1=request.files["json_file"]
                         sha.update(f1.read())
                         addr = sha.hexdigest()
@@ -70,7 +70,7 @@ class Node:
                             self.input_lock[addr].release()
                             return jsonify({"msg":"error","info":str(e)})
                         self.input_lock[addr].release()
-                        info["input_addr"]=addr 
+                        info["input_addr"]=addr
                     return jsonify({"msg": "ok", "info": info})
             except Exception as e:
                 return jsonify({"msg":"error","info":str(e)})

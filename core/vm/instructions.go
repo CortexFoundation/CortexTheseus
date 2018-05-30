@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"encoding/hex"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -675,7 +677,8 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	var (
 		ret []byte
 	)
-	// fmt.Println(modelMeta.Hash, inputMeta.Hash)
+	fmt.Println("model, input", modelMeta.Hash, inputMeta.Hash)
+	fmt.Println("model, input", hex.EncodeToString(modelMeta.Hash), hex.EncodeToString(inputMeta.Hash))
 	ret = append(ret, evm.CallExternal("infer", [][]byte{modelMeta.Hash, inputMeta.Hash})...)
 	memory.Set(offset.Uint64(), size.Uint64(), ret)
 	_, _ = inputMeta, modelMeta
