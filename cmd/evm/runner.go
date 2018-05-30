@@ -124,7 +124,6 @@ func runCmd(ctx *cli.Context) error {
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
-	fmt.Printf("tmp0:%x\n", testModelMeta)
 
 	testInputMeta, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
@@ -133,7 +132,6 @@ func runCmd(ctx *cli.Context) error {
 			Shape:         []uint64{1},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 		})
-	fmt.Printf("tmp0:%x\n", testInputMeta)
 	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta)...))
 	statedb.SetCode(common.HexToAddress("0x2001"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {

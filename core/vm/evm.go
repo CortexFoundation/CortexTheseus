@@ -24,6 +24,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+
+	"fmt"
+	"gopkg.in/resty.v1"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -407,6 +410,18 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 // Interpreter returns the EVM interpreter
 func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }
 
-func (evm *EVM) CallExternal() []byte {
+func (evm *EVM) CallExternal(call_type string, input [][]byte) []byte {
+	if call_type == "infer" {
+		fmt.Println("call infer")
+		resp, err := resty.R().Get("http://baidu.com")
+		// explore response object
+		fmt.Printf("\nError: %v", err)
+		fmt.Printf("\nResponse Status Code: %v", resp.StatusCode())
+		fmt.Printf("\nResponse Status: %v", resp.Status())
+		fmt.Printf("\nResponse Time: %v", resp.Time())
+		fmt.Printf("\nResponse Received At: %v", resp.ReceivedAt())
+		fmt.Printf("\nResponse Body: %v", resp) // or resp.String() or string(resp.Body())
+		return []byte(resp.String())
+	}
 	return []byte{1, 2, 3}
 }
