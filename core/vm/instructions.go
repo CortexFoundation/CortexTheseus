@@ -675,6 +675,7 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	var input, _ = inputMeta.EncodeJSON()
 	// json.Unmarshal(modelMeta.TypeCode(), &model)
 
+	// GET request
 	fmt.Println("model: ", model)
 	fmt.Println("model: ", input)
 	// TODO
@@ -682,7 +683,7 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	var (
 		ret []byte
 	)
-	ret = append(ret, evm.CallExternal()...)
+	ret = append(ret, evm.CallExternal("infer", [][]byte{[]byte(model), []byte(input)})...)
 	memory.Set(offset.Uint64(), size.Uint64(), ret)
 	_, _ = inputMeta, modelMeta
 	return nil, nil
