@@ -675,8 +675,9 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	var (
 		ret []byte
 	)
-	// fmt.Println(modelMeta.Hash, inputMeta.Hash)
-	ret = append(ret, evm.CallExternal("infer", [][]byte{modelMeta.Hash, inputMeta.Hash})...)
+	fmt.Println("model, input", modelMeta.Hash, inputMeta.Hash)
+	fmt.Println("model, input", string(modelMeta.Hash.Bytes()), string(inputMeta.Hash.Bytes()))
+	ret = append(ret, evm.CallExternal("infer", [][]byte{modelMeta.Hash.Bytes(), inputMeta.Hash.Bytes()})...)
 	memory.Set(offset.Uint64(), size.Uint64(), ret)
 	_, _ = inputMeta, modelMeta
 	return nil, nil
