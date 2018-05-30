@@ -14,6 +14,8 @@ def tx(f,to,amount):
     global nonce
     nonce+=1
     return requests.post("http://127.0.0.1:5000/txion",json={"type":"tx","from":f,"to":to,"amount":str(amount),"nonce":nonce})
+def infer(input_addr,model_addr):
+    return requests.post("http://127.0.0.1:5000/infer",json={"input_addr":input_addr,"model_addr":model_addr}).json()
 def uploadInput(f,filepath):
     (tt,tempfilename) = os.path.split(filepath)
     files = {
@@ -50,10 +52,13 @@ def callContract(f,input_address,contract_address):
 if __name__ == "__main__":
     # mine()
     tx(f=miner,to="0x0000000000000000000000000000000000000000001",amount=10)
-    model_info = uploadModel("upload/Inception-BN-symbol.json","upload/Inception-BN-0000.params").json()
+    model_info = uploadModel("upload/Inception-BN-symbol.json","upload/Inception-BN-0126.params").json()
     print(model_info,flush=True)
-    input_info = uploadInput(miner,"upload/1").json()
+    input_info = uploadInput(miner,"upload/data").json()
     print(input_info,flush=True)
+    infer_info = infer(input_info["info"]["input_addr"],model_info["info"]["model_addr"])
+    print(infer_info)
+
     # mine()
     # contract_info = createContract(miner,model_address=model_info["info"]["model_addr"],param_address=param_info["info"]["param_addr"]).json()
     # mine()
