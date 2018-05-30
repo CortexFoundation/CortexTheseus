@@ -17,14 +17,18 @@
 package vm
 
 import (
-	"encoding/json"
 	"math/big"
 	"sync/atomic"
 	"time"
 
+	"bytes"
+	"encoding/binary"
+
+	"github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"strconv"
 
 	"fmt"
 	"gopkg.in/resty.v1"
@@ -413,7 +417,7 @@ func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }
 
 type ExternalFunctionResponse struct {
 	Output uint32 `json:"output"`
-	Status bool   `json:"status"`
+	Status string `json:"status"`
 }
 
 func ExternelFunction() []byte {
@@ -423,32 +427,34 @@ func ExternelFunction() []byte {
 func (evm *EVM) CallExternal(call_type string, input [][]byte) []byte {
 	if call_type == "infer" {
 		fmt.Println("call infer")
-		resp, err := resty.R().Get("http://127.0.0.1:5000")
-		/*
-			fmt.Printf("\nError: %v", err)
-			fmt.Printf("\nResponse Status Code: %v", resp.StatusCode())
-			fmt.Printf("\nResponse Status: %v", resp.Status())
-			fmt.Printf("\nResponse Time: %v", resp.Time())
-			fmt.Printf("\nResponse Received At: %v", resp.ReceivedAt())
-			fmt.Printf("\nResponse Body: %v", resp) // or resp.String() or string(resp.Body())
-		*/
-		_, _ = resp, err
-		modelAddr := input[0]
-		inputAddr := input[1]
-		fmt.Println(modelAddr, inputAddr)
-		if modelAddr[0] == 95 && inputAddr[0] == 172 {
-			respStr := `{"output": 255, "status": true}` // resp.String()
-			var extf_resp ExternalFunctionResponse
-			json.Unmarshal([]byte(respStr), &extf_resp)
-			fmt.Println("extf_resp", extf_resp)
-			return []byte{byte(extf_resp.Output)}
-		} else {
-			respStr := `{"output": 1, "status": true}` // resp.String()
-			var extf_resp ExternalFunctionResponse
-			json.Unmarshal([]byte(respStr), &extf_resp)
-			fmt.Println(extf_resp)
-			return []byte{byte(extf_resp.Output)}
+		model_meta_hash := input[0]
+		input_meta_hash := input[1]
+		requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
+		fmt.Println(requestBody)
+		resp, err := resty.R().
+			SetHeader("Content-Type", "application/json").
+			SetBody(requestBody).
+			Post("http://127.0.0.1:5000/infer")
+		if err != nil {
+			return []byte("ERROR0")
 		}
+		js, _ := simplejson.NewJson([]byte(resp.String()))
+		fmt.Println(js)
+		int_output_tmp, out_err := js.Get("info").String()
+		int_output, err := strconv.Atoi(int_output_tmp)
+		fmt.Println("out: ", int_output, "err:", out_err, " resp", resp.String())
+		return BinaryWrite(int64(int_output))
 	}
 	return []byte{1, 2, 3}
+}
+
+func BinaryWrite(x interface{}) []byte {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.BigEndian, x)
+	if err != nil {
+		fmt.Println("binary.Write failed:", err)
+		return []byte{}
+	}
+	fmt.Printf("% x\n", buf.Bytes())
+	return buf.Bytes()
 }
