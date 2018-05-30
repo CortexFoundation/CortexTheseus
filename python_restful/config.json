@@ -1,0 +1,9 @@
+{
+  "models":["caffenet","Inception-BN","nin","resnet-152","RN101-5k500","squeezenet_v1.1","vgg16","vgg19"],
+  "img_dir":"./input_data/",
+  "result_dir":"./results/",
+  "model_dir":"./model/",
+  "gpu_num":8,
+  "batchsize":1,
+  "times":100000
+}
