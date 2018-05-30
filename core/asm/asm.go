@@ -134,3 +134,73 @@ func Disassemble(script []byte) ([]string, error) {
 	}
 	return instrs, nil
 }
+
+func HasInferOp(script []byte) bool {
+	fmt.Println("Start testing has infer operation !!!")
+	it := NewInstructionIterator(script)
+	for {
+		next, infer := it.NextAndInferAssert()
+		if !next {
+			return false
+		}
+
+		//fmt.Printf("loops %s %s \n", next, infer)
+		if it.Arg() != nil && 0 < len(it.Arg()) {
+			//instrs = append(instrs, fmt.Sprintf("%06v: %v 0x%x\n", it.PC(), it.Op(), it.Arg()))
+		} else {
+			//instrs = append(instrs, fmt.Sprintf("%06v: %v\n", it.PC(), it.Op()))
+		}
+		if infer {
+			fmt.Println("Has infer operation , asm")
+			return true
+		}
+		fmt.Println("loops end")
+	}
+	if err := it.Error(); err != nil {
+		fmt.Println("......")
+		return false
+	}
+	fmt.Println("END")
+	return false
+}
+
+func (it *instructionIterator) NextAndInferAssert() (bool, bool) {
+	//fmt.Println("Next ..")
+	if it.error != nil || uint64(len(it.code)) <= it.pc {
+		// We previously reached an error or the end.
+		return false, false
+	}
+
+	if it.started {
+		// Since the iteration has been already started we move to the next instruction.
+		if it.arg != nil {
+			it.pc += uint64(len(it.arg))
+		}
+		it.pc++
+	} else {
+		// We start the iteration from the first instruction.
+		it.started = true
+	}
+
+	if uint64(len(it.code)) <= it.pc {
+		// We reached the end.
+		return false, false
+	}
+
+	it.op = vm.OpCode(it.code[it.pc])
+	fmt.Printf("Next ..%s %s\n", it.code[it.pc], it.op)
+	if it.op.IsPush() {
+//		fmt.Println("Is push")
+		a := uint64(it.op) - uint64(vm.PUSH1) + 1
+		u := it.pc + 1 + a
+		if uint64(len(it.code)) <= it.pc || uint64(len(it.code)) < u {
+			it.error = fmt.Errorf("incomplete push instruction at %v", it.pc)
+			return false, false
+		}
+		it.arg = it.code[it.pc+1 : u]
+	} else {
+		it.arg = nil
+	}
+	//fmt.Println("end")
+	return true, it.op.IsInfer()
+}
