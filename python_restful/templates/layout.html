@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ user_manager.USER_APP_NAME }}</title>
+    <!-- Bootstrap -->
+    <link rel="shortcut icon" href="images/logo.png" type="image/x-icon">
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
+    <!-- In-lining styles to avoid needing a separate .css file -->
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.js"></script>
+    <![endif]-->
+
+    {# *** Allow sub-templates to insert extra html to the head section *** #}
+    {% block extra_css %}{% endblock %}
+</head>
+
+
+<body style='padding-bottom: 70px'>
+{% block body %}
+<!--<div class="pull-left"><a href="/"><h1 class="no-margins">{{ user_manager.USER_APP_NAME }}</h1></a></div>-->
+<div class="header">
+    <div class="container">
+        <div class="pull-left">
+            <a href="/" class="logo">Cortex Chain Sample</a>
+        </div>
+        <div class="pull-right" style="margin-right: -15px">
+            {% if call_or_get(current_user.is_authenticated) %}
+            <a href="#">{{ current_user.username or current_user.email }}</a>   
+            <a href="{{ url_for('user.logout') }}">{%trans%}Sign out{%endtrans%}</a>
+            {% else %}
+            <a href="{{ url_for('user.login') }}">{%trans%}Sign in{%endtrans%}</a>
+            <a href="{{ url_for('user.register') }}">{%trans%}Register{%endtrans%}</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% block menu %}
+{% endblock %}
+
+<div id="main-div" class="with-margins">
+    {# One-time system messages called Flash messages #}
+    {% block flash_messages %}
+    {%- with messages = get_flashed_messages(with_categories=true) -%}
+    {% if messages %}
+    {% for category, message in messages %}
+    {% if category=='error' %}
+    {% set category='danger' %}
+    {% endif %}
+<!--    <div class="alert alert-{{category}}">{{ message|safe }}</div> -->
+    {% endfor %}
+    {% endif %}
+    {%- endwith %}
+    {% endblock %}
+
+    {% block main %}
+    {% block content %}{% endblock %}
+    {% endblock %}
+</div>
+
+<div class="footer" style="position: fixed;bottom: 0;background: #fff">
+    <div class="container">©️ 2018 Cortexlabs.ai</div>
+</div>
+{% endblock %}
+
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+{# *** Allow sub-templates to insert extra html to the bottom of the body *** #}
+{% block extra_js %}{% endblock %}
+
+
+
+</body>
+<script>
+    $('body').css('min-height', window.innerHeight);
+    var mineraddr = '{{current_user.mineraddr}}';
+    var mineramount;
+    var blockurl = '';
+    if (mineraddr) {
+	$('.mineraddr').html(mineraddr);
+	blockurl = 'getBlock?address='+mineraddr;
+	//$.post('/account?address='+mineraddr, function(data){
+	//    if (data) {
+	//	$('.mineramount').append(data.account);
+	//    }
+	//});
+    }else {
+	blockurl = 'getBlock';
+    }
+    var txn = {};
+    function getBlocks() {
+        $.get('/'+blockurl, function (data) {
+            if (data) {
+		$('.mineramount').html(data.account);
+		mineramount = data.account;
+		$('#blocks table tbody').empty();
+	        for (var i =0;i<data.block.length;i++) {
+		    if (data.block[i].data.length>0){
+			data.block[i].data.length = data.block[i].data.length-1;
+		    }
+                    $('#blocks table tbody').append('<tr>' +
+                        '<td><a href="#" data-toggle="modal" data-target="#txn" onclick="getTxn('+data.block[i].index+')">'+data.block[i].index+'</a></td>' +
+                        '<td>'+new Date(data.block[i].timestamp)+'</td>' +
+			'<td>0x0000000000000000000000000000000000000000001</td>' +
+                        '<td>'+data.block[i].data.length+'</td>' +
+                        '<td>5</td>' +
+                        '</tr>');
+		    txn[data.block[i].index] = data.block[i].data;
+	        }
+            }
+        })
+    }
+    getBlocks();
+    setInterval(function () {
+        getBlocks();
+    }, 15000);
+    function getTxn(height) {
+	$('.blockheight').append(height);
+	$('#txn table tbody').empty();
+	var data = txn[height];
+	for (var i in data){
+	    if (data[i].type=='tx'||data[i].type=='call'){
+		$('#txn table tbody').append('<tr>' +
+                '<td>'+data[i].tx_hash+'</td>' +
+                '<td>'+data[i].type+'</td>' +
+                '<td>'+data[i].from+'</td>' +
+                '<td>'+data[i].to+'</td>' +
+                '<td>'+data[i].amount+'</td>' +
+                '<td>'+data[i].comment+'</td>' +
+                '</tr>')
+	    }
+        }
+    }
+    function transfer() {
+	$('.transfer').addClass('disabled');
+        var from = $('#transfer input').eq(0).val();
+        var to = $('#transfer input').eq(1).val();
+        var amount = $('#transfer input').eq(2).val();
+	var reg = /^[0-9a-f]{64}$/;
+	if (!reg.test(to)){
+	    alert('Please fill in the correct address!');
+	    $('.transfer').removeClass('disabled');
+	    return
+	}
+	if (amount<=0){
+	    alert('Amount cannot be less than 0');
+	    $('.transfer').removeClass('disabled');
+            return
+	}
+	if (amount>mineramount){
+	    alert('Insufficient balance!');
+	    $('.transfer').removeClass('disabled');
+	    return
+	}
+	var parma = {
+	    'nonce': 0,
+            'from': from,
+            'type': 'tx',
+            'to': to,
+            'amount': amount
+	}
+	$.ajax({
+	    url:'/txion',
+	    type: 'POST',
+	    data: JSON.stringify(parma),
+	    dataType: 'json',
+	    contentType: 'application/json',
+	    success: function(data){
+		if(data.msg=='ok'){
+		    $('.msg').show();
+		    setTimeout(function(){
+			$('.msg').hide();
+			$('#transfer').modal('hide');
+			$('.transfer').removeClass('disabled');
+		    }, 1000)
+		}
+	    }
+	})
+    }
+    //var input = '327e12772d8d08bd5ef1936b58e445535dbef23da3b8001a0eed01efa8e50de0';
+    var model = '5a1531e06f72a40f579ee450293cef6f1175fa96d767df03b4fc94d6722fc5f9';
+    function getInput(x){
+	input = x;
+    }
+    function getModel(x){
+        model = x;
+    }
+    function call() {
+	$('.call').addClass('disabled');
+	var formdata = new FormData();
+	formdata.append('file', $('#imgInput')[0].files[0]);
+	if (!$("#imgInput").val()) {
+	    alert('Please upload the image!');
+	    $('.call').removeClass('disabled');
+	    return
+	}
+	if ($('#imgInput')[0].files[0].size > (200*1024)) {
+	    alert('Image size cannot exceed 200K!');
+            $('.call').removeClass('disabled');
+            return
+	}
+	var parma = {
+	    from: mineraddr,
+	    to: 'DefaultContract',
+	    //input: formdata,
+	    model: model,
+	    type: 'call',
+	    nonce: 0
+	};
+	formdata.append('parma', JSON.stringify(parma));
+        $.ajax({
+	    url: '/txion',
+	    type: 'POST',
+	    data: formdata,
+	    //dataType: 'json',
+	    //contentType: 'application/json',
+            cache: false,
+            processData: false,
+            contentType: false,
+	    success: function (data){
+		if(data.msg=='ok'){
+                    $('.msg').show();
+                    setTimeout(function(){
+                        $('.msg').hide();
+                        $('#call').modal('hide');
+			$('.call').removeClass('disabled');
+                    }, 1000)
+                }else{
+		    alert(data.info);
+		    $('.call').removeClass('disabled');
+		}
+	    }
+	})
+    }
+</script>
+</html>
