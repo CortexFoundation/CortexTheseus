@@ -32,38 +32,35 @@ class Node:
 
                     if contractType == "model_data":
                         f=request.files["file"]
-                        p=os.path.join("model", new_txion["filename"])
                         model_addr=SHA256.new(
                             data = f.read()
                             ).hexdigest()
                         print(model_addr,flush=True)
-                        
-                        
+                        p=os.path.join("model", model_addr)
+                        f.stream.seek(0)
                         f.save(p)
-                        new_txion["model_addr"]=model_addr
-                        new_txion["model_path"]=p
                         info["model_addr"]=model_addr
                     #update param
                     elif contractType == "param_data":
-                        assert("filename" in new_txion.keys())
                         f=request.files["file"]
-                        p=os.path.join("param", new_txion["filename"])
                         param_addr=SHA256.new(
-                            data = (str(long(time.time()*1000))).encode()).hexdigest()
+                            data = f.read()
+                            ).hexdigest()
+                        print(param_addr,flush=True)
+                        p=os.path.join("param", param_addr)
+                        f.stream.seek(0)
                         f.save(p)
-                        new_txion["param_addr"]=param_addr
-                        new_txion["param_path"]=p
                         info["param_addr"]=param_addr
                     #update input_data
                     elif contractType == "input_data":
-                        assert("filename" in new_txion.keys())
                         f=request.files["file"]
-                        p=os.path.join("input_data", new_txion["filename"])
                         input_addr=SHA256.new(
-                            data = (str(long(time.time()*1000))).encode()).hexdigest()
+                            data = f.read()
+                            ).hexdigest()
+                        print(input_addr,flush=True)
+                        p=os.path.join("input_data", input_addr)
+                        f.stream.seek(0)
                         f.save(p)
-                        new_txion["input_addr"]=input_addr
-                        new_txion["input_path"]=p
                         info["input_addr"]=input_addr
                     self.lock.release()
                     return jsonify({"msg": "ok", "info": info})
