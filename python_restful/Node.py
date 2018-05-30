@@ -10,15 +10,15 @@ import time
 import random
 import threading
 import uuid
-
+import Inference
 class Node:
     def __init__(self,end = None):
         self.node=Flask(__name__)
         self.model_lock=defaultdict(lambda:threading.Lock())
         self.input_lock=defaultdict(lambda:threading.Lock())
+        self.inferObj = Inference.Inference(json.load(open("config.json","r")))
         @self.node.route('/txion', methods = ['POST'])
         def transaction():
-            addr = ""
             try:
                 if request.method == 'POST':
                     # On each new POST request,
@@ -32,11 +32,11 @@ class Node:
                     contractType=new_txion["type"]
 
                     if contractType == "model_data":
-                        f=request.files["json_file"]
+                        f=request.files["params_file"]
                         sha=SHA256.new()
                         sha.update(f.read())
                         
-                        f1=request.files["params_file"]
+                        f1=request.files["json_file"]
                         sha.update(f1.read())
                         addr = sha.hexdigest()
                         print(addr,flush=True)
@@ -74,6 +74,38 @@ class Node:
                     return jsonify({"msg": "ok", "info": info})
             except Exception as e:
                 return jsonify({"msg":"error","info":str(e)})
+        @self.node.route('/infer', methods = ['POST'])
+        def infer():
+            try:
+                if request.method == 'POST':
+                    new_infer=request.get_json()
+                    print(new_infer)
+                    if not os.path.exists(os.path.join("model",new_infer["model_addr"]+"-symbol.json")):
+                        return jsonify({"msg":"error","info":"json file does not exist"})
+                    if not os.path.exists(os.path.join("model",new_infer["model_addr"]+"-0000.params")):
+                        return jsonify({"msg":"error","info":"params file does not exist"})
+                    if not os.path.exists(os.path.join("input_data",new_infer["input_addr"])):
+                        return jsonify({"msg":"error","info":"input file does not exist"})
+                    self.input_lock[new_infer["input_addr"]].acquire()
+                    self.model_lock[new_infer["model_addr"]].acquire()
+                    try:
+                        res = self.inferObj.testSingleInference(
+                            new_infer["model_addr"],
+                            new_infer["input_addr"]
+                            )
+                        if res["status"] == "error":
+                            self.input_lock[new_infer["input_addr"]].release()
+                            self.model_lock[new_infer["model_addr"]].release()
+                            return jsonify({"msg": "error", "info": res})
+                    except Exception as ex:
+                        self.input_lock[new_infer["input_addr"]].release()
+                        self.model_lock[new_infer["model_addr"]].release()
+                        return jsonify({"msg":"error","info":str(ex)})
+                    self.input_lock[new_infer["input_addr"]].release()
+                    self.model_lock[new_infer["model_addr"]].release()
+                    return jsonify({"msg": "ok", "info": str(res["info"])})
+            except Exception as ex:
+                return jsonify({"msg":"error","info":str(ex)})
 if __name__ == "__main__":
     node = Node()
     node.node.run(host='0.0.0.0',port=5000)
