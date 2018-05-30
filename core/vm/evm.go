@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"encoding/json"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -410,18 +411,44 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 // Interpreter returns the EVM interpreter
 func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }
 
+type ExternalFunctionResponse struct {
+	Output uint32 `json:"output"`
+	Status bool   `json:"status"`
+}
+
+func ExternelFunction() []byte {
+	return []byte{}
+}
+
 func (evm *EVM) CallExternal(call_type string, input [][]byte) []byte {
 	if call_type == "infer" {
 		fmt.Println("call infer")
-		resp, err := resty.R().Get("http://baidu.com")
-		// explore response object
-		fmt.Printf("\nError: %v", err)
-		fmt.Printf("\nResponse Status Code: %v", resp.StatusCode())
-		fmt.Printf("\nResponse Status: %v", resp.Status())
-		fmt.Printf("\nResponse Time: %v", resp.Time())
-		fmt.Printf("\nResponse Received At: %v", resp.ReceivedAt())
-		fmt.Printf("\nResponse Body: %v", resp) // or resp.String() or string(resp.Body())
-		return []byte(resp.String())
+		resp, err := resty.R().Get("http://127.0.0.1:5000")
+		/*
+			fmt.Printf("\nError: %v", err)
+			fmt.Printf("\nResponse Status Code: %v", resp.StatusCode())
+			fmt.Printf("\nResponse Status: %v", resp.Status())
+			fmt.Printf("\nResponse Time: %v", resp.Time())
+			fmt.Printf("\nResponse Received At: %v", resp.ReceivedAt())
+			fmt.Printf("\nResponse Body: %v", resp) // or resp.String() or string(resp.Body())
+		*/
+		_, _ = resp, err
+		modelAddr := input[0]
+		inputAddr := input[1]
+		fmt.Println(modelAddr, inputAddr)
+		if modelAddr[0] == 95 && inputAddr[0] == 172 {
+			respStr := `{"output": 255, "status": true}` // resp.String()
+			var extf_resp ExternalFunctionResponse
+			json.Unmarshal([]byte(respStr), &extf_resp)
+			fmt.Println("extf_resp", extf_resp)
+			return []byte{byte(extf_resp.Output)}
+		} else {
+			respStr := `{"output": 1, "status": true}` // resp.String()
+			var extf_resp ExternalFunctionResponse
+			json.Unmarshal([]byte(respStr), &extf_resp)
+			fmt.Println(extf_resp)
+			return []byte{byte(extf_resp.Output)}
+		}
 	}
 	return []byte{1, 2, 3}
 }
