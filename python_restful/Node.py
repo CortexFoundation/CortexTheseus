@@ -34,12 +34,13 @@ class Node:
                     if contractType == "model_data":
                         f=request.files["params_file"]
                         sha=SHA256.new()
-                        sha.update(f.read())
+                        fr = f.read()
+                        sha.update(fr)
 
                         f1=request.files["json_file"]
-                        sha.update(f1.read())
-                        addr = sha.hexdigest()
-                        print(addr,flush=True)
+                        fr1 = f1.read()
+                        sha.update(fr1)
+                        addr = "0x"+sha.hexdigest()
                         p=os.path.join("model", addr+"-0000.params")
                         p1=os.path.join("model", addr+"-symbol.json")
                         f.stream.seek(0)
@@ -53,12 +54,14 @@ class Node:
                             return jsonify({"msg":"error","info":str(e)})
 
                         self.model_lock[addr].release()
-                        info["model_addr"]=addr
+                        # info["model_addr"]=addr
+                        info = json.dumps({"Hash":addr,"AuthorAddress":new_txion["author"],"RawSize":len(fr1)+len(fr),"InputShape":[3,224,224],"OutputShape":[1],"Gas":len(fr1)+len(fr)})
                     #update param
                     elif contractType == "input_data":
                         f=request.files["file"]
-                        addr=SHA256.new(
-                            data = f.read()
+                        fr = f.read()
+                        addr="0x"+SHA256.new(
+                            data = fr
                             ).hexdigest()
                         print(addr,flush=True)
                         p=os.path.join("input_data", addr)
@@ -70,7 +73,8 @@ class Node:
                             self.input_lock[addr].release()
                             return jsonify({"msg":"error","info":str(e)})
                         self.input_lock[addr].release()
-                        info["input_addr"]=addr
+                        # info["input_addr"]=addr
+                        info = json.dumps({"Hash":addr,"AuthorAddress":new_txion["author"],"RawSize":len(fr),"Shape":[3,224,224]})
                     return jsonify({"msg": "ok", "info": info})
             except Exception as e:
                 return jsonify({"msg":"error","info":str(e)})

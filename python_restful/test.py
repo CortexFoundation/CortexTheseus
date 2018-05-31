@@ -18,7 +18,7 @@ def infer(input_addr,model_addr):
 def uploadInput(f,filepath):
     (tt,tempfilename) = os.path.split(filepath)
     files = {
-        'json': ("json", json.dumps({"type":"input_data","filename":tempfilename}), 'application/json'),
+        'json': ("json", json.dumps({"type":"input_data","author":"0x0553b0185a35cd5bb6386747517ef7e53b15e287","filename":tempfilename}), 'application/json'),
         'file': (tempfilename, open(filepath, 'rb'), 'application/octet-stream')
     }
     return requests.post("http://127.0.0.1:5000/txion",files = files)
@@ -26,7 +26,7 @@ def uploadModel(json_filepath,params_file_path):
     (_,json_tempfilename) = os.path.split(json_filepath)
     (_,params_tempfilename) = os.path.split(params_file_path)
     files = {
-        'json': ("json", json.dumps({"type":"model_data"}), 'application/json'),
+        'json': ("json", json.dumps({"type":"model_data","author":"0x0553b0185a35cd5bb6386747517ef7e53b15e287"}), 'application/json'),
         'json_file': (json_tempfilename, open(json_filepath, 'rb'), 'application/octet-stream'),
         'params_file': (params_tempfilename, open(params_file_path, 'rb'), 'application/octet-stream')
     }
@@ -52,10 +52,12 @@ if __name__ == "__main__":
     # mine()
     tx(f=miner,to="0x0000000000000000000000000000000000000000001",amount=10)
     model_info = uploadModel("upload/Inception-BN-symbol.json","upload/Inception-BN-0126.params").json()
-    print(model_info,flush=True)
+    print(json.dumps(model_info),flush=True)
     input_info = uploadInput(miner,"upload/data").json()
-    print(input_info,flush=True)
-    infer_info = infer(input_info["info"]["input_addr"],model_info["info"]["model_addr"])
+    print(json.dumps(input_info),flush=True)
+    ii = json.loads(input_info["info"])
+    mi = json.loads(model_info["info"])
+    infer_info = infer(ii["Hash"],mi["Hash"])
     print(infer_info)
 
     # mine()

@@ -24,14 +24,15 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/bitly/go-simplejson"
+	"strconv"
+
+	simplejson "github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"strconv"
+	resty "gopkg.in/resty.v1"
 
 	"fmt"
-	"gopkg.in/resty.v1"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -438,6 +439,7 @@ func (evm *EVM) CallExternal(call_type string, input [][]byte) []byte {
 		if err != nil {
 			return []byte("ERROR0")
 		}
+		fmt.Println("日了狗", resp.String())
 		js, _ := simplejson.NewJson([]byte(resp.String()))
 		fmt.Println(js)
 		int_output_tmp, out_err := js.Get("info").String()
