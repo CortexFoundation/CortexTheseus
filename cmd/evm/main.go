@@ -110,6 +110,14 @@ var (
 		Name:  "nostack",
 		Usage: "disable stack output",
 	}
+	MetaJsonFlag = cli.StringFlag{
+		Name:  "metajson",
+		Usage: "meta json",
+	}
+	ParseModelMetaFlag = cli.BoolFlag{
+		Name:  "ismodelmeta",
+		Usage: "true if its a model meta",
+	}
 )
 
 func init() {
@@ -133,11 +141,14 @@ func init() {
 		ReceiverFlag,
 		DisableMemoryFlag,
 		DisableStackFlag,
+		MetaJsonFlag,
+		ParseModelMetaFlag,
 	}
 	app.Commands = []cli.Command{
 		compileCommand,
 		disasmCommand,
 		runCommand,
+		extCommand,
 		stateTestCommand,
 	}
 }

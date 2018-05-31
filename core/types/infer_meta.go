@@ -25,27 +25,35 @@ type InferMeta interface {
 }
 
 type ModelMeta struct {
-	Hash          []byte
-	RawSize       uint64
-	InputShape    []uint64
-	OutputShape   []uint64
-	Gas           uint64
-	AuthorAddress common.Address
+	Hash          common.Hash    `json:"Hash"`
+	RawSize       uint64         `json:"RawSize"`
+	InputShape    []uint64       `json:"InputShape"`
+	OutputShape   []uint64       `json:"OutputShape"`
+	Gas           uint64         `json:"Gas"`
+	AuthorAddress common.Address `json:"AuthorAddress"`
 }
 type InputMeta struct {
-	Hash          []byte
-	RawSize       uint64
-	Shape         []uint64
-	AuthorAddress common.Address
+	Hash          common.Hash    `json:"Hash"`
+	RawSize       uint64         `json:"RawSize"`
+	Shape         []uint64       `json:"Shape"`
+	AuthorAddress common.Address `json:"AuthorAddress"`
 }
 
 func (mm *ModelMeta) EncodeJSON() (string, error) {
 	data, err := json.Marshal(mm)
 	return string(data), err
 }
+func (mm *ModelMeta) DecodeJSON(s string) error {
+	err := json.Unmarshal([]byte(s), mm)
+	return err
+}
 func (im *InputMeta) EncodeJSON() (string, error) {
 	data, err := json.Marshal(im)
 	return string(data), err
+}
+func (im *InputMeta) DecodeJSON(s string) error {
+	err := json.Unmarshal([]byte(s), im)
+	return err
 }
 
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
