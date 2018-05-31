@@ -71,11 +71,9 @@ class Inference:
     def predictSingle(self,name,mod):
         imgs = []
         img = np.load(os.path.join(self.img_dir,name))
-        print(img)
         imgs.append(img)
         Batch = namedtuple('Batch', ['data'])
         begin = time.time()
-        print(mod)
         mod.forward(Batch([mx.nd.array(imgs)]))
         prob = mod.get_outputs()[0].asnumpy()
         end = time.time()
