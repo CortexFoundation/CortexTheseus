@@ -79,7 +79,7 @@ class Inference:
         end = time.time()
         return np.argmax(prob), end-begin
 
-    #get file size    
+    #get file size
     def getFileSize(self,filePath):
         # filePath = unicode(filePath,'utf8')
         fsize = os.path.getsize(filePath)
