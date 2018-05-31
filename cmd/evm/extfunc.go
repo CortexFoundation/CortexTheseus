@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/hex"
 	"encoding/json"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -63,7 +64,7 @@ func extCmd(ctx *cli.Context) error {
 
 			out, _ := rlp.EncodeToBytes(
 				&types.ModelMeta{
-					Hash:          []byte(model.Hash),
+					Hash:          common.BytesToHash([]byte(model.Hash)),
 					RawSize:       model.RawSize,
 					InputShape:    model.InputShape,
 					OutputShape:   model.OutputShape,
@@ -79,7 +80,7 @@ func extCmd(ctx *cli.Context) error {
 
 			out, _ := rlp.EncodeToBytes(
 				&types.InputMeta{
-					Hash:          []byte(input.Hash),
+					Hash:          common.BytesToHash([]byte(input.Hash)),
 					RawSize:       input.RawSize,
 					Shape:         input.Shape,
 					AuthorAddress: common.BytesToAddress([]byte(input.AuthorAddress)),
