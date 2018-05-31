@@ -136,7 +136,7 @@ func Disassemble(script []byte) ([]string, error) {
 }
 
 func HasInferOp(script []byte) bool {
-	fmt.Println("Start testing has infer operation !!!")
+	//	fmt.Println("Start testing has infer operation !!!")
 	it := NewInstructionIterator(script)
 	for {
 		next, infer := it.NextAndInferAssert()
@@ -151,16 +151,16 @@ func HasInferOp(script []byte) bool {
 			//instrs = append(instrs, fmt.Sprintf("%06v: %v\n", it.PC(), it.Op()))
 		}
 		if infer {
-			fmt.Println("Has infer operation , asm")
+			//			fmt.Println("Has infer operation , asm")
 			return true
 		}
-		fmt.Println("loops end")
+		//		fmt.Println("loops end")
 	}
 	if err := it.Error(); err != nil {
-		fmt.Println("......")
+		//		fmt.Println("......")
 		return false
 	}
-	fmt.Println("END")
+	//	fmt.Println("END")
 	return false
 }
 
@@ -188,9 +188,9 @@ func (it *instructionIterator) NextAndInferAssert() (bool, bool) {
 	}
 
 	it.op = vm.OpCode(it.code[it.pc])
-	fmt.Printf("Next ..%s %s\n", it.code[it.pc], it.op)
+	//	fmt.Printf("Next ..%s %s\n", it.code[it.pc], it.op)
 	if it.op.IsPush() {
-//		fmt.Println("Is push")
+		//		fmt.Println("Is push")
 		a := uint64(it.op) - uint64(vm.PUSH1) + 1
 		u := it.pc + 1 + a
 		if uint64(len(it.code)) <= it.pc || uint64(len(it.code)) < u {
