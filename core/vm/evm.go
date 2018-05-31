@@ -21,9 +21,18 @@ import (
 	"sync/atomic"
 	"time"
 
+	"bytes"
+	"encoding/binary"
+
+	"strconv"
+
+	simplejson "github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	resty "gopkg.in/resty.v1"
+
+	"fmt"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -406,3 +415,48 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // Interpreter returns the EVM interpreter
 func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }
+
+type ExternalFunctionResponse struct {
+	Output uint32 `json:"output"`
+	Status string `json:"status"`
+}
+
+func ExternelFunction() []byte {
+	return []byte{}
+}
+
+func (evm *EVM) CallExternal(call_type string, input [][]byte) []byte {
+	if call_type == "infer" {
+		fmt.Println("call infer")
+		model_meta_hash := input[0]
+		input_meta_hash := input[1]
+		requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
+		fmt.Println(requestBody)
+		resp, err := resty.R().
+			SetHeader("Content-Type", "application/json").
+			SetBody(requestBody).
+			Post("http://127.0.0.1:5000/infer")
+		if err != nil {
+			return []byte("ERROR0")
+		}
+		fmt.Println("日了狗", resp.String())
+		js, _ := simplejson.NewJson([]byte(resp.String()))
+		fmt.Println(js)
+		int_output_tmp, out_err := js.Get("info").String()
+		int_output, err := strconv.Atoi(int_output_tmp)
+		fmt.Println("out: ", int_output, "err:", out_err, " resp", resp.String())
+		return BinaryWrite(int64(int_output))
+	}
+	return []byte{1, 2, 3}
+}
+
+func BinaryWrite(x interface{}) []byte {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.BigEndian, x)
+	if err != nil {
+		fmt.Println("binary.Write failed:", err)
+		return []byte{}
+	}
+	fmt.Printf("% x\n", buf.Bytes())
+	return buf.Bytes()
+}
