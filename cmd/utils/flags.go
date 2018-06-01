@@ -244,6 +244,10 @@ var (
 		Name:  "txpool.nolocals",
 		Usage: "Disables price exemptions for locally submitted transactions",
 	}
+	TxPoolNoInfersFlag = cli.BoolFlag{
+                Name:  "txpool.noinfers",
+                Usage: "Disables infer transactions in this node",
+        }
 	TxPoolJournalFlag = cli.StringFlag{
 		Name:  "txpool.journal",
 		Usage: "Disk journal for local transaction to survive node restarts",
