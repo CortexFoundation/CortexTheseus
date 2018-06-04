@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"errors"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -169,6 +170,11 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			precompiles = PrecompiledContractsByzantium
 		}
 		if precompiles[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
+			// Calling a non existing account, don't do antything, but ping the tracer
+			if evm.vmConfig.Debug && evm.depth == 0 {
+				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
+			}
 			return nil, gas, nil, nil
 		}
 		evm.StateDB.CreateAccount(addr)
@@ -427,7 +433,6 @@ func ExternelFunction() []byte {
 
 func (evm *EVM) CallExternal(call_type string, input [][]byte) []byte {
 	if call_type == "infer" {
-		fmt.Println("call infer")
 		model_meta_hash := input[0]
 		input_meta_hash := input[1]
 		requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
@@ -439,15 +444,47 @@ func (evm *EVM) CallExternal(call_type string, input [][]byte) []byte {
 		if err != nil {
 			return []byte("ERROR0")
 		}
-		fmt.Println("日了狗", resp.String())
+		fmt.Println(resp.String())
 		js, _ := simplejson.NewJson([]byte(resp.String()))
-		fmt.Println(js)
 		int_output_tmp, out_err := js.Get("info").String()
 		int_output, err := strconv.Atoi(int_output_tmp)
-		fmt.Println("out: ", int_output, "err:", out_err, " resp", resp.String())
+		fmt.Println("out: ", int_output, "err:", out_err, " resp", resp.String(), "js", js)
 		return BinaryWrite(int64(int_output))
 	}
-	return []byte{1, 2, 3}
+	return []byte{0}
+}
+
+// infer function that returns an int64 as output, can be used a categorical output
+func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) ([]byte, error) {
+	requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
+	fmt.Println(requestBody)
+	resp, err := resty.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(requestBody).
+		Post("http://127.0.0.1:5000/infer")
+	if err != nil {
+		return []byte{}, errors.New("evm.Infer: External Call Error")
+	}
+	fmt.Println(resp.String())
+	js, _ := simplejson.NewJson([]byte(resp.String()))
+	int_output_tmp, out_err := js.Get("info").String()
+	int_output, err := strconv.Atoi(int_output_tmp)
+	fmt.Println("out: ", int_output, "err:", out_err, " resp", resp.String(), "js", js)
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.BigEndian, int64(int_output)); err != nil {
+		return []byte{}, errors.New("evm.Infer: Type Conversion Error")
+	}
+	return buf.Bytes(), nil
+}
+
+func BinaryWrite(x interface{}) []byte {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.BigEndian, x)
+	if err != nil {
+		return []byte{}
+	}
+	return buf.Bytes()
+>>>>>>> master
 }
 
 func BinaryWrite(x interface{}) []byte {
