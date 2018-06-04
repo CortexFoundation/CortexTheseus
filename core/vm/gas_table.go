@@ -17,8 +17,11 @@
 package vm
 
 import (
+	_ "fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -124,12 +127,12 @@ func gasSStore(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, m
 	// 1. From a zero-value address to a non-zero value         (NEW VALUE)
 	// 2. From a non-zero value address to a zero-value address (DELETE)
 	// 3. From a non-zero to a non-zero                         (CHANGE)
-	if common.EmptyHash(val) && !common.EmptyHash(common.BigToHash(y)) {
+	if val == (common.Hash{}) && y.Sign() != 0 {
 		// 0 => non 0
 		return params.SstoreSetGas, nil
-	} else if !common.EmptyHash(val) && common.EmptyHash(common.BigToHash(y)) {
+	} else if val != (common.Hash{}) && y.Sign() == 0 {
+		// non 0 => 0
 		evm.StateDB.AddRefund(params.SstoreRefundGas)
-
 		return params.SstoreClearGas, nil
 	} else {
 		// non 0 => non 0 (or 0 => 0)
@@ -428,6 +431,28 @@ func gasDelegateCall(gt params.GasTable, evm *EVM, contract *Contract, stack *St
 	return gas, nil
 }
 
+func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	gas, err := memoryGasCost(mem, memorySize)
+	if err != nil {
+		return 0, err
+	}
+	_modelAddr := stack.Back(0)
+	modelAddr := common.BigToAddress(_modelAddr)
+	_modelMeta := evm.StateDB.GetCode(modelAddr)
+	modelMeta, err := types.ParseModelMeta(_modelMeta)
+	if err != nil {
+		return 0, err
+	}
+	var overflow bool
+	if gas, overflow = math.SafeAdd(gas, modelMeta.Gas); overflow {
+		return 0, errGasUintOverflow
+	}
+	contract.InferOpModelGas = ModelAddressGas{
+		Addr: modelMeta.AuthorAddress,
+		MGas: modelMeta.Gas,
+	}
+	return gas, nil
+}
 func gasStaticCall(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
 	if err != nil {

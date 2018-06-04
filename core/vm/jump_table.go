@@ -33,7 +33,7 @@ type (
 var errGasUintOverflow = errors.New("gas uint64 overflow")
 
 type operation struct {
-	// op is the operation function
+	// execute is the operation function
 	execute executionFunc
 	// gasCost is the gas function and returns the gas required for execution
 	gasCost gasFunc
@@ -905,6 +905,15 @@ func NewFrontierInstructionSet() [256]operation {
 			memorySize:    memoryLog,
 			valid:         true,
 			writes:        true,
+		},
+		INFER: {
+			execute:       opInfer,
+			gasCost:       gasInfer,
+			validateStack: makeStackFunc(4, 1),
+			memorySize:    memoryInfer,
+			valid:         true,
+			writes:        true,
+			returns:       true,
 		},
 		CREATE: {
 			execute:       opCreate,
