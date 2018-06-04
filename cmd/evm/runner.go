@@ -18,25 +18,29 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
+	goruntime "runtime"
 	"runtime/pprof"
 	"time"
-
-	goruntime "runtime"
 
 	"github.com/ethereum/go-ethereum/cmd/evm/internal/compiler"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -86,6 +90,7 @@ func runCmd(ctx *cli.Context) error {
 		chainConfig *params.ChainConfig
 		sender      = common.BytesToAddress([]byte("sender"))
 		receiver    = common.BytesToAddress([]byte("receiver"))
+		blockNumber uint64
 	)
 	if ctx.GlobalBool(MachineFlag.Name) {
 		tracer = NewJSONLogger(logconfig, os.Stdout)
@@ -97,19 +102,40 @@ func runCmd(ctx *cli.Context) error {
 	}
 	if ctx.GlobalString(GenesisFlag.Name) != "" {
 		gen := readGenesis(ctx.GlobalString(GenesisFlag.Name))
-		db, _ := ethdb.NewMemDatabase()
+		db := ethdb.NewMemDatabase()
 		genesis := gen.ToBlock(db)
 		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db))
 		chainConfig = gen.Config
+		blockNumber = gen.Number
 	} else {
-		db, _ := ethdb.NewMemDatabase()
-		statedb, _ = state.New(common.Hash{}, state.NewDatabase(db))
+		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	}
 	if ctx.GlobalString(SenderFlag.Name) != "" {
 		sender = common.HexToAddress(ctx.GlobalString(SenderFlag.Name))
 	}
 	statedb.CreateAccount(sender)
+	mh, _ := hex.DecodeString("5c4d1f84063be8e25e83da6452b1821926548b3c2a2a903a0724e14d5c917b00")
+	ih, _ := hex.DecodeString("c0a1f3c82e11e314822679e4834e3bc575bd017d12d888acda4a851a62d261dc")
+	testModelMeta, _ := rlp.EncodeToBytes(
+		&types.ModelMeta{
+			Hash:          common.BytesToHash(mh),
+			RawSize:       10000,
+			InputShape:    []uint64{10, 1},
+			OutputShape:   []uint64{1},
+			Gas:           100000,
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
+		})
+	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
+	testInputMeta, _ := rlp.EncodeToBytes(
+		&types.InputMeta{
+			Hash:          common.BytesToHash(ih),
+			RawSize:       10000,
+			Shape:         []uint64{1},
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
+		})
+	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta)...))
+	statedb.SetCode(common.HexToAddress("0x2001"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {
 		receiver = common.HexToAddress(ctx.GlobalString(ReceiverFlag.Name))
 	}
@@ -156,11 +182,12 @@ func runCmd(ctx *cli.Context) error {
 
 	initialGas := ctx.GlobalUint64(GasFlag.Name)
 	runtimeConfig := runtime.Config{
-		Origin:   sender,
-		State:    statedb,
-		GasLimit: initialGas,
-		GasPrice: utils.GlobalBig(ctx, PriceFlag.Name),
-		Value:    utils.GlobalBig(ctx, ValueFlag.Name),
+		Origin:      sender,
+		State:       statedb,
+		GasLimit:    initialGas,
+		GasPrice:    utils.GlobalBig(ctx, PriceFlag.Name),
+		Value:       utils.GlobalBig(ctx, ValueFlag.Name),
+		BlockNumber: new(big.Int).SetUint64(blockNumber),
 		EVMConfig: vm.Config{
 			Tracer: tracer,
 			Debug:  ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),

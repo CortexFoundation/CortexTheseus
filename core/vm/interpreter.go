@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/params"
 )
@@ -60,16 +61,24 @@ func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 	// We use the STOP instruction whether to see
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
+	fmt.Println("evm.BlockNumber", evm.BlockNumber)
+	fmt.Println(evm.ChainConfig().IsConstantinople(evm.BlockNumber))
+	fmt.Println(evm.ChainConfig().IsByzantium(evm.BlockNumber))
+	fmt.Println(evm.ChainConfig().IsHomestead(evm.BlockNumber))
 	if !cfg.JumpTable[STOP].valid {
 		switch {
 		case evm.ChainConfig().IsConstantinople(evm.BlockNumber):
 			cfg.JumpTable = constantinopleInstructionSet
+			fmt.Println("constantinopleInstructionSet")
 		case evm.ChainConfig().IsByzantium(evm.BlockNumber):
 			cfg.JumpTable = byzantiumInstructionSet
+			fmt.Println("byzantiumInstructionSet")
 		case evm.ChainConfig().IsHomestead(evm.BlockNumber):
 			cfg.JumpTable = homesteadInstructionSet
+			fmt.Println("homesteadInstructionSet")
 		default:
 			cfg.JumpTable = frontierInstructionSet
+			fmt.Println("frontierInstructionSet")
 		}
 	}
 
@@ -96,23 +105,24 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	}
 	return nil
 }
-
-func IsModelMeta(code []byte) bool {
-	for i := 0; i < 8; i++ {
-		if code[i] != 0 {
-			return false
-		}
+func IsCode(code []byte) bool {
+	if code[0] == 0 && code[1] == 0 {
+		return true
 	}
-	return true
+	return false
+}
+func IsModelMeta(code []byte) bool {
+	if code[0] == 0 && code[1] == 1 {
+		return true
+	}
+	return false
 }
 
 func IsInputMeta(code []byte) bool {
-	for i := 0; i < 8; i++ {
-		if code[i] != 1 {
-			return false
-		}
+	if code[0] == 0 && code[1] == 0 {
+		return true
 	}
-	return true
+	return false
 }
 
 // Run loops and evaluates the contract's code with the given input data and returns
@@ -136,10 +146,12 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	}
 
 	if IsModelMeta(contract.Code) {
+		//todo
 		return contract.Code, nil
 	}
 
 	if IsInputMeta(contract.Code) {
+		//todo
 		return contract.Code, nil
 	}
 
@@ -174,6 +186,10 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
+	if IsCode(contract.Code) {
+		contract.Code = contract.Code[2:]
+	}
+
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
@@ -209,12 +225,21 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				return nil, errGasUintOverflow
 			}
 		}
-		// consume the gas and return an error if not enough gas is available.
-		// cost is explicitly set so that the capture state defer method can get the proper cost
 		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
 		if err != nil || !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
 		}
+		if op == INFER {
+			contract.ModelGas[contract.InferOpModelGas.Addr] += contract.InferOpModelGas.MGas
+			contract.InferOpModelGas = ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}
+		}
+		// consume the gas and return an error if not enough gas is available.
+		// cost is explicitly set so that the capture state defer method can get the proper cost
+		//cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+
+		//if err != nil || !contract.UseGas(cost) {
+		//	return nil, ErrOutOfGas
+		//}
 		if memorySize > 0 {
 			mem.Resize(memorySize)
 		}
@@ -236,7 +261,6 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		if operation.returns {
 			in.returnData = res
 		}
-
 		switch {
 		case err != nil:
 			return nil, err
