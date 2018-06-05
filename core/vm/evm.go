@@ -428,7 +428,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) ([]byte, e
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
-		Post("http://127.0.0.1:5000/infer")
+		Post(evm.interpreter.cfg.InferURI)
 	if err != nil {
 		return []byte{}, errors.New("evm.Infer: External Call Error")
 	}
