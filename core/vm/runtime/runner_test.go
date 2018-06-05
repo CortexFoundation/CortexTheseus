@@ -70,11 +70,10 @@ func TestRunCmd(t *testing.T) {
 	code = common.Hex2Bytes("60086000612001611001c0")
 	input_flag := ""
 
-	initialGas := uint64(10000000)
-	runtimeConfig := Config{
+	runtimeConfig := &Config{
 		Origin:      sender,
 		State:       statedb,
-		GasLimit:    initialGas,
+		GasLimit:    uint64(10000000),
 		GasPrice:    new(big.Int),
 		Value:       new(big.Int),
 		BlockNumber: new(big.Int).SetUint64(blockNumber),
@@ -87,12 +86,23 @@ func TestRunCmd(t *testing.T) {
 
 	if false {
 		input := append(code, input_flag...)
-		ret, _, _, err = Create(input, &runtimeConfig)
+		setDefaults(runtimeConfig)
+		var (
+			vmenv  = NewEnv(runtimeConfig)
+			sender = vm.AccountRef(runtimeConfig.Origin)
+		)
+		code, address, leftOverGas, _, err := vmenv.Create(
+			sender,
+			input,
+			runtimeConfig.GasLimit,
+			runtimeConfig.Value,
+		)
+		fmt.Println(code, address, leftOverGas, err)
 	} else {
 		if len(code) > 0 {
 			statedb.SetCode(receiver, code)
 		}
-		ret, _, err = Call(receiver, common.Hex2Bytes(input_flag), &runtimeConfig)
+		ret, _, err = Call(receiver, common.Hex2Bytes(input_flag), runtimeConfig)
 	}
 
 	if true {
