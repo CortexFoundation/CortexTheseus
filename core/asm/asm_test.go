@@ -17,9 +17,9 @@
 package asm
 
 import (
-	"testing"
-
 	"encoding/hex"
+	"fmt"
+	"testing"
 )
 
 // Tests disassembling the instructions for valid evm code
@@ -71,4 +71,14 @@ func TestInstructionIteratorEmpty(t *testing.T) {
 	if cnt != 0 {
 		t.Errorf("Expected 0, but got %v instead.", cnt)
 	}
+}
+
+func TestHasInferOp(t *testing.T) {
+	//cnt := 0
+	fmt.Println("test ..")
+	//script, _ := hex.DecodeString("608060c05260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630dc7f960146044575b600080fd5b348015604f57600080fd5b50606f600480360381019080803560ff1690602001909291905050506071565b005b806000806101000a81548160ff021916908360ff160217905550505600a165627a")
+	//script, _ := hex.DecodeString("60086000612001611001c0")
+	//script, _ := hex.DecodeString("60086000612001611001010060086000612001611001c0c0")
+	script, _ := hex.DecodeString("60c0c0c0c0c0c")
+	HasInferOp(script)
 }
