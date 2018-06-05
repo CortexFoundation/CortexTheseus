@@ -40,6 +40,8 @@ type Config struct {
 	// may be left uninitialised and will be set to the default
 	// table.
 	JumpTable [256]operation
+	// uri for remote infer service
+	InferURI string
 }
 
 // Interpreter is used to run Ethereum based contracts and will utilise the
@@ -73,7 +75,6 @@ func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 			cfg.JumpTable = frontierInstructionSet
 		}
 	}
-
 	return &Interpreter{
 		evm:      evm,
 		cfg:      cfg,
