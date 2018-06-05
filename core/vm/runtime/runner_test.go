@@ -67,7 +67,7 @@ func TestRunCmd(t *testing.T) {
 		err  error
 	)
 
-	code = common.Hex2Bytes("60086000612001611001c0")
+	code = common.Hex2Bytes("60086000612001611001c000")
 	input_flag := ""
 
 	runtimeConfig := &Config{
