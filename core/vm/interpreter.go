@@ -119,7 +119,7 @@ func IsModelMeta(code []byte) bool {
 }
 
 func IsInputMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 0 {
+	if code[0] == 0 && code[1] == 2 {
 		return true
 	}
 	return false
