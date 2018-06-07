@@ -189,8 +189,9 @@ func runCmd(ctx *cli.Context) error {
 		Value:       utils.GlobalBig(ctx, ValueFlag.Name),
 		BlockNumber: new(big.Int).SetUint64(blockNumber),
 		EVMConfig: vm.Config{
-			Tracer: tracer,
-			Debug:  ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
+			Tracer:   tracer,
+			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
+			InferURI: "http://127.0.0.1:5000/infer",
 		},
 	}
 

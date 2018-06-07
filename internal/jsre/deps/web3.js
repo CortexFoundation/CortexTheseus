@@ -3837,7 +3837,6 @@ var outputBlockFormatter = function(block) {
                 return outputTransactionFormatter(item);
         });
     }
-
     return block;
 };
 

@@ -454,14 +454,3 @@ func BinaryWrite(x interface{}) []byte {
 	}
 	return buf.Bytes()
 }
-
-func BinaryWrite(x interface{}) []byte {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, x)
-	if err != nil {
-		fmt.Println("binary.Write failed:", err)
-		return []byte{}
-	}
-	fmt.Printf("% x\n", buf.Bytes())
-	return buf.Bytes()
-}

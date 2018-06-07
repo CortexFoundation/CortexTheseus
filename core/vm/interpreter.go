@@ -99,20 +99,20 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	return nil
 }
 func IsCode(code []byte) bool {
-	if code[0] == 0 && code[1] == 0 {
+	if len(code) < 2 || (code[0] == 0 && code[1] == 0) {
 		return true
 	}
 	return false
 }
 func IsModelMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 1 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 1 {
 		return true
 	}
 	return false
 }
 
 func IsInputMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 2 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 2 {
 		return true
 	}
 	return false
@@ -180,7 +180,9 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
 	if IsCode(contract.Code) {
-		contract.Code = contract.Code[2:]
+		if len(contract.Code) > 2 {
+			contract.Code = contract.Code[2:]
+		}
 	}
 
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
