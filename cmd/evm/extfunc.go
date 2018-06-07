@@ -42,7 +42,7 @@ type ModelMetaExt struct {
 	InputShape    []uint64
 	OutputShape   []uint64
 	Gas           uint64
-	AuthorAddress string `json:"author"`
+	AuthorAddress string
 }
 
 type InputMetaExt struct {
@@ -75,17 +75,19 @@ func extCmd(ctx *cli.Context) error {
 			fmt.Println(hex.EncodeToString(append([]byte{0, 1}, out...)))
 		} else {
 
-			var input InputMetaExt
-			json.Unmarshal(json_data, &input)
+			var data InputMetaExt
+			err := json.Unmarshal(json_data, &data)
+			fmt.Println("json:", data, "error:", err)
 
 			out, _ := rlp.EncodeToBytes(
 				&types.InputMeta{
-					Hash:          common.BytesToHash([]byte(input.Hash)),
-					RawSize:       input.RawSize,
-					Shape:         input.Shape,
-					AuthorAddress: common.BytesToAddress([]byte(input.AuthorAddress)),
+					Hash:          common.BytesToHash([]byte(data.Hash)),
+					RawSize:       data.RawSize,
+					Shape:         data.Shape,
+					AuthorAddress: common.BytesToAddress([]byte(data.AuthorAddress)),
 				})
 			fmt.Println(out)
+			fmt.Println(hex.EncodeToString(append([]byte{0, 2}, out...)))
 		}
 	}
 	return nil

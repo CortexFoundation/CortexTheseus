@@ -45,3 +45,9 @@ profile.cov
 /dashboard/assets/package-lock.json
 
 **/yarn-error.log
+
+#python_restful
+python_restful/input_data
+python_restful/model
+python_restful/upload
+python_restful/__pycache__/

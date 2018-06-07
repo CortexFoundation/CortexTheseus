@@ -422,45 +422,23 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 // Interpreter returns the EVM interpreter
 func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }
 
-func (evm *EVM) CallExternal(call_type string, input [][]byte) []byte {
-	if call_type == "infer" {
-		model_meta_hash := input[0]
-		input_meta_hash := input[1]
-		requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
-		fmt.Println(requestBody)
-		resp, err := resty.R().
-			SetHeader("Content-Type", "application/json").
-			SetBody(requestBody).
-			Post("http://127.0.0.1:5000/infer")
-		if err != nil {
-			return []byte("ERROR0")
-		}
-		fmt.Println(resp.String())
-		js, _ := simplejson.NewJson([]byte(resp.String()))
-		int_output_tmp, out_err := js.Get("info").String()
-		int_output, err := strconv.Atoi(int_output_tmp)
-		fmt.Println("out: ", int_output, "err:", out_err, " resp", resp.String(), "js", js)
-		return BinaryWrite(int64(int_output))
-	}
-	return []byte{0}
-}
-
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) ([]byte, error) {
 	requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
-	fmt.Println(requestBody)
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
-		Post("http://127.0.0.1:5000/infer")
+		Post(evm.interpreter.cfg.InferURI)
 	if err != nil {
 		return []byte{}, errors.New("evm.Infer: External Call Error")
 	}
 	fmt.Println(resp.String())
 	js, _ := simplejson.NewJson([]byte(resp.String()))
 	int_output_tmp, out_err := js.Get("info").String()
+	if out_err != nil {
+		return []byte{}, errors.New("evm.Infer: External Call Error")
+	}
 	int_output, err := strconv.Atoi(int_output_tmp)
-	fmt.Println("out: ", int_output, "err:", out_err, " resp", resp.String(), "js", js)
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.BigEndian, int64(int_output)); err != nil {
 		return []byte{}, errors.New("evm.Infer: Type Conversion Error")
