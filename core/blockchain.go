@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	mrand "math/rand"
+	//mrand "math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -964,7 +964,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	currentBlock = bc.CurrentBlock()
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		// Split same-difficulty blocks by number, then at random
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && len(block.Transactions()) > len(currentBlock.Transactions()))
 	}
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
