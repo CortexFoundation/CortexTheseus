@@ -966,7 +966,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		// Split same-difficulty blocks by number, then at random
 		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
 		sum_txs := len(currentBlock.Transactions()) + len(block.Transactions())
-		weight := float64(len(block.Transactions())) / float64(sum_txs)
+		weight := 0.5
+		if sum_txs > 0 {
+			weight = float64(len(block.Transactions())) / float64(sum_txs)
+		}
 		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < weight)
 		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && len(block.Transactions()) > len(currentBlock.Transactions()))
 	}
