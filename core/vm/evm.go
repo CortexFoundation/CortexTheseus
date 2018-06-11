@@ -26,6 +26,7 @@ import (
 
 	simplejson "github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	resty "gopkg.in/resty.v1"
@@ -440,4 +441,13 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 		return 0, errors.New("evm.Infer: Type Conversion Error")
 	}
 	return uint64_output, nil
+}
+
+func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
+	modelMetaRaw := evm.StateDB.GetCode(addr)
+	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
+		return &types.ModelMeta{}, err
+	} else {
+		return modelMeta, nil
+	}
 }
