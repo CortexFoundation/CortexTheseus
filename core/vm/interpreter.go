@@ -99,22 +99,40 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	return nil
 }
 func IsCode(code []byte) bool {
+
+	if len(code) < 2 {
+		return false
+	}
+
 	if code[0] == 0 && code[1] == 0 {
 		return true
 	}
+
 	return false
 }
 func IsModelMeta(code []byte) bool {
+
+	if len(code) < 2 {
+		return false
+	}
+
 	if code[0] == 0 && code[1] == 1 {
 		return true
 	}
+
 	return false
 }
 
 func IsInputMeta(code []byte) bool {
+
+	if len(code) < 2 {
+		return false
+	}
+
 	if code[0] == 0 && code[1] == 0 {
 		return true
 	}
+
 	return false
 }
 
