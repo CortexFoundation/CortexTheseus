@@ -646,20 +646,15 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 	modelAddr := common.BigToAddress(_modelAddr)
 	inputAddr := common.BigToAddress(_inputAddr)
 	var (
-		_modelMeta []byte
-		_inputMeta []byte
-	)
-	_modelMeta = evm.StateDB.GetCode(modelAddr)
-	_inputMeta = evm.StateDB.GetCode(inputAddr)
-	var (
 		modelMeta *types.ModelMeta
 		inputMeta *types.InputMeta
 	)
 	var err error
-	if modelMeta, err = types.ParseModelMeta(_modelMeta); err != nil {
+	if modelMeta, err = evm.GetModelMeta(modelAddr); err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
+	_inputMeta := evm.StateDB.GetCode(inputAddr)
 	if inputMeta, err = types.ParseInputMeta(_inputMeta); err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err

@@ -436,7 +436,6 @@ func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, me
 		return 0, err
 	}
 	modelMeta, err := evm.GetModelMeta(common.BigToAddress(stack.Back(0)))
-	// TODO(SiNZeRo) error when model meta is not found
 	if err != nil {
 		return 0, err
 	}
