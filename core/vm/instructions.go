@@ -654,8 +654,7 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
-	_inputMeta := evm.StateDB.GetCode(inputAddr)
-	if inputMeta, err = types.ParseInputMeta(_inputMeta); err != nil {
+	if inputMeta, err = evm.GetInputMeta(inputAddr); err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
