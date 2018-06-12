@@ -451,3 +451,12 @@ func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err er
 		return modelMeta, nil
 	}
 }
+
+func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
+	inputMetaRaw := evm.StateDB.GetCode(addr)
+	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {
+		return &types.InputMeta{}, err
+	} else {
+		return inputMeta, nil
+	}
+}
