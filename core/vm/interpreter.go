@@ -220,13 +220,22 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				return nil, errGasUintOverflow
 			}
 		}
+
 		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		if op == INFER {
+			var model_meta_err error
+			modelMeta, model_meta_err := in.evm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			if model_meta_err != nil {
+				return nil, model_meta_err
+			}
+			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
+			var overflow bool
+			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
+				return nil, errGasUintOverflow
+			}
+		}
 		if err != nil || !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
-		}
-		if op == INFER {
-			contract.ModelGas[contract.InferOpModelGas.Addr] += contract.InferOpModelGas.MGas
-			contract.InferOpModelGas = ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method can get the proper cost
