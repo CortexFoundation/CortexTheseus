@@ -22,13 +22,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"bytes"
-	"encoding/binary"
-
 	"strconv"
 
 	simplejson "github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	resty "gopkg.in/resty.v1"
@@ -423,34 +421,42 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) ([]byte, error) {
+func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
 	requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(evm.interpreter.cfg.InferURI)
 	if err != nil {
-		return []byte{}, errors.New("evm.Infer: External Call Error")
+		return 0, errors.New("evm.Infer: External Call Error")
 	}
 	fmt.Println(resp.String())
 	js, _ := simplejson.NewJson([]byte(resp.String()))
 	int_output_tmp, out_err := js.Get("info").String()
 	if out_err != nil {
-		return []byte{}, errors.New("evm.Infer: External Call Error")
+		return 0, errors.New("evm.Infer: External Call Error")
 	}
-	int_output, err := strconv.Atoi(int_output_tmp)
-	buf := new(bytes.Buffer)
-	if err := binary.Write(buf, binary.BigEndian, int64(int_output)); err != nil {
-		return []byte{}, errors.New("evm.Infer: Type Conversion Error")
+	uint64_output, err := strconv.ParseUint(int_output_tmp, 10, 64)
+	if err != nil {
+		return 0, errors.New("evm.Infer: Type Conversion Error")
 	}
-	return buf.Bytes(), nil
+	return uint64_output, nil
 }
 
-func BinaryWrite(x interface{}) []byte {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, x)
-	if err != nil {
-		return []byte{}
+func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
+	modelMetaRaw := evm.StateDB.GetCode(addr)
+	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
+		return &types.ModelMeta{}, err
+	} else {
+		return modelMeta, nil
 	}
-	return buf.Bytes()
+}
+
+func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
+	inputMetaRaw := evm.StateDB.GetCode(addr)
+	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {
+		return &types.InputMeta{}, err
+	} else {
+		return inputMeta, nil
+	}
 }

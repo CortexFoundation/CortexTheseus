@@ -643,34 +643,27 @@ func opGas(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stac
 
 func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	_modelAddr, _inputAddr := stack.pop(), stack.pop()
-	offset, size := stack.pop(), stack.pop()
 	modelAddr := common.BigToAddress(_modelAddr)
 	inputAddr := common.BigToAddress(_inputAddr)
-
-	_modelMeta := evm.StateDB.GetCode(modelAddr)
-	_inputMeta := evm.StateDB.GetCode(inputAddr)
 	var (
 		modelMeta *types.ModelMeta
 		inputMeta *types.InputMeta
 	)
 	var err error
-	if modelMeta, err = types.ParseModelMeta(_modelMeta); err != nil {
+	if modelMeta, err = evm.GetModelMeta(modelAddr); err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
-	if inputMeta, err = types.ParseInputMeta(_inputMeta); err != nil {
+	if inputMeta, err = evm.GetInputMeta(inputAddr); err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
-
 	output, err := evm.Infer(modelMeta.Hash.Bytes(), inputMeta.Hash.Bytes())
 	if err != nil {
+		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
-	} else {
-		stack.push(evm.interpreter.intPool.get().SetUint64(1))
 	}
-	memory.Set(offset.Uint64(), size.Uint64(), output)
-	_, _ = inputMeta, modelMeta
+	stack.push(evm.interpreter.intPool.get().SetUint64(output))
 	return nil, nil
 }
 func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
