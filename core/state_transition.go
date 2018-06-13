@@ -228,8 +228,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//TODO(xiaoyan)
 	gu := st.gasUsed()
 	if st.modelGas != nil {
-		for _, mGas := range st.modelGas {
-			gu -= mGas
+		for _, mgas := range st.modelGas {
+			gu -= mgas
 		}
 		if gu < 0 {
 			panic(fmt.Errorf("why total model gas is larger than total gas"))
