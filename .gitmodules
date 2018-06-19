@@ -1,6 +1,6 @@
 [submodule "tests"]
 	path = tests/testdata
 	url = https://github.com/ethereum/tests
-[submodule "ctcx-solc"]
+[submodule "ctxc-solc"]
 	path = ctxc-solc
-	url = git@github.com:CortexFoundation/ctcx-solc.git
+	url = git@github.com:CortexFoundation/ctxc-solc.git
