@@ -22,6 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -140,12 +141,35 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 
 	if IsModelMeta(contract.Code) {
 		//todo
-		return contract.Code, nil
+		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			modelMeta.SetBlockNum(*in.evm.BlockNumber)
+			finalCode, err := modelMeta.ToBytes()
+			if err != nil {
+				return nil, err
+			} else {
+				contract.Code = finalCode
+			}
+			return contract.Code, nil
+		}
 	}
 
 	if IsInputMeta(contract.Code) {
-		//todo
-		return contract.Code, nil
+		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			inputMeta.SetBlockNum(*in.evm.BlockNumber)
+			finalCode, err := inputMeta.ToBytes()
+			if err != nil {
+				return nil, err
+			} else {
+				contract.Code = finalCode
+			}
+
+			//todo
+			return contract.Code, nil
+		}
 	}
 
 	var (
@@ -226,6 +250,7 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			if model_meta_err != nil {
 				return nil, model_meta_err
 			}
+			//todo
 			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {

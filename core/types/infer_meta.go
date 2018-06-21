@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -30,12 +31,23 @@ type ModelMeta struct {
 	OutputShape   []uint64       `json:"OutputShape"`
 	Gas           uint64         `json:"Gas"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
+	BlockNum      big.Int        `json:"BlockNum"`
 }
 type InputMeta struct {
 	Hash          common.Hash    `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	Shape         []uint64       `json:"Shape"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
+	BlockNum      big.Int        `json:"BlockNum"`
+}
+
+func (mm *ModelMeta) SetBlockNum(num big.Int) error {
+	mm.BlockNum = num
+	return nil
+}
+func (mm *InputMeta) SetBlockNum(num big.Int) error {
+	mm.BlockNum = num
+	return nil
 }
 
 func (mm *ModelMeta) EncodeJSON() (string, error) {
@@ -55,6 +67,20 @@ func (im *InputMeta) DecodeJSON(s string) error {
 	return err
 }
 
+func (mm ModelMeta) ToBytes() ([]byte, error) {
+	array, err := rlp.EncodeToBytes(mm)
+	if err != nil {
+		return nil, err
+	}
+	return array, nil
+}
+func (im InputMeta) ToBytes() ([]byte, error) {
+	array, err := rlp.EncodeToBytes(im)
+	if err != nil {
+		return nil, err
+	}
+	return array, nil
+}
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if len(code) < 2 {
 		return nil, ErrorCodeTypeModelMeta
