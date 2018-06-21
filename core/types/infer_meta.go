@@ -16,6 +16,7 @@ var (
 	ErrorDecodeInputMeta   = errors.New("Input meta decode error")
 	ErrorNotMature         = errors.New("Not mature")
 	ErrorExpired           = errors.New("Meta Expired")
+	ErrorInvalidBlockNum   = errors.New("Invalid block number")
 )
 
 //InferMeta include ModelMeta struct and InputMeta type
