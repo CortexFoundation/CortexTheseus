@@ -140,7 +140,6 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	}
 
 	if IsModelMeta(contract.Code) {
-		//todo
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
@@ -151,6 +150,7 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			} else {
 				contract.Code = finalCode
 			}
+
 			return contract.Code, nil
 		}
 	}
@@ -167,7 +167,6 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				contract.Code = finalCode
 			}
 
-			//todo
 			return contract.Code, nil
 		}
 	}
@@ -250,7 +249,6 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			if model_meta_err != nil {
 				return nil, model_meta_err
 			}
-			//todo
 			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
