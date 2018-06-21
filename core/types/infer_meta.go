@@ -14,6 +14,8 @@ var (
 	ErrorCodeTypeInputMeta = errors.New("Input meta should start with 0x0002")
 	ErrorDecodeModelMeta   = errors.New("Model meta decode error")
 	ErrorDecodeInputMeta   = errors.New("Input meta decode error")
+	ErrorNotMature         = errors.New("Not mature")
+	ErrorExpired           = errors.New("Meta Expired")
 )
 
 //InferMeta include ModelMeta struct and InputMeta type
