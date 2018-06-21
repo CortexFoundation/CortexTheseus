@@ -250,12 +250,15 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			if model_meta_err != nil {
 				return nil, model_meta_err
 			}
+			if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
+				return nil, types.ErrorInvalidBlockNum
+			}
 
 			if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(in.evm.BlockNumber, big.NewInt(100))) > 0 {
 				return nil, types.ErrorNotMature
 			}
 
-			if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(in.evm.BlockNumber, big.NewInt(100000))) < 0 {
+			if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(in.evm.BlockNumber, big.NewInt(1000000))) < 0 {
 				return nil, types.ErrorExpired
 			}
 
