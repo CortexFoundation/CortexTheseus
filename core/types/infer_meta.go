@@ -45,8 +45,8 @@ func (mm *ModelMeta) SetBlockNum(num big.Int) error {
 	mm.BlockNum = num
 	return nil
 }
-func (mm *InputMeta) SetBlockNum(num big.Int) error {
-	mm.BlockNum = num
+func (im *InputMeta) SetBlockNum(num big.Int) error {
+	im.BlockNum = num
 	return nil
 }
 
@@ -68,18 +68,18 @@ func (im *InputMeta) DecodeJSON(s string) error {
 }
 
 func (mm ModelMeta) ToBytes() ([]byte, error) {
-	array, err := rlp.EncodeToBytes(mm)
-	if err != nil {
+	if array, err := rlp.EncodeToBytes(mm); err != nil {
 		return nil, err
+	} else {
+		return array, nil
 	}
-	return array, nil
 }
 func (im InputMeta) ToBytes() ([]byte, error) {
-	array, err := rlp.EncodeToBytes(im)
-	if err != nil {
+	if array, err := rlp.EncodeToBytes(im); err != nil {
 		return nil, err
+	} else {
+		return array, nil
 	}
-	return array, nil
 }
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if len(code) < 2 {
