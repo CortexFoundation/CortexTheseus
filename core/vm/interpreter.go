@@ -18,7 +18,6 @@ package vm
 
 import (
 	"fmt"
-	"math/big"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
