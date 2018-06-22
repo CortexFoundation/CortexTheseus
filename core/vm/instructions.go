@@ -658,11 +658,11 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 		return nil, types.ErrorInvalidBlockNum
 	}
 
-	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(100))) > 0 {
+	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		return nil, types.ErrorNotMature
 	}
 
-	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(1000000))) < 0 {
+	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		return nil, types.ErrorExpired
 	}
 	if inputMeta, err = evm.GetInputMeta(inputAddr); err != nil {
@@ -673,11 +673,11 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 		return nil, types.ErrorInvalidBlockNum
 	}
 
-	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(100))) > 0 {
+	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		return nil, types.ErrorNotMature
 	}
 
-	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(1000000))) < 0 {
+	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		return nil, types.ErrorExpired
 	}
 
