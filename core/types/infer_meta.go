@@ -19,6 +19,11 @@ var (
 	ErrorInvalidBlockNum   = errors.New("Invalid block number")
 )
 
+const (
+	MatureBlks  = 10
+	ExpiredBlks = 100000
+)
+
 //InferMeta include ModelMeta struct and InputMeta type
 type InferMeta interface {
 	TypeCode() []byte
