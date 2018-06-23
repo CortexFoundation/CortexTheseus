@@ -3,17 +3,25 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 var (
-	ErrorCodeLengthNotEnough = errors.New("Code length should be larger than 2")
-	ErrorCodeTypeModelMeta   = errors.New("Model meta should start with 0x0001")
-	ErrorCodeTypeInputMeta   = errors.New("Input meta should start with 0x0002")
-	ErrorDecodeModelMeta     = errors.New("Model meta decode error")
-	ErrorDecodeInputMeta     = errors.New("Input meta decode error")
+	ErrorCodeTypeModelMeta = errors.New("Model meta should start with 0x0001")
+	ErrorCodeTypeInputMeta = errors.New("Input meta should start with 0x0002")
+	ErrorDecodeModelMeta   = errors.New("Model meta decode error")
+	ErrorDecodeInputMeta   = errors.New("Input meta decode error")
+	ErrorNotMature         = errors.New("Not mature")
+	ErrorExpired           = errors.New("Meta Expired")
+	ErrorInvalidBlockNum   = errors.New("Invalid block number")
+)
+
+const (
+	MatureBlks  = 10
+	ExpiredBlks = 100000
 )
 
 //InferMeta include ModelMeta struct and InputMeta type
@@ -31,12 +39,23 @@ type ModelMeta struct {
 	OutputShape   []uint64       `json:"OutputShape"`
 	Gas           uint64         `json:"Gas"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
+	BlockNum      big.Int        `json:"BlockNum"`
 }
 type InputMeta struct {
 	Hash          common.Hash    `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	Shape         []uint64       `json:"Shape"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
+	BlockNum      big.Int        `json:"BlockNum"`
+}
+
+func (mm *ModelMeta) SetBlockNum(num big.Int) error {
+	mm.BlockNum = num
+	return nil
+}
+func (im *InputMeta) SetBlockNum(num big.Int) error {
+	im.BlockNum = num
+	return nil
 }
 
 func (mm *ModelMeta) EncodeJSON() (string, error) {
@@ -56,9 +75,23 @@ func (im *InputMeta) DecodeJSON(s string) error {
 	return err
 }
 
+func (mm ModelMeta) ToBytes() ([]byte, error) {
+	if array, err := rlp.EncodeToBytes(mm); err != nil {
+		return nil, err
+	} else {
+		return array, nil
+	}
+}
+func (im InputMeta) ToBytes() ([]byte, error) {
+	if array, err := rlp.EncodeToBytes(im); err != nil {
+		return nil, err
+	} else {
+		return array, nil
+	}
+}
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if len(code) < 2 {
-		return nil, ErrorCodeLengthNotEnough
+		return nil, ErrorCodeTypeModelMeta
 	}
 	if !(code[0] == 0x0 && code[1] == 0x1) {
 		return nil, ErrorCodeTypeModelMeta
@@ -73,7 +106,7 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 
 func ParseInputMeta(code []byte) (*InputMeta, error) {
 	if len(code) < 2 {
-		return nil, ErrorCodeLengthNotEnough
+		return nil, ErrorCodeTypeInputMeta
 	}
 	if !(code[0] == 0x0 && code[1] == 0x2) {
 		return nil, ErrorCodeTypeInputMeta

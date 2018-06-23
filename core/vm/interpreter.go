@@ -22,6 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -99,20 +100,20 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	return nil
 }
 func IsCode(code []byte) bool {
-	if code[0] == 0 && code[1] == 0 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 0 {
 		return true
 	}
 	return false
 }
 func IsModelMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 1 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 1 {
 		return true
 	}
 	return false
 }
 
 func IsInputMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 0 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 2 {
 		return true
 	}
 	return false
@@ -139,13 +140,35 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	}
 
 	if IsModelMeta(contract.Code) {
-		//todo
-		return contract.Code, nil
+		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			modelMeta.SetBlockNum(*in.evm.BlockNumber)
+			finalCode, err := modelMeta.ToBytes()
+			if err != nil {
+				return nil, err
+			} else {
+				contract.Code = finalCode
+			}
+
+			return contract.Code, nil
+		}
 	}
 
 	if IsInputMeta(contract.Code) {
-		//todo
-		return contract.Code, nil
+		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			inputMeta.SetBlockNum(*in.evm.BlockNumber)
+			finalCode, err := inputMeta.ToBytes()
+			if err != nil {
+				return nil, err
+			} else {
+				contract.Code = finalCode
+			}
+
+			return contract.Code, nil
+		}
 	}
 
 	var (
@@ -218,13 +241,23 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				return nil, errGasUintOverflow
 			}
 		}
+
 		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		if op == INFER {
+			var model_meta_err error
+			modelMeta, model_meta_err := in.evm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			if model_meta_err != nil {
+				return nil, model_meta_err
+			}
+
+			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
+			var overflow bool
+			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
+				return nil, errGasUintOverflow
+			}
+		}
 		if err != nil || !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
-		}
-		if op == INFER {
-			contract.ModelGas[contract.InferOpModelGas.Addr] += contract.InferOpModelGas.MGas
-			contract.InferOpModelGas = ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method can get the proper cost

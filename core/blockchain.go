@@ -964,7 +964,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	currentBlock = bc.CurrentBlock()
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		// Split same-difficulty blocks by number, then at random
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		sum_txs := len(currentBlock.Transactions()) + len(block.Transactions())
+		weight := 0.5
+		if sum_txs > 0 {
+			weight = float64(len(block.Transactions())) / float64(sum_txs)
+		}
+		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < weight)
+		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && len(block.Transactions()) > len(currentBlock.Transactions()))
 	}
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
