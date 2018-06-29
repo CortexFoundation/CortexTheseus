@@ -71,7 +71,7 @@ type Backend interface {
 	CurrentBlock() *types.Block
 }
 
-func GetAPIs(apiBackend Backend) []rpc.API {
+func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 	nonceLock := new(AddrLocker)
 	return []rpc.API{
 		{
@@ -82,7 +82,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
-			Service:   NewPublicBlockChainAPI(apiBackend),
+			Service:   NewPublicBlockChainAPI(apiBackend, vmConfig),
 			Public:    true,
 		}, {
 			Namespace: "eth",

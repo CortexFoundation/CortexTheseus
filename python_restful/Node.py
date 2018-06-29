@@ -55,7 +55,7 @@ class Node:
 
                         self.model_lock[addr].release()
                         # info["model_addr"]=addr
-                        info = {"Hash":addr,"AuthorAddress":new_txion["author"],"RawSize":len(fr1)+len(fr),"InputShape":[3,224,224],"OutputShape":[1],"Gas":len(fr1)+len(fr)}
+                        info = {"Hash":addr,"AuthorAddress":new_txion["author"],"RawSize":(len(fr1)+len(fr)),"InputShape":[3,224,224],"OutputShape":[1],"Gas": (len(fr1)+len(fr))  / 100}
                     #update param
                     elif contractType == "input_data":
                         f=request.files["file"]
@@ -74,7 +74,7 @@ class Node:
                             return jsonify({"msg":"error","info":str(e)})
                         self.input_lock[addr].release()
                         # info["input_addr"]=addr
-                        info = {"Hash":addr,"AuthorAddress":new_txion["author"],"RawSize":len(fr),"Shape":[3,224,224]}
+                        info = {"Hash":addr,"AuthorAddress":new_txion["author"],"RawSize": len(fr),"Shape":[3,224,224]}
                     return jsonify({"msg": "ok", "info": info})
             except Exception as e:
                 return jsonify({"msg":"error","info":str(e)})
