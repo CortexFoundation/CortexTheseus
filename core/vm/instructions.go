@@ -658,7 +658,9 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
-	output, err := evm.Infer(modelMeta.Hash.Bytes(), inputMeta.Hash.Bytes())
+	fmt.Printf("opInfer:modelMeta: %v\n", modelMeta)
+	fmt.Printf("opInfer:inputMeta: %v\n", inputMeta)
+	output, err := evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
 	if err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err

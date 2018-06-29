@@ -44,6 +44,11 @@ type Config struct {
 	InferURI string
 }
 
+// only for the sake of debug info of NewPublicBlockChainAPI
+type ConfigAux struct {
+	InferURI string
+}
+
 // Interpreter is used to run Ethereum based contracts and will utilise the
 // passed environment to query external sources for state information.
 // The Interpreter will run the byte code VM based on the passed
@@ -184,7 +189,6 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			contract.Code = contract.Code[2:]
 		}
 	}
-
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.

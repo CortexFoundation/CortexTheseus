@@ -59,35 +59,29 @@ func extCmd(ctx *cli.Context) error {
 		fmt.Println(string(json_data))
 		if ctx.GlobalBool(ParseModelMetaFlag.Name) {
 
-			var model ModelMetaExt
-			json.Unmarshal(json_data, &model)
-
-			out, _ := rlp.EncodeToBytes(
-				&types.ModelMeta{
-					Hash:          common.BytesToHash([]byte(model.Hash)),
-					RawSize:       model.RawSize,
-					InputShape:    model.InputShape,
-					OutputShape:   model.OutputShape,
-					Gas:           model.Gas,
-					AuthorAddress: common.BytesToAddress([]byte(model.AuthorAddress)),
-				})
-			fmt.Println(model)
-			fmt.Println(hex.EncodeToString(append([]byte{0, 1}, out...)))
+			var model_tmp ModelMetaExt
+			json.Unmarshal(json_data, &model_tmp)
+			model := &types.ModelMeta{
+				Hash:          common.HexToHash(model_tmp.Hash),
+				RawSize:       model_tmp.RawSize,
+				InputShape:    model_tmp.InputShape,
+				OutputShape:   model_tmp.OutputShape,
+				Gas:           model_tmp.Gas,
+				AuthorAddress: common.BytesToAddress([]byte(model_tmp.AuthorAddress)),
+			}
+			out, _ := rlp.EncodeToBytes(model)
+			fmt.Printf("payload: %v\n", hex.EncodeToString(append([]byte{0, 1}, out...)))
 		} else {
-
-			var data InputMetaExt
-			err := json.Unmarshal(json_data, &data)
-			fmt.Println("json:", data, "error:", err)
-
-			out, _ := rlp.EncodeToBytes(
-				&types.InputMeta{
-					Hash:          common.BytesToHash([]byte(data.Hash)),
-					RawSize:       data.RawSize,
-					Shape:         data.Shape,
-					AuthorAddress: common.BytesToAddress([]byte(data.AuthorAddress)),
-				})
-			fmt.Println(out)
-			fmt.Println(hex.EncodeToString(append([]byte{0, 2}, out...)))
+			var data_tmp InputMetaExt
+			json.Unmarshal(json_data, &data_tmp)
+			data := &types.InputMeta{
+				Hash:          common.HexToHash(data_tmp.Hash),
+				RawSize:       data_tmp.RawSize,
+				Shape:         data_tmp.Shape,
+				AuthorAddress: common.BytesToAddress([]byte(data_tmp.AuthorAddress)),
+			}
+			out, _ := rlp.EncodeToBytes(data)
+			fmt.Printf("payload: %v\n", hex.EncodeToString(append([]byte{0, 2}, out...)))
 		}
 	}
 	return nil
