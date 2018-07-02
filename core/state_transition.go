@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	//"github.com/ethereum/go-ethereum/core/asm"
 )
 
 var (
@@ -211,6 +212,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		ret, _, st.gas, st.modelGas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
+		//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
+		//	fmt.Println("Has INFER operation !!! continue ...")
+		//}
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 		ret, st.gas, st.modelGas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
