@@ -82,6 +82,7 @@ func (mm ModelMeta) ToBytes() ([]byte, error) {
 		return array, nil
 	}
 }
+
 func (im InputMeta) ToBytes() ([]byte, error) {
 	if array, err := rlp.EncodeToBytes(im); err != nil {
 		return nil, err
@@ -89,6 +90,7 @@ func (im InputMeta) ToBytes() ([]byte, error) {
 		return array, nil
 	}
 }
+
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if len(code) < 2 {
 		return nil, ErrorCodeTypeModelMeta

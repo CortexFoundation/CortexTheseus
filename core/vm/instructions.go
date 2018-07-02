@@ -686,7 +686,7 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 		//return nil, types.ErrorExpired
 		return nil, errExecutionReverted
 	}
-
+	//todo 
 	output, err := evm.Infer(modelMeta.Hash.Bytes(), inputMeta.Hash.Bytes())
 	if err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
