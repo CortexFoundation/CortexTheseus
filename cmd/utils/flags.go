@@ -538,6 +538,7 @@ var (
 		Name:  "cvm.inferuri",
 		Usage: "infer uri",
 		Value: "http://127.0.0.1:5000/infer",
+	}
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
