@@ -69,6 +69,7 @@ var (
 		utils.EthashDatasetsInMemoryFlag,
 		utils.EthashDatasetsOnDiskFlag,
 		utils.TxPoolNoLocalsFlag,
+		utils.TxPoolNoInfersFlag,
 		utils.TxPoolJournalFlag,
 		utils.TxPoolRejournalFlag,
 		utils.TxPoolPriceLimitFlag,
@@ -119,6 +120,7 @@ var (
 		utils.GpoPercentileFlag,
 		utils.ExtraDataFlag,
 		configFileFlag,
+		utils.ModelCallInterfaceFlag,
 	}
 
 	rpcFlags = []cli.Flag{
