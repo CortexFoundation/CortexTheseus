@@ -158,11 +158,11 @@ var (
 	}
 	FastSyncFlag = cli.BoolFlag{
 		Name:  "fast",
-		Usage: "Enable fast syncing through state downloads",
+		Usage: "Enable fast syncing through state downloads (replaced by --syncmode)",
 	}
 	LightModeFlag = cli.BoolFlag{
 		Name:  "light",
-		Usage: "Enable light client mode",
+		Usage: "Enable light client mode (replaced by --syncmode)",
 	}
 	defaultSyncMode = eth.DefaultConfig.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
@@ -244,6 +244,10 @@ var (
 		Name:  "txpool.nolocals",
 		Usage: "Disables price exemptions for locally submitted transactions",
 	}
+	TxPoolNoInfersFlag = cli.BoolFlag{
+                Name:  "txpool.noinfers",
+                Usage: "Disables infer transactions in this node",
+        }
 	TxPoolJournalFlag = cli.StringFlag{
 		Name:  "txpool.journal",
 		Usage: "Disk journal for local transaction to survive node restarts",
@@ -531,6 +535,11 @@ var (
 		Name:  "shh.pow",
 		Usage: "Minimum POW accepted",
 		Value: whisper.DefaultMinimumPoW,
+	}
+	ModelCallInterfaceFlag = cli.StringFlag{
+		Name:  "cvm.inferuri",
+		Usage: "infer uri",
+		Value: "http://127.0.0.1:5000/infer",
 	}
 )
 
@@ -1247,7 +1256,10 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
-	vmcfg := vm.Config{EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name)}
+	vmcfg := vm.Config{
+		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
+		InferURI:                ctx.GlobalString(ModelCallInterfaceFlag.Name),
+	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)

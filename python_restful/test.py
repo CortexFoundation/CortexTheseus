@@ -55,18 +55,18 @@ if __name__ == "__main__":
     # print(json.dumps(model_info),flush=True)
     input_info = uploadInput(miner,"upload/testing_machine.JPG").json()
     print(json.dumps(input_info),flush=True)
-    # ii = json.loads(input_info["info"])
-    # mi = json.loads(model_info["info"])
-    # infer_info = infer(ii["Hash"],mi["Hash"])
-    # print(infer_info)
-    # model_info = uploadModel("upload/Inception-BN-symbol-2.json", "upload/Inception-BN-0126.params").json()
-    # print(json.dumps(model_info),flush=True)
-    # input_info = uploadInput(miner,"upload/data").json()
-    # print(json.dumps(input_info),flush=True)
-    # ii = json.loads(input_info["info"])
-    # mi = json.loads(model_info["info"])
-    # infer_info = infer(ii["Hash"],mi["Hash"])
-    # print(infer_info)
+    ii = input_info["info"]
+    mi = model_info["info"]
+    infer_info = infer(ii["Hash"],mi["Hash"])
+    print(infer_info)
+    model_info = uploadModel("upload/Inception-BN-symbol-2.json", "upload/Inception-BN-0126.params").json()
+    print(json.dumps(model_info),flush=True)
+    input_info = uploadInput(miner,"upload/data").json()
+    print(json.dumps(input_info),flush=True)
+    ii = input_info["info"]
+    mi = model_info["info"]
+    infer_info = infer(ii["Hash"],mi["Hash"])
+    print(infer_info)
 
     # mine()
     # contract_info = createContract(miner,model_address=model_info["info"]["model_addr"],param_address=param_info["info"]["param_addr"]).json()
