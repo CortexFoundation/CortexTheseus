@@ -541,7 +541,7 @@ var (
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
-		Name:  metrics.MetricsEnabledFlag,
+		Name:  "metrics.MetricsEnabledFlag",
 		Usage: "Enable metrics collection and reporting",
 	}
 	MetricsEnableInfluxDBFlag = cli.BoolFlag{
