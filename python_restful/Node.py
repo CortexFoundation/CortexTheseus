@@ -10,6 +10,7 @@ import time
 import random
 import threading
 import uuid
+import convertimage2numpy as cn
 import Inference
 class Node:
     def __init__(self,end = None):
@@ -31,7 +32,8 @@ class Node:
                     info={}
                     contractType=new_txion["type"]
 
-                    if contractType == "model_data":
+                    print(contractType,flush=True)
+                    if contractType == "model_data":    
                         f=request.files["params_file"]
                         sha=SHA256.new()
                         fr = f.read()
@@ -60,6 +62,9 @@ class Node:
                     elif contractType == "input_data":
                         f=request.files["file"]
                         fr = f.read()
+                        print(123,flush=True)
+                        fr = cn.getImageFromFile(fr).tobytes()
+                        print(fr,flush=True)
                         addr="0x"+SHA256.new(
                             data = fr
                             ).hexdigest()
