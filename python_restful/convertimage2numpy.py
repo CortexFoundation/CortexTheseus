@@ -21,6 +21,6 @@ def getImageFromFile(fr):
     img = cv2.resize(img, (224, 224))
     img = np.swapaxes(img, 0, 2)
     img = np.swapaxes(img, 1, 2)
-    return img
+    return np.asarray(img)
 
 np.save(open("upload/data","wb"),getImage("upload/testing_machine.JPG"))
