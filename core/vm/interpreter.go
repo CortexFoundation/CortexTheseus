@@ -44,6 +44,11 @@ type Config struct {
 	InferURI string
 }
 
+// only for the sake of debug info of NewPublicBlockChainAPI
+type ConfigAux struct {
+	InferURI string
+}
+
 // Interpreter is used to run Ethereum based contracts and will utilise the
 // passed environment to query external sources for state information.
 // The Interpreter will run the byte code VM based on the passed
@@ -99,20 +104,20 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	return nil
 }
 func IsCode(code []byte) bool {
-	if code[0] == 0 && code[1] == 0 {
+	if len(code) < 2 || (code[0] == 0 && code[1] == 0) {
 		return true
 	}
 	return false
 }
 func IsModelMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 1 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 1 {
 		return true
 	}
 	return false
 }
 
 func IsInputMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 0 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 2 {
 		return true
 	}
 	return false
@@ -180,9 +185,10 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
 	if IsCode(contract.Code) {
-		contract.Code = contract.Code[2:]
+		if len(contract.Code) > 2 {
+			contract.Code = contract.Code[2:]
+		}
 	}
-
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
@@ -218,13 +224,22 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				return nil, errGasUintOverflow
 			}
 		}
+
 		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		if op == INFER {
+			var model_meta_err error
+			modelMeta, model_meta_err := in.evm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			if model_meta_err != nil {
+				return nil, model_meta_err
+			}
+			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
+			var overflow bool
+			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
+				return nil, errGasUintOverflow
+			}
+		}
 		if err != nil || !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
-		}
-		if op == INFER {
-			contract.ModelGas[contract.InferOpModelGas.Addr] += contract.InferOpModelGas.MGas
-			contract.InferOpModelGas = ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method can get the proper cost

@@ -98,7 +98,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
-	receipt, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
+	receipt, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, bc.GetVMConfig())
 	if err != nil {
 		panic(err)
 	}
@@ -256,6 +256,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 // chain. Depending on the full flag, if creates either a full block chain or a
 // header only chain.
 func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *BlockChain, error) {
+	panic("newCanonical not tested!")
 	var (
 		db      = ethdb.NewMemDatabase()
 		genesis = new(Genesis).MustCommit(db)
@@ -281,6 +282,7 @@ func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *B
 
 // makeHeaderChain creates a deterministic chain of headers rooted at parent.
 func makeHeaderChain(parent *types.Header, n int, engine consensus.Engine, db ethdb.Database, seed int) []*types.Header {
+	panic("makeHeaderChain not tested!")
 	blocks := makeBlockChain(types.NewBlockWithHeader(parent), n, engine, db, seed)
 	headers := make([]*types.Header, len(blocks))
 	for i, block := range blocks {

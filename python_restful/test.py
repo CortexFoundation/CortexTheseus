@@ -49,10 +49,6 @@ def callContract(f,input_address,contract_address):
     return requests.post("http://127.0.0.1:5000/txion",json={"type":"contract_call","from":f,"input_address":input_address,"contract_address":contract_address,"nonce":nonce})
 
 if __name__ == "__main__":
-    # mine()
-    # tx(f=miner,to="0x0000000000000000000000000000000000000000001",amount=10)
-    # model_info = uploadModel("/Users/cortex/go/src/shiotoli/Torrent/storrent/testfile/", "upload/Inception-BN-0126.params").json()
-    # print(json.dumps(model_info),flush=True)
     input_info = uploadInput(miner,"upload/testing_machine.JPG").json()
     print(json.dumps(input_info),flush=True)
     model_info = uploadModel("upload/Inception-BN-symbol.json", "upload/Inception-BN-0126.params").json()
