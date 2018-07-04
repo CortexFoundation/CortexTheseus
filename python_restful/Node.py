@@ -4,6 +4,7 @@ from collections import defaultdict
 from flask import Flask, request, render_template_string, render_template,url_for,redirect,jsonify
 import sys
 from Crypto.Hash import SHA256
+import numpy as np
 import os
 import json
 import time
@@ -62,18 +63,16 @@ class Node:
                     elif contractType == "input_data":
                         f=request.files["file"]
                         fr = f.read()
-                        print(123,flush=True)
-                        fr = cn.getImageFromFile(fr).tobytes()
-                        print(fr,flush=True)
+                        fr = cn.getImageFromFile(fr)
                         addr="0x"+SHA256.new(
-                            data = fr
+                            data = fr.tobytes()
                             ).hexdigest()
                         print(addr,flush=True)
                         p=os.path.join("input_data", addr)
                         f.stream.seek(0)
                         self.input_lock[addr].acquire()
                         try:
-                            f.save(p)
+                            np.save(open(p,"wb"),fr)
                         except Exception as e:
                             self.input_lock[addr].release()
                             return jsonify({"msg":"error","info":str(e)})
