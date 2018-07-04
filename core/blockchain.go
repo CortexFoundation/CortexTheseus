@@ -1534,6 +1534,9 @@ func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 // Config retrieves the blockchain's chain configuration.
 func (bc *BlockChain) Config() *params.ChainConfig { return bc.chainConfig }
 
+// Config retrieves the blockchain's chain vm configuration.
+func (bc *BlockChain) GetVMConfig() vm.Config { return bc.vmConfig }
+
 // Engine retrieves the blockchain's consensus engine.
 func (bc *BlockChain) Engine() consensus.Engine { return bc.engine }
 

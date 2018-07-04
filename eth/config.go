@@ -112,6 +112,8 @@ type Config struct {
 	// Enables tracking of SHA3 preimages in the VM
 	EnablePreimageRecording bool
 
+	InferURI string
+
 	// Miscellaneous options
 	DocRoot string `toml:"-"`
 }

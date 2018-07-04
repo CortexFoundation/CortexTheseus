@@ -9,11 +9,10 @@ import (
 )
 
 var (
-	ErrorCodeLengthNotEnough = errors.New("Code length should be larger than 2")
-	ErrorCodeTypeModelMeta   = errors.New("Model meta should start with 0x0001")
-	ErrorCodeTypeInputMeta   = errors.New("Input meta should start with 0x0002")
-	ErrorDecodeModelMeta     = errors.New("Model meta decode error")
-	ErrorDecodeInputMeta     = errors.New("Input meta decode error")
+	ErrorCodeTypeModelMeta = errors.New("Model meta should start with 0x0001")
+	ErrorCodeTypeInputMeta = errors.New("Input meta should start with 0x0002")
+	ErrorDecodeModelMeta   = errors.New("Model meta decode error")
+	ErrorDecodeInputMeta   = errors.New("Input meta decode error")
 )
 
 //InferMeta include ModelMeta struct and InputMeta type
@@ -58,7 +57,7 @@ func (im *InputMeta) DecodeJSON(s string) error {
 
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if len(code) < 2 {
-		return nil, ErrorCodeLengthNotEnough
+		return nil, ErrorCodeTypeModelMeta
 	}
 	if !(code[0] == 0x0 && code[1] == 0x1) {
 		return nil, ErrorCodeTypeModelMeta
@@ -73,7 +72,7 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 
 func ParseInputMeta(code []byte) (*InputMeta, error) {
 	if len(code) < 2 {
-		return nil, ErrorCodeLengthNotEnough
+		return nil, ErrorCodeTypeInputMeta
 	}
 	if !(code[0] == 0x0 && code[1] == 0x2) {
 		return nil, ErrorCodeTypeInputMeta
