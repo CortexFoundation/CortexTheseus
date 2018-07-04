@@ -134,8 +134,10 @@ func runCmd(ctx *cli.Context) error {
 			Shape:         []uint64{1},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 		})
-	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta)...))
-	statedb.SetCode(common.HexToAddress("0x2001"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
+	fmt.Println(testModelMeta)
+	fmt.Println(testInputMeta)
+	statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"), append([]byte{0x0, 0x1}, []byte(testModelMeta)...))
+	statedb.SetCode(common.HexToAddress("0x049d8385c81200339fca354f2696fd57ea96255e"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {
 		receiver = common.HexToAddress(ctx.GlobalString(ReceiverFlag.Name))
 	}
@@ -189,8 +191,9 @@ func runCmd(ctx *cli.Context) error {
 		Value:       utils.GlobalBig(ctx, ValueFlag.Name),
 		BlockNumber: new(big.Int).SetUint64(blockNumber),
 		EVMConfig: vm.Config{
-			Tracer: tracer,
-			Debug:  ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
+			Tracer:   tracer,
+			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
+			InferURI: "http://127.0.0.1:5000/infer",
 		},
 	}
 
