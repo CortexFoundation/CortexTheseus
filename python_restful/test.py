@@ -2,6 +2,7 @@ import requests
 import json
 import os
 import time
+import threading
 nonce = 0
 miner = "0x0000000000000000000000000000000000000000001"
 def getState():
@@ -55,15 +56,21 @@ if __name__ == "__main__":
     model_info = uploadModel("upload/Inception-BN-symbol.json", "upload/Inception-BN-0126.params").json()
     print(json.dumps(model_info),flush=True)
     dataset = ['upload/testing_machine.JPG']
-    #dataset += [ 'upload/bird/%d.jpeg' %x for x in range(1, 6)]
-    #dataset += [ 'upload/cock/%d.jpeg' % x for x in range(1, 5)]
-    #dataset += [ 'upload/duck/%d.jpeg' % x for x in range(1, 5)]
+    dataset += [ 'upload/bird/%d.jpeg' %x for x in range(1, 6)]
+    dataset += [ 'upload/cock/%d.jpeg' % x for x in range(1, 5)]
+    dataset += [ 'upload/duck/%d.jpeg' % x for x in range(1, 5)]
     start_time = time.time()
     for data in dataset:
         input_info = uploadInput(miner, data).json()
+        print ('input_info', input_info)
         ii = input_info["info"]
         mi = model_info["info"]
-        for i in range(100):
-            infer_info = infer(ii["Hash"],mi["Hash"])
+        threads = []
+        for i in range(20):
+            threads.append(threading.Thread(target=infer, args= (ii["Hash"],mi["Hash"])))
+            threads[-1].start()
+        for x in threads:
+            x.join()
+        infer_info = infer(ii["Hash"],mi["Hash"])
         print(data, label_dict[infer_info['info']], infer_info, json.dumps(input_info))
     print (time.time() - start_time)
