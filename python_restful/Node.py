@@ -34,7 +34,7 @@ class Node:
                     contractType=new_txion["type"]
 
                     print(contractType,flush=True)
-                    if contractType == "model_data":    
+                    if contractType == "model_data":
                         f=request.files["params_file"]
                         sha=SHA256.new()
                         fr = f.read()
@@ -116,4 +116,4 @@ class Node:
                 return jsonify({"msg":"error","info":str(ex)})
 if __name__ == "__main__":
     node = Node()
-    node.node.run(host='0.0.0.0',port=5000)
+    node.node.run(host='0.0.0.0', port=5000, threaded=False)
