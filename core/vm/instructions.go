@@ -25,7 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	_ "github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -658,8 +658,8 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
-	fmt.Printf("opInfer:modelMeta: %v\n", modelMeta)
-	fmt.Printf("opInfer:inputMeta: %v\n", inputMeta)
+	log.Debug(fmt.Sprintf("opInfer:modelMeta: %v", modelMeta))
+	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", inputMeta))
 	output, err := evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
 	if err != nil {
 		stack.push(evm.interpreter.intPool.getZero())

@@ -29,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	resty "gopkg.in/resty.v1"
 
@@ -426,7 +427,7 @@ func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
 	requestBody := fmt.Sprintf(
 		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
-	fmt.Println(requestBody)
+	log.Debug(fmt.Sprintf("%v", requestBody))
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
@@ -434,7 +435,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 	if err != nil {
 		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, evm.interpreter.cfg.InferURI, err))
 	}
-	fmt.Println(resp.String())
+	log.Debug(fmt.Sprintf("%v", resp.String()))
 	js, _ := simplejson.NewJson([]byte(resp.String()))
 	int_output_tmp, out_err := js.Get("info").String()
 	if out_err != nil {
@@ -449,7 +450,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	modelMetaRaw := evm.StateDB.GetCode(addr)
-	fmt.Println("modelMetaRaw: %v", modelMetaRaw)
+	log.Debug(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
 	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
 		return &types.ModelMeta{}, err
 	} else {
@@ -459,7 +460,7 @@ func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err er
 
 func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
 	inputMetaRaw := evm.StateDB.GetCode(addr)
-	fmt.Println("inputMetaRaw: %v", inputMetaRaw)
+	log.Debug(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
 	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {
 		return &types.InputMeta{}, err
 	} else {
