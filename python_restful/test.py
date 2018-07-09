@@ -63,6 +63,8 @@ def uploadParam(f,filepath):
     return requests.post("http://127.0.0.1:5000/txion",files = files)
 
 if __name__ == "__main__":
+    print (listModel())
+    exit(-1)
     with open('gistfile1.txt', 'r') as fin:
         label_dict = json.loads("".join(fin.readlines()).encode())
 
