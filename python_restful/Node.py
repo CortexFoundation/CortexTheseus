@@ -22,7 +22,7 @@ class Node:
         self.inferObj = Inference.InferHelper(
             json.load(open("config.json", "r")))
         self.input_list_lock = threading.Lock()
-        self.input_list = {}
+        self.input_list = defaultdict(dict)
         self.model_list_lock = threading.Lock()
         self.model_list = {}
 
@@ -76,10 +76,21 @@ class Node:
                     self.model_list_lock.release()
                 #update param
                 elif contractType == "list_input":
-                    self.input_list_lock.acquire()
-                    resp = jsonify({"msg": "ok", "info": self.input_list})
-                    self.input_list_lock.release()
-                    return resp
+                    try:
+                        self.input_list_lock.acquire()
+                        print (new_txion)
+                        if 'author' in new_txion:
+                            author = new_txion['author']
+                            input_dict = {x:y for x, y in self.input_list[author].items() if y['AuthorAddress'] == author}
+                        else:
+                            input_dict = self.input_list
+
+                        resp = jsonify({"msg": "ok", "info": input_dict})
+                        self.input_list_lock.release()
+                        return resp
+                    except Exception as e:
+                        print ('Error', e)
+                        return jsonify({"msg": "error", "info": str(e)})
                 elif contractType == "list_model":
                     self.model_list_lock.acquire()
                     resp = jsonify({"msg": "ok", "info": self.model_list})
@@ -107,7 +118,7 @@ class Node:
                     finally:
                         self.input_lock[addr].release()
                     self.input_list_lock.acquire()
-                    self.input_list[addr] = info
+                    self.input_list[new_txion["author"]][addr] = info
                     self.input_list_lock.release()
                     # info["input_addr"]=addr
                 return jsonify({"msg": "ok", "info": info})
@@ -172,5 +183,13 @@ if __name__ == "__main__":
     @server.route('/infer', methods=['POST'])
     def infer():
         return node.infer(request)
+
+    @server.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add("Access-Control-Allow-Methods", '*')
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With, Access-Control-Allow-Origin");
+
+        return response
 
     server.run(host='0.0.0.0', port=5000, threaded=True)
