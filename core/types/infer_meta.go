@@ -33,7 +33,7 @@ type InferMeta interface {
 }
 
 type ModelMeta struct {
-	URI         string         `json:"URI"`
+	URI           string         `json:"URI"`
 	Hash          common.Hash    `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	InputShape    []uint64       `json:"InputShape"`
@@ -43,7 +43,7 @@ type ModelMeta struct {
 	BlockNum      big.Int        `json:"BlockNum"`
 }
 type InputMeta struct {
-        URI           string         `json:"URI"`
+	URI           string         `json:"URI"`
 	Hash          common.Hash    `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	Shape         []uint64       `json:"Shape"`
