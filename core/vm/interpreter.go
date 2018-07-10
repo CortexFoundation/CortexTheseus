@@ -19,7 +19,7 @@ package vm
 import (
 	"fmt"
 	"sync/atomic"
-
+	"net/http"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -157,6 +157,8 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			} else {
 				contract.Code = finalCode
 			}
+			//todo
+			go http.Get("http://localhost:8500/bzz:/")
 
 			return contract.Code, nil
 		}
@@ -173,6 +175,8 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			} else {
 				contract.Code = finalCode
 			}
+			//todo
+			go http.Get("http://localhost:8500/bzz:/")
 
 			return contract.Code, nil
 		}
