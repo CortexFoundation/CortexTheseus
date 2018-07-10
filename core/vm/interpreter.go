@@ -158,7 +158,8 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				contract.Code = finalCode
 			}
 			//todo
-			go http.Get("http://localhost:8500/bzz:/")
+			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
+			go http.Get("http://localhost:8500/" + modelMeta.URI)
 
 			return contract.Code, nil
 		}
@@ -176,7 +177,8 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				contract.Code = finalCode
 			}
 			//todo
-			go http.Get("http://localhost:8500/bzz:/")
+			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
+			go http.Get("http://localhost:8500/" + inputMeta.URI)
 
 			return contract.Code, nil
 		}
