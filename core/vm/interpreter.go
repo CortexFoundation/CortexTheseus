@@ -18,12 +18,13 @@ package vm
 
 import (
 	"fmt"
-	"sync/atomic"
-	"net/http"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"net/http"
+	"sync/atomic"
+	"strings"
 )
 
 // Config are the configuration options for the Interpreter
@@ -159,7 +160,9 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			}
 			//todo
 			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-			go http.Get("http://localhost:8500/" + modelMeta.URI)
+			if strings.HasPrefix(modelMeta.URI, "bzz") {
+				go http.Get("http://localhost:8500/" + modelMeta.URI)
+			}
 
 			return contract.Code, nil
 		}
@@ -178,7 +181,9 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			}
 			//todo
 			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-			go http.Get("http://localhost:8500/" + inputMeta.URI)
+			if strings.HasPrefix(inputMeta.URI, "bzz") {
+				go http.Get("http://localhost:8500/" + inputMeta.URI)
+			}
 
 			return contract.Code, nil
 		}
