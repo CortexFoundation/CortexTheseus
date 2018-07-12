@@ -401,6 +401,6 @@ func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
 }
 
-func (self *stateObject) IsUploading() bool {
+func (self *stateObject) Uploading() bool {
 	return self.data.Upload.Cmp(big.NewInt(0)) > 0
 }
