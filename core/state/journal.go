@@ -103,6 +103,10 @@ type (
 		account *common.Address
 		prev    *big.Int
 	}
+	uploadChange struct {
+		account *common.Address
+		prev    *big.Int
+	}
 	nonceChange struct {
 		account *common.Address
 		prev    uint64
@@ -176,6 +180,14 @@ func (ch balanceChange) revert(s *StateDB) {
 }
 
 func (ch balanceChange) dirtied() *common.Address {
+	return ch.account
+}
+
+func (ch uploadChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setUpload(ch.prev)
+}
+
+func (ch uploadChange) dirtied() *common.Address {
 	return ch.account
 }
 
