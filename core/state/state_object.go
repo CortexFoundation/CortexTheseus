@@ -100,7 +100,7 @@ type Account struct {
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
-	Upload *big.Int //bytes
+	Upload   *big.Int //bytes
 }
 
 // newObject creates a state object.
@@ -289,7 +289,11 @@ func (c *stateObject) SubUpload(amount *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-	c.SetUpload(new(big.Int).Sub(c.Upload(), amount))
+	if c.Upload().Cmp(amount) > 0 {
+		c.SetUpload(new(big.Int).Sub(c.Upload(), amount))
+	} else {
+		c.SetUpload(big.NewInt(0))
+	}
 }
 
 func (self *stateObject) SetUpload(amount *big.Int) {
@@ -395,4 +399,8 @@ func (self *stateObject) Nonce() uint64 {
 // interface. Interfaces are awesome.
 func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
+}
+
+func (self *stateObject) IsUploading() bool {
+	return self.data.Upload.Cmp(big.NewInt(0)) > 0
 }
