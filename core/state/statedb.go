@@ -196,6 +196,14 @@ func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	return common.Big0
 }
 
+func (self *StateDB) GetUpload(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Upload()
+	}
+	return common.Big0
+}
+
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
@@ -294,7 +302,27 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 		stateObject.SetBalance(amount)
 	}
 }
+func (self *StateDB) AddUpload(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.AddUpload(amount)
+	}
+}
 
+// SubBalance subtracts amount from the account associated with addr.
+func (self *StateDB) SubUpload(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SubUpload(amount)
+	}
+}
+
+func (self *StateDB) SetUpload(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetUpload(amount)
+	}
+}
 func (self *StateDB) SetNonce(addr common.Address, nonce uint64) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
@@ -307,6 +335,13 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
 	}
+}
+func (self *StateDB) IsUploading(addr common.Address) bool {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Upload().Cmp(big.NewInt(0)) > 0
+	}
+	return false
 }
 
 func (self *StateDB) SetState(addr common.Address, key, value common.Hash) {

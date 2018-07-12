@@ -31,6 +31,11 @@ type StateDB interface {
 	AddBalance(common.Address, *big.Int)
 	GetBalance(common.Address) *big.Int
 
+	SubUpload(common.Address, *big.Int)
+	AddUpload(common.Address, *big.Int)
+	GetUpload(common.Address) *big.Int
+	IsUploading(common.Address) bool
+
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 

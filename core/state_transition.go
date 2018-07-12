@@ -246,6 +246,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
+	//todo change upload
+	if st.state.IsUploading(st.to()) && st.value.Cmp(big.NewInt(0)) == 0 {
+		//todo
+		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1024*1024*1024))
+	}
 
 	return ret, st.gasUsed(), vmerr != nil, err
 }
