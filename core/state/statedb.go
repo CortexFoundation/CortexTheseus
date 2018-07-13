@@ -339,7 +339,7 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 func (self *StateDB) Uploading(addr common.Address) bool {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		return stateObject.Upload().Cmp(big.NewInt(0)) > 0
+		return stateObject.Upload().Sign() > 0
 	}
 	return false
 }

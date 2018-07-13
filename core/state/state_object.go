@@ -402,5 +402,5 @@ func (self *stateObject) Value() *big.Int {
 }
 
 func (self *stateObject) Uploading() bool {
-	return self.data.Upload.Cmp(big.NewInt(0)) > 0
+	return self.data.Upload.Sign() > 0
 }

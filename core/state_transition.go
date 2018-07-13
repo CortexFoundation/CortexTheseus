@@ -263,7 +263,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 }
 
 func (st *StateTransition) uploading() bool {
-	return st.state.Uploading(st.to()) && st.value.Cmp(big.NewInt(0)) == 0
+	return st.state.Uploading(st.to()) && st.value.Sign() == 0
 }
 
 func (st *StateTransition) refundGas() {
