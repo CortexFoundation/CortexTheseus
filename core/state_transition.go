@@ -79,13 +79,17 @@ type Message interface {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation, upload, homestead bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation && homestead {
 		gas = params.TxGasContractCreation
 	} else {
-		gas = params.TxGas
+		if upload {
+			gas = params.UploadGas
+		} else {
+			gas = params.TxGas
+		}
 	}
 	// Bump the required gas by the amount of transactional data
 	if len(data) > 0 {
@@ -191,9 +195,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil
+	upload := st.uploading()
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, homestead)
+	gas, err := IntrinsicGas(st.data, contractCreation, upload, homestead)
 	if err != nil {
 		return nil, 0, false, err
 	}
@@ -230,6 +235,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	}
 	st.refundGas()
 	//TODO(xiaoyan)
+	//model gas
 	gu := st.gasUsed()
 	if st.modelGas != nil {
 		for addr, mgas := range st.modelGas {
@@ -239,20 +245,25 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
 				}
 
-				panic(fmt.Errorf("why total model gas is larger than total gas"))
+				panic(fmt.Errorf("Why total model gas is larger than total gas ?"))
 				return nil, 0, false, vm.ErrInsufficientBalance
 			}
 			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
 		}
 	}
+
+	//normal gas
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 	//todo change upload
-	if st.state.Uploading(st.to()) && st.value.Cmp(big.NewInt(0)) == 0 {
-		//todo
-		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*1024*1024))
+	if st.uploading() {
+		st.state.SubUpload(st.to(), new(big.Int).SetUint64(3*1024*1024))
 	}
 
 	return ret, st.gasUsed(), vmerr != nil, err
+}
+
+func (st *StateTransition) uploading() bool {
+	return st.state.Uploading(st.to()) && st.value.Cmp(big.NewInt(0)) == 0
 }
 
 func (st *StateTransition) refundGas() {
