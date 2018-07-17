@@ -195,10 +195,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil
-	upload := st.uploading()
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, upload, homestead)
+	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead)
 	if err != nil {
 		return nil, 0, false, err
 	}
