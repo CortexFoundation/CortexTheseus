@@ -255,7 +255,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 	//todo change upload
 	if st.uploading() {
-		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*512*1024))
+		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*512*1024)) //512 bytes
 	}
 
 	return ret, st.gasUsed(), vmerr != nil, err
