@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	//"github.com/ethereum/go-ethereum/core/asm"
 )
 
 var (
@@ -78,13 +79,17 @@ type Message interface {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation, upload, homestead bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation && homestead {
 		gas = params.TxGasContractCreation
 	} else {
-		gas = params.TxGas
+		if upload {
+			gas = params.UploadGas
+		} else {
+			gas = params.TxGas
+		}
 	}
 	// Bump the required gas by the amount of transactional data
 	if len(data) > 0 {
@@ -192,7 +197,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	contractCreation := msg.To() == nil
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, homestead)
+	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead)
 	if err != nil {
 		return nil, 0, false, err
 	}
@@ -211,6 +216,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		ret, _, st.gas, st.modelGas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
+		//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
+		//	fmt.Println("Has INFER operation !!! continue ...")
+		//}
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 		ret, st.gas, st.modelGas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
@@ -226,6 +234,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	}
 	st.refundGas()
 	//TODO(xiaoyan)
+	//model gas
 	gu := st.gasUsed()
 	if st.modelGas != nil {
 		for addr, mgas := range st.modelGas {
@@ -235,15 +244,30 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
 				}
 
-				panic(fmt.Errorf("why total model gas is larger than total gas"))
+				panic(fmt.Errorf("Why total model gas is larger than total gas ?"))
 				return nil, 0, false, vm.ErrInsufficientBalance
 			}
 			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
 		}
 	}
+
+	//normal gas
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
+	//todo change upload
+	if st.uploading() {
+		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*512*1024)) //512 bytes
+		if !st.state.Uploading(st.to()) {
+			//todo
+			st.state.Download(st.to())
+		}
+	}
 
 	return ret, st.gasUsed(), vmerr != nil, err
+}
+
+func (st *StateTransition) uploading() bool {
+	return st.state.Uploading(st.to()) && st.value.Sign() == 0
+	//return false
 }
 
 func (st *StateTransition) refundGas() {

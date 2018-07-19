@@ -565,7 +565,7 @@ func opMload(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 func opMstore(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	// pop value of the stack
 	mStart, val := stack.pop(), stack.pop()
-	memory.Set(mStart.Uint64(), 32, math.PaddedBigBytes(val, 32))
+	memory.Set32(mStart.Uint64(), val)
 
 	evm.interpreter.intPool.put(mStart, val)
 	return nil, nil
@@ -579,9 +579,9 @@ func opMstore8(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *
 }
 
 func opSload(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	loc := common.BigToHash(stack.pop())
-	val := evm.StateDB.GetState(contract.Address(), loc).Big()
-	stack.push(val)
+	loc := stack.peek()
+	val := evm.StateDB.GetState(contract.Address(), common.BigToHash(loc))
+	loc.SetBytes(val.Bytes())
 	return nil, nil
 }
 
@@ -654,10 +654,39 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
+	if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
+		//return nil, types.ErrorInvalidBlockNum
+		return nil, errExecutionReverted
+	}
+
+	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
+		//return nil, types.ErrorNotMature
+		return nil, errExecutionReverted
+	}
+
+	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
+		//return nil, types.ErrorExpired
+		return nil, errExecutionReverted
+	}
 	if inputMeta, err = evm.GetInputMeta(inputAddr); err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
 		return nil, err
 	}
+	if inputMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
+		//return nil, types.ErrorInvalidBlockNum
+		return nil, errExecutionReverted
+	}
+
+	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
+		//return nil, types.ErrorNotMature
+		return nil, errExecutionReverted
+	}
+
+	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
+		//return nil, types.ErrorExpired
+		return nil, errExecutionReverted
+	}
+	//todo 
 	output, err := evm.Infer(modelMeta.Hash.Bytes(), inputMeta.Hash.Bytes())
 	if err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
@@ -910,7 +939,7 @@ func makeDup(size int64) executionFunc {
 // make swap instruction function
 func makeSwap(size int64) executionFunc {
 	// switch n + 1 otherwise n would be swapped with n
-	size += 1
+	size++
 	return func(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 		stack.swap(int(size))
 		return nil, nil
