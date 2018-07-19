@@ -227,9 +227,10 @@ func (self *StateDB) Download(addr common.Address) error {
 			} else {
 				//todo
 				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-				if strings.HasPrefix(modelMeta.URI, "bzz") {
-					go http.Get("http://localhost:8500/" + modelMeta.URI)
-				}
+				//if strings.HasPrefix(modelMeta.URI, "bzz") {
+				//	go http.Get("http://localhost:8500/" + modelMeta.URI)
+				//}
+				download(modelMeta.URI)
 
 				return nil
 			}
@@ -240,15 +241,22 @@ func (self *StateDB) Download(addr common.Address) error {
 			} else {
 				//todo
 				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-				if strings.HasPrefix(inputMeta.URI, "bzz") {
-					go http.Get("http://localhost:8500/" + inputMeta.URI)
-				}
+				//if strings.HasPrefix(inputMeta.URI, "bzz") {
+				//	go http.Get("http://localhost:8500/" + inputMeta.URI)
+				//}
+				download(inputMeta.URI)
 
 				return nil
 			}
 		}
 	}
 	return nil
+}
+
+func download(uri string) {
+	if strings.HasPrefix(uri, "bzz") {
+		go http.Get("http://localhost:8500/" + uri)
+	}
 }
 
 func (self *StateDB) GetCode(addr common.Address) []byte {
