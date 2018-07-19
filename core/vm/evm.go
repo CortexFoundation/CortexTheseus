@@ -433,7 +433,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 		return 0, errors.New("Not Model ERROR")
 	}
 
-	if IsModelMeta(evm.StateDB.GetCode(common.BytesToAddress(input_meta_hash))) {
+	if IsInputMeta(evm.StateDB.GetCode(common.BytesToAddress(input_meta_hash))) {
 		if evm.StateDB.Uploading(common.BytesToAddress(input_meta_hash)) {
 			return 0, errors.New("INPUT IS NOT UPLOADED ERROR")
 		}
