@@ -256,6 +256,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//todo change upload
 	if st.uploading() {
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*512*1024)) //512 bytes
+		if st.state.Uploading(st.to()) {
+			//todo
+			st.state.Download(st.to())
+		}
 	}
 
 	return ret, st.gasUsed(), vmerr != nil, err
