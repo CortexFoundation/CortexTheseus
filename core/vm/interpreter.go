@@ -18,13 +18,13 @@ package vm
 
 import (
 	"fmt"
-	"math/big"
-	"sync/atomic"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	//"net/http"
+	"strings"
+	"sync/atomic"
 )
 
 // Config are the configuration options for the Interpreter
@@ -81,7 +81,6 @@ func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 		evm:      evm,
 		cfg:      cfg,
 		gasTable: evm.ChainConfig().GasTable(evm.BlockNumber),
-		intPool:  newIntPool(),
 	}
 }
 
@@ -127,6 +126,14 @@ func IsInputMeta(code []byte) bool {
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
 func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err error) {
+	if in.intPool == nil {
+		in.intPool = poolOfIntPools.get()
+		defer func() {
+			poolOfIntPools.put(in.intPool)
+			in.intPool = nil
+		}()
+	}
+
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
@@ -151,6 +158,11 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			} else {
 				contract.Code = finalCode
 			}
+			//todo
+			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
+			if strings.HasPrefix(modelMeta.URI, "bzz") {
+				//go http.Get("http://localhost:8500/" + modelMeta.URI)
+			}
 
 			return contract.Code, nil
 		}
@@ -166,6 +178,11 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				return nil, err
 			} else {
 				contract.Code = finalCode
+			}
+			//todo
+			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
+			if strings.HasPrefix(inputMeta.URI, "bzz") {
+				//go http.Get("http://localhost:8500/" + inputMeta.URI)
 			}
 
 			return contract.Code, nil
@@ -187,6 +204,9 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		logged  bool   // deferred Tracer should ignore already logged steps
 	)
 	contract.Input = input
+
+	// Reclaim the stack as an int pool when the execution stops
+	defer func() { in.intPool.put(stack.data...) }()
 
 	if in.cfg.Debug {
 		defer func() {
@@ -249,17 +269,6 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			modelMeta, model_meta_err := in.evm.GetModelMeta(common.BigToAddress(stack.Back(0)))
 			if model_meta_err != nil {
 				return nil, model_meta_err
-			}
-			if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
-				return nil, types.ErrorInvalidBlockNum
-			}
-
-			if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(in.evm.BlockNumber, big.NewInt(100))) > 0 {
-				return nil, types.ErrorNotMature
-			}
-
-			if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(in.evm.BlockNumber, big.NewInt(1000000))) < 0 {
-				return nil, types.ErrorExpired
 			}
 
 			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
