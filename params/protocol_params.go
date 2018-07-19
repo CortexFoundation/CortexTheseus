@@ -19,7 +19,7 @@ package params
 import "math/big"
 
 var (
-	TargetGasLimit uint64 = GenesisGasLimit // The artificial target
+	TargetGasLimit = GenesisGasLimit // The artificial target
 )
 
 const (
@@ -34,12 +34,13 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	TxDataZeroGas         uint64 = 4     // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
-	QuadCoeffDiv          uint64 = 512   // Divisor for the quadratic particle of the memory cost equation.
-	SstoreSetGas          uint64 = 20000 // Once per SLOAD operation.
-	LogDataGas            uint64 = 8     // Per byte in a LOG* operation's data.
-	CallStipend           uint64 = 2300  // Free gas given at beginning of call.
-	CallInferGas				  uint64 = 100000 // Base gas for call infer
+	UploadGas             uint64 = 270000
+	TxDataZeroGas         uint64 = 4      // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
+	QuadCoeffDiv          uint64 = 512    // Divisor for the quadratic particle of the memory cost equation.
+	SstoreSetGas          uint64 = 20000  // Once per SLOAD operation.
+	LogDataGas            uint64 = 8      // Per byte in a LOG* operation's data.
+	CallStipend           uint64 = 2300   // Free gas given at beginning of call.
+	CallInferGas          uint64 = 100000 // Base gas for call infer
 
 	Sha3Gas          uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas      uint64 = 6     // Once per word of the SHA3 operation's data.

@@ -29,6 +29,10 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+
+	"github.com/ethereum/go-ethereum/core/vm"
+	"net/http"
+	"strings"
 )
 
 type revision struct {
@@ -196,6 +200,14 @@ func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	return common.Big0
 }
 
+func (self *StateDB) GetUpload(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Upload()
+	}
+	return common.Big0
+}
+
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
@@ -203,6 +215,48 @@ func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	}
 
 	return 0
+}
+
+func (self *StateDB) Download(addr common.Address) error {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		//return stateObject.Code(self.db)
+		if vm.IsModelMeta(stateObject.Code(self.db)) {
+			if modelMeta, err := types.ParseModelMeta(stateObject.Code(self.db)); err != nil {
+				return err
+			} else {
+				//todo
+				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
+				//if strings.HasPrefix(modelMeta.URI, "bzz") {
+				//	go http.Get("http://localhost:8500/" + modelMeta.URI)
+				//}
+				download(modelMeta.URI)
+
+				return nil
+			}
+		}
+		if vm.IsInputMeta(stateObject.Code(self.db)) {
+			if inputMeta, err := types.ParseInputMeta(stateObject.Code(self.db)); err != nil {
+				return err
+			} else {
+				//todo
+				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
+				//if strings.HasPrefix(inputMeta.URI, "bzz") {
+				//	go http.Get("http://localhost:8500/" + inputMeta.URI)
+				//}
+				download(inputMeta.URI)
+
+				return nil
+			}
+		}
+	}
+	return nil
+}
+
+func download(uri string) {
+	if strings.HasPrefix(uri, "bzz") {
+		go http.Get("http://localhost:8500/" + uri)
+	}
 }
 
 func (self *StateDB) GetCode(addr common.Address) []byte {
@@ -294,7 +348,27 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 		stateObject.SetBalance(amount)
 	}
 }
+func (self *StateDB) AddUpload(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.AddUpload(amount)
+	}
+}
 
+// SubBalance subtracts amount from the account associated with addr.
+func (self *StateDB) SubUpload(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SubUpload(amount)
+	}
+}
+
+func (self *StateDB) SetUpload(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetUpload(amount)
+	}
+}
 func (self *StateDB) SetNonce(addr common.Address, nonce uint64) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
@@ -307,6 +381,13 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
 	}
+}
+func (self *StateDB) Uploading(addr common.Address) bool {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Upload().Sign() > 0
+	}
+	return false
 }
 
 func (self *StateDB) SetState(addr common.Address, key, value common.Hash) {
@@ -596,7 +677,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		case isDirty:
 			// Write any contract code associated with the state object
 			if stateObject.code != nil && stateObject.dirtyCode {
-				s.db.TrieDB().Insert(common.BytesToHash(stateObject.CodeHash()), stateObject.code)
+				s.db.TrieDB().InsertBlob(common.BytesToHash(stateObject.CodeHash()), stateObject.code)
 				stateObject.dirtyCode = false
 			}
 			// Write any storage changes in the state object to its storage trie.
