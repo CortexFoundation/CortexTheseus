@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"math/big"
 	//"net/http"
 	"strings"
 	"sync/atomic"
@@ -151,13 +152,14 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			modelMeta.SetBlockNum(*in.evm.BlockNumber)
-			finalCode, err := modelMeta.ToBytes()
-			if err != nil {
-				return nil, err
-			} else {
-				contract.Code = finalCode
-			}
+			in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
+			//modelMeta.SetBlockNum(*in.evm.BlockNumber)
+			//finalCode, err := modelMeta.ToBytes()
+			//if err != nil {
+			//	return nil, err
+			//} else {
+			//		contract.Code = finalCode
+			//}
 			//todo
 			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
 			if strings.HasPrefix(modelMeta.URI, "bzz") {
@@ -172,13 +174,14 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			inputMeta.SetBlockNum(*in.evm.BlockNumber)
-			finalCode, err := inputMeta.ToBytes()
-			if err != nil {
-				return nil, err
-			} else {
-				contract.Code = finalCode
-			}
+			in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
+			//inputMeta.SetBlockNum(*in.evm.BlockNumber)
+			//finalCode, err := inputMeta.ToBytes()
+			//if err != nil {
+			//	return nil, err
+			//} else {
+			//	contract.Code = finalCode
+			//}
 			//todo
 			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
 			if strings.HasPrefix(inputMeta.URI, "bzz") {
