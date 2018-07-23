@@ -152,13 +152,15 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
-			modelMeta.SetBlockNum(*in.evm.BlockNumber)
-			finalCode, err := modelMeta.ToBytes()
-			if err != nil {
-				return nil, err
-			} else {
+			if modelMeta.BlockNum.Sign() == 0 {
+				modelMeta.SetBlockNum(*in.evm.BlockNumber)
+				finalCode, err := modelMeta.ToBytes()
+				if err != nil {
+					return nil, err
+				} else {
 					contract.Code = finalCode
+				}
+				in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
 			}
 			//todo
 			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
@@ -174,13 +176,15 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
-			inputMeta.SetBlockNum(*in.evm.BlockNumber)
-			finalCode, err := inputMeta.ToBytes()
-			if err != nil {
-				return nil, err
-			} else {
-				contract.Code = finalCode
+			if inputMeta.BlockNum.Sign() == 0 {
+				inputMeta.SetBlockNum(*in.evm.BlockNumber)
+				finalCode, err := inputMeta.ToBytes()
+				if err != nil {
+					return nil, err
+				} else {
+					contract.Code = finalCode
+				}
+				in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
 			}
 			//todo
 			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
