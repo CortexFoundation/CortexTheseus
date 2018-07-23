@@ -21,7 +21,7 @@ var (
 
 const (
 	MatureBlks  = 10
-	ExpiredBlks = 100000
+	ExpiredBlks = 1000000000000000000
 )
 
 //InferMeta include ModelMeta struct and InputMeta type

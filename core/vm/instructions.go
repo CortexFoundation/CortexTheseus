@@ -666,7 +666,7 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		//return nil, types.ErrorExpired
-		return nil, errExecutionReverted
+		//return nil, errExecutionReverted
 	}
 	if inputMeta, err = evm.GetInputMeta(inputAddr); err != nil {
 		stack.push(evm.interpreter.intPool.getZero())
@@ -684,7 +684,7 @@ func opInfer(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *St
 
 	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		//return nil, types.ErrorExpired
-		return nil, errExecutionReverted
+		//return nil, errExecutionReverted
 	}
 	//todo 
 	output, err := evm.Infer(modelMeta.Hash.Bytes(), inputMeta.Hash.Bytes())
