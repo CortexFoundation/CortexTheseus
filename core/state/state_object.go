@@ -283,8 +283,6 @@ func (c *stateObject) AddUpload(amount *big.Int) {
 	c.SetUpload(new(big.Int).Add(c.Upload(), amount))
 }
 
-// SubBalance removes amount from c's balance.
-// It is used to remove funds from the origin account of a transfer.
 func (c *stateObject) SubUpload(amount *big.Int) {
 	if amount.Sign() == 0 {
 		return
