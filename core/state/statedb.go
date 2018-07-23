@@ -220,12 +220,10 @@ func (self *StateDB) GetNonce(addr common.Address) uint64 {
 func (self *StateDB) Download(addr common.Address) error {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		//return stateObject.Code(self.db)
 		if vm.IsModelMeta(stateObject.Code(self.db)) {
 			if modelMeta, err := types.ParseModelMeta(stateObject.Code(self.db)); err != nil {
 				return err
 			} else {
-				//todo
 				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
 				//if strings.HasPrefix(modelMeta.URI, "bzz") {
 				//	go http.Get("http://localhost:8500/" + modelMeta.URI)
@@ -239,7 +237,6 @@ func (self *StateDB) Download(addr common.Address) error {
 			if inputMeta, err := types.ParseInputMeta(stateObject.Code(self.db)); err != nil {
 				return err
 			} else {
-				//todo
 				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
 				//if strings.HasPrefix(inputMeta.URI, "bzz") {
 				//	go http.Get("http://localhost:8500/" + inputMeta.URI)
