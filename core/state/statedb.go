@@ -228,7 +228,9 @@ func (self *StateDB) Download(addr common.Address) error {
 				//if strings.HasPrefix(modelMeta.URI, "bzz") {
 				//	go http.Get("http://localhost:8500/" + modelMeta.URI)
 				//}
-				download(modelMeta.URI)
+				if modelMeta.RawSize > 0 && modelMeta.BlockNum.Sign() > 0 {
+					download(modelMeta.URI)
+				}
 
 				return nil
 			}
@@ -241,7 +243,10 @@ func (self *StateDB) Download(addr common.Address) error {
 				//if strings.HasPrefix(inputMeta.URI, "bzz") {
 				//	go http.Get("http://localhost:8500/" + inputMeta.URI)
 				//}
-				download(inputMeta.URI)
+
+				if inputMeta.RawSize > 0 && inputMeta.BlockNum.Sign() > 0 {
+					download(inputMeta.URI)
+				}
 
 				return nil
 			}
@@ -505,6 +510,7 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	new, prev := self.createObject(addr)
 	if prev != nil {
 		new.setBalance(prev.data.Balance)
+		new.setUpload(prev.data.Upload)
 	}
 }
 
