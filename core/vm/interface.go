@@ -33,8 +33,8 @@ type StateDB interface {
 
 	SetUpload(common.Address, *big.Int)
 	SubUpload(common.Address, *big.Int)
-	AddUpload(common.Address, *big.Int)
-	GetUpload(common.Address) *big.Int
+	//AddUpload(common.Address, *big.Int)
+	//GetUpload(common.Address) *big.Int
 	Uploading(common.Address) bool
 	Download(common.Address) error
 
