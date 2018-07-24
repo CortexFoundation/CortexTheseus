@@ -90,7 +90,7 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
+	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Upload.Sign() == 0
 }
 
 // Account is the Ethereum consensus representation of accounts.
@@ -274,8 +274,6 @@ func (self *stateObject) setBalance(amount *big.Int) {
 }
 
 func (c *stateObject) AddUpload(amount *big.Int) {
-	// EIP158: We must check emptiness for the objects such that the account
-	// clearing (0,0,0 objects) can take effect.
 	if amount.Sign() == 0 {
 		if c.empty() {
 			c.touch()

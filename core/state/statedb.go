@@ -357,7 +357,6 @@ func (self *StateDB) AddUpload(addr common.Address, amount *big.Int) {
 	}
 }
 
-// SubBalance subtracts amount from the account associated with addr.
 func (self *StateDB) SubUpload(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
@@ -413,9 +412,11 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 		account:     &addr,
 		prev:        stateObject.suicided,
 		prevbalance: new(big.Int).Set(stateObject.Balance()),
+		prevupload:  new(big.Int).Set(stateObject.Upload()),
 	})
 	stateObject.markSuicided()
 	stateObject.data.Balance = new(big.Int)
+	stateObject.data.Upload = new(big.Int)
 
 	return true
 }
