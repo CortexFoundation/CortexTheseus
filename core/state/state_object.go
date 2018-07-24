@@ -108,6 +108,9 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}
+	if data.Upload == nil {
+		data.Upload = new(big.Int)
+	}
 	if data.CodeHash == nil {
 		data.CodeHash = emptyCodeHash
 	}
