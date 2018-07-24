@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"math/big"
 	//"net/http"
-	"strings"
+	//"strings"
 	"sync/atomic"
 )
 
@@ -160,12 +160,13 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				} else {
 					contract.Code = finalCode
 				}
-				in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
-			}
-			//todo
-			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-			if strings.HasPrefix(modelMeta.URI, "bzz") {
-				//go http.Get("http://localhost:8500/" + modelMeta.URI)
+
+				if modelMeta.RawSize > 0 && modelMeta.RawSize <= 1024*1024*1024*1024 { // 1Byte ~ 1TB
+					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
+				} else {
+					//todo err return
+					return nil, ErrInvalidMetaRawSize
+				}
 			}
 
 			return contract.Code, nil
@@ -184,12 +185,13 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				} else {
 					contract.Code = finalCode
 				}
-				in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
-			}
-			//todo
-			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-			if strings.HasPrefix(inputMeta.URI, "bzz") {
-				//go http.Get("http://localhost:8500/" + inputMeta.URI)
+
+				if inputMeta.RawSize > 0 && inputMeta.RawSize <= 1024*1024*1024*1024 {
+					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
+				} else {
+					//todo
+					return nil, ErrInvalidMetaRawSize
+				}
 			}
 
 			return contract.Code, nil
