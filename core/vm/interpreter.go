@@ -156,10 +156,11 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				//todo check the model size according to p2p manifest file
 				if modelMeta.RawSize > 0 && modelMeta.RawSize <= 1024*1024*1024*1024 { // 1Byte ~ 1TB
 					//todo size check
-                                        in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
-                                } else {
-                                        return nil, ErrInvalidMetaRawSize
-                                }
+					//manifest must exist
+					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
+				} else {
+					return nil, ErrInvalidMetaRawSize
+				}
 
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
 				finalCode, err := modelMeta.ToBytes()
@@ -182,10 +183,10 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				if inputMeta.RawSize > 0 && inputMeta.RawSize <= 1024*1024*1024*1024 {
 					//todo check size between meta file and p2p
 					//the size in meta file must equal or bigger than the actual size from p2p storage
-                                        in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
-                                } else {
-                                        return nil, ErrInvalidMetaRawSize
-                                }
+					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
+				} else {
+					return nil, ErrInvalidMetaRawSize
+				}
 
 				inputMeta.SetBlockNum(*in.evm.BlockNumber)
 				finalCode, err := inputMeta.ToBytes()
