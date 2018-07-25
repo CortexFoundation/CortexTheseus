@@ -228,20 +228,20 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//TODO(xiaoyan)
 	gu := st.gasUsed()
 	if st.modelGas != nil {
-		for _, mGas := range st.modelGas {
-			gu -= mGas
-		}
-		if gu < 0 {
-			panic(fmt.Errorf("why total model gas is larger than total gas"))
+		for addr, mgas := range st.modelGas {
+			gu -= mgas
+			if gu < 0 { //should never happen
+				if mgas+gu > 0 {
+					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
+				}
+
+				panic(fmt.Errorf("why total model gas is larger than total gas"))
+				return nil, 0, false, vm.ErrInsufficientBalance
+			}
+			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
 		}
 	}
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
-	if st.modelGas != nil {
-		for addr, mgas := range st.modelGas {
-			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas-mgas/100*95), st.gasPrice))
-			st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(mgas/100*95), st.gasPrice))
-		}
-	}
 
 	return ret, st.gasUsed(), vmerr != nil, err
 }
