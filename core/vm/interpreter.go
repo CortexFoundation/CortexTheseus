@@ -18,10 +18,12 @@ package vm
 
 import (
 	"fmt"
+	"math/big"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -104,7 +106,7 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	return nil
 }
 func IsCode(code []byte) bool {
-	if len(code) < 2 || (code[0] == 0 && code[1] == 0) {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 0 {
 		return true
 	}
 	return false
@@ -144,13 +146,35 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	}
 
 	if IsModelMeta(contract.Code) {
-		//todo
-		return contract.Code, nil
+		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			modelMeta.SetBlockNum(*in.evm.BlockNumber)
+			finalCode, err := modelMeta.ToBytes()
+			if err != nil {
+				return nil, err
+			} else {
+				contract.Code = finalCode
+			}
+
+			return contract.Code, nil
+		}
 	}
 
 	if IsInputMeta(contract.Code) {
-		//todo
-		return contract.Code, nil
+		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			inputMeta.SetBlockNum(*in.evm.BlockNumber)
+			finalCode, err := inputMeta.ToBytes()
+			if err != nil {
+				return nil, err
+			} else {
+				contract.Code = finalCode
+			}
+
+			return contract.Code, nil
+		}
 	}
 
 	var (
@@ -185,9 +209,7 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
 	if IsCode(contract.Code) {
-		if len(contract.Code) > 2 {
-			contract.Code = contract.Code[2:]
-		}
+		contract.Code = contract.Code[2:]
 	}
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
@@ -232,6 +254,18 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			if model_meta_err != nil {
 				return nil, model_meta_err
 			}
+			if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
+				return nil, types.ErrorInvalidBlockNum
+			}
+
+			if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(in.evm.BlockNumber, big.NewInt(100))) > 0 {
+				return nil, types.ErrorNotMature
+			}
+
+			if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(in.evm.BlockNumber, big.NewInt(1000000))) < 0 {
+				return nil, types.ErrorExpired
+			}
+
 			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
