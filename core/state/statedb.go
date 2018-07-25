@@ -31,7 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 
 	"github.com/ethereum/go-ethereum/core/vm"
-	"net/http"
+	//"net/http"
 	"strings"
 )
 
@@ -225,9 +225,6 @@ func (self *StateDB) Download(addr common.Address) error {
 				return err
 			} else {
 				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-				//if strings.HasPrefix(modelMeta.URI, "bzz") {
-				//	go http.Get("http://localhost:8500/" + modelMeta.URI)
-				//}
 				if modelMeta.RawSize > 0 && modelMeta.BlockNum.Sign() > 0 {
 					download(modelMeta.URI)
 				}
@@ -240,10 +237,6 @@ func (self *StateDB) Download(addr common.Address) error {
 				return err
 			} else {
 				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-				//if strings.HasPrefix(inputMeta.URI, "bzz") {
-				//	go http.Get("http://localhost:8500/" + inputMeta.URI)
-				//}
-
 				if inputMeta.RawSize > 0 && inputMeta.BlockNum.Sign() > 0 {
 					download(inputMeta.URI)
 				}
@@ -256,8 +249,9 @@ func (self *StateDB) Download(addr common.Address) error {
 }
 
 func download(uri string) {
+	//todo call p2p restful interface
 	if strings.HasPrefix(uri, "bzz") {
-		go http.Get("http://localhost:8500/" + uri)
+		//go http.Get("http://localhost:8500/" + uri)
 	}
 }
 

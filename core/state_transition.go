@@ -259,7 +259,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		//log.Info("Upload progress", "address", st.to().Hex(), "amount", 1*512*1024)
 		if !st.state.Uploading(st.to()) {
 			//todo
-			st.state.Download(st.to())
+			//st.state.Download(st.to())
+			log.Info("Uploaded OK", "address", st.to().Hex())
 		}
 	}
 
