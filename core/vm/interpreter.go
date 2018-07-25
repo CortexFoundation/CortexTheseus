@@ -153,19 +153,20 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			return nil, err
 		} else {
 			if modelMeta.BlockNum.Sign() == 0 {
+				//todo check the model size according to p2p manifest file
+				if modelMeta.RawSize > 0 && modelMeta.RawSize <= 1024*1024*1024*1024 { // 1Byte ~ 1TB
+					//todo size check
+                                        in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
+                                } else {
+                                        return nil, ErrInvalidMetaRawSize
+                                }
+
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
 				finalCode, err := modelMeta.ToBytes()
 				if err != nil {
 					return nil, err
 				} else {
 					contract.Code = finalCode
-				}
-
-				if modelMeta.RawSize > 0 && modelMeta.RawSize <= 1024*1024*1024*1024 { // 1Byte ~ 1TB
-					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
-				} else {
-					//todo err return
-					return nil, ErrInvalidMetaRawSize
 				}
 			}
 
@@ -178,19 +179,20 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
+				if inputMeta.RawSize > 0 && inputMeta.RawSize <= 1024*1024*1024*1024 {
+					//todo check size between meta file and p2p
+					//the size in meta file must equal or bigger than the actual size from p2p storage
+                                        in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
+                                } else {
+                                        return nil, ErrInvalidMetaRawSize
+                                }
+
 				inputMeta.SetBlockNum(*in.evm.BlockNumber)
 				finalCode, err := inputMeta.ToBytes()
 				if err != nil {
 					return nil, err
 				} else {
 					contract.Code = finalCode
-				}
-
-				if inputMeta.RawSize > 0 && inputMeta.RawSize <= 1024*1024*1024*1024 {
-					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
-				} else {
-					//todo
-					return nil, ErrInvalidMetaRawSize
 				}
 			}
 
