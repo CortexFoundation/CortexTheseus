@@ -20,6 +20,7 @@ import (
 	_ "encoding/hex"
 	"errors"
 	"math/big"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -199,7 +200,6 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	if evm.vmConfig.CallFakeVM {
 		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
-		fmt.Println(contract.Code, caller.Address(), to.Address(), value.String())
 	}
 
 	// When an error was returned by the EVM or when setting the creation code
