@@ -198,7 +198,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	ret, err = run(evm, contract, input)
 
 	if evm.vmConfig.CallFakeVM {
-		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+string(value.Bytes())+",")...)
+		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
 	}
 
 	// When an error was returned by the EVM or when setting the creation code
@@ -385,9 +385,9 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	ret, err = run(evm, contract, nil)
 
-	if evm.vmConfig.CallFakeVM {
-		ret = append(ret, []byte(caller.Address().String()+"-"+contractAddr.String()+"-"+string(value.Bytes())+",")...)
-	}
+	/* if evm.vmConfig.CallFakeVM {
+		ret = append(ret, []byte(caller.Address().String()+"-"+contractAddr.String()+"-"+string(value)+",")...)
+	} */
 
 	fmt.Println("create Code: ", ret)
 	// check whether the max code size has been exceeded
