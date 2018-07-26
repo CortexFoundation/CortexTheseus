@@ -31,7 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 
 	"github.com/ethereum/go-ethereum/core/vm"
-	"net/http"
+	//"net/http"
 	"strings"
 )
 
@@ -220,17 +220,14 @@ func (self *StateDB) GetNonce(addr common.Address) uint64 {
 func (self *StateDB) Download(addr common.Address) error {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		//return stateObject.Code(self.db)
 		if vm.IsModelMeta(stateObject.Code(self.db)) {
 			if modelMeta, err := types.ParseModelMeta(stateObject.Code(self.db)); err != nil {
 				return err
 			} else {
-				//todo
 				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-				//if strings.HasPrefix(modelMeta.URI, "bzz") {
-				//	go http.Get("http://localhost:8500/" + modelMeta.URI)
-				//}
-				download(modelMeta.URI)
+				if modelMeta.RawSize > 0 && modelMeta.BlockNum.Sign() > 0 {
+					download(modelMeta.URI)
+				}
 
 				return nil
 			}
@@ -239,12 +236,10 @@ func (self *StateDB) Download(addr common.Address) error {
 			if inputMeta, err := types.ParseInputMeta(stateObject.Code(self.db)); err != nil {
 				return err
 			} else {
-				//todo
 				//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-				//if strings.HasPrefix(inputMeta.URI, "bzz") {
-				//	go http.Get("http://localhost:8500/" + inputMeta.URI)
-				//}
-				download(inputMeta.URI)
+				if inputMeta.RawSize > 0 && inputMeta.BlockNum.Sign() > 0 {
+					download(inputMeta.URI)
+				}
 
 				return nil
 			}
@@ -254,8 +249,9 @@ func (self *StateDB) Download(addr common.Address) error {
 }
 
 func download(uri string) {
+	//todo call p2p restful interface
 	if strings.HasPrefix(uri, "bzz") {
-		go http.Get("http://localhost:8500/" + uri)
+		//go http.Get("http://localhost:8500/" + uri)
 	}
 }
 
@@ -355,12 +351,12 @@ func (self *StateDB) AddUpload(addr common.Address, amount *big.Int) {
 	}
 }
 
-// SubBalance subtracts amount from the account associated with addr.
 func (self *StateDB) SubUpload(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SubUpload(amount)
 	}
+	log.Info("Uploading progress", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
 }
 
 func (self *StateDB) SetUpload(addr common.Address, amount *big.Int) {
@@ -411,9 +407,11 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 		account:     &addr,
 		prev:        stateObject.suicided,
 		prevbalance: new(big.Int).Set(stateObject.Balance()),
+		prevupload:  new(big.Int).Set(stateObject.Upload()),
 	})
 	stateObject.markSuicided()
 	stateObject.data.Balance = new(big.Int)
+	stateObject.data.Upload = new(big.Int)
 
 	return true
 }
@@ -508,6 +506,7 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	new, prev := self.createObject(addr)
 	if prev != nil {
 		new.setBalance(prev.data.Balance)
+		new.setUpload(prev.data.Upload)
 	}
 }
 

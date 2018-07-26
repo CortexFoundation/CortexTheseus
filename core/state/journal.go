@@ -96,6 +96,7 @@ type (
 		account     *common.Address
 		prev        bool // whether account had already suicided
 		prevbalance *big.Int
+		prevupload  *big.Int
 	}
 
 	// Changes to individual accounts.
@@ -159,6 +160,7 @@ func (ch suicideChange) revert(s *StateDB) {
 	if obj != nil {
 		obj.suicided = ch.prev
 		obj.setBalance(ch.prevbalance)
+		obj.setUpload(ch.prevupload)
 	}
 }
 

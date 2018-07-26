@@ -37,7 +37,7 @@ var (
 The State Transitioning Model
 
 A state transition is a change made when a transaction is applied to the current world state
-The state transitioning model does all all the necessary work to work out a valid new state root.
+The state transitioning model does all the necessary work to work out a valid new state root.
 
 1) Nonce handling
 2) Pre pay gas
@@ -185,8 +185,8 @@ func (st *StateTransition) preCheck() error {
 }
 
 // TransitionDb will transition the state by applying the current message and
-// returning the result including the the used gas. It returns an error if it
-// failed. An error indicates a consensus issue.
+// returning the result including the used gas. It returns an error if failed.
+// An error indicates a consensus issue.
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
 	if err = st.preCheck(); err != nil {
 		return
@@ -255,10 +255,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 	//todo change upload
 	if st.uploading() {
-		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*512*1024)) //512 bytes
+		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*512*1024)) //64 ~ 1024 bytes
+		//log.Info("Upload progress", "address", st.to().Hex(), "amount", 1*512*1024)
 		if !st.state.Uploading(st.to()) {
 			//todo
-			st.state.Download(st.to())
+			//st.state.Download(st.to())
+			log.Info("Uploaded OK", "address", st.to().Hex())
 		}
 	}
 
