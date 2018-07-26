@@ -27,5 +27,6 @@ var (
 	ErrInsufficientBalance      = errors.New("insufficient balance for transfer")
 	ErrContractAddressCollision = errors.New("contract address collision")
 
-	ErrInvalidMetaRawSize = errors.New("invalid meta raw size")
+	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
+	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
 )
