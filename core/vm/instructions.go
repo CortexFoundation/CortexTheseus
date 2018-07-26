@@ -733,6 +733,11 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Sta
 	}
 
 	evm.interpreter.intPool.put(addr, value, inOffset, inSize, retOffset, retSize)
+
+	/* if evm.vmConfig.CallFakeVM {
+		json := map[string]string{"from": contract.Address(), "to": toAddr, "value": value}
+		return append(json.EncodeToBytes(), ret), nil
+	} */
 	return ret, nil
 }
 
