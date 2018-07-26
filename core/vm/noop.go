@@ -49,6 +49,9 @@ func (NoopStateDB) CreateAccount(common.Address)                                
 func (NoopStateDB) SubBalance(common.Address, *big.Int)                                {}
 func (NoopStateDB) AddBalance(common.Address, *big.Int)                                {}
 func (NoopStateDB) GetBalance(common.Address) *big.Int                                 { return nil }
+func (NoopStateDB) SubUpload(common.Address, *big.Int)                                {}
+func (NoopStateDB) AddUpload(common.Address, *big.Int)                                {}
+func (NoopStateDB) GetUpload(common.Address) *big.Int                                 { return nil }
 func (NoopStateDB) GetNonce(common.Address) uint64                                     { return 0 }
 func (NoopStateDB) SetNonce(common.Address, uint64)                                    {}
 func (NoopStateDB) GetCodeHash(common.Address) common.Hash                             { return common.Hash{} }

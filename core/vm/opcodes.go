@@ -93,6 +93,7 @@ const (
 	EXTCODECOPY
 	RETURNDATASIZE
 	RETURNDATACOPY
+	EXTCODEHASH
 )
 
 // 0x40 range - block operations.
@@ -215,6 +216,7 @@ const (
 	CALLCODE
 	RETURN
 	DELEGATECALL
+	CREATE2
 	STATICCALL = 0xfa
 
 	REVERT       = 0xfd
@@ -272,6 +274,7 @@ var opCodeToString = map[OpCode]string{
 	EXTCODECOPY:    "EXTCODECOPY",
 	RETURNDATASIZE: "RETURNDATASIZE",
 	RETURNDATACOPY: "RETURNDATACOPY",
+	EXTCODEHASH:    "EXTCODEHASH",
 
 	// 0x40 range - block operations.
 	BLOCKHASH:  "BLOCKHASH",
@@ -378,6 +381,7 @@ var opCodeToString = map[OpCode]string{
 	RETURN:       "RETURN",
 	CALLCODE:     "CALLCODE",
 	DELEGATECALL: "DELEGATECALL",
+	CREATE2:      "CREATE2",
 	STATICCALL:   "STATICCALL",
 	REVERT:       "REVERT",
 	SELFDESTRUCT: "SELFDESTRUCT",
@@ -441,6 +445,7 @@ var stringToOp = map[string]OpCode{
 	"EXTCODECOPY":    EXTCODECOPY,
 	"RETURNDATASIZE": RETURNDATASIZE,
 	"RETURNDATACOPY": RETURNDATACOPY,
+	"EXTCODEHASH":    EXTCODEHASH,
 	"BLOCKHASH":      BLOCKHASH,
 	"COINBASE":       COINBASE,
 	"TIMESTAMP":      TIMESTAMP,
@@ -530,6 +535,7 @@ var stringToOp = map[string]OpCode{
 	"LOG4":           LOG4,
 	"INFER":          INFER,
 	"CREATE":         CREATE,
+	"CREATE2":        CREATE2,
 	"CALL":           CALL,
 	"RETURN":         RETURN,
 	"CALLCODE":       CALLCODE,
