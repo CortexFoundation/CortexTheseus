@@ -264,7 +264,7 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		// execute the operation
 		ret, err = operation.execute(&pc, in.evm, contract, mem, stack)
 		if in.evm.vmConfig.CallFakeVM {
-			if op == CALL || op == CREATE {
+			if op == CALL {
 				res = append(res, ret...)
 			}
 		} else {
