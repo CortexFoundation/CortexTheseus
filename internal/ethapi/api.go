@@ -679,6 +679,12 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 // Call executes the given transaction on the state for the given block number.
 // It doesn't make and changes in the state/blockchain and is useful to execute and retrieve values.
 func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI}, 5*time.Second)
+	return (hexutil.Bytes)(result), err
+}
+
+// same as Call, except for CallFakeVM flag with overwritten returns.
+func (s *PublicBlockChainAPI) GetInternalTransaction(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI, CallFakeVM: true}, 5*time.Second)
 	return (hexutil.Bytes)(result), err
 }

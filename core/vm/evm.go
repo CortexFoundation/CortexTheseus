@@ -20,7 +20,6 @@ import (
 	_ "encoding/hex"
 	"errors"
 	"math/big"
-	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -386,9 +385,9 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	ret, err = run(evm, contract, nil)
 
-	/* if evm.vmConfig.CallFakeVM {
-		ret = append(ret, []byte(caller.Address().String()+"-"+contractAddr.String()+"-"+string(value)+",")...)
-	} */
+	if evm.vmConfig.CallFakeVM {
+		ret = append(ret, []byte(caller.Address().String()+"-"+contractAddr.String()+"-"+value.String()+",")...)
+	}
 
 	fmt.Println("create Code: ", ret)
 	// check whether the max code size has been exceeded
