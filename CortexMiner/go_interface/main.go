@@ -1,8 +1,7 @@
 package main
 
 /*
-#cgo  CFLAGS:   -I ..
-#cgo  LDFLAGS:  -lstdc++  -L. -lgominer
+#cgo  LDFLAGS:  -lstdc++  -lgominer
 #include "gominer.h"
 */
 import "C"
@@ -20,9 +19,21 @@ func main() {
 	var result_len uint32
 	var a [10]byte
 	// a[0] = 97
+	fmt.Println("######### DEBUG ############")
+	fmt.Println(a)
+	fmt.Println("############################")
 	C.CuckooSolve((*C.char)(unsafe.Pointer(&a[0])), C.uint(80), C.uint(63), (*C.uint)(unsafe.Pointer(&result[0])), (*C.uint)(unsafe.Pointer(&result_len)))
 
+	fmt.Println("######### DEBUG ############")
+	fmt.Println(result, result_len)
+	fmt.Println("############################")
+
 	r := C.CuckooVerify((*C.char)(unsafe.Pointer(&a[0])), C.uint(80), C.uint(63), (*C.uint)(unsafe.Pointer(&result[0])))
+
+	fmt.Println("######### DEBUG ############")
+	fmt.Println(r)
+	fmt.Println("############################")
+
 	var pass bool
 	if byte(r) == 0 {
 		pass = false
