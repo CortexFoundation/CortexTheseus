@@ -29,7 +29,8 @@ type Config struct {
 type Cuckoo struct {
 	config Config
 
-	rand     *rand.Rand
+	rand *rand.Rand
+	// Current version allows single thread only
 	threads  int
 	update   chan struct{}
 	hashrate metrics.Meter
@@ -44,6 +45,7 @@ func New(config Config) *Cuckoo {
 		config:   config,
 		update:   make(chan struct{}),
 		hashrate: metrics.NewMeter(),
+		threads:  1,
 	}
 }
 
@@ -78,7 +80,8 @@ func (cuckoo *Cuckoo) SetThreads(threads int) {
 	cuckoo.lock.Lock()
 	defer cuckoo.lock.Unlock()
 
-	cuckoo.threads = threads
+	// cuckoo.threads = threads
+	cuckoo.threads = 1
 }
 
 func (cuckoo *Cuckoo) Hashrate() float64 {
