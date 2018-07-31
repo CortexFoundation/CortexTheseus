@@ -41,6 +41,7 @@ var (
 // mix-hash) that a sufficient amount of computation has been carried
 // out on a block.
 type BlockNonce [8]byte
+type BlockSolution [42]uint32
 
 // EncodeNonce converts the given integer to a block nonce.
 func EncodeNonce(i uint64) BlockNonce {
@@ -83,7 +84,7 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
-	Solution    [42]uint32     `json:"solution"			gencodec:"required"`
+	Solution    BlockSolution  `json:"solution"			gencodec:"required"`
 }
 
 // field type overrides for gencodec
@@ -120,6 +121,24 @@ func (h *Header) HashNoNonce() common.Hash {
 		h.Time,
 		h.Extra,
 	})
+}
+
+func (h *Header) HeaderNoNonce() *Header {
+	return &Header{
+		ParentHash:  h.ParentHash,
+		UncleHash:   h.UncleHash,
+		Coinbase:    h.Coinbase,
+		Root:        h.Root,
+		TxHash:      h.TxHash,
+		ReceiptHash: h.ReceiptHash,
+		Bloom:       h.Bloom,
+		Difficulty:  h.Difficulty,
+		Number:      h.Number,
+		GasLimit:    h.GasLimit,
+		GasUsed:     h.GasUsed,
+		Time:        h.Time,
+		Extra:       h.Extra,
+	}
 }
 
 // Size returns the approximate memory used by all internal contents. It is used
@@ -311,6 +330,7 @@ func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) MixDigest() common.Hash   { return b.header.MixDigest }
 func (b *Block) Nonce() uint64            { return binary.BigEndian.Uint64(b.header.Nonce[:]) }
+func (b *Block) Solution() BlockSolution  { return b.header.Solution }
 func (b *Block) Bloom() Bloom             { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address { return b.header.Coinbase }
 func (b *Block) Root() common.Hash        { return b.header.Root }

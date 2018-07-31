@@ -1,7 +1,7 @@
 package cuckoo
 
 /*
-$cgo LDFLAGS:  -lstdc++ -lgominer
+#cgo LDFLAGS:  -lstdc++ -lgominer
 #include "gominer.h"
 */
 import "C"
@@ -43,7 +43,6 @@ var (
 	errUncleIsAncestor   = errors.New("uncle is ancestor")
 	errDanglingUncle     = errors.New("uncle's parent is not ancestor")
 	errInvalidDifficulty = errors.New("non-positive difficulty")
-	errInvalidMixDigest  = errors.New("invalid mix digest")
 	errInvalidPoW        = errors.New("invalid proof-of-work")
 )
 
@@ -450,7 +449,20 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
 func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	r := C.CuckooVerify((*C.char)(unsafe.Pointer(header+0)), C.uint(8*unsafe.Sizeof(*header)), C.uint(header.Nonce), (*C.uint)(unsafe.Pointer(&header.Solution)))
+	var (
+		result = header.Solution
+		nonce  = header.Nonce.Uint64()
+
+		header_    = header.HeaderNoNonce()
+		header_len = unsafe.Sizeof(*header) * 8
+	)
+
+	r := C.CuckooVerify(
+		(*C.char)(unsafe.Pointer(header_)),
+		C.uint(header_len),
+		C.uint(nonce),
+		(*C.uint)(unsafe.Pointer(&result[0])))
+
 	if byte(r) == 0 {
 		return errInvalidPoW
 	}

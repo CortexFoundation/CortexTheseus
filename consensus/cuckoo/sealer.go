@@ -1,0 +1,140 @@
+package cuckoo
+
+/*
+#cgo LDFLAGS:  -lstdc++ -lgominer
+#include "gominer.h"
+*/
+import "C"
+import (
+	crand "crypto/rand"
+	"math"
+	"math/big"
+	"math/rand"
+	"runtime"
+	"sync"
+	"unsafe"
+
+	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
+)
+
+func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop <-chan struct{}) (*types.Block, error) {
+	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
+		header := block.Header()
+		header.Nonce = types.BlockNonce{}
+		return block.WithSeal(header), nil
+	}
+
+	abort := make(chan struct{})
+	found := make(chan *types.Block)
+
+	cuckoo.lock.Lock()
+	threads := cuckoo.threads
+	if cuckoo.rand == nil {
+		seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+		if err != nil {
+			cuckoo.lock.Unlock()
+			return nil, err
+		}
+		cuckoo.rand = rand.New(rand.NewSource(seed.Int64()))
+	}
+	cuckoo.lock.Unlock()
+
+	if threads == 0 {
+		threads = runtime.NumCPU()
+	}
+	if threads < 0 {
+		threads = 0 // Allows disabling local mining without extra logic around local/remote
+	}
+
+	var pend sync.WaitGroup
+	for i := 0; i < threads; i++ {
+		pend.Add(1)
+		go func(id int, nonce uint64) {
+			defer pend.Done()
+			cuckoo.mine(block, id, nonce, abort, found)
+		}(i, uint64(cuckoo.rand.Int63()))
+	}
+
+	var result *types.Block
+	select {
+	case <-stop:
+		close(abort)
+	case result = <-found:
+		close(abort)
+	case <-cuckoo.update:
+		close(abort)
+		pend.Wait()
+		return cuckoo.Seal(chain, block, stop)
+	}
+
+	pend.Wait()
+	return result, nil
+}
+
+func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
+	var (
+		header     = block.Header().HeaderNoNonce()
+		header_len = unsafe.Sizeof(*header) * 8
+	)
+
+	var (
+		attempts = int64(0)
+		nonce    = seed
+	)
+
+	logger := log.New("miner", id)
+	logger.Trace("Started cuckoo search for new solution", "seed", seed)
+
+search:
+	for {
+		select {
+		case <-abort:
+			//Mining terminated, update stats and abort
+			logger.Trace("Cuckoo solution search aborted", "attempts", nonce-seed)
+			cuckoo.hashrate.Mark(attempts)
+			break search
+		default:
+			attempts++
+			if attempts%(1<<15) == 0 {
+				cuckoo.hashrate.Mark(attempts)
+				attempts = 0
+			}
+
+			var (
+				result     types.BlockSolution
+				result_len uint32
+			)
+
+			C.CuckooSolve(
+				(*C.char)(unsafe.Pointer(header)),
+				C.uint(header_len),
+				C.uint(nonce),
+				(*C.uint)(unsafe.Pointer(&result[0])),
+				(*C.uint)(unsafe.Pointer(&result_len)))
+
+			r := C.CuckooVerify(
+				(*C.char)(unsafe.Pointer(header)),
+				C.uint(header_len),
+				C.uint(nonce),
+				(*C.uint)(unsafe.Pointer(&result[0])))
+
+			if byte(r) != 0 {
+				// Correct solution found, create a new header with it
+				header = types.CopyHeader(header)
+				header.Nonce = types.EncodeNonce(nonce)
+				header.Solution = result
+
+				select {
+				case found <- block.WithSeal(header):
+					logger.Trace("Cuckoo solution found and reported", "attempts", nonce-seed, "nonce", nonce)
+				case <-abort:
+					logger.Trace("Cuckoo solution found but discarded", "attempts", nonce-seed, "nonce", nonce)
+				}
+				break search
+			}
+			nonce++
+		}
+	}
+}

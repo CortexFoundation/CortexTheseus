@@ -6,7 +6,9 @@ package cuckoo
 */
 import "C"
 import (
-	"fmt"
+	"math/rand"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/metrics"
 )
 
@@ -25,18 +27,23 @@ type Config struct {
 }
 
 type Cuckoo struct {
-	config   Config
+	config Config
+
+	rand     *rand.Rand
+	threads  int
+	update   chan struct{}
 	hashrate metrics.Meter
 
-	threads int
-	lock    sync.Mutex
+	lock sync.Mutex // Ensures thread safety for the in-memory caches and mining fields
 }
 
 func New(config Config) *Cuckoo {
 	C.CuckooInit()
 
 	return &Cuckoo{
-		config: config,
+		config:   config,
+		update:   make(chan struct{}),
+		hashrate: metrics.NewMeter(),
 	}
 }
 
