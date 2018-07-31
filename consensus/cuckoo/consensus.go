@@ -454,13 +454,17 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		nonce  = header.Nonce.Uint64()
 
 		header_    = header.HeaderNoNonce()
-		header_len = unsafe.Sizeof(*header) * 8
+		header_len = unsafe.Sizeof(*header)
 	)
+
+	header_.Solution[41] = uint32(nonce)
+
+	fmt.Println(header_, uint32(nonce))
 
 	r := C.CuckooVerify(
 		(*C.char)(unsafe.Pointer(header_)),
 		C.uint(header_len),
-		C.uint(nonce),
+		C.uint(uint32(nonce)),
 		(*C.uint)(unsafe.Pointer(&result[0])))
 
 	if byte(r) == 0 {
