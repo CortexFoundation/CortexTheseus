@@ -7,6 +7,7 @@ package cuckoo
 import "C"
 import (
 	crand "crypto/rand"
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
@@ -75,11 +76,6 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 
 func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
 	var (
-		header     = block.Header().HeaderNoNonce()
-		header_len = unsafe.Sizeof(*header) * 8
-	)
-
-	var (
 		attempts = int64(0)
 		nonce    = seed
 	)
@@ -103,21 +99,28 @@ search:
 			}
 
 			var (
+				header     = block.Header().HeaderNoNonce()
+				header_len = unsafe.Sizeof(*header)
+
 				result     types.BlockSolution
 				result_len uint32
 			)
 
+			fmt.Println(json.Marshal(header), uint32(nonce))
+
 			C.CuckooSolve(
-				(*C.char)(unsafe.Pointer(header)),
+				(*C.char)(unsafe.Pointer(json.Marshal(header))),
 				C.uint(header_len),
-				C.uint(nonce),
+				C.uint(uint32(nonce)),
 				(*C.uint)(unsafe.Pointer(&result[0])),
 				(*C.uint)(unsafe.Pointer(&result_len)))
 
+			header.Solution[41] = uint32(nonce)
+
 			r := C.CuckooVerify(
-				(*C.char)(unsafe.Pointer(header)),
+				(*C.char)(unsafe.Pointer(json.Marshal(header))),
 				C.uint(header_len),
-				C.uint(nonce),
+				C.uint(uint32(nonce)),
 				(*C.uint)(unsafe.Pointer(&result[0])))
 
 			if byte(r) != 0 {
