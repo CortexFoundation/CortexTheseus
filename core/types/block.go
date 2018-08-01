@@ -18,6 +18,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
 	"math/big"
@@ -63,6 +64,18 @@ func (n BlockNonce) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
+}
+
+func (s BlockSolution) MarshalText() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, s)
+	return buf.Bytes(), err
+}
+
+func (s BlockSolution) UnmarshalText(input []byte) error {
+	rbuf := bytes.NewReader(input)
+	err := binary.Read(rbuf, binary.LittleEndian, &s)
+	return err
 }
 
 //go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
@@ -121,24 +134,6 @@ func (h *Header) HashNoNonce() common.Hash {
 		h.Time,
 		h.Extra,
 	})
-}
-
-func (h *Header) HeaderNoNonce() *Header {
-	return &Header{
-		ParentHash:  h.ParentHash,
-		UncleHash:   h.UncleHash,
-		Coinbase:    h.Coinbase,
-		Root:        h.Root,
-		TxHash:      h.TxHash,
-		ReceiptHash: h.ReceiptHash,
-		Bloom:       h.Bloom,
-		Difficulty:  h.Difficulty,
-		Number:      h.Number,
-		GasLimit:    h.GasLimit,
-		GasUsed:     h.GasUsed,
-		Time:        h.Time,
-		Extra:       h.Extra,
-	}
 }
 
 // Size returns the approximate memory used by all internal contents. It is used
