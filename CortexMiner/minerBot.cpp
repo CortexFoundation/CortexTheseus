@@ -120,12 +120,14 @@ void CuckooInit()
 void CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uint *result_len)
 {
     // return NULL;
-    bot->CuckooSolve(header, header_len, nonce, result, result_len);
+    // bot->CuckooSolve(header, header_len, nonce, result, result_len);
+	bot->CuckooSolve(NULL, 80, 63, result, result_len);
 }
 unsigned char CuckooVerify(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result)
 {
     // return NULL;
-    return bot->CuckooVerify(header, header_len, nonce, result);
+    // return bot->CuckooVerify(header, header_len, nonce, result);
+	return bot->CuckooVerify(NULL, 80, 63, result);
 }
 void CuckooRelease()
 {

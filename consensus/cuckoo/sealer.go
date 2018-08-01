@@ -15,6 +15,7 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -76,6 +77,13 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 
 func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
 	var (
+		header = block.Header()
+		hash   = header.HashNoNonce().Bytes()
+
+		result     types.BlockSolution
+		result_len uint32
+	)
+	var (
 		attempts = int64(0)
 		nonce    = seed
 	)
@@ -98,28 +106,18 @@ search:
 				attempts = 0
 			}
 
-			var (
-				header     = block.Header().HeaderNoNonce()
-				header_len = unsafe.Sizeof(*header)
-
-				result     types.BlockSolution
-				result_len uint32
-			)
-
-			fmt.Println(json.Marshal(header), uint32(nonce))
+			fmt.Println(hexutil.Bytes(hash[:]).String())
 
 			C.CuckooSolve(
-				(*C.char)(unsafe.Pointer(json.Marshal(header))),
-				C.uint(header_len),
+				(*C.char)(unsafe.Pointer(&hash[0])),
+				C.uint(len(hash)),
 				C.uint(uint32(nonce)),
 				(*C.uint)(unsafe.Pointer(&result[0])),
 				(*C.uint)(unsafe.Pointer(&result_len)))
 
-			header.Solution[41] = uint32(nonce)
-
 			r := C.CuckooVerify(
-				(*C.char)(unsafe.Pointer(json.Marshal(header))),
-				C.uint(header_len),
+				(*C.char)(unsafe.Pointer(&hash[0])),
+				C.uint(len(hash)),
 				C.uint(uint32(nonce)),
 				(*C.uint)(unsafe.Pointer(&result[0])))
 

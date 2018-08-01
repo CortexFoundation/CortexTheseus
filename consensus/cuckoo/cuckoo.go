@@ -22,6 +22,7 @@ const (
 	ModeFullFake
 )
 
+// compatiable with ethash interface
 type Config struct {
 	PowMode Mode
 }

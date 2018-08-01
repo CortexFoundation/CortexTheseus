@@ -449,21 +449,20 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
 func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+	if header.Difficulty.Sign() <= 0 {
+		return errInvalidDifficulty
+	}
+
 	var (
 		result = header.Solution
 		nonce  = header.Nonce.Uint64()
 
-		header_    = header.HeaderNoNonce()
-		header_len = unsafe.Sizeof(*header)
+		hash = header.HashNoNonce().Bytes()
 	)
 
-	header_.Solution[41] = uint32(nonce)
-
-	fmt.Println(header_, uint32(nonce))
-
 	r := C.CuckooVerify(
-		(*C.char)(unsafe.Pointer(header_)),
-		C.uint(header_len),
+		(*C.char)(unsafe.Pointer(&hash[0])),
+		C.uint(len(hash)),
 		C.uint(uint32(nonce)),
 		(*C.uint)(unsafe.Pointer(&result[0])))
 
@@ -472,44 +471,6 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	}
 
 	return nil
-
-	/* // If we're running a fake PoW, accept any seal as valid
-	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
-		time.Sleep(cuckoo.fakeDelay)
-		if cuckoo.fakeFail == header.Number.Uint64() {
-			return errInvalidPoW
-		}
-		return nil
-	}
-	// If we're running a shared PoW, delegate verification to it
-	if cuckoo.shared != nil {
-		return cuckoo.shared.VerifySeal(chain, header)
-	}
-	// Ensure that we have a valid difficulty for the block
-	if header.Difficulty.Sign() <= 0 {
-		return errInvalidDifficulty
-	}
-	// Recompute the digest and PoW value and verify against the header
-	number := header.Number.Uint64()
-
-	cache := cuckoo.cache(number)
-	size := datasetSize(number)
-	if cuckoo.config.PowMode == ModeTest {
-		size = 32 * 1024
-	}
-	digest, result := hashimotoLight(size, cache.cache, header.HashNoNonce().Bytes(), header.Nonce.Uint64())
-	// Caches are unmapped in a finalizer. Ensure that the cache stays live
-	// until after the call to hashimotoLight so it's not unmapped while being used.
-	runtime.KeepAlive(cache)
-
-	if !bytes.Equal(header.MixDigest[:], digest) {
-		return errInvalidMixDigest
-	}
-	target := new(big.Int).Div(maxUint256, header.Difficulty)
-	if new(big.Int).SetBytes(result).Cmp(target) > 0 {
-		return errInvalidPoW
-	}
-	return nil */
 }
 
 // Prepare implements consensus.Engine, initializing the difficulty field of a

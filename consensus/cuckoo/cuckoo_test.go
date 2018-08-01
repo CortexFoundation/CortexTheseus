@@ -1,7 +1,6 @@
 package cuckoo
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -16,8 +15,6 @@ func TestTestMode(t *testing.T) {
 	}
 
 	cuckoo := NewTester()
-	cuckoo.SetThreads(1)
-	//t.Fatal("HEAD INFO: ", head)
 	block, err := cuckoo.Seal(nil, types.NewBlockWithHeader(head), nil)
 	if err != nil {
 		t.Fatalf("failed to seal block: %v", err)
@@ -25,11 +22,9 @@ func TestTestMode(t *testing.T) {
 
 	head.Nonce = types.EncodeNonce(block.Nonce())
 	head.Solution = block.Solution()
-	fmt.Println("Solution: ", head)
 
 	if err := cuckoo.VerifySeal(nil, head); err != nil {
 		t.Fatalf("unexpected verification error: %v", err)
 	}
 
-	t.Log("HEAD INFO: ", head)
 }
