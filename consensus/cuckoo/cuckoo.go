@@ -9,8 +9,12 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ethereum/go-ethereum/rpc"
 )
+
+var sharedCuckoo = New(Config{PowMode: ModeNormal})
 
 type Mode uint
 
@@ -24,6 +28,14 @@ const (
 
 // compatiable with ethash interface
 type Config struct {
+	CacheDir     string
+	CachesInMem  int
+	CachesOnDisk int
+
+	DatasetDir     string
+	DatasetsInMem  int
+	DatasetsOnDisk int
+
 	PowMode Mode
 }
 
@@ -35,6 +47,8 @@ type Cuckoo struct {
 	threads  int
 	update   chan struct{}
 	hashrate metrics.Meter
+
+	shared *Cuckoo
 
 	lock sync.Mutex // Ensures thread safety for the in-memory caches and mining fields
 }
@@ -70,6 +84,11 @@ func NewFullFaker() *Cuckoo {
 	}
 }
 
+// NewShared() func in tests/block_tests_util.go
+func NewShared() *Cuckoo {
+	return &Cuckoo{shared: sharedCuckoo}
+}
+
 func (cuckoo *Cuckoo) Threads() int {
 	cuckoo.lock.Lock()
 	defer cuckoo.lock.Unlock()
@@ -91,4 +110,13 @@ func (cuckoo *Cuckoo) Hashrate() float64 {
 
 func Release(cuckoo *Cuckoo) {
 	C.CuckooRelease()
+}
+
+func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
+	return nil
+}
+
+func SeedHash(block uint64) []byte {
+	seed := make([]byte, 32)
+	return seed
 }

@@ -90,7 +90,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DeveloperPeriodFlag,
 		},
 	},
-	{
+	/* {
 		Name: "ETHASH",
 		Flags: []cli.Flag{
 			utils.EthashCacheDirFlag,
@@ -100,7 +100,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.EthashDatasetsInMemoryFlag,
 			utils.EthashDatasetsOnDiskFlag,
 		},
-	},
+	}, */
 	//{
 	//	Name: "DASHBOARD",
 	//	Flags: []cli.Flag{
