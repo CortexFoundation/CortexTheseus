@@ -198,6 +198,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 	ret, err = run(evm, contract, input)
 
+	if evm.vmConfig.CallFakeVM {
+		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
+	}
+
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
@@ -381,6 +385,10 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 	start := time.Now()
 
 	ret, err = run(evm, contract, nil)
+
+	if evm.vmConfig.CallFakeVM {
+		ret = append(ret, []byte(caller.Address().String()+"-"+contractAddr.String()+"-"+value.String()+",")...)
+	}
 
 	fmt.Println("create Code: ", ret)
 	// check whether the max code size has been exceeded

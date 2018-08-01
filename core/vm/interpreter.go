@@ -44,6 +44,8 @@ type Config struct {
 	JumpTable [256]operation
 	// uri for remote infer service
 	InferURI string
+	// vm call state flag
+	CallFakeVM bool
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -211,6 +213,8 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	if IsCode(contract.Code) {
 		contract.Code = contract.Code[2:]
 	}
+
+	res := make([]byte, 10)
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
@@ -292,7 +296,15 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		}
 
 		// execute the operation
-		res, err := operation.execute(&pc, in.evm, contract, mem, stack)
+		ret, err = operation.execute(&pc, in.evm, contract, mem, stack)
+		if in.evm.vmConfig.CallFakeVM {
+			if op == CALL {
+				res = append(res, ret...)
+			}
+		} else {
+			res = ret
+		}
+
 		// verifyPool is a build flag. Pool verification makes sure the integrity
 		// of the integer pool by comparing values to a default value.
 		if verifyPool {
