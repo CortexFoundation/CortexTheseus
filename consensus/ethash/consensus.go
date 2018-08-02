@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
+	"strconv"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -38,7 +39,7 @@ import (
 // Ethash proof-of-work protocol constants.
 var (
 	FrontierBlockReward    *big.Int = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward   *big.Int = big.NewInt(3e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	ByzantiumBlockReward   *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block upward from Byzantium
 	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime          = 15 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
 )
@@ -547,8 +548,14 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	// Select the correct block reward based on chain progression
 	blockReward := FrontierBlockReward
 	if config.IsByzantium(header.Number) {
+		//todo
 		blockReward = ByzantiumBlockReward
 	}
+	v, err := strconv.Atoi(new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod).String())
+	if err != nil {
+		panic("Caculate reward error")
+	}
+	blockReward = new(big.Int).Div(blockReward, big.NewInt(int64(2^v)))
 	// Accumulate the rewards for the miner and any included uncles
 	reward := new(big.Int).Set(blockReward)
 	r := new(big.Int)
