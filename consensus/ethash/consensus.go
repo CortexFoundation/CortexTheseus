@@ -551,11 +551,13 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		//todo
 		blockReward = ByzantiumBlockReward
 	}
-	v, err := strconv.Atoi(new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod).String())
-	if err != nil {
-		panic("Caculate reward error")
+	if header.Number.Cmp(params.CortexBlockRewardPeriod) > 0 {
+		v, err := strconv.Atoi(new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod).String())
+		if err != nil {
+			panic("Caculate reward error")
+		}
+		blockReward = new(big.Int).Div(blockReward, big.NewInt(int64(pow(2, v))))
 	}
-	blockReward = new(big.Int).Div(blockReward, big.NewInt(int64(2^v)))
 	// Accumulate the rewards for the miner and any included uncles
 	reward := new(big.Int).Set(blockReward)
 	r := new(big.Int)
@@ -570,4 +572,16 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		reward.Add(reward, r)
 	}
 	state.AddBalance(header.Coinbase, reward)
+}
+
+func pow(x, n int) int {
+	ret := 1
+	for n != 0 {
+		if n%2 != 0 {
+			ret = ret * x
+		}
+		n /= 2
+		x = x * x
+	}
+	return ret
 }
