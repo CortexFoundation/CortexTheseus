@@ -38,9 +38,9 @@ import (
 
 // Ethash proof-of-work protocol constants.
 var (
-	FrontierBlockReward    *big.Int = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
+	FrontierBlockReward    *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward   *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
+	maxUncles                       = 1                 // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime          = 15 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
 )
 
@@ -537,8 +537,13 @@ func (ethash *Ethash) Finalize(chain consensus.ChainReader, header *types.Header
 
 // Some weird constants to avoid constant memory allocs for them.
 var (
-	big8  = big.NewInt(8)
-	big32 = big.NewInt(32)
+	big0   = big.NewInt(0)
+	big2   = big.NewInt(2)
+	big4   = big.NewInt(4)
+	big8   = big.NewInt(8)
+	big32  = big.NewInt(32)
+	big64  = big.NewInt(64)
+	big128 = big.NewInt(128)
 )
 
 // AccumulateRewards credits the coinbase of the given block with the mining
@@ -548,11 +553,11 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	// Select the correct block reward based on chain progression
 	blockReward := FrontierBlockReward
 	if config.IsByzantium(header.Number) {
-		//todo
 		blockReward = ByzantiumBlockReward
 	}
+
 	if header.Number.Cmp(params.CortexBlockRewardPeriod) > 0 {
-		blockReward = new(big.Int).Div(blockReward, big.NewInt(0).Exp(big.NewInt(2), new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod), nil))
+		blockReward = new(big.Int).Div(blockReward, big0.Exp(big2, new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod), nil))
 	}
 	// Accumulate the rewards for the miner and any included uncles
 	reward := new(big.Int).Set(blockReward)
@@ -567,5 +572,6 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		r.Div(blockReward, big32)
 		reward.Add(reward, r)
 	}
+
 	state.AddBalance(header.Coinbase, reward)
 }
