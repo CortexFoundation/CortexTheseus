@@ -684,9 +684,9 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr r
 }
 
 // same as Call, except for CallFakeVM flag with overwritten returns.
-func (s *PublicBlockChainAPI) GetInternalTransaction(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) GetInternalTransaction(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (string, error) {
 	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI, CallFakeVM: true}, 5*time.Second)
-	return (hexutil.Bytes)(result), err
+	return (string)(result), err
 }
 
 // EstimateGas returns an estimate of the amount of gas needed to execute the
