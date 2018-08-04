@@ -413,10 +413,10 @@ func (self *worker) commitNewWork() {
 	}
 	// If we are care about TheDAO hard-fork check whether to override the extra-data or not
 	//if daoBlock := self.config.DAOForkBlock; daoBlock != nil {
-		// Check whether the block is among the fork extra-override range
+	// Check whether the block is among the fork extra-override range
 	//	limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
 	//	if header.Number.Cmp(daoBlock) >= 0 && header.Number.Cmp(limit) < 0 {
-			// Depending whether we support or oppose the fork, override differently
+	// Depending whether we support or oppose the fork, override differently
 	//		if self.config.DAOForkSupport {
 	//			header.Extra = common.CopyBytes(params.DAOForkBlockExtra)
 	//		} else if bytes.Equal(header.Extra, params.DAOForkBlockExtra) {
@@ -432,13 +432,13 @@ func (self *worker) commitNewWork() {
 	}
 	// Create the current work task and check any fork transitions needed
 	work := self.current
-	pending, err := self.eth.TxPool().Pending()
-	if err != nil {
-		log.Error("Failed to fetch pending transactions", "err", err)
-		return
-	}
-	txs := types.NewTransactionsByPriceAndNonce(self.current.signer, pending)
-	work.commitTransactions(self.mux, txs, self.chain, self.coinbase)
+	//pending, err := self.eth.TxPool().Pending()
+	//if err != nil {
+	//	log.Error("Failed to fetch pending transactions", "err", err)
+	//	return
+	//}
+	//txs := types.NewTransactionsByPriceAndNonce(self.current.signer, pending)
+	//work.commitTransactions(self.mux, txs, self.chain, self.coinbase)
 
 	// compute uncles for the new block.
 	var (
@@ -462,7 +462,6 @@ func (self *worker) commitNewWork() {
 	for _, hash := range badUncles {
 		delete(self.possibleUncles, hash)
 	}
-
 	// Create an empty block based on temporary copied state for sealing in advance without waiting block
 	// execution finished.
 	if work.Block, err = self.engine.Finalize(self.chain, header, work.state.Copy(), nil, uncles, nil); err != nil {
@@ -478,12 +477,12 @@ func (self *worker) commitNewWork() {
 	}
 
 	// Fill the block with all available pending transactions.
-	pending, err = self.eth.TxPool().Pending()
+	pending, err := self.eth.TxPool().Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return
 	}
-	txs = types.NewTransactionsByPriceAndNonce(self.current.signer, pending)
+	txs := types.NewTransactionsByPriceAndNonce(self.current.signer, pending)
 	work.commitTransactions(self.mux, txs, self.chain, self.coinbase)
 
 	// Create the full block to seal with the consensus engine
