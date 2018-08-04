@@ -425,16 +425,16 @@ func calcDifficultyHomestead(time uint64, parent *types.Header) *big.Int {
 		x.Set(params.MinimumDifficulty)
 	}
 	// for the exponential factor
-	periodCount := new(big.Int).Add(parent.Number, big1)
-	periodCount.Div(periodCount, expDiffPeriod)
+	//periodCount := new(big.Int).Add(parent.Number, big1)
+	//periodCount.Div(periodCount, expDiffPeriod)
 
 	// the exponential factor, commonly referred to as "the bomb"
 	// diff = diff + 2^(periodCount - 2)
-	if periodCount.Cmp(big1) > 0 {
-		y.Sub(periodCount, big2)
-		y.Exp(big2, y, nil)
-		x.Add(x, y)
-	}
+	//if periodCount.Cmp(big1) > 0 {
+	//	y.Sub(periodCount, big2)
+	//	y.Exp(big2, y, nil)
+	//	x.Add(x, y)
+	//}
 	return x
 }
 
@@ -538,7 +538,7 @@ func (ethash *Ethash) Finalize(chain consensus.ChainReader, header *types.Header
 // Some weird constants to avoid constant memory allocs for them.
 var (
 	big0   = big.NewInt(0)
-	big2   = big.NewInt(2)
+	//big2   = big.NewInt(2)
 	big4   = big.NewInt(4)
 	big8   = big.NewInt(8)
 	big32  = big.NewInt(32)
