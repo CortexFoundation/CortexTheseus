@@ -69,8 +69,8 @@ type Contract struct {
 
 	Args []byte
 
-	DelegateCall    bool
-	ModelGas        map[common.Address]uint64
+	DelegateCall bool
+	ModelGas     map[common.Address]uint64
 }
 
 // NewContract returns a new contract environment for the execution of EVM.

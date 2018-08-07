@@ -256,9 +256,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//todo change upload
 	if st.uploading() {
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*512*1024)) //64 ~ 1024 bytes
-		//log.Info("Upload progress", "address", st.to().Hex(), "amount", 1*512*1024)
 		if !st.state.Uploading(st.to()) {
-			//todo
 			//st.state.Download(st.to())
 			log.Info("Uploaded OK", "address", st.to().Hex())
 		}
@@ -268,8 +266,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 }
 
 func (st *StateTransition) uploading() bool {
-	return st.state.Uploading(st.to()) && st.value.Sign() == 0
-	//return false
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to())
 }
 
 func (st *StateTransition) refundGas() {
