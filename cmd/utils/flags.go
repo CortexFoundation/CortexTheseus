@@ -98,7 +98,7 @@ func NewApp(gitCommit, usage string) *cli.App {
 	app.Author = ""
 	//app.Authors = nil
 	app.Email = ""
-	app.Version = params.Version
+	app.Version = params.VersionWithMeta
 	if len(gitCommit) >= 8 {
 		app.Version += "-" + gitCommit[:8]
 	}
@@ -653,8 +653,7 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	for _, url := range urls {
 		node, err := discover.ParseNode(url)
 		if err != nil {
-			log.Error("Bootstrap URL invalid", "enode", url, "err", err)
-			continue
+			log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
 		}
 		cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 	}
@@ -1208,7 +1207,7 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 }
 
 // RegisterEthStatsService configures the Ethereum Stats daemon and adds it to
-// th egiven node.
+// the given node.
 func RegisterEthStatsService(stack *node.Node, url string) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		// Retrieve both eth and les services

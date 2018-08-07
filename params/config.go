@@ -30,17 +30,22 @@ var (
 )
 
 var (
+	CortexBlockRewardPeriod = big.NewInt(8409600)
+)
+
+var (
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(8888),
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        nil,
-		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.HexToHash("0x"),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(1),
+		ChainID:        big.NewInt(8888),
+		HomesteadBlock: big.NewInt(0),
+		DAOForkBlock:   nil,
+		DAOForkSupport: false,
+		EIP150Block:    big.NewInt(0),
+		EIP150Hash:     common.HexToHash("0x"),
+		EIP155Block:    big.NewInt(0),
+		EIP158Block:    big.NewInt(0),
+		ByzantiumBlock: big.NewInt(0),
+		//CortexBlock:	     big.NewInt(8409600),
 		ConstantinopleBlock: nil,
 		Ethash:              new(EthashConfig),
 	}
