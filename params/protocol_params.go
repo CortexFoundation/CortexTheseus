@@ -40,7 +40,7 @@ const (
 	SstoreSetGas          uint64 = 20000  // Once per SLOAD operation.
 	LogDataGas            uint64 = 8      // Per byte in a LOG* operation's data.
 	CallStipend           uint64 = 2300   // Free gas given at beginning of call.
-	CallInferGas          uint64 = 100000 // Base gas for call infer
+	CallInferGas          uint64 = 300000 // Base gas for call infer
 
 	Sha3Gas          uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas      uint64 = 6     // Once per word of the SHA3 operation's data.
@@ -84,7 +84,7 @@ const (
 
 var (
 	DifficultyBoundDivisor = big.NewInt(2048)   // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(131072) // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(131072) // The minimum that the difficulty may ever be.
+	GenesisDifficulty      = big.NewInt(1048576) // Difficulty of the Genesis block.
+	MinimumDifficulty      = big.NewInt(1048576) // The minimum that the difficulty may ever be.
 	DurationLimit          = big.NewInt(13)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 )
