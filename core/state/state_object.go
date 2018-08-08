@@ -90,7 +90,7 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
+	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Upload.Sign() == 0
 }
 
 // Account is the Ethereum consensus representation of accounts.
@@ -100,12 +100,16 @@ type Account struct {
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
+	Upload   *big.Int //bytes
 }
 
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
+	}
+	if data.Upload == nil {
+		data.Upload = new(big.Int)
 	}
 	if data.CodeHash == nil {
 		data.CodeHash = emptyCodeHash
@@ -219,7 +223,7 @@ func (self *stateObject) updateRoot(db Database) {
 	self.data.Root = self.trie.Hash()
 }
 
-// CommitTrie the storage trie of the object to dwb.
+// CommitTrie the storage trie of the object to db.
 // This updates the trie root.
 func (self *stateObject) CommitTrie(db Database) error {
 	self.updateTrie(db)
@@ -267,6 +271,40 @@ func (self *stateObject) SetBalance(amount *big.Int) {
 
 func (self *stateObject) setBalance(amount *big.Int) {
 	self.data.Balance = amount
+}
+
+func (c *stateObject) AddUpload(amount *big.Int) {
+	if amount.Sign() == 0 {
+		if c.empty() {
+			c.touch()
+		}
+
+		return
+	}
+	c.SetUpload(new(big.Int).Add(c.Upload(), amount))
+}
+
+func (c *stateObject) SubUpload(amount *big.Int) {
+	if amount.Sign() == 0 {
+		return
+	}
+	if c.Upload().Cmp(amount) > 0 {
+		c.SetUpload(new(big.Int).Sub(c.Upload(), amount))
+	} else {
+		c.SetUpload(big.NewInt(0))
+	}
+}
+
+func (self *stateObject) SetUpload(amount *big.Int) {
+	self.db.journal.append(uploadChange{
+		account: &self.address,
+		prev:    new(big.Int).Set(self.data.Upload),
+	})
+	self.setUpload(amount)
+}
+
+func (self *stateObject) setUpload(amount *big.Int) {
+	self.data.Upload = amount
 }
 
 // Return the gas back to the origin. Used by the Virtual machine or Closures
@@ -347,6 +385,10 @@ func (self *stateObject) Balance() *big.Int {
 	return self.data.Balance
 }
 
+func (self *stateObject) Upload() *big.Int {
+	return self.data.Upload
+}
+
 func (self *stateObject) Nonce() uint64 {
 	return self.data.Nonce
 }
@@ -356,4 +398,8 @@ func (self *stateObject) Nonce() uint64 {
 // interface. Interfaces are awesome.
 func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
+}
+
+func (self *stateObject) Uploading() bool {
+	return self.data.Upload.Sign() > 0
 }

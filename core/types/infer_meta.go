@@ -19,6 +19,11 @@ var (
 	ErrorInvalidBlockNum   = errors.New("Invalid block number")
 )
 
+const (
+	MatureBlks  = 10
+	ExpiredBlks = 1000000000000000000
+)
+
 //InferMeta include ModelMeta struct and InputMeta type
 type InferMeta interface {
 	TypeCode() []byte
@@ -28,6 +33,7 @@ type InferMeta interface {
 }
 
 type ModelMeta struct {
+	URI           string         `json:"URI"`
 	Hash          common.Hash    `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	InputShape    []uint64       `json:"InputShape"`
@@ -37,6 +43,7 @@ type ModelMeta struct {
 	BlockNum      big.Int        `json:"BlockNum"`
 }
 type InputMeta struct {
+	URI           string         `json:"URI"`
 	Hash          common.Hash    `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	Shape         []uint64       `json:"Shape"`
@@ -77,6 +84,7 @@ func (mm ModelMeta) ToBytes() ([]byte, error) {
 		return array, nil
 	}
 }
+
 func (im InputMeta) ToBytes() ([]byte, error) {
 	if array, err := rlp.EncodeToBytes(im); err != nil {
 		return nil, err
@@ -84,6 +92,7 @@ func (im InputMeta) ToBytes() ([]byte, error) {
 		return array, nil
 	}
 }
+
 func ParseModelMeta(code []byte) (*ModelMeta, error) {
 	if len(code) < 2 {
 		return nil, ErrorCodeTypeModelMeta
