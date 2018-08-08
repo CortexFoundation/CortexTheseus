@@ -88,7 +88,7 @@ type Ethereum struct {
 	gasPrice  *big.Int
 	etherbase common.Address
 
-	networkId     uint64
+	networkID     uint64
 	netRPCService *ethapi.PublicNetAPI
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
@@ -126,7 +126,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		accountManager: ctx.AccountManager,
 		engine:         CreateConsensusEngine(ctx, &config.Ethash, chainConfig, chainDb),
 		shutdownChan:   make(chan bool),
-		networkId:      config.NetworkId,
+		networkID:      config.NetworkId,
 		gasPrice:       config.GasPrice,
 		etherbase:      config.Etherbase,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
@@ -169,6 +169,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
 		return nil, err
 	}
+
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine)
 	eth.miner.SetExtra(makeExtraData(config.ExtraData))
 
@@ -372,7 +373,7 @@ func (s *Ethereum) Engine() consensus.Engine           { return s.engine }
 func (s *Ethereum) ChainDb() ethdb.Database            { return s.chainDb }
 func (s *Ethereum) IsListening() bool                  { return true } // Always listening
 func (s *Ethereum) EthVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
-func (s *Ethereum) NetVersion() uint64                 { return s.networkId }
+func (s *Ethereum) NetVersion() uint64                 { return s.networkID }
 func (s *Ethereum) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
 
 // Protocols implements node.Service, returning all the currently configured
@@ -414,6 +415,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 func (s *Ethereum) Stop() error {
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
+	s.engine.Close()
 	s.protocolManager.Stop()
 	if s.lesServer != nil {
 		s.lesServer.Stop()
@@ -424,6 +426,5 @@ func (s *Ethereum) Stop() error {
 
 	s.chainDb.Close()
 	close(s.shutdownChan)
-
 	return nil
 }
