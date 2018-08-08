@@ -589,10 +589,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	upload := false
-	if tx.To() != nil {
-		upload = tx.Value().Sign() == 0 && pool.currentState.Uploading(*tx.To())
-	}
+	//upload := false
+	//if tx.To() != nil {
+	upload := tx != nil && tx.To() != nil && tx.Value().Sign() == 0 && pool.currentState.Uploading(*tx.To())
+	//}
 	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, upload, pool.homestead)
 	if err != nil {
 		return err
