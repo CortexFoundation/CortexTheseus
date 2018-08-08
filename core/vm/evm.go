@@ -457,7 +457,6 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
-	//todo
 	if IsModelMeta(evm.StateDB.GetCode(common.BytesToAddress(model_meta_hash))) {
 		if evm.StateDB.Uploading(common.BytesToAddress(model_meta_hash)) {
 			return 0, errors.New("Model IS NOT UPLOADED ERROR")
