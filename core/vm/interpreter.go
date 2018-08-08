@@ -173,9 +173,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 	}
 
 	if IsModelMeta(contract.Code) {
-		if input == nil {
-			
+		if input != nil {
+			return nil, nil
 		}
+
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
@@ -200,6 +201,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 	}
 
 	if IsInputMeta(contract.Code) {
+		if input != nil {
+                        return nil, nil
+                }
+
 		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
