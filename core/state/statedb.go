@@ -381,9 +381,6 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 	}
 }
 func (self *StateDB) Uploading(addr common.Address) bool {
-	if addr == nil {
-		return false
-	}
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		return stateObject.Upload().Sign() > 0
