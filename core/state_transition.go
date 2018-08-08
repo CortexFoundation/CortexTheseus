@@ -258,7 +258,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(1*512*1024)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			//st.state.Download(st.to())
-			log.Info("Uploaded OK", "address", st.to().Hex())
+			log.Info("Upload OK", "address", st.to().Hex())
 		}
 	}
 
