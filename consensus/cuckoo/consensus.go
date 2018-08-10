@@ -460,12 +460,21 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		hash = header.HashNoNonce().Bytes()
 	)
 
+	// r := C.CuckooVerify(
+	// 	(*C.char)(unsafe.Pointer(&hash[0])),
+	// 	C.uint(len(hash)),
+	// 	C.uint(uint32(nonce)),
+	// 	(*C.uint)(unsafe.Pointer(&result[0])))
+
+	var result_hash [32]byte
+	diff := header.Difficulty.Bytes()
 	r := C.CuckooVerify(
 		(*C.char)(unsafe.Pointer(&hash[0])),
 		C.uint(len(hash)),
 		C.uint(uint32(nonce)),
-		(*C.uint)(unsafe.Pointer(&result[0])))
-
+		(*C.uint)(unsafe.Pointer(&result[0])),
+		(*C.uchar)(unsafe.Pointer(&diff[0])),
+		(*C.uchar)(unsafe.Pointer(&result_hash[0])))
 	if byte(r) == 0 {
 		return errInvalidPoW
 	}
