@@ -18,10 +18,10 @@ CC = g++
 endif
 
 
-CXXFLAGS += -std=c++11
+CFLAGS += -std=c++11 -fPIC
 IDIR = include 
 LDFLAG = -rdynamic -Llib -ltinyxml2  -L${LIBOPENCL}
-LDFLAG += -Lzcash -lequiSolver -Lcuckoo -lCuckoo -lblake2b
+LDFLAG += -Lcuckoo -lCuckoo -lblake2b -pthread
 
 
 #INCLUDES = minerBot.h \
@@ -35,8 +35,11 @@ OBJ_LIB = minerBot.o util/XMLHelper.o
 
 all: main
 
-${OBJ}: ${INCLUDES}
-${OBJ_LIB}: ${INCLUDES}
+# ${OBJ}: ${INCLUDES}
+# ${OBJ_LIB}: ${INCLUDES}
+
+%.o: %.cpp
+	g++ -c -fPIC $< -o $@
 
 main: ${OBJ}
 	g++ -o main ${OBJ} -I${IDIR} ${LDFLAG} ${LDLIBS}
@@ -45,6 +48,6 @@ lib: ${OBJ_LIB}
 	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o libgominer.so
 
 clean :
-	rm -f main *.o _temp_*
+	rm -f main *.o _temp_* util/*.o
 
 re : clean all

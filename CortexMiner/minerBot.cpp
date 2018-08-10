@@ -1,5 +1,5 @@
 #include "minerBot.h"
-#include "zcash/equihash.hpp"
+//#include "zcash/equihash.hpp"
 // #include "cuckoo/cuckooSolver.h"
 #include "gominer.h"
 char modestr[][20] = {
@@ -22,16 +22,6 @@ void minerBot::loadParam()
 void minerBot::start()
 {
     printf("start minging...\n");
-}
-
-void minerBot::testEquihash()
-{
-    printf("testing equihash...\n");
-    equiSolver es;
-    es.getHeader(108, NULL);
-    es.initOpenCL();
-    es.runOpenCL();
-    //es.release();
 }
 
 void minerBot::testCuckoo()
