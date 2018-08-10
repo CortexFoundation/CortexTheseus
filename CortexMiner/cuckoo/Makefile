@@ -32,7 +32,7 @@ testCS: $(INCLS) cuckooSolverTest.cpp cuckooSolver.cpp
 	$(GPP) -o testCS -mavx2 cuckooSolverTest.cpp cuckooSolver.cpp $(LIBS)
 
 libCS: $(INCLS) cuckooSolverTest.cpp cuckooSolver.cpp
-	$(GPP) -c -mavx2 cuckooSolverTest.cpp cuckooSolver.cpp $(LIBS)
+	$(GPP) -c -mavx2 -fPIC cuckooSolverTest.cpp cuckooSolver.cpp $(LIBS)
 	ar rcs libCuckoo.a cuckooSolverTest.o cuckooSolver.o
 #### End DCM
 
