@@ -471,7 +471,6 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 	requestBody := fmt.Sprintf(
 		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
 	log.Debug(fmt.Sprintf("%v", requestBody))
-	//todo
 	if IsModelMeta(evm.StateDB.GetCode(common.BytesToAddress(model_meta_hash))) {
 		if evm.StateDB.Uploading(common.BytesToAddress(model_meta_hash)) {
 			return 0, errors.New("Model IS NOT UPLOADED ERROR")

@@ -965,10 +965,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		// Split same-difficulty blocks by number, then at random
 		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
-		sum_txs := len(currentBlock.Transactions()) + len(block.Transactions())
+		sum_gas := currentBlock.GasUsed() + block.GasUsed()
 		weight := 0.5
-		if sum_txs > 0 {
-			weight = float64(len(block.Transactions())) / float64(sum_txs)
+		if sum_gas > 0 {
+			weight = float64(block.GasUsed()) / float64(sum_gas)
 		}
 		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < weight)
 		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && len(block.Transactions()) > len(currentBlock.Transactions()))
