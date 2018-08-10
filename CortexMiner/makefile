@@ -46,7 +46,7 @@ main: ${OBJ}
 	g++ -o main ${OBJ} -I${IDIR} ${LDFLAG} ${LDLIBS}
 
 lib: ${OBJ_LIB}
-	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./go_interface/libgominer.a
+	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.a
 
 clean :
 	rm -f main *.o _temp_* util/*.o
