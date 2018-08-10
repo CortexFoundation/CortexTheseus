@@ -15,7 +15,7 @@ LIBS ?= -L. -lblake2b
 
 #all : libblake2b.so test example lean28stx8 mean28x8 lean30stx8 mean30x8 lean32stx8 mean32x8 verify28 verify30 verify32 demo30x8
 
-all : libblake2b.a mean30sx8_ testCS
+all : testCS libCS
 
 #### DCM
 
@@ -24,9 +24,6 @@ INCLS = cuckoo.h siphash.h mean_miner.hpp param.h cuckooSolver.h
 libblake2b.a: blake2.h blake2-impl.h blake2b-ref.c
 	$(GCC) -c blake2b-ref.c
 	ar rcs libblake2b.a blake2b-ref.o
-
-mean30sx8_:	cuckoo.h siphash.h mean_miner.hpp  
-	$(GPP) -o $@ -mavx2 mean_miner_.cpp $(LIBS)
 
 testCS: $(INCLS) cuckooSolverTest.cpp cuckooSolver.cpp
 	$(GPP) -o testCS -mavx2 cuckooSolverTest.cpp cuckooSolver.cpp $(LIBS)
@@ -113,6 +110,9 @@ mean28sx1:	cuckoo.h siphash.h mean_miner.hpp mean_miner.cpp Makefile
 
 mean30x4:	cuckoo.h siphash.h mean_miner.hpp mean_miner.cpp Makefile
 	$(GPP) -o $@ -mno-avx2 -DNSIPHASH=4 -DEDGEBITS=29 mean_miner.cpp $(LIBS)
+
+mean29x8:	cuckoo.h siphash.h mean_miner.hpp mean_miner.cpp Makefile
+	$(GPP) -o $@ -mavx2 -DNSIPHASH=8 -DEDGEBITS=28 mean_miner.cpp $(LIBS)
 
 mean30x8:	cuckoo.h siphash.h mean_miner.hpp mean_miner.cpp Makefile
 	$(GPP) -o $@ -mavx2 -DNSIPHASH=8 -DEDGEBITS=29 mean_miner.cpp $(LIBS)

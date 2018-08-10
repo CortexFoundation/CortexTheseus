@@ -284,6 +284,16 @@ public:
   bool showall;
   pthread_barrier_t barry;
 
+  //dynamic sizing
+  u32 edgebitsd; //15-31
+  u32 bucketszd;
+
+  void setDynamicSz(u32 eb){
+    edgebitsd = eb;
+    bucketszd = 1 << (edgebitsd - XBITS);
+  }
+
+
 #if NSIPHASH > 4
 
   void* operator new(size_t size) noexcept {
@@ -364,6 +374,7 @@ public:
     const u32 starty = NY *  id    / nthreads;
     const u32   endy = NY * (id+1) / nthreads;
     u32 edge = starty << YZBITS, endedge = edge + NYZ;
+
 #if NSIPHASH == 4
     static const __m128i vxmask = {XMASK, XMASK};
     static const __m128i vyzmask = {YZMASK, YZMASK};
@@ -390,13 +401,18 @@ public:
     __m256i vhi1 = _mm256_set_epi64x((e1+7)<<YZBITS, (e1+6)<<YZBITS, (e1+5)<<YZBITS, (e1+4)<<YZBITS);
     static const __m256i vhiinc = {8<<YZBITS, 8<<YZBITS, 8<<YZBITS, 8<<YZBITS};
 #endif
+    
+    
+    
     offset_t sumsize = 0;
-    for (u32 my = starty; my < endy; my++, endedge += NYZ) {
+
+    for (u32 my = starty; my < endy; my++, endedge += NYZ) { //for each y
       dst.matrixv(my);
 #ifdef NEEDSYNC
       for (u32 x=0; x < NX; x++)
         last[x] = edge;
 #endif
+
       for (; edge < endedge; edge += NSIPHASH) {
 // bit        28..21     20..13    12..0
 // node       XXXXXX     YYYYYY    ZZZZZ
@@ -1101,10 +1117,17 @@ public:
 #define BIGGERSIZE BIGSIZE
 #define EXPANDROUND COMPRESSROUND
 #endif
+
+
+
+
+  //# trimmer main function
+
   void trimmer(u32 id) {
     genUnodes(id, 0);
     barrier();
     genVnodes(id, 1);
+
     for (u32 round = 2; round < ntrims-2; round += 2) {
       barrier();
       if (round < COMPRESSROUND) {
@@ -1112,21 +1135,29 @@ public:
           trimedges<BIGSIZE, BIGSIZE, true>(id, round);
         else if (round == EXPANDROUND)
           trimedges<BIGSIZE, BIGGERSIZE, true>(id, round);
-        else trimedges<BIGGERSIZE, BIGGERSIZE, true>(id, round);
-      } else if (round==COMPRESSROUND) {
+        else
+          trimedges<BIGGERSIZE, BIGGERSIZE, true>(id, round);
+      }
+      else if (round==COMPRESSROUND) {
         trimrename<BIGGERSIZE, BIGGERSIZE, true>(id, round);
-      } else trimedges1<true>(id, round);
+      }
+      else
+        trimedges1<true>(id, round);
+      
       barrier();
       if (round < COMPRESSROUND) {
         if (round+1 < EXPANDROUND)
           trimedges<BIGSIZE, BIGSIZE, false>(id, round+1);
         else if (round+1 == EXPANDROUND)
           trimedges<BIGSIZE, BIGGERSIZE, false>(id, round+1);
-        else trimedges<BIGGERSIZE, BIGGERSIZE, false>(id, round+1);
+        else
+          trimedges<BIGGERSIZE, BIGGERSIZE, false>(id, round+1);
       } else if (round==COMPRESSROUND) {
         trimrename<BIGGERSIZE, sizeof(u32), false>(id, round+1);
-      } else trimedges1<false>(id, round+1);
+      } else
+        trimedges1<false>(id, round+1);
     }
+
     barrier();
     trimrename1<true >(id, ntrims-2);
     barrier();
@@ -1154,6 +1185,14 @@ int nonce_cmp(const void *a, const void *b) {
 
 typedef u32 proof[PROOFSIZE];
 
+
+
+
+
+
+
+// cuckoo solver context
+
 // break circular reference with forward declaration
 class solver_ctx;
 
@@ -1162,6 +1201,10 @@ typedef struct {
   pthread_t thread;
   solver_ctx *solver;
 } match_ctx;
+
+
+
+
 
 class solver_ctx {
 public:
@@ -1192,6 +1235,9 @@ public:
   u32 threadbytes() const {
     return sizeof(thread_ctx) + sizeof(yzbucket<TBUCKETSIZE>) + sizeof(zbucket8) + sizeof(zbucket16) + sizeof(zbucket32);
   }
+
+
+
   void recordedge(const u32 i, const u32 u2, const u32 v2) {
     const u32 u1 = u2/2;
     const u32 ux = u1 >> YZ2BITS;

@@ -1,5 +1,5 @@
 #include "cuckooSolver.h"
-#include "mean_miner.hpp"
+#include "mean_miner_new.hpp"
 
 
 // arbitrary length of header hashed into siphash key
@@ -52,21 +52,14 @@ void cuckooSolver::solve(){
         for (u32 i = 0; i < PROOFSIZE; i++)
             printf(" %jx", (uintmax_t)prf[i]);
         printf("\n");
-        
-        /*int pow_rc = verify(prf, & (solver->trimmer->sip_keys));
-        if (pow_rc == POW_OK) {
-            printf("Verified with cyclehash ");
+
+        if(verifySol(prf)){
+            printf("valid solution found.\n");
+            sumnsols++;
+
             unsigned char cyclehash[32];
             blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)prf, sizeof(proof), 0, 0);
-            for (int i=0; i<32; i++)
-            printf("%02x", cyclehash[i]);
-            printf("\n");
-        } else {
-            printf("FAILED due to %s\n", errstr[pow_rc]);
-        }*/
-        if(verifySol(prf)){
-            sumnsols++;
-            cuckoo_sol s(prf);
+            cuckoo_sol s(prf, cyclehash);
             sols.push_back(s);
         }
             
@@ -87,8 +80,74 @@ bool cuckooSolver::verifySol(u32* sol){
         return false;
     }
     int pow_rc = verify(sol, &(solver->trimmer->sip_keys));
-    if(pow_rc == POW_OK)
-        return true;
-    else
+    if(pow_rc != POW_OK){
+        printf("FAILED due to %s\n", errstr[pow_rc]);
         return false;
+    }
+    
+    
+    if(bHashVerify){
+        bool valid = true;
+        printf("Verified with cyclehash ");
+        unsigned char cyclehash[32];
+        blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)sol, sizeof(proof), 0, 0);
+        for (int i=0; i<32; i++){
+            printf("%02x", cyclehash[i]);
+        }
+        printf("\n");
+        for(int i=0; i<32; i++){
+            if(cyclehash[i] >  target[i]){
+                printf("invalid solution hash value\n");
+                valid = false;
+                break;
+            }
+        }
+        return valid;
+    }
+    
+    return true;
+}
+
+bool cuckooSolver::verifySol(u32* sol, uchar* hash, uchar* target){
+    // make sure cuckoo solver is initialized with correct header & nonce
+    if(!keyed){
+        printf("error: cuckoo solver header nonce invalid\n");
+        return false;
+    }
+    int pow_rc = verify(sol, &(solver->trimmer->sip_keys));
+    if(pow_rc != POW_OK){
+        printf("FAILED due to %s\n", errstr[pow_rc]);
+        return false;
+    }
+    
+    bool valid = true;
+    printf("Verified with cyclehash ");
+    unsigned char cyclehash[32];
+    blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)sol, sizeof(proof), 0, 0);
+    /*for (int i=0; i<32; i++){
+        printf("%02x", cyclehash[i]);
+    }
+    printf("\n");*/
+
+    for(int i=0; i<32; i++){
+        if(cyclehash[i] != hash[i]){
+            printf("hash mismatch error\n");
+            valid = false;
+            break;
+        }
+        if(cyclehash[i] >  target[i]){
+            printf("invalid solution hash value\n");
+            valid = false;
+            break;
+        }
+    }
+    return valid;
+}
+
+
+void cuckooSolver::setHashTarget(unsigned char* target_){
+    // make sure target_ is 32-byte long
+    for(int i=0; i<32; i++)
+        target[i] = target_[i];
+    bHashVerify = true;
 }

@@ -1,8 +1,6 @@
 // Cuckoo Cycle, a memory-hard proof-of-work
 // Copyright (c) 2013-2018 John Tromp
 
-#include "param.h"
-
 #include "mean_miner.hpp"
 #include <unistd.h>
 #include <sys/time.h>
@@ -117,58 +115,4 @@ int main(int argc, char **argv) {
   }
   printf("%d total solutions\n", sumnsols);
   return 0;
-}
-
-void testCuckoo(){
-  //init cuckoo context
-  u32 nthreads = 1;
-  u32 ntrims = EDGEBITS > 30 ? 96 : 68;
-  bool allrounds = false;
-  bool showcycle = 1;
-
-  u32 nonce = 0;
-  u32 range = 1;
-  struct timeval time0, time1;
-  u32 timems;
-  char header[HEADERLEN];
-  u32 len;
-
-  solver_ctx ctx(nthreads, ntrims, allrounds, showcycle);
-
-  //set nonce, header
-  memset(header, 0, sizeof(header));
-  nonce = 63;
-  ctx.setheadernonce(header, sizeof(header), nonce);
-  printf("nonce %d\n", nonce);
-
-  //solve
-  u32 nsols = ctx.solve();
-
-  //verify solutions
-  for (unsigned s = 0; s < nsols; s++) {
-
-    u32* prf = &ctx.sols[s * PROOFSIZE];
-    
-    /*printf("Solution");
-    for (u32 i = 0; i < PROOFSIZE; i++)
-      printf(" %jx", (uintmax_t)prf[i]);
-    printf("\n");*/
-    
-    int pow_rc = verify(prf, &ctx.trimmer->sip_keys);
-    if (pow_rc == POW_OK) {
-      printf("Verified with cyclehash ");
-      unsigned char cyclehash[32];
-      blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)prf, sizeof(proof), 0, 0);
-      for (int i=0; i<32; i++)
-        printf("%02x", cyclehash[i]);
-      printf("\n");
-    }
-    else {
-      printf("FAILED due to %s\n", errstr[pow_rc]);
-    }
-  }
-}
-
-int main(){
-  testCuckoo();
 }
