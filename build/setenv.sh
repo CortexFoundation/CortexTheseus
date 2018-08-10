@@ -4,9 +4,9 @@
 OS=`uname`
 ROOT_DIR=`pwd`
 
-if [ "$OS" == "Linux" ]; then
+if [[ "$OS" == "Linux" ]]; then
 	export LD_LIBRARY_PATH=$ROOT_DIR/CortexMiner
-elif [ "$OS" == "Darwin" ]; then
+elif [[ "$OS" == "Darwin" ]]; then
 	export DYLD_LIBRARY_PATH=$ROOT_DIR/CortexMiner
 	echo $DYLD_LIBRARY_PATH
 else
