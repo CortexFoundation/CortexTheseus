@@ -10,9 +10,9 @@ endif
 
 ifeq ($(UNAME), Darwin)
 # Mac OS Frameworks
-OPENCL_HEADERS = "/System/Library/Frameworks/OpenCL.framework/Headers/"
-LIBOPENCL = "/System/Library/Frameworks/OpenCL.framework/Versions/Current/Libraries"
-LDLIBS = -framework OpenCL
+# OPENCL_HEADERS = "/System/Library/Frameworks/OpenCL.framework/Headers/"
+# LIBOPENCL = "/System/Library/Frameworks/OpenCL.framework/Versions/Current/Libraries"
+# LDLIBS = -framework OpenCL
 # gcc installed with brew or macports cause xcode gcc is only clang wrapper
 CC = g++
 endif
@@ -20,7 +20,8 @@ endif
 
 CFLAGS += -std=c++11 -fPIC
 IDIR = include 
-LDFLAG = -rdynamic -Llib -ltinyxml2  -L${LIBOPENCL}
+LDFLAG = -rdynamic -Llib 
+# LDFLAG += -Lzcash -lequiSolver -L${LIBOPENCL}
 LDFLAG += -Lcuckoo -lCuckoo -lblake2b -pthread
 
 
@@ -30,8 +31,8 @@ LDFLAG += -Lcuckoo -lCuckoo -lblake2b -pthread
 #zcash/blake.o zcash/sha256.o zcash/equihash.o
 
 INCLUDES = minerBot.h
-OBJ = main.o minerBot.o util/XMLHelper.o
-OBJ_LIB = minerBot.o util/XMLHelper.o
+OBJ = main.o minerBot.o
+OBJ_LIB = minerBot.o
 
 all: main
 
@@ -45,7 +46,7 @@ main: ${OBJ}
 	g++ -o main ${OBJ} -I${IDIR} ${LDFLAG} ${LDLIBS}
 
 lib: ${OBJ_LIB}
-	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o libgominer.so
+	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./go_interface/libgominer.a
 
 clean :
 	rm -f main *.o _temp_* util/*.o
