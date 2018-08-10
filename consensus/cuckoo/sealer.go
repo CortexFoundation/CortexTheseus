@@ -107,19 +107,24 @@ search:
 			}
 
 			fmt.Println(hexutil.Bytes(hash[:]).String())
-
+			var result_hash [32]byte
+			diff := block.Header().Difficulty.Bytes()
 			C.CuckooSolve(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
 				C.uint(uint32(nonce)),
 				(*C.uint)(unsafe.Pointer(&result[0])),
-				(*C.uint)(unsafe.Pointer(&result_len)))
+				(*C.uint)(unsafe.Pointer(&result_len)),
+				(*C.uchar)(unsafe.Pointer(&diff[0])),
+				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
 
 			r := C.CuckooVerify(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
 				C.uint(uint32(nonce)),
-				(*C.uint)(unsafe.Pointer(&result[0])))
+				(*C.uint)(unsafe.Pointer(&result[0])),
+				(*C.uchar)(unsafe.Pointer(&block.Header().Difficulty.Bytes()[0])),
+				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
 
 			if byte(r) != 0 {
 				// Correct solution found, create a new header with it
