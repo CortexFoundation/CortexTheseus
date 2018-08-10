@@ -10,6 +10,23 @@
 #include <stdio.h>
 #endif
 
+
+static u32 g_EdgeBits;
+static u32 g_Nedges;
+static u32 g_EdgeMask;
+static u32 g_BigSize;
+static u32 g_CompressionRound;
+static u32 g_NodeBits;
+static u32 g_maxPathLen;
+
+void setDefaultGlobalParam(){
+  printf("set default global parameter.\n");
+  g_EdgeBits = 29;
+  g_Nedges = 1 << g_EdgeBits;
+  g_EdgeMask = g_Nedges - 1;
+  g_NodeBits = g_EdgeBits+1;
+}
+
 // proof-of-work parameters
 #ifndef EDGEBITS
 // the main parameter is the 2-log of the graph size,
@@ -19,7 +36,7 @@
 #ifndef PROOFSIZE
 // the next most important parameter is the (even) length
 // of the cycle to be found. a minimum of 12 is recommended
-#define PROOFSIZE 
+#define PROOFSIZE 42
 #endif
 
 #if EDGEBITS > 32
@@ -47,6 +64,7 @@ enum verify_code { POW_OK, POW_HEADER_LENGTH, POW_TOO_BIG, POW_TOO_SMALL, POW_NO
 const char *errstr[] = { "OK", "wrong header length", "edge too big", "edges not ascending", "endpoints don't match up", "branch in cycle", "cycle dead ends", "cycle too short"};
 
 // verify that edges are ascending and form a cycle in header-generated graph
+/*
 int verify(edge_t edges[PROOFSIZE], siphash_keys *keys) {
   node_t uvs[2*PROOFSIZE];
   node_t xor0 = 0, xor1  =0;
@@ -75,6 +93,41 @@ int verify(edge_t edges[PROOFSIZE], siphash_keys *keys) {
   } while (i != 0);           // must cycle back to start or we would have found branch
   return n == PROOFSIZE ? POW_OK : POW_SHORT_CYCLE;
 }
+*/
+
+int verify_g(edge_t edges[PROOFSIZE], siphash_keys *keys) {
+  node_t uvs[2*PROOFSIZE];
+  node_t xor0 = 0, xor1  =0;
+  
+  for (u32 n = 0; n < PROOFSIZE; n++) {
+    if (edges[n] > g_EdgeMask)
+      return POW_TOO_BIG;
+    if (n && edges[n] <= edges[n-1])
+      return POW_TOO_SMALL;
+    xor0 ^= uvs[2*n  ] = sipnode(keys, edges[n], 0);
+    xor1 ^= uvs[2*n+1] = sipnode(keys, edges[n], 1);
+  }
+
+  if (xor0|xor1)              // optional check for obviously bad proofs
+    return POW_NON_MATCHING;
+  
+  u32 n = 0, i = 0, j;
+  do {                        // follow cycle
+    for (u32 k = j = i; (k = (k+2) % (2*PROOFSIZE)) != i; ) {
+      if (uvs[k] == uvs[i]) { // find other edge endpoint identical to one at i
+        if (j != i)           // already found one before
+          return POW_BRANCH;
+        j = k;
+      }
+    }
+    if (j == i) return POW_DEAD_END;  // no matching endpoint
+    i = j^1;
+    n++;
+  } while (i != 0);           // must cycle back to start or we would have found branch
+
+  return n == PROOFSIZE ? POW_OK : POW_SHORT_CYCLE;
+}
+
 
 // convenience function for extracting siphash keys from header
 void setheader(const char *header, const u32 headerlen, siphash_keys *keys) {
