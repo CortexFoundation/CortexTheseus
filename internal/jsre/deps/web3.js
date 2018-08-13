@@ -5266,7 +5266,7 @@ Object.defineProperty(Eth.prototype, 'defaultAccount', {
 });
 
 var methods = function () {
-var getUpload = new Method({
+    var getUpload = new Method({
         name: 'getUpload',
         call: 'eth_getUpload',
         params: 2,
