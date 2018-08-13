@@ -457,7 +457,8 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		result = header.Solution
 		nonce  = header.Nonce.Uint64()
 
-		hash = header.HashNoNonce().Bytes()
+		hash        = header.HashNoNonce().Bytes()
+		result_hash = header.SolutionHash
 	)
 
 	// r := C.CuckooVerify(
@@ -466,7 +467,6 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// 	C.uint(uint32(nonce)),
 	// 	(*C.uint)(unsafe.Pointer(&result[0])))
 
-	var result_hash [32]byte
 	diff := header.Difficulty.Bytes()
 	r := C.CuckooVerify(
 		(*C.char)(unsafe.Pointer(&hash[0])),
