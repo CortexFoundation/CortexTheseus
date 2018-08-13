@@ -402,6 +402,12 @@ func (ec *Client) PendingBalanceAt(ctx context.Context, account common.Address) 
 	return (*big.Int)(&result), err
 }
 
+func (ec *Client) PendingUploadAt(ctx context.Context, account common.Address) (*big.Int, error) {
+	var result hexutil.Big
+	err := ec.c.CallContext(ctx, &result, "eth_getUpload", account, "pending")
+	return (*big.Int)(&result), err
+}
+
 // PendingStorageAt returns the value of key in the contract storage of the given account in the pending state.
 func (ec *Client) PendingStorageAt(ctx context.Context, account common.Address, key common.Hash) ([]byte, error) {
 	var result hexutil.Bytes
