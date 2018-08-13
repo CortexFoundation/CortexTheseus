@@ -107,10 +107,11 @@ search:
 				attempts = 0
 			}
 
-			fmt.Println(hexutil.Bytes(hash[:]).String())
+			fmt.Println("hash", hexutil.Bytes(hash[:]).String())
+			fmt.Println("hash", hash)
 			var result_hash [32]byte
 			diff := difficultyTarget(block.Header().Difficulty).Bytes()
-			fmt.Println(diff)
+			fmt.Println("diff", block.Header().Difficulty)
 			r := C.CuckooSolve(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
@@ -119,11 +120,12 @@ search:
 				(*C.uint)(unsafe.Pointer(&result_len)),
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-			fmt.Println(result)
+			fmt.Println("diff", diff)
 			if byte(r) == 0 {
 				nonce++
 				continue
 			}
+			fmt.Println("result", result)
 			r = C.CuckooVerify(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
