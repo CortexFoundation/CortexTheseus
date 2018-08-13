@@ -468,7 +468,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// 	(*C.uint)(unsafe.Pointer(&result[0])))
 
 	diff := difficultyTarget(header.Difficulty).Bytes()
-	fmt.Println(diff)
+	fmt.Println("diff", diff)
 	r := C.CuckooVerify(
 		(*C.char)(unsafe.Pointer(&hash[0])),
 		C.uint(len(hash)),
