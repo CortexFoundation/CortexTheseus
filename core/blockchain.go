@@ -970,6 +970,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		if sum_gas > 0 {
 			weight = float64(block.GasUsed()) / float64(sum_gas)
 		}
+
+		if weight <= 0 {
+			weight = 0.5
+		}
 		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < weight)
 		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && len(block.Transactions()) > len(currentBlock.Transactions()))
 	}
