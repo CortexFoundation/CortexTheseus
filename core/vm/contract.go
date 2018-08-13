@@ -69,14 +69,13 @@ type Contract struct {
 
 	Args []byte
 
-	DelegateCall    bool
-	ModelGas        map[common.Address]uint64
-	InferOpModelGas ModelAddressGas
+	DelegateCall bool
+	ModelGas     map[common.Address]uint64
 }
 
 // NewContract returns a new contract environment for the execution of EVM.
 func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
-	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil, ModelGas: make(map[common.Address]uint64), InferOpModelGas: ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}}
+	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil, ModelGas: make(map[common.Address]uint64)}
 
 	if parent, ok := caller.(*Contract); ok {
 		// Reuse JUMPDEST analysis from parent context if available.
