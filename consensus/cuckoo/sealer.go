@@ -131,6 +131,7 @@ search:
 				header = types.CopyHeader(header)
 				header.Nonce = types.EncodeNonce(nonce)
 				header.Solution = result
+				header.SolutionHash = result_hash
 
 				select {
 				case found <- block.WithSeal(header):

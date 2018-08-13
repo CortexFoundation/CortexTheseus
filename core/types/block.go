@@ -43,7 +43,7 @@ var (
 // out on a block.
 type BlockNonce [8]byte
 type BlockSolution [42]uint32
-type BlockSolutionHash [8]byte
+type BlockSolutionHash [32]byte
 
 // EncodeNonce converts the given integer to a block nonce.
 func EncodeNonce(i uint64) BlockNonce {
