@@ -83,6 +83,7 @@ func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint64, abort chan s
 		result     types.BlockSolution
 		result_len uint32
 	)
+	seed = 0
 	var (
 		attempts = int64(0)
 		nonce    = seed
@@ -108,8 +109,9 @@ search:
 
 			fmt.Println(hexutil.Bytes(hash[:]).String())
 			var result_hash [32]byte
-			diff := block.Header().Difficulty.Bytes()
-			C.CuckooSolve(
+			diff := difficultyTarget(block.Header().Difficulty).Bytes()
+			fmt.Println(diff)
+			r := C.CuckooSolve(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
 				C.uint(uint32(nonce)),
@@ -117,14 +119,19 @@ search:
 				(*C.uint)(unsafe.Pointer(&result_len)),
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-
-			r := C.CuckooVerify(
+			fmt.Println(result)
+			if byte(r) == 0 {
+				nonce++
+				continue
+			}
+			r = C.CuckooVerify(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
 				C.uint(uint32(nonce)),
 				(*C.uint)(unsafe.Pointer(&result[0])),
-				(*C.uchar)(unsafe.Pointer(&block.Header().Difficulty.Bytes()[0])),
+				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
+			fmt.Println(result)
 
 			if byte(r) != 0 {
 				// Correct solution found, create a new header with it

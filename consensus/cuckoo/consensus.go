@@ -467,7 +467,8 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// 	C.uint(uint32(nonce)),
 	// 	(*C.uint)(unsafe.Pointer(&result[0])))
 
-	diff := header.Difficulty.Bytes()
+	diff := difficultyTarget(header.Difficulty).Bytes()
+	fmt.Println(diff)
 	r := C.CuckooVerify(
 		(*C.char)(unsafe.Pointer(&hash[0])),
 		C.uint(len(hash)),
@@ -533,4 +534,11 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		reward.Add(reward, r)
 	}
 	state.AddBalance(header.Coinbase, reward)
+}
+
+func difficultyTarget(difficulty *big.Int) *big.Int {
+	target := big.NewInt(0)
+	target.Exp(big.NewInt(2), big.NewInt(256), nil)
+	target.Sub(target, difficulty)
+	return target
 }
