@@ -499,7 +499,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// 	(*C.uint)(unsafe.Pointer(&result[0])))
 
 	diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
-	fmt.Println("diff", diff)
+	// fmt.Println("diff", diff)
 	cuckoo.cMutex.Lock()
 	r := C.CuckooVerify(
 		(*C.char)(unsafe.Pointer(&hash[0])),

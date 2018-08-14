@@ -8,7 +8,6 @@ import "C"
 import (
 	crand "crypto/rand"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
@@ -29,21 +28,18 @@ var (
 )
 
 func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop <-chan struct{}) (*types.Block, error) {
-	fmt.Println("start seal")
 	// If we're running a fake PoW, simply return a 0 nonce immediately
 	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
 		header := block.Header()
 		header.Nonce, header.MixDigest = types.BlockNonce{}, common.Hash{}
 		return block.WithSeal(header), nil
 	}
-	fmt.Println("start seal1")
 	// If we're running a shared PoW, delegate sealing to it
 	if cuckoo.shared != nil {
 		return cuckoo.shared.Seal(chain, block, stop)
 	}
 	// Create a runner and the multiple search threads it directs
 	abort := make(chan struct{})
-	fmt.Println("start seal2")
 	cuckoo.lock.Lock()
 	threads := cuckoo.threads
 	if cuckoo.rand == nil {
@@ -55,20 +51,17 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 		cuckoo.rand = rand.New(rand.NewSource(seed.Int64()))
 	}
 	cuckoo.lock.Unlock()
-	fmt.Println("start seal3")
 	if threads == 0 {
 		threads = runtime.NumCPU()
 	}
 	if threads < 0 {
 		threads = 0 // Allows disabling local mining without extra logic around local/remote
 	}
-	fmt.Println("start seal4")
 
 	// Push new work to remote sealer
 	if cuckoo.workCh != nil {
 		cuckoo.workCh <- block
 	}
-	fmt.Println("start seal5")
 	var pend sync.WaitGroup
 	for i := 0; i < 1; i++ {
 		pend.Add(1)
@@ -77,7 +70,6 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 			cuckoo.mine(block, id, nonce, abort, cuckoo.resultCh)
 		}(i, uint32(cuckoo.rand.Int31()))
 	}
-	fmt.Println("start seal6")
 	// Wait until sealing is terminated or a nonce is found
 	var result *types.Block
 	select {
@@ -129,11 +121,11 @@ search:
 				cuckoo.hashrate.Mark(int64(attempts))
 				attempts = 0
 			}
-			fmt.Println("hash", hash)
+			// fmt.Println("hash", hash)
 			var result_hash [32]byte
 			diff := target.Bytes()
-			fmt.Println("diff", header.Difficulty)
-			fmt.Println("target", diff)
+			// fmt.Println("diff", header.Difficulty)
+			// fmt.Println("target", diff)
 			cuckoo.cMutex.Lock()
 			r := C.CuckooSolve(
 				(*C.char)(unsafe.Pointer(&hash[0])),
@@ -143,13 +135,13 @@ search:
 				(*C.uint)(unsafe.Pointer(&result_len)),
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-			fmt.Println("target", diff)
+			// fmt.Println("target", diff)
 			if byte(r) == 0 {
 				cuckoo.cMutex.Unlock()
 				nonce++
 				continue
 			}
-			fmt.Println("result", result)
+			// fmt.Println("result", result)
 			r = C.CuckooVerify(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
@@ -157,7 +149,7 @@ search:
 				(*C.uint)(unsafe.Pointer(&result[0])),
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-			fmt.Println(result)
+			// fmt.Println(result)
 			cuckoo.cMutex.Unlock()
 
 			if byte(r) != 0 {
