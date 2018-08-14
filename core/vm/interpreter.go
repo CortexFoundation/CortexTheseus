@@ -18,11 +18,13 @@ package vm
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
-	"math/big"
+
 	//"net/http"
 	//"strings"
 	"sync/atomic"
@@ -209,8 +211,8 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 
 	if IsInputMeta(contract.Code) {
 		if input != nil {
-                        return nil, nil
-                }
+			return nil, nil
+		}
 
 		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
@@ -283,6 +285,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 		// Get the operation from the jump table and validate the stack to ensure there are
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
+		fmt.Println(op.String())
 		operation := in.cfg.JumpTable[op]
 		if !operation.valid {
 			return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
