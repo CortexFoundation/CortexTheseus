@@ -719,6 +719,22 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//return nil, types.ErrorExpired
 		//return nil, errExecutionReverted
 	}
+
+	if IsModelMeta(interpreter.evm.StateDB.GetCode(modelAddr)) {
+		if interpreter.evm.StateDB.Uploading(modelAddr) {
+			return nil, errors.New("Model IS NOT UPLOADED ERROR")
+		}
+	} else {
+		return nil, errors.New("Not Model ERROR")
+	}
+
+	if IsInputMeta(interpreter.evm.StateDB.GetCode(inputAddr)) {
+		if interpreter.evm.StateDB.Uploading(inputAddr) {
+			return nil, errors.New("INPUT IS NOT UPLOADED ERROR")
+		}
+	} else {
+		return nil, errors.New("Not INPUT ERROR")
+	}
 	//todo
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Bytes(), inputMeta.Hash.Bytes())
 	if err != nil {
