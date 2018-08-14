@@ -412,7 +412,11 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
 	}
 
-	fmt.Println("create Code: ", ret)
+	fmt.Println("create Code: ", common.Bytes2Hex(ret))
+	if len(ret) == 0 {
+		fmt.Println("Code : ", common.Bytes2Hex(code))
+		fmt.Println("Err  : ", err)
+	}
 	// check whether the max code size has been exceeded
 	maxCodeSizeExceeded := evm.ChainConfig().IsEIP158(evm.BlockNumber) && len(ret) > params.MaxCodeSize
 	// if the contract creation ran successfully and no errors were returned
