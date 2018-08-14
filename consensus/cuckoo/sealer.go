@@ -53,10 +53,10 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
 		pend.Add(1)
-		go func(id int, nonce uint64) {
+		go func(id int, nonce uint32) {
 			defer pend.Done()
 			cuckoo.mine(block, id, nonce, abort, found)
-		}(i, uint64(cuckoo.rand.Int63()))
+		}(i, uint32(cuckoo.rand.Int31()))
 	}
 
 	var result *types.Block
@@ -75,7 +75,7 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 	return result, nil
 }
 
-func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
+func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan struct{}, found chan *types.Block) {
 	var (
 		header = block.Header()
 		hash   = header.HashNoNonce().Bytes()
@@ -83,9 +83,8 @@ func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint64, abort chan s
 		result     types.BlockSolution
 		result_len uint32
 	)
-	seed = 0
 	var (
-		attempts = int64(0)
+		attempts = int32(0)
 		nonce    = seed
 	)
 
@@ -98,12 +97,12 @@ search:
 		case <-abort:
 			//Mining terminated, update stats and abort
 			logger.Trace("Cuckoo solution search aborted", "attempts", nonce-seed)
-			cuckoo.hashrate.Mark(attempts)
+			cuckoo.hashrate.Mark(int64(attempts))
 			break search
 		default:
 			attempts++
 			if attempts%(1<<15) == 0 {
-				cuckoo.hashrate.Mark(attempts)
+				cuckoo.hashrate.Mark(int64(attempts))
 				attempts = 0
 			}
 
@@ -138,7 +137,7 @@ search:
 			if byte(r) != 0 {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)
-				header.Nonce = types.EncodeNonce(nonce)
+				header.Nonce = types.EncodeNonce(uint64(nonce))
 				header.Solution = result
 				header.SolutionHash = result_hash
 
