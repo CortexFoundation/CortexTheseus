@@ -260,16 +260,16 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 	diff := int64(parent.GasLimit) - int64(header.GasLimit)
 	if diff < 0 {
 		diff *= -1
-		if (parent.GasLimit-params.GasLimitBoundDivisor) > (parent.GasUsed + parent.GasUsed/2) {
-			return fmt.Errorf("diff < 0, invalid gas limit: current %d, parent %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
-		}
-	} else if diff == 0 {
+		//if (parent.GasLimit-params.GasLimitBoundDivisor) > (parent.GasUsed + parent.GasUsed/2) {
+		//	return fmt.Errorf("diff < 0, invalid gas limit: current %d, parent %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
+		//}
+	} //else if diff == 0 {
 
-	} else if diff > 0 {
-		if (parent.GasLimit-params.GasLimitBoundDivisor) < (parent.GasUsed + parent.GasUsed/2) {
-			return fmt.Errorf("invalid gas limit: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
-		}
-	}
+	//} else if diff > 0 {
+	//	if (parent.GasLimit-params.GasLimitBoundDivisor) < (parent.GasUsed + parent.GasUsed/2) {
+	//		return fmt.Errorf("invalid gas limit: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
+	//	}
+	//}
 	limit := parent.GasLimit / params.GasLimitBoundDivisor
 
 	if uint64(diff) >= limit || header.GasLimit < params.MinGasLimit {
