@@ -62,6 +62,10 @@ func memoryInfer(stack *Stack) *big.Int {
 	return calcMemSize(stack.Back(2), stack.Back(3))
 }
 
+func memoryCreate2(stack *Stack) *big.Int {
+	return calcMemSize(stack.Back(1), stack.Back(2))
+}
+
 func memoryCall(stack *Stack) *big.Int {
 	x := calcMemSize(stack.Back(5), stack.Back(6))
 	y := calcMemSize(stack.Back(3), stack.Back(4))
@@ -69,12 +73,6 @@ func memoryCall(stack *Stack) *big.Int {
 	return math.BigMax(x, y)
 }
 
-func memoryCallCode(stack *Stack) *big.Int {
-	x := calcMemSize(stack.Back(5), stack.Back(6))
-	y := calcMemSize(stack.Back(3), stack.Back(4))
-
-	return math.BigMax(x, y)
-}
 func memoryDelegateCall(stack *Stack) *big.Int {
 	x := calcMemSize(stack.Back(4), stack.Back(5))
 	y := calcMemSize(stack.Back(2), stack.Back(3))
