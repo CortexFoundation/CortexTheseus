@@ -1,3 +1,19 @@
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package cuckoo
 
 /*
@@ -5,13 +21,14 @@ package cuckoo
 #include "gominer.h"
 */
 import "C"
+import "unsafe"
 import (
 	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
+	//"strconv"
 	"time"
-	"unsafe"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/common"
@@ -21,13 +38,14 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	//"github.com/ethereum/go-ethereum/core"
 )
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward    *big.Int = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward   *big.Int = big.NewInt(3e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
+	FrontierBlockReward    *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward   *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	maxUncles                       = 1                 // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime          = 15 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
 )
 
@@ -43,6 +61,7 @@ var (
 	errUncleIsAncestor   = errors.New("uncle is ancestor")
 	errDanglingUncle     = errors.New("uncle's parent is not ancestor")
 	errInvalidDifficulty = errors.New("non-positive difficulty")
+	errInvalidMixDigest  = errors.New("invalid mix digest")
 	errInvalidPoW        = errors.New("invalid proof-of-work")
 )
 
@@ -246,16 +265,27 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	diff := int64(parent.GasLimit) - int64(header.GasLimit)
 	if diff < 0 {
 		diff *= -1
+		if parent.GasLimit > (parent.GasUsed + parent.GasUsed/2) {
+			return fmt.Errorf("invalid gas limit: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
+		}
+	} else if diff == 0 {
+
+	} else if diff > 0 {
+		if parent.GasLimit < (parent.GasUsed + parent.GasUsed/2) {
+			return fmt.Errorf("invalid gas limit: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
+		}
 	}
 	limit := parent.GasLimit / params.GasLimitBoundDivisor
 
 	if uint64(diff) >= limit || header.GasLimit < params.MinGasLimit {
 		return fmt.Errorf("invalid gas limit: have %d, want %d += %d", header.GasLimit, parent.GasLimit, limit)
 	}
+
 	// Verify that the block number is parent's +1
 	if diff := new(big.Int).Sub(header.Number, parent.Number); diff.Cmp(big.NewInt(1)) != 0 {
 		return consensus.ErrInvalidNumber
 	}
+
 	// Verify the engine specific seal securing the block
 	if seal {
 		if err := cuckoo.VerifySeal(chain, header); err != nil {
@@ -263,9 +293,9 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		}
 	}
 	// If all checks passed, validate any special fields for hard forks
-	// if err := misc.VerifyDAOHeaderExtraData(chain.Config(), header); err != nil {
-	// 	return err
-	// }
+	//if err := misc.VerifyDAOHeaderExtraData(chain.Config(), header); err != nil {
+	//	return err
+	//}
 	if err := misc.VerifyForkHashes(chain.Config(), header, uncle); err != nil {
 		return err
 	}
@@ -301,6 +331,7 @@ var (
 	big2          = big.NewInt(2)
 	big9          = big.NewInt(9)
 	big10         = big.NewInt(10)
+	big15         = big.NewInt(15)
 	bigMinus99    = big.NewInt(-99)
 	big2999999    = big.NewInt(2999999)
 )
@@ -346,21 +377,21 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	// calculate a fake block number for the ice-age delay:
 	// https://github.com/ethereum/EIPs/pull/669
 	// fake_block_number = max(0, block.number - 3_000_000)
-	fakeBlockNumber := new(big.Int)
-	if parent.Number.Cmp(big2999999) >= 0 {
-		fakeBlockNumber = fakeBlockNumber.Sub(parent.Number, big2999999) // Note, parent is 1 less than the actual block number
-	}
+	//fakeBlockNumber := new(big.Int)
+	//if parent.Number.Cmp(big2999999) >= 0 {
+	//	fakeBlockNumber = fakeBlockNumber.Sub(parent.Number, big2999999) // Note, parent is 1 less than the actual block number
+	//}
 	// for the exponential factor
-	periodCount := fakeBlockNumber
-	periodCount.Div(periodCount, expDiffPeriod)
+	//periodCount := fakeBlockNumber
+	//periodCount.Div(periodCount, expDiffPeriod)
 
 	// the exponential factor, commonly referred to as "the bomb"
 	// diff = diff + 2^(periodCount - 2)
-	if periodCount.Cmp(big1) > 0 {
-		y.Sub(periodCount, big2)
-		y.Exp(big2, y, nil)
-		x.Add(x, y)
-	}
+	//if periodCount.Cmp(big1) > 0 {
+	//	y.Sub(periodCount, big2)
+	//	y.Exp(big2, y, nil)
+	//	x.Add(x, y)
+	//}
 	return x
 }
 
@@ -400,16 +431,16 @@ func calcDifficultyHomestead(time uint64, parent *types.Header) *big.Int {
 		x.Set(params.MinimumDifficulty)
 	}
 	// for the exponential factor
-	periodCount := new(big.Int).Add(parent.Number, big1)
-	periodCount.Div(periodCount, expDiffPeriod)
+	//periodCount := new(big.Int).Add(parent.Number, big1)
+	//periodCount.Div(periodCount, expDiffPeriod)
 
 	// the exponential factor, commonly referred to as "the bomb"
 	// diff = diff + 2^(periodCount - 2)
-	if periodCount.Cmp(big1) > 0 {
-		y.Sub(periodCount, big2)
-		y.Exp(big2, y, nil)
-		x.Add(x, y)
-	}
+	//if periodCount.Cmp(big1) > 0 {
+	//	y.Sub(periodCount, big2)
+	//	y.Exp(big2, y, nil)
+	//	x.Add(x, y)
+	//}
 	return x
 }
 
@@ -467,7 +498,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// 	C.uint(uint32(nonce)),
 	// 	(*C.uint)(unsafe.Pointer(&result[0])))
 
-	diff := difficultyTarget(header.Difficulty).Bytes()
+	diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
 	fmt.Println("diff", diff)
 	r := C.CuckooVerify(
 		(*C.char)(unsafe.Pointer(&hash[0])),
@@ -507,8 +538,13 @@ func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header
 
 // Some weird constants to avoid constant memory allocs for them.
 var (
-	big8  = big.NewInt(8)
-	big32 = big.NewInt(32)
+	big0 = big.NewInt(0)
+	//big2   = big.NewInt(2)
+	big4   = big.NewInt(4)
+	big8   = big.NewInt(8)
+	big32  = big.NewInt(32)
+	big64  = big.NewInt(64)
+	big128 = big.NewInt(128)
 )
 
 // AccumulateRewards credits the coinbase of the given block with the mining
@@ -519,6 +555,10 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	blockReward := FrontierBlockReward
 	if config.IsByzantium(header.Number) {
 		blockReward = ByzantiumBlockReward
+	}
+
+	if header.Number.Cmp(params.CortexBlockRewardPeriod) > 0 {
+		blockReward = new(big.Int).Div(blockReward, big0.Exp(big2, new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod), nil))
 	}
 	// Accumulate the rewards for the miner and any included uncles
 	reward := new(big.Int).Set(blockReward)
@@ -533,12 +573,6 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		r.Div(blockReward, big32)
 		reward.Add(reward, r)
 	}
-	state.AddBalance(header.Coinbase, reward)
-}
 
-func difficultyTarget(difficulty *big.Int) *big.Int {
-	target := big.NewInt(0)
-	target.Exp(big.NewInt(2), big.NewInt(256), nil)
-	target.Sub(target, difficulty)
-	return target
+	state.AddBalance(header.Coinbase, reward)
 }
