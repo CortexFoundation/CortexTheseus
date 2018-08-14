@@ -687,6 +687,11 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
+	// Model Meta is validation
+	if interpreter.evm.StateDB.Uploading(modelAddr) {
+		return nil, errors.New("Model IS NOT UPLOADED ERROR")
+	}
+
 	if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
 		//return nil, types.ErrorInvalidBlockNum
 		return nil, errExecutionReverted
@@ -701,10 +706,16 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//return nil, types.ErrorExpired
 		//return nil, errExecutionReverted
 	}
+
 	if inputMeta, err = interpreter.evm.GetInputMeta(inputAddr); err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
+	// Input Meta is validation
+	if interpreter.evm.StateDB.Uploading(inputAddr) {
+		return nil, errors.New("INPUT IS NOT UPLOADED ERROR")
+	}
+
 	log.Debug(fmt.Sprintf("opInfer:modelMeta: %v", modelMeta))
 	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", inputMeta))
 	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
@@ -722,6 +733,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//return nil, types.ErrorExpired
 		//return nil, errExecutionReverted
 	}
+
 	//todo
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
