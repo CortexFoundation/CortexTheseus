@@ -3837,7 +3837,6 @@ var outputBlockFormatter = function(block) {
                 return outputTransactionFormatter(item);
         });
     }
-
     return block;
 };
 
@@ -5267,6 +5266,13 @@ Object.defineProperty(Eth.prototype, 'defaultAccount', {
 });
 
 var methods = function () {
+    var getUpload = new Method({
+        name: 'getUpload',
+        call: 'eth_getUpload',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+        outputFormatter: formatters.outputBigNumberFormatter
+    });
     var getBalance = new Method({
         name: 'getBalance',
         call: 'eth_getBalance',
@@ -5432,6 +5438,7 @@ var methods = function () {
     });
 
     return [
+	getUpload,
         getBalance,
         getStorageAt,
         getCode,
