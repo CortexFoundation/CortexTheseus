@@ -43,11 +43,11 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2,
 	},
-	NetworkId:     1,
+	NetworkId:     8888,
 	LightPeers:    100,
 	DatabaseCache: 768,
 	TrieCache:     256,
-	TrieTimeout:   5 * time.Minute,
+	TrieTimeout:   60 * time.Minute,
 	GasPrice:      big.NewInt(18 * params.Shannon),
 
 	TxPool: core.DefaultTxPoolConfig,
@@ -97,6 +97,7 @@ type Config struct {
 	// Mining-related options
 	Etherbase    common.Address `toml:",omitempty"`
 	MinerThreads int            `toml:",omitempty"`
+	MinerNotify  []string       `toml:",omitempty"`
 	ExtraData    []byte         `toml:",omitempty"`
 	GasPrice     *big.Int
 
