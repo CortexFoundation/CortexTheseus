@@ -90,6 +90,7 @@ type TransactionReader interface {
 // In many cases, using CallContract can be preferable to reading raw contract storage.
 type ChainStateReader interface {
 	BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error)
+	UploadAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error)
 	StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error)
 	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
 	NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error)
