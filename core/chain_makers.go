@@ -248,7 +248,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 
 // makeHeaderChain creates a deterministic chain of headers rooted at parent.
 func makeHeaderChain(parent *types.Header, n int, engine consensus.Engine, db ethdb.Database, seed int) []*types.Header {
-	panic("makeHeaderChain not tested!")
+	//panic("makeHeaderChain not tested!")
 	blocks := makeBlockChain(types.NewBlockWithHeader(parent), n, engine, db, seed)
 	headers := make([]*types.Header, len(blocks))
 	for i, block := range blocks {
