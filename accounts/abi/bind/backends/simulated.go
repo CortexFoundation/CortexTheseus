@@ -17,6 +17,7 @@
 package backends
 
 import (
+	"CortexTheseus/consensus/ethash"
 	"context"
 	"errors"
 	"fmt"
@@ -24,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -69,7 +69,9 @@ func NewSimulatedBackend(alloc core.GenesisAlloc) *SimulatedBackend {
 	database := ethdb.NewMemDatabase()
 	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, Alloc: alloc}
 	genesis.MustCommit(database)
-	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, cuckoo.NewFaker(), vm.Config{})
+	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, ethash.NewFaker(), vm.Config{
+		InferURI: "http://localhost:5000/infer",
+	})
 
 	backend := &SimulatedBackend{
 		database:   database,
