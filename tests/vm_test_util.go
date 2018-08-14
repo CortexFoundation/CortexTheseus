@@ -80,7 +80,7 @@ type vmExecMarshaling struct {
 
 func (t *VMTest) Run(vmconfig vm.Config) error {
 	statedb := MakePreState(ethdb.NewMemDatabase(), t.json.Pre)
-	ret, gasRemaining, err := t.exec(statedb, vmconfig)
+	ret, gasRemaining, _, err := t.exec(statedb, vmconfig)
 
 	if t.json.GasRemaining == nil {
 		if err == nil {
@@ -114,7 +114,7 @@ func (t *VMTest) Run(vmconfig vm.Config) error {
 	return nil
 }
 
-func (t *VMTest) exec(statedb *state.StateDB, vmconfig vm.Config) ([]byte, uint64, error) {
+func (t *VMTest) exec(statedb *state.StateDB, vmconfig vm.Config) ([]byte, uint64, map[common.Address]uint64, error) {
 	evm := t.newEVM(statedb, vmconfig)
 	e := t.json.Exec
 	return evm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.GasLimit, e.Value)

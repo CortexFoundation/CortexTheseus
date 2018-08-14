@@ -18,10 +18,14 @@ package vm
 
 import (
 	"fmt"
-	"sync/atomic"
-
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"math/big"
+	//"net/http"
+	//"strings"
+	"sync/atomic"
 )
 
 // Config are the configuration options for the Interpreter
@@ -39,6 +43,8 @@ type Config struct {
 	// may be left uninitialised and will be set to the default
 	// table.
 	JumpTable [256]operation
+	// uri for remote infer service
+	InferURI string
 }
 
 // Interpreter is used to run Ethereum based contracts and will utilise the
@@ -118,6 +124,25 @@ func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, st
 	}
 	return nil
 }
+func IsCode(code []byte) bool {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 0 {
+		return true
+	}
+	return false
+}
+func IsModelMeta(code []byte) bool {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 1 {
+		return true
+	}
+	return false
+}
+
+func IsInputMeta(code []byte) bool {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 2 {
+		return true
+	}
+	return false
+}
 
 // Run loops and evaluates the contract's code with the given input data and returns
 // the return byte-slice and an error if one occurred.
@@ -145,6 +170,64 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 	// Don't bother with the execution if there's no code.
 	if len(contract.Code) == 0 {
 		return nil, nil
+	}
+
+	if IsModelMeta(contract.Code) {
+		if input != nil {
+			return nil, nil
+		}
+
+		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			if modelMeta.BlockNum.Sign() == 0 {
+				if modelMeta.RawSize > 0 && modelMeta.RawSize <= 1024*1024*1024*1024 { // 1Byte ~ 1TB
+					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
+				} else {
+					return nil, ErrInvalidMetaRawSize
+				}
+
+				modelMeta.SetBlockNum(*in.evm.BlockNumber)
+				tmpCode, err := modelMeta.ToBytes()
+				if err != nil {
+					return nil, err
+				} else {
+					finalCode := append([]byte{0, 1}, tmpCode...)
+					contract.Code = finalCode
+				}
+			}
+
+			return contract.Code, nil
+		}
+	}
+
+	if IsInputMeta(contract.Code) {
+		if input != nil {
+			return nil, nil
+		}
+
+		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			if inputMeta.BlockNum.Sign() == 0 {
+				if inputMeta.RawSize > 0 && inputMeta.RawSize <= 1024*1024*1024*1024 {
+					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
+				} else {
+					return nil, ErrInvalidMetaRawSize
+				}
+
+				inputMeta.SetBlockNum(*in.evm.BlockNumber)
+				tmpCode, err := inputMeta.ToBytes()
+				if err != nil {
+					return nil, err
+				} else {
+					finalCode := append([]byte{0, 2}, tmpCode...)
+					contract.Code = finalCode
+				}
+			}
+
+			return contract.Code, nil
+		}
 	}
 
 	var (
@@ -181,6 +264,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
+	if IsCode(contract.Code) {
+		contract.Code = contract.Code[2:]
+	}
+
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
@@ -216,12 +303,31 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				return nil, errGasUintOverflow
 			}
 		}
-		// consume the gas and return an error if not enough gas is available.
-		// cost is explicitly set so that the capture state defer method can get the proper cost
+
 		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		if op == INFER {
+			var model_meta_err error
+			modelMeta, model_meta_err := in.evm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			if model_meta_err != nil {
+				return nil, model_meta_err
+			}
+
+			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
+			var overflow bool
+			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
+				return nil, errGasUintOverflow
+			}
+		}
 		if err != nil || !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
 		}
+		// consume the gas and return an error if not enough gas is available.
+		// cost is explicitly set so that the capture state defer method can get the proper cost
+		//cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+
+		//if err != nil || !contract.UseGas(cost) {
+		//	return nil, ErrOutOfGas
+		//}
 		if memorySize > 0 {
 			mem.Resize(memorySize)
 		}
@@ -243,7 +349,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 		if operation.returns {
 			in.returnData = res
 		}
-
 		switch {
 		case err != nil:
 			return nil, err

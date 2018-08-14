@@ -47,6 +47,10 @@ profile.cov
 
 **/yarn-error.log
 
-tags
 
-CortexMiner/*
+tags
+#python_restful
+python_restful/input_data
+python_restful/model
+python_restful/upload
+python_restful/__pycache__/

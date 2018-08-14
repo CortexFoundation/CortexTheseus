@@ -115,6 +115,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
 			utils.TxPoolNoLocalsFlag,
+			utils.TxPoolNoInfersFlag,
 			utils.TxPoolJournalFlag,
 			utils.TxPoolRejournalFlag,
 			utils.TxPoolPriceLimitFlag,
@@ -185,6 +186,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.MiningEnabledFlag,
 			utils.MinerThreadsFlag,
+			utils.MinerNotifyFlag,
 			utils.EtherbaseFlag,
 			utils.TargetGasLimitFlag,
 			utils.GasPriceFlag,
