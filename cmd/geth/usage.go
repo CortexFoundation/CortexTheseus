@@ -186,6 +186,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.MiningEnabledFlag,
 			utils.MinerThreadsFlag,
+			utils.MinerNotifyFlag,
 			utils.EtherbaseFlag,
 			utils.TargetGasLimitFlag,
 			utils.GasPriceFlag,
