@@ -197,10 +197,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				}
 
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
-				finalCode, err := modelMeta.ToBytes()
+				tmpCode, err := modelMeta.ToBytes()
 				if err != nil {
 					return nil, err
 				} else {
+					finalCode := append([]byte{0, 1}, tmpCode...)
 					contract.Code = finalCode
 				}
 			}
@@ -225,10 +226,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				}
 
 				inputMeta.SetBlockNum(*in.evm.BlockNumber)
-				finalCode, err := inputMeta.ToBytes()
+				tmpCode, err := inputMeta.ToBytes()
 				if err != nil {
 					return nil, err
 				} else {
+					finalCode := append([]byte{0, 2}, tmpCode...)
 					contract.Code = finalCode
 				}
 			}
