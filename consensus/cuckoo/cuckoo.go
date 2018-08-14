@@ -100,6 +100,7 @@ type Cuckoo struct {
 	lock      sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
 	closeOnce sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh    chan chan error // Notification channel to exiting backend threads
+	cMutex    sync.Mutex
 }
 
 func New(config Config) *Cuckoo {
@@ -124,7 +125,7 @@ func New(config Config) *Cuckoo {
 
 func NewTester() *Cuckoo {
 	cuckoo := New(Config{PowMode: ModeTest})
-	go cuckoo.remote()
+	// go cuckoo.remote()
 	return cuckoo
 }
 func DeleteTester() {

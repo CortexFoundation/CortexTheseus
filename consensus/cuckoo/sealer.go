@@ -132,7 +132,9 @@ search:
 			fmt.Println("hash", hash)
 			var result_hash [32]byte
 			diff := target.Bytes()
-			fmt.Println("diff", diff)
+			fmt.Println("diff", header.Difficulty)
+			fmt.Println("target", diff)
+			cuckoo.cMutex.Lock()
 			r := C.CuckooSolve(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
@@ -141,8 +143,9 @@ search:
 				(*C.uint)(unsafe.Pointer(&result_len)),
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-			fmt.Println("diff", diff)
+			fmt.Println("target", diff)
 			if byte(r) == 0 {
+				cuckoo.cMutex.Unlock()
 				nonce++
 				continue
 			}
@@ -155,6 +158,7 @@ search:
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
 			fmt.Println(result)
+			cuckoo.cMutex.Unlock()
 
 			if byte(r) != 0 {
 				// Correct solution found, create a new header with it
