@@ -18,11 +18,13 @@ package vm
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
-	"math/big"
+
 	//"net/http"
 	//"strings"
 	"sync/atomic"
@@ -44,6 +46,13 @@ type Config struct {
 	// table.
 	JumpTable [256]operation
 	// uri for remote infer service
+	InferURI string
+	// vm call state flag
+	CallFakeVM bool
+}
+
+// only for the sake of debug info of NewPublicBlockChainAPI
+type ConfigAux struct {
 	InferURI string
 }
 
@@ -268,6 +277,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 		contract.Code = contract.Code[2:]
 	}
 
+	res := make([]byte, 10)
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
@@ -338,7 +348,15 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 		}
 
 		// execute the operation
-		res, err := operation.execute(&pc, in, contract, mem, stack)
+		ret, err = operation.execute(&pc, in, contract, mem, stack)
+		if in.evm.vmConfig.CallFakeVM {
+			if op == CALL {
+				res = append(res, ret...)
+			}
+		} else {
+			res = ret
+		}
+
 		// verifyPool is a build flag. Pool verification makes sure the integrity
 		// of the integer pool by comparing values to a default value.
 		if verifyPool {
