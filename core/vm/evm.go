@@ -17,6 +17,7 @@
 package vm
 
 import (
+	_ "encoding/hex"
 	"errors"
 	"math/big"
 	"sync/atomic"
@@ -28,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	resty "gopkg.in/resty.v1"
 
@@ -220,6 +222,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 	ret, err = run(evm, contract, input)
 
+	if evm.vmConfig.CallFakeVM {
+		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
+	}
+
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
@@ -402,6 +408,15 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	ret, err := run(evm, contract, nil)
 
+	if evm.vmConfig.CallFakeVM {
+		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
+	}
+
+	fmt.Println("create Code: ", common.Bytes2Hex(ret))
+	if len(ret) == 0 {
+		fmt.Println("Code : ", common.Bytes2Hex(code))
+		fmt.Println("Err  : ", err)
+	}
 	// check whether the max code size has been exceeded
 	maxCodeSizeExceeded := evm.ChainConfig().IsEIP158(evm.BlockNumber) && len(ret) > params.MaxCodeSize
 	// if the contract creation ran successfully and no errors were returned
@@ -457,35 +472,22 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
-	if IsModelMeta(evm.StateDB.GetCode(common.BytesToAddress(model_meta_hash))) {
-		if evm.StateDB.Uploading(common.BytesToAddress(model_meta_hash)) {
-			return 0, errors.New("Model IS NOT UPLOADED ERROR")
-		}
-	} else {
-		return 0, errors.New("Not Model ERROR")
-	}
+	requestBody := fmt.Sprintf(
+		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
+	log.Debug(fmt.Sprintf("%v", requestBody))
 
-	if IsInputMeta(evm.StateDB.GetCode(common.BytesToAddress(input_meta_hash))) {
-		if evm.StateDB.Uploading(common.BytesToAddress(input_meta_hash)) {
-			return 0, errors.New("INPUT IS NOT UPLOADED ERROR")
-		}
-	} else {
-		return 0, errors.New("Not INPUT ERROR")
-	}
-
-	requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(evm.vmConfig.InferURI)
 	if err != nil {
-		return 0, errors.New("evm.Infer: External Call Error")
+		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, evm.vmConfig.InferURI, err))
 	}
-	fmt.Println(resp.String())
+	log.Debug(fmt.Sprintf("%v", resp.String()))
 	js, _ := simplejson.NewJson([]byte(resp.String()))
 	int_output_tmp, out_err := js.Get("info").String()
 	if out_err != nil {
-		return 0, errors.New("evm.Infer: External Call Error")
+		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", out_err))
 	}
 	uint64_output, err := strconv.ParseUint(int_output_tmp, 10, 64)
 	if err != nil {
@@ -496,6 +498,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	modelMetaRaw := evm.StateDB.GetCode(addr)
+	log.Debug(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
 	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
 		return &types.ModelMeta{}, err
 	} else {
@@ -505,6 +508,7 @@ func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err er
 
 func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
 	inputMetaRaw := evm.StateDB.GetCode(addr)
+	log.Debug(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
 	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {
 		return &types.InputMeta{}, err
 	} else {

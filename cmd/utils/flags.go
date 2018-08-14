@@ -1122,6 +1122,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
 	}
 
+	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
+
 	// Override any default configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
@@ -1325,7 +1327,6 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	vmcfg := vm.Config{
 		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
-		InferURI:                ctx.GlobalString(ModelCallInterfaceFlag.Name),
 	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
 	if err != nil {

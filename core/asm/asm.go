@@ -156,12 +156,12 @@ func HasInferOp(script []byte) bool {
 		}
 		//		fmt.Println("loops end")
 	}
-	if err := it.Error(); err != nil {
+	//if err := it.Error(); err != nil {
 		//		fmt.Println("......")
-		return false
-	}
+	//	return false
+	//}
 	//	fmt.Println("END")
-	return false
+	//return false
 }
 
 func (it *instructionIterator) NextAndInferAssert() (bool, bool) {

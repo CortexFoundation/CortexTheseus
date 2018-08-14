@@ -18,7 +18,7 @@ package core
 
 import (
 	"errors"
-	"fmt"
+//	"fmt"
 	"math"
 	"math/big"
 
@@ -244,7 +244,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
 				}
 
-				panic(fmt.Errorf("Why total model gas is larger than total gas ?"))
+				//panic(fmt.Errorf("Why total model gas is larger than total gas ?"))
 				return nil, 0, false, vm.ErrInsufficientBalance
 			}
 			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
