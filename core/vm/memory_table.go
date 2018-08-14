@@ -58,6 +58,10 @@ func memoryCreate(stack *Stack) *big.Int {
 	return calcMemSize(stack.Back(1), stack.Back(2))
 }
 
+func memoryInfer(stack *Stack) *big.Int {
+	return calcMemSize(stack.Back(2), stack.Back(3))
+}
+
 func memoryCreate2(stack *Stack) *big.Int {
 	return calcMemSize(stack.Back(1), stack.Back(2))
 }

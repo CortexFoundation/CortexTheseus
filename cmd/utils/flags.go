@@ -24,7 +24,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -58,7 +57,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/netutil"
 	"github.com/ethereum/go-ethereum/params"
 	whisper "github.com/ethereum/go-ethereum/whisper/whisperv6"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli"
 )
 
 var (
@@ -98,7 +97,7 @@ func NewApp(gitCommit, usage string) *cli.App {
 	app.Author = ""
 	//app.Authors = nil
 	app.Email = ""
-	app.Version = params.Version
+	app.Version = params.VersionWithMeta
 	if len(gitCommit) >= 8 {
 		app.Version += "-" + gitCommit[:8]
 	}
@@ -246,6 +245,10 @@ var (
 		Name:  "txpool.nolocals",
 		Usage: "Disables price exemptions for locally submitted transactions",
 	}
+	TxPoolNoInfersFlag = cli.BoolFlag{
+		Name:  "txpool.noinfers",
+		Usage: "Disables infer transactions in this node",
+	}
 	TxPoolJournalFlag = cli.StringFlag{
 		Name:  "txpool.journal",
 		Usage: "Disk journal for local transaction to survive node restarts",
@@ -318,9 +321,13 @@ var (
 		Usage: "Enable mining",
 	}
 	MinerThreadsFlag = cli.IntFlag{
-		Name:  "minerthreads",
+		Name:  "miner.threads",
 		Usage: "Number of CPU threads to use for mining",
-		Value: runtime.NumCPU(),
+		Value: 0,
+	}
+	MinerNotifyFlag = cli.StringFlag{
+		Name:  "miner.notify",
+		Usage: "Comma separated HTTP URL list to notify of new work packages",
 	}
 	TargetGasLimitFlag = cli.Uint64Flag{
 		Name:  "targetgaslimit",
@@ -530,10 +537,15 @@ var (
 		Usage: "Minimum POW accepted",
 		Value: whisper.DefaultMinimumPoW,
 	}
+	ModelCallInterfaceFlag = cli.StringFlag{
+		Name:  "cvm.inferuri",
+		Usage: "infer uri",
+		Value: "http://127.0.0.1:5000/infer",
+	}
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
-		Name:  metrics.MetricsEnabledFlag,
+		Name:  "metrics.MetricsEnabledFlag",
 		Usage: "Enable metrics collection and reporting",
 	}
 	MetricsEnableInfluxDBFlag = cli.BoolFlag{
@@ -1093,6 +1105,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(MinerThreadsFlag.Name) {
 		cfg.MinerThreads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	}
+	if ctx.GlobalIsSet(MinerNotifyFlag.Name) {
+		cfg.MinerNotify = strings.Split(ctx.GlobalString(MinerNotifyFlag.Name), ",")
+	}
 	if ctx.GlobalIsSet(DocRootFlag.Name) {
 		cfg.DocRoot = ctx.GlobalString(DocRootFlag.Name)
 	}
@@ -1308,7 +1323,10 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
-	vmcfg := vm.Config{EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name)}
+	vmcfg := vm.Config{
+		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
+		InferURI:                ctx.GlobalString(ModelCallInterfaceFlag.Name),
+	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)

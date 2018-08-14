@@ -17,6 +17,8 @@
 package vm
 
 import (
+	_ "fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/params"
@@ -439,6 +441,18 @@ func gasDelegateCall(gt params.GasTable, evm *EVM, contract *Contract, stack *St
 		return 0, err
 	}
 	if gas, overflow = math.SafeAdd(gas, evm.callGasTemp); overflow {
+		return 0, errGasUintOverflow
+	}
+	return gas, nil
+}
+
+func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	gas, err := memoryGasCost(mem, 0)
+	if err != nil {
+		return 0, err
+	}
+	var overflow bool
+	if gas, overflow = math.SafeAdd(gas, params.CallInferGas); overflow {
 		return 0, errGasUintOverflow
 	}
 	return gas, nil

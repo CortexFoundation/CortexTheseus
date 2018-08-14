@@ -17,13 +17,21 @@
 package vm
 
 import (
+	"errors"
 	"math/big"
 	"sync/atomic"
 	"time"
 
+	"strconv"
+
+	simplejson "github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	resty "gopkg.in/resty.v1"
+
+	"fmt"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -160,18 +168,18 @@ func (evm *EVM) Interpreter() Interpreter {
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, gas, nil
+		return nil, gas, nil, nil
 	}
 
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, nil, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, gas, ErrInsufficientBalance
+		return nil, gas, nil, ErrInsufficientBalance
 	}
 
 	var (
@@ -184,12 +192,12 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			precompiles = PrecompiledContractsByzantium
 		}
 		if precompiles[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
-			// Calling a non existing account, don't do antything, but ping the tracer
+			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
-			return nil, gas, nil
+			return nil, gas, nil, nil
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
@@ -221,7 +229,14 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			contract.UseGas(contract.Gas)
 		}
 	}
-	return ret, contract.Gas, err
+
+	//if evm.interpreter.IsModelMeta(ret) {
+	//only if model is exist from ipfs, swarm or libtorrent ext, load model to memory
+	//todo if ret is model meta, pay some fee to model owner depends on set in meta data
+	// if exist
+	//evm.Transfer(evm.StateDB, caller.Address(), model.Owner,model.Fee)
+	//}
+	return ret, contract.Gas, contract.ModelGas, err
 }
 
 // CallCode executes the contract associated with the addr with the given input
@@ -231,18 +246,18 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 //
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
-func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, gas, nil
+		return nil, gas, nil, nil
 	}
 
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, nil, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
 	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, gas, ErrInsufficientBalance
+		return nil, gas, nil, ErrInsufficientBalance
 	}
 
 	var (
@@ -262,7 +277,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 			contract.UseGas(contract.Gas)
 		}
 	}
-	return ret, contract.Gas, err
+	return ret, contract.Gas, contract.ModelGas, err
 }
 
 // DelegateCall executes the contract associated with the addr with the given input
@@ -270,13 +285,13 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 //
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
-func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, gas, nil
+		return nil, gas, nil, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, nil, ErrDepth
 	}
 
 	var (
@@ -293,22 +308,25 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 		evm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
+			// for addr, mGas := range contract.ModelGas {
+			// 	contract.ModelGas[addr] = 0
+			// }
 		}
 	}
-	return ret, contract.Gas, err
+	return ret, contract.Gas, contract.ModelGas, err
 }
 
 // StaticCall executes the contract associated with the addr with the given input
 // as parameters while disallowing any modifications to the state during the call.
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
-func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, gas, nil
+		return nil, gas, nil, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, nil, ErrDepth
 	}
 	// Make sure the readonly is only set if we aren't in readonly yet
 	// this makes also sure that the readonly flag isn't removed for
@@ -338,18 +356,18 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 			contract.UseGas(contract.Gas)
 		}
 	}
-	return ret, contract.Gas, err
+	return ret, contract.Gas, contract.ModelGas, err
 }
 
 // create creates a new contract using code as deployment code.
-func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, error) {
+func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, common.Address{}, gas, ErrDepth
+		return nil, common.Address{}, gas, nil, ErrDepth
 	}
 	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, common.Address{}, gas, ErrInsufficientBalance
+		return nil, common.Address{}, gas, nil, ErrInsufficientBalance
 	}
 	nonce := evm.StateDB.GetNonce(caller.Address())
 	evm.StateDB.SetNonce(caller.Address(), nonce+1)
@@ -357,7 +375,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// Ensure there's no existing contract already at the designated address
 	contractHash := evm.StateDB.GetCodeHash(address)
 	if evm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
-		return nil, common.Address{}, 0, ErrContractAddressCollision
+		return nil, common.Address{}, 0, nil, ErrContractAddressCollision
 	}
 	// Create a new account on the state
 	snapshot := evm.StateDB.Snapshot()
@@ -374,7 +392,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
 
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, address, gas, nil
+		return nil, address, gas, nil, nil
 	}
 
 	if evm.vmConfig.Debug && evm.depth == 0 {
@@ -415,12 +433,12 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	if evm.vmConfig.Debug && evm.depth == 0 {
 		evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 	}
-	return ret, address, contract.Gas, err
+	return ret, address, contract.Gas, contract.ModelGas, err
 
 }
 
 // Create creates a new contract using code as deployment code.
-func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
+func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	contractAddr = crypto.CreateAddress(caller.Address(), evm.StateDB.GetNonce(caller.Address()))
 	return evm.create(caller, code, gas, value, contractAddr)
 }
@@ -429,10 +447,67 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 //
 // The different between Create2 with Create is Create2 uses sha3(msg.sender ++ salt ++ init_code)[12:]
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
-func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
+func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
 	return evm.create(caller, code, gas, endowment, contractAddr)
 }
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
+
+// infer function that returns an int64 as output, can be used a categorical output
+func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
+	if IsModelMeta(evm.StateDB.GetCode(common.BytesToAddress(model_meta_hash))) {
+		if evm.StateDB.Uploading(common.BytesToAddress(model_meta_hash)) {
+			return 0, errors.New("Model IS NOT UPLOADED ERROR")
+		}
+	} else {
+		return 0, errors.New("Not Model ERROR")
+	}
+
+	if IsInputMeta(evm.StateDB.GetCode(common.BytesToAddress(input_meta_hash))) {
+		if evm.StateDB.Uploading(common.BytesToAddress(input_meta_hash)) {
+			return 0, errors.New("INPUT IS NOT UPLOADED ERROR")
+		}
+	} else {
+		return 0, errors.New("Not INPUT ERROR")
+	}
+
+	requestBody := fmt.Sprintf(`{"model_addr":"%x", "input_addr":"%x"}`, model_meta_hash, input_meta_hash)
+	resp, err := resty.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(requestBody).
+		Post(evm.vmConfig.InferURI)
+	if err != nil {
+		return 0, errors.New("evm.Infer: External Call Error")
+	}
+	fmt.Println(resp.String())
+	js, _ := simplejson.NewJson([]byte(resp.String()))
+	int_output_tmp, out_err := js.Get("info").String()
+	if out_err != nil {
+		return 0, errors.New("evm.Infer: External Call Error")
+	}
+	uint64_output, err := strconv.ParseUint(int_output_tmp, 10, 64)
+	if err != nil {
+		return 0, errors.New("evm.Infer: Type Conversion Error")
+	}
+	return uint64_output, nil
+}
+
+func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
+	modelMetaRaw := evm.StateDB.GetCode(addr)
+	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
+		return &types.ModelMeta{}, err
+	} else {
+		return modelMeta, nil
+	}
+}
+
+func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
+	inputMetaRaw := evm.StateDB.GetCode(addr)
+	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {
+		return &types.InputMeta{}, err
+	} else {
+		return inputMeta, nil
+	}
+}

@@ -73,6 +73,7 @@ var (
 		utils.EthashDatasetsInMemoryFlag,
 		utils.EthashDatasetsOnDiskFlag, */
 		utils.TxPoolNoLocalsFlag,
+		utils.TxPoolNoInfersFlag,
 		utils.TxPoolJournalFlag,
 		utils.TxPoolRejournalFlag,
 		utils.TxPoolPriceLimitFlag,
@@ -98,8 +99,9 @@ var (
 		utils.MaxPendingPeersFlag,
 		utils.EtherbaseFlag,
 		utils.GasPriceFlag,
-		utils.MinerThreadsFlag,
 		utils.MiningEnabledFlag,
+		utils.MinerThreadsFlag,
+		utils.MinerNotifyFlag,
 		utils.TargetGasLimitFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
@@ -123,6 +125,7 @@ var (
 		utils.GpoPercentileFlag,
 		utils.ExtraDataFlag,
 		configFileFlag,
+		utils.ModelCallInterfaceFlag,
 	}
 
 	rpcFlags = []cli.Flag{
