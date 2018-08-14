@@ -38,6 +38,7 @@ func TestTestMode(t *testing.T) {
 		if err := cuckoo.VerifySeal(nil, block.Header()); err != nil {
 			t.Fatalf("unexpected verification error: %v", err)
 		}
+
 	}
 
 }
