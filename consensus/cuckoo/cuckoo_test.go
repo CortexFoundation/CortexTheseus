@@ -9,10 +9,10 @@ import (
 
 func TestTestMode(t *testing.T) {
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 1; i++ {
 		head := &types.Header{
 			Number:     big.NewInt(int64(i)),
-			Difficulty: big.NewInt(int64(i)*123 + 1),
+			Difficulty: big.NewInt(1),
 			Time:       big.NewInt(int64(i) * int64(i)),
 		}
 		// target := big.NewInt(0)
