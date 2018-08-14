@@ -67,7 +67,9 @@ func New(config Config) *Cuckoo {
 func NewTester() *Cuckoo {
 	return New(Config{PowMode: ModeTest})
 }
-
+func DeleteTester() {
+	C.CuckooRelease()
+}
 func NewFaker() *Cuckoo {
 	return &Cuckoo{
 		config: Config{
