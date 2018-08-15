@@ -222,7 +222,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 	ret, err = run(evm, contract, input)
 
-	if evm.vmConfig.CallFakeVM {
+	if evm.vmConfig.RPC_GetInternalTransaction {
 		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
 	}
 
@@ -408,7 +408,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	ret, err := run(evm, contract, nil)
 
-	if evm.vmConfig.CallFakeVM {
+	if evm.vmConfig.RPC_GetInternalTransaction {
 		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
 	}
 
