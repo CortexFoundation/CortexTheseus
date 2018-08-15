@@ -718,10 +718,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	log.Debug(fmt.Sprintf("opInfer:modelMeta: %v", modelMeta))
 	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", inputMeta))
-	output, err := uint64(0), nil
-	if !interpreter.cfg.CallFakeVM {
-		output, err = interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
-	}
+	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
 	if inputMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
 		//return nil, types.ErrorInvalidBlockNum
 		return nil, errExecutionReverted
