@@ -45,6 +45,12 @@
 			"revisionTime": "2017-02-10T01:56:32Z"
 		},
 		{
+			"checksumSHA1": "0EhLvZ6Og9HYqJtCc2Dzs1EgM30=",
+			"path": "github.com/bitly/go-simplejson",
+			"revision": "0c965951289cce37dec52ad1f34200fefc816777",
+			"revisionTime": "2017-10-23T17:51:54Z"
+		},
+		{
 			"checksumSHA1": "gZQ6HheWahvZzIc3phBnOwoWHjE=",
 			"path": "github.com/btcsuite/btcd/btcec",
 			"revision": "2e60448ffcc6bf78332d1fe590260095f554dd78",
@@ -219,7 +225,7 @@
 			"revisionTime": "2016-12-24T10:41:01Z"
 		},
 		{
-			"checksumSHA1": "6tNwbL5tUS0dxYzADKVZtI2d/lE=",
+			"checksumSHA1": "Op+vCwiOTLgCMDFrTO98Hwum6hg=",
 			"path": "github.com/influxdata/influxdb/client",
 			"revision": "a55dd0f50edd14c9c798d3564189eb4f53914309",
 			"revisionTime": "2017-10-09T17:24:46Z"
@@ -730,6 +736,12 @@
 			"revisionTime": "2017-02-15T08:41:58Z"
 		},
 		{
+			"checksumSHA1": "meNMSoP52+2Us6q5QH7KHbnSNfU=",
+			"path": "golang.org/x/net/publicsuffix",
+			"revision": "1e491301e022f8f977054da4c2d852decd59571f",
+			"revisionTime": "2018-05-30T06:29:46Z"
+		},
+		{
 			"checksumSHA1": "RcrB7tgYS/GMW4QrwVdMOTNqIU8=",
 			"path": "golang.org/x/net/idna",
 			"revision": "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec",
@@ -904,6 +916,12 @@
 			"revisionTime": "2018-03-02T12:15:09Z"
 		},
 		{
+			"checksumSHA1": "Su7u265Xo16R1y1oijcAoS3Fs/E=",
+			"path": "gopkg.in/resty.v1",
+			"revision": "fc3ad735b5565cada42d34bc298573fd3fe5adc6",
+			"revisionTime": "2018-05-29T03:30:06Z"
+		},
+		{
 			"checksumSHA1": "4BwmmgQUhWtizsR2soXND0nqZ1I=",
 			"path": "gopkg.in/sourcemap.v1",
 			"revision": "6e83acea0053641eff084973fee085f0c193c61a",
@@ -922,5 +940,5 @@
 			"revisionTime": "2017-08-11T01:42:03Z"
 		}
 	],
-	"rootPath": "github.com/ethereum/go-ethereum"
+	"rootPath": "CortexTheseus"
 }

@@ -41,7 +41,7 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2, */
 	},
-	NetworkId:     1,
+	NetworkId:     8888,
 	LightPeers:    100,
 	DatabaseCache: 768,
 	TrieCache:     256,
@@ -95,6 +95,7 @@ type Config struct {
 	// Mining-related options
 	Etherbase    common.Address `toml:",omitempty"`
 	MinerThreads int            `toml:",omitempty"`
+	MinerNotify  []string       `toml:",omitempty"`
 	ExtraData    []byte         `toml:",omitempty"`
 	GasPrice     *big.Int
 
@@ -109,6 +110,8 @@ type Config struct {
 
 	// Enables tracking of SHA3 preimages in the VM
 	EnablePreimageRecording bool
+
+	InferURI string
 
 	// Miscellaneous options
 	DocRoot string `toml:"-"`

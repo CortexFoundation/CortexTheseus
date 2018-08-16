@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/filters"
@@ -102,7 +103,7 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 		peers:            peers,
 		reqDist:          newRequestDistributor(peers, quitSync),
 		accountManager:   ctx.AccountManager,
-		engine:           eth.CreateConsensusEngine(ctx, &config.Ethash, chainConfig, chainDb),
+		engine:           eth.CreateConsensusEngine(ctx, chainConfig, &config.Ethash, nil, chainDb),
 		shutdownChan:     make(chan bool),
 		networkId:        config.NetworkId,
 		bloomRequests:    make(chan chan *bloombits.Retrieval),
@@ -177,7 +178,7 @@ func (s *LightDummyAPI) Mining() bool {
 // APIs returns the collection of RPC services the ethereum package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *LightEthereum) APIs() []rpc.API {
-	return append(ethapi.GetAPIs(s.ApiBackend), []rpc.API{
+	return append(ethapi.GetAPIs(s.ApiBackend, vm.Config{InferURI: s.config.InferURI}), []rpc.API{
 		{
 			Namespace: "eth",
 			Version:   "1.0",
@@ -248,6 +249,7 @@ func (s *LightEthereum) Stop() error {
 	s.blockchain.Stop()
 	s.protocolManager.Stop()
 	s.txPool.Stop()
+	s.engine.Close()
 
 	s.eventMux.Stop()
 

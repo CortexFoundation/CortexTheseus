@@ -36,6 +36,8 @@ const (
 	HashLength = 32
 	// AddressLength is the expected length of the adddress
 	AddressLength = 20
+	Prefix        = "0x"
+	Prefix_caps   = "0X"
 )
 
 var (
@@ -212,7 +214,7 @@ func (a Address) Hex() string {
 			result[i] -= 32
 		}
 	}
-	return "0x" + string(result)
+	return Prefix + string(result)
 }
 
 // String implements fmt.Stringer.
@@ -312,10 +314,10 @@ func (ma *MixedcaseAddress) UnmarshalJSON(input []byte) error {
 
 // MarshalJSON marshals the original value
 func (ma *MixedcaseAddress) MarshalJSON() ([]byte, error) {
-	if strings.HasPrefix(ma.original, "0x") || strings.HasPrefix(ma.original, "0X") {
-		return json.Marshal(fmt.Sprintf("0x%s", ma.original[2:]))
+	if strings.HasPrefix(ma.original, Prefix) || strings.HasPrefix(ma.original, Prefix_caps) {
+		return json.Marshal(fmt.Sprintf(Prefix+"%s", ma.original[2:]))
 	}
-	return json.Marshal(fmt.Sprintf("0x%s", ma.original))
+	return json.Marshal(fmt.Sprintf(Prefix+"%s", ma.original))
 }
 
 // Address returns the address

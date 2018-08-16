@@ -964,7 +964,18 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	currentBlock = bc.CurrentBlock()
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		// Split same-difficulty blocks by number, then at random
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		sum_gas := currentBlock.GasUsed() + block.GasUsed()
+		weight := 0.5
+		if sum_gas > 0 {
+			weight = float64(block.GasUsed()) / float64(sum_gas)
+		}
+
+		if weight <= 0 {
+			weight = 0.5
+		}
+		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < weight)
+		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && len(block.Transactions()) > len(currentBlock.Transactions()))
 	}
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
@@ -1016,7 +1027,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	// Do a sanity check that the provided chain is actually ordered and linked
 	for i := 1; i < len(chain); i++ {
 		if chain[i].NumberU64() != chain[i-1].NumberU64()+1 || chain[i].ParentHash() != chain[i-1].Hash() {
-			// Chain broke ancestry, log a messge (programming error) and skip insertion
+			// Chain broke ancestry, log a message (programming error) and skip insertion
 			log.Error("Non contiguous block insert", "number", chain[i].Number(), "hash", chain[i].Hash(),
 				"parent", chain[i].ParentHash(), "prevnumber", chain[i-1].Number(), "prevhash", chain[i-1].Hash())
 
@@ -1551,6 +1562,9 @@ func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 
 // Config retrieves the blockchain's chain configuration.
 func (bc *BlockChain) Config() *params.ChainConfig { return bc.chainConfig }
+
+// Config retrieves the blockchain's chain vm configuration.
+func (bc *BlockChain) GetVMConfig() vm.Config { return bc.vmConfig }
 
 // Engine retrieves the blockchain's consensus engine.
 func (bc *BlockChain) Engine() consensus.Engine { return bc.engine }
