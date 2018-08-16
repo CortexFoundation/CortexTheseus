@@ -47,7 +47,10 @@ type Config struct {
 	JumpTable [256]operation
 	// uri for remote infer service
 	InferURI string
-	// vm call state flag
+	// rpc getInternalTransaction flag
+	RPC_GetInternalTransaction bool
+
+	// opCall flag
 	CallFakeVM bool
 }
 
@@ -349,7 +352,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 
 		// execute the operation
 		ret, err = operation.execute(&pc, in, contract, mem, stack)
-		if in.evm.vmConfig.CallFakeVM {
+		if in.evm.vmConfig.RPC_GetInternalTransaction {
 			if op == CALL {
 				res = append(res, ret...)
 			}

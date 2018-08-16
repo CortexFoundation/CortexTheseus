@@ -51,8 +51,7 @@ const (
 	txChanSize = 4096
 )
 
-var (
-)
+var ()
 
 // errIncompatibleConfig is returned if the requested protocols and configs are
 // not compatible (low protocol version restrictions and high requirements).
