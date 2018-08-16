@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -38,6 +39,14 @@ var (
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	x, y := stack.pop(), stack.peek()
+	math.U256(y.Add(x, y))
+
+	interpreter.intPool.put(x)
+	return nil, nil
+}
+
+func opAddExt(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	x, y := stack.pop(), stack.peek()
 	math.U256(y.Add(x, y))
 
@@ -665,6 +674,74 @@ func opGas(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 	return nil, nil
 }
 
+func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	_modelAddr, _inputAddr := stack.pop(), stack.pop()
+	modelAddr := common.BigToAddress(_modelAddr)
+	inputAddr := common.BigToAddress(_inputAddr)
+	var (
+		modelMeta *types.ModelMeta
+		inputMeta *types.InputMeta
+	)
+	var err error
+	if modelMeta, err = interpreter.evm.GetModelMeta(modelAddr); err != nil {
+		stack.push(interpreter.intPool.getZero())
+		return nil, err
+	}
+	// Model Meta is validation
+	if interpreter.evm.StateDB.Uploading(modelAddr) {
+		return nil, errors.New("Model IS NOT UPLOADED ERROR")
+	}
+
+	if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
+		//return nil, types.ErrorInvalidBlockNum
+		return nil, errExecutionReverted
+	}
+
+	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
+		//return nil, types.ErrorNotMature
+		return nil, errExecutionReverted
+	}
+
+	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
+		//return nil, types.ErrorExpired
+		//return nil, errExecutionReverted
+	}
+
+	if inputMeta, err = interpreter.evm.GetInputMeta(inputAddr); err != nil {
+		stack.push(interpreter.intPool.getZero())
+		return nil, err
+	}
+	// Input Meta is validation
+	if interpreter.evm.StateDB.Uploading(inputAddr) {
+		return nil, errors.New("INPUT IS NOT UPLOADED ERROR")
+	}
+
+	log.Debug(fmt.Sprintf("opInfer:modelMeta: %v", modelMeta))
+	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", inputMeta))
+	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
+	if inputMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
+		//return nil, types.ErrorInvalidBlockNum
+		return nil, errExecutionReverted
+	}
+
+	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
+		//return nil, types.ErrorNotMature
+		return nil, errExecutionReverted
+	}
+
+	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
+		//return nil, types.ErrorExpired
+		//return nil, errExecutionReverted
+	}
+
+	//todo
+	if err != nil {
+		stack.push(interpreter.intPool.getZero())
+		return nil, err
+	}
+	stack.push(interpreter.intPool.get().SetUint64(output))
+	return nil, nil
+}
 func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (
 		value        = stack.pop()
@@ -677,7 +754,7 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memor
 	}
 
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := interpreter.evm.Create(contract, input, gas, value)
+	res, addr, returnGas, modelGas, suberr := interpreter.evm.Create(contract, input, gas, value)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -690,6 +767,9 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memor
 		stack.push(addr.Big())
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 	interpreter.intPool.put(value, offset, size)
 
 	if suberr == errExecutionReverted {
@@ -710,7 +790,19 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memo
 	// Apply EIP150
 	gas -= gas / 64
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := interpreter.evm.Create2(contract, input, gas, endowment, salt)
+	res, addr, returnGas, modelGas, suberr := interpreter.evm.Create2(contract, input, gas, endowment, salt)
+	if interpreter.evm.ChainConfig().IsHomestead(interpreter.evm.BlockNumber) && suberr == ErrCodeStoreOutOfGas {
+		stack.push(interpreter.intPool.getZero())
+	} else if suberr != nil && suberr != ErrCodeStoreOutOfGas {
+		stack.push(interpreter.intPool.getZero())
+	} else {
+		stack.push(addr.Big())
+	}
+	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
+	interpreter.intPool.put(endowment, offset, size)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -740,7 +832,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.evm.Call(contract, toAddr, args, gas, value)
+	ret, returnGas, modelGas, err := interpreter.evm.Call(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -750,8 +842,12 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 
 	interpreter.intPool.put(addr, value, inOffset, inSize, retOffset, retSize)
+
 	return ret, nil
 }
 
@@ -769,7 +865,7 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *Contract, mem
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.evm.CallCode(contract, toAddr, args, gas, value)
+	ret, returnGas, modelGas, err := interpreter.evm.CallCode(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -779,6 +875,9 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *Contract, mem
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 
 	interpreter.intPool.put(addr, value, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -794,7 +893,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract,
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, err := interpreter.evm.DelegateCall(contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := interpreter.evm.DelegateCall(contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -804,6 +903,9 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract,
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 
 	interpreter.intPool.put(addr, inOffset, inSize, retOffset, retSize)
 	return ret, nil
@@ -819,7 +921,7 @@ func opStaticCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, err := interpreter.evm.StaticCall(contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := interpreter.evm.StaticCall(contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -829,6 +931,9 @@ func opStaticCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
 	contract.Gas += returnGas
+	for addr, mGas := range modelGas {
+		contract.ModelGas[addr] += mGas
+	}
 
 	interpreter.intPool.put(addr, inOffset, inSize, retOffset, retSize)
 	return ret, nil

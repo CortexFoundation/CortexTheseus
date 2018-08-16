@@ -477,12 +477,13 @@ func (s *PrivateAccountAPI) SignAndSendTransaction(ctx context.Context, args Sen
 // PublicBlockChainAPI provides an API to access the Ethereum blockchain.
 // It offers only methods that operate on public data that is freely available to anyone.
 type PublicBlockChainAPI struct {
-	b Backend
+	b        Backend
+	vmConfig vm.ConfigAux
 }
 
 // NewPublicBlockChainAPI creates a new Ethereum blockchain API.
-func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
-	return &PublicBlockChainAPI{b}
+func NewPublicBlockChainAPI(b Backend, vmConfig vm.Config) *PublicBlockChainAPI {
+	return &PublicBlockChainAPI{b, vm.ConfigAux{InferURI: vmConfig.InferURI}}
 }
 
 // BlockNumber returns the block number of the chain head.
@@ -500,6 +501,14 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 		return nil, err
 	}
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
+}
+
+func (s *PublicBlockChainAPI) GetUpload(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return (*hexutil.Big)(state.GetUpload(address)), state.Error()
 }
 
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
@@ -652,6 +661,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	defer cancel()
 
 	// Get a new instance of the EVM.
+	vmCfg.CallFakeVM = true
 	evm, vmError, err := s.b.GetEVM(ctx, msg, state, header, vmCfg)
 	if err != nil {
 		return nil, 0, false, err
@@ -676,8 +686,14 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 // Call executes the given transaction on the state for the given block number.
 // It doesn't make and changes in the state/blockchain and is useful to execute and retrieve values.
 func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
-	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{}, 5*time.Second)
+	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI}, 5*time.Second)
 	return (hexutil.Bytes)(result), err
+}
+
+// same as Call, except for RPC_GetInternalTransaction flag with overwritten returns.
+func (s *PublicBlockChainAPI) GetInternalTransaction(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (string, error) {
+	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI, RPC_GetInternalTransaction: true}, 5*time.Second)
+	return (string)(result), err
 }
 
 // EstimateGas returns an estimate of the amount of gas needed to execute the
@@ -705,7 +721,7 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (h
 	executable := func(gas uint64) bool {
 		args.Gas = hexutil.Uint64(gas)
 
-		_, _, failed, err := s.doCall(ctx, args, rpc.PendingBlockNumber, vm.Config{}, 0)
+		_, _, failed, err := s.doCall(ctx, args, rpc.PendingBlockNumber, vm.Config{InferURI: s.vmConfig.InferURI}, 0)
 		if err != nil || failed {
 			return false
 		}

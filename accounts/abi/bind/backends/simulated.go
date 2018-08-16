@@ -69,7 +69,9 @@ func NewSimulatedBackend(alloc core.GenesisAlloc) *SimulatedBackend {
 	database := ethdb.NewMemDatabase()
 	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, Alloc: alloc}
 	genesis.MustCommit(database)
-	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, cuckoo.NewFaker(), vm.Config{})
+	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, ethash.NewFaker(), vm.Config{
+		InferURI: "http://localhost:5000/infer",
+	})
 
 	backend := &SimulatedBackend{
 		database:   database,
@@ -131,6 +133,17 @@ func (b *SimulatedBackend) BalanceAt(ctx context.Context, contract common.Addres
 	}
 	statedb, _ := b.blockchain.State()
 	return statedb.GetBalance(contract), nil
+}
+
+func (b *SimulatedBackend) UploadAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if blockNumber != nil && blockNumber.Cmp(b.blockchain.CurrentBlock().Number()) != 0 {
+		return nil, errBlockNumberUnsupported
+	}
+	statedb, _ := b.blockchain.State()
+	return statedb.GetUpload(contract), nil
 }
 
 // NonceAt returns the nonce of a certain account in the blockchain.

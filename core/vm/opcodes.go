@@ -37,7 +37,10 @@ func (op OpCode) IsStaticJump() bool {
 	return op == JUMP
 }
 
-// 0x0 range - arithmetic ops.
+func (op OpCode) IsInfer() bool {
+	return op == INFER
+}
+
 const (
 	STOP OpCode = iota
 	ADD
@@ -201,6 +204,9 @@ const (
 	PUSH OpCode = 0xb0 + iota
 	DUP
 	SWAP
+)
+const (
+	INFER OpCode = 0xc0
 )
 
 // 0xf0 range - closures.
@@ -367,7 +373,9 @@ var opCodeToString = map[OpCode]string{
 	LOG3:   "LOG3",
 	LOG4:   "LOG4",
 
-	// 0xf0 range.
+	// 0x0c range
+	INFER: "INFER",
+	// 0xf0 range
 	CREATE:       "CREATE",
 	CALL:         "CALL",
 	RETURN:       "RETURN",
@@ -525,6 +533,7 @@ var stringToOp = map[string]OpCode{
 	"LOG2":           LOG2,
 	"LOG3":           LOG3,
 	"LOG4":           LOG4,
+	"INFER":          INFER,
 	"CREATE":         CREATE,
 	"CREATE2":        CREATE2,
 	"CALL":           CALL,

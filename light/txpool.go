@@ -378,7 +378,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	}
 
 	// Should supply enough intrinsic gas
-	gas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
+	gas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, pool.uploading(tx, currentState), pool.homestead)
 	if err != nil {
 		return err
 	}
@@ -386,6 +386,11 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		return core.ErrIntrinsicGas
 	}
 	return currentState.Error()
+}
+
+func (self *TxPool) uploading(tx *types.Transaction, currentState *state.StateDB) bool {
+	//return false
+	return tx != nil && tx.To() != nil && tx.Value().Sign() == 0 && currentState.Uploading(*tx.To())
 }
 
 // add validates a new transaction and sets its state pending if processable.
