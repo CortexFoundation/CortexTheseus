@@ -504,11 +504,11 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 }
 
 func (s *PublicBlockChainAPI) GetUpload(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
-        state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
-        if state == nil || err != nil {
-                return nil, err
-        }
-        return (*hexutil.Big)(state.GetUpload(address)), state.Error()
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return (*hexutil.Big)(state.GetUpload(address)), state.Error()
 }
 
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
@@ -661,6 +661,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	defer cancel()
 
 	// Get a new instance of the EVM.
+	vmCfg.CallFakeVM = true
 	evm, vmError, err := s.b.GetEVM(ctx, msg, state, header, vmCfg)
 	if err != nil {
 		return nil, 0, false, err
@@ -689,9 +690,9 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr r
 	return (hexutil.Bytes)(result), err
 }
 
-// same as Call, except for CallFakeVM flag with overwritten returns.
+// same as Call, except for RPC_GetInternalTransaction flag with overwritten returns.
 func (s *PublicBlockChainAPI) GetInternalTransaction(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (string, error) {
-	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI, CallFakeVM: true}, 5*time.Second)
+	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI, RPC_GetInternalTransaction: true}, 5*time.Second)
 	return (string)(result), err
 }
 
