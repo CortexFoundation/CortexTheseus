@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/asm"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
@@ -76,6 +77,8 @@ var (
 	// than some meaningful limit a user might use. This is not a consensus error
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
+
+	ErrHasInferOperation = errors.New("has infer operation")
 )
 
 var (
@@ -136,6 +139,7 @@ type TxPoolConfig struct {
 	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
+	NoInfers bool          //whether disable infer handling
 }
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
@@ -585,12 +589,17 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, tx != nil && tx.To() != nil && tx.Value().Sign() == 0 && pool.currentState.Uploading(*tx.To()), pool.homestead)
 	if err != nil {
 		return err
 	}
 	if tx.Gas() < intrGas {
 		return ErrIntrinsicGas
+	}
+
+	if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
+		fmt.Println("Has INFER operation !!!")
+		//return ErrHasInferOperation
 	}
 	return nil
 }

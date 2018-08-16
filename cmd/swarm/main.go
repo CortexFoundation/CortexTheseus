@@ -39,11 +39,11 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/discover"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/swarm"
 	bzzapi "github.com/ethereum/go-ethereum/swarm/api"
 	swarmmetrics "github.com/ethereum/go-ethereum/swarm/metrics"
 	"github.com/ethereum/go-ethereum/swarm/tracing"
+	sv "github.com/ethereum/go-ethereum/swarm/version"
 
 	"gopkg.in/urfave/cli.v1"
 )
@@ -122,6 +122,11 @@ var (
 		Name:   "sync-update-delay",
 		Usage:  "Duration for sync subscriptions update after no new peers are added (default 15s)",
 		EnvVar: SWARM_ENV_SYNC_UPDATE_DELAY,
+	}
+	SwarmLightNodeEnabled = cli.BoolFlag{
+		Name:   "lightnode",
+		Usage:  "Enable Swarm LightNode (default false)",
+		EnvVar: SWARM_ENV_LIGHT_NODE_ENABLE,
 	}
 	SwarmDeliverySkipCheckFlag = cli.BoolFlag{
 		Name:   "delivery-skip-check",
@@ -216,7 +221,7 @@ var defaultNodeConfig = node.DefaultConfig
 // This init function sets defaults so cmd/swarm can run alongside geth.
 func init() {
 	defaultNodeConfig.Name = clientIdentifier
-	defaultNodeConfig.Version = params.VersionWithCommit(gitCommit)
+	defaultNodeConfig.Version = sv.VersionWithCommit(gitCommit)
 	defaultNodeConfig.P2P.ListenAddr = ":30399"
 	defaultNodeConfig.IPCPath = "bzzd.ipc"
 	// Set flag defaults for --help display.
@@ -317,23 +322,23 @@ Downloads a swarm bzz uri to the given dir. When no dir is provided, working dir
 			Description:        "Updates a MANIFEST by adding/removing/updating the hash of a path.\nCOMMAND could be: add, update, remove",
 			Subcommands: []cli.Command{
 				{
-					Action:             add,
+					Action:             manifestAdd,
 					CustomHelpTemplate: helpTemplate,
 					Name:               "add",
 					Usage:              "add a new path to the manifest",
-					ArgsUsage:          "<MANIFEST> <path> <hash> [<content-type>]",
+					ArgsUsage:          "<MANIFEST> <path> <hash>",
 					Description:        "Adds a new path to the manifest",
 				},
 				{
-					Action:             update,
+					Action:             manifestUpdate,
 					CustomHelpTemplate: helpTemplate,
 					Name:               "update",
 					Usage:              "update the hash for an already existing path in the manifest",
-					ArgsUsage:          "<MANIFEST> <path> <newhash> [<newcontent-type>]",
+					ArgsUsage:          "<MANIFEST> <path> <newhash>",
 					Description:        "Update the hash for an already existing path in the manifest",
 				},
 				{
-					Action:             remove,
+					Action:             manifestRemove,
 					CustomHelpTemplate: helpTemplate,
 					Name:               "remove",
 					Usage:              "removes a path from the manifest",
@@ -464,6 +469,7 @@ pv(1) tool to get a progress bar:
 		SwarmSwapAPIFlag,
 		SwarmSyncDisabledFlag,
 		SwarmSyncUpdateDelay,
+		SwarmLightNodeEnabled,
 		SwarmDeliverySkipCheckFlag,
 		SwarmListenAddrFlag,
 		SwarmPortFlag,
@@ -516,7 +522,8 @@ func main() {
 }
 
 func version(ctx *cli.Context) error {
-	fmt.Println("Version:", SWARM_VERSION)
+	fmt.Println(strings.Title(clientIdentifier))
+	fmt.Println("Version:", sv.VersionWithMeta)
 	if gitCommit != "" {
 		fmt.Println("Git Commit:", gitCommit)
 	}
