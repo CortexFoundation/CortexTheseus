@@ -1356,6 +1356,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	vmcfg := vm.Config{
 		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
+		InferURI:                ctx.GlobalString(ModelCallInterfaceFlag.Name),
 	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
 	if err != nil {
