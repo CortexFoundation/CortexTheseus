@@ -62,7 +62,7 @@ func extCmd(ctx *cli.Context) error {
 			var model_tmp ModelMetaExt
 			json.Unmarshal(json_data, &model_tmp)
 			model := &types.ModelMeta{
-				Hash:          common.HexToHash(model_tmp.Hash),
+				Hash:          common.HexToAddress(model_tmp.Hash),
 				RawSize:       model_tmp.RawSize,
 				InputShape:    model_tmp.InputShape,
 				OutputShape:   model_tmp.OutputShape,
@@ -75,7 +75,7 @@ func extCmd(ctx *cli.Context) error {
 			var data_tmp InputMetaExt
 			json.Unmarshal(json_data, &data_tmp)
 			data := &types.InputMeta{
-				Hash:          common.HexToHash(data_tmp.Hash),
+				Hash:          common.HexToAddress(data_tmp.Hash),
 				RawSize:       data_tmp.RawSize,
 				Shape:         data_tmp.Shape,
 				AuthorAddress: common.BytesToAddress([]byte(data_tmp.AuthorAddress)),
