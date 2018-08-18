@@ -85,14 +85,12 @@ type Swarm struct {
 type SwarmAPI struct {
 	Api     *api.API
 	Backend chequebook.Backend
-	PrvKey  *ecdsa.PrivateKey
 }
 
 func (self *Swarm) API() *SwarmAPI {
 	return &SwarmAPI{
 		Api:     self.api,
 		Backend: self.backend,
-		PrvKey:  self.privateKey,
 	}
 }
 
@@ -195,18 +193,13 @@ func NewSwarm(config *api.Config, mockStore *mock.NodeStore) (self *Swarm, err e
 	var resourceHandler *mru.Handler
 	rhparams := &mru.HandlerParams{}
 
-	resourceHandler, err = mru.NewHandler(rhparams)
-	if err != nil {
-		return nil, err
-	}
+	resourceHandler = mru.NewHandler(rhparams)
 	resourceHandler.SetStore(netStore)
 
-	var validators []storage.ChunkValidator
-	validators = append(validators, storage.NewContentAddressValidator(storage.MakeHashFunc(storage.DefaultHash)))
-	if resourceHandler != nil {
-		validators = append(validators, resourceHandler)
+	self.lstore.Validators = []storage.ChunkValidator{
+		storage.NewContentAddressValidator(storage.MakeHashFunc(storage.DefaultHash)),
+		resourceHandler,
 	}
-	self.lstore.Validators = validators
 
 	// setup local store
 	log.Debug(fmt.Sprintf("Set up local storage"))
@@ -222,7 +215,7 @@ func NewSwarm(config *api.Config, mockStore *mock.NodeStore) (self *Swarm, err e
 		pss.SetHandshakeController(self.ps, pss.NewHandshakeParams())
 	}
 
-	self.api = api.NewAPI(self.fileStore, self.dns, resourceHandler)
+	self.api = api.NewAPI(self.fileStore, self.dns, resourceHandler, self.privateKey)
 	// Manifests for Smart Hosting
 	log.Debug(fmt.Sprintf("-> Web3 virtual server API"))
 
