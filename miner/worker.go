@@ -365,7 +365,7 @@ func (w *worker) seal(t *task, stop <-chan struct{}) {
 	}
 
 	if t.block, err = w.engine.Seal(w.chain, t.block, stop); t.block != nil {
-		log.Info("Successfully sealed new block", "number", t.block.Number(), "hash", t.block.Hash(),
+		log.Debug("Successfully sealed new block", "number", t.block.Number(), "hash", t.block.Hash(),
 			"elapsed", common.PrettyDuration(time.Since(t.createdAt)))
 		res = t
 	} else {
