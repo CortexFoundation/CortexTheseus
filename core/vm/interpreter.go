@@ -23,8 +23,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-
 	//"net/http"
 	//"strings"
 	"sync/atomic"
@@ -191,6 +191,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 
 	if IsModelMeta(contract.Code) {
 		if input != nil {
+			log.Debug("Readonly for model meta")
 			return nil, nil
 		}
 
@@ -211,6 +212,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				} else {
 					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
+				log.Info("Model meta created", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
+			} else {
+				log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
 
 			return contract.Code, nil
@@ -219,6 +223,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 
 	if IsInputMeta(contract.Code) {
 		if input != nil {
+			log.Debug("Readonly for input meta")
 			return nil, nil
 		}
 
@@ -239,6 +244,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				} else {
 					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
+				log.Info("Input meta created", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+			} else {
+				log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			}
 
 			return contract.Code, nil
