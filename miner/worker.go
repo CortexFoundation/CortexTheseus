@@ -56,7 +56,7 @@ const (
 
 	// blockRecommitInterval is the time interval to recreate the mining block with
 	// any newly arrived transactions.
-	blockRecommitInterval = 3 * time.Second
+	blockRecommitInterval = 15 * time.Second
 )
 
 // environment is the worker's current environment and holds all of the current state information.
