@@ -1,7 +1,7 @@
 package main
 
 import (
-  "torrent/fs"
+  "./fs"
 )
 
 func main() {
