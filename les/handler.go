@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -104,6 +105,7 @@ type ProtocolManager struct {
 	odr         *LesOdr
 	server      *LesServer
 	serverPool  *serverPool
+	clientPool  *freeClientPool
 	lesTopic    discv5.Topic
 	reqDist     *requestDistributor
 	retriever   *retrieveManager
@@ -226,6 +228,7 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	if pm.lightSync {
 		go pm.syncer()
 	} else {
+		pm.clientPool = newFreeClientPool(pm.chainDb, maxPeers, 10000, mclock.System{})
 		go func() {
 			for range pm.newPeerCh {
 			}
@@ -243,6 +246,9 @@ func (pm *ProtocolManager) Stop() {
 	pm.noMorePeers <- struct{}{}
 
 	close(pm.quitSync) // quits syncer, fetcher
+	if pm.clientPool != nil {
+		pm.clientPool.stop()
+	}
 
 	// Disconnect existing sessions.
 	// This also closes the gate for any new registrations on the peer set.
@@ -264,7 +270,8 @@ func (pm *ProtocolManager) newPeer(pv int, nv uint64, p *p2p.Peer, rw p2p.MsgRea
 // this function terminates, the peer is disconnected.
 func (pm *ProtocolManager) handle(p *peer) error {
 	// Ignore maxPeers if this is a trusted peer
-	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
+	// In server mode we try to check into the client pool after handshake
+	if pm.lightSync && pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
 		return p2p.DiscTooManyPeers
 	}
 
@@ -282,6 +289,19 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		p.Log().Debug("Light Ethereum handshake failed", "err", err)
 		return err
 	}
+
+	if !pm.lightSync && !p.Peer.Info().Network.Trusted {
+		addr, ok := p.RemoteAddr().(*net.TCPAddr)
+		// test peer address is not a tcp address, don't use client pool if can not typecast
+		if ok {
+			id := addr.IP.String()
+			if !pm.clientPool.connect(id, func() { go pm.removePeer(p.id) }) {
+				return p2p.DiscTooManyPeers
+			}
+			defer pm.clientPool.disconnect(id)
+		}
+	}
+
 	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
 		rw.Init(p.version)
 	}
@@ -1186,11 +1206,12 @@ func (pm *ProtocolManager) txStatus(hashes []common.Hash) []txStatus {
 // NodeInfo represents a short summary of the Ethereum sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network    uint64              `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
-	Difficulty *big.Int            `json:"difficulty"` // Total difficulty of the host's blockchain
-	Genesis    common.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
-	Config     *params.ChainConfig `json:"config"`     // Chain configuration for the fork rules
-	Head       common.Hash         `json:"head"`       // SHA3 hash of the host's best owned block
+	Network    uint64                  `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Difficulty *big.Int                `json:"difficulty"` // Total difficulty of the host's blockchain
+	Genesis    common.Hash             `json:"genesis"`    // SHA3 hash of the host's genesis block
+	Config     *params.ChainConfig     `json:"config"`     // Chain configuration for the fork rules
+	Head       common.Hash             `json:"head"`       // SHA3 hash of the host's best owned block
+	CHT        light.TrustedCheckpoint `json:"cht"`        // Trused CHT checkpoint for fast catchup
 }
 
 // NodeInfo retrieves some protocol metadata about the running host node.
@@ -1198,12 +1219,31 @@ func (self *ProtocolManager) NodeInfo() *NodeInfo {
 	head := self.blockchain.CurrentHeader()
 	hash := head.Hash()
 
+	var cht light.TrustedCheckpoint
+
+	sections, _, sectionHead := self.odr.ChtIndexer().Sections()
+	sections2, _, sectionHead2 := self.odr.BloomTrieIndexer().Sections()
+	if sections2 < sections {
+		sections = sections2
+		sectionHead = sectionHead2
+	}
+	if sections > 0 {
+		sectionIndex := sections - 1
+		cht = light.TrustedCheckpoint{
+			SectionIdx:  sectionIndex,
+			SectionHead: sectionHead,
+			CHTRoot:     light.GetChtRoot(self.chainDb, sectionIndex, sectionHead),
+			BloomRoot:   light.GetBloomTrieRoot(self.chainDb, sectionIndex, sectionHead),
+		}
+	}
+
 	return &NodeInfo{
 		Network:    self.networkId,
 		Difficulty: self.blockchain.GetTd(hash, head.Number.Uint64()),
 		Genesis:    self.blockchain.Genesis().Hash(),
 		Config:     self.blockchain.Config(),
 		Head:       hash,
+		CHT:        cht,
 	}
 }
 
@@ -1238,7 +1278,7 @@ func (pc *peerConnection) RequestHeadersByHash(origin common.Hash, amount int, s
 	}
 	_, ok := <-pc.manager.reqDist.queue(rq)
 	if !ok {
-		return ErrNoPeers
+		return light.ErrNoPeers
 	}
 	return nil
 }
@@ -1262,7 +1302,7 @@ func (pc *peerConnection) RequestHeadersByNumber(origin uint64, amount int, skip
 	}
 	_, ok := <-pc.manager.reqDist.queue(rq)
 	if !ok {
-		return ErrNoPeers
+		return light.ErrNoPeers
 	}
 	return nil
 }
