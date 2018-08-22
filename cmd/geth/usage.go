@@ -191,6 +191,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MinerGasTargetFlag,
 			utils.MinerEtherbaseFlag,
 			utils.MinerExtraDataFlag,
+			utils.MinerRecommitIntervalFlag,
 		},
 	},
 	{
