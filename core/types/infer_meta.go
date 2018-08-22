@@ -34,7 +34,7 @@ type InferMeta interface {
 
 type ModelMeta struct {
 	URI           string         `json:"URI"`
-	Hash          common.Hash    `json:"Hash"`
+	Hash          common.Address    `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	InputShape    []uint64       `json:"InputShape"`
 	OutputShape   []uint64       `json:"OutputShape"`
@@ -44,7 +44,7 @@ type ModelMeta struct {
 }
 type InputMeta struct {
 	URI           string         `json:"URI"`
-	Hash          common.Hash    `json:"Hash"`
+	Hash          common.Address    `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	Shape         []uint64       `json:"Shape"`
 	AuthorAddress common.Address `json:"AuthorAddress"`

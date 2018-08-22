@@ -30,6 +30,11 @@ import (
 	"sync/atomic"
 )
 
+var (
+	MIN_UPLOAD_BYTES uint64 = 0
+	MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
+)
+
 // Config are the configuration options for the Interpreter
 type Config struct {
 	// Debug enabled debugging Interpreter options
@@ -47,7 +52,10 @@ type Config struct {
 	JumpTable [256]operation
 	// uri for remote infer service
 	InferURI string
-	// vm call state flag
+	// rpc getInternalTransaction flag
+	RPC_GetInternalTransaction bool
+
+	// opCall flag
 	CallFakeVM bool
 }
 
@@ -190,7 +198,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 			return nil, err
 		} else {
 			if modelMeta.BlockNum.Sign() == 0 {
-				if modelMeta.RawSize > 0 && modelMeta.RawSize <= 1024*1024*1024*1024 { // 1Byte ~ 1TB
+				if modelMeta.RawSize > MIN_UPLOAD_BYTES && modelMeta.RawSize <= MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
 					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
 				} else {
 					return nil, ErrInvalidMetaRawSize
@@ -201,8 +209,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				if err != nil {
 					return nil, err
 				} else {
-					finalCode := append([]byte{0, 1}, tmpCode...)
-					contract.Code = finalCode
+					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
 			}
 
@@ -219,7 +226,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
-				if inputMeta.RawSize > 0 && inputMeta.RawSize <= 1024*1024*1024*1024 {
+				if inputMeta.RawSize > MIN_UPLOAD_BYTES && inputMeta.RawSize <= MAX_UPLOAD_BYTES {
 					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
 				} else {
 					return nil, ErrInvalidMetaRawSize
@@ -230,8 +237,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				if err != nil {
 					return nil, err
 				} else {
-					finalCode := append([]byte{0, 2}, tmpCode...)
-					contract.Code = finalCode
+					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
 			}
 
@@ -349,7 +355,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 
 		// execute the operation
 		ret, err = operation.execute(&pc, in, contract, mem, stack)
-		if in.evm.vmConfig.CallFakeVM {
+		if in.evm.vmConfig.RPC_GetInternalTransaction {
 			if op == CALL {
 				res = append(res, ret...)
 			}
