@@ -39,7 +39,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/node"
-	"gopkg.in/urfave/cli.v1"
+	cli "gopkg.in/urfave/cli.v1"
 )
 
 const (
@@ -66,12 +66,12 @@ var (
 		utils.DashboardAddrFlag,
 		utils.DashboardPortFlag,
 		utils.DashboardRefreshFlag,
-		utils.EthashCacheDirFlag,
+		/* utils.EthashCacheDirFlag,
 		utils.EthashCachesInMemoryFlag,
 		utils.EthashCachesOnDiskFlag,
 		utils.EthashDatasetDirFlag,
 		utils.EthashDatasetsInMemoryFlag,
-		utils.EthashDatasetsOnDiskFlag,
+		utils.EthashDatasetsOnDiskFlag, */
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolNoInfersFlag,
 		utils.TxPoolJournalFlag,
@@ -186,8 +186,8 @@ func init() {
 		attachCommand,
 		javascriptCommand,
 		// See misccmd.go:
-		makecacheCommand,
-		makedagCommand,
+		// makecacheCommand,
+		// makedagCommand,
 		versionCommand,
 		bugCommand,
 		licenseCommand,

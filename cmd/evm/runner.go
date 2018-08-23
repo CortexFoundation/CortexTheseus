@@ -118,7 +118,7 @@ func runCmd(ctx *cli.Context) error {
 	ih, _ := hex.DecodeString("c0a1f3c82e11e314822679e4834e3bc575bd017d12d888acda4a851a62d261dc")
 	testModelMeta, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
-			Hash:          common.BytesToHash(mh),
+			Hash:          common.BytesToAddress(mh),
 			RawSize:       10000,
 			InputShape:    []uint64{10, 1},
 			OutputShape:   []uint64{1},
@@ -129,7 +129,7 @@ func runCmd(ctx *cli.Context) error {
 
 	testInputMeta, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
-			Hash:          common.BytesToHash(ih),
+			Hash:          common.BytesToAddress(ih),
 			RawSize:       10000,
 			Shape:         []uint64{1},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),

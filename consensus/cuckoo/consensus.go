@@ -14,10 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package ethash
+package cuckoo
 
+/*
+#cgo LDFLAGS:  -lstdc++ -lgominer
+#include "gominer.h"
+*/
+import "C"
+import "unsafe"
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -36,7 +41,7 @@ import (
 	//"github.com/ethereum/go-ethereum/core"
 )
 
-// Ethash proof-of-work protocol constants.
+// Cuckoo proof-of-work protocol constants.
 var (
 	FrontierBlockReward    *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward   *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block upward from Byzantium
@@ -62,15 +67,15 @@ var (
 
 // Author implements consensus.Engine, returning the header's coinbase as the
 // proof-of-work verified author of the block.
-func (ethash *Ethash) Author(header *types.Header) (common.Address, error) {
+func (cuckoo *Cuckoo) Author(header *types.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules of the
-// stock Ethereum ethash engine.
-func (ethash *Ethash) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+// stock Ethereum cuckoo engine.
+func (cuckoo *Cuckoo) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
 	// If we're running a full engine faking, accept any input as valid
-	if ethash.config.PowMode == ModeFullFake {
+	if cuckoo.config.PowMode == ModeFullFake {
 		return nil
 	}
 	// Short circuit if the header is known, or it's parent not
@@ -83,15 +88,15 @@ func (ethash *Ethash) VerifyHeader(chain consensus.ChainReader, header *types.He
 		return consensus.ErrUnknownAncestor
 	}
 	// Sanity checks passed, do a proper verification
-	return ethash.verifyHeader(chain, header, parent, false, seal)
+	return cuckoo.verifyHeader(chain, header, parent, false, seal)
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
 // concurrently. The method returns a quit channel to abort the operations and
 // a results channel to retrieve the async verifications.
-func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	// If we're running a full engine faking, accept any input as valid
-	if ethash.config.PowMode == ModeFullFake || len(headers) == 0 {
+	if cuckoo.config.PowMode == ModeFullFake || len(headers) == 0 {
 		abort, results := make(chan struct{}), make(chan error, len(headers))
 		for i := 0; i < len(headers); i++ {
 			results <- nil
@@ -115,7 +120,7 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 	for i := 0; i < workers; i++ {
 		go func() {
 			for index := range inputs {
-				errors[index] = ethash.verifyHeaderWorker(chain, headers, seals, index)
+				errors[index] = cuckoo.verifyHeaderWorker(chain, headers, seals, index)
 				done <- index
 			}
 		}()
@@ -151,7 +156,7 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 	return abort, errorsOut
 }
 
-func (ethash *Ethash) verifyHeaderWorker(chain consensus.ChainReader, headers []*types.Header, seals []bool, index int) error {
+func (cuckoo *Cuckoo) verifyHeaderWorker(chain consensus.ChainReader, headers []*types.Header, seals []bool, index int) error {
 	var parent *types.Header
 	if index == 0 {
 		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
@@ -164,14 +169,14 @@ func (ethash *Ethash) verifyHeaderWorker(chain consensus.ChainReader, headers []
 	if chain.GetHeader(headers[index].Hash(), headers[index].Number.Uint64()) != nil {
 		return nil // known block
 	}
-	return ethash.verifyHeader(chain, headers[index], parent, false, seals[index])
+	return cuckoo.verifyHeader(chain, headers[index], parent, false, seals[index])
 }
 
 // VerifyUncles verifies that the given block's uncles conform to the consensus
-// rules of the stock Ethereum ethash engine.
-func (ethash *Ethash) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
+// rules of the stock Ethereum cuckoo engine.
+func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
 	// If we're running a full engine faking, accept any input as valid
-	if ethash.config.PowMode == ModeFullFake {
+	if cuckoo.config.PowMode == ModeFullFake {
 		return nil
 	}
 	// Verify that there are at most 2 uncles included in this block
@@ -212,7 +217,7 @@ func (ethash *Ethash) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 		if ancestors[uncle.ParentHash] == nil || uncle.ParentHash == block.ParentHash() {
 			return errDanglingUncle
 		}
-		if err := ethash.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true); err != nil {
+		if err := cuckoo.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true); err != nil {
 			return err
 		}
 	}
@@ -220,9 +225,9 @@ func (ethash *Ethash) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 }
 
 // verifyHeader checks whether a header conforms to the consensus rules of the
-// stock Ethereum ethash engine.
+// stock Ethereum cuckoo engine.
 // See YP section 4.3.4. "Block Header Validity"
-func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *types.Header, uncle bool, seal bool) error {
+func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *types.Header, uncle bool, seal bool) error {
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
@@ -241,7 +246,7 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 		return errZeroBlockTime
 	}
 	// Verify the block's difficulty based in it's timestamp and parent's difficulty
-	expected := ethash.CalcDifficulty(chain, header.Time.Uint64(), parent)
+	expected := cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
 
 	if expected.Cmp(header.Difficulty) != 0 {
 		return fmt.Errorf("invalid difficulty: have %v, want %v", header.Difficulty, expected)
@@ -283,7 +288,7 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 
 	// Verify the engine specific seal securing the block
 	if seal {
-		if err := ethash.VerifySeal(chain, header); err != nil {
+		if err := cuckoo.VerifySeal(chain, header); err != nil {
 			return err
 		}
 	}
@@ -300,7 +305,7 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 // CalcDifficulty is the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time
 // given the parent block's time and difficulty.
-func (ethash *Ethash) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
+func (cuckoo *Cuckoo) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
 	return CalcDifficulty(chain.Config(), time, parent)
 }
 
@@ -474,6 +479,39 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
+<<<<<<< HEAD:consensus/cuckoo/consensus.go
+func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+	if header.Difficulty.Sign() <= 0 {
+		return errInvalidDifficulty
+	}
+
+	var (
+		result = header.Solution
+		nonce  = header.Nonce.Uint64()
+
+		hash        = header.HashNoNonce().Bytes()
+		result_hash = header.SolutionHash
+	)
+
+	// r := C.CuckooVerify(
+	// 	(*C.char)(unsafe.Pointer(&hash[0])),
+	// 	C.uint(len(hash)),
+	// 	C.uint(uint32(nonce)),
+	// 	(*C.uint)(unsafe.Pointer(&result[0])))
+
+	diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
+	// fmt.Println("diff", diff)
+	cuckoo.cMutex.Lock()
+	r := C.CuckooVerify(
+		(*C.char)(unsafe.Pointer(&hash[0])),
+		C.uint(len(hash)),
+		C.uint(uint32(nonce)),
+		(*C.uint)(unsafe.Pointer(&result[0])),
+		(*C.uchar)(unsafe.Pointer(&diff[0])),
+		(*C.uchar)(unsafe.Pointer(&result_hash[0])))
+	cuckoo.cMutex.Unlock()
+	if byte(r) == 0 {
+=======
 func (ethash *Ethash) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
 	return ethash.verifySeal(chain, header, false)
 }
@@ -539,25 +577,27 @@ func (ethash *Ethash) verifySeal(chain consensus.ChainReader, header *types.Head
 	}
 	target := new(big.Int).Div(two256, header.Difficulty)
 	if new(big.Int).SetBytes(result).Cmp(target) > 0 {
+>>>>>>> bbc90b524f55dc0bc8ab4cf3a07fd0cf9f360d7b:consensus/ethash/consensus.go
 		return errInvalidPoW
 	}
+
 	return nil
 }
 
 // Prepare implements consensus.Engine, initializing the difficulty field of a
-// header to conform to the ethash protocol. The changes are done inline.
-func (ethash *Ethash) Prepare(chain consensus.ChainReader, header *types.Header) error {
+// header to conform to the cuckoo protocol. The changes are done inline.
+func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
-	header.Difficulty = ethash.CalcDifficulty(chain, header.Time.Uint64(), parent)
+	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
 	return nil
 }
 
 // Finalize implements consensus.Engine, accumulating the block and uncle rewards,
 // setting the final state and assembling the block.
-func (ethash *Ethash) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	// Accumulate any block and uncle rewards and commit the final state root
 	accumulateRewards(chain.Config(), state, header, uncles)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
@@ -568,7 +608,7 @@ func (ethash *Ethash) Finalize(chain consensus.ChainReader, header *types.Header
 
 // Some weird constants to avoid constant memory allocs for them.
 var (
-	big0   = big.NewInt(0)
+	big0 = big.NewInt(0)
 	//big2   = big.NewInt(2)
 	big4   = big.NewInt(4)
 	big8   = big.NewInt(8)
