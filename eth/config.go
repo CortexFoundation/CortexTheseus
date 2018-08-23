@@ -20,13 +20,11 @@ import (
 	"math/big"
 	"os"
 	"os/user"
-	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
+	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/gasprice"
@@ -36,12 +34,12 @@ import (
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FastSync,
-	Ethash: ethash.Config{
-		CacheDir:       "ethash",
+	Ethash:   cuckoo.Config{
+		/* CacheDir:       "ethash",
 		CachesInMem:    2,
 		CachesOnDisk:   3,
 		DatasetsInMem:  1,
-		DatasetsOnDisk: 2,
+		DatasetsOnDisk: 2, */
 	},
 	NetworkId:     8888,
 	LightPeers:    100,
@@ -64,11 +62,11 @@ func init() {
 			home = user.HomeDir
 		}
 	}
-	if runtime.GOOS == "windows" {
+	/* if runtime.GOOS == "windows" {
 		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, "AppData", "Ethash")
 	} else {
 		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, ".ethash")
-	}
+	} */
 }
 
 //go:generate gencodec -type Config -field-override configMarshaling -formats toml -out gen_config.go
@@ -102,7 +100,7 @@ type Config struct {
 	GasPrice     *big.Int
 
 	// Ethash options
-	Ethash ethash.Config
+	Ethash cuckoo.Config
 
 	// Transaction pool options
 	TxPool core.TxPoolConfig

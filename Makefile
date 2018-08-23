@@ -11,6 +11,14 @@
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 
+# Curkoo algorithm dynamic library path
+OS = $(shell uname)
+ifeq ($(OS), Linux)
+endif
+
+ifeq ($(OS), Darwin)
+endif
+
 geth:
 	build/env.sh go run build/ci.go install ./cmd/geth
 	@echo "Done building."
