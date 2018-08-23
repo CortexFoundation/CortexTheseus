@@ -1,9 +1,9 @@
 package main
 
 import (
-  "./fs"
+	"./fs"
 )
 
 func main() {
-  fs.Host([]string{"magnet:?xt=urn:btih:73E6E1760C93D41A0EB87A9FFB6D0AAD4DFDAC5A"})
+	fs.Host([]string{"magnet:?xt=urn:btih:75d82691e3db707f3c9e92189eee84abef3f948b"})
 }

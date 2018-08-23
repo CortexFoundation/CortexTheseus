@@ -24,7 +24,7 @@ type Block struct {
 }
 
 /*
-func torrentList(chan string magnetlink) {
+func torrentList(chan string magnetlink) chan {
 
 }
 */
