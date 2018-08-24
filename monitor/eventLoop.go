@@ -32,7 +32,6 @@ func ListenOn(clientURI string, manager *download.Manager) {
 	blocks := make(map[int]int)
 	var block Block
 	var blockTxCount int
-	var maxBlock int
 	maxBlock := 0
 
 	for {
@@ -53,9 +52,9 @@ func ListenOn(clientURI string, manager *download.Manager) {
 				}
 				blocks[int(blockNum)] = blockTxCount
 				blockChecked++
-				if blockNum > maxBlock {
-					maxBlock = blockNum
-					log.Printf("block #%d have been checked", blockNum)
+				if int(blockNum) > maxBlock {
+					maxBlock = int(blockNum)
+					log.Printf("block #%d have been checked", maxBlock)
 				}	
 				if blockChecked%100 == 0 {
 					log.Printf("%d blocks have been checked", blockChecked)
