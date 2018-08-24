@@ -3,10 +3,13 @@ package downloadmanager
 import (
 	"log"
 	"net"
+	"path"
 	"strings"
 
+	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/anacrolix/torrent/storage"
 )
 
 // Manager ...
@@ -14,6 +17,7 @@ type Manager struct {
 	client          *torrent.Client
 	torrentSessions map[metainfo.Hash]*torrent.Torrent
 	torrentProgress map[metainfo.Hash]int
+	DataDir         string
 	CloseAll        chan struct{}
 	NewTorrent      chan string
 	RemoveTorrent   chan string
@@ -26,33 +30,41 @@ func isMagnetURI(uri string) bool {
 
 // AddTorrent ...
 func (m *Manager) AddTorrent(filename string) {
-	tm, err := m.client.AddTorrentFromFile(filename)
+	mi, err := metainfo.LoadFromFile(filename)
 	if err != nil {
-		log.Printf("error adding torrent: %s", err)
+		return
 	}
-	<-tm.GotInfo()
-	infohash := tm.InfoHash()
-	_, ok := m.torrentSessions[infohash]
+	spec := torrent.TorrentSpecFromMetaInfo(mi)
+	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
+	var ss []string
+	slices.MakeInto(&ss, mi.Nodes)
+	m.client.AddDHTNodes(ss)
+	t, _, err := m.client.AddTorrentSpec(spec)
+	<-t.GotInfo()
+	_, ok := m.torrentSessions[spec.InfoHash]
 	if ok {
-		tm.Drop()
+		t.Drop()
 	} else {
-		tm.DownloadAll()
+		m.torrentSessions[spec.InfoHash] = t
+		t.DownloadAll()
 	}
 }
 
-// Add ...
-func (m *Manager) Add(mURI string) {
-	tm, err := m.client.AddMagnet(mURI)
+// AddMagnet ...
+func (m *Manager) AddMagnet(mURI string) {
+	spec, err := torrent.TorrentSpecFromMagnetURI(mURI)
 	if err != nil {
 		log.Printf("error adding magnet: %s", err)
 	}
-	<-tm.GotInfo()
-	infohash := tm.InfoHash()
-	_, ok := m.torrentSessions[infohash]
+	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
+	t, _, err := m.client.AddTorrentSpec(spec)
+	<-t.GotInfo()
+	_, ok := m.torrentSessions[spec.InfoHash]
 	if ok {
-		tm.Drop()
+		t.Drop()
 	} else {
-		tm.DownloadAll()
+		m.torrentSessions[spec.InfoHash] = t
+		t.DownloadAll()
 	}
 }
 
@@ -72,11 +84,11 @@ func (m *Manager) Drop(mURI string) {
 }
 
 // NewManager ...
-func NewManager(storageDir string, torrents chan string) *Manager {
+func NewManager(DataDir string, torrents chan string) *Manager {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableTCP = true
-	cfg.DataDir = storageDir
+	cfg.DataDir = DataDir
 	cfg.DisableEncryption = true
 	listenAddr := &net.TCPAddr{}
 	log.Println(listenAddr)
@@ -90,6 +102,7 @@ func NewManager(storageDir string, torrents chan string) *Manager {
 		client:          t,
 		torrentSessions: make(map[metainfo.Hash]*torrent.Torrent),
 		torrentProgress: make(map[metainfo.Hash]int),
+		DataDir:         DataDir,
 		CloseAll:        make(chan struct{}),
 		NewTorrent:      make(chan string),
 		RemoveTorrent:   make(chan string),
@@ -102,7 +115,7 @@ func NewManager(storageDir string, torrents chan string) *Manager {
 			case torrent := <-manager.NewTorrent:
 				log.Println("torrent", torrent, "added")
 				if isMagnetURI(torrent) {
-					go manager.Add(torrent)
+					go manager.AddMagnet(torrent)
 				} else {
 					go manager.AddTorrent(torrent)
 				}
