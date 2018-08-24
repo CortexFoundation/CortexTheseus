@@ -43,10 +43,10 @@ func (m *Manager) AddTorrent(filename string) {
 		return
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
-	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
 	if _, ok := m.torrentSessions[spec.InfoHash]; ok {
 		return
 	}
+	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
 
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
@@ -71,10 +71,10 @@ func (m *Manager) AddMagnet(mURI string) {
 	if err != nil {
 		log.Printf("error adding magnet: %s", err)
 	}
-	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
 	if _, ok := m.torrentSessions[spec.InfoHash]; ok {
 		return
 	}
+	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
 
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
