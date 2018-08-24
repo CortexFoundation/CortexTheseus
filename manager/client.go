@@ -17,6 +17,7 @@ type Manager struct {
 	client          *torrent.Client
 	torrentSessions map[metainfo.Hash]*torrent.Torrent
 	torrentProgress map[metainfo.Hash]int
+	trackers        []string
 	DataDir         string
 	CloseAll        chan struct{}
 	NewTorrent      chan string
@@ -28,6 +29,13 @@ func isMagnetURI(uri string) bool {
 	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
 }
 
+// SetBuiltinTrackers ...
+func (m *Manager) SetBuiltinTrackers(trackers []string) {
+	for _, tracker := range trackers {
+		m.trackers = append(m.trackers, tracker)
+	}
+}
+
 // AddTorrent ...
 func (m *Manager) AddTorrent(filename string) {
 	mi, err := metainfo.LoadFromFile(filename)
@@ -36,6 +44,15 @@ func (m *Manager) AddTorrent(filename string) {
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
+
+	if len(spec.Trackers) == 0 {
+		spec.Trackers = append(spec.Trackers, []string{})
+	}
+
+	for _, tracker := range m.trackers {
+		spec.Trackers[0] = append(spec.Trackers[0], tracker)
+	}
+
 	var ss []string
 	slices.MakeInto(&ss, mi.Nodes)
 	m.client.AddDHTNodes(ss)
@@ -57,6 +74,15 @@ func (m *Manager) AddMagnet(mURI string) {
 		log.Printf("error adding magnet: %s", err)
 	}
 	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
+
+	if len(spec.Trackers) == 0 {
+		spec.Trackers = append(spec.Trackers, []string{})
+	}
+
+	for _, tracker := range m.trackers {
+		spec.Trackers[0] = append(spec.Trackers[0], tracker)
+	}
+
 	t, _, err := m.client.AddTorrentSpec(spec)
 	<-t.GotInfo()
 	_, ok := m.torrentSessions[spec.InfoHash]
@@ -84,7 +110,7 @@ func (m *Manager) Drop(mURI string) {
 }
 
 // NewManager ...
-func NewManager(DataDir string, torrents chan string) *Manager {
+func NewManager(DataDir string) *Manager {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableTCP = true
