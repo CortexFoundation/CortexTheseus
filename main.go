@@ -13,7 +13,9 @@ func main() {
 
 func mainExitCode() int {
 	torrentFiles := make(chan string)
-	client := download.NewManager(torrentFiles)
+	storageDir := "/home/lizhen/storage"
+	client := download.NewManager(storageDir, torrentFiles)
+	monitor.InitStorage(storageDir, client)
 	monitor.ListenOn("http://192.168.5.11:28888", client)
 	return 0
 }

@@ -26,6 +26,7 @@ type Block struct {
 // ListenOn ... start ListenOn on the rpc port of a blockchain full node
 func ListenOn(clientURI string, manager *download.Manager) {
 	client, _ := rpc.Dial(clientURI)
+	log.Println("Connection established")
 
 	timer := time.NewTimer(time.Second * 2)
 	blocks := make(map[int]int)

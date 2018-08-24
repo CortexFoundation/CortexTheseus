@@ -3,6 +3,7 @@ package downloadmanager
 import (
 	"log"
 	"net"
+	"strings"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
@@ -17,6 +18,26 @@ type Manager struct {
 	NewTorrent      chan string
 	RemoveTorrent   chan string
 	UpdateTorrent   chan interface{}
+}
+
+func isMagnetURI(uri string) bool {
+	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
+}
+
+// AddTorrent ...
+func (m *Manager) AddTorrent(filename string) {
+	tm, err := m.client.AddTorrentFromFile(filename)
+	if err != nil {
+		log.Printf("error adding torrent: %s", err)
+	}
+	<-tm.GotInfo()
+	infohash := tm.InfoHash()
+	_, ok := m.torrentSessions[infohash]
+	if ok {
+		tm.Drop()
+	} else {
+		tm.DownloadAll()
+	}
 }
 
 // Add ...
@@ -51,11 +72,11 @@ func (m *Manager) Drop(mURI string) {
 }
 
 // NewManager ...
-func NewManager(torrents chan string) *Manager {
+func NewManager(storageDir string, torrents chan string) *Manager {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableTCP = true
-	cfg.DataDir = "./"
+	cfg.DataDir = storageDir
 	cfg.DisableEncryption = true
 	listenAddr := &net.TCPAddr{}
 	log.Println(listenAddr)
@@ -79,7 +100,12 @@ func NewManager(torrents chan string) *Manager {
 		for {
 			select {
 			case torrent := <-manager.NewTorrent:
-				go manager.Add(torrent)
+				log.Println("torrent", torrent, "added")
+				if isMagnetURI(torrent) {
+					go manager.Add(torrent)
+				} else {
+					go manager.AddTorrent(torrent)
+				}
 			case torrent := <-manager.RemoveTorrent:
 				go manager.Drop(torrent)
 			case <-manager.UpdateTorrent:
