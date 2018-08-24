@@ -44,6 +44,9 @@ func (m *Manager) AddTorrent(filename string) {
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
+	if _, ok := m.torrentSessions[spec.InfoHash]; ok {
+		return
+	}
 
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
@@ -57,14 +60,9 @@ func (m *Manager) AddTorrent(filename string) {
 	slices.MakeInto(&ss, mi.Nodes)
 	m.client.AddDHTNodes(ss)
 	t, _, err := m.client.AddTorrentSpec(spec)
+	m.torrentSessions[spec.InfoHash] = t
 	<-t.GotInfo()
-	_, ok := m.torrentSessions[spec.InfoHash]
-	if ok {
-		t.Drop()
-	} else {
-		m.torrentSessions[spec.InfoHash] = t
-		t.DownloadAll()
-	}
+	t.DownloadAll()
 }
 
 // AddMagnet ...
@@ -74,6 +72,9 @@ func (m *Manager) AddMagnet(mURI string) {
 		log.Printf("error adding magnet: %s", err)
 	}
 	spec.Storage = storage.NewFile(path.Join(m.DataDir, spec.InfoHash.HexString()))
+	if _, ok := m.torrentSessions[spec.InfoHash]; ok {
+		return
+	}
 
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
@@ -85,13 +86,8 @@ func (m *Manager) AddMagnet(mURI string) {
 
 	t, _, err := m.client.AddTorrentSpec(spec)
 	<-t.GotInfo()
-	_, ok := m.torrentSessions[spec.InfoHash]
-	if ok {
-		t.Drop()
-	} else {
-		m.torrentSessions[spec.InfoHash] = t
-		t.DownloadAll()
-	}
+	m.torrentSessions[spec.InfoHash] = t
+	t.DownloadAll()
 }
 
 // Drop ...
