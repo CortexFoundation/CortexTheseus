@@ -202,7 +202,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 			if modelMeta.BlockNum.Sign() == 0 {
 				if modelMeta.RawSize > MIN_UPLOAD_BYTES && modelMeta.RawSize <= MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
 					if modelMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
-						in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 					} else {
 						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-DEFAULT_UPLOAD_BYTES))
 					}
@@ -238,7 +238,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 			if inputMeta.BlockNum.Sign() == 0 {
 				if inputMeta.RawSize > MIN_UPLOAD_BYTES && inputMeta.RawSize <= MAX_UPLOAD_BYTES {
 					if inputMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
-						in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 					} else {
 						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-DEFAULT_UPLOAD_BYTES))
 					}
