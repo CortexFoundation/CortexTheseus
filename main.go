@@ -1,9 +1,50 @@
 package main
 
 import (
-	"./fs"
+	"log"
+	"net"
+	"os"
+
+	"github.com/anacrolix/torrent"
 )
 
 func main() {
-	fs.Host([]string{"magnet:?xt=urn:btih:75d82691e3db707f3c9e92189eee84abef3f948b"})
+	os.Exit(mainExitCode())
+}
+
+func Download(t *torrent.Client, mURI string) {
+	log.Println("Down")
+	tm, err := t.AddMagnet(mURI)
+	if err != nil {
+		log.Printf("error adding magnet: %s", err)
+	}
+
+	go func() {
+		<-tm.GotInfo()
+		tm.DownloadAll()
+	}()
+
+}
+func mainExitCode() int {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	cfg := torrent.NewDefaultClientConfig()
+	cfg.DisableTCP = true
+	cfg.DataDir = "./"
+	cfg.DisableEncryption = true
+	listenAddr := &net.TCPAddr{}
+	log.Println(listenAddr)
+	cfg.SetListenAddr(listenAddr.String())
+	t, err := torrent.NewClient(cfg)
+	if err != nil {
+		log.Println(err)
+	}
+	torrentFiles := make(chan string)
+	go func() {
+		for {
+			torrent := <-torrentFiles
+			go Download(t, torrent)
+		}
+	}()
+	ListenOn("http://192.168.5.11:28888", torrentFiles)
+	return 0
 }

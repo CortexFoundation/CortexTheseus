@@ -1,12 +1,10 @@
-package fs
+package main
 
 import (
 	"bytes"
 	"log"
-	"math"
 	"strconv"
 	"time"
-	torrent "torrent/libtorrent"
 
 	"encoding/hex"
 
@@ -23,21 +21,14 @@ type Block struct {
 	Transactions []map[string]string
 }
 
-/*
-func torrentList(chan string magnetlink) chan {
-
-}
-*/
-
-func eventLoop() {
-	clientURI := "http://192.168.5.11:28888"
+// ListenOn ... start ListenOn on the rpc port of a blockchain full node
+func ListenOn(clientURI string, torrentFiles chan string) {
 	client, _ := rpc.Dial(clientURI)
 
 	timer := time.NewTimer(time.Second * 2)
 	blocks := make(map[int]int)
 	var block Block
 	var blockTxCount int
-	torrentList := make([]string, 0, 1024)
 
 	for {
 		select {
@@ -49,6 +40,7 @@ func eventLoop() {
 			}
 			blockTxCount = len(block.Transactions)
 			blockNum, _ := strconv.ParseInt(block.Number[2:], 16, 32)
+			blockChecked := 0
 
 			for {
 				_, ok := blocks[int(blockNum)]
@@ -56,6 +48,11 @@ func eventLoop() {
 					break
 				}
 				blocks[int(blockNum)] = blockTxCount
+				blockChecked++
+
+				if blockChecked%100 == 0 {
+					log.Printf("%d blocks have been checked", blockChecked)
+				}
 
 				if blockTxCount > 0 {
 					for _, tx := range block.Transactions {
@@ -68,41 +65,19 @@ func eventLoop() {
 							input, _ := hex.DecodeString(tx["input"][6:])
 							rlp.Decode(bytes.NewReader(input), &meta)
 							log.Println(tx["hash"], meta.URI)
-							torrentList = append(torrentList, meta.URI)
+							torrentFiles <- meta.URI
 						} else if tx["input"][:6] == "0x0002" {
 							// input
 							var meta types.InputMeta
 							input, _ := hex.DecodeString(tx["input"][6:])
 							rlp.Decode(bytes.NewReader(input), &meta)
 							log.Println(tx["hash"], meta.URI)
-							torrentList = append(torrentList, meta.URI)
+							torrentFiles <- meta.URI
 						}
 					}
 				}
 
 				if blockNum == 0 {
-					flags := &torrent.TorrentFlags{
-						Dial:                nil,
-						Port:                7777,
-						FileDir:             "/home/lizhen/storage",
-						SeedRatio:           math.Inf(0),
-						UseDeadlockDetector: true,
-						UseLPD:              true,
-						UseDHT:              true,
-						UseUPnP:             false,
-						UseNATPMP:           false,
-						TrackerlessMode:     false,
-						// IP address of gateway
-						Gateway:            "",
-						InitialCheck:       true,
-						FileSystemProvider: torrent.OsFsProvider{},
-						Cacher:             torrent.NewRamCacheProvider(2048),
-						ExecOnSeeding:      "",
-						QuickResume:        true,
-						MaxActive:          128,
-						MemoryPerTorrent:   -1,
-					}
-					torrent.RunTorrents(flags, torrentList)
 					break
 				} else {
 					blockNum--
@@ -126,9 +101,4 @@ func eventLoop() {
 			timer.Reset(time.Second * 2)
 		}
 	}
-}
-
-// StartListening ... start listening on the rpc port of a blockchain full node
-func StartListening() {
-	eventLoop()
 }
