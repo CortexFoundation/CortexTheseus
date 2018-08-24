@@ -13,7 +13,7 @@ func main() {
 }
 
 func mainExitCode() int {
-	storageDir := "/home/lizhen/storage"
+	storageDir := "/data/serving/InferenceServer/warehouse"
 	client := download.NewManager(storageDir)
 	client.SetBuiltinTrackers([]string{"http//:47.52.39.170:5008/announce"})
 	monitor.InitStorage(storageDir, client)
