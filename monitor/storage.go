@@ -9,7 +9,7 @@ import (
 	download "../manager"
 )
 
-const defaultTorrentName = "1.torrent"
+const defaultTorrentName = "torrent"
 
 // InitStorage ...
 func InitStorage(storageDir string, manager *download.Manager) {
