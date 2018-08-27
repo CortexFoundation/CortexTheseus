@@ -24,7 +24,7 @@ type Block struct {
 }
 
 // ListenOn ... start ListenOn on the rpc port of a blockchain full node
-func ListenOn(clientURI string, manager *download.Manager) {
+func ListenOn(clientURI string, manager *download.TorrentManager) {
 	client, _ := rpc.Dial(clientURI)
 	log.Println("Connection established")
 
@@ -55,7 +55,7 @@ func ListenOn(clientURI string, manager *download.Manager) {
 				if int(blockNum) > maxBlock {
 					maxBlock = int(blockNum)
 					log.Printf("block #%d have been checked", maxBlock)
-				}	
+				}
 				if blockChecked%100 == 0 {
 					log.Printf("%d blocks have been checked", blockChecked)
 				}

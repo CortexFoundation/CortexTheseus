@@ -15,11 +15,14 @@ import (
 
 // TorrentSession ...
 type TorrentSession struct {
-	session *torrent.Torrent
+	Torrent     *torrent.Torrent
+	RawSize     uint64
+	CurrentSize uint64
+	InfoHash    metainfo.Hash
 }
 
-// Manager ...
-type Manager struct {
+// TorrentManager ...
+type TorrentManager struct {
 	client          *torrent.Client
 	torrentSessions map[string]*torrent.Torrent
 	torrentProgress map[string]int
@@ -36,15 +39,15 @@ func isMagnetURI(uri string) bool {
 	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
 }
 
-// SetBuiltinTrackers ...
-func (m *Manager) SetBuiltinTrackers(trackers []string) {
+// SetTrackers ...
+func (tm *TorrentManager) SetTrackers(trackers []string) {
 	for _, tracker := range trackers {
-		m.trackers = append(m.trackers, tracker)
+		tm.trackers = append(tm.trackers, tracker)
 	}
 }
 
 // AddTorrent ...
-func (m *Manager) AddTorrent(filename string) {
+func (tm *TorrentManager) AddTorrent(filename string) {
 	mi, err := metainfo.LoadFromFile(filename)
 	if err != nil {
 		return
@@ -52,77 +55,77 @@ func (m *Manager) AddTorrent(filename string) {
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	ih := spec.InfoHash.HexString()
 
-	m.lock.Lock()
-	if _, ok := m.torrentSessions[ih]; ok {
+	tm.lock.Lock()
+	if _, ok := tm.torrentSessions[ih]; ok {
 		return
 	}
-	spec.Storage = storage.NewFile(path.Join(m.DataDir, ih))
+	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
 
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
 	}
 
-	for _, tracker := range m.trackers {
+	for _, tracker := range tm.trackers {
 		spec.Trackers[0] = append(spec.Trackers[0], tracker)
 	}
 
 	var ss []string
 	slices.MakeInto(&ss, mi.Nodes)
-	m.client.AddDHTNodes(ss)
-	t, _, err := m.client.AddTorrentSpec(spec)
-	m.torrentSessions[ih] = t
-	m.lock.Unlock()
+	tm.client.AddDHTNodes(ss)
+	t, _, err := tm.client.AddTorrentSpec(spec)
+	tm.torrentSessions[ih] = t
+	tm.lock.Unlock()
 
 	<-t.GotInfo()
 	t.DownloadAll()
 }
 
 // AddMagnet ...
-func (m *Manager) AddMagnet(mURI string) {
+func (tm *TorrentManager) AddMagnet(mURI string) {
 	spec, err := torrent.TorrentSpecFromMagnetURI(mURI)
 	if err != nil {
 		log.Printf("error adding magnet: %s", err)
 	}
 	ih := spec.InfoHash.HexString()
 
-	m.lock.Lock()
-	if _, ok := m.torrentSessions[ih]; ok {
+	tm.lock.Lock()
+	if _, ok := tm.torrentSessions[ih]; ok {
 		return
 	}
-	spec.Storage = storage.NewFile(path.Join(m.DataDir, ih))
+	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
 
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
 	}
 
-	for _, tracker := range m.trackers {
+	for _, tracker := range tm.trackers {
 		spec.Trackers[0] = append(spec.Trackers[0], tracker)
 	}
-	t, _, err := m.client.AddTorrentSpec(spec)
-	m.torrentSessions[ih] = t
-	m.lock.Unlock()
+	t, _, err := tm.client.AddTorrentSpec(spec)
+	tm.torrentSessions[ih] = t
+	tm.lock.Unlock()
 
 	<-t.GotInfo()
 	t.DownloadAll()
 }
 
 // DropMagnet ...
-func (m *Manager) DropMagnet(mURI string) {
+func (tm *TorrentManager) DropMagnet(mURI string) {
 	spec, err := torrent.TorrentSpecFromMagnetURI(mURI)
 	if err != nil {
 		log.Printf("error adding magnet: %s", err)
 	}
 	ih := spec.InfoHash.HexString()
-	if ts, ok := m.torrentSessions[ih]; ok {
+	if ts, ok := tm.torrentSessions[ih]; ok {
 		ts.Drop()
-		delete(m.torrentSessions, ih)
+		delete(tm.torrentSessions, ih)
 	} else {
 		return
 	}
 }
 
-// NewManager ...
-func NewManager(DataDir string) *Manager {
+// NewTorrentManager ...
+func NewTorrentManager(DataDir string) *TorrentManager {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableTCP = true
@@ -136,7 +139,7 @@ func NewManager(DataDir string) *Manager {
 		log.Println(err)
 	}
 
-	manager := &Manager{
+	TorrentManager := &TorrentManager{
 		client:          t,
 		torrentSessions: make(map[string]*torrent.Torrent),
 		torrentProgress: make(map[string]int),
@@ -150,24 +153,24 @@ func NewManager(DataDir string) *Manager {
 	go func() {
 		for {
 			select {
-			case torrent := <-manager.NewTorrent:
+			case torrent := <-TorrentManager.NewTorrent:
 				log.Println("Add", torrent)
 				if isMagnetURI(torrent) {
-					go manager.AddMagnet(torrent)
+					go TorrentManager.AddMagnet(torrent)
 				} else {
-					go manager.AddTorrent(torrent)
+					go TorrentManager.AddTorrent(torrent)
 				}
-			case torrent := <-manager.RemoveTorrent:
+			case torrent := <-TorrentManager.RemoveTorrent:
 				log.Println("Drop", torrent)
 				if isMagnetURI(torrent) {
-					go manager.DropMagnet(torrent)
+					go TorrentManager.DropMagnet(torrent)
 				} else {
 				}
-			case <-manager.UpdateTorrent:
+			case <-TorrentManager.UpdateTorrent:
 				continue
 			}
 		}
 	}()
 
-	return manager
+	return TorrentManager
 }

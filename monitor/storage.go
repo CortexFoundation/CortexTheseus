@@ -12,7 +12,7 @@ import (
 const defaultTorrentName = "torrent"
 
 // InitStorage ...
-func InitStorage(storageDir string, manager *download.Manager) {
+func InitStorage(storageDir string, manager *download.TorrentManager) {
 	files, err := ioutil.ReadDir(storageDir)
 	if err != nil {
 		log.Fatal(err)
