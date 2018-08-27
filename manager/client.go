@@ -13,26 +13,24 @@ import (
 	"github.com/anacrolix/torrent/storage"
 )
 
-// TorrentSession ...
-type TorrentSession struct {
-	Torrent     *torrent.Torrent
+// Torrent ...
+type Torrent struct {
+	*torrent.Torrent
 	RawSize     uint64
 	CurrentSize uint64
-	InfoHash    metainfo.Hash
 }
 
 // TorrentManager ...
 type TorrentManager struct {
-	client          *torrent.Client
-	torrentSessions map[string]*torrent.Torrent
-	torrentProgress map[string]int
-	trackers        []string
-	DataDir         string
-	CloseAll        chan struct{}
-	NewTorrent      chan string
-	RemoveTorrent   chan string
-	UpdateTorrent   chan interface{}
-	lock            sync.Mutex
+	client        *torrent.Client
+	torrents      map[string]*Torrent
+	trackers      []string
+	DataDir       string
+	CloseAll      chan struct{}
+	NewTorrent    chan string
+	RemoveTorrent chan string
+	UpdateTorrent chan interface{}
+	lock          sync.Mutex
 }
 
 func isMagnetURI(uri string) bool {
@@ -56,7 +54,7 @@ func (tm *TorrentManager) AddTorrent(filename string) {
 	ih := spec.InfoHash.HexString()
 
 	tm.lock.Lock()
-	if _, ok := tm.torrentSessions[ih]; ok {
+	if _, ok := tm.torrents[ih]; ok {
 		return
 	}
 	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
@@ -73,7 +71,7 @@ func (tm *TorrentManager) AddTorrent(filename string) {
 	slices.MakeInto(&ss, mi.Nodes)
 	tm.client.AddDHTNodes(ss)
 	t, _, err := tm.client.AddTorrentSpec(spec)
-	tm.torrentSessions[ih] = t
+	tm.torrents[ih] = &Torrent{t, 0, 0}
 	tm.lock.Unlock()
 
 	<-t.GotInfo()
@@ -89,7 +87,7 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 	ih := spec.InfoHash.HexString()
 
 	tm.lock.Lock()
-	if _, ok := tm.torrentSessions[ih]; ok {
+	if _, ok := tm.torrents[ih]; ok {
 		return
 	}
 	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
@@ -102,7 +100,7 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 		spec.Trackers[0] = append(spec.Trackers[0], tracker)
 	}
 	t, _, err := tm.client.AddTorrentSpec(spec)
-	tm.torrentSessions[ih] = t
+	tm.torrents[ih] = &Torrent{t, 0, 0}
 	tm.lock.Unlock()
 
 	<-t.GotInfo()
@@ -116,9 +114,9 @@ func (tm *TorrentManager) DropMagnet(mURI string) {
 		log.Printf("error adding magnet: %s", err)
 	}
 	ih := spec.InfoHash.HexString()
-	if ts, ok := tm.torrentSessions[ih]; ok {
+	if ts, ok := tm.torrents[ih]; ok {
 		ts.Drop()
-		delete(tm.torrentSessions, ih)
+		delete(tm.torrents, ih)
 	} else {
 		return
 	}
@@ -140,14 +138,13 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 	}
 
 	TorrentManager := &TorrentManager{
-		client:          t,
-		torrentSessions: make(map[string]*torrent.Torrent),
-		torrentProgress: make(map[string]int),
-		DataDir:         DataDir,
-		CloseAll:        make(chan struct{}),
-		NewTorrent:      make(chan string),
-		RemoveTorrent:   make(chan string),
-		UpdateTorrent:   make(chan interface{}),
+		client:        t,
+		torrents:      make(map[string]*Torrent),
+		DataDir:       DataDir,
+		CloseAll:      make(chan struct{}),
+		NewTorrent:    make(chan string),
+		RemoveTorrent: make(chan string),
+		UpdateTorrent: make(chan interface{}),
 	}
 
 	go func() {
