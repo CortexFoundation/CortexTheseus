@@ -63,7 +63,7 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 		cuckoo.workCh <- block
 	}
 	var pend sync.WaitGroup
-	for i := 0; i < 1; i++ {
+	for i := 0; i < threads; i++ {
 		pend.Add(1)
 		go func(id int, nonce uint32) {
 			defer pend.Done()
@@ -126,7 +126,7 @@ search:
 			diff := target.Bytes()
 			// fmt.Println("diff", header.Difficulty)
 			// fmt.Println("target", diff)
-			cuckoo.cMutex.Lock()
+			// cuckoo.cMutex.Lock()
 			r := C.CuckooSolve(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
@@ -137,7 +137,7 @@ search:
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
 			// fmt.Println("target", diff)
 			if byte(r) == 0 {
-				cuckoo.cMutex.Unlock()
+				// cuckoo.cMutex.Unlock()
 				nonce++
 				continue
 			}
@@ -150,7 +150,7 @@ search:
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
 			// fmt.Println(result)
-			cuckoo.cMutex.Unlock()
+			// cuckoo.cMutex.Unlock()
 
 			if byte(r) != 0 {
 				// Correct solution found, create a new header with it
