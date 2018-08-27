@@ -5,12 +5,18 @@ import (
 	"net"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
 )
+
+// TorrentSession ...
+type TorrentSession struct {
+	session *torrent.Torrent
+}
 
 // Manager ...
 type Manager struct {
@@ -23,6 +29,7 @@ type Manager struct {
 	NewTorrent      chan string
 	RemoveTorrent   chan string
 	UpdateTorrent   chan interface{}
+	lock            sync.Mutex
 }
 
 func isMagnetURI(uri string) bool {
@@ -44,6 +51,8 @@ func (m *Manager) AddTorrent(filename string) {
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	ih := spec.InfoHash.HexString()
+
+	m.lock.Lock()
 	if _, ok := m.torrentSessions[ih]; ok {
 		return
 	}
@@ -62,6 +71,8 @@ func (m *Manager) AddTorrent(filename string) {
 	m.client.AddDHTNodes(ss)
 	t, _, err := m.client.AddTorrentSpec(spec)
 	m.torrentSessions[ih] = t
+	m.lock.Unlock()
+
 	<-t.GotInfo()
 	t.DownloadAll()
 }
@@ -73,6 +84,8 @@ func (m *Manager) AddMagnet(mURI string) {
 		log.Printf("error adding magnet: %s", err)
 	}
 	ih := spec.InfoHash.HexString()
+
+	m.lock.Lock()
 	if _, ok := m.torrentSessions[ih]; ok {
 		return
 	}
@@ -85,10 +98,11 @@ func (m *Manager) AddMagnet(mURI string) {
 	for _, tracker := range m.trackers {
 		spec.Trackers[0] = append(spec.Trackers[0], tracker)
 	}
-
 	t, _, err := m.client.AddTorrentSpec(spec)
-	<-t.GotInfo()
 	m.torrentSessions[ih] = t
+	m.lock.Unlock()
+
+	<-t.GotInfo()
 	t.DownloadAll()
 }
 
@@ -137,14 +151,18 @@ func NewManager(DataDir string) *Manager {
 		for {
 			select {
 			case torrent := <-manager.NewTorrent:
-				log.Println("torrent", torrent, "added")
+				log.Println("Add", torrent)
 				if isMagnetURI(torrent) {
 					go manager.AddMagnet(torrent)
 				} else {
 					go manager.AddTorrent(torrent)
 				}
 			case torrent := <-manager.RemoveTorrent:
-				go manager.DropMagnet(torrent)
+				log.Println("Drop", torrent)
+				if isMagnetURI(torrent) {
+					go manager.DropMagnet(torrent)
+				} else {
+				}
 			case <-manager.UpdateTorrent:
 				continue
 			}
