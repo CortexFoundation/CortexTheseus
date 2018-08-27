@@ -104,7 +104,8 @@ type Cuckoo struct {
 }
 
 func New(config Config) *Cuckoo {
-	C.CuckooInit()
+	// C.CuckooInit()
+	C.Init()
 
 	cuckoo := &Cuckoo{
 		config:       config,
@@ -129,7 +130,8 @@ func NewTester() *Cuckoo {
 	return cuckoo
 }
 func DeleteTester() {
-	C.CuckooRelease()
+	// C.CuckooRelease()
+	C.Finalize()
 }
 func NewFaker() *Cuckoo {
 	return &Cuckoo{
@@ -196,9 +198,9 @@ func (cuckoo *Cuckoo) Hashrate() float64 {
 	return cuckoo.hashrate.Rate1()
 }
 
-func Release(cuckoo *Cuckoo) {
-	C.CuckooRelease()
-}
+/* func Release(cuckoo *Cuckoo) { */
+// C.CuckooRelease()
+/* } */
 
 func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 	// In order to ensure backward compatibility, we exposes cuckoo RPC APIs
