@@ -24,7 +24,7 @@ const (
 
 // Torrent ...
 type Torrent struct {
-	torrent         *torrent.Torrent
+	*torrent.Torrent
 	bytesLimitation int64
 	bytesCompleted  int64
 	bytesMissing    int64
@@ -89,6 +89,8 @@ func (tm *TorrentManager) AddTorrent(filename string) {
 
 	<-t.GotInfo()
 	t.DownloadAll()
+	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
+	tm.torrents[ih].bytesMissing = t.BytesMissing()
 	log.Println(ih, "start to download.")
 }
 
@@ -122,6 +124,8 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 
 	<-t.GotInfo()
 	t.DownloadAll()
+	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
+	tm.torrents[ih].bytesMissing = t.BytesMissing()
 	log.Println(ih, "start to download.")
 }
 
@@ -133,7 +137,7 @@ func (tm *TorrentManager) DropMagnet(mURI string) bool {
 	}
 	ih := spec.InfoHash.HexString()
 	if t, ok := tm.torrents[ih]; ok {
-		t.torrent.Drop()
+		t.Drop()
 		delete(tm.torrents, ih)
 		return true
 	}
@@ -190,14 +194,12 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 	go func() {
 		for {
 			for ih, t := range TorrentManager.torrents {
-				if t.torrent == nil {
+				if t.bytesCompleted == 0 && t.bytesMissing == 0 {
 					continue
-				} else {
-					log.Println(ih, t, t.torrent)
-					t.bytesCompleted = t.torrent.BytesCompleted()
-					t.bytesMissing = t.torrent.BytesMissing()
-					log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 				}
+				t.bytesCompleted = t.BytesCompleted()
+				t.bytesMissing = t.BytesMissing()
+				log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 			}
 			time.Sleep(time.Microsecond * queryTimeInterval)
 		}
