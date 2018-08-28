@@ -24,7 +24,7 @@ const (
 
 // Torrent ...
 type Torrent struct {
-	*torrent.Torrent
+	torrent         *torrent.Torrent
 	bytesLimitation int64
 	bytesCompleted  int64
 	bytesMissing    int64
@@ -33,7 +33,7 @@ type Torrent struct {
 // TorrentManager ...
 type TorrentManager struct {
 	client        *torrent.Client
-	torrents      map[string]Torrent
+	torrents      map[string]*Torrent
 	trackers      []string
 	DataDir       string
 	CloseAll      chan struct{}
@@ -66,28 +66,29 @@ func (tm *TorrentManager) AddTorrent(filename string) {
 	log.Println(ih, "get torrent from local file.")
 
 	tm.lock.Lock()
-	defer tm.lock.Unlock()
 	if _, ok := tm.torrents[ih]; ok {
 		log.Println(ih, "torrent was already existed. Skip.")
+		tm.lock.Unlock()
 		return
 	}
-	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
+	tm.torrents[ih] = &Torrent{nil, defaultBytesLimitation, 0, 0}
+	tm.lock.Unlock()
 
+	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
 	}
 	for _, tracker := range tm.trackers {
 		spec.Trackers[0] = append(spec.Trackers[0], tracker)
 	}
-
 	var ss []string
 	slices.MakeInto(&ss, mi.Nodes)
 	tm.client.AddDHTNodes(ss)
 	t, _, err := tm.client.AddTorrentSpec(spec)
+	tm.torrents[ih].torrent = t
 
 	<-t.GotInfo()
 	t.DownloadAll()
-	tm.torrents[ih] = Torrent{t, defaultBytesLimitation, 0, 0}
 	log.Println(ih, "start to download.")
 }
 
@@ -101,13 +102,15 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 	log.Println(ih, "get torrent from magnet uri.")
 
 	tm.lock.Lock()
-	defer tm.lock.Unlock()
 	if _, ok := tm.torrents[ih]; ok {
 		log.Println(ih, "torrent was already existed. Skip.")
+		tm.lock.Unlock()
 		return
 	}
-	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
+	tm.torrents[ih] = &Torrent{nil, defaultBytesLimitation, 0, 0}
+	tm.lock.Unlock()
 
+	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
 	}
@@ -115,10 +118,10 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 		spec.Trackers[0] = append(spec.Trackers[0], tracker)
 	}
 	t, _, err := tm.client.AddTorrentSpec(spec)
+	tm.torrents[ih].torrent = t
 
 	<-t.GotInfo()
 	t.DownloadAll()
-	tm.torrents[ih] = Torrent{t, defaultBytesLimitation, 0, 0}
 	log.Println(ih, "start to download.")
 }
 
@@ -130,7 +133,7 @@ func (tm *TorrentManager) DropMagnet(mURI string) bool {
 	}
 	ih := spec.InfoHash.HexString()
 	if t, ok := tm.torrents[ih]; ok {
-		t.Drop()
+		t.torrent.Drop()
 		delete(tm.torrents, ih)
 		return true
 	}
@@ -154,7 +157,7 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 
 	TorrentManager := &TorrentManager{
 		client:        cl,
-		torrents:      make(map[string]Torrent),
+		torrents:      make(map[string]*Torrent),
 		DataDir:       DataDir,
 		CloseAll:      make(chan struct{}),
 		NewTorrent:    make(chan string, newTorrentChanBuffer),
@@ -187,8 +190,8 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 	go func() {
 		for {
 			for ih, t := range TorrentManager.torrents {
-				t.bytesCompleted = t.BytesCompleted()
-				t.bytesMissing = t.BytesMissing()
+				t.bytesCompleted = t.torrent.BytesCompleted()
+				t.bytesMissing = t.torrent.BytesMissing()
 				log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 			}
 			time.Sleep(time.Microsecond * queryTimeInterval)
