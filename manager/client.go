@@ -193,7 +193,7 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 				if t.torrent == nil {
 					continue
 				} else {
-					log.Println(t.torrent)
+					log.Println(ih, t, t.torrent)
 					t.bytesCompleted = t.torrent.BytesCompleted()
 					t.bytesMissing = t.torrent.BytesMissing()
 					log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
