@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"bytes"
+	"errors"
 	"log"
 	"strconv"
 	"time"
@@ -15,8 +16,17 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
+//------------------------------------------------------------------------------
+
+// Errors that are used throughout the Torrent API.
+var (
+	ErrBuildConn      = errors.New("build internal-rpc connection failed")
+	ErrGetLatestBlock = errors.New("get latest block failed")
+)
+
 const (
 	defaultTimerInterval = 2
+	minBlockNum          = 36000
 )
 
 // Block ... block struct
@@ -41,8 +51,11 @@ type FileMeta struct {
 }
 
 // ListenOn ... start ListenOn on the rpc port of a blockchain full node
-func ListenOn(clientURI string, manager *download.TorrentManager) {
-	client, _ := rpc.Dial(clientURI)
+func ListenOn(clientURI string, manager *download.TorrentManager) error {
+	client, err := rpc.Dial(clientURI)
+	if err != nil {
+		return ErrBuildConn
+	}
 	log.Println("Internal-RPC connection established.")
 
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
@@ -55,8 +68,7 @@ func ListenOn(clientURI string, manager *download.TorrentManager) {
 		select {
 		case <-timer.C:
 			if err := client.Call(&block, "eth_getBlockByNumber", "latest", true); err != nil {
-				log.Println("can't get latest block:", err)
-				return
+				return err
 			}
 
 			blockTxCount = len(block.Transactions)
@@ -130,22 +142,20 @@ func ListenOn(clientURI string, manager *download.TorrentManager) {
 					}
 				}
 
-				if blockNum == 36000 {
+				if blockNum <= minBlockNum {
 					break
 				} else {
 					blockNum--
 					blockNumHex := "0x" + strconv.FormatInt(blockNum, 16)
 					var _blockTxCount string
 					if err := client.Call(&_blockTxCount, "eth_getBlockTransactionCountByNumber", blockNumHex); err != nil {
-						log.Printf("can't get block %s: %s", blockNumHex, err)
-						return
+						return err
 					}
 					blockTxCountInt32, _ := strconv.ParseInt(_blockTxCount[2:], 16, 32)
 					blockTxCount = int(blockTxCountInt32)
 					if blockTxCount > 0 {
 						if err := client.Call(&block, "eth_getBlockByNumber", blockNumHex, true); err != nil {
-							log.Printf("can't get block %s: %s", blockNumHex, err)
-							return
+							return err
 						}
 						log.Printf("fetch block #%s with %d transactions", blockNumHex, blockTxCount)
 					}
