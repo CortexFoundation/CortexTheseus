@@ -37,6 +37,13 @@ type Block struct {
 	Transactions []map[string]string
 }
 
+// TransactionReceipt ...
+type TransactionReceipt struct {
+	ContractAddress   string
+	CumulativeGasUsed string
+	TransactionHash   string
+}
+
 // FileMeta ...
 type FileMeta struct {
 	// Transaction hash
@@ -47,7 +54,13 @@ type FileMeta struct {
 	AuthorAddress string
 	URI           string
 	RawSize       uint64
-	BlockNum      uint32
+	BlockNum      uint64
+}
+
+// FlowControlMeta ...
+type FlowControlMeta struct {
+	URI            string
+	BytesRequested int64
 }
 
 // ListenOn ... start ListenOn on the rpc port of a blockchain full node
@@ -63,6 +76,7 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 	var block Block
 	var blockTxCount int
 	maxBlock := 0
+	files := make(map[string]*FileMeta)
 
 	for {
 		select {
@@ -108,6 +122,10 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 
 						if op == "0x0001" || op == "0x0002" {
 							rawInput := tx["input"][6:]
+							var _AuthorAddress string
+							var _URI string
+							var _RawSize uint64
+							var _BlockNum int64
 
 							if op == "0x0001" {
 								// create model
@@ -118,6 +136,10 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 									rlp.Decode(bytes.NewReader(input), &meta)
 								}
 								manager.NewTorrent <- meta.URI
+								_AuthorAddress = meta.AuthorAddress.Hex()
+								_URI = meta.URI
+								_RawSize = meta.RawSize
+								_BlockNum = meta.BlockNum.Int64()
 							} else {
 								// create input
 								var meta types.InputMeta
@@ -127,17 +149,50 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 									rlp.Decode(bytes.NewReader(input), &meta)
 								}
 								manager.NewTorrent <- meta.URI
+								_AuthorAddress = meta.AuthorAddress.Hex()
+								_URI = meta.URI
+								_RawSize = meta.RawSize
+								_BlockNum = meta.BlockNum.Int64()
 							}
 
-						} else if !recoverMode && input == "" && value == "0x0" {
-							msg := struct {
-								mURI     string
-								progress int
-							}{
-								mURI:     "",
-								progress: 0,
+							var receipt TransactionReceipt
+							if err := client.Call(&receipt, "eth_getTransactionReceipt", tx["hash"]); err != nil {
+								return err
 							}
-							manager.UpdateTorrent <- msg
+
+							var _remainingSize string
+							if err := client.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddress, "latest"); err != nil {
+								return err
+							}
+							file := &FileMeta{
+								TxHash:        tx["hash"],
+								TxAddress:     "0x" + tx["hash"][26:],
+								AuthorAddress: _AuthorAddress,
+								URI:           _URI,
+								RawSize:       _RawSize,
+								BlockNum:      uint64(_BlockNum),
+							}
+							files[receipt.ContractAddress] = file
+							remainingSize, _ := strconv.ParseInt(_remainingSize[2:], 16, 64)
+
+							manager.UpdateTorrent <- FlowControlMeta{
+								URI:            file.URI,
+								BytesRequested: int64(file.RawSize) - remainingSize,
+							}
+						} else if !recoverMode && input == "" && value == "0x0" {
+							ContractAddress := tx["to"]
+							if file, ok := files[ContractAddress]; ok {
+								var _remainingSize string
+								if err := client.Call(&_remainingSize, "eth_getUpload", ContractAddress, "latest"); err != nil {
+									return err
+								}
+								remainingSize, _ := strconv.ParseInt(_remainingSize[2:], 16, 64)
+
+								manager.UpdateTorrent <- FlowControlMeta{
+									URI:            file.URI,
+									BytesRequested: int64(file.RawSize) - remainingSize,
+								}
+							}
 						}
 					}
 				}

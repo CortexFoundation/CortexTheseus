@@ -43,6 +43,12 @@ type TorrentManager struct {
 	lock          sync.Mutex
 }
 
+// FlowControlMeta ...
+type FlowControlMeta struct {
+	URI            string
+	BytesRequested int64
+}
+
 func isMagnetURI(uri string) bool {
 	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
 }
@@ -129,6 +135,20 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 	log.Println(ih, "start to download.")
 }
 
+// UpdateMagnet ...
+func (tm *TorrentManager) UpdateMagnet(mURI string, BytesRequested int64) {
+	spec, err := torrent.TorrentSpecFromMagnetURI(mURI)
+	if err != nil {
+		log.Printf("error getting magnet: %s", err)
+	}
+	ih := spec.InfoHash.HexString()
+	log.Println(ih, "get torrent from magnet uri.")
+
+	if torrent, ok := tm.torrents[ih]; ok {
+		torrent.bytesLimitation = BytesRequested * 3 / 2
+	}
+}
+
 // DropMagnet ...
 func (tm *TorrentManager) DropMagnet(mURI string) bool {
 	spec, err := torrent.TorrentSpecFromMagnetURI(mURI)
@@ -185,8 +205,11 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 					go TorrentManager.DropMagnet(torrent)
 				} else {
 				}
-			case <-TorrentManager.UpdateTorrent:
-				continue
+			case msg := <-TorrentManager.UpdateTorrent:
+				meta := msg.(FlowControlMeta)
+				if isMagnetURI(meta.URI) {
+					go TorrentManager.UpdateMagnet(meta.URI, meta.BytesRequested)
+				}
 			}
 		}
 	}()
@@ -197,6 +220,11 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 				if !(t.bytesCompleted == 0 && t.bytesMissing == 0) {
 					t.bytesCompleted = t.BytesCompleted()
 					t.bytesMissing = t.BytesMissing()
+					if t.bytesCompleted >= t.bytesLimitation {
+						t.Drop()
+					} else if t.bytesCompleted < t.bytesLimitation {
+						t.DownloadAll()
+					}
 					log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 				}
 			}
