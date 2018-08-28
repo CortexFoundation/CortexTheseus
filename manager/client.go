@@ -16,7 +16,7 @@ import (
 
 const (
 	defaultBytesLimitation  = 512 * 1024
-	queryTimeInterval       = 5000
+	queryTimeInterval       = 5
 	newTorrentChanBuffer    = 32
 	updateTorrentChanBuffer = 32
 	removeTorrentChanBuffer = 16
@@ -194,14 +194,13 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 	go func() {
 		for {
 			for ih, t := range TorrentManager.torrents {
-				if t.bytesCompleted == 0 && t.bytesMissing == 0 {
-					continue
+				if !(t.bytesCompleted == 0 && t.bytesMissing == 0) {
+					t.bytesCompleted = t.BytesCompleted()
+					t.bytesMissing = t.BytesMissing()
+					log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 				}
-				t.bytesCompleted = t.BytesCompleted()
-				t.bytesMissing = t.BytesMissing()
-				log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 			}
-			time.Sleep(time.Microsecond * queryTimeInterval)
+			time.Sleep(time.Second * queryTimeInterval)
 		}
 	}()
 
