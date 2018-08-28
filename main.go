@@ -15,7 +15,7 @@ func main() {
 func mainExitCode() int {
 	// storageDir := "/data/serving/InferenceServer/warehouse"
 	storageDir := "/home/lizhen/storage"
-	client := download.NewManager(storageDir)
+	client := download.NewTorrentManager(storageDir)
 	client.SetTrackers([]string{"http//:47.52.39.170:5008/announce"})
 	monitor.InitStorage(storageDir, client)
 	//	time.Sleep(time.Second * 3)
