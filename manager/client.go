@@ -192,10 +192,12 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 			for ih, t := range TorrentManager.torrents {
 				if t.torrent == nil {
 					continue
+				} else {
+					log.Println(t.torrent)
+					t.bytesCompleted = t.torrent.BytesCompleted()
+					t.bytesMissing = t.torrent.BytesMissing()
+					log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 				}
-				t.bytesCompleted = t.torrent.BytesCompleted()
-				t.bytesMissing = t.torrent.BytesMissing()
-				log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 			}
 			time.Sleep(time.Microsecond * queryTimeInterval)
 		}
