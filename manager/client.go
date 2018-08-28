@@ -71,8 +71,6 @@ func (tm *TorrentManager) AddTorrent(filename string) {
 		tm.lock.Unlock()
 		return
 	}
-	tm.torrents[ih] = &Torrent{nil, defaultBytesLimitation, 0, 0}
-	tm.lock.Unlock()
 
 	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
 	if len(spec.Trackers) == 0 {
@@ -85,7 +83,9 @@ func (tm *TorrentManager) AddTorrent(filename string) {
 	slices.MakeInto(&ss, mi.Nodes)
 	tm.client.AddDHTNodes(ss)
 	t, _, err := tm.client.AddTorrentSpec(spec)
-	tm.torrents[ih].torrent = t
+	tm.torrents[ih] = &Torrent{t, defaultBytesLimitation, 0, 0}
+	tm.lock.Unlock()
+	log.Println(ih, "wait for gotInfo")
 
 	<-t.GotInfo()
 	t.DownloadAll()
@@ -107,8 +107,6 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 		tm.lock.Unlock()
 		return
 	}
-	tm.torrents[ih] = &Torrent{nil, defaultBytesLimitation, 0, 0}
-	tm.lock.Unlock()
 
 	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
 	if len(spec.Trackers) == 0 {
@@ -118,7 +116,9 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 		spec.Trackers[0] = append(spec.Trackers[0], tracker)
 	}
 	t, _, err := tm.client.AddTorrentSpec(spec)
-	tm.torrents[ih].torrent = t
+	tm.torrents[ih] = &Torrent{t, defaultBytesLimitation, 0, 0}
+	tm.lock.Unlock()
+	log.Println(ih, "wait for gotInfo")
 
 	<-t.GotInfo()
 	t.DownloadAll()
