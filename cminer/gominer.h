@@ -7,6 +7,7 @@ extern "C"
     unsigned char CuckooVerify(char *header, uint header_len, uint nonce, uint *result, unsigned char* target, unsigned char* hash);
     void CuckooInit(uint nthread);
     void CuckooFinalize();
+
 #ifdef __cplusplus
 }
 #endif

@@ -44,6 +44,9 @@ void MinerBot::testCuckoo()
     cs.release();
 }
 
+void stop() {
+	// cs->stop();
+}
 
 
 bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uint *result_len, uchar* target,uchar* result_hash)
@@ -106,6 +109,7 @@ void CuckooInit(uint nthread) {
 
 void CuckooFinalize() {
     for (auto& bot : botPool) {
+		bot->stop();
         delete bot;
     }
 }
