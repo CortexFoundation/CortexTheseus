@@ -22,7 +22,7 @@ class MinerBot
     MinerBot(unsigned int nthread);
     virtual ~MinerBot();
     void loadParam();
-    void start();
+	void stop();
     // void testEquihash();
     void testCuckoo();
 

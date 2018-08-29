@@ -166,6 +166,8 @@ func (cuckoo *Cuckoo) Close() error {
 		cuckoo.exitCh <- errc
 		err = <-errc
 		close(cuckoo.exitCh)
+
+		C.CuckooFinalize()
 	})
 	return err
 }
