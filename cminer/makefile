@@ -34,10 +34,14 @@ INCLUDES = minerBot.h
 OBJ = main.o minerBot.o
 OBJ_LIB = minerBot.o
 
-all: main
+all: cuckoo main lib
 
 # ${OBJ}: ${INCLUDES}
 # ${OBJ_LIB}: ${INCLUDES}
+
+.PHONY: cuckoo
+cuckoo:
+	make -C cuckoo
 
 %.o: %.cpp
 	g++ -g -mavx2 -std=c++11 -c -fPIC $< -o $@
