@@ -23,6 +23,7 @@ class MinerBot
     virtual ~MinerBot();
     void loadParam();
 	void stop();
+    void await();
     // void testEquihash();
     void testCuckoo();
 

@@ -6,7 +6,7 @@
 
 MinerBot::MinerBot(unsigned int nthread)
 {
-	if (pthread_mutex_init(&mutex, NULL) != 0) {
+    if (pthread_mutex_init(&mutex, NULL) != 0) {
 		printf("ERROR init with mutex");
 		exit(0);
 	}
@@ -44,10 +44,13 @@ void MinerBot::testCuckoo()
     cs.release();
 }
 
-void stop() {
-	// cs->stop();
+void MinerBot::stop() {
+	cs.stop();
 }
 
+void MinerBot::await() {
+    cs.await();
+}
 
 bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uint *result_len, uchar* target,uchar* result_hash)
 {
@@ -108,8 +111,11 @@ void CuckooInit(uint nthread) {
 }
 
 void CuckooFinalize() {
+    for (auto& bot: botPool) {
+        bot->stop();
+    }
     for (auto& bot : botPool) {
-		bot->stop();
+		bot->await();
         delete bot;
     }
 }

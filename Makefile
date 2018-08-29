@@ -40,7 +40,7 @@ all: cminer
 	build/env.sh go run build/ci.go install
 
 cminer:
-	# make -C ${LIB_MINER_DIR}
+	make -C ${LIB_MINER_DIR}
 
 android:
 	build/env.sh go run build/ci.go aar --local

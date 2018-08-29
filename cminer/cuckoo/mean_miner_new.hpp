@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <vector>
 #include <bitset>
+#include <atomic>
 #ifdef __APPLE__
 #include "osx_barrier.h"
 #endif
@@ -157,9 +158,9 @@ const static u32 ZBUCKETSLOTS = NZ + NZ * BIGEPS;
 #ifdef SAVEEDGES
 const static u32 ZBUCKETSIZE = NTRIMMEDZ * (BIGSIZE + sizeof(u32));  // assumes EDGEBITS <= 32
 #else
-const static u32 ZBUCKETSIZE = ZBUCKETSLOTS * BIGSIZE0; 
+const static u32 ZBUCKETSIZE = ZBUCKETSLOTS * BIGSIZE0;
 #endif
-const static u32 TBUCKETSIZE = ZBUCKETSLOTS * BIGSIZE; 
+const static u32 TBUCKETSIZE = ZBUCKETSLOTS * BIGSIZE;
 
 /*
 // make 128 byte waves
@@ -367,7 +368,7 @@ public:
 #ifdef NEEDSYNC
     u32 last[NX];;
 #endif
-  
+
     rdtsc0 = __rdtsc();
     u8 const *base = (u8 *)buckets;
     indexer<ZBUCKETSIZE> dst;
@@ -401,9 +402,9 @@ public:
     __m256i vhi1 = _mm256_set_epi64x((e1+7)<<YZBITS, (e1+6)<<YZBITS, (e1+5)<<YZBITS, (e1+4)<<YZBITS);
     static const __m256i vhiinc = {8<<YZBITS, 8<<YZBITS, 8<<YZBITS, 8<<YZBITS};
 #endif
-    
-    
-    
+
+
+
     offset_t sumsize = 0;
 
     for (u32 my = starty; my < endy; my++, endedge += NYZ) { //for each y
@@ -579,7 +580,7 @@ public:
     static const u32 NONDEGMASK = (1 << NONDEGBITS) - 1;
     indexer<ZBUCKETSIZE> dst;
     indexer<TBUCKETSIZE> small;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u8 const *base = (u8 *)buckets;
@@ -707,7 +708,7 @@ public:
           SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N;
           v0 = XOR(XOR(v0,v1),XOR(v2,v3));
           v4 = XOR(XOR(v4,v5),XOR(v6,v7));
-    
+
           v1 = _mm256_srli_epi64(v0, YZBITS) & vxmask;
           v5 = _mm256_srli_epi64(v4, YZBITS) & vxmask;
           v0 = vhi0 | (v0 & vyzmask);
@@ -764,7 +765,7 @@ public:
     u64 rdtsc0, rdtsc1;
     indexer<ZBUCKETSIZE> dst;
     indexer<TBUCKETSIZE> small;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u8 const *base = (u8 *)buckets;
@@ -853,7 +854,7 @@ public:
     indexer<ZBUCKETSIZE> dst;
     indexer<TBUCKETSIZE> small;
     u32 maxnnid = 0;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u8 const *base = (u8 *)buckets;
@@ -965,7 +966,7 @@ public:
   void trimedges1(const u32 id, const u32 round) {
     u64 rdtsc0, rdtsc1;
     indexer<ZBUCKETSIZE> dst;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u8 *degs = tdegs[id];
@@ -1017,7 +1018,7 @@ public:
     u64 rdtsc0, rdtsc1;
     indexer<ZBUCKETSIZE> dst;
     u32 maxnnid = 0;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u16 *degs = (u16 *)tdegs[id];
@@ -1089,6 +1090,7 @@ public:
     }
     void *etworker(void *vp);
     thread_ctx *threads = new thread_ctx[nthreads];
+    printf("Trim create threads: %d\n", nthreads);
     for (u32 t = 0; t < nthreads; t++) {
       threads[t].id = t;
       threads[t].et = this;
@@ -1143,7 +1145,7 @@ public:
       }
       else
         trimedges1<true>(id, round);
-      
+
       barrier();
       if (round < COMPRESSROUND) {
         if (round+1 < EXPANDROUND)
@@ -1215,10 +1217,12 @@ public:
   proof cyclevs;
   std::bitset<NXY> uxymap;
   std::vector<u32> sols; // concatanation of all proof's indices
+  std::atomic<bool> _stop;
 
   solver_ctx(const u32 n_threads, const u32 n_trims, bool allrounds, bool show_cycle) {
     trimmer = new edgetrimmer(n_threads, n_trims, allrounds);
     showcycle = show_cycle;
+    _stop = false;
     cuckoo = 0;
   }
   void setheadernonce(char* const headernonce, const u32 len, const u32 nonce) {
@@ -1315,13 +1319,14 @@ public:
     }
     return nu-1;
   }
-  
+
   void findcycles() {
     u32 us[MAXPATHLEN], vs[MAXPATHLEN];
     u64 rdtsc0, rdtsc1;
-  
+
     rdtsc0 = __rdtsc();
     for (u32 vx = 0; vx < NX; vx++) {
+      if (_stop) break;
       for (u32 ux = 0 ; ux < NX; ux++) {
         zbucket<ZBUCKETSIZE> &zb = trimmer->buckets[ux][vx];
         u32 *readbig = zb.words, *endreadbig = readbig + zb.size/sizeof(u32);
@@ -1371,7 +1376,7 @@ public:
 
   void *matchUnodes(match_ctx *mc) {
     u64 rdtsc0, rdtsc1;
-  
+
     rdtsc0 = __rdtsc();
     const u32 starty = NY *  mc->id    / trimmer->nthreads;
     const u32   endy = NY * (mc->id+1) / trimmer->nthreads;
@@ -1457,14 +1462,14 @@ public:
         SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N;
         v0 = XOR(XOR(v0,v1),XOR(v2,v3));
         v4 = XOR(XOR(v4,v5),XOR(v6,v7));
-  
+
         vpacket0 = _mm256_add_epi64(vpacket0, vpacketinc);
         vpacket1 = _mm256_add_epi64(vpacket1, vpacketinc);
         v0 = v0 & vnodemask;
         v4 = v4 & vnodemask;
         v1 = _mm256_srli_epi64(v0, ZBITS);
         v5 = _mm256_srli_epi64(v4, ZBITS);
-  
+
         u32 uxy;
   #define MATCH(i,v,x,w) \
   uxy = _mm256_extract_epi32(v,x);\
