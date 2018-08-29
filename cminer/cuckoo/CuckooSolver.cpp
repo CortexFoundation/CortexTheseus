@@ -1,15 +1,22 @@
 #include "CuckooSolver.h"
 #include "mean_miner_new.hpp"
 
+#include <thread>
+
 // arbitrary length of header hashed into siphash key
 #define HEADERLEN 80
+
+CuckooSolver::CuckooSolver() {
+    _run = false;
+}
 
 void CuckooSolver::loadParam(){
 }
 
 void CuckooSolver::initSolver(){
+    _run = true;
     printf("Initializing Cuckoo Cycle Solver...\n");
-    solver_ctx ctx(nthreads, ntrims, allrounds, showcycle);
+    // solver_ctx ctx(nthreads, ntrims, allrounds, showcycle);
 
     solver = new solver_ctx(nthreads, ntrims, allrounds, showcycle);
     u64 sbytes = solver->sharedbytes();
@@ -17,14 +24,26 @@ void CuckooSolver::initSolver(){
     int sunit,tunit;
     for (sunit=0; sbytes >= 10240; sbytes>>=10,sunit++) ;
     for (tunit=0; tbytes >= 10240; tbytes>>=10,tunit++) ;
-    printf("Using %d%cB bucket memory at %lx,\n", sbytes, " KMGT"[sunit], (u64)ctx.trimmer->buckets);
-    printf("%dx%d%cB thread memory at %lx,\n", nthreads, tbytes, " KMGT"[tunit], (u64)ctx.trimmer->tbuckets);
-    printf("%d-way siphash, and %d buckets.\n", NSIPHASH, NX);
+    // printf("Using %d%cB bucket memory at %lx,\n", sbytes, " KMGT"[sunit], (u64)ctx.trimmer->buckets);
+    // printf("%dx%d%cB thread memory at %lx,\n", nthreads, tbytes, " KMGT"[tunit], (u64)ctx.trimmer->tbuckets);
+    // printf("%d-way siphash, and %d buckets.\n", NSIPHASH, NX);
 
     sols.clear();
     keyed = false;
     bHashVerify = false;
     numSols = 0;
+    printf("Initialized completed!\n");
+    _run = false;
+}
+
+void CuckooSolver::stop() {
+    solver->_stop = true;
+}
+
+void CuckooSolver::await() {
+    printf("ThreadID : %lu, Solver: %p, waiting\n", std::this_thread::get_id(), (void*)solver);
+    while (_run);
+    printf("ThreadID : %lu, Solver: %p, stoped\n", std::this_thread::get_id(), (void*)solver);
 }
 
 void CuckooSolver::setHeaderNonce(char* header, u32 len, u32 nonce){
@@ -42,6 +61,9 @@ void CuckooSolver::setHeaderNonce(char* header, u32 len, u32 nonce){
 }
 
 void CuckooSolver::solve(){
+    if (solver->_stop) return ;
+
+    _run = true;
     u32 nsols = solver->solve();
     u32 sumnsols = 0;
     //gettimeofday(&time1, 0);
@@ -51,11 +73,13 @@ void CuckooSolver::solve(){
     // 2 verify solutions
     for (unsigned s = 0; s < nsols; s++) {
 
-        printf("Solution");
+        // printf("Solution");
         u32* prf = & (solver->sols[s * PROOFSIZE]);
+        /*
         for (u32 i = 0; i < PROOFSIZE; i++)
             printf(" %jx", (uintmax_t)prf[i]);
         printf("\n");
+        */
 
         if(verifySol(prf)){
             printf("valid solution found.\n");
@@ -70,7 +94,9 @@ void CuckooSolver::solve(){
     }
     //sumnsols += nsols;
     numSols = sumnsols;
-    printf("%d total solutions %d\n", sumnsols, sols.size());
+    // printf("%d total solutions %d\n", sumnsols, sols.size());
+
+    _run = false;
 }
 
 void CuckooSolver::release(){

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <vector>
+#include <atomic>
 
 
 using namespace std;
@@ -35,6 +36,7 @@ private:
     bool allrounds = false;
     bool showcycle = true;
     solver_ctx* solver;
+    std::atomic<bool> _run;
 
 
     bool keyed = false;     // if siphash key is set
@@ -45,8 +47,13 @@ private:
     unsigned char target[32];
 
 public:
+    CuckooSolver();
+
     void loadParam();
     void initSolver();
+
+    void stop();
+    void await();
     void release();
 
     // set input, and solve

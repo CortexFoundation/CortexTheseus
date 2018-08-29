@@ -110,6 +110,9 @@ func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan s
 search:
 	for {
 		select {
+		case errc := <-cuckoo.exitCh:
+			errc <- nil
+			break search
 		case <-abort:
 			//Mining terminated, update stats and abort
 			logger.Trace("Cuckoo solution search aborted", "attempts", nonce-seed)
@@ -121,11 +124,9 @@ search:
 				cuckoo.hashrate.Mark(int64(attempts))
 				attempts = 0
 			}
-			// fmt.Println("hash", hash)
+
 			var result_hash [32]byte
 			diff := target.Bytes()
-			// fmt.Println("diff", header.Difficulty)
-			// fmt.Println("target", diff)
 			// cuckoo.cMutex.Lock()
 			r := C.CuckooSolve(
 				(*C.char)(unsafe.Pointer(&hash[0])),
@@ -135,13 +136,11 @@ search:
 				(*C.uint)(unsafe.Pointer(&result_len)),
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-			// fmt.Println("target", diff)
 			if byte(r) == 0 {
 				// cuckoo.cMutex.Unlock()
 				nonce++
 				continue
 			}
-			// fmt.Println("result", result)
 			r = C.CuckooVerify(
 				(*C.char)(unsafe.Pointer(&hash[0])),
 				C.uint(len(hash)),
@@ -149,7 +148,6 @@ search:
 				(*C.uint)(unsafe.Pointer(&result[0])),
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-			// fmt.Println(result)
 			// cuckoo.cMutex.Unlock()
 
 			if byte(r) != 0 {
