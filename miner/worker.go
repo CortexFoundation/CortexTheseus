@@ -17,13 +17,7 @@
 package miner
 
 import (
-<<<<<<< HEAD
-	//"bytes"
-	"fmt"
-=======
-	"bytes"
 	"errors"
->>>>>>> a4bc2c31e13d7aa7b8715bd707d2460755016414
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -844,17 +838,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool) {
 	}
 	// Create the current work task and check any fork transitions needed
 	env := w.current
-<<<<<<< HEAD
-
-	// compute uncles for the new block.
-	var (
-		uncles    []*types.Header
-		badUncles []common.Hash
-	)
-=======
-	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
-		misc.ApplyDAOHardFork(env.state)
-	}
 	// Accumulate the uncles for the current block
 	for hash, uncle := range w.possibleUncles {
 		if uncle.NumberU64()+staleThreshold <= header.Number.Uint64() {
@@ -862,7 +845,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool) {
 		}
 	}
 	uncles := make([]*types.Header, 0, 2)
->>>>>>> a4bc2c31e13d7aa7b8715bd707d2460755016414
 	for hash, uncle := range w.possibleUncles {
 		if len(uncles) == 2 {
 			break
