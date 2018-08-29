@@ -105,7 +105,7 @@ type Cuckoo struct {
 
 func New(config Config) *Cuckoo {
 	// C.CuckooInit()
-	C.Init()
+	C.CuckooInit(2)
 
 	cuckoo := &Cuckoo{
 		config:       config,
@@ -131,7 +131,7 @@ func NewTester() *Cuckoo {
 }
 func DeleteTester() {
 	// C.CuckooRelease()
-	C.Finalize()
+	C.CuckooFinalize()
 }
 func NewFaker() *Cuckoo {
 	return &Cuckoo{

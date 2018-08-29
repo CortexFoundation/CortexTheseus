@@ -8,6 +8,8 @@
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
+.PHONY: cminer
+
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 
@@ -19,7 +21,7 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-geth:
+geth: cminer
 	build/env.sh go run build/ci.go install ./cmd/geth
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
@@ -34,8 +36,11 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all:
+all: cminer
 	build/env.sh go run build/ci.go install
+
+cminer:
+	# make -C ${LIB_MINER_DIR}
 
 android:
 	build/env.sh go run build/ci.go aar --local
