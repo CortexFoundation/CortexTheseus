@@ -27,16 +27,21 @@ var (
 	errInvalidSealResult = errors.New("invalid or stale proof-of-work solution")
 )
 
-func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop <-chan struct{}) (*types.Block, error) {
+func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	// If we're running a fake PoW, simply return a 0 nonce immediately
 	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
 		header := block.Header()
 		header.Nonce, header.MixDigest = types.BlockNonce{}, common.Hash{}
-		return block.WithSeal(header), nil
+		select {
+		case results <- block.WithSeal(header):
+		default:
+			log.Warn("Sealing result is not read by miner", "mode", "fake", "sealhash", cuckoo.SealHash(block.Header()))
+		}
+		return nil
 	}
 	// If we're running a shared PoW, delegate sealing to it
 	if cuckoo.shared != nil {
-		return cuckoo.shared.Seal(chain, block, stop)
+		return cuckoo.shared.Seal(chain, block, results, stop)
 	}
 	// Create a runner and the multiple search threads it directs
 	abort := make(chan struct{})
@@ -46,7 +51,7 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 		seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 		if err != nil {
 			cuckoo.lock.Unlock()
-			return nil, err
+			return err
 		}
 		cuckoo.rand = rand.New(rand.NewSource(seed.Int64()))
 	}
@@ -71,29 +76,40 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, stop
 		}(i, uint32(cuckoo.rand.Int31()))
 	}
 	// Wait until sealing is terminated or a nonce is found
-	var result *types.Block
-	select {
-	case <-stop:
-		// Outside abort, stop all miner threads
-		close(abort)
-	case result = <-cuckoo.resultCh:
-		// One of the threads found a block, abort all others
-		close(abort)
-	case <-cuckoo.update:
-		// Thread count was changed on user request, restart
-		close(abort)
+	go func() {
+		var result *types.Block
+		select {
+		case <-stop:
+			// Outside abort, stop all miner threads
+			close(abort)
+		case result = <-cuckoo.resultCh:
+			// One of the threads found a block, abort all others
+			select {
+			case results <- result:
+			default:
+				log.Warn("Sealing result is not read by miner", "mode", "local", "sealhash", cuckoo.SealHash(block.Header()))
+			}
+			close(abort)
+		case <-cuckoo.update:
+			// Thread count was changed on user request, restart
+			close(abort)
+			// pend.Wait()
+			if err := cuckoo.Seal(chain, block, results, stop); err != nil {
+				log.Error("Failed to restart sealing after update", "err", err)
+			}
+			// return cuckoo.Seal(chain, block, stop)
+		}
+		// Wait for all miners to terminate and return the block
 		pend.Wait()
-		return cuckoo.Seal(chain, block, stop)
-	}
-	// Wait for all miners to terminate and return the block
-	pend.Wait()
-	return result, nil
+	}()
+	return nil
+	// return result, nil
 }
 
 func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan struct{}, found chan *types.Block) {
 	var (
 		header = block.Header()
-		hash   = header.HashNoNonce().Bytes()
+		hash   = cuckoo.SealHash(header).Bytes()
 		target = new(big.Int).Div(maxUint256, header.Difficulty)
 
 		result     types.BlockSolution
@@ -136,18 +152,18 @@ search:
 				(*C.uint)(unsafe.Pointer(&result_len)),
 				(*C.uchar)(unsafe.Pointer(&diff[0])),
 				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-			if byte(r) == 0 {
+			/* if byte(r) == 0 {
 				// cuckoo.cMutex.Unlock()
 				nonce++
 				continue
-			}
-			r = C.CuckooVerify(
-				(*C.char)(unsafe.Pointer(&hash[0])),
-				C.uint(len(hash)),
-				C.uint(uint32(nonce)),
-				(*C.uint)(unsafe.Pointer(&result[0])),
-				(*C.uchar)(unsafe.Pointer(&diff[0])),
-				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
+			} */
+			/* r = C.CuckooVerify(
+			(*C.char)(unsafe.Pointer(&hash[0])),
+			C.uint(len(hash)),
+			C.uint(uint32(nonce)),
+			(*C.uint)(unsafe.Pointer(&result[0])),
+			(*C.uchar)(unsafe.Pointer(&diff[0])),
+			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
 			// cuckoo.cMutex.Unlock()
 
 			if byte(r) != 0 {
@@ -189,7 +205,7 @@ func (cuckoo *Cuckoo) remote() {
 		if currentWork == nil {
 			return res, errNoMiningWork
 		}
-		res[0] = currentWork.HashNoNonce().Hex()
+		res[0] = cuckoo.SealHash(currentWork.Header()).Hex()
 		res[1] = common.BytesToHash(SeedHash(currentWork.NumberU64())).Hex()
 
 		// Calculate the "target" to be returned to the external sealer.
@@ -200,7 +216,7 @@ func (cuckoo *Cuckoo) remote() {
 		res[2] = common.BytesToHash(n.Bytes()).Hex()
 
 		// Trace the seal work fetched by remote sealer.
-		works[currentWork.HashNoNonce()] = currentWork
+		works[cuckoo.SealHash(currentWork.Header())] = currentWork
 		return res, nil
 	}
 
