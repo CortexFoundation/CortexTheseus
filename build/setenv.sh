@@ -13,7 +13,7 @@ if [[ "$OS" == "Linux" ]]; then
 elif [[ "$OS" == "Darwin" ]]; then
 	export DYLD_LIBRARY_PATH=$LIB_MINER_DIR/
     export CGO_CFLAGS=-I$LIB_MINER_DIR/
-    export CGO_LDFLAGS=-L$LIB_MINER_DIR/
+    export CGO_LDFLAGS=-L$LIB_MINER_DIR/,-L$LIB_MINER_DIR/cuckoo
 	echo $DYLD_LIBRARY_PATH
 else
 	echo "Sorry, cannot detected your OS" $OS
