@@ -23,16 +23,17 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-
 	//"net/http"
 	//"strings"
 	"sync/atomic"
 )
 
 var (
-	MIN_UPLOAD_BYTES uint64 = 0
-	MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
+	MIN_UPLOAD_BYTES     uint64 = 0
+	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
+	DEFAULT_UPLOAD_BYTES uint64 = 512 * 1024
 )
 
 // Config are the configuration options for the Interpreter
@@ -191,6 +192,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 
 	if IsModelMeta(contract.Code) {
 		if input != nil {
+			log.Debug("Readonly for model meta")
 			return nil, nil
 		}
 
@@ -199,7 +201,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 		} else {
 			if modelMeta.BlockNum.Sign() == 0 {
 				if modelMeta.RawSize > MIN_UPLOAD_BYTES && modelMeta.RawSize <= MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
-					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize))
+					if modelMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
+						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+					} else {
+						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+					}
 				} else {
 					return nil, ErrInvalidMetaRawSize
 				}
@@ -211,6 +217,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				} else {
 					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
+				log.Info("Model meta created", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
+			} else {
+				log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
 
 			return contract.Code, nil
@@ -219,6 +228,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 
 	if IsInputMeta(contract.Code) {
 		if input != nil {
+			log.Debug("Readonly for input meta")
 			return nil, nil
 		}
 
@@ -227,7 +237,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
 				if inputMeta.RawSize > MIN_UPLOAD_BYTES && inputMeta.RawSize <= MAX_UPLOAD_BYTES {
-					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize))
+					if inputMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
+						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+					} else {
+						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+					}
 				} else {
 					return nil, ErrInvalidMetaRawSize
 				}
@@ -239,6 +253,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				} else {
 					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
+				log.Info("Input meta created", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+			} else {
+				log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			}
 
 			return contract.Code, nil
