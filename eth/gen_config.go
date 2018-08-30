@@ -31,13 +31,18 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		TrieCache               int
 		TrieTimeout             time.Duration
 		Etherbase               common.Address `toml:",omitempty"`
-		MinerThreads            int            `toml:",omitempty"`
-		ExtraData               hexutil.Bytes  `toml:",omitempty"`
-		GasPrice                *big.Int
+		MinerNotify             []string       `toml:",omitempty"`
+		MinerExtraData          hexutil.Bytes  `toml:",omitempty"`
+		MinerGasFloor           uint64
+		MinerGasCeil            uint64
+		MinerGasPrice           *big.Int
+		MinerRecommit           time.Duration
+		MinerNoverify           bool
 		Ethash                  cuckoo.Config
 		TxPool                  core.TxPoolConfig
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
+		InferURI                string
 		DocRoot                 string `toml:"-"`
 	}
 	var enc Config
@@ -53,13 +58,18 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
 	enc.Etherbase = c.Etherbase
-	enc.MinerThreads = c.MinerThreads
-	enc.ExtraData = c.ExtraData
-	enc.GasPrice = c.GasPrice
+	enc.MinerNotify = c.MinerNotify
+	enc.MinerExtraData = c.MinerExtraData
+	enc.MinerGasFloor = c.MinerGasFloor
+	enc.MinerGasCeil = c.MinerGasCeil
+	enc.MinerGasPrice = c.MinerGasPrice
+	enc.MinerRecommit = c.MinerRecommit
+	enc.MinerNoverify = c.MinerNoverify
 	enc.Ethash = c.Ethash
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
+	enc.InferURI = c.InferURI
 	enc.DocRoot = c.DocRoot
 	return &enc, nil
 }
@@ -79,13 +89,18 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		TrieCache               *int
 		TrieTimeout             *time.Duration
 		Etherbase               *common.Address `toml:",omitempty"`
-		MinerThreads            *int            `toml:",omitempty"`
-		ExtraData               *hexutil.Bytes  `toml:",omitempty"`
-		GasPrice                *big.Int
+		MinerNotify             []string        `toml:",omitempty"`
+		MinerExtraData          *hexutil.Bytes  `toml:",omitempty"`
+		MinerGasFloor           *uint64
+		MinerGasCeil            *uint64
+		MinerGasPrice           *big.Int
+		MinerRecommit           *time.Duration
+		MinerNoverify           *bool
 		Ethash                  *cuckoo.Config
 		TxPool                  *core.TxPoolConfig
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
+		InferURI                *string
 		DocRoot                 *string `toml:"-"`
 	}
 	var dec Config
@@ -128,14 +143,26 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.Etherbase != nil {
 		c.Etherbase = *dec.Etherbase
 	}
-	if dec.MinerThreads != nil {
-		c.MinerThreads = *dec.MinerThreads
+	if dec.MinerNotify != nil {
+		c.MinerNotify = dec.MinerNotify
 	}
-	if dec.ExtraData != nil {
-		c.ExtraData = *dec.ExtraData
+	if dec.MinerExtraData != nil {
+		c.MinerExtraData = *dec.MinerExtraData
 	}
-	if dec.GasPrice != nil {
-		c.GasPrice = dec.GasPrice
+	if dec.MinerGasFloor != nil {
+		c.MinerGasFloor = *dec.MinerGasFloor
+	}
+	if dec.MinerGasCeil != nil {
+		c.MinerGasCeil = *dec.MinerGasCeil
+	}
+	if dec.MinerGasPrice != nil {
+		c.MinerGasPrice = dec.MinerGasPrice
+	}
+	if dec.MinerRecommit != nil {
+		c.MinerRecommit = *dec.MinerRecommit
+	}
+	if dec.MinerNoverify != nil {
+		c.MinerNoverify = *dec.MinerNoverify
 	}
 	if dec.Ethash != nil {
 		c.Ethash = *dec.Ethash
@@ -148,6 +175,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.EnablePreimageRecording != nil {
 		c.EnablePreimageRecording = *dec.EnablePreimageRecording
+	}
+	if dec.InferURI != nil {
+		c.InferURI = *dec.InferURI
 	}
 	if dec.DocRoot != nil {
 		c.DocRoot = *dec.DocRoot

@@ -37,15 +37,16 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto/sha3"
 	"github.com/ethereum/go-ethereum/params"
-	//"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 // Cuckoo proof-of-work protocol constants.
 var (
 	FrontierBlockReward    *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward   *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	maxUncles                       = 1                 // Maximum number of uncles allowed in a single block
+	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime          = 15 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
 )
 
@@ -488,10 +489,9 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		result = header.Solution
 		nonce  = header.Nonce.Uint64()
 
-		hash        = header.HashNoNonce().Bytes()
+		hash        = cuckoo.SealHash(header).Bytes()
 		result_hash = header.SolutionHash
 	)
-
 	// r := C.CuckooVerify(
 	// 	(*C.char)(unsafe.Pointer(&hash[0])),
 	// 	C.uint(len(hash)),
@@ -536,6 +536,47 @@ func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header
 
 	// Header seems complete, assemble into a block and return
 	return types.NewBlock(header, txs, uncles, receipts), nil
+}
+
+// SealHash returns the hash of a block prior to it being sealed.
+func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
+	hasher := sha3.NewKeccak256()
+
+	rlp.Encode(hasher, []interface{}{
+		header.ParentHash,
+		header.UncleHash,
+		header.Coinbase,
+		header.Root,
+		header.TxHash,
+		header.ReceiptHash,
+		header.Bloom,
+		header.Difficulty,
+		header.Number,
+		header.GasLimit,
+		header.GasUsed,
+		header.Time,
+		header.Extra,
+	})
+
+	// Origin HashNoNonce Func
+	/* -       return rlpHash([]interface{}{
+	   -               h.ParentHash,
+	   -               h.UncleHash,
+	   -               h.Coinbase,
+	   -               h.Root,
+	   -               h.TxHash,
+	   -               h.ReceiptHash,
+	   -               h.Bloom,
+	   -               h.Difficulty,
+	   -               h.Number,
+	   -               h.GasLimit,
+	   -               h.GasUsed,
+	   -               h.Time,
+	   -               h.Extra,
+	   -       }) */
+
+	hasher.Sum(hash[:0])
+	return hash
 }
 
 // Some weird constants to avoid constant memory allocs for them.

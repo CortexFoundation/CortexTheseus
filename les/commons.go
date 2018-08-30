@@ -33,6 +33,7 @@ import (
 // lesCommons contains fields needed by both server and client.
 type lesCommons struct {
 	config                       *eth.Config
+	iConfig                      *light.IndexerConfig
 	chainDb                      ethdb.Database
 	protocolManager              *ProtocolManager
 	chtIndexer, bloomTrieIndexer *core.ChainIndexer
@@ -76,18 +77,31 @@ func (c *lesCommons) makeProtocols(versions []uint) []p2p.Protocol {
 // nodeInfo retrieves some protocol metadata about the running host node.
 func (c *lesCommons) nodeInfo() interface{} {
 	var cht light.TrustedCheckpoint
-	sections, _, sectionHead := c.chtIndexer.Sections()
-	sections2, _, sectionHead2 := c.bloomTrieIndexer.Sections()
+	sections, _, _ := c.chtIndexer.Sections()
+	sections2, _, _ := c.bloomTrieIndexer.Sections()
+
+	if !c.protocolManager.lightSync {
+		// convert to client section size if running in server mode
+		sections /= c.iConfig.PairChtSize / c.iConfig.ChtSize
+	}
+
 	if sections2 < sections {
 		sections = sections2
-		sectionHead = sectionHead2
 	}
 	if sections > 0 {
 		sectionIndex := sections - 1
+		sectionHead := c.bloomTrieIndexer.SectionHead(sectionIndex)
+		var chtRoot common.Hash
+		if c.protocolManager.lightSync {
+			chtRoot = light.GetChtRoot(c.chainDb, sectionIndex, sectionHead)
+		} else {
+			idxV2 := (sectionIndex+1)*c.iConfig.PairChtSize/c.iConfig.ChtSize - 1
+			chtRoot = light.GetChtRoot(c.chainDb, idxV2, sectionHead)
+		}
 		cht = light.TrustedCheckpoint{
 			SectionIdx:  sectionIndex,
 			SectionHead: sectionHead,
-			CHTRoot:     light.GetChtRoot(c.chainDb, sectionIndex, sectionHead),
+			CHTRoot:     chtRoot,
 			BloomRoot:   light.GetBloomTrieRoot(c.chainDb, sectionIndex, sectionHead),
 		}
 	}
