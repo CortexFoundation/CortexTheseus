@@ -480,11 +480,14 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(evm.vmConfig.InferURI)
-	if err != nil {
+	if err != nil || resp.StatusCode() != 200 {
 		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, evm.vmConfig.InferURI, err))
 	}
 	log.Debug(fmt.Sprintf("%v", resp.String()))
-	js, _ := simplejson.NewJson([]byte(resp.String()))
+	js, js_err := simplejson.NewJson([]byte(resp.String()))
+	if js_err != nil {
+		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", js_err))
+	}
 	int_output_tmp, out_err := js.Get("info").String()
 	if out_err != nil {
 		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", out_err))
