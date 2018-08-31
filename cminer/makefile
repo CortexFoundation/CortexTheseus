@@ -4,7 +4,7 @@ UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
 OPENCL_HEADERS = "/opt/AMDAPPSDK-3.0/include"
 LIBOPENCL = "/opt/amdgpu-pro/lib/x86_64-linux-gnu"
-LDLIBS = -lOpenCL
+# LDLIBS = -lOpenCL
 CC = gcc
 endif
 
