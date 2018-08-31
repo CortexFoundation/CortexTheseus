@@ -106,6 +106,26 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// return result, nil
 }
 
+func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution types.BlockSolution, target big.Int) bool {
+	var (
+		result_hash [32]byte
+		//result_len uint32
+	)
+	diff := target.Bytes()
+	r := C.CuckooVerify(
+		(*C.char)(unsafe.Pointer(&hash[0])),
+		C.uint(len(hash)),
+		C.uint(uint32(nonce)),
+		(*C.uint)(unsafe.Pointer(&solution[0])),
+		//                        (*C.uint)(unsafe.Pointer(&result_len)),
+		(*C.uchar)(unsafe.Pointer(&diff[0])),
+		(*C.uchar)(unsafe.Pointer(&result_hash[0])))
+	if byte(r) != 0 {
+		return true
+	}
+	return false
+}
+
 func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan struct{}, found chan *types.Block) {
 	var (
 		header = block.Header()
