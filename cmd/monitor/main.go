@@ -37,9 +37,15 @@ func main() {
 			m.Update("a.b.c", strMap)
 		}
 	} else {
-		dlCilent.AddMagnet("magnet:?xt=urn:btih:137B5742C8B4E9CBE64109E8CF5665383ABD8DF3&dn=data&tr=http%3a%2f%2flocalhost%3a8000%2fannounce")
+		mURI := "magnet:?xt=urn:btih:137B5742C8B4E9CBE64109E8CF5665383ABD8DF3&dn=data&tr=http%3a%2f%2flocalhost%3a8000%2fannounce"
+		dlCilent.AddMagnet(mURI)
+		var tick int64 = 0;
 		for {
 			time.Sleep(time.Second * 1)
+			tick += 1
+			if tick % 10 == 0 {
+				dlCilent.UpdateMagnet(mURI, tick * 1024)
+			}
 		}
 	}
 	m.Finalize()

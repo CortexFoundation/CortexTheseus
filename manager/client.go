@@ -111,6 +111,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 // AddMagnet ...
 func (tm *TorrentManager) AddMagnet(uri string) {
 	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
+	log.Println(uri, "spec:", spec)
 	if err != nil {
 		log.Printf("error adding magnet: %s", err)
 	}
@@ -118,6 +119,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	dataPath := path.Join(tm.DataDir, ih)
 	torrentPath := path.Join(dataPath, "torrent")
 	if _, err := os.Stat(torrentPath); err == nil {
+		log.Println(ih, "torrent file exists: ", torrentPath)
 		tm.AddTorrent(torrentPath)
 		return
 	}
@@ -156,6 +158,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	io.WriteString(f, torrent)
 	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
 	tm.torrents[ih].bytesMissing = t.BytesMissing()
+	tm.torrents[ih].bytesLimitation = 0
 }
 
 // UpdateMagnet ...
@@ -243,6 +246,7 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 	go func() {
 		for {
 			for ih, t := range TorrentManager.torrents {
+				log.Println(ih, t)
 				if !(t.bytesCompleted == 0 && t.bytesMissing == 0) {
 					t.bytesCompleted = t.BytesCompleted()
 					t.bytesMissing = t.BytesMissing()
