@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "algorithm": "cpp",
+        "locale": "cpp",
+        "chrono": "cpp",
+        "__functional_03": "cpp",
+        "functional": "cpp",
+        "__mutex_base": "cpp",
+        "memory": "cpp",
+        "__tree": "cpp",
+        "bitset": "cpp",
+        "set": "cpp",
+        "__locale": "cpp",
+        "vector": "cpp"
+    }
+}
