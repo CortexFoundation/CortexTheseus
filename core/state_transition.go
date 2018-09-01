@@ -18,7 +18,7 @@ package core
 
 import (
 	"errors"
-//	"fmt"
+	//	"fmt"
 	"math"
 	"math/big"
 
@@ -30,8 +30,8 @@ import (
 )
 
 var (
-	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
-	PER_UPLOAD_BYTES uint64 = 1*512*1024
+	errInsufficientBalanceForGas        = errors.New("insufficient balance to pay for gas")
+	PER_UPLOAD_BYTES             uint64 = 1 * 512 * 1024
 )
 
 /*
@@ -237,7 +237,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//TODO(xiaoyan)
 	//model gas
 	gu := st.gasUsed()
-	if st.modelGas != nil {
+	if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
 		for addr, mgas := range st.modelGas {
 			gu -= mgas
 			if gu < 0 { //should never happen
@@ -245,7 +245,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
 				}
 
-				//panic(fmt.Errorf("Why total model gas is larger than total gas ?"))
 				return nil, 0, false, vm.ErrInsufficientBalance
 			}
 			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
