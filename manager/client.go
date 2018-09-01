@@ -3,6 +3,7 @@ package downloadmanager
 import (
 	"log"
 	"net"
+	"os"
 	"path"
 	"strings"
 	"sync"
@@ -57,8 +58,8 @@ func (tm *TorrentManager) SetTrackers(trackers []string) {
 }
 
 // AddTorrent ...
-func (tm *TorrentManager) AddTorrent(filename string) {
-	mi, err := metainfo.LoadFromFile(filename)
+func (tm *TorrentManager) AddTorrent(filePath string) {
+	mi, err := metainfo.LoadFromFile(filePath)
 	if err != nil {
 		log.Printf("error adding torrent: %s", err)
 		return
@@ -103,6 +104,12 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 		log.Printf("error adding magnet: %s", err)
 	}
 	ih := spec.InfoHash.HexString()
+	dataPath := path.Join(tm.DataDir, ih)
+	torrentPath := path.Join(dataPath, "torrent")
+	if _, err := os.Stat(torrentPath); err == nil {
+		tm.AddTorrent(torrentPath)
+		return
+	}
 	log.Println(ih, "get torrent from magnet uri.")
 
 	tm.mu.Lock()
@@ -112,7 +119,7 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 		return
 	}
 
-	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih))
+	spec.Storage = storage.NewFile(dataPath)
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
 	}
