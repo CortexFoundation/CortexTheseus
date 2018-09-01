@@ -302,6 +302,7 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 func (m *Monitor) Start() error {
 	b := &common.Block{}
 	if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
+		log.Println(err)
 		return err
 	}
 	m.latestBlockNumber, _ = strconv.ParseUint(b.Number[2:], 16, 64)
@@ -309,13 +310,14 @@ func (m *Monitor) Start() error {
 	go func() {
 		blockChecked := 0
 		lastblock := m.latestBlockNumber
-		for i := m.latestBlockNumber - 1; i >= 0; i-- {
+		log.Println("lastblock: ", lastblock)
+		for i := m.latestBlockNumber; i >= 1; i-- {
 			if m.blocks[i] != nil {
 				continue
 			}
 			m.parseBlockByNumber(i)
 			blockChecked++
-			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
+			if blockChecked % fetchBlockLogStep == 0 || i == 0 {
 				log.Printf("Block #%d-%d have been checked.", i, lastblock)
 				lastblock = i - 1
 			}
