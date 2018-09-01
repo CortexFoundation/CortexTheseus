@@ -18,7 +18,7 @@ package cuckoo
 
 import (
 	"errors"
-	"math/big"
+	//	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -117,6 +117,6 @@ func (api *API) GetHashrate() uint64 {
 	return uint64(api.cuckoo.Hashrate())
 }
 
-func (api *API) VerifyShare(hash []byte, nonce uint32, solution types.BlockSolution, target big.Int) bool {
-	return api.cuckoo.VerifySolution(hash, nonce, solution, target)
-}
+//func (api *API) VerifyShare(hash []byte, nonce uint32, solution types.BlockSolution, target big.Int) bool, common.Hash {
+//	return api.cuckoo.VerifySolution(hash, nonce, solution, target)
+//}
