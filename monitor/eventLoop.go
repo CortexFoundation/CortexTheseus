@@ -51,8 +51,8 @@ func NewMonitor() *Monitor {
 }
 
 // SetRPCServer ...
-func (m *Monitor) SetRPCServer(clientURI string) error {
-	cl, err := rpc.Dial(clientURI)
+func (m *Monitor) SetRPCServer(clientURI *string) error {
+	cl, err := rpc.Dial(*clientURI)
 	if err != nil {
 		return ErrBuildConn
 	}
