@@ -27,12 +27,12 @@ var (
 
 const (
 	defaultTimerInterval = 2
+	fetchBlockLogStep    = 500
 	minBlockNum          = 36000
 	opCommon             = "0x0000"
 	opCreateModel        = "0x0001"
 	opCreateInput        = "0x0002"
 	opNoInput            = "0x0003"
-	fetchBlockLogStep    = 500
 )
 
 // Monitor ...
@@ -189,27 +189,27 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 				}
 
 				var _remainingSize string
-				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddress, "latest"); err != nil {
+				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr, "latest"); err != nil {
 					return err
 				}
 				file := &common.FileMeta{
-					TxHash:        hash,
-					TxAddress:     "0x" + hash[26:],
-					AuthorAddress: _AuthorAddress,
-					URI:           _URI,
-					RawSize:       _RawSize,
-					BlockNum:      _BlockNum,
+					TxHash:     hash,
+					TxAddr:     "0x" + hash[26:],
+					AuthorAddr: _AuthorAddress,
+					URI:        _URI,
+					RawSize:    _RawSize,
+					BlockNum:   _BlockNum,
 				}
-				m.files[receipt.ContractAddress] = file
+				m.files[receipt.ContractAddr] = file
 				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 
-				var leftSize uint64
+				var bytesRequested uint64
 				if file.RawSize > remainingSize {
-					leftSize = file.RawSize - remainingSize
+					bytesRequested = file.RawSize - remainingSize
 				}
 				m.dl.UpdateTorrent <- common.FlowControlMeta{
 					URI:            file.URI,
-					BytesRequested: leftSize,
+					BytesRequested: bytesRequested,
 				}
 			} else if input == "" && value == "0x0" {
 				ContractAddress := tx["to"]
@@ -220,13 +220,13 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 					}
 					remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 
-					var leftSize uint64
+					var bytesRequested uint64
 					if file.RawSize > remainingSize {
-						leftSize = file.RawSize - remainingSize
+						bytesRequested = file.RawSize - remainingSize
 					}
 					m.dl.UpdateTorrent <- common.FlowControlMeta{
 						URI:            file.URI,
-						BytesRequested: leftSize,
+						BytesRequested: bytesRequested,
 					}
 				}
 			}
@@ -270,27 +270,27 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 				}
 
 				var _remainingSize string
-				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddress, "latest"); err != nil {
+				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr, "latest"); err != nil {
 					return err
 				}
 				file := &common.FileMeta{
-					TxHash:        hash,
-					TxAddress:     "0x" + hash[26:],
-					AuthorAddress: _AuthorAddress,
-					URI:           _URI,
-					RawSize:       _RawSize,
-					BlockNum:      _BlockNum,
+					TxHash:     hash,
+					TxAddr:     "0x" + hash[26:],
+					AuthorAddr: _AuthorAddress,
+					URI:        _URI,
+					RawSize:    _RawSize,
+					BlockNum:   _BlockNum,
 				}
-				m.files[receipt.ContractAddress] = file
+				m.files[receipt.ContractAddr] = file
 				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 
-				var leftSize uint64
+				var bytesRequested uint64
 				if file.RawSize > remainingSize {
-					leftSize = file.RawSize - remainingSize
+					bytesRequested = file.RawSize - remainingSize
 				}
 				m.dl.UpdateTorrent <- common.FlowControlMeta{
 					URI:            file.URI,
-					BytesRequested: leftSize,
+					BytesRequested: bytesRequested,
 				}
 			}
 		}

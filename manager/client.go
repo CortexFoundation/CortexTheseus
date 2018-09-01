@@ -19,19 +19,24 @@ import (
 )
 
 const (
-	defaultBytesLimitation  = 512 * 1024
-	queryTimeInterval       = 5
-	removeTorrentChanBuffer = 16
-	newTorrentChanBuffer    = 32
-	updateTorrentChanBuffer = 32
+	defaultBytesLimitation          = 512 * 1024
+	queryTimeInterval               = 5
+	removeTorrentChanBuffer         = 16
+	newTorrentChanBuffer            = 32
+	updateTorrentChanBuffer         = 32
+	expansionFactor         float64 = 1.5
+	torrentStoped                   = 0
+	torrentRunning                  = 1
 )
 
 // Torrent ...
 type Torrent struct {
 	*torrent.Torrent
+	bytesRequested  int64
 	bytesLimitation int64
 	bytesCompleted  int64
 	bytesMissing    int64
+	status          int64
 }
 
 // TorrentManager ...
@@ -87,20 +92,25 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 	slices.MakeInto(&ss, mi.Nodes)
 	tm.client.AddDHTNodes(ss)
 	t, _, err := tm.client.AddTorrentSpec(spec)
-	tm.torrents[ih] = &Torrent{t, defaultBytesLimitation, 0, 0}
+	tm.torrents[ih] = &Torrent{
+		t,
+		defaultBytesLimitation,
+		int64(defaultBytesLimitation * expansionFactor),
+		0,
+		0,
+		torrentStoped,
+	}
 	tm.mu.Unlock()
 	log.Println(ih, "wait for gotInfo")
 
 	<-t.GotInfo()
-	t.DownloadAll()
 	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
 	tm.torrents[ih].bytesMissing = t.BytesMissing()
-	log.Println(ih, "start to download.")
 }
 
 // AddMagnet ...
-func (tm *TorrentManager) AddMagnet(mURI string) {
-	spec, err := torrent.TorrentSpecFromMagnetURI(mURI)
+func (tm *TorrentManager) AddMagnet(uri string) {
+	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
 	if err != nil {
 		log.Printf("error adding magnet: %s", err)
 	}
@@ -128,7 +138,14 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 		spec.Trackers[0] = append(spec.Trackers[0], tracker)
 	}
 	t, _, err := tm.client.AddTorrentSpec(spec)
-	tm.torrents[ih] = &Torrent{t, defaultBytesLimitation, 0, 0}
+	tm.torrents[ih] = &Torrent{
+		t,
+		defaultBytesLimitation,
+		int64(defaultBytesLimitation * expansionFactor),
+		0,
+		0,
+		torrentStoped,
+	}
 	tm.mu.Unlock()
 	log.Println(ih, "wait for gotInfo")
 
@@ -137,16 +154,13 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 	f, _ := os.Create(torrentPath)
 	torrent := t.Metainfo().Encoding
 	io.WriteString(f, torrent)
-
-	t.DownloadAll()
 	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
 	tm.torrents[ih].bytesMissing = t.BytesMissing()
-	log.Println(ih, "start to download.")
 }
 
 // UpdateMagnet ...
-func (tm *TorrentManager) UpdateMagnet(mURI string, BytesRequested int64) {
-	spec, err := torrent.TorrentSpecFromMagnetURI(mURI)
+func (tm *TorrentManager) UpdateMagnet(uri string, BytesRequested int64) {
+	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
 	if err != nil {
 		log.Printf("error getting magnet: %s", err)
 	}
@@ -154,13 +168,16 @@ func (tm *TorrentManager) UpdateMagnet(mURI string, BytesRequested int64) {
 	log.Println(ih, "update torrent from magnet uri.")
 
 	if torrent, ok := tm.torrents[ih]; ok {
-		torrent.bytesLimitation = BytesRequested * 3 / 2
+		torrent.bytesRequested = BytesRequested
+		if torrent.bytesRequested > torrent.bytesLimitation {
+			torrent.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
+		}
 	}
 }
 
 // DropMagnet ...
-func (tm *TorrentManager) DropMagnet(mURI string) bool {
-	spec, err := torrent.TorrentSpecFromMagnetURI(mURI)
+func (tm *TorrentManager) DropMagnet(uri string) bool {
+	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
 	if err != nil {
 		log.Printf("error removing magnet: %s", err)
 	}
@@ -230,11 +247,17 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 					t.bytesCompleted = t.BytesCompleted()
 					t.bytesMissing = t.BytesMissing()
 					if t.bytesCompleted >= t.bytesLimitation {
-						t.Drop()
+						if t.status == torrentRunning {
+							t.Drop()
+							log.Printf("Torrent %s paused", ih)
+						}
 					} else if t.bytesCompleted < t.bytesLimitation {
-						t.DownloadAll()
+						if t.status == torrentStoped {
+							t.DownloadAll()
+							log.Printf("Torrent %s start", ih)
+						}
 					}
-					log.Println(ih, t.bytesLimitation, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
+					log.Printf("Torrent %s: %d/%d, limit=%d", ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing, t.bytesLimitation)
 				}
 			}
 			time.Sleep(time.Second * queryTimeInterval)
