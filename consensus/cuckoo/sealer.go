@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
+	//"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -106,7 +107,7 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// return result, nil
 }
 
-func (cuckoo *Cuckoo) VerifyShare(block *types.Block, shareDiff *big.Int, solution types.BlockSolution) (bool, bool, int64) {
+func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution types.BlockSolution) (bool, bool, int64) {
 	// For return arguments
 	zeroHash := common.Hash{}
 
