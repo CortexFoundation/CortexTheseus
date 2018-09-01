@@ -1,6 +1,7 @@
 package downloadmanager
 
 import (
+	"io"
 	"log"
 	"net"
 	"os"
@@ -132,6 +133,11 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 	log.Println(ih, "wait for gotInfo")
 
 	<-t.GotInfo()
+
+	f, _ := os.Create(torrentPath)
+	torrent := t.Metainfo().Encoding
+	io.WriteString(f, torrent)
+
 	t.DownloadAll()
 	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
 	tm.torrents[ih].bytesMissing = t.BytesMissing()
