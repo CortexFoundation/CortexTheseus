@@ -40,7 +40,7 @@ type TorrentManager struct {
 	NewTorrent    chan string
 	RemoveTorrent chan string
 	UpdateTorrent chan interface{}
-	lock          sync.Mutex
+	mu            sync.Mutex
 }
 
 // FlowControlMeta ...
@@ -71,10 +71,10 @@ func (tm *TorrentManager) AddTorrent(filename string) {
 	ih := spec.InfoHash.HexString()
 	log.Println(ih, "get torrent from local file.")
 
-	tm.lock.Lock()
+	tm.mu.Lock()
 	if _, ok := tm.torrents[ih]; ok {
 		log.Println(ih, "torrent was already existed. Skip.")
-		tm.lock.Unlock()
+		tm.mu.Unlock()
 		return
 	}
 
@@ -90,7 +90,7 @@ func (tm *TorrentManager) AddTorrent(filename string) {
 	tm.client.AddDHTNodes(ss)
 	t, _, err := tm.client.AddTorrentSpec(spec)
 	tm.torrents[ih] = &Torrent{t, defaultBytesLimitation, 0, 0}
-	tm.lock.Unlock()
+	tm.mu.Unlock()
 	log.Println(ih, "wait for gotInfo")
 
 	<-t.GotInfo()
@@ -109,10 +109,10 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 	ih := spec.InfoHash.HexString()
 	log.Println(ih, "get torrent from magnet uri.")
 
-	tm.lock.Lock()
+	tm.mu.Lock()
 	if _, ok := tm.torrents[ih]; ok {
 		log.Println(ih, "torrent was already existed. Skip.")
-		tm.lock.Unlock()
+		tm.mu.Unlock()
 		return
 	}
 
@@ -125,7 +125,7 @@ func (tm *TorrentManager) AddMagnet(mURI string) {
 	}
 	t, _, err := tm.client.AddTorrentSpec(spec)
 	tm.torrents[ih] = &Torrent{t, defaultBytesLimitation, 0, 0}
-	tm.lock.Unlock()
+	tm.mu.Unlock()
 	log.Println(ih, "wait for gotInfo")
 
 	<-t.GotInfo()

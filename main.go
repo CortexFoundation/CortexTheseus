@@ -15,7 +15,6 @@ func main() {
 
 func mainExitCode() int {
 	// storageDir := "/data/serving/InferenceServer/warehouse"
-
 	storageDir := flag.String("d", "/home/lizhen/storage", "storage path")
 	rpcURI := flag.String("r", "http://192.168.5.11:28888", "json-rpc uri")
 	flag.Parse()

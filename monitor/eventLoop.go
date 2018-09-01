@@ -2,15 +2,14 @@ package monitor
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"log"
 	"strconv"
 	"time"
 
-	"encoding/hex"
-
+	"../common"
 	download "../manager"
-
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
@@ -29,40 +28,6 @@ const (
 	minBlockNum          = 36000
 )
 
-// Block ... block struct
-type Block struct {
-	Number       string
-	Hash         string
-	ParentHash   string
-	Transactions []map[string]string
-}
-
-// TransactionReceipt ...
-type TransactionReceipt struct {
-	ContractAddress   string
-	CumulativeGasUsed string
-	TransactionHash   string
-}
-
-// FileMeta ...
-type FileMeta struct {
-	// Transaction hash
-	TxHash string
-
-	// transaction address
-	TxAddress     string
-	AuthorAddress string
-	URI           string
-	RawSize       uint64
-	BlockNum      uint64
-}
-
-// FlowControlMeta ...
-type FlowControlMeta struct {
-	URI            string
-	BytesRequested int64
-}
-
 // ListenOn ... start ListenOn on the rpc port of a blockchain full node
 func ListenOn(clientURI string, manager *download.TorrentManager) error {
 	client, err := rpc.Dial(clientURI)
@@ -73,34 +38,36 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
 	blockCounts := make(map[int]int)
-	var block Block
+	var b common.Block
 	var blockTxCount int
 	maxBlock := 0
-	files := make(map[string]*FileMeta)
+	files := make(map[string]*common.FileMeta)
 
 	for {
 		select {
 		case <-timer.C:
-			if err := client.Call(&block, "eth_getBlockByNumber", "latest", true); err != nil {
+			// Try to get the latest b
+			if err := client.Call(&b, "eth_getBlockByNumber", "latest", true); err != nil {
 				return err
 			}
 
-			blockTxCount = len(block.Transactions)
-			blockNum, _ := strconv.ParseInt(block.Number[2:], 16, 32)
+			blockTxCount = len(b.Txs)
+			bnum64, _ := strconv.ParseInt(b.Number[2:], 16, 64)
+			bnum := int(bnum64)
 			blockChecked := 0
 			recoverMode := false
 
 			for {
-				_, ok := blockCounts[int(blockNum)]
+				_, ok := blockCounts[bnum]
 				if ok {
 					break
 				}
-				blockCounts[int(blockNum)] = blockTxCount
+				blockCounts[bnum] = len(b.Txs)
 				blockChecked++
-				if int(blockNum) > maxBlock {
-					maxBlock = int(blockNum)
+				if bnum > maxBlock {
+					maxBlock = bnum
 					recoverMode = false
-					log.Printf("Block #%d: %d Transactions.", maxBlock, blockTxCount)
+					log.Printf("Block #%d: %d Txs.", maxBlock, len(b.Txs))
 				} else {
 					recoverMode = true
 					if blockChecked%200 == 0 {
@@ -108,8 +75,21 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 					}
 				}
 
-				if blockTxCount > 0 {
-					for _, tx := range block.Transactions {
+				if len(b.Txs) > 0 {
+					// blockNumHex := "0x" + strconv.FormatInt(int64(bnum), 16)
+					/*
+						var blockRaw ctypes.Block
+						if err := client.Call(&blockRaw, "eth_getBlockByNumber", blockNumHex, false); err != nil {
+							return err
+						}
+						var txraw types.Transaction
+						if err := client.Call(&txraw, "eth_getTransactionByBlockNumberAndIndex", blockNumHex, "0x0"); err != nil {
+							return err
+						}
+						log.Println(txraw)
+					*/
+
+					for _, tx := range b.Txs {
 						// tx is an input data or a model data.
 						var input = tx["input"]
 						var op = "0x0000"
@@ -155,7 +135,7 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 								_BlockNum = meta.BlockNum.Int64()
 							}
 
-							var receipt TransactionReceipt
+							var receipt common.TransactionReceipt
 							if err := client.Call(&receipt, "eth_getTransactionReceipt", tx["hash"]); err != nil {
 								return err
 							}
@@ -164,7 +144,7 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 							if err := client.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddress, "latest"); err != nil {
 								return err
 							}
-							file := &FileMeta{
+							file := &common.FileMeta{
 								TxHash:        tx["hash"],
 								TxAddress:     "0x" + tx["hash"][26:],
 								AuthorAddress: _AuthorAddress,
@@ -175,7 +155,7 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 							files[receipt.ContractAddress] = file
 							remainingSize, _ := strconv.ParseInt(_remainingSize[2:], 16, 64)
 
-							manager.UpdateTorrent <- FlowControlMeta{
+							manager.UpdateTorrent <- common.FlowControlMeta{
 								URI:            file.URI,
 								BytesRequested: int64(file.RawSize) - remainingSize,
 							}
@@ -188,7 +168,7 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 								}
 								remainingSize, _ := strconv.ParseInt(_remainingSize[2:], 16, 64)
 
-								manager.UpdateTorrent <- FlowControlMeta{
+								manager.UpdateTorrent <- common.FlowControlMeta{
 									URI:            file.URI,
 									BytesRequested: int64(file.RawSize) - remainingSize,
 								}
@@ -197,11 +177,11 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 					}
 				}
 
-				if blockNum <= minBlockNum {
+				if bnum <= minBlockNum {
 					break
 				} else {
-					blockNum--
-					blockNumHex := "0x" + strconv.FormatInt(blockNum, 16)
+					bnum--
+					blockNumHex := "0x" + strconv.FormatInt(int64(bnum), 16)
 					var _blockTxCount string
 					if err := client.Call(&_blockTxCount, "eth_getBlockTransactionCountByNumber", blockNumHex); err != nil {
 						return err
@@ -209,10 +189,10 @@ func ListenOn(clientURI string, manager *download.TorrentManager) error {
 					blockTxCountInt32, _ := strconv.ParseInt(_blockTxCount[2:], 16, 32)
 					blockTxCount = int(blockTxCountInt32)
 					if blockTxCount > 0 {
-						if err := client.Call(&block, "eth_getBlockByNumber", blockNumHex, true); err != nil {
+						if err := client.Call(&b, "eth_getBlockByNumber", blockNumHex, true); err != nil {
 							return err
 						}
-						log.Printf("fetch block #%s with %d transactions", blockNumHex, blockTxCount)
+						log.Printf("fetch b #%s with %d Txs", blockNumHex, blockTxCount)
 					}
 				}
 			}
