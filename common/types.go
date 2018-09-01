@@ -12,9 +12,8 @@ type Block struct {
 
 // TransactionReceipt ...
 type TransactionReceipt struct {
-	ContractAddress   string
-	CumulativeGasUsed string
-	TransactionHash   string
+	ContractAddress string
+	TransactionHash string
 }
 
 // FileMeta ...
@@ -32,5 +31,5 @@ type FileMeta struct {
 // FlowControlMeta ...
 type FlowControlMeta struct {
 	URI            string
-	BytesRequested int64
+	BytesRequested uint64
 }

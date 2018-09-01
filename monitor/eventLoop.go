@@ -39,8 +39,8 @@ type Monitor struct {
 	cl                *rpc.Client
 	dl                *download.TorrentManager
 	files             map[string]*common.FileMeta
-	blocks            map[int64]*common.Block
-	latestBlockNumber int64
+	blocks            map[uint64]*common.Block
+	latestBlockNumber uint64
 }
 
 // NewMonitor ...
@@ -75,16 +75,35 @@ func (m *Monitor) verifyBlock(b *common.Block) error {
 	return nil
 }
 
-func (m *Monitor) parseBlockByNumber(blockNumber int64) error {
+func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
 	}
 	block := &common.Block{}
 	m.blocks[blockNumber] = block
-	blockNumberHex := "0x" + strconv.FormatInt(blockNumber, 16)
+	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 	if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
 		return err
 	}
+	m.parseBlock(block)
+	log.Printf("fetch b #%s with %d Txs", blockNumberHex, len(block.Txs))
+	if err := m.verifyBlock(block); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
+	if m.cl == nil {
+		return ErrNoRPCClient
+	}
+	block := &common.Block{}
+	m.blocks[blockNumber] = block
+	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
+	if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
+		return err
+	}
+	m.parseNewBlock(block)
 	log.Printf("fetch b #%s with %d Txs", blockNumberHex, len(block.Txs))
 	if err := m.verifyBlock(block); err != nil {
 		return err
@@ -100,8 +119,9 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	if err := m.cl.Call(block, "eth_getBlockByHash", hash, true); err != nil {
 		return err
 	}
-	blockNumber, _ := strconv.ParseInt(block.Number[2:], 16, 64)
+	blockNumber, _ := strconv.ParseUint(block.Number[2:], 16, 64)
 	m.blocks[blockNumber] = block
+	m.parseBlock(block)
 	log.Printf("fetch b #%s with %d Txs", hash, len(block.Txs))
 	if err := m.verifyBlock(block); err != nil {
 		return err
@@ -109,15 +129,35 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	return nil
 }
 
-//
-func (m *Monitor) parseBlock(b *common.Block) error {
-	blockNumber, _ := strconv.ParseInt(b.Number[2:], 16, 64)
+func parseInputData(rawInput string) (string, string, uint64, uint64, error) {
+	var meta types.InputMeta
+	if input, err := hex.DecodeString(rawInput); err != nil {
+		return "", "", 0, 0, err
+	} else {
+		rlp.Decode(bytes.NewReader(input), &meta)
+	}
+	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
+}
+
+func parseModelData(rawInput string) (string, string, uint64, uint64, error) {
+	var meta types.ModelMeta
+	if input, err := hex.DecodeString(rawInput); err != nil {
+		return "", "", 0, 0, err
+	} else {
+		rlp.Decode(bytes.NewReader(input), &meta)
+	}
+	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
+}
+
+func (m *Monitor) parseNewBlock(b *common.Block) error {
+	blockNumber, _ := strconv.ParseUint(b.Number[2:], 16, 64)
 	m.blocks[blockNumber] = b
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
 			var op string
 			var input = tx["input"]
 			var value = tx["value"]
+			var hash = tx["hash"]
 			if len(input) >= 6 {
 				op = input[:6]
 			} else if len(input) == 0 {
@@ -129,37 +169,17 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 				var _AuthorAddress string
 				var _URI string
 				var _RawSize uint64
-				var _BlockNum int64
+				var _BlockNum uint64
 
 				if op == opCreateModel {
-					// create model
-					var meta types.ModelMeta
-					if input, err := hex.DecodeString(rawInput); err != nil {
-						continue
-					} else {
-						rlp.Decode(bytes.NewReader(input), &meta)
-					}
-					_AuthorAddress = meta.AuthorAddress.Hex()
-					_URI = meta.URI
-					_RawSize = meta.RawSize
-					_BlockNum = meta.BlockNum.Int64()
+					_AuthorAddress, _URI, _RawSize, _BlockNum, _ = parseModelData(rawInput)
 				} else {
-					// create input
-					var meta types.InputMeta
-					if input, err := hex.DecodeString(rawInput); err != nil {
-						continue
-					} else {
-						rlp.Decode(bytes.NewReader(input), &meta)
-					}
-					_AuthorAddress = meta.AuthorAddress.Hex()
-					_URI = meta.URI
-					_RawSize = meta.RawSize
-					_BlockNum = meta.BlockNum.Int64()
+					_AuthorAddress, _URI, _RawSize, _BlockNum, _ = parseInputData(rawInput)
 				}
 				m.dl.NewTorrent <- _URI
 
 				var receipt common.TransactionReceipt
-				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx["hash"]); err != nil {
+				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
 					return err
 				}
 
@@ -168,19 +188,23 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 					return err
 				}
 				file := &common.FileMeta{
-					TxHash:        tx["hash"],
-					TxAddress:     "0x" + tx["hash"][26:],
+					TxHash:        hash,
+					TxAddress:     "0x" + hash[26:],
 					AuthorAddress: _AuthorAddress,
 					URI:           _URI,
 					RawSize:       _RawSize,
-					BlockNum:      uint64(_BlockNum),
+					BlockNum:      _BlockNum,
 				}
 				m.files[receipt.ContractAddress] = file
-				remainingSize, _ := strconv.ParseInt(_remainingSize[2:], 16, 64)
+				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 
+				var leftSize uint64
+				if file.RawSize > remainingSize {
+					leftSize = file.RawSize - remainingSize
+				}
 				m.dl.UpdateTorrent <- common.FlowControlMeta{
 					URI:            file.URI,
-					BytesRequested: int64(file.RawSize) - remainingSize,
+					BytesRequested: leftSize,
 				}
 			} else if input == "" && value == "0x0" {
 				ContractAddress := tx["to"]
@@ -189,12 +213,79 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 					if err := m.cl.Call(&_remainingSize, "eth_getUpload", ContractAddress, "latest"); err != nil {
 						return err
 					}
-					remainingSize, _ := strconv.ParseInt(_remainingSize[2:], 16, 64)
+					remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 
+					var leftSize uint64
+					if file.RawSize > remainingSize {
+						leftSize = file.RawSize - remainingSize
+					}
 					m.dl.UpdateTorrent <- common.FlowControlMeta{
 						URI:            file.URI,
-						BytesRequested: int64(file.RawSize) - remainingSize,
+						BytesRequested: leftSize,
 					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+//
+func (m *Monitor) parseBlock(b *common.Block) error {
+	blockNumber, _ := strconv.ParseUint(b.Number[2:], 16, 64)
+	m.blocks[blockNumber] = b
+	if len(b.Txs) > 0 {
+		for _, tx := range b.Txs {
+			var op string
+			var input = tx["input"]
+			var hash = tx["hash"]
+			if len(input) >= 6 {
+				op = input[:6]
+			} else if len(input) == 0 {
+				op = opNoInput
+			}
+
+			if op == opCreateInput || op == opCreateModel {
+				rawInput := tx["input"][6:]
+				var _AuthorAddress string
+				var _URI string
+				var _RawSize uint64
+				var _BlockNum uint64
+
+				if op == opCreateModel {
+					_AuthorAddress, _URI, _RawSize, _BlockNum, _ = parseModelData(rawInput)
+				} else {
+					_AuthorAddress, _URI, _RawSize, _BlockNum, _ = parseInputData(rawInput)
+				}
+				m.dl.NewTorrent <- _URI
+
+				var receipt common.TransactionReceipt
+				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
+					return err
+				}
+
+				var _remainingSize string
+				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddress, "latest"); err != nil {
+					return err
+				}
+				file := &common.FileMeta{
+					TxHash:        hash,
+					TxAddress:     "0x" + hash[26:],
+					AuthorAddress: _AuthorAddress,
+					URI:           _URI,
+					RawSize:       _RawSize,
+					BlockNum:      _BlockNum,
+				}
+				m.files[receipt.ContractAddress] = file
+				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+
+				var leftSize uint64
+				if file.RawSize > remainingSize {
+					leftSize = file.RawSize - remainingSize
+				}
+				m.dl.UpdateTorrent <- common.FlowControlMeta{
+					URI:            file.URI,
+					BytesRequested: leftSize,
 				}
 			}
 		}
@@ -208,8 +299,8 @@ func (m *Monitor) Start() error {
 	if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
 		return err
 	}
-	m.latestBlockNumber, _ = strconv.ParseInt(b.Number[2:], 16, 64)
-	m.parseBlock(b)
+	m.latestBlockNumber, _ = strconv.ParseUint(b.Number[2:], 16, 64)
+	m.parseNewBlock(b)
 	go func() {
 		blockChecked := 0
 		lastblock := m.latestBlockNumber
@@ -235,7 +326,7 @@ func (m *Monitor) Start() error {
 			if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
 				return err
 			}
-			bnum, _ := strconv.ParseInt(b.Number[2:], 16, 64)
+			bnum, _ := strconv.ParseUint(b.Number[2:], 16, 64)
 			if bnum > m.latestBlockNumber {
 				m.latestBlockNumber = bnum
 				m.parseBlock(b)
@@ -244,7 +335,7 @@ func (m *Monitor) Start() error {
 					if m.blocks[i] != nil {
 						break
 					}
-					m.parseBlockByNumber(i)
+					m.parseNewBlockByNumber(i)
 				}
 			}
 			timer.Reset(time.Second * 2)
