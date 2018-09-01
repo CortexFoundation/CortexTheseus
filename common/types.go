@@ -1,7 +1,5 @@
 package common
 
-//go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
-
 // Block ... block struct
 type Block struct {
 	Number     string
@@ -12,25 +10,24 @@ type Block struct {
 
 // TransactionReceipt ...
 type TransactionReceipt struct {
-	ContractAddress   string
-	CumulativeGasUsed string
-	TransactionHash   string
+	ContractAddr string `json:"ContractAddr"`
+	TxHash       string `json:"TransactionHash"`
 }
 
 // FileMeta ...
 type FileMeta struct {
 	// Transaction hash
 	TxHash string
-	// transaction address
-	TxAddress     string
-	AuthorAddress string
-	URI           string
-	RawSize       uint64
-	BlockNum      uint64
+	// Transaction address
+	TxAddr     string
+	AuthorAddr string
+	URI        string
+	RawSize    uint64
+	BlockNum   uint64
 }
 
 // FlowControlMeta ...
 type FlowControlMeta struct {
 	URI            string
-	BytesRequested int64
+	BytesRequested uint64
 }
