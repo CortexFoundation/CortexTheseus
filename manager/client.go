@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"../common"
+
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
@@ -17,9 +19,9 @@ import (
 const (
 	defaultBytesLimitation  = 512 * 1024
 	queryTimeInterval       = 5
+	removeTorrentChanBuffer = 16
 	newTorrentChanBuffer    = 32
 	updateTorrentChanBuffer = 32
-	removeTorrentChanBuffer = 16
 )
 
 // Torrent ...
@@ -41,12 +43,6 @@ type TorrentManager struct {
 	RemoveTorrent chan string
 	UpdateTorrent chan interface{}
 	mu            sync.Mutex
-}
-
-// FlowControlMeta ...
-type FlowControlMeta struct {
-	URI            string
-	BytesRequested int64
 }
 
 func isMagnetURI(uri string) bool {
@@ -142,7 +138,7 @@ func (tm *TorrentManager) UpdateMagnet(mURI string, BytesRequested int64) {
 		log.Printf("error getting magnet: %s", err)
 	}
 	ih := spec.InfoHash.HexString()
-	log.Println(ih, "get torrent from magnet uri.")
+	log.Println(ih, "update torrent from magnet uri.")
 
 	if torrent, ok := tm.torrents[ih]; ok {
 		torrent.bytesLimitation = BytesRequested * 3 / 2
@@ -206,9 +202,9 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 				} else {
 				}
 			case msg := <-TorrentManager.UpdateTorrent:
-				meta := msg.(FlowControlMeta)
+				meta := msg.(common.FlowControlMeta)
 				if isMagnetURI(meta.URI) {
-					go TorrentManager.UpdateMagnet(meta.URI, meta.BytesRequested)
+					go TorrentManager.UpdateMagnet(meta.URI, int64(meta.BytesRequested))
 				}
 			}
 		}
@@ -225,7 +221,7 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 					} else if t.bytesCompleted < t.bytesLimitation {
 						t.DownloadAll()
 					}
-					log.Println(ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
+					log.Println(ih, t.bytesLimitation, t.bytesCompleted, t.bytesCompleted+t.bytesMissing)
 				}
 			}
 			time.Sleep(time.Second * queryTimeInterval)

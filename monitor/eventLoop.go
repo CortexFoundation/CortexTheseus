@@ -32,6 +32,7 @@ const (
 	opCreateModel        = "0x0001"
 	opCreateInput        = "0x0002"
 	opNoInput            = "0x0003"
+	fetchBlockLogStep    = 500
 )
 
 // Monitor ...
@@ -45,8 +46,13 @@ type Monitor struct {
 
 // NewMonitor ...
 func NewMonitor() *Monitor {
-	m := &Monitor{}
-	m.latestBlockNumber = 0
+	m := &Monitor{
+		nil,
+		nil,
+		make(map[string]*common.FileMeta),
+		make(map[uint64]*common.Block),
+		0,
+	}
 	return m
 }
 
@@ -86,7 +92,6 @@ func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 		return err
 	}
 	m.parseBlock(block)
-	log.Printf("fetch b #%s with %d Txs", blockNumberHex, len(block.Txs))
 	if err := m.verifyBlock(block); err != nil {
 		return err
 	}
@@ -310,7 +315,7 @@ func (m *Monitor) Start() error {
 			}
 			m.parseBlockByNumber(i)
 			blockChecked++
-			if blockChecked%200 == 0 || i == 0 {
+			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
 				log.Printf("Block #%d-%d have been checked.", i, lastblock)
 				lastblock = i - 1
 			}
