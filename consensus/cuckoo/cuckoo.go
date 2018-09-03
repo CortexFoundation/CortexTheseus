@@ -212,13 +212,13 @@ func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 	// to both eth and cuckoo namespaces.
 	return []rpc.API{
 		{
-			Namespace: "cortex",
+			Namespace: "eth",
 			Version:   "1.0",
 			Service:   &API{cuckoo},
 			Public:    true,
 		},
 		{
-			Namespace: "cuckoo",
+			Namespace: "ethash",
 			Version:   "1.0",
 			Service:   &API{cuckoo},
 			Public:    true,
