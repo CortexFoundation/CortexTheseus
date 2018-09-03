@@ -1,52 +1,55 @@
 package monitor
 
 import (
-	sjson "github.com/bitly/go-simplejson"
 	"log"
 	"net/http"
 	"strings"
 	"sync"
+
+	sjson "github.com/bitly/go-simplejson"
 )
 
-type HttpMonitor struct {
+// HTTPMonitor ... Monitor for serving http services.
+type HTTPMonitor struct {
 	Addr string
 
 	server *http.Server
 	mux    *http.ServeMux
 	info   sjson.Json
-	mtx    sync.Mutex
+	mu     sync.Mutex
 }
 
-func NewHttpMonitor(addr string) *HttpMonitor {
-	return &HttpMonitor{
+// NewHTTPMonitor ... Create a http monitor instance.
+func NewHTTPMonitor(addr string) *HTTPMonitor {
+	return &HTTPMonitor{
 		Addr: addr,
 	}
 }
 
-func (m *HttpMonitor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (m *HTTPMonitor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.jsonHandle(w, r)
 }
 
-func (m *HttpMonitor) Initilize() {
+func (m *HTTPMonitor) Initilize() {
 	m.server = &http.Server{Addr: m.Addr, Handler: m}
 	log.Println("Listen on ", m.Addr)
 	go func() { log.Fatal(m.server.ListenAndServe()) }()
 }
 
-func (m *HttpMonitor) Finalize() {
+func (m *HTTPMonitor) Finalize() {
 }
 
-func (m *HttpMonitor) Update(path string, value interface{}) {
+func (m *HTTPMonitor) Update(path string, value interface{}) {
 	pathKeys := strings.Split(path, ".")
-	m.mtx.Lock()
+	m.mu.Lock()
 	m.info.SetPath(pathKeys, value)
-	m.mtx.Unlock()
+	m.mu.Unlock()
 }
 
-func (m *HttpMonitor) jsonHandle(w http.ResponseWriter, r *http.Request) {
-	m.mtx.Lock()
+func (m *HTTPMonitor) jsonHandle(w http.ResponseWriter, r *http.Request) {
+	m.mu.Lock()
 	json, err := m.info.EncodePretty()
-	m.mtx.Unlock()
+	m.mu.Unlock()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

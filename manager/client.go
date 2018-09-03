@@ -158,7 +158,6 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	io.WriteString(f, torrent)
 	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
 	tm.torrents[ih].bytesMissing = t.BytesMissing()
-	tm.torrents[ih].bytesLimitation = 0
 }
 
 // UpdateMagnet ...

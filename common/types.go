@@ -17,13 +17,16 @@ type TransactionReceipt struct {
 // FileMeta ...
 type FileMeta struct {
 	// Transaction hash
-	TxHash string
-	// Transaction address
-	TxAddr     string
-	AuthorAddr string
-	URI        string
-	RawSize    uint64
-	BlockNum   uint64
+	TxHash       string
+	ContractAddr string
+	AuthorAddr   string
+	URI          string
+	RawSize      uint64
+	BlockNum     uint64
+}
+
+// FileStorage ...
+type FileStorage struct {
 }
 
 // FlowControlMeta ...
