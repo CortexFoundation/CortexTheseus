@@ -203,10 +203,6 @@ func (cuckoo *Cuckoo) Hashrate() float64 {
 	return cuckoo.hashrate.Rate1()
 }
 
-/* func Release(cuckoo *Cuckoo) { */
-// C.CuckooRelease()
-/* } */
-
 func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 	// In order to ensure backward compatibility, we exposes cuckoo RPC APIs
 	// to both eth and cuckoo namespaces.

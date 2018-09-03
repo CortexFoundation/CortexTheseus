@@ -41,7 +41,6 @@ void CuckooSolver::stop() {
 }
 
 void CuckooSolver::await() {
-    printf("ThreadID : %lu, Solver: %p, waiting\n", std::this_thread::get_id(), (void*)solver);
     while (_run);
     printf("ThreadID : %lu, Solver: %p, stoped\n", std::this_thread::get_id(), (void*)solver);
 }

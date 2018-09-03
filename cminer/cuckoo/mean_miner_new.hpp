@@ -545,7 +545,7 @@ public:
       sumsize += dst.storev(buckets, my);
     }
     rdtsc1 = __rdtsc();
-    if (!id) printf("genUnodes round %2d size %u rdtsc: %lu\n", uorv, sumsize/BIGSIZE0, rdtsc1-rdtsc0);
+    // if (!id) printf("genUnodes round %2d size %u rdtsc: %lu\n", uorv, sumsize/BIGSIZE0, rdtsc1-rdtsc0);
     tcounts[id] = sumsize/BIGSIZE0;
   }
 
@@ -738,7 +738,7 @@ public:
       sumsize += dst.storeu(buckets, ux);
     }
     rdtsc1 = __rdtsc();
-    if (!id) printf("genVnodes round %2d size %u rdtsc: %lu\n", uorv, sumsize/BIGSIZE, rdtsc1-rdtsc0);
+    // if (!id) printf("genVnodes round %2d size %u rdtsc: %lu\n", uorv, sumsize/BIGSIZE, rdtsc1-rdtsc0);
     tcounts[id] = sumsize/BIGSIZE;
   }
 
@@ -825,8 +825,8 @@ public:
       sumsize += TRIMONV ? dst.storev(buckets, vx) : dst.storeu(buckets, vx);
     }
     rdtsc1 = __rdtsc();
-    if (showall || (!id && !(round & (round+1))))
-      printf("trimedges id %d round %2d size %u rdtsc: %lu\n", id, round, sumsize/DSTSIZE, rdtsc1-rdtsc0);
+    /* if (showall || (!id && !(round & (round+1))))
+      printf("trimedges id %d round %2d size %u rdtsc: %lu\n", id, round, sumsize/DSTSIZE, rdtsc1-rdtsc0); */
     tcounts[id] = sumsize/DSTSIZE;
   }
 
@@ -943,7 +943,7 @@ public:
       sumsize += TRIMONV ? dst.storev(buckets, vx) : dst.storeu(buckets, vx);
     }
     rdtsc1 = __rdtsc();
-    if (showall || !id) printf("trimrename id %d round %2d size %u rdtsc: %lu maxnnid %d\n", id, round, sumsize/DSTSIZE, rdtsc1-rdtsc0, maxnnid);
+    // if (showall || !id) printf("trimrename id %d round %2d size %u rdtsc: %lu maxnnid %d\n", id, round, sumsize/DSTSIZE, rdtsc1-rdtsc0, maxnnid);
     assert(maxnnid < NYZ1);
     tcounts[id] = sumsize/DSTSIZE;
   }
@@ -1001,8 +1001,8 @@ public:
       sumsize += TRIMONV ? dst.storev(buckets, vx) : dst.storeu(buckets, vx);
     }
     rdtsc1 = __rdtsc();
-    if (showall || (!id && !(round & (round+1))))
-      printf("trimedges1 id %d round %2d size %u rdtsc: %lu\n", id, round, sumsize/sizeof(u32), rdtsc1-rdtsc0);
+    /* if (showall || (!id && !(round & (round+1))))
+      printf("trimedges1 id %d round %2d size %u rdtsc: %lu\n", id, round, sumsize/sizeof(u32), rdtsc1-rdtsc0); */
     tcounts[id] = sumsize/sizeof(u32);
   }
 
@@ -1068,7 +1068,7 @@ public:
       sumsize += TRIMONV ? dst.storev(buckets, vx) : dst.storeu(buckets, vx);
     }
     rdtsc1 = __rdtsc();
-    if (showall || !id) printf("trimrename1 id %d round %2d size %u rdtsc: %lu maxnnid %d\n", id, round, sumsize/sizeof(u32), rdtsc1-rdtsc0, maxnnid);
+    // if (showall || !id) printf("trimrename1 id %d round %2d size %u rdtsc: %lu maxnnid %d\n", id, round, sumsize/sizeof(u32), rdtsc1-rdtsc0, maxnnid);
     assert(maxnnid < NYZ2);
     tcounts[id] = sumsize/sizeof(u32);
   }
@@ -1090,7 +1090,7 @@ public:
     }
     void *etworker(void *vp);
     thread_ctx *threads = new thread_ctx[nthreads];
-    printf("Trim create threads: %d\n", nthreads);
+    // printf("Trim create threads: %d\n", nthreads);
     for (u32 t = 0; t < nthreads; t++) {
       threads[t].id = t;
       threads[t].et = this;
@@ -1257,7 +1257,7 @@ public:
 #endif
     const u32 u = cycleus[i] = (ux << YZBITS) | uyz;
     const u32 v = cyclevs[i] = (vx << YZBITS) | vyz;
-    printf(" (%x,%x)", 2*u, 2*v+1);
+    // printf(" (%x,%x)", 2*u, 2*v+1);
 #ifdef SAVEEDGES
     u32 *readedges = trimmer->buckets[ux][uyz >> ZBITS].edges, *endreadedges = readedges + NTRIMMEDZ;
     for (; readedges < endreadedges; readedges++) {
@@ -1274,14 +1274,14 @@ public:
   }
 
   void solution(const u32 *us, u32 nu, const u32 *vs, u32 nv) {
-    printf("Nodes");
+    // printf("Nodes");
     u32 ni = 0;
     recordedge(ni++, *us, *vs);
     while (nu--)
       recordedge(ni++, us[(nu+1)&~1], us[nu|1]); // u's in even position; v's in odd
     while (nv--)
       recordedge(ni++, vs[nv|1], vs[(nv+1)&~1]); // u's in odd position; v's in even
-    printf("\n");
+    // printf("\n");
     if (showcycle) {
 #ifndef SAVEEDGES
       void *matchworker(void *vp);
@@ -1345,7 +1345,7 @@ public:
               const u32 min = nu < nv ? nu : nv;
               for (nu -= min, nv -= min; us[nu] != vs[nv]; nu++, nv++) ;
               const u32 len = nu + nv + 1;
-              printf("%4d-cycle found\n", len);
+              // printf("%4d-cycle found\n", len);
               if (len == PROOFSIZE)
                 solution(us, nu, vs, nv);
             } else if (nu < nv) {
@@ -1362,7 +1362,7 @@ public:
       }
     }
     rdtsc1 = __rdtsc();
-    printf("findcycles rdtsc: %lu\n", rdtsc1-rdtsc0);
+    // printf("findcycles rdtsc: %lu\n", rdtsc1-rdtsc0);
   }
 
   int solve() {
@@ -1489,7 +1489,7 @@ public:
       }
     }
     rdtsc1 = __rdtsc();
-    if (trimmer->showall || !mc->id) printf("matchUnodes id %d rdtsc: %lu\n", mc->id, rdtsc1-rdtsc0);
+    // if (trimmer->showall || !mc->id) printf("matchUnodes id %d rdtsc: %lu\n", mc->id, rdtsc1-rdtsc0);
     pthread_exit(NULL);
     return 0;
   }
