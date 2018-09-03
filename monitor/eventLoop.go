@@ -114,7 +114,7 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 	if err := m.parseNewBlock(block); err != nil {
 		return err
 	}
-	log.Printf("fetch b #%s with %d Txs", blockNumberHex, len(block.Txs))
+	log.Printf("Fetch block #%s with %d Txs", blockNumberHex, len(block.Txs))
 	if err := m.verifyBlock(block); err != nil {
 		return err
 	}
@@ -132,57 +132,11 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	blockNumber, _ := strconv.ParseUint(block.Number[2:], 16, 64)
 	m.blocks[blockNumber] = block
 	m.parseBlock(block)
-	log.Printf("fetch b #%s with %d Txs", hash, len(block.Txs))
+	log.Printf("Fetch block #%s with %d Txs", hash, len(block.Txs))
 	if err := m.verifyBlock(block); err != nil {
 		return err
 	}
 	return nil
-}
-
-func parseInputData(rawInput string) (string, string, uint64, uint64, error) {
-	var meta types.InputMeta
-	input, err := hex.DecodeString(rawInput)
-	if err != nil {
-		return "", "", 0, 0, err
-	}
-	rlp.Decode(bytes.NewReader(input), &meta)
-	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
-}
-
-func parseModelData(rawInput string) (string, string, uint64, uint64, error) {
-	var meta types.ModelMeta
-	input, err := hex.DecodeString(rawInput)
-	if err != nil {
-		return "", "", 0, 0, err
-	}
-	rlp.Decode(bytes.NewReader(input), &meta)
-	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
-}
-
-func parseData(rawInput string, op string) (string, string, uint64, uint64, error) {
-	if op == opCreateInput {
-		return parseInputData(rawInput)
-	} else if op == opCreateModel {
-		return parseModelData(rawInput)
-	} else {
-		return "", "", 0, 0, ErrWrongOpcode
-	}
-}
-
-func extractFromTx(tx *map[string]string) (op, input, value, hash string) {
-	op = opCommon
-	input = (*tx)["input"]
-	value = (*tx)["value"]
-	hash = (*tx)["hash"]
-	if len(input) >= 6 {
-		op = input[:6]
-		input = input[6:]
-	} else if len(input) == 0 {
-		op = opNoInput
-	} else {
-		input = ""
-	}
-	return
 }
 
 func (m *Monitor) parseNewBlock(b *common.Block) error {
@@ -196,7 +150,7 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 				_AuthorAddress, _URI, _RawSize, _BlockNum, _ := parseData(input, op)
 				m.dl.NewTorrent <- _URI
 
-				var receipt common.TransactionReceipt
+				var receipt common.Receipt
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
 					return err
 				}
@@ -226,10 +180,10 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 					BytesRequested: bytesRequested,
 				}
 			} else if input == "" && value == "0x0" {
-				ContractAddress := tx["to"]
-				if file, ok := m.files[ContractAddress]; ok {
+				addr := tx["to"]
+				if file, ok := m.files[addr]; ok {
 					var _remainingSize string
-					if err := m.cl.Call(&_remainingSize, "eth_getUpload", ContractAddress, "latest"); err != nil {
+					if err := m.cl.Call(&_remainingSize, "eth_getUpload", addr, "latest"); err != nil {
 						return err
 					}
 					remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
@@ -261,7 +215,7 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 				_AuthorAddress, _URI, _RawSize, _BlockNum, _ := parseData(input, op)
 				m.dl.NewTorrent <- _URI
 
-				var receipt common.TransactionReceipt
+				var receipt common.Receipt
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
 					return err
 				}
@@ -347,4 +301,50 @@ func (m *Monitor) Start() error {
 			timer.Reset(time.Second * 2)
 		}
 	}
+}
+
+func parseInputData(rawInput string) (string, string, uint64, uint64, error) {
+	var meta types.InputMeta
+	input, err := hex.DecodeString(rawInput)
+	if err != nil {
+		return "", "", 0, 0, err
+	}
+	rlp.Decode(bytes.NewReader(input), &meta)
+	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
+}
+
+func parseModelData(rawInput string) (string, string, uint64, uint64, error) {
+	var meta types.ModelMeta
+	input, err := hex.DecodeString(rawInput)
+	if err != nil {
+		return "", "", 0, 0, err
+	}
+	rlp.Decode(bytes.NewReader(input), &meta)
+	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
+}
+
+func parseData(rawInput string, op string) (string, string, uint64, uint64, error) {
+	if op == opCreateInput {
+		return parseInputData(rawInput)
+	} else if op == opCreateModel {
+		return parseModelData(rawInput)
+	} else {
+		return "", "", 0, 0, ErrWrongOpcode
+	}
+}
+
+func extractFromTx(tx *map[string]string) (op, input, value, hash string) {
+	op = opCommon
+	input = (*tx)["input"]
+	value = (*tx)["value"]
+	hash = (*tx)["hash"]
+	if len(input) >= 6 {
+		op = input[:6]
+		input = input[6:]
+	} else if len(input) == 0 {
+		op = opNoInput
+	} else {
+		input = ""
+	}
+	return
 }

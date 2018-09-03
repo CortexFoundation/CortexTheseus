@@ -25,8 +25,9 @@ const (
 	newTorrentChanBuffer            = 32
 	updateTorrentChanBuffer         = 32
 	expansionFactor         float64 = 1.5
-	torrentStoped                   = 0
-	torrentRunning                  = 1
+	torrentPending                  = 0 // Pending for gotInfo
+	torrentPaused                   = 1
+	torrentRunning                  = 2
 )
 
 // Torrent ...
@@ -37,6 +38,37 @@ type Torrent struct {
 	bytesCompleted  int64
 	bytesMissing    int64
 	status          int64
+}
+
+// Pause ...
+func (t *Torrent) Pause() {
+	if t.status != torrentPaused {
+		t.status = torrentPaused
+		t.Drop()
+	}
+}
+
+// Paused ...
+func (t *Torrent) Paused() bool {
+	return t.status == torrentPaused
+}
+
+// Run ...
+func (t *Torrent) Run() {
+	if t.status != torrentRunning {
+		t.status = torrentRunning
+		t.DownloadAll()
+	}
+}
+
+// Running ...
+func (t *Torrent) Running() bool {
+	return t.status == torrentRunning
+}
+
+// Pending ...
+func (t *Torrent) Pending() bool {
+	return t.status == torrentPending
 }
 
 // TorrentManager ...
@@ -98,14 +130,12 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		int64(defaultBytesLimitation * expansionFactor),
 		0,
 		0,
-		torrentStoped,
+		torrentPending,
 	}
 	tm.mu.Unlock()
-	log.Println(ih, "wait for gotInfo")
-
+	log.Println(ih, "waiting for gotInfo")
 	<-t.GotInfo()
-	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
-	tm.torrents[ih].bytesMissing = t.BytesMissing()
+	tm.torrents[ih].Run()
 }
 
 // AddMagnet ...
@@ -146,33 +176,33 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 		int64(defaultBytesLimitation * expansionFactor),
 		0,
 		0,
-		torrentStoped,
+		torrentPending,
 	}
 	tm.mu.Unlock()
-	log.Println(ih, "wait for gotInfo")
+	log.Println(ih, "waiting for gotInfo")
 
 	<-t.GotInfo()
+	tm.torrents[ih].Run()
 
 	f, _ := os.Create(torrentPath)
 	torrent := t.Metainfo().Encoding
 	io.WriteString(f, torrent)
-	tm.torrents[ih].bytesCompleted = t.BytesCompleted()
-	tm.torrents[ih].bytesMissing = t.BytesMissing()
+	defer f.Close()
 }
 
 // UpdateMagnet ...
 func (tm *TorrentManager) UpdateMagnet(uri string, BytesRequested int64) {
 	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
 	if err != nil {
-		log.Printf("error getting magnet: %s", err)
+		log.Printf("error while parsing magnet uri: %s", err)
 	}
 	ih := spec.InfoHash.HexString()
 	log.Println(ih, "update torrent from magnet uri.")
 
-	if torrent, ok := tm.torrents[ih]; ok {
-		torrent.bytesRequested = BytesRequested
-		if torrent.bytesRequested > torrent.bytesLimitation {
-			torrent.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
+	if t, ok := tm.torrents[ih]; ok {
+		t.bytesRequested = BytesRequested
+		if t.bytesRequested > t.bytesLimitation {
+			t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
 		}
 	}
 }
@@ -245,20 +275,13 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 	go func() {
 		for {
 			for ih, t := range TorrentManager.torrents {
-				log.Println(ih, t)
-				if !(t.bytesCompleted == 0 && t.bytesMissing == 0) {
+				if !t.Pending() {
 					t.bytesCompleted = t.BytesCompleted()
 					t.bytesMissing = t.BytesMissing()
 					if t.bytesCompleted >= t.bytesLimitation {
-						if t.status == torrentRunning {
-							t.Drop()
-							log.Printf("Torrent %s paused", ih)
-						}
+						t.Pause()
 					} else if t.bytesCompleted < t.bytesLimitation {
-						if t.status == torrentStoped {
-							t.DownloadAll()
-							log.Printf("Torrent %s start", ih)
-						}
+						t.Run()
 					}
 					log.Printf("Torrent %s: %d/%d, limit=%d", ih, t.bytesCompleted, t.bytesCompleted+t.bytesMissing, t.bytesLimitation)
 				}

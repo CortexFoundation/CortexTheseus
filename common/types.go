@@ -8,8 +8,8 @@ type Block struct {
 	Txs        []map[string]string `json:"Transactions"`
 }
 
-// TransactionReceipt ...
-type TransactionReceipt struct {
+// Receipt ...
+type Receipt struct {
 	ContractAddr string `json:"ContractAddr"`
 	TxHash       string `json:"TransactionHash"`
 }
@@ -25,8 +25,14 @@ type FileMeta struct {
 	BlockNum     uint64
 }
 
+// File
+type FileInfo struct {
+	FileMeta
+}
+
 // FileStorage ...
 type FileStorage struct {
+	files []*FileMeta
 }
 
 // FlowControlMeta ...
