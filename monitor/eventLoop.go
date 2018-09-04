@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"../common"
+	"../types"
 	download "../manager"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
+	metaTypes "github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -30,18 +30,18 @@ const (
 	defaultTimerInterval = 2
 	fetchBlockLogStep    = 500
 	minBlockNum          = 36000
-	opCommon             = "0x0000"
-	opCreateModel        = "0x0001"
-	opCreateInput        = "0x0002"
-	opNoInput            = "0x0003"
+	opCommon             = 0
+	opCreateModel        = 1
+	opCreateInput        = 2
+	opNoInput            = 3
 )
 
 // Monitor ...
 type Monitor struct {
 	cl                *rpc.Client
 	dl                *download.TorrentManager
-	files             map[string]*common.FileMeta
-	blocks            map[uint64]*common.Block
+	files             map[string]*types.FileMeta
+	blocks            map[uint64]*types.Block
 	latestBlockNumber uint64
 }
 
@@ -50,8 +50,8 @@ func NewMonitor() *Monitor {
 	m := &Monitor{
 		nil,
 		nil,
-		make(map[string]*common.FileMeta),
-		make(map[uint64]*common.Block),
+		make(map[string]*types.FileMeta),
+		make(map[uint64]*types.Block),
 		0,
 	}
 	return m
@@ -78,7 +78,7 @@ func (m *Monitor) SetDownloader(dl *download.TorrentManager) error {
 	return nil
 }
 
-func (m *Monitor) verifyBlock(b *common.Block) error {
+func (m *Monitor) verifyBlock(b *types.Block) error {
 	return nil
 }
 
@@ -86,7 +86,7 @@ func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
 	}
-	block := &common.Block{}
+	block := &types.Block{}
 	m.blocks[blockNumber] = block
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 	if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
@@ -105,7 +105,7 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
 	}
-	block := &common.Block{}
+	block := &types.Block{}
 	m.blocks[blockNumber] = block
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 	if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
@@ -125,7 +125,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
 	}
-	block := &common.Block{}
+	block := &types.Block{}
 	if err := m.cl.Call(block, "eth_getBlockByHash", hash, true); err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	return nil
 }
 
-func (m *Monitor) parseNewBlock(b *common.Block) error {
+func (m *Monitor) parseNewBlock(b *types.Block) error {
 	blockNumber := b.Number
 	m.blocks[blockNumber] = b
 	if len(b.Txs) > 0 {
@@ -150,7 +150,7 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 				AuthorAddress, URI, RawSize, BlockNum, _ := parseData(input, op)
 				m.dl.NewTorrent <- URI
 
-				var receipt common.Receipt
+				var receipt types.Receipt
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
 					return err
 				}
@@ -160,7 +160,7 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 					return err
 				}
 
-				file := &common.FileMeta{
+				file := &types.FileMeta{
 					TxHash:       hash,
 					ContractAddr: receipt.ContractAddr,
 					AuthorAddr:   AuthorAddress,
@@ -175,7 +175,7 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 				if file.RawSize > remainingSize {
 					bytesRequested = file.RawSize - remainingSize
 				}
-				m.dl.UpdateTorrent <- common.FlowControlMeta{
+				m.dl.UpdateTorrent <- types.FlowControlMeta{
 					URI:            file.URI,
 					BytesRequested: bytesRequested,
 				}
@@ -192,7 +192,7 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 					if file.RawSize > remainingSize {
 						bytesRequested = file.RawSize - remainingSize
 					}
-					m.dl.UpdateTorrent <- common.FlowControlMeta{
+					m.dl.UpdateTorrent <- types.FlowControlMeta{
 						URI:            file.URI,
 						BytesRequested: bytesRequested,
 					}
@@ -204,7 +204,7 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 }
 
 //
-func (m *Monitor) parseBlock(b *common.Block) error {
+func (m *Monitor) parseBlock(b *types.Block) error {
 	blockNumber := b.Number
 	m.blocks[blockNumber] = b
 	if len(b.Txs) > 0 {
@@ -216,7 +216,7 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 				AuthorAddress, URI, RawSize, BlockNum, _ := parseData(input, op)
 				m.dl.NewTorrent <- URI
 
-				var receipt common.Receipt
+				var receipt types.Receipt
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
 					return err
 				}
@@ -225,7 +225,7 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr, "latest"); err != nil {
 					return err
 				}
-				file := &common.FileMeta{
+				file := &types.FileMeta{
 					TxHash:       hash,
 					ContractAddr: receipt.ContractAddr,
 					AuthorAddr:   AuthorAddress,
@@ -240,7 +240,7 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 				if file.RawSize > remainingSize {
 					bytesRequested = file.RawSize - remainingSize
 				}
-				m.dl.UpdateTorrent <- common.FlowControlMeta{
+				m.dl.UpdateTorrent <- types.FlowControlMeta{
 					URI:            file.URI,
 					BytesRequested: bytesRequested,
 				}
@@ -269,7 +269,7 @@ func (m *Monitor) initialCheck() {
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
-	b := &common.Block{}
+	b := &types.Block{}
 	if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
 		log.Println(err)
 		return err
@@ -283,7 +283,7 @@ func (m *Monitor) Start() error {
 		select {
 		case <-timer.C:
 			// Try to get the latest b
-			b := &common.Block{}
+			b := &types.Block{}
 			if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
 				return err
 			}
@@ -305,7 +305,7 @@ func (m *Monitor) Start() error {
 }
 
 func parseInputData(rawInput string) (string, string, uint64, uint64, error) {
-	var meta types.InputMeta
+	var meta metaTypes.InputMeta
 	input, err := hex.DecodeString(rawInput)
 	if err != nil {
 		return "", "", 0, 0, err
@@ -315,7 +315,7 @@ func parseInputData(rawInput string) (string, string, uint64, uint64, error) {
 }
 
 func parseModelData(rawInput string) (string, string, uint64, uint64, error) {
-	var meta types.ModelMeta
+	var meta metaTypes.ModelMeta
 	input, err := hex.DecodeString(rawInput)
 	if err != nil {
 		return "", "", 0, 0, err
@@ -324,7 +324,7 @@ func parseModelData(rawInput string) (string, string, uint64, uint64, error) {
 	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
 }
 
-func parseData(rawInput string, op string) (string, string, uint64, uint64, error) {
+func parseData(rawInput string, op int) (string, string, uint64, uint64, error) {
 	if op == opCreateInput {
 		return parseInputData(rawInput)
 	} else if op == opCreateModel {
@@ -334,13 +334,13 @@ func parseData(rawInput string, op string) (string, string, uint64, uint64, erro
 	}
 }
 
-func extractFromTx(tx *common.Transaction) (op, input, value, hash string) {
+func extractFromTx(tx *types.Transaction) (op int, input, value, hash string) {
 	op = opCommon
 	input = string(tx.Payload)
 	value = tx.Amount.String()
 	hash = tx.Hash.String()
-	if len(input) >= 6 {
-		op = input[:6]
+	if len(tx.Payload) >= 2 {
+		op = (int(tx.Payload[0] << 8)) + int(tx.Payload[1])
 		input = input[6:]
 	} else if len(input) == 0 {
 		op = opNoInput

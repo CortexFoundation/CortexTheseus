@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"../common"
+	"../types"
 
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"
@@ -265,7 +265,7 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 				} else {
 				}
 			case msg := <-TorrentManager.UpdateTorrent:
-				meta := msg.(common.FlowControlMeta)
+				meta := msg.(types.FlowControlMeta)
 				if isMagnetURI(meta.URI) {
 					go TorrentManager.UpdateMagnet(meta.URI, int64(meta.BytesRequested))
 				}

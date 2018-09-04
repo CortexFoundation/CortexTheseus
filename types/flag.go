@@ -1,4 +1,4 @@
-package common
+package types
 
 // Flag ...
 type Flag struct {
