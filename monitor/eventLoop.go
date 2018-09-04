@@ -23,7 +23,7 @@ var (
 	ErrGetLatestBlock    = errors.New("get latest block failed")
 	ErrNoRPCClient       = errors.New("no rpc client")
 	ErrNoDownloadManager = errors.New("no download manager")
-	ErrWrongOpcode       = errors.New("unexcepted opcode")
+	ErrWrongOpCode       = errors.New("unexpected opCode")
 )
 
 const (
@@ -129,7 +129,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	if err := m.cl.Call(block, "eth_getBlockByHash", hash, true); err != nil {
 		return err
 	}
-	blockNumber, _ := strconv.ParseUint(block.Number[2:], 16, 64)
+	blockNumber := block.Number
 	m.blocks[blockNumber] = block
 	m.parseBlock(block)
 	log.Printf("Fetch block #%s with %d Txs", hash, len(block.Txs))
@@ -140,15 +140,15 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 }
 
 func (m *Monitor) parseNewBlock(b *common.Block) error {
-	blockNumber, _ := strconv.ParseUint(b.Number[2:], 16, 64)
+	blockNumber := b.Number
 	m.blocks[blockNumber] = b
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
 			op, input, value, hash := extractFromTx(&tx)
 
 			if op == opCreateInput || op == opCreateModel {
-				_AuthorAddress, _URI, _RawSize, _BlockNum, _ := parseData(input, op)
-				m.dl.NewTorrent <- _URI
+				AuthorAddress, URI, RawSize, BlockNum, _ := parseData(input, op)
+				m.dl.NewTorrent <- URI
 
 				var receipt common.Receipt
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
@@ -163,10 +163,10 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 				file := &common.FileMeta{
 					TxHash:       hash,
 					ContractAddr: receipt.ContractAddr,
-					AuthorAddr:   _AuthorAddress,
-					URI:          _URI,
-					RawSize:      _RawSize,
-					BlockNum:     _BlockNum,
+					AuthorAddr:   AuthorAddress,
+					URI:          URI,
+					RawSize:      RawSize,
+					BlockNum:     BlockNum,
 				}
 				m.files[receipt.ContractAddr] = file
 				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
@@ -180,7 +180,7 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 					BytesRequested: bytesRequested,
 				}
 			} else if input == "" && value == "0x0" {
-				addr := tx["to"]
+				addr := tx.Recipient.String()
 				if file, ok := m.files[addr]; ok {
 					var _remainingSize string
 					if err := m.cl.Call(&_remainingSize, "eth_getUpload", addr, "latest"); err != nil {
@@ -205,15 +205,16 @@ func (m *Monitor) parseNewBlock(b *common.Block) error {
 
 //
 func (m *Monitor) parseBlock(b *common.Block) error {
-	blockNumber, _ := strconv.ParseUint(b.Number[2:], 16, 64)
+	blockNumber := b.Number
 	m.blocks[blockNumber] = b
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
+			log.Println("tx", tx)
 			op, input, _, hash := extractFromTx(&tx)
 
 			if op == opCreateInput || op == opCreateModel {
-				_AuthorAddress, _URI, _RawSize, _BlockNum, _ := parseData(input, op)
-				m.dl.NewTorrent <- _URI
+				AuthorAddress, URI, RawSize, BlockNum, _ := parseData(input, op)
+				m.dl.NewTorrent <- URI
 
 				var receipt common.Receipt
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
@@ -227,10 +228,10 @@ func (m *Monitor) parseBlock(b *common.Block) error {
 				file := &common.FileMeta{
 					TxHash:       hash,
 					ContractAddr: receipt.ContractAddr,
-					AuthorAddr:   _AuthorAddress,
-					URI:          _URI,
-					RawSize:      _RawSize,
-					BlockNum:     _BlockNum,
+					AuthorAddr:   AuthorAddress,
+					URI:          URI,
+					RawSize:      RawSize,
+					BlockNum:     BlockNum,
 				}
 				m.files[receipt.ContractAddr] = file
 				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
@@ -273,7 +274,7 @@ func (m *Monitor) Start() error {
 		log.Println(err)
 		return err
 	}
-	m.latestBlockNumber, _ = strconv.ParseUint(b.Number[2:], 16, 64)
+	m.latestBlockNumber = b.Number
 	m.parseNewBlock(b)
 	go m.initialCheck()
 
@@ -286,7 +287,7 @@ func (m *Monitor) Start() error {
 			if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
 				return err
 			}
-			bnum, _ := strconv.ParseUint(b.Number[2:], 16, 64)
+			bnum := b.Number
 			if bnum > m.latestBlockNumber {
 				m.latestBlockNumber = bnum
 				m.parseBlock(b)
@@ -329,15 +330,15 @@ func parseData(rawInput string, op string) (string, string, uint64, uint64, erro
 	} else if op == opCreateModel {
 		return parseModelData(rawInput)
 	} else {
-		return "", "", 0, 0, ErrWrongOpcode
+		return "", "", 0, 0, ErrWrongOpCode
 	}
 }
 
-func extractFromTx(tx *map[string]string) (op, input, value, hash string) {
+func extractFromTx(tx *common.Transaction) (op, input, value, hash string) {
 	op = opCommon
-	input = (*tx)["input"]
-	value = (*tx)["value"]
-	hash = (*tx)["hash"]
+	input = string(tx.Payload)
+	value = tx.Amount.String()
+	hash = tx.Hash.String()
 	if len(input) >= 6 {
 		op = input[:6]
 		input = input[6:]
