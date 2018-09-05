@@ -479,6 +479,9 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		return errInvalidDifficulty
 	}
 
+	// Init cuckoo-cycle algorithm once
+	cuckoo.InitOnce()
+
 	var (
 		result = header.Solution
 		nonce  = header.Nonce.Uint64()
