@@ -966,6 +966,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		// Split same-difficulty blocks by number, then at random
 		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		//whether should choose the smaller hash
 		sum_gas := currentBlock.GasUsed() + block.GasUsed()
 		weight := 0.5
 		if sum_gas > 0 {
