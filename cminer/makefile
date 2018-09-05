@@ -34,7 +34,7 @@ INCLUDES = minerBot.h
 OBJ = main.o minerBot.o
 OBJ_LIB = minerBot.o
 
-all: cuckoo main libgominer.a
+all: cuckoo libgominer.a
 
 # ${OBJ}: ${INCLUDES}
 # ${OBJ_LIB}: ${INCLUDES}
