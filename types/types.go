@@ -31,8 +31,8 @@ type Transaction struct {
 	Payload   []byte          `json:"input"    gencodec:"required"`
 	From      *common.Address `json:"from"     gencodec:"required"`
 	Recipient *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
-	Hash      *common.Hash    `json:"hash"     rlp:"-"`
-	Receipt   *TxReceipt      `json:"receipt,omitempty"  gencodec:"required"`
+	Hash      *common.Hash    `json:"hash"     gencodec:"required"`
+	Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 }
 
 // Op ...
