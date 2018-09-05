@@ -49,8 +49,11 @@ cuckoo:
 main: ${OBJ}
 	g++ -o main -g ${OBJ} -I${IDIR} ${LDFLAG} ${LDLIBS}
 
-libgominer.a: ${OBJ_LIB}
-	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.a
+libgominer.so: ${OBJ_LIB}
+	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.so
+
+libgominer.a: $(OBJ_LIB)
+	ar -rc libgominer.a $(OBJ_LIB) cuckoo/*.o
 
 clean : cleanlib
 	rm -f main *.o _temp_* util/*.o cuckoo/*.o

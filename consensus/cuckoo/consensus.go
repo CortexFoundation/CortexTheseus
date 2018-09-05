@@ -16,12 +16,6 @@
 
 package cuckoo
 
-/*
-#cgo LDFLAGS:  -lstdc++ -lgominer
-#include "gominer.h"
-*/
-import "C"
-import "unsafe"
 import (
 	"errors"
 	"fmt"
@@ -484,6 +478,9 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
 	}
+
+	// Init cuckoo-cycle algorithm once
+	cuckoo.InitOnce()
 
 	var (
 		result = header.Solution
