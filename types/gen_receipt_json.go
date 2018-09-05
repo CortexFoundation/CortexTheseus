@@ -9,7 +9,7 @@ import (
 )
 
 // MarshalJSON marshals as JSON.
-func (r Receipt) MarshalJSON() ([]byte, error) {
+func (r TxReceipt) MarshalJSON() ([]byte, error) {
 	type Receipt struct {
 		ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
 		TxHash       *common.Hash    `json:"TransactionHash"  gencodec:"required"`
@@ -21,7 +21,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON unmarshals from JSON.
-func (r *Receipt) UnmarshalJSON(input []byte) error {
+func (r *TxReceipt) UnmarshalJSON(input []byte) error {
 	type Receipt struct {
 		ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
 		TxHash       *common.Hash    `json:"TransactionHash"  gencodec:"required"`

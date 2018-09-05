@@ -32,6 +32,7 @@ type Transaction struct {
 	From      *common.Address `json:"from"     gencodec:"required"`
 	Recipient *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
 	Hash      *common.Hash    `json:"hash"     rlp:"-"`
+	Receipt   *TxReceipt      `json:"receipt,omitempty"  gencodec:"required"`
 }
 
 // Op ...
@@ -129,8 +130,8 @@ type blockMarshaling struct {
 	Number hexutil.Uint64
 }
 
-// Receipt ...
-type Receipt struct {
+// TxReceipt ...
+type TxReceipt struct {
 	// Contract Address
 	ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
 	// Transaction Hash

@@ -105,7 +105,7 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 	if err := m.parseNewBlock(block); err != nil {
 		return err
 	}
-	log.Printf("Fetch block #%s with %d Txs", blockNumberHex, len(block.Txs))
+	log.Printf("fetch block #%s with %d Txs", blockNumberHex, len(block.Txs))
 	if err := m.verifyBlock(block); err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	blockNumber := block.Number
 	m.blocks[blockNumber] = block
 	m.parseBlock(block)
-	log.Printf("Fetch block #%s with %d Txs", hash, len(block.Txs))
+	log.Printf("fetch block #%s with %d Txs", hash, len(block.Txs))
 	if err := m.verifyBlock(block); err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 				info := types.NewFileInfo(meta)
 				info.TxHash = tx.Hash
 
-				var receipt types.Receipt
+				var receipt types.TxReceipt
 				log.Println(tx.Hash.String())
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 					return err
@@ -204,7 +204,7 @@ func (m *Monitor) parseBlock(b *types.Block) error {
 				info := types.NewFileInfo(meta)
 				info.TxHash = tx.Hash
 
-				var receipt types.Receipt
+				var receipt types.TxReceipt
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 					return err
 				} else if receipt.ContractAddr == nil || receipt.TxHash == nil {
