@@ -22,8 +22,8 @@ func (t Transaction) MarshalJSON() ([]byte, error) {
 		Payload   hexutil.Bytes   `json:"input"    gencodec:"required"`
 		From      *common.Address `json:"from"     gencodec:"required"`
 		Recipient *common.Address `json:"to"       rlp:"nil"`
-		Hash      *common.Hash    `json:"hash"     rlp:"-"`
-		Receipt   *TxReceipt      `json:"receipt,omitempty"  gencodec:"required"`
+		Hash      *common.Hash    `json:"hash"     gencodec:"required"`
+		Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 	}
 	var enc Transaction
 	enc.Price = (*hexutil.Big)(t.Price)
@@ -46,8 +46,8 @@ func (t *Transaction) UnmarshalJSON(input []byte) error {
 		Payload   *hexutil.Bytes  `json:"input"    gencodec:"required"`
 		From      *common.Address `json:"from"     gencodec:"required"`
 		Recipient *common.Address `json:"to"       rlp:"nil"`
-		Hash      *common.Hash    `json:"hash"     rlp:"-"`
-		Receipt   *TxReceipt      `json:"receipt,omitempty"  gencodec:"required"`
+		Hash      *common.Hash    `json:"hash"     gencodec:"required"`
+		Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 	}
 	var dec Transaction
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -76,12 +76,12 @@ func (t *Transaction) UnmarshalJSON(input []byte) error {
 	if dec.Recipient != nil {
 		t.Recipient = dec.Recipient
 	}
-	if dec.Hash != nil {
-		t.Hash = dec.Hash
+	if dec.Hash == nil {
+		return errors.New("missing required field 'hash' for Transaction")
 	}
-	if dec.Receipt == nil {
-		return errors.New("missing required field 'receipt' for Transaction")
+	t.Hash = dec.Hash
+	if dec.Receipt != nil {
+		t.Receipt = dec.Receipt
 	}
-	t.Receipt = dec.Receipt
 	return nil
 }
