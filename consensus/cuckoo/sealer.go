@@ -176,6 +176,8 @@ func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution types.B
 }
 
 func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan struct{}, found chan *types.Block) {
+	cuckoo.InitOnce()
+
 	var (
 		header = block.Header()
 		hash   = cuckoo.SealHash(header).Bytes()
