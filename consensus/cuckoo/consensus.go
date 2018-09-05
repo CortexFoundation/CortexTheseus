@@ -492,24 +492,10 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		hash        = cuckoo.SealHash(header).Bytes()
 		result_hash = header.SolutionHash
 	)
-	// r := C.CuckooVerify(
-	// 	(*C.char)(unsafe.Pointer(&hash[0])),
-	// 	C.uint(len(hash)),
-	// 	C.uint(uint32(nonce)),
-	// 	(*C.uint)(unsafe.Pointer(&result[0])))
 
 	diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
-	// fmt.Println("diff", diff)
-	cuckoo.cMutex.Lock()
-	r := C.CuckooVerify(
-		(*C.char)(unsafe.Pointer(&hash[0])),
-		C.uint(len(hash)),
-		C.uint(uint32(nonce)),
-		(*C.uint)(unsafe.Pointer(&result[0])),
-		(*C.uchar)(unsafe.Pointer(&diff[0])),
-		(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-	cuckoo.cMutex.Unlock()
-	if byte(r) == 0 {
+	r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
+	if r == 0 {
 		return errInvalidPoW
 	}
 

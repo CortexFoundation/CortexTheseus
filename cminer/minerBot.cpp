@@ -1,14 +1,16 @@
-#include "minerBot.h"
-#include "gominer.h"
 
 #include <string.h>
 #include <pthread.h>
+#include "minerBot.h"
+#include "gominer.h"
+#include "cuckoo/cuckoo.h"
+
 
 MinerBot::MinerBot(unsigned int nthread)
 {
     if (pthread_mutex_init(&mutex, NULL) != 0) {
 		printf("ERROR init with mutex");
-		exit(0);
+		exit(-1);
 	}
     cs.setNthreads(nthread);
     cs.initSolver();
@@ -137,6 +139,33 @@ unsigned char CuckooVerify(char *header, uint32_t header_len, uint32_t nonce, ui
     uint bot_idx = getMinerBotInstance();
     uint8_t res = botPool[bot_idx]->CuckooVerify(header, header_len, nonce, result, target, hash);
     CuckooRelease(bot_idx);
+    return res;
+}
+int  CuckooVerifyHeaderNonceAndSolutions(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result)
+{
+#ifndef HEADERLEN
+#define HEADERLEN 80
+#define HEADERLEN_TEMP_DEFINED
+#endif
+    char headernonce[HEADERLEN];
+    memcpy(headernonce, header, header_len);
+    memset(headernonce + header_len, 0, sizeof(headernonce) - header_len);
+    ((u32 *)headernonce)[header_len/sizeof(u32)-1] = htole32(nonce);
+    siphash_keys key;
+    setheader(header, header_len, &key);
+    int res = verify(result, &key);
+    return res;
+#ifdef HEADERLEN_TEMP_DEFINED
+#undef HEADERLEN_TEMP_DEFINED
+#undef HEADERLEN
+#endif
+}
+
+int CuckooVerifySolutions(char *header, uint32_t header_len, uint* result)
+{
+    siphash_keys key;
+    setheader(header, header_len, &key);
+    int res = verify(result, &key);
     return res;
 }
 
