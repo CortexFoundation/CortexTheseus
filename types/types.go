@@ -164,29 +164,3 @@ func (m* FileMeta) DisplayName() (string) {
 		return dn
 	}
 }
-
-// FileInfo ...
-type FileInfo struct {
-	Meta *FileMeta
-	// Transaction hash
-	TxHash *common.Hash
-	// Contract Address
-	ContractAddr *common.Address
-	LeftSize     uint64
-}
-
-// NewFileInfo ...
-func NewFileInfo(Meta *FileMeta) *FileInfo {
-	return &FileInfo{Meta, nil, nil, Meta.RawSize}
-}
-
-// FileStorage ...
-type FileStorage struct {
-	files []*FileInfo
-}
-
-// FlowControlMeta ...
-type FlowControlMeta struct {
-	URI            string
-	BytesRequested uint64
-}
