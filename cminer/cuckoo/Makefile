@@ -15,7 +15,7 @@ LIBS ?= -L. -lblake2b
 
 #all : libblake2b.so test example lean28stx8 mean28x8 lean30stx8 mean30x8 lean32stx8 mean32x8 verify28 verify30 verify32 demo30x8
 
-all : libblake2b.a libblake2b.so testCS libCuckoo.a
+all : libblake2b.a libCuckoo.a
 
 #### DCM
 
@@ -29,7 +29,7 @@ testCS: $(INCLS) CuckooSolver.o
 	$(GPP) -o testCS -mavx2 -L./ CuckooSolver.o cuckooSolverTest.cpp $(LIBS)
 
 CuckooSolver.o: $(INCLS) CuckooSolver.cpp
-	$(GPP) -c -mavx2 -fPIC CuckooSolver.cpp $(LIBS)
+	$(GPP) -c -mavx2 -fPIC CuckooSolver.cpp
 
 libCuckoo.a: CuckooSolver.o
 	ar rcs libCuckoo.a CuckooSolver.o
