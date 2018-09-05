@@ -1,8 +1,6 @@
 package monitor
 
 import (
-	"bytes"
-	"encoding/hex"
 	"errors"
 	"log"
 	"strconv"
@@ -10,9 +8,7 @@ import (
 
 	download "../manager"
 	"../types"
-	metaTypes "github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 //------------------------------------------------------------------------------
@@ -23,24 +19,19 @@ var (
 	ErrGetLatestBlock    = errors.New("get latest block failed")
 	ErrNoRPCClient       = errors.New("no rpc client")
 	ErrNoDownloadManager = errors.New("no download manager")
-	ErrWrongOpCode       = errors.New("unexpected opCode")
 )
 
 const (
 	defaultTimerInterval = 2
 	fetchBlockLogStep    = 500
 	minBlockNum          = 36000
-	opCommon             = 0
-	opCreateModel        = 1
-	opCreateInput        = 2
-	opNoInput            = 3
 )
 
 // Monitor ...
 type Monitor struct {
 	cl                *rpc.Client
 	dl                *download.TorrentManager
-	files             map[string]*types.FileMeta
+	files             map[string]*types.FileInfo
 	blocks            map[uint64]*types.Block
 	latestBlockNumber uint64
 }
@@ -50,7 +41,7 @@ func NewMonitor() *Monitor {
 	m := &Monitor{
 		nil,
 		nil,
-		make(map[string]*types.FileMeta),
+		make(map[string]*types.FileInfo),
 		make(map[uint64]*types.Block),
 		0,
 	}
@@ -144,59 +135,59 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 	m.blocks[blockNumber] = b
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
-			op, input, value, hash := extractFromTx(&tx)
+			if meta := tx.Parse(); meta != nil {
+				m.dl.NewTorrent <- meta.URI
 
-			if op == opCreateInput || op == opCreateModel {
-				AuthorAddress, URI, RawSize, BlockNum, _ := parseData(input, op)
-				m.dl.NewTorrent <- URI
+				info := types.NewFileInfo(meta)
+				info.TxHash = tx.Hash
 
 				var receipt types.Receipt
-				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
+				// TODO: Fix string format
+				log.Println(tx.Hash.String())
+				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 					return err
 				}
 
 				var _remainingSize string
-				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr, "latest"); err != nil {
+				// TODO: Fix string format
+				log.Println(receipt.ContractAddr.String())
+				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 					return err
 				}
 
-				file := &types.FileMeta{
-					TxHash:       hash,
-					ContractAddr: receipt.ContractAddr,
-					AuthorAddr:   AuthorAddress,
-					URI:          URI,
-					RawSize:      RawSize,
-					BlockNum:     BlockNum,
-				}
-				m.files[receipt.ContractAddr] = file
 				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
-
+				info.LeftSize = remainingSize
+				info.ContractAddr = receipt.ContractAddr
 				var bytesRequested uint64
-				if file.RawSize > remainingSize {
-					bytesRequested = file.RawSize - remainingSize
+				if meta.RawSize > remainingSize {
+					bytesRequested = meta.RawSize - remainingSize
 				}
 				m.dl.UpdateTorrent <- types.FlowControlMeta{
-					URI:            file.URI,
+					URI:            meta.URI,
 					BytesRequested: bytesRequested,
 				}
-			} else if input == "" && value == "0x0" {
-				addr := tx.Recipient.String()
-				if file, ok := m.files[addr]; ok {
-					var _remainingSize string
-					if err := m.cl.Call(&_remainingSize, "eth_getUpload", addr, "latest"); err != nil {
-						return err
-					}
-					remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+			} else if tx.IsFlowControl() {
+				/*
 
-					var bytesRequested uint64
-					if file.RawSize > remainingSize {
-						bytesRequested = file.RawSize - remainingSize
+						addr := tx.Recipient.String()
+						if file, ok := m.files[addr]; ok {
+							var _remainingSize string
+							if err := m.cl.Call(&_remainingSize, "eth_getUpload", addr, "latest"); err != nil {
+								return err
+							}
+							remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+
+							var bytesRequested uint64
+							if file.RawSize > remainingSize {
+								bytesRequested = file.RawSize - remainingSize
+							}
+							m.dl.UpdateTorrent <- types.FlowControlMeta{
+								URI:            file.URI,
+								BytesRequested: bytesRequested,
+							}
+						}
 					}
-					m.dl.UpdateTorrent <- types.FlowControlMeta{
-						URI:            file.URI,
-						BytesRequested: bytesRequested,
-					}
-				}
+				*/
 			}
 		}
 	}
@@ -209,39 +200,33 @@ func (m *Monitor) parseBlock(b *types.Block) error {
 	m.blocks[blockNumber] = b
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
-			log.Println("tx", tx)
-			op, input, _, hash := extractFromTx(&tx)
+			if meta := tx.Parse(); meta != nil {
+				m.dl.NewTorrent <- meta.URI
 
-			if op == opCreateInput || op == opCreateModel {
-				AuthorAddress, URI, RawSize, BlockNum, _ := parseData(input, op)
-				m.dl.NewTorrent <- URI
+				info := types.NewFileInfo(meta)
+				info.TxHash = tx.Hash
 
 				var receipt types.Receipt
-				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", hash); err != nil {
+				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 					return err
+				} else if receipt.ContractAddr == nil || receipt.TxHash == nil {
+					continue
 				}
 
 				var _remainingSize string
-				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr, "latest"); err != nil {
+				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 					return err
 				}
-				file := &types.FileMeta{
-					TxHash:       hash,
-					ContractAddr: receipt.ContractAddr,
-					AuthorAddr:   AuthorAddress,
-					URI:          URI,
-					RawSize:      RawSize,
-					BlockNum:     BlockNum,
-				}
-				m.files[receipt.ContractAddr] = file
-				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 
+				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+				info.LeftSize = remainingSize
+				info.ContractAddr = receipt.ContractAddr
 				var bytesRequested uint64
-				if file.RawSize > remainingSize {
-					bytesRequested = file.RawSize - remainingSize
+				if meta.RawSize > remainingSize {
+					bytesRequested = meta.RawSize - remainingSize
 				}
 				m.dl.UpdateTorrent <- types.FlowControlMeta{
-					URI:            file.URI,
+					URI:            meta.URI,
 					BytesRequested: bytesRequested,
 				}
 			}
@@ -302,50 +287,4 @@ func (m *Monitor) Start() error {
 			timer.Reset(time.Second * 2)
 		}
 	}
-}
-
-func parseInputData(rawInput string) (string, string, uint64, uint64, error) {
-	var meta metaTypes.InputMeta
-	input, err := hex.DecodeString(rawInput)
-	if err != nil {
-		return "", "", 0, 0, err
-	}
-	rlp.Decode(bytes.NewReader(input), &meta)
-	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
-}
-
-func parseModelData(rawInput string) (string, string, uint64, uint64, error) {
-	var meta metaTypes.ModelMeta
-	input, err := hex.DecodeString(rawInput)
-	if err != nil {
-		return "", "", 0, 0, err
-	}
-	rlp.Decode(bytes.NewReader(input), &meta)
-	return meta.AuthorAddress.Hex(), meta.URI, meta.RawSize, uint64(meta.BlockNum.Int64()), nil
-}
-
-func parseData(rawInput string, op int) (string, string, uint64, uint64, error) {
-	if op == opCreateInput {
-		return parseInputData(rawInput)
-	} else if op == opCreateModel {
-		return parseModelData(rawInput)
-	} else {
-		return "", "", 0, 0, ErrWrongOpCode
-	}
-}
-
-func extractFromTx(tx *types.Transaction) (op int, input, value, hash string) {
-	op = opCommon
-	input = string(tx.Payload)
-	value = tx.Amount.String()
-	hash = tx.Hash.String()
-	if len(tx.Payload) >= 2 {
-		op = (int(tx.Payload[0] << 8)) + int(tx.Payload[1])
-		input = input[6:]
-	} else if len(input) == 0 {
-		op = opNoInput
-	} else {
-		input = ""
-	}
-	return
 }

@@ -11,8 +11,8 @@ import (
 // MarshalJSON marshals as JSON.
 func (r Receipt) MarshalJSON() ([]byte, error) {
 	type Receipt struct {
-		ContractAddr *common.Address `json:"ContractAddr"`
-		TxHash       *common.Hash    `json:"TransactionHash"`
+		ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
+		TxHash       *common.Hash    `json:"TransactionHash"  gencodec:"required"`
 	}
 	var enc Receipt
 	enc.ContractAddr = r.ContractAddr
@@ -23,8 +23,8 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (r *Receipt) UnmarshalJSON(input []byte) error {
 	type Receipt struct {
-		ContractAddr *common.Address `json:"ContractAddr"`
-		TxHash       *common.Hash    `json:"TransactionHash"`
+		ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
+		TxHash       *common.Hash    `json:"TransactionHash"  gencodec:"required"`
 	}
 	var dec Receipt
 	if err := json.Unmarshal(input, &dec); err != nil {

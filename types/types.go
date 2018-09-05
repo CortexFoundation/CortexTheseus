@@ -55,6 +55,15 @@ func (t *Transaction) Data() []byte {
 	return []byte{}
 }
 
+func (t *Transaction) noPayload() bool {
+	return len(t.Payload) == 0
+}
+
+// IsFlowControl ...
+func (t *Transaction) IsFlowControl() bool {
+	return t.noPayload() && t.Amount.Uint64() == 0
+}
+
 // Parse ...
 func (t *Transaction) Parse() *FileMeta {
 	if t.Op() == opCreateInput {
@@ -106,9 +115,9 @@ type blockMarshaling struct {
 // Receipt ...
 type Receipt struct {
 	// Contract Address
-	ContractAddr *common.Address `json:"ContractAddr"`
+	ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
 	// Transaction Hash
-	TxHash *common.Hash `json:"TransactionHash"`
+	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
 }
 
 // FileMeta ...
@@ -124,11 +133,17 @@ type FileMeta struct {
 
 // FileInfo ...
 type FileInfo struct {
-	FileMeta
+	Meta *FileMeta
 	// Transaction hash
 	TxHash *common.Hash
 	// Contract Address
 	ContractAddr *common.Address
+	LeftSize     uint64
+}
+
+// NewFileInfo ...
+func NewFileInfo(Meta *FileMeta) *FileInfo {
+	return &FileInfo{Meta, nil, nil, Meta.RawSize}
 }
 
 // FileStorage ...
