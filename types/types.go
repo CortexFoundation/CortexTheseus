@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	metaTypes "github.com/CortexFoundation/CortexTheseus/core/types"
@@ -62,6 +63,22 @@ func (t *Transaction) noPayload() bool {
 // IsFlowControl ...
 func (t *Transaction) IsFlowControl() bool {
 	return t.noPayload() && t.Amount.Uint64() == 0
+}
+
+func getInfohashFromURI(uri string) (*metainfo.Hash, error) {
+	m, err := metainfo.ParseMagnetURI(uri)
+	if err != nil {
+		return nil, err
+	}
+	return &m.InfoHash, err
+}
+
+func getDisplayNameFromURI(uri string) (string, error) {
+	m, err := metainfo.ParseMagnetURI(uri)
+	if err != nil {
+		return "", err
+	}
+	return m.DisplayName, nil
 }
 
 // Parse ...
@@ -129,6 +146,22 @@ type FileMeta struct {
 	// The raw size of the file counted in bytes
 	RawSize  uint64
 	BlockNum uint64
+}
+
+func (m* FileMeta) InfoHash() (*metainfo.Hash) {
+	if h, err := getInfohashFromURI(m.URI); err != nil {
+		return nil
+	} else {
+		return h
+	}
+}
+
+func (m* FileMeta) DisplayName() (string) {
+	if dn, err := getDisplayNameFromURI(m.URI); err != nil {
+		return ""
+	} else {
+		return dn
+	}
 }
 
 // FileInfo ...

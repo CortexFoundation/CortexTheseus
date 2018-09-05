@@ -142,7 +142,6 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 // AddMagnet ...
 func (tm *TorrentManager) AddMagnet(uri string) {
 	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
-	log.Println(uri, "spec:", spec)
 	if err != nil {
 		log.Printf("error adding magnet: %s", err)
 	}
