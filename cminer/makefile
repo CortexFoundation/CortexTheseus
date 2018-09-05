@@ -34,7 +34,7 @@ INCLUDES = minerBot.h
 OBJ = main.o minerBot.o
 OBJ_LIB = minerBot.o
 
-all: cuckoo main lib
+all: cuckoo main libgominer.a
 
 # ${OBJ}: ${INCLUDES}
 # ${OBJ_LIB}: ${INCLUDES}
@@ -49,8 +49,11 @@ cuckoo:
 main: ${OBJ}
 	g++ -o main -g ${OBJ} -I${IDIR} ${LDFLAG} ${LDLIBS}
 
-lib: ${OBJ_LIB}
-	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.a
+libgominer.so: ${OBJ_LIB}
+	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.so
+
+libgominer.a: $(OBJ_LIB)
+	ar -rc libgominer.a $(OBJ_LIB) cuckoo/*.o
 
 clean : cleanlib
 	rm -f main *.o _temp_* util/*.o cuckoo/*.o
