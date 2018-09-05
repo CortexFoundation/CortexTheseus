@@ -142,14 +142,12 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 				info.TxHash = tx.Hash
 
 				var receipt types.Receipt
-				// TODO: Fix string format
 				log.Println(tx.Hash.String())
 				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 					return err
 				}
 
 				var _remainingSize string
-				// TODO: Fix string format
 				log.Println(receipt.ContractAddr.String())
 				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 					return err
