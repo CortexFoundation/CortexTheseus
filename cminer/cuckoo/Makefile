@@ -31,11 +31,15 @@ testCS: $(INCLS) CuckooSolver.o
 CuckooSolver.o: $(INCLS) CuckooSolver.cpp
 	$(GPP) -c -mavx2 -fPIC CuckooSolver.cpp $(LIBS)
 
-libCuckoo.a: CuckooSolver.o
-	ar rcs libCuckoo.a CuckooSolver.o
+libCuckoo.a: CuckooSolver.o siphash.o
+	ar rcs libCuckoo.a CuckooSolver.o siphash.o
 #### End DCM
 
+cuckoo.o: cuckoo.c cuckoo.h
+	$(GPP) $(CFLAGS) -c -o cuckoo.o cuckoo.c -DPROOFSIZE=42
 
+siphash.o: siphash.c siphash.h
+	$(GPP) $(CFLAGS) -c -o siphash.o siphash.c
 
 libblake2b.so:	blake2.h blake2-impl.h blake2b-ref.c
 	$(GCC) -fPIC -shared -o libblake2b.so blake2b-ref.c
