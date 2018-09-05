@@ -1,10 +1,5 @@
 package cuckoo
 
-/*
-#cgo LDFLAGS:  -lstdc++ -lgominer
-#include "gominer.h"
-*/
-import "C"
 import (
 	crand "crypto/rand"
 	"errors"
@@ -14,11 +9,11 @@ import (
 	"runtime"
 	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
+	//"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -173,6 +168,8 @@ func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution types.B
 }
 
 func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan struct{}, found chan *types.Block) {
+	cuckoo.InitOnce()
+
 	var (
 		header = block.Header()
 		hash   = cuckoo.SealHash(header).Bytes()
@@ -210,19 +207,21 @@ search:
 			var result_hash [32]byte
 			diff := target.Bytes()
 			// cuckoo.cMutex.Lock()
-			r := C.CuckooSolve(
-				(*C.char)(unsafe.Pointer(&hash[0])),
-				C.uint(len(hash)),
-				C.uint(uint32(nonce)),
-				(*C.uint)(unsafe.Pointer(&result[0])),
-				(*C.uint)(unsafe.Pointer(&result_len)),
-				(*C.uchar)(unsafe.Pointer(&diff[0])),
-				(*C.uchar)(unsafe.Pointer(&result_hash[0])))
-			/* if byte(r) == 0 {
+			r := CuckooSolve(&hash[0], len(hash), uint32(nonce), &result[0], &result_len, &diff[0], &result_hash[0])
+			/* r := C.CuckooSolve(
+			(*C.char)(unsafe.Pointer(&hash[0])),
+			C.uint(len(hash)),
+			C.uint(uint32(nonce)),
+			(*C.uint)(unsafe.Pointer(&result[0])),
+			(*C.uint)(unsafe.Pointer(&result_len)),
+			(*C.uchar)(unsafe.Pointer(&diff[0])),
+			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
+			if r == 0 {
 				// cuckoo.cMutex.Unlock()
 				nonce++
 				continue
-			} */
+			}
+			r = CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
 			/* r = C.CuckooVerify(
 			(*C.char)(unsafe.Pointer(&hash[0])),
 			C.uint(len(hash)),
@@ -232,7 +231,7 @@ search:
 			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
 			// cuckoo.cMutex.Unlock()
 
-			if byte(r) != 0 {
+			if r != 0 {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)
 				header.Nonce = types.EncodeNonce(uint64(nonce))
