@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"../types"
 	download "../manager"
+	"../types"
 	metaTypes "github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/ethereum/go-ethereum/rlp"

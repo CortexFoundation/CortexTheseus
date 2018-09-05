@@ -26,9 +26,9 @@ const (
 	updateTorrentChanBuffer         = 32
 	expansionFactor         float64 = 1.5
 	// Pending for gotInfo
-	torrentPending                  = 0
-	torrentPaused                   = 1
-	torrentRunning                  = 2
+	torrentPending = 0
+	torrentPaused  = 1
+	torrentRunning = 2
 )
 
 // Torrent ...

@@ -1,10 +1,25 @@
 package types
 
 import (
+	"bytes"
+	"errors"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	metaTypes "github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
+)
+
+const (
+	opCommon      = 0
+	opCreateModel = 1
+	opCreateInput = 2
+	opNoInput     = 3
+)
+
+var (
+	errWrongOpCode = errors.New("unexpected opCode")
 )
 
 // Transaction ... Tx struct
@@ -16,6 +31,57 @@ type Transaction struct {
 	From      *common.Address `json:"from"     gencodec:"required"`
 	Recipient *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
 	Hash      *common.Hash    `json:"hash"     rlp:"-"`
+}
+
+// Op ...
+func (t *Transaction) Op() (op int) {
+	op = opCommon
+	if len(t.Payload) >= 2 {
+		op = (int(t.Payload[0]) << 8) + int(t.Payload[1])
+		if op > 3 {
+			op = opNoInput
+		}
+	} else if len(t.Payload) == 0 {
+		op = opNoInput
+	}
+	return
+}
+
+// Data ...
+func (t *Transaction) Data() []byte {
+	if len(t.Payload) >= 2 {
+		return t.Payload[2:]
+	}
+	return []byte{}
+}
+
+// Parse ...
+func (t *Transaction) Parse() *FileMeta {
+	if t.Op() == opCreateInput {
+		var meta metaTypes.InputMeta
+		var AuthorAddress common.Address
+		AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
+		rlp.Decode(bytes.NewReader(t.Data()), &meta)
+		return &FileMeta{
+			&AuthorAddress,
+			meta.URI,
+			meta.RawSize,
+			meta.BlockNum.Uint64(),
+		}
+	} else if t.Op() == opCreateModel {
+		var meta metaTypes.ModelMeta
+		var AuthorAddress common.Address
+		AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
+		rlp.Decode(bytes.NewReader(t.Data()), &meta)
+		return &FileMeta{
+			&AuthorAddress,
+			meta.URI,
+			meta.RawSize,
+			meta.BlockNum.Uint64(),
+		}
+	} else {
+		return nil
+	}
 }
 
 type transactionMarshaling struct {
@@ -47,10 +113,6 @@ type Receipt struct {
 
 // FileMeta ...
 type FileMeta struct {
-	// Transaction hash
-	TxHash *common.Hash
-	// Contract Address
-	ContractAddr *common.Address
 	// Author Address
 	AuthorAddr *common.Address
 	// Download URI, should be in magnetURI format
@@ -63,11 +125,15 @@ type FileMeta struct {
 // FileInfo ...
 type FileInfo struct {
 	FileMeta
+	// Transaction hash
+	TxHash *common.Hash
+	// Contract Address
+	ContractAddr *common.Address
 }
 
 // FileStorage ...
 type FileStorage struct {
-	files []*FileMeta
+	files []*FileInfo
 }
 
 // FlowControlMeta ...
