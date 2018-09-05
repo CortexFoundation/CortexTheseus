@@ -1,10 +1,5 @@
 package cuckoo
 
-/*
-#cgo LDFLAGS:  -lstdc++ -lgominer
-#include "gominer.h"
-*/
-import "C"
 import (
 	"errors"
 	"math/big"
@@ -106,7 +101,7 @@ type Cuckoo struct {
 
 func New(config Config) *Cuckoo {
 	// C.CuckooInit()
-	C.CuckooInit(2)
+	CuckooInit(2)
 
 	cuckoo := &Cuckoo{
 		config:       config,
@@ -132,7 +127,7 @@ func NewTester() *Cuckoo {
 }
 func DeleteTester() {
 	// C.CuckooRelease()
-	C.CuckooFinalize()
+	CuckooFinalize()
 }
 func NewFaker() *Cuckoo {
 	return &Cuckoo{
@@ -169,7 +164,7 @@ func (cuckoo *Cuckoo) Close() error {
 		close(cuckoo.exitCh)
 
 		log.Debug("Cuckoo Finalize...")
-		C.CuckooFinalize()
+		CuckooFinalize()
 		log.Debug("Cuckoo Finalize Successfully")
 	})
 	return err
