@@ -94,6 +94,7 @@ type Cuckoo struct {
 	fakeDelay time.Duration // Time delay to sleep for before returning from verify
 
 	lock      sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
+	once      sync.Once       // Ensures cuckoo-cycle algorithm initialize once
 	closeOnce sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh    chan chan error // Notification channel to exiting backend threads
 	cMutex    sync.Mutex
@@ -101,7 +102,7 @@ type Cuckoo struct {
 
 func New(config Config) *Cuckoo {
 	// C.CuckooInit()
-	CuckooInit(2)
+	// CuckooInit(2)
 
 	cuckoo := &Cuckoo{
 		config:       config,
@@ -148,6 +149,12 @@ func NewFullFaker() *Cuckoo {
 // NewShared() func in tests/block_tests_util.go
 func NewShared() *Cuckoo {
 	return &Cuckoo{shared: sharedCuckoo}
+}
+
+func (cuckoo *Cuckoo) InitOnce() {
+	cuckoo.once.Do(func() {
+		CuckooInit(2)
+	})
 }
 
 // Close closes the exit channel to notify all backend threads exiting.
