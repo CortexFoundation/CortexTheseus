@@ -2,12 +2,11 @@
 #include <vector>
 #include "gominer.h"
 
-uint8_t a[80] = {133,201,250,241,66,91,106,72,148,190,158,97,59,104,148,0,187,47,43,18,86,254,223,224,63,148,92,131,106,35,195,141};
-uint32_t nonce =   1790697960 ;
-uint32_t result[42] =  {239454,771580,10063629,13861271,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-uint8_t t[32] = {15,254,0,63,248,0,255,224,3,255,128,15,254,0,63,248,0,255,224,3,255,128,15,254,0,63,248,0,255,224};
-uint8_t h[32] = {10,139,10,212,241,104,85,8,233,127,140,66,16,151,248,51,79,199,25,57,239,254,104,181,23,178,75,121,15,90,215,135};
-
+uint8_t a[80] = {52,105,200,55,246,196,13,239,1,106,158,159,167,174,165,127,187,126,234,16,191,241,71,244,221,159,19,104,170,183,82,216};
+uint32_t nonce =   1651882065 ;
+uint32_t result[42] =  {3470748,9942985,11832470,14637222,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+uint8_t t[32] = {16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+uint8_t h[32] = {4,42,239,229,57,70,81,116,187,90,204,230,82,230,150,104,56,77,231,109,218,198,22,6,192,78,177,63,202,132,34,245};
 #ifndef VERIFY_ONLY
 
 #include "minerBot.h"
@@ -78,39 +77,10 @@ void run() {
 
 #include <cstdio>
 #include "cuckoo/cuckoo.h"
-int  CuckooVerifyHeaderNonceAndSolutions(char *header, uint32_t header_len, uint32_t nonce, result_t* result)
-{
-#ifndef HEADERLEN
-#define HEADERLEN 80
-#define HEADERLEN_TEMP_DEFINED
-#endif
-    char headernonce[HEADERLEN];
-    memcpy(headernonce, header, header_len);
-    ((u32 *)headernonce)[header_len/sizeof(u32)-1] = htole32(nonce);
-// for (uint32_t i = 0; i < header_len; i++)
-//     printf(" %d", headernonce[i]);
-// printf("\n");
-    siphash_keys key;
-    setheader(headernonce, header_len, &key);
 
-    int res = verify(result, &key);
-    return res;
-#ifdef HEADERLEN_TEMP_DEFINED
-#undef HEADERLEN_TEMP_DEFINED
-#undef HEADERLEN
-#endif
-}
-
-int CuckooVerifySolutions(char *header, uint32_t header_len, result_t* result)
-{
-    siphash_keys key;
-    setheader(header, header_len, &key);
-    int res = verify(result, &key);
-    return res;
-}
 int main() {
     printf("res: %d\n", CuckooVerifyHeaderNonceAndSolutions(
-        reinterpret_cast<char*>(&a[0]),
+        a + 0,
         32,
         nonce,
         &result[0]));

@@ -15,15 +15,17 @@ LIBS ?= -L. -lblake2b
 
 #all : libblake2b.so test example lean28stx8 mean28x8 lean30stx8 mean30x8 lean32stx8 mean32x8 verify28 verify30 verify32 demo30x8
 
-all : libblake2b.a libCuckoo.a
+all : cuckoo.o siphash.o libblake2b.a libCuckoo.a
 
 #### DCM
 
 INCLS = cuckoo.h siphash.h mean_miner.hpp param.h CuckooSolver.h
 
-libblake2b.a: blake2.h blake2-impl.h blake2b-ref.c
-	$(GCC) -c blake2b-ref.c
-	ar rcs libblake2b.a blake2b-ref.o
+blake2b.o: blake2.h blake2-impl.h blake2b-ref.c
+	$(GCC) -c -o blake2b.o blake2b-ref.c
+
+libblake2b.a: blake2b.o
+	ar rcs libblake2b.a blake2b.o
 
 testCS: $(INCLS) CuckooSolver.o
 	$(GPP) -o testCS -mavx2 -L./ CuckooSolver.o cuckooSolverTest.cpp $(LIBS)
