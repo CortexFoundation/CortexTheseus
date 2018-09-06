@@ -101,24 +101,11 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// return result, nil
 }
 
-func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution types.BlockSolution) (bool, bool, int64) {
+func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
 	// For return arguments
 	zeroHash := common.Hash{}
 
-	// TODO: do ethash_quick_verify before getCache in order
-	// to prevent DOS attacks.
-	//blockNum := block.NumberU64()
-	//if blockNum >= epochLength*2048 {
-	//	log.Debug(fmt.Sprintf("block number %d too high, limit is %d", epochLength*2048))
-	//	return false, false, 0, zeroHash
-	//}
-
 	blockDiff := block.Difficulty()
-	/* Cannot happen if block header diff is validated prior to PoW, but can
-		 happen if PoW is checked first due to parallel PoW checking.
-		 We could check the minimum valid difficulty but for SoC we avoid (duplicating)
-	   Ethereum protocol consensus rules here which are not in scope of Ethash
-	*/
 	if blockDiff.Cmp(common.Big0) == 0 {
 		log.Debug("invalid block difficulty")
 		return false, false, 0
@@ -129,20 +116,14 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution type
 		return false, false, 0
 	}
 
-	//cache := l.getCache(blockNum)
-	//dagSize := C.ethash_get_datasize(C.uint64_t(blockNum))
-	//if l.test {
-	//	dagSize = dagSizeForTesting
-	//}
-	// Recompute the hash using the cache.
+	// avoid mixdigest malleability as it's not included in a block's "hashNononce"
+        if blkMix := block.MixDigest(); blkMix != zeroHash {
+                return false, false, 0
+        }
+
 	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
 	ok, result := cuckoo.VerifySolution(block.MixDigest().Bytes(), uint32(block.Nonce()), solution, *shareDiff)
 	if !ok {
-		return false, false, 0
-	}
-
-	// avoid mixdigest malleability as it's not included in a block's "hashNononce"
-	if blkMix := block.MixDigest(); blkMix != zeroHash {
 		return false, false, 0
 	}
 
@@ -151,10 +132,9 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution type
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
 	actualDiff := new(big.Int).Div(maxUint256, result.Big())
 	return result.Big().Cmp(shareTarget) <= 0, result.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
-	//return false, false, 0, common.Hash{}
 }
 
-func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution types.BlockSolution, target big.Int) (bool, common.Hash) {
+func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution *types.BlockSolution, target big.Int) (bool, common.Hash) {
 	var (
 		result_hash [32]byte
 		//result_len uint32
