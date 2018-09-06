@@ -65,10 +65,6 @@ func (m *Monitor) SetDownloader(dl *download.TorrentManager) error {
 	return nil
 }
 
-func (m *Monitor) verifyBlock(b *types.Block) error {
-	return nil
-}
-
 func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
@@ -80,9 +76,6 @@ func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 		return err
 	}
 	if err := m.parseBlock(block); err != nil {
-		return err
-	}
-	if err := m.verifyBlock(block); err != nil {
 		return err
 	}
 	return nil
@@ -102,9 +95,6 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 		return err
 	}
 	log.Printf("fetch block #%s with %d Txs", blockNumberHex, len(block.Txs))
-	if err := m.verifyBlock(block); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -119,9 +109,6 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	m.fs.AddBlock(block)
 	m.parseBlock(block)
 	log.Printf("fetch block #%s with %d Txs", hash, len(block.Txs))
-	if err := m.verifyBlock(block); err != nil {
-		return err
-	}
 	return nil
 }
 
