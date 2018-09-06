@@ -194,7 +194,6 @@ func main() {
 				}
 				result_buf := make([]byte, 42*4)
 				for i := 0; i < 42; i++ {
-					fmt.Println(result[i])
 					binary.BigEndian.PutUint32(result_buf[i*4:i*4+4], result[i])
 				}
 				nonce = "0x" + nonce
