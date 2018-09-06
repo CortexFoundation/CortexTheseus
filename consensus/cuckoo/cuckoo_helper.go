@@ -12,8 +12,8 @@ import (
 	"unsafe"
 )
 
-func CuckooInit(threads C.uint) {
-	C.CuckooInit(threads)
+func CuckooInit(threads uint) {
+	C.CuckooInit(C.uint(threads))
 }
 
 func CuckooFinalize() {
