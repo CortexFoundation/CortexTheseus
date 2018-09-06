@@ -1,6 +1,6 @@
 // Cuckoo Cycle, a memory-hard proof-of-work
 // Copyright (c) 2013-2016 John Tromp
-
+#include <cstdio>
 #include "cuckoo.h"
 #ifdef STANDALONE_CUCKOO_TEST
 #include <inttypes.h> // for SCNx64 macro
@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 #else
+
 const char *errstr[] = { "OK", "wrong header length", "edge too big", "edges not ascending", "endpoints don't match up", "branch in cycle", "cycle dead ends", "cycle too short"};
 
 node_t sipnode(siphash_keys *keys, edge_t edge, u32 uorv) {
@@ -65,6 +66,14 @@ node_t sipnode(siphash_keys *keys, edge_t edge, u32 uorv) {
 }
 
 int verify(edge_t edges[PROOFSIZE], siphash_keys *keys) {
+  // printf("edges: \n");
+  // for (uint32_t i = 0; i < PROOFSIZE; i++) {
+  //     printf(" %d", edges[i]);
+  // }
+  // printf("\n");
+  // printf("sig: \n");
+  // printf(" %d %d %d %d", keys->k0, keys->k1, keys->k2, keys->k3);
+  // printf("\n");
   node_t uvs[2*PROOFSIZE];
   node_t xor0 = 0, xor1  =0;
   for (u32 n = 0; n < PROOFSIZE; n++) {
@@ -107,6 +116,12 @@ void setheader(const char *header, const u32 headerlen, siphash_keys *keys) {
   k[2] = k0 ^ 0x6c7967656e657261ULL;
   k[3] = k1 ^ 0x7465646279746573ULL;
 #endif
+
+  // printf("hdrkey in setheader: ");
+  // for(int i=0; i<32; i++){
+  //   printf("%d,", hdrkey[i]);
+  // }
+  // printf("\n");
 
   setkeys(keys, hdrkey);
 }
