@@ -29,11 +29,9 @@ const (
 
 // Monitor ...
 type Monitor struct {
-	cl                *rpc.Client
-	dl                *download.TorrentManager
-	files             map[string]*types.FileInfo
-	blocks            map[uint64]*types.Block
-	latestBlockNumber uint64
+	cl *rpc.Client
+	dl *download.TorrentManager
+	fs *types.FileStorage
 }
 
 // NewMonitor ...
@@ -41,9 +39,7 @@ func NewMonitor() *Monitor {
 	m := &Monitor{
 		nil,
 		nil,
-		make(map[string]*types.FileInfo),
-		make(map[uint64]*types.Block),
-		0,
+		types.NewFileStorage(),
 	}
 	return m
 }
@@ -78,7 +74,7 @@ func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 		return ErrNoRPCClient
 	}
 	block := &types.Block{}
-	m.blocks[blockNumber] = block
+	m.fs.AddBlock(block)
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 	if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
 		return err
@@ -97,7 +93,7 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 		return ErrNoRPCClient
 	}
 	block := &types.Block{}
-	m.blocks[blockNumber] = block
+	m.fs.AddBlock(block)
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 	if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
 		return err
@@ -120,8 +116,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	if err := m.cl.Call(block, "eth_getBlockByHash", hash, true); err != nil {
 		return err
 	}
-	blockNumber := block.Number
-	m.blocks[blockNumber] = block
+	m.fs.AddBlock(block)
 	m.parseBlock(block)
 	log.Printf("fetch block #%s with %d Txs", hash, len(block.Txs))
 	if err := m.verifyBlock(block); err != nil {
@@ -131,8 +126,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 }
 
 func (m *Monitor) parseNewBlock(b *types.Block) error {
-	blockNumber := b.Number
-	m.blocks[blockNumber] = b
+	m.fs.AddBlock(b)
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
@@ -194,8 +188,7 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 
 //
 func (m *Monitor) parseBlock(b *types.Block) error {
-	blockNumber := b.Number
-	m.blocks[blockNumber] = b
+	m.fs.AddBlock(b)
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
@@ -235,10 +228,10 @@ func (m *Monitor) parseBlock(b *types.Block) error {
 
 func (m *Monitor) initialCheck() {
 	blockChecked := 0
-	lastblock := m.latestBlockNumber
+	lastblock := m.fs.LatestBlockNumber
 	log.Println("lastblock: ", lastblock)
-	for i := m.latestBlockNumber; i >= minBlockNum; i-- {
-		if m.blocks[i] != nil {
+	for i := lastblock; i >= minBlockNum; i-- {
+		if m.fs.HasBlock(i) {
 			continue
 		}
 		m.parseBlockByNumber(i)
@@ -257,7 +250,6 @@ func (m *Monitor) Start() error {
 		log.Println(err)
 		return err
 	}
-	m.latestBlockNumber = b.Number
 	m.parseNewBlock(b)
 	go m.initialCheck()
 
@@ -271,12 +263,11 @@ func (m *Monitor) Start() error {
 				return err
 			}
 			bnum := b.Number
-			if bnum > m.latestBlockNumber {
-				m.latestBlockNumber = bnum
+			if bnum > m.fs.LatestBlockNumber {
 				m.parseBlock(b)
 				log.Printf("Block #%d: %d Txs.", bnum, len(b.Txs))
-				for i := m.latestBlockNumber - 1; i >= minBlockNum; i-- {
-					if m.blocks[i] != nil {
+				for i := m.fs.LatestBlockNumber - 1; i >= minBlockNum; i-- {
+					if m.fs.HasBlock(i) {
 						break
 					}
 					m.parseNewBlockByNumber(i)
