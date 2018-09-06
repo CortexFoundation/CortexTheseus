@@ -137,36 +137,36 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 				info.LeftSize = remainingSize
 				info.ContractAddr = receipt.ContractAddr
+				m.fs.AddFile(info)
 				var bytesRequested uint64
 				if meta.RawSize > remainingSize {
 					bytesRequested = meta.RawSize - remainingSize
 				}
 				m.dl.UpdateTorrent <- types.FlowControlMeta{
-					URI:            meta.URI,
+					InfoHash:       *meta.InfoHash(),
 					BytesRequested: bytesRequested,
 				}
 			} else if tx.IsFlowControl() {
-				/*
+				addr := *tx.Recipient
+				file := m.fs.GetFileByAddr(addr)
+				if file == nil {
+					continue
+				}
+				var _remainingSize string
+				if err := m.cl.Call(&_remainingSize, "eth_getUpload", addr.String(), "latest"); err != nil {
+					return err
+				}
+				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 
-						addr := tx.Recipient.String()
-						if file, ok := m.files[addr]; ok {
-							var _remainingSize string
-							if err := m.cl.Call(&_remainingSize, "eth_getUpload", addr, "latest"); err != nil {
-								return err
-							}
-							remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
-
-							var bytesRequested uint64
-							if file.RawSize > remainingSize {
-								bytesRequested = file.RawSize - remainingSize
-							}
-							m.dl.UpdateTorrent <- types.FlowControlMeta{
-								URI:            file.URI,
-								BytesRequested: bytesRequested,
-							}
-						}
-					}
-				*/
+				var bytesRequested uint64
+				file.LeftSize = remainingSize
+				if file.Meta.RawSize > remainingSize {
+					bytesRequested = file.Meta.RawSize - remainingSize
+				}
+				m.dl.UpdateTorrent <- types.FlowControlMeta{
+					InfoHash:       *file.Meta.InfoHash(),
+					BytesRequested: bytesRequested,
+				}
 			}
 		}
 	}
@@ -199,12 +199,13 @@ func (m *Monitor) parseBlock(b *types.Block) error {
 				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 				info.LeftSize = remainingSize
 				info.ContractAddr = receipt.ContractAddr
+				m.fs.AddFile(info)
 				var bytesRequested uint64
 				if meta.RawSize > remainingSize {
 					bytesRequested = meta.RawSize - remainingSize
 				}
 				m.dl.UpdateTorrent <- types.FlowControlMeta{
-					URI:            meta.URI,
+					InfoHash:       *meta.InfoHash(),
 					BytesRequested: bytesRequested,
 				}
 			}

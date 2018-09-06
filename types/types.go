@@ -5,10 +5,10 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	metaTypes "github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -142,25 +142,27 @@ type TxReceipt struct {
 type FileMeta struct {
 	// Author Address
 	AuthorAddr *common.Address
-	// Download URI, should be in magnetURI format
+	// Download InfoHash, should be in magnetURI format
 	URI string
 	// The raw size of the file counted in bytes
 	RawSize  uint64
 	BlockNum uint64
 }
 
-func (m* FileMeta) InfoHash() (*metainfo.Hash) {
-	if h, err := getInfohashFromURI(m.URI); err != nil {
+// InfoHash ...
+func (m *FileMeta) InfoHash() *metainfo.Hash {
+	h, err := getInfohashFromURI(m.URI)
+	if err != nil {
 		return nil
-	} else {
-		return h
 	}
+	return h
 }
 
-func (m* FileMeta) DisplayName() (string) {
-	if dn, err := getDisplayNameFromURI(m.URI); err != nil {
+// DisplayName ...
+func (m *FileMeta) DisplayName() string {
+	dn, err := getDisplayNameFromURI(m.URI)
+	if err != nil {
 		return ""
-	} else {
-		return dn
 	}
+	return dn
 }
