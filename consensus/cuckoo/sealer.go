@@ -101,7 +101,7 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// return result, nil
 }
 
-func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution types.BlockSolution) (bool, bool, int64) {
+func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
 	// For return arguments
 	zeroHash := common.Hash{}
 
@@ -134,7 +134,7 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution type
 	return result.Big().Cmp(shareTarget) <= 0, result.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
 }
 
-func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution types.BlockSolution, target big.Int) (bool, common.Hash) {
+func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution *types.BlockSolution, target big.Int) (bool, common.Hash) {
 	var (
 		result_hash [32]byte
 		//result_len uint32
