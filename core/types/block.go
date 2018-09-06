@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 	"unsafe"
+//	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -67,16 +68,22 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
-func (s BlockSolution) MarshalText() ([]byte, error) {
+func (s* BlockSolution) MarshalText() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, s)
 	return buf.Bytes(), err
 }
 
-func (s BlockSolution) UnmarshalText(input []byte) error {
-	rbuf := bytes.NewReader(input)
-	err := binary.Read(rbuf, binary.LittleEndian, &s)
-	return err
+func (s* BlockSolution) UnmarshalText(input []byte) error {
+	for i := 0; i < len(input)/4; i++ { 
+		s[i] = binary.BigEndian.Uint32(input[i * 4: i * 4 +4])
+		//fmt.Println(input[i*4: i*4 +4], s[i])
+	}
+	//rbuf := bytes.NewReader(input)
+	//err := binary.Read(rbuf, binary.LittleEndian, &s)
+	//return err
+	//return hexutil.UnmarshalFixedText("BlockSolution", input, s[:])
+	return nil
 }
 func (s BlockSolutionHash) MarshalText() ([]byte, error) {
 	buf := new(bytes.Buffer)

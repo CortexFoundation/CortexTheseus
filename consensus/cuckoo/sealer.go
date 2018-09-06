@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	//"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"fmt"
 )
 
 var (
@@ -103,31 +104,43 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 
 func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
 	// For return arguments
-	zeroHash := common.Hash{}
+	//zeroHash := common.Hash{}
 
 	blockDiff := block.Difficulty()
 	if blockDiff.Cmp(common.Big0) == 0 {
-		log.Debug("invalid block difficulty")
+		log.Info("invalid block difficulty")
+		fmt.Println("invalid block difficulty")
 		return false, false, 0
 	}
 
 	if shareDiff.Cmp(common.Big0) == 0 {
-		log.Debug("invalid share difficulty")
+		log.Info("invalid share difficulty")
+		fmt.Println("invalid share")
 		return false, false, 0
 	}
 
 	// avoid mixdigest malleability as it's not included in a block's "hashNononce"
-        if blkMix := block.MixDigest(); blkMix != zeroHash {
+        /*if blkMix := block.MixDigest(); blkMix != zeroHash {
+		log.Info("invalid share mix", "blkMix", blkMix)
+		fmt.Println("invalid mix")
                 return false, false, 0
-        }
-
+        }*/
+fmt.Println("invalid share...............")
 	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
 	ok, result := cuckoo.VerifySolution(block.MixDigest().Bytes(), uint32(block.Nonce()), solution, *shareDiff)
 	if !ok {
+		log.Info("invalid share solution", "solution", solution)
+		fmt.Println("invalid solution")
 		return false, false, 0
 	}
 
 	// The actual check.
+	log.Info("invalid share solution", "blockdiff", blockDiff)
+	fmt.Println("invalid block difficulty %v", blockDiff)
+	log.Info("invalid share solution", "shareDiff", shareDiff)
+	fmt.Println("invalid block sharediff %v", shareDiff)
+	log.Info("invalid share solution", "actdiff", result.Big())
+	fmt.Println("invalid block result %v", result.Big())
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
 	actualDiff := new(big.Int).Div(maxUint256, result.Big())
