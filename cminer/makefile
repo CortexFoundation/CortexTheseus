@@ -46,8 +46,11 @@ cuckoo:
 %.o: %.cpp
 	g++ -g -mavx2 -std=c++11 -c -fPIC $< -o $@
 
-main: ${OBJ}
-	g++ -o main -g ${OBJ} -I${IDIR} ${LDFLAG} ${LDLIBS}
+main: cuckoo/CuckooSolver.o minerBot.o main.cpp
+	g++ --std=c++11 -o main -g  $^ -pthread -L./cuckoo -lblake2b
+
+main-verify:cuckoo/siphash.o cuckoo/cuckoo.o  main.cpp 
+	g++ --std=c++11 -DVERIFY_ONLY -o main-verify -g $^ -pthread -L./cuckoo -lblake2b 
 
 libgominer.so: ${OBJ_LIB}
 	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.so
