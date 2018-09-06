@@ -12,6 +12,7 @@
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
+LIB_MINER_DIR = $(shell pwd)/cminer/
 
 # Curkoo algorithm dynamic library path
 OS = $(shell uname)
@@ -40,7 +41,7 @@ all: cminer
 	build/env.sh go run build/ci.go install
 
 cminer:
-	make -C ${LIB_MINER_DIR}
+	make -C $(LIB_MINER_DIR)
 
 android:
 	build/env.sh go run build/ci.go aar --local
@@ -61,6 +62,7 @@ lint: ## Run linters.
 clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+	make -C $(LIB_MINER_DIR) clean
 
 # The devtools target installs tools required for 'go generate'.
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.

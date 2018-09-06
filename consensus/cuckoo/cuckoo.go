@@ -1,10 +1,5 @@
 package cuckoo
 
-/*
-#cgo LDFLAGS:  -lstdc++ -lgominer
-#include "gominer.h"
-*/
-import "C"
 import (
 	"errors"
 	"math/big"
@@ -99,6 +94,7 @@ type Cuckoo struct {
 	fakeDelay time.Duration // Time delay to sleep for before returning from verify
 
 	lock      sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
+	once      sync.Once       // Ensures cuckoo-cycle algorithm initialize once
 	closeOnce sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh    chan chan error // Notification channel to exiting backend threads
 	cMutex    sync.Mutex
@@ -106,7 +102,7 @@ type Cuckoo struct {
 
 func New(config Config) *Cuckoo {
 	// C.CuckooInit()
-	C.CuckooInit(2)
+	// CuckooInit(2)
 
 	cuckoo := &Cuckoo{
 		config:       config,
@@ -132,7 +128,7 @@ func NewTester() *Cuckoo {
 }
 func DeleteTester() {
 	// C.CuckooRelease()
-	C.CuckooFinalize()
+	CuckooFinalize()
 }
 func NewFaker() *Cuckoo {
 	return &Cuckoo{
@@ -155,6 +151,12 @@ func NewShared() *Cuckoo {
 	return &Cuckoo{shared: sharedCuckoo}
 }
 
+func (cuckoo *Cuckoo) InitOnce() {
+	cuckoo.once.Do(func() {
+		CuckooInit(2)
+	})
+}
+
 // Close closes the exit channel to notify all backend threads exiting.
 func (cuckoo *Cuckoo) Close() error {
 	var err error
@@ -169,7 +171,7 @@ func (cuckoo *Cuckoo) Close() error {
 		close(cuckoo.exitCh)
 
 		log.Debug("Cuckoo Finalize...")
-		C.CuckooFinalize()
+		CuckooFinalize()
 		log.Debug("Cuckoo Finalize Successfully")
 	})
 	return err
@@ -202,10 +204,6 @@ func (cuckoo *Cuckoo) SetThreads(threads int) {
 func (cuckoo *Cuckoo) Hashrate() float64 {
 	return cuckoo.hashrate.Rate1()
 }
-
-/* func Release(cuckoo *Cuckoo) { */
-// C.CuckooRelease()
-/* } */
 
 func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 	// In order to ensure backward compatibility, we exposes cuckoo RPC APIs
