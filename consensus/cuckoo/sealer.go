@@ -127,7 +127,7 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution *typ
         }*/
 fmt.Println("invalid share...............")
 	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
-	ok, result := cuckoo.VerifySolution(block.MixDigest().Bytes(), uint32(block.Nonce()), solution, *shareDiff)
+	ok, result := cuckoo.VerifySolution(block.HashNoNonce().Bytes(), uint32(block.Nonce()), solution, *shareDiff)
 	if !ok {
 		log.Info("invalid share solution", "solution", solution)
 		fmt.Println("invalid solution")
