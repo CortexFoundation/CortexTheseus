@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"runtime"
 	//"strconv"
+	// "strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -486,12 +487,18 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		result = header.Solution
 		nonce  = header.Nonce.Uint64()
 
-		hash        = cuckoo.SealHash(header).Bytes()
-		result_hash = header.SolutionHash
+		hash = cuckoo.SealHash(header).Bytes()
+		// result_hash = header.SolutionHash
 	)
 
-	diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
-	r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
+	// diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
+	// fmt.Println("uint8_t a[80] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(hash)), ","), "[]") + "};")
+	// fmt.Println("uint32_t nonce =  ", nonce, ";")
+	// fmt.Println("uint32_t result[42] =  {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result)), ","), "[]") + "};")
+	// fmt.Println("uint8_t t[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(diff)), ","), "[]") + "};")
+	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
+	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
+	r := CuckooVerifyHeaderNonceAndSolutions(hash, uint32(nonce), &result[0])
 	if r == 0 {
 		return errInvalidPoW
 	}

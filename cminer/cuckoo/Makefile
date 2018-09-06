@@ -36,10 +36,10 @@ libCuckoo.a: CuckooSolver.o siphash.o
 #### End DCM
 
 cuckoo.o: cuckoo.c cuckoo.h
-	$(GPP) $(CFLAGS) -c -o cuckoo.o cuckoo.c -DPROOFSIZE=42
+	g++ -c -fPIC -o cuckoo.o cuckoo.c
 
 siphash.o: siphash.c siphash.h
-	$(GPP) $(CFLAGS) -c -o siphash.o siphash.c
+	g++ -c -fPIC -o siphash.o siphash.c
 
 libblake2b.so:	blake2.h blake2-impl.h blake2b-ref.c
 	$(GCC) -fPIC -shared -o libblake2b.so blake2b-ref.c

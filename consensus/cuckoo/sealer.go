@@ -206,30 +206,12 @@ search:
 
 			var result_hash [32]byte
 			diff := target.Bytes()
-			// cuckoo.cMutex.Lock()
 			r := CuckooSolve(&hash[0], len(hash), uint32(nonce), &result[0], &result_len, &diff[0], &result_hash[0])
-			/* r := C.CuckooSolve(
-			(*C.char)(unsafe.Pointer(&hash[0])),
-			C.uint(len(hash)),
-			C.uint(uint32(nonce)),
-			(*C.uint)(unsafe.Pointer(&result[0])),
-			(*C.uint)(unsafe.Pointer(&result_len)),
-			(*C.uchar)(unsafe.Pointer(&diff[0])),
-			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
 			if r == 0 {
-				// cuckoo.cMutex.Unlock()
 				nonce++
 				continue
 			}
 			r = CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-			/* r = C.CuckooVerify(
-			(*C.char)(unsafe.Pointer(&hash[0])),
-			C.uint(len(hash)),
-			C.uint(uint32(nonce)),
-			(*C.uint)(unsafe.Pointer(&result[0])),
-			(*C.uchar)(unsafe.Pointer(&diff[0])),
-			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
-			// cuckoo.cMutex.Unlock()
 
 			if r != 0 {
 				// Correct solution found, create a new header with it

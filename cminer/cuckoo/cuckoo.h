@@ -8,6 +8,7 @@
 #include <stdio.h>
 #endif
 
+#include "param.h"
 #include "blake2.h"
 #include "siphash.h"
 
@@ -42,7 +43,17 @@ typedef u32 node_t;
 // generate edge endpoint in cuckoo graph without partition bit
 node_t sipnode(siphash_keys *keys, edge_t edge, u32 uorv);
 
-enum verify_code { POW_OK, POW_HEADER_LENGTH, POW_TOO_BIG, POW_TOO_SMALL, POW_NON_MATCHING, POW_BRANCH, POW_DEAD_END, POW_SHORT_CYCLE};
+enum verify_code {
+    POW_BAD = 0,
+    POW_OK = 1,
+    POW_HEADER_LENGTH = 2,
+    POW_TOO_BIG = 3,
+    POW_TOO_SMALL = 4,
+    POW_NON_MATCHING = 5,
+    POW_BRANCH = 6,
+    POW_DEAD_END = 7,
+    POW_SHORT_CYCLE = 8
+};
 extern const char *errstr[];
 
 // verify that edges are ascending and form a cycle in header-generated graph
