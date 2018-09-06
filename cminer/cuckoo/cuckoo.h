@@ -39,10 +39,6 @@ typedef u32 node_t;
 #define NEDGES ((node_t)1 << EDGEBITS)
 // used to mask siphash output
 #define EDGEMASK ((edge_t)NEDGES - 1)
-
-// generate edge endpoint in cuckoo graph without partition bit
-node_t sipnode(siphash_keys *keys, edge_t edge, u32 uorv);
-
 enum verify_code {
     POW_BAD = 0,
     POW_OK = 1,
@@ -54,7 +50,13 @@ enum verify_code {
     POW_DEAD_END = 7,
     POW_SHORT_CYCLE = 8
 };
+
+namespace cuckoo {
+
 extern const char *errstr[];
+
+// generate edge endpoint in cuckoo graph without partition bit
+node_t sipnode(siphash_keys *keys, edge_t edge, u32 uorv);
 
 // verify that edges are ascending and form a cycle in header-generated graph
 int verify(edge_t edges[PROOFSIZE], siphash_keys *keys);
@@ -64,4 +66,6 @@ void setheader(const char *header, const u32 headerlen, siphash_keys *keys);
 
 // edge endpoint in cuckoo graph with partition bit
 edge_t sipnode_(siphash_keys *keys, edge_t edge, u32 uorv);
+
+}
 #endif

@@ -499,7 +499,8 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
 	r := CuckooVerifyHeaderNonceAndSolutions(hash, uint32(nonce), &result[0])
-	if r == 0 {
+	// fmt.Println("verify result: ", r)
+	if r != 1 {
 		return errInvalidPoW
 	}
 
@@ -547,24 +548,6 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 		header.Time,
 		header.Extra,
 	})
-
-	// Origin HashNoNonce Func
-	/* -       return rlpHash([]interface{}{
-	   -               h.ParentHash,
-	   -               h.UncleHash,
-	   -               h.Coinbase,
-	   -               h.Root,
-	   -               h.TxHash,
-	   -               h.ReceiptHash,
-	   -               h.Bloom,
-	   -               h.Difficulty,
-	   -               h.Number,
-	   -               h.GasLimit,
-	   -               h.GasUsed,
-	   -               h.Time,
-	   -               h.Extra,
-	   -       }) */
-
 	hasher.Sum(hash[:0])
 	return hash
 }

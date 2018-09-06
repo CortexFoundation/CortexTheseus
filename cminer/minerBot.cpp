@@ -3,8 +3,6 @@
 #include <pthread.h>
 #include "minerBot.h"
 #include "gominer.h"
-#include "cuckoo/cuckoo.h"
-
 
 MinerBot::MinerBot(unsigned int nthread)
 {
@@ -169,33 +167,4 @@ unsigned char CuckooVerify(uint8_t *header, uint32_t header_len, uint32_t nonce,
     uint8_t res = botPool[bot_idx]->CuckooVerify((char*)header, header_len, nonce, result, target, hash);
     CuckooRelease(bot_idx);
     return res;
-}
-int32_t CuckooVerifyHeaderNonceAndSolutions(uint8_t *header, uint32_t header_len, uint32_t nonce, result_t *result) {
-#ifndef HEADERLEN
-#define HEADERLEN 80
-#define HEADERLEN_TEMP_DEFINED
-#endif
-    char headernonce[HEADERLEN];
-    memcpy(headernonce, header, header_len);
-    memset(headernonce + header_len, 0, sizeof(headernonce) - header_len);
-    ((u32 *)headernonce)[header_len/sizeof(u32)-1] = htole32(nonce);
-    siphash_keys key;
-    setheader(const_cast<char*>((char*)(header)), header_len, &key);
-    int res = verify(reinterpret_cast<uint32_t*>(result), &key);
-    return res;
-#ifdef HEADERLEN_TEMP_DEFINED
-#undef HEADERLEN_TEMP_DEFINED
-#undef HEADERLEN
-#endif
-}
-
-int CuckooVerifySolutions(char *header, uint32_t header_len, result_t* result)
-{
-    siphash_keys key;
-    setheader(header, header_len, &key);
-    int res = verify(result, &key);
-    return res;
-}
-
-void testCuckoo(){
 }
