@@ -4,7 +4,7 @@
 #include "cuckoo.h"
 namespace cuckoo {
 
-const char *errstr[] = { "OK", "wrong header length", "edge too big", "edges not ascending", "endpoints don't match up", "branch in cycle", "cycle dead ends", "cycle too short"};
+const char *errstr[] = { "BAD", "OK", "wrong header length", "edge too big", "edges not ascending", "endpoints don't match up", "branch in cycle", "cycle dead ends", "cycle too short"};
 
 node_t sipnode(siphash_keys *keys, edge_t edge, u32 uorv) {
   return siphash24(keys, 2*edge + uorv) & EDGEMASK;
