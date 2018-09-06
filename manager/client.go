@@ -185,9 +185,11 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	tm.torrents[ih].Run()
 
 	f, _ := os.Create(torrentPath)
+	log.Println(ih.HexString(), "write torrent file to", torrentPath)
 	torrent := t.Metainfo().Encoding
+	log.Println("content: ", torrent)
 	io.WriteString(f, torrent)
-	defer f.Close()
+	f.Close()
 }
 
 // UpdateMagnet ...

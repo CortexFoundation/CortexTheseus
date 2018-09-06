@@ -225,7 +225,7 @@ func (m *Monitor) initialCheck() {
 		m.parseBlockByNumber(i)
 		blockChecked++
 		if blockChecked%fetchBlockLogStep == 0 || i == 0 {
-			log.Printf("Block #%d-%d have been checked.", i, lastblock)
+			log.Printf("block #%d-%d have been checked.", i, lastblock)
 			lastblock = i - 1
 		}
 	}
@@ -253,7 +253,7 @@ func (m *Monitor) Start() error {
 			bnum := b.Number
 			if bnum > m.fs.LatestBlockNumber {
 				m.parseBlock(b)
-				log.Printf("Block #%d: %d Txs.", bnum, len(b.Txs))
+				log.Printf("block #%d: %d Txs.", bnum, len(b.Txs))
 				for i := m.fs.LatestBlockNumber - 1; i >= minBlockNum; i-- {
 					if m.fs.HasBlock(i) {
 						break
