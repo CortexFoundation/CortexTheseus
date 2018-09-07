@@ -18,7 +18,7 @@
 package types
 
 import (
-//	"bytes"
+	//	"bytes"
 	"encoding/binary"
 	"io"
 	"math/big"
@@ -26,8 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 	"unsafe"
-	"strconv"
-//	"fmt"
+	//	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -72,28 +71,22 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 func (s BlockSolution) Uint32() []uint32 { return s[:] }
 
 func (s BlockSolution) MarshalText() ([]byte, error) {
-	buf := make([]byte, 2, 2+42*8)
-	copy(buf, `0x`)
-	for i := 0; i < len(s.Uint32()); i++ {
-		buf = strconv.AppendUint(buf, uint64(s.Uint32()[i]), 16)
+	var solSize int = 4
+	buf := make([]byte, 42*solSize)
+	for i := 0; i < len(s); i++ {
+		binary.LittleEndian.PutUint32(buf[i*solSize:], s[i])
 	}
 	return buf, nil
 }
 
-/*func (s* BlockSolution) UnmarshalText(input []byte) error {
-	fmt.Println("input: ", input, len(input))
-	for i := 0; i < len(input)/4; i++ {
-		fmt.Printf("%v", input[i * 4: i * 4 +4])
-		s[i] = binary.BigEndian.Uint32(input[i * 4: i * 4 +4])*/
 func (s BlockSolution) UnmarshalText(input []byte) error {
-	for i := 0; i < len(s.Uint32()); i++ {
-		var u64 hexutil.Uint64
-		// offset 2 indicates ignoring the prefix '0x'
-		u64.UnmarshalText(input[i*4+2:i*4+6])
-		s[i] = uint32(u64)
+	var solSize int = 4
+	for i := 0; i < len(s); i++ {
+		s[i] = binary.LittleEndian.Uint32(input[solSize*i:])
 	}
 	return nil
 }
+
 func (s BlockSolutionHash) MarshalText() ([]byte, error) {
 	return hexutil.Bytes(s[:]).MarshalText()
 }
@@ -102,7 +95,7 @@ func (s BlockSolutionHash) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockSolutionHash", input, s[:])
 }
 
-//go:generate 
+//go:generate
 
 // Header represents a block header in the Ethereum blockchain.
 type Header struct {
