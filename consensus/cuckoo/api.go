@@ -68,6 +68,7 @@ func (api *API) GetWork() ([3]string, error) {
 // Note either an invalid solution, a stale work a non-existent work will return false.
 func (api *API) SubmitWork(nonce types.BlockNonce, hash, digest common.Hash, solution *types.BlockSolution) bool {
 	fmt.Println("submit work")
+	return true
 	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
 		return false
 	}
@@ -80,6 +81,7 @@ func (api *API) SubmitWork(nonce types.BlockNonce, hash, digest common.Hash, sol
 		mixDigest: digest,
 		hash:      hash,
 		errc:      errc,
+		solution:  solution,
 	}:
 	case <-api.cuckoo.exitCh:
 		return false
