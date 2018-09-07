@@ -2,8 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
@@ -204,15 +202,14 @@ func main() {
 				}
 				digest += s
 			}
-			result_buf := make([]byte, 42*4)
-			for i := 0; i < 42; i++ {
-				binary.BigEndian.PutUint32(result_buf[i*4:i*4+4], result[i])
-			}
 			nonce = "0x" + nonce
 			headerst = "0x" + headerst
 			digest = "0x" + digest
-			solution := "0x" + hex.EncodeToString(result_buf)
-			fmt.Println("solution: ", result_buf, solution)
+			solution, sol_err := result.MarshalText()
+			if sol_err != nil {
+				fmt.Println("sol err")
+			}
+			fmt.Println("solution: ", solution)
 			if headerst != workinfo[0] {
 				fmt.Println("error header", header, headerst, workinfo[0])
 			}
@@ -220,7 +217,7 @@ func main() {
 				Id:      73,
 				Jsonrpc: "2.0",
 				Method:  "eth_submitWork",
-				Params:  []string{nonce, workinfo[0].(string), digest, solution},
+				Params:  []string{nonce, workinfo[0].(string), digest, string(solution)},
 				// Params: []string{nonce, headerst, digest, solution},
 			}
 			write(reqSubmit, conn)
