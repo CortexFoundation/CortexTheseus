@@ -3,6 +3,7 @@ package monitor
 import (
 	"errors"
 	"log"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -35,17 +36,26 @@ type Monitor struct {
 }
 
 // NewMonitor ...
-func NewMonitor() *Monitor {
+func NewMonitor(flag *types.Flag) *Monitor {
 	m := &Monitor{
 		nil,
 		nil,
 		types.NewFileStorage(),
 	}
+	if runtime.GOOS != "windows" && *flag.IpcPath != "" {
+		m.SetConnection(flag.IpcPath)
+	} else {
+		if flag.RpcURI == nil {
+			return nil
+		} else {
+			m.SetConnection(flag.RpcURI)
+		}
+	}
 	return m
 }
 
-// SetRPCServer ...
-func (m *Monitor) SetRPCServer(clientURI *string) error {
+// SetConnection ...
+func (m *Monitor) SetConnection(clientURI *string) error {
 	cl, err := rpc.Dial(*clientURI)
 	if err != nil {
 		return ErrBuildConn

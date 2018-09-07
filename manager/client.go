@@ -220,11 +220,11 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 }
 
 // NewTorrentManager ...
-func NewTorrentManager(DataDir string) *TorrentManager {
+func NewTorrentManager(flag *types.Flag) *TorrentManager {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableTCP = true
-	cfg.DataDir = DataDir
+	cfg.DataDir = *flag.DataDir
 	cfg.DisableEncryption = true
 	listenAddr := &net.TCPAddr{}
 	log.Println(listenAddr)
@@ -237,11 +237,15 @@ func NewTorrentManager(DataDir string) *TorrentManager {
 	TorrentManager := &TorrentManager{
 		client:        cl,
 		torrents:      make(map[metainfo.Hash]*Torrent),
-		DataDir:       DataDir,
+		DataDir:       *flag.DataDir,
 		CloseAll:      make(chan struct{}),
 		NewTorrent:    make(chan string, newTorrentChanBuffer),
 		RemoveTorrent: make(chan string, removeTorrentChanBuffer),
 		UpdateTorrent: make(chan interface{}, updateTorrentChanBuffer),
+	}
+
+	if flag.DefaultTrackers != nil {
+		TorrentManager.SetTrackers(*flag.DefaultTrackers)
 	}
 
 	go func() {
