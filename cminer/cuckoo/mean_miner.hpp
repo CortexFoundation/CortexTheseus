@@ -8,8 +8,6 @@
 // to race conditions (typically takes under 1% of runtime)
 #pragma once
 
-#include "cuckoo.h"
-#include "siphashxN.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -20,6 +18,8 @@
 #ifdef __APPLE__
 #include "osx_barrier.h"
 #endif
+#include "cuckoo.h"
+#include "siphashxN.h"
 
 // algorithm/performance parameters
 
@@ -157,9 +157,9 @@ const static u32 ZBUCKETSLOTS = NZ + NZ * BIGEPS;
 #ifdef SAVEEDGES
 const static u32 ZBUCKETSIZE = NTRIMMEDZ * (BIGSIZE + sizeof(u32));  // assumes EDGEBITS <= 32
 #else
-const static u32 ZBUCKETSIZE = ZBUCKETSLOTS * BIGSIZE0; 
+const static u32 ZBUCKETSIZE = ZBUCKETSLOTS * BIGSIZE0;
 #endif
-const static u32 TBUCKETSIZE = ZBUCKETSLOTS * BIGSIZE; 
+const static u32 TBUCKETSIZE = ZBUCKETSLOTS * BIGSIZE;
 
 /*
 // make 128 byte waves
@@ -357,7 +357,7 @@ public:
 #ifdef NEEDSYNC
     u32 last[NX];;
 #endif
-  
+
     rdtsc0 = __rdtsc();
     u8 const *base = (u8 *)buckets;
     indexer<ZBUCKETSIZE> dst;
@@ -563,7 +563,7 @@ public:
     static const u32 NONDEGMASK = (1 << NONDEGBITS) - 1;
     indexer<ZBUCKETSIZE> dst;
     indexer<TBUCKETSIZE> small;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u8 const *base = (u8 *)buckets;
@@ -691,7 +691,7 @@ public:
           SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N;
           v0 = XOR(XOR(v0,v1),XOR(v2,v3));
           v4 = XOR(XOR(v4,v5),XOR(v6,v7));
-    
+
           v1 = _mm256_srli_epi64(v0, YZBITS) & vxmask;
           v5 = _mm256_srli_epi64(v4, YZBITS) & vxmask;
           v0 = vhi0 | (v0 & vyzmask);
@@ -748,7 +748,7 @@ public:
     u64 rdtsc0, rdtsc1;
     indexer<ZBUCKETSIZE> dst;
     indexer<TBUCKETSIZE> small;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u8 const *base = (u8 *)buckets;
@@ -837,7 +837,7 @@ public:
     indexer<ZBUCKETSIZE> dst;
     indexer<TBUCKETSIZE> small;
     u32 maxnnid = 0;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u8 const *base = (u8 *)buckets;
@@ -949,7 +949,7 @@ public:
   void trimedges1(const u32 id, const u32 round) {
     u64 rdtsc0, rdtsc1;
     indexer<ZBUCKETSIZE> dst;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u8 *degs = tdegs[id];
@@ -1001,7 +1001,7 @@ public:
     u64 rdtsc0, rdtsc1;
     indexer<ZBUCKETSIZE> dst;
     u32 maxnnid = 0;
-  
+
     rdtsc0 = __rdtsc();
     offset_t sumsize = 0;
     u16 *degs = (u16 *)tdegs[id];
@@ -1269,11 +1269,11 @@ public:
     }
     return nu-1;
   }
-  
+
   void findcycles() {
     u32 us[MAXPATHLEN], vs[MAXPATHLEN];
     u64 rdtsc0, rdtsc1;
-  
+
     rdtsc0 = __rdtsc();
     for (u32 vx = 0; vx < NX; vx++) {
       for (u32 ux = 0 ; ux < NX; ux++) {
@@ -1325,7 +1325,7 @@ public:
 
   void *matchUnodes(match_ctx *mc) {
     u64 rdtsc0, rdtsc1;
-  
+
     rdtsc0 = __rdtsc();
     const u32 starty = NY *  mc->id    / trimmer->nthreads;
     const u32   endy = NY * (mc->id+1) / trimmer->nthreads;
@@ -1411,14 +1411,14 @@ public:
         SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N;
         v0 = XOR(XOR(v0,v1),XOR(v2,v3));
         v4 = XOR(XOR(v4,v5),XOR(v6,v7));
-  
+
         vpacket0 = _mm256_add_epi64(vpacket0, vpacketinc);
         vpacket1 = _mm256_add_epi64(vpacket1, vpacketinc);
         v0 = v0 & vnodemask;
         v4 = v4 & vnodemask;
         v1 = _mm256_srli_epi64(v0, ZBITS);
         v5 = _mm256_srli_epi64(v4, ZBITS);
-  
+
         u32 uxy;
   #define MATCH(i,v,x,w) \
   uxy = _mm256_extract_epi32(v,x);\
