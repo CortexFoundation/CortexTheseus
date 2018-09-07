@@ -156,21 +156,21 @@ bool CuckooSolver::verifySol(u32* sol, uchar* hash, uchar* target){
     bool valid = true;
     printf("Verified with cyclehash ");
     unsigned char cyclehash[32];
-    blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)sol, sizeof(proof), 0, 0);
-    /*for (int i=0; i<32; i++){
-        printf("%02x", cyclehash[i]);
-    }
-    printf("\n");*/
-    printf("c:cyclehash");
-    for (int i = 0; i < 32; i++){
-        printf(" %d", cyclehash[i]);
-    }
-    printf("\n");
-    printf("C:target");
-    for (int i = 0; i < 32; i++){
-        printf(" %d", target[i]);
-    }
-    printf("\n");
+    // blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)sol, sizeof(proof), 0, 0);
+    // /*for (int i=0; i<32; i++){
+    //     printf("%02x", cyclehash[i]);
+    // }
+    // printf("\n");*/
+    // printf("c:cyclehash");
+    // for (int i = 0; i < 32; i++){
+    //     printf(" %d", cyclehash[i]);
+    // }
+    // printf("\n");
+    // printf("C:target");
+    // for (int i = 0; i < 32; i++){
+    //     printf(" %d", target[i]);
+    // }
+    // printf("\n");
 
     for(int i=0; i<32; i++){
         if(cyclehash[i] != hash[i]){
