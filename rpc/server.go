@@ -132,7 +132,6 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 			fmt.Println("serveRequest: " ,size)
 			buf = buf[:runtime.Stack(buf, false)]
 			log.Debug(string(buf))
-			// TODO(tian) log.Error(string(buf))
 		}
 		s.codecsMu.Lock()
 		s.codecs.Remove(codec)
@@ -156,6 +155,7 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 	}
 	s.codecs.Add(codec)
 	s.codecsMu.Unlock()
+
 	// test if the server is ordered to stop
 	for atomic.LoadInt32(&s.run) == 1 {
 		reqs, batch, err := s.readRequest(codec)
@@ -206,7 +206,6 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 			}
 		}(reqs, batch)
 	}
-	 fmt.Println("end")
 	return nil
 }
 

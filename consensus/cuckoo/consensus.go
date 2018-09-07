@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
+	"encoding/binary"
 	//"strconv"
 	// "strings"
 	"time"
@@ -475,6 +476,8 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
+
+
 func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
@@ -495,8 +498,9 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t t[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(diff)), ","), "[]") + "};")
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-	r := CuckooVerifyHeaderNonceAndSolutions(hash, uint32(nonce), &result[0])
-	if r != 1 {
+	r, _ := CuckooVerifyHeaderNonceSolutionsDifficulty(hash, uint32(nonce), &result)
+	if !r {
+		fmt.Println("r = ", r)
 		return errInvalidPoW
 	}
 
@@ -587,4 +591,24 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	}
 
 	state.AddBalance(header.Coinbase, reward)
+}
+
+func Sha3Solution(sol* types.BlockSolution) []byte {
+	buf := make([]byte, 42*4)
+	for i := 0; i < len(sol); i++ {
+		binary.LittleEndian.PutUint32(buf[i * 4:], sol[i])
+	}
+	ret := make([]byte, 32)
+	hasher := sha3.NewKeccak256()
+	hasher.Write(buf)
+	hasher.Sum(ret)
+	return ret
+}
+
+func CuckooVerifyHeaderNonceSolutionsDifficulty(hash []byte, nonce uint32, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
+	r := CuckooVerifyHeaderNonceAndSolutions(hash, nonce, &sol[0])
+	if r != 1 {
+		return false, common.Hash{}
+	}
+	return true, common.BytesToHash(Sha3Solution(sol))
 }
