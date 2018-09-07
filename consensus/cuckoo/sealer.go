@@ -133,7 +133,7 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDif
 	ok, result := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), uint32(block.Nonce()), solution)
 	if !ok {
 		log.Info("invalid share solution", "solution", solution)
-		fmt.Println("invalid solution")
+		fmt.Println("invalid solution", result.Big())
 		return false, false, 0
 	}
 	 fmt.Println("result", result)
