@@ -33,6 +33,20 @@ func CuckooSolve(hash *byte, hash_len int, nonce uint32, result *uint32, result_
 	return byte(r)
 }
 
+func CuckooFindSolutions(hash *byte, hash_len int, nonce uint32, result *uint32, result_len *uint32, diff *byte, result_hash *byte) (status_code uint32) {
+
+	r := C.CuckooFindSolutions(
+		(*C.uint8_t)(unsafe.Pointer(hash)),
+		C.uint32_t(hash_len),
+		C.uint32_t(nonce),
+		(*C.uint32_t)(unsafe.Pointer(result)),
+		(*C.uint32_t)(unsafe.Pointer(result_len)),
+		(*C.uint32_t)(unsafe.Pointer(result_len)),
+	)
+
+	return uint32(r)
+}
+
 func CuckooVerify(hash *byte, hash_len int, nonce uint32, result *uint32, diff *byte, result_hash *byte) byte {
 	r := C.CuckooVerify(
 		(*C.uchar)(unsafe.Pointer(hash)),

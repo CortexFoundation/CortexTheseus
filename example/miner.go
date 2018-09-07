@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
@@ -77,7 +78,8 @@ func main() {
 			step.lock.Unlock()
 
 			//-------- connect to server -------------
-			var server = "139.196.32.192:8009"
+			// var server = "139.196.32.192:8009"
+			var server = "localhost:8009"
 			tcpAddr, err := net.ResolveTCPAddr("tcp", server)
 			checkError(err)
 
@@ -162,8 +164,8 @@ func main() {
 				targetMinerTest[i] = 255
 			}
 			for {
-
-				r := cuckoo.CuckooSolve(&header[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
+				tmpHeader := header
+				r := cuckoo.CuckooSolve(&tmpHeader[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
 				if byte(r) == 1 {
 					figureout = true
 				}
@@ -210,15 +212,12 @@ func main() {
 				fmt.Println("sol err")
 			}
 			fmt.Println("solution: ", solution)
-			if headerst != workinfo[0] {
-				fmt.Println("error header", header, headerst, workinfo[0])
-			}
+			fmt.Println("header: ", headerst)
 			var reqSubmit = ReqObj{
 				Id:      73,
 				Jsonrpc: "2.0",
 				Method:  "eth_submitWork",
-				Params:  []string{nonce, workinfo[0].(string), digest, string(solution)},
-				// Params: []string{nonce, headerst, digest, solution},
+				Params:  []string{nonce, workinfo[0].(string), digest, hex.EncodeToString(solution)},
 			}
 			write(reqSubmit, conn)
 			_ = read(reader)

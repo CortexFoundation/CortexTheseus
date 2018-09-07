@@ -27,9 +27,11 @@ class MinerBot
     // void testEquihash();
     void testCuckoo();
 
+    CuckooSolver* GetSolver();
+
     void CuckooInit(int thread = 1);
     bool CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uint32_t *result_len,uchar* target,uchar* result_hash);
+    bool CuckooSolve(const uint8_t *header, uint32_t headerLength, uint32_t nonce, vector<vector<uint32_t>>* solutions);
     bool CuckooVerify(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uchar* target, uchar* hash);
-    void CuckooRelease();
 };
 
