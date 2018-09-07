@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 	"unsafe"
-//	"fmt"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -75,7 +75,9 @@ func (s* BlockSolution) MarshalText() ([]byte, error) {
 }
 
 func (s* BlockSolution) UnmarshalText(input []byte) error {
-	for i := 0; i < len(input)/4; i++ { 
+	fmt.Println("input: ", input, len(input))
+	for i := 0; i < len(input)/4; i++ {
+		fmt.Printf("%v", input[i * 4: i * 4 +4])
 		s[i] = binary.BigEndian.Uint32(input[i * 4: i * 4 +4])
 		//fmt.Println(input[i*4: i*4 +4], s[i])
 	}
