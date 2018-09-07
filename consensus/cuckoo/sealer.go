@@ -127,17 +127,17 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDif
 	                return false, false, 0
 	        }*/
 	fmt.Println("going to verify share...............")
-	return true,true,0
+	//return true,true,0
 	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
-	//ok, result := cuckoo.VerifySolution(hashNoNonce.Bytes(), uint32(block.Nonce()), solution, *shareDiff)
-	/*ok,result := cuckoo.CuckooVerifyHeaderNonceAndSolutions(hashNoNonce.Bytes(), uint32(block.Nonce()), solution)
+	ok, result := cuckoo.VerifySolution(hashNoNonce.Bytes(), uint32(block.Nonce()), solution, *shareDiff)
+	//ok,result := cuckoo.CuckooVerifyHeaderNonceAndSolutions(hashNoNonce.Bytes(), uint32(block.Nonce()), solution)
 	if !ok {
 		log.Info("invalid share solution", "solution", solution)
 		fmt.Println("invalid solution")
 		return false, false, 0
-	}*/
+	}
 
-	result := common.Hash{}
+	//result := common.Hash{}
 
 	// The actual check.
 	log.Info("invalid share solution", "blockdiff", blockDiff)
@@ -325,10 +325,13 @@ func (cuckoo *Cuckoo) remote() {
 			}
 
 		case result := <-cuckoo.submitWorkCh:
+			fmt.Println("how")
 			// Verify submitted PoW solution based on maintained mining blocks.
 			if submitWork(result.nonce, result.mixDigest, result.hash) {
+				fmt.Println("yes")
 				result.errc <- nil
 			} else {
+				 fmt.Println("no")
 				result.errc <- errInvalidSealResult
 			}
 
