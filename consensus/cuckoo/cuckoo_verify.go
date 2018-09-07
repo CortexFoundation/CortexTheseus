@@ -23,3 +23,4 @@ func CuckooVerifyHeaderNonceAndSolutions(hash []byte, nonce uint32, result *uint
 
 	return int(r)
 }
+
