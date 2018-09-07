@@ -6,9 +6,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/common"
 	"net"
 	"os"
 	"strconv"
@@ -113,12 +113,11 @@ func main() {
 
 			//--------------------- mining -----------------------
 			var header [32]uint8
-			var target [32]uint8
 			var start uint32 = 0
+			var target [32]uint8
 
 			for i := 0; i < 32; i = i + 1 {
 				header[i] = 0
-				target[i] = 0
 			}
 
 			wr := workinfo[0].(string)
@@ -138,12 +137,18 @@ func main() {
 
 			wr = workinfo[2].(string)
 			lenr = len(wr)
-			for i, j, k := 2, lenr-2, 31; i < lenr; i, j, k = i+2, j-2, k-1 {
-				v, _ := strconv.ParseUint(wr[j:j+2], 16, 8)
-				target[k] = uint8(v)
+			targetHack := false
+			if targetHack {
+				for i := 0; i < 32; i++ {
+					target[i] = 255
+				}
+			} else {
+				for i, j, k := 2, lenr-2, 31; i < lenr; i, j, k = i+2, j-2, k-1 {
+					v, _ := strconv.ParseUint(wr[j:j+2], 16, 8)
+					target[k] = uint8(v)
+				}
 			}
-
-			fmt.Println(workinfo[0], header, workinfo[1], start, workinfo[2], target)
+			fmt.Println("target and workInfo: ", workinfo[0], header, workinfo[1], start, workinfo[2], target)
 
 			//------------- solve process -------------------
 			var result types.BlockSolution
@@ -154,71 +159,72 @@ func main() {
 			var result_hash [32]uint8
 			var intval uint32 = uint32(THREAD)
 			shareTarget := common.HexToHash(workinfo[2].(string))
+			var targetMinerTest [32]uint8
+			for i := 0; i < 32; i++ {
+				targetMinerTest[i] = 255
+			}
 			for {
-				r := cuckoo.CuckooSolve(&header[0], 32, uint32(start), &result[0], &result_len, &target[0], &result_hash[0])
-				sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&result))
+
+				r := cuckoo.CuckooSolve(&header[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
 				if byte(r) == 1 {
 					figureout = true
 				}
 				if figureout == true {
-					if sha3hash.Big().Cmp(shareTarget.Big()) <= 0 { 
+					// fmt.Println("result: ", result)
+					sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&result))
+					// fmt.Println("r, sha3hash = ", r, sha3hash)
+					fmt.Println("nonce:", start, ", sha3hash:\n", sha3hash.Big(), "\n", shareTarget.Big())
+					if sha3hash.Big().Cmp(shareTarget.Big()) <= 0 {
 						break
 					}
 				}
 				start += intval
 			}
-			r := cuckoo.CuckooVerify(&header[0], 32, uint32(start), &result[0], &target[0], &result_hash[0])
+			// r := cuckoo.CuckooVerify(&header[0], 32, uint32(start), &result[0], &target[0], &result_hash[0])
 
-			var pass bool
-			if byte(r) == 0 {
-				pass = false
-			} else {
-				pass = true
-				nonce := strconv.FormatUint(uint64(start), 16)
-				for len(nonce) < 16 {
-					nonce = "0" + nonce
-				}
-
-				headerst := ""
-				for _, val := range header {
-					s := strconv.FormatUint(uint64(val), 16)
-					if len(s) < 2 {
-						s = "0" + s
-					}
-					headerst += s
-				}
-
-				digest := ""
-				for _, val := range target {
-					s := strconv.FormatUint(uint64(val), 16)
-					if len(s) < 2 {
-						s = "0" + s
-					}
-					digest += s
-				}
-				result_buf := make([]byte, 42*4)
-				for i := 0; i < 42; i++ {
-					binary.BigEndian.PutUint32(result_buf[i*4:i*4+4], result[i])
-				}
-				nonce = "0x" + nonce
-				headerst = "0x" + headerst
-				digest = "0x" + digest
-				solution := "0x" + hex.EncodeToString(result_buf)
-				fmt.Println("solution: ", result_buf, solution)
-				if headerst != workinfo[0] {
-					fmt.Println("error header", header, headerst, workinfo[0])
-				}
-				var reqSubmit = ReqObj{
-					Id:      73,
-					Jsonrpc: "2.0",
-					Method:  "eth_submitWork",
-					Params:  []string{nonce, workinfo[0].(string), digest, solution},
-					// Params: []string{nonce, headerst, digest, solution},
-				}
-				write(reqSubmit, conn)
-				_ = read(reader)
+			nonce := strconv.FormatUint(uint64(start), 16)
+			for len(nonce) < 16 {
+				nonce = "0" + nonce
 			}
-			fmt.Println("pass: ", pass)
+
+			headerst := ""
+			for _, val := range header {
+				s := strconv.FormatUint(uint64(val), 16)
+				if len(s) < 2 {
+					s = "0" + s
+				}
+				headerst += s
+			}
+
+			digest := ""
+			for _, val := range target {
+				s := strconv.FormatUint(uint64(val), 16)
+				if len(s) < 2 {
+					s = "0" + s
+				}
+				digest += s
+			}
+			result_buf := make([]byte, 42*4)
+			for i := 0; i < 42; i++ {
+				binary.BigEndian.PutUint32(result_buf[i*4:i*4+4], result[i])
+			}
+			nonce = "0x" + nonce
+			headerst = "0x" + headerst
+			digest = "0x" + digest
+			solution := "0x" + hex.EncodeToString(result_buf)
+			fmt.Println("solution: ", result_buf, solution)
+			if headerst != workinfo[0] {
+				fmt.Println("error header", header, headerst, workinfo[0])
+			}
+			var reqSubmit = ReqObj{
+				Id:      73,
+				Jsonrpc: "2.0",
+				Method:  "eth_submitWork",
+				Params:  []string{nonce, workinfo[0].(string), digest, solution},
+				// Params: []string{nonce, headerst, digest, solution},
+			}
+			write(reqSubmit, conn)
+			_ = read(reader)
 			wg.Done()
 		}()
 	}
