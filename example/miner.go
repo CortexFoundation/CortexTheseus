@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/consensus/cuckoo"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common"
 	"net"
 	"os"
 	"strconv"
@@ -144,22 +146,24 @@ func main() {
 			fmt.Println(workinfo[0], header, workinfo[1], start, workinfo[2], target)
 
 			//------------- solve process -------------------
-			var result [42]uint32
+			var result types.BlockSolution
 			for i, _ := range result {
 				result[i] = 0
 			}
 			var result_len uint32
 			var result_hash [32]uint8
 			var intval uint32 = uint32(THREAD)
-
+			shareTarget := common.HexToHash(workinfo[2].(string))
 			for {
 				r := cuckoo.CuckooSolve(&header[0], 32, uint32(start), &result[0], &result_len, &target[0], &result_hash[0])
-
+				sha3hash := cuckoo.Sha3Solution(&result)
 				if byte(r) == 1 {
 					figureout = true
 				}
 				if figureout == true {
-					break
+					if sha3hash.Big().Cmp(shareTarget) <= 0 { 
+						break
+					}
 				}
 				start += intval
 			}
