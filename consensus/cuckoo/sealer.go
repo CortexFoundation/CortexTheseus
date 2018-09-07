@@ -14,8 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
 	//"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/ethereum/go-ethereum/log"
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var (
@@ -102,7 +102,8 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// return result, nil
 }
 
-func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
+func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
+	cuckoo.InitOnce()
 	// For return arguments
 	//zeroHash := common.Hash{}
 
@@ -120,14 +121,14 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution *typ
 	}
 
 	// avoid mixdigest malleability as it's not included in a block's "hashNononce"
-        /*if blkMix := block.MixDigest(); blkMix != zeroHash {
-		log.Info("invalid share mix", "blkMix", blkMix)
-		fmt.Println("invalid mix")
-                return false, false, 0
-        }*/
-fmt.Println("invalid share...............")
+	/*if blkMix := block.MixDigest(); blkMix != zeroHash {
+			log.Info("invalid share mix", "blkMix", blkMix)
+			fmt.Println("invalid mix")
+	                return false, false, 0
+	        }*/
+	fmt.Println("going to verify share...............")
 	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
-	ok, result := cuckoo.VerifySolution(block.HashNoNonce().Bytes(), uint32(block.Nonce()), solution, *shareDiff)
+	ok, result := cuckoo.VerifySolution(hashNoNonce.Bytes(), uint32(block.Nonce()), solution, *shareDiff)
 	if !ok {
 		log.Info("invalid share solution", "solution", solution)
 		fmt.Println("invalid solution")
@@ -150,20 +151,11 @@ fmt.Println("invalid share...............")
 func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution *types.BlockSolution, target big.Int) (bool, common.Hash) {
 	var (
 		result_hash [32]byte
-		//result_len uint32
 	)
 	diff := target.Bytes()
 	r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &solution[0], &diff[0], &result_hash[0])
-	/* r := C.CuckooVerify(
-	(*C.char)(unsafe.Pointer(&hash[0])),
-	C.uint(len(hash)),
-	C.uint(uint32(nonce)),
-	(*C.uint)(unsafe.Pointer(&solution[0])),
-	//                        (*C.uint)(unsafe.Pointer(&result_len)),
-	(*C.uchar)(unsafe.Pointer(&diff[0])),
-	(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
 	if r != 0 {
-		return true, common.BytesToHash(result_hash[:])
+	return false, common.BytesToHash([]byte{})
 	}
 	return false, common.BytesToHash(result_hash[:])
 }
@@ -207,30 +199,12 @@ search:
 
 			var result_hash [32]byte
 			diff := target.Bytes()
-			// cuckoo.cMutex.Lock()
 			r := CuckooSolve(&hash[0], len(hash), uint32(nonce), &result[0], &result_len, &diff[0], &result_hash[0])
-			/* r := C.CuckooSolve(
-			(*C.char)(unsafe.Pointer(&hash[0])),
-			C.uint(len(hash)),
-			C.uint(uint32(nonce)),
-			(*C.uint)(unsafe.Pointer(&result[0])),
-			(*C.uint)(unsafe.Pointer(&result_len)),
-			(*C.uchar)(unsafe.Pointer(&diff[0])),
-			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
 			if r == 0 {
-				// cuckoo.cMutex.Unlock()
 				nonce++
 				continue
 			}
 			r = CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-			/* r = C.CuckooVerify(
-			(*C.char)(unsafe.Pointer(&hash[0])),
-			C.uint(len(hash)),
-			C.uint(uint32(nonce)),
-			(*C.uint)(unsafe.Pointer(&result[0])),
-			(*C.uchar)(unsafe.Pointer(&diff[0])),
-			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
-			// cuckoo.cMutex.Unlock()
 
 			if r != 0 {
 				// Correct solution found, create a new header with it
