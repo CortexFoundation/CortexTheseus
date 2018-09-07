@@ -17,11 +17,11 @@
 package cuckoo
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
-	"encoding/binary"
 	//"strconv"
 	// "strings"
 	"time"
@@ -33,6 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/sha3"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -477,7 +478,6 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
 
-
 func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
@@ -487,7 +487,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	var (
 		result = header.Solution
 		nonce  = header.Nonce.Uint64()
-		hash = cuckoo.SealHash(header).Bytes()
+		hash   = cuckoo.SealHash(header).Bytes()
 		// result_hash = header.SolutionHash
 	)
 
@@ -593,15 +593,13 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	state.AddBalance(header.Coinbase, reward)
 }
 
-func Sha3Solution(sol* types.BlockSolution) []byte {
+func Sha3Solution(sol *types.BlockSolution) []byte {
 	buf := make([]byte, 42*4)
 	for i := 0; i < len(sol); i++ {
-		binary.LittleEndian.PutUint32(buf[i * 4:], sol[i])
+		binary.LittleEndian.PutUint32(buf[i*4:], sol[i])
 	}
-	ret := make([]byte, 32)
-	hasher := sha3.NewKeccak256()
-	hasher.Write(buf)
-	hasher.Sum(ret)
+	ret := crypto.Keccak256(buf)
+	fmt.Println("Sha3Solution: ", ret, "buf: ", buf, "sol: ", sol)
 	return ret
 }
 
