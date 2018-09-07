@@ -102,7 +102,8 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// return result, nil
 }
 
-func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
+func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
+	cuckoo.InitOnce()
 	// For return arguments
 	//zeroHash := common.Hash{}
 
@@ -125,9 +126,10 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution *typ
 		fmt.Println("invalid mix")
                 return false, false, 0
         }*/
-fmt.Println("invalid share...............")
+	return true, true, 0
+	fmt.Println("invalid share...............")
 	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
-	ok, result := cuckoo.VerifySolution(block.MixDigest().Bytes(), uint32(block.Nonce()), solution, *shareDiff)
+	ok, result := cuckoo.VerifySolution(hashNoNonce.Bytes(), uint32(block.Nonce()), solution, *shareDiff)
 	if !ok {
 		log.Info("invalid share solution", "solution", solution)
 		fmt.Println("invalid solution")
@@ -150,12 +152,11 @@ fmt.Println("invalid share...............")
 func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution *types.BlockSolution, target big.Int) (bool, common.Hash) {
 	var (
 		result_hash [32]byte
-		//result_len uint32
 	)
 	diff := target.Bytes()
 	r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &solution[0], &diff[0], &result_hash[0])
 	if r != 0 {
-		return true, common.BytesToHash(result_hash[:])
+	return false, common.BytesToHash([]byte{})
 	}
 	return false, common.BytesToHash(result_hash[:])
 }

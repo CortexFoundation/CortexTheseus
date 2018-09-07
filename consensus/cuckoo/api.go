@@ -18,6 +18,7 @@ package cuckoo
 
 import (
 	"errors"
+	"fmt"
 	//	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -66,6 +67,7 @@ func (api *API) GetWork() ([3]string, error) {
 // It returns an indication if the work was accepted.
 // Note either an invalid solution, a stale work a non-existent work will return false.
 func (api *API) SubmitWork(nonce types.BlockNonce, hash, digest common.Hash) bool {
+	fmt.Println("submit work")
 	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
 		return false
 	}

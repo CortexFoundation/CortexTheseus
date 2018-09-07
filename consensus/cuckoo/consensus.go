@@ -479,14 +479,11 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
 	}
-
-	// Init cuckoo-cycle algorithm once
 	cuckoo.InitOnce()
 
 	var (
 		result = header.Solution
 		nonce  = header.Nonce.Uint64()
-
 		hash = cuckoo.SealHash(header).Bytes()
 		// result_hash = header.SolutionHash
 	)
@@ -499,7 +496,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
 	r := CuckooVerifyHeaderNonceAndSolutions(hash, uint32(nonce), &result[0])
-	if r == 0 {
+	if r != 1 {
 		return errInvalidPoW
 	}
 
