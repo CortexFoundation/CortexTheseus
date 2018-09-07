@@ -1,7 +1,6 @@
 package downloadmanager
 
 import (
-	"io"
 	"log"
 	"net"
 	"os"
@@ -186,10 +185,10 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 
 	f, _ := os.Create(torrentPath)
 	log.Println(ih.HexString(), "write torrent file to", torrentPath)
-	torrent := t.Metainfo().Encoding
-	log.Println("content: ", torrent)
-	io.WriteString(f, torrent)
-	f.Close()
+	if err := t.Metainfo().Write(f); err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
 }
 
 // UpdateMagnet ...
