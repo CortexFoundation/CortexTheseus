@@ -8,8 +8,6 @@
 // to race conditions (typically takes under 1% of runtime)
 #pragma once
 
-#include "cuckoo_new.h"
-#include "siphashxN.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -21,6 +19,9 @@
 #ifdef __APPLE__
 #include "osx_barrier.h"
 #endif
+
+#include "cuckoo_new.h"
+#include "siphashxN.h"
 
 // algorithm/performance parameters
 

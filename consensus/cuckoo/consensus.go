@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"runtime"
 	//"strconv"
+	// "strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -478,36 +479,24 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
 	}
-
-	// Init cuckoo-cycle algorithm once
 	cuckoo.InitOnce()
 
 	var (
 		result = header.Solution
 		nonce  = header.Nonce.Uint64()
-
-		hash        = cuckoo.SealHash(header).Bytes()
-		result_hash = header.SolutionHash
+		hash = cuckoo.SealHash(header).Bytes()
+		// result_hash = header.SolutionHash
 	)
-	// r := C.CuckooVerify(
-	// 	(*C.char)(unsafe.Pointer(&hash[0])),
-	// 	C.uint(len(hash)),
-	// 	C.uint(uint32(nonce)),
-	// 	(*C.uint)(unsafe.Pointer(&result[0])))
 
-	diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
-	// fmt.Println("diff", diff)
-	// cuckoo.cMutex.Lock()
-	r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-	/* r := C.CuckooVerify(
-	(*C.char)(unsafe.Pointer(&hash[0])),
-	C.uint(len(hash)),
-	C.uint(uint32(nonce)),
-	(*C.uint)(unsafe.Pointer(&result[0])),
-	(*C.uchar)(unsafe.Pointer(&diff[0])),
-	(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
-	// cuckoo.cMutex.Unlock()
-	if r == 0 {
+	// diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
+	// fmt.Println("uint8_t a[80] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(hash)), ","), "[]") + "};")
+	// fmt.Println("uint32_t nonce =  ", nonce, ";")
+	// fmt.Println("uint32_t result[42] =  {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result)), ","), "[]") + "};")
+	// fmt.Println("uint8_t t[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(diff)), ","), "[]") + "};")
+	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
+	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
+	r := CuckooVerifyHeaderNonceAndSolutions(hash, uint32(nonce), &result[0])
+	if r != 1 {
 		return errInvalidPoW
 	}
 
@@ -555,24 +544,6 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 		header.Time,
 		header.Extra,
 	})
-
-	// Origin HashNoNonce Func
-	/* -       return rlpHash([]interface{}{
-	   -               h.ParentHash,
-	   -               h.UncleHash,
-	   -               h.Coinbase,
-	   -               h.Root,
-	   -               h.TxHash,
-	   -               h.ReceiptHash,
-	   -               h.Bloom,
-	   -               h.Difficulty,
-	   -               h.Number,
-	   -               h.GasLimit,
-	   -               h.GasUsed,
-	   -               h.Time,
-	   -               h.Extra,
-	   -       }) */
-
 	hasher.Sum(hash[:0])
 	return hash
 }

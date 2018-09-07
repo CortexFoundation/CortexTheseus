@@ -342,3 +342,10 @@ func (ma *MixedcaseAddress) ValidChecksum() bool {
 func (ma *MixedcaseAddress) Original() string {
 	return ma.original
 }
+
+func Car(data interface{}, err error) interface{} {
+	if err != nil {
+		return nil
+	}
+	return data
+}

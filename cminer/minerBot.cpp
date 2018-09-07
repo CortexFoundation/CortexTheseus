@@ -1,14 +1,14 @@
-#include "minerBot.h"
-#include "gominer.h"
-
+#include <iostream>
 #include <string.h>
 #include <pthread.h>
+#include "minerBot.h"
+#include "gominer.h"
 
 MinerBot::MinerBot(unsigned int nthread)
 {
     if (pthread_mutex_init(&mutex, NULL) != 0) {
 		printf("ERROR init with mutex");
-		exit(0);
+		exit(-1);
 	}
     cs.setNthreads(nthread);
     cs.initSolver();
@@ -54,15 +54,21 @@ void MinerBot::await() {
 
 bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uint *result_len, uchar* target,uchar* result_hash)
 {
+    using std::cout;
     cs.setHeaderNonce(header, header_len, nonce);
     cs.setHashTarget(target);
     cs.solve();
     vector<cuckoo_sol> ss = cs.getSols();
+    // cout << "size = " << sizeof(ss[0].data) << " PROOFSIZE = " << PROOFSIZE << "\n";
+    // for (uint32_t i = 0;  i < sizeof(ss[0].data); i++) {
+    //     cout << ss[0].data[i] << " ";
+    // }
+    // cout << "\n";
     *result_len = 0;
     if (ss.size() > 0)
     {
         memcpy(result, (uint32_t*)ss[0].data, PROOFSIZE * sizeof(uint32_t));
-        memcpy(result_hash,(uchar*)ss[0].hash,32*sizeof(uchar));
+        memcpy(result_hash, (uchar*)ss[0].hash, 32*sizeof(uchar));
         *result_len = PROOFSIZE;
         return true;
     }
@@ -75,20 +81,15 @@ bool MinerBot::CuckooVerify(char *header, uint32_t header_len, uint32_t nonce,
 {
     cs.setHeaderNonce(header, header_len, nonce);
     cs.setHashTarget(target);
+    // printf("MinerBot::CuckooVerify.header:\n");
+    // for (uint32_t i = 0; i < header_len; i++) {
+    //     if (i != 0) printf(",");
+    //     printf("%d", header[i]);
+    // }
+    // printf("\n");
     bool ok = cs.verifySol(result, hash, target);
     return ok;
 }
-
-
-
-// void testGoInterface()
-// {
-
-//     printf("Welcome to Cortex Mining.\n");
-
-//     MinerBot bot;
-//     bot.testCuckoo();
-// }
 
 #define POOL_SIZE 20
 static MinerBot* botPool[POOL_SIZE];
@@ -125,20 +126,45 @@ void CuckooRelease(uint bot)
 	pthread_mutex_unlock(&(botPool[bot]->mutex));
 }
 
-unsigned char CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uint *result_len, uchar* target, uchar* result_hash)
-{
+uint8_t CuckooSolve(uint8_t *header, uint32_t header_len, uint32_t nonce, result_t *result, uint32_t *result_len, uint8_t *target, uint8_t *hash) {
     uint bot_idx = getMinerBotInstance();
-    uint8_t res = botPool[bot_idx]->CuckooSolve(header, header_len, nonce, result, result_len,target,result_hash);
+    uint8_t res = botPool[bot_idx]->CuckooSolve((char*)header, header_len, nonce, result, result_len, target, hash);
     CuckooRelease(bot_idx);
     return res;
 }
-unsigned char CuckooVerify(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uchar* target, uchar* hash)
+unsigned char CuckooVerify(uint8_t *header, uint32_t header_len, uint32_t nonce, result_t *result, uint8_t* target, uint8_t* hash)
 {
+    // printf("=== uint8_t a[80] = { ");
+	// for (uint32_t i = 0 ; i < header_len; i++) {
+	// 	if (i != 0)
+	// 		printf(",");
+	// 	printf("%d", header[i]);
+	// }
+    // printf("};\n");
+    // printf("=== uint32_t nonce = %d;", nonce);
+    // printf("=== uint32_t result[42] = { ");
+	// for (uint32_t i = 0 ; i < 42 ; i++) {
+	// 	if (i != 0)
+	// 		printf(",");
+	// 	printf("%d", result[i]);
+	// }
+    // printf("};\n");
+    // printf("=== uint8_t t[32] = { ");
+	// for (uint32_t i = 0 ; i < 32 ; i++) {
+	// 	if (i != 0)
+	// 		printf(",");
+	// 	printf("%d", target[i]);
+	// }
+    // printf("};\n");
+    // printf("=== uint8_t h[32] = { ");
+	// for (uint32_t i = 0 ; i < 32 ; i++) {
+	// 	if (i != 0)
+	// 		printf(",");
+	// 	printf("%d", hash[i]);
+	// }
+    // printf("};\n");
     uint bot_idx = getMinerBotInstance();
-    uint8_t res = botPool[bot_idx]->CuckooVerify(header, header_len, nonce, result, target, hash);
+    uint8_t res = botPool[bot_idx]->CuckooVerify((char*)header, header_len, nonce, result, target, hash);
     CuckooRelease(bot_idx);
     return res;
-}
-
-void testCuckoo(){
 }
