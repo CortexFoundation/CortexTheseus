@@ -606,6 +606,7 @@ func Sha3Solution(sol *types.BlockSolution) []byte {
 func CuckooVerifyHeaderNonceSolutionsDifficulty(hash []byte, nonce uint32, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
 	r := CuckooVerifyHeaderNonceAndSolutions(hash, nonce, &sol[0])
 	if r != 1 {
+		fmt.Println("hash:", hash, " nonce:" , nonce, " solution:" , sol)
 		return false, common.Hash{}
 	}
 	return true, common.BytesToHash(Sha3Solution(sol))
