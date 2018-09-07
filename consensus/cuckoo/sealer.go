@@ -14,8 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
 	//"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/ethereum/go-ethereum/log"
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var (
@@ -121,12 +121,11 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDif
 	}
 
 	// avoid mixdigest malleability as it's not included in a block's "hashNononce"
-        /*if blkMix := block.MixDigest(); blkMix != zeroHash {
-		log.Info("invalid share mix", "blkMix", blkMix)
-		fmt.Println("invalid mix")
-                return false, false, 0
-        }*/
-	return true, true, 0
+	/*if blkMix := block.MixDigest(); blkMix != zeroHash {
+			log.Info("invalid share mix", "blkMix", blkMix)
+			fmt.Println("invalid mix")
+	                return false, false, 0
+	        }*/
 	fmt.Println("invalid share...............")
 	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
 	ok, result := cuckoo.VerifySolution(hashNoNonce.Bytes(), uint32(block.Nonce()), solution, *shareDiff)

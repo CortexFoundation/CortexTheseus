@@ -106,14 +106,14 @@ const char *errstr[] = { "OK", "wrong header length", "edge too big", "edges not
 
 // verify that edges are ascending and form a cycle in header-generated graph
 int verify(edge_t edges[PROOFSIZE], siphash_keys *keys) {
-  // printf("edges: \n");
-  // for (uint32_t i = 0; i < PROOFSIZE; i++) {
-  //     printf(" %d", edges[i]);
-  // }
-  // printf("\n");
-  // printf("sig: \n");
-  // printf(" %d %d %d %d", keys->k0, keys->k1, keys->k2, keys->k3);
-  // printf("\n");
+  printf("edges: \n");
+  for (uint32_t i = 0; i < PROOFSIZE; i++) {
+      printf(" %d", edges[i]);
+  }
+  printf("\n");
+  printf("sig: \n");
+  printf(" %d %d %d %d", keys->k0, keys->k1, keys->k2, keys->k3);
+  printf("\n");
   node_t uvs[2*PROOFSIZE];
   node_t xor0 = 0, xor1  =0;
   for (u32 n = 0; n < PROOFSIZE; n++) {
