@@ -544,24 +544,6 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 		header.Time,
 		header.Extra,
 	})
-
-	// Origin HashNoNonce Func
-	/* -       return rlpHash([]interface{}{
-	   -               h.ParentHash,
-	   -               h.UncleHash,
-	   -               h.Coinbase,
-	   -               h.Root,
-	   -               h.TxHash,
-	   -               h.ReceiptHash,
-	   -               h.Bloom,
-	   -               h.Difficulty,
-	   -               h.Number,
-	   -               h.GasLimit,
-	   -               h.GasUsed,
-	   -               h.Time,
-	   -               h.Extra,
-	   -       }) */
-
 	hasher.Sum(hash[:0])
 	return hash
 }
