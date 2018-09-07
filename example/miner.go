@@ -156,12 +156,12 @@ func main() {
 			shareTarget := common.HexToHash(workinfo[2].(string))
 			for {
 				r := cuckoo.CuckooSolve(&header[0], 32, uint32(start), &result[0], &result_len, &target[0], &result_hash[0])
-				sha3hash := cuckoo.Sha3Solution(&result)
+				sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&result))
 				if byte(r) == 1 {
 					figureout = true
 				}
 				if figureout == true {
-					if sha3hash.Big().Cmp(shareTarget) <= 0 { 
+					if sha3hash.Big().Cmp(shareTarget.Big()) <= 0 { 
 						break
 					}
 				}
