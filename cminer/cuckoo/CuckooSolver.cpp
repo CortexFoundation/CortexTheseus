@@ -1,7 +1,9 @@
+#include <thread>
+#include <vector>
 #include "CuckooSolver.h"
 #include "mean_miner_new.hpp"
 
-#include <thread>
+using std::vector;
 
 // arbitrary length of header hashed into siphash key
 #define HEADERLEN 80
@@ -59,6 +61,19 @@ void CuckooSolver::setHeaderNonce(char* header, u32 len, u32 nonce){
     keyed = true;
 }
 
+void CuckooSolver::findSolutions(vector<vector<u32>>* solutions) {
+    if (solver->_stop) return ;
+    _run = true;
+    u32 nsols = solver->solve();
+    for (unsigned s = 0; s < nsols; s++) {
+        u32* prf = & (solver->sols[s * PROOFSIZE]);
+        solutions->push_back(vector<u32>());
+        for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
+            solutions->back().push_back(prf[idx]);
+        }
+    }
+    _run = false;
+}
 void CuckooSolver::solve(){
     if (solver->_stop) return ;
 
