@@ -68,36 +68,35 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
-func (s* BlockSolution) MarshalText() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, s)
-	return buf.Bytes(), err
+func (s BlockSolution) Uint32() []uint32 { return s[:] }
+
+func (s BlockSolution) MarshalText() ([]byte, error) {
+	buf := make([]byte, 2, 2+42*8)
+	copy(buf, `0x`)
+	for i := 0; i < len(s.Uint32()); i++ {
+		buf = strconv.AppendUint(buf, uint64(s.Uint32()[i]), 16)
+	}
+	return buf, nil
 }
 
-func (s* BlockSolution) UnmarshalText(input []byte) error {
-	for i := 0; i < len(input)/4; i++ { 
-		s[i] = binary.BigEndian.Uint32(input[i * 4: i * 4 +4])
-		//fmt.Println(input[i*4: i*4 +4], s[i])
+func (s BlockSolution) UnmarshalText(input []byte) error {
+	for i := 0; i < len(s.Uint32()); i++ {
+		var u64 hexutil.Uint64
+		// offset 2 indicates ignoring the prefix '0x'
+		u64.UnmarshalText(input[i*4+2:i*4+6])
+		s[i] = *uint32(u64)
 	}
-	//rbuf := bytes.NewReader(input)
-	//err := binary.Read(rbuf, binary.LittleEndian, &s)
-	//return err
-	//return hexutil.UnmarshalFixedText("BlockSolution", input, s[:])
 	return nil
 }
 func (s BlockSolutionHash) MarshalText() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, s)
-	return buf.Bytes(), err
+	return hexutil.Bytes(s[:]).MarshalText()
 }
 
 func (s BlockSolutionHash) UnmarshalText(input []byte) error {
-	rbuf := bytes.NewReader(input)
-	err := binary.Read(rbuf, binary.LittleEndian, &s)
-	return err
+	return hexutil.UnmarshalFixedText("BlockSolutionHash", input, s[:])
 }
 
-//go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
+//go:generate 
 
 // Header represents a block header in the Ethereum blockchain.
 type Header struct {
