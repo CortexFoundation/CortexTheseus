@@ -1,5 +1,6 @@
 #include <thread>
 #include <vector>
+#include <algorithm>
 #include "CuckooSolver.h"
 #include "mean_miner_new.hpp"
 
@@ -68,12 +69,15 @@ void CuckooSolver::findSolutions(vector<vector<u32>>* solutions) {
     for (unsigned s = 0; s < nsols; s++) {
         u32* prf = & (solver->sols[s * PROOFSIZE]);
         solutions->push_back(vector<u32>());
+        auto& sol = solutions->back();
         for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
-            solutions->back().push_back(prf[idx]);
+            sol.push_back(prf[idx]);
         }
+        std::sort(sol.begin(), sol.end());
     }
     _run = false;
 }
+
 void CuckooSolver::solve(){
     if (solver->_stop) return ;
 
@@ -207,7 +211,6 @@ bool CuckooSolver::verifySol(u32* sol, uchar* hash, uchar* target){
     }
     return valid;
 }
-
 
 void CuckooSolver::setHashTarget(unsigned char* target_){
     // make sure target_ is 32-byte long
