@@ -120,7 +120,8 @@ func (fs *FileStorage) AddBlock(b *Block) error {
 func (fs *FileStorage) HasBlock(blockNum uint64) bool {
 	if _, ok := fs.blockMap[blockNum]; ok {
 		return true
-	} else if fs.GetBlock(blockNum) != nil {
+	} else if b := fs.GetBlock(blockNum); b != nil {
+		log.Println(*b)
 		return true
 	}
 	return false
@@ -135,6 +136,7 @@ func (fs *FileStorage) GetBlock(blockNum uint64) *Block {
 			fs.blockMap[blockNum] = t
 			return t
 		}
+		return nil
 	}
 	return b
 }
@@ -207,7 +209,7 @@ func (me *boltDBClient) GetBlock(blockNum uint64) *Block {
 		return nil
 	}
 	var block Block
-	log.Println(blockNum, v)
+	//	log.Println(blockNum, v)
 	json.Unmarshal(v, &block)
 	return &block
 }
