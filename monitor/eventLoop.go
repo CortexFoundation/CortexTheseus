@@ -28,14 +28,18 @@ const (
 	minBlockNum          = 36000
 )
 
-// Monitor ...
+// Monitor observes the data changes on the blockchain and synchronizes.
+// cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
 	cl *rpc.Client
 	dl *download.TorrentManager
 	fs *types.FileStorage
 }
 
-// NewMonitor ...
+// NewMonitor creates a new instance of monitor.
+// Once Ipcpath is settle, this method perfers to build socket connection in order to
+// get higher communicating performance.
+// IpcPath is unaviliable on windows.
 func NewMonitor(flag *types.Flag) *Monitor {
 	m := &Monitor{
 		nil,
@@ -47,14 +51,13 @@ func NewMonitor(flag *types.Flag) *Monitor {
 	} else {
 		if flag.RpcURI == nil {
 			return nil
-		} else {
-			m.SetConnection(flag.RpcURI)
 		}
+		m.SetConnection(flag.RpcURI)
 	}
 	return m
 }
 
-// SetConnection ...
+// SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) SetConnection(clientURI *string) error {
 	cl, err := rpc.Dial(*clientURI)
 	if err != nil {
@@ -159,6 +162,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) err
 		InfoHash:       *meta.InfoHash(),
 		BytesRequested: bytesRequested,
 	}
+	return nil
 }
 
 func (m *Monitor) parseNewBlock(b *types.Block) error {
