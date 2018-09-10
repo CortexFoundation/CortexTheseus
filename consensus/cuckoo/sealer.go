@@ -103,66 +103,38 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 }
 
 func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
-	cuckoo.InitOnce()
+	// cuckoo.InitOnce()
 	// For return arguments
 	//zeroHash := common.Hash{}
 
 	blockDiff := block.Difficulty()
 	if blockDiff.Cmp(common.Big0) == 0 {
 		log.Info("invalid block difficulty")
-		fmt.Println("invalid block difficulty")
 		return false, false, 0
 	}
 
 	if shareDiff.Cmp(common.Big0) == 0 {
 		log.Info("invalid share difficulty")
-		fmt.Println("invalid share")
 		return false, false, 0
 	}
 
-	// avoid mixdigest malleability as it's not included in a block's "hashNononce"
-	/*if blkMix := block.MixDigest(); blkMix != zeroHash {
-			log.Info("invalid share mix", "blkMix", blkMix)
-			fmt.Println("invalid mix")
-	                return false, false, 0
-	        }*/
-	fmt.Println("going to verify share...............", solution)
-	//return true,true,0
-	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
-	//ok, result := cuckoo.VerifySolution(hashNoNonce.Bytes(), uint32(block.Nonce()), solution, *shareDiff)
-	ok, result := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), uint32(block.Nonce()), solution)
+	ok, sha3Hash := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), uint32(block.Nonce()), solution)
 	if !ok {
-		log.Info("invalid share solution", "solution", solution)
-		fmt.Println("invalid solution", result.Big())
+		fmt.Println("invalid solution")
 		return false, false, 0
 	}
-	 fmt.Println("result", result)
-
-	//result := common.Hash{}
-
-	// The actual check.
-	log.Info("invalid share solution", "blockdiff", blockDiff)
-	fmt.Println("invalid block difficulty %v", blockDiff)
-	log.Info("invalid share solution", "shareDiff", shareDiff)
-	fmt.Println("invalid block sharediff %v", shareDiff)
-	log.Info("invalid share solution", "actdiff", result.Big())
-	fmt.Println("invalid block result %v", result.Big())
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
-	actualDiff := new(big.Int).Div(maxUint256, result.Big())
-	return result.Big().Cmp(shareTarget) <= 0, result.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
+	actualDiff := new(big.Int).Div(maxUint256, sha3Hash.Big())
+	fmt.Println("sha3Hash : ", sha3Hash)
+	fmt.Println("blockdiff: ", blockDiff, blockTarget)
+	fmt.Println("shareDiff: ", shareDiff, shareTarget)
+	fmt.Println("actdiff  : ", actualDiff, sha3Hash.Big())
+	return sha3Hash.Big().Cmp(shareTarget) <= 0, sha3Hash.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
 }
 
 func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution *types.BlockSolution, target big.Int) (bool, common.Hash) {
-	var (
-		result_hash [32]byte
-	)
-	diff := target.Bytes()
-	r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &solution[0], &diff[0], &result_hash[0])
-	if r != 0 {
-	return false, common.BytesToHash([]byte{})
-	}
-	return false, common.BytesToHash(result_hash[:])
+	return false, common.Hash{}
 }
 
 func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan struct{}, found chan *types.Block) {
@@ -332,7 +304,7 @@ func (cuckoo *Cuckoo) remote() {
 				fmt.Println("yes")
 				result.errc <- nil
 			} else {
-				 fmt.Println("no")
+				fmt.Println("no")
 				result.errc <- errInvalidSealResult
 			}
 

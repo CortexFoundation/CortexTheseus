@@ -4,6 +4,13 @@
 #include "minerBot.h"
 #include "gominer.h"
 
+#ifndef POOL_SIZE
+#define POOL_SIZE 5
+#endif
+
+static MinerBot* botPool[POOL_SIZE];
+static unsigned int pool_idx = 0;
+
 MinerBot::MinerBot(unsigned int nthread)
 {
     if (pthread_mutex_init(&mutex, NULL) != 0) {
@@ -13,6 +20,7 @@ MinerBot::MinerBot(unsigned int nthread)
     cs.setNthreads(nthread);
     cs.initSolver();
 }
+
 MinerBot::~MinerBot()
 {
     cs.release();
@@ -75,6 +83,13 @@ bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, ui
     return false;
 }
 
+bool MinerBot::CuckooSolve(const uint8_t *header, uint32_t headerLength, uint32_t nonce, vector<vector<uint32_t>>* solutions)
+{
+    cs.setHeaderNonce((char*)header, headerLength, nonce);
+    cs.findSolutions(solutions);
+    return false;
+}
+
 
 bool MinerBot::CuckooVerify(char *header, uint32_t header_len, uint32_t nonce,
     uint32_t *result, uchar* target, uchar* hash)
@@ -91,9 +106,7 @@ bool MinerBot::CuckooVerify(char *header, uint32_t header_len, uint32_t nonce,
     return ok;
 }
 
-#define POOL_SIZE 20
-static MinerBot* botPool[POOL_SIZE];
-static unsigned int pool_idx = 0;
+
 unsigned int getMinerBotInstance()
 {
 	while (true) {
@@ -132,6 +145,29 @@ uint8_t CuckooSolve(uint8_t *header, uint32_t header_len, uint32_t nonce, result
     CuckooRelease(bot_idx);
     return res;
 }
+
+int32_t CuckooFindSolutions(uint8_t *header, uint32_t nonce, uint32_t header_len, result_t *result, uint32_t resultBuffSize, uint32_t* solLength, uint32_t *numSol) {
+    uint bot_idx = getMinerBotInstance();
+    vector<vector<result_t> > sols;
+    uint8_t res = botPool[bot_idx]->CuckooSolve(header, header_len, nonce, &sols);
+    CuckooRelease(bot_idx);
+    *solLength = 0;
+    *numSol = sols.size();
+    if (sols.size() == 0)
+        return 0;
+    *solLength = sols[0].size();
+    for (size_t n = 0; n < min(sols.size(), (size_t)resultBuffSize / (*solLength)); n++)
+    {
+        auto& sol = sols[n];
+        for (size_t i = 0; i < sol.size(); i++) {
+            result[i + n * (*solLength)] = sol[i];
+            printf(" %u", sol[i]);
+        }
+        printf("\n");
+    }
+    return 1;
+}
+
 unsigned char CuckooVerify(uint8_t *header, uint32_t header_len, uint32_t nonce, result_t *result, uint8_t* target, uint8_t* hash)
 {
     // printf("=== uint8_t a[80] = { ");
