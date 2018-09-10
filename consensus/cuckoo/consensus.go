@@ -607,7 +607,8 @@ func CuckooVerifyHeaderNonceSolutionsDifficulty(hash []byte, nonce uint32, sol *
 	r := CuckooVerifyHeaderNonceAndSolutions(hash, nonce, &sol[0])
 	if r != 1 {
 		fmt.Println("hash:", hash, " nonce:" , nonce, " solution:" , sol)
-		return false, common.Hash{}
+		//return false, common.Hash{}
+		return false, common.BytesToHash(Sha3Solution(sol))
 	}
 	return true, common.BytesToHash(Sha3Solution(sol))
 }
