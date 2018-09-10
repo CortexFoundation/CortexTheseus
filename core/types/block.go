@@ -20,13 +20,13 @@ package types
 import (
 	//	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/big"
 	"sort"
 	"sync/atomic"
 	"time"
 	"unsafe"
-	//	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -68,20 +68,24 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
-func (s BlockSolution) Uint32() []uint32 { return s[:] }
+func (s *BlockSolution) Uint32() []uint32 { return s[:] }
 
-func (s BlockSolution) MarshalText() ([]byte, error) {
+func (s *BlockSolution) MarshalText() ([]byte, error) {
+	fmt.Println("MarshalText: ", s)
 	var solSize int = 4
-	buf := make([]byte, 42*solSize)
+	var solLen int = 42
+	buf := make([]byte, solLen*solSize)
 	for i := 0; i < len(s); i++ {
 		binary.LittleEndian.PutUint32(buf[i*solSize:], s[i])
 	}
 	return buf, nil
 }
 
-func (s BlockSolution) UnmarshalText(input []byte) error {
+func (s *BlockSolution) UnmarshalText(input []byte) error {
+	fmt.Println("UnmarshalText: ", input)
 	var solSize int = 4
-	for i := 0; i < len(s); i++ {
+	var solLen int = 42
+	for i := 0; i < solLen; i++ {
 		s[i] = binary.LittleEndian.Uint32(input[solSize*i:])
 	}
 	return nil
