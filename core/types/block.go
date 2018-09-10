@@ -76,7 +76,7 @@ func (s *BlockSolution) MarshalText() ([]byte, error) {
 	var solLen int = 42
 	buf := make([]byte, solLen*solSize)
 	for i := 0; i < len(s); i++ {
-		binary.LittleEndian.PutUint32(buf[i*solSize:], s[i])
+		binary.BigEndian.PutUint32(buf[i*solSize:], s[i])
 	}
 	return buf, nil
 }
@@ -86,7 +86,7 @@ func (s *BlockSolution) UnmarshalText(input []byte) error {
 	var solSize int = 4
 	var solLen int = 42
 	for i := 0; i < solLen; i++ {
-		s[i] = binary.LittleEndian.Uint32(input[solSize*i:])
+		s[i] = binary.BigEndian.Uint32(input[solSize*i:])
 	}
 	return nil
 }

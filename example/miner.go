@@ -8,12 +8,29 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core/types"
+	_ "log"
+	"math/rand"
 	"net"
 	"os"
-	"strconv"
-	"sync"
 	"time"
+
+	// "strconv"
+	"sync"
 )
+
+type Task struct {
+	Header     string
+	Nonce      string
+	Solution   string
+	Difficulty string
+}
+
+type Work struct {
+	Header     string
+	Difficulty string
+	nonce      uint64
+	step       uint64
+}
 
 type ReqObj struct {
 	Id      int      `json:"id"` // struct标签， 如果指定，jsonrpc包会在序列化json时，将该聚合字段命名为指定的字符串
@@ -39,7 +56,7 @@ func read(reader *bufio.Reader) map[string]interface{} {
 			break
 		}
 	}
-	fmt.Println("received ", len(rep), " bytes: ", string(rep), "\n")
+	// fmt.Println("received ", len(rep), " bytes: ", string(rep), "\n")
 	var repObj map[string]interface{}
 	err := json.Unmarshal(rep, &repObj)
 	checkError(err)
@@ -51,54 +68,118 @@ func write(reqObj ReqObj, conn *net.TCPConn) {
 	checkError(err)
 
 	req = append(req, uint8('\n'))
-	n, err := conn.Write(req)
-	checkError(err)
-
-	fmt.Println("write ", n, " bytes: ", string(req))
+	_, _ = conn.Write(req)
 }
 
 func main() {
+	var testFixTask bool = false
+	if testFixTask {
+		fmt.Println("testFixTask = ", testFixTask)
 
-	type Step struct {
-		lock sync.Mutex
-		step uint32
 	}
-	var step Step
-	step.step = 0
 
-	var THREAD uint = 1
-	cuckoo.CuckooInit(THREAD)
+	type TaskWrapper struct {
+		Lock  sync.Mutex
+		TaskQ Task
+	}
+	var currentTask TaskWrapper
+
+	var THREAD uint = 5
+	cuckoo.CuckooInit(8)
+	var taskHeader, taskNonce, taskDifficulty string
+	//-------- connect to server -------------
+	// var server = "139.196.32.192:8009"
+	var server = "localhost:8009"
+	tcpAddr, err := net.ResolveTCPAddr("tcp", server)
+	checkError(err)
+
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	checkError(err)
+	reader := bufio.NewReader(conn)
+	defer conn.Close()
+	var reqLogin = ReqObj{
+		Id:      73,
+		Jsonrpc: "2.0",
+		Method:  "eth_submitLogin",
+		Params:  []string{"0xc3d7a1ef810983847510542edfd5bc5551a6321c"},
+	}
+	write(reqLogin, conn)
+	_ = read(reader)
+
+	solChanG := make(chan Task, THREAD)
+	workChanG := make(chan Work, THREAD)
 	for nthread := 0; nthread < int(THREAD); nthread++ {
-		go func() {
-			step.lock.Lock()
-			step.step += 1
-			var curstep uint32 = step.step
-			step.lock.Unlock()
+		go func(tidx uint32, solChan chan Task, workChan chan Work) {
+			for {
+				currentTask.Lock.Lock()
+				task := currentTask.TaskQ
+				fmt.Println("get work--: ", task.Header, task.Nonce, task.Difficulty)
+				currentTask.Lock.Unlock()
+				taskDifficulty = task.Difficulty
+				if len(task.Difficulty) == 0 {
+					time.Sleep(100 * time.Millisecond)
+					continue
+				}
+				tgtDiff := common.HexToHash(taskDifficulty[2:])
+				header, _ := hex.DecodeString(taskHeader[2:])
+				var result types.BlockSolution
+				curNonce := uint32(rand.Int31())
+				// r := cuckoo.CuckooSolve(&tmpHeader[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
+				solutionsHolder := make([]uint32, 128)
+				if true {
+					fmt.Println("task: ", header[:], curNonce)
+					status, solLength, numSol := cuckoo.CuckooFindSolutions(header[:], curNonce, &solutionsHolder)
+					if status != 0 {
+						// fmt.Println("result: ", status, solLength, numSol, solutionsHolder)
+						for solIdx := uint32(0); solIdx < numSol; solIdx++ {
+							var sol types.BlockSolution
+							copy(sol[:], solutionsHolder[solIdx*solLength:(solIdx+1)*solLength])
+							sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
+							fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+								result = sol
+								nonceStr := common.Uint64ToHexString(uint64(curNonce))
+								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
+								ok, _ := cuckoo.CuckooVerifyHeaderNonceSolutionsDifficulty(header[:], curNonce, &sol)
+								if !ok {
+									fmt.Println("verify failed", header[:], curNonce, &sol)
+								}
+								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
+								break
+							}
+						}
+					}
+				} else {
+					var sol types.BlockSolution
+					sol[0] = curNonce
+					sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
+					// fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+					if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+						result = sol
+						nonceStr := common.Uint64ToHexString(uint64(curNonce))
+						digest := common.Uint32ArrayToHexString([]uint32(result[:]))
+						solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
+						break
+					}
+				}
+			}
+		}(uint32(nthread), solChanG, workChanG)
+	}
 
-			//-------- connect to server -------------
-			// var server = "139.196.32.192:8009"
-			var server = "localhost:8009"
-			tcpAddr, err := net.ResolveTCPAddr("tcp", server)
-			checkError(err)
-
-			conn, err := net.DialTCP("tcp", nil, tcpAddr)
-			checkError(err)
-
-			defer conn.Close()
-
-			reader := bufio.NewReader(conn)
-
-			//------- login -------------
-			var reqLogin = ReqObj{
+	time.Sleep(2 * time.Second)
+	for {
+		select {
+		case sol := <-solChanG:
+			fmt.Println("Found: ", sol)
+			var reqSubmit = ReqObj{
 				Id:      73,
 				Jsonrpc: "2.0",
-				Method:  "eth_submitLogin",
-				Params:  []string{"0xc3d7a1ef810983847510542edfd5bc5551a6321c"},
+				Method:  "eth_submitWork",
+				Params:  []string{sol.Nonce, sol.Header, sol.Header, sol.Solution},
 			}
-			write(reqLogin, conn)
+			write(reqSubmit, conn)
 			_ = read(reader)
-
-			//------ get work ------------
+		case <-time.After(2000 * time.Millisecond):
 			var reqGetwork = ReqObj{
 				Id:      73,
 				Jsonrpc: "2.0",
@@ -107,120 +188,17 @@ func main() {
 			}
 			write(reqGetwork, conn)
 			work := read(reader)
-			workinfo, _ := work["result"].([]interface{})
-
-			//--------------------- mining -----------------------
-			var header [32]byte
-			var start uint32 = 0
-			var target [32]uint8
-
-			for i := 0; i < 32; i = i + 1 {
-				header[i] = 0
+			workInfo, _ := work["result"].([]interface{})
+			if len(workInfo) >= 3 {
+				taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
+				fmt.Println("get work: ", taskHeader, taskNonce, taskDifficulty)
+				currentTask.Lock.Lock()
+				currentTask.TaskQ.Nonce = taskNonce
+				currentTask.TaskQ.Header = taskHeader
+				currentTask.TaskQ.Difficulty = taskDifficulty
+				currentTask.Lock.Unlock()
 			}
-
-			wr := workinfo[0].(string)
-			lenr := len(wr)
-			for i, j, k := 2, lenr-2, 31; i < lenr; i, j, k = i+2, j-2, k-1 {
-				v, _ := strconv.ParseUint(wr[j:j+2], 16, 8)
-				header[k] = uint8(v)
-			}
-
-			wr = workinfo[1].(string)
-			lenr = len(wr)
-			for i, j := 2, lenr-2; i < lenr; i, j = i+2, j-2 {
-				v, _ := strconv.ParseUint(wr[j:j+2], 16, 8)
-				start = start*256 + uint32(v)
-			}
-			start += curstep
-
-			wr = workinfo[2].(string)
-			lenr = len(wr)
-			targetHack := false
-			if targetHack {
-				for i := 0; i < 32; i++ {
-					target[i] = 255
-				}
-			} else {
-				for i, j, k := 2, lenr-2, 31; i < lenr; i, j, k = i+2, j-2, k-1 {
-					v, _ := strconv.ParseUint(wr[j:j+2], 16, 8)
-					target[k] = uint8(v)
-				}
-			}
-			fmt.Println("target and workInfo: ", workinfo[0], header, workinfo[1], start, workinfo[2], target)
-
-			//------------- solve process -------------------
-			var intval uint32 = uint32(THREAD)
-			shareTarget := common.HexToHash(workinfo[2].(string))
-			var targetMinerTest [32]uint8
-			for i := 0; i < 32; i++ {
-				targetMinerTest[i] = 255
-			}
-			var result types.BlockSolution
-			solFound := false
-			for !solFound {
-				// r := cuckoo.CuckooSolve(&tmpHeader[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
-				solutionsHolder := make([]uint32, 128)
-				status, solLength, numSol := cuckoo.CuckooFindSolutions(header[:], start, &solutionsHolder)
-				if status != 0 {
-					fmt.Println("result: ", status, solLength, numSol, solutionsHolder)
-					for solIdx := uint32(0); solIdx < numSol; solIdx++ {
-						var sol types.BlockSolution
-						copy(sol[:], solutionsHolder[solIdx*solLength:(solIdx+1)*solLength])
-						sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-						fmt.Println("nonce:", start, " ", sol, ", sha3hash:\n", hex.EncodeToString(sha3hash.Bytes()), "\n", hex.EncodeToString(shareTarget.Bytes()))
-						if sha3hash.Big().Cmp(shareTarget.Big()) <= 0 {
-							result = sol
-							solFound = true
-							break
-						}
-					}
-				}
-				start += intval
-			}
-
-			nonce := strconv.FormatUint(uint64(start), 16)
-			for len(nonce) < 16 {
-				nonce = "0" + nonce
-			}
-
-			headerst := ""
-			for _, val := range header {
-				s := strconv.FormatUint(uint64(val), 16)
-				if len(s) < 2 {
-					s = "0" + s
-				}
-				headerst += s
-			}
-
-			digest := ""
-			for _, val := range target {
-				s := strconv.FormatUint(uint64(val), 16)
-				if len(s) < 2 {
-					s = "0" + s
-				}
-				digest += s
-			}
-			nonce = "0x" + nonce
-			headerst = "0x" + headerst
-			digest = "0x" + digest
-			solution, sol_err := result.MarshalText()
-			if sol_err != nil {
-				fmt.Println("sol err")
-			}
-			fmt.Println("solution: ", solution)
-			fmt.Println("header: ", headerst)
-			var reqSubmit = ReqObj{
-				Id:      73,
-				Jsonrpc: "2.0",
-				Method:  "eth_submitWork",
-				Params:  []string{nonce, workinfo[0].(string), digest, hex.EncodeToString(solution)},
-			}
-			write(reqSubmit, conn)
-			_ = read(reader)
-		}()
-	}
-	for {
-		time.Sleep(time.Second * 1)
+		}
 	}
 	cuckoo.CuckooFinalize()
 }
