@@ -40,7 +40,7 @@ func NewMonitor(flag *types.Flag) *Monitor {
 	m := &Monitor{
 		nil,
 		nil,
-		types.NewFileStorage(),
+		types.NewFileStorage(flag),
 	}
 	if runtime.GOOS != "windows" && *flag.IpcPath != "" {
 		m.SetConnection(flag.IpcPath)
@@ -75,14 +75,24 @@ func (m *Monitor) SetDownloader(dl *download.TorrentManager) error {
 	return nil
 }
 
+func (m *Monitor) getBlockByNumber(blockNumber uint64) (*types.Block, error) {
+	block := m.fs.GetBlock(blockNumber)
+	if block == nil {
+		block = &types.Block{}
+		blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
+		if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
+			return nil, err
+		}
+	}
+	return block, nil
+}
+
 func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
 	}
-	block := &types.Block{}
-	m.fs.AddBlock(block)
-	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
-	if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
+	block, err := m.getBlockByNumber(blockNumber)
+	if err != nil {
 		return err
 	}
 	if err := m.parseBlock(block); err != nil {
@@ -95,16 +105,14 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
 	}
-	block := &types.Block{}
-	m.fs.AddBlock(block)
-	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
-	if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
+	block, err := m.getBlockByNumber(blockNumber)
+	if err != nil {
 		return err
 	}
 	if err := m.parseNewBlock(block); err != nil {
 		return err
 	}
-	log.Printf("fetch block #%s with %d Txs", blockNumberHex, len(block.Txs))
+	log.Printf("fetch block #%s with %d Txs", block.Number, len(block.Txs))
 	return nil
 }
 
@@ -116,10 +124,41 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	if err := m.cl.Call(block, "eth_getBlockByHash", hash, true); err != nil {
 		return err
 	}
-	m.fs.AddBlock(block)
 	m.parseBlock(block)
 	log.Printf("fetch block #%s with %d Txs", hash, len(block.Txs))
 	return nil
+}
+
+func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) error {
+	m.dl.NewTorrent <- meta.URI
+
+	info := types.NewFileInfo(meta)
+	info.TxHash = tx.Hash
+
+	var receipt types.TxReceipt
+	log.Println(tx.Hash.String())
+	if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
+		return err
+	}
+
+	var _remainingSize string
+	log.Println(receipt.ContractAddr.String())
+	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
+		return err
+	}
+
+	remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+	info.LeftSize = remainingSize
+	info.ContractAddr = receipt.ContractAddr
+	m.fs.AddFile(info)
+	var bytesRequested uint64
+	if meta.RawSize > remainingSize {
+		bytesRequested = meta.RawSize - remainingSize
+	}
+	m.dl.UpdateTorrent <- types.FlowControlMeta{
+		InfoHash:       *meta.InfoHash(),
+		BytesRequested: bytesRequested,
+	}
 }
 
 func (m *Monitor) parseNewBlock(b *types.Block) error {
@@ -127,34 +166,8 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				m.dl.NewTorrent <- meta.URI
-
-				info := types.NewFileInfo(meta)
-				info.TxHash = tx.Hash
-
-				var receipt types.TxReceipt
-				log.Println(tx.Hash.String())
-				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
+				if err := m.parseFileMeta(&tx, meta); err != nil {
 					return err
-				}
-
-				var _remainingSize string
-				log.Println(receipt.ContractAddr.String())
-				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
-					return err
-				}
-
-				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
-				info.LeftSize = remainingSize
-				info.ContractAddr = receipt.ContractAddr
-				m.fs.AddFile(info)
-				var bytesRequested uint64
-				if meta.RawSize > remainingSize {
-					bytesRequested = meta.RawSize - remainingSize
-				}
-				m.dl.UpdateTorrent <- types.FlowControlMeta{
-					InfoHash:       *meta.InfoHash(),
-					BytesRequested: bytesRequested,
 				}
 			} else if tx.IsFlowControl() {
 				addr := *tx.Recipient
@@ -189,34 +202,8 @@ func (m *Monitor) parseBlock(b *types.Block) error {
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				m.dl.NewTorrent <- meta.URI
-
-				info := types.NewFileInfo(meta)
-				info.TxHash = tx.Hash
-
-				var receipt types.TxReceipt
-				if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
+				if err := m.parseFileMeta(&tx, meta); err != nil {
 					return err
-				} else if receipt.ContractAddr == nil || receipt.TxHash == nil {
-					continue
-				}
-
-				var _remainingSize string
-				if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
-					return err
-				}
-
-				remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
-				info.LeftSize = remainingSize
-				info.ContractAddr = receipt.ContractAddr
-				m.fs.AddFile(info)
-				var bytesRequested uint64
-				if meta.RawSize > remainingSize {
-					bytesRequested = meta.RawSize - remainingSize
-				}
-				m.dl.UpdateTorrent <- types.FlowControlMeta{
-					InfoHash:       *meta.InfoHash(),
-					BytesRequested: bytesRequested,
 				}
 			}
 		}

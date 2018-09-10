@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"path/filepath"
 	"time"
@@ -41,16 +42,19 @@ type FileStorage struct {
 	blockChecked      map[uint64]bool
 	blockMap          map[uint64]*Block
 	LatestBlockNumber uint64
+	db                *boltDBClient
 }
 
 // NewFileStorage ...
-func NewFileStorage() *FileStorage {
+func NewFileStorage(flag *Flag) *FileStorage {
+	db := NewBoltDB(*flag.DataDir)
 	return &FileStorage{
 		make(map[metainfo.Hash]*FileInfo),
 		make(map[common.Address]*FileInfo),
 		make(map[uint64]bool),
 		make(map[uint64]*Block),
 		0,
+		db,
 	}
 }
 
@@ -104,6 +108,10 @@ func (fs *FileStorage) AddBlock(b *Block) error {
 		return errors.New("verify block hash failed")
 	}
 	fs.blockMap[b.Number] = b
+	if t, err := fs.db.OpenBlock(b); err == nil {
+		t.Write()
+		t.Close()
+	}
 	return nil
 }
 
@@ -111,13 +119,22 @@ func (fs *FileStorage) AddBlock(b *Block) error {
 func (fs *FileStorage) HasBlock(blockNum uint64) bool {
 	if _, ok := fs.blockMap[blockNum]; ok {
 		return true
+	} else if fs.GetBlock(blockNum) != nil {
+		return true
 	}
 	return false
 }
 
 // GetBlock ...
 func (fs *FileStorage) GetBlock(blockNum uint64) *Block {
-	b, _ := fs.blockMap[blockNum]
+	b, ok := fs.blockMap[blockNum]
+	if !ok {
+		t := fs.db.GetBlock(blockNum)
+		if t != nil {
+			fs.blockMap[blockNum] = t
+			return t
+		}
+	}
 	return b
 }
 
@@ -148,14 +165,14 @@ type boltDBClient struct {
 	db *bolt.DB
 }
 
-type boltDBTorrent struct {
+type boltDBBlock struct {
 	cl *boltDBClient
-	ih metainfo.Hash
+	b  *Block
 }
 
 // NewBoltDB ...
 func NewBoltDB(filePath string) *boltDBClient {
-	db, err := bolt.Open(filepath.Join(filePath, "bolt.db"), 0600, &bolt.Options{
+	db, err := bolt.Open(filepath.Join(filePath, ".file.bolt.db"), 0600, &bolt.Options{
 		Timeout: time.Second,
 	})
 	expect.Nil(err)
@@ -167,8 +184,49 @@ func (me *boltDBClient) Close() error {
 	return me.db.Close()
 }
 
-func (me *boltDBClient) OpenTorrent(info *metainfo.Info, infoHash metainfo.Hash) (*boltDBTorrent, error) {
-	return &boltDBTorrent{me, infoHash}, nil
+func (me *boltDBClient) OpenBlock(b *Block) (*boltDBBlock, error) {
+	return &boltDBBlock{me, b}, nil
 }
 
-func (boltDBTorrent) Close() error { return nil }
+func (me *boltDBClient) GetBlock(blockNum uint64) *Block {
+	tx, err := me.db.Begin(false)
+	if err != nil {
+		return nil
+	}
+	b := tx.Bucket([]byte("blocks"))
+	if b == nil {
+		return nil
+	}
+	k, err := json.Marshal(blockNum)
+	if err != nil {
+		return nil
+	}
+	v := b.Get(k)
+	if v == nil {
+		return nil
+	}
+	var block Block
+	json.Unmarshal(v, &block)
+	return &block
+}
+
+func (f *boltDBBlock) Write() error {
+	f.cl.db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("blocks"))
+		if err != nil {
+			return err
+		}
+		v, err := json.Marshal(f.b)
+		if err != nil {
+			return err
+		}
+		k, err := json.Marshal(f.b.Number)
+		if err != nil {
+			return err
+		}
+		return b.Put(k, v)
+	})
+	return nil
+}
+
+func (boltDBBlock) Close() error { return nil }
