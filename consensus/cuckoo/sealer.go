@@ -117,7 +117,7 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDif
 		log.Info("invalid share difficulty")
 		return false, false, 0
 	}
-
+	fmt.Println(hashNoNonce.Bytes(), block.Nonce(), solution)
 	ok, sha3Hash := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), uint32(block.Nonce()), solution)
 	if !ok {
 		fmt.Println("invalid solution")
@@ -231,7 +231,6 @@ func (cuckoo *Cuckoo) remote() {
 		n.Div(n, currentWork.Difficulty())
 		n.Lsh(n, 1)
 		res[2] = common.BytesToHash(n.Bytes()).Hex()
-
 		// Trace the seal work fetched by remote sealer.
 		works[cuckoo.SealHash(currentWork.Header())] = currentWork
 		return res, nil
@@ -240,7 +239,7 @@ func (cuckoo *Cuckoo) remote() {
 	// submitWork verifies the submitted pow solution, returning
 	// whether the solution was accepted or not (not can be both a bad pow as well as
 	// any other error, like no pending work or stale mining result).
-	submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash) bool {
+	submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash, sol types.BlockSolution) bool {
 		// Make sure the work submitted is present
 		block := works[hash]
 		if block == nil {
@@ -252,6 +251,7 @@ func (cuckoo *Cuckoo) remote() {
 		header := block.Header()
 		header.Nonce = nonce
 		header.MixDigest = mixDigest
+		header.Solution = sol
 		if err := cuckoo.VerifySeal(nil, header); err != nil {
 			log.Warn("Invalid proof-of-work submitted", "hash", hash, "err", err)
 			return false
@@ -298,9 +298,9 @@ func (cuckoo *Cuckoo) remote() {
 			}
 
 		case result := <-cuckoo.submitWorkCh:
-			fmt.Println("how")
+			fmt.Println("result: %v", result)
 			// Verify submitted PoW solution based on maintained mining blocks.
-			if submitWork(result.nonce, result.mixDigest, result.hash) {
+			if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
 				fmt.Println("yes")
 				result.errc <- nil
 			} else {

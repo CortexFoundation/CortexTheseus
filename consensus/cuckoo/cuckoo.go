@@ -39,7 +39,7 @@ type mineResult struct {
 	nonce     types.BlockNonce
 	mixDigest common.Hash
 	hash      common.Hash
-	solution  *types.BlockSolution
+	solution  types.BlockSolution
 
 	errc chan error
 }
