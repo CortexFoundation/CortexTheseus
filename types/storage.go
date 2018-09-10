@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log"
 	"path/filepath"
 	"time"
 
@@ -206,6 +207,7 @@ func (me *boltDBClient) GetBlock(blockNum uint64) *Block {
 		return nil
 	}
 	var block Block
+	log.Println(blockNum, v)
 	json.Unmarshal(v, &block)
 	return &block
 }
