@@ -146,7 +146,7 @@ uint8_t CuckooSolve(uint8_t *header, uint32_t header_len, uint32_t nonce, result
     return res;
 }
 
-int32_t CuckooFindSolutions(uint8_t *header, uint32_t nonce, uint32_t header_len, result_t *result, uint32_t resultBuffSize, uint32_t* solLength, uint32_t *numSol) {
+int32_t CuckooFindSolutions(uint8_t *header, uint32_t header_len, uint32_t nonce, result_t *result, uint32_t resultBuffSize, uint32_t* solLength, uint32_t *numSol) {
     uint bot_idx = getMinerBotInstance();
     vector<vector<result_t> > sols;
     uint8_t res = botPool[bot_idx]->CuckooSolve(header, header_len, nonce, &sols);
@@ -156,12 +156,13 @@ int32_t CuckooFindSolutions(uint8_t *header, uint32_t nonce, uint32_t header_len
     if (sols.size() == 0)
         return 0;
     *solLength = sols[0].size();
+
     for (size_t n = 0; n < min(sols.size(), (size_t)resultBuffSize / (*solLength)); n++)
     {
         auto& sol = sols[n];
         for (size_t i = 0; i < sol.size(); i++) {
             result[i + n * (*solLength)] = sol[i];
-            printf(" %u", sol[i]);
+            printf(" %d", sol[i]);
         }
         printf("\n");
     }
