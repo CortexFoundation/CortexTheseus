@@ -202,7 +202,7 @@ func (me *boltDBClient) GetBlock(blockNum uint64) *Block {
 		return nil
 	}
 	v := b.Get(k)
-	if v == nil {
+	if v == nil || len(v) == 0 {
 		return nil
 	}
 	var block Block
