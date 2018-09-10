@@ -72,4 +72,6 @@ public:
     // set thread num
     // call before initSolver
     void setNthreads(u32 nthreads_){ nthreads = nthreads_; }
+
+    void findSolutions(vector<vector<u32>>* solutions);
 };
