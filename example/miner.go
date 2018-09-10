@@ -167,7 +167,7 @@ func main() {
 						var sol types.BlockSolution
 						copy(sol[:], solutionsHolder[solIdx*solLength:(solIdx+1)*solLength])
 						sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-						fmt.Println("nonce:", start, " ", sol, ", sha3hash:\n", sha3hash.Big(), "\n", shareTarget.Big())
+						fmt.Println("nonce:", start, " ", sol, ", sha3hash:\n", hex.EncodeToString(sha3hash.Bytes()), "\n", hex.EncodeToString(shareTarget.Bytes()))
 						if sha3hash.Big().Cmp(shareTarget.Big()) <= 0 {
 							result = sol
 							solFound = true
