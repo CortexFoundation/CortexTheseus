@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type ReqObj struct {
@@ -63,13 +65,10 @@ func main() {
 	}
 	var step Step
 	step.step = 0
-	figureout := false
 
-	var THREAD uint = 3
+	var THREAD uint = 1
 	cuckoo.CuckooInit(THREAD)
-	var wg sync.WaitGroup
 	for nthread := 0; nthread < int(THREAD); nthread++ {
-		wg.Add(1)
 		go func() {
 			step.lock.Lock()
 			step.step += 1
@@ -77,7 +76,8 @@ func main() {
 			step.lock.Unlock()
 
 			//-------- connect to server -------------
-			var server = "139.196.32.192:8009"
+			// var server = "139.196.32.192:8009"
+			var server = "localhost:8009"
 			tcpAddr, err := net.ResolveTCPAddr("tcp", server)
 			checkError(err)
 
@@ -110,7 +110,7 @@ func main() {
 			workinfo, _ := work["result"].([]interface{})
 
 			//--------------------- mining -----------------------
-			var header [32]uint8
+			var header [32]byte
 			var start uint32 = 0
 			var target [32]uint8
 
@@ -149,36 +149,34 @@ func main() {
 			fmt.Println("target and workInfo: ", workinfo[0], header, workinfo[1], start, workinfo[2], target)
 
 			//------------- solve process -------------------
-			var result types.BlockSolution
-			for i, _ := range result {
-				result[i] = 0
-			}
-			var result_len uint32
-			var result_hash [32]uint8
 			var intval uint32 = uint32(THREAD)
 			shareTarget := common.HexToHash(workinfo[2].(string))
 			var targetMinerTest [32]uint8
 			for i := 0; i < 32; i++ {
 				targetMinerTest[i] = 255
 			}
-			for {
-
-				r := cuckoo.CuckooSolve(&header[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
-				if byte(r) == 1 {
-					figureout = true
-				}
-				if figureout == true {
-					// fmt.Println("result: ", result)
-					sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&result))
-					// fmt.Println("r, sha3hash = ", r, sha3hash)
-					fmt.Println("nonce:", start, ", sha3hash:\n", sha3hash.Big(), "\n", shareTarget.Big())
-					if sha3hash.Big().Cmp(shareTarget.Big()) <= 0 {
-						break
+			var result types.BlockSolution
+			solFound := false
+			for !solFound {
+				// r := cuckoo.CuckooSolve(&tmpHeader[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
+				solutionsHolder := make([]uint32, 128)
+				status, solLength, numSol := cuckoo.CuckooFindSolutions(header[:], start, &solutionsHolder)
+				if status != 0 {
+					fmt.Println("result: ", status, solLength, numSol, solutionsHolder)
+					for solIdx := uint32(0); solIdx < numSol; solIdx++ {
+						var sol types.BlockSolution
+						copy(sol[:], solutionsHolder[solIdx*solLength:(solIdx+1)*solLength])
+						sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
+						fmt.Println("nonce:", start, " ", sol, ", sha3hash:\n", sha3hash.Big(), "\n", shareTarget.Big())
+						if sha3hash.Big().Cmp(shareTarget.Big()) <= 0 {
+							result = sol
+							solFound = true
+							break
+						}
 					}
 				}
 				start += intval
 			}
-			// r := cuckoo.CuckooVerify(&header[0], 32, uint32(start), &result[0], &target[0], &result_hash[0])
 
 			nonce := strconv.FormatUint(uint64(start), 16)
 			for len(nonce) < 16 {
@@ -210,21 +208,19 @@ func main() {
 				fmt.Println("sol err")
 			}
 			fmt.Println("solution: ", solution)
-			if headerst != workinfo[0] {
-				fmt.Println("error header", header, headerst, workinfo[0])
-			}
+			fmt.Println("header: ", headerst)
 			var reqSubmit = ReqObj{
 				Id:      73,
 				Jsonrpc: "2.0",
 				Method:  "eth_submitWork",
-				Params:  []string{nonce, workinfo[0].(string), digest, string(solution)},
-				// Params: []string{nonce, headerst, digest, solution},
+				Params:  []string{nonce, workinfo[0].(string), digest, hex.EncodeToString(solution)},
 			}
 			write(reqSubmit, conn)
 			_ = read(reader)
-			wg.Done()
 		}()
 	}
-	wg.Wait()
+	for {
+		time.Sleep(time.Second * 1)
+	}
 	cuckoo.CuckooFinalize()
 }
