@@ -120,7 +120,7 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDif
 
 	ok, sha3Hash := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), uint32(block.Nonce()), solution)
 	if !ok {
-		fmt.Println("invalid solution")
+		fmt.Println("invalid solution ", sha3Hash.Hex())
 		return false, false, 0
 	}
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
