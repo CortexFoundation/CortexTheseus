@@ -38,7 +38,8 @@ func CuckooFindSolutions(hash []byte, nonce uint32, result *[]uint32) (status_co
 		_solLength uint32
 		_numSols   uint32
 	)
-	tmpHash := hash
+	var tmpHash = make([]byte, len(hash))
+	copy(tmpHash[:], hash)
 	r := C.CuckooFindSolutions(
 		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
 		C.uint32_t(len(tmpHash)),
