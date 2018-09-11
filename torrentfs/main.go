@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
+	"./types"
 	download "./manager"
-	monitor "./monitor"
+	"./monitor"
 )
 
 func main() {
@@ -13,15 +15,23 @@ func main() {
 }
 
 func mainExitCode() int {
-	// storageDir := "/data/serving/InferenceServer/warehouse"
-	storageDir := flag.String("d", "/home/lizhen/storage", "storage path")
-	rpcURI := flag.String("r", "http://192.168.5.11:28888", "json-rpc uri")
+	// DataDir := "/data/serving/InferenceServer/warehouse"
+	DataDir := flag.String("d", "/home/lizhen/storage", "storage path")
+	RpcURI := flag.String("r", "http://192.168.5.11:28888", "json-rpc uri")
+	IpcPath := flag.String("i", "", "ipc socket path")
+	trackerURI := flag.String("t", "http://47.52.39.170:5008/announce", "tracker uri")
 	flag.Parse()
-	dlCilent := download.NewTorrentManager(*storageDir)
-	dlCilent.SetTrackers([]string{"http//:47.52.39.170:5008/announce"})
-	monitor.InitStorage(*storageDir, dlCilent)
-	m := monitor.NewMonitor()
-	m.SetRPCServer(rpcURI)
+
+	trackers := strings.Split(*trackerURI, ",")
+	f := &types.Flag{
+		DataDir,
+		RpcURI,
+		IpcPath,
+		&trackers,
+	}
+
+	dlCilent := download.NewTorrentManager(f)
+	m := monitor.NewMonitor(f)
 	m.SetDownloader(dlCilent)
 	m.Start()
 	return 0
