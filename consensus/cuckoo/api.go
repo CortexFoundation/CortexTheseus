@@ -68,7 +68,7 @@ func (api *API) GetWork() ([3]string, error) {
 // SubmitWork can be used by external miner to submit their POW solution.
 // It returns an indication if the work was accepted.
 // Note either an invalid solution, a stale work a non-existent work will return false.
-func (api *API) SubmitWork(nonce types.BlockNonce, hash, digest common.Hash, solution string) bool {
+func (api *API) SubmitWork(nonce types.BlockNonce, hash common.Hash, solution string) bool {
 	debug.PrintStack()
 	var sol types.BlockSolution
 	solBytes, solErr := hex.DecodeString(solution[2:])
@@ -87,7 +87,7 @@ func (api *API) SubmitWork(nonce types.BlockNonce, hash, digest common.Hash, sol
 	select {
 	case api.cuckoo.submitWorkCh <- &mineResult{
 		nonce:     nonce,
-		mixDigest: digest,
+		//mixDigest: digest,
 		hash:      hash,
 		errc:      errc,
 		solution:  sol,

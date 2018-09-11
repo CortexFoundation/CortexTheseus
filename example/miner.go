@@ -175,7 +175,7 @@ func main() {
 				Id:      73,
 				Jsonrpc: "2.0",
 				Method:  "eth_submitWork",
-				Params:  []string{sol.Nonce, sol.Header, sol.Header, sol.Solution},
+				Params:  []string{sol.Nonce, sol.Header, sol.Solution},
 			}
 			write(reqSubmit, conn)
 			_ = read(reader)
