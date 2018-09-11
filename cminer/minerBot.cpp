@@ -4,11 +4,7 @@
 #include "minerBot.h"
 #include "gominer.h"
 
-#ifndef POOL_SIZE
-#define POOL_SIZE 5
-#endif
-
-static MinerBot* botPool[POOL_SIZE];
+static vector<MinerBot*> botPool;
 static unsigned int pool_idx = 0;
 
 MinerBot::MinerBot(unsigned int nthread)
@@ -114,13 +110,13 @@ unsigned int getMinerBotInstance()
 		if (pthread_mutex_trylock(&(botPool[bot_idx]->mutex)) == 0) {
 			return bot_idx;
 		}
-		pool_idx = (pool_idx + 1) % POOL_SIZE;
+		pool_idx = (pool_idx + 1) % botPool.size();
 	}
 }
 
-void CuckooInit(uint nthread) {
-    for (auto& bot : botPool) {
-        bot = new MinerBot(nthread);
+void CuckooInit(uint nthread, uint32_t nInstances) {
+    for (uint32_t idx = 0; idx < min(nInstances, static_cast<uint32_t>(20)) ; ++idx) {
+        botPool.push_back(new MinerBot(nthread));
     }
 }
 
