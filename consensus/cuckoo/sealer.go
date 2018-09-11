@@ -126,10 +126,10 @@ func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDif
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
 	actualDiff := new(big.Int).Div(maxUint256, sha3Hash.Big())
-	fmt.Println("sha3Hash : ", sha3Hash)
+	/*fmt.Println("sha3Hash : ", sha3Hash)
 	fmt.Println("blockdiff: ", blockDiff, blockTarget)
 	fmt.Println("shareDiff: ", shareDiff, shareTarget)
-	fmt.Println("actdiff  : ", actualDiff, sha3Hash.Big())
+	fmt.Println("actdiff  : ", actualDiff, sha3Hash.Big())*/
 	return sha3Hash.Big().Cmp(shareTarget) <= 0, sha3Hash.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
 }
 
