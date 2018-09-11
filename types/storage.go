@@ -111,7 +111,6 @@ func (fs *FileStorage) AddBlock(b *Block) error {
 	fs.blockMap[b.Number] = b
 	if t, err := fs.db.OpenBlock(b); err == nil {
 		t.Write()
-		t.Close()
 	}
 	return nil
 }
@@ -214,8 +213,8 @@ func (me *boltDBClient) GetBlock(blockNum uint64) *Block {
 	return &block
 }
 
-func (f *boltDBBlock) Write() error {
-	f.cl.db.Update(func(tx *bolt.Tx) error {
+func (f *boltDBBlock) Write() (err error) {
+	err = f.cl.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte("blocks"))
 		if err != nil {
 			return err
@@ -225,12 +224,14 @@ func (f *boltDBBlock) Write() error {
 			return err
 		}
 		k, err := json.Marshal(f.b.Number)
+		log.Println(b, k, v)
 		if err != nil {
 			return err
 		}
-		return b.Put(k, v)
+		e := b.Put(k, v)
+		return e
 	})
-	return nil
+	return err
 }
 
 func (boltDBBlock) Close() error { return nil }

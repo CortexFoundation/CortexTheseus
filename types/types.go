@@ -118,6 +118,8 @@ type transactionMarshaling struct {
 	Payload  hexutil.Bytes
 }
 
+
+// gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
 // Block ... block struct
 type Block struct {
 	Number     uint64        `json:"number"           gencodec:"required"`
