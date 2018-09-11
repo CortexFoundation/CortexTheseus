@@ -8,7 +8,7 @@ package cuckoo
 */
 import "C"
 import (
-	"log"
+//	"log"
 	"unsafe"
 )
 
