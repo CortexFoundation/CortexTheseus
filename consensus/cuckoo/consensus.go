@@ -18,6 +18,7 @@ package cuckoo
 
 import (
 	"encoding/binary"
+	//"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -485,9 +486,9 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	cuckoo.InitOnce()
 
 	var (
-		result = header.Solution
-		nonce  = header.Nonce.Uint64()
-		hash   = cuckoo.SealHash(header).Bytes()
+		result        = header.Solution
+		nonce  uint64 = uint64(header.Nonce.Uint64())
+		hash          = cuckoo.SealHash(header).Bytes()
 		// result_hash = header.SolutionHash
 	)
 
@@ -498,6 +499,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t t[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(diff)), ","), "[]") + "};")
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
+	fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
 	r, _ := CuckooVerifyHeaderNonceSolutionsDifficulty(hash, uint32(nonce), &result)
 	if !r {
 		fmt.Println("r = ", r)
@@ -596,14 +598,24 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 func Sha3Solution(sol *types.BlockSolution) []byte {
 	buf := make([]byte, 42*4)
 	for i := 0; i < len(sol); i++ {
-		binary.LittleEndian.PutUint32(buf[i*4:], sol[i])
+		binary.BigEndian.PutUint32(buf[i*4:], sol[i])
 	}
 	ret := crypto.Keccak256(buf)
-	fmt.Println("Sha3Solution: ", ret, "buf: ", buf, "sol: ", sol)
+	// fmt.Println("Sha3Solution: ", ret, "buf: ", buf, "sol: ", sol)
 	return ret
 }
 
 func CuckooVerifyHeaderNonceSolutionsDifficulty(hash []byte, nonce uint32, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
+	fmt.Println("CuckooVerifyHeaderNonceSolutionsDifficulty: ", hash, nonce, "sol: ", *sol)
+	r := CuckooVerifyHeaderNonceAndSolutions(hash, nonce, &sol[0])
+	if r != 1 {
+		return false, common.Hash{}
+	}
+	return true, common.BytesToHash(Sha3Solution(sol))
+}
+
+func CuckooVerifyShare(hash []byte, nonce uint32, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
+	// fmt.Println("CuckooVerifyHeaderNonceSolutionsDifficulty: ", hex.EncodeToString(hash), nonce)
 	r := CuckooVerifyHeaderNonceAndSolutions(hash, nonce, &sol[0])
 	if r != 1 {
 		fmt.Println("hash:", hash, " nonce:" , nonce, " solution:" , sol)
