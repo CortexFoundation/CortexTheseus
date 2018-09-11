@@ -115,7 +115,7 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 	if err := m.parseNewBlock(block); err != nil {
 		return err
 	}
-	log.Printf("fetch block #%s with %d Txs", block.Number, len(block.Txs))
+	log.Printf("fetch block #%d with %d Txs", block.Number, len(block.Txs))
 	return nil
 }
 
@@ -145,7 +145,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) err
 	}
 
 	var _remainingSize string
-	log.Println(receipt.ContractAddr.String())
+	// log.Println(receipt.ContractAddr.String())
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		return err
 	}

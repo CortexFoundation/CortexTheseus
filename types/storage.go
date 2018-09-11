@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"log"
 	"path/filepath"
 	"time"
 
@@ -120,7 +119,6 @@ func (fs *FileStorage) HasBlock(blockNum uint64) bool {
 	if _, ok := fs.blockMap[blockNum]; ok {
 		return true
 	} else if b := fs.GetBlock(blockNum); b != nil {
-		log.Println(*b)
 		return true
 	}
 	return false
@@ -190,27 +188,27 @@ func (me *boltDBClient) OpenBlock(b *Block) (*boltDBBlock, error) {
 	return &boltDBBlock{me, b}, nil
 }
 
-func (me *boltDBClient) GetBlock(blockNum uint64) *Block {
-	tx, err := me.db.Begin(false)
-	if err != nil {
+func (me *boltDBClient) GetBlock(blockNum uint64) (ret *Block) {
+	me.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("blocks"))
+		if b == nil {
+			return nil
+		}
+		k, err := json.Marshal(blockNum)
+		if err != nil {
+			return nil
+		}
+		v := b.Get(k)
+		if v == nil || len(v) == 0 {
+			return nil
+		}
+		var block Block
+		//	log.Println(blockNum, v)
+		json.Unmarshal(v, &block)
+		ret = &block
 		return nil
-	}
-	b := tx.Bucket([]byte("blocks"))
-	if b == nil {
-		return nil
-	}
-	k, err := json.Marshal(blockNum)
-	if err != nil {
-		return nil
-	}
-	v := b.Get(k)
-	if v == nil || len(v) == 0 {
-		return nil
-	}
-	var block Block
-	//	log.Println(blockNum, v)
-	json.Unmarshal(v, &block)
-	return &block
+	})
+	return
 }
 
 func (f *boltDBBlock) Write() (err error) {
@@ -224,7 +222,6 @@ func (f *boltDBBlock) Write() (err error) {
 			return err
 		}
 		k, err := json.Marshal(f.b.Number)
-		log.Println(b, k, v)
 		if err != nil {
 			return err
 		}

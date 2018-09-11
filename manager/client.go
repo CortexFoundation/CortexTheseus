@@ -181,6 +181,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	log.Println(ih, "waiting for gotInfo")
 
 	<-t.GotInfo()
+	log.Println(ih, "gotInfo finish")
 	tm.torrents[ih].Run()
 
 	f, _ := os.Create(torrentPath)
