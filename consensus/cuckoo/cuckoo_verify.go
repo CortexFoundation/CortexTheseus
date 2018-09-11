@@ -14,7 +14,7 @@ import (
 
 func CuckooVerifyHeaderNonceAndSolutions(hash []byte, nonce uint32, result *uint32) int {
 	tmpHash := hash
-	log.Println("CuckooVerifyHeaderNonceAndSolutions: hash = ", hash, "\nnonce = ", nonce, "\nresult = ", result)
+	//log.Println("CuckooVerifyHeaderNonceAndSolutions: hash = ", hash, "\nnonce = ", nonce, "\nresult = ", result)
 	r := C.CuckooVerifyHeaderNonceAndSolutions(
 		(*C.uchar)(unsafe.Pointer(&tmpHash[0])),
 		C.uint(len(hash)),
