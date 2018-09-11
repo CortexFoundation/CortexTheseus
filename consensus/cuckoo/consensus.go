@@ -483,7 +483,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
 	}
-	cuckoo.InitOnce()
+	// cuckoo.InitOnce()
 
 	var (
 		result        = header.Solution
@@ -491,15 +491,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		hash          = cuckoo.SealHash(header).Bytes()
 		// result_hash = header.SolutionHash
 	)
-
-	// diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
-	// fmt.Println("uint8_t a[80] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(hash)), ","), "[]") + "};")
-	// fmt.Println("uint32_t nonce =  ", nonce, ";")
-	// fmt.Println("uint32_t result[42] =  {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result)), ","), "[]") + "};")
-	// fmt.Println("uint8_t t[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(diff)), ","), "[]") + "};")
-	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
-	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-	fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
+	// log.Trace(fmt.Sprint("VerifySeal: ", result, nonce, uint32((nonce)), hash))
 	r, _ := CuckooVerifyHeaderNonceSolutionsDifficulty(hash, uint32(nonce), &result)
 	if !r {
 		fmt.Println("r = ", r)
@@ -618,7 +610,7 @@ func CuckooVerifyShare(hash []byte, nonce uint32, sol *types.BlockSolution) (ok 
 	// fmt.Println("CuckooVerifyHeaderNonceSolutionsDifficulty: ", hex.EncodeToString(hash), nonce)
 	r := CuckooVerifyHeaderNonceAndSolutions(hash, nonce, &sol[0])
 	if r != 1 {
-		fmt.Println("hash:", hash, " nonce:" , nonce, " solution:" , sol)
+		fmt.Println("hash:", hash, " nonce:", nonce, " solution:", sol)
 		//return false, common.Hash{}
 		return false, common.BytesToHash(Sha3Solution(sol))
 	}
