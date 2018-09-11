@@ -36,6 +36,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/sha3"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -494,7 +495,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// log.Trace(fmt.Sprint("VerifySeal: ", result, nonce, uint32((nonce)), hash))
 	r, _ := CuckooVerifyHeaderNonceSolutionsDifficulty(hash, uint32(nonce), &result)
 	if !r {
-		fmt.Println("r = ", r)
+		log.Debug(fmt.Sprintf("CuckooVerifyHeaderNonceSolutionsDifficulty Result: ", r))
 		return errInvalidPoW
 	}
 
@@ -598,7 +599,7 @@ func Sha3Solution(sol *types.BlockSolution) []byte {
 }
 
 func CuckooVerifyHeaderNonceSolutionsDifficulty(hash []byte, nonce uint32, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
-	fmt.Println("CuckooVerifyHeaderNonceSolutionsDifficulty: ", hash, nonce, "sol: ", *sol)
+	log.Trace(fmt.Sprintf("CuckooVerifyHeaderNonceSolutionsDifficulty: ", hash, nonce, "sol: ", *sol))
 	r := CuckooVerifyHeaderNonceAndSolutions(hash, nonce, &sol[0])
 	if r != 1 {
 		return false, common.Hash{}
