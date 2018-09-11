@@ -298,13 +298,13 @@ func (cuckoo *Cuckoo) remote() {
 			}
 
 		case result := <-cuckoo.submitWorkCh:
-			fmt.Println("result: %v", result)
+			//fmt.Println("result: %v", result)
 			// Verify submitted PoW solution based on maintained mining blocks.
 			if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
-				fmt.Println("yes")
+				//fmt.Println("yes")
 				result.errc <- nil
 			} else {
-				fmt.Println("no")
+				//fmt.Println("no")
 				result.errc <- errInvalidSealResult
 			}
 

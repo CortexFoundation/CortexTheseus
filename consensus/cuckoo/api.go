@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/log"
-	"runtime/debug"
+	//"runtime/debug"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -69,7 +69,7 @@ func (api *API) GetWork() ([3]string, error) {
 // It returns an indication if the work was accepted.
 // Note either an invalid solution, a stale work a non-existent work will return false.
 func (api *API) SubmitWork(nonce types.BlockNonce, hash common.Hash, solution string) bool {
-	debug.PrintStack()
+	//debug.PrintStack()
 	var sol types.BlockSolution
 	solBytes, solErr := hex.DecodeString(solution[2:])
 	if solErr != nil {
@@ -77,7 +77,7 @@ func (api *API) SubmitWork(nonce types.BlockNonce, hash common.Hash, solution st
 		return false
 	}
 	sol.UnmarshalText(solBytes)
-	fmt.Println("submit work: ", nonce, hash, "solution: ", solution, "sol: ", sol)
+	//fmt.Println("submit work: ", nonce, hash, "solution: ", solution, "sol: ", sol)
 	//return true
 	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
 		return false
