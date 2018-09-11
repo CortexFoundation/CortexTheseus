@@ -499,10 +499,10 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t t[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(diff)), ","), "[]") + "};")
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-	fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
+	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
 	r, _ := CuckooVerifyHeaderNonceSolutionsDifficulty(hash, uint32(nonce), &result)
 	if !r {
-		fmt.Println("r = ", r)
+		//fmt.Println("r = ", r)
 		return errInvalidPoW
 	}
 
@@ -606,7 +606,7 @@ func Sha3Solution(sol *types.BlockSolution) []byte {
 }
 
 func CuckooVerifyHeaderNonceSolutionsDifficulty(hash []byte, nonce uint32, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
-	fmt.Println("CuckooVerifyHeaderNonceSolutionsDifficulty: ", hash, nonce, "sol: ", *sol)
+	//fmt.Println("CuckooVerifyHeaderNonceSolutionsDifficulty: ", hash, nonce, "sol: ", *sol)
 	r := CuckooVerifyHeaderNonceAndSolutions(hash, nonce, &sol[0])
 	if r != 1 {
 		return false, common.Hash{}
