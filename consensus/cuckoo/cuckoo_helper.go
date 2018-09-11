@@ -12,7 +12,11 @@ import (
 )
 
 func CuckooInit(threads uint) {
-	C.CuckooInit(C.uint(threads))
+	CuckooInitialize(threads, 5)
+}
+
+func CuckooInitialize(threads uint, nInstances uint32) {
+	C.CuckooInit(C.uint(threads), C.uint(nInstances))
 }
 
 func CuckooFinalize() {
