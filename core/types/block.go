@@ -20,7 +20,7 @@ package types
 import (
 	//	"bytes"
 	"encoding/binary"
-	"fmt"
+//	"fmt"
 	"io"
 	"math/big"
 	"sort"
@@ -71,7 +71,7 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 func (s *BlockSolution) Uint32() []uint32 { return s[:] }
 
 func (s *BlockSolution) MarshalText() ([]byte, error) {
-	fmt.Println("MarshalText: ", s)
+	//fmt.Println("MarshalText: ", s)
 	var solSize int = 4
 	var solLen int = 42
 	buf := make([]byte, solLen*solSize)
@@ -82,7 +82,7 @@ func (s *BlockSolution) MarshalText() ([]byte, error) {
 }
 
 func (s *BlockSolution) UnmarshalText(input []byte) error {
-	fmt.Println("UnmarshalText: ", input)
+	//fmt.Println("UnmarshalText: ", input)
 	var solSize int = 4
 	var solLen int = 42
 	for i := 0; i < solLen; i++ {
