@@ -212,7 +212,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				}
 
 				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
-					return nil, ErrInvalidMetaRawSize
+					return nil, ErrInvalidMetaAuthor
 				}
 
 				modelMeta.SetGas(MODEL_GAS_LIMIT)
