@@ -84,16 +84,14 @@ func main() {
 	}
 	var currentTask TaskWrapper
 
-	var THREAD uint32 = 10
-	cuckoo.CuckooInitialize(1, THREAD)
+	var THREAD uint = 10
+	cuckoo.CuckooInitialize(1, uint32(THREAD))
 	var taskHeader, taskNonce, taskDifficulty string
 	//-------- connect to server -------------
 	// var server = "139.196.32.192:8009"
 	var server = "localhost:8008"
-
 	tcpAddr, err := net.ResolveTCPAddr("tcp", server)
 	checkError(err)
-
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	checkError(err)
 	reader := bufio.NewReader(conn)
@@ -105,29 +103,28 @@ func main() {
 		Params:  []string{"0xc3d7a1ef810983847510542edfd5bc5551a6321c"},
 	}
 	write(reqLogin, conn)
-	_ = read(reader)
+	loginRsp := read(reader)
+	fmt.Println("loginRsp: ", loginRsp)
 
-	solChanG := make(chan Task, THREAD)
-	workChanG := make(chan Work, THREAD)
+	solChan := make(chan Task, THREAD)
 	for nthread := 0; nthread < int(THREAD); nthread++ {
-		go func(tidx uint32, solChan chan Task, workChan chan Work) {
+		go func(tidx uint32, currentTask_ *TaskWrapper) {
 			for {
-				currentTask.Lock.Lock()
-				task := currentTask.TaskQ
-				currentTask.Lock.Unlock()
-				taskDifficulty = task.Difficulty
+				currentTask_.Lock.Lock()
+				task := currentTask_.TaskQ
+				currentTask_.Lock.Unlock()
 				if len(task.Difficulty) == 0 {
 					time.Sleep(100 * time.Millisecond)
 					continue
 				}
-				tgtDiff := common.HexToHash(taskDifficulty[2:])
-				header, _ := hex.DecodeString(taskHeader[2:])
+				tgtDiff := common.HexToHash(task.Difficulty[2:])
+				header, _ := hex.DecodeString(task.Header[2:])
 				var result types.BlockSolution
 				curNonce := uint32(rand.Int31())
 				// r := cuckoo.CuckooSolve(&tmpHeader[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
 				solutionsHolder := make([]uint32, 128)
 				if true {
-					fmt.Println("task: ", header[:], curNonce)
+					// fmt.Println("task: ", header[:], curNonce)
 					status, solLength, numSol := cuckoo.CuckooFindSolutions(header[:], curNonce, &solutionsHolder)
 					if status != 0 {
 						// fmt.Println("result: ", status, solLength, numSol, solutionsHolder)
@@ -135,7 +132,7 @@ func main() {
 							var sol types.BlockSolution
 							copy(sol[:], solutionsHolder[solIdx*solLength:(solIdx+1)*solLength])
 							sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-							fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+							// fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 								result = sol
 								nonceStr := common.Uint64ToHexString(uint64(curNonce))
@@ -143,9 +140,9 @@ func main() {
 								ok, _ := cuckoo.CuckooVerifyHeaderNonceSolutionsDifficulty(header[:], curNonce, &sol)
 								if !ok {
 									fmt.Println("verify failed", header[:], curNonce, &sol)
+								} else {
+									solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
 								}
-								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
-								break
 							}
 						}
 					}
@@ -163,41 +160,52 @@ func main() {
 					}
 				}
 			}
-		}(uint32(nthread), solChanG, workChanG)
+		}(uint32(nthread), &currentTask)
 	}
 
+	write(ReqObj{
+		Id:      100,
+		Jsonrpc: "2.0",
+		Method:  "eth_getWork",
+		Params:  []string{""},
+	}, conn)
+
+	go func(currentTask_ *TaskWrapper) {
+		for {
+			msg := read(reader)
+			fmt.Println(msg)
+			reqId, _ := msg["id"].(float64)
+			if uint32(reqId) == 100 || uint32(reqId) == 0 {
+				workInfo, _ := msg["result"].([]interface{})
+				if len(workInfo) >= 3 {
+					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
+					fmt.Println("get work: ", taskHeader, taskNonce, taskDifficulty)
+					currentTask_.Lock.Lock()
+					currentTask_.TaskQ.Nonce = taskNonce
+					currentTask_.TaskQ.Header = taskHeader
+					currentTask_.TaskQ.Difficulty = taskDifficulty
+					currentTask_.Lock.Unlock()
+				}
+			} 		}
+	}(&currentTask)
 	time.Sleep(2 * time.Second)
 	for {
 		select {
-		case sol := <-solChanG:
-			fmt.Println("Found: ", sol)
-			var reqSubmit = ReqObj{
-				Id:      73,
-				Jsonrpc: "2.0",
-				Method:  "eth_submitWork",
-				Params:  []string{sol.Nonce, sol.Header, sol.Solution},
+		case sol := <-solChan:
+			currentTask.Lock.Lock()
+			task := currentTask.TaskQ
+			currentTask.Lock.Unlock()
+			if sol.Header == task.Header {
+				var reqSubmit = ReqObj{
+					Id:      73,
+					Jsonrpc: "2.0",
+					Method:  "eth_submitWork",
+					Params:  []string{sol.Nonce, sol.Header, sol.Solution},
+				}
+				write(reqSubmit, conn)
 			}
-			write(reqSubmit, conn)
-			_ = read(reader)
-		case <-time.After(2000 * time.Millisecond):
-			var reqGetwork = ReqObj{
-				Id:      73,
-				Jsonrpc: "2.0",
-				Method:  "eth_getWork",
-				Params:  []string{""},
-			}
-			write(reqGetwork, conn)
-			work := read(reader)
-			workInfo, _ := work["result"].([]interface{})
-			if len(workInfo) >= 3 {
-				taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
-				fmt.Println("get work: ", taskHeader, taskNonce, taskDifficulty)
-				currentTask.Lock.Lock()
-				currentTask.TaskQ.Nonce = taskNonce
-				currentTask.TaskQ.Header = taskHeader
-				currentTask.TaskQ.Difficulty = taskDifficulty
-				currentTask.Lock.Unlock()
-			}
+		default:
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 	cuckoo.CuckooFinalize()
