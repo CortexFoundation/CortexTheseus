@@ -210,6 +210,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				} else {
 					return nil, ErrInvalidMetaRawSize
 				}
+
+				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
+					return nil, ErrInvalidMetaRawSize
+				}
+
 				modelMeta.SetGas(MODEL_GAS_LIMIT)
 
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
