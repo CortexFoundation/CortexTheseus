@@ -12,7 +12,7 @@ const (
 )
 
 // InitStorage ...
-func InitStorage(storageDir string, manager *TorrentManager) {
+func InitStorage(storageDir string, manager TorrentManager) {
 	files, err := ioutil.ReadDir(storageDir)
 	if err != nil {
 		log.Fatal(err)
