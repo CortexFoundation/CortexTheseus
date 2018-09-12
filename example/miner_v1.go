@@ -114,43 +114,28 @@ func main() {
 				tgtDiff := common.HexToHash(task.Difficulty[2:])
 				header, _ := hex.DecodeString(task.Header[2:])
 				var result types.BlockSolution
-				curNonce := uint32(rand.Int31())
-				// r := cuckoo.CuckooSolve(&tmpHeader[0], 32, uint32(start), &result[0], &result_len, &targetMinerTest[0], &result_hash[0])
-				solutionsHolder := make([]uint32, 128)
-				if true {
-					// fmt.Println("task: ", header[:], curNonce)
-					status, solLength, numSol := cuckoo.CuckooFindSolutions(header[:], curNonce, &solutionsHolder)
-					if status != 0 {
-						// fmt.Println("result: ", status, solLength, numSol, solutionsHolder)
-						for solIdx := uint32(0); solIdx < numSol; solIdx++ {
-							var sol types.BlockSolution
-							copy(sol[:], solutionsHolder[solIdx*solLength:(solIdx+1)*solLength])
-							sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-							// fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
-							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
-								result = sol
-								nonceStr := common.Uint64ToHexString(uint64(curNonce))
-								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-								ok, _ := cuckoo.CuckooVerifyHeaderNonceSolutionsDifficulty(header[:], curNonce, &sol)
-								if !ok {
-									fmt.Println("verify failed", header[:], curNonce, &sol)
-								} else {
-									solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
-								}
+				curNonce := uint64(rand.Int63())
+				// fmt.Println("task: ", header[:], curNonce)
+				status, sols := cuckoo.CuckooFindSolutions(header, curNonce)
+				if status != 0 {
+					// fmt.Println("result: ", status, sols)
+					for _, solUint32 := range sols {
+						var sol types.BlockSolution
+						copy(sol[:], solUint32)
+						// fmt.Println("sol: ", sol, solUint32, solUint32Key)
+						sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
+						// fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+							result = sol
+							nonceStr := common.Uint64ToHexString(uint64(curNonce))
+							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
+							ok, _ := cuckoo.CuckooVerifyHeaderNonceSolutionsDifficulty(header[:], curNonce, &sol)
+							if !ok {
+								fmt.Println("verify failed", header[:], curNonce, &sol)
+							} else {
+								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
 							}
 						}
-					}
-				} else {
-					var sol types.BlockSolution
-					sol[0] = curNonce
-					sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-					// fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
-					if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
-						result = sol
-						nonceStr := common.Uint64ToHexString(uint64(curNonce))
-						digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-						solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
-						break
 					}
 				}
 			}
