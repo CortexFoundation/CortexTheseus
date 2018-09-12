@@ -37,6 +37,7 @@ var (
 	errExecutionReverted     = errors.New("evm: execution reverted")
 	errMetaInfoBlockNum      = errors.New("evm: meta info blocknum <= 0")
 	errMetaInfoNotMature     = errors.New("evm: errMetaInfoNotMature")
+	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 )
 
@@ -691,7 +692,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}
 	// Model Meta is validation
 	if interpreter.evm.StateDB.Uploading(modelAddr) {
-		return nil, errors.New("Model IS NOT UPLOADED ERROR")
+		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
@@ -701,12 +702,20 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		//return nil, types.ErrorNotMature
-		return nil, errExecutionReverted
+		//return nil, errExecutionReverted
+		return nil, errMetaInfoNotMature
 	}
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		//return nil, types.ErrorExpired
 		//return nil, errExecutionReverted
+		//return nil, errors.New("EXPIRED MODEL ERROR")
+		return nil, errMetaInfoExpired
+	}
+
+	if modelMeta.Gas != MODEL_GAS_LIMIT {
+		//return nil, errExecutionReverted
+		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
 	}
 
 	if inputMeta, err = interpreter.evm.GetInputMeta(inputAddr); err != nil {

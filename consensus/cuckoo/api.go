@@ -75,7 +75,6 @@ func (api *API) SubmitWork(nonce types.BlockNonce, hash common.Hash, solution st
 		return false
 	}
 	sol.UnmarshalText(solBytes)
-	// fmt.Println("submit work: ", nonce, hash, "solution: ", solution, "sol: ", sol)
 	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
 		return false
 	}
