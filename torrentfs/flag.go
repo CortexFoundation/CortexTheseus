@@ -1,4 +1,4 @@
-package types
+package torrentfs
 
 // Flag ...
 type Flag struct {
