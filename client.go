@@ -84,20 +84,24 @@ type TorrentManager struct {
 	mu            sync.Mutex
 }
 
-func (tm *TorrentManager) CloseAll() chan struct{} {
-	return tm.closeAll
+func (tm *TorrentManager) CloseAll(input struct{}) error {
+	tm.closeAll <- input
+	return nil
 }
 
-func (tm *TorrentManager) NewTorrent() chan string {
-	return tm.newTorrent
+func (tm *TorrentManager) NewTorrent(input string) error {
+	tm.newTorrent <- input
+	return nil
 }
 
-func (tm *TorrentManager) RemoveTorrent() chan string {
-	return tm.removeTorrent
+func (tm *TorrentManager) RemoveTorrent(input string) error {
+	tm.removeTorrent <- input
+	return nil
 }
 
-func (tm *TorrentManager) UpdateTorrent() chan interface{} {
-	return tm.updateTorrent
+func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
+	tm.updateTorrent <- input
+	return nil
 }
 
 func isMagnetURI(uri string) bool {
@@ -254,10 +258,10 @@ func NewTorrentManager(flag *types.Flag) *TorrentManager {
 		client:        cl,
 		torrents:      make(map[metainfo.Hash]*Torrent),
 		DataDir:       *flag.DataDir,
-		CloseAll:      make(chan struct{}),
-		NewTorrent:    make(chan string, newTorrentChanBuffer),
-		RemoveTorrent: make(chan string, removeTorrentChanBuffer),
-		UpdateTorrent: make(chan interface{}, updateTorrentChanBuffer),
+		closeAll:      make(chan struct{}),
+		newTorrent:    make(chan string, newTorrentChanBuffer),
+		removeTorrent: make(chan string, removeTorrentChanBuffer),
+		updateTorrent: make(chan interface{}, updateTorrentChanBuffer),
 	}
 
 	if flag.DefaultTrackers != nil {
@@ -267,20 +271,20 @@ func NewTorrentManager(flag *types.Flag) *TorrentManager {
 	go func() {
 		for {
 			select {
-			case torrent := <-TorrentManager.NewTorrent:
+			case torrent := <-TorrentManager.newTorrent:
 				log.Println("Add", torrent)
 				if isMagnetURI(torrent) {
 					go TorrentManager.AddMagnet(torrent)
 				} else {
 					go TorrentManager.AddTorrent(torrent)
 				}
-			case torrent := <-TorrentManager.RemoveTorrent:
+			case torrent := <-TorrentManager.removeTorrent:
 				log.Println("Drop", torrent)
 				if isMagnetURI(torrent) {
 					go TorrentManager.DropMagnet(torrent)
 				} else {
 				}
-			case msg := <-TorrentManager.UpdateTorrent:
+			case msg := <-TorrentManager.updateTorrent:
 				meta := msg.(types.FlowControlMeta)
 				go TorrentManager.UpdateMagnet(meta.InfoHash, int64(meta.BytesRequested))
 			}
