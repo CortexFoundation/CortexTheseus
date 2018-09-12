@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 )
 
 func main() {
@@ -26,15 +27,15 @@ func mainExitCode() int {
 	flag.Parse()
 
 	trackers := strings.Split(*trackerURI, ",")
-	f := &Flag{
+	f := &torrentfs.Flag{
 		DataDir,
 		RpcURI,
 		IpcPath,
 		&trackers,
 	}
 
-	dlCilent := NewTorrentManager(f)
-	m := NewMonitor(f)
+	dlCilent := torrentfs.NewTorrentManager(f)
+	m := torrentfs.NewMonitor(f)
 	m.SetDownloader(dlCilent)
 	m.Start()
 	return 0
