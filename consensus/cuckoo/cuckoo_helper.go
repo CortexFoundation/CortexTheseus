@@ -11,12 +11,12 @@ import (
 	"unsafe"
 )
 
-func CuckooInit(threads uint) {
+func CuckooInit(threads uint32) {
 	CuckooInitialize(threads, 5)
 }
 
-func CuckooInitialize(threads uint, nInstances uint32) {
-	C.CuckooInit(C.uint(threads), C.uint(nInstances))
+func CuckooInitialize(threads uint32, nInstances uint32) {
+	C.CuckooInit(C.uint32_t(threads), C.uint32_t(nInstances))
 }
 
 func CuckooFinalize() {
@@ -59,12 +59,12 @@ func CuckooFindSolutions(hash []byte, nonce uint32, result *[]uint32) (status_co
 
 func CuckooVerify(hash *byte, hash_len int, nonce uint32, result *uint32, diff *byte, result_hash *byte) byte {
 	r := C.CuckooVerify(
-		(*C.uchar)(unsafe.Pointer(hash)),
-		C.uint(hash_len),
-		C.uint(uint32(nonce)),
+		(*C.uint8_t)(unsafe.Pointer(hash)),
+		C.uint32_t(hash_len),
+		C.uint32_t(uint32(nonce)),
 		(*C.result_t)(unsafe.Pointer(result)),
-		(*C.uchar)(unsafe.Pointer(diff)),
-		(*C.uchar)(unsafe.Pointer(result_hash)))
+		(*C.uint8_t)(unsafe.Pointer(diff)),
+		(*C.uint8_t)(unsafe.Pointer(result_hash)))
 
 	return byte(r)
 }
