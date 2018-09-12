@@ -5,9 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"./types"
-	download "./manager"
-	"./monitor"
+
+	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
+	download "github.com/CortexFoundation/CortexTheseus/torrentfs/manager"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs/monitor"
 )
 
 func main() {
