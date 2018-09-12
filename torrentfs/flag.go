@@ -1,7 +1,7 @@
 package torrentfs
 
-// Flag ...
-type Flag struct {
+// Config ...
+type Config struct {
 	DataDir *string
 	RpcURI  *string
 	IpcPath *string
