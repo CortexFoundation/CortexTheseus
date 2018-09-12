@@ -1,4 +1,4 @@
-package downloadmanager
+package main
 
 import (
 	"log"
