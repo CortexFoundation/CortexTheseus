@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 	"path"
-
-	download "github.com/CortexFoundation/CortexTheseus/torrentfs/manager"
 )
 
 const (
@@ -14,7 +12,7 @@ const (
 )
 
 // InitStorage ...
-func InitStorage(storageDir string, manager *download.TorrentManager) {
+func InitStorage(storageDir string, manager *TorrentManager) {
 	files, err := ioutil.ReadDir(storageDir)
 	if err != nil {
 		log.Fatal(err)
@@ -24,10 +22,10 @@ func InitStorage(storageDir string, manager *download.TorrentManager) {
 		if f.IsDir() && len(infohash) == 40 {
 			torrentPath := path.Join(storageDir, f.Name(), defaultTorrentName)
 			if _, err := os.Stat(torrentPath); err == nil {
-				manager.NewTorrent <- torrentPath
+				manager.NewTorrent(torrentPath)
 			} else {
 				mURI := "magnet:?xt=urn:btih:" + infohash
-				manager.NewTorrent <- mURI
+				manager.NewTorrent(mURI)
 			}
 		}
 	}
