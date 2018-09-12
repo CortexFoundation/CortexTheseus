@@ -1,4 +1,4 @@
-package monitor
+package main
 
 import (
 	"errors"
@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 )
 
 //------------------------------------------------------------------------------
@@ -28,7 +27,7 @@ const (
 )
 
 
-type TorrentManager interface {
+type TorrentManagerAPI interface {
 	CloseAll(struct{})         error
 	NewTorrent(string)         error
 	RemoveTorrent(string)      error
@@ -39,19 +38,19 @@ type TorrentManager interface {
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
 	cl *rpc.Client
-	dl TorrentManager
-	fs *types.FileStorage
+	dl TorrentManagerAPI
+	fs *FileStorage
 }
 
 // NewMonitor creates a new instance of monitor.
 // Once Ipcpath is settle, this method perfers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unaviliable on windows.
-func NewMonitor(flag *types.Flag) *Monitor {
+func NewMonitor(flag *Flag) *Monitor {
 	m := &Monitor{
 		nil,
 		nil,
-		types.NewFileStorage(flag),
+		NewFileStorage(flag),
 	}
 	if runtime.GOOS != "windows" && *flag.IpcPath != "" {
 		m.SetConnection(flag.IpcPath)
@@ -76,7 +75,7 @@ func (m *Monitor) SetConnection(clientURI *string) error {
 }
 
 // SetDownloader ...
-func (m *Monitor) SetDownloader(dl TorrentManager) error {
+func (m *Monitor) SetDownloader(dl TorrentManagerAPI) error {
 	if dl == nil {
 		return ErrNoDownloadManager
 	}
@@ -85,10 +84,10 @@ func (m *Monitor) SetDownloader(dl TorrentManager) error {
 	return nil
 }
 
-func (m *Monitor) getBlockByNumber(blockNumber uint64) (*types.Block, error) {
+func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
 	block := m.fs.GetBlock(blockNumber)
 	if block == nil {
-		block = &types.Block{}
+		block = &Block{}
 		blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 		if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
 			return nil, err
@@ -130,7 +129,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
 	}
-	block := &types.Block{}
+	block := &Block{}
 	if err := m.cl.Call(block, "eth_getBlockByHash", hash, true); err != nil {
 		return err
 	}
@@ -139,13 +138,13 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 	return nil
 }
 
-func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) error {
+func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	m.dl.NewTorrent(meta.URI)
 
-	info := types.NewFileInfo(meta)
+	info := NewFileInfo(meta)
 	info.TxHash = tx.Hash
 
-	var receipt types.TxReceipt
+	var receipt TxReceipt
 	log.Println(tx.Hash.String())
 	if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 		return err
@@ -165,14 +164,14 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) err
 	if meta.RawSize > remainingSize {
 		bytesRequested = meta.RawSize - remainingSize
 	}
-	m.dl.UpdateTorrent(types.FlowControlMeta{
+	m.dl.UpdateTorrent(FlowControlMeta{
 		InfoHash:       *meta.InfoHash(),
 		BytesRequested: bytesRequested,
 	})
 	return nil
 }
 
-func (m *Monitor) parseNewBlock(b *types.Block) error {
+func (m *Monitor) parseNewBlock(b *Block) error {
 	m.fs.AddBlock(b)
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
@@ -197,7 +196,7 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 				if file.Meta.RawSize > remainingSize {
 					bytesRequested = file.Meta.RawSize - remainingSize
 				}
-				m.dl.UpdateTorrent(types.FlowControlMeta{
+				m.dl.UpdateTorrent(FlowControlMeta{
 					InfoHash:       *file.Meta.InfoHash(),
 					BytesRequested: bytesRequested,
 				})
@@ -208,7 +207,7 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 }
 
 //
-func (m *Monitor) parseBlock(b *types.Block) error {
+func (m *Monitor) parseBlock(b *Block) error {
 	m.fs.AddBlock(b)
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
@@ -241,7 +240,7 @@ func (m *Monitor) initialCheck() {
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
-	b := &types.Block{}
+	b := &Block{}
 	if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
 		log.Println(err)
 		return err
@@ -254,7 +253,7 @@ func (m *Monitor) Start() error {
 		select {
 		case <-timer.C:
 			// Try to get the latest b
-			b := &types.Block{}
+			b := &Block{}
 			if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
 				return err
 			}
