@@ -1,4 +1,4 @@
-package main
+package torrentfs
 
 import (
 	"log"
@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"
@@ -240,7 +238,7 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 }
 
 // NewTorrentManager ...
-func NewTorrentManager(flag *types.Flag) *TorrentManager {
+func NewTorrentManager(flag *Flag) *TorrentManager {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableTCP = true
@@ -285,7 +283,7 @@ func NewTorrentManager(flag *types.Flag) *TorrentManager {
 				} else {
 				}
 			case msg := <-TorrentManager.updateTorrent:
-				meta := msg.(types.FlowControlMeta)
+				meta := msg.(FlowControlMeta)
 				go TorrentManager.UpdateMagnet(meta.InfoHash, int64(meta.BytesRequested))
 			}
 		}

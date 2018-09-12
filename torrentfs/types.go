@@ -1,4 +1,4 @@
-package types
+package torrentfs
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	metaTypes "github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -85,7 +85,7 @@ func getDisplayNameFromURI(uri string) (string, error) {
 // Parse ...
 func (t *Transaction) Parse() *FileMeta {
 	if t.Op() == opCreateInput {
-		var meta metaTypes.InputMeta
+		var meta types.InputMeta
 		var AuthorAddress common.Address
 		AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
 		rlp.Decode(bytes.NewReader(t.Data()), &meta)
@@ -96,7 +96,7 @@ func (t *Transaction) Parse() *FileMeta {
 			meta.BlockNum.Uint64(),
 		}
 	} else if t.Op() == opCreateModel {
-		var meta metaTypes.ModelMeta
+		var meta types.ModelMeta
 		var AuthorAddress common.Address
 		AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
 		rlp.Decode(bytes.NewReader(t.Data()), &meta)
