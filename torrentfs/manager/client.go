@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"../types"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"

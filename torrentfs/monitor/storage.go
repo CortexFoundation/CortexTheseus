@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	download "../manager"
+	download "github.com/CortexFoundation/CortexTheseus/torrentfs/manager"
 )
 
 const (
