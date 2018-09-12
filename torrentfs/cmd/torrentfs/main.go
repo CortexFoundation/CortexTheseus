@@ -3,17 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 
-	"github.com/CortexFoundation/CortexTheseus/torrentfs/monitor"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 )
 
 func main() {
@@ -29,15 +27,15 @@ func mainExitCode() int {
 	flag.Parse()
 
 	trackers := strings.Split(*trackerURI, ",")
-	f := &types.Flag{
+	f := &torrentfs.Flag{
 		DataDir,
 		RpcURI,
 		IpcPath,
 		&trackers,
 	}
 
-	dlCilent := NewTorrentManager(f)
-	m := monitor.NewMonitor(f)
+	dlCilent := torrentfs.NewTorrentManager(f)
+	m := torrentfs.NewMonitor(f)
 	m.SetDownloader(dlCilent)
 	m.Start()
 	return 0
@@ -76,13 +74,6 @@ func (db *TorrentFS) Start(server *p2p.Server) error {
 
 	db.wg.Add(2)
 	http.HandleFunc("/", db.webHandler)
-
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", db.config.Host, db.config.Port))
-	if err != nil {
-		return err
-	}
-
-	go http.Serve(listener, nil)
 
 	return nil
 }
