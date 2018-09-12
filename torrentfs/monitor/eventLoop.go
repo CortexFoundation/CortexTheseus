@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	download "../manager"
-	"../types"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	download "github.com/CortexFoundation/CortexTheseus/torrentfs/manager"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 )
 
 //------------------------------------------------------------------------------
