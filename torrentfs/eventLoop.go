@@ -46,7 +46,7 @@ type Monitor struct {
 // Once Ipcpath is settle, this method perfers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unaviliable on windows.
-func NewMonitor(flag *Flag) *Monitor {
+func NewMonitor(flag *Config) *Monitor {
 	m := &Monitor{
 		nil,
 		nil,
