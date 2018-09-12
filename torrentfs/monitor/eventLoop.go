@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	download "github.com/CortexFoundation/CortexTheseus/torrentfs/manager"
+	download "github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 )
 
