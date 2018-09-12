@@ -31,10 +31,10 @@ const (
 
 
 type TorrentManager interface {
-	CloseAll()      chan struct{}
-	NewTorrent()    chan string
-	RemoveTorrent() chan string
-	UpdateTorrent() chan interface{}
+	CloseAll(struct{})         error
+	NewTorrent(string)         error
+	RemoveTorrent(string)      error
+	UpdateTorrent(interface{}) error
 }
 
 // Monitor observes the data changes on the blockchain and synchronizes.
@@ -142,7 +142,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 }
 
 func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) error {
-	m.dl.NewTorrent() <- meta.URI
+	m.dl.NewTorrent(meta.URI)
 
 	info := types.NewFileInfo(meta)
 	info.TxHash = tx.Hash
@@ -167,10 +167,10 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) err
 	if meta.RawSize > remainingSize {
 		bytesRequested = meta.RawSize - remainingSize
 	}
-	m.dl.UpdateTorrent() <- types.FlowControlMeta{
+	m.dl.UpdateTorrent(types.FlowControlMeta{
 		InfoHash:       *meta.InfoHash(),
 		BytesRequested: bytesRequested,
-	}
+	})
 	return nil
 }
 
@@ -199,10 +199,10 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 				if file.Meta.RawSize > remainingSize {
 					bytesRequested = file.Meta.RawSize - remainingSize
 				}
-				m.dl.UpdateTorrent() <- types.FlowControlMeta{
+				m.dl.UpdateTorrent(types.FlowControlMeta{
 					InfoHash:       *file.Meta.InfoHash(),
 					BytesRequested: bytesRequested,
-				}
+				})
 			}
 		}
 	}
