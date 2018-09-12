@@ -709,6 +709,10 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//return nil, errExecutionReverted
 	}
 
+	if modelMeta.Gas != MODEL_GAS_LIMIT {
+		return nil, errExecutionReverted
+	}
+
 	if inputMeta, err = interpreter.evm.GetInputMeta(inputAddr); err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
