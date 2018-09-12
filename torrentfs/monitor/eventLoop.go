@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 )
@@ -41,7 +39,7 @@ type TorrentManager interface {
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
 	cl *rpc.Client
-	dl *TorrentManager
+	dl TorrentManager
 	fs *types.FileStorage
 }
 
@@ -78,7 +76,7 @@ func (m *Monitor) SetConnection(clientURI *string) error {
 }
 
 // SetDownloader ...
-func (m *Monitor) SetDownloader(dl *TorrentManager) error {
+func (m *Monitor) SetDownloader(dl TorrentManager) error {
 	if dl == nil {
 		return ErrNoDownloadManager
 	}
