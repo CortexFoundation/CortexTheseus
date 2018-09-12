@@ -158,9 +158,9 @@ int32_t CuckooFindSolutions(uint8_t *header, uint32_t header_len, uint32_t nonce
         auto& sol = sols[n];
         for (size_t i = 0; i < sol.size(); i++) {
             result[i + n * (*solLength)] = sol[i];
-            printf(" %d", sol[i]);
+//            printf(" %d", sol[i]);
         }
-        printf("\n");
+//        printf("\n");
     }
     return 1;
 }

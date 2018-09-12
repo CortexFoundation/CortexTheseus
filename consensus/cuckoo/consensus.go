@@ -503,7 +503,6 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
 	r, _ := CuckooVerifyHeaderNonceSolutionsDifficulty(hash, uint32(nonce), &result)
 	if !r {
-		//fmt.Println("r = ", r)
 		log.Debug(fmt.Sprintf("CuckooVerifyHeaderNonceSolutionsDifficulty Result: ", r))
 		return errInvalidPoW
 	}
