@@ -238,7 +238,7 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 }
 
 // NewTorrentManager ...
-func NewTorrentManager(flag *Flag) *TorrentManager {
+func NewTorrentManager(flag *Config) *TorrentManager {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableTCP = true
