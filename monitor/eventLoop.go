@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	download "github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 )
 
@@ -28,11 +29,19 @@ const (
 	minBlockNum          = 36000
 )
 
+
+type TorrentManager interface {
+	CloseAll()      chan struct{}
+	NewTorrent()    chan string
+	RemoveTorrent() chan string
+	UpdateTorrent() chan interface{}
+}
+
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
 	cl *rpc.Client
-	dl *download.TorrentManager
+	dl *TorrentManager
 	fs *types.FileStorage
 }
 
@@ -69,7 +78,7 @@ func (m *Monitor) SetConnection(clientURI *string) error {
 }
 
 // SetDownloader ...
-func (m *Monitor) SetDownloader(dl *download.TorrentManager) error {
+func (m *Monitor) SetDownloader(dl *TorrentManager) error {
 	if dl == nil {
 		return ErrNoDownloadManager
 	}
@@ -133,7 +142,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 }
 
 func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) error {
-	m.dl.NewTorrent <- meta.URI
+	m.dl.NewTorrent() <- meta.URI
 
 	info := types.NewFileInfo(meta)
 	info.TxHash = tx.Hash
@@ -158,7 +167,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta) err
 	if meta.RawSize > remainingSize {
 		bytesRequested = meta.RawSize - remainingSize
 	}
-	m.dl.UpdateTorrent <- types.FlowControlMeta{
+	m.dl.UpdateTorrent() <- types.FlowControlMeta{
 		InfoHash:       *meta.InfoHash(),
 		BytesRequested: bytesRequested,
 	}
@@ -190,7 +199,7 @@ func (m *Monitor) parseNewBlock(b *types.Block) error {
 				if file.Meta.RawSize > remainingSize {
 					bytesRequested = file.Meta.RawSize - remainingSize
 				}
-				m.dl.UpdateTorrent <- types.FlowControlMeta{
+				m.dl.UpdateTorrent() <- types.FlowControlMeta{
 					InfoHash:       *file.Meta.InfoHash(),
 					BytesRequested: bytesRequested,
 				}

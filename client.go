@@ -77,11 +77,27 @@ type TorrentManager struct {
 	torrents      map[metainfo.Hash]*Torrent
 	trackers      []string
 	DataDir       string
-	CloseAll      chan struct{}
-	NewTorrent    chan string
-	RemoveTorrent chan string
-	UpdateTorrent chan interface{}
+	closeAll      chan struct{}
+	newTorrent    chan string
+	removeTorrent chan string
+	updateTorrent chan interface{}
 	mu            sync.Mutex
+}
+
+func (tm *TorrentManager) CloseAll() chan struct{} {
+	return tm.closeAll
+}
+
+func (tm *TorrentManager) NewTorrent() chan string {
+	return tm.newTorrent
+}
+
+func (tm *TorrentManager) RemoveTorrent() chan string {
+	return tm.removeTorrent
+}
+
+func (tm *TorrentManager) UpdateTorrent() chan interface{} {
+	return tm.updateTorrent
 }
 
 func isMagnetURI(uri string) bool {
