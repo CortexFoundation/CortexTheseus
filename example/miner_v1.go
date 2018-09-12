@@ -25,13 +25,6 @@ type Task struct {
 	Difficulty string
 }
 
-type Work struct {
-	Header     string
-	Difficulty string
-	nonce      uint64
-	step       uint64
-}
-
 type ReqObj struct {
 	Id      int      `json:"id"` // struct标签， 如果指定，jsonrpc包会在序列化json时，将该聚合字段命名为指定的字符串
 	Jsonrpc string   `json:"jsonrpc"`
@@ -89,7 +82,8 @@ func main() {
 	var taskHeader, taskNonce, taskDifficulty string
 	//-------- connect to server -------------
 	// var server = "139.196.32.192:8009"
-	var server = "localhost:8008"
+	// var server = "cortex.waterhole.xyz:8008"
+	var server = "localhost:8009"
 	tcpAddr, err := net.ResolveTCPAddr("tcp", server)
 	checkError(err)
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
@@ -173,20 +167,21 @@ func main() {
 	go func(currentTask_ *TaskWrapper) {
 		for {
 			msg := read(reader)
-			fmt.Println(msg)
+			fmt.Println("Received: ", msg)
 			reqId, _ := msg["id"].(float64)
 			if uint32(reqId) == 100 || uint32(reqId) == 0 {
 				workInfo, _ := msg["result"].([]interface{})
 				if len(workInfo) >= 3 {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
-					fmt.Println("get work: ", taskHeader, taskNonce, taskDifficulty)
+					fmt.Println("Get Work: ", taskHeader, taskNonce, taskDifficulty)
 					currentTask_.Lock.Lock()
 					currentTask_.TaskQ.Nonce = taskNonce
 					currentTask_.TaskQ.Header = taskHeader
 					currentTask_.TaskQ.Difficulty = taskDifficulty
 					currentTask_.Lock.Unlock()
 				}
-			} 		}
+			}
+		}
 	}(&currentTask)
 	time.Sleep(2 * time.Second)
 	for {
