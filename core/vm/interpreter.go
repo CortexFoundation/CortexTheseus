@@ -34,6 +34,7 @@ var (
 	MIN_UPLOAD_BYTES     uint64 = 0
 	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
 	DEFAULT_UPLOAD_BYTES uint64 = 512 * 1024
+	MODEL_GAS_LIMIT      uint64 = 65536
 )
 
 // Config are the configuration options for the Interpreter
@@ -209,6 +210,12 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				} else {
 					return nil, ErrInvalidMetaRawSize
 				}
+
+				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
+					return nil, ErrInvalidMetaRawSize
+				}
+
+				modelMeta.SetGas(MODEL_GAS_LIMIT)
 
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
 				tmpCode, err := modelMeta.ToBytes()
