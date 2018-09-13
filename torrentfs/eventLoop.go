@@ -21,9 +21,13 @@ var (
 )
 
 const (
-	defaultTimerInterval = 2
-	fetchBlockLogStep    = 500
-	minBlockNum          = 36000
+	defaultTimerInterval  = 2
+	connTryTimes          = 10
+	connTryInterval       = 10
+	fetchBlockTryTimes    = 5
+	fetchBlockTryInterval = 3
+	fetchBlockLogStep     = 500
+	minBlockNum           = 36000
 )
 
 
@@ -64,14 +68,20 @@ func NewMonitor(flag *Config) *Monitor {
 }
 
 // SetConnection method builds connection to remote or local communicator.
-func (m *Monitor) SetConnection(clientURI string) error {
-	cl, err := rpc.Dial(clientURI)
-	if err != nil {
-		return ErrBuildConn
+func (m *Monitor) SetConnection(clientURI string) (e error) {
+	for i := 0; i < connTryTimes; i++ {
+		cl, err := rpc.Dial(clientURI)
+		if err != nil {
+			e = err
+		} else {
+			e = nil
+			log.Println("internal-RPC connection established.")
+			m.cl = cl
+			break
+		}
+		time.Sleep(time.Second * connTryInterval)
 	}
-	log.Println("Internal-RPC connection established.")
-	m.cl = cl
-	return nil
+	return
 }
 
 // SetDownloader ...
@@ -84,16 +94,24 @@ func (m *Monitor) SetDownloader(dl TorrentManagerAPI) error {
 	return nil
 }
 
-func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
-	block := m.fs.GetBlock(blockNumber)
+func (m *Monitor) getBlockByNumber(blockNumber uint64) (block *Block, e error) {
+	block = m.fs.GetBlock(blockNumber)
 	if block == nil {
 		block = &Block{}
 		blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
-		if err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true); err != nil {
-			return nil, err
+
+		for i := 0; i < fetchBlockTryTimes; i++ {
+			err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true)
+			if err != nil {
+				e = err
+			} else {
+				e = nil
+				break
+			}
+			time.Sleep(time.Second * fetchBlockTryInterval)
 		}
 	}
-	return block, nil
+	return
 }
 
 func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
@@ -238,11 +256,26 @@ func (m *Monitor) initialCheck() {
 	}
 }
 
+func (m *Monitor) getLatestBlock() (b *Block, e error) {
+	b = &Block{}
+	for i := 0; i < fetchBlockTryTimes; i++ {
+		err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true)
+		if err != nil {
+			e = err
+		} else {
+			e = nil
+			break
+		}
+		time.Sleep(time.Second * fetchBlockTryInterval)
+	}
+	return
+}
+
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
-	b := &Block{}
-	if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
-		log.Println(err)
+	b, err := m.getLatestBlock()
+	if err != nil {
+		log.Println("get latest block failed.")
 		return err
 	}
 	m.parseNewBlock(b)
@@ -255,7 +288,8 @@ func (m *Monitor) Start() error {
 			// Try to get the latest b
 			b := &Block{}
 			if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
-				return err
+				timer.Reset(time.Second * 2)
+				continue
 			}
 			bnum := b.Number
 			if bnum > m.fs.LatestBlockNumber {
