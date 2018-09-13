@@ -50,9 +50,11 @@ func (db *TorrentFS) APIs() []rpc.API { return nil }
 // Implements the node.Service interface.
 func (db *TorrentFS) Start(server *p2p.Server) error {
 	dlClient := NewTorrentManager(db.config)
-	m := NewMonitor(db.config)
-	m.SetDownloader(dlClient)
-	go m.Start()
+	go func(){
+		m := NewMonitor(db.config)
+		m.SetDownloader(dlClient)
+		m.Start()
+	}()
 	return nil
 }
 
