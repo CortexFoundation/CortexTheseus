@@ -66,10 +66,10 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
 		pend.Add(1)
-		go func(id int, nonce uint32) {
+		go func(id int, nonce uint64) {
 			defer pend.Done()
 			cuckoo.mine(block, id, nonce, abort, cuckoo.resultCh)
-		}(i, uint32(cuckoo.rand.Int31()))
+		}(i, uint64(cuckoo.rand.Int63()))
 	}
 	// Wait until sealing is terminated or a nonce is found
 	go func() {
@@ -118,7 +118,7 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 		return false, false, 0
 	}
 	fmt.Println(hashNoNonce.Bytes(), block.Nonce(), solution)
-	ok, sha3Hash := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), uint32(block.Nonce()), solution)
+	ok, sha3Hash := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), block.Nonce(), solution)
 	if !ok {
 		fmt.Println("invalid solution ", sha3Hash.Hex())
 		return false, false, 0
@@ -137,7 +137,7 @@ func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution *types.
 	return false, common.Hash{}
 }
 
-func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan struct{}, found chan *types.Block) {
+func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
 	cuckoo.InitOnce()
 
 	var (
@@ -176,12 +176,12 @@ search:
 
 			var result_hash [32]byte
 			diff := target.Bytes()
-			r := CuckooSolve(&hash[0], len(hash), uint32(nonce), &result[0], &result_len, &diff[0], &result_hash[0])
+			r := CuckooSolve(&hash[0], len(hash), (nonce), &result[0], &result_len, &diff[0], &result_hash[0])
 			if r == 0 {
 				nonce++
 				continue
 			}
-			r = CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
+			r = CuckooVerify(&hash[0], len(hash), (nonce), &result[0], &diff[0], &result_hash[0])
 
 			if r != 0 {
 				// Correct solution found, create a new header with it

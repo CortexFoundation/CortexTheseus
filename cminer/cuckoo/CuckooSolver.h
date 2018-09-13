@@ -22,8 +22,6 @@ struct cuckoo_sol{
     }
 };
 
-
-
 // mean miner
 
 class solver_ctx;
@@ -57,7 +55,7 @@ public:
     void release();
 
     // set input, and solve
-    void setHeaderNonce(char* header, u32 len, u32 nonce);
+    void setHeaderNonce(const char* header, u32 len, uint64_t nonce);
     void solve();
 
     // get solutions and verify
