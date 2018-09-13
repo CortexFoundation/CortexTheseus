@@ -5,6 +5,7 @@
 #   git config --global core.excludesfile ~/.gitignore_global
 
 /tmp
+data/
 */**/*un~
 */**/*.test
 *un~
@@ -49,6 +50,8 @@ profile.cov
 
 **/yarn-error.log
 
+
+tags
 #python_restful
 python_restful/input_data
 python_restful/model

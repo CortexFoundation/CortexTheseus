@@ -474,7 +474,7 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
 	requestBody := fmt.Sprintf(
 		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
-	log.Debug(fmt.Sprintf("%v", requestBody))
+	log.Trace(fmt.Sprintf("%v", requestBody))
 
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
@@ -483,7 +483,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 	if err != nil || resp.StatusCode() != 200 {
 		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, evm.vmConfig.InferURI, err))
 	}
-	log.Debug(fmt.Sprintf("%v", resp.String()))
+	log.Trace(fmt.Sprintf("%v", resp.String()))
 	js, js_err := simplejson.NewJson([]byte(resp.String()))
 	if js_err != nil {
 		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", js_err))
@@ -501,7 +501,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	modelMetaRaw := evm.StateDB.GetCode(addr)
-	log.Debug(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
+	log.Trace(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
 	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
 		return &types.ModelMeta{}, err
 	} else {
@@ -511,7 +511,7 @@ func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err er
 
 func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
 	inputMetaRaw := evm.StateDB.GetCode(addr)
-	log.Debug(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
+	log.Trace(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
 	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {
 		return &types.InputMeta{}, err
 	} else {

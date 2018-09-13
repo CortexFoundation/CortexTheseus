@@ -90,7 +90,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DeveloperPeriodFlag,
 		},
 	},
-	{
+	/* {
 		Name: "ETHASH",
 		Flags: []cli.Flag{
 			utils.EthashCacheDirFlag,
@@ -100,7 +100,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.EthashDatasetsInMemoryFlag,
 			utils.EthashDatasetsOnDiskFlag,
 		},
-	},
+	}, */
 	//{
 	//	Name: "DASHBOARD",
 	//	Flags: []cli.Flag{
@@ -114,6 +114,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
+			utils.TxPoolLocalsFlag,
 			utils.TxPoolNoLocalsFlag,
 			utils.TxPoolNoInfersFlag,
 			utils.TxPoolJournalFlag,
@@ -189,8 +190,11 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MinerNotifyFlag,
 			utils.MinerGasPriceFlag,
 			utils.MinerGasTargetFlag,
+			utils.MinerGasLimitFlag,
 			utils.MinerEtherbaseFlag,
 			utils.MinerExtraDataFlag,
+			utils.MinerRecommitIntervalFlag,
+			utils.MinerNoVerfiyFlag,
 		},
 	},
 	{

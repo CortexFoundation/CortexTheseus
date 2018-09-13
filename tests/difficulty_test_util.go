@@ -22,7 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
+	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 )
@@ -56,7 +56,7 @@ func (test *DifficultyTest) Run(config *params.ChainConfig) error {
 		UncleHash:  test.UncleHash,
 	}
 
-	actual := ethash.CalcDifficulty(config, test.CurrentTimestamp.Uint64(), parent)
+	actual := cuckoo.CalcDifficulty(config, test.CurrentTimestamp.Uint64(), parent)
 	exp := test.CurrentDifficulty
 
 	if actual.Cmp(exp) != 0 {
