@@ -27,11 +27,11 @@ func mainExitCode() int {
 	flag.Parse()
 
 	trackers := strings.Split(*trackerURI, ",")
-	f := &torrentfs.Flag{
-		DataDir,
-		RpcURI,
-		IpcPath,
-		&trackers,
+	f := &torrentfs.Config{
+		*DataDir,
+		*RpcURI,
+		*IpcPath,
+		trackers,
 	}
 
 	dlCilent := torrentfs.NewTorrentManager(f)

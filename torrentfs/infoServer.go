@@ -11,7 +11,7 @@ import (
 
 // HTTPMonitor ... Monitor for serving http services.
 type HTTPMonitor struct {
-	Addr string
+	Addr   string
 
 	server *http.Server
 	mux    *http.ServeMux
