@@ -196,12 +196,12 @@ var (
 	}
 	StorageAddrFlag = cli.StringFlag{
 		Name:  "storage.addr",
-		Usage: "P2P storage listening interface",
+		Usage: "P2P storage listening interface (remote mode)",
 		Value: torrentfs.DefaultConfig.Host,
 	}
 	StoragePortFlag = cli.IntFlag{
 		Name:  "storage.host",
-		Usage: "P2P storage listening port",
+		Usage: "P2P storage listening port (remote mode)",
 		Value: torrentfs.DefaultConfig.Port,
 	}
 	StorageTrackerFlag = cli.StringFlag{
