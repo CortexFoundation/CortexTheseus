@@ -5,9 +5,9 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/ethereum/go-ethereum/rlp"
 )
