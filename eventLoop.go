@@ -292,6 +292,7 @@ func (m *Monitor) Start() error {
 				continue
 			}
 			bnum := b.Number
+			log.Info("try to fetch new block", "number", bnum)
 			if bnum > m.fs.LatestBlockNumber {
 				m.parseBlock(b)
 				log.Info("Fetch block", "Number", bnum, "Txs", len(b.Txs))
@@ -302,7 +303,7 @@ func (m *Monitor) Start() error {
 					m.parseNewBlockByNumber(i)
 				}
 			}
-			timer.Reset(time.Second * 2)
+			timer.Reset(time.Second * 3)
 		}
 	}
 }
