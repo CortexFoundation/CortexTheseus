@@ -72,6 +72,7 @@ func (m *Monitor) SetConnection(clientURI string) (e error) {
 	for i := 0; i < connTryTimes; i++ {
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
+			log.Info("Building internal-rpc connection failed", "URI", clientURI, "times", i)
 			e = err
 		} else {
 			e = nil
