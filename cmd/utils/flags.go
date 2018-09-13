@@ -475,6 +475,7 @@ var (
 	IPCPathFlag = DirectoryFlag{
 		Name:  "ipcpath",
 		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
+		Value: DirectoryString{ "geth.ipc" },
 	}
 	WSEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
@@ -1289,6 +1290,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		path := MakeDataDir(ctx)
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
+		log.Info("IPCPath", "path", cfg.IpcPath)
 	}
 	cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
