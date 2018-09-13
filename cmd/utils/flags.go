@@ -20,6 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -181,6 +182,26 @@ var (
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
+	}
+	// P2P storage settings
+	StorageEnabledFlag = cli.BoolFlag{
+		Name: "storage",
+		Usage: "Enable P2P storage",
+	}
+	StorageDirFlag = DirectoryFlag{
+		Name: "storage.dir",
+		Usage: "P2P storage directory",
+		Value: DirectoryString{ node.DefaultStorageDir() },
+	}
+	StorageAddrFlag = cli.StringFlag{
+		Name:  "storage.addr",
+		Usage: "P2P storage listening interface",
+		Value: torrentfs.DefaultConfig.Host,
+	}
+	StoragePortFlag = cli.IntFlag{
+		Name:  "storage.host",
+		Usage: "P2P storage listening port",
+		Value: torrentfs.DefaultConfig.Port,
 	}
 	// Dashboard settings
 	DashboardEnabledFlag = cli.BoolFlag{
@@ -1261,6 +1282,13 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
 }
+// RegisterTorrentFSService adds a torrent file system to the stack.
+func RegisterTorrentFSService(stack *node.Node, cfg *torrentfs.Config, commit string) {
+	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+		return torrentfs.New(cfg, commit), nil
+	})
+}
+
 
 // RegisterDashboardService adds a dashboard to the stack.
 func RegisterDashboardService(stack *node.Node, cfg *dashboard.Config, commit string) {
