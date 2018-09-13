@@ -46,8 +46,8 @@ type FileStorage struct {
 }
 
 // NewFileStorage ...
-func NewFileStorage(flag *Config) *FileStorage {
-	db := NewBoltDB(*flag.DataDir)
+func NewFileStorage(config *Config) *FileStorage {
+	db := NewBoltDB(config.DataDir)
 	return &FileStorage{
 		make(map[metainfo.Hash]*FileInfo),
 		make(map[common.Address]*FileInfo),

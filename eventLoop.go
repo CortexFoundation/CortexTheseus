@@ -52,10 +52,10 @@ func NewMonitor(flag *Config) *Monitor {
 		nil,
 		NewFileStorage(flag),
 	}
-	if runtime.GOOS != "windows" && *flag.IpcPath != "" {
+	if runtime.GOOS != "windows" && flag.IpcPath != "" {
 		m.SetConnection(flag.IpcPath)
 	} else {
-		if flag.RpcURI == nil {
+		if flag.RpcURI == "" {
 			return nil
 		}
 		m.SetConnection(flag.RpcURI)
@@ -64,8 +64,8 @@ func NewMonitor(flag *Config) *Monitor {
 }
 
 // SetConnection method builds connection to remote or local communicator.
-func (m *Monitor) SetConnection(clientURI *string) error {
-	cl, err := rpc.Dial(*clientURI)
+func (m *Monitor) SetConnection(clientURI string) error {
+	cl, err := rpc.Dial(clientURI)
 	if err != nil {
 		return ErrBuildConn
 	}
