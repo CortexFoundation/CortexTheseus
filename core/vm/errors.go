@@ -29,4 +29,5 @@ var (
 
 	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
 	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
+	ErrInvalidMetaAuthor      = errors.New("invalid meta author")
 )

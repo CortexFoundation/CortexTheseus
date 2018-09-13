@@ -14,21 +14,24 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package ethash
+package cuckoo
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-var errEthashStopped = errors.New("ethash stopped")
+var errEthashStopped = errors.New("cuckoo stopped")
 
-// API exposes ethash related methods for the RPC interface.
+// API exposes cuckoo related methods for the RPC interface.
 type API struct {
-	ethash *Ethash // Make sure the mode of ethash is normal.
+	cuckoo *Cuckoo // Make sure the mode of cuckoo is normal.
 }
 
 // GetWork returns a work package for external miner.
@@ -38,7 +41,7 @@ type API struct {
 //   result[1] - 32 bytes hex encoded seed hash used for DAG
 //   result[2] - 32 bytes hex encoded boundary condition ("target"), 2^256/difficulty
 func (api *API) GetWork() ([3]string, error) {
-	if api.ethash.config.PowMode != ModeNormal && api.ethash.config.PowMode != ModeTest {
+	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
 		return [3]string{}, errors.New("not supported")
 	}
 
@@ -48,8 +51,8 @@ func (api *API) GetWork() ([3]string, error) {
 	)
 
 	select {
-	case api.ethash.fetchWorkCh <- &sealWork{errc: errc, res: workCh}:
-	case <-api.ethash.exitCh:
+	case api.cuckoo.fetchWorkCh <- &sealWork{errc: errc, res: workCh}:
+	case <-api.cuckoo.exitCh:
 		return [3]string{}, errEthashStopped
 	}
 
@@ -64,21 +67,28 @@ func (api *API) GetWork() ([3]string, error) {
 // SubmitWork can be used by external miner to submit their POW solution.
 // It returns an indication if the work was accepted.
 // Note either an invalid solution, a stale work a non-existent work will return false.
-func (api *API) SubmitWork(nonce types.BlockNonce, hash, digest common.Hash) bool {
-	if api.ethash.config.PowMode != ModeNormal && api.ethash.config.PowMode != ModeTest {
+func (api *API) SubmitWork(nonce types.BlockNonce, hash common.Hash, solution string) bool {
+	var sol types.BlockSolution
+	solBytes, solErr := hex.DecodeString(solution[2:])
+	if solErr != nil {
+		log.Warn(fmt.Sprintf("Convert Error %v: ", solErr))
+		return false
+	}
+	sol.UnmarshalText(solBytes)
+	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
 		return false
 	}
 
 	var errc = make(chan error, 1)
-
 	select {
-	case api.ethash.submitWorkCh <- &mineResult{
-		nonce:     nonce,
-		mixDigest: digest,
-		hash:      hash,
-		errc:      errc,
+	case api.cuckoo.submitWorkCh <- &mineResult{
+		nonce: nonce,
+		//mixDigest: digest,
+		hash:     hash,
+		errc:     errc,
+		solution: sol,
 	}:
-	case <-api.ethash.exitCh:
+	case <-api.cuckoo.exitCh:
 		return false
 	}
 
@@ -93,15 +103,15 @@ func (api *API) SubmitWork(nonce types.BlockNonce, hash, digest common.Hash) boo
 // It accepts the miner hash rate and an identifier which must be unique
 // between nodes.
 func (api *API) SubmitHashRate(rate hexutil.Uint64, id common.Hash) bool {
-	if api.ethash.config.PowMode != ModeNormal && api.ethash.config.PowMode != ModeTest {
+	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
 		return false
 	}
 
 	var done = make(chan struct{}, 1)
 
 	select {
-	case api.ethash.submitRateCh <- &hashrate{done: done, rate: uint64(rate), id: id}:
-	case <-api.ethash.exitCh:
+	case api.cuckoo.submitRateCh <- &hashrate{done: done, rate: uint64(rate), id: id}:
+	case <-api.cuckoo.exitCh:
 		return false
 	}
 
@@ -113,5 +123,9 @@ func (api *API) SubmitHashRate(rate hexutil.Uint64, id common.Hash) bool {
 
 // GetHashrate returns the current hashrate for local CPU miner and remote miner.
 func (api *API) GetHashrate() uint64 {
-	return uint64(api.ethash.Hashrate())
+	return uint64(api.cuckoo.Hashrate())
 }
+
+//func (api *API) VerifyShare(hash []byte, nonce uint32, solution types.BlockSolution, target big.Int) bool, common.Hash {
+//	return api.cuckoo.VerifySolution(hash, nonce, solution, target)
+//}

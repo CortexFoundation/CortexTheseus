@@ -8,10 +8,21 @@
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
+.PHONY: cminer
+
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
+LIB_MINER_DIR = $(shell pwd)/cminer/
 
-geth:
+# Curkoo algorithm dynamic library path
+OS = $(shell uname)
+ifeq ($(OS), Linux)
+endif
+
+ifeq ($(OS), Darwin)
+endif
+
+geth: cminer
 	build/env.sh go run build/ci.go install ./cmd/geth
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
@@ -26,8 +37,11 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all:
+all: cminer
 	build/env.sh go run build/ci.go install
+
+cminer:
+	make -C $(LIB_MINER_DIR)
 
 android:
 	build/env.sh go run build/ci.go aar --local
@@ -48,6 +62,7 @@ lint: ## Run linters.
 clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+	make -C $(LIB_MINER_DIR) clean
 
 # The devtools target installs tools required for 'go generate'.
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -12,6 +13,8 @@ import (
 var errorCode = []byte{0x0}
 var modelCode = []byte{0x0, 0x1, 0x2}
 var inputCode = []byte{0x0, 0x2, 0x3}
+
+var ErrorCodeLengthNotEnough = errors.New("Code length is less than expected.")
 
 func testGas(im *ModelMeta) {
 	fmt.Println(im.Gas)

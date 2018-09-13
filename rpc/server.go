@@ -129,8 +129,9 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 		if err := recover(); err != nil {
 			const size = 64 << 10
 			buf := make([]byte, size)
+			//fmt.Println("serveRequest: ", size)
 			buf = buf[:runtime.Stack(buf, false)]
-			log.Error(string(buf))
+			//log.Debug(string(buf))
 		}
 		s.codecsMu.Lock()
 		s.codecs.Remove(codec)
@@ -304,7 +305,12 @@ func (s *Server) handle(ctx context.Context, codec ServerCodec, req *serverReque
 	if len(req.args) > 0 {
 		arguments = append(arguments, req.args...)
 	}
-
+	if len(arguments) == 5 {
+		fmt.Println("arguments = ", arguments)
+		for k, v := range arguments {
+			fmt.Println(k, v)
+		}
+	}
 	// execute RPC method and return result
 	reply := req.callb.method.Func.Call(arguments)
 	if len(reply) == 0 {
