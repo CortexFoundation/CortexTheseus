@@ -263,7 +263,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	}
 
 	if len(config.DefaultTrackers) > 0 {
-		TorrentManager.SetTrackers(config.DefaultTrackers)
+		TorrentManager.SetTrackers(strings.Split(config.DefaultTrackers, ","))
 	}
 
 	go func() {
