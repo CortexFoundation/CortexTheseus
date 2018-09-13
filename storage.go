@@ -10,7 +10,7 @@ import (
 	"github.com/anacrolix/missinggo/expect"
 	"github.com/boltdb/bolt"
 
-	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/anacrolix/torrent/metainfo"
 )
 

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 //------------------------------------------------------------------------------

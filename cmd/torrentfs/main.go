@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/ethereum/go-ethereum/torrentfs"
 )
 
 func main() {
