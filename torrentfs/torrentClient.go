@@ -262,7 +262,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		updateTorrent: make(chan interface{}, updateTorrentChanBuffer),
 	}
 
-	if config.DefaultTrackers != nil {
+	if len(config.DefaultTrackers) > 0 {
 		TorrentManager.SetTrackers(config.DefaultTrackers)
 	}
 
