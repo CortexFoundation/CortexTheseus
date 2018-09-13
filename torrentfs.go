@@ -60,7 +60,7 @@ func (db *TorrentFS) Start(server *p2p.Server) error {
 // Implements the node.Service interface.
 func (db *TorrentFS) Stop() error {
 	// Wait until every goroutine terminates.
-	log.Info("TorrentFS stopped")
+	log.Info("TorrentFs stopped")
 
 	return nil
 }
