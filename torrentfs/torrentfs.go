@@ -49,8 +49,8 @@ func (db *TorrentFS) APIs() []rpc.API { return nil }
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
 func (db *TorrentFS) Start(server *p2p.Server) error {
-	dlClient := NewTorrentManager(db.config)
 	go func(){
+		dlClient := NewTorrentManager(db.config)
 		m := NewMonitor(db.config)
 		m.SetDownloader(dlClient)
 		m.Start()

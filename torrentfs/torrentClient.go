@@ -299,7 +299,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 					} else if t.bytesCompleted < t.bytesLimitation {
 						t.Run()
 					}
-					if counter % 20 == 0 {
+					if counter >= 20 {
+						counter = 0
 						log.Info("Torrent progress",
 							"InfoHash", ih.HexString(),
 							"completed", t.bytesCompleted,
