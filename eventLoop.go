@@ -2,11 +2,11 @@ package torrentfs
 
 import (
 	"errors"
-	"log"
 	"runtime"
 	"strconv"
 	"time"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -75,7 +75,7 @@ func (m *Monitor) SetConnection(clientURI string) (e error) {
 			e = err
 		} else {
 			e = nil
-			log.Println("internal-RPC connection established.")
+			log.Info("Internal-RPC connection established", "URI", clientURI)
 			m.cl = cl
 			break
 		}
@@ -89,7 +89,7 @@ func (m *Monitor) SetDownloader(dl TorrentManagerAPI) error {
 	if dl == nil {
 		return ErrNoDownloadManager
 	}
-	log.Println("Torrent manager initialized.")
+	log.Info("Torrent manager initialized")
 	m.dl = dl
 	return nil
 }
@@ -139,7 +139,7 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 	if err := m.parseNewBlock(block); err != nil {
 		return err
 	}
-	log.Printf("fetch block #%d with %d Txs", block.Number, len(block.Txs))
+	log.Info("Fetch block", "Number", block.Number, "Txs", len(block.Txs))
 	return nil
 }
 
@@ -152,7 +152,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 		return err
 	}
 	m.parseBlock(block)
-	log.Printf("fetch block #%s with %d Txs", hash, len(block.Txs))
+	log.Info("Fetch block", "Hash", hash, "Txs", len(block.Txs))
 	return nil
 }
 
@@ -163,13 +163,12 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	info.TxHash = tx.Hash
 
 	var receipt TxReceipt
-	log.Println(tx.Hash.String())
 	if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 		return err
 	}
 
 	var _remainingSize string
-	// log.Println(receipt.ContractAddr.String())
+	// log.Info(receipt.ContractAddr.String())
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		return err
 	}
@@ -242,7 +241,7 @@ func (m *Monitor) parseBlock(b *Block) error {
 func (m *Monitor) initialCheck() {
 	blockChecked := 0
 	lastblock := m.fs.LatestBlockNumber
-	log.Println("lastblock: ", lastblock)
+	log.Info("Fetch Block from", "Number", lastblock)
 	for i := lastblock; i >= minBlockNum; i-- {
 		if m.fs.HasBlock(i) {
 			continue
@@ -250,7 +249,7 @@ func (m *Monitor) initialCheck() {
 		m.parseBlockByNumber(i)
 		blockChecked++
 		if blockChecked%fetchBlockLogStep == 0 || i == 0 {
-			log.Printf("block #%d-%d have been checked.", i, lastblock)
+			log.Info("Blocks have been checked", "from", i, "to", lastblock)
 			lastblock = i - 1
 		}
 	}
@@ -275,7 +274,7 @@ func (m *Monitor) getLatestBlock() (b *Block, e error) {
 func (m *Monitor) Start() error {
 	b, err := m.getLatestBlock()
 	if err != nil {
-		log.Println("get latest block failed.")
+		log.Info("Fetch latest block failed")
 		return err
 	}
 	m.parseNewBlock(b)
@@ -294,7 +293,7 @@ func (m *Monitor) Start() error {
 			bnum := b.Number
 			if bnum > m.fs.LatestBlockNumber {
 				m.parseBlock(b)
-				log.Printf("block #%d: %d Txs.", bnum, len(b.Txs))
+				log.Info("Fetch block", "Number", bnum, "Txs", len(b.Txs))
 				for i := m.fs.LatestBlockNumber - 1; i >= minBlockNum; i-- {
 					if m.fs.HasBlock(i) {
 						break
