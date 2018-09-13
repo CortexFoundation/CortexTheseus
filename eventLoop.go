@@ -22,7 +22,7 @@ var (
 
 const (
 	defaultTimerInterval  = 2
-	connTryTimes          = 10
+	connTryTimes          = 300
 	connTryInterval       = 10
 	fetchBlockTryTimes    = 5
 	fetchBlockTryInterval = 3
