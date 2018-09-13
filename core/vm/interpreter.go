@@ -214,8 +214,12 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
 					return nil, ErrInvalidMetaAuthor
 				}
-
-				modelMeta.SetGas(MODEL_GAS_LIMIT)
+				if modelMeta.Gas > MODEL_GAS_LIMIT {
+					modelMeta.SetGas(MODEL_GAS_LIMIT)
+				}
+				if modelMeta.Gas < 0 {
+					modelMeta.SetGas(0)
+				}
 
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
 				tmpCode, err := modelMeta.ToBytes()
