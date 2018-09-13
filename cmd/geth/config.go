@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"io"
 	"os"
 	"reflect"
@@ -80,6 +81,7 @@ type gethConfig struct {
 	Node      node.Config
 	Ethstats  ethstatsConfig
 	Dashboard dashboard.Config
+	TorrentFs torrentfs.Config
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -114,6 +116,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		Shh:       whisper.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
+		TorrentFs: torrentfs.DefaultConfig,
 	}
 
 	// Load config file.
@@ -136,6 +139,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
+	utils.SetTorrentFsConfig(ctx, &cfg.TorrentFs)
 
 	return stack, cfg
 }
@@ -174,6 +178,10 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	// Add the Ethereum Stats daemon if requested.
 	if cfg.Ethstats.URL != "" {
 		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+	}
+	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name)
+	if storageEnabled {
+		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}
 	return stack
 }

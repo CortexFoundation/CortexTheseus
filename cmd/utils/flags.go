@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -202,6 +203,11 @@ var (
 		Name:  "storage.host",
 		Usage: "P2P storage listening port",
 		Value: torrentfs.DefaultConfig.Port,
+	}
+	StorageTrackerFlag = cli.StringFlag{
+		Name:  "storage.tracker",
+		Usage: "P2P storage tracker list",
+		Value: torrentfs.DefaultConfig.DefaultTrackers,
 	}
 	// Dashboard settings
 	DashboardEnabledFlag = cli.BoolFlag{
@@ -652,6 +658,16 @@ func MakeDataDir(ctx *cli.Context) string {
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
+	return ""
+}
+
+// MakeStorageDir retrieves the currently requested data directory, terminating
+// if none (or the empty string) is specified.
+func MakeStorageDir(ctx *cli.Context) string {
+	if path := ctx.GlobalString(StorageDirFlag.Name); path != "" {
+		return path
+	}
+	Fatalf("Cannot determine default storage directory, please set manually (--storage.dir)")
 	return ""
 }
 
@@ -1261,6 +1277,23 @@ func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
 	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
 }
 
+// SetTorrentFsConfig applies torrentFs related command line flags to the config.
+func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
+	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
+	cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
+	if runtime.GOOS == "windows" || IPCDisabled {
+		cfg.IpcPath = ""
+		cfg.RpcURI = "http://" + ctx.GlobalString(RPCListenAddrFlag.Name) + ":" + string(ctx.GlobalInt(RPCPortFlag.Name))
+	} else {
+		path := MakeDataDir(ctx)
+		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
+		cfg.IpcPath = filepath.Join(path, IPCPath)
+	}
+	cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
+	cfg.DataDir = MakeStorageDir(ctx)
+}
+
 // RegisterEthService adds an Ethereum client to the stack.
 func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 	var err error
@@ -1282,13 +1315,12 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
 }
-// RegisterTorrentFSService adds a torrent file system to the stack.
-func RegisterTorrentFSService(stack *node.Node, cfg *torrentfs.Config, commit string) {
+// RegisterStorageService adds a torrent file system to the stack.
+func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
 	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		return torrentfs.New(cfg, commit), nil
 	})
 }
-
 
 // RegisterDashboardService adds a dashboard to the stack.
 func RegisterDashboardService(stack *node.Node, cfg *dashboard.Config, commit string) {
