@@ -510,6 +510,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 		index := int(header.Number.Int64() - int64(q.resultOffset))
 		if index >= len(q.resultCache) || index < 0 {
 			common.Report("index allocation went beyond available resultCache space")
+			fmt.Println(222)
 			return nil, false, errInvalidChain
 		}
 		if q.resultCache[index] == nil {
@@ -662,7 +663,7 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 			for _, header := range request.Headers {
 				taskQueue.Push(header, -float32(header.Number.Uint64()))
 			}
-			// Add the peer to the expiry report along the the number of failed requests
+			// Add the peer to the expiry report along the number of failed requests
 			expiries[id] = len(request.Headers)
 		}
 	}
@@ -833,6 +834,7 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 		// Reconstruct the next result if contents match up
 		index := int(header.Number.Int64() - int64(q.resultOffset))
 		if index >= len(q.resultCache) || index < 0 || q.resultCache[index] == nil {
+			fmt.Println("test111")
 			failure = errInvalidChain
 			break
 		}
