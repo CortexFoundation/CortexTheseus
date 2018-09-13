@@ -264,6 +264,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	if len(config.DefaultTrackers) > 0 {
 		TorrentManager.SetTrackers(strings.Split(config.DefaultTrackers, ","))
 	}
+	log.Info("Torrent client created")
 
 	go func() {
 		for {
