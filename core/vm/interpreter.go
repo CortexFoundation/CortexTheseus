@@ -216,8 +216,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				}
 				if modelMeta.Gas > MODEL_GAS_LIMIT {
 					modelMeta.SetGas(MODEL_GAS_LIMIT)
-				}
-				if modelMeta.Gas < 0 {
+				} else if modelMeta.Gas < 0 {
 					modelMeta.SetGas(0)
 				}
 
