@@ -55,6 +55,12 @@ func (mm *ModelMeta) SetBlockNum(num big.Int) error {
 	mm.BlockNum = num
 	return nil
 }
+
+func (mm *ModelMeta) SetGas(gas uint64) error {
+        mm.Gas = gas
+        return nil
+}
+
 func (im *InputMeta) SetBlockNum(num big.Int) error {
 	im.BlockNum = num
 	return nil

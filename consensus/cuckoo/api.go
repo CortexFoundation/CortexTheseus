@@ -17,8 +17,10 @@
 package cuckoo
 
 import (
+	"encoding/hex"
 	"errors"
-	//	"math/big"
+	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -65,19 +67,26 @@ func (api *API) GetWork() ([3]string, error) {
 // SubmitWork can be used by external miner to submit their POW solution.
 // It returns an indication if the work was accepted.
 // Note either an invalid solution, a stale work a non-existent work will return false.
-func (api *API) SubmitWork(nonce types.BlockNonce, hash, digest common.Hash) bool {
+func (api *API) SubmitWork(nonce types.BlockNonce, hash common.Hash, solution string) bool {
+	var sol types.BlockSolution
+	solBytes, solErr := hex.DecodeString(solution[2:])
+	if solErr != nil {
+		log.Warn(fmt.Sprintf("Convert Error %v: ", solErr))
+		return false
+	}
+	sol.UnmarshalText(solBytes)
 	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
 		return false
 	}
 
 	var errc = make(chan error, 1)
-
 	select {
 	case api.cuckoo.submitWorkCh <- &mineResult{
-		nonce:     nonce,
-		mixDigest: digest,
-		hash:      hash,
-		errc:      errc,
+		nonce: nonce,
+		//mixDigest: digest,
+		hash:     hash,
+		errc:     errc,
+		solution: sol,
 	}:
 	case <-api.cuckoo.exitCh:
 		return false

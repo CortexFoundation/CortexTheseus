@@ -35,6 +35,9 @@ var (
 	errWriteProtection       = errors.New("evm: write protection")
 	errReturnDataOutOfBounds = errors.New("evm: return data out of bounds")
 	errExecutionReverted     = errors.New("evm: execution reverted")
+	errMetaInfoBlockNum      = errors.New("evm: meta info blocknum <= 0")
+	errMetaInfoNotMature     = errors.New("evm: errMetaInfoNotMature")
+	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 )
 
@@ -689,7 +692,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}
 	// Model Meta is validation
 	if interpreter.evm.StateDB.Uploading(modelAddr) {
-		return nil, errors.New("Model IS NOT UPLOADED ERROR")
+		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
@@ -699,12 +702,20 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		//return nil, types.ErrorNotMature
-		return nil, errExecutionReverted
+		//return nil, errExecutionReverted
+		return nil, errMetaInfoNotMature
 	}
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		//return nil, types.ErrorExpired
 		//return nil, errExecutionReverted
+		//return nil, errors.New("EXPIRED MODEL ERROR")
+		return nil, errMetaInfoExpired
+	}
+
+	if modelMeta.Gas != MODEL_GAS_LIMIT {
+		//return nil, errExecutionReverted
+		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
 	}
 
 	if inputMeta, err = interpreter.evm.GetInputMeta(inputAddr); err != nil {
@@ -716,23 +727,24 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		return nil, errors.New("INPUT IS NOT UPLOADED ERROR")
 	}
 
-	log.Debug(fmt.Sprintf("opInfer:modelMeta: %v", modelMeta))
-	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", inputMeta))
-	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
+	log.Debug(fmt.Sprintf("opInfer:modelMeta: %s", common.Car(modelMeta.EncodeJSON())))
+	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
+
 	if inputMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
 		//return nil, types.ErrorInvalidBlockNum
-		return nil, errExecutionReverted
+		return nil, errMetaInfoBlockNum
 	}
 
 	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		//return nil, types.ErrorNotMature
-		return nil, errExecutionReverted
+		return nil, errMetaInfoNotMature
 	}
 
 	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		//return nil, types.ErrorExpired
-		//return nil, errExecutionReverted
 	}
+
+	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
 
 	//todo
 	if err != nil {

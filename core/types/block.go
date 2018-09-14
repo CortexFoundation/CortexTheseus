@@ -18,8 +18,9 @@
 package types
 
 import (
-	"bytes"
+	//	"bytes"
 	"encoding/binary"
+//	"fmt"
 	"io"
 	"math/big"
 	"sort"
@@ -67,30 +68,38 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
-func (s BlockSolution) MarshalText() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, s)
-	return buf.Bytes(), err
+func (s *BlockSolution) Uint32() []uint32 { return s[:] }
+
+func (s *BlockSolution) MarshalText() ([]byte, error) {
+	//fmt.Println("MarshalText: ", s)
+	var solSize int = 4
+	var solLen int = 42
+	buf := make([]byte, solLen*solSize)
+	for i := 0; i < len(s); i++ {
+		binary.BigEndian.PutUint32(buf[i*solSize:], s[i])
+	}
+	return buf, nil
 }
 
-func (s BlockSolution) UnmarshalText(input []byte) error {
-	rbuf := bytes.NewReader(input)
-	err := binary.Read(rbuf, binary.LittleEndian, &s)
-	return err
+func (s *BlockSolution) UnmarshalText(input []byte) error {
+	//fmt.Println("UnmarshalText: ", input)
+	var solSize int = 4
+	var solLen int = 42
+	for i := 0; i < solLen; i++ {
+		s[i] = binary.BigEndian.Uint32(input[solSize*i:])
+	}
+	return nil
 }
+
 func (s BlockSolutionHash) MarshalText() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, s)
-	return buf.Bytes(), err
+	return hexutil.Bytes(s[:]).MarshalText()
 }
 
 func (s BlockSolutionHash) UnmarshalText(input []byte) error {
-	rbuf := bytes.NewReader(input)
-	err := binary.Read(rbuf, binary.LittleEndian, &s)
-	return err
+	return hexutil.UnmarshalFixedText("BlockSolutionHash", input, s[:])
 }
 
-//go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
+//go:generate
 
 // Header represents a block header in the Ethereum blockchain.
 type Header struct {

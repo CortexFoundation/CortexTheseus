@@ -7,7 +7,7 @@
     },
   "alloc"      : {},
   "coinbase"   : "0x0000000000000000000000000000000000000000",
-  "difficulty" : "0x05000",
+  "difficulty" : "0x20",
   "extraData"  : "",
   "gasLimit"   : "0x2fefd8",
   "nonce"      : "0x0000000000000042",

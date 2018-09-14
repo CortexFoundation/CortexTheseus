@@ -1,9 +1,9 @@
 // Cuckoo Cycle, a memory-hard proof-of-work
 // Copyright (c) 2013-2018 John Tromp
 
-#include "mean_miner.hpp"
 #include <unistd.h>
 #include <sys/time.h>
+#include "mean_miner.hpp"
 
 // arbitrary length of header hashed into siphash key
 #define HEADERLEN 80
@@ -82,23 +82,23 @@ int main(int argc, char **argv) {
     // 0 set header
     ctx.setheadernonce(header, sizeof(header), nonce + r);
     printf("nonce %d\n", nonce+r);
-    
+
     // 1 solve the problem
     u32 nsols = ctx.solve();
-    
+
     gettimeofday(&time1, 0);
     timems = (time1.tv_sec-time0.tv_sec)*1000 + (time1.tv_usec-time0.tv_usec)/1000;
     printf("Time: %d ms\n", timems);
 
     // 2 verify solutions
     for (unsigned s = 0; s < nsols; s++) {
-      
+
       printf("Solution");
       u32* prf = &ctx.sols[s * PROOFSIZE];
       for (u32 i = 0; i < PROOFSIZE; i++)
         printf(" %jx", (uintmax_t)prf[i]);
       printf("\n");
-      
+
       int pow_rc = verify(prf, &ctx.trimmer->sip_keys);
       if (pow_rc == POW_OK) {
         printf("Verified with cyclehash ");
