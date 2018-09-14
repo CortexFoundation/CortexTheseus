@@ -76,7 +76,9 @@ edge_t sipnode_(siphash_keys *keys, edge_t edge, u32 uorv) {
 }
 
 };
+
 #ifdef STANDALONE_CUCKOO_TEST
+
 #include <inttypes.h> // for SCNx64 macro
 #include <stdio.h>    // printf/scanf
 #include <stdlib.h>   // exit
@@ -84,7 +86,7 @@ edge_t sipnode_(siphash_keys *keys, edge_t edge, u32 uorv) {
 #include <assert.h>   // d'uh
 
 // arbitrary length of header hashed into siphash key
-#define HEADERLEN 80
+#define HEADERLEN 40
 
 int main(int argc, char **argv) {
   const char *header = "";
@@ -104,7 +106,7 @@ int main(int argc, char **argv) {
   u32 hdrlen = strlen(header);
   memcpy(headernonce, header, hdrlen);
   memset(headernonce+hdrlen, 0, sizeof(headernonce)-hdrlen);
-  ((u32 *)headernonce)[HEADERLEN/sizeof(u32)-1] = htole32(nonce);
+  // TODO fillin nonce
   siphash_keys keys;
   setheader(headernonce, sizeof(headernonce), &keys);
   printf("Verifying size %d proof for cuckoo%d(\"%s\",%d)\n",

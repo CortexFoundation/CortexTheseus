@@ -84,12 +84,13 @@ func main() {
 	}
 	var currentTask TaskWrapper
 
-	var THREAD uint = 5
-	cuckoo.CuckooInit(8)
+	var THREAD uint32 = 10
+	cuckoo.CuckooInitialize(1, THREAD)
 	var taskHeader, taskNonce, taskDifficulty string
 	//-------- connect to server -------------
 	// var server = "139.196.32.192:8009"
-	var server = "localhost:8009"
+	var server = "localhost:8008"
+
 	tcpAddr, err := net.ResolveTCPAddr("tcp", server)
 	checkError(err)
 
@@ -113,7 +114,6 @@ func main() {
 			for {
 				currentTask.Lock.Lock()
 				task := currentTask.TaskQ
-				fmt.Println("get work--: ", task.Header, task.Nonce, task.Difficulty)
 				currentTask.Lock.Unlock()
 				taskDifficulty = task.Difficulty
 				if len(task.Difficulty) == 0 {
