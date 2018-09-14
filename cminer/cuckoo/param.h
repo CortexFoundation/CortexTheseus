@@ -3,8 +3,9 @@
 
 #define SAVEEDGES
 
+// control the speed of calculating single siphash
 #ifndef NSIPHASH
-#define NSIPHASH 8 
+#define NSIPHASH 8
 #endif
 
 #ifndef EDGEBITS
@@ -12,7 +13,7 @@
 #endif
 
 #ifndef PROOFSIZE
-#define PROOFSIZE 4
+#define PROOFSIZE 12
 #endif
 
 #ifndef XBITS
@@ -20,7 +21,7 @@
 #endif
 
 #ifndef COMPRESSIONROUND
-#define COMPRESSIONROUND 14 
+#define COMPRESSIONROUND 14
 #endif
 
 #endif

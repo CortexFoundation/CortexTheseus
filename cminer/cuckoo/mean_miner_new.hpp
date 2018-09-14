@@ -8,8 +8,6 @@
 // to race conditions (typically takes under 1% of runtime)
 #pragma once
 
-#include "cuckoo_new.h"
-#include "siphashxN.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -21,6 +19,9 @@
 #ifdef __APPLE__
 #include "osx_barrier.h"
 #endif
+
+#include "cuckoo_new.h"
+#include "siphashxN.h"
 
 // algorithm/performance parameters
 
@@ -1187,12 +1188,6 @@ int nonce_cmp(const void *a, const void *b) {
 
 typedef u32 proof[PROOFSIZE];
 
-
-
-
-
-
-
 // cuckoo solver context
 
 // break circular reference with forward declaration
@@ -1203,10 +1198,6 @@ typedef struct {
   pthread_t thread;
   solver_ctx *solver;
 } match_ctx;
-
-
-
-
 
 class solver_ctx {
 public:
@@ -1225,10 +1216,10 @@ public:
     _stop = false;
     cuckoo = 0;
   }
-  void setheadernonce(char* const headernonce, const u32 len, const u32 nonce) {
-    ((u32 *)headernonce)[len/sizeof(u32)-1] = htole32(nonce); // place nonce at end
-    setheader(headernonce, len, &trimmer->sip_keys);
-    sols.clear();
+
+  void setHeader(const char* headernonce, const u32 len) {
+    ::setheader(headernonce, len, &trimmer->sip_keys);
+    // printf("sip_keys: %llu %llu %llu %llu\n", trimmer->sip_keys.k0, trimmer->sip_keys.k1, trimmer->sip_keys.k2, trimmer->sip_keys.k3);
   }
   ~solver_ctx() {
     delete trimmer;
@@ -1239,8 +1230,6 @@ public:
   u32 threadbytes() const {
     return sizeof(thread_ctx) + sizeof(yzbucket<TBUCKETSIZE>) + sizeof(zbucket8) + sizeof(zbucket16) + sizeof(zbucket32);
   }
-
-
 
   void recordedge(const u32 i, const u32 u2, const u32 v2) {
     const u32 u1 = u2/2;
@@ -1366,6 +1355,7 @@ public:
   }
 
   int solve() {
+    sols.clear();
     assert((u64)CUCKOO_SIZE * sizeof(u32) <= trimmer->nthreads * sizeof(yzbucket<TBUCKETSIZE>));
     trimmer->trim();
     cuckoo = (u32 *)trimmer->tbuckets;

@@ -11,35 +11,63 @@ import (
 	"unsafe"
 )
 
-func CuckooInit(threads C.uint) {
-	C.CuckooInit(threads)
+func CuckooInit(threads uint32) {
+	CuckooInitialize(threads, 5)
+}
+
+func CuckooInitialize(threads uint32, nInstances uint32) {
+	C.CuckooInit(C.uint32_t(threads), C.uint32_t(nInstances))
 }
 
 func CuckooFinalize() {
 	C.CuckooFinalize()
 }
 
-func CuckooSolve(hash *byte, hash_len int, nonce uint32, result *uint32, result_len *uint32, diff *byte, result_hash *byte) byte {
+func CuckooSolve(hash *byte, hash_len int, nonce uint64, result *uint32, result_len *uint32, diff *byte, result_hash *byte) byte {
+
 	r := C.CuckooSolve(
-		(*C.char)(unsafe.Pointer(hash)),
-		C.uint(hash_len),
-		C.uint(nonce),
-		(*C.uint)(unsafe.Pointer(result)),
-		(*C.uint)(unsafe.Pointer(result_len)),
-		(*C.uchar)(unsafe.Pointer(diff)),
-		(*C.uchar)(unsafe.Pointer(result_hash)))
+		(*C.uint8_t)(unsafe.Pointer(hash)),
+		C.uint32_t(hash_len),
+		C.uint64_t(nonce),
+		(*C.uint32_t)(unsafe.Pointer(result)),
+		(*C.uint32_t)(unsafe.Pointer(result_len)),
+		(*C.uint8_t)(unsafe.Pointer(diff)),
+		(*C.uint8_t)(unsafe.Pointer(result_hash)))
 
 	return byte(r)
 }
 
-func CuckooVerify(hash *byte, hash_len int, nonce uint32, result *uint32, diff *byte, result_hash *byte) byte {
+func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32) {
+	var (
+		_solLength uint32
+		_numSols   uint32
+		result     [128]uint32
+	)
+	var tmpHash = make([]byte, 32)
+	copy(tmpHash[:], hash)
+	r := C.CuckooFindSolutions(
+		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
+		C.uint64_t(nonce),
+		(*C.result_t)(unsafe.Pointer(&result[0])),
+		C.uint32_t(len(result)),
+		(*C.uint32_t)(unsafe.Pointer(&_solLength)),
+		(*C.uint32_t)(unsafe.Pointer(&_numSols)))
+	for solIdx := uint32(0); solIdx < _numSols; solIdx++ {
+		var sol = make([]uint32, _solLength)
+		copy(sol[:], result[solIdx*_solLength:(solIdx+1)*_solLength])
+		ret = append(ret, sol)
+	}
+	return uint32(r), ret
+}
+
+func CuckooVerify(hash *byte, hash_len int, nonce uint64, result *uint32, diff *byte, result_hash *byte) byte {
 	r := C.CuckooVerify(
-		(*C.char)(unsafe.Pointer(hash)),
-		C.uint(hash_len),
-		C.uint(uint32(nonce)),
-		(*C.uint)(unsafe.Pointer(result)),
-		(*C.uchar)(unsafe.Pointer(diff)),
-		(*C.uchar)(unsafe.Pointer(result_hash)))
+		(*C.uint8_t)(unsafe.Pointer(hash)),
+		C.uint32_t(hash_len),
+		C.uint64_t(nonce),
+		(*C.result_t)(unsafe.Pointer(result)),
+		(*C.uint8_t)(unsafe.Pointer(diff)),
+		(*C.uint8_t)(unsafe.Pointer(result_hash)))
 
 	return byte(r)
 }

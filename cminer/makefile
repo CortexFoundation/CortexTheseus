@@ -21,23 +21,9 @@ endif
 CFLAGS += -std=c++11 -fPIC 
 IDIR = include 
 LDFLAG = -rdynamic -Llib 
-# LDFLAG += -Lzcash -lequiSolver -L${LIBOPENCL}
 LDFLAG += -Lcuckoo -lCuckoo -lblake2b -pthread
 
-
-#INCLUDES = minerBot.h \
-#zcash/blake.h zcash/sha256.h zcash/equihash.hpp zcash/cl_helper.h
-#OBJ = main.o minerBot.o util/XMLHelper.o\
-#zcash/blake.o zcash/sha256.o zcash/equihash.o
-
-INCLUDES = minerBot.h
-OBJ = main.o minerBot.o
-OBJ_LIB = minerBot.o
-
-all: cuckoo main libgominer.a
-
-# ${OBJ}: ${INCLUDES}
-# ${OBJ_LIB}: ${INCLUDES}
+all: cuckoo libgominer.a libcuckoo.a
 
 .PHONY: cuckoo
 cuckoo:
@@ -46,14 +32,23 @@ cuckoo:
 %.o: %.cpp
 	g++ -g -mavx2 -std=c++11 -c -fPIC $< -o $@
 
-main: ${OBJ}
-	g++ -o main -g ${OBJ} -I${IDIR} ${LDFLAG} ${LDLIBS}
+%.o: %.cc
+	g++ -g -mavx2 -std=c++11 -c -fPIC $< -o $@
+
+main: cuckoo/CuckooSolver.o minerBot.o main.cpp
+	g++ --std=c++11 -o main -g  $^ -pthread -L./cuckoo -lblake2b
+
+main-verify: cuckoo/siphash.o cuckoo/cuckoo.o gominer.o main.cpp 
+	g++ --std=c++11 -DVERIFY_ONLY -o main-verify -g $^ -pthread -L./cuckoo -lblake2b 
 
 libgominer.so: ${OBJ_LIB}
-	g++ -fPIC -shared ${OBJ_LIB}  -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.so
+	g++ -fPIC -shared ${OBJ_LIB} -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.so
 
-libgominer.a: $(OBJ_LIB)
-	ar -rc libgominer.a $(OBJ_LIB) cuckoo/*.o
+libcuckoo.a: gominer.o cuckoo/siphash.o cuckoo/cuckoo.o cuckoo/blake2b.o
+	ar -rc libcuckoo.a $^
+
+libgominer.a: minerBot.o
+	ar -rc libgominer.a minerBot.o cuckoo/*.o
 
 clean : cleanlib
 	rm -f main *.o _temp_* util/*.o cuckoo/*.o
