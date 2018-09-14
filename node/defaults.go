@@ -72,15 +72,9 @@ func DefaultDataDir() string {
 // DefaultStorageDir is the default storage directory to use for the models and inputs.
 func DefaultStorageDir() string {
 	// Try to place the data folder in the user's home dir
-	home := homeDir()
-	if home != "" {
-		if runtime.GOOS == "darwin" {
-			return filepath.Join(home, "Library", "EthereumStorage")
-		} else if runtime.GOOS == "windows" {
-			return filepath.Join(home, "AppData", "Roaming", "EthereumStorage")
-		} else {
-			return filepath.Join(home, ".ethereumStorage")
-		}
+	DataDir := DefaultDataDir()
+	if DataDir != "" {
+		return filepath.Join(DataDir, "storage")
 	}
 	// As we cannot guess a stable location, return empty and handle later
 	return ""
