@@ -8,18 +8,17 @@ package cuckoo
 */
 import "C"
 import (
-//	"log"
+	//	"log"
 	"unsafe"
 )
 
-func CuckooVerifyHeaderNonceAndSolutions(hash []byte, nonce uint32, result *uint32) int {
+func CuckooVerifyHeaderNonceAndSolutions(hash []byte, nonce uint64, result *uint32) int {
 	tmpHash := hash
 	//log.Println("CuckooVerifyHeaderNonceAndSolutions: hash = ", hash, "\nnonce = ", nonce, "\nresult = ", result)
 	r := C.CuckooVerifyHeaderNonceAndSolutions(
-		(*C.uchar)(unsafe.Pointer(&tmpHash[0])),
-		C.uint(len(hash)),
-		C.uint(uint32(nonce)),
-		(*C.uint)(unsafe.Pointer((result))))
+		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
+		C.uint64_t(uint(nonce)),
+		(*C.uint32_t)(unsafe.Pointer((result))))
 
 	return int(r)
 }

@@ -14,20 +14,24 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package pow
 
-import "errors"
+import (
+	"math/big"
 
-// List execution errors
-var (
-	ErrOutOfGas                 = errors.New("out of gas")
-	ErrCodeStoreOutOfGas        = errors.New("contract creation code storage out of gas")
-	ErrDepth                    = errors.New("max call depth exceeded")
-	ErrTraceLimitReached        = errors.New("the number of logs reached the specified limit")
-	ErrInsufficientBalance      = errors.New("insufficient balance for transfer")
-	ErrContractAddressCollision = errors.New("contract address collision")
-
-	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
-	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
-	ErrInvalidMetaAuthor      = errors.New("invalid meta author")
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
+
+type Block interface {
+	Difficulty() *big.Int
+	HashNoNonce() common.Hash
+	Nonce() uint64
+	MixDigest() common.Hash
+	NumberU64() uint64
+}
+
+type ChainManager interface {
+	GetBlockByNumber(uint64) *types.Block
+	CurrentBlock() *types.Block
+}
