@@ -20,7 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/ethereum/go-ethereum/torrentfs"
 	"io/ioutil"
 	"math/big"
 	"os"
