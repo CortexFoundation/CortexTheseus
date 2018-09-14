@@ -129,9 +129,9 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 		if err := recover(); err != nil {
 			const size = 64 << 10
 			buf := make([]byte, size)
-			fmt.Println("serveRequest: ", size)
+			//fmt.Println("serveRequest: ", size)
 			buf = buf[:runtime.Stack(buf, false)]
-			log.Debug(string(buf))
+			//log.Debug(string(buf))
 		}
 		s.codecsMu.Lock()
 		s.codecs.Remove(codec)
