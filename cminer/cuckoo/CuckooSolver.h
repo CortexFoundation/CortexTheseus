@@ -1,8 +1,8 @@
-#include "param.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <vector>
 #include <atomic>
+#include "param.h"
 
 
 using namespace std;
@@ -21,8 +21,6 @@ struct cuckoo_sol{
         }
     }
 };
-
-
 
 // mean miner
 
@@ -57,7 +55,7 @@ public:
     void release();
 
     // set input, and solve
-    void setHeaderNonce(char* header, u32 len, u32 nonce);
+    void setHeaderNonce(const char* header, u32 len, uint64_t nonce);
     void solve();
 
     // get solutions and verify
@@ -72,4 +70,6 @@ public:
     // set thread num
     // call before initSolver
     void setNthreads(u32 nthreads_){ nthreads = nthreads_; }
+
+    void findSolutions(vector<vector<u32>>* solutions);
 };

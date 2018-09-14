@@ -17,11 +17,14 @@
 package cuckoo
 
 import (
+	"encoding/binary"
+	//"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
 	//"strconv"
+	// "strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -31,7 +34,9 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/sha3"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -474,40 +479,31 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
+
 func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
 	}
-
-	// Init cuckoo-cycle algorithm once
-	cuckoo.InitOnce()
+	// cuckoo.InitOnce()
 
 	var (
-		result = header.Solution
-		nonce  = header.Nonce.Uint64()
-
-		hash        = cuckoo.SealHash(header).Bytes()
-		result_hash = header.SolutionHash
+		result        = header.Solution
+		nonce  uint64 = uint64(header.Nonce.Uint64())
+		hash          = cuckoo.SealHash(header).Bytes()
+		// result_hash = header.SolutionHash
 	)
-	// r := C.CuckooVerify(
-	// 	(*C.char)(unsafe.Pointer(&hash[0])),
-	// 	C.uint(len(hash)),
-	// 	C.uint(uint32(nonce)),
-	// 	(*C.uint)(unsafe.Pointer(&result[0])))
 
-	diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
-	// fmt.Println("diff", diff)
-	// cuckoo.cMutex.Lock()
-	r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-	/* r := C.CuckooVerify(
-	(*C.char)(unsafe.Pointer(&hash[0])),
-	C.uint(len(hash)),
-	C.uint(uint32(nonce)),
-	(*C.uint)(unsafe.Pointer(&result[0])),
-	(*C.uchar)(unsafe.Pointer(&diff[0])),
-	(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
-	// cuckoo.cMutex.Unlock()
-	if r == 0 {
+	// diff := new(big.Int).Div(maxUint256, header.Difficulty).Bytes()
+	// fmt.Println("uint8_t a[80] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(hash)), ","), "[]") + "};")
+	// fmt.Println("uint32_t nonce =  ", nonce, ";")
+	// fmt.Println("uint32_t result[42] =  {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result)), ","), "[]") + "};")
+	// fmt.Println("uint8_t t[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(diff)), ","), "[]") + "};")
+	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
+	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
+	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
+	r, _ := CuckooVerifyHeaderNonceSolutionsDifficulty(hash, nonce, &result)
+	if !r {
+		log.Trace(fmt.Sprintf("CuckooVerifyHeaderNonceSolutionsDifficulty Result: %v", r))
 		return errInvalidPoW
 	}
 
@@ -555,24 +551,6 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 		header.Time,
 		header.Extra,
 	})
-
-	// Origin HashNoNonce Func
-	/* -       return rlpHash([]interface{}{
-	   -               h.ParentHash,
-	   -               h.UncleHash,
-	   -               h.Coinbase,
-	   -               h.Root,
-	   -               h.TxHash,
-	   -               h.ReceiptHash,
-	   -               h.Bloom,
-	   -               h.Difficulty,
-	   -               h.Number,
-	   -               h.GasLimit,
-	   -               h.GasUsed,
-	   -               h.Time,
-	   -               h.Extra,
-	   -       }) */
-
 	hasher.Sum(hash[:0])
 	return hash
 }
@@ -616,4 +594,33 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	}
 
 	state.AddBalance(header.Coinbase, reward)
+}
+
+func Sha3Solution(sol *types.BlockSolution) []byte {
+	buf := make([]byte, 42*4)
+	for i := 0; i < len(sol); i++ {
+		binary.BigEndian.PutUint32(buf[i*4:], sol[i])
+	}
+	ret := crypto.Keccak256(buf)
+	// fmt.Println("Sha3Solution: ", ret, "buf: ", buf, "sol: ", sol)
+	return ret
+}
+
+func CuckooVerifyHeaderNonceSolutionsDifficulty(hash []byte, nonce uint64, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
+	r := CuckooVerifyHeaderNonceAndSolutions(hash, uint64(nonce), &sol[0])
+	if r != 1 {
+		return false, common.Hash{}
+	}
+	return true, common.BytesToHash(Sha3Solution(sol))
+}
+
+func CuckooVerifyShare(hash []byte, nonce uint64, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
+	// fmt.Println("CuckooVerifyHeaderNonceSolutionsDifficulty: ", hex.EncodeToString(hash), nonce)
+	r := CuckooVerifyHeaderNonceAndSolutions(hash, uint64(nonce), &sol[0])
+	if r != 1 {
+		fmt.Println("hash:", hash, " nonce:", nonce, " solution:", sol)
+		//return false, common.Hash{}
+		return false, common.BytesToHash(Sha3Solution(sol))
+	}
+	return true, common.BytesToHash(Sha3Solution(sol))
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
 	//"github.com/CortexFoundation/CortexTheseus/core/types"
+	"fmt"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -65,10 +66,10 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
 		pend.Add(1)
-		go func(id int, nonce uint32) {
+		go func(id int, nonce uint64) {
 			defer pend.Done()
 			cuckoo.mine(block, id, nonce, abort, cuckoo.resultCh)
-		}(i, uint32(cuckoo.rand.Int31()))
+		}(i, uint64(cuckoo.rand.Int63()))
 	}
 	// Wait until sealing is terminated or a nonce is found
 	go func() {
@@ -101,81 +102,42 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// return result, nil
 }
 
-func (cuckoo *Cuckoo) VerifyShare(block Block, shareDiff *big.Int, solution types.BlockSolution) (bool, bool, int64) {
+func (cuckoo *Cuckoo) VerifyShare(block Block, hashNoNonce common.Hash, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
+	// cuckoo.InitOnce()
 	// For return arguments
-	zeroHash := common.Hash{}
-
-	// TODO: do ethash_quick_verify before getCache in order
-	// to prevent DOS attacks.
-	//blockNum := block.NumberU64()
-	//if blockNum >= epochLength*2048 {
-	//	log.Debug(fmt.Sprintf("block number %d too high, limit is %d", epochLength*2048))
-	//	return false, false, 0, zeroHash
-	//}
+	//zeroHash := common.Hash{}
 
 	blockDiff := block.Difficulty()
-	/* Cannot happen if block header diff is validated prior to PoW, but can
-		 happen if PoW is checked first due to parallel PoW checking.
-		 We could check the minimum valid difficulty but for SoC we avoid (duplicating)
-	   Ethereum protocol consensus rules here which are not in scope of Ethash
-	*/
 	if blockDiff.Cmp(common.Big0) == 0 {
-		log.Debug("invalid block difficulty")
+		log.Info("invalid block difficulty")
 		return false, false, 0
 	}
 
 	if shareDiff.Cmp(common.Big0) == 0 {
-		log.Debug("invalid share difficulty")
+		log.Info("invalid share difficulty")
 		return false, false, 0
 	}
-
-	//cache := l.getCache(blockNum)
-	//dagSize := C.ethash_get_datasize(C.uint64_t(blockNum))
-	//if l.test {
-	//	dagSize = dagSizeForTesting
-	//}
-	// Recompute the hash using the cache.
-	//ok, mixDigest, result := cache.compute(uint64(dagSize), block.HashNoNonce(), block.Nonce())
-	ok, result := cuckoo.VerifySolution(block.MixDigest().Bytes(), uint32(block.Nonce()), solution, *shareDiff)
+	fmt.Println(hashNoNonce.Bytes(), block.Nonce(), solution)
+	ok, sha3Hash := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), block.Nonce(), solution)
 	if !ok {
+		fmt.Println("invalid solution ", sha3Hash.Hex())
 		return false, false, 0
 	}
-
-	// avoid mixdigest malleability as it's not included in a block's "hashNononce"
-	if blkMix := block.MixDigest(); blkMix != zeroHash {
-		return false, false, 0
-	}
-
-	// The actual check.
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
-	actualDiff := new(big.Int).Div(maxUint256, result.Big())
-	return result.Big().Cmp(shareTarget) <= 0, result.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
-	//return false, false, 0, common.Hash{}
+	actualDiff := new(big.Int).Div(maxUint256, sha3Hash.Big())
+	/*fmt.Println("sha3Hash : ", sha3Hash)
+	fmt.Println("blockdiff: ", blockDiff, blockTarget)
+	fmt.Println("shareDiff: ", shareDiff, shareTarget)
+	fmt.Println("actdiff  : ", actualDiff, sha3Hash.Big())*/
+	return sha3Hash.Big().Cmp(shareTarget) <= 0, sha3Hash.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
 }
 
-func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution types.BlockSolution, target big.Int) (bool, common.Hash) {
-	var (
-		result_hash [32]byte
-		//result_len uint32
-	)
-	diff := target.Bytes()
-	r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &solution[0], &diff[0], &result_hash[0])
-	/* r := C.CuckooVerify(
-	(*C.char)(unsafe.Pointer(&hash[0])),
-	C.uint(len(hash)),
-	C.uint(uint32(nonce)),
-	(*C.uint)(unsafe.Pointer(&solution[0])),
-	//                        (*C.uint)(unsafe.Pointer(&result_len)),
-	(*C.uchar)(unsafe.Pointer(&diff[0])),
-	(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
-	if r != 0 {
-		return true, common.BytesToHash(result_hash[:])
-	}
-	return false, common.BytesToHash(result_hash[:])
+func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution *types.BlockSolution, target big.Int) (bool, common.Hash) {
+	return false, common.Hash{}
 }
 
-func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint32, abort chan struct{}, found chan *types.Block) {
+func (cuckoo *Cuckoo) mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
 	cuckoo.InitOnce()
 
 	var (
@@ -214,30 +176,12 @@ search:
 
 			var result_hash [32]byte
 			diff := target.Bytes()
-			// cuckoo.cMutex.Lock()
-			r := CuckooSolve(&hash[0], len(hash), uint32(nonce), &result[0], &result_len, &diff[0], &result_hash[0])
-			/* r := C.CuckooSolve(
-			(*C.char)(unsafe.Pointer(&hash[0])),
-			C.uint(len(hash)),
-			C.uint(uint32(nonce)),
-			(*C.uint)(unsafe.Pointer(&result[0])),
-			(*C.uint)(unsafe.Pointer(&result_len)),
-			(*C.uchar)(unsafe.Pointer(&diff[0])),
-			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
+			r := CuckooSolve(&hash[0], len(hash), (nonce), &result[0], &result_len, &diff[0], &result_hash[0])
 			if r == 0 {
-				// cuckoo.cMutex.Unlock()
 				nonce++
 				continue
 			}
-			r = CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-			/* r = C.CuckooVerify(
-			(*C.char)(unsafe.Pointer(&hash[0])),
-			C.uint(len(hash)),
-			C.uint(uint32(nonce)),
-			(*C.uint)(unsafe.Pointer(&result[0])),
-			(*C.uchar)(unsafe.Pointer(&diff[0])),
-			(*C.uchar)(unsafe.Pointer(&result_hash[0]))) */
-			// cuckoo.cMutex.Unlock()
+			r = CuckooVerify(&hash[0], len(hash), (nonce), &result[0], &diff[0], &result_hash[0])
 
 			if r != 0 {
 				// Correct solution found, create a new header with it
@@ -287,7 +231,6 @@ func (cuckoo *Cuckoo) remote() {
 		n.Div(n, currentWork.Difficulty())
 		n.Lsh(n, 1)
 		res[2] = common.BytesToHash(n.Bytes()).Hex()
-
 		// Trace the seal work fetched by remote sealer.
 		works[cuckoo.SealHash(currentWork.Header())] = currentWork
 		return res, nil
@@ -296,7 +239,7 @@ func (cuckoo *Cuckoo) remote() {
 	// submitWork verifies the submitted pow solution, returning
 	// whether the solution was accepted or not (not can be both a bad pow as well as
 	// any other error, like no pending work or stale mining result).
-	submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash) bool {
+	submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash, sol types.BlockSolution) bool {
 		// Make sure the work submitted is present
 		block := works[hash]
 		if block == nil {
@@ -308,6 +251,7 @@ func (cuckoo *Cuckoo) remote() {
 		header := block.Header()
 		header.Nonce = nonce
 		header.MixDigest = mixDigest
+		header.Solution = sol
 		if err := cuckoo.VerifySeal(nil, header); err != nil {
 			log.Warn("Invalid proof-of-work submitted", "hash", hash, "err", err)
 			return false
@@ -355,9 +299,11 @@ func (cuckoo *Cuckoo) remote() {
 
 		case result := <-cuckoo.submitWorkCh:
 			// Verify submitted PoW solution based on maintained mining blocks.
-			if submitWork(result.nonce, result.mixDigest, result.hash) {
+			if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
+				//fmt.Println("yes")
 				result.errc <- nil
 			} else {
+				//fmt.Println("no")
 				result.errc <- errInvalidSealResult
 			}
 
