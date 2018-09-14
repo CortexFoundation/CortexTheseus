@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"io"
 	"os"
 	"reflect"
@@ -33,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/torrentfs"
 	whisper "github.com/ethereum/go-ethereum/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
