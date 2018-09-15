@@ -483,6 +483,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 	if err != nil || resp.StatusCode() != 200 {
 		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, evm.vmConfig.InferURI, err))
 	}
+
 	log.Trace(fmt.Sprintf("%v", resp.String()))
 	js, js_err := simplejson.NewJson([]byte(resp.String()))
 	if js_err != nil {
