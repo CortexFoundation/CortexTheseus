@@ -13,7 +13,7 @@
 #endif
 
 #ifndef PROOFSIZE
-#define PROOFSIZE 16
+#define PROOFSIZE 42
 #endif
 
 #ifndef XBITS
