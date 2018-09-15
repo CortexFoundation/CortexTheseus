@@ -56,9 +56,11 @@ void free_model(void *model)
     free_network(net);
 }
 
-char *predict(void *model, char * image_data)
+int predict(void * model, char * image_data, char *output_data, int* length)
 {
     network *net = (network*)model;
-    return int_network_predict(net, (char*)image_data);
+    output_data = int_network_predict(net, (char*)image_data);
+    *length = 10;    
+    return 0;
 }
 
