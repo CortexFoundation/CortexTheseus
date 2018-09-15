@@ -49,7 +49,7 @@ cudaN25L16.o: src/siphash.cuh src/miner.cu Makefile
 	nvcc -c -o $@.temp.o -rdc=true -DEDGEBITS=25 -DPROOFSIZE=16 -arch sm_35 src/miner.cu $(LIBS)
 	nvcc -dlink -o $@ $@.temp.o -lcudart
 
-libgpugominer.a:  cudaN28L16.o blake2b.o
+libgpugominer.a:  cudaN28L42.o blake2b.o
 	ar cr $@ $^ $<.temp.o 
 
 clean:
