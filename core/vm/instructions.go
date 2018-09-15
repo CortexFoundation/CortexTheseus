@@ -751,6 +751,9 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		if err == nil {
 			break
 		}
+
+		//todo interrupt
+
 		time.Sleep(time.Duration(1) * time.Second)
 	}
 
