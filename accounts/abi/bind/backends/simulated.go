@@ -17,7 +17,6 @@
 package backends
 
 import (
-	"CortexTheseus/consensus/ethash"
 	"context"
 	"errors"
 	"fmt"

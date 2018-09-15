@@ -713,7 +713,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		return nil, errMetaInfoExpired
 	}
 
-	if modelMeta.Gas != MODEL_GAS_LIMIT {
+	if modelMeta.Gas > MODEL_GAS_LIMIT {
 		//return nil, errExecutionReverted
 		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
 	}
