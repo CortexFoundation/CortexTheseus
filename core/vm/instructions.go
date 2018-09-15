@@ -27,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	"time"
+	//"time"
 )
 
 var (
@@ -744,18 +744,19 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		//return nil, types.ErrorExpired
 	}
+	//todo torrent fs verification
 
-	output, err := uint64(0), nil
-	for {
-		output, err = interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
-		if err == nil {
-			break
-		}
+	//output, err := uint64(0), nil
+	//for {
+		output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
+	//	if err == nil {
+	//		break
+	//	}
 
 		//todo interrupt
 
-		time.Sleep(time.Duration(1) * time.Second)
-	}
+	//	time.Sleep(time.Duration(1) * time.Second)
+	//}
 
 	//todo
 	if err != nil {
