@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	"time"
 )
 
 var (
@@ -744,7 +745,14 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//return nil, types.ErrorExpired
 	}
 
-	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
+	output, err := uint64(0), nil
+	for {
+		output, err = interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
+		if err != nil {
+			break
+		}
+		time.Sleep(time.Duration(1) * time.Second)
+	}
 
 	//todo
 	if err != nil {
