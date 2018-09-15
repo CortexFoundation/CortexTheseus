@@ -34,6 +34,7 @@ For Conv1D() with kernel size (k), please use Conv2D with kernel size (1,k).
 
 For Conv2D() with dilation, please use Conv2D with larger convolution kernels.
 
+
 #### 2.2 Normalization Layers
 
 Normalization parameters for channels is supported, which is by default supporting Batch Normalization.
@@ -82,6 +83,7 @@ We recommend input images less than 3 * 224 * 224, a model less than or equal to
 
 Please use Conv1D and quantization instead of RNN-like structures, e.g. GRU/LSTM.  Total Accuracy will not be harmed in NLP/OCR practices.
 
+Please use larger scale of residual structure instead of Concat Layers.
 
 ### 3. Further Development
 
@@ -144,4 +146,6 @@ Optimizing Compiler for Deep Learning. arXiv preprint arXiv:1802.04799, February
 
 [Wu & He(2018)Wu and He] Yuxin Wu and Kaiming He. Group normalization. arXiv preprint arXiv:1803.08494, 2018.
 
+## Acknowledgement
 
+We use [Darknet](https://github.com/pjreddie/darknet) as our base framework.
