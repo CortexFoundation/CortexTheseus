@@ -20,7 +20,7 @@ var (
 )
 
 const (
-	MatureBlks  = 10
+	MatureBlks  = 100
 	ExpiredBlks = 1000000000000000000
 )
 
