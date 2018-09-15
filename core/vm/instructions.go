@@ -748,7 +748,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	output, err := uint64(0), nil
 	for {
 		output, err = interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
-		if err != nil {
+		if err == nil {
 			break
 		}
 		time.Sleep(time.Duration(1) * time.Second)
