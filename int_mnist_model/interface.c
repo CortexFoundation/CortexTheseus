@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "network.h"
 #include "utils.h"
 #include "parser.h"
