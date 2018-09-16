@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "network.h"
 #include "utils.h"
 #include "parser.h"
@@ -56,9 +57,17 @@ void free_model(void *model)
     free_network(net);
 }
 
-char *predict(void *model, char * image_data)
+char *predict(void *model, char * image_fname)
 {
+    FILE *fp = fopen(image_fname , "rb");
+	assert(fp);
+
+    char *img_data = (char*)calloc(28*28, sizeof(char));
+    fread(img_data, sizeof(char), 28*28, fp);
+    fclose(fp);
     network *net = (network*)model;
-    return int_network_predict(net, (char*)image_data);
+    char * ret = int_network_predict(net, (char*)img_data);
+	free(img_data);
+	return ret;
 }
 
