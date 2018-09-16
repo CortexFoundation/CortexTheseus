@@ -56,8 +56,9 @@ void free_model(void *model)
     free_network(net);
 }
 
-int get_output_length(void *net)
+int get_output_length(void *model)
 {
+    network *net = (network*)model;
     return net->outputs;
 }
 
