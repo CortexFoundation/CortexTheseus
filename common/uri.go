@@ -1,27 +1,27 @@
 package common
 
-type Scheme int
+type InferType int
 
 const (
-	LocalStorage Scheme = 1
-	ServerInfer  Scheme = 2
+	LocalStorage InferType = 1
+	ServerInfer  InferType = 2
 )
 
 type URI struct {
-	scheme Scheme
-	path   string
+	Scheme InferType
+	Path   string
 }
 
 func ParseURI(uri string) (URI, error) {
 	if uri[0:7] == "locstr:" {
 		return URI{
-			scheme: LocalStorage,
-			path:   uri[7:],
+			Scheme: LocalStorage,
+			Path:   uri[7:],
 		}, nil
 	}
 
 	return URI{
-		scheme: ServerInfer,
-		path:   uri,
+		Scheme: ServerInfer,
+		Path:   uri,
 	}, nil
 }

@@ -10,18 +10,14 @@ import (
 	"github.com/ethereum/go-ethereum/infernet"
 	"github.com/ethereum/go-ethereum/log"
 	resty "gopkg.in/resty.v1"
-	"infernet"
 )
 
-func LocalInfer(model_hash, input_hash, uri.path) (uint64, error) {
-	modelDir := uri.path + "/" + model_hash
-	inputDir = uri.path + "/" + input_hash
-
+func LocalInfer(modelDir, inputDir string) (uint64, error) {
 	resultCh := make(chan uint64)
 	errCh := make(chan error)
 
 	var pend sync.WaitGroup
-	go func(modelDir, inputDir) {
+	go func(modelDir, inputDir string) {
 		defer pend.Done()
 		infernet.Infer(modelDir, inputDir, resultCh, errCh)
 	}(modelDir, inputDir)
