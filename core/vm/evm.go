@@ -23,15 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"strconv"
-
-	simplejson "github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	resty "gopkg.in/resty.v1"
 
 	"fmt"
 )
@@ -476,17 +472,19 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
 	log.Trace(fmt.Sprintf("%v", requestBody))
 
-	uri, uri_err = common.ParseURI(evm.vmConfig.InferURI)
-	log.Trace(fmr.Sprintf("%v", uri))
+	uri, uri_err := common.ParseURI(evm.vmConfig.InferURI)
+	log.Trace(fmt.Sprintf("%v", uri))
 	if uri_err != nil {
 		return 0, errors.New(fmt.Sprintf("evm.Infer: InferURI Parse Error | %v", uri_err))
 	}
 
-	switch uri.scheme {
+	switch uri.Scheme {
 	case common.LocalStorage:
-		return LocalInfer(model_meta_hash, input_meta_hash, uri.path)
+		modelDir := string(uri.Path + "/" + string(model_meta_hash))
+		inputDir := string(uri.Path + "/" + string(input_meta_hash))
+		return LocalInfer(modelDir, inputDir)
 	case common.ServerInfer:
-		return RemoteInfer(requestBody, uri.path)
+		return RemoteInfer(requestBody, uri.Path)
 	}
 
 	return 0, errors.New(fmt.Sprintf("evm.Infer: Never Run Here!"))
