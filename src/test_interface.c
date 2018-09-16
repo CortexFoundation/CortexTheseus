@@ -21,11 +21,10 @@ int main()
 
     printf("--------------------start predict--------------------\n");
     for (int i = 0;i<10;i++){
-        char **pprediction;
+        char *prediction = calloc(get_output_length(model), sizeof(char));
         int length;
-        predict(model, img_data,pprediction,&length);
-        int_print_list(*pprediction, length, "intprediction");
-    }    
-    
+        predict(model, img_data, prediction);
+        int_print_list(prediction, length, "int_prediction");
+    }
     return 0;
 }
