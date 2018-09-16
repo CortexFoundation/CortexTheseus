@@ -21,8 +21,10 @@ int main()
 
     printf("--------------------start predict--------------------\n");
     for (int i = 0;i<10;i++){
-        char * prediction = predict(model, img_data);
-        int_print_list(prediction, 10, "intasdasdprediction");
+        char **pprediction;
+        int length;
+        predict(model, img_data,pprediction,&length);
+        int_print_list(*pprediction, length, "intprediction");
     }    
     
     return 0;

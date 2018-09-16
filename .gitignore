@@ -8,6 +8,7 @@
 old/
 mnist/
 data/
+infer_data/
 caffe/
 grasp/
 images/
@@ -27,3 +28,7 @@ Thumbs.db
 *.swp
 .AppleDouble
 *.weights
+
+# lib
+*.a
+*.so
