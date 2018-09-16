@@ -2,10 +2,10 @@ package main
 
 /*
 #cgo LDFLAGS: -L./ -lcortexnet -lstdc++
-#cgo CFLAGS: -I./int_mnist_model 
+#cgo CFLAGS: -I./int_mnist_model
 
 #include "interface.h"
- */
+*/
 import "C"
 import (
 	"fmt"
@@ -15,12 +15,12 @@ import (
 func Infer(modelDir, inputDir string) string {
 	fmt.Println(modelDir, inputDir)
 	net := C.load_model(
-		C.CString(modelDir + "/data/params"),
-		C.CString(modelDir + "/data/symbol"))
+		C.CString(modelDir+"/data/params"),
+		C.CString(modelDir+"/data/symbol"))
 
 	pred := C.predict(
 		net,
-		C.CString(inputDir + "/data"))
+		C.CString(inputDir+"/data"))
 
 	tmp := (*[10]byte)(unsafe.Pointer(pred))
 	fmt.Println(tmp)
@@ -42,7 +42,6 @@ func Infer(modelDir, inputDir string) string {
 
 	return C.GoString(pred)
 }
-
 
 func main() {
 	Infer("./infer_data/model", "./infer_data/input")
