@@ -62,10 +62,11 @@ int get_output_length(void *model)
     return net->outputs;
 }
 
-int predict(void * model, char * image_data, char **output_data)
+int predict(void *model, char *image_data, char *output_data)
 {
     network *net = (network*)model;
-    *output_data = int_network_predict(net, (char*)image_data);
+    char *output = int_network_predict(net, (char*)image_data);
+    memcpy(output_data, output, sizeof(char)*net->outputs);
     return 0;
 }
 
