@@ -1,8 +1,8 @@
-package main
+package infernet
 
 /*
 #cgo LDFLAGS: -L./ -lcortexnet -lstdc++
-#cgo CFLAGS: -I./int_mnist_model
+#cgo CFLAGS: -I./src
 
 #include "interface.h"
 */
@@ -11,12 +11,10 @@ import (
 	"errors"
 	"fmt"
 	"unsafe"
-
-	gonpy "infernet"
 )
 
 func readImg(input string) ([]byte, error) {
-	r, rerr := gonpy.NewFileReader(input)
+	r, rerr := NewFileReader(input)
 	if rerr != nil {
 		fmt.Println("Error: ", rerr)
 		return nil, rerr
