@@ -476,27 +476,20 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
 	log.Trace(fmt.Sprintf("%v", requestBody))
 
-	resp, err := resty.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(requestBody).
-		Post(evm.vmConfig.InferURI)
-	if err != nil || resp.StatusCode() != 200 {
-		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, evm.vmConfig.InferURI, err))
+	uri, uri_err = common.ParseURI(evm.vmConfig.InferURI)
+	log.Trace(fmr.Sprintf("%v", uri))
+	if uri_err != nil {
+		return 0, errors.New(fmt.Sprintf("evm.Infer: InferURI Parse Error | %v", uri_err))
 	}
-	log.Trace(fmt.Sprintf("%v", resp.String()))
-	js, js_err := simplejson.NewJson([]byte(resp.String()))
-	if js_err != nil {
-		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", js_err))
+
+	switch uri.scheme {
+	case common.LocalStorage:
+		return LocalInfer(model_meta_hash, input_meta_hash, uri.path)
+	case common.ServerInfer:
+		return RemoteInfer(requestBody, uri.path)
 	}
-	int_output_tmp, out_err := js.Get("info").String()
-	if out_err != nil {
-		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", out_err))
-	}
-	uint64_output, err := strconv.ParseUint(int_output_tmp, 10, 64)
-	if err != nil {
-		return 0, errors.New("evm.Infer: Type Conversion Error")
-	}
-	return uint64_output, nil
+
+	return 0, errors.New(fmt.Sprintf("evm.Infer: Never Run Here!"))
 }
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
