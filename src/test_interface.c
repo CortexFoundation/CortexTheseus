@@ -4,9 +4,9 @@
 
 void int_print_list(char* x, int n, char* name){
     printf("%s: ", name);
-	for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         printf("%d ", x[i]);
-	}
+    }
     printf("\n");
 }
 
@@ -21,8 +21,8 @@ int main()
 
     printf("--------------------start predict--------------------\n");
     for (int i = 0;i<10;i++){
-        char *prediction = calloc(get_output_length(model), sizeof(char));
-        int length;
+        int length = get_output_length(model);
+        char *prediction = calloc(length, sizeof(char));
         predict(model, img_data, prediction);
         int_print_list(prediction, length, "int_prediction");
     }
