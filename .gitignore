@@ -9,6 +9,7 @@ old/
 mnist/
 data/
 infer_data/
+test_interface
 caffe/
 grasp/
 images/
