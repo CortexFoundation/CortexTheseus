@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/infernet"
 	"github.com/ethereum/go-ethereum/log"
 	resty "gopkg.in/resty.v1"
+	"infernet"
 )
 
 func LocalInfer(model_hash, input_hash, uri.path) (uint64, error) {
