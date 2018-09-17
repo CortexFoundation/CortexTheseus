@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core/types"
+	cuckoo_gpu "github.com/ethereum/go-ethereum/cuckoo_mean_miner"
 	_ "log"
 	"math/rand"
 	"net"
@@ -77,8 +78,9 @@ func main() {
 	}
 	var currentTask TaskWrapper
 
-	var THREAD uint = 10
+	var THREAD uint = 1
 	cuckoo.CuckooInitialize(1, uint32(THREAD))
+	cuckoo_gpu.CuckooInitialize()
 	var taskHeader, taskNonce, taskDifficulty string
 	//-------- connect to server -------------
 	// var server = "139.196.32.192:8009"
@@ -116,15 +118,14 @@ func main() {
 				var result types.BlockSolution
 				curNonce := uint64(rand.Int63())
 				// fmt.Println("task: ", header[:], curNonce)
-				status, sols := cuckoo.CuckooFindSolutions(header, curNonce)
+				status, sols := cuckoo_gpu.CuckooFindSolutionsCuda(header, curNonce)
 				if status != 0 {
-					// fmt.Println("result: ", status, sols)
+					fmt.Println("result: ", status, sols)
 					for _, solUint32 := range sols {
 						var sol types.BlockSolution
 						copy(sol[:], solUint32)
-						// fmt.Println("sol: ", sol, solUint32, solUint32Key)
 						sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-						// fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+						fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
