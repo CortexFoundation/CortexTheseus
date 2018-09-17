@@ -20,6 +20,7 @@ import (
 	_ "encoding/hex"
 	"errors"
 	"math/big"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -468,22 +469,19 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
-	requestBody := fmt.Sprintf(
-		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
-	log.Trace(fmt.Sprintf("%v", requestBody))
-
 	uri, uri_err := common.ParseURI(evm.vmConfig.InferURI)
-	log.Trace(fmt.Sprintf("%v", uri))
 	if uri_err != nil {
 		return 0, errors.New(fmt.Sprintf("evm.Infer: InferURI Parse Error | %v", uri_err))
 	}
 
 	switch uri.Scheme {
 	case common.LocalStorage:
-		modelDir := string(uri.Path + "/" + string(model_meta_hash))
-		inputDir := string(uri.Path + "/" + string(input_meta_hash))
+		modelDir := string(uri.Path + "/" + strings.ToLower(string(model_meta_hash)[2:]))
+		inputDir := string(uri.Path + "/" + strings.ToLower(string(input_meta_hash)[2:]))
 		return LocalInfer(modelDir, inputDir)
 	case common.ServerInfer:
+		requestBody := fmt.Sprintf(
+			`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
 		return RemoteInfer(requestBody, uri.Path)
 	}
 

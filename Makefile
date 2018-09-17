@@ -8,7 +8,7 @@
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
-.PHONY: cminer
+.PHONY: cminer infernet
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest

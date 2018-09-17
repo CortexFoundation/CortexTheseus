@@ -6,8 +6,8 @@ import (
 )
 
 func TestLocalInfer(t *testing.T) {
-	modelDir := "~/CortexNet/infer_data/model"
-	inputDir := "~/CortexNet/infer_data/image"
+	modelDir := "/home/wlt/CortexNet/infer_data/model"
+	inputDir := "/home/wlt/CortexNet/infer_data/image"
 	label, err := LocalInfer(modelDir, inputDir)
 
 	fmt.Println(label, err)
