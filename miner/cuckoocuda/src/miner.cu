@@ -7,7 +7,7 @@
 #include <vector>
 #include <assert.h>
 #include <vector>
-#include <algorithm>
+// #include <algorithm>
 #include <stdint.h>
 #include <sys/time.h> // gettimeofday
 #include <unistd.h>
@@ -382,13 +382,16 @@ struct edgetrimmer {
     sizeA = ROW_EDGES_A * NX * (tp.expand > 0 ? sizeof(u32) : sizeof(uint2));
     sizeB = ROW_EDGES_B * NX * (tp.expand > 1 ? sizeof(u32) : sizeof(uint2));
     const size_t bufferSize = sizeA + sizeB;
+    printf("bufferSize: %lu\n", bufferSize);
     checkCudaErrors(cudaMalloc((void**)&bufferA, bufferSize));
     bufferB  = bufferA + sizeA / sizeof(ulonglong4);
     bufferAB = bufferA + sizeB / sizeof(ulonglong4);
   }
+
   u64 globalbytes() const {
     return (sizeA+sizeB) + 2 * indexesSize + sizeof(siphash_keys) + PROOFSIZE * 2 * sizeof(u32) + sizeof(edgetrimmer);
   }
+
   ~edgetrimmer() {
     cudaFree(bufferA);
     cudaFree(indexesE2);
@@ -398,6 +401,7 @@ struct edgetrimmer {
     cudaFree(dt);
     cudaDeviceReset();
   }
+
   u32 trim() {
     cudaMemcpy(dt, this, sizeof(edgetrimmer), cudaMemcpyHostToDevice);
     cudaEvent_t start, stop;
@@ -523,7 +527,7 @@ int nonce_cmp(const void *a, const void *b) {
   return *(u32 *)a - *(u32 *)b;
 }
 
-const static u32 MAXEDGES = 0x2000000;
+const static u32 MAXEDGES = 0x200000;
 
 struct solver_ctx {
   edgetrimmer *trimmer;
@@ -566,7 +570,7 @@ struct solver_ctx {
     while (nu--)
       recordedge(ni++, us[(nu+1)&~1], us[nu|1]); // u's in even position; v's in odd
     while (nv--)
-    recordedge(ni++, vs[nv|1], vs[(nv+1)&~1]); // u's in odd position; v's in even
+      recordedge(ni++, vs[nv|1], vs[(nv+1)&~1]); // u's in odd position; v's in even
     assert(ni == PROOFSIZE);
     sols.resize(sols.size() + PROOFSIZE);
     cudaMemcpyToSymbol(recoveredges, soledges, sizeof(soledges));
@@ -664,7 +668,6 @@ int32_t CuckooFindSolutionsCuda(
   using namespace cuckoogpu;
   using std::vector;
 
-
   u32 device = 0;
   cudaSetDevice(device);
   ctx->setheadernonce((char*)header, nonce); //TODO(tian) 
@@ -685,7 +688,7 @@ int32_t CuckooFindSolutionsCuda(
       for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
           sol.push_back(prf[idx]);
       }
-      std::sort(sol.begin(), sol.end());
+      // std::sort(sol.begin(), sol.end());
   }
   *solLength = 0;
   *numSol = sols.size();
@@ -710,6 +713,7 @@ void CuckooInitialize() {
   trimparams tp;
   u32 device = 0;
   int nDevices = 0;
+  //TODO(tian) make use of multiple gpu
   checkCudaErrors(cudaGetDeviceCount(&nDevices));
   assert(device < nDevices);
   cudaDeviceProp prop;

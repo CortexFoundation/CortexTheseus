@@ -9,11 +9,11 @@
 #endif
 
 #ifndef EDGEBITS
-#define EDGEBITS 28
+#define EDGEBITS 24
 #endif
 
 #ifndef PROOFSIZE
-#define PROOFSIZE 16
+#define PROOFSIZE 12
 #endif
 
 #ifndef XBITS
