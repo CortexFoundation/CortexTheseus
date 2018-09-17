@@ -27,7 +27,7 @@ const (
 	fetchBlockTryTimes    = 5
 	fetchBlockTryInterval = 3
 	fetchBlockLogStep     = 500
-	minBlockNum           = 36000
+	minBlockNum           = 0
 )
 
 
@@ -41,6 +41,7 @@ type TorrentManagerAPI interface {
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
+	config *Config
 	cl *rpc.Client
 	dl TorrentManagerAPI
 	fs *FileStorage
@@ -52,6 +53,7 @@ type Monitor struct {
 // IpcPath is unaviliable on windows.
 func NewMonitor(flag *Config) *Monitor {
 	m := &Monitor{
+		flag,
 		nil,
 		nil,
 		NewFileStorage(flag),
@@ -239,19 +241,36 @@ func (m *Monitor) parseBlock(b *Block) error {
 	return nil
 }
 
-func (m *Monitor) initialCheck() {
+func (m *Monitor) initialCheck(reverse bool) {
 	blockChecked := 0
-	lastblock := m.fs.LatestBlockNumber
-	log.Info("Fetch Block from", "Number", lastblock)
-	for i := lastblock; i >= minBlockNum; i-- {
-		if m.fs.HasBlock(i) {
-			continue
+	endBlock := m.fs.LatestBlockNumber
+	log.Info("Fetch Block from", "Number", endBlock)
+
+	if reverse {
+		lastBlock := m.fs.LatestBlockNumber
+		for i := endBlock; i >= minBlockNum; i-- {
+			if m.fs.HasBlock(i) {
+				continue
+			}
+			m.parseBlockByNumber(i)
+			blockChecked++
+			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
+				log.Info("Blocks have been checked", "from", i, "to", lastBlock)
+				lastBlock = i - 1
+			}
 		}
-		m.parseBlockByNumber(i)
-		blockChecked++
-		if blockChecked%fetchBlockLogStep == 0 || i == 0 {
-			log.Info("Blocks have been checked", "from", i, "to", lastblock)
-			lastblock = i - 1
+	} else {
+		lastBlock := uint64(minBlockNum)
+		for i := uint64(minBlockNum); i <= endBlock; i++ {
+			if m.fs.HasBlock(i) {
+				continue
+			}
+			m.parseBlockByNumber(i)
+			blockChecked++
+			if blockChecked%fetchBlockLogStep == 0 || i == endBlock {
+				log.Info("Blocks have been checked", "from", lastBlock, "to", i)
+				lastBlock = i + 1
+			}
 		}
 	}
 }
@@ -278,8 +297,10 @@ func (m *Monitor) Start() error {
 		log.Info("Fetch latest block failed")
 		return err
 	}
+	reverse := m.config.SyncMode == "full"
 	m.parseNewBlock(b)
-	go m.initialCheck()
+	reverse = false
+	go m.initialCheck(reverse)
 
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
 	for {
