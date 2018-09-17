@@ -1293,6 +1293,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		log.Info("IPCPath", "path", cfg.IpcPath)
 	}
 	cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
+	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
 }
 
