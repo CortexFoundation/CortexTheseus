@@ -192,6 +192,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 	}
 
 	if IsModelMeta(contract.Code) {
+		if in.evm.vmConfig.RPC_GetInternalTransaction {
+			return nil, nil
+		}
+
 		if input != nil {
 			log.Debug("Readonly for model meta")
 			return nil, nil
@@ -212,10 +216,14 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				}
 
 				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
-					return nil, ErrInvalidMetaRawSize
+					return nil, ErrInvalidMetaAuthor
 				}
 
-				modelMeta.SetGas(MODEL_GAS_LIMIT)
+				if modelMeta.Gas > MODEL_GAS_LIMIT {
+					modelMeta.SetGas(MODEL_GAS_LIMIT)
+				} else if modelMeta.Gas < 0 {
+					modelMeta.SetGas(0)
+				}
 
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
 				tmpCode, err := modelMeta.ToBytes()
@@ -234,6 +242,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 	}
 
 	if IsInputMeta(contract.Code) {
+		if in.evm.vmConfig.RPC_GetInternalTransaction {
+			return nil, nil
+		}
+
 		if input != nil {
 			log.Debug("Readonly for input meta")
 			return nil, nil
