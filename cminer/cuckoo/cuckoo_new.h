@@ -3,7 +3,6 @@
 
 #include <stdint.h> // for types uint32_t,uint64_t
 #include <string.h> // for functions strlen, memset
-#include "blake2.h"
 #include <stdint.h>    // for types uint32_t,uint64_t
 #include <immintrin.h> // for _mm256_* intrinsics
 #ifndef __APPLE__
@@ -14,6 +13,9 @@
 #define htole32(x) OSSwapHostToLittleInt32(x)
 #define htole64(x) OSSwapHostToLittleInt64(x)
 #endif
+
+#include "param.h"
+#include "blake2.h"
 
 // save some keystrokes since i'm a lazy typer
 typedef uint32_t u32;

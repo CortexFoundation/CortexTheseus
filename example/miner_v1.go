@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core/types"
-	cuckoo_gpu "github.com/ethereum/go-ethereum/cuckoo_mean_miner"
+	cuckoo_gpu "github.com/ethereum/go-ethereum/miner/cuckoocuda"
 	_ "log"
 	"math/rand"
 	"net"
