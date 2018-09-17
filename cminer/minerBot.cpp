@@ -22,32 +22,6 @@ MinerBot::~MinerBot()
     cs.release();
 }
 
-void MinerBot::testCuckoo()
-{
-    printf("testing cuckoo cycle...\n");
-    CuckooSolver cs;
-    cs.initSolver();
-    char a[100];
-    a[0] = '1';
-    for (int i = 0; i < 64; i++)
-    {
-        printf("setting nonce: %d\n",i);
-        cs.setHeaderNonce(a, 80, i);
-        cs.solve();
-        printf("%d sols\n", cs.getNumSols());
-        vector<cuckoo_sol> ss = cs.getSols();
-        for (int i = 0; i < ss.size(); i++)
-        {
-            for (int j = 0; j < PROOFSIZE; j++)
-            {
-                printf(" %jx", (uintmax_t)ss[i].data[j]);
-            }
-            printf("\n");
-        }
-    }
-    cs.release();
-}
-
 void MinerBot::stop() {
 	cs.stop();
 }
@@ -56,7 +30,7 @@ void MinerBot::await() {
     cs.await();
 }
 
-bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, uint32_t *result, uint *result_len, uchar* target,uchar* result_hash)
+bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint64_t nonce, uint32_t *result, uint *result_len, uchar* target,uchar* result_hash)
 {
     using std::cout;
     cs.setHeaderNonce(header, header_len, nonce);
@@ -79,7 +53,7 @@ bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint32_t nonce, ui
     return false;
 }
 
-bool MinerBot::CuckooSolve(const uint8_t *header, uint32_t headerLength, uint32_t nonce, vector<vector<uint32_t>>* solutions)
+bool MinerBot::CuckooSolve(const uint8_t *header, uint32_t headerLength, uint64_t nonce, vector<vector<uint32_t>>* solutions)
 {
     cs.setHeaderNonce((char*)header, headerLength, nonce);
     cs.findSolutions(solutions);
@@ -87,7 +61,7 @@ bool MinerBot::CuckooSolve(const uint8_t *header, uint32_t headerLength, uint32_
 }
 
 
-bool MinerBot::CuckooVerify(char *header, uint32_t header_len, uint32_t nonce,
+bool MinerBot::CuckooVerify(char *header, uint32_t header_len, uint64_t nonce,
     uint32_t *result, uchar* target, uchar* hash)
 {
     cs.setHeaderNonce(header, header_len, nonce);
@@ -135,37 +109,36 @@ void CuckooRelease(uint bot)
 	pthread_mutex_unlock(&(botPool[bot]->mutex));
 }
 
-uint8_t CuckooSolve(uint8_t *header, uint32_t header_len, uint32_t nonce, result_t *result, uint32_t *result_len, uint8_t *target, uint8_t *hash) {
+uint8_t CuckooSolve(uint8_t *header, uint32_t header_len, uint64_t nonce, result_t *result, uint32_t *result_len, uint8_t *target, uint8_t *hash) {
     uint bot_idx = getMinerBotInstance();
     uint8_t res = botPool[bot_idx]->CuckooSolve((char*)header, header_len, nonce, result, result_len, target, hash);
     CuckooRelease(bot_idx);
     return res;
 }
 
-int32_t CuckooFindSolutions(uint8_t *header, uint32_t header_len, uint32_t nonce, result_t *result, uint32_t resultBuffSize, uint32_t* solLength, uint32_t *numSol) {
+int32_t CuckooFindSolutions(uint8_t *header, uint64_t nonce, result_t *result, uint32_t resultBuffSize, uint32_t* solLength, uint32_t *numSol) {
     uint bot_idx = getMinerBotInstance();
     vector<vector<result_t> > sols;
-    uint8_t res = botPool[bot_idx]->CuckooSolve(header, header_len, nonce, &sols);
+    uint8_t res = botPool[bot_idx]->CuckooSolve(header, 32, nonce, &sols);
     CuckooRelease(bot_idx);
     *solLength = 0;
     *numSol = sols.size();
     if (sols.size() == 0)
         return 0;
-    *solLength = sols[0].size();
-
+    *solLength = uint32_t(sols[0].size());
     for (size_t n = 0; n < min(sols.size(), (size_t)resultBuffSize / (*solLength)); n++)
     {
         auto& sol = sols[n];
         for (size_t i = 0; i < sol.size(); i++) {
             result[i + n * (*solLength)] = sol[i];
-//            printf(" %d", sol[i]);
+    //        printf(" %d", sol[i]);
         }
-//        printf("\n");
+    //    printf("\n");
     }
     return 1;
 }
 
-unsigned char CuckooVerify(uint8_t *header, uint32_t header_len, uint32_t nonce, result_t *result, uint8_t* target, uint8_t* hash)
+unsigned char CuckooVerify(uint8_t *header, uint32_t header_len, uint64_t nonce, result_t *result, uint8_t* target, uint8_t* hash)
 {
     // printf("=== uint8_t a[80] = { ");
 	// for (uint32_t i = 0 ; i < header_len; i++) {
