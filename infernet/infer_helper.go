@@ -1,7 +1,7 @@
 package infernet
 
 /*
-#cgo LDFLAGS: -L./ -lcortexnet -lstdc++
+#cgo LDFLAGS: -L./ -lcortexnet
 #cgo CFLAGS: -I./src
 
 #include "interface.h"
@@ -28,7 +28,7 @@ func readImg(input string) ([]byte, error) {
 	return data, nil
 }
 
-func inferCore(modelDir, inputDir string) (uint64, error) {
+func InferCore(modelDir, inputDir string) (uint64, error) {
 	net := C.load_model(
 		C.CString(modelDir+"/data/params"),
 		C.CString(modelDir+"/data/symbol"))
@@ -69,7 +69,7 @@ func inferCore(modelDir, inputDir string) (uint64, error) {
 }
 
 func Infer(modelDir, inputDir string, resultCh chan uint64, errCh chan error) {
-	label, err := inferCore(modelDir, inputDir)
+	label, err := InferCore(modelDir, inputDir)
 	if err != nil {
 		errCh <- err
 		return
@@ -79,7 +79,7 @@ func Infer(modelDir, inputDir string, resultCh chan uint64, errCh chan error) {
 }
 
 func main() {
-	label, err := inferCore("./infer_data/model", "./infer_data/image")
+	label, err := InferCore("./infer_data/model", "./infer_data/image")
 
 	fmt.Println(label, err)
 
