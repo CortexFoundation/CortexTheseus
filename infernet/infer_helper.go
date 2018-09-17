@@ -10,6 +10,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"os"
 	"unsafe"
 )
 
@@ -33,10 +34,30 @@ func readImg(input string) ([]byte, error) {
 	return data, nil
 }
 
+// FileExist checks if a file exists at filePath.
+func FileExist(filePath string) bool {
+	_, err := os.Stat(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return false
+	}
+
+	return true
+}
+
 func InferCore(modelDir, inputDir string) (uint64, error) {
+	modelCfg := modelDir + "/data/params"
+	modelBin := modelDir + "/data/symbol"
+
+	if !FileExist(modelCfg) {
+		return 0, errors.New("open" + modelCfg + ": no such file")
+	}
+	if !FileExist(modelBin) {
+		return 0, errors.New("open" + modelBin + ": no such file")
+	}
+
 	net := C.load_model(
-		C.CString(modelDir+"/data/params"),
-		C.CString(modelDir+"/data/symbol"))
+		C.CString(modelCfg),
+		C.CString(modelBin))
 
 	resLen := int(C.get_output_length(net))
 	if resLen == 0 {
