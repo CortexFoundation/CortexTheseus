@@ -80,6 +80,11 @@ var (
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolLifetimeFlag,
+		utils.StorageTrackerFlag,
+		utils.StorageDirFlag,
+		utils.StoragePortFlag,
+		utils.StorageAddrFlag,
+		utils.StorageEnabledFlag,
 		utils.SyncModeFlag,
 		utils.GCModeFlag,
 		utils.LightServFlag,
@@ -180,6 +185,9 @@ func init() {
 		monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
+
+
+
 		walletCommand,
 		// See consolecmd.go:
 		consoleCommand,

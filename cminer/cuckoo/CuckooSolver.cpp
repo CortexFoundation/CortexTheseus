@@ -7,7 +7,7 @@
 using std::vector;
 
 // arbitrary length of header hashed into siphash key
-#define HEADERLEN 80
+#define HEADERLEN 40
 
 CuckooSolver::CuckooSolver() {
     _run = false;
@@ -48,22 +48,16 @@ void CuckooSolver::await() {
     printf("ThreadID : %lu, Solver: %p, stoped\n", std::this_thread::get_id(), (void*)solver);
 }
 
-void CuckooSolver::setHeaderNonce(char* header, u32 len, u32 nonce){
-    if(header==NULL){
-        header = new char[HEADERLEN];
-        memset(header, 0, sizeof(char)*HEADERLEN);
-        solver->setheadernonce(header, HEADERLEN, nonce);
-        delete header;
-    }
-    else
-        solver->setheadernonce(header, len, nonce);
-
-    sols.clear();
+void CuckooSolver::setHeaderNonce(const char* header, u32 len, uint64_t nonce) {
+    uint64_t littleEndianNonce = htole64(nonce);
+    char headerBuf[HEADERLEN];
+    memcpy(headerBuf, header, len);
+    memcpy(headerBuf + len, static_cast<uint64_t*>(&littleEndianNonce), sizeof(nonce));
+    solver->setHeader(headerBuf, HEADERLEN);
     keyed = true;
 }
 
 void CuckooSolver::findSolutions(vector<vector<u32>>* solutions) {
-    if (solver->_stop) return ;
     _run = true;
     u32 nsols = solver->solve();
     for (unsigned s = 0; s < nsols; s++) {
@@ -80,25 +74,14 @@ void CuckooSolver::findSolutions(vector<vector<u32>>* solutions) {
 
 void CuckooSolver::solve(){
     if (solver->_stop) return ;
+    sols.clear();
 
     _run = true;
     u32 nsols = solver->solve();
     u32 sumnsols = 0;
-    //gettimeofday(&time1, 0);
-    //timems = (time1.tv_sec-time0.tv_sec)*1000 + (time1.tv_usec-time0.tv_usec)/1000;
-    //printf("Time: %d ms\n", timems);
-
     // 2 verify solutions
     for (unsigned s = 0; s < nsols; s++) {
-
-        // printf("Solution");
         u32* prf = & (solver->sols[s * PROOFSIZE]);
-        /*
-        for (u32 i = 0; i < PROOFSIZE; i++)
-            printf(" %jx", (uintmax_t)prf[i]);
-        printf("\n");
-        */
-
         if(verifySol(prf)){
             printf("valid solution found.\n");
             sumnsols++;
@@ -175,7 +158,7 @@ bool CuckooSolver::verifySol(u32* sol, uchar* hash, uchar* target){
     bool valid = true;
     printf("Verified with cyclehash ");
     unsigned char cyclehash[32];
-    // blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)sol, sizeof(proof), 0, 0);
+    blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)sol, sizeof(proof), 0, 0);
     // /*for (int i=0; i<32; i++){
     //     printf("%02x", cyclehash[i]);
     // }
