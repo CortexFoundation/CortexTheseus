@@ -20,7 +20,12 @@ func readImg(input string) ([]byte, error) {
 		return nil, rerr
 	}
 
+	fmt.Printf("%v\n", r)
 	data, derr := r.GetBytes()
+	for i, v := range data {
+		data[i] = uint8(v) / 2
+	}
+	// DumpToFile("tmp.dump", data)
 	if derr != nil {
 		return nil, derr
 	}

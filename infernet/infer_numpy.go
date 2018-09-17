@@ -316,3 +316,21 @@ func (rdr *NpyReader) GetInt64() ([]int64, error) {
 
 	return data, nil
 }
+
+func DumpToFile(fname string, data []byte) error {
+	w, err := os.Create(fname)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range data {
+		err := binary.Write(w, binary.LittleEndian, v)
+		if err != nil {
+			return err
+		}
+	}
+
+	w.Close()
+
+	return nil
+}
