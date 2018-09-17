@@ -13,10 +13,12 @@ import (
 )
 
 func LocalInfer(modelDir, inputDir string) (uint64, error) {
+	log.Trace(fmt.Sprintf("Model&Input Dir : %v | %v", modelDir, inputDir))
 	resultCh := make(chan uint64)
 	errCh := make(chan error)
 
 	var pend sync.WaitGroup
+	pend.Add(1)
 	go func(modelDir, inputDir string) {
 		defer pend.Done()
 		infernet.Infer(modelDir, inputDir, resultCh, errCh)
@@ -24,8 +26,10 @@ func LocalInfer(modelDir, inputDir string) (uint64, error) {
 
 	select {
 	case result := <-resultCh:
+		log.Trace(fmt.Sprintf("Local Infer Result : %v", result))
 		return result, nil
 	case err := <-errCh:
+		log.Trace(fmt.Sprintf("Local Infer Error : %v", err))
 		return 0, err
 	}
 	pend.Wait()
@@ -34,6 +38,7 @@ func LocalInfer(modelDir, inputDir string) (uint64, error) {
 }
 
 func RemoteInfer(requestBody, uri string) (uint64, error) {
+	log.Trace(fmt.Sprintf("%v", requestBody))
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
