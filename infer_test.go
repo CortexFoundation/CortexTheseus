@@ -6,7 +6,7 @@ import (
 )
 
 func TestLocalInfer(t *testing.T) {
-	label, err := InferCore("./infer_data/model", "./infer_data/num_nine")
+	label, err := InferCore("./infer_data/model", "./infer_data/num")
 
 	fmt.Println(label, err)
 }
