@@ -186,13 +186,13 @@ var (
 	}
 	// P2P storage settings
 	StorageEnabledFlag = cli.BoolFlag{
-		Name: "storage",
+		Name:  "storage",
 		Usage: "Enable P2P storage",
 	}
 	StorageDirFlag = DirectoryFlag{
-		Name: "storage.dir",
+		Name:  "storage.dir",
 		Usage: "P2P storage directory",
-		Value: DirectoryString{ node.DefaultStorageDir() },
+		Value: DirectoryString{node.DefaultStorageDir()},
 	}
 	StorageAddrFlag = cli.StringFlag{
 		Name:  "storage.addr",
@@ -374,12 +374,12 @@ var (
 	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
-		Usage: "Minimal gas price for mining a transactions",
+		Usage: "Minimum gas price for mining a transaction",
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
 	MinerLegacyGasPriceFlag = BigFlag{
 		Name:  "gasprice",
-		Usage: "Minimal gas price for mining a transactions (deprecated, use --miner.gasprice)",
+		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
 	MinerEtherbaseFlag = cli.StringFlag{
@@ -475,7 +475,7 @@ var (
 	IPCPathFlag = DirectoryFlag{
 		Name:  "ipcpath",
 		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
-		Value: DirectoryString{ "geth.ipc" },
+		Value: DirectoryString{"geth.ipc"},
 	}
 	WSEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
@@ -603,6 +603,10 @@ var (
 		Name:  "cvm.inferuri",
 		Usage: "infer uri",
 		Value: "http://127.0.0.1:5000/infer",
+	}
+	WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
+		Name:  "shh.restrict-light",
+		Usage: "Restrict connection between two whisper light clients",
 	}
 
 	// Metrics flags
@@ -1146,6 +1150,9 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 	if ctx.GlobalIsSet(WhisperMinPOWFlag.Name) {
 		cfg.MinimumAcceptedPOW = ctx.GlobalFloat64(WhisperMinPOWFlag.Name)
 	}
+	if ctx.GlobalIsSet(WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
+		cfg.RestrictConnectionBetweenLightClients = true
+	}
 }
 
 // SetEthConfig applies eth-related command line flags to the config.
@@ -1317,6 +1324,7 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
 }
+
 // RegisterStorageService adds a torrent file system to the stack.
 func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
 	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
