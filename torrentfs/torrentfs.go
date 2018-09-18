@@ -2,11 +2,11 @@ package torrentfs
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/params"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -15,10 +15,10 @@ type GeneralMessage struct {
 	Commit  string `json:"commit,omitempty"`
 }
 
-// Dashboard contains the dashboard internals.
+// TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
 	config   *Config
-	lock     sync.RWMutex // Lock protecting the dashboard's internals
+	lock     sync.RWMutex // Lock protecting the torrentfs' internals
 	history  *GeneralMessage
 
 	quit chan chan error // Channel used for graceful exit
