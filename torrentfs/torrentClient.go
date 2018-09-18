@@ -26,6 +26,8 @@ const (
 	torrentPending = 0
 	torrentPaused  = 1
 	torrentRunning = 2
+	torrentSeeding = 3
+	defaultTmpFilePath    = ".tmp"
 )
 
 // Torrent ...
@@ -36,6 +38,14 @@ type Torrent struct {
 	bytesCompleted  int64
 	bytesMissing    int64
 	status          int64
+}
+
+func (t * Torrent) Seed() {
+	t.status = torrentSeeding
+}
+
+func (t * Torrent) Seeding() bool {
+	return t.status == torrentSeeding
 }
 
 // Pause ...
@@ -75,6 +85,7 @@ type TorrentManager struct {
 	torrents      map[metainfo.Hash]*Torrent
 	trackers      []string
 	DataDir       string
+	TmpDataDir    string
 	closeAll      chan struct{}
 	newTorrent    chan string
 	removeTorrent chan string
@@ -131,7 +142,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		return
 	}
 
-	spec.Storage = storage.NewFile(path.Join(tm.DataDir, ih.HexString()))
+	spec.Storage = storage.NewFile(path.Join(tm.TmpDataDir, ih.HexString()))
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
 	}
@@ -163,7 +174,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 		log.Error("Error while adding magnet uri", "Err", err)
 	}
 	ih := spec.InfoHash
-	dataPath := path.Join(tm.DataDir, ih.HexString())
+	dataPath := path.Join(tm.TmpDataDir, ih.HexString())
 	torrentPath := path.Join(dataPath, "torrent")
 	if _, err := os.Stat(torrentPath); err == nil {
 		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
@@ -251,10 +262,17 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		log.Error("Error while create torrent client", "err", err)
 	}
 
+	tmpFilePath := path.Join(config.DataDir, defaultTmpFilePath)
+	if _, err := os.Stat(tmpFilePath); err == nil {
+		os.Remove(tmpFilePath)
+	}
+	os.Mkdir(tmpFilePath, os.FileMode(os.ModePerm))
+
 	TorrentManager := &TorrentManager{
 		client:        cl,
 		torrents:      make(map[metainfo.Hash]*Torrent),
 		DataDir:       config.DataDir,
+		TmpDataDir:    tmpFilePath,
 		closeAll:      make(chan struct{}),
 		newTorrent:    make(chan string, newTorrentChanBuffer),
 		removeTorrent: make(chan string, removeTorrentChanBuffer),
@@ -291,16 +309,23 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		var counter uint64
 		for counter = 0;; counter++ {
 			for ih, t := range TorrentManager.torrents {
-				if !t.Pending() {
+				if t.Seeding() {
+
+				} else if !t.Pending() {
 					t.bytesCompleted = t.BytesCompleted()
 					t.bytesMissing = t.BytesMissing()
-					if t.bytesCompleted >= t.bytesLimitation {
+					if t.bytesMissing == 0 {
+						os.Symlink(
+							path.Join(TorrentManager.TmpDataDir, ih.HexString()),
+							path.Join(TorrentManager.DataDir, ih.HexString()),
+						)
+						t.Seed()
+					} else if t.bytesCompleted >= t.bytesLimitation {
 						t.Pause()
 					} else if t.bytesCompleted < t.bytesLimitation {
 						t.Run()
 					}
 					if counter >= 20 {
-						counter = 0
 						log.Info("Torrent progress",
 							"InfoHash", ih.HexString(),
 							"completed", t.bytesCompleted,
@@ -309,6 +334,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
 						)
 					}
 				}
+			}
+			if counter >= 20 {
+				counter = 0
 			}
 			time.Sleep(time.Second * queryTimeInterval)
 		}
