@@ -1179,7 +1179,7 @@
 			"revisionTime": "2018-05-18T05:39:59Z"
 		},
 		{
-			"checksumSHA1": "1wGa+UXlNg3+GI6pKlOCOL2dbt8=",
+			"checksumSHA1": "cervgtZmEhshueHN64+ILdFHmEE=",
 			"path": "github.com/google/btree",
 			"revision": "4030bb1f1f0c35b30ca7009e9ebd06849dd45306",
 			"revisionTime": "2018-08-13T15:31:12Z"
@@ -1197,10 +1197,10 @@
 			"revisionTime": "2016-08-13T22:13:03Z"
 		},
 		{
-			"checksumSHA1": "FRNU2AKclBxglExha5kDiQmGtxc=",
+			"checksumSHA1": "GgSlQYD/MBe2lqMqF6BP51d+67o=",
 			"path": "github.com/huandu/xstrings",
-			"revision": "7bb0250b58e5c15670406e6f93ffda43281305b1",
-			"revisionTime": "2018-06-16T15:27:07Z"
+			"revision": "8bbcf2f9ccb55755e748b7644164cd4bdce94c1d",
+			"revisionTime": "2018-09-06T15:17:51Z"
 		},
 		{
 			"checksumSHA1": "f55gR+6YClh0i/FOhdy66SOUiwY=",
@@ -1578,8 +1578,8 @@
 		{
 			"checksumSHA1": "MfWqWj0xRPdk1DpXCN0EXyBCa4Q=",
 			"path": "github.com/tinylib/msgp/msgp",
-			"revision": "53e4ad1e134ee9b42a7add28ca77177ab17983b3",
-			"revisionTime": "2018-07-27T23:18:56Z"
+			"revision": "f65876d3ea05943d6613bca6b8ed391843044bd4",
+			"revisionTime": "2018-09-12T22:15:30Z"
 		},
 		{
 			"checksumSHA1": "nD6S4KB0S+YHxVMDDE+w3PyXaMk=",
