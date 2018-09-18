@@ -742,7 +742,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}
 
 	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
-		//return nil, types.ErrorExpired
+		return nil, errMetaInfoExpired
 	}
 	//todo torrent fs verification
 
