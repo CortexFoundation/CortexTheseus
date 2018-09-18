@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	simplejson "github.com/bitly/go-simplejson"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/infernet"
 	"github.com/ethereum/go-ethereum/log"
 	resty "gopkg.in/resty.v1"
@@ -21,20 +23,62 @@ func LocalInfer(modelDir, inputDir string) (uint64, error) {
 	pend.Add(1)
 	go func(modelDir, inputDir string) {
 		defer pend.Done()
-		infernet.Infer(modelDir, inputDir, resultCh, errCh)
+		localInfer(modelDir, inputDir, resultCh, errCh)
 	}(modelDir, inputDir)
 
 	select {
 	case result := <-resultCh:
-		log.Trace(fmt.Sprintf("Local Infer Result : %v", result))
 		return result, nil
 	case err := <-errCh:
-		log.Trace(fmt.Sprintf("Local Infer Error : %v", err))
 		return 0, err
 	}
 	pend.Wait()
 
 	return 0, nil
+}
+
+func localInfer(modelDir, inputDir string, resultCh chan uint64, errCh chan error) {
+	startTime := time.Now()
+	timeout := float64(10) // ten minutes timeout
+
+	// Check File Exists
+	modelCfg := modelDir + "/data/params"
+	for !common.FileExist(modelCfg) {
+		if time.Since(startTime).Minutes() > timeout {
+			errCh <- errors.New("Infer pending time too long")
+			return
+		}
+		log.Warn(fmt.Sprintf("Waiting for model config file %v sync", modelCfg))
+		time.Sleep(5 * time.Second)
+	}
+
+	modelBin := modelDir + "/data/symbol"
+	for !common.FileExist(modelBin) {
+		if time.Since(startTime).Minutes() > timeout {
+			errCh <- errors.New("Infer pending time too long")
+			return
+		}
+		log.Warn(fmt.Sprintf("Waiting for model bin file %v sync", modelBin))
+		time.Sleep(5 * time.Second)
+	}
+
+	image := inputDir + "/data"
+	for !common.FileExist(image) {
+		if time.Since(startTime).Minutes() > timeout {
+			errCh <- errors.New("Infer pending time too long")
+			return
+		}
+		log.Warn(fmt.Sprintf("Waiting for input data %v sync", image))
+		time.Sleep(5 * time.Second)
+	}
+
+	label, err := infernet.InferCore(modelCfg, modelBin, image)
+	if err != nil {
+		errCh <- err
+		return
+	}
+
+	resultCh <- label
 }
 
 func RemoteInfer(requestBody, uri string) (uint64, error) {
@@ -46,7 +90,6 @@ func RemoteInfer(requestBody, uri string) (uint64, error) {
 	if err != nil || resp.StatusCode() != 200 {
 		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, uri, err))
 	}
-	log.Trace(fmt.Sprintf("%v", resp.String()))
 	js, js_err := simplejson.NewJson([]byte(resp.String()))
 	if js_err != nil {
 		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", js_err))
