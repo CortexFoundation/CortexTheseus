@@ -10,7 +10,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"os"
 	"unsafe"
 )
 
@@ -21,7 +20,7 @@ func readImg(input string) ([]byte, error) {
 		return nil, rerr
 	}
 
-	fmt.Printf("%v\n", r)
+	// Infer data must between [0, 127)
 	data, derr := r.GetBytes()
 	for i, v := range data {
 		data[i] = uint8(v) / 2
@@ -34,26 +33,7 @@ func readImg(input string) ([]byte, error) {
 	return data, nil
 }
 
-// FileExist checks if a file exists at filePath.
-func FileExist(filePath string) bool {
-	_, err := os.Stat(filePath)
-	if err != nil && os.IsNotExist(err) {
-		return false
-	}
-
-	return true
-}
-
-func InferCore(modelDir, inputDir string) (uint64, error) {
-	modelCfg := modelDir + "/data/params"
-	modelBin := modelDir + "/data/symbol"
-
-	if !FileExist(modelCfg) {
-		return 0, errors.New("open" + modelCfg + ": no such file")
-	}
-	if !FileExist(modelBin) {
-		return 0, errors.New("open" + modelBin + ": no such file")
-	}
+func InferCore(modelCfg, modelBin, image string) (uint64, error) {
 
 	net := C.load_model(
 		C.CString(modelCfg),
@@ -66,7 +46,7 @@ func InferCore(modelDir, inputDir string) (uint64, error) {
 
 	res := make([]byte, resLen)
 
-	imageData, rerr := readImg(inputDir + "/data")
+	imageData, rerr := readImg(image)
 	if rerr != nil {
 		return 0, rerr
 	}
@@ -80,6 +60,7 @@ func InferCore(modelDir, inputDir string) (uint64, error) {
 		return 0, errors.New("Predict Error")
 	}
 
+	// Find the maximum possibility of label
 	max := int8(res[0])
 	label := uint64(0)
 	for idx := 1; idx < resLen; idx++ {
@@ -94,18 +75,8 @@ func InferCore(modelDir, inputDir string) (uint64, error) {
 	return label, nil
 }
 
-func Infer(modelDir, inputDir string, resultCh chan uint64, errCh chan error) {
-	label, err := InferCore(modelDir, inputDir)
-	if err != nil {
-		errCh <- err
-		return
-	}
-
-	resultCh <- label
-}
-
 func main() {
-	label, err := InferCore("./infer_data/model", "./infer_data/image")
+	label, err := InferCore("./infer_data/model/param", "./infer_data/model/symbol", "./infer_data/image/data")
 
 	fmt.Println(label, err)
 
