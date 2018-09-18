@@ -21,6 +21,7 @@ import (
 	"errors"
 	"math/big"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -467,6 +468,8 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
+var InferSimpleCache sync.Map
+
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
 	uri, uri_err := common.ParseURI(evm.vmConfig.InferURI)
@@ -474,18 +477,34 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 		return 0, errors.New(fmt.Sprintf("evm.Infer: InferURI Parse Error | %v", uri_err))
 	}
 
+	log.Info(fmt.Sprintf("Infer Model&Input Hash : %v, %v", string(model_meta_hash), string(input_meta_hash)))
+
+	cacheKey := string(model_meta_hash[2:]) + string(input_meta_hash[2:])
+	v, ok := InferSimpleCache.Load(cacheKey)
+	if ok {
+		log.Info(fmt.Sprintf("Infer Cache Result: %v", v))
+		return v.(uint64), nil
+	}
+
+	var inferRes uint64
+	var errRes error
 	switch uri.Scheme {
 	case common.LocalStorage:
 		modelDir := string(uri.Path + "/" + strings.ToLower(string(model_meta_hash)[2:]))
 		inputDir := string(uri.Path + "/" + strings.ToLower(string(input_meta_hash)[2:]))
-		return LocalInfer(modelDir, inputDir)
+		inferRes, errRes = LocalInfer(modelDir, inputDir)
 	case common.ServerInfer:
 		requestBody := fmt.Sprintf(
 			`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
-		return RemoteInfer(requestBody, uri.Path)
+		inferRes, errRes = RemoteInfer(requestBody, uri.Path)
 	}
 
-	return 0, errors.New(fmt.Sprintf("evm.Infer: Never Run Here!"))
+	if errRes == nil {
+		InferSimpleCache.Store(cacheKey, inferRes)
+	}
+
+	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
+	return inferRes, errRes
 }
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
