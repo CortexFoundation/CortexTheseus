@@ -268,6 +268,7 @@ func (m *Monitor) initialCheck(reverse bool) {
 	} else {
 		lastBlock := uint64(minBlockNum)
 		for i := uint64(minBlockNum); i <= endBlock; i++ {
+			log.Info("Checking block", "b", i)
 			if m.fs.HasBlock(i) {
 				continue
 			}
