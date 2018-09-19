@@ -5,10 +5,10 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -137,7 +137,7 @@ type TxReceipt struct {
 	// Contract Address
 	ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
 	// Transaction Hash
-	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
+	TxHash *common.Hash          `json:"TransactionHash"  gencodec:"required"`
 }
 
 // FileMeta ...
