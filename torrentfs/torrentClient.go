@@ -141,8 +141,16 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		tm.mu.Unlock()
 		return
 	}
+	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
+	ExistDir := path.Join(tm.DataDir, ih.HexString())
 
-	spec.Storage = storage.NewFile(path.Join(tm.TmpDataDir, ih.HexString()))
+	if _, err := os.Stat(ExistDir); err == nil {
+		log.Info("Seeding from existing file.", "InfoHash", ih.HexString())
+		spec.Storage = storage.NewFile(ExistDir)
+	} else {
+		spec.Storage = storage.NewFile(TmpDir)
+	}
+
 	if len(spec.Trackers) == 0 {
 		spec.Trackers = append(spec.Trackers, []string{})
 	}
@@ -162,7 +170,8 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		torrentPending,
 	}
 	tm.mu.Unlock()
-	log.Info("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
+	t.VerifyData()
+	log.Info("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 	<-t.GotInfo()
 	tm.torrents[ih].Run()
 }
@@ -175,10 +184,15 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	}
 	ih := spec.InfoHash
 	dataPath := path.Join(tm.TmpDataDir, ih.HexString())
-	torrentPath := path.Join(dataPath, "torrent")
+	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
+	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
 	if _, err := os.Stat(torrentPath); err == nil {
 		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(torrentPath)
+		return
+	} else if _, err := os.Stat(seedTorrentPath); err == nil {
+		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		tm.AddTorrent(seedTorrentPath)
 		return
 	}
 	log.Info("Get torrent from magnet uri", "InfoHash", ih.HexString())
