@@ -297,9 +297,8 @@ func (m *Monitor) Start() error {
 		log.Info("Fetch latest block failed")
 		return err
 	}
-	reverse := m.config.SyncMode == "full"
 	m.parseNewBlock(b)
-	reverse = false
+	reverse := m.config.SyncMode != "full"
 	go m.initialCheck(reverse)
 
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
