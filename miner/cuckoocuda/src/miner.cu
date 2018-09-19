@@ -538,9 +538,6 @@ struct solver_ctx {
   u32 us[MAXPATHLEN];
   u32 vs[MAXPATHLEN];
 
-  void initialize() {
-  }
-
   solver_ctx(const trimparams tp) {
     trimmer = new edgetrimmer(tp);
     edges   = new uint2[MAXEDGES];
@@ -659,47 +656,7 @@ struct solver_ctx {
 }; // end of namespace cuckoogpu
 
 
-namespace cuckoogpu {
-    const uint8_t MAX_DEVICE_CNT = 32;
-    std::mutex mtx;
-    std::vector<solver_ctx*> ctx;
-    std::vector<std::pair<int, bool> > available;
-    int nDevices;
-
-    void initialize() {
-        std::lock_guard<std::mutex> lock;
-        //TODO(tian) make use of multiple gpu
-        checkCudaErrors(cudaGetDeviceCount(&nDevices));
-        for (int idx = 0; idx < nDevices; idx) { 
-            cudaDeviceProp prop;
-            checkCudaErrors(cudaGetDeviceProperties(&prop, device));
-            if(tp.genA.tpb <= prop.maxThreadsPerBlock)
-                continue;
-            if(tp.genB.tpb <= prop.maxThreadsPerBlock)
-                continue
-            if(tp.trim.tpb <= prop.maxThreadsPerBlock)
-                continue
-            // assert(tp.tailblocks <= prop.threadDims[0]);
-            if(tp.tail.tpb <= prop.maxThreadsPerBlock)
-                continue;
-            if(tp.recover.tpb <= prop.maxThreadsPerBlock)
-                continue;
-            }
-            available.push_back(make_pair(idx, true));
-        }
-
-    }
-
-    int acquireDevice() {
-        std::lock_guard<std::mutex> lock;
-        
-    }
-
-    int releaseDevice(uint32_t idx) {
-        std::lock_guard<std::mutex> lock;
-    }
-};
-
+cuckoogpu::solver_ctx* ctx = NULL;
 int32_t CuckooFindSolutionsCuda(
         uint8_t *header,
         uint64_t nonce,
@@ -754,8 +711,21 @@ void CuckooInitialize() {
   using std::vector;
 
   trimparams tp;
+  u32 device = 0;
   int nDevices = 0;
+  //TODO(tian) make use of multiple gpu
+  checkCudaErrors(cudaGetDeviceCount(&nDevices));
+  assert(device < nDevices);
+  cudaDeviceProp prop;
+  checkCudaErrors(cudaGetDeviceProperties(&prop, device));
+  assert(tp.genA.tpb <= prop.maxThreadsPerBlock);
+  assert(tp.genB.tpb <= prop.maxThreadsPerBlock);
+  assert(tp.trim.tpb <= prop.maxThreadsPerBlock);
+  // assert(tp.tailblocks <= prop.threadDims[0]);
+  assert(tp.tail.tpb <= prop.maxThreadsPerBlock);
+  assert(tp.recover.tpb <= prop.maxThreadsPerBlock);
   ctx = new solver_ctx(tp);
+  printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
   u64 bytes = ctx->trimmer->globalbytes();
   int unit;
   for (unit=0; bytes >= 10240; bytes>>=10,unit++);
