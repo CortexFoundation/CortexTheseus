@@ -44,20 +44,24 @@ func New(config Config) *InferenceServer {
 		return globalInferServer
 	}
 
-	globalInferServer := &InferenceServer{
+	globalInferServer = &InferenceServer{
 		config:      config,
 		inferWorkCh: make(chan *InferWork),
 		exitCh:      make(chan struct{}),
-		stopInfer:   1,
+		stopInfer:   0,
 	}
 
 	go globalInferServer.fetchWork()
 
-	log.Info("Initialising Inference Server", "Storage Dir", config.StorageDir)
+	log.Info("Initialising Inference Server", "Storage Dir", config.StorageDir, "Global Inference Server", globalInferServer)
 	return globalInferServer
 }
 
 func SubmitInferWork(modelHash, inputHash string, force bool, resCh chan uint64, errCh chan error) error {
+	if globalInferServer == nil {
+		return errors.New("Inference Server State Invalid")
+	}
+
 	return globalInferServer.submitInferWork(&InferWork{
 		modelInfoHash: modelHash,
 		inputInfoHash: inputHash,
@@ -68,7 +72,7 @@ func SubmitInferWork(modelHash, inputHash string, force bool, resCh chan uint64,
 }
 
 func (is *InferenceServer) submitInferWork(iw *InferWork) error {
-	if stopSubmit := atomic.LoadInt32(&is.stopInfer) == 0; stopSubmit {
+	if stopSubmit := atomic.LoadInt32(&is.stopInfer) == 1; stopSubmit {
 		return errors.New("Inference Server is closed")
 	}
 
@@ -77,8 +81,9 @@ func (is *InferenceServer) submitInferWork(iw *InferWork) error {
 }
 
 func (is *InferenceServer) Close() {
-	atomic.StoreInt32(&is.stopInfer, 0)
+	atomic.StoreInt32(&is.stopInfer, 1)
 	close(is.exitCh)
+	log.Info("Global Inference Server Closed")
 }
 
 func (is *InferenceServer) fetchWork() {
@@ -105,11 +110,13 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 	cacheKey := modelHash + inputHash
 
 	// Inference Cache
+	log.Debug(fmt.Sprintf("InferWork: %v", inferWork))
 	if v, ok := is.inferSimpleCache.Load(cacheKey); ok {
 		inferWork.res <- v.(uint64)
 		return
 	}
 
+	// File Exists Check
 	modelCfg := modelDir + "/data/params"
 	if cfgError := is.checkFileExists(modelCfg, forcePending); cfgError != nil {
 		inferWork.err <- cfgError
@@ -146,8 +153,8 @@ func (is *InferenceServer) checkFileExists(fpath string, forcePending bool) erro
 			return errors.New(fmt.Sprintf("File %v does not exists", fpath))
 		}
 
-		shouldPending := atomic.LoadInt32(&is.stopInfer) == 1
-		if !shouldPending {
+		stopPending := atomic.LoadInt32(&is.stopInfer) == 1
+		if stopPending {
 			return errors.New("Atomic stop pending")
 		}
 
