@@ -1,4 +1,5 @@
 package cuckoo_mean_miner
+
 /*
 #cgo LDFLAGS: -L./ -lgpugominer -L/usr/local/cuda/lib64 -lcudart -lstdc++
 #cgo CFLAGS: -I./
@@ -9,7 +10,6 @@ import "C"
 import (
 	"unsafe"
 )
-
 
 func CuckooFindSolutionsCuda(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32) {
 	var (

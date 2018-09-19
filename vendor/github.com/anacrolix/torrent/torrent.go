@@ -1290,7 +1290,6 @@ func (t *Torrent) startScrapingTracker(_url string) {
 		return
 	}
 	u, err := url.Parse(_url)
-	fmt.Println("startScrapingTracker: ", _url, "infoHash: ", t.infoHash, "u: ", u, "err: ", err)
 	if err != nil {
 		log.Str("error parsing tracker url").AddValues("url", _url).Log(t.logger)
 		// TODO: Handle urls with leading '*', some kind of silly uTorrent
@@ -1310,7 +1309,6 @@ func (t *Torrent) startScrapingTracker(_url string) {
 	if u.Scheme == "udp6" && t.cl.config.DisableIPv6 {
 		return
 	}
-	fmt.Println("t.trackerAnnouncers:", t.trackerAnnouncers)
 	if _, ok := t.trackerAnnouncers[_url]; ok {
 		return
 	}
@@ -1321,7 +1319,6 @@ func (t *Torrent) startScrapingTracker(_url string) {
 	if t.trackerAnnouncers == nil {
 		t.trackerAnnouncers = make(map[string]*trackerScraper)
 	}
-	fmt.Println("_url:", _url, "newAnnouncer: ", newAnnouncer)
 	t.trackerAnnouncers[_url] = newAnnouncer
 	go newAnnouncer.Run()
 }
