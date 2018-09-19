@@ -37,6 +37,7 @@ var (
 	errExecutionReverted     = errors.New("evm: execution reverted")
 	errMetaInfoBlockNum      = errors.New("evm: meta info blocknum <= 0")
 	errMetaInfoNotMature     = errors.New("evm: errMetaInfoNotMature")
+	errMetaShapeNotMatch     = errors.New("evm: model&input shape not matched")
 	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 )
@@ -701,14 +702,11 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
-		//return nil, types.ErrorNotMature
 		//return nil, errExecutionReverted
 		return nil, errMetaInfoNotMature
 	}
 
 	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
-		//return nil, types.ErrorExpired
-		//return nil, errExecutionReverted
 		//return nil, errors.New("EXPIRED MODEL ERROR")
 		return nil, errMetaInfoExpired
 	}
@@ -742,6 +740,16 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		//return nil, types.ErrorExpired
+	}
+
+	// Model&Input shape should match
+	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
+		return nil, errMetaShapeNotMatch
+	}
+	for idx, modelShape := range modelMeta.InputShape {
+		if modelShape != inputMeta.Shape[idx] {
+			return nil, errMetaShapeNotMatch
+		}
 	}
 
 	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))

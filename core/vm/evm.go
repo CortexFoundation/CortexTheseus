@@ -465,36 +465,21 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
-// var InferSimpleCache sync.Map
-
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
-	// uri, uri_err := common.ParseURI(evm.vmConfig.InferURI)
-	// if uri_err != nil {
-	// return 0, errors.New(fmt.Sprintf("evm.Infer: InferURI Parse Error | %v", uri_err))
-	// }
+	log.Info("Infer Infos", "Model Hash", string(model_meta_hash), "Input Hash", string(input_meta_hash))
 
-	log.Info("Infer Details", "Model Hash", string(model_meta_hash), "Input Hash", string(input_meta_hash))
+	var (
+		inferRes uint64
+		errRes   error
+	)
 
-	// cacheKey := string(model_meta_hash[2:]) + string(input_meta_hash[2:])
-	// v, ok := InferSimpleCache.Load(cacheKey)
-	// if ok {
-	// log.Info(fmt.Sprintf("Infer Cache Result: %v", v))
-	// return v.(uint64), nil
-	// }
-
-	var inferRes uint64
-	var errRes error
 	if evm.vmConfig.InferURI == "" {
 		inferRes, errRes = LocalInfer(string(model_meta_hash), string(input_meta_hash), evm.vmConfig.CallFakeVM)
 	} else {
 		requestBody := fmt.Sprintf(`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
 		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
 	}
-
-	// if errRes == nil {
-	// InferSimpleCache.Store(cacheKey, inferRes)
-	// }
 
 	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
 	return inferRes, errRes
