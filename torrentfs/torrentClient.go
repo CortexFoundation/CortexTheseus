@@ -1,9 +1,16 @@
 package torrentfs
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"fmt"
+	"github.com/bradfitz/iter"
+	"github.com/edsrzf/mmap-go"
+	"io"
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -11,6 +18,7 @@ import (
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/anacrolix/torrent/mmap_span"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -124,6 +132,51 @@ func (tm *TorrentManager) SetTrackers(trackers []string) {
 	}
 }
 
+func mmapFile(name string) (mm mmap.MMap, err error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return
+	}
+	if fi.Size() == 0 {
+		return
+	}
+	return mmap.MapRegion(f, -1, mmap.RDONLY, mmap.COPY, 0)
+}
+
+func verifyTorrent(info *metainfo.Info, root string) error {
+	span := new(mmap_span.MMapSpan)
+	for _, file := range info.UpvertedFiles() {
+		filename := filepath.Join(append([]string{root, info.Name}, file.Path...)...)
+		mm, err := mmapFile(filename)
+		if err != nil {
+			return err
+		}
+		if int64(len(mm)) != file.Length {
+			return fmt.Errorf("file %q has wrong length", filename)
+		}
+		span.Append(mm)
+	}
+	for i := range iter.N(info.NumPieces()) {
+		p := info.Piece(i)
+		hash := sha1.New()
+		_, err := io.Copy(hash, io.NewSectionReader(span, p.Offset(), p.Length()))
+		if err != nil {
+			return err
+		}
+		good := bytes.Equal(hash.Sum(nil), p.Hash().Bytes())
+		if !good {
+			return fmt.Errorf("hash mismatch at piece %d", i)
+		}
+		fmt.Printf("%d: %x: %v\n", i, p.Hash(), good)
+	}
+	return nil
+}
+
 // AddTorrent ...
 func (tm *TorrentManager) AddTorrent(filePath string) {
 	mi, err := metainfo.LoadFromFile(filePath)
@@ -146,6 +199,13 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 
 	if _, err := os.Stat(ExistDir); err == nil {
 		log.Info("Seeding from existing file.", "InfoHash", ih.HexString())
+		info, err := mi.UnmarshalInfo()
+		if err != nil {
+			log.Error("error unmarshalling info: ", "info", err)
+		}
+		if err := verifyTorrent(&info, path.Join(ExistDir, "data")); err != nil {
+			log.Info("torrent failed verification:", "err", err)
+		}
 		spec.Storage = storage.NewFile(ExistDir)
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
