@@ -18,20 +18,15 @@ package vm
 
 import (
 	_ "encoding/hex"
-	"errors"
 	"math/big"
 	"sync/atomic"
 	"time"
 
-	"strconv"
-
-	simplejson "github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	resty "gopkg.in/resty.v1"
 
 	"fmt"
 )
@@ -470,33 +465,39 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
+// var InferSimpleCache sync.Map
+
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
-	requestBody := fmt.Sprintf(
-		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
-	log.Trace(fmt.Sprintf("%v", requestBody))
+	// uri, uri_err := common.ParseURI(evm.vmConfig.InferURI)
+	// if uri_err != nil {
+	// return 0, errors.New(fmt.Sprintf("evm.Infer: InferURI Parse Error | %v", uri_err))
+	// }
 
-	resp, err := resty.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(requestBody).
-		Post(evm.vmConfig.InferURI)
-	if err != nil || resp.StatusCode() != 200 {
-		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, evm.vmConfig.InferURI, err))
+	log.Info("Infer Details", "Model Hash", string(model_meta_hash), "Input Hash", string(input_meta_hash))
+
+	// cacheKey := string(model_meta_hash[2:]) + string(input_meta_hash[2:])
+	// v, ok := InferSimpleCache.Load(cacheKey)
+	// if ok {
+	// log.Info(fmt.Sprintf("Infer Cache Result: %v", v))
+	// return v.(uint64), nil
+	// }
+
+	var inferRes uint64
+	var errRes error
+	if evm.vmConfig.InferURI == "" {
+		inferRes, errRes = LocalInfer(string(model_meta_hash), string(input_meta_hash), evm.vmConfig.CallFakeVM)
+	} else {
+		requestBody := fmt.Sprintf(`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
+		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
 	}
-	log.Trace(fmt.Sprintf("%v", resp.String()))
-	js, js_err := simplejson.NewJson([]byte(resp.String()))
-	if js_err != nil {
-		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", js_err))
-	}
-	int_output_tmp, out_err := js.Get("info").String()
-	if out_err != nil {
-		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", out_err))
-	}
-	uint64_output, err := strconv.ParseUint(int_output_tmp, 10, 64)
-	if err != nil {
-		return 0, errors.New("evm.Infer: Type Conversion Error")
-	}
-	return uint64_output, nil
+
+	// if errRes == nil {
+	// InferSimpleCache.Store(cacheKey, inferRes)
+	// }
+
+	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
+	return inferRes, errRes
 }
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
