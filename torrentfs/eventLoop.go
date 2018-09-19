@@ -41,10 +41,11 @@ type TorrentManagerAPI interface {
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
-	config *Config
-	cl *rpc.Client
-	dl TorrentManagerAPI
-	fs *FileStorage
+	config     *Config
+	cl         *rpc.Client
+	fs         *FileStorage
+	dl         TorrentManagerAPI
+	terminate  chan struct{}
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -55,8 +56,9 @@ func NewMonitor(flag *Config) *Monitor {
 	m := &Monitor{
 		flag,
 		nil,
-		nil,
 		NewFileStorage(flag),
+		nil,
+		make(chan struct{}),
 	}
 	if runtime.GOOS != "windows" && flag.IpcPath != "" {
 		m.SetConnection(flag.IpcPath)
@@ -67,6 +69,10 @@ func NewMonitor(flag *Config) *Monitor {
 		m.SetConnection(flag.RpcURI)
 	}
 	return m
+}
+
+func (m *Monitor) Terminate() chan<- struct{} {
+	return m.terminate
 }
 
 // SetConnection method builds connection to remote or local communicator.
@@ -302,9 +308,11 @@ func (m *Monitor) Start() error {
 	go m.initialCheck(reverse)
 
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	counter := 0
 	for {
 		select {
 		case <-timer.C:
+			counter += 1
 			// Try to get the latest b
 			b := &Block{}
 			if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
@@ -312,7 +320,10 @@ func (m *Monitor) Start() error {
 				continue
 			}
 			bnum := b.Number
-			log.Info("try to fetch new block", "number", bnum)
+			if counter > 10 {
+				counter = 0
+				log.Info("try to fetch new block", "number", bnum)
+			}
 			if bnum > m.fs.LatestBlockNumber {
 				m.parseBlock(b)
 				log.Info("Fetch block", "Number", bnum, "Txs", len(b.Txs))
@@ -324,6 +335,8 @@ func (m *Monitor) Start() error {
 				}
 			}
 			timer.Reset(time.Second * 3)
+		case <- m.terminate:
+			return nil
 		}
 	}
 }
