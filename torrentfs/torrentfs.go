@@ -22,6 +22,8 @@ type TorrentFS struct {
 	history  *GeneralMessage
 
 	quit chan chan error // Channel used for graceful exit
+	monitor  *Monitor
+	tm       *TorrentManager
 }
 
 // New creates a new dashboard instance with the given configuration.
@@ -50,10 +52,10 @@ func (db *TorrentFS) APIs() []rpc.API { return nil }
 // Implements the node.Service interface.
 func (db *TorrentFS) Start(server *p2p.Server) error {
 	go func(){
-		dlClient := NewTorrentManager(db.config)
-		m := NewMonitor(db.config)
-		m.SetDownloader(dlClient)
-		m.Start()
+		db.tm = NewTorrentManager(db.config)
+		db.monitor = NewMonitor(db.config)
+		db.monitor.SetDownloader(db.tm)
+		db.monitor.Start()
 	}()
 	return nil
 }
@@ -62,6 +64,7 @@ func (db *TorrentFS) Start(server *p2p.Server) error {
 // Implements the node.Service interface.
 func (db *TorrentFS) Stop() error {
 	// Wait until every goroutine terminates.
+	db.monitor.Terminate() <- struct{}{}
 	log.Info("TorrentFs stopped")
 
 	return nil
