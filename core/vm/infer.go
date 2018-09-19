@@ -4,27 +4,29 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"sync"
-	"time"
 
 	simplejson "github.com/bitly/go-simplejson"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/infernet"
+	infer "github.com/ethereum/go-ethereum/infernet"
 	"github.com/ethereum/go-ethereum/log"
 	resty "gopkg.in/resty.v1"
 )
 
-func LocalInfer(modelDir, inputDir string) (uint64, error) {
-	log.Trace(fmt.Sprintf("Model&Input Dir : %v | %v", modelDir, inputDir))
-	resultCh := make(chan uint64)
-	errCh := make(chan error)
+func LocalInfer(modelHash, inputHash string, fakeVM bool) (uint64, error) {
+	var (
+		resultCh = make(chan uint64, 1)
+		errCh    = make(chan error, 1)
+	)
 
-	var pend sync.WaitGroup
-	pend.Add(1)
-	go func(modelDir, inputDir string) {
-		defer pend.Done()
-		localInfer(modelDir, inputDir, resultCh, errCh)
-	}(modelDir, inputDir)
+	err := infer.SubmitInferWork(
+		modelHash,
+		inputHash,
+		!fakeVM,
+		resultCh,
+		errCh)
+
+	if err != nil {
+		return 0, err
+	}
 
 	select {
 	case result := <-resultCh:
@@ -32,53 +34,8 @@ func LocalInfer(modelDir, inputDir string) (uint64, error) {
 	case err := <-errCh:
 		return 0, err
 	}
-	pend.Wait()
 
 	return 0, nil
-}
-
-func localInfer(modelDir, inputDir string, resultCh chan uint64, errCh chan error) {
-	startTime := time.Now()
-	timeout := float64(10) // ten minutes timeout
-
-	// Check File Exists
-	modelCfg := modelDir + "/data/params"
-	for !common.FileExist(modelCfg) {
-		if time.Since(startTime).Minutes() > timeout {
-			errCh <- errors.New("Infer pending time too long")
-			return
-		}
-		log.Warn(fmt.Sprintf("Waiting for model config file %v sync", modelCfg))
-		time.Sleep(5 * time.Second)
-	}
-
-	modelBin := modelDir + "/data/symbol"
-	for !common.FileExist(modelBin) {
-		if time.Since(startTime).Minutes() > timeout {
-			errCh <- errors.New("Infer pending time too long")
-			return
-		}
-		log.Warn(fmt.Sprintf("Waiting for model bin file %v sync", modelBin))
-		time.Sleep(5 * time.Second)
-	}
-
-	image := inputDir + "/data"
-	for !common.FileExist(image) {
-		if time.Since(startTime).Minutes() > timeout {
-			errCh <- errors.New("Infer pending time too long")
-			return
-		}
-		log.Warn(fmt.Sprintf("Waiting for input data %v sync", image))
-		time.Sleep(5 * time.Second)
-	}
-
-	label, err := infernet.InferCore(modelCfg, modelBin, image)
-	if err != nil {
-		errCh <- err
-		return
-	}
-
-	resultCh <- label
 }
 
 func RemoteInfer(requestBody, uri string) (uint64, error) {
