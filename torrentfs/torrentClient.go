@@ -405,7 +405,12 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		for counter = 0;; counter++ {
 			for ih, t := range TorrentManager.torrents {
 				if t.Seeding() {
-
+					if counter >= 20 {
+						log.Info("Torrent seeding",
+							"InfoHash", ih.HexString(),
+							"total", t.bytesCompleted+t.bytesMissing,
+						)
+					}
 				} else if !t.Pending() {
 					t.bytesCompleted = t.BytesCompleted()
 					t.bytesMissing = t.BytesMissing()
