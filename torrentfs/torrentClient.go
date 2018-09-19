@@ -203,7 +203,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		if err != nil {
 			log.Error("error unmarshalling info: ", "info", err)
 		}
-		if err := verifyTorrent(&info, path.Join(ExistDir, "data")); err != nil {
+		if err := verifyTorrent(&info, ExistDir); err != nil {
 			log.Info("torrent failed verification:", "err", err)
 		}
 		spec.Storage = storage.NewFile(ExistDir)
