@@ -409,6 +409,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 						log.Info("Torrent seeding",
 							"InfoHash", ih.HexString(),
 							"total", t.bytesCompleted+t.bytesMissing,
+							"seeding", t.Torrent.Seeding(),
 						)
 					}
 				} else if !t.Pending() {
