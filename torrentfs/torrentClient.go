@@ -172,7 +172,6 @@ func verifyTorrent(info *metainfo.Info, root string) error {
 		if !good {
 			return fmt.Errorf("hash mismatch at piece %d", i)
 		}
-		fmt.Printf("%d: %x: %v\n", i, p.Hash(), good)
 	}
 	return nil
 }
@@ -247,11 +246,11 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
 	if _, err := os.Stat(torrentPath); err == nil {
-		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(torrentPath)
 		return
 	} else if _, err := os.Stat(seedTorrentPath); err == nil {
-		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(seedTorrentPath)
 		return
 	}
