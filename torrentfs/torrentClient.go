@@ -433,6 +433,15 @@ func NewTorrentManager(config *Config) *TorrentManager {
 							"total", t.bytesCompleted+t.bytesMissing,
 						)
 					}
+				} else {
+					if counter >= 20 {
+						log.Info("Torrent pending",
+							"InfoHash", ih.HexString(),
+							"completed", t.bytesCompleted,
+							"requested", t.bytesLimitation,
+							"total", t.bytesCompleted+t.bytesMissing,
+						)
+					}
 				}
 			}
 			if counter >= 20 {
