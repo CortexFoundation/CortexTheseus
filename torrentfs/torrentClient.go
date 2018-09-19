@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"fmt"
+	"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
@@ -15,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
@@ -206,33 +206,55 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 			log.Info("torrent failed verification:", "err", err)
 		}
 		spec.Storage = storage.NewFile(ExistDir)
+
+		if len(spec.Trackers) == 0 {
+			spec.Trackers = append(spec.Trackers, []string{})
+		}
+		for _, tracker := range tm.trackers {
+			spec.Trackers[0] = append(spec.Trackers[0], tracker)
+		}
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
+		t, _, err := tm.client.AddTorrentSpec(spec)
+		tm.torrents[ih] = &Torrent{
+			t,
+			defaultBytesLimitation,
+			int64(defaultBytesLimitation * expansionFactor),
+			0,
+			0,
+			torrentPending,
+		}
+		tm.mu.Unlock()
+		t.VerifyData()
+		tm.torrents[ih].Run()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
-	}
 
-	if len(spec.Trackers) == 0 {
-		spec.Trackers = append(spec.Trackers, []string{})
+		if len(spec.Trackers) == 0 {
+			spec.Trackers = append(spec.Trackers, []string{})
+		}
+		for _, tracker := range tm.trackers {
+			spec.Trackers[0] = append(spec.Trackers[0], tracker)
+		}
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
+		t, _, _ := tm.client.AddTorrentSpec(spec)
+		tm.torrents[ih] = &Torrent{
+			t,
+			defaultBytesLimitation,
+			int64(defaultBytesLimitation * expansionFactor),
+			0,
+			0,
+			torrentPending,
+		}
+		tm.mu.Unlock()
+		t.VerifyData()
+		log.Info("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
+		<-t.GotInfo()
+		tm.torrents[ih].Run()
 	}
-	for _, tracker := range tm.trackers {
-		spec.Trackers[0] = append(spec.Trackers[0], tracker)
-	}
-	var ss []string
-	slices.MakeInto(&ss, mi.Nodes)
-	tm.client.AddDHTNodes(ss)
-	t, _, err := tm.client.AddTorrentSpec(spec)
-	tm.torrents[ih] = &Torrent{
-		t,
-		defaultBytesLimitation,
-		int64(defaultBytesLimitation * expansionFactor),
-		0,
-		0,
-		torrentPending,
-	}
-	tm.mu.Unlock()
-	t.VerifyData()
-	log.Info("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
-	<-t.GotInfo()
-	tm.torrents[ih].Run()
 }
 
 // AddMagnet ...
