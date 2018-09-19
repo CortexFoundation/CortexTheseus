@@ -21,7 +21,7 @@
 #ifndef PROOFSIZE
 // the next most important parameter is the (even) length
 // of the cycle to be found. a minimum of 12 is recommended
-#define PROOFSIZE
+#define PROOFSIZE 12
 #endif
 
 #if EDGEBITS > 32
