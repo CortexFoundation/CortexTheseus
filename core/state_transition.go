@@ -31,7 +31,7 @@ import (
 
 var (
 	errInsufficientBalanceForGas        = errors.New("insufficient balance to pay for gas")
-	PER_UPLOAD_BYTES             uint64 = 1 * 512 * 1024
+	PER_UPLOAD_BYTES             uint64 = 1 * 128 * 1024
 )
 
 /*
