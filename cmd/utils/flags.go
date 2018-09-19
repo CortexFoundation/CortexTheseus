@@ -1299,6 +1299,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
+	log.Info("DataDir is", "dir", cfg.DataDir)
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
