@@ -186,13 +186,13 @@ var (
 	}
 	// P2P storage settings
 	StorageEnabledFlag = cli.BoolFlag{
-		Name: "storage",
+		Name:  "storage",
 		Usage: "Enable P2P storage",
 	}
 	StorageDirFlag = DirectoryFlag{
-		Name: "storage.dir",
+		Name:  "storage.dir",
 		Usage: "P2P storage directory",
-		Value: DirectoryString{ node.DefaultStorageDir() },
+		Value: DirectoryString{node.DefaultStorageDir()},
 	}
 	StorageAddrFlag = cli.StringFlag{
 		Name:  "storage.addr",
@@ -475,7 +475,7 @@ var (
 	IPCPathFlag = DirectoryFlag{
 		Name:  "ipcpath",
 		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
-		Value: DirectoryString{ "geth.ipc" },
+		Value: DirectoryString{"geth.ipc"},
 	}
 	WSEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
@@ -602,7 +602,8 @@ var (
 	ModelCallInterfaceFlag = cli.StringFlag{
 		Name:  "cvm.inferuri",
 		Usage: "infer uri",
-		Value: "http://127.0.0.1:5000/infer",
+		// Value: "http://127.0.0.1:5000/infer",
+		Value: "",
 	}
 
 	// Metrics flags
@@ -1225,6 +1226,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
+	cfg.StorageDir = ctx.GlobalString(StorageDirFlag.Name)
 
 	// Override any default configs for hard coded networks.
 	switch {
@@ -1317,6 +1319,7 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
 }
+
 // RegisterStorageService adds a torrent file system to the stack.
 func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
 	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
