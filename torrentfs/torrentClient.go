@@ -157,7 +157,7 @@ func verifyTorrent(info *metainfo.Info, root string) error {
 			return err
 		}
 		if int64(len(mm)) != file.Length {
-			return fmt.Errorf("file %q has wrong length", filename)
+			return fmt.Errorf("file %q has wrong length, %d / %d", filename, int64(len(mm)), file.Length)
 		}
 		span.Append(mm)
 	}
