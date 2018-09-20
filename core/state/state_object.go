@@ -312,12 +312,12 @@ func (self *stateObject) setNum(num *big.Int) {
 	self.data.Num = num
 }
 
-func (self *stateObject) SetNum(amount *big.Int) {
+func (self *stateObject) SetNum(num *big.Int) {
 	self.db.journal.append(numChange{
 		account: &self.address,
 		prev:    new(big.Int).Set(self.data.Num),
 	})
-	self.setNum(amount)
+	self.setNum(num)
 }
 
 func (self *stateObject) setUpload(amount *big.Int) {
