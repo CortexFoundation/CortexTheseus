@@ -38,6 +38,9 @@ type StateDB interface {
 	Uploading(common.Address) bool
 	Download(common.Address) error
 
+	GetNum(common.Address) *big.Int
+	SetNum(common.Address, *big.Int)
+
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 
