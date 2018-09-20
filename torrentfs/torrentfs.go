@@ -2,12 +2,11 @@ package torrentfs
 
 import (
 	"fmt"
-	"sync"
-
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
+	"sync"
 )
 
 type GeneralMessage struct {
