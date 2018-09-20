@@ -17,13 +17,13 @@ type GeneralMessage struct {
 
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
-	config   *Config
-	lock     sync.RWMutex // Lock protecting the torrentfs' internals
-	history  *GeneralMessage
+	config  *Config
+	lock    sync.RWMutex // Lock protecting the torrentfs' internals
+	history *GeneralMessage
 
-	quit chan chan error // Channel used for graceful exit
-	monitor  *Monitor
-	tm       *TorrentManager
+	quit    chan chan error // Channel used for graceful exit
+	monitor *Monitor
+	tm      *TorrentManager
 }
 
 // New creates a new dashboard instance with the given configuration.
@@ -38,7 +38,7 @@ func New(config *Config, commit string) *TorrentFS {
 			Commit:  commit,
 			Version: fmt.Sprintf("v%d.%d.%d%s", params.VersionMajor, params.VersionMinor, params.VersionPatch, versionMeta),
 		},
-		quit:   make(chan chan error),
+		quit: make(chan chan error),
 	}
 }
 
@@ -51,7 +51,7 @@ func (db *TorrentFS) APIs() []rpc.API { return nil }
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
 func (db *TorrentFS) Start(server *p2p.Server) error {
-	go func(){
+	go func() {
 		db.tm = NewTorrentManager(db.config)
 		db.monitor = NewMonitor(db.config)
 		db.monitor.SetDownloader(db.tm)
