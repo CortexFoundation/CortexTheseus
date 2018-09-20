@@ -196,6 +196,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
 	ExistDir := path.Join(tm.DataDir, ih.HexString())
 
+	useExistDir := false
 	if _, err := os.Stat(ExistDir); err == nil {
 		log.Info("Seeding from existing file.", "InfoHash", ih.HexString())
 		info, err := mi.UnmarshalInfo()
@@ -204,7 +205,12 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		}
 		if err := verifyTorrent(&info, ExistDir); err != nil {
 			log.Info("torrent failed verification:", "err", err)
+		} else {
+			useExistDir = true
 		}
+	}
+
+	if useExistDir {
 		spec.Storage = storage.NewFile(ExistDir)
 
 		if len(spec.Trackers) == 0 {
@@ -213,7 +219,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		for _, tracker := range tm.trackers {
 			spec.Trackers[0] = append(spec.Trackers[0], tracker)
 		}
-		t, _, err := tm.client.AddTorrentSpec(spec)
+		t, _, _ := tm.client.AddTorrentSpec(spec)
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
