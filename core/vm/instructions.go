@@ -696,21 +696,15 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 
-	if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
-		//return nil, types.ErrorInvalidBlockNum
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0)) <= 0 {
 		return nil, errExecutionReverted
 	}
 
-	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
-		//return nil, types.ErrorNotMature
-		//return nil, errExecutionReverted
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		return nil, errMetaInfoNotMature
 	}
 
-	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
-		//return nil, types.ErrorExpired
-		//return nil, errExecutionReverted
-		//return nil, errors.New("EXPIRED MODEL ERROR")
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
 
@@ -731,34 +725,19 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	log.Debug(fmt.Sprintf("opInfer:modelMeta: %s", common.Car(modelMeta.EncodeJSON())))
 	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
 
-	if inputMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
-		//return nil, types.ErrorInvalidBlockNum
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0)) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
 
-	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
-		//return nil, types.ErrorNotMature
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		return nil, errMetaInfoNotMature
 	}
 
-	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
-	//todo torrent fs verification
+	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
 
-	//output, err := uint64(0), nil
-	//for {
-		output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
-	//	if err == nil {
-	//		break
-	//	}
-
-		//todo interrupt
-
-	//	time.Sleep(time.Duration(1) * time.Second)
-	//}
-
-	//todo
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
