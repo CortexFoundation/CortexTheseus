@@ -1,16 +1,24 @@
 package torrentfs
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"fmt"
+	"github.com/anacrolix/missinggo/slices"
+	"github.com/bradfitz/iter"
+	"github.com/edsrzf/mmap-go"
+	"io"
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/anacrolix/torrent/mmap_span"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -124,6 +132,50 @@ func (tm *TorrentManager) SetTrackers(trackers []string) {
 	}
 }
 
+func mmapFile(name string) (mm mmap.MMap, err error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return
+	}
+	if fi.Size() == 0 {
+		return
+	}
+	return mmap.MapRegion(f, -1, mmap.RDONLY, mmap.COPY, 0)
+}
+
+func verifyTorrent(info *metainfo.Info, root string) error {
+	span := new(mmap_span.MMapSpan)
+	for _, file := range info.UpvertedFiles() {
+		filename := filepath.Join(append([]string{root, info.Name}, file.Path...)...)
+		mm, err := mmapFile(filename)
+		if err != nil {
+			return err
+		}
+		if int64(len(mm)) != file.Length {
+			return fmt.Errorf("file %q has wrong length, %d / %d", filename, int64(len(mm)), file.Length)
+		}
+		span.Append(mm)
+	}
+	for i := range iter.N(info.NumPieces()) {
+		p := info.Piece(i)
+		hash := sha1.New()
+		_, err := io.Copy(hash, io.NewSectionReader(span, p.Offset(), p.Length()))
+		if err != nil {
+			return err
+		}
+		good := bytes.Equal(hash.Sum(nil), p.Hash().Bytes())
+		if !good {
+			return fmt.Errorf("hash mismatch at piece %d", i)
+		}
+	}
+	return nil
+}
+
 // AddTorrent ...
 func (tm *TorrentManager) AddTorrent(filePath string) {
 	mi, err := metainfo.LoadFromFile(filePath)
@@ -146,34 +198,61 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 
 	if _, err := os.Stat(ExistDir); err == nil {
 		log.Info("Seeding from existing file.", "InfoHash", ih.HexString())
+		info, err := mi.UnmarshalInfo()
+		if err != nil {
+			log.Error("error unmarshalling info: ", "info", err)
+		}
+		if err := verifyTorrent(&info, ExistDir); err != nil {
+			log.Info("torrent failed verification:", "err", err)
+		}
 		spec.Storage = storage.NewFile(ExistDir)
+
+		if len(spec.Trackers) == 0 {
+			spec.Trackers = append(spec.Trackers, []string{})
+		}
+		for _, tracker := range tm.trackers {
+			spec.Trackers[0] = append(spec.Trackers[0], tracker)
+		}
+		t, _, err := tm.client.AddTorrentSpec(spec)
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
+		tm.torrents[ih] = &Torrent{
+			t,
+			defaultBytesLimitation,
+			int64(defaultBytesLimitation * expansionFactor),
+			0,
+			0,
+			torrentPending,
+		}
+		tm.mu.Unlock()
+		tm.torrents[ih].Seed()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
-	}
 
-	if len(spec.Trackers) == 0 {
-		spec.Trackers = append(spec.Trackers, []string{})
+		if len(spec.Trackers) == 0 {
+			spec.Trackers = append(spec.Trackers, []string{})
+		}
+		for _, tracker := range tm.trackers {
+			spec.Trackers[0] = append(spec.Trackers[0], tracker)
+		}
+		t, _, _ := tm.client.AddTorrentSpec(spec)
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
+		tm.torrents[ih] = &Torrent{
+			t,
+			defaultBytesLimitation,
+			int64(defaultBytesLimitation * expansionFactor),
+			0,
+			0,
+			torrentPending,
+		}
+		tm.mu.Unlock()
+		log.Info("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
+		<-t.GotInfo()
+		tm.torrents[ih].Run()
 	}
-	for _, tracker := range tm.trackers {
-		spec.Trackers[0] = append(spec.Trackers[0], tracker)
-	}
-	var ss []string
-	slices.MakeInto(&ss, mi.Nodes)
-	tm.client.AddDHTNodes(ss)
-	t, _, err := tm.client.AddTorrentSpec(spec)
-	tm.torrents[ih] = &Torrent{
-		t,
-		defaultBytesLimitation,
-		int64(defaultBytesLimitation * expansionFactor),
-		0,
-		0,
-		torrentPending,
-	}
-	tm.mu.Unlock()
-	t.VerifyData()
-	log.Info("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
-	<-t.GotInfo()
-	tm.torrents[ih].Run()
 }
 
 // AddMagnet ...
@@ -187,11 +266,11 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
 	if _, err := os.Stat(torrentPath); err == nil {
-		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(torrentPath)
 		return
 	} else if _, err := os.Stat(seedTorrentPath); err == nil {
-		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(seedTorrentPath)
 		return
 	}
@@ -324,7 +403,13 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		for counter = 0;; counter++ {
 			for ih, t := range TorrentManager.torrents {
 				if t.Seeding() {
-
+					if counter >= 20 {
+						log.Info("Torrent seeding",
+							"InfoHash", ih.HexString(),
+							"total", t.bytesCompleted+t.bytesMissing,
+							"seeding", t.Torrent.Seeding(),
+						)
+					}
 				} else if !t.Pending() {
 					t.bytesCompleted = t.BytesCompleted()
 					t.bytesMissing = t.BytesMissing()
@@ -341,6 +426,15 @@ func NewTorrentManager(config *Config) *TorrentManager {
 					}
 					if counter >= 20 {
 						log.Info("Torrent progress",
+							"InfoHash", ih.HexString(),
+							"completed", t.bytesCompleted,
+							"requested", t.bytesLimitation,
+							"total", t.bytesCompleted+t.bytesMissing,
+						)
+					}
+				} else {
+					if counter >= 20 {
+						log.Info("Torrent pending",
 							"InfoHash", ih.HexString(),
 							"completed", t.bytesCompleted,
 							"requested", t.bytesLimitation,
