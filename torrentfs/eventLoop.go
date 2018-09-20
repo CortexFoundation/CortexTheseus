@@ -255,9 +255,6 @@ func (m *Monitor) initialCheck(reverse bool) {
 	if reverse {
 		lastBlock := m.fs.LatestBlockNumber
 		for i := endBlock; i >= minBlockNum; i-- {
-			if m.fs.HasBlock(i) {
-				continue
-			}
 			m.parseBlockByNumber(i)
 			blockChecked++
 			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
@@ -268,9 +265,6 @@ func (m *Monitor) initialCheck(reverse bool) {
 	} else {
 		lastBlock := uint64(minBlockNum)
 		for i := uint64(minBlockNum); i <= endBlock; i++ {
-			if m.fs.HasBlock(i) {
-				continue
-			}
 			m.parseBlockByNumber(i)
 			blockChecked++
 			if blockChecked%fetchBlockLogStep == 0 || i == endBlock {
