@@ -49,6 +49,8 @@ type Torrent struct {
 }
 
 func (t * Torrent) Seed() {
+	t.VerifyData()
+	t.DownloadAll()
 	t.status = torrentSeeding
 }
 
@@ -72,8 +74,8 @@ func (t *Torrent) Paused() bool {
 // Run ...
 func (t *Torrent) Run() {
 	if t.status != torrentRunning {
-		t.status = torrentRunning
 		t.DownloadAll()
+		t.status = torrentRunning
 	}
 }
 
@@ -196,6 +198,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
 	ExistDir := path.Join(tm.DataDir, ih.HexString())
 
+	useExistDir := false
 	if _, err := os.Stat(ExistDir); err == nil {
 		log.Info("Seeding from existing file.", "InfoHash", ih.HexString())
 		info, err := mi.UnmarshalInfo()
@@ -204,7 +207,12 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		}
 		if err := verifyTorrent(&info, ExistDir); err != nil {
 			log.Info("torrent failed verification:", "err", err)
+		} else {
+			useExistDir = true
 		}
+	}
+
+	if useExistDir {
 		spec.Storage = storage.NewFile(ExistDir)
 
 		if len(spec.Trackers) == 0 {
@@ -213,10 +221,10 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		for _, tracker := range tm.trackers {
 			spec.Trackers[0] = append(spec.Trackers[0], tracker)
 		}
+		t, _, _ := tm.client.AddTorrentSpec(spec)
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
-		t, _, err := tm.client.AddTorrentSpec(spec)
 		tm.torrents[ih] = &Torrent{
 			t,
 			defaultBytesLimitation,
@@ -226,8 +234,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 			torrentPending,
 		}
 		tm.mu.Unlock()
-		t.VerifyData()
-		tm.torrents[ih].Run()
+		tm.torrents[ih].Seed()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
 
@@ -237,10 +244,10 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		for _, tracker := range tm.trackers {
 			spec.Trackers[0] = append(spec.Trackers[0], tracker)
 		}
+		t, _, _ := tm.client.AddTorrentSpec(spec)
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
-		t, _, _ := tm.client.AddTorrentSpec(spec)
 		tm.torrents[ih] = &Torrent{
 			t,
 			defaultBytesLimitation,
@@ -250,7 +257,6 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 			torrentPending,
 		}
 		tm.mu.Unlock()
-		t.VerifyData()
 		log.Info("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 		<-t.GotInfo()
 		tm.torrents[ih].Run()
@@ -352,6 +358,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	listenAddr := &net.TCPAddr{}
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	cfg.SetListenAddr(listenAddr.String())
+	cfg.Seed = true
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
@@ -404,17 +411,18 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		var counter uint64
 		for counter = 0;; counter++ {
 			for ih, t := range TorrentManager.torrents {
+				t.bytesCompleted = t.BytesCompleted()
+				t.bytesMissing = t.BytesMissing()
 				if t.Seeding() {
 					if counter >= 20 {
 						log.Info("Torrent seeding",
 							"InfoHash", ih.HexString(),
+							"completed", t.bytesCompleted,
 							"total", t.bytesCompleted+t.bytesMissing,
 							"seeding", t.Torrent.Seeding(),
 						)
 					}
 				} else if !t.Pending() {
-					t.bytesCompleted = t.BytesCompleted()
-					t.bytesMissing = t.BytesMissing()
 					if t.bytesMissing == 0 {
 						os.Symlink(
 							path.Join(TorrentManager.TmpDataDir, ih.HexString()),
