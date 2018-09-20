@@ -2,8 +2,11 @@ package torrentfs
 
 import (
 	"errors"
+	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -303,6 +306,8 @@ func (m *Monitor) Start() error {
 
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
 	counter := 0
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	for {
 		select {
 		case <-timer.C:
