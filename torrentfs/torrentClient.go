@@ -213,10 +213,10 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		for _, tracker := range tm.trackers {
 			spec.Trackers[0] = append(spec.Trackers[0], tracker)
 		}
+		t, _, err := tm.client.AddTorrentSpec(spec)
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
-		t, _, err := tm.client.AddTorrentSpec(spec)
 		tm.torrents[ih] = &Torrent{
 			t,
 			defaultBytesLimitation,
@@ -226,8 +226,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 			torrentPending,
 		}
 		tm.mu.Unlock()
-		t.VerifyData()
-		tm.torrents[ih].Run()
+		tm.torrents[ih].Seed()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
 
@@ -237,10 +236,10 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		for _, tracker := range tm.trackers {
 			spec.Trackers[0] = append(spec.Trackers[0], tracker)
 		}
+		t, _, _ := tm.client.AddTorrentSpec(spec)
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
-		t, _, _ := tm.client.AddTorrentSpec(spec)
 		tm.torrents[ih] = &Torrent{
 			t,
 			defaultBytesLimitation,
@@ -250,7 +249,6 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 			torrentPending,
 		}
 		tm.mu.Unlock()
-		t.VerifyData()
 		log.Info("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 		<-t.GotInfo()
 		tm.torrents[ih].Run()
