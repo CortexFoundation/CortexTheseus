@@ -35,17 +35,21 @@ void *load_model(char *cfg_fname, char *model_bin_fname)
         fclose(fp);
         return NULL;
     }
+    size_t res;
     for(int i = 0; i < net->n; i++)
     {
         l = net->layers[i];
         if(l.type == CONVOLUTIONAL){
-            fread((char*)l.weights, sizeof(char), l.nweights, fp);
+            res = fread((char*)l.weights, sizeof(char), l.nweights, fp);
+            if (!res) return NULL;
             push_int_convolutional_layer(l);
             net->layers[i] = l;
         }
         else if(l.type == CONNECTED){
-            fread((char*)l.weights, sizeof(char), l.nweights, fp);
-            fread((char*)l.biases, sizeof(char), l.nbiases, fp);
+            res = fread((char*)l.weights, sizeof(char), l.nweights, fp);
+            if (!res) return NULL;
+            res = fread((char*)l.biases, sizeof(char), l.nbiases, fp);
+            if (!res) return NULL;
             push_int_connected_layer(l);
             net->layers[i] = l;
         }
