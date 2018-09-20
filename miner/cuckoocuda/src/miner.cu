@@ -668,8 +668,6 @@ int32_t CuckooFindSolutionsCuda(
   using namespace cuckoogpu;
   using std::vector;
 
-  u32 device = 0;
-  cudaSetDevice(device);
   ctx->setheadernonce((char*)header, nonce); //TODO(tian) 
   char headerInHex[65];
   for (uint32_t i = 0; i < 32; i++) {
@@ -706,16 +704,16 @@ int32_t CuckooFindSolutionsCuda(
 
 }
 
-void CuckooInitialize() {
+void CuckooInitialize(uint32_t device) {
   using namespace cuckoogpu;
   using std::vector;
 
   trimparams tp;
-  u32 device = 0;
   int nDevices = 0;
   //TODO(tian) make use of multiple gpu
   checkCudaErrors(cudaGetDeviceCount(&nDevices));
   assert(device < nDevices);
+  cudaSetDevice(device);
   cudaDeviceProp prop;
   checkCudaErrors(cudaGetDeviceProperties(&prop, device));
   assert(tp.genA.tpb <= prop.maxThreadsPerBlock);

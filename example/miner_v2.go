@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core/types"
 	cuckoo_gpu "github.com/ethereum/go-ethereum/miner/cuckoocuda"
-	_ "log"
 	"math/rand"
 	"net"
 	"os"
@@ -18,6 +18,23 @@ import (
 	// "strconv"
 	"sync"
 )
+
+type Miner interface{
+	Login()
+	Mining()
+	Init()(*net.TCPConn)
+}
+
+type Connection struct{
+	lock  sync.Mutex
+	state bool
+}
+type Cortex struct{
+	server, account string
+	conn *net.TCPConn 
+	reader *bufio.Reader	
+	consta Connection
+}
 
 type Task struct {
 	Header     string
@@ -40,10 +57,19 @@ func checkError(err error) {
 	}
 }
 
-func read(reader *bufio.Reader) map[string]interface{} {
+func (cm* Cortex)read() map[string]interface{} {
 	rep := make([]byte, 0, 4096) // big buffer
 	for {
-		tmp, isPrefix, err := reader.ReadLine()
+		tmp, isPrefix, err := cm.reader.ReadLine()
+		if err == io.EOF {
+			fmt.Println("Tcp disconnectted")	  
+			cm.conn.Close()
+			cm.conn = nil
+			cm.consta.lock.Lock()
+			cm.consta.state = false
+			cm.consta.lock.Unlock()
+			return nil
+		} 
 		checkError(err)
 		rep = append(rep, tmp...)
 		if isPrefix == false {
@@ -57,55 +83,111 @@ func read(reader *bufio.Reader) map[string]interface{} {
 	return repObj
 }
 
-func write(reqObj ReqObj, conn *net.TCPConn) {
+func (cm* Cortex)write(reqObj ReqObj) {
 	req, err := json.Marshal(reqObj)
 	checkError(err)
 
 	req = append(req, uint8('\n'))
-	_, _ = conn.Write(req)
+	fmt.Println("req = ", req)
+	_, _ = cm.conn.Write(req)
 }
 
-func main() {
-	var testFixTask bool = false
-	if testFixTask {
-		fmt.Println("testFixTask = ", testFixTask)
-
-	}
-
-	type TaskWrapper struct {
-		Lock  sync.Mutex
-		TaskQ Task
-	}
-	var currentTask TaskWrapper
-
-	var THREAD uint = 1
-	cuckoo.CuckooInitialize(1, uint32(THREAD))
-	cuckoo_gpu.CuckooInitialize(0)
-	var taskHeader, taskNonce, taskDifficulty string
-	//-------- connect to server -------------
-	// var server = "139.196.32.192:8009"
-	// var server = "cortex.waterhole.xyz:8008"
-	var server = "192.168.50.104:8009"
-	tcpAddr, err := net.ResolveTCPAddr("tcp", server)
+//	init cortex miner
+func (cm* Cortex)Init() (*net.TCPConn){
+	fmt.Println("init")
+	cm.server = "cortex.waterhole.xyz:8008"
+	cm.account = "0xc3d7a1ef810983847510542edfd5bc5551a6321c"
+	tcpAddr, err := net.ResolveTCPAddr("tcp", cm.server)
 	checkError(err)
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+
+	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	fmt.Println("init be")
 	checkError(err)
-	reader := bufio.NewReader(conn)
-	defer conn.Close()
+	cm.consta.lock.Lock()
+	cm.consta.state = true
+	cm.consta.lock.Unlock()
+	fmt.Println("there")
+	cm.reader = bufio.NewReader(cm.conn)
+//	defer cm.conn.Close()
+	cm.conn.SetKeepAlive(true)
+	fmt.Println("here", cm.consta.state, cm.conn)
+	return cm.conn
+}
+
+//	miner login to mining pool
+func (cm* Cortex)Login() {
+	fmt.Println("login")
 	var reqLogin = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
 		Method:  "eth_submitLogin",
-		Params:  []string{"0xc3d7a1ef810983847510542edfd5bc5551a6321c"},
+		Params:  []string{cm.account},
 	}
-	write(reqLogin, conn)
-	loginRsp := read(reader)
-	fmt.Println("loginRsp: ", loginRsp)
+	cm.write(reqLogin)
+	cm.read()
+}
 
+//	get mining task
+func (cm* Cortex)getWork() {
+	req := ReqObj{
+	Id:      100,
+	Jsonrpc: "2.0",
+	Method:  "eth_getWork",
+	Params:  []string{""},
+	}
+	cm.write(req)
+}
+
+//	submit task
+func (cm* Cortex)submit(sol Task) {
+	var reqSubmit = ReqObj{
+		Id:      73,
+		Jsonrpc: "2.0",
+		Method:  "eth_submitWork",
+		Params:  []string{sol.Nonce, sol.Header, sol.Solution},
+	}
+	cm.write(reqSubmit)
+}
+
+//	cortex mining
+func (cm* Cortex) Mining() {
+	for {
+		for{
+			cm.consta.lock.Lock()
+			consta := cm.consta.state
+			cm.consta.lock.Unlock()
+			if consta== false {
+				fmt.Println("mining")
+				cm.Init()
+				cm.Login()
+			} else {
+				fmt.Println("mining succeess")
+				break
+			}
+		}
+		cm.MiningOnce()
+	}
+}
+
+func (cm* Cortex) MiningOnce() {
+	fmt.Println("once")
+	type TaskWrapper struct {
+		Lock  sync.Mutex
+		TaskQ Task
+	}
+	
+	var currentTask TaskWrapper
+	var taskHeader, taskNonce, taskDifficulty string
+	var THREAD uint = 10
+	cuckoo.CuckooInitialize(1, uint32(THREAD))
 	solChan := make(chan Task, THREAD)
+
 	for nthread := 0; nthread < int(THREAD); nthread++ {
 		go func(tidx uint32, currentTask_ *TaskWrapper) {
 			for {
+				if cm.consta.state == false {
+					return
+				}
 				currentTask_.Lock.Lock()
 				task := currentTask_.TaskQ
 				currentTask_.Lock.Unlock()
@@ -118,14 +200,15 @@ func main() {
 				var result types.BlockSolution
 				curNonce := uint64(rand.Int63())
 				// fmt.Println("task: ", header[:], curNonce)
-				status, sols := cuckoo_gpu.CuckooFindSolutionsCuda(header, curNonce)
+				status, sols := cuckoo.CuckooFindSolutions(header, curNonce)
 				if status != 0 {
-					fmt.Println("result: ", status, sols)
+					// fmt.Println("result: ", status, sols)
 					for _, solUint32 := range sols {
 						var sol types.BlockSolution
 						copy(sol[:], solUint32)
+						// fmt.Println("sol: ", sol, solUint32, solUint32Key)
 						sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-						fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+						// fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
@@ -139,20 +222,21 @@ func main() {
 						}
 					}
 				}
-			}
+			}	
 		}(uint32(nthread), &currentTask)
 	}
 
-	write(ReqObj{
-		Id:      100,
-		Jsonrpc: "2.0",
-		Method:  "eth_getWork",
-		Params:  []string{""},
-	}, conn)
 
+
+
+
+	cm.getWork()
 	go func(currentTask_ *TaskWrapper) {
 		for {
-			msg := read(reader)
+			msg := cm.read()
+			if cm.consta.state == false {
+				 return
+			}
 			fmt.Println("Received: ", msg)
 			reqId, _ := msg["id"].(float64)
 			if uint32(reqId) == 100 || uint32(reqId) == 0 {
@@ -170,24 +254,31 @@ func main() {
 		}
 	}(&currentTask)
 	time.Sleep(2 * time.Second)
+
+
 	for {
+		if cm.consta.state == false {
+			return
+		}
 		select {
-		case sol := <-solChan:
-			currentTask.Lock.Lock()
-			task := currentTask.TaskQ
-			currentTask.Lock.Unlock()
-			if sol.Header == task.Header {
-				var reqSubmit = ReqObj{
-					Id:      73,
-					Jsonrpc: "2.0",
-					Method:  "eth_submitWork",
-					Params:  []string{sol.Nonce, sol.Header, sol.Solution},
+			case sol := <-solChan:
+				currentTask.Lock.Lock()
+				task := currentTask.TaskQ
+				currentTask.Lock.Unlock()
+				if sol.Header == task.Header {
+					cm.submit(sol)
 				}
-				write(reqSubmit, conn)
-			}
-		default:
-			time.Sleep(100 * time.Millisecond)
+			default:
+				time.Sleep(100 * time.Millisecond)
 		}
 	}
 	cuckoo.CuckooFinalize()
+}
+
+
+func main() {
+	var cm Miner = new (Cortex)
+	//_ = cm.Init()
+	//cm.Login()
+	cm.Mining()
 }
