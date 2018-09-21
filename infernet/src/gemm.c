@@ -184,7 +184,6 @@ int* completion(int TA, int TB,char *h_A,int m,int k,char *h_B,int n,char* bias)
     char *h_A_new;
     cudaError_t status = cudaMalloc((void **)&h_A_new, completion_A*m*sizeof(char));
     check_error(status);
-
 	int completion_B_row;
 	int completion_B_col;
     completion_B_row = (((4 - k%4) == 4)?0:(4 - k%4)) + k;
@@ -203,13 +202,9 @@ int* completion(int TA, int TB,char *h_A,int m,int k,char *h_B,int n,char* bias)
     int *h_C;
     status = cudaMalloc((void **)&h_C, m*n*sizeof(int));
     check_error(status);
-    addPaddingA_gpu(h_A_new,h_A,m,completion_A,m,k,TA);
-   
-   
-   
+    addPaddingA_gpu(h_A_new,h_A,m,completion_A,m,k,TA); 
     addPaddingB_gpu(h_B_new,h_B,completion_B_row,completion_B_col,k,n,TB);
 	int a = 1;int b = 0;
-   
    
    
    
@@ -241,7 +236,7 @@ int* completion(int TA, int TB,char *h_A,int m,int k,char *h_B,int n,char* bias)
     check_error(status1);
     rmPadding_gpu(h_C,h_C_new,m,completion_B_col,m,n);
     if (bias!=0)
-        add_bias_gpu_fc(h_C,m*completion_B_col,bias);
+        add_bias_gpu_fc(h_C,m*n,bias);
 
     cuda_free((float*)h_A_new);
     cuda_free((float*)h_B_new);
@@ -255,7 +250,6 @@ void int_gemm_ongpu(int TA, int TB, int M, int N, int K, int ALPHA,
         char *C_gpu, int ldc, char shift_bit)
 {
     int *C_gpu_tmp = completion( TA,  TB,A_gpu,M,K,B_gpu,N,0);
-
     cudaScale(C_gpu, C_gpu_tmp, M*N, shift_bit);
     cuda_free((float *)C_gpu_tmp);
 }
@@ -276,6 +270,24 @@ void int_gemm_gpu(int TA, int TB, int M, int N, int K, int ALPHA,
     cuda_free((float *)B_gpu);
     cuda_free((float *)C_gpu);
 }
+
+
+void int_int32_gemm_gpu(int TA, int TB, int M, int N, int K, int ALPHA, 
+        char *A, int lda, 
+        char *B, int ldb,
+        int BETA,
+        int *C, int ldc, char shift_bit)
+{
+    char *A_gpu = int_cuda_make_array(A, (TA ? lda*K:lda*M));
+    char *B_gpu = int_cuda_make_array(B, N*K);
+    int *C_gpu = completion( TA,  TB,A_gpu,M,K,B_gpu,N,0);
+
+    int32_cuda_pull_array(C_gpu, C, ldc*M);
+    cuda_free((float *)A_gpu);
+    cuda_free((float *)B_gpu);
+    cuda_free((float *)C_gpu);
+}
+
 
 void int_gemm_bias_ongpu_(int TA, int TB, int M, int N, int K, int ALPHA, 
         char *A_gpu, int lda, 
