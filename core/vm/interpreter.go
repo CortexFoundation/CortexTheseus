@@ -207,38 +207,39 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			//if modelMeta.BlockNum.Sign() == 0 {
-			if modelMeta.RawSize > MIN_UPLOAD_BYTES && modelMeta.RawSize <= MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
-				if modelMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
-					//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+			if modelMeta.BlockNum.Sign() == 0 {
+				if modelMeta.RawSize > MIN_UPLOAD_BYTES && modelMeta.RawSize <= MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
+					if modelMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
+						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+					} else {
+						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+					}
 				} else {
-					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+					return nil, ErrInvalidMetaRawSize
 				}
-			} else {
-				return nil, ErrInvalidMetaRawSize
-			}
 
-			if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
-				return nil, ErrInvalidMetaAuthor
-			}
+				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
+					return nil, ErrInvalidMetaAuthor
+				}
 
-			if modelMeta.Gas > MODEL_GAS_LIMIT {
-				modelMeta.SetGas(MODEL_GAS_LIMIT)
-			} else if modelMeta.Gas < 0 {
-				modelMeta.SetGas(0)
-			}
-			in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
-			//modelMeta.SetBlockNum(*in.evm.BlockNumber)
-			tmpCode, err := modelMeta.ToBytes()
-			if err != nil {
-				return nil, err
+				if modelMeta.Gas > MODEL_GAS_LIMIT {
+					modelMeta.SetGas(MODEL_GAS_LIMIT)
+				} else if modelMeta.Gas < 0 {
+					modelMeta.SetGas(0)
+				}
+
+				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
+				modelMeta.SetBlockNum(*in.evm.BlockNumber)
+				tmpCode, err := modelMeta.ToBytes()
+				if err != nil {
+					return nil, err
+				} else {
+					contract.Code = append([]byte{0, 1}, tmpCode...)
+				}
+				log.Info("Model meta created", "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			} else {
-				contract.Code = append([]byte{0, 1}, tmpCode...)
+				log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
-			log.Info("Model meta created", "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
-			//} else {
-			//	log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
-			//}
 
 			return contract.Code, nil
 		}
@@ -257,29 +258,29 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			//if inputMeta.BlockNum.Sign() == 0 {
-			if inputMeta.RawSize > MIN_UPLOAD_BYTES && inputMeta.RawSize <= MAX_UPLOAD_BYTES {
-				if inputMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
-					//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+			if inputMeta.BlockNum.Sign() == 0 {
+				if inputMeta.RawSize > MIN_UPLOAD_BYTES && inputMeta.RawSize <= MAX_UPLOAD_BYTES {
+					if inputMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
+						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+					} else {
+						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+					}
 				} else {
-					in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+					return nil, ErrInvalidMetaRawSize
 				}
-			} else {
-				return nil, ErrInvalidMetaRawSize
-			}
 
-			//		inputMeta.SetBlockNum(*in.evm.BlockNumber)
-			in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
-			tmpCode, err := inputMeta.ToBytes()
-			if err != nil {
-				return nil, err
+				inputMeta.SetBlockNum(*in.evm.BlockNumber)
+				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
+				tmpCode, err := inputMeta.ToBytes()
+				if err != nil {
+					return nil, err
+				} else {
+					contract.Code = append([]byte{0, 2}, tmpCode...)
+				}
+				log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			} else {
-				contract.Code = append([]byte{0, 2}, tmpCode...)
+				log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			}
-			log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
-			//	} else {
-			//		log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
-			//	}
 
 			return contract.Code, nil
 		}
