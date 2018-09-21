@@ -629,6 +629,25 @@ layer parse_shortcut(list *options, size_params params, network *net)
     return s;
 }
 
+layer int_parse_shortcut(list *options, size_params params, network *net)
+{
+    char *l = option_find(options, "from");
+    int index = atoi(l);
+    if(index < 0) index = params.index + index;
+
+    int batch = params.batch;
+    layer from = net->layers[index];
+
+    layer s = make_int_shortcut_layer(batch, index, params.w, params.h, params.c, from.out_w, from.out_h, from.out_c);
+
+    char *activation_s = option_find_str(options, "activation", "linear");
+    ACTIVATION activation = get_activation(activation_s);
+    s.activation = activation;
+    s.alpha = option_find_float_quiet(options, "alpha", 1);
+    s.beta = option_find_float_quiet(options, "beta", 1);
+    return s;
+}
+
 
 layer parse_l2norm(list *options, size_params params)
 {
@@ -1020,6 +1039,8 @@ network *int_parse_network_cfg(char *filename)
             l = int_parse_batchnorm(options, params);
         }else if(lt == MAXPOOL){
             l = int_parse_maxpool(options, params);
+        }else if(lt == SHORTCUT){
+            l = int_parse_shortcut(options, params, net);
         }else{
             fprintf(stderr, "Type not recognized: %s\n", s->type);
         }
