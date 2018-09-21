@@ -34,7 +34,7 @@ import (
 const (
 	// HashLength is the expected length of the hash
 	HashLength = 32
-	// AddressLength is the expected length of the adddress
+	// AddressLength is the expected length of the address
 	AddressLength = 20
 	Prefix        = "0x"
 	Prefix_caps   = "0X"
