@@ -1,6 +1,7 @@
 package torrentfs
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/signal"
@@ -72,6 +73,15 @@ func NewMonitor(flag *Config) *Monitor {
 		m.SetConnection(flag.RpcURI)
 	}
 	return m
+}
+
+func (m *Monitor) Call(result interface{}, method string, args ...interface{}) error {
+	if m.config.TestMode {
+		return nil
+	} else {
+		ctx := context.Background()
+		return m.cl.CallContext(ctx, result, method, args...)
+	}
 }
 
 func (m *Monitor) Terminate() chan<- struct{} {
