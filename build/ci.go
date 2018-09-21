@@ -76,6 +76,7 @@ var (
 		executablePath("abigen"),
 		executablePath("bootnode"),
 		executablePath("evm"),
+		executablePath("miner"),
 		executablePath("geth"),
 		executablePath("puppeth"),
 		executablePath("rlpdump"),
@@ -101,6 +102,10 @@ var (
 		{
 			BinaryName:  "evm",
 			Description: "Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+		},
+		{
+			BinaryName:  "miner",
+			Description: "2 in 1 miner",
 		},
 		{
 			BinaryName:  "geth",
