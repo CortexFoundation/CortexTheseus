@@ -25,6 +25,7 @@ endif
 
 geth: cminer infernet
 	build/env.sh go run build/ci.go install ./cmd/geth
+	build/env.sh go run build/ci.go install ./cmd/miner
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 
