@@ -93,8 +93,7 @@ func (t *Transaction) Parse() *FileMeta {
 			&AuthorAddress,
 			meta.URI,
 			meta.RawSize,
-			//meta.BlockNum.Uint64(),
-			0,
+			meta.BlockNum.Uint64(),
 		}
 	} else if t.Op() == opCreateModel {
 		var meta types.ModelMeta
@@ -105,8 +104,7 @@ func (t *Transaction) Parse() *FileMeta {
 			&AuthorAddress,
 			meta.URI,
 			meta.RawSize,
-			//meta.BlockNum.Uint64(),
-			0,
+			meta.BlockNum.Uint64(),
 		}
 	} else {
 		return nil
