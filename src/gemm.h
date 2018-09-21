@@ -21,6 +21,12 @@ void gemm_cpu(int TA, int TB, int M, int N, int K, float ALPHA,
 #ifdef GPU
 void cudaScale(char* output, int* input, int size, char shift_bit);
 
+void int_int32_gemm_gpu(int TA, int TB, int M, int N, int K, int ALPHA, 
+        char *A, int lda, 
+        char *B, int ldb,
+        int BETA,
+        int *C, int ldc, char shift_bit);
+        
 void gemm_gpu(int TA, int TB, int M, int N, int K, float ALPHA, 
         float *A_gpu, int lda, 
         float *B_gpu, int ldb,

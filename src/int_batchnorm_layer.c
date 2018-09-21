@@ -12,22 +12,20 @@ layer make_int_batchnorm_layer(int batch, int w, int h, int c)
     l.h = l.out_h = h;
     l.w = l.out_w = w;
     l.c = l.out_c = c;
-
     l.inputs = w*h*c;
     l.outputs = l.inputs;
 
-    l.scales = calloc(c, sizeof(char));
-    l.biases = calloc(c, sizeof(char));
-    l.output = calloc(h * w * c * batch, sizeof(char));
+    l.scales = (float*)calloc(c, sizeof(char));
+    l.biases = (float*)calloc(c, sizeof(char));
+    l.output = (float*)calloc(h * w * c * batch, sizeof(char));
 
     int i;
     for(i = 0; i < c; ++i){
-        l.scales[i] = 1;
+        ((char*)l.scales)[i] = 1;
     }
 
 #ifdef GPU
     l.forward_gpu = forward_int_batchnorm_layer_gpu;
-
     l.output_gpu =  (float*)int_cuda_make_array((char*)l.output, h * w * c * batch);
     l.biases_gpu = (float*)int_cuda_make_array((char*)l.biases, c);
     l.scales_gpu = (float*)int_cuda_make_array((char*)l.scales, c);

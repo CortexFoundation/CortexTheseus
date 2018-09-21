@@ -40,6 +40,7 @@ void *load_model(char *cfg_fname, char *model_bin_fname)
         l = net->layers[i];
         if(l.type == CONVOLUTIONAL){
             fread((char*)l.weights, sizeof(char), l.nweights, fp);
+            fread((char*)l.biases, sizeof(char), l.nbiases, fp);
             push_int_convolutional_layer(l);
             net->layers[i] = l;
         }
@@ -49,10 +50,16 @@ void *load_model(char *cfg_fname, char *model_bin_fname)
             push_int_connected_layer(l);
             net->layers[i] = l;
         }
+        else if(l.type == BATCHNORM){
+            fread((char*)l.scales, sizeof(char), l.c, fp);
+            fread((char*)l.biases, sizeof(char), l.c, fp);
+            push_int_batchnorm_layer(l);
+            net->layers[i] = l;
+        }
     }
     fclose(fp);
     return (void*)net;
-}
+}   
 
 void free_model(void *model)
 {
