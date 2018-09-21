@@ -15,12 +15,6 @@ extern "C" {
 #include "cuda.h"
 }
 
-void int32_cuda_pull_array(int *x_gpu, int *x, size_t n)
-{
-    size_t size = sizeof(int)*n;
-    cudaError_t status = cudaMemcpy(x, x_gpu, size, cudaMemcpyDeviceToHost);
-    check_error(status);
-}
 void forward_int_convolutional_layer_gpu(int_convolutional_layer l, network net)
 {
     int_fill_gpu(l.outputs*l.batch, 0, (char*)l.output_gpu, 1);
