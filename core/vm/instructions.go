@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	//"time"
 )
 
 var (
@@ -37,6 +38,7 @@ var (
 	errExecutionReverted     = errors.New("evm: execution reverted")
 	errMetaInfoBlockNum      = errors.New("evm: meta info blocknum <= 0")
 	errMetaInfoNotMature     = errors.New("evm: errMetaInfoNotMature")
+	errMetaShapeNotMatch     = errors.New("evm: model&input shape not matched")
 	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 )
@@ -367,7 +369,7 @@ func opSAR(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 	defer interpreter.intPool.put(shift) // First operand back into the pool
 
 	if shift.Cmp(common.Big256) >= 0 {
-		if value.Sign() > 0 {
+		if value.Sign() >= 0 {
 			value.SetUint64(0)
 		} else {
 			value.SetInt64(-1)
@@ -695,21 +697,15 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 
-	if modelMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
-		//return nil, types.ErrorInvalidBlockNum
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0)) <= 0 {
 		return nil, errExecutionReverted
 	}
 
-	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
-		//return nil, types.ErrorNotMature
-		//return nil, errExecutionReverted
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		return nil, errMetaInfoNotMature
 	}
 
-	if modelMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
-		//return nil, types.ErrorExpired
-		//return nil, errExecutionReverted
-		//return nil, errors.New("EXPIRED MODEL ERROR")
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
 
@@ -730,28 +726,39 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	log.Debug(fmt.Sprintf("opInfer:modelMeta: %s", common.Car(modelMeta.EncodeJSON())))
 	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
 
-	if inputMeta.BlockNum.Cmp(big.NewInt(0)) <= 0 {
-		//return nil, types.ErrorInvalidBlockNum
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0)) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
 
-	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
-		//return nil, types.ErrorNotMature
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.MatureBlks))) > 0 {
 		return nil, errMetaInfoNotMature
 	}
 
-	if inputMeta.BlockNum.Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
-		//return nil, types.ErrorExpired
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
+		return nil, errMetaInfoExpired
+	}
+
+	// Model&Input shape should match
+	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
+		return nil, errMetaShapeNotMatch
+	}
+	for idx, modelShape := range modelMeta.InputShape {
+		if modelShape != inputMeta.Shape[idx] {
+			return nil, errMetaShapeNotMatch
+		}
 	}
 
 	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
 
-	//todo
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
 	stack.push(interpreter.intPool.get().SetUint64(output))
+
+	interpreter.evm.StateDB.SetNum(modelAddr, interpreter.evm.BlockNumber)
+	interpreter.evm.StateDB.SetNum(inputAddr, interpreter.evm.BlockNumber)
+
 	return nil, nil
 }
 func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {

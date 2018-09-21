@@ -31,7 +31,7 @@ import (
 
 var (
 	errInsufficientBalanceForGas        = errors.New("insufficient balance to pay for gas")
-	PER_UPLOAD_BYTES             uint64 = 1 * 512 * 1024
+	PER_UPLOAD_BYTES             uint64 = 1 * 128 * 1024
 )
 
 /*
@@ -234,7 +234,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.refundGas()
-	//TODO(xiaoyan)
 	//model gas
 	gu := st.gasUsed()
 	if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
@@ -258,6 +257,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			//st.state.Download(st.to())
+			st.state.SetNum(st.to(), st.evm.BlockNumber)
 			log.Info("Upload OK", "address", st.to().Hex())
 		}
 	}

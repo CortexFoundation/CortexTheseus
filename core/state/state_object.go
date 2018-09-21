@@ -90,7 +90,7 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Upload.Sign() == 0
+	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Upload.Sign() == 0 && s.data.Num.Sign() == 0
 }
 
 // Account is the Ethereum consensus representation of accounts.
@@ -101,6 +101,7 @@ type Account struct {
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
 	Upload   *big.Int //bytes
+	Num      *big.Int
 }
 
 // newObject creates a state object.
@@ -110,6 +111,10 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	}
 	if data.Upload == nil {
 		data.Upload = new(big.Int)
+	}
+
+	if data.Num == nil {
+		data.Num = new(big.Int)
 	}
 	if data.CodeHash == nil {
 		data.CodeHash = emptyCodeHash
@@ -303,6 +308,18 @@ func (self *stateObject) SetUpload(amount *big.Int) {
 	self.setUpload(amount)
 }
 
+func (self *stateObject) setNum(num *big.Int) {
+	self.data.Num = num
+}
+
+func (self *stateObject) SetNum(num *big.Int) {
+	self.db.journal.append(numChange{
+		account: &self.address,
+		prev:    new(big.Int).Set(self.data.Num),
+	})
+	self.setNum(num)
+}
+
 func (self *stateObject) setUpload(amount *big.Int) {
 	self.data.Upload = amount
 }
@@ -387,6 +404,9 @@ func (self *stateObject) Balance() *big.Int {
 
 func (self *stateObject) Upload() *big.Int {
 	return self.data.Upload
+}
+func (self *stateObject) Num() *big.Int {
+	return self.data.Num
 }
 
 func (self *stateObject) Nonce() uint64 {

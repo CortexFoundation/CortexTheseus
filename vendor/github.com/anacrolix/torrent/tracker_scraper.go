@@ -131,7 +131,6 @@ func (me *trackerScraper) announce() (ret trackerAnnounceResult) {
 }
 
 func (me *trackerScraper) Run() {
-	fmt.Println("trackerScraper:", me.t)
 	for {
 		select {
 		case <-me.t.closed.LockedChan(me.t.cl.locker()):

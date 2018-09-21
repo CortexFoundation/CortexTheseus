@@ -18,20 +18,15 @@ package vm
 
 import (
 	_ "encoding/hex"
-	"errors"
 	"math/big"
 	"sync/atomic"
 	"time"
 
-	"strconv"
-
-	simplejson "github.com/bitly/go-simplejson"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	resty "gopkg.in/resty.v1"
 
 	"fmt"
 )
@@ -51,7 +46,7 @@ type (
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
-func run(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
+func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsHomestead
 		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
@@ -71,7 +66,7 @@ func run(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
 				}(evm.interpreter)
 				evm.interpreter = interpreter
 			}
-			return interpreter.Run(contract, input)
+			return interpreter.Run(contract, input, readOnly)
 		}
 	}
 	return nil, ErrNoCompatibleInterpreter
@@ -220,7 +215,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 		}()
 	}
-	ret, err = run(evm, contract, input)
+	ret, err = run(evm, contract, input, false)
 
 	if evm.vmConfig.RPC_GetInternalTransaction {
 		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
@@ -276,7 +271,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	contract := NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
-	ret, err = run(evm, contract, input)
+	ret, err = run(evm, contract, input, false)
 	if err != nil {
 		evm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
@@ -309,7 +304,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	contract := NewContract(caller, to, nil, gas).AsDelegate()
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
-	ret, err = run(evm, contract, input)
+	ret, err = run(evm, contract, input, false)
 	if err != nil {
 		evm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
@@ -334,13 +329,6 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
 	}
-	// Make sure the readonly is only set if we aren't in readonly yet
-	// this makes also sure that the readonly flag isn't removed for
-	// child calls.
-	if !evm.interpreter.IsReadOnly() {
-		evm.interpreter.SetReadOnly(true)
-		defer func() { evm.interpreter.SetReadOnly(false) }()
-	}
 
 	var (
 		to       = AccountRef(addr)
@@ -355,7 +343,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in Homestead this also counts for code storage gas errors.
-	ret, err = run(evm, contract, input)
+	ret, err = run(evm, contract, input, true)
 	if err != nil {
 		evm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
@@ -406,7 +394,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	}
 	start := time.Now()
 
-	ret, err := run(evm, contract, nil)
+	ret, err := run(evm, contract, nil, false)
 
 	if evm.vmConfig.RPC_GetInternalTransaction {
 		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
@@ -472,31 +460,22 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
-	requestBody := fmt.Sprintf(
-		`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
-	log.Trace(fmt.Sprintf("%v", requestBody))
+	log.Info("Infer Infos", "Model Hash", string(model_meta_hash), "Input Hash", string(input_meta_hash))
 
-	resp, err := resty.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(requestBody).
-		Post(evm.vmConfig.InferURI)
-	if err != nil || resp.StatusCode() != 200 {
-		return 0, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, evm.vmConfig.InferURI, err))
+	var (
+		inferRes uint64
+		errRes   error
+	)
+
+	if evm.vmConfig.InferURI == "" {
+		inferRes, errRes = LocalInfer(string(model_meta_hash), string(input_meta_hash), evm.vmConfig.CallFakeVM)
+	} else {
+		requestBody := fmt.Sprintf(`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
+		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
 	}
-	log.Trace(fmt.Sprintf("%v", resp.String()))
-	js, js_err := simplejson.NewJson([]byte(resp.String()))
-	if js_err != nil {
-		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", js_err))
-	}
-	int_output_tmp, out_err := js.Get("info").String()
-	if out_err != nil {
-		return 0, errors.New(fmt.Sprintf("evm.Infer: External Call Error | %v ", out_err))
-	}
-	uint64_output, err := strconv.ParseUint(int_output_tmp, 10, 64)
-	if err != nil {
-		return 0, errors.New("evm.Infer: Type Conversion Error")
-	}
-	return uint64_output, nil
+
+	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
+	return inferRes, errRes
 }
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {

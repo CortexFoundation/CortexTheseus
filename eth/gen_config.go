@@ -43,6 +43,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
 		InferURI                string
+		StorageDir              string
 		DocRoot                 string `toml:"-"`
 	}
 	var enc Config
@@ -70,6 +71,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
 	enc.InferURI = c.InferURI
+	enc.StorageDir = c.StorageDir
 	enc.DocRoot = c.DocRoot
 	return &enc, nil
 }
@@ -101,6 +103,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
 		InferURI                *string
+		StorageDir              *string
 		DocRoot                 *string `toml:"-"`
 	}
 	var dec Config
@@ -178,6 +181,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.InferURI != nil {
 		c.InferURI = *dec.InferURI
+	}
+	if dec.StorageDir != nil {
+		c.StorageDir = *dec.StorageDir
 	}
 	if dec.DocRoot != nil {
 		c.DocRoot = *dec.DocRoot
