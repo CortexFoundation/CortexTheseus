@@ -77,6 +77,8 @@ void fast_variance_delta_gpu(float *x, float *delta, float *mean, float *varianc
 void fast_variance_gpu(float *x, float *mean, int batch, int filters, int spatial, float *variance);
 void fast_mean_gpu(float *x, int batch, int filters, int spatial, float *mean);
 void shortcut_gpu(int batch, int w1, int h1, int c1, float *add, int w2, int h2, int c2, float s1, float s2, float *out);
+void int_shortcut_gpu(int batch, int w1, int h1, int c1, char *add, int w2, int h2, int c2, char s1, char s2, char *out);
+
 void scale_bias_gpu(float *output, float *biases, int batch, int n, int size);
 void backward_scale_gpu(float *x_norm, float *delta, int batch, int n, int size, float *scale_updates);
 void scale_bias_gpu(float *output, float *biases, int batch, int n, int size);
