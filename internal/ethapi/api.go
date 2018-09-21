@@ -511,6 +511,15 @@ func (s *PublicBlockChainAPI) GetUpload(ctx context.Context, address common.Addr
 	return (*hexutil.Big)(state.GetUpload(address)), state.Error()
 }
 
+//blocknumber related to expiriation
+func (s *PublicBlockChainAPI) GetNum(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+        state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+        if state == nil || err != nil {
+                return nil, err
+        }
+        return (*hexutil.Big)(state.GetNum(address)), state.Error()
+}
+
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
 // transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {

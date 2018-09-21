@@ -33,7 +33,7 @@ import (
 var (
 	MIN_UPLOAD_BYTES     uint64 = 0
 	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
-	DEFAULT_UPLOAD_BYTES uint64 = 512 * 1024
+	DEFAULT_UPLOAD_BYTES uint64 = 128 * 1024
 	MODEL_GAS_LIMIT      uint64 = 65536
 )
 
@@ -73,7 +73,7 @@ type ConfigAux struct {
 type Interpreter interface {
 	// Run loops and evaluates the contract's code with the given input data and returns
 	// the return byte-slice and an error if one occurred.
-	Run(contract *Contract, input []byte) ([]byte, error)
+	Run(contract *Contract, input []byte, static bool) ([]byte, error)
 	// CanRun tells if the contract, passed as an argument, can be
 	// run by the current interpreter. This is meant so that the
 	// caller can do something like:
@@ -86,10 +86,6 @@ type Interpreter interface {
 	// }
 	// ```
 	CanRun([]byte) bool
-	// IsReadOnly reports if the interpreter is in read only mode.
-	IsReadOnly() bool
-	// SetReadOnly sets (or unsets) read only mode in the interpreter.
-	SetReadOnly(bool)
 }
 
 // EVMInterpreter represents an EVM interpreter
@@ -169,7 +165,7 @@ func IsInputMeta(code []byte) bool {
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
-func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err error) {
+func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	if in.intPool == nil {
 		in.intPool = poolOfIntPools.get()
 		defer func() {
@@ -181,6 +177,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
+
+	// Make sure the readOnly is only set if we aren't in readOnly yet.
+	// This makes also sure that the readOnly flag isn't removed for child calls.
+	if readOnly && !in.readOnly {
+		in.readOnly = true
+		defer func() { in.readOnly = false }()
+	}
 
 	// Reset the previous call's return data. It's unimportant to preserve the old buffer
 	// as every returning call will return new data anyway.
@@ -225,6 +228,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 					modelMeta.SetGas(0)
 				}
 
+				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
 				tmpCode, err := modelMeta.ToBytes()
 				if err != nil {
@@ -232,7 +236,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				} else {
 					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
-				log.Info("Model meta created", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
+				log.Info("Model meta created", "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			} else {
 				log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
@@ -266,13 +270,14 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 				}
 
 				inputMeta.SetBlockNum(*in.evm.BlockNumber)
+				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
 				tmpCode, err := inputMeta.ToBytes()
 				if err != nil {
 					return nil, err
 				} else {
 					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
-				log.Info("Input meta created", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+				log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			} else {
 				log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			}
@@ -427,14 +432,4 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte) (ret []byte, err
 // run by the current interpreter.
 func (in *EVMInterpreter) CanRun(code []byte) bool {
 	return true
-}
-
-// IsReadOnly reports if the interpreter is in read only mode.
-func (in *EVMInterpreter) IsReadOnly() bool {
-	return in.readOnly
-}
-
-// SetReadOnly sets (or unsets) read only mode in the interpreter.
-func (in *EVMInterpreter) SetReadOnly(ro bool) {
-	in.readOnly = ro
 }
