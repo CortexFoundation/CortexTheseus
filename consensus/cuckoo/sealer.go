@@ -117,8 +117,7 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 		log.Info("invalid share difficulty")
 		return false, false, 0
 	}
-	fmt.Println(hashNoNonce.Bytes(), block.Nonce(), solution)
-	ok, sha3Hash := CuckooVerifyHeaderNonceSolutionsDifficulty(hashNoNonce.Bytes(), block.Nonce(), solution)
+	ok, sha3Hash := CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution)
 	if !ok {
 		fmt.Println("invalid solution ", sha3Hash.Hex())
 		return false, false, 0
@@ -126,10 +125,10 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
 	actualDiff := new(big.Int).Div(maxUint256, sha3Hash.Big())
-	/*fmt.Println("sha3Hash : ", sha3Hash)
-	fmt.Println("blockdiff: ", blockDiff, blockTarget)
-	fmt.Println("shareDiff: ", shareDiff, shareTarget)
-	fmt.Println("actdiff  : ", actualDiff, sha3Hash.Big())*/
+	// fmt.Printf("%v\n%v\n%v\n",
+	// 	common.BytesToHash(blockTarget.Bytes()).Hex(),
+	// 	common.BytesToHash(shareTarget.Bytes()).Hex(),
+	// 	sha3Hash.Hex())
 	return sha3Hash.Big().Cmp(shareTarget) <= 0, sha3Hash.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
 }
 
