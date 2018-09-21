@@ -30,4 +30,9 @@ var (
 	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
 	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
 	ErrInvalidMetaAuthor      = errors.New("invalid meta author")
+
+	ErrDownloading = errors.New("downloading")
+	ErrFileNotExist = errors.New("file not exist")
+	ErrInvalidTorrent = errors.New("invalid torrent")
+	ErrInfer = errors.New("infer error")
 )

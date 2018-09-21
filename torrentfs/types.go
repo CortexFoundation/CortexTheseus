@@ -93,7 +93,8 @@ func (t *Transaction) Parse() *FileMeta {
 			&AuthorAddress,
 			meta.URI,
 			meta.RawSize,
-			meta.BlockNum.Uint64(),
+			//meta.BlockNum.Uint64(),
+			0,
 		}
 	} else if t.Op() == opCreateModel {
 		var meta types.ModelMeta
@@ -104,7 +105,8 @@ func (t *Transaction) Parse() *FileMeta {
 			&AuthorAddress,
 			meta.URI,
 			meta.RawSize,
-			meta.BlockNum.Uint64(),
+			//meta.BlockNum.Uint64(),
+			0,
 		}
 	} else {
 		return nil
@@ -117,7 +119,6 @@ type transactionMarshaling struct {
 	GasLimit hexutil.Uint64
 	Payload  hexutil.Bytes
 }
-
 
 // gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
 // Block ... block struct

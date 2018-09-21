@@ -3,7 +3,7 @@ package types
 import (
 	"encoding/json"
 	"errors"
-	"math/big"
+	//"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -20,8 +20,8 @@ var (
 )
 
 const (
-	MatureBlks  = 10
-	ExpiredBlks = 1000000000000000000
+	MatureBlks  = 100
+	ExpiredBlks = 1000000000000000000 //8409600
 )
 
 //InferMeta include ModelMeta struct and InputMeta type
@@ -40,7 +40,7 @@ type ModelMeta struct {
 	OutputShape   []uint64       `json:"OutputShape"`
 	Gas           uint64         `json:"Gas"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
-	BlockNum      big.Int        `json:"BlockNum"`
+	//BlockNum      big.Int        `json:"BlockNum"`
 }
 type InputMeta struct {
 	URI           string         `json:"URI"`
@@ -48,23 +48,23 @@ type InputMeta struct {
 	RawSize       uint64         `json:"RawSize"`
 	Shape         []uint64       `json:"Shape"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
-	BlockNum      big.Int        `json:"BlockNum"`
+	//BlockNum      big.Int        `json:"BlockNum"`
 }
 
-func (mm *ModelMeta) SetBlockNum(num big.Int) error {
-	mm.BlockNum = num
-	return nil
-}
+//func (mm *ModelMeta) SetBlockNum(num big.Int) error {
+//	mm.BlockNum = num
+//	return nil
+//}
 
 func (mm *ModelMeta) SetGas(gas uint64) error {
 	mm.Gas = gas
 	return nil
 }
 
-func (im *InputMeta) SetBlockNum(num big.Int) error {
-	im.BlockNum = num
-	return nil
-}
+//func (im *InputMeta) SetBlockNum(num big.Int) error {
+//	im.BlockNum = num
+//	return nil
+//}
 
 func (mm *ModelMeta) EncodeJSON() (string, error) {
 	data, err := json.Marshal(mm)
