@@ -10,7 +10,7 @@ int32_t CuckooFindSolutionsCuda(
         uint32_t resultBuffSize,
         uint32_t *solLength,
         uint32_t *numSol);
-void CuckooInitialize();
+void CuckooInitialize(uint32_t device);
 void CuckooFinalize();
 #ifdef __cplusplus
 }
