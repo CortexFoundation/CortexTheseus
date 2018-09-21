@@ -31,6 +31,10 @@ void *load_model(char *cfg_fname, char *model_bin_fname)
     network *net = int_parse_network_cfg(cfg_fname);
     layer l;
     FILE *fp = fopen(model_bin_fname, "rb");
+    if (!fp){
+        fclose(fp);
+        return NULL;
+    }
     for(int i = 0; i < net->n; i++)
     {
         l = net->layers[i];
