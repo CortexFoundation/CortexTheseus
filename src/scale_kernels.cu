@@ -6,6 +6,8 @@ extern "C" {
 #include "im2col.h"
 #include "cuda.h"
 }
+#define SIGN(X) ((X)<0?-1:1)
+#define ABS(X) ((X)<0?-(X):(X))
 __global__ void convert_int32_int8(char* output, int* input, int size, char shift_bit){
     int id = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
     if (id>=size){
