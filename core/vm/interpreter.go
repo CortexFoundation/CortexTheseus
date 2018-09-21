@@ -238,7 +238,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				}
 				log.Info("Model meta created", "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			} else {
-				log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
+				//log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
 
 			return contract.Code, nil
@@ -279,7 +279,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				}
 				log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			} else {
-				log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+	//			log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			}
 
 			return contract.Code, nil
