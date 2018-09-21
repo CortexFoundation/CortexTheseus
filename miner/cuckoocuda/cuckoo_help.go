@@ -34,6 +34,6 @@ func CuckooFindSolutionsCuda(hash []byte, nonce uint64) (status_code uint32, ret
 	return uint32(r), ret
 }
 
-func CuckooInitialize() {
-	C.CuckooInitialize()
+func CuckooInitialize(device uint) {
+	C.CuckooInitialize(C.uint32_t(device))
 }
