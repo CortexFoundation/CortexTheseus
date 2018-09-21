@@ -18,7 +18,7 @@ int main()
     fclose(fp);
 
     void * model = load_model("cfg/mnist.cfg", "mnist_model.bin");
-
+    if (!model) return 1;
     printf("--------------------start predict--------------------\n");
     for (int i = 0;i<10;i++){
         int length = get_output_length(model);
