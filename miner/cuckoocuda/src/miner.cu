@@ -1,7 +1,6 @@
 // Cuckoo Cycle, a memory-hard proof-of-work by John Tromp
 // Copyright (c) 2018 Jiri Vadura (photon) and John Tromp
 // This software is covered by the FAIR MINING license
-#define result_t uint32_t
 #include <stdio.h>
 #include <string.h>
 #include <vector>
@@ -12,7 +11,8 @@
 #include <sys/time.h> // gettimeofday
 #include <unistd.h>
 #include "../miner.h"
-namespace cuckoogpu  { 
+#include <sys/types.h>
+namespace cuckoogpu { 
 // TODO(tian) refactor functions under this namespace 
 #include "cuckoo.h"
 #include "siphash.cuh"
@@ -20,6 +20,7 @@ namespace cuckoogpu  {
 
 typedef uint8_t u8;
 typedef uint16_t u16;
+#define result_t uint32_t
 
 typedef u32 node_t;
 typedef u64 nonce_t;
@@ -31,6 +32,16 @@ typedef u64 nonce_t;
 #define NODEBITS (EDGEBITS + 1)
 #define NNODES ((node_t)1 << NODEBITS)
 #define NODEMASK (NNODES - 1)
+
+#define IDXSHIFT 10
+#define CUCKOO_SIZE (NNODES >> IDXSHIFT)
+#define CUCKOO_MASK (CUCKOO_SIZE - 1)
+// number of (least significant) key bits that survives leftshift by NODEBITS
+#define KEYBITS (64-NODEBITS)
+#define KEYMASK ((1L << KEYBITS) - 1)
+#define MAXDRIFT (1L << (KEYBITS - IDXSHIFT))
+
+const static u32 MAXEDGES = 0x1000000;
 
 const static u32 NX        = 1 << XBITS;
 const static u32 NX2       = NX * NX;
@@ -339,7 +350,6 @@ struct trimparams {
   trimparams() {
     expand              =    0;
     ntrims              =  176;
-    // ntrims              =  176;
     genA.blocks         = 4096;
     genA.tpb            =  256;
     genB.blocks         =  NX2;
@@ -402,11 +412,12 @@ struct edgetrimmer {
     cudaDeviceReset();
   }
 
-  u32 trim() {
+  u32 trim(uint32_t device) {
+    cudaSetDevice(device);
     cudaMemcpy(dt, this, sizeof(edgetrimmer), cudaMemcpyHostToDevice);
     cudaEvent_t start, stop;
-    cudaEvent_t startall, stopall;
-    checkCudaErrors(cudaEventCreate(&startall)); checkCudaErrors(cudaEventCreate(&stopall));
+    // cudaEvent_t startall, stopall;
+    // checkCudaErrors(cudaEventCreate(&startall)); checkCudaErrors(cudaEventCreate(&stopall));
     checkCudaErrors(cudaEventCreate(&start)); checkCudaErrors(cudaEventCreate(&stop));
   
     cudaMemset(indexesE, 0, indexesSize);
@@ -422,9 +433,9 @@ struct edgetrimmer {
     else
       SeedA<EDGES_A,   u32><<<tp.genA.blocks, tp.genA.tpb>>>(*dipkeys, bufferAB, (int *)indexesE);
   
-    checkCudaErrors(cudaDeviceSynchronize()); cudaEventRecord(stop, NULL);
-    cudaEventSynchronize(stop); cudaEventElapsedTime(&durationA, start, stop);
-    cudaEventRecord(start, NULL);
+    checkCudaErrors(cudaDeviceSynchronize());
+    cudaEventRecord(stop, NULL);
+    cudaEventSynchronize(stop); cudaEventElapsedTime(&durationA, start, stop); cudaEventRecord(start, NULL);
   
     const u32 halfA = sizeA/2 / sizeof(ulonglong4);
     const u32 halfE = NX2 / 2;
@@ -480,13 +491,6 @@ struct edgetrimmer {
   }
 };
 
-#define IDXSHIFT 10
-#define CUCKOO_SIZE (NNODES >> IDXSHIFT)
-#define CUCKOO_MASK (CUCKOO_SIZE - 1)
-// number of (least significant) key bits that survives leftshift by NODEBITS
-#define KEYBITS (64-NODEBITS)
-#define KEYMASK ((1L << KEYBITS) - 1)
-#define MAXDRIFT (1L << (KEYBITS - IDXSHIFT))
 
 class cuckoo_hash {
 public:
@@ -527,8 +531,6 @@ int nonce_cmp(const void *a, const void *b) {
   return *(u32 *)a - *(u32 *)b;
 }
 
-const static u32 MAXEDGES = 0x200000;
-
 struct solver_ctx {
   edgetrimmer *trimmer;
   uint2 *edges;
@@ -537,11 +539,13 @@ struct solver_ctx {
   std::vector<u32> sols; // concatenation of all proof's indices
   u32 us[MAXPATHLEN];
   u32 vs[MAXPATHLEN];
+  uint32_t device;
 
-  solver_ctx(const trimparams tp) {
+  solver_ctx(const trimparams tp, uint32_t _device = 0) {
     trimmer = new edgetrimmer(tp);
     edges   = new uint2[MAXEDGES];
     cuckoo  = new cuckoo_hash();
+    device = _device;
   }
 
   void setheadernonce(char * const header,  const uint64_t nonce) {
@@ -636,7 +640,7 @@ struct solver_ctx {
     // struct timeval time0, time1;
 
     // gettimeofday(&time0, 0);
-    u32 nedges = trimmer->trim();
+    u32 nedges = trimmer->trim(this->device);
     if (nedges > MAXEDGES) {
       printf("OOPS; losing %d edges beyond MAXEDGES=%d\n", nedges-MAXEDGES, MAXEDGES);
       nedges = MAXEDGES;
@@ -665,69 +669,71 @@ int32_t CuckooFindSolutionsCuda(
         uint32_t *solLength,
         uint32_t *numSol)
 {
-  using namespace cuckoogpu;
-  using std::vector;
+    using namespace cuckoogpu;
+    using std::vector;
+    // printf("[CuckooFindSolutionsCuda] thread: %d\n", getpid());
+    cudaSetDevice(ctx->device);
 
-  u32 device = 0;
-  cudaSetDevice(device);
-  ctx->setheadernonce((char*)header, nonce); //TODO(tian) 
-  char headerInHex[65];
-  for (uint32_t i = 0; i < 32; i++) {
-      sprintf(headerInHex + 2 * i, "%02x", *((unsigned int8_t*)(header + i)));
-  }
-  headerInHex[64] = '\0';
+    ctx->setheadernonce((char*)header, nonce); //TODO(tian) 
+    char headerInHex[65];
+    for (uint32_t i = 0; i < 32; i++) {
+        sprintf(headerInHex + 2 * i, "%02x", *((unsigned int8_t*)(header + i)));
+    }
+    headerInHex[64] = '\0';
 
-  // printf("Looking for %d-cycle on cuckoo%d(\"%s\",%019lu)\n", PROOFSIZE, NODEBITS, headerInHex,  nonce);
-  u32 nsols = ctx->solve();
-  vector<vector<u32> > sols;
-  vector<vector<u32> >* solutions = &sols;
-  for (unsigned s = 0; s < nsols; s++) {
-      u32* prf = &(ctx->sols[s * PROOFSIZE]);
-      solutions->push_back(vector<u32>());
-      vector<u32>& sol = solutions->back();
-      for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
-          sol.push_back(prf[idx]);
-      }
-      // std::sort(sol.begin(), sol.end());
-  }
-  *solLength = 0;
-  *numSol = sols.size();
-  if (sols.size() == 0)
-      return 0;
-  *solLength = uint32_t(sols[0].size());
-  for (size_t n = 0; n < min(sols.size(), (size_t)resultBuffSize / (*solLength)); n++)
-  {
-      vector<u32>& sol = sols[n];
-      for (size_t i = 0; i < sol.size(); i++) {
-          result[i + n * (*solLength)] = sol[i];
-      }
-  }
-  return nsols > 0;
+    // printf("Looking for %d-cycle on cuckoo%d(\"%s\",%019lu)\n", PROOFSIZE, NODEBITS, headerInHex,  nonce);
+    u32 nsols = ctx->solve();
+    vector<vector<u32> > sols;
+    vector<vector<u32> >* solutions = &sols;
+    for (unsigned s = 0; s < nsols; s++) {
+        u32* prf = &(ctx->sols[s * PROOFSIZE]);
+        solutions->push_back(vector<u32>());
+        vector<u32>& sol = solutions->back();
+        for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
+            sol.push_back(prf[idx]);
+        }
+        // std::sort(sol.begin(), sol.end());
+    }
+    *solLength = 0;
+    *numSol = sols.size();
+    if (sols.size() == 0)
+        return 0;
+    *solLength = uint32_t(sols[0].size());
+    for (size_t n = 0; n < min(sols.size(), (size_t)resultBuffSize / (*solLength)); n++)
+    {
+        vector<u32>& sol = sols[n];
+        for (size_t i = 0; i < sol.size(); i++) {
+            result[i + n * (*solLength)] = sol[i];
+        }
+    }
+    return nsols > 0;
 
 }
 
-void CuckooInitialize() {
-  using namespace cuckoogpu;
-  using std::vector;
+void CuckooInitialize(uint32_t device) {
+    printf("thread: %d\n", getpid());
+    using namespace cuckoogpu;
+    using std::vector;
 
-  trimparams tp;
-  u32 device = 0;
-  int nDevices = 0;
-  //TODO(tian) make use of multiple gpu
-  checkCudaErrors(cudaGetDeviceCount(&nDevices));
-  assert(device < nDevices);
-  cudaDeviceProp prop;
-  checkCudaErrors(cudaGetDeviceProperties(&prop, device));
-  assert(tp.genA.tpb <= prop.maxThreadsPerBlock);
-  assert(tp.genB.tpb <= prop.maxThreadsPerBlock);
-  assert(tp.trim.tpb <= prop.maxThreadsPerBlock);
-  // assert(tp.tailblocks <= prop.threadDims[0]);
-  assert(tp.tail.tpb <= prop.maxThreadsPerBlock);
-  assert(tp.recover.tpb <= prop.maxThreadsPerBlock);
-  ctx = new solver_ctx(tp);
-  printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
-  u64 bytes = ctx->trimmer->globalbytes();
-  int unit;
-  for (unit=0; bytes >= 10240; bytes>>=10,unit++);
-  printf("Using %d%cB of global memory.", (u32)bytes, " KMGT"[unit]);
+    trimparams tp;
+    int nDevices = 0;
+    //TODO(tian) make use of multiple gpu
+    checkCudaErrors(cudaGetDeviceCount(&nDevices));
+    assert(device < nDevices);
+    cudaSetDevice(device);
+    // printf("Cuckoo: Device ID %d\n", device);
+    cudaDeviceProp prop;
+    checkCudaErrors(cudaGetDeviceProperties(&prop, device));
+    assert(tp.genA.tpb <= prop.maxThreadsPerBlock);
+    assert(tp.genB.tpb <= prop.maxThreadsPerBlock);
+    assert(tp.trim.tpb <= prop.maxThreadsPerBlock);
+    // assert(tp.tailblocks <= prop.threadDims[0]);
+    assert(tp.tail.tpb <= prop.maxThreadsPerBlock);
+    assert(tp.recover.tpb <= prop.maxThreadsPerBlock);
+    ctx = new solver_ctx(tp, device);
+    printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
+    u64 bytes = ctx->trimmer->globalbytes();
+    int unit;
+    for (unit=0; bytes >= 10240; bytes>>=10,unit++);
+    printf("Using %d%cB of global memory.\n", (u32)bytes, " KMGT"[unit]);
 }
