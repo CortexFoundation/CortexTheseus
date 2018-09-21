@@ -2,8 +2,11 @@ package torrentfs
 
 import (
 	"errors"
+	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -27,7 +30,7 @@ const (
 	fetchBlockTryTimes    = 5
 	fetchBlockTryInterval = 3
 	fetchBlockLogStep     = 500
-	minBlockNum           = 36000
+	minBlockNum           = 0
 )
 
 
@@ -41,20 +44,24 @@ type TorrentManagerAPI interface {
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
-	cl *rpc.Client
-	dl TorrentManagerAPI
-	fs *FileStorage
+	config     *Config
+	cl         *rpc.Client
+	fs         *FileStorage
+	dl         TorrentManagerAPI
+	terminate  chan struct{}
 }
 
 // NewMonitor creates a new instance of monitor.
-// Once Ipcpath is settle, this method perfers to build socket connection in order to
+// Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
-// IpcPath is unaviliable on windows.
+// IpcPath is unavailable on windows.
 func NewMonitor(flag *Config) *Monitor {
 	m := &Monitor{
-		nil,
+		flag,
 		nil,
 		NewFileStorage(flag),
+		nil,
+		make(chan struct{}),
 	}
 	if runtime.GOOS != "windows" && flag.IpcPath != "" {
 		m.SetConnection(flag.IpcPath)
@@ -65,6 +72,10 @@ func NewMonitor(flag *Config) *Monitor {
 		m.SetConnection(flag.RpcURI)
 	}
 	return m
+}
+
+func (m *Monitor) Terminate() chan<- struct{} {
+	return m.terminate
 }
 
 // SetConnection method builds connection to remote or local communicator.
@@ -239,19 +250,30 @@ func (m *Monitor) parseBlock(b *Block) error {
 	return nil
 }
 
-func (m *Monitor) initialCheck() {
+func (m *Monitor) initialCheck(reverse bool) {
 	blockChecked := 0
-	lastblock := m.fs.LatestBlockNumber
-	log.Info("Fetch Block from", "Number", lastblock)
-	for i := lastblock; i >= minBlockNum; i-- {
-		if m.fs.HasBlock(i) {
-			continue
+	endBlock := m.fs.LatestBlockNumber
+	log.Info("Fetch Block from", "Number", endBlock)
+
+	if reverse {
+		lastBlock := m.fs.LatestBlockNumber
+		for i := endBlock; i >= minBlockNum; i-- {
+			m.parseBlockByNumber(i)
+			blockChecked++
+			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
+				log.Info("Blocks have been checked", "from", i, "to", lastBlock)
+				lastBlock = i - 1
+			}
 		}
-		m.parseBlockByNumber(i)
-		blockChecked++
-		if blockChecked%fetchBlockLogStep == 0 || i == 0 {
-			log.Info("Blocks have been checked", "from", i, "to", lastblock)
-			lastblock = i - 1
+	} else {
+		lastBlock := uint64(minBlockNum)
+		for i := uint64(minBlockNum); i <= endBlock; i++ {
+			m.parseBlockByNumber(i)
+			blockChecked++
+			if blockChecked%fetchBlockLogStep == 0 || i == endBlock {
+				log.Info("Blocks have been checked", "from", lastBlock, "to", i)
+				lastBlock = i + 1
+			}
 		}
 	}
 }
@@ -279,12 +301,17 @@ func (m *Monitor) Start() error {
 		return err
 	}
 	m.parseNewBlock(b)
-	go m.initialCheck()
+	reverse := m.config.SyncMode != "full"
+	go m.initialCheck(reverse)
 
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	counter := 0
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	for {
 		select {
 		case <-timer.C:
+			counter += 1
 			// Try to get the latest b
 			b := &Block{}
 			if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
@@ -292,7 +319,10 @@ func (m *Monitor) Start() error {
 				continue
 			}
 			bnum := b.Number
-			log.Info("try to fetch new block", "number", bnum)
+			if counter > 10 {
+				counter = 0
+				log.Info("try to fetch new block", "number", bnum)
+			}
 			if bnum > m.fs.LatestBlockNumber {
 				m.parseBlock(b)
 				log.Info("Fetch block", "Number", bnum, "Txs", len(b.Txs))
@@ -304,6 +334,8 @@ func (m *Monitor) Start() error {
 				}
 			}
 			timer.Reset(time.Second * 3)
+		case <- m.terminate:
+			return nil
 		}
 	}
 }
