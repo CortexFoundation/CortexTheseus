@@ -31,7 +31,7 @@ type Connection struct{
 }
 type Cortex struct{
 	server, account, chip string
-	deviceId uint
+	deviceId, verboseLevel uint
 	conn *net.TCPConn
 	reader *bufio.Reader
 	consta Connection
@@ -89,7 +89,6 @@ func (cm* Cortex)write(reqObj ReqObj) {
 	checkError(err)
 
 	req = append(req, uint8('\n'))
-	fmt.Println("req = ", req)
 	_, _ = cm.conn.Write(req)
 }
 
@@ -103,22 +102,17 @@ func (cm* Cortex)init() (*net.TCPConn){
 	checkError(err)
 
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
-	fmt.Println("init be")
 	checkError(err)
 	cm.consta.lock.Lock()
 	cm.consta.state = true
 	cm.consta.lock.Unlock()
-	fmt.Println("there")
 	cm.reader = bufio.NewReader(cm.conn)
-//	defer cm.conn.Close()
 	cm.conn.SetKeepAlive(true)
-	fmt.Println("here", cm.consta.state, cm.conn)
 	return cm.conn
 }
 
 //	miner login to mining pool
 func (cm* Cortex)login() {
-	fmt.Println("login")
 	var reqLogin = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
@@ -159,11 +153,9 @@ func (cm* Cortex) Mining() {
 			consta := cm.consta.state
 			cm.consta.lock.Unlock()
 			if consta== false {
-				fmt.Println("mining")
 				cm.init()
 				cm.login()
 			} else {
-				fmt.Println("mining succeess")
 				break
 			}
 		}
@@ -172,7 +164,6 @@ func (cm* Cortex) Mining() {
 }
 
 func (cm* Cortex) miningOnce() {
-	fmt.Println("once")
 	type TaskWrapper struct {
 		Lock  sync.Mutex
 		TaskQ Task
@@ -212,17 +203,21 @@ func (cm* Cortex) miningOnce() {
 				if (cm.chip == "cpu") {
 					status, sols := cuckoo.CuckooFindSolutions(header, curNonce)
 					if status != 0 {
-						fmt.Println("result: ", status, sols)
+						if verboseLevel >= 3 {
+							fmt.Println("result: ", status, sols)
+						}
 						for _, solUint32 := range sols {
 							var sol types.BlockSolution
 							copy(sol[:], solUint32)
 							sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-							fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+							if verboseLevel >= 3 {
+								fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+							}
 							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 								result = sol
 								nonceStr := common.Uint64ToHexString(uint64(curNonce))
 								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-								ok, _ := cuckoo.CuckooVerifyHeaderNonceSolutionsDifficulty(header[:], curNonce, &sol)
+								ok, _ := cuckoo.CuckooVerifyHeader(header[:], curNonce, &sol)
 								if !ok {
 									fmt.Println("verify failed", header[:], curNonce, &sol)
 								} else {
@@ -234,17 +229,21 @@ func (cm* Cortex) miningOnce() {
 				} else if (cm.chip == "gpu") {
 						status, sols := cuckoo_gpu.CuckooFindSolutionsCuda(header, curNonce)
 						if status != 0 {
-							fmt.Println("result: ", status, sols)
+							if verboseLevel >= 3 {
+								fmt.Println("result: ", status, sols)
+							}
 							for _, solUint32 := range sols {
 								var sol types.BlockSolution
 								copy(sol[:], solUint32)
 								sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-								fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+								if verboseLevel >= 3 {
+									fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+								}
 								if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 									result = sol
 									nonceStr := common.Uint64ToHexString(uint64(curNonce))
 									digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-									ok, _ := cuckoo.CuckooVerifyHeaderNonceSolutionsDifficulty(header[:], curNonce, &sol)
+									ok, _ := cuckoo.CuckooVerifyHeader(header[:], curNonce, &sol)
 									if !ok {
 										fmt.Println("verify failed", header[:], curNonce, &sol)
 									} else {
@@ -309,11 +308,13 @@ func init() {
 	flag.StringVar(&account, "account", "0xc3d7a1ef810983847510542edfd5bc5551a6321c", "miner accounts")
 	flag.StringVar(&chip, "devicetype", "cpu", "device type")
 	flag.IntVar(&deviceId, "deviceid", 0, "gpu id to mine")
+	flag.IntVar(&verboseLevel, "verbosity", 0, "verbosity level")
 }
 
 var help bool
 var remote, account, chip string
 var deviceId int
+var verboseLevel int
 
 func main() {
 	flag.Parse()
@@ -327,6 +328,7 @@ func main() {
 		account: account,
 		server: remote,
 		deviceId: uint(deviceId),
+		verboseLevel: uint(verboseLevel),
 	}
 	cm.Mining()
 }
