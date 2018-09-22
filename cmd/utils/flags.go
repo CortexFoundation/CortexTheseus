@@ -602,7 +602,8 @@ var (
 	ModelCallInterfaceFlag = cli.StringFlag{
 		Name:  "cvm.inferuri",
 		Usage: "infer uri",
-		Value: "http://127.0.0.1:5000/infer",
+		// Value: "http://127.0.0.1:5000/infer",
+		Value: "",
 	}
 	WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
 		Name:  "shh.restrict-light",
@@ -1168,6 +1169,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// setEthash(ctx, cfg)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
+		// TODO : Setting sync mode is temporally forbidden.
+		Fatalf("Setting syncmode is temporally forbidden. The default value is 'full' mode")
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
 	if ctx.GlobalIsSet(LightServFlag.Name) {
@@ -1232,6 +1235,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
+	cfg.StorageDir = ctx.GlobalString(StorageDirFlag.Name)
 
 	// Override any default configs for hard coded networks.
 	switch {
@@ -1300,6 +1304,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		log.Info("IPCPath", "path", cfg.IpcPath)
 	}
 	cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
+	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
 }
 
