@@ -73,23 +73,23 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
 			utils.TestnetFlag,
-			utils.RinkebyFlag,
+			utils.LazynetFlag,
 			utils.SyncModeFlag,
 			utils.GCModeFlag,
-			utils.EthStatsURLFlag,
+			// utils.EthStatsURLFlag,
 			utils.IdentityFlag,
-			utils.LightServFlag,
-			utils.LightPeersFlag,
-			utils.LightKDFFlag,
+			// utils.LightServFlag,
+			// utils.LightPeersFlag,
+			// utils.LightKDFFlag,
 		},
 	},
-	{
-		Name: "DEVELOPER CHAIN",
-		Flags: []cli.Flag{
-			utils.DeveloperFlag,
-			utils.DeveloperPeriodFlag,
-		},
-	},
+	// {
+	// 	Name: "DEVELOPER CHAIN",
+	// 	Flags: []cli.Flag{
+	// 		utils.DeveloperFlag,
+	// 		utils.DeveloperPeriodFlag,
+	// 	},
+	// },
 	/* {
 		Name: "ETHASH",
 		Flags: []cli.Flag{
