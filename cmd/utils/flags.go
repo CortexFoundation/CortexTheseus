@@ -659,7 +659,7 @@ func MakeDataDir(ctx *cli.Context) string {
 			return filepath.Join(path, "testnet")
 		}
 		if ctx.GlobalBool(LazynetFlag.Name) {
-			return filepath.Join(path, "rinkeby")
+			return filepath.Join(path, "lazynet")
 		}
 		return path
 	}
@@ -1018,7 +1018,7 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
 	case ctx.GlobalBool(LazynetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
