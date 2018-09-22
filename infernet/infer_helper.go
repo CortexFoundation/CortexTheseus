@@ -1,7 +1,7 @@
 package infernet
 
 /*
-#cgo LDFLAGS: -L./ -lcortexnet
+#cgo LDFLAGS: -L./ -Wl,-rpath,./build/bin/ -lcortexnet
 #cgo CFLAGS: -I./src
 
 #include "interface.h"
