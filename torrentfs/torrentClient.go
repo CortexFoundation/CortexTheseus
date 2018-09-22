@@ -327,6 +327,9 @@ func (tm *TorrentManager) UpdateMagnet(ih metainfo.Hash, BytesRequested int64) {
 	log.Info("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
 
 	if t, ok := tm.torrents[ih]; ok {
+		if t.Pending() {
+			return
+		}
 		t.bytesRequested = BytesRequested
 		if t.bytesRequested > t.bytesLimitation {
 			t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
@@ -411,9 +414,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		var counter uint64
 		for counter = 0; ; counter++ {
 			for ih, t := range TorrentManager.torrents {
-				t.bytesCompleted = t.BytesCompleted()
-				t.bytesMissing = t.BytesMissing()
 				if t.Seeding() {
+					t.bytesCompleted = t.BytesCompleted()
+					t.bytesMissing = t.BytesMissing()
 					if counter >= 20 {
 						log.Info("Torrent seeding",
 							"InfoHash", ih.HexString(),
@@ -423,6 +426,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 						)
 					}
 				} else if !t.Pending() {
+					t.bytesCompleted = t.BytesCompleted()
+					t.bytesMissing = t.BytesMissing()
 					if t.bytesMissing == 0 {
 						os.Symlink(
 							path.Join(TorrentManager.TmpDataDir, ih.HexString()),
