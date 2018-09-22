@@ -31,7 +31,6 @@ import (
 
 var (
 	errInsufficientBalanceForGas        = errors.New("insufficient balance to pay for gas")
-	PER_UPLOAD_BYTES             uint64 = 10 * 512 * 1024
 )
 
 /*
@@ -254,7 +253,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 	//todo change upload
 	if st.uploading() {
-		st.state.SubUpload(st.to(), new(big.Int).SetUint64(PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
+		st.state.SubUpload(st.to(), new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			//st.state.Download(st.to())
 			st.state.SetNum(st.to(), st.evm.BlockNumber)

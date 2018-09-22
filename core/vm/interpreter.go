@@ -30,13 +30,6 @@ import (
 	"sync/atomic"
 )
 
-var (
-	MIN_UPLOAD_BYTES     uint64 = 0
-	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
-	DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
-	MODEL_GAS_LIMIT      uint64 = 65536
-)
-
 // Config are the configuration options for the Interpreter
 type Config struct {
 	// Debug enabled debugging Interpreter options
@@ -208,11 +201,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			if modelMeta.BlockNum.Sign() == 0 {
-				if modelMeta.RawSize > MIN_UPLOAD_BYTES && modelMeta.RawSize <= MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
-					if modelMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
+				if modelMeta.RawSize > params.MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
+					if modelMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
 						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 					} else {
-						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize - params.DEFAULT_UPLOAD_BYTES))
 					}
 				} else {
 					return nil, ErrInvalidMetaRawSize
@@ -222,8 +215,8 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					return nil, ErrInvalidMetaAuthor
 				}
 
-				if modelMeta.Gas > MODEL_GAS_LIMIT {
-					modelMeta.SetGas(MODEL_GAS_LIMIT)
+				if modelMeta.Gas > params.MODEL_GAS_LIMIT {
+					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 				} else if modelMeta.Gas < 0 {
 					modelMeta.SetGas(0)
 				}
@@ -259,11 +252,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
-				if inputMeta.RawSize > MIN_UPLOAD_BYTES && inputMeta.RawSize <= MAX_UPLOAD_BYTES {
-					if inputMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
+				if inputMeta.RawSize > params.MIN_UPLOAD_BYTES && inputMeta.RawSize <= params.MAX_UPLOAD_BYTES {
+					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
 						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 					} else {
-						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize - params.DEFAULT_UPLOAD_BYTES))
 					}
 				} else {
 					return nil, ErrInvalidMetaRawSize
