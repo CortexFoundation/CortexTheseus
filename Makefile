@@ -8,7 +8,7 @@
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
-.PHONY: cminer infernet
+.PHONY: cminer infernet inferServer
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
@@ -23,7 +23,7 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-geth: cminer infernet
+geth: cminer infernet inferServer
 	build/env.sh go run build/ci.go install ./cmd/geth
 	build/env.sh go run build/ci.go install ./cmd/miner
 	@echo "Done building."
@@ -53,6 +53,9 @@ cminer:
 infernet:
 	make -C ${INFER_NET_DIR}
 	cp ${INFER_NET_DIR}/libcortexnet.so build/bin/
+
+inferServer: infernet
+	build/env.sh go run build/ci.go install infer_server/infer_server.go
 
 android:
 	build/env.sh go run build/ci.go aar --local
