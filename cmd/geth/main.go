@@ -114,7 +114,7 @@ var (
 		utils.MinerNoVerfiyFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
-		utils.DiscoveryV5Flag,
+		// utils.DiscoveryV5Flag,
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
@@ -127,8 +127,8 @@ var (
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
 		utils.EthStatsURLFlag,
-		utils.MetricsEnabledFlag,
-		utils.FakePoWFlag,
+		// utils.MetricsEnabledFlag,
+		// utils.FakePoWFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
@@ -177,31 +177,31 @@ func init() {
 		initCommand,
 		importCommand,
 		exportCommand,
-		importPreimagesCommand,
-		exportPreimagesCommand,
-		copydbCommand,
+		// importPreimagesCommand,
+		// exportPreimagesCommand,
+		// copydbCommand,
 		removedbCommand,
-		dumpCommand,
+		// dumpCommand,
 		// See monitorcmd.go:
-		monitorCommand,
+		// monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
 
 
 
-		walletCommand,
+		// walletCommand,
 		// See consolecmd.go:
 		consoleCommand,
 		attachCommand,
-		javascriptCommand,
+		// javascriptCommand,
 		// See misccmd.go:
 		// makecacheCommand,
 		// makedagCommand,
 		versionCommand,
-		bugCommand,
-		licenseCommand,
+		// bugCommand,
+		// licenseCommand,
 		// See config.go
-		dumpConfigCommand,
+		// dumpConfigCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
