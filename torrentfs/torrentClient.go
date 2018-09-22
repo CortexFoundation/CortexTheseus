@@ -327,9 +327,6 @@ func (tm *TorrentManager) UpdateMagnet(ih metainfo.Hash, BytesRequested int64) {
 	log.Info("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
 
 	if t, ok := tm.torrents[ih]; ok {
-		if t.Pending() {
-			return
-		}
 		t.bytesRequested = BytesRequested
 		if t.bytesRequested > t.bytesLimitation {
 			t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
