@@ -83,4 +83,18 @@ var (
 	GenesisDifficulty      = big.NewInt(16) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(16) // The minimum that the difficulty may ever be.
 	DurationLimit          = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	MatureBlks  int64 = 100
+	ExpiredBlks int64 = 1000000000000000000 //8409600
 )
+
+var (
+	MIN_UPLOAD_BYTES     uint64 = 0
+	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
+	DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
+	MODEL_GAS_LIMIT      uint64 = 65536
+)
+
+var (
+	PER_UPLOAD_BYTES             uint64 = 10 * 512 * 1024
+)
+
