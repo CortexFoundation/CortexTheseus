@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"os"
-
 	"github.com/CortexFoundation/torrentfs"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -27,8 +28,11 @@ func mainExitCode() int {
 
 	tfs := torrentfs.New(&cfg, "")
 	tfs.Start(nil)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	for {
-
+		<-c
+		tfs.Stop()
 	}
 	return 0
 }
