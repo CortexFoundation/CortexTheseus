@@ -42,8 +42,8 @@ void forward_int_convolutional_layer_gpu(int_convolutional_layer l, network net)
     
     if (l.batch_normalize) {
     } else {
-        add_bias_gpu_fc(c_full,l.batch*l.outputs,(char*)l.biases_gpu);
-    }
+        int32_add_bias_gpu(c_full, (char*)l.biases_gpu, l.batch, l.n, l.out_w*l.out_h);
+            }
     cudaScale((char*)l.output_gpu, c_full, l.batch*l.outputs, l.shift_bit);
     cuda_free((float*)c_full);
 
