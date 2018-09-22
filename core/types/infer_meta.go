@@ -19,10 +19,6 @@ var (
 	ErrorInvalidBlockNum   = errors.New("Invalid block number")
 )
 
-const (
-	MatureBlks  = 10
-	ExpiredBlks = 1000000000000000000 //8409600
-)
 
 //InferMeta include ModelMeta struct and InputMeta type
 type InferMeta interface {
