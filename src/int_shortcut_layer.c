@@ -8,7 +8,9 @@
 
 layer make_int_shortcut_layer(int batch, int index, int w, int h, int c, int w2, int h2, int c2)
 {
-    fprintf(stderr, "res  %3d                %4d x%4d x%4d   ->  %4d x%4d x%4d\n",index, w2,h2,c2, w,h,c);
+#ifdef DEBUG 
+     fprintf(stderr, "res  %3d                %4d x%4d x%4d   ->  %4d x%4d x%4d\n",index, w2,h2,c2, w,h,c); 
+#endif
     layer l = {0};
     l.type = SHORTCUT;
     l.batch = batch;

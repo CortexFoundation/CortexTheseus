@@ -43,7 +43,9 @@ layer make_int_connected_layer(int batch, int inputs, int outputs, ACTIVATION ac
     l.output_gpu = (float*)int_cuda_make_array((char*)l.output, outputs*batch);
 #endif
     l.activation = activation;
-    fprintf(stderr, "connected                            %4d  ->  %4d\n", inputs, outputs);
+#ifdef DEBUG 
+     fprintf(stderr, "connected                            %4d  ->  %4d\n", inputs, outputs); 
+#endif
     return l;
 }
 

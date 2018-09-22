@@ -28,7 +28,9 @@ static void increment_layer(layer *l, int steps)
 
 layer make_lstm_layer(int batch, int inputs, int outputs, int steps, int batch_normalize, int adam)
 {
-    fprintf(stderr, "LSTM Layer: %d inputs, %d outputs\n", inputs, outputs);
+#ifdef DEBUG 
+     fprintf(stderr, "LSTM Layer: %d inputs, %d outputs\n", inputs, outputs); 
+#endif
     batch = batch / steps;
     layer l = { 0 };
     l.batch = batch;
@@ -37,42 +39,58 @@ layer make_lstm_layer(int batch, int inputs, int outputs, int steps, int batch_n
     l.inputs = inputs;
 
     l.uf = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.uf) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.uf->batch = batch;
 
     l.ui = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.ui) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.ui->batch = batch;
 
     l.ug = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.ug) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.ug->batch = batch;
 
     l.uo = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.uo) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.uo->batch = batch;
 
     l.wf = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.wf) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wf->batch = batch;
 
     l.wi = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.wi) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wi->batch = batch;
 
     l.wg = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.wg) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wg->batch = batch;
 
     l.wo = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.wo) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wo->batch = batch;
 

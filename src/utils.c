@@ -274,13 +274,17 @@ unsigned char *read_file(char *filename)
 
 void malloc_error()
 {
-    fprintf(stderr, "Malloc error\n");
+#ifdef DEBUG 
+     fprintf(stderr, "Malloc error\n"); 
+#endif
     exit(-1);
 }
 
 void file_error(char *s)
 {
-    fprintf(stderr, "Couldn't open file: %s\n", s);
+#ifdef DEBUG 
+     fprintf(stderr, "Couldn't open file: %s\n", s); 
+#endif
     exit(0);
 }
 
