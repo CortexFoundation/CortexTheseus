@@ -2,11 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/ethereum/go-ethereum/log"
 	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
 
 	"github.com/CortexFoundation/torrentfs"
 )
@@ -23,15 +19,16 @@ func mainExitCode() int {
 	trackerURI := flag.String("t", "http://47.52.39.170:5008/announce", "tracker uri")
 	flag.Parse()
 
-	trackers := strings.Split(*trackerURI, ",")
-	cfg = torrentfs.DefaultConfig
+	cfg := torrentfs.DefaultConfig
 	cfg.Host = *Host
 	cfg.Port = *Port
 	cfg.DataDir = *Dir
+	cfg.DefaultTrackers = *trackerURI
 
 	tfs := torrentfs.New(&cfg, "")
 	tfs.Start(nil)
 	for {
+
 	}
 	return 0
 }
