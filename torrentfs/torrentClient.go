@@ -324,14 +324,16 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 
 // UpdateMagnet ...
 func (tm *TorrentManager) UpdateMagnet(ih metainfo.Hash, BytesRequested int64) {
+	tm.mu.Lock()
 	log.Info("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
-
 	if t, ok := tm.torrents[ih]; ok {
 		t.bytesRequested = BytesRequested
-		if t.bytesRequested > t.bytesLimitation {
+		if t.bytesRequested >= t.bytesLimitation {
 			t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
 		}
 	}
+	tm.mu.Unlock()
+
 }
 
 // DropMagnet ...
@@ -440,7 +442,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 						log.Info("Torrent progress",
 							"InfoHash", ih.HexString(),
 							"completed", t.bytesCompleted,
-							"requested", t.bytesLimitation,
+							"requested", t.bytesRequested,
 							"total", t.bytesCompleted+t.bytesMissing,
 						)
 					}
@@ -449,7 +451,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 						log.Info("Torrent pending",
 							"InfoHash", ih.HexString(),
 							"completed", t.bytesCompleted,
-							"requested", t.bytesLimitation,
+							"requested", t.bytesRequested,
 							"total", t.bytesCompleted+t.bytesMissing,
 						)
 					}
