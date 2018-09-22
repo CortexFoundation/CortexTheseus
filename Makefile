@@ -47,6 +47,7 @@ cminer:
 
 infernet:
 	make -C ${INFER_NET_DIR}
+	cp ${INFER_NET_DIR}/libcortexnet.so build/bin/
 
 android:
 	build/env.sh go run build/ci.go aar --local
