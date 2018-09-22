@@ -31,11 +31,11 @@ const (
 	updateTorrentChanBuffer         = 32
 	expansionFactor         float64 = 1.5
 	// Pending for gotInfo
-	torrentPending = 0
-	torrentPaused  = 1
-	torrentRunning = 2
-	torrentSeeding = 3
-	defaultTmpFilePath    = ".tmp"
+	torrentPending     = 0
+	torrentPaused      = 1
+	torrentRunning     = 2
+	torrentSeeding     = 3
+	defaultTmpFilePath = ".tmp"
 )
 
 // Torrent ...
@@ -48,13 +48,13 @@ type Torrent struct {
 	status          int64
 }
 
-func (t * Torrent) Seed() {
+func (t *Torrent) Seed() {
 	t.VerifyData()
 	t.DownloadAll()
 	t.status = torrentSeeding
 }
 
-func (t * Torrent) Seeding() bool {
+func (t *Torrent) Seeding() bool {
 	return t.status == torrentSeeding
 }
 
@@ -274,11 +274,11 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
 	if _, err := os.Stat(torrentPath); err == nil {
-//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(torrentPath)
 		return
 	} else if _, err := os.Stat(seedTorrentPath); err == nil {
-//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(seedTorrentPath)
 		return
 	}
@@ -327,6 +327,9 @@ func (tm *TorrentManager) UpdateMagnet(ih metainfo.Hash, BytesRequested int64) {
 	log.Info("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
 
 	if t, ok := tm.torrents[ih]; ok {
+		if t.Pending() {
+			return
+		}
 		t.bytesRequested = BytesRequested
 		if t.bytesRequested > t.bytesLimitation {
 			t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
@@ -409,11 +412,11 @@ func NewTorrentManager(config *Config) *TorrentManager {
 
 	go func() {
 		var counter uint64
-		for counter = 0;; counter++ {
+		for counter = 0; ; counter++ {
 			for ih, t := range TorrentManager.torrents {
-				t.bytesCompleted = t.BytesCompleted()
-				t.bytesMissing = t.BytesMissing()
 				if t.Seeding() {
+					t.bytesCompleted = t.BytesCompleted()
+					t.bytesMissing = t.BytesMissing()
 					if counter >= 20 {
 						log.Info("Torrent seeding",
 							"InfoHash", ih.HexString(),
@@ -423,6 +426,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 						)
 					}
 				} else if !t.Pending() {
+					t.bytesCompleted = t.BytesCompleted()
+					t.bytesMissing = t.BytesMissing()
 					if t.bytesMissing == 0 {
 						os.Symlink(
 							path.Join(TorrentManager.TmpDataDir, ih.HexString()),
