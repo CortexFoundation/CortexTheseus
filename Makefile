@@ -8,11 +8,12 @@
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
-.PHONY: cminer
+.PHONY: cminer infernet
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/cminer/
+INFER_NET_DIR = $(shell pwd)/infernet/
 
 # Curkoo algorithm dynamic library path
 OS = $(shell uname)
@@ -22,7 +23,7 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-geth: cminer
+geth: cminer infernet
 	build/env.sh go run build/ci.go install ./cmd/geth
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
@@ -32,16 +33,24 @@ evm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
 
+miner:
+	build/env.sh go run build/ci.go install ./cmd/miner
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
+
 swarm:
 	build/env.sh go run build/ci.go install ./cmd/swarm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cminer
+all: cminer infernet
 	build/env.sh go run build/ci.go install
 
 cminer:
 	make -C $(LIB_MINER_DIR)
+
+infernet:
+	make -C ${INFER_NET_DIR}
 
 android:
 	build/env.sh go run build/ci.go aar --local
@@ -63,6 +72,7 @@ clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
 	make -C $(LIB_MINER_DIR) clean
+	make -C $(INFER_NET_DIR) clean
 
 # The devtools target installs tools required for 'go generate'.
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.
