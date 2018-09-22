@@ -239,7 +239,7 @@ int_convolutional_layer int_parse_convolutional(list *options, size_params param
     int_convolutional_layer layer = make_int_convolutional_layer(batch,h,w,c,n,groups,size,stride,padding,activation, batch_normalize, binary, xnor, params.net->adam);
     layer.flipped = option_find_int_quiet(options, "flipped", 0);
     layer.dot = option_find_float_quiet(options, "dot", 0);
-    layer.shift_bit = option_find_int_quiet(options, "shift_bit", 0);
+    layer.shift_bit = option_find_int_quiet(options, "shift_bit", -1);
 
     return layer;
 }
@@ -313,7 +313,7 @@ layer int_parse_connected(list *options, size_params params)
     int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
 
     layer l = make_int_connected_layer(params.batch, params.inputs, output, activation, batch_normalize, params.net->adam);
-    l.shift_bit = option_find_int_quiet(options, "shift_bit", 0);
+    l.shift_bit = option_find_int_quiet(options, "shift_bit", -1);
     return l;
 }
 
@@ -606,7 +606,7 @@ layer parse_batchnorm(list *options, size_params params)
 layer int_parse_batchnorm(list *options, size_params params)
 {
     layer l = make_int_batchnorm_layer(params.batch, params.w, params.h, params.c);
-    l.shift_bit = option_find_int_quiet(options, "shift_bit", 0);
+    l.shift_bit = option_find_int_quiet(options, "shift_bit", -1);
     return l;
 }
 
