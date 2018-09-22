@@ -120,7 +120,7 @@ var (
 		utils.NodeKeyHexFlag,
 		// utils.DeveloperFlag,
 		// utils.DeveloperPeriodFlag,
-		utils.TestnetFlag,
+		// utils.TestnetFlag,
 		// utils.LazynetFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
