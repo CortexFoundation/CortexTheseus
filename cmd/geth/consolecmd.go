@@ -124,8 +124,8 @@ func remoteConsole(ctx *cli.Context) error {
 		if path != "" {
 			if ctx.GlobalBool(utils.TestnetFlag.Name) {
 				path = filepath.Join(path, "testnet")
-			} else if ctx.GlobalBool(utils.RinkebyFlag.Name) {
-				path = filepath.Join(path, "rinkeby")
+			} else if ctx.GlobalBool(utils.LazynetFlag.Name) {
+				path = filepath.Join(path, "lazynet")
 			}
 		}
 		endpoint = fmt.Sprintf("%s/geth.ipc", path)

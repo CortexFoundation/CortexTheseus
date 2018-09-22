@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/torrentfs"
 	"io/ioutil"
-	"math/big"
+	// "math/big"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -136,20 +136,20 @@ var (
 	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
-		Usage: "Ropsten network: pre-configured proof-of-work test network",
+		Usage: "Ropsten network: pre-configured Cuckoo test network",
 	}
-	RinkebyFlag = cli.BoolFlag{
-		Name:  "rinkeby",
-		Usage: "Rinkeby network: pre-configured proof-of-authority test network",
+	LazynetFlag = cli.BoolFlag{
+		Name:  "lazynet",
+		Usage: "Lazy network: pre-configured easy test network",
 	}
-	DeveloperFlag = cli.BoolFlag{
-		Name:  "dev",
-		Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
-	}
-	DeveloperPeriodFlag = cli.IntFlag{
-		Name:  "dev.period",
-		Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
-	}
+	// DeveloperFlag = cli.BoolFlag{
+	// 	Name:  "dev",
+	// 	Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
+	// }
+	// DeveloperPeriodFlag = cli.IntFlag{
+	// 	Name:  "dev.period",
+	// 	Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
+	// }
 	IdentityFlag = cli.StringFlag{
 		Name:  "identity",
 		Usage: "Custom node name",
@@ -180,10 +180,10 @@ var (
 		Usage: "Maximum number of LES client peers",
 		Value: eth.DefaultConfig.LightPeers,
 	}
-	LightKDFFlag = cli.BoolFlag{
-		Name:  "lightkdf",
-		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
-	}
+	// LightKDFFlag = cli.BoolFlag{
+	// 	Name:  "lightkdf",
+	// 	Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
+	// }
 	// P2P storage settings
 	StorageEnabledFlag = cli.BoolFlag{
 		Name:  "storage",
@@ -658,7 +658,7 @@ func MakeDataDir(ctx *cli.Context) string {
 		if ctx.GlobalBool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
 		}
-		if ctx.GlobalBool(RinkebyFlag.Name) {
+		if ctx.GlobalBool(LazynetFlag.Name) {
 			return filepath.Join(path, "rinkeby")
 		}
 		return path
@@ -723,7 +723,7 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(RinkebyFlag.Name):
+	case ctx.GlobalBool(LazynetFlag.Name):
 		urls = params.RinkebyBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
@@ -750,7 +750,7 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
-	case ctx.GlobalBool(RinkebyFlag.Name):
+	case ctx.GlobalBool(LazynetFlag.Name):
 		urls = params.RinkebyBootnodes
 	case cfg.BootstrapNodesV5 != nil:
 		return // already set, don't apply defaults.
@@ -942,7 +942,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setBootstrapNodes(ctx, cfg)
 	setBootstrapNodesV5(ctx, cfg)
 
-	lightClient := ctx.GlobalString(SyncModeFlag.Name) == "light"
+	lightClient := false // ctx.GlobalString(SyncModeFlag.Name) == "light"
 	lightServer := ctx.GlobalInt(LightServFlag.Name) != 0
 	lightPeers := ctx.GlobalInt(LightPeersFlag.Name)
 
@@ -993,13 +993,13 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.NetRestrict = list
 	}
 
-	if ctx.GlobalBool(DeveloperFlag.Name) {
-		// --dev mode can't use p2p networking.
-		cfg.MaxPeers = 0
-		cfg.ListenAddr = ":0"
-		cfg.NoDiscovery = true
-		cfg.DiscoveryV5 = false
-	}
+	// if ctx.GlobalBool(DeveloperFlag.Name) {
+	// 	// --dev mode can't use p2p networking.
+	// 	cfg.MaxPeers = 0
+	// 	cfg.ListenAddr = ":0"
+	// 	cfg.NoDiscovery = true
+	// 	cfg.DiscoveryV5 = false
+	// }
 }
 
 // SetNodeConfig applies node-related command line flags to the config.
@@ -1013,20 +1013,20 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	switch {
 	case ctx.GlobalIsSet(DataDirFlag.Name):
 		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		cfg.DataDir = "" // unless explicitly requested, use memory databases
+	//case ctx.GlobalBool(DeveloperFlag.Name):
+	//	cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(RinkebyFlag.Name):
+	case ctx.GlobalBool(LazynetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.GlobalString(KeyStoreDirFlag.Name)
 	}
-	if ctx.GlobalIsSet(LightKDFFlag.Name) {
-		cfg.UseLightweightKDF = ctx.GlobalBool(LightKDFFlag.Name)
-	}
+	// if ctx.GlobalIsSet(LightKDFFlag.Name) {
+	// 	cfg.UseLightweightKDF = ctx.GlobalBool(LightKDFFlag.Name)
+	// }
 	if ctx.GlobalIsSet(NoUSBFlag.Name) {
 		cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
 	}
@@ -1159,8 +1159,8 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
-	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
+	// checkExclusive(ctx, DeveloperFlag, TestnetFlag, LazynetFlag)
+	// checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setEtherbase(ctx, ks, cfg)
@@ -1244,37 +1244,37 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 3
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(RinkebyFlag.Name):
+	case ctx.GlobalBool(LazynetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 4
 		}
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1337
-		}
-		// Create new developer account or reuse existing one
-		var (
-			developer accounts.Account
-			err       error
-		)
-		if accs := ks.Accounts(); len(accs) > 0 {
-			developer = ks.Accounts()[0]
-		} else {
-			developer, err = ks.NewAccount("")
-			if err != nil {
-				Fatalf("Failed to create developer account: %v", err)
-			}
-		}
-		if err := ks.Unlock(developer, ""); err != nil {
-			Fatalf("Failed to unlock developer account: %v", err)
-		}
-		log.Info("Using developer account", "address", developer.Address)
+	// case ctx.GlobalBool(DeveloperFlag.Name):
+	// 	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+	// 		cfg.NetworkId = 1337
+	// 	}
+	// 	// Create new developer account or reuse existing one
+	// 	var (
+	// 		developer accounts.Account
+	// 		err       error
+	// 	)
+	// 	if accs := ks.Accounts(); len(accs) > 0 {
+	// 		developer = ks.Accounts()[0]
+	// 	} else {
+	// 		developer, err = ks.NewAccount("")
+	// 		if err != nil {
+	// 			Fatalf("Failed to create developer account: %v", err)
+	// 		}
+	// 	}
+	// 	if err := ks.Unlock(developer, ""); err != nil {
+	// 		Fatalf("Failed to unlock developer account: %v", err)
+	// 	}
+	// 	log.Info("Using developer account", "address", developer.Address)
 
-		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
-		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-			cfg.MinerGasPrice = big.NewInt(1)
-		}
+	// 	cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
+	// 	if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
+	// 		cfg.MinerGasPrice = big.NewInt(1)
+	// 	}
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
@@ -1413,10 +1413,10 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(RinkebyFlag.Name):
+	case ctx.GlobalBool(LazynetFlag.Name):
 		genesis = core.DefaultRinkebyGenesisBlock()
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		Fatalf("Developer chains are ephemeral")
+	// case ctx.GlobalBool(DeveloperFlag.Name):
+	//	Fatalf("Developer chains are ephemeral")
 	}
 	return genesis
 }
