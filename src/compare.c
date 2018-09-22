@@ -333,7 +333,9 @@ void BattleRoyaleWithCheese(char *filename, char *weightfile)
 void run_compare(int argc, char **argv)
 {
     if(argc < 4){
-        fprintf(stderr, "usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", argv[0], argv[1]);
+#ifdef DEBUG 
+         fprintf(stderr, "usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", argv[0], argv[1]); 
+#endif
         return;
     }
 
