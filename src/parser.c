@@ -755,7 +755,9 @@ learning_rate_policy get_policy(char *s)
     if (strcmp(s, "exp")==0) return EXP;
     if (strcmp(s, "sigmoid")==0) return SIG;
     if (strcmp(s, "steps")==0) return STEPS;
-    fprintf(stderr, "Couldn't find policy %s, going with constant\n", s);
+#ifdef DEBUG 
+     fprintf(stderr, "Couldn't find policy %s, going with constant\n", s); 
+#endif
     return CONSTANT;
 }
 
@@ -872,10 +874,14 @@ network *parse_network_cfg(char *filename)
     n = n->next;
     int count = 0;
     free_section(s);
-    fprintf(stderr, "layer     filters    size              input                output\n");
+#ifdef DEBUG 
+     fprintf(stderr, "layer     filters    size              input                output\n"); 
+#endif
     while(n){
         params.index = count;
-        fprintf(stderr, "%5d ", count);
+#ifdef DEBUG 
+         fprintf(stderr, "%5d ", count); 
+#endif
         s = (section *)n->val;
         options = s->options;
         layer l = {0};
@@ -942,7 +948,9 @@ network *parse_network_cfg(char *filename)
             l.delta_gpu = net->layers[count-1].delta_gpu;
 #endif
         }else{
-            fprintf(stderr, "Type not recognized: %s\n", s->type);
+#ifdef DEBUG 
+             fprintf(stderr, "Type not recognized: %s\n", s->type); 
+#endif
         }
         l.clip = net->clip;
         l.truth = option_find_int_quiet(options, "truth", 0);
@@ -1021,10 +1029,14 @@ network *int_parse_network_cfg(char *filename)
     n = n->next;
     int count = 0;
     free_section(s);
-    fprintf(stderr, "layer     filters    size              input                output\n");
+#ifdef DEBUG 
+     fprintf(stderr, "layer     filters    size              input                output\n"); 
+#endif
     while(n){
         params.index = count;
-        fprintf(stderr, "%5d ", count);
+#ifdef DEBUG 
+         fprintf(stderr, "%5d ", count); 
+#endif
         s = (section *)n->val;
         options = s->options;
         layer l = {0};
@@ -1042,7 +1054,9 @@ network *int_parse_network_cfg(char *filename)
         }else if(lt == SHORTCUT){
             l = int_parse_shortcut(options, params, net);
         }else{
-            fprintf(stderr, "Type not recognized: %s\n", s->type);
+#ifdef DEBUG 
+             fprintf(stderr, "Type not recognized: %s\n", s->type); 
+#endif
         }
         l.clip = net->clip;
         l.truth = option_find_int_quiet(options, "truth", 0);
@@ -1120,7 +1134,9 @@ list *read_cfg(char *filename)
                 break;
             default:
                 if(!read_option(line, current->options)){
-                    fprintf(stderr, "Config file error line %d, could parse: %s\n", nu, line);
+#ifdef DEBUG 
+                     fprintf(stderr, "Config file error line %d, could parse: %s\n", nu, line); 
+#endif
                     free(line);
                 }
                 break;
@@ -1218,7 +1234,9 @@ void save_weights_upto(network *net, char *filename, int cutoff)
         cuda_set_device(net->gpu_index);
     }
 #endif
-    fprintf(stderr, "Saving weights to %s\n", filename);
+#ifdef DEBUG 
+     fprintf(stderr, "Saving weights to %s\n", filename); 
+#endif
     FILE *fp = fopen(filename, "wb");
     if(!fp) file_error(filename);
 
@@ -1429,7 +1447,9 @@ void load_weights_upto(network *net, char *filename, int start, int cutoff)
         cuda_set_device(net->gpu_index);
     }
 #endif
-    fprintf(stderr, "Loading weights from %s...", filename);
+#ifdef DEBUG 
+     fprintf(stderr, "Loading weights from %s...", filename); 
+#endif
     fflush(stdout);
     FILE *fp = fopen(filename, "rb");
     if(!fp) file_error(filename);
@@ -1508,7 +1528,9 @@ void load_weights_upto(network *net, char *filename, int start, int cutoff)
 #endif
         }
     }
-    fprintf(stderr, "Done!\n");
+#ifdef DEBUG 
+     fprintf(stderr, "Done!\n"); 
+#endif
     fclose(fp);
 }
 
