@@ -1250,9 +1250,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		}
 
 		//TODO(tian) dirty hack for lazynet flag
-		params.MatureBlks = 5
-		params.PER_UPLOAD_BYTES = 10 * 1024 * 1024
-		params.UploadGas =  5000
+		params.MatureBlks = 10
+		params.PER_UPLOAD_BYTES = 5 * 1024 * 1024
+		params.UploadGas =  524288
 		log.Debug(fmt.Sprintf("lazynet: MatureBlks = %v PER_UPLOAD_BYTES = %d\n", params.MatureBlks, params.PER_UPLOAD_BYTES))
 
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
