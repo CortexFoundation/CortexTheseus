@@ -136,7 +136,7 @@ type TxReceipt struct {
 	// Contract Address
 	ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
 	// Transaction Hash
-	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
+	TxHash *common.Hash          `json:"TransactionHash"  gencodec:"required"`
 }
 
 // FileMeta ...

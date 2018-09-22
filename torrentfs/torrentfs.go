@@ -2,12 +2,11 @@ package torrentfs
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/params"
-	"sync"
-
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
+	"sync"
 )
 
 type GeneralMessage struct {
@@ -15,13 +14,15 @@ type GeneralMessage struct {
 	Commit  string `json:"commit,omitempty"`
 }
 
-// Dashboard contains the dashboard internals.
+// TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
-	config   *Config
-	lock     sync.RWMutex // Lock protecting the dashboard's internals
-	history  *GeneralMessage
+	config  *Config
+	lock    sync.RWMutex // Lock protecting the torrentfs' internals
+	history *GeneralMessage
 
-	quit chan chan error // Channel used for graceful exit
+	quit    chan chan error // Channel used for graceful exit
+	monitor *Monitor
+	tm      *TorrentManager
 }
 
 // New creates a new dashboard instance with the given configuration.
@@ -36,7 +37,7 @@ func New(config *Config, commit string) *TorrentFS {
 			Commit:  commit,
 			Version: fmt.Sprintf("v%d.%d.%d%s", params.VersionMajor, params.VersionMinor, params.VersionPatch, versionMeta),
 		},
-		quit:   make(chan chan error),
+		quit: make(chan chan error),
 	}
 }
 
@@ -49,11 +50,11 @@ func (db *TorrentFS) APIs() []rpc.API { return nil }
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
 func (db *TorrentFS) Start(server *p2p.Server) error {
-	go func(){
-		dlClient := NewTorrentManager(db.config)
-		m := NewMonitor(db.config)
-		m.SetDownloader(dlClient)
-		m.Start()
+	go func() {
+		db.tm = NewTorrentManager(db.config)
+		db.monitor = NewMonitor(db.config)
+		db.monitor.SetDownloader(db.tm)
+		db.monitor.Start()
 	}()
 	return nil
 }
@@ -62,6 +63,7 @@ func (db *TorrentFS) Start(server *p2p.Server) error {
 // Implements the node.Service interface.
 func (db *TorrentFS) Stop() error {
 	// Wait until every goroutine terminates.
+	db.monitor.Terminate() <- struct{}{}
 	log.Info("TorrentFs stopped")
 
 	return nil

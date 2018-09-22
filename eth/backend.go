@@ -41,6 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
+	infer "github.com/ethereum/go-ethereum/infernet"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/miner"
@@ -84,9 +85,10 @@ type Ethereum struct {
 
 	APIBackend *EthAPIBackend
 
-	miner     *miner.Miner
-	gasPrice  *big.Int
-	etherbase common.Address
+	miner       *miner.Miner
+	inferServer *infer.InferenceServer
+	gasPrice    *big.Int
+	etherbase   common.Address
 
 	networkID     uint64
 	netRPCService *ethapi.PublicNetAPI
@@ -148,6 +150,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		}
 		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 	}
+
+	eth.inferServer = infer.New(infer.Config{
+		StorageDir: config.StorageDir,
+	})
+
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
@@ -464,6 +471,7 @@ func (s *Ethereum) Stop() error {
 	}
 	s.txPool.Stop()
 	s.miner.Stop()
+	s.inferServer.Close()
 	s.eventMux.Stop()
 
 	s.chainDb.Close()

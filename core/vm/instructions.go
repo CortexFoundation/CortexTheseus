@@ -38,6 +38,7 @@ var (
 	errExecutionReverted     = errors.New("evm: execution reverted")
 	errMetaInfoBlockNum      = errors.New("evm: meta info blocknum <= 0")
 	errMetaInfoNotMature     = errors.New("evm: errMetaInfoNotMature")
+	errMetaShapeNotMatch     = errors.New("evm: model&input shape not matched")
 	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 )
@@ -736,6 +737,17 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(types.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
+
+	// Model&Input shape should match
+	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
+		return nil, errMetaShapeNotMatch
+	}
+	for idx, modelShape := range modelMeta.InputShape {
+		if modelShape != inputMeta.Shape[idx] {
+			return nil, errMetaShapeNotMatch
+		}
+	}
+
 	output, err := interpreter.evm.Infer([]byte(modelMeta.Hash.Hex()), []byte(inputMeta.Hash.Hex()))
 
 	if err != nil {

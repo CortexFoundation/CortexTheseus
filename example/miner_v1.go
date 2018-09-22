@@ -8,8 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core/types"
-	cuckoo_gpu "github.com/ethereum/go-ethereum/cuckoo_mean_miner"
-	_ "log"
+	cuckoo_gpu "github.com/ethereum/go-ethereum/miner/cuckoocuda"
+	"log"
 	"math/rand"
 	"net"
 	"os"
@@ -17,6 +17,7 @@ import (
 
 	// "strconv"
 	"sync"
+	"flag"
 )
 
 type Task struct {
@@ -66,6 +67,9 @@ func write(reqObj ReqObj, conn *net.TCPConn) {
 }
 
 func main() {
+	deviceId := flag.Int("deviceid", 0, "gpu id to mine")
+	flag.Parse()
+
 	var testFixTask bool = false
 	if testFixTask {
 		fmt.Println("testFixTask = ", testFixTask)
@@ -80,11 +84,13 @@ func main() {
 
 	var THREAD uint = 1
 	cuckoo.CuckooInitialize(1, uint32(THREAD))
-	cuckoo_gpu.CuckooInitialize()
+	cuckoo_gpu.CuckooInitialize(uint(*deviceId))
+	log.Println("Device ID: ", *deviceId)
 	var taskHeader, taskNonce, taskDifficulty string
 	//-------- connect to server -------------
 	// var server = "139.196.32.192:8009"
 	// var server = "cortex.waterhole.xyz:8008"
+	// var server = "192.168.50.104:8009"
 	var server = "localhost:8009"
 	tcpAddr, err := net.ResolveTCPAddr("tcp", server)
 	checkError(err)
