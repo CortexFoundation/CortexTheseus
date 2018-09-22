@@ -121,7 +121,7 @@ var (
 		// utils.DeveloperFlag,
 		// utils.DeveloperPeriodFlag,
 		// utils.TestnetFlag,
-		// utils.LazynetFlag,
+		utils.LazynetFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,

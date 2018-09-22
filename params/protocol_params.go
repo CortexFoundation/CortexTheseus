@@ -30,7 +30,6 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	UploadGas             uint64 = 524288
 	TxDataZeroGas         uint64 = 4      // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512    // Divisor for the quadratic particle of the memory cost equation.
 	SstoreSetGas          uint64 = 20000  // Once per SLOAD operation.
@@ -83,11 +82,12 @@ var (
 	GenesisDifficulty      = big.NewInt(16) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(16) // The minimum that the difficulty may ever be.
 	DurationLimit          = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
-	MatureBlks  int64 = 100
-	ExpiredBlks int64 = 1000000000000000000 //8409600
 )
 
 var (
+	MatureBlks       int64 = 100
+	ExpiredBlks      int64 = 1000000000000000000 //8409600
+	UploadGas             uint64 = 524288
 	MIN_UPLOAD_BYTES     uint64 = 0
 	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
 	DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
@@ -95,6 +95,5 @@ var (
 )
 
 var (
-	PER_UPLOAD_BYTES             uint64 = 10 * 512 * 1024
+	PER_UPLOAD_BYTES             uint64 = 512 * 1024
 )
-

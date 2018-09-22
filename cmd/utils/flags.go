@@ -1248,6 +1248,13 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 4
 		}
+
+		//TODO(tian) dirty hack for lazynet flag
+		params.MatureBlks = 5
+		params.PER_UPLOAD_BYTES = 10 * 1024 * 1024
+		params.UploadGas =  5000
+		log.Debug(fmt.Sprintf("lazynet: MatureBlks = %v PER_UPLOAD_BYTES = %d\n", params.MatureBlks, params.PER_UPLOAD_BYTES))
+
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
 	// case ctx.GlobalBool(DeveloperFlag.Name):
 	// 	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
