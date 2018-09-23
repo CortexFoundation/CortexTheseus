@@ -65,6 +65,5 @@ func (db *TorrentFS) Stop() error {
 	// Wait until every goroutine terminates.
 	db.monitor.Terminate() <- struct{}{}
 	log.Info("TorrentFs stopped")
-
 	return nil
 }
