@@ -37,7 +37,7 @@ evm:
 miner:
 	build/env.sh go run build/ci.go install ./cmd/miner
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
+	@echo "Run \"$(GOBIN)/miner\" to launch cortex vm."
 
 swarm:
 	build/env.sh go run build/ci.go install ./cmd/swarm
