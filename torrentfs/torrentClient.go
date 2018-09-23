@@ -100,6 +100,7 @@ type TorrentManager struct {
 	newTorrent    chan string
 	removeTorrent chan string
 	updateTorrent chan interface{}
+	halt          bool
 	mu            sync.Mutex
 }
 
@@ -328,12 +329,11 @@ func (tm *TorrentManager) UpdateMagnet(ih metainfo.Hash, BytesRequested int64) {
 	log.Info("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
 	if t, ok := tm.torrents[ih]; ok {
 		t.bytesRequested = BytesRequested
-		if t.bytesRequested >= t.bytesLimitation {
+		if t.bytesRequested > t.bytesLimitation {
 			t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
 		}
 	}
 	tm.mu.Unlock()
-
 }
 
 // DropMagnet ...
@@ -405,6 +405,10 @@ func NewTorrentManager(config *Config) *TorrentManager {
 			case msg := <-TorrentManager.updateTorrent:
 				meta := msg.(FlowControlMeta)
 				go TorrentManager.UpdateMagnet(meta.InfoHash, int64(meta.BytesRequested))
+			case <-TorrentManager.closeAll:
+				TorrentManager.halt = true
+				TorrentManager.client.Close()
+				return
 			}
 		}
 	}()
@@ -412,6 +416,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	go func() {
 		var counter uint64
 		for counter = 0; ; counter++ {
+			if TorrentManager.halt {
+				return
+			}
 			for ih, t := range TorrentManager.torrents {
 				if t.Seeding() {
 					t.bytesCompleted = t.BytesCompleted()
@@ -442,7 +449,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 						log.Info("Torrent progress",
 							"InfoHash", ih.HexString(),
 							"completed", t.bytesCompleted,
-							"requested", t.bytesRequested,
+							"requested", t.bytesLimitation,
 							"total", t.bytesCompleted+t.bytesMissing,
 						)
 					}
@@ -451,7 +458,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 						log.Info("Torrent pending",
 							"InfoHash", ih.HexString(),
 							"completed", t.bytesCompleted,
-							"requested", t.bytesRequested,
+							"requested", t.bytesLimitation,
 							"total", t.bytesCompleted+t.bytesMissing,
 						)
 					}
