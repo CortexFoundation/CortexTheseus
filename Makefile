@@ -32,6 +32,7 @@ geth-remote: cminer
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/geth
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
+	mv ./build/bin/geth ./build/bin/geth-remote
 
 evm:
 	build/env.sh go run build/ci.go install ./cmd/evm
