@@ -21,7 +21,9 @@ void change_leaves(tree *t, char *leaf_list)
             }
         }
     }
-    fprintf(stderr, "Found %d leaves.\n", found);
+#ifdef DEBUG 
+     fprintf(stderr, "Found %d leaves.\n", found); 
+#endif
 }
 
 float get_hierarchy_probability(float *x, tree *hier, int c, int stride)
