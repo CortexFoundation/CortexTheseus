@@ -58,16 +58,16 @@ var (
 		utils.PasswordFileFlag,
 		utils.BootnodesFlag,
 		utils.BootnodesV4Flag,
-		utils.BootnodesV5Flag,
+		// utils.BootnodesV5Flag,
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
-		utils.NoUSBFlag,
-		/* utils.EthashCacheDirFlag,
-		utils.EthashCachesInMemoryFlag,
-		utils.EthashCachesOnDiskFlag,
-		utils.EthashDatasetDirFlag,
-		utils.EthashDatasetsInMemoryFlag,
-		utils.EthashDatasetsOnDiskFlag, */
+		// utils.NoUSBFlag,
+		// utils.EthashCacheDirFlag,
+		// utils.EthashCachesInMemoryFlag,
+		// utils.EthashCachesOnDiskFlag,
+		// utils.EthashDatasetDirFlag,
+		// utils.EthashDatasetsInMemoryFlag,
+		// utils.EthashDatasetsOnDiskFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolNoInfersFlag,
@@ -87,9 +87,9 @@ var (
 		utils.StorageEnabledFlag,
 		utils.SyncModeFlag,
 		utils.GCModeFlag,
-		utils.LightServFlag,
-		utils.LightPeersFlag,
-		utils.LightKDFFlag,
+		// utils.LightServFlag,
+		// utils.LightPeersFlag,
+		// utils.LightKDFFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
 		utils.CacheGCFlag,
@@ -114,21 +114,21 @@ var (
 		utils.MinerNoVerfiyFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
-		utils.DiscoveryV5Flag,
+		// utils.DiscoveryV5Flag,
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
-		utils.DeveloperFlag,
-		utils.DeveloperPeriodFlag,
+		// utils.DeveloperFlag,
+		// utils.DeveloperPeriodFlag,
 		utils.TestnetFlag,
-		utils.RinkebyFlag,
+		// utils.LazynetFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
 		utils.EthStatsURLFlag,
-		utils.MetricsEnabledFlag,
-		utils.FakePoWFlag,
+		// utils.MetricsEnabledFlag,
+		// utils.FakePoWFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
@@ -141,29 +141,29 @@ var (
 		utils.RPCListenAddrFlag,
 		utils.RPCPortFlag,
 		utils.RPCApiFlag,
-		utils.WSEnabledFlag,
-		utils.WSListenAddrFlag,
-		utils.WSPortFlag,
-		utils.WSApiFlag,
-		utils.WSAllowedOriginsFlag,
+		// utils.WSEnabledFlag,
+		// utils.WSListenAddrFlag,
+		// utils.WSPortFlag,
+		// utils.WSApiFlag,
+		// utils.WSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 	}
 
 	whisperFlags = []cli.Flag{
-		utils.WhisperEnabledFlag,
-		utils.WhisperMaxMessageSizeFlag,
-		utils.WhisperMinPOWFlag,
-		utils.WhisperRestrictConnectionBetweenLightClientsFlag,
+	// 	utils.WhisperEnabledFlag,
+	// 	utils.WhisperMaxMessageSizeFlag,
+	// 	utils.WhisperMinPOWFlag,
+	// 	utils.WhisperRestrictConnectionBetweenLightClientsFlag,
 	}
 
 	metricsFlags = []cli.Flag{
-		utils.MetricsEnableInfluxDBFlag,
-		utils.MetricsInfluxDBEndpointFlag,
-		utils.MetricsInfluxDBDatabaseFlag,
-		utils.MetricsInfluxDBUsernameFlag,
-		utils.MetricsInfluxDBPasswordFlag,
-		utils.MetricsInfluxDBHostTagFlag,
+	//	utils.MetricsEnableInfluxDBFlag,
+	//	utils.MetricsInfluxDBEndpointFlag,
+	//	utils.MetricsInfluxDBDatabaseFlag,
+	//	utils.MetricsInfluxDBUsernameFlag,
+	//	utils.MetricsInfluxDBPasswordFlag,
+	//	utils.MetricsInfluxDBHostTagFlag,
 	}
 )
 
@@ -177,31 +177,31 @@ func init() {
 		initCommand,
 		importCommand,
 		exportCommand,
-		importPreimagesCommand,
-		exportPreimagesCommand,
-		copydbCommand,
+		// importPreimagesCommand,
+		// exportPreimagesCommand,
+		// copydbCommand,
 		removedbCommand,
-		dumpCommand,
+		// dumpCommand,
 		// See monitorcmd.go:
-		monitorCommand,
+		// monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
 
 
 
-		walletCommand,
+		// walletCommand,
 		// See consolecmd.go:
 		consoleCommand,
 		attachCommand,
-		javascriptCommand,
+		// javascriptCommand,
 		// See misccmd.go:
 		// makecacheCommand,
 		// makedagCommand,
 		versionCommand,
-		bugCommand,
-		licenseCommand,
+		// bugCommand,
+		// licenseCommand,
 		// See config.go
-		dumpConfigCommand,
+		// dumpConfigCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -332,7 +332,8 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		}
 	}()
 	// Start auxiliary services if enabled
-	if ctx.GlobalBool(utils.MiningEnabledFlag.Name) || ctx.GlobalBool(utils.DeveloperFlag.Name) {
+	// if ctx.GlobalBool(utils.MiningEnabledFlag.Name) || ctx.GlobalBool(utils.DeveloperFlag.Name) {
+	if ctx.GlobalBool(utils.MiningEnabledFlag.Name) {
 		// Mining only makes sense if a full Ethereum node is running
 		if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
 			utils.Fatalf("Light clients do not support mining")

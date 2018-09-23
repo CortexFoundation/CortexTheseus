@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/internal/debug"
+	// "github.com/ethereum/go-ethereum/internal/debug"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -73,23 +73,23 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
 			utils.TestnetFlag,
-			utils.RinkebyFlag,
+			utils.LazynetFlag,
 			utils.SyncModeFlag,
 			utils.GCModeFlag,
-			utils.EthStatsURLFlag,
+			// utils.EthStatsURLFlag,
 			utils.IdentityFlag,
-			utils.LightServFlag,
-			utils.LightPeersFlag,
-			utils.LightKDFFlag,
+			// utils.LightServFlag,
+			// utils.LightPeersFlag,
+			// utils.LightKDFFlag,
 		},
 	},
-	{
-		Name: "DEVELOPER CHAIN",
-		Flags: []cli.Flag{
-			utils.DeveloperFlag,
-			utils.DeveloperPeriodFlag,
-		},
-	},
+	// {
+	// 	Name: "DEVELOPER CHAIN",
+	// 	Flags: []cli.Flag{
+	// 		utils.DeveloperFlag,
+	// 		utils.DeveloperPeriodFlag,
+	// 	},
+	// },
 	/* {
 		Name: "ETHASH",
 		Flags: []cli.Flag{
@@ -186,7 +186,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MaxPendingPeersFlag,
 			utils.NATFlag,
 			utils.NoDiscoverFlag,
-			utils.DiscoveryV5Flag,
+			// utils.DiscoveryV5Flag,
 			utils.NetrestrictFlag,
 			utils.NodeKeyFileFlag,
 			utils.NodeKeyHexFlag,
@@ -217,45 +217,45 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
-			utils.VMEnableDebugFlag,
+  //		utils.VMEnableDebugFlag,
 		},
 	},
-	{
-		Name: "LOGGING AND DEBUGGING",
-		Flags: append([]cli.Flag{
-			utils.FakePoWFlag,
-			utils.NoCompactionFlag,
-		}, debug.Flags...),
-	},
-	{
-		Name: "METRICS AND STATS",
-		Flags: []cli.Flag{
-			utils.MetricsEnabledFlag,
-			utils.MetricsEnableInfluxDBFlag,
-			utils.MetricsInfluxDBEndpointFlag,
-			utils.MetricsInfluxDBDatabaseFlag,
-			utils.MetricsInfluxDBUsernameFlag,
-			utils.MetricsInfluxDBPasswordFlag,
-			utils.MetricsInfluxDBHostTagFlag,
-		},
-	},
-	{
-		Name:  "WHISPER (EXPERIMENTAL)",
-		Flags: whisperFlags,
-	},
-	{
-		Name: "DEPRECATED",
-		Flags: []cli.Flag{
-			utils.MinerLegacyThreadsFlag,
-			utils.MinerLegacyGasTargetFlag,
-			utils.MinerLegacyGasPriceFlag,
-			utils.MinerLegacyEtherbaseFlag,
-			utils.MinerLegacyExtraDataFlag,
-		},
-	},
-	{
-		Name: "MISC",
-	},
+	// {
+	// 	Name: "LOGGING AND DEBUGGING",
+	// 	Flags: append([]cli.Flag{
+	// 		utils.FakePoWFlag,
+	// 		utils.NoCompactionFlag,
+	// 	}, debug.Flags...),
+	// },
+	// {
+	// 	Name: "METRICS AND STATS",
+	// 	Flags: []cli.Flag{
+	// 		utils.MetricsEnabledFlag,
+	// 		utils.MetricsEnableInfluxDBFlag,
+	// 		utils.MetricsInfluxDBEndpointFlag,
+	// 		utils.MetricsInfluxDBDatabaseFlag,
+	// 		utils.MetricsInfluxDBUsernameFlag,
+	// 		utils.MetricsInfluxDBPasswordFlag,
+	// 		utils.MetricsInfluxDBHostTagFlag,
+	// 	},
+	// },
+	// {
+	// 	Name:  "WHISPER (EXPERIMENTAL)",
+	// 	Flags: whisperFlags,
+	// },
+	// {
+	// 	Name: "DEPRECATED",
+	// 	Flags: []cli.Flag{
+	// 		utils.MinerLegacyThreadsFlag,
+	// 		utils.MinerLegacyGasTargetFlag,
+	// 		utils.MinerLegacyGasPriceFlag,
+	// 		utils.MinerLegacyEtherbaseFlag,
+	// 		utils.MinerLegacyExtraDataFlag,
+	// 	},
+	// },
+	// {
+	// 	Name: "MISC",
+	// },
 }
 
 // byCategory sorts an array of flagGroup by Name in the order
