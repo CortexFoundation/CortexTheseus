@@ -5,7 +5,9 @@
 
 layer make_int_batchnorm_layer(int batch, int w, int h, int c)
 {
-    fprintf(stderr, "Int Batch Normalization Layer: %d x %d x %d image\n", w,h,c);
+#ifdef DEBUG 
+     fprintf(stderr, "Int Batch Normalization Layer: %d x %d x %d image\n", w,h,c); 
+#endif
     layer l = {0};
     l.type = BATCHNORM;
     l.batch = batch;
