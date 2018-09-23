@@ -58,7 +58,7 @@ func checkError(err error) {
 	}
 }
 
-func (cm *Cortex) read() map[string]interface{} {
+func (cm *Cortex) handleRead() map[string]interface{} {
 	rep := make([]byte, 0, 4096) // big buffer
 	for {
 		tmp, isPrefix, err := cm.reader.ReadLine()
@@ -94,7 +94,7 @@ func (cm *Cortex) read() map[string]interface{} {
 	return repObj
 }
 
-func (cm *Cortex) write(reqObj ReqObj) {
+func (cm *Cortex) handleWrite(reqObj ReqObj) {
 	req, err := json.Marshal(reqObj)
 	checkError(err)
 
@@ -129,8 +129,8 @@ func (cm *Cortex) login() {
 		Method:  "eth_submitLogin",
 		Params:  []string{cm.account},
 	}
-	cm.write(reqLogin)
-	cm.read()
+	cm.handleWrite(reqLogin)
+	cm.handleRead()
 }
 
 //	get mining task
@@ -141,7 +141,7 @@ func (cm *Cortex) getWork() {
 		Method:  "eth_getWork",
 		Params:  []string{""},
 	}
-	cm.write(req)
+	cm.handleWrite(req)
 }
 
 //	submit task
@@ -152,7 +152,7 @@ func (cm *Cortex) submit(sol Task) {
 		Method:  "eth_submitWork",
 		Params:  []string{sol.Nonce, sol.Header, sol.Solution},
 	}
-	cm.write(reqSubmit)
+	cm.handleWrite(reqSubmit)
 }
 
 //	cortex mining
@@ -276,7 +276,7 @@ func (cm *Cortex) miningOnce() {
 	cm.getWork()
 	go func(currentTask_ *TaskWrapper) {
 		for {
-			msg := cm.read()
+			msg := cm.handleRead()
 			if cm.consta.state == false {
 				return
 			}
