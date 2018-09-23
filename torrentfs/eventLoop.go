@@ -333,7 +333,7 @@ func (m *Monitor) Start() error {
 				log.Info("try to fetch new block", "number", bnum)
 			}
 			if bnum > m.fs.LatestBlockNumber {
-				m.parseNewBlock(b)
+				m.parseBlock(b)
 				log.Info("Fetch block", "Number", bnum, "Txs", len(b.Txs))
 				for i := m.fs.LatestBlockNumber - 1; i >= minBlockNum; i-- {
 					if m.fs.HasBlock(i) {
@@ -344,6 +344,7 @@ func (m *Monitor) Start() error {
 			}
 			timer.Reset(time.Second * 3)
 		case <-m.terminate:
+			m.dl.CloseAll(struct{}{})
 			return nil
 		}
 	}
