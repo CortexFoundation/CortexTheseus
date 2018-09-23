@@ -55,7 +55,7 @@ infernet:
 	cp ${INFER_NET_DIR}/libcortexnet.so build/bin/
 
 inferServer: infernet
-	build/env.sh go run build/ci.go install infer_server/infer_server.go
+	build/env.sh go run build/ci.go install cmd/infer_server/infer_server.go
 
 android:
 	build/env.sh go run build/ci.go aar --local
