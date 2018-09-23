@@ -67,7 +67,7 @@ OBJ+=int_convolutional_layer.o int_activation_layer.o int_batchnorm_layer.o int_
 EXECOBJA+=test_interface.o
 ifeq ($(GPU), 1) 
 LDFLAGS+= -lstdc++ 
-OBJ+=convolutional_kernels.o deconvolutional_kernels.o activation_kernels.o im2col_kernels.o col2im_kernels.o blas_kernels.o
+OBJ+=convolutional_kernels.o deconvolutional_kernels.o activation_kernels.o im2col_kernels.o col2im_kernels.o blas_kernels.o trivial_mul_kernels.o
 OBJ+=crop_layer_kernels.o dropout_layer_kernels.o maxpool_layer_kernels.o avgpool_layer_kernels.o int_shortcut_layer.o
 OBJ+=int_convolutional_kernels.o scale_kernels.o gemm_kernels.o int_maxpool_layer_kernels.o interface.o
 endif

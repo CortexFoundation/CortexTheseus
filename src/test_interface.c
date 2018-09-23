@@ -9,7 +9,7 @@ void int_print_list(char* x, int n, char* name){
     }
     printf("\n");
 }
-// #define DOG_CAT
+#define DOG_CAT
 // #define COMPRESS
 // #define RES
 int main()
