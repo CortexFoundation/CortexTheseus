@@ -181,93 +181,16 @@ void gemm_gpu(int TA, int TB, int M, int N, int K, float ALPHA,
     check_error(status);
 }
 
-void int_print_array(char* a, int size){
-    char* b = malloc(size*sizeof(char));
-    int_cuda_pull_array(a,b,size);
-    for (int i = 0;i<size;i++)
-    if (b[i]!=0)
-        printf("%d ",b[i]);
-    printf("\n");
-    free(b);
-}
-void int32_print_array(int* a, int size){
-    int* b = malloc(size*sizeof(int));
-    printf("%d ",size);
-    int32_cuda_pull_array(a,b,size);
-    for (int i = 0;i<size;i++)
-    if (b[i]!=0)
-        printf("%d ",b[i]);
-    printf("\n");
-    free(b);
-}
 int* completion(int TA, int TB,char *h_A,int m,int k,char *h_B,int n,char* bias){
-    int completion_A = (((4 - k%4) == 4)? 0:(4 - k%4))+k;
-    char *h_A_new;
-    cudaError_t status = cudaMalloc((void **)&h_A_new, completion_A*m*sizeof(char));
-    check_error(status);
-    // printf("size %d %d %d\n",k,m,n);
-	int completion_B_row;
-	int completion_B_col;
-    completion_B_row = (((4 - k%4) == 4)?0:(4 - k%4)) + k;
-    completion_B_col = (((4 - n%4) == 4)?(0):(4 - n%4)) + n;
-   
-    
-    char *h_B_new;
-    status = cudaMalloc((void **)&h_B_new, completion_B_row*completion_B_col*sizeof(char));
-    check_error(status);
-
-
-    int *h_C_new;
-    status = cudaMalloc((void **)&h_C_new, m*completion_B_col*sizeof(int));
-    check_error(status);
-
     int *h_C;
-    status = cudaMalloc((void **)&h_C, m*n*sizeof(int));
+    cudaError_t status = cudaMalloc((void **)&h_C, m*n*sizeof(int));
     check_error(status);
-    addPaddingA_gpu(h_A_new,h_A,m,completion_A,m,k,TA); 
-    addPaddingB_gpu(h_B_new,h_B,completion_B_row,completion_B_col,k,n,TB);
-	int a = 1;int b = 0;
+	// int a = 1;int b = 0;
    
    
-   
-   
-    cublasHandle_t handle = blas_handle();
-   
-   
-	// cublasStatus_t status1 = cublasGemmEx(
-	// 	handle,		
-	// 	CUBLAS_OP_N,  
-	// 	CUBLAS_OP_N,  
-	// 	completion_B_col,         
-	// 	m,         
-	// 	completion_B_row,         
-	// 	&a,            
-	// 	h_B_new,           
-	// 	CUDA_R_8I,
-	// 	completion_B_col,         
-	// 	h_A_new,           
-	// 	CUDA_R_8I,
-	//     completion_A,         
-	// 	&b,            
-	// 	h_C_new,           
-	// 	CUDA_R_32I,
-	// 	completion_B_col,          
-	// 	CUDA_R_32I,
-	// 	CUBLAS_GEMM_ALGO1
-	// );
-    // check_error(status1);
-    gemmExtt(h_A_new,h_B_new,h_C_new,m,completion_B_row,completion_B_row,completion_B_col,m,completion_B_col);
-    rmPadding_gpu(h_C,h_C_new,m,completion_B_col,m,n);
+    gemmExt(h_A,h_B,h_C,m,k,k,n,m,n);
     if (bias!=0)
         add_bias_gpu_fc(h_C,m*n,bias);
-    // printf("%d %d %d %d\n",m,k,n,completion_B_col);
-    // int_print_array(h_A,100);
-    // int_print_array(h_B,1000);
-    // // printf("%d\n",123);
-    // int32_print_array(h_C,100);
-    cuda_free((float*)h_A_new);
-    cuda_free((float*)h_B_new);
-    cuda_free((float*)h_C_new);
     return h_C;
 }
 void int_gemm_ongpu(int TA, int TB, int M, int N, int K, int ALPHA, 
