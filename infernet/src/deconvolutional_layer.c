@@ -160,7 +160,9 @@ layer make_deconvolutional_layer(int batch, int h, int w, int c, int n, int size
     l.activation = activation;
     l.workspace_size = get_workspace_size(l);
 
-    fprintf(stderr, "deconv%5d %2d x%2d /%2d  %4d x%4d x%4d   ->  %4d x%4d x%4d\n", n, size, size, stride, w, h, c, l.out_w, l.out_h, l.out_c);
+#ifdef DEBUG 
+     fprintf(stderr, "deconv%5d %2d x%2d /%2d  %4d x%4d x%4d   ->  %4d x%4d x%4d\n", n, size, size, stride, w, h, c, l.out_w, l.out_h, l.out_c); 
+#endif
 
     return l;
 }

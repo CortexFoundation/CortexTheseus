@@ -25,7 +25,9 @@ layer make_int_activation_layer(int batch, int inputs, ACTIVATION activation)
     l.output_gpu = (float*)int_cuda_make_array((char*)l.output, inputs*batch);
 #endif
     l.activation = activation;
-    fprintf(stderr, "Activation Layer: %d inputs\n", inputs);
+#ifdef DEBUG 
+     fprintf(stderr, "Activation Layer: %d inputs\n", inputs); 
+#endif
     return l;
 }
 
