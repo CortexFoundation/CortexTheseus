@@ -69,12 +69,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	var inferWork InferWork
 
 	if err := json.Unmarshal(body, &inferWork); err != nil {
-		fmt.Fprintf(w, `{"msg": "error": "info": "Data parse error"}`)
+		fmt.Fprintf(w, `{"msg": "error", "info": "Data parse error"}`)
 		return
 	}
 
 	if inferWork.ModelHash == "" || inferWork.InputHash == "" {
-		fmt.Fprintf(w, `{"msg": "error": "info": "Data parse error"}`)
+		fmt.Fprintf(w, `{"msg": "error", "info": "Data parse error"}`)
 		return
 	}
 
@@ -84,11 +84,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	log.Info(fmt.Sprintf("Infer Result: %v, %v", label, err))
 
 	if err != nil {
-		fmt.Fprintf(w, fmt.Sprintf(`{"msg": "error": "info": "%v"}`, err))
+		fmt.Fprintf(w, fmt.Sprintf(`{"msg": "error", "info": "%v"}`, err))
 		return
 	}
 
-	fmt.Fprintf(w, fmt.Sprintf(`{"msg": "ok": "info": "%v"}`, label))
+	fmt.Fprintf(w, fmt.Sprintf(`{"msg": "ok", "info": "%v"}`, label))
 }
 
 func main() {
