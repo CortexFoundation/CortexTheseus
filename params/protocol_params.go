@@ -84,3 +84,8 @@ var (
 	MinimumDifficulty      = big.NewInt(16) // The minimum that the difficulty may ever be.
 	DurationLimit          = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 )
+
+const (
+	MatureBlks  = 10
+	ExpiredBlks = 1000000000000000000 //8409600
+)

@@ -470,7 +470,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 	if evm.vmConfig.InferURI == "" {
 		inferRes, errRes = LocalInfer(string(model_meta_hash), string(input_meta_hash), evm.vmConfig.CallFakeVM)
 	} else {
-		requestBody := fmt.Sprintf(`{"model_addr":"%s", "input_addr":"%s"}`, model_meta_hash, input_meta_hash)
+		requestBody := fmt.Sprintf(`{"ModelHash":"%s", "InputHash":"%s"}`, model_meta_hash, input_meta_hash)
 		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
 	}
 

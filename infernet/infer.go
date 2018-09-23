@@ -3,12 +3,12 @@ package infernet
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -26,6 +26,7 @@ type InferWork struct {
 
 type Config struct {
 	StorageDir string
+	IsNotCache bool
 }
 
 type InferenceServer struct {
@@ -111,7 +112,7 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 
 	// Inference Cache
 	log.Debug(fmt.Sprintf("InferWork: %v", inferWork))
-	if v, ok := is.inferSimpleCache.Load(cacheKey); ok {
+	if v, ok := is.inferSimpleCache.Load(cacheKey); ok && !is.config.IsNotCache {
 		inferWork.res <- v.(uint64)
 		return
 	}
@@ -135,6 +136,7 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 		return
 	}
 
+	log.Debug("Infer Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "Image", image)
 	label, err := InferCore(modelCfg, modelBin, image)
 	if err != nil {
 		inferWork.err <- err
@@ -148,7 +150,7 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 
 // blockIO with waiting for file sync done
 func (is *InferenceServer) checkFileExists(fpath string, forcePending bool) error {
-	for !common.FileExist(fpath) {
+	for !FileExist(fpath) {
 		if !forcePending {
 			return errors.New(fmt.Sprintf("File %v does not exists", fpath))
 		}
@@ -163,4 +165,14 @@ func (is *InferenceServer) checkFileExists(fpath string, forcePending bool) erro
 	}
 
 	return nil
+}
+
+// FileExist checks if a file exists at filePath.
+func FileExist(filePath string) bool {
+	_, err := os.Stat(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return false
+	}
+
+	return true
 }

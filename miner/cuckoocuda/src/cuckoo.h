@@ -14,12 +14,12 @@
 #ifndef EDGEBITS
 // the main parameter is the 2-log of the graph size,
 // which is the size in bits of the node identifiers
-#define EDGEBITS 29
+#define EDGEBITS 24
 #endif
 #ifndef PROOFSIZE
 // the next most important parameter is the (even) length
 // of the cycle to be found. a minimum of 12 is recommended
-#define PROOFSIZE 42
+#define PROOFSIZE 4
 #endif
 
 #if EDGEBITS > 32
