@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"flag"
-	"io"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core/types"
 	cuckoo_gpu "github.com/ethereum/go-ethereum/miner/cuckoocuda"
+	"io"
 	_ "log"
 	"math/rand"
 	"net"
@@ -21,20 +21,20 @@ import (
 	"sync"
 )
 
-type Miner interface{
+type Miner interface {
 	Mining()
 }
 
-type Connection struct{
+type Connection struct {
 	lock  sync.Mutex
 	state bool
 }
-type Cortex struct{
-	server, account, chip string
+type Cortex struct {
+	server, account, chip  string
 	deviceId, verboseLevel uint
-	conn *net.TCPConn
-	reader *bufio.Reader
-	consta Connection
+	conn                   *net.TCPConn
+	reader                 *bufio.Reader
+	consta                 Connection
 }
 
 type Task struct {
@@ -58,7 +58,7 @@ func checkError(err error) {
 	}
 }
 
-func (cm* Cortex)read() map[string]interface{} {
+func (cm *Cortex) handleRead() map[string]interface{} {
 	rep := make([]byte, 0, 4096) // big buffer
 	for {
 		tmp, isPrefix, err := cm.reader.ReadLine()
@@ -69,22 +69,32 @@ func (cm* Cortex)read() map[string]interface{} {
 			cm.consta.lock.Lock()
 			cm.consta.state = false
 			cm.consta.lock.Unlock()
+			cm.init()
 			return nil
 		}
-		checkError(err)
-		rep = append(rep, tmp...)
-		if isPrefix == false {
-			break
+		//checkError(err)
+		if err != nil {
+			//return nil
+			continue
+		}
+		if len(tmp) > 1 {
+			rep = append(rep, tmp...)
+			if isPrefix == false {
+				break
+			}
 		}
 	}
 	// fmt.Println("received ", len(rep), " bytes: ", string(rep), "\n")
 	var repObj map[string]interface{}
 	err := json.Unmarshal(rep, &repObj)
-	checkError(err)
+	//checkError(err)
+	if err != nil {
+		return nil
+	}
 	return repObj
 }
 
-func (cm* Cortex)write(reqObj ReqObj) {
+func (cm *Cortex) handleWrite(reqObj ReqObj) {
 	req, err := json.Marshal(reqObj)
 	checkError(err)
 
@@ -93,7 +103,7 @@ func (cm* Cortex)write(reqObj ReqObj) {
 }
 
 //	init cortex miner
-func (cm* Cortex)init() (*net.TCPConn){
+func (cm *Cortex) init() *net.TCPConn {
 	fmt.Println("init")
 	//cm.server = "cortex.waterhole.xyz:8008"
 	//cm.server = "localhost:8009"
@@ -112,55 +122,55 @@ func (cm* Cortex)init() (*net.TCPConn){
 }
 
 //	miner login to mining pool
-func (cm* Cortex)login() {
+func (cm *Cortex) login() {
 	var reqLogin = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
 		Method:  "eth_submitLogin",
 		Params:  []string{cm.account},
 	}
-	cm.write(reqLogin)
-	cm.read()
+	cm.handleWrite(reqLogin)
+	cm.handleRead()
 }
 
 //	get mining task
-func (cm* Cortex)getWork() {
+func (cm *Cortex) getWork() {
 	req := ReqObj{
-	Id:      100,
-	Jsonrpc: "2.0",
-	Method:  "eth_getWork",
-	Params:  []string{""},
+		Id:      100,
+		Jsonrpc: "2.0",
+		Method:  "eth_getWork",
+		Params:  []string{""},
 	}
-	cm.write(req)
+	cm.handleWrite(req)
 }
 
 //	submit task
-func (cm* Cortex)submit(sol Task) {
+func (cm *Cortex) submit(sol Task) {
 	var reqSubmit = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
 		Method:  "eth_submitWork",
 		Params:  []string{sol.Nonce, sol.Header, sol.Solution},
 	}
-	cm.write(reqSubmit)
+	cm.handleWrite(reqSubmit)
 }
 
 //	cortex mining
-func (cm* Cortex) Mining() {
+func (cm *Cortex) Mining() {
 	var THREAD uint = 10
-	if (cm.chip == "gpu"){
+	if cm.chip == "gpu" {
 		THREAD = 1
 	}
 	cuckoo.CuckooInitialize(1, uint32(THREAD))
-	if (cm.chip == "gpu") {
+	if cm.chip == "gpu" {
 		cuckoo_gpu.CuckooInitialize(cm.deviceId)
 	}
 	for {
-		for{
+		for {
 			cm.consta.lock.Lock()
 			consta := cm.consta.state
 			cm.consta.lock.Unlock()
-			if consta== false {
+			if consta == false {
 				cm.init()
 				cm.login()
 			} else {
@@ -172,7 +182,7 @@ func (cm* Cortex) Mining() {
 	cuckoo.CuckooFinalize()
 }
 
-func (cm* Cortex) miningOnce() {
+func (cm *Cortex) miningOnce() {
 	type TaskWrapper struct {
 		Lock  sync.Mutex
 		TaskQ Task
@@ -181,7 +191,7 @@ func (cm* Cortex) miningOnce() {
 	var currentTask TaskWrapper
 	var taskHeader, taskNonce, taskDifficulty string
 	var THREAD uint = 10
-	if (cm.chip == "gpu"){
+	if cm.chip == "gpu" {
 		THREAD = 1
 	}
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -206,7 +216,7 @@ func (cm* Cortex) miningOnce() {
 				curNonce := uint64(rand.Int63())
 				// fmt.Println("task: ", header[:], curNonce)
 
-				if (cm.chip == "cpu") {
+				if cm.chip == "cpu" {
 					status, sols := cuckoo.CuckooFindSolutions(header, curNonce)
 					if status != 0 {
 						if verboseLevel >= 3 {
@@ -232,32 +242,32 @@ func (cm* Cortex) miningOnce() {
 							}
 						}
 					}
-				} else if (cm.chip == "gpu") {
-						status, sols := cuckoo_gpu.CuckooFindSolutionsCuda(header, curNonce)
-						if status != 0 {
+				} else if cm.chip == "gpu" {
+					status, sols := cuckoo_gpu.CuckooFindSolutionsCuda(header, curNonce)
+					if status != 0 {
+						if verboseLevel >= 3 {
+							fmt.Println("result: ", status, sols)
+						}
+						for _, solUint32 := range sols {
+							var sol types.BlockSolution
+							copy(sol[:], solUint32)
+							sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
 							if verboseLevel >= 3 {
-								fmt.Println("result: ", status, sols)
+								fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 							}
-							for _, solUint32 := range sols {
-								var sol types.BlockSolution
-								copy(sol[:], solUint32)
-								sha3hash := common.BytesToHash(cuckoo.Sha3Solution(&sol))
-								if verboseLevel >= 3 {
-									fmt.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
-								}
-								if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
-									result = sol
-									nonceStr := common.Uint64ToHexString(uint64(curNonce))
-									digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-									ok, _ := cuckoo.CuckooVerifyHeader(header[:], curNonce, &sol)
-									if !ok {
-										fmt.Println("verify failed", header[:], curNonce, &sol)
-									} else {
-										solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
-									}
+							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+								result = sol
+								nonceStr := common.Uint64ToHexString(uint64(curNonce))
+								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
+								ok, _ := cuckoo.CuckooVerifyHeader(header[:], curNonce, &sol)
+								if !ok {
+									fmt.Println("verify failed", header[:], curNonce, &sol)
+								} else {
+									solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
 								}
 							}
 						}
+					}
 				}
 			}
 		}(uint32(nthread), &currentTask)
@@ -266,9 +276,9 @@ func (cm* Cortex) miningOnce() {
 	cm.getWork()
 	go func(currentTask_ *TaskWrapper) {
 		for {
-			msg := cm.read()
+			msg := cm.handleRead()
 			if cm.consta.state == false {
-				 return
+				return
 			}
 			fmt.Println("Received: ", msg)
 			reqId, _ := msg["id"].(float64)
@@ -288,21 +298,20 @@ func (cm* Cortex) miningOnce() {
 	}(&currentTask)
 	time.Sleep(2 * time.Second)
 
-
 	for {
 		if cm.consta.state == false {
 			return
 		}
 		select {
-			case sol := <-solChan:
-				currentTask.Lock.Lock()
-				task := currentTask.TaskQ
-				currentTask.Lock.Unlock()
-				if sol.Header == task.Header {
-					cm.submit(sol)
-				}
-			default:
-				time.Sleep(100 * time.Millisecond)
+		case sol := <-solChan:
+			currentTask.Lock.Lock()
+			task := currentTask.TaskQ
+			currentTask.Lock.Unlock()
+			if sol.Header == task.Header {
+				cm.submit(sol)
+			}
+		default:
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
@@ -323,16 +332,16 @@ var verboseLevel int
 
 func main() {
 	flag.Parse()
-	if (help == true){
+	if help == true {
 		fmt.Println("Usage:\ngo run miner.go -r romote -a account -c gpu\nexample:go run miner.go -r localhost:8009 -a 0xc3d7a1ef810983847510542edfd5bc5551a6321c -c cpu")
-	}else{
+	} else {
 		fmt.Println(account, remote, chip)
 	}
 	var cm Miner = &Cortex{
-		chip: chip,
-		account: account,
-		server: remote,
-		deviceId: uint(deviceId),
+		chip:         chip,
+		account:      account,
+		server:       remote,
+		deviceId:     uint(deviceId),
 		verboseLevel: uint(verboseLevel),
 	}
 	cm.Mining()
