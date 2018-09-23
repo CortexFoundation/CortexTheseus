@@ -22,7 +22,9 @@ list *read_data_cfg(char *filename)
                 break;
             default:
                 if(!read_option(line, options)){
-                    fprintf(stderr, "Config file error line %d, could parse: %s\n", nu, line);
+#ifdef DEBUG 
+                     fprintf(stderr, "Config file error line %d, could parse: %s\n", nu, line); 
+#endif
                     free(line);
                 }
                 break;
@@ -40,7 +42,9 @@ metadata get_metadata(char *file)
     char *name_list = option_find_str(options, "names", 0);
     if(!name_list) name_list = option_find_str(options, "labels", 0);
     if(!name_list) {
-        fprintf(stderr, "No names or labels found\n");
+#ifdef DEBUG 
+         fprintf(stderr, "No names or labels found\n"); 
+#endif
     } else {
         m.names = get_labels(name_list);
     }
@@ -82,7 +86,9 @@ void option_unused(list *l)
     while(n){
         kvp *p = (kvp *)n->val;
         if(!p->used){
-            fprintf(stderr, "Unused field: '%s = %s'\n", p->key, p->val);
+#ifdef DEBUG 
+             fprintf(stderr, "Unused field: '%s = %s'\n", p->key, p->val); 
+#endif
         }
         n = n->next;
     }
@@ -105,7 +111,9 @@ char *option_find_str(list *l, char *key, char *def)
 {
     char *v = option_find(l, key);
     if(v) return v;
-    if(def) fprintf(stderr, "%s: Using default '%s'\n", key, def);
+#ifdef DEBUG 
+     if(def) fprintf(stderr, "%s: Using default '%s'\n", key, def); 
+#endif
     return def;
 }
 
@@ -113,7 +121,9 @@ int option_find_int(list *l, char *key, int def)
 {
     char *v = option_find(l, key);
     if(v) return atoi(v);
-    fprintf(stderr, "%s: Using default '%d'\n", key, def);
+#ifdef DEBUG 
+     fprintf(stderr, "%s: Using default '%d'\n", key, def); 
+#endif
     return def;
 }
 
@@ -135,6 +145,8 @@ float option_find_float(list *l, char *key, float def)
 {
     char *v = option_find(l, key);
     if(v) return atof(v);
-    fprintf(stderr, "%s: Using default '%lf'\n", key, def);
+#ifdef DEBUG 
+     fprintf(stderr, "%s: Using default '%lf'\n", key, def); 
+#endif
     return def;
 }

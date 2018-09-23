@@ -585,7 +585,9 @@ int show_image(image p, const char *name, int ms)
     if (c != -1) c = c%256;
     return c;
 #else
-    fprintf(stderr, "Not compiled with OpenCV, saving to %s.png instead\n", name);
+#ifdef DEBUG 
+     fprintf(stderr, "Not compiled with OpenCV, saving to %s.png instead\n", name); 
+#endif
     save_image(p, name);
     return 0;
 #endif
@@ -629,12 +631,16 @@ image load_image_cv(char *filename, int channels)
     else if (channels == 1) flag = 0;
     else if (channels == 3) flag = 1;
     else {
-        fprintf(stderr, "OpenCV can't force load with %d channels\n", channels);
+#ifdef DEBUG 
+         fprintf(stderr, "OpenCV can't force load with %d channels\n", channels); 
+#endif
     }
 
     if( (src = cvLoadImage(filename, flag)) == 0 )
     {
-        fprintf(stderr, "Cannot load image \"%s\"\n", filename);
+#ifdef DEBUG 
+         fprintf(stderr, "Cannot load image \"%s\"\n", filename); 
+#endif
         char buff[256];
         sprintf(buff, "echo %s >> bad.list", filename);
         system(buff);
@@ -711,7 +717,9 @@ void save_image_png(image im, const char *name)
     }
     int success = stbi_write_png(buff, im.w, im.h, im.c, data, im.w*im.c);
     free(data);
-    if(!success) fprintf(stderr, "Failed to write image %s\n", buff);
+#ifdef DEBUG 
+     if(!success) fprintf(stderr, "Failed to write image %s\n", buff); 
+#endif
 }
 
 void save_image(image im, const char *name)
@@ -1455,7 +1463,9 @@ image load_image_stb(char *filename, int channels)
     int w, h, c;
     unsigned char *data = stbi_load(filename, &w, &h, &c, channels);
     if (!data) {
-        fprintf(stderr, "Cannot load image \"%s\"\nSTB Reason: %s\n", filename, stbi_failure_reason());
+#ifdef DEBUG 
+         fprintf(stderr, "Cannot load image \"%s\"\nSTB Reason: %s\n", filename, stbi_failure_reason()); 
+#endif
         exit(0);
     }
     if(channels) c = channels;
