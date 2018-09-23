@@ -107,8 +107,8 @@ char *int_cuda_make_array(char *x, size_t n)
 {
     char *x_gpu;
     size_t size = sizeof(char)*n;
-    cudaError_t status = cudaMalloc((void **)&x_gpu, size);
-    check_error(status);
+    cudaError_t status;
+    check_error( cudaMalloc((void **)&x_gpu, size));
     if(x){
         status = cudaMemcpy(x_gpu, x, size, cudaMemcpyHostToDevice);
         check_error(status);
