@@ -26,6 +26,7 @@ type InferWork struct {
 
 type Config struct {
 	StorageDir string
+	IsNotCache bool
 }
 
 type InferenceServer struct {
@@ -111,7 +112,7 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 
 	// Inference Cache
 	log.Debug(fmt.Sprintf("InferWork: %v", inferWork))
-	if v, ok := is.inferSimpleCache.Load(cacheKey); ok {
+	if v, ok := is.inferSimpleCache.Load(cacheKey); ok && !is.config.IsNotCache {
 		inferWork.res <- v.(uint64)
 		return
 	}
