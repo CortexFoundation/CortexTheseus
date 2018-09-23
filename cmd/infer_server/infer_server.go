@@ -17,6 +17,7 @@ var (
 	storageDir   = flag.String("storageDir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
 	logLevel     = flag.Int("logLevel", 3, "Log level to emit to screen")
 	port         = flag.Int("port", 8827, "server listen port")
+	IsNotCache  = flag.Bool("disable_cache", false, "disable cache")
 )
 
 type InferWork struct {
@@ -98,6 +99,7 @@ func main() {
 
 	inferServer := infer.New(infer.Config{
 		StorageDir: *storageDir,
+		IsNotCache: *IsNotCache,
 	})
 
 	http.HandleFunc("/", handler)
