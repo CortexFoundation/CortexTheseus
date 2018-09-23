@@ -20,7 +20,15 @@ func mainExitCode() int {
 	trackerURI := flag.String("t", "http://47.52.39.170:5008/announce", "tracker uri")
 	flag.Parse()
 
-	cfg := torrentfs.DefaultConfig
+	cfg := torrentfs.Config{
+		DataDir:         torrentfs.DefaultConfig.DataDir,
+		Host:            torrentfs.DefaultConfig.Host,
+		Port:            torrentfs.DefaultConfig.Port,
+		DefaultTrackers: torrentfs.DefaultConfig.DefaultTrackers,
+		SyncMode:        torrentfs.DefaultConfig.SyncMode,
+		TestMode:        torrentfs.DefaultConfig.TestMode,
+	}
+
 	cfg.Host = *Host
 	cfg.Port = *Port
 	cfg.DataDir = *Dir

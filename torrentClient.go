@@ -31,11 +31,11 @@ const (
 	updateTorrentChanBuffer         = 32
 	expansionFactor         float64 = 1.5
 	// Pending for gotInfo
-	torrentPending = 0
-	torrentPaused  = 1
-	torrentRunning = 2
-	torrentSeeding = 3
-	defaultTmpFilePath    = ".tmp"
+	torrentPending     = 0
+	torrentPaused      = 1
+	torrentRunning     = 2
+	torrentSeeding     = 3
+	defaultTmpFilePath = ".tmp"
 )
 
 // Torrent ...
@@ -48,13 +48,13 @@ type Torrent struct {
 	status          int64
 }
 
-func (t * Torrent) Seed() {
+func (t *Torrent) Seed() {
 	t.VerifyData()
 	t.DownloadAll()
 	t.status = torrentSeeding
 }
 
-func (t * Torrent) Seeding() bool {
+func (t *Torrent) Seeding() bool {
 	return t.status == torrentSeeding
 }
 
@@ -100,6 +100,7 @@ type TorrentManager struct {
 	newTorrent    chan string
 	removeTorrent chan string
 	updateTorrent chan interface{}
+	halt          bool
 	mu            sync.Mutex
 }
 
@@ -274,11 +275,11 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
 	if _, err := os.Stat(torrentPath); err == nil {
-//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(torrentPath)
 		return
 	} else if _, err := os.Stat(seedTorrentPath); err == nil {
-//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		//		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.AddTorrent(seedTorrentPath)
 		return
 	}
@@ -403,13 +404,20 @@ func NewTorrentManager(config *Config) *TorrentManager {
 			case msg := <-TorrentManager.updateTorrent:
 				meta := msg.(FlowControlMeta)
 				go TorrentManager.UpdateMagnet(meta.InfoHash, int64(meta.BytesRequested))
+			case <-TorrentManager.closeAll:
+				TorrentManager.halt = true
+				TorrentManager.client.Close()
+				return
 			}
 		}
 	}()
 
 	go func() {
 		var counter uint64
-		for counter = 0;; counter++ {
+		for counter = 0; ; counter++ {
+			if TorrentManager.halt {
+				return
+			}
 			for ih, t := range TorrentManager.torrents {
 				t.bytesCompleted = t.BytesCompleted()
 				t.bytesMissing = t.BytesMissing()
