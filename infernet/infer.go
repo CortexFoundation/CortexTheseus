@@ -144,7 +144,9 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 	}
 
 	inferWork.res <- label
-	is.inferSimpleCache.Store(cacheKey, label)
+	if !is.config.IsNotCache {
+		is.inferSimpleCache.Store(cacheKey, label)
+	}
 	return
 }
 
