@@ -55,7 +55,9 @@ ACTIVATION get_activation(char *s)
     if (strcmp(s, "leaky")==0) return LEAKY;
     if (strcmp(s, "tanh")==0) return TANH;
     if (strcmp(s, "stair")==0) return STAIR;
-    fprintf(stderr, "Couldn't find activation function %s, going with ReLU\n", s);
+#ifdef DEBUG 
+     fprintf(stderr, "Couldn't find activation function %s, going with ReLU\n", s); 
+#endif
     return RELU;
 }
 

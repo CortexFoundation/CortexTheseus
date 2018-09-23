@@ -86,6 +86,7 @@ void int_scale_add_bias_gpu(int *output, char *input, char *scales, char *biases
 
 void add_bias_gpu(float *output, float *biases, int batch, int n, int size);
 void int_add_bias_gpu(char *output, char *biases, int batch, int n, int size);
+void int32_add_bias_gpu(int *output, char *biases, int batch, int n, int size);
 
 void backward_bias_gpu(float *bias_updates, float *delta, int batch, int n, int size);
 
