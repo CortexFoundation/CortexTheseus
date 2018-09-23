@@ -10,8 +10,8 @@ import (
 	"github.com/anacrolix/missinggo/expect"
 	"github.com/boltdb/bolt"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
@@ -126,15 +126,17 @@ func (fs *FileStorage) HasBlock(blockNum uint64) bool {
 
 // GetBlock ...
 func (fs *FileStorage) GetBlock(blockNum uint64) *Block {
-	b, ok := fs.blockMap[blockNum]
-	if !ok {
-		t := fs.db.GetBlock(blockNum)
-		if t != nil {
-			fs.blockMap[blockNum] = t
-			return t
+	b, _ := fs.blockMap[blockNum]
+	/*
+		if !ok {
+			t := fs.db.GetBlock(blockNum)
+			if t != nil {
+				fs.blockMap[blockNum] = t
+				return t
+			}
+			return nil
 		}
-		return nil
-	}
+	*/
 	return b
 }
 
