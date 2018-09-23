@@ -1,7 +1,7 @@
 package infernet
 
 /*
-#cgo LDFLAGS: -L./ -Wl,-rpath,./build/bin/ -lcortexnet
+#cgo LDFLAGS: -L./ -Wl,-rpath,./bin/ -lcortexnet
 #cgo CFLAGS: -I./int_mnist_model
 
 #include "interface.h"
@@ -22,13 +22,16 @@ func readImg(input string) ([]byte, error) {
 
 	// Infer data must between [0, 127)
 	data, derr := r.GetBytes()
-	for i, v := range data {
-		data[i] = uint8(v) / 2
-	}
-	// DumpToFile("tmp.dump", data)
 	if derr != nil {
 		return nil, derr
 	}
+
+	for i, v := range data {
+		data[i] = uint8(v) / 2
+	}
+
+	// Tmp Code
+	DumpToFile("tmp.dump", data)
 
 	return data, nil
 }
@@ -38,6 +41,13 @@ func InferCore(modelCfg, modelBin, image string) (uint64, error) {
 	net := C.load_model(
 		C.CString(modelCfg),
 		C.CString(modelBin))
+
+	// TODO net may be a C.NULL, dose it equal Go.nil?
+	if net == nil {
+		return 0, errors.New("Model load error")
+	}
+
+	defer C.free_model(net)
 
 	resLen := int(C.get_output_length(net))
 	if resLen == 0 {
@@ -79,8 +89,6 @@ func InferCore(modelCfg, modelBin, image string) (uint64, error) {
 			label = 0
 		}
 	}
-
-	C.free_model(net)
 
 	return label, nil
 }
