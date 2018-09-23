@@ -34,22 +34,21 @@ const (
 	minBlockNum           = 0
 )
 
-
 type TorrentManagerAPI interface {
-	CloseAll(struct{})         error
-	NewTorrent(string)         error
-	RemoveTorrent(string)      error
+	CloseAll(struct{}) error
+	NewTorrent(string) error
+	RemoveTorrent(string) error
 	UpdateTorrent(interface{}) error
 }
 
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
-	config     *Config
-	cl         *rpc.Client
-	fs         *FileStorage
-	dl         TorrentManagerAPI
-	terminate  chan struct{}
+	config    *Config
+	cl        *rpc.Client
+	fs        *FileStorage
+	dl        TorrentManagerAPI
+	terminate chan struct{}
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -344,7 +343,8 @@ func (m *Monitor) Start() error {
 				}
 			}
 			timer.Reset(time.Second * 3)
-		case <- m.terminate:
+		case <-m.terminate:
+			m.dl.CloseAll(struct{}{})
 			return nil
 		}
 	}
