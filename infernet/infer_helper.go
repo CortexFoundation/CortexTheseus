@@ -31,7 +31,7 @@ func readImg(input string) ([]byte, error) {
 	}
 
 	// Tmp Code
-	DumpToFile("tmp.dump", data)
+	// DumpToFile("tmp.dump", data)
 
 	return data, nil
 }

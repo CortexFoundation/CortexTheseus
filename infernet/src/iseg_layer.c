@@ -49,7 +49,9 @@ layer make_iseg_layer(int batch, int w, int h, int classes, int ids)
     l.delta_gpu = cuda_make_array(l.delta, batch*l.outputs);
 #endif
 
-    fprintf(stderr, "iseg\n");
+#ifdef DEBUG 
+     fprintf(stderr, "iseg\n"); 
+#endif
     srand(0);
 
     return l;
