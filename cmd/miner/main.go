@@ -58,7 +58,7 @@ func checkError(err error) {
 	}
 }
 
-func (cm* Cortex)read() map[string]interface{} {
+func (cm* Cortex)handleRead() map[string]interface{} {
 	rep := make([]byte, 0, 4096) // big buffer
 	for {
 		tmp, isPrefix, err := cm.reader.ReadLine()
@@ -120,7 +120,7 @@ func (cm* Cortex)login() {
 		Params:  []string{cm.account},
 	}
 	cm.write(reqLogin)
-	cm.read()
+	cm.handlRead()
 }
 
 //	get mining task
@@ -260,7 +260,7 @@ func (cm* Cortex) miningOnce() {
 	cm.getWork()
 	go func(currentTask_ *TaskWrapper) {
 		for {
-			msg := cm.read()
+			msg := cm.handleRead()
 			if cm.consta.state == false {
 				 return
 			}
