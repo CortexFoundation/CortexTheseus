@@ -153,6 +153,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	eth.inferServer = infer.New(infer.Config{
 		StorageDir: config.StorageDir,
+		IsNotCache: false,
 	})
 
 	var (
