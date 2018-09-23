@@ -56,6 +56,7 @@ infernet:
 
 inferServer: infernet
 	build/env.sh go run build/ci.go install cmd/infer_server/infer_server.go
+	build/env.sh go run build/ci.go install cmd/infer_server/infer_client.go
 
 android:
 	build/env.sh go run build/ci.go aar --local

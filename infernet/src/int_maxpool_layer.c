@@ -26,6 +26,8 @@ int_maxpool_layer make_int_maxpool_layer(int batch, int h, int w, int c, int siz
     l.indexes_gpu = int32_cuda_make_array(NULL, output_size);
     l.output_gpu  = (float*)int_cuda_make_array((char*)l.output, output_size);
     #endif
-    fprintf(stderr, "max          %d x %d / %d  %4d x%4d x%4d   ->  %4d x%4d x%4d\n", size, size, stride, w, h, c, l.out_w, l.out_h, l.out_c);
+#ifdef DEBUG 
+     fprintf(stderr, "max          %d x %d / %d  %4d x%4d x%4d   ->  %4d x%4d x%4d\n", size, size, stride, w, h, c, l.out_w, l.out_h, l.out_c); 
+#endif
     return l;
 }

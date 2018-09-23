@@ -88,7 +88,9 @@ func (t *Transaction) Parse() *FileMeta {
 		var meta types.InputMeta
 		var AuthorAddress common.Address
 		AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
-		rlp.Decode(bytes.NewReader(t.Data()), &meta)
+		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
+			return nil
+		}
 		return &FileMeta{
 			&AuthorAddress,
 			meta.URI,
@@ -99,7 +101,9 @@ func (t *Transaction) Parse() *FileMeta {
 		var meta types.ModelMeta
 		var AuthorAddress common.Address
 		AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
-		rlp.Decode(bytes.NewReader(t.Data()), &meta)
+		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
+			return nil
+		}
 		return &FileMeta{
 			&AuthorAddress,
 			meta.URI,
@@ -136,7 +140,7 @@ type TxReceipt struct {
 	// Contract Address
 	ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
 	// Transaction Hash
-	TxHash *common.Hash          `json:"TransactionHash"  gencodec:"required"`
+	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
 }
 
 // FileMeta ...
