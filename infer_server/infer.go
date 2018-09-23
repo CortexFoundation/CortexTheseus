@@ -1,4 +1,6 @@
-package infernet
+// +build !remote
+
+package infer_server
 
 import (
 	"errors"
@@ -9,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ethereum/go-ethereum/infernet"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -137,7 +140,7 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 	}
 
 	log.Debug("Infer Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "Image", image)
-	label, err := InferCore(modelCfg, modelBin, image)
+	label, err := infernet.InferCore(modelCfg, modelBin, image)
 	if err != nil {
 		inferWork.err <- err
 		return
