@@ -65,7 +65,27 @@ cudaN28L8.o: src/siphash.cuh src/miner.cu Makefile
 	nvcc -c -o $@.temp.o -rdc=true -DEDGEBITS=24 -DPROOFSIZE=4 -arch sm_35 src/miner.cu $(LIBS)
 	nvcc -dlink -o $@ $@.temp.o -lcudart
 
-libgpugominer.a:  cudaN24L4.o blake2b.o
+cudaN30L42.o: src/siphash.cuh src/miner.cu Makefile
+	nvcc -c -o $@.temp.o -rdc=true -DEDGEBITS=29 -DPROOFSIZE=42 -arch sm_35 src/miner.cu $(LIBS)
+	nvcc -dlink -o $@ $@.temp.o -lcudart
+
+cudaN29L4.o: src/siphash.cuh src/miner.cu Makefile
+	nvcc -c -o $@.temp.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=4 -arch sm_35 src/miner.cu $(LIBS)
+	nvcc -dlink -o $@ $@.temp.o -lcudart
+
+cudaN29L22.o: src/siphash.cuh src/miner.cu Makefile
+	nvcc -c -o $@.temp.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=22 -arch sm_35 src/miner.cu $(LIBS)
+	nvcc -dlink -o $@ $@.temp.o -lcudart
+
+cudaN29L12.o: src/siphash.cuh src/miner.cu Makefile
+	nvcc -c -o $@.temp.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/miner.cu $(LIBS)
+	nvcc -dlink -o $@ $@.temp.o -lcudart
+
+cudaN30L4.o: src/siphash.cuh src/miner.cu Makefile
+	nvcc -c -o $@.temp.o -rdc=true -DEDGEBITS=29 -DPROOFSIZE=4 -arch sm_35 src/miner.cu $(LIBS)
+	nvcc -dlink -o $@ $@.temp.o -lcudart
+
+libgpugominer.a:  cudaN29L12.o blake2b.o
 	ar cr $@ $^ $<.temp.o 
 
 clean:
