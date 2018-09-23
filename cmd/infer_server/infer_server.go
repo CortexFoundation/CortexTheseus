@@ -14,8 +14,9 @@ import (
 
 var (
 	forcePending = flag.Bool("forcePending", false, "Force program wait for file sync done")
-	storageDir   = flag.String("storageDir", "~/InferenceServer/warehouse", "Set the inference server's data dir")
+	storageDir   = flag.String("storageDir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
 	logLevel     = flag.Int("logLevel", 3, "Log level to emit to screen")
+	port         = flag.Int("port", 8827, "server listen port")
 )
 
 type InferWork struct {
@@ -76,10 +77,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Hash", inferWork.InputHash)
+
 	label, err := LocalInfer(inferWork.ModelHash, inferWork.InputHash, *forcePending)
+	log.Info(fmt.Sprintf("Infer Result: %v, %v", label, err))
 
 	if err != nil {
-		fmt.Fprintf(w, `{"msg": "error": "info": "Infer core error"}`)
+		fmt.Fprintf(w, fmt.Sprintf(`{"msg": "error": "info": "%v"}`, err))
 		return
 	}
 
@@ -97,7 +101,7 @@ func main() {
 	})
 
 	http.HandleFunc("/", handler)
-	err := http.ListenAndServe(":8827", nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%v", *port), nil)
 
 	log.Error(fmt.Sprintf("Server Closed with Error %v", err))
 	inferServer.Close()
