@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	infer "github.com/ethereum/go-ethereum/infernet"
+	infer "github.com/ethereum/go-ethereum/infer_server"
 	"github.com/ethereum/go-ethereum/log"
 )
 
