@@ -14,6 +14,8 @@ var (
 )
 
 func main() {
+	flag.Parse()
+
 	requestBody := fmt.Sprintf(`{"ModelHash":"%v", "InputHash": "%v"}`, *model, *input)
 	fmt.Println(requestBody)
 	resp, err := resty.R().
