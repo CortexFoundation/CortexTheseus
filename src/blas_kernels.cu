@@ -36,6 +36,7 @@ __global__ void int_scale_add_bias_kernel(int *output, char *input, char *scales
     if(offset < size)
     {
         output[(batch*n+filter)*size + offset] = input[(batch*n+filter)*size + offset] * scales[filter];
+        // printf("%d\n",biases[filter]);
         output[(batch*n+filter)*size + offset] += biases[filter];
     }
 }
@@ -100,6 +101,18 @@ __global__ void int_add_bias_kernel(char *output, char *biases, int batch, int n
 
     output[(k*n+j)*size + i] += biases[j];
 }
+__global__ void int32_add_bias_kernel(int *output, char *biases, int batch, int n, int size)
+{
+    int index = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
+    if (index >= n*size*batch) return;
+    int i = index % size;
+    index /= size;
+    int j = index % n;
+    index /= n;
+    int k = index;
+
+    output[(k*n+j)*size + i] += biases[j];
+}
 
 void add_bias_gpu(float *output, float *biases, int batch, int n, int size)
 {
@@ -114,6 +127,14 @@ void int_add_bias_gpu(char *output, char *biases, int batch, int n, int size)
     int num = n*size*batch;
     
     int_add_bias_kernel<<<cuda_gridsize(num), BLOCK>>>(output, biases, batch, n, size);
+    check_error(cudaPeekAtLastError());
+}
+
+void int32_add_bias_gpu(int *output, char *biases, int batch, int n, int size)
+{
+    int num = n*size*batch;
+    
+    int32_add_bias_kernel<<<cuda_gridsize(num), BLOCK>>>(output, biases, batch, n, size);
     check_error(cudaPeekAtLastError());
 }
 
