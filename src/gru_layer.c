@@ -28,7 +28,9 @@ static void increment_layer(layer *l, int steps)
 
 layer make_gru_layer(int batch, int inputs, int outputs, int steps, int batch_normalize, int adam)
 {
-    fprintf(stderr, "GRU Layer: %d inputs, %d outputs\n", inputs, outputs);
+#ifdef DEBUG 
+     fprintf(stderr, "GRU Layer: %d inputs, %d outputs\n", inputs, outputs); 
+#endif
     batch = batch / steps;
     layer l = {0};
     l.batch = batch;
@@ -37,34 +39,46 @@ layer make_gru_layer(int batch, int inputs, int outputs, int steps, int batch_no
     l.inputs = inputs;
 
     l.uz = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.uz) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.uz->batch = batch;
 
     l.wz = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.wz) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wz->batch = batch;
 
     l.ur = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.ur) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.ur->batch = batch;
 
     l.wr = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.wr) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wr->batch = batch;
 
 
 
     l.uh = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.uh) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.uh->batch = batch;
 
     l.wh = malloc(sizeof(layer));
-    fprintf(stderr, "\t\t");
+#ifdef DEBUG 
+     fprintf(stderr, "\t\t"); 
+#endif
     *(l.wh) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wh->batch = batch;
 

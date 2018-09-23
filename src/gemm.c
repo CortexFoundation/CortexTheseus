@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "trivial_mul.h"
 
 void gemm_bin(int M, int N, int K, float ALPHA, 
         char  *A, int lda, 
@@ -179,68 +180,17 @@ void gemm_gpu(int TA, int TB, int M, int N, int K, float ALPHA,
             (TA ? CUBLAS_OP_T : CUBLAS_OP_N), N, M, K, &ALPHA, B_gpu, ldb, A_gpu, lda, &BETA, C_gpu, ldc);
     check_error(status);
 }
+
 int* completion(int TA, int TB,char *h_A,int m,int k,char *h_B,int n,char* bias){
-    int completion_A = (((4 - k%4) == 4)? 0:(4 - k%4))+k;
-    char *h_A_new;
-    cudaError_t status = cudaMalloc((void **)&h_A_new, completion_A*m*sizeof(char));
-    check_error(status);
-	int completion_B_row;
-	int completion_B_col;
-    completion_B_row = (((4 - k%4) == 4)?0:(4 - k%4)) + k;
-    completion_B_col = (((4 - n%4) == 4)?(0):(4 - n%4)) + n;
-   
-    
-    char *h_B_new;
-    status = cudaMalloc((void **)&h_B_new, completion_B_row*completion_B_col*sizeof(char));
-    check_error(status);
-
-
-    int *h_C_new;
-    status = cudaMalloc((void **)&h_C_new, m*completion_B_col*sizeof(int));
-    check_error(status);
-
     int *h_C;
-    status = cudaMalloc((void **)&h_C, m*n*sizeof(int));
+    cudaError_t status = cudaMalloc((void **)&h_C, m*n*sizeof(int));
     check_error(status);
-    addPaddingA_gpu(h_A_new,h_A,m,completion_A,m,k,TA); 
-    addPaddingB_gpu(h_B_new,h_B,completion_B_row,completion_B_col,k,n,TB);
-	int a = 1;int b = 0;
+	// int a = 1;int b = 0;
    
    
-   
-   
-    cublasHandle_t handle = blas_handle();
-   
-   
-	cublasStatus_t status1 = cublasGemmEx(
-		handle,		
-		CUBLAS_OP_N,  
-		CUBLAS_OP_N,  
-		completion_B_col,         
-		m,         
-		completion_B_row,         
-		&a,            
-		h_B_new,           
-		CUDA_R_8I,
-		completion_B_col,         
-		h_A_new,           
-		CUDA_R_8I,
-	    completion_A,         
-		&b,            
-		h_C_new,           
-		CUDA_R_32I,
-		completion_B_col,          
-		CUDA_R_32I,
-		CUBLAS_GEMM_ALGO1
-	);
-    check_error(status1);
-    rmPadding_gpu(h_C,h_C_new,m,completion_B_col,m,n);
+    gemmExt(h_A,h_B,h_C,m,k,k,n,m,n);
     if (bias!=0)
         add_bias_gpu_fc(h_C,m*n,bias);
-
-    cuda_free((float*)h_A_new);
-    cuda_free((float*)h_B_new);
-    cuda_free((float*)h_C_new);
     return h_C;
 }
 void int_gemm_ongpu(int TA, int TB, int M, int N, int K, int ALPHA, 
@@ -250,6 +200,7 @@ void int_gemm_ongpu(int TA, int TB, int M, int N, int K, int ALPHA,
         char *C_gpu, int ldc, char shift_bit)
 {
     int *C_gpu_tmp = completion( TA,  TB,A_gpu,M,K,B_gpu,N,0);
+    // printf("%d\n",shift_bit);
     cudaScale(C_gpu, C_gpu_tmp, M*N, shift_bit);
     cuda_free((float *)C_gpu_tmp);
 }
