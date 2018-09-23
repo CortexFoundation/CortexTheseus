@@ -147,6 +147,14 @@ func (cm* Cortex)submit(sol Task) {
 
 //	cortex mining
 func (cm* Cortex) Mining() {
+	var THREAD uint = 10
+	if (cm.chip == "gpu"){
+		THREAD = 1
+	}
+	cuckoo.CuckooInitialize(1, uint32(THREAD))
+	if (cm.chip == "gpu") {
+		cuckoo_gpu.CuckooInitialize(cm.deviceId)
+	}
 	for {
 		for{
 			cm.consta.lock.Lock()
@@ -161,6 +169,7 @@ func (cm* Cortex) Mining() {
 		}
 		cm.miningOnce()
 	}
+	cuckoo.CuckooFinalize()
 }
 
 func (cm* Cortex) miningOnce() {
@@ -175,10 +184,7 @@ func (cm* Cortex) miningOnce() {
 	if (cm.chip == "gpu"){
 		THREAD = 1
 	}
-	cuckoo.CuckooInitialize(1, uint32(THREAD))
-	if (cm.chip == "gpu") {
-		cuckoo_gpu.CuckooInitialize(cm.deviceId)
-	}
+	rand.Seed(time.Now().UTC().UnixNano())
 	solChan := make(chan Task, THREAD)
 
 	for nthread := 0; nthread < int(THREAD); nthread++ {
@@ -299,7 +305,6 @@ func (cm* Cortex) miningOnce() {
 				time.Sleep(100 * time.Millisecond)
 		}
 	}
-	cuckoo.CuckooFinalize()
 }
 
 func init() {

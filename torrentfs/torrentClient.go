@@ -100,6 +100,7 @@ type TorrentManager struct {
 	newTorrent    chan string
 	removeTorrent chan string
 	updateTorrent chan interface{}
+	halt          bool
 	mu            sync.Mutex
 }
 
@@ -403,6 +404,10 @@ func NewTorrentManager(config *Config) *TorrentManager {
 			case msg := <-TorrentManager.updateTorrent:
 				meta := msg.(FlowControlMeta)
 				go TorrentManager.UpdateMagnet(meta.InfoHash, int64(meta.BytesRequested))
+			case <-TorrentManager.closeAll:
+				TorrentManager.halt = true
+				TorrentManager.client.Close()
+				return
 			}
 		}
 	}()
@@ -410,6 +415,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	go func() {
 		var counter uint64
 		for counter = 0; ; counter++ {
+			if TorrentManager.halt {
+				return
+			}
 			for ih, t := range TorrentManager.torrents {
 				t.bytesCompleted = t.BytesCompleted()
 				t.bytesMissing = t.BytesMissing()
