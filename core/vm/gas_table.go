@@ -21,7 +21,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -244,6 +243,10 @@ func gasExtCodeCopy(gt params.GasTable, evm *EVM, contract *Contract, stack *Sta
 	return gas, nil
 }
 
+func gasExtCodeHash(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	return gt.ExtcodeHash, nil
+}
+
 func gasMLoad(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var overflow bool
 	gas, err := memoryGasCost(mem, memorySize)
@@ -287,6 +290,18 @@ func gasCreate(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, m
 		return 0, err
 	}
 	if gas, overflow = math.SafeAdd(gas, params.CreateGas); overflow {
+		return 0, errGasUintOverflow
+	}
+	return gas, nil
+}
+
+func gasCreate2(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	var overflow bool
+	gas, err := memoryGasCost(mem, memorySize)
+	if err != nil {
+		return 0, err
+	}
+	if gas, overflow = math.SafeAdd(gas, params.Create2Gas); overflow {
 		return 0, errGasUintOverflow
 	}
 	return gas, nil
@@ -432,27 +447,17 @@ func gasDelegateCall(gt params.GasTable, evm *EVM, contract *Contract, stack *St
 }
 
 func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
-	gas, err := memoryGasCost(mem, memorySize)
-	if err != nil {
-		return 0, err
-	}
-	_modelAddr := stack.Back(0)
-	modelAddr := common.BigToAddress(_modelAddr)
-	_modelMeta := evm.StateDB.GetCode(modelAddr)
-	modelMeta, err := types.ParseModelMeta(_modelMeta)
+	gas, err := memoryGasCost(mem, 0)
 	if err != nil {
 		return 0, err
 	}
 	var overflow bool
-	if gas, overflow = math.SafeAdd(gas, modelMeta.Gas); overflow {
+	if gas, overflow = math.SafeAdd(gas, params.CallInferGas); overflow {
 		return 0, errGasUintOverflow
-	}
-	contract.InferOpModelGas = ModelAddressGas{
-		Addr: modelMeta.AuthorAddress,
-		MGas: modelMeta.Gas,
 	}
 	return gas, nil
 }
+
 func gasStaticCall(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
 	if err != nil {

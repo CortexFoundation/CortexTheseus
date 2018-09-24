@@ -1,0 +1,35 @@
+*.o
+*.dSYM
+*.csv
+*.out
+*.png
+*.jpg
+*.pyc
+old/
+mnist/
+data/
+infer_data/
+test_interface
+caffe/
+grasp/
+images/
+opencv/
+convnet/
+decaf/
+submission/
+cfg/
+cortexnet
+.fuse*
+
+# OS Generated #
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
+*.swp
+.AppleDouble
+*.weights
+
+# lib
+*.a
+*.so

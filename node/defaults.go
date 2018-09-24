@@ -24,6 +24,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/nat"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 const (
@@ -39,10 +40,12 @@ var DefaultConfig = Config{
 	HTTPPort:         DefaultHTTPPort,
 	HTTPModules:      []string{"net", "web3"},
 	HTTPVirtualHosts: []string{"localhost"},
+	HTTPTimeouts:     rpc.DefaultHTTPTimeouts,
 	WSPort:           DefaultWSPort,
 	WSModules:        []string{"net", "web3"},
 	P2P: p2p.Config{
-		ListenAddr: ":30303",
+		//ListenAddr: ":30303",
+		ListenAddr: ":40404",
 		MaxPeers:   25,
 		NAT:        nat.Any(),
 	},
@@ -61,6 +64,17 @@ func DefaultDataDir() string {
 		} else {
 			return filepath.Join(home, ".ethereum")
 		}
+	}
+	// As we cannot guess a stable location, return empty and handle later
+	return ""
+}
+
+// DefaultStorageDir is the default storage directory to use for the models and inputs.
+func DefaultStorageDir() string {
+	// Try to place the data folder in the user's home dir
+	DataDir := DefaultDataDir()
+	if DataDir != "" {
+		return filepath.Join(DataDir, "storage")
 	}
 	// As we cannot guess a stable location, return empty and handle later
 	return ""

@@ -65,6 +65,7 @@ type Backend interface {
 	bind.ContractBackend
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	BalanceAt(ctx context.Context, address common.Address, blockNum *big.Int) (*big.Int, error)
+	UploadAt(ctx context.Context, address common.Address, blockNum *big.Int) (*big.Int, error)
 }
 
 // Cheque represents a payment promise to a single beneficiary.

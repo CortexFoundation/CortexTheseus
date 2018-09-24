@@ -18,11 +18,23 @@ package vm
 
 import (
 	"fmt"
-	"sync/atomic"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	//"net/http"
+	//"strings"
+	"sync/atomic"
+)
+
+var (
+	MIN_UPLOAD_BYTES     uint64 = 0
+	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
+	DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
+	MODEL_GAS_LIMIT      uint64 = 65536
 )
 
 // Config are the configuration options for the Interpreter
@@ -42,13 +54,42 @@ type Config struct {
 	JumpTable [256]operation
 	// uri for remote infer service
 	InferURI string
+	// rpc getInternalTransaction flag
+	RPC_GetInternalTransaction bool
+
+	// opCall flag
+	CallFakeVM bool
+}
+
+// only for the sake of debug info of NewPublicBlockChainAPI
+type ConfigAux struct {
+	InferURI string
 }
 
 // Interpreter is used to run Ethereum based contracts and will utilise the
 // passed environment to query external sources for state information.
 // The Interpreter will run the byte code VM based on the passed
 // configuration.
-type Interpreter struct {
+type Interpreter interface {
+	// Run loops and evaluates the contract's code with the given input data and returns
+	// the return byte-slice and an error if one occurred.
+	Run(contract *Contract, input []byte, static bool) ([]byte, error)
+	// CanRun tells if the contract, passed as an argument, can be
+	// run by the current interpreter. This is meant so that the
+	// caller can do something like:
+	//
+	// ```golang
+	// for _, interpreter := range interpreters {
+	//   if interpreter.CanRun(contract.code) {
+	//     interpreter.Run(contract.code, input)
+	//   }
+	// }
+	// ```
+	CanRun([]byte) bool
+}
+
+// EVMInterpreter represents an EVM interpreter
+type EVMInterpreter struct {
 	evm      *EVM
 	cfg      Config
 	gasTable params.GasTable
@@ -58,8 +99,8 @@ type Interpreter struct {
 	returnData []byte // Last CALL's return data for subsequent reuse
 }
 
-// NewInterpreter returns a new instance of the Interpreter.
-func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
+// NewEVMInterpreter returns a new instance of the Interpreter.
+func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// We use the STOP instruction whether to see
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
@@ -75,15 +116,15 @@ func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 			cfg.JumpTable = frontierInstructionSet
 		}
 	}
-	return &Interpreter{
+
+	return &EVMInterpreter{
 		evm:      evm,
 		cfg:      cfg,
 		gasTable: evm.ChainConfig().GasTable(evm.BlockNumber),
-		intPool:  newIntPool(),
 	}
 }
 
-func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
+func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
 	if in.evm.chainRules.IsByzantium {
 		if in.readOnly {
 			// If the interpreter is operating in readonly mode, make sure no
@@ -99,20 +140,20 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation operation, stack
 	return nil
 }
 func IsCode(code []byte) bool {
-	if code[0] == 0 && code[1] == 0 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 0 {
 		return true
 	}
 	return false
 }
 func IsModelMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 1 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 1 {
 		return true
 	}
 	return false
 }
 
 func IsInputMeta(code []byte) bool {
-	if code[0] == 0 && code[1] == 0 {
+	if len(code) >= 2 && code[0] == 0 && code[1] == 2 {
 		return true
 	}
 	return false
@@ -124,10 +165,25 @@ func IsInputMeta(code []byte) bool {
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
-func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err error) {
+func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+	if in.intPool == nil {
+		in.intPool = poolOfIntPools.get()
+		defer func() {
+			poolOfIntPools.put(in.intPool)
+			in.intPool = nil
+		}()
+	}
+
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
+
+	// Make sure the readOnly is only set if we aren't in readOnly yet.
+	// This makes also sure that the readOnly flag isn't removed for child calls.
+	if readOnly && !in.readOnly {
+		in.readOnly = true
+		defer func() { in.readOnly = false }()
+	}
 
 	// Reset the previous call's return data. It's unimportant to preserve the old buffer
 	// as every returning call will return new data anyway.
@@ -139,13 +195,95 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	}
 
 	if IsModelMeta(contract.Code) {
-		//todo
-		return contract.Code, nil
+		if in.evm.vmConfig.RPC_GetInternalTransaction {
+			return nil, nil
+		}
+
+		if input != nil {
+			log.Debug("Readonly for model meta")
+			return nil, nil
+		}
+
+		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			if modelMeta.BlockNum.Sign() == 0 {
+				if modelMeta.RawSize > MIN_UPLOAD_BYTES && modelMeta.RawSize <= MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
+					if modelMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
+						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+					} else {
+						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+					}
+				} else {
+					return nil, ErrInvalidMetaRawSize
+				}
+
+				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
+					return nil, ErrInvalidMetaAuthor
+				}
+
+				if modelMeta.Gas > MODEL_GAS_LIMIT {
+					modelMeta.SetGas(MODEL_GAS_LIMIT)
+				} else if modelMeta.Gas < 0 {
+					modelMeta.SetGas(0)
+				}
+
+				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
+				modelMeta.SetBlockNum(*in.evm.BlockNumber)
+				tmpCode, err := modelMeta.ToBytes()
+				if err != nil {
+					return nil, err
+				} else {
+					contract.Code = append([]byte{0, 1}, tmpCode...)
+				}
+				log.Info("Model meta created", "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
+			} else {
+				//log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
+			}
+
+			return contract.Code, nil
+		}
 	}
 
 	if IsInputMeta(contract.Code) {
-		//todo
-		return contract.Code, nil
+		if in.evm.vmConfig.RPC_GetInternalTransaction {
+			return nil, nil
+		}
+
+		if input != nil {
+			log.Debug("Readonly for input meta")
+			return nil, nil
+		}
+
+		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
+			return nil, err
+		} else {
+			if inputMeta.BlockNum.Sign() == 0 {
+				if inputMeta.RawSize > MIN_UPLOAD_BYTES && inputMeta.RawSize <= MAX_UPLOAD_BYTES {
+					if inputMeta.RawSize <= DEFAULT_UPLOAD_BYTES {
+						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+					} else {
+						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-DEFAULT_UPLOAD_BYTES))
+					}
+				} else {
+					return nil, ErrInvalidMetaRawSize
+				}
+
+				inputMeta.SetBlockNum(*in.evm.BlockNumber)
+				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
+				tmpCode, err := inputMeta.ToBytes()
+				if err != nil {
+					return nil, err
+				} else {
+					contract.Code = append([]byte{0, 2}, tmpCode...)
+				}
+				log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+			} else {
+	//			log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+			}
+
+			return contract.Code, nil
+		}
 	}
 
 	var (
@@ -163,6 +301,9 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		logged  bool   // deferred Tracer should ignore already logged steps
 	)
 	contract.Input = input
+
+	// Reclaim the stack as an int pool when the execution stops
+	defer func() { in.intPool.put(stack.data...) }()
 
 	if in.cfg.Debug {
 		defer func() {
@@ -183,6 +324,7 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		contract.Code = contract.Code[2:]
 	}
 
+	res := make([]byte, 10)
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
@@ -218,13 +360,23 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 				return nil, errGasUintOverflow
 			}
 		}
+
 		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		if op == INFER {
+			var model_meta_err error
+			modelMeta, model_meta_err := in.evm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			if model_meta_err != nil {
+				return nil, model_meta_err
+			}
+
+			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
+			var overflow bool
+			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
+				return nil, errGasUintOverflow
+			}
+		}
 		if err != nil || !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
-		}
-		if op == INFER {
-			contract.ModelGas[contract.InferOpModelGas.Addr] += contract.InferOpModelGas.MGas
-			contract.InferOpModelGas = ModelAddressGas{Addr: common.BytesToAddress([]byte{}), MGas: 0}
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method can get the proper cost
@@ -243,7 +395,15 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		}
 
 		// execute the operation
-		res, err := operation.execute(&pc, in.evm, contract, mem, stack)
+		ret, err = operation.execute(&pc, in, contract, mem, stack)
+		if in.evm.vmConfig.RPC_GetInternalTransaction {
+			if op == CALL {
+				res = append(res, ret...)
+			}
+		} else {
+			res = ret
+		}
+
 		// verifyPool is a build flag. Pool verification makes sure the integrity
 		// of the integer pool by comparing values to a default value.
 		if verifyPool {
@@ -266,4 +426,10 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		}
 	}
 	return nil, nil
+}
+
+// CanRun tells if the contract, passed as an argument, can be
+// run by the current interpreter.
+func (in *EVMInterpreter) CanRun(code []byte) bool {
+	return true
 }

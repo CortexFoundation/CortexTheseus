@@ -53,7 +53,7 @@ passwordfile as argument containing the wallet password in plaintext.`,
 					utils.DataDirFlag,
 					utils.KeyStoreDirFlag,
 					utils.PasswordFileFlag,
-					utils.LightKDFFlag,
+					// utils.LightKDFFlag,
 				},
 				Description: `
 	geth wallet [options] /path/to/my/presale.wallet
@@ -109,7 +109,7 @@ Print a short summary of all accounts`,
 					utils.DataDirFlag,
 					utils.KeyStoreDirFlag,
 					utils.PasswordFileFlag,
-					utils.LightKDFFlag,
+					// utils.LightKDFFlag,
 				},
 				Description: `
     geth account new
@@ -134,7 +134,7 @@ password to file or expose in any other way.
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.KeyStoreDirFlag,
-					utils.LightKDFFlag,
+					// utils.LightKDFFlag,
 				},
 				Description: `
     geth account update <address>
@@ -163,7 +163,7 @@ changing your password is only possible interactively.
 					utils.DataDirFlag,
 					utils.KeyStoreDirFlag,
 					utils.PasswordFileFlag,
-					utils.LightKDFFlag,
+					// utils.LightKDFFlag,
 				},
 				ArgsUsage: "<keyFile>",
 				Description: `
