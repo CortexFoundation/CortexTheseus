@@ -18,7 +18,7 @@ package core
 
 import (
 	"errors"
-	"fmt"
+	//	"fmt"
 	"math"
 	"math/big"
 
@@ -26,17 +26,19 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	//"github.com/ethereum/go-ethereum/core/asm"
 )
 
 var (
-	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
+	errInsufficientBalanceForGas        = errors.New("insufficient balance to pay for gas")
+	PER_UPLOAD_BYTES             uint64 = 10 * 512 * 1024
 )
 
 /*
 The State Transitioning Model
 
 A state transition is a change made when a transaction is applied to the current world state
-The state transitioning model does all all the necessary work to work out a valid new state root.
+The state transitioning model does all the necessary work to work out a valid new state root.
 
 1) Nonce handling
 2) Pre pay gas
@@ -78,13 +80,17 @@ type Message interface {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation, upload, homestead bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation && homestead {
 		gas = params.TxGasContractCreation
 	} else {
-		gas = params.TxGas
+		if upload {
+			gas = params.UploadGas
+		} else {
+			gas = params.TxGas
+		}
 	}
 	// Bump the required gas by the amount of transactional data
 	if len(data) > 0 {
@@ -180,8 +186,8 @@ func (st *StateTransition) preCheck() error {
 }
 
 // TransitionDb will transition the state by applying the current message and
-// returning the result including the the used gas. It returns an error if it
-// failed. An error indicates a consensus issue.
+// returning the result including the used gas. It returns an error if failed.
+// An error indicates a consensus issue.
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
 	if err = st.preCheck(); err != nil {
 		return
@@ -192,7 +198,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	contractCreation := msg.To() == nil
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, homestead)
+	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead)
 	if err != nil {
 		return nil, 0, false, err
 	}
@@ -211,6 +217,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		ret, _, st.gas, st.modelGas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
+		//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
+		//	fmt.Println("Has INFER operation !!! continue ...")
+		//}
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 		ret, st.gas, st.modelGas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
@@ -225,25 +234,39 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.refundGas()
-	//TODO(xiaoyan)
+	//model gas
 	gu := st.gasUsed()
-	if st.modelGas != nil {
-		for _, mGas := range st.modelGas {
-			gu -= mGas
-		}
-		if gu < 0 {
-			panic(fmt.Errorf("why total model gas is larger than total gas"))
+	if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
+		for addr, mgas := range st.modelGas {
+			gu -= mgas
+			if gu < 0 { //should never happen
+				if mgas+gu > 0 {
+					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
+				}
+
+				return nil, 0, false, vm.ErrInsufficientBalance
+			}
+			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
 		}
 	}
+
+	//normal gas
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
-	if st.modelGas != nil {
-		for addr, mgas := range st.modelGas {
-			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas-mgas/100*95), st.gasPrice))
-			st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(mgas/100*95), st.gasPrice))
+	//todo change upload
+	if st.uploading() {
+		st.state.SubUpload(st.to(), new(big.Int).SetUint64(PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
+		if !st.state.Uploading(st.to()) {
+			//st.state.Download(st.to())
+			st.state.SetNum(st.to(), st.evm.BlockNumber)
+			log.Info("Upload OK", "address", st.to().Hex())
 		}
 	}
 
 	return ret, st.gasUsed(), vmerr != nil, err
+}
+
+func (st *StateTransition) uploading() bool {
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to())
 }
 
 func (st *StateTransition) refundGas() {

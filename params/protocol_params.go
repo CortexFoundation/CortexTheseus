@@ -18,14 +18,10 @@ package params
 
 import "math/big"
 
-var (
-	TargetGasLimit uint64 = GenesisGasLimit // The artificial target
-)
-
 const (
 	GasLimitBoundDivisor uint64 = 1024    // The bound divisor of the gas limit, used in update calculations.
-	MinGasLimit          uint64 = 5000    // Minimum the gas limit may ever be.
-	GenesisGasLimit      uint64 = 4712388 // Gas limit of the Genesis block.
+	MinGasLimit          uint64 = 1048576 // Minimum the gas limit may ever be.
+	GenesisGasLimit      uint64 = 16777216 // Gas limit of the Genesis block.
 
 	MaximumExtraDataSize  uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas            uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
@@ -34,11 +30,13 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	TxDataZeroGas         uint64 = 4     // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
-	QuadCoeffDiv          uint64 = 512   // Divisor for the quadratic particle of the memory cost equation.
-	SstoreSetGas          uint64 = 20000 // Once per SLOAD operation.
-	LogDataGas            uint64 = 8     // Per byte in a LOG* operation's data.
-	CallStipend           uint64 = 2300  // Free gas given at beginning of call.
+	UploadGas             uint64 = 524288
+	TxDataZeroGas         uint64 = 4      // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
+	QuadCoeffDiv          uint64 = 512    // Divisor for the quadratic particle of the memory cost equation.
+	SstoreSetGas          uint64 = 20000  // Once per SLOAD operation.
+	LogDataGas            uint64 = 8      // Per byte in a LOG* operation's data.
+	CallStipend           uint64 = 2300   // Free gas given at beginning of call.
+	CallInferGas          uint64 = 300000 // Base gas for call infer
 
 	Sha3Gas          uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas      uint64 = 6     // Once per word of the SHA3 operation's data.
@@ -57,6 +55,7 @@ const (
 	TierStepGas      uint64 = 0     // Once per operation, for a selection of them.
 	LogTopicGas      uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
 	CreateGas        uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
+	Create2Gas       uint64 = 32000 // Once per CREATE2 operation
 	SuicideRefundGas uint64 = 24000 // Refunded following a suicide operation.
 	MemoryGas        uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
@@ -80,8 +79,13 @@ const (
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(2048)   // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(131072) // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(131072) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DifficultyBoundDivisor = big.NewInt(8)  // The bound divisor of the difficulty, used in the update calculations.
+	GenesisDifficulty      = big.NewInt(16) // Difficulty of the Genesis block.
+	MinimumDifficulty      = big.NewInt(16) // The minimum that the difficulty may ever be.
+	DurationLimit          = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+)
+
+const (
+	MatureBlks  = 10
+	ExpiredBlks = 1000000000000000000 //8409600
 )

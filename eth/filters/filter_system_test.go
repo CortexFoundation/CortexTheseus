@@ -27,7 +27,7 @@ import (
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
+	"github.com/ethereum/go-ethereum/consensus/cuckoo"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -73,6 +73,14 @@ func (b *testBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumbe
 		hash = rawdb.ReadCanonicalHash(b.db, num)
 	}
 	return rawdb.ReadHeader(b.db, hash, num), nil
+}
+
+func (b *testBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
+	number := rawdb.ReadHeaderNumber(b.db, hash)
+	if number == nil {
+		return nil, nil
+	}
+	return rawdb.ReadHeader(b.db, hash, *number), nil
 }
 
 func (b *testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
@@ -161,7 +169,7 @@ func TestBlockSubscription(t *testing.T) {
 		backend     = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
 		api         = NewPublicFilterAPI(backend, false)
 		genesis     = new(core.Genesis).MustCommit(db)
-		chain, _    = core.GenerateChain(params.TestChainConfig, genesis, ethash.NewFaker(), db, 10, func(i int, gen *core.BlockGen) {})
+		chain, _    = core.GenerateChain(params.TestChainConfig, genesis, cuckoo.NewFaker(), db, 10, func(i int, gen *core.BlockGen) {})
 		chainEvents = []core.ChainEvent{}
 	)
 
@@ -339,6 +347,33 @@ func TestInvalidLogFilterCreation(t *testing.T) {
 	for i, test := range testCases {
 		if _, err := api.NewFilter(test); err == nil {
 			t.Errorf("Expected NewFilter for case #%d to fail", i)
+		}
+	}
+}
+
+func TestInvalidGetLogsRequest(t *testing.T) {
+	var (
+		mux        = new(event.TypeMux)
+		db         = ethdb.NewMemDatabase()
+		txFeed     = new(event.Feed)
+		rmLogsFeed = new(event.Feed)
+		logsFeed   = new(event.Feed)
+		chainFeed  = new(event.Feed)
+		backend    = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
+		api        = NewPublicFilterAPI(backend, false)
+		blockHash  = common.HexToHash("0x1111111111111111111111111111111111111111111111111111111111111111")
+	)
+
+	// Reason: Cannot specify both BlockHash and FromBlock/ToBlock)
+	testCases := []FilterCriteria{
+		0: {BlockHash: &blockHash, FromBlock: big.NewInt(100)},
+		1: {BlockHash: &blockHash, ToBlock: big.NewInt(500)},
+		2: {BlockHash: &blockHash, FromBlock: big.NewInt(rpc.LatestBlockNumber.Int64())},
+	}
+
+	for i, test := range testCases {
+		if _, err := api.GetLogs(context.Background(), test); err == nil {
+			t.Errorf("Expected Logs for case #%d to fail", i)
 		}
 	}
 }
