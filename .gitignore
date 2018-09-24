@@ -5,6 +5,7 @@
 #   git config --global core.excludesfile ~/.gitignore_global
 
 /tmp
+data/
 */**/*un~
 */**/*.test
 *un~
@@ -37,6 +38,9 @@ profile.cov
 # VS Code
 .vscode
 
+# mind master
+*.emmx
+
 # dashboard
 /dashboard/assets/flow-typed
 /dashboard/assets/node_modules
@@ -46,8 +50,16 @@ profile.cov
 
 **/yarn-error.log
 
+
+tags
 #python_restful
 python_restful/input_data
 python_restful/model
 python_restful/upload
 python_restful/__pycache__/
+
+sync
+
+# intermediate result
+*.o
+*.a

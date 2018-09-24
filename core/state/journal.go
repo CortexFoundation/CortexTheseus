@@ -96,10 +96,20 @@ type (
 		account     *common.Address
 		prev        bool // whether account had already suicided
 		prevbalance *big.Int
+		prevupload  *big.Int
+		prevnum     *big.Int
 	}
 
 	// Changes to individual accounts.
 	balanceChange struct {
+		account *common.Address
+		prev    *big.Int
+	}
+	uploadChange struct {
+		account *common.Address
+		prev    *big.Int
+	}
+	numChange struct {
 		account *common.Address
 		prev    *big.Int
 	}
@@ -155,6 +165,8 @@ func (ch suicideChange) revert(s *StateDB) {
 	if obj != nil {
 		obj.suicided = ch.prev
 		obj.setBalance(ch.prevbalance)
+		obj.setUpload(ch.prevupload)
+		obj.setNum(ch.prevnum)
 	}
 }
 
@@ -176,6 +188,22 @@ func (ch balanceChange) revert(s *StateDB) {
 }
 
 func (ch balanceChange) dirtied() *common.Address {
+	return ch.account
+}
+
+func (ch uploadChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setUpload(ch.prev)
+}
+
+func (ch uploadChange) dirtied() *common.Address {
+	return ch.account
+}
+
+func (ch numChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setNum(ch.prev)
+}
+
+func (ch numChange) dirtied() *common.Address {
 	return ch.account
 }
 

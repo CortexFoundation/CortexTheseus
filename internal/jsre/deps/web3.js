@@ -3837,7 +3837,6 @@ var outputBlockFormatter = function(block) {
                 return outputTransactionFormatter(item);
         });
     }
-
     return block;
 };
 
@@ -5267,6 +5266,13 @@ Object.defineProperty(Eth.prototype, 'defaultAccount', {
 });
 
 var methods = function () {
+    var getUpload = new Method({
+        name: 'getUpload',
+        call: 'eth_getUpload',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+        outputFormatter: formatters.outputBigNumberFormatter
+    });
     var getBalance = new Method({
         name: 'getBalance',
         call: 'eth_getBalance',
@@ -5393,12 +5399,18 @@ var methods = function () {
         inputFormatter: [formatters.inputCallFormatter, formatters.inputDefaultBlockNumberFormatter]
     });
 
+	var getInternalTransaction = new Method({
+		name: 'getInternalTransaction',
+		call: 'eth_getInternalTransaction',
+		params: 2,
+        inputFormatter: [formatters.inputCallFormatter, formatters.inputDefaultBlockNumberFormatter]
+	});
+
     var estimateGas = new Method({
         name: 'estimateGas',
         call: 'eth_estimateGas',
         params: 1,
-        inputFormatter: [formatters.inputCallFormatter],
-        outputFormatter: utils.toDecimal
+        inputFormatter: [formatters.inputCallFormatter], outputFormatter: utils.toDecimal
     });
 
     var compileSolidity = new Method({
@@ -5432,6 +5444,7 @@ var methods = function () {
     });
 
     return [
+	getUpload,
         getBalance,
         getStorageAt,
         getCode,
@@ -5445,6 +5458,7 @@ var methods = function () {
         getTransactionReceipt,
         getTransactionCount,
         call,
+		getInternalTransaction,
         estimateGas,
         sendRawTransaction,
         signTransaction,
