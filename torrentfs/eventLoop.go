@@ -89,6 +89,7 @@ func (m *Monitor) Terminate() chan<- struct{} {
 
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) SetConnection(clientURI string) (e error) {
+	log.Info("client", clientURI)
 	for i := 0; i < connTryTimes; i++ {
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
