@@ -96,9 +96,9 @@ GLOBAL OPTIONS:
 func NewApp(gitCommit, usage string) *cli.App {
 	app := cli.NewApp()
 	app.Name = filepath.Base(os.Args[0])
-	app.Author = ""
+	app.Author = "Cortex Labs"
 	//app.Authors = nil
-	app.Email = ""
+	app.Email = "support@cortexlabs.ai"
 	app.Version = params.VersionWithMeta
 	if len(gitCommit) >= 8 {
 		app.Version += "-" + gitCommit[:8]
@@ -136,7 +136,7 @@ var (
 	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
-		Usage: "Ropsten network: pre-configured Cuckoo test network",
+		Usage: "Cerebro network: pre-configured cortex test network",
 	}
 	LazynetFlag = cli.BoolFlag{
 		Name:  "lazynet",
@@ -383,13 +383,13 @@ var (
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
 	MinerEtherbaseFlag = cli.StringFlag{
-		Name:  "miner.etherbase",
+		Name:  "miner.coinbase",
 		Usage: "Public address for block mining rewards (default = first account)",
 		Value: "0",
 	}
 	MinerLegacyEtherbaseFlag = cli.StringFlag{
-		Name:  "etherbase",
-		Usage: "Public address for block mining rewards (default = first account, deprecated, use --miner.etherbase)",
+		Name:  "coinbase",
+		Usage: "Public address for block mining rewards (default = first account, deprecated, use --miner.coinbase)",
 		Value: "0",
 	}
 	MinerExtraDataFlag = cli.StringFlag{
@@ -911,7 +911,7 @@ func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
 	if etherbase != "" {
 		account, err := MakeAddress(ks, etherbase)
 		if err != nil {
-			Fatalf("Invalid miner etherbase: %v", err)
+			Fatalf("Invalid miner coinbase: %v", err)
 		}
 		cfg.Etherbase = account.Address
 	}
@@ -1249,32 +1249,32 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 4
 		}
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
-	// case ctx.GlobalBool(DeveloperFlag.Name):
-	// 	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-	// 		cfg.NetworkId = 1337
-	// 	}
-	// 	// Create new developer account or reuse existing one
-	// 	var (
-	// 		developer accounts.Account
-	// 		err       error
-	// 	)
-	// 	if accs := ks.Accounts(); len(accs) > 0 {
-	// 		developer = ks.Accounts()[0]
-	// 	} else {
-	// 		developer, err = ks.NewAccount("")
-	// 		if err != nil {
-	// 			Fatalf("Failed to create developer account: %v", err)
-	// 		}
-	// 	}
-	// 	if err := ks.Unlock(developer, ""); err != nil {
-	// 		Fatalf("Failed to unlock developer account: %v", err)
-	// 	}
-	// 	log.Info("Using developer account", "address", developer.Address)
+		// case ctx.GlobalBool(DeveloperFlag.Name):
+		// 	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+		// 		cfg.NetworkId = 1337
+		// 	}
+		// 	// Create new developer account or reuse existing one
+		// 	var (
+		// 		developer accounts.Account
+		// 		err       error
+		// 	)
+		// 	if accs := ks.Accounts(); len(accs) > 0 {
+		// 		developer = ks.Accounts()[0]
+		// 	} else {
+		// 		developer, err = ks.NewAccount("")
+		// 		if err != nil {
+		// 			Fatalf("Failed to create developer account: %v", err)
+		// 		}
+		// 	}
+		// 	if err := ks.Unlock(developer, ""); err != nil {
+		// 		Fatalf("Failed to unlock developer account: %v", err)
+		// 	}
+		// 	log.Info("Using developer account", "address", developer.Address)
 
-	// 	cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
-	// 	if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-	// 		cfg.MinerGasPrice = big.NewInt(1)
-	// 	}
+		// 	cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
+		// 	if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
+		// 		cfg.MinerGasPrice = big.NewInt(1)
+		// 	}
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
@@ -1415,8 +1415,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.GlobalBool(LazynetFlag.Name):
 		genesis = core.DefaultRinkebyGenesisBlock()
-	// case ctx.GlobalBool(DeveloperFlag.Name):
-	//	Fatalf("Developer chains are ephemeral")
+		// case ctx.GlobalBool(DeveloperFlag.Name):
+		//	Fatalf("Developer chains are ephemeral")
 	}
 	return genesis
 }
