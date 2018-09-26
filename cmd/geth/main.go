@@ -50,7 +50,7 @@ var (
 	// Git SHA1 commit hash of the release (set via linker flags)
 	gitCommit = ""
 	// The app that holds all commands and flags.
-	app = utils.NewApp(gitCommit, "the go-ethereum command line interface")
+	app = utils.NewApp(gitCommit, "the go-cortex command line interface")
 	// flags that configure the node
 	nodeFlags = []cli.Flag{
 		utils.IdentityFlag,
@@ -151,19 +151,19 @@ var (
 	}
 
 	whisperFlags = []cli.Flag{
-	// 	utils.WhisperEnabledFlag,
-	// 	utils.WhisperMaxMessageSizeFlag,
-	// 	utils.WhisperMinPOWFlag,
-	// 	utils.WhisperRestrictConnectionBetweenLightClientsFlag,
+		// 	utils.WhisperEnabledFlag,
+		// 	utils.WhisperMaxMessageSizeFlag,
+		// 	utils.WhisperMinPOWFlag,
+		// 	utils.WhisperRestrictConnectionBetweenLightClientsFlag,
 	}
 
 	metricsFlags = []cli.Flag{
-	//	utils.MetricsEnableInfluxDBFlag,
-	//	utils.MetricsInfluxDBEndpointFlag,
-	//	utils.MetricsInfluxDBDatabaseFlag,
-	//	utils.MetricsInfluxDBUsernameFlag,
-	//	utils.MetricsInfluxDBPasswordFlag,
-	//	utils.MetricsInfluxDBHostTagFlag,
+		//	utils.MetricsEnableInfluxDBFlag,
+		//	utils.MetricsInfluxDBEndpointFlag,
+		//	utils.MetricsInfluxDBDatabaseFlag,
+		//	utils.MetricsInfluxDBUsernameFlag,
+		//	utils.MetricsInfluxDBPasswordFlag,
+		//	utils.MetricsInfluxDBHostTagFlag,
 	}
 )
 
@@ -171,7 +171,7 @@ func init() {
 	// Initialize the CLI app and start Geth
 	app.Action = geth
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2013-2018 The go-ethereum Authors"
+	app.Copyright = "Copyright 2013-2018 The go-cortex Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -186,8 +186,6 @@ func init() {
 		// monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
-
-
 
 		// walletCommand,
 		// See consolecmd.go:
