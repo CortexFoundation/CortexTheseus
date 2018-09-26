@@ -325,8 +325,8 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 
 // UpdateMagnet ...
 func (tm *TorrentManager) UpdateMagnet(ih metainfo.Hash, BytesRequested int64) {
-	tm.mu.Lock()
 	log.Info("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
+	tm.mu.Lock()
 	if t, ok := tm.torrents[ih]; ok {
 		t.bytesRequested = BytesRequested
 		if t.bytesRequested > t.bytesLimitation {
