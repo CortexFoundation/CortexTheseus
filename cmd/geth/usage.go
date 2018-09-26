@@ -65,7 +65,7 @@ type flagGroup struct {
 // AppHelpFlagGroups is the application flags, grouped by functionality.
 var AppHelpFlagGroups = []flagGroup{
 	{
-		Name: "ETHEREUM",
+		Name: "CORTEX",
 		Flags: []cli.Flag{
 			configFileFlag,
 			utils.DataDirFlag,
@@ -215,9 +215,9 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name: "VIRTUAL MACHINE",
+		Name:  "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
-  //		utils.VMEnableDebugFlag,
+			//		utils.VMEnableDebugFlag,
 		},
 	},
 	// {

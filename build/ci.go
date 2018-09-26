@@ -104,6 +104,10 @@ var (
 			Description: "Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
+			BinaryName:  "geth-remote",
+			Description: "Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+		},
+		{
 			BinaryName:  "miner",
 			Description: "2 in 1 miner",
 		},
@@ -212,8 +216,9 @@ func main() {
 
 func doInstall(cmdline []string) {
 	var (
-		arch = flag.String("arch", "", "Architecture to cross build for")
-		cc   = flag.String("cc", "", "C compiler to cross build with")
+		arch         = flag.String("arch", "", "Architecture to cross build for")
+		cc           = flag.String("cc", "", "C compiler to cross build with")
+		remote_infer = flag.Bool("remote_infer", false, "whether to use remote infer")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -241,6 +246,9 @@ func doInstall(cmdline []string) {
 
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
+		if *remote_infer {
+			goinstall.Args = append(goinstall.Args, []string{"-tags", "remote"}...)
+		}
 		goinstall.Args = append(goinstall.Args, "-v")
 		goinstall.Args = append(goinstall.Args, packages...)
 		build.MustRun(goinstall)
@@ -255,6 +263,9 @@ func doInstall(cmdline []string) {
 	}
 	// Seems we are cross compiling, work around forbidden GOBIN
 	goinstall := goToolArch(*arch, *cc, "install", buildFlags(env)...)
+	if *remote_infer {
+		goinstall.Args = append(goinstall.Args, []string{"-tags", "remote"}...)
+	}
 	goinstall.Args = append(goinstall.Args, "-v")
 	goinstall.Args = append(goinstall.Args, []string{"-buildmode", "archive"}...)
 	goinstall.Args = append(goinstall.Args, packages...)

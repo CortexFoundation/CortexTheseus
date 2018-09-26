@@ -23,21 +23,25 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-geth: cminer infernet inferServer
+geth: cminer 
 	build/env.sh go run build/ci.go install ./cmd/geth
-	build/env.sh go run build/ci.go install ./cmd/miner
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
+
+geth-remote: cminer 
+	build/env.sh go run build/ci.go install -remote_infer ./cmd/geth
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/geth\" to launch geth."
+	mv ./build/bin/geth ./build/bin/geth-remote
 
 evm:
 	build/env.sh go run build/ci.go install ./cmd/evm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
 
-miner:
+cuckoo-miner:
 	build/env.sh go run build/ci.go install ./cmd/miner
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/miner\" to launch cortex vm."
 
 swarm:
 	build/env.sh go run build/ci.go install ./cmd/swarm
