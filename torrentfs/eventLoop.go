@@ -44,11 +44,12 @@ type TorrentManagerAPI interface {
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
-	config    *Config
-	cl        *rpc.Client
-	fs        *FileStorage
-	dl        TorrentManagerAPI
-	terminate chan struct{}
+	config     *Config
+	cl         *rpc.Client
+	fs         *FileStorage
+	dl         TorrentManagerAPI
+	terminate  chan struct{}
+	terminated bool
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -62,6 +63,7 @@ func NewMonitor(flag *Config) *Monitor {
 		NewFileStorage(flag),
 		nil,
 		make(chan struct{}),
+		false,
 	}
 	if runtime.GOOS != "windows" && flag.IpcPath != "" {
 		m.SetConnection(flag.IpcPath)
@@ -89,7 +91,6 @@ func (m *Monitor) Terminate() chan<- struct{} {
 
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) SetConnection(clientURI string) (e error) {
-	log.Info("client", clientURI)
 	for i := 0; i < connTryTimes; i++ {
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
@@ -268,6 +269,9 @@ func (m *Monitor) initialCheck(reverse bool) {
 	if reverse {
 		lastBlock := m.fs.LatestBlockNumber
 		for i := endBlock; i >= minBlockNum; i-- {
+			if m.terminated {
+				break
+			}
 			m.parseBlockByNumber(i)
 			blockChecked++
 			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
@@ -278,6 +282,9 @@ func (m *Monitor) initialCheck(reverse bool) {
 	} else {
 		lastBlock := uint64(minBlockNum)
 		for i := uint64(minBlockNum); i <= endBlock; i++ {
+			if m.terminated {
+				break
+			}
 			m.parseBlockByNumber(i)
 			blockChecked++
 			if blockChecked%fetchBlockLogStep == 0 || i == endBlock {
@@ -346,6 +353,7 @@ func (m *Monitor) Start() error {
 			timer.Reset(time.Second * 3)
 		case <-m.terminate:
 			m.dl.CloseAll(struct{}{})
+			m.terminated = true
 			return nil
 		}
 	}
