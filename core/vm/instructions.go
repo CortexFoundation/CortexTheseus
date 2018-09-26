@@ -756,8 +756,8 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}
 	stack.push(interpreter.intPool.get().SetUint64(output))
 
-	interpreter.evm.StateDB.SetNum(modelAddr, interpreter.evm.BlockNumber)
-	interpreter.evm.StateDB.SetNum(inputAddr, interpreter.evm.BlockNumber)
+	// interpreter.evm.StateDB.SetNum(modelAddr, interpreter.evm.BlockNumber)
+	// interpreter.evm.StateDB.SetNum(inputAddr, interpreter.evm.BlockNumber)
 
 	return nil, nil
 }
