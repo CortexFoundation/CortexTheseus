@@ -8,11 +8,12 @@
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
-.PHONY: cminer infernet inferServer
+.PHONY: clib inferServer
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/cminer/
+LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/infernet/
 
 # Curkoo algorithm dynamic library path
@@ -23,12 +24,12 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-geth: cminer 
+geth: clib
 	build/env.sh go run build/ci.go install ./cmd/geth
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 
-geth-remote: cminer 
+geth-remote: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/geth
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
@@ -39,7 +40,7 @@ evm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
 
-cuckoo-miner:
+cuckoo-miner: clib
 	build/env.sh go run build/ci.go install ./cmd/miner
 	@echo "Done building."
 
@@ -48,17 +49,16 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cminer infernet
-	build/env.sh go run build/ci.go install
+all: geth clib inferServer cuckoo-miner
+	# build/env.sh go run build/ci.go install
 
-cminer:
+clib:
 	make -C $(LIB_MINER_DIR)
-
-infernet:
+	make -C $(LIB_CUDA_MINER_DIR)
 	make -C ${INFER_NET_DIR}
 	cp ${INFER_NET_DIR}/libcortexnet.so build/bin/
 
-inferServer: infernet
+inferServer: clib
 	build/env.sh go run build/ci.go install cmd/infer_server/infer_server.go
 	build/env.sh go run build/ci.go install cmd/infer_server/infer_client.go
 
@@ -81,6 +81,8 @@ lint: ## Run linters.
 clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+
+clean-all: clean
 	make -C $(LIB_MINER_DIR) clean
 	make -C $(INFER_NET_DIR) clean
 
