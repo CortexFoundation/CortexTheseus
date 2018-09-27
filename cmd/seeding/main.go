@@ -2,7 +2,6 @@
 package main
 
 import (
-	"bufio"
 	"github.com/anacrolix/missinggo"
 	"github.com/fsnotify/fsnotify"
 	"log"
@@ -12,8 +11,8 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
-	"strings"
 	"syscall"
+	"time"
 
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/torrent/metainfo"
@@ -78,11 +77,12 @@ func (i *Instance) Close() {
 func (i *Instance) handleEvents() {
 	defer close(i.Events)
 	for e := range i.w.Events {
-		log.Printf("event: %s", e)
-		if e.Op == fsnotify.Write {
-			// TODO: Special treatment as an existing torrent may have changed.
-		} else {
-			i.refresh()
+		if e.Op == fsnotify.Create || e.Op == fsnotify.Remove {
+			log.Printf("event: %s", e)
+			go func(){
+				time.Sleep(time.Second * 1)
+				i.refresh()
+			}()
 		}
 	}
 }
@@ -91,6 +91,13 @@ func (i *Instance) handleErrors() {
 	for err := range i.w.Errors {
 		log.Printf("error in torrent directory watcher: %s", err)
 	}
+}
+
+func isInfoHash(name string) bool {
+	if len(name) != 40 {
+		return false
+	}
+	return true
 }
 
 func torrentFileInfoHash(fileName string) (ih metainfo.Hash, ok bool) {
@@ -119,38 +126,22 @@ func scanDir(dirName string) (ee map[metainfo.Hash]entity) {
 	addEntity := func(e entity) {
 		ee[e.Hash] = e
 	}
+
 	for _, n := range names {
 		fullName := filepath.Join(dirName, n)
-		log.Println("name", n)
-		ih, ok := torrentFileInfoHash(fullName)
-		if !ok {
-			break
+		if isInfoHash(n) {
+			torrentName := path.Join(fullName, "torrent")
+			ih, ok := torrentFileInfoHash(torrentName)
+			if !ok {
+				continue
+			}
+			e := entity{
+				FilePath: fullName,
+			}
+			missinggo.CopyExact(&e.Hash, ih)
+			addEntity(e)
 		}
-		e := entity{
-			FilePath: fullName,
-		}
-		missinggo.CopyExact(&e.Hash, ih)
-		addEntity(e)
 	}
-	return
-}
-
-func magnetFileURIs(name string) (uris []string, err error) {
-	f, err := os.Open(name)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanWords)
-	for scanner.Scan() {
-		// Allow magnet URIs to be "commented" out.
-		if strings.HasPrefix(scanner.Text(), "#") {
-			continue
-		}
-		uris = append(uris, scanner.Text())
-	}
-	err = scanner.Err()
 	return
 }
 
@@ -164,7 +155,7 @@ func (i *Instance) torrentRemoved(ih metainfo.Hash) {
 func (i *Instance) torrentAdded(e entity) {
 	i.Events <- Event{
 		InfoHash:        e.Hash,
-		FilePath:        "",
+		FilePath:        e.FilePath,
 		Change:          Added,
 	}
 }
@@ -220,7 +211,6 @@ func exitSignalHandlers(fs *torrentfs.TorrentFS) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	for {
-		log.Println("Waiting for exit")
 		<-c
 		fs.Destroy()
 		return
@@ -275,6 +265,10 @@ func mainExitCode() int {
 						var ss []string
 						slices.MakeInto(&ss, mi.Nodes)
 						t.DownloadAll()
+						go func(){
+							time.Sleep(time.Second * 5)
+							log.Println(ih, t.Seeding())
+						}()
 					}
 					if err != nil {
 						log.Printf("error adding torrent to client: %s", err)
