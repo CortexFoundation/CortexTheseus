@@ -20,10 +20,12 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/ethereum/go-ethereum/torrentfs"
 	"io/ioutil"
-	// "math/big"
 	"os"
+
+	"github.com/ethereum/go-ethereum/torrentfs"
+	// "math/big"
+
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -96,6 +98,7 @@ GLOBAL OPTIONS:
 func NewApp(gitCommit, usage string) *cli.App {
 	app := cli.NewApp()
 	app.Name = filepath.Base(os.Args[0])
+	app.HelpName = "cortex"
 	app.Author = "Cortex Labs"
 	//app.Authors = nil
 	app.Email = "support@cortexlabs.ai"
@@ -426,10 +429,10 @@ var (
 		Usage: "Record information useful for VM and contract debugging",
 	}
 	// Logging and debug settings
-	EthStatsURLFlag = cli.StringFlag{
-		Name:  "ethstats",
-		Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
-	}
+	// EthStatsURLFlag = cli.StringFlag{
+	// 	Name:  "ethstats",
+	// 	Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
+	// }
 	FakePoWFlag = cli.BoolFlag{
 		Name:  "fakepow",
 		Usage: "Disables proof-of-work verification",
@@ -475,7 +478,7 @@ var (
 	IPCPathFlag = DirectoryFlag{
 		Name:  "ipcpath",
 		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
-		Value: DirectoryString{"geth.ipc"},
+		Value: DirectoryString{"cortex.ipc"},
 	}
 	WSEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
