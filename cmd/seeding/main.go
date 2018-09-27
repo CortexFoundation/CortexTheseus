@@ -19,14 +19,13 @@ import (
 
 var (
 	args = struct {
-		MetainfoDir string `help:"torrent files in this location describe the contents of the mounted filesystem"`
-		DownloadDir string `help:"location to save torrent data"`
+		DataDir string `help:"torrent files in this location describe the contents of download files"`
 
 		DisableTrackers bool
 		ReadaheadBytes  tagflag.Bytes
 		ListenAddr      *net.TCPAddr
 	}{
-		MetainfoDir: func() string {
+		DataDir: func() string {
 			_user, err := user.Current()
 			if err != nil {
 				log.Fatal(err)
@@ -54,9 +53,8 @@ func main() {
 func mainExitCode() int {
 	tagflag.Parse(&args)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	// TODO: Think about the ramifications of exiting not due to a signal.
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DataDir = args.DownloadDir
+	cfg.DataDir = args.DataDir
 	cfg.DisableTrackers = args.DisableTrackers
 	cfg.SetListenAddr(args.ListenAddr.String())
 	cfg.Seed = true
@@ -65,7 +63,7 @@ func mainExitCode() int {
 		log.Print(err)
 		return 1
 	}
-	dw, err := dirwatch.New(args.MetainfoDir)
+	dw, err := dirwatch.New(args.DataDir)
 	if err != nil {
 		log.Printf("error watching torrent dir: %s", err)
 		return 1
@@ -76,15 +74,10 @@ func mainExitCode() int {
 			case dirwatch.Added:
 				if ev.TorrentFilePath != "" {
 					t, err := client.AddTorrentFromFile(ev.TorrentFilePath)
+					log.Println(ev.TorrentFilePath)
 					t.DownloadAll()
 					if err != nil {
 						log.Printf("error adding torrent to client: %s", err)
-					}
-				} else if ev.MagnetURI != "" {
-					t, err := client.AddMagnet(ev.MagnetURI)
-					t.DownloadAll()
-					if err != nil {
-						log.Printf("error adding magnet: %s", err)
 					}
 				}
 			case dirwatch.Removed:
