@@ -41,6 +41,7 @@ func exitSignalHandlers(fs *torrentfs.TorrentFS) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	for {
+		log.Println("Waiting for exit")
 		<-c
 		fs.Destroy()
 	}
