@@ -23,6 +23,7 @@ import (
 	"io"
 	"math/big"
 	mrand "math/rand"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,7 +44,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -1161,12 +1161,46 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+
+		var (
+			// Make a copy of config, set VerifyBlock flag true
+			vmCfg = bc.vmConfig
+
+			receipt types.Receipts
+			logs    []*types.Log
+			usedGas uint64
+			err     error
+		)
+		vmCfg.VerifyBlock = true
+
+		for {
+			receipts, logs, usedGas, err = bc.processor.Process(block, state, vmCfg)
+
+			if err != nil &&
+				strings.HasPrefix(err.Error(), vm.ErrInvalidInferFlag) {
+				log.Warn("Invalid Infer state in verifying block", "Message", err)
+				time.Sleep(5 * time.Second)
+
+				continue
+			}
+
+			// If the chain is terminating, stop processing blocks
+			if atomic.LoadInt32(&bc.procInterrupt) == 1 {
+				log.Debug("Premature abort during blocks processing")
+				break
+			}
+
+			break
+
+		}
+
 		// Process block using the parent state as reference point.
-		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
+		// receipts, logs, usedGas, err := bc.processor.Process(block, state, vmCfg)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			return i, events, coalescedLogs, err
 		}
+
 		// Validate the state using the default validator
 		err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 		if err != nil {
