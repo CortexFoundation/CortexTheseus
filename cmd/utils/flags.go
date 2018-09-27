@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/ethereum/go-ethereum/torrentfs"
 	// "math/big"
@@ -96,8 +97,8 @@ GLOBAL OPTIONS:
 // NewApp creates an app with sane defaults.
 func NewApp(gitCommit, usage string) *cli.App {
 	app := cli.NewApp()
-	// app.Name = filepath.Base(os.Args[0])
-	app.Name = "cgb"
+	app.Name = filepath.Base(os.Args[0])
+	// app.Name = "cgb"
 	app.HelpName = "cgb"
 	app.Author = "Cortex Labs"
 	//app.Authors = nil
