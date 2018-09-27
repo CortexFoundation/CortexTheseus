@@ -271,9 +271,9 @@ func importChain(ctx *cli.Context) error {
 	fmt.Printf("Allocations:   %.3f million\n", float64(mem.Mallocs)/1000000)
 	fmt.Printf("GC pause:      %v\n\n", time.Duration(mem.PauseTotalNs))
 
-	if ctx.GlobalIsSet(utils.NoCompactionFlag.Name) {
-		return nil
-	}
+	//if ctx.GlobalIsSet(utils.NoCompactionFlag.Name) {
+	//	return nil
+	//}
 
 	// Compact the entire database to more accurately measure disk io and print the stats
 	start = time.Now()
