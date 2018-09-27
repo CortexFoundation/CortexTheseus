@@ -44,6 +44,7 @@ func exitSignalHandlers(fs *torrentfs.TorrentFS) {
 		log.Println("Waiting for exit")
 		<-c
 		fs.Destroy()
+		return
 	}
 }
 
@@ -91,6 +92,6 @@ func mainExitCode() int {
 		}
 	}()
 	fs := torrentfs.New(client)
-	go exitSignalHandlers(fs)
+	exitSignalHandlers(fs)
 	return 0
 }
