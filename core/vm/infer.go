@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	simplejson "github.com/bitly/go-simplejson"
-	infer "github.com/ethereum/go-ethereum/infernet"
+	infer "github.com/ethereum/go-ethereum/infer_server"
 	"github.com/ethereum/go-ethereum/log"
 	resty "gopkg.in/resty.v1"
 )

@@ -41,7 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
-	infer "github.com/ethereum/go-ethereum/infernet"
+	infer "github.com/ethereum/go-ethereum/infer_server"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/miner"
@@ -153,6 +153,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	eth.inferServer = infer.New(infer.Config{
 		StorageDir: config.StorageDir,
+		IsNotCache: false,
 	})
 
 	var (

@@ -19,7 +19,6 @@ var (
 	ErrorInvalidBlockNum   = errors.New("Invalid block number")
 )
 
-
 //InferMeta include ModelMeta struct and InputMeta type
 type InferMeta interface {
 	TypeCode() []byte
