@@ -351,11 +351,11 @@ var (
 		Usage: "Number of CPU threads to use for mining",
 		Value: 0,
 	}
-	MinerLegacyThreadsFlag = cli.IntFlag{
-		Name:  "minerthreads",
-		Usage: "Number of CPU threads to use for mining (deprecated, use --miner.threads)",
-		Value: 0,
-	}
+	// MinerLegacyThreadsFlag = cli.IntFlag{
+	// 	Name:  "minerthreads",
+	// 	Usage: "Number of CPU threads to use for mining (deprecated, use --miner.threads)",
+	// 	Value: 0,
+	// }
 	MinerNotifyFlag = cli.StringFlag{
 		Name:  "miner.notify",
 		Usage: "Comma separated HTTP URL list to notify of new work packages",
@@ -424,10 +424,10 @@ var (
 		Value: "",
 	}
 
-	VMEnableDebugFlag = cli.BoolFlag{
-		Name:  "vmdebug",
-		Usage: "Record information useful for VM and contract debugging",
-	}
+	// VMEnableDebugFlag = cli.BoolFlag{
+	// 	Name:  "vmdebug",
+	// 	Usage: "Record information useful for VM and contract debugging",
+	// }
 	// Logging and debug settings
 	// EthStatsURLFlag = cli.StringFlag{
 	// 	Name:  "ethstats",
@@ -437,10 +437,10 @@ var (
 		Name:  "fakepow",
 		Usage: "Disables proof-of-work verification",
 	}
-	NoCompactionFlag = cli.BoolFlag{
-		Name:  "nocompaction",
-		Usage: "Disables db compaction after import",
-	}
+	// NoCompactionFlag = cli.BoolFlag{
+	// 	Name:  "nocompaction",
+	// 	Usage: "Disables db compaction after import",
+	// }
 	// RPC settings
 	RPCEnabledFlag = cli.BoolFlag{
 		Name:  "rpc",
@@ -1232,10 +1232,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
-	if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
-		// TODO(fjl): force-enable this in --dev mode
-		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
-	}
+	// if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
+	// 	// TODO(fjl): force-enable this in --dev mode
+	// 	cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
+	// }
 
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = ctx.GlobalString(StorageDirFlag.Name)
@@ -1462,7 +1462,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	vmcfg := vm.Config{
-		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
+		// EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
 		InferURI:                ctx.GlobalString(ModelCallInterfaceFlag.Name),
 	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)

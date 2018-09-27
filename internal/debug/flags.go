@@ -78,10 +78,10 @@ var (
 		Name:  "blockprofilerate",
 		Usage: "Turn on block profiling with the given rate",
 	}
-	cpuprofileFlag = cli.StringFlag{
-		Name:  "cpuprofile",
-		Usage: "Write CPU profile to the given file",
-	}
+	// cpuprofileFlag = cli.StringFlag{
+	// 	Name:  "cpuprofile",
+	// 	Usage: "Write CPU profile to the given file",
+	// }
 	traceFlag = cli.StringFlag{
 		Name:  "trace",
 		Usage: "Write execution trace to the given file",
@@ -92,7 +92,9 @@ var (
 var Flags = []cli.Flag{
 	verbosityFlag, vmoduleFlag, backtraceAtFlag, debugFlag,
 	pprofFlag, pprofAddrFlag, pprofPortFlag,
-	memprofilerateFlag, blockprofilerateFlag, cpuprofileFlag, traceFlag,
+	memprofilerateFlag, blockprofilerateFlag,
+	// cpuprofileFlag,
+	traceFlag,
 }
 
 var (
@@ -139,11 +141,11 @@ func Setup(ctx *cli.Context, logdir string) error {
 			return err
 		}
 	}
-	if cpuFile := ctx.GlobalString(cpuprofileFlag.Name); cpuFile != "" {
-		if err := Handler.StartCPUProfile(cpuFile); err != nil {
-			return err
-		}
-	}
+	// if cpuFile := ctx.GlobalString(cpuprofileFlag.Name); cpuFile != "" {
+	// 	if err := Handler.StartCPUProfile(cpuFile); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	// pprof server
 	if ctx.GlobalBool(pprofFlag.Name) {
