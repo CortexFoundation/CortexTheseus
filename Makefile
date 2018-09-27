@@ -9,6 +9,7 @@
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
 .PHONY: clib inferServer
+.PHONY: cgb cgb-remote
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
@@ -23,6 +24,17 @@ endif
 
 ifeq ($(OS), Darwin)
 endif
+
+cgb: clib
+	build/env.sh go run build/ci.go install ./cmd/cgb
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/cgb\" to launch cgb."
+
+cgb-remote: clib
+	build/env.sh go run build/ci.go install -remote_infer ./cmd/cgb
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/cgb\" to launch cgb."
+	mv ./build/bin/cgb ./build/bin/cgb-remote
 
 geth: clib
 	build/env.sh go run build/ci.go install ./cmd/geth
@@ -49,7 +61,7 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: geth clib inferServer cuckoo-miner
+all: cgb geth clib inferServer cuckoo-miner
 	# build/env.sh go run build/ci.go install
 
 clib:
