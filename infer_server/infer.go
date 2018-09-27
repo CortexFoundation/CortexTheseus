@@ -21,8 +21,6 @@ type InferWork struct {
 	modelInfoHash string
 	inputInfoHash string
 
-	forcePending bool
-
 	res chan uint64
 	err chan error
 }
@@ -61,7 +59,7 @@ func New(config Config) *InferenceServer {
 	return globalInferServer
 }
 
-func SubmitInferWork(modelHash, inputHash string, force bool, resCh chan uint64, errCh chan error) error {
+func SubmitInferWork(modelHash, inputHash string, resCh chan uint64, errCh chan error) error {
 	if globalInferServer == nil {
 		return errors.New("Inference Server State Invalid")
 	}
@@ -69,7 +67,6 @@ func SubmitInferWork(modelHash, inputHash string, force bool, resCh chan uint64,
 	return globalInferServer.submitInferWork(&InferWork{
 		modelInfoHash: modelHash,
 		inputInfoHash: inputHash,
-		forcePending:  force,
 		res:           resCh,
 		err:           errCh,
 	})
@@ -106,7 +103,6 @@ func (is *InferenceServer) fetchWork() {
 func (is *InferenceServer) localInfer(inferWork *InferWork) {
 	modelHash := strings.ToLower(string(inferWork.modelInfoHash[2:]))
 	inputHash := strings.ToLower(string(inferWork.inputInfoHash[2:]))
-	forcePending := inferWork.forcePending
 
 	modelDir := is.config.StorageDir + "/" + modelHash
 	inputDir := is.config.StorageDir + "/" + inputHash
@@ -122,19 +118,19 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 
 	// File Exists Check
 	modelCfg := modelDir + "/data/symbol"
-	if cfgError := is.checkFileExists(modelCfg, forcePending); cfgError != nil {
+	if cfgError := is.checkFileExists(modelCfg); cfgError != nil {
 		inferWork.err <- cfgError
 		return
 	}
 
 	modelBin := modelDir + "/data/params"
-	if binError := is.checkFileExists(modelBin, forcePending); binError != nil {
+	if binError := is.checkFileExists(modelBin); binError != nil {
 		inferWork.err <- binError
 		return
 	}
 
 	image := inputDir + "/data"
-	if imageError := is.checkFileExists(image, forcePending); imageError != nil {
+	if imageError := is.checkFileExists(image); imageError != nil {
 		inferWork.err <- imageError
 		return
 	}
@@ -154,30 +150,11 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 }
 
 // blockIO with waiting for file sync done
-func (is *InferenceServer) checkFileExists(fpath string, forcePending bool) error {
-	for !FileExist(fpath) {
-		if !forcePending {
-			return errors.New(fmt.Sprintf("File %v does not exists", fpath))
-		}
-
-		stopPending := atomic.LoadInt32(&is.stopInfer) == 1
-		if stopPending {
-			return errors.New("Atomic stop pending")
-		}
-
-		log.Warn("Wait for file sync done", "File Name", fpath)
-		time.Sleep(5 * time.Second)
+func (is *InferenceServer) checkFileExists(fpath string) error {
+	_, err := os.Stat(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return errors.New(fmt.Sprintf("File %v does not exists", fpath))
 	}
 
 	return nil
-}
-
-// FileExist checks if a file exists at filePath.
-func FileExist(filePath string) bool {
-	_, err := os.Stat(filePath)
-	if err != nil && os.IsNotExist(err) {
-		return false
-	}
-
-	return true
 }

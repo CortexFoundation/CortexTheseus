@@ -11,7 +11,16 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-func LocalInfer(modelHash, inputHash string, fakeVM bool) (uint64, error) {
+var (
+	ErrInvalidInferFlag = "infer while verifying block error"
+)
+
+/**
+ * Infer progress should waiting for file download
+ * while verifying block fetched from other peer.
+ * Other case return infer result or error.
+ */
+func LocalInfer(modelHash, inputHash string, verifyBlock bool) (uint64, error) {
 	var (
 		resultCh = make(chan uint64, 1)
 		errCh    = make(chan error, 1)
@@ -20,7 +29,7 @@ func LocalInfer(modelHash, inputHash string, fakeVM bool) (uint64, error) {
 	err := infer.SubmitInferWork(
 		modelHash,
 		inputHash,
-		!fakeVM,
+		// verifyBlock,
 		resultCh,
 		errCh)
 
@@ -32,13 +41,16 @@ func LocalInfer(modelHash, inputHash string, fakeVM bool) (uint64, error) {
 	case result := <-resultCh:
 		return result, nil
 	case err := <-errCh:
+		if verifyBlock {
+			return 0, errors.New(fmt.Sprintf(ErrInvalidVerifyBlockInferFlag+": %v", err))
+		}
 		return 0, err
 	}
 
 	return 0, nil
 }
 
-func RemoteInfer(requestBody, uri string) (uint64, error) {
+func RemoteInfer(requestBody, uri string, verifyBlock bool) (uint64, error) {
 	log.Trace(fmt.Sprintf("%v", requestBody))
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
