@@ -99,7 +99,7 @@ var (
 		utils.MaxPendingPeersFlag,
 		utils.MiningEnabledFlag,
 		utils.MinerThreadsFlag,
-		utils.MinerLegacyThreadsFlag,
+		// utils.MinerLegacyThreadsFlag,
 		utils.MinerNotifyFlag,
 		utils.MinerGasTargetFlag,
 		utils.MinerLegacyGasTargetFlag,
@@ -120,16 +120,16 @@ var (
 		utils.NodeKeyHexFlag,
 		// utils.DeveloperFlag,
 		// utils.DeveloperPeriodFlag,
-		utils.TestnetFlag,
+		// utils.TestnetFlag,
 		// utils.LazynetFlag,
-		utils.VMEnableDebugFlag,
+		// utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
 		// utils.EthStatsURLFlag,
 		// utils.MetricsEnabledFlag,
 		// utils.FakePoWFlag,
-		utils.NoCompactionFlag,
+		// utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
 		configFileFlag,
@@ -347,11 +347,11 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		}
 		ethereum.TxPool().SetGasPrice(gasprice)
 
-		threads := ctx.GlobalInt(utils.MinerLegacyThreadsFlag.Name)
-		if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
-			threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
-		}
-		if err := ethereum.StartMining(threads); err != nil {
+		// threads := ctx.GlobalInt(utils.MinerLegacyThreadsFlag.Name)
+		// if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
+		// 	threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
+		// }
+		if err := ethereum.StartMining(0); err != nil {
 			utils.Fatalf("Failed to start mining: %v", err)
 		}
 	}
