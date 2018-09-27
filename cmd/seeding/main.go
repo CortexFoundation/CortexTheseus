@@ -2,11 +2,15 @@
 package main
 
 import (
+	"github.com/anacrolix/missinggo/slices"
+	"github.com/anacrolix/torrent/metainfo"
+	"github.com/anacrolix/torrent/storage"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"os/user"
+	"path"
 	"path/filepath"
 	"syscall"
 
@@ -75,19 +79,51 @@ func mainExitCode() int {
 			switch ev.Change {
 			case dirwatch.Added:
 				if ev.TorrentFilePath != "" {
-					t, err := client.AddTorrentFromFile(ev.TorrentFilePath)
-					log.Println(ev.TorrentFilePath)
-					t.DownloadAll()
+					filePath := ev.TorrentFilePath
+					torrentPath := path.Join(filePath, "torrent")
+					if _, err := os.Stat(torrentPath); err == nil {
+						mi, err := metainfo.LoadFromFile(torrentPath)
+						if err != nil {
+							log.Printf("error adding torrent to client: %s", err)
+							continue
+						}
+						spec := torrent.TorrentSpecFromMetaInfo(mi)
+						ih := spec.InfoHash
+						log.Println("Torrent", ih, "is seeding.")
+
+						spec.Storage = storage.NewFile(filePath)
+						t, _, err := client.AddTorrentSpec(spec)
+						if err != nil {
+							log.Printf("error adding torrent to client: %s", err)
+							continue
+						}
+						var ss []string
+						slices.MakeInto(&ss, mi.Nodes)
+						t.DownloadAll()
+					}
 					if err != nil {
 						log.Printf("error adding torrent to client: %s", err)
 					}
 				}
 			case dirwatch.Removed:
-				T, ok := client.Torrent(ev.InfoHash)
-				if !ok {
-					break
+				if ev.TorrentFilePath != "" {
+					filePath := ev.TorrentFilePath
+					torrentPath := path.Join(filePath, "torrent")
+					if _, err := os.Stat(torrentPath); err == nil {
+						mi, err := metainfo.LoadFromFile(torrentPath)
+						if err != nil {
+							log.Printf("error adding torrent to client: %s", err)
+							continue
+						}
+						spec := torrent.TorrentSpecFromMetaInfo(mi)
+						ih := spec.InfoHash
+						T, ok := client.Torrent(ih)
+						if !ok {
+							break
+						}
+						T.Drop()
+					}
 				}
-				T.Drop()
 			}
 		}
 	}()
