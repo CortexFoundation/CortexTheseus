@@ -34,6 +34,12 @@ geth-remote: cminer
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 	mv ./build/bin/geth ./build/bin/geth-remote
 
+geth-nominer: cminer 
+	build/env.sh go run build/ci.go install -disable_miner ./cmd/geth
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/geth\" to launch geth."
+	mv ./build/bin/geth ./build/bin/geth-nominer
+
 evm:
 	build/env.sh go run build/ci.go install ./cmd/evm
 	@echo "Done building."
@@ -81,8 +87,6 @@ lint: ## Run linters.
 clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
-	make -C $(LIB_MINER_DIR) clean
-	make -C $(INFER_NET_DIR) clean
 
 # The devtools target installs tools required for 'go generate'.
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.
