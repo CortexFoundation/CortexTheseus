@@ -9,7 +9,7 @@
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
 .PHONY: clib inferServer
-.PHONY: cgb cgb-remote
+.PHONY: cortex cortex-remote
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
@@ -25,27 +25,16 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-cgb: clib
-	build/env.sh go run build/ci.go install ./cmd/cgb
+cortex: clib
+	build/env.sh go run build/ci.go install ./cmd/cortex
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cgb\" to launch cgb."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cgb."
 
-cgb-remote: clib
-	build/env.sh go run build/ci.go install -remote_infer ./cmd/cgb
+cortex-remote: clib
+	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cgb\" to launch cgb."
-	mv ./build/bin/cgb ./build/bin/cgb-remote
-
-geth: clib
-	build/env.sh go run build/ci.go install ./cmd/geth
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/geth\" to launch geth."
-
-geth-remote: clib
-	build/env.sh go run build/ci.go install -remote_infer ./cmd/geth
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/geth\" to launch geth."
-	mv ./build/bin/geth ./build/bin/geth-remote
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+	mv ./build/bin/cortex ./build/bin/cortex-remote
 
 evm:
 	build/env.sh go run build/ci.go install ./cmd/evm
@@ -61,7 +50,7 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cgb geth clib inferServer cuckoo-miner
+all: cortex-remote cortex inferServer cuckoo-miner
 	# build/env.sh go run build/ci.go install
 
 clib:
