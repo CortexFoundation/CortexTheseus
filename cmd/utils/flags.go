@@ -98,6 +98,7 @@ func NewApp(gitCommit, usage string) *cli.App {
 	app := cli.NewApp()
 	// app.Name = filepath.Base(os.Args[0])
 	app.Name = "cgb"
+	app.HelpName = "cgb"
 	app.Author = "Cortex Labs"
 	//app.Authors = nil
 	app.Email = "support@cortexlabs.ai"
@@ -428,10 +429,10 @@ var (
 		Usage: "Record information useful for VM and contract debugging",
 	}
 	// Logging and debug settings
-	EthStatsURLFlag = cli.StringFlag{
-		Name:  "ethstats",
-		Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
-	}
+	// EthStatsURLFlag = cli.StringFlag{
+	// 	Name:  "ethstats",
+	// 	Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
+	// }
 	FakePoWFlag = cli.BoolFlag{
 		Name:  "fakepow",
 		Usage: "Disables proof-of-work verification",

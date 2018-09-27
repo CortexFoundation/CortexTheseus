@@ -126,7 +126,7 @@ var (
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
-		utils.EthStatsURLFlag,
+		// utils.EthStatsURLFlag,
 		// utils.MetricsEnabledFlag,
 		// utils.FakePoWFlag,
 		utils.NoCompactionFlag,
