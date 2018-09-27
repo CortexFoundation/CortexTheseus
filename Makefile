@@ -28,7 +28,7 @@ endif
 cortex: clib
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cgb."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 
 cortex-remote: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
