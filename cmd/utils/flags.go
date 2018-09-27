@@ -20,10 +20,11 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/ethereum/go-ethereum/torrentfs"
 	"io/ioutil"
+
+	"github.com/ethereum/go-ethereum/torrentfs"
 	// "math/big"
-	"os"
+
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -95,7 +96,8 @@ GLOBAL OPTIONS:
 // NewApp creates an app with sane defaults.
 func NewApp(gitCommit, usage string) *cli.App {
 	app := cli.NewApp()
-	app.Name = filepath.Base(os.Args[0])
+	// app.Name = filepath.Base(os.Args[0])
+	app.Name = "cgb"
 	app.Author = "Cortex Labs"
 	//app.Authors = nil
 	app.Email = "support@cortexlabs.ai"
@@ -475,7 +477,7 @@ var (
 	IPCPathFlag = DirectoryFlag{
 		Name:  "ipcpath",
 		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
-		Value: DirectoryString{"geth.ipc"},
+		Value: DirectoryString{"cgb.ipc"},
 	}
 	WSEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
