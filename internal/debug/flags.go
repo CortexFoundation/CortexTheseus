@@ -55,20 +55,20 @@ var (
 		Name:  "debug",
 		Usage: "Prepends log messages with call-site location (file and line number)",
 	}
-	pprofFlag = cli.BoolFlag{
-		Name:  "pprof",
-		Usage: "Enable the pprof HTTP server",
-	}
-	pprofPortFlag = cli.IntFlag{
-		Name:  "pprofport",
-		Usage: "pprof HTTP server listening port",
-		Value: 6060,
-	}
-	pprofAddrFlag = cli.StringFlag{
-		Name:  "pprofaddr",
-		Usage: "pprof HTTP server listening interface",
-		Value: "127.0.0.1",
-	}
+	// pprofFlag = cli.BoolFlag{
+	// 	Name:  "pprof",
+	// 	Usage: "Enable the pprof HTTP server",
+	// }
+	// pprofPortFlag = cli.IntFlag{
+	// 	Name:  "pprofport",
+	// 	Usage: "pprof HTTP server listening port",
+	// 	Value: 6060,
+	// }
+	// pprofAddrFlag = cli.StringFlag{
+	// 	Name:  "pprofaddr",
+	// 	Usage: "pprof HTTP server listening interface",
+	// 	Value: "127.0.0.1",
+	// }
 	memprofilerateFlag = cli.IntFlag{
 		Name:  "memprofilerate",
 		Usage: "Turn on memory profiling with the given rate",
@@ -90,9 +90,11 @@ var (
 
 // Flags holds all command-line flags required for debugging.
 var Flags = []cli.Flag{
-	verbosityFlag, vmoduleFlag, backtraceAtFlag, debugFlag,
-	pprofFlag, pprofAddrFlag, pprofPortFlag,
-	memprofilerateFlag, blockprofilerateFlag,
+	verbosityFlag,
+	// vmoduleFlag,
+	backtraceAtFlag, debugFlag,
+	// pprofFlag, pprofAddrFlag, pprofPortFlag,
+	// memprofilerateFlag, blockprofilerateFlag,
 	// cpuprofileFlag,
 	traceFlag,
 }
@@ -148,10 +150,10 @@ func Setup(ctx *cli.Context, logdir string) error {
 	// }
 
 	// pprof server
-	if ctx.GlobalBool(pprofFlag.Name) {
-		address := fmt.Sprintf("%s:%d", ctx.GlobalString(pprofAddrFlag.Name), ctx.GlobalInt(pprofPortFlag.Name))
-		StartPProf(address)
-	}
+	// if ctx.GlobalBool(pprofFlag.Name) {
+	// 	address := fmt.Sprintf("%s:%d", ctx.GlobalString(pprofAddrFlag.Name), ctx.GlobalInt(pprofPortFlag.Name))
+	// 	StartPProf(address)
+	// }
 	return nil
 }
 

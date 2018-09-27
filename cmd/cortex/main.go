@@ -43,7 +43,7 @@ import (
 )
 
 const (
-	clientIdentifier = "geth" // Client identifier to advertise over the network
+	clientIdentifier = "cortex" // Client identifier to advertise over the network
 )
 
 var (
@@ -175,8 +175,8 @@ func init() {
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
-		importCommand,
-		exportCommand,
+		// importCommand,
+		// exportCommand,
 		// importPreimagesCommand,
 		// exportPreimagesCommand,
 		// copydbCommand,

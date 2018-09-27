@@ -128,10 +128,10 @@ var (
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
 	}
-	NoUSBFlag = cli.BoolFlag{
-		Name:  "nousb",
-		Usage: "Disables monitoring for and managing USB hardware wallets",
-	}
+	// NoUSBFlag = cli.BoolFlag{
+	// 	Name:  "nousb",
+	// 	Usage: "Disables monitoring for and managing USB hardware wallets",
+	// }
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
@@ -571,11 +571,11 @@ var (
 	}
 
 	// ATM the url is left to the user and deployment to
-	JSpathFlag = cli.StringFlag{
-		Name:  "jspath",
-		Usage: "JavaScript root path for `loadScript`",
-		Value: ".",
-	}
+	// JSpathFlag = cli.StringFlag{
+	// 	Name:  "jspath",
+	// 	Usage: "JavaScript root path for `loadScript`",
+	// 	Value: ".",
+	// }
 
 	// Gas price oracle settings
 	GpoBlocksFlag = cli.IntFlag{
@@ -1030,9 +1030,9 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	// if ctx.GlobalIsSet(LightKDFFlag.Name) {
 	// 	cfg.UseLightweightKDF = ctx.GlobalBool(LightKDFFlag.Name)
 	// }
-	if ctx.GlobalIsSet(NoUSBFlag.Name) {
-		cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
-	}
+	// if ctx.GlobalIsSet(NoUSBFlag.Name) {
+	// 	cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
+	// }
 }
 
 func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
@@ -1482,10 +1482,10 @@ func MakeConsolePreloads(ctx *cli.Context) []string {
 	// Otherwise resolve absolute paths and return them
 	preloads := []string{}
 
-	assets := ctx.GlobalString(JSpathFlag.Name)
-	for _, file := range strings.Split(ctx.GlobalString(PreloadJSFlag.Name), ",") {
-		preloads = append(preloads, common.AbsolutePath(assets, strings.TrimSpace(file)))
-	}
+	// assets := ctx.GlobalString(JSpathFlag.Name)
+	// for _, file := range strings.Split(ctx.GlobalString(PreloadJSFlag.Name), ",") {
+	// 	preloads = append(preloads, common.AbsolutePath(assets, strings.TrimSpace(file)))
+	// }
 	return preloads
 }
 

@@ -70,7 +70,7 @@ var AppHelpFlagGroups = []flagGroup{
 			configFileFlag,
 			utils.DataDirFlag,
 			utils.KeyStoreDirFlag,
-			utils.NoUSBFlag,
+			// utils.NoUSBFlag,
 			utils.NetworkIdFlag,
 			// utils.TestnetFlag,
 			// utils.LazynetFlag,
@@ -170,7 +170,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.IPCPathFlag,
 			utils.RPCCORSDomainFlag,
 			utils.RPCVirtualHostsFlag,
-			utils.JSpathFlag,
+			// utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
 		},
@@ -225,7 +225,7 @@ var AppHelpFlagGroups = []flagGroup{
 	// 	Flags: append([]cli.Flag{
 	// 		utils.FakePoWFlag,
 	// 		utils.NoCompactionFlag,
-	// 	}, debug.Flags...),
+	// 	}, debug.threadsFlags...),
 	// },
 	// {
 	// 	Name: "METRICS AND STATS",
