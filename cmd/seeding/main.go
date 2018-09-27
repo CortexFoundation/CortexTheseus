@@ -2,9 +2,6 @@
 package main
 
 import (
-	"github.com/anacrolix/missinggo/slices"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/storage"
 	"log"
 	"net"
 	"os"
@@ -14,11 +11,14 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/anacrolix/missinggo/slices"
+	"github.com/anacrolix/torrent/metainfo"
+	"github.com/anacrolix/torrent/storage"
+
 	"github.com/anacrolix/tagflag"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/fs"
-	"github.com/anacrolix/torrent/util/dirwatch"
 )
 
 var (
@@ -69,7 +69,7 @@ func mainExitCode() int {
 		log.Print(err)
 		return 1
 	}
-	dw, err := dirwatch.New(args.DataDir)
+	dw, err := NewDirWatch(args.DataDir)
 	if err != nil {
 		log.Printf("error watching torrent dir: %s", err)
 		return 1
@@ -77,9 +77,9 @@ func mainExitCode() int {
 	go func() {
 		for ev := range dw.Events {
 			switch ev.Change {
-			case dirwatch.Added:
-				if ev.TorrentFilePath != "" {
-					filePath := ev.TorrentFilePath
+			case Added:
+				if ev.FilePath != "" {
+					filePath := ev.FilePath
 					torrentPath := path.Join(filePath, "torrent")
 					if _, err := os.Stat(torrentPath); err == nil {
 						mi, err := metainfo.LoadFromFile(torrentPath)
@@ -105,9 +105,9 @@ func mainExitCode() int {
 						log.Printf("error adding torrent to client: %s", err)
 					}
 				}
-			case dirwatch.Removed:
-				if ev.TorrentFilePath != "" {
-					filePath := ev.TorrentFilePath
+			case Removed:
+				if ev.FilePath != "" {
+					filePath := ev.FilePath
 					torrentPath := path.Join(filePath, "torrent")
 					if _, err := os.Stat(torrentPath); err == nil {
 						mi, err := metainfo.LoadFromFile(torrentPath)
