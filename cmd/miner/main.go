@@ -309,10 +309,10 @@ func (cm* Cortex) miningOnce() {
 
 func init() {
 	flag.BoolVar(&help, "help", false, "show help")
-	flag.StringVar(&remote, "pool_uri", "localhost:8009", "romote server address")
+	flag.StringVar(&remote, "pool_uri", "miner-cn.cortexlabs.ai:8009", "mining pool address")
 	flag.StringVar(&account, "account", "0xc3d7a1ef810983847510542edfd5bc5551a6321c", "miner accounts")
-	flag.StringVar(&chip, "devicetype", "cpu", "device type")
-	flag.IntVar(&deviceId, "deviceid", 0, "gpu id to mine")
+	flag.StringVar(&chip, "devicetype", "gpu", "device type: cpu or gpu")
+	flag.IntVar(&deviceId, "deviceid", 0, "which GPU device use for mining")
 	flag.IntVar(&verboseLevel, "verbosity", 0, "verbosity level")
 }
 

@@ -121,13 +121,13 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 	}
 
 	// File Exists Check
-	modelCfg := modelDir + "/data/params"
+	modelCfg := modelDir + "/data/symbol"
 	if cfgError := is.checkFileExists(modelCfg, forcePending); cfgError != nil {
 		inferWork.err <- cfgError
 		return
 	}
 
-	modelBin := modelDir + "/data/symbol"
+	modelBin := modelDir + "/data/params"
 	if binError := is.checkFileExists(modelBin, forcePending); binError != nil {
 		inferWork.err <- binError
 		return
