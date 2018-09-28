@@ -98,8 +98,7 @@ GLOBAL OPTIONS:
 func NewApp(gitCommit, usage string) *cli.App {
 	app := cli.NewApp()
 	app.Name = filepath.Base(os.Args[0])
-	// app.Name = "cgb"
-	app.HelpName = "cgb"
+	app.HelpName = "cortex"
 	app.Author = "Cortex Labs"
 	//app.Authors = nil
 	app.Email = "support@cortexlabs.ai"
@@ -479,7 +478,7 @@ var (
 	IPCPathFlag = DirectoryFlag{
 		Name:  "ipcpath",
 		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
-		Value: DirectoryString{"cgb.ipc"},
+		Value: DirectoryString{"cortex.ipc"},
 	}
 	WSEnabledFlag = cli.BoolFlag{
 		Name:  "ws",

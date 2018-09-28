@@ -103,6 +103,9 @@ func (m *Monitor) SetConnection(clientURI string) (e error) {
 			break
 		}
 		time.Sleep(time.Second * connTryInterval)
+		if m.terminated {
+			return
+		}
 	}
 	return
 }
