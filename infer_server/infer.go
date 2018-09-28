@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/ethereum/go-ethereum/infernet"
 	"github.com/ethereum/go-ethereum/log"
@@ -155,7 +154,7 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 
 // blockIO with waiting for file sync done
 func (is *InferenceServer) checkFileExists(fpath string) error {
-	_, err := os.Stat(filePath)
+	_, err := os.Stat(fpath)
 	if err != nil && os.IsNotExist(err) {
 		return errors.New(fmt.Sprintf("File %v does not exists", fpath))
 	}

@@ -16,8 +16,6 @@ type InferWork struct {
 	modelInfoHash string
 	inputInfoHash string
 
-	forcePending bool
-
 	res chan uint64
 	err chan error
 }
@@ -56,7 +54,7 @@ func New(config Config) *InferenceServer {
 	return globalInferServer
 }
 
-func SubmitInferWork(modelHash, inputHash string, force bool, resCh chan uint64, errCh chan error) error {
+func SubmitInferWork(modelHash, inputHash string, resCh chan uint64, errCh chan error) error {
 	if globalInferServer == nil {
 		return errors.New("Inference Server State Invalid")
 	}
@@ -64,7 +62,6 @@ func SubmitInferWork(modelHash, inputHash string, force bool, resCh chan uint64,
 	return globalInferServer.submitInferWork(&InferWork{
 		modelInfoHash: modelHash,
 		inputInfoHash: inputHash,
-		forcePending:  force,
 		res:           resCh,
 		err:           errCh,
 	})
@@ -99,6 +96,6 @@ func (is *InferenceServer) fetchWork() {
 }
 
 func (is *InferenceServer) localInfer(inferWork *InferWork) {
-	inferWork.err <- errors.New("localInfer not implemented")
+	inferWork.err <- errors.New("LocalInfer not implemented")
 	return
 }

@@ -18,6 +18,7 @@ package vm
 
 import (
 	_ "encoding/hex"
+	"errors"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -468,13 +469,16 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 	)
 
 	if evm.vmConfig.InferURI == "" {
-		inferRes, errRes = LocalInfer(string(model_meta_hash), string(input_meta_hash), evm.vmConfig.VerifyBlock)
+		inferRes, errRes = LocalInfer(string(model_meta_hash), string(input_meta_hash))
 	} else {
 		requestBody := fmt.Sprintf(`{"ModelHash":"%s", "InputHash":"%s"}`, model_meta_hash, input_meta_hash)
-		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI, evm.vmConfig.VerifyBlock)
+		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
 	}
 
 	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
+	if errRes != nil && evm.vmConfig.VerifyBlock {
+		errRes = errors.New(fmt.Sprintf(ErrInvalidInferFlag+": %v", errRes))
+	}
 	return inferRes, errRes
 }
 
