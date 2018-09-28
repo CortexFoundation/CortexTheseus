@@ -23,7 +23,6 @@ import (
 	"io"
 	"math/big"
 	mrand "math/rand"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -44,6 +43,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -1157,52 +1157,68 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		} else {
 			parent = chain[i-1]
 		}
-		state, err := state.New(parent.Root(), bc.stateCache)
-		if err != nil {
-			return i, events, coalescedLogs, err
-		}
-
 		var (
 			// Make a copy of config, set VerifyBlock flag true
 			vmCfg = bc.vmConfig
 
-			receipt types.Receipts
-			logs    []*types.Log
-			usedGas uint64
-			err     error
+			retry = uint64(0)
+
+			dbState  *state.StateDB
+			receipts types.Receipts
+			logs     []*types.Log
+			usedGas  uint64
+			pErr     error
 		)
 		vmCfg.VerifyBlock = true
 
 		for {
-			receipts, logs, usedGas, err = bc.processor.Process(block, state, vmCfg)
-
-			if err != nil &&
-				strings.HasPrefix(err.Error(), vm.ErrInvalidInferFlag) {
-				log.Warn("Invalid Infer state in verifying block", "Message", err)
-				time.Sleep(5 * time.Second)
-
-				continue
-			}
-
 			// If the chain is terminating, stop processing blocks
 			if atomic.LoadInt32(&bc.procInterrupt) == 1 {
 				log.Debug("Premature abort during blocks processing")
+				return 0, events, coalescedLogs, nil
+			}
+
+			dbState, pErr = state.New(parent.Root(), bc.stateCache)
+			if pErr != nil {
+				return i, events, coalescedLogs, pErr
+			}
+
+			// Process block using the parent state as reference point.
+			receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, vmCfg)
+
+			if pErr == nil {
 				break
+			}
+
+			// If Infer error and
+			// current block height less then block.BlockNumber,
+			// pending
+			if inferErr := vm.ParseVerifyBlockInferError(pErr); inferErr != nil {
+				log.Warn("Invalid Verify Block Inference", "err", inferErr)
+
+				if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
+					log.Debug("Verify Block Discard", "current block", bc.CurrentBlock().NumberU64(), "verified block", block.NumberU64())
+					break
+				}
+
+				time.Sleep(5 * time.Second)
+
+				retry++
+				log.Warn("Retrying Verify Block Inference", "number", block.NumberU64(), "retry", retry)
+				continue
 			}
 
 			break
 
 		}
 
-		// Process block using the parent state as reference point.
-		// receipts, logs, usedGas, err := bc.processor.Process(block, state, vmCfg)
-		if err != nil {
-			bc.reportBlock(block, receipts, err)
-			return i, events, coalescedLogs, err
+		if pErr != nil {
+			bc.reportBlock(block, receipts, pErr)
+			return i, events, coalescedLogs, pErr
 		}
 
 		// Validate the state using the default validator
-		err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
+		err = bc.Validator().ValidateState(block, parent, dbState, receipts, usedGas)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			return i, events, coalescedLogs, err
@@ -1210,7 +1226,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		proctime := time.Since(bstart)
 
 		// Write the block to the chain and get the status.
-		status, err := bc.WriteBlockWithState(block, receipts, state)
+		status, err := bc.WriteBlockWithState(block, receipts, dbState)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
