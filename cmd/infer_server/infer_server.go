@@ -13,11 +13,10 @@ import (
 )
 
 var (
-	forcePending = flag.Bool("forcePending", false, "Force program wait for file sync done")
-	storageDir   = flag.String("storageDir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
-	logLevel     = flag.Int("logLevel", 3, "Log level to emit to screen")
-	port         = flag.Int("port", 8827, "server listen port")
-	IsNotCache   = flag.Bool("disable_cache", false, "disable cache")
+	storageDir = flag.String("storageDir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
+	logLevel   = flag.Int("logLevel", 3, "Log level to emit to screen")
+	port       = flag.Int("port", 8827, "server listen port")
+	IsNotCache = flag.Bool("disable_cache", false, "disable cache")
 )
 
 type InferWork struct {
@@ -25,7 +24,7 @@ type InferWork struct {
 	InputHash string
 }
 
-func LocalInfer(modelHash, inputHash string, forcePending bool) (uint64, error) {
+func LocalInfer(modelHash, inputHash string) (uint64, error) {
 	var (
 		resultCh = make(chan uint64, 1)
 		errCh    = make(chan error, 1)
@@ -34,7 +33,6 @@ func LocalInfer(modelHash, inputHash string, forcePending bool) (uint64, error) 
 	err := infer.SubmitInferWork(
 		modelHash,
 		inputHash,
-		forcePending,
 		resultCh,
 		errCh)
 
@@ -80,7 +78,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Hash", inferWork.InputHash)
 
-	label, err := LocalInfer(inferWork.ModelHash, inferWork.InputHash, *forcePending)
+	label, err := LocalInfer(inferWork.ModelHash, inferWork.InputHash)
 	log.Info(fmt.Sprintf("Infer Result: %v, %v", label, err))
 
 	if err != nil {

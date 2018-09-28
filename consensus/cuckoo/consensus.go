@@ -697,4 +697,3 @@ func CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution) (ok
 
 	return true, sha3
 }
-
