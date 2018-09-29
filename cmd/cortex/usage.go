@@ -217,6 +217,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name:  "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
+		utils.ModelCallInterfaceFlag,
 			//		utils.VMEnableDebugFlag,
 		},
 	},
@@ -253,9 +254,9 @@ var AppHelpFlagGroups = []flagGroup{
 	// 		utils.MinerLegacyExtraDataFlag,
 	// 	},
 	// },
-	// {
-	// 	Name: "MISC",
-	// },
+	{
+		Name: "MISC",
+	},
 }
 
 // byCategory sorts an array of flagGroup by Name in the order

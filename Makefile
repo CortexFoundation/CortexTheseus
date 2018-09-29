@@ -48,7 +48,7 @@ evm:
 	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
 
 cuckoo-miner: clib
-	build/env.sh go run build/ci.go install ./cmd/miner
+	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner
 	@echo "Done building."
 
 swarm:
