@@ -365,11 +365,11 @@ var (
 		Usage: "Target gas floor for mined blocks",
 		Value: eth.DefaultConfig.MinerGasFloor,
 	}
-	MinerLegacyGasTargetFlag = cli.Uint64Flag{
-		Name:  "targetgaslimit",
-		Usage: "Target gas floor for mined blocks (deprecated, use --miner.gastarget)",
-		Value: eth.DefaultConfig.MinerGasFloor,
-	}
+	// MinerLegacyGasTargetFlag = cli.Uint64Flag{
+	// 	Name:  "targetgaslimit",
+	// 	Usage: "Target gas floor for mined blocks (deprecated, use --miner.gastarget)",
+	// 	Value: eth.DefaultConfig.MinerGasFloor,
+	// }
 	MinerGasLimitFlag = cli.Uint64Flag{
 		Name:  "miner.gaslimit",
 		Usage: "Target gas ceiling for mined blocks",
@@ -604,8 +604,7 @@ var (
 	}
 	ModelCallInterfaceFlag = cli.StringFlag{
 		Name:  "cvm.inferuri",
-		Usage: "infer uri",
-		// Value: "http://127.0.0.1:5000/infer",
+		Usage: "URI for delegated inference (experimental)",
 		Value: "",
 	}
 	WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
@@ -1211,9 +1210,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
 		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
 	}
-	if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
-	}
+	// if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
+	//	cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
+	// }
 	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
 		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
 	}

@@ -58,7 +58,8 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 func (self *Miner) Start(coinbase common.Address) {
 	atomic.StoreInt32(&self.shouldStart, 1)
 
-	log.Info("not miner available in testnet")
+	log.Error("Not embedded miner available in cortex-go testnet client, please use official miner to submit share to mining pool")
+	log.Error("Mining abort")
 
 	return
 }
