@@ -461,7 +461,7 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
-	log.Info("Infer Infos", "Model Hash", string(model_meta_hash), "Input Hash", string(input_meta_hash))
+	log.Info("Inference Information", "Model Hash", string(model_meta_hash), "Input Hash", string(input_meta_hash))
 
 	var (
 		inferRes uint64
@@ -475,7 +475,7 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
 	}
 
-	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
+	log.Info("Inference Result", "infer label", inferRes, "err", errRes)
 	if errRes != nil && evm.vmConfig.VerifyBlock {
 		errRes = errors.New(fmt.Sprintf(ErrInvalidInferFlag+": %v", errRes))
 	}
