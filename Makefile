@@ -36,13 +36,19 @@ cortex-remote:
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 	mv ./build/bin/cortex ./build/bin/cortex-remote
 
+cortex-nominer: clib
+	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/geth\" to launch geth."
+	mv ./build/bin/cortex ./build/bin/cortex-nominer
+
 evm:
 	build/env.sh go run build/ci.go install ./cmd/evm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
 
 cuckoo-miner: clib
-	build/env.sh go run build/ci.go install ./cmd/miner
+	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner
 	@echo "Done building."
 
 swarm:
@@ -50,7 +56,7 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cortex-remote cortex inferServer cuckoo-miner
+all: cortex-remote cortex-nominer cortex inferServer cuckoo-miner
 	# build/env.sh go run build/ci.go install
 
 clib:
