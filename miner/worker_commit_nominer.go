@@ -3,15 +3,15 @@
 package miner
 
 import (
-	"sync/atomic"
 	"math/big"
+	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 // commit runs any post-transaction state modifications, assembles the final block
