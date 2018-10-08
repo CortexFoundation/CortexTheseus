@@ -42,6 +42,7 @@ type InferenceServer struct {
 
 func New(config Config) *InferenceServer {
 	if globalInferServer != nil {
+		log.Warn("Inference server has been initialized")
 		return globalInferServer
 	}
 
@@ -54,7 +55,7 @@ func New(config Config) *InferenceServer {
 
 	go globalInferServer.fetchWork()
 
-	log.Info("Initialising Inference Server", "Storage Dir", config.StorageDir, "Global Inference Server", globalInferServer)
+	log.Info("Initializing Inference Server", "Storage Dir", config.StorageDir, "Cache Disabled", config.IsNotCache)
 	return globalInferServer
 }
 

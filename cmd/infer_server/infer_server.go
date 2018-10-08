@@ -56,13 +56,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Accept request ", r)
-
 	body, rerr := ioutil.ReadAll(r.Body)
 	if rerr != nil {
 		fmt.Fprintf(w, `{"msg": "error", "info": "Read request body error"}`)
 		return
 	}
+
+	log.Trace("Handler Info", "request", r, "body", string(body))
 
 	var inferWork InferWork
 
@@ -72,14 +72,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if inferWork.ModelHash == "" || inferWork.InputHash == "" {
-		fmt.Fprintf(w, `{"msg": "error", "info": "Data parse error"}`)
+		fmt.Fprintf(w, `{"msg": "error", "info": "Data is empty"}`)
 		return
 	}
 
 	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Hash", inferWork.InputHash)
 
 	label, err := LocalInfer(inferWork.ModelHash, inferWork.InputHash)
-	log.Info(fmt.Sprintf("Infer Result: %v, %v", label, err))
+	log.Info("Infer Result", "label", label, "error", err)
 
 	if err != nil {
 		fmt.Fprintf(w, fmt.Sprintf(`{"msg": "error", "info": "%v"}`, err))
@@ -90,6 +90,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	log.Info("Inference Server", "Help Command", "./infer_server -h")
+
 	flag.Parse()
 
 	// Set log
@@ -101,6 +103,8 @@ func main() {
 	})
 
 	http.HandleFunc("/", handler)
+
+	log.Info(fmt.Sprintf("Http Server Listen on 0.0.0.0:%v", *port))
 	err := http.ListenAndServe(fmt.Sprintf(":%v", *port), nil)
 
 	log.Error(fmt.Sprintf("Server Closed with Error %v", err))
