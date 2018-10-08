@@ -17,6 +17,7 @@
 package rpc
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -24,6 +25,7 @@ import (
 
 // StartHTTPEndpoint starts the HTTP RPC endpoint, configured with cors/vhosts/modules
 func StartHTTPEndpoint(endpoint string, apis []API, modules []string, cors []string, vhosts []string, timeouts HTTPTimeouts) (net.Listener, *Server, error) {
+	log.Debug(fmt.Sprintf("HTTPModules: %v", modules))
 	// Generate the whitelist based on the allowed modules
 	whitelist := make(map[string]bool)
 	for _, module := range modules {
