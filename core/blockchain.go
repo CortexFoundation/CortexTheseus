@@ -1201,7 +1201,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 					break
 				}
 
-				time.Sleep(5 * time.Second)
+				time.Sleep(10 * time.Second)
 
 				retry++
 				log.Warn("Retrying Verify Block Inference", "number", block.NumberU64(), "retry", retry)

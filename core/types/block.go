@@ -20,7 +20,7 @@ package types
 import (
 	//	"bytes"
 	"encoding/binary"
-//	"fmt"
+	//	"fmt"
 	"io"
 	"math/big"
 	"sort"
