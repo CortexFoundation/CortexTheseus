@@ -31,5 +31,5 @@ func checkModelVersionOne(infoHash string) error {
 		}
 	}
 
-	return errors.New(fmt.Sprintf("Model %s invalid", infoHash))
+	return errors.New(fmt.Sprintf("Model %s error", infoHash))
 }

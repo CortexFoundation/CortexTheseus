@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/infernet"
+	"github.com/ethereum/go-ethereum/infernet/parser"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -120,26 +121,22 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 		return
 	}
 
-	// File Exists Check
+	// Model Check
 	modelCfg := modelDir + "/data/symbol"
-	if cfgError := is.checkFileExists(modelCfg); cfgError != nil {
-		inferWork.err <- cfgError
-		return
-	}
-
 	modelBin := modelDir + "/data/params"
-	if binError := is.checkFileExists(modelBin); binError != nil {
-		inferWork.err <- binError
+	if parseErr := parser.CheckModel(modelCfg, modelBin); parseErr != nil {
+		inferWork.err <- parseErr
 		return
 	}
 
+	// Input Check
 	image := inputDir + "/data"
-	if imageError := is.checkFileExists(image); imageError != nil {
-		inferWork.err <- imageError
+	if _, imageErr := os.Stat(image); imageErr != nil {
+		inferWork.err <- imageErr
 		return
 	}
 
-	log.Debug("Infer Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "Image", image)
+	log.Debug("Inference Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "Image", image)
 	label, err := infernet.InferCore(modelCfg, modelBin, image)
 	if err != nil {
 		inferWork.err <- err
@@ -151,14 +148,4 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 		is.inferSimpleCache.Store(cacheKey, label)
 	}
 	return
-}
-
-// blockIO with waiting for file sync done
-func (is *InferenceServer) checkFileExists(fpath string) error {
-	_, err := os.Stat(fpath)
-	if err != nil && os.IsNotExist(err) {
-		return errors.New(fmt.Sprintf("File %v does not exists", fpath))
-	}
-
-	return nil
 }
