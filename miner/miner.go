@@ -105,7 +105,6 @@ func (self *Miner) update() {
 	}
 }
 
-
 func (self *Miner) Stop() {
 	self.worker.stop()
 	atomic.StoreInt32(&self.shouldStart, 0)
