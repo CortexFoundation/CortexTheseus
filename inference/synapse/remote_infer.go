@@ -10,7 +10,7 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-func (s Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) (uint64, error) {
+func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) (uint64, error) {
 	requestBody := fmt.Sprintf(`{"ModelHash":"%s", "InputHash":"%s"}`, modelInfoHash, inputInfoHash)
 	log.Trace(fmt.Sprintf("%v", requestBody))
 	resp, err := resty.R().
@@ -49,6 +49,6 @@ func (s Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string)
 	return uint64_output, nil
 }
 
-func (s Synapse) RemoteInferByInputContent(modelInfoHash, uri string, inputContent []byte) (uint64, error) {
+func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, inputContent []byte) (uint64, error) {
 	return 0, errors.New("RemoteInferByInputContent not implemented")
 }
