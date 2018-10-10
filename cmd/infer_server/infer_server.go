@@ -8,48 +8,20 @@ import (
 	"net/http"
 	"os"
 
-	infer "github.com/ethereum/go-ethereum/infer_server"
+	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 var (
-	forcePending = flag.Bool("forcePending", false, "Force program wait for file sync done")
-	storageDir   = flag.String("storageDir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
-	logLevel     = flag.Int("logLevel", 3, "Log level to emit to screen")
-	port         = flag.Int("port", 8827, "server listen port")
-	IsNotCache  = flag.Bool("disable_cache", false, "disable cache")
+	storageDir = flag.String("storageDir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
+	logLevel   = flag.Int("logLevel", 3, "Log level to emit to screen")
+	port       = flag.Int("port", 8827, "Server listen port")
+	IsNotCache = flag.Bool("disable_cache", false, "Disable cache")
 )
 
 type InferWork struct {
 	ModelHash string
 	InputHash string
-}
-
-func LocalInfer(modelHash, inputHash string, forcePending bool) (uint64, error) {
-	var (
-		resultCh = make(chan uint64, 1)
-		errCh    = make(chan error, 1)
-	)
-
-	err := infer.SubmitInferWork(
-		modelHash,
-		inputHash,
-		forcePending,
-		resultCh,
-		errCh)
-
-	if err != nil {
-		return 0, err
-	}
-
-	select {
-	case result := <-resultCh:
-		return result, nil
-	case err := <-errCh:
-		return 0, err
-	}
-
-	return 0, nil
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -58,13 +30,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Accept request ", r)
-
 	body, rerr := ioutil.ReadAll(r.Body)
 	if rerr != nil {
 		fmt.Fprintf(w, `{"msg": "error", "info": "Read request body error"}`)
 		return
 	}
+
+	log.Trace("Handler Info", "request", r, "body", string(body))
 
 	var inferWork InferWork
 
@@ -74,14 +46,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if inferWork.ModelHash == "" || inferWork.InputHash == "" {
-		fmt.Fprintf(w, `{"msg": "error", "info": "Data parse error"}`)
+		fmt.Fprintf(w, `{"msg": "error", "info": "Data is empty"}`)
 		return
 	}
 
 	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Hash", inferWork.InputHash)
 
-	label, err := LocalInfer(inferWork.ModelHash, inferWork.InputHash, *forcePending)
-	log.Info(fmt.Sprintf("Infer Result: %v, %v", label, err))
+	label, err := infer.Engine().InferByInfoHash(inferWork.ModelHash, inferWork.InputHash)
+	log.Info("Infer Result", "label", label, "error", err)
 
 	if err != nil {
 		fmt.Fprintf(w, fmt.Sprintf(`{"msg": "error", "info": "%v"}`, err))
@@ -92,10 +64,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.Parse()
-
 	// Set log
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*logLevel), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
+	log.Info("Inference Server", "Help Command", "./infer_server -h")
+
+	flag.Parse()
 
 	inferServer := infer.New(infer.Config{
 		StorageDir: *storageDir,
@@ -103,6 +76,8 @@ func main() {
 	})
 
 	http.HandleFunc("/", handler)
+
+	log.Info(fmt.Sprintf("Http Server Listen on 0.0.0.0:%v", *port))
 	err := http.ListenAndServe(fmt.Sprintf(":%v", *port), nil)
 
 	log.Error(fmt.Sprintf("Server Closed with Error %v", err))

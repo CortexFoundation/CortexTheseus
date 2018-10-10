@@ -41,7 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
-	infer "github.com/ethereum/go-ethereum/infer_server"
+	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/miner"
@@ -85,10 +85,10 @@ type Ethereum struct {
 
 	APIBackend *EthAPIBackend
 
-	miner       *miner.Miner
-	inferServer *infer.InferenceServer
-	gasPrice    *big.Int
-	etherbase   common.Address
+	miner     *miner.Miner
+	synapse   *infer.Synapse
+	gasPrice  *big.Int
+	etherbase common.Address
 
 	networkID     uint64
 	netRPCService *ethapi.PublicNetAPI
@@ -151,7 +151,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 	}
 
-	eth.inferServer = infer.New(infer.Config{
+	eth.synapse = infer.New(infer.Config{
 		StorageDir: config.StorageDir,
 		IsNotCache: false,
 	})
@@ -313,6 +313,28 @@ func (s *Ethereum) APIs() []rpc.API {
 			Service:   s.netRPCService,
 			Public:    true,
 		},
+
+		{
+			Namespace: "ctx",
+			Version:   "1.0",
+			Service:   NewPublicEthereumAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "ctx",
+			Version:   "1.0",
+			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "ctx",
+			Version:   "1.0",
+			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
+			Public:    true,
+		}, {
+			Namespace: "ctx",
+			Version:   "1.0",
+			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
+			Public:    true,
+		},
 	}...)
 }
 
@@ -463,6 +485,8 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Ethereum protocol.
 func (s *Ethereum) Stop() error {
+	s.synapse.Close()
+
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
@@ -472,7 +496,6 @@ func (s *Ethereum) Stop() error {
 	}
 	s.txPool.Stop()
 	s.miner.Stop()
-	s.inferServer.Close()
 	s.eventMux.Stop()
 
 	s.chainDb.Close()
