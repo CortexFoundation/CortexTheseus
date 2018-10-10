@@ -204,6 +204,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, nil
 		}
 
+		log.Trace(fmt.Sprintf("contract.Code = %v", contract.Code))
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
