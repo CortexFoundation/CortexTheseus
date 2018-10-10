@@ -31,7 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 
 	"fmt"
-	"errors"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -507,23 +506,30 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) InferArray(modelMetaHash []byte, inputArray []byte) (uint64, error) {
-	log.Info("Infer Infos", "Model Hash", string(modelMetaHash),
-												  "Input Array", inputArray)
+func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, error) {
+	log.Info("Infer Infos", "Model Hash", modelInfoHash)
+	log.Trace2("Input Array", inputArray)
 
 	var (
 		inferRes uint64
 		errRes   error
 	)
-	/*
+	log.Trace(fmt.Sprintf("evm.vmConfig.InferURI: %v", evm.vmConfig.InferURI))
 	if evm.vmConfig.InferURI == "" {
-		inferRes, errRes = LocalInfer(string(modelMetaHash), (inputArray), evm.vmConfig.CallFakeVM)
+		inferRes, errRes = infer.Engine().InferByInputContent(modelInfoHash, inputArray)
 	} else {
-		requestBody := fmt.Sprintf(`{"ModelHash":"%s", "InputArray":"%s"}`, modelMetaHash, inputArray)
-		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
+		inferRes, errRes = infer.Engine().RemoteInferByInputContent(
+			modelInfoHash,
+			evm.vmConfig.InferURI,
+			inputArray)
 	}
-*/
-	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
+
+	log.Info("Inference Result", "infer label", inferRes, "err", errRes)
+
+	// If infer process is at block verifying, add label to error
+	if errRes != nil && evm.vmConfig.VerifyBlock {
+		errRes = CreateVerifyBlockInferError(errRes)
+	}
 	return inferRes, errRes
 }
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
@@ -570,9 +576,9 @@ func (evm *EVM) GetSolidityBytes(addr common.Address, slot common.Hash)( []byte,
 		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
 		payload := evm.StateDB.GetState(addr, slotAddr).Bytes()
 		copy(buff[idx * 32:], payload[:])
-		log.Trace(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
+		log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 	}
 	buff = buff[:length]
-	log.Trace(fmt.Sprintf("data: %v", buff))
+	log.Trace2(fmt.Sprintf("data: %v", buff))
 	return buff, nil
 }
