@@ -485,11 +485,10 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Ethereum protocol.
 func (s *Ethereum) Stop() error {
-	s.synapse.Close()
-
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
+	s.synapse.Close()
 	s.protocolManager.Stop()
 	if s.lesServer != nil {
 		s.lesServer.Stop()

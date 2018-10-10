@@ -5,7 +5,6 @@ package synapse
 import (
 	"errors"
 	"strings"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -16,14 +15,14 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-func (s Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) (uint64, error) {
+func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) (uint64, error) {
 	var (
-		resCh <-chan uint64
-		errCh <-chan error
+		resCh = make(chan uint64)
+		errCh = make(chan error)
 	)
 
 	go func() {
-		resCh, errCh = s.inferByInfoHash(modelInfoHash, inputInfoHash)
+		s.inferByInfoHash(modelInfoHash, inputInfoHash, resCh, errCh)
 	}()
 
 	select {
@@ -36,82 +35,80 @@ func (s Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) (uint64, e
 	}
 }
 
-func (s Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (<-chan uint64, <-chan error) {
+func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh chan uint64, errCh chan error) {
 	var (
-		resCh = make(chan uint64)
-		errCh = make(chan error)
-
+		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(string(inputInfoHash[2:]))
-		inputDir  = s.config.StorageDir + "/" + inputHash
 	)
 
+	// Inference Cache
+	cacheKey := modelHash + inputHash
+	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+		resCh <- v.(uint64)
+		return
+	}
+
+	inputDir := s.config.StorageDir + "/" + inputHash
 	inputFilePath := inputDir + "/data"
 	log.Debug("Inference Core", "Read Image From File", inputFilePath)
 	inputContent, imageErr := ReadImage(inputFilePath)
 	if imageErr != nil {
 		errCh <- imageErr
-		return resCh, errCh
+		return
 	}
 
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
+	s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
 }
 
-func (s Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) (<-chan uint64, <-chan error) {
+func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte, resCh chan uint64, errCh chan error) {
 	var (
-		resCh = make(chan uint64, 1)
-		errCh = make(chan error, 1)
-
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
 		modelDir  = s.config.StorageDir + "/" + modelHash
 	)
 
-	log.Trace(fmt.Sprintf("1"))
 	if checkErr := CheckMetaHash(Model_V1, modelHash); checkErr != nil {
-		log.Trace(fmt.Sprintf("1.1"))
 		errCh <- checkErr
-		log.Trace(fmt.Sprintf("1.2"))
-		return resCh, errCh
+		return
 	}
 
-	log.Trace(fmt.Sprintf("2"))
 	// Inference Cache
 	cacheKey := modelHash + inputHash
+	log.Warn("Info", "key", cacheKey, "config", s.config)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		resCh <- v.(uint64)
-		return resCh, errCh
+		return
 	}
 
-	log.Trace(fmt.Sprintf("3"))
 	// Model Check
 	modelCfg := modelDir + "/data/symbol"
 	modelBin := modelDir + "/data/params"
 	if parseErr := parser.CheckModel(modelCfg, modelBin); parseErr != nil {
 		errCh <- parseErr
-		return resCh, errCh
+		return
 	}
-	log.Trace(fmt.Sprintf("4"))
 
 	log.Debug("Inference Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "InputInfoHash", inputInfoHash)
 	label, inferErr := infernet.InferCore(modelCfg, modelBin, inputContent)
 	if inferErr != nil {
 		errCh <- inferErr
-		return resCh, errCh
+		return
 	}
 
 	if !s.config.IsNotCache {
+		log.Info("Simple Cache", "Cache key", cacheKey, "Label", label)
 		s.simpleCache.Store(cacheKey, label)
 	}
 
 	resCh <- label
-	return resCh, errCh
+	return
 
 }
 
-func (s Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) (uint64, error) {
+func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) (uint64, error) {
 	var (
-		resCh <-chan uint64
-		errCh <-chan error
+		resCh chan uint64
+		errCh chan error
 
 		hash common.Hash
 	)
@@ -119,9 +116,10 @@ func (s Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) 
 	hw := sha3.NewKeccak256()
 	rlp.Encode(hw, inputContent)
 	inputInfoHash := hexutil.Encode(hw.Sum(hash[:0]))
-	log.Trace2(fmt.Sprintf("infer: %v %v, %v", modelInfoHash, inputContent, inputInfoHash))
 
-	resCh, errCh = s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
+	go func() {
+		s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
+	}()
 
 	select {
 	case result := <-resCh:

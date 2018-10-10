@@ -51,7 +51,7 @@ func New(config Config) *Synapse {
 		stopSig: 0,
 	}
 
-	log.Info("Initializing Synapse Engine", "Storage Dir", config.StorageDir, "Cache Disabled", config.IsNotCache)
+	log.Info("Initialising Synapse Engine", "Storage Dir", config.StorageDir, "Cache Disabled", config.IsNotCache)
 	return synapseInstance
 }
 
@@ -61,7 +61,7 @@ func (s *Synapse) Close() {
 	log.Info("Synapse Engine Closed")
 }
 
-func (s Synapse) VerifyModel(modelInfoHash string) error {
+func (s *Synapse) VerifyModel(modelInfoHash string) error {
 	modelHash := strings.ToLower(string(modelInfoHash[2:]))
 	modelDir := s.config.StorageDir + "/" + modelHash
 
@@ -71,7 +71,7 @@ func (s Synapse) VerifyModel(modelInfoHash string) error {
 	return parser.CheckModel(modelCfg, modelBin)
 }
 
-func (s Synapse) VerifyInput(inputInfoHash string) error {
+func (s *Synapse) VerifyInput(inputInfoHash string) error {
 	inputHash := strings.ToLower(string(inputInfoHash[2:]))
 	inputDir := s.config.StorageDir + "/" + inputHash
 
