@@ -1,4 +1,4 @@
-package vm
+package synapse
 
 import (
 	"errors"
@@ -6,62 +6,12 @@ import (
 	"strconv"
 
 	simplejson "github.com/bitly/go-simplejson"
-	infer "github.com/ethereum/go-ethereum/infer_server"
 	"github.com/ethereum/go-ethereum/log"
 	resty "gopkg.in/resty.v1"
 )
 
-var (
-	ErrInvalidInferFlag = "infer while verifying block error"
-)
-
-func CreateVerifyBlockInferError(err error) error {
-	return errors.New(fmt.Sprintf(ErrInvalidInferFlag+": %v", err.Error()))
-}
-
-func ParseVerifyBlockInferError(vbErr error) error {
-	errLen := len(vbErr.Error())
-	flagLen := len(ErrInvalidInferFlag)
-	if errLen >= flagLen && vbErr.Error()[0:flagLen] == ErrInvalidInferFlag {
-		return errors.New(vbErr.Error()[flagLen+2:])
-	}
-
-	return nil
-}
-
-/**
- * Infer progress should waiting for file download
- * while verifying block fetched from other peer.
- * Other case return infer result or error.
- */
-func LocalInfer(modelHash, inputHash string) (uint64, error) {
-	var (
-		resultCh = make(chan uint64, 1)
-		errCh    = make(chan error, 1)
-	)
-
-	err := infer.SubmitInferWork(
-		modelHash,
-		inputHash,
-		resultCh,
-		errCh,
-	)
-
-	if err != nil {
-		return 0, err
-	}
-
-	select {
-	case result := <-resultCh:
-		return result, nil
-	case err := <-errCh:
-		return 0, err
-	}
-
-	return 0, nil
-}
-
-func RemoteInfer(requestBody, uri string) (uint64, error) {
+func (s Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) (uint64, error) {
+	requestBody := fmt.Sprintf(`{"ModelHash":"%s", "InputHash":"%s"}`, modelInfoHash, inputInfoHash)
 	log.Trace(fmt.Sprintf("%v", requestBody))
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
@@ -97,4 +47,8 @@ func RemoteInfer(requestBody, uri string) (uint64, error) {
 		return 0, errors.New("evm.Infer: Type Conversion Error")
 	}
 	return uint64_output, nil
+}
+
+func (s Synapse) RemoteInferByInputContent(modelInfoHash, uri string, inputContent []byte) (uint64, error) {
+	return 0, errors.New("RemoteInferByInputContent not implemented")
 }

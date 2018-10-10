@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	infer "github.com/ethereum/go-ethereum/infer_server"
+	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -22,32 +22,6 @@ var (
 type InferWork struct {
 	ModelHash string
 	InputHash string
-}
-
-func LocalInfer(modelHash, inputHash string) (uint64, error) {
-	var (
-		resultCh = make(chan uint64, 1)
-		errCh    = make(chan error, 1)
-	)
-
-	err := infer.SubmitInferWork(
-		modelHash,
-		inputHash,
-		resultCh,
-		errCh)
-
-	if err != nil {
-		return 0, err
-	}
-
-	select {
-	case result := <-resultCh:
-		return result, nil
-	case err := <-errCh:
-		return 0, err
-	}
-
-	return 0, nil
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +52,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Hash", inferWork.InputHash)
 
-	label, err := LocalInfer(inferWork.ModelHash, inferWork.InputHash)
+	label, err := infer.Engine().InferByInfoHash(inferWork.ModelHash, inferWork.InputHash)
 	log.Info("Infer Result", "label", label, "error", err)
 
 	if err != nil {
