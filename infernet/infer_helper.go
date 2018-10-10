@@ -9,34 +9,10 @@ package infernet
 import "C"
 import (
 	"errors"
-	"fmt"
 	"unsafe"
 )
 
-func readImg(input string) ([]byte, error) {
-	r, rerr := NewFileReader(input)
-	if rerr != nil {
-		fmt.Println("Error: ", rerr)
-		return nil, rerr
-	}
-
-	// Infer data must between [0, 127)
-	data, derr := r.GetBytes()
-	if derr != nil {
-		return nil, derr
-	}
-
-	for i, v := range data {
-		data[i] = uint8(v) / 2
-	}
-
-	// Tmp Code
-	// DumpToFile("tmp.dump", data)
-
-	return data, nil
-}
-
-func InferCore(modelCfg, modelBin, image string) (uint64, error) {
+func InferCore(modelCfg, modelBin string, imageData []byte) (uint64, error) {
 
 	net := C.load_model(
 		C.CString(modelCfg),
@@ -55,11 +31,6 @@ func InferCore(modelCfg, modelBin, image string) (uint64, error) {
 	}
 
 	res := make([]byte, resLen)
-
-	imageData, rerr := readImg(image)
-	if rerr != nil {
-		return 0, rerr
-	}
 
 	flag := C.predict(
 		net,
@@ -91,14 +62,4 @@ func InferCore(modelCfg, modelBin, image string) (uint64, error) {
 	}
 
 	return label, nil
-}
-
-func main() {
-	label, err := InferCore("./infer_data/model/param", "./infer_data/model/symbol", "./infer_data/image/data")
-
-	fmt.Println(label, err)
-
-	// readImg("./img.8b")
-	// fmt.Println("Result: " + res)
-	// fmt.Println("Result: " + res + " Length: " + string(len(res)))
 }

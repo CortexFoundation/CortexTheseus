@@ -1,4 +1,4 @@
-package infer_server
+package synapse
 
 import (
 	"errors"

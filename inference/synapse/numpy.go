@@ -1,4 +1,4 @@
-package infernet
+package synapse
 
 import (
 	"encoding/binary"
