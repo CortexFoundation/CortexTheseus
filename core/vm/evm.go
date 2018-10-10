@@ -29,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 
 	"fmt"
+	"errors"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -478,7 +479,28 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 	return inferRes, errRes
 }
 
+// infer function that returns an int64 as output, can be used a categorical output
+func (evm *EVM) InferArray(modelMetaHash []byte, inputArray []byte) (uint64, error) {
+	log.Info("Infer Infos", "Model Hash", string(modelMetaHash),
+												  "Input Array", inputArray)
+
+	var (
+		inferRes uint64
+		errRes   error
+	)
+	/*
+	if evm.vmConfig.InferURI == "" {
+		inferRes, errRes = LocalInfer(string(modelMetaHash), (inputArray), evm.vmConfig.CallFakeVM)
+	} else {
+		requestBody := fmt.Sprintf(`{"ModelHash":"%s", "InputArray":"%s"}`, modelMetaHash, inputArray)
+		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
+	}
+*/
+	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
+	return inferRes, errRes
+}
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
+	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
 	modelMetaRaw := evm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
 	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
@@ -496,4 +518,34 @@ func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err er
 	} else {
 		return inputMeta, nil
 	}
+}
+
+// GetState returns a value in account storage.
+func (evm *EVM) GetSolidityBytes(addr common.Address, slot common.Hash)( []byte, error ){
+	pos := evm.StateDB.GetState(addr, slot).Big().Uint64()
+	cont := pos % 2;
+	length := pos / 2;
+	hash := crypto.Keccak256(slot.Bytes())
+	hashBig := new(big.Int).SetBytes(hash)
+	log.Trace(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, pos, hash))
+	if (length < 32 || cont == 0 ) {
+		return []byte{}, errors.New("not implemented for data size less than 32!")
+	}
+
+	buffSize := uint(length / 32) * 32
+	if length % 32 != 0 {
+		buffSize += 32
+	}
+
+	buff := make([]byte, buffSize)
+	var idx int64
+	for idx = 0; idx < int64(length) / 32; idx++ {
+		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
+		payload := evm.StateDB.GetState(addr, slotAddr).Bytes()
+		copy(buff[idx * 32:], payload[:])
+		log.Trace(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
+	}
+	buff = buff[:length]
+	log.Trace(fmt.Sprintf("data: %v", buff))
+	return buff, nil
 }

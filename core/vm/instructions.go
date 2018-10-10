@@ -388,6 +388,7 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	offset, size := stack.pop(), stack.pop()
 	data := memory.Get(offset.Int64(), size.Int64())
 	hash := crypto.Keccak256(data)
+	// log.Trace(fmt.Sprintf("opsha3: %v, %v, %v, %v", offset.Int64(), size.Int64(), data, hash))
 	evm := interpreter.evm
 
 	if evm.vmConfig.EnablePreimageRecording {
@@ -758,6 +759,68 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	// interpreter.evm.StateDB.SetNum(modelAddr, interpreter.evm.BlockNumber)
 	// interpreter.evm.StateDB.SetNum(inputAddr, interpreter.evm.BlockNumber)
+
+	return nil, nil
+}
+
+func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	_modelAddr, _inputHeaderOffset := stack.pop(), stack.pop()
+	inputBuff, inputError := interpreter.evm.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
+	if inputError != nil {
+		return nil, inputError
+	}
+	inputSize := big.NewInt(int64(len(inputBuff)))
+	modelAddr := common.BigToAddress(_modelAddr)
+	log.Trace(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
+
+	// log.Trace(fmt.Sprintf("_inputAddr = %v", _inputAddr))
+	// inputAddr := common.BigToAddress(_inputAddr)
+	var (
+		modelMeta *types.ModelMeta
+	)
+	var err error
+	fmt.Println(0);
+	if modelMeta, err = interpreter.evm.GetModelMeta(modelAddr); err != nil {
+		stack.push(interpreter.intPool.getZero())
+		return nil, err
+	}
+	// Model Meta is validation
+	if interpreter.evm.StateDB.Uploading(modelAddr) {
+		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
+	}
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0)) <= 0 {
+		return nil, errExecutionReverted
+	}
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+		return nil, errMetaInfoNotMature
+	}
+
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
+		return nil, errMetaInfoExpired
+	}
+
+	if modelMeta.Gas > MODEL_GAS_LIMIT {
+		//return nil, errExecutionReverted
+		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
+	}
+
+	//TODO(tian) Model&Input shape should match 
+	var dataSize uint64 = 1;
+	for _, modelShape := range modelMeta.InputShape {
+		dataSize *= modelShape;
+	}
+	if (dataSize != inputSize.Uint64()) {
+			return nil, errMetaShapeNotMatch
+	}
+
+	output, err := interpreter.evm.InferArray(
+		[]byte(modelMeta.Hash.Hex()),
+		inputBuff)
+	if err != nil {
+		stack.push(interpreter.intPool.getZero())
+		return nil, err
+	}
+	stack.push(interpreter.intPool.get().SetUint64(output))
 
 	return nil, nil
 }
