@@ -5,6 +5,7 @@ package synapse
 import (
 	"errors"
 	"strings"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -57,19 +58,23 @@ func (s Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (<-chan ui
 
 func (s Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) (<-chan uint64, <-chan error) {
 	var (
-		resCh = make(chan uint64)
-		errCh = make(chan error)
+		resCh = make(chan uint64, 1)
+		errCh = make(chan error, 1)
 
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
 		modelDir  = s.config.StorageDir + "/" + modelHash
 	)
 
+	log.Trace(fmt.Sprintf("1"))
 	if checkErr := CheckMetaHash(Model_V1, modelHash); checkErr != nil {
+		log.Trace(fmt.Sprintf("1.1"))
 		errCh <- checkErr
+		log.Trace(fmt.Sprintf("1.2"))
 		return resCh, errCh
 	}
 
+	log.Trace(fmt.Sprintf("2"))
 	// Inference Cache
 	cacheKey := modelHash + inputHash
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
@@ -77,6 +82,7 @@ func (s Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputC
 		return resCh, errCh
 	}
 
+	log.Trace(fmt.Sprintf("3"))
 	// Model Check
 	modelCfg := modelDir + "/data/symbol"
 	modelBin := modelDir + "/data/params"
@@ -84,6 +90,7 @@ func (s Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputC
 		errCh <- parseErr
 		return resCh, errCh
 	}
+	log.Trace(fmt.Sprintf("4"))
 
 	log.Debug("Inference Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "InputInfoHash", inputInfoHash)
 	label, inferErr := infernet.InferCore(modelCfg, modelBin, inputContent)
@@ -112,10 +119,9 @@ func (s Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) 
 	hw := sha3.NewKeccak256()
 	rlp.Encode(hw, inputContent)
 	inputInfoHash := hexutil.Encode(hw.Sum(hash[:0]))
+	log.Trace2(fmt.Sprintf("infer: %v %v, %v", modelInfoHash, inputContent, inputInfoHash))
 
-	go func() {
-		resCh, errCh = s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
-	}()
+	resCh, errCh = s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
 
 	select {
 	case result := <-resCh:
@@ -125,4 +131,5 @@ func (s Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) 
 	case <-s.exitCh:
 		return 0, errors.New("Synapse Engine is closed")
 	}
+	return 0, nil
 }
