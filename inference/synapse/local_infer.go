@@ -107,8 +107,8 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 
 func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) (uint64, error) {
 	var (
-		resCh chan uint64
-		errCh chan error
+		resCh = make(chan uint64)
+		errCh = make(chan error)
 
 		hash common.Hash
 	)
