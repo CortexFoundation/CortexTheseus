@@ -42,6 +42,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	cli "gopkg.in/urfave/cli.v1"
+	infer "github.com/ethereum/go-ethereum/inference/synapse"
 )
 
 var runCommand = cli.Command{
@@ -114,7 +115,7 @@ func runCmd(ctx *cli.Context) error {
 		sender = common.HexToAddress(ctx.GlobalString(SenderFlag.Name))
 	}
 	statedb.CreateAccount(sender)
-	mh1, _ := hex.DecodeString("3076e5168a1c66521df6a6d9a7a1195559c9b288")
+	mh1, _ := hex.DecodeString("ca3d0286d5758697cdef653c1375960a868ac08a")
 	testModelMeta1, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh1),
@@ -126,7 +127,7 @@ func runCmd(ctx *cli.Context) error {
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 
-	mh2, _ := hex.DecodeString("3076e5168a1c66521df6a6d9a7a1195559c9b288")
+	mh2, _ := hex.DecodeString("4d8bc8272b882f315c6a96449ad4568fac0e6038")
 	testModelMeta2, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh2),
@@ -212,7 +213,7 @@ func runCmd(ctx *cli.Context) error {
 		EVMConfig: vm.Config{
 			Tracer:   tracer,
 			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
-			InferURI: "http://127.0.0.1:5000/infer",
+			InferURI: "",
 		},
 	}
 
@@ -234,6 +235,12 @@ func runCmd(ctx *cli.Context) error {
 	}
 	tstart := time.Now()
 	var leftOverGas uint64
+
+	inferServer := infer.New(infer.Config{
+		StorageDir: "/serving/cortex-core/data/ctxc-42-10/warehouse",
+		IsNotCache: false,
+	})
+
 	if ctx.GlobalBool(CreateFlag.Name) {
 		input := append(code, common.Hex2Bytes(ctx.GlobalString(InputFlag.Name))...)
 		ret, _, leftOverGas, err = runtime.Create(input, &runtimeConfig)
@@ -290,6 +297,6 @@ Gas used:           %d
 			fmt.Printf(" error: %v\n", err)
 		}
 	}
-
+	inferServer.Close()
 	return nil
 }

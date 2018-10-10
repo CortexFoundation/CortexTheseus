@@ -771,7 +771,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 	}
 	inputSize := big.NewInt(int64(len(inputBuff)))
 	modelAddr := common.BigToAddress(_modelAddr)
-	log.Trace(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
+	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
 	// log.Trace(fmt.Sprintf("_inputAddr = %v", _inputAddr))
 	// inputAddr := common.BigToAddress(_inputAddr)
@@ -814,7 +814,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 	}
 
 	output, err := interpreter.evm.InferArray(
-		[]byte(modelMeta.Hash.Hex()),
+		modelMeta.Hash.Hex(),
 		inputBuff)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
