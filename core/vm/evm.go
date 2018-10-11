@@ -496,12 +496,15 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 			evm.vmConfig.InferURI)
 	}
 
-	log.Info("Inference Result", "infer label", inferRes, "err", errRes)
+	if errRes == nil {
+		log.Info("Inference Result", "label", inferRes)
+	}
 
 	// If infer process is at block verifying, add label to error
 	if errRes != nil && evm.vmConfig.VerifyBlock {
 		errRes = CreateVerifyBlockInferError(errRes)
 	}
+
 	return inferRes, errRes
 }
 
@@ -514,7 +517,7 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, err
 		inferRes uint64
 		errRes   error
 	)
-	log.Trace(fmt.Sprintf("evm.vmConfig.InferURI: %v", evm.vmConfig.InferURI))
+
 	if evm.vmConfig.InferURI == "" {
 		inferRes, errRes = infer.Engine().InferByInputContent(modelInfoHash, inputArray)
 	} else {
@@ -554,28 +557,28 @@ func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err er
 }
 
 // GetState returns a value in account storage.
-func (evm *EVM) GetSolidityBytes(addr common.Address, slot common.Hash)( []byte, error ){
+func (evm *EVM) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byte, error) {
 	pos := evm.StateDB.GetState(addr, slot).Big().Uint64()
-	cont := pos % 2;
-	length := pos / 2;
+	cont := pos % 2
+	length := pos / 2
 	hash := crypto.Keccak256(slot.Bytes())
 	hashBig := new(big.Int).SetBytes(hash)
 	log.Trace(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, pos, hash))
-	if (length < 32 || cont == 0 ) {
+	if length < 32 || cont == 0 {
 		return []byte{}, errors.New("not implemented for data size less than 32!")
 	}
 
-	buffSize := uint(length / 32) * 32
-	if length % 32 != 0 {
+	buffSize := uint(length/32) * 32
+	if length%32 != 0 {
 		buffSize += 32
 	}
 
 	buff := make([]byte, buffSize)
 	var idx int64
-	for idx = 0; idx < int64(length) / 32; idx++ {
+	for idx = 0; idx < int64(length)/32; idx++ {
 		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
 		payload := evm.StateDB.GetState(addr, slotAddr).Bytes()
-		copy(buff[idx * 32:], payload[:])
+		copy(buff[idx*32:], payload[:])
 		log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 	}
 	buff = buff[:length]
