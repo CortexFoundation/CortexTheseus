@@ -111,9 +111,13 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 	modelDir := is.config.StorageDir + "/" + modelHash
 	inputDir := is.config.StorageDir + "/" + inputHash
 
-	cacheKey := modelHash + inputHash
+	if checkErr := CheckMetaHash(Model_V1, modelHash); checkErr != nil {
+		inferWork.err <- checkErr
+		return
+	}
 
 	// Inference Cache
+	cacheKey := modelHash + inputHash
 	log.Debug(fmt.Sprintf("InferWork: %v", inferWork))
 	if v, ok := is.inferSimpleCache.Load(cacheKey); ok && !is.config.IsNotCache {
 		inferWork.res <- v.(uint64)
@@ -121,13 +125,13 @@ func (is *InferenceServer) localInfer(inferWork *InferWork) {
 	}
 
 	// File Exists Check
-	modelCfg := modelDir + "/data/params"
+	modelCfg := modelDir + "/data/symbol"
 	if cfgError := is.checkFileExists(modelCfg, forcePending); cfgError != nil {
 		inferWork.err <- cfgError
 		return
 	}
 
-	modelBin := modelDir + "/data/symbol"
+	modelBin := modelDir + "/data/params"
 	if binError := is.checkFileExists(modelBin, forcePending); binError != nil {
 		inferWork.err <- binError
 		return

@@ -103,6 +103,9 @@ func (m *Monitor) SetConnection(clientURI string) (e error) {
 			break
 		}
 		time.Sleep(time.Second * connTryInterval)
+		if m.terminated {
+			return
+		}
 	}
 	return
 }
@@ -162,7 +165,7 @@ func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
 	if err := m.parseNewBlock(block); err != nil {
 		return err
 	}
-	log.Info("Fetch block", "Number", block.Number, "Txs", len(block.Txs))
+	log.Debug("Fetch block", "Number", block.Number, "Txs", len(block.Txs))
 	return nil
 }
 
@@ -175,7 +178,7 @@ func (m *Monitor) parseBlockByHash(hash string) error {
 		return err
 	}
 	m.parseBlock(block)
-	log.Info("Fetch block", "Hash", hash, "Txs", len(block.Txs))
+	log.Debug("Fetch block", "Hash", hash, "Txs", len(block.Txs))
 	return nil
 }
 
