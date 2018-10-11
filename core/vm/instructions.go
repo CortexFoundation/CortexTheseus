@@ -779,7 +779,6 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 		modelMeta *types.ModelMeta
 	)
 	var err error
-	fmt.Println(0);
 	if modelMeta, err = interpreter.evm.GetModelMeta(modelAddr); err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
