@@ -100,7 +100,6 @@ func NewApp(gitCommit, usage string) *cli.App {
 	app.Name = filepath.Base(os.Args[0])
 	app.HelpName = "cortex"
 	app.Author = "Cortex Labs"
-	//app.Authors = nil
 	app.Email = "support@cortexlabs.ai"
 	app.Version = params.VersionWithMeta
 	if len(gitCommit) >= 8 {
