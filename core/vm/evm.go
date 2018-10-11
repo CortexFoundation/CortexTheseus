@@ -402,11 +402,6 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
 	}
 
-	fmt.Println("create Code: ", common.Bytes2Hex(ret))
-	if len(ret) == 0 {
-		fmt.Println("Code : ", common.Bytes2Hex(code))
-		fmt.Println("Err  : ", err)
-	}
 	// check whether the max code size has been exceeded
 	maxCodeSizeExceeded := evm.ChainConfig().IsEIP158(evm.BlockNumber) && len(ret) > params.MaxCodeSize
 	// if the contract creation ran successfully and no errors were returned
@@ -554,28 +549,28 @@ func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err er
 }
 
 // GetState returns a value in account storage.
-func (evm *EVM) GetSolidityBytes(addr common.Address, slot common.Hash)( []byte, error ){
+func (evm *EVM) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byte, error) {
 	pos := evm.StateDB.GetState(addr, slot).Big().Uint64()
-	cont := pos % 2;
-	length := pos / 2;
+	cont := pos % 2
+	length := pos / 2
 	hash := crypto.Keccak256(slot.Bytes())
 	hashBig := new(big.Int).SetBytes(hash)
 	log.Trace(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, pos, hash))
-	if (length < 32 || cont == 0 ) {
+	if length < 32 || cont == 0 {
 		return []byte{}, errors.New("not implemented for data size less than 32!")
 	}
 
-	buffSize := uint(length / 32) * 32
-	if length % 32 != 0 {
+	buffSize := uint(length/32) * 32
+	if length%32 != 0 {
 		buffSize += 32
 	}
 
 	buff := make([]byte, buffSize)
 	var idx int64
-	for idx = 0; idx < int64(length) / 32; idx++ {
+	for idx = 0; idx < int64(length)/32; idx++ {
 		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
 		payload := evm.StateDB.GetState(addr, slotAddr).Bytes()
-		copy(buff[idx * 32:], payload[:])
+		copy(buff[idx*32:], payload[:])
 		log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 	}
 	buff = buff[:length]
