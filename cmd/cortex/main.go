@@ -43,7 +43,7 @@ import (
 )
 
 const (
-	clientIdentifier = "geth" // Client identifier to advertise over the network
+	clientIdentifier = "cortex" // Client identifier to advertise over the network
 )
 
 var (
@@ -99,17 +99,17 @@ var (
 		utils.MaxPendingPeersFlag,
 		utils.MiningEnabledFlag,
 		utils.MinerThreadsFlag,
-		utils.MinerLegacyThreadsFlag,
+		// utils.MinerLegacyThreadsFlag,
 		utils.MinerNotifyFlag,
 		utils.MinerGasTargetFlag,
-		utils.MinerLegacyGasTargetFlag,
+		// utils.MinerLegacyGasTargetFlag,
 		utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
-		utils.MinerLegacyGasPriceFlag,
+		// utils.MinerLegacyGasPriceFlag,
 		utils.MinerEtherbaseFlag,
 		utils.MinerLegacyEtherbaseFlag,
 		utils.MinerExtraDataFlag,
-		utils.MinerLegacyExtraDataFlag,
+		// utils.MinerLegacyExtraDataFlag,
 		utils.MinerRecommitIntervalFlag,
 		utils.MinerNoVerfiyFlag,
 		utils.NATFlag,
@@ -120,16 +120,16 @@ var (
 		utils.NodeKeyHexFlag,
 		// utils.DeveloperFlag,
 		// utils.DeveloperPeriodFlag,
-		utils.TestnetFlag,
+		// utils.TestnetFlag,
 		// utils.LazynetFlag,
-		utils.VMEnableDebugFlag,
+		// utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
 		// utils.EthStatsURLFlag,
 		// utils.MetricsEnabledFlag,
 		// utils.FakePoWFlag,
-		utils.NoCompactionFlag,
+		// utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
 		configFileFlag,
@@ -171,12 +171,12 @@ func init() {
 	// Initialize the CLI app and start Geth
 	app.Action = geth
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2013-2018 The cortex golang Authors"
+	app.Copyright = "Copyright 2013-2018 The go-cortex Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
-		importCommand,
-		exportCommand,
+		// importCommand,
+		// exportCommand,
 		// importPreimagesCommand,
 		// exportPreimagesCommand,
 		// copydbCommand,
@@ -347,11 +347,11 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		}
 		ethereum.TxPool().SetGasPrice(gasprice)
 
-		threads := ctx.GlobalInt(utils.MinerLegacyThreadsFlag.Name)
-		if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
-			threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
-		}
-		if err := ethereum.StartMining(threads); err != nil {
+		// threads := ctx.GlobalInt(utils.MinerLegacyThreadsFlag.Name)
+		// if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
+		// 	threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
+		// }
+		if err := ethereum.StartMining(0); err != nil {
 			utils.Fatalf("Failed to start mining: %v", err)
 		}
 	}

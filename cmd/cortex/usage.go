@@ -70,10 +70,10 @@ var AppHelpFlagGroups = []flagGroup{
 			configFileFlag,
 			utils.DataDirFlag,
 			utils.KeyStoreDirFlag,
-			utils.NoUSBFlag,
+			// utils.NoUSBFlag,
 			utils.NetworkIdFlag,
-			utils.TestnetFlag,
-			utils.LazynetFlag,
+			// utils.TestnetFlag,
+			// utils.LazynetFlag,
 			utils.SyncModeFlag,
 			utils.GCModeFlag,
 			// utils.EthStatsURLFlag,
@@ -161,16 +161,16 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.RPCListenAddrFlag,
 			utils.RPCPortFlag,
 			utils.RPCApiFlag,
-			utils.WSEnabledFlag,
-			utils.WSListenAddrFlag,
-			utils.WSPortFlag,
-			utils.WSApiFlag,
-			utils.WSAllowedOriginsFlag,
+	//		utils.WSEnabledFlag,
+	//		utils.WSListenAddrFlag,
+	//		utils.WSPortFlag,
+	//		utils.WSApiFlag,
+	//	utils.WSAllowedOriginsFlag,
 			utils.IPCDisabledFlag,
 			utils.IPCPathFlag,
 			utils.RPCCORSDomainFlag,
 			utils.RPCVirtualHostsFlag,
-			utils.JSpathFlag,
+			// utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
 		},
@@ -180,7 +180,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.BootnodesFlag,
 			utils.BootnodesV4Flag,
-			utils.BootnodesV5Flag,
+	//		utils.BootnodesV5Flag,
 			utils.ListenPortFlag,
 			utils.MaxPeersFlag,
 			utils.MaxPendingPeersFlag,
@@ -217,6 +217,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name:  "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
+		utils.ModelCallInterfaceFlag,
 			//		utils.VMEnableDebugFlag,
 		},
 	},
@@ -225,7 +226,7 @@ var AppHelpFlagGroups = []flagGroup{
 	// 	Flags: append([]cli.Flag{
 	// 		utils.FakePoWFlag,
 	// 		utils.NoCompactionFlag,
-	// 	}, debug.Flags...),
+	// 	}, debug.threadsFlags...),
 	// },
 	// {
 	// 	Name: "METRICS AND STATS",
@@ -253,9 +254,9 @@ var AppHelpFlagGroups = []flagGroup{
 	// 		utils.MinerLegacyExtraDataFlag,
 	// 	},
 	// },
-	// {
-	// 	Name: "MISC",
-	// },
+	{
+		Name: "MISC",
+	},
 }
 
 // byCategory sorts an array of flagGroup by Name in the order

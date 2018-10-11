@@ -219,6 +219,7 @@ func doInstall(cmdline []string) {
 		arch         = flag.String("arch", "", "Architecture to cross build for")
 		cc           = flag.String("cc", "", "C compiler to cross build with")
 		remote_infer = flag.Bool("remote_infer", false, "whether to use remote infer")
+		disable_miner = flag.Bool("disable_miner", false, "whether disable miner")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -248,6 +249,9 @@ func doInstall(cmdline []string) {
 		goinstall := goTool("install", buildFlags(env)...)
 		if *remote_infer {
 			goinstall.Args = append(goinstall.Args, []string{"-tags", "remote"}...)
+		}
+		if *disable_miner {
+			goinstall.Args = append(goinstall.Args, []string{"-tags", "disable_miner"}...)
 		}
 		goinstall.Args = append(goinstall.Args, "-v")
 		goinstall.Args = append(goinstall.Args, packages...)
