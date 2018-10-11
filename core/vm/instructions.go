@@ -765,7 +765,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	_modelAddr, _inputHeaderOffset := stack.pop(), stack.pop()
-	inputBuff, inputError := interpreter.evm.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
+	inputBuff, inputError := interpreter.evm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
 	if inputError != nil {
 		return nil, inputError
 	}
@@ -779,7 +779,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 		modelMeta *types.ModelMeta
 	)
 	var err error
-	fmt.Println(0);
+	fmt.Println(0)
 	if modelMeta, err = interpreter.evm.GetModelMeta(modelAddr); err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
@@ -804,17 +804,19 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
 	}
 
-	//TODO(tian) Model&Input shape should match 
-	var dataSize uint64 = 1;
+	//TODO(tian) Model&Input shape should match
+	var dataSize uint64 = 1
 	for _, modelShape := range modelMeta.InputShape {
-		dataSize *= modelShape;
+		dataSize *= modelShape
 	}
-	if (dataSize != inputSize.Uint64()) {
-			return nil, errMetaShapeNotMatch
+	if dataSize != inputSize.Uint64() {
+		return nil, errMetaShapeNotMatch
 	}
 
 	output, err := interpreter.evm.InferArray(
 		modelMeta.Hash.Hex(),
+		contract.Address(),
+		common.BigToHash(_inputHeaderOffset),
 		inputBuff)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
