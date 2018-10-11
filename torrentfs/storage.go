@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/anacrolix/missinggo/expect"
@@ -43,6 +44,7 @@ type FileStorage struct {
 	blockMap          map[uint64]*Block
 	LatestBlockNumber uint64
 	db                *boltDBClient
+	lock              *sync.RWMutex
 }
 
 // NewFileStorage ...
@@ -55,6 +57,7 @@ func NewFileStorage(config *Config) *FileStorage {
 		make(map[uint64]*Block),
 		0,
 		db,
+		new(sync.RWMutex),
 	}
 }
 
@@ -91,7 +94,10 @@ func (fs *FileStorage) GetFileByInfoHash(ih metainfo.Hash) *FileInfo {
 
 // AddBlock ...
 func (fs *FileStorage) AddBlock(b *Block) error {
-	if _, ok := fs.blockMap[b.Number]; ok {
+	fs.lock.RLock()
+	_, ok := fs.blockMap[b.Number]
+	fs.lock.RUnlock()
+	if ok {
 		return errors.New("block already existed")
 	}
 	if b.Number > fs.LatestBlockNumber {
@@ -107,7 +113,9 @@ func (fs *FileStorage) AddBlock(b *Block) error {
 	if nb != nil && !bytes.Equal(nb.ParentHash.Bytes(), b.Hash.Bytes()) {
 		return errors.New("verify block hash failed")
 	}
+	fs.lock.Lock()
 	fs.blockMap[b.Number] = b
+	fs.lock.Unlock()
 	if t, err := fs.db.OpenBlock(b); err == nil {
 		t.Write()
 	}
@@ -116,7 +124,10 @@ func (fs *FileStorage) AddBlock(b *Block) error {
 
 // HasBlock ...
 func (fs *FileStorage) HasBlock(blockNum uint64) bool {
-	if _, ok := fs.blockMap[blockNum]; ok {
+	fs.lock.RLock()
+	_, ok := fs.blockMap[blockNum]
+	fs.lock.RUnlock()
+	if ok {
 		return true
 	} else if b := fs.GetBlock(blockNum); b != nil {
 		return true
@@ -126,7 +137,9 @@ func (fs *FileStorage) HasBlock(blockNum uint64) bool {
 
 // GetBlock ...
 func (fs *FileStorage) GetBlock(blockNum uint64) *Block {
+	fs.lock.RLock()
 	b, _ := fs.blockMap[blockNum]
+	fs.lock.RUnlock()
 	/*
 		if !ok {
 			t := fs.db.GetBlock(blockNum)
