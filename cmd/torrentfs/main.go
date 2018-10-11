@@ -1,24 +1,75 @@
 package main
 
 import (
-	"flag"
-	"github.com/CortexFoundation/torrentfs"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/torrentfs"
+	cli "gopkg.in/urfave/cli.v1"
+	glog "log"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-func main() {
-	os.Exit(mainExitCode())
+type Config struct {
+	Host       string
+	Port       int
+	Dir        string
+	TrackerURI string
+	LogLevel   int
 }
 
-func mainExitCode() int {
-	// DataDir := "/data/serving/InferenceServer/warehouse"
-	Host := flag.String("h", "localhost", "host")
-	Port := flag.Int("p", 8085, "port")
-	Dir := flag.String("d", "/data", "data dir")
-	trackerURI := flag.String("t", "http://47.52.39.170:5008/announce", "tracker uri")
-	flag.Parse()
+var gitCommit = "" // Git SHA1 commit hash of the release (set via linker flags)
+
+func main() {
+	var conf Config
+	app := cli.NewApp()
+
+	app.Flags = []cli.Flag{
+		cli.IntFlag{
+			Name:        "verbosity",
+			Value:       2,
+			Usage:       "verbose level",
+			Destination: &conf.LogLevel,
+		},
+		cli.StringFlag{
+			Name:        "host",
+			Value:       "localhost",
+			Usage:       "hostname",
+			Destination: &conf.Host,
+		},
+		cli.IntFlag{
+			Name:        "port",
+			Value:       8085,
+			Usage:       "port",
+			Destination: &conf.LogLevel,
+		},
+		cli.StringFlag{
+			Name:        "dir",
+			Value:       "/data",
+			Usage:       "datadir",
+			Destination: &conf.Dir,
+		},
+		cli.StringFlag{
+			Name:        "tracker-uri",
+			Value:       "http://47.52.39.170:5008/announce",
+			Usage:       "tracker uri",
+			Destination: &conf.TrackerURI,
+		},
+	}
+
+	app.Action = func(c *cli.Context) error {
+		mainExitCode(&conf)
+		return nil
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		glog.Fatal(err)
+	}
+}
+
+func mainExitCode(conf *Config) int {
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(conf.LogLevel), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
 	cfg := torrentfs.Config{
 		DataDir:         torrentfs.DefaultConfig.DataDir,
@@ -29,10 +80,10 @@ func mainExitCode() int {
 		TestMode:        torrentfs.DefaultConfig.TestMode,
 	}
 
-	cfg.Host = *Host
-	cfg.Port = *Port
-	cfg.DataDir = *Dir
-	cfg.DefaultTrackers = *trackerURI
+	cfg.Host = conf.Host
+	cfg.Port = conf.Port
+	cfg.DataDir = conf.Dir
+	cfg.DefaultTrackers = conf.TrackerURI
 
 	tfs := torrentfs.New(&cfg, "")
 	tfs.Start(nil)
