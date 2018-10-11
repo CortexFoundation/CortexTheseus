@@ -42,8 +42,8 @@ import (
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward    *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward   *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	FrontierBlockReward    *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward   *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block upward from Byzantium
 	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime          = 15 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
 
@@ -665,13 +665,14 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	reward := new(big.Int).Set(blockReward)
 	r := new(big.Int)
 	for _, uncle := range uncles {
-		r.Add(uncle.Number, big8)
+		/*r.Add(uncle.Number, big8)
 		r.Sub(r, header.Number)
 		r.Mul(r, blockReward)
 		r.Div(r, big8)
-		state.AddBalance(uncle.Coinbase, r)
+		state.AddBalance(uncle.Coinbase, r)*/
 
 		r.Div(blockReward, big32)
+		state.AddBalance(uncle.Coinbase,r)
 		reward.Add(reward, r)
 	}
 
