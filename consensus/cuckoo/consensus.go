@@ -670,9 +670,9 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		r.Mul(r, blockReward)
 		r.Div(r, big8)
 		state.AddBalance(uncle.Coinbase, r)*/
-
+		r.Div(blockReward, big8)
+		state.AddBalance(uncle.Coinbase, r)
 		r.Div(blockReward, big32)
-		state.AddBalance(uncle.Coinbase,r)
 		reward.Add(reward, r)
 	}
 
@@ -698,4 +698,3 @@ func CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution) (ok
 
 	return true, sha3
 }
-
