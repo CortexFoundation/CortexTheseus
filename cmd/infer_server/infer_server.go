@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 
 	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
@@ -28,6 +29,7 @@ const (
 )
 
 var rpcClient *rpc.Client
+var simpleCache sync.Map
 
 type InferWork struct {
 	// default is zero

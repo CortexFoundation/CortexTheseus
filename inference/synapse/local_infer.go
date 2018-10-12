@@ -96,7 +96,6 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	if !s.config.IsNotCache {
-		log.Info("Simple Cache", "Cache key", cacheKey, "Label", label)
 		s.simpleCache.Store(cacheKey, label)
 	}
 
