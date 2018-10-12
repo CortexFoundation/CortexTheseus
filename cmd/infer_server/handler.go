@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -49,13 +50,13 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 	}
 
 	log.Debug("JSON-RPC request | ctx_getSolidityBytes", "address", addr, "slot", slot, "block number", "latest")
-	var inputArray []byte
-	if rpcErr := rpcClient.CallContext(context.Background(), &inputArray, "ctx_getSolidityBytes", addr, slot, "latest"); rpcErr != nil {
+	var result hexutil.Bytes
+	if rpcErr := rpcClient.CallContext(context.Background(), &result, "ctx_getSolidityBytes", addr, slot, "latest"); rpcErr != nil {
 		log.Warn("JSON-RPC request failed", "error", rpcErr)
 		RespErrorText(w, "JSON-RPC invoke ctx_getSolidityBytes", "error", rpcErr, "address", addr, "slot", slot)
 		return
 	}
-
+	var inputArray = result[:]
 	log.Debug("Infer Task By Input Content", "model info hash", inferWork.ModelHash, "input content", inputArray)
 	label, err := infer.Engine().InferByInputContent(inferWork.ModelHash, inputArray)
 
