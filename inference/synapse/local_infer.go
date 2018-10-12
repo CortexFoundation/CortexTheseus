@@ -44,6 +44,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 	// Inference Cache
 	cacheKey := modelHash + inputHash
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		resCh <- v.(uint64)
 		return
 	}
@@ -74,8 +75,8 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 
 	// Inference Cache
 	cacheKey := modelHash + inputHash
-	log.Warn("Info", "key", cacheKey, "config", s.config)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		resCh <- v.(uint64)
 		return
 	}
