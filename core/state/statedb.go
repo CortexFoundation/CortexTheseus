@@ -18,6 +18,7 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -300,6 +301,36 @@ func (self *StateDB) GetState(addr common.Address, bhash common.Hash) common.Has
 		return stateObject.GetState(self.db, bhash)
 	}
 	return common.Hash{}
+}
+
+// GetState returns a value in account storage.
+func (self *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byte, error) {
+	pos := self.GetState(addr, slot).Big().Uint64()
+	cont := pos % 2
+	length := pos / 2
+	hash := crypto.Keccak256(slot.Bytes())
+	hashBig := new(big.Int).SetBytes(hash)
+	log.Trace(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, pos, hash))
+	if length < 32 || cont == 0 {
+		return []byte{}, errors.New("not implemented for data size less than 32!")
+	}
+
+	buffSize := uint(length/32) * 32
+	if length%32 != 0 {
+		buffSize += 32
+	}
+
+	buff := make([]byte, buffSize)
+	var idx int64
+	for idx = 0; idx < int64(length)/32; idx++ {
+		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
+		payload := self.GetState(addr, slotAddr).Bytes()
+		copy(buff[idx*32:], payload[:])
+		log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
+	}
+	buff = buff[:length]
+	log.Trace2(fmt.Sprintf("data: %v", buff))
+	return buff, nil
 }
 
 // Database retrieves the low level database supporting the lower level trie ops.
