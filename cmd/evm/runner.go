@@ -38,11 +38,11 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
+	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	cli "gopkg.in/urfave/cli.v1"
-	infer "github.com/ethereum/go-ethereum/inference/synapse"
 )
 
 var runCommand = cli.Command{
@@ -123,7 +123,7 @@ func runCmd(ctx *cli.Context) error {
 			InputShape:    []uint64{1, 28, 28},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
-			BlockNum:			 *big.NewInt(10),
+			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 
@@ -135,7 +135,7 @@ func runCmd(ctx *cli.Context) error {
 			InputShape:    []uint64{3, 224, 224},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
-			BlockNum:			 *big.NewInt(10),
+			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
@@ -213,7 +213,7 @@ func runCmd(ctx *cli.Context) error {
 		EVMConfig: vm.Config{
 			Tracer:   tracer,
 			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
-			InferURI: "",
+			InferURI: "http://localhost:8827",
 		},
 	}
 
@@ -237,7 +237,7 @@ func runCmd(ctx *cli.Context) error {
 	var leftOverGas uint64
 
 	inferServer := infer.New(infer.Config{
-		StorageDir: "/serving/cortex-core/data/ctxc-42-10/warehouse",
+		StorageDir: "/home/wlt/data/ctxc-2333-10/warehouse",
 		IsNotCache: false,
 	})
 
