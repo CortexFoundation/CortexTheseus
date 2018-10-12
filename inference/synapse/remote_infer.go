@@ -11,8 +11,20 @@ import (
 )
 
 func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) (uint64, error) {
-	requestBody := fmt.Sprintf(`{"ModelHash":"%s", "InputHash":"%s"}`, modelInfoHash, inputInfoHash)
+	requestBody := fmt.Sprintf(`{"Type": 1, "ModelHash":"%s", "InputHash":"%s"}`, modelInfoHash, inputInfoHash)
 	log.Trace(fmt.Sprintf("%v", requestBody))
+
+	return sendRequest(requestBody, uri)
+}
+
+func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, addr string, slot string) (uint64, error) {
+	requestBody := fmt.Sprintf(`{"Type": 2, "ModelHash":"%s", "InputAddress":"%s", "InputSlot":"%s"}`, modelInfoHash, addr, slot)
+	log.Trace(fmt.Sprintf("%v", requestBody))
+
+	return sendRequest(requestBody, uri)
+}
+
+func sendRequest(requestBody, uri string) (uint64, error) {
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
@@ -47,8 +59,4 @@ func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string
 		return 0, errors.New("evm.Infer: Type Conversion Error")
 	}
 	return uint64_output, nil
-}
-
-func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, inputContent []byte) (uint64, error) {
-	return 0, errors.New("RemoteInferByInputContent not implemented")
 }

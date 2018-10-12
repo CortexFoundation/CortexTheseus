@@ -1158,7 +1158,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			parent = chain[i-1]
 		}
 		var (
-			// Make a copy of config, set VerifyBlock flag true
+			// Make a copy of bc.config, and set VerifyBlock flag true
 			vmCfg = bc.vmConfig
 
 			retry = uint64(0)

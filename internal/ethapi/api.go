@@ -619,6 +619,18 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 	return res[:], state.Error()
 }
 
+// GetSolidityBytes same as GetStorageAt returns the storage from the state at the given address, key and
+// block number. But return bytes structure at the storage
+func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+	log.Debug("GetSolidityBytes", "address", address.Hex(), "slot", key)
+
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return state.GetSolidityBytes(address, common.HexToHash(key))
+}
+
 // CallArgs represents the arguments for a call.
 type CallArgs struct {
 	From     common.Address  `json:"from"`
