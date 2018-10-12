@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 
 	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
@@ -28,6 +29,7 @@ const (
 )
 
 var rpcClient *rpc.Client
+var simpleCache sync.Map
 
 type InferWork struct {
 	// default is zero
@@ -42,22 +44,22 @@ type InferWork struct {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		fmt.Fprintf(w, `{"msg": "error", "info": "Request method not POST"}`)
+		RespErrorText(w, ErrRequestMethodNotPost)
 		return
 	}
 
 	body, rerr := ioutil.ReadAll(r.Body)
 	if rerr != nil {
-		fmt.Fprintf(w, `{"msg": "error", "info": "Read request body error"}`)
+		RespErrorText(w, ErrRequestBodyRead)
 		return
 	}
 
-	log.Debug("Handler Info", "request", r, "body", string(body))
+	log.Trace("Handler Info", "request", r, "body", string(body))
 
 	var inferWork InferWork
 
 	if err := json.Unmarshal(body, &inferWork); err != nil {
-		fmt.Fprintf(w, `{"msg": "error", "info": "Data parse error"}`)
+		RespErrorText(w, ErrDataParse)
 		return
 	}
 
