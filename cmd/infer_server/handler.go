@@ -42,6 +42,12 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 
 	addr, slot := inferWork.InputAddress, inferWork.InputSlot
 
+	cacheKey := inferWork.ModelHash + addr + slot
+	if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
+		RespInfoText(w, v.(uint64))
+		return
+	}
+
 	log.Debug("JSON-RPC request | ctx_getSolidityBytes", "address", addr, "slot", slot, "block number", "latest")
 	var inputArray []byte
 	if rpcErr := rpcClient.CallContext(context.Background(), &inputArray, "ctx_getSolidityBytes", addr, slot, "latest"); rpcErr != nil {
@@ -59,6 +65,10 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, "Inference Error", "error", err, "model hash", inferWork.ModelHash, "address", addr, "slot", slot)
 		return
+	}
+
+	if !(*IsNotCache) {
+		simpleCache.Store(cacheKey, label)
 	}
 
 	RespInfoText(w, label)
