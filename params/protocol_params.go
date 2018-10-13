@@ -79,18 +79,18 @@ const (
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(2048)  // The bound divisor of the difficulty, used in the update calculations.
+	DifficultyBoundDivisor = big.NewInt(2048) // The bound divisor of the difficulty, used in the update calculations.
 	GenesisDifficulty      = big.NewInt(2048) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(2048) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DurationLimit          = big.NewInt(13)   // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 )
 
 const (
-	MatureBlks  = 10
-	ExpiredBlks = 1000000000000000000 //8409600
-	PER_UPLOAD_BYTES             uint64 = 10 * 512 * 1024
-	DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
-	MIN_UPLOAD_BYTES = 0
+	MatureBlks                  = 10
+	ExpiredBlks                 = 1000000000000000000 //8409600
+	PER_UPLOAD_BYTES     uint64 = 5 * 1024 * 1024
+	DEFAULT_UPLOAD_BYTES uint64 = 5 * 1024 * 1024
+	MIN_UPLOAD_BYTES            = 0
 	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT      uint64 = 65536
 )
