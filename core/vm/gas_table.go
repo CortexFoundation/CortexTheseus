@@ -458,6 +458,18 @@ func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, me
 	return gas, nil
 }
 
+func gasInferArray(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	gas, err := memoryGasCost(mem, 0)
+	if err != nil {
+		return 0, err
+	}
+	var overflow bool
+	if gas, overflow = math.SafeAdd(gas, params.CallInferGas); overflow {
+		return 0, errGasUintOverflow
+	}
+	return gas, nil
+}
+
 func gasStaticCall(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
 	if err != nil {

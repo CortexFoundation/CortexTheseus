@@ -59,6 +59,9 @@ type Config struct {
 
 	// opCall flag
 	CallFakeVM bool
+
+	// Use for verify block flag
+	VerifyBlock bool
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -204,6 +207,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, nil
 		}
 
+		log.Trace(fmt.Sprintf("contract.Code = %v", contract.Code))
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
@@ -279,7 +283,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				}
 				log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			} else {
-	//			log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+				//			log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			}
 
 			return contract.Code, nil

@@ -103,9 +103,9 @@ func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit)
-	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "shh")
-	cfg.WSModules = append(cfg.WSModules, "eth", "shh")
-	cfg.IPCPath = "geth.ipc"
+	cfg.HTTPModules = append(cfg.HTTPModules, "ctx", "shh")
+	cfg.WSModules = append(cfg.WSModules, "ctx", "shh")
+	cfg.IPCPath = "cortex.ipc"
 	return cfg
 }
 
@@ -133,9 +133,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
-	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
-		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
-	}
+	// if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
+	// 	cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
+	// }
 
 	utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	utils.SetDashboardConfig(ctx, &cfg.Dashboard)

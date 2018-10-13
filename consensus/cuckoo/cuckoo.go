@@ -185,23 +185,6 @@ func (cuckoo *Cuckoo) Threads() int {
 	return cuckoo.threads
 }
 
-func (cuckoo *Cuckoo) SetThreads(threads int) {
-	cuckoo.lock.Lock()
-	defer cuckoo.lock.Unlock()
-
-	// If we're running a shared PoW, set the thread count on that instead
-	if cuckoo.shared != nil {
-		cuckoo.shared.SetThreads(threads)
-		return
-	}
-	// Update the threads and ping any running seal to pull in any changes
-	cuckoo.threads = threads
-	select {
-	case cuckoo.update <- struct{}{}:
-	default:
-	}
-}
-
 func (cuckoo *Cuckoo) Hashrate() float64 {
 	return cuckoo.hashrate.Rate1()
 }
@@ -218,6 +201,13 @@ func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 		},
 		{
 			Namespace: "ethash",
+			Version:   "1.0",
+			Service:   &API{cuckoo},
+			Public:    true,
+		},
+
+		{
+			Namespace: "ctx",
 			Version:   "1.0",
 			Service:   &API{cuckoo},
 			Public:    true,

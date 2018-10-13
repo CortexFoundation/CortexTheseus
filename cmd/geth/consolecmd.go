@@ -125,7 +125,7 @@ func remoteConsole(ctx *cli.Context) error {
 				path = filepath.Join(path, "lazynet")
 			}
 		}
-		endpoint = fmt.Sprintf("%s/geth.ipc", path)
+		endpoint = fmt.Sprintf("%s/cortex.ipc", path)
 	}
 	client, err := dialRPC(endpoint)
 	if err != nil {

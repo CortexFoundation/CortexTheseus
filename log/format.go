@@ -100,6 +100,8 @@ func TerminalFormat(usecolor bool) Format {
 				color = 36
 			case LvlTrace:
 				color = 34
+			case LvlTrace2:
+				color = 34
 			}
 		}
 
