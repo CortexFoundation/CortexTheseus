@@ -88,4 +88,9 @@ var (
 const (
 	MatureBlks  = 10
 	ExpiredBlks = 1000000000000000000 //8409600
+	PER_UPLOAD_BYTES             uint64 = 10 * 512 * 1024
+	DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
+	MIN_UPLOAD_BYTES = 0
+	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
+	MODEL_GAS_LIMIT      uint64 = 65536
 )
