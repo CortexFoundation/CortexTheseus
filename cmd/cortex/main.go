@@ -20,6 +20,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"os"
 	"runtime"
 	godebug "runtime/debug"
@@ -341,9 +342,13 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 			utils.Fatalf("Cortex service not running: %v", err)
 		}
 		// Set the gas price to the limits from the CLI and start mining
-		gasprice := utils.GlobalBig(ctx, utils.MinerLegacyGasPriceFlag.Name)
+		// gasprice := utils.GlobalBig(ctx, utils.MinerLegacyGasPriceFlag.Name)
+		var gasprice *big.Int = nil
 		if ctx.IsSet(utils.MinerGasPriceFlag.Name) {
 			gasprice = utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
+		}
+		if gasprice == nil {
+			gasprice = big.NewInt(0)
 		}
 		ethereum.TxPool().SetGasPrice(gasprice)
 
