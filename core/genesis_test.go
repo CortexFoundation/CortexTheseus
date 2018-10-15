@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -29,6 +30,13 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 )
+
+func TestPrintGenesisBlockHash(t *testing.T) {
+	block := DefaultGenesisBlock().ToBlock(nil)
+	t.Log(fmt.Sprintf("DefaultGenesisBlock.Hash() = %x", block.Hash()))
+	block = DefaultTestnetGenesisBlock().ToBlock(nil)
+	t.Log(fmt.Sprintf("DefaultTestnetGenesisBlock.Hash() = %x", block.Hash()))
+}
 
 func TestDefaultGenesisBlock(t *testing.T) {
 	block := DefaultGenesisBlock().ToBlock(nil)
