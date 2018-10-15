@@ -20,10 +20,12 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/ethereum/go-ethereum/torrentfs"
 	"io/ioutil"
-	// "math/big"
 	"os"
+
+	"github.com/ethereum/go-ethereum/torrentfs"
+	// "math/big"
+
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -96,9 +98,9 @@ GLOBAL OPTIONS:
 func NewApp(gitCommit, usage string) *cli.App {
 	app := cli.NewApp()
 	app.Name = filepath.Base(os.Args[0])
-	app.Author = ""
-	//app.Authors = nil
-	app.Email = ""
+	app.HelpName = "cortex"
+	app.Author = "Cortex Labs"
+	app.Email = "support@cortexlabs.ai"
 	app.Version = params.VersionWithMeta
 	if len(gitCommit) >= 8 {
 		app.Version += "-" + gitCommit[:8]
@@ -125,10 +127,10 @@ var (
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
 	}
-	NoUSBFlag = cli.BoolFlag{
-		Name:  "nousb",
-		Usage: "Disables monitoring for and managing USB hardware wallets",
-	}
+	// NoUSBFlag = cli.BoolFlag{
+	// 	Name:  "nousb",
+	// 	Usage: "Disables monitoring for and managing USB hardware wallets",
+	// }
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
@@ -136,7 +138,7 @@ var (
 	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
-		Usage: "Ropsten network: pre-configured Cuckoo test network",
+		Usage: "Cerebro network: pre-configured cortex test network",
 	}
 	LazynetFlag = cli.BoolFlag{
 		Name:  "lazynet",
@@ -348,11 +350,11 @@ var (
 		Usage: "Number of CPU threads to use for mining",
 		Value: 0,
 	}
-	MinerLegacyThreadsFlag = cli.IntFlag{
-		Name:  "minerthreads",
-		Usage: "Number of CPU threads to use for mining (deprecated, use --miner.threads)",
-		Value: 0,
-	}
+	// MinerLegacyThreadsFlag = cli.IntFlag{
+	// 	Name:  "minerthreads",
+	// 	Usage: "Number of CPU threads to use for mining (deprecated, use --miner.threads)",
+	// 	Value: 0,
+	// }
 	MinerNotifyFlag = cli.StringFlag{
 		Name:  "miner.notify",
 		Usage: "Comma separated HTTP URL list to notify of new work packages",
@@ -362,11 +364,11 @@ var (
 		Usage: "Target gas floor for mined blocks",
 		Value: eth.DefaultConfig.MinerGasFloor,
 	}
-	MinerLegacyGasTargetFlag = cli.Uint64Flag{
-		Name:  "targetgaslimit",
-		Usage: "Target gas floor for mined blocks (deprecated, use --miner.gastarget)",
-		Value: eth.DefaultConfig.MinerGasFloor,
-	}
+	// MinerLegacyGasTargetFlag = cli.Uint64Flag{
+	// 	Name:  "targetgaslimit",
+	// 	Usage: "Target gas floor for mined blocks (deprecated, use --miner.gastarget)",
+	// 	Value: eth.DefaultConfig.MinerGasFloor,
+	// }
 	MinerGasLimitFlag = cli.Uint64Flag{
 		Name:  "miner.gaslimit",
 		Usage: "Target gas ceiling for mined blocks",
@@ -383,13 +385,13 @@ var (
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
 	MinerEtherbaseFlag = cli.StringFlag{
-		Name:  "miner.etherbase",
+		Name:  "miner.coinbase",
 		Usage: "Public address for block mining rewards (default = first account)",
 		Value: "0",
 	}
 	MinerLegacyEtherbaseFlag = cli.StringFlag{
-		Name:  "etherbase",
-		Usage: "Public address for block mining rewards (default = first account, deprecated, use --miner.etherbase)",
+		Name:  "coinbase",
+		Usage: "Public address for block mining rewards (default = first account, deprecated, use --miner.coinbase)",
 		Value: "0",
 	}
 	MinerExtraDataFlag = cli.StringFlag{
@@ -421,23 +423,23 @@ var (
 		Value: "",
 	}
 
-	VMEnableDebugFlag = cli.BoolFlag{
-		Name:  "vmdebug",
-		Usage: "Record information useful for VM and contract debugging",
-	}
+	// VMEnableDebugFlag = cli.BoolFlag{
+	// 	Name:  "vmdebug",
+	// 	Usage: "Record information useful for VM and contract debugging",
+	// }
 	// Logging and debug settings
-	EthStatsURLFlag = cli.StringFlag{
-		Name:  "ethstats",
-		Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
-	}
+	// EthStatsURLFlag = cli.StringFlag{
+	// 	Name:  "ethstats",
+	// 	Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
+	// }
 	FakePoWFlag = cli.BoolFlag{
 		Name:  "fakepow",
 		Usage: "Disables proof-of-work verification",
 	}
-	NoCompactionFlag = cli.BoolFlag{
-		Name:  "nocompaction",
-		Usage: "Disables db compaction after import",
-	}
+	// NoCompactionFlag = cli.BoolFlag{
+	// 	Name:  "nocompaction",
+	// 	Usage: "Disables db compaction after import",
+	// }
 	// RPC settings
 	RPCEnabledFlag = cli.BoolFlag{
 		Name:  "rpc",
@@ -475,7 +477,7 @@ var (
 	IPCPathFlag = DirectoryFlag{
 		Name:  "ipcpath",
 		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
-		Value: DirectoryString{"geth.ipc"},
+		Value: DirectoryString{"cortex.ipc"},
 	}
 	WSEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
@@ -568,11 +570,11 @@ var (
 	}
 
 	// ATM the url is left to the user and deployment to
-	JSpathFlag = cli.StringFlag{
-		Name:  "jspath",
-		Usage: "JavaScript root path for `loadScript`",
-		Value: ".",
-	}
+	// JSpathFlag = cli.StringFlag{
+	// 	Name:  "jspath",
+	// 	Usage: "JavaScript root path for `loadScript`",
+	// 	Value: ".",
+	// }
 
 	// Gas price oracle settings
 	GpoBlocksFlag = cli.IntFlag{
@@ -601,8 +603,7 @@ var (
 	}
 	ModelCallInterfaceFlag = cli.StringFlag{
 		Name:  "cvm.inferuri",
-		Usage: "infer uri",
-		// Value: "http://127.0.0.1:5000/infer",
+		Usage: "URI for delegated inference (experimental)",
 		Value: "",
 	}
 	WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
@@ -911,7 +912,7 @@ func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
 	if etherbase != "" {
 		account, err := MakeAddress(ks, etherbase)
 		if err != nil {
-			Fatalf("Invalid miner etherbase: %v", err)
+			Fatalf("Invalid miner coinbase: %v", err)
 		}
 		cfg.Etherbase = account.Address
 	}
@@ -1027,9 +1028,9 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	// if ctx.GlobalIsSet(LightKDFFlag.Name) {
 	// 	cfg.UseLightweightKDF = ctx.GlobalBool(LightKDFFlag.Name)
 	// }
-	if ctx.GlobalIsSet(NoUSBFlag.Name) {
-		cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
-	}
+	// if ctx.GlobalIsSet(NoUSBFlag.Name) {
+	// 	cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
+	// }
 }
 
 func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
@@ -1208,9 +1209,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
 		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
 	}
-	if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
-	}
+	// if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
+	//	cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
+	// }
 	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
 		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
 	}
@@ -1229,10 +1230,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
-	if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
-		// TODO(fjl): force-enable this in --dev mode
-		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
-	}
+	// if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
+	// 	// TODO(fjl): force-enable this in --dev mode
+	// 	cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
+	// }
 
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = ctx.GlobalString(StorageDirFlag.Name)
@@ -1249,32 +1250,32 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 4
 		}
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
-	// case ctx.GlobalBool(DeveloperFlag.Name):
-	// 	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-	// 		cfg.NetworkId = 1337
-	// 	}
-	// 	// Create new developer account or reuse existing one
-	// 	var (
-	// 		developer accounts.Account
-	// 		err       error
-	// 	)
-	// 	if accs := ks.Accounts(); len(accs) > 0 {
-	// 		developer = ks.Accounts()[0]
-	// 	} else {
-	// 		developer, err = ks.NewAccount("")
-	// 		if err != nil {
-	// 			Fatalf("Failed to create developer account: %v", err)
-	// 		}
-	// 	}
-	// 	if err := ks.Unlock(developer, ""); err != nil {
-	// 		Fatalf("Failed to unlock developer account: %v", err)
-	// 	}
-	// 	log.Info("Using developer account", "address", developer.Address)
+		// case ctx.GlobalBool(DeveloperFlag.Name):
+		// 	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+		// 		cfg.NetworkId = 1337
+		// 	}
+		// 	// Create new developer account or reuse existing one
+		// 	var (
+		// 		developer accounts.Account
+		// 		err       error
+		// 	)
+		// 	if accs := ks.Accounts(); len(accs) > 0 {
+		// 		developer = ks.Accounts()[0]
+		// 	} else {
+		// 		developer, err = ks.NewAccount("")
+		// 		if err != nil {
+		// 			Fatalf("Failed to create developer account: %v", err)
+		// 		}
+		// 	}
+		// 	if err := ks.Unlock(developer, ""); err != nil {
+		// 		Fatalf("Failed to unlock developer account: %v", err)
+		// 	}
+		// 	log.Info("Using developer account", "address", developer.Address)
 
-	// 	cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
-	// 	if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-	// 		cfg.MinerGasPrice = big.NewInt(1)
-	// 	}
+		// 	cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
+		// 	if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
+		// 		cfg.MinerGasPrice = big.NewInt(1)
+		// 	}
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
@@ -1415,8 +1416,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.GlobalBool(LazynetFlag.Name):
 		genesis = core.DefaultRinkebyGenesisBlock()
-	// case ctx.GlobalBool(DeveloperFlag.Name):
-	//	Fatalf("Developer chains are ephemeral")
+		// case ctx.GlobalBool(DeveloperFlag.Name):
+		//	Fatalf("Developer chains are ephemeral")
 	}
 	return genesis
 }
@@ -1459,8 +1460,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	vmcfg := vm.Config{
-		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
-		InferURI:                ctx.GlobalString(ModelCallInterfaceFlag.Name),
+		// EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
+		InferURI: ctx.GlobalString(ModelCallInterfaceFlag.Name),
 	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
 	if err != nil {
@@ -1479,10 +1480,10 @@ func MakeConsolePreloads(ctx *cli.Context) []string {
 	// Otherwise resolve absolute paths and return them
 	preloads := []string{}
 
-	assets := ctx.GlobalString(JSpathFlag.Name)
-	for _, file := range strings.Split(ctx.GlobalString(PreloadJSFlag.Name), ",") {
-		preloads = append(preloads, common.AbsolutePath(assets, strings.TrimSpace(file)))
-	}
+	// assets := ctx.GlobalString(JSpathFlag.Name)
+	// for _, file := range strings.Split(ctx.GlobalString(PreloadJSFlag.Name), ",") {
+	// 	preloads = append(preloads, common.AbsolutePath(assets, strings.TrimSpace(file)))
+	// }
 	return preloads
 }
 

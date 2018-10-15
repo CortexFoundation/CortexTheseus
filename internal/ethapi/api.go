@@ -513,11 +513,11 @@ func (s *PublicBlockChainAPI) GetUpload(ctx context.Context, address common.Addr
 
 //blocknumber related to expiriation
 func (s *PublicBlockChainAPI) GetNum(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
-        state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
-        if state == nil || err != nil {
-                return nil, err
-        }
-        return (*hexutil.Big)(state.GetNum(address)), state.Error()
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return (*hexutil.Big)(state.GetNum(address)), state.Error()
 }
 
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
@@ -617,6 +617,18 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 	}
 	res := state.GetState(address, common.HexToHash(key))
 	return res[:], state.Error()
+}
+
+// GetSolidityBytes same as GetStorageAt returns the storage from the state at the given address, key and
+// block number. But return bytes structure at the storage
+func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+	log.Debug("GetSolidityBytes", "address", address.Hex(), "slot", key)
+
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return state.GetSolidityBytes(address, common.HexToHash(key))
 }
 
 // CallArgs represents the arguments for a call.

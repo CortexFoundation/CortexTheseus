@@ -8,11 +8,13 @@
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
-.PHONY: cminer infernet inferServer
+.PHONY: clib inferServer
+.PHONY: cortex cortex-remote
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/cminer/
+LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/infernet/
 
 # Curkoo algorithm dynamic library path
@@ -23,45 +25,49 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-geth: cminer 
-	build/env.sh go run build/ci.go install ./cmd/geth
+cortex: clib
+	build/env.sh go run build/ci.go install ./cmd/cortex
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/geth\" to launch geth."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 
-geth-remote: cminer 
-	build/env.sh go run build/ci.go install -remote_infer ./cmd/geth
+cortex-remote:
+	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+	mv ./build/bin/cortex ./build/bin/cortex-remote
+
+cortex-nominer: clib
+	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
-	mv ./build/bin/geth ./build/bin/geth-remote
+	mv ./build/bin/cortex ./build/bin/cortex-nominer
 
 evm:
 	build/env.sh go run build/ci.go install ./cmd/evm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
 
-miner:
-	build/env.sh go run build/ci.go install ./cmd/miner
+cuckoo-miner: clib
+	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/miner\" to launch cortex vm."
 
 swarm:
 	build/env.sh go run build/ci.go install ./cmd/swarm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cminer infernet
-	build/env.sh go run build/ci.go install
+all: cortex-remote cortex-nominer cortex inferServer cuckoo-miner
+	# build/env.sh go run build/ci.go install
 
-cminer:
+clib:
 	make -C $(LIB_MINER_DIR)
-
-infernet:
+	make -C $(LIB_CUDA_MINER_DIR)
 	make -C ${INFER_NET_DIR}
 	cp ${INFER_NET_DIR}/libcortexnet.so build/bin/
 
-inferServer: infernet
-	build/env.sh go run build/ci.go install cmd/infer_server/infer_server.go
-	build/env.sh go run build/ci.go install cmd/infer_server/infer_client.go
+inferServer: clib
+	build/env.sh go run build/ci.go install ./cmd/infer_server
+	build/env.sh go run build/ci.go install ./cmd/infer_client
 
 android:
 	build/env.sh go run build/ci.go aar --local
@@ -82,6 +88,8 @@ lint: ## Run linters.
 clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+
+clean-all: clean
 	make -C $(LIB_MINER_DIR) clean
 	make -C $(INFER_NET_DIR) clean
 

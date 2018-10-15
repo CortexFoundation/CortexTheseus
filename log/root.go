@@ -29,6 +29,10 @@ func Root() Logger {
 // etc.) to keep the call depth the same for all paths to logger.write so
 // runtime.Caller(2) always refers to the call site in client code.
 
+// Trace2 is a convenient alias for Root().Trace2
+func Trace2(msg string, ctx ...interface{}) {
+	root.write(msg, LvlTrace2, ctx, skipLevel)
+}
 // Trace is a convenient alias for Root().Trace
 func Trace(msg string, ctx ...interface{}) {
 	root.write(msg, LvlTrace, ctx, skipLevel)
