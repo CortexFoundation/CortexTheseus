@@ -86,11 +86,11 @@ var (
 )
 
 const (
-	MatureBlks                  = 10
+	MatureBlks                  = 10                  //For the full node to synchronize the models
 	ExpiredBlks                 = 1000000000000000000 //8409600
-	PER_UPLOAD_BYTES     uint64 = 5 * 1024 * 1024
-	DEFAULT_UPLOAD_BYTES uint64 = 5 * 1024 * 1024
+	PER_UPLOAD_BYTES     uint64 = 5 * 1024 * 1024     //How many bytes per upload
+	DEFAULT_UPLOAD_BYTES uint64 = 5 * 1024 * 1024     //default upload bytes
 	MIN_UPLOAD_BYTES            = 0
 	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
-	MODEL_GAS_LIMIT      uint64 = 65536
+	MODEL_GAS_LIMIT      uint64 = 65536 //max gas limit for model call
 )
