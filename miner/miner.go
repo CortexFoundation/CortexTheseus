@@ -105,17 +105,6 @@ func (self *Miner) update() {
 	}
 }
 
-func (self *Miner) Start(coinbase common.Address) {
-	atomic.StoreInt32(&self.shouldStart, 1)
-	self.SetEtherbase(coinbase)
-
-	if atomic.LoadInt32(&self.canStart) == 0 {
-		log.Info("Network syncing, will start miner afterwards")
-		return
-	}
-	self.worker.start()
-}
-
 func (self *Miner) Stop() {
 	self.worker.stop()
 	atomic.StoreInt32(&self.shouldStart, 0)

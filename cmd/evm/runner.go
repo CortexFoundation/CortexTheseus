@@ -38,6 +38,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
+	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -114,19 +115,32 @@ func runCmd(ctx *cli.Context) error {
 		sender = common.HexToAddress(ctx.GlobalString(SenderFlag.Name))
 	}
 	statedb.CreateAccount(sender)
-	mh, _ := hex.DecodeString("5c4d1f84063be8e25e83da6452b1821926548b3c2a2a903a0724e14d5c917b00")
-	ih, _ := hex.DecodeString("c0a1f3c82e11e314822679e4834e3bc575bd017d12d888acda4a851a62d261dc")
-	testModelMeta, _ := rlp.EncodeToBytes(
+	mh1, _ := hex.DecodeString("ca3d0286d5758697cdef653c1375960a868ac08a")
+	testModelMeta1, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
-			Hash:          common.BytesToAddress(mh),
+			Hash:          common.BytesToAddress(mh1),
 			RawSize:       10000,
-			InputShape:    []uint64{10, 1},
+			InputShape:    []uint64{1, 28, 28},
 			OutputShape:   []uint64{1},
-			Gas:           100000,
+			Gas:           1000,
+			BlockNum:      *big.NewInt(10),
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
+		})
+
+	mh2, _ := hex.DecodeString("4d8bc8272b882f315c6a96449ad4568fac0e6038")
+	testModelMeta2, _ := rlp.EncodeToBytes(
+		&types.ModelMeta{
+			Hash:          common.BytesToAddress(mh2),
+			RawSize:       10000,
+			InputShape:    []uint64{3, 224, 224},
+			OutputShape:   []uint64{1},
+			Gas:           1000,
+			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
+	ih, _ := hex.DecodeString("c8727fa5f4e9d90d6168f2398be2289b17ab18c2")
 	testInputMeta, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
 			Hash:          common.BytesToAddress(ih),
@@ -134,10 +148,16 @@ func runCmd(ctx *cli.Context) error {
 			Shape:         []uint64{1},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 		})
-	fmt.Println(testModelMeta)
+	fmt.Println(testModelMeta1)
+	fmt.Println(testModelMeta2)
 	fmt.Println(testInputMeta)
-	statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"), append([]byte{0x0, 0x1}, []byte(testModelMeta)...))
+	statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"), append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
 	statedb.SetCode(common.HexToAddress("0x049d8385c81200339fca354f2696fd57ea96255e"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
+	// simple address for the sake of debuging
+	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
+	statedb.SetCode(common.HexToAddress("0x1002"), append([]byte{0x0, 0x1}, []byte(testModelMeta2)...))
+	statedb.SetNum(common.HexToAddress("0x1001"), big.NewInt(1))
+	statedb.SetNum(common.HexToAddress("0x1002"), big.NewInt(1))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {
 		receiver = common.HexToAddress(ctx.GlobalString(ReceiverFlag.Name))
 	}
@@ -193,7 +213,7 @@ func runCmd(ctx *cli.Context) error {
 		EVMConfig: vm.Config{
 			Tracer:   tracer,
 			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
-			InferURI: "http://127.0.0.1:5000/infer",
+			InferURI: "http://localhost:8827",
 		},
 	}
 
@@ -215,6 +235,12 @@ func runCmd(ctx *cli.Context) error {
 	}
 	tstart := time.Now()
 	var leftOverGas uint64
+
+	inferServer := infer.New(infer.Config{
+		StorageDir: "/home/wlt/data/ctxc-2333-10/warehouse",
+		IsNotCache: false,
+	})
+
 	if ctx.GlobalBool(CreateFlag.Name) {
 		input := append(code, common.Hex2Bytes(ctx.GlobalString(InputFlag.Name))...)
 		ret, _, leftOverGas, err = runtime.Create(input, &runtimeConfig)
@@ -271,6 +297,6 @@ Gas used:           %d
 			fmt.Printf(" error: %v\n", err)
 		}
 	}
-
+	inferServer.Close()
 	return nil
 }
