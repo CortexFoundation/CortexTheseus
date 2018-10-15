@@ -18,6 +18,7 @@ package vm
 
 import (
 	_ "encoding/hex"
+	"errors"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	infer "github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 
@@ -400,11 +402,6 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
 	}
 
-	fmt.Println("create Code: ", common.Bytes2Hex(ret))
-	if len(ret) == 0 {
-		fmt.Println("Code : ", common.Bytes2Hex(code))
-		fmt.Println("Err  : ", err)
-	}
 	// check whether the max code size has been exceeded
 	maxCodeSizeExceeded := evm.ChainConfig().IsEIP158(evm.BlockNumber) && len(ret) > params.MaxCodeSize
 	// if the contract creation ran successfully and no errors were returned
@@ -458,9 +455,27 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
+var (
+	ErrInvalidInferFlag = "infer while verifying block error"
+)
+
+func CreateVerifyBlockInferError(err error) error {
+	return errors.New(fmt.Sprintf(ErrInvalidInferFlag+": %s", err.Error()))
+}
+
+func ParseVerifyBlockInferError(vbErr error) error {
+	errLen := len(vbErr.Error())
+	flagLen := len(ErrInvalidInferFlag)
+	if errLen >= flagLen && vbErr.Error()[0:flagLen] == ErrInvalidInferFlag {
+		return errors.New(vbErr.Error()[flagLen+2:])
+	}
+
+	return nil
+}
+
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, error) {
-	log.Info("Infer Infos", "Model Hash", string(model_meta_hash), "Input Hash", string(input_meta_hash))
+func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
+	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
 	var (
 		inferRes uint64
@@ -468,17 +483,56 @@ func (evm *EVM) Infer(model_meta_hash []byte, input_meta_hash []byte) (uint64, e
 	)
 
 	if evm.vmConfig.InferURI == "" {
-		inferRes, errRes = LocalInfer(string(model_meta_hash), string(input_meta_hash), evm.vmConfig.CallFakeVM)
+		inferRes, errRes = infer.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
 	} else {
-		requestBody := fmt.Sprintf(`{"ModelHash":"%s", "InputHash":"%s"}`, model_meta_hash, input_meta_hash)
-		inferRes, errRes = RemoteInfer(requestBody, evm.vmConfig.InferURI)
+		inferRes, errRes = infer.Engine().RemoteInferByInfoHash(
+			modelInfoHash,
+			inputInfoHash,
+			evm.vmConfig.InferURI)
 	}
 
-	log.Info(fmt.Sprintf("Infer Result: %v, %v", inferRes, errRes))
+	if errRes == nil {
+		log.Info("Inference Result", "label", inferRes)
+	}
+
+	// If infer process is at block verifying, add label to error
+	if errRes != nil && evm.vmConfig.VerifyBlock {
+		errRes = CreateVerifyBlockInferError(errRes)
+	}
+
 	return inferRes, errRes
 }
 
+// infer function that returns an int64 as output, can be used a categorical output
+func (evm *EVM) InferArray(modelInfoHash string, addr common.Address, slot common.Hash, inputArray []byte) (uint64, error) {
+	log.Info("Infer Infos", "Model Hash", modelInfoHash)
+	log.Trace2("Input Array", inputArray)
+
+	var (
+		inferRes uint64
+		errRes   error
+	)
+
+	if evm.vmConfig.InferURI == "" {
+		inferRes, errRes = infer.Engine().InferByInputContent(modelInfoHash, inputArray)
+	} else {
+		inferRes, errRes = infer.Engine().RemoteInferByInputContent(
+			modelInfoHash,
+			evm.vmConfig.InferURI,
+			addr.Hex(),
+			slot.Hex())
+	}
+
+	log.Info("Inference Result", "infer label", inferRes, "err", errRes)
+
+	// If infer process is at block verifying, add label to error
+	if errRes != nil && evm.vmConfig.VerifyBlock {
+		errRes = CreateVerifyBlockInferError(errRes)
+	}
+	return inferRes, errRes
+}
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
+	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
 	modelMetaRaw := evm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
 	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
