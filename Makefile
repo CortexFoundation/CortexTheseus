@@ -66,8 +66,8 @@ clib:
 	cp ${INFER_NET_DIR}/libcortexnet.so build/bin/
 
 inferServer: clib
-	build/env.sh go run build/ci.go install cmd/infer_server/infer_server.go
-	build/env.sh go run build/ci.go install cmd/infer_server/infer_client.go
+	build/env.sh go run build/ci.go install ./cmd/infer_server
+	build/env.sh go run build/ci.go install ./cmd/infer_client
 
 android:
 	build/env.sh go run build/ci.go aar --local

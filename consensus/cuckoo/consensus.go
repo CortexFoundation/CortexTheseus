@@ -580,6 +580,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	r, sha3 := CuckooVerifyHeader(hash, nonce, &result)
 	if sha3.Big().Cmp(targetDiff) > 0 {
 		log.Trace(fmt.Sprintf("VerifySeal: %v, %v %v", r, sha3.Hex(), targetDiff))
+		return errInvalidPoW
 	}
 	if !r {
 		log.Trace(fmt.Sprintf("VerifySeal: %v, %v %v", r, sha3.Hex(), targetDiff))
