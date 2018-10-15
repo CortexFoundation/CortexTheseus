@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	infer "github.com/ethereum/go-ethereum/inference/synapse"
@@ -520,7 +521,8 @@ func (evm *EVM) InferArray(modelInfoHash string, addr common.Address, slot commo
 			modelInfoHash,
 			evm.vmConfig.InferURI,
 			addr.Hex(),
-			slot.Hex())
+			slot.Hex(),
+			hexutil.EncodeBig(evm.BlockNumber))
 	}
 
 	log.Info("Inference Result", "infer label", inferRes, "err", errRes)
