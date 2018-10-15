@@ -127,11 +127,25 @@ func NewTester() *Cuckoo {
 	// go cuckoo.remote()
 	return cuckoo
 }
+
 func DeleteTester() {
 	// C.CuckooRelease()
 	CuckooFinalize()
 }
-func NewFaker() *Cuckoo {
+
+func NewFaker() *CuckooFake {
+	return &CuckooFake{}
+}
+
+func NewFakeFailer(number uint64) *Cuckoo {
+	return &Cuckoo{
+		config: Config{
+			PowMode: ModeFake,
+		},
+	}
+}
+
+func NewFakeDelayer(seconds time.Duration) *Cuckoo {
 	return &Cuckoo{
 		config: Config{
 			PowMode: ModeFake,

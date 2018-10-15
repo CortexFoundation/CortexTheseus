@@ -17,6 +17,7 @@
 package core
 
 import (
+	_ "fmt"
 	"runtime"
 	"testing"
 	"time"
@@ -32,9 +33,11 @@ import (
 func TestHeaderVerification(t *testing.T) {
 	// Create a simple chain to verify
 	var (
-		testdb    = ethdb.NewMemDatabase()
-		gspec     = &Genesis{Config: params.TestChainConfig}
-		genesis   = gspec.MustCommit(testdb)
+		testdb  = ethdb.NewMemDatabase()
+		gspec   = &Genesis{Config: params.TestChainConfig}
+		genesis = gspec.MustCommit(testdb)
+	)
+	var (
 		blocks, _ = GenerateChain(params.TestChainConfig, genesis, cuckoo.NewFaker(), testdb, 8, nil)
 	)
 	headers := make([]*types.Header, len(blocks))
@@ -127,7 +130,7 @@ func testHeaderConcurrentVerification(t *testing.T, threads int) {
 		}
 		// Check nonce check validity
 		for j := 0; j < len(blocks); j++ {
-			want := valid || (j < len(blocks)-2) // We chose the last-but-one nonce in the chain to fail
+			want := valid // || (j < len(blocks)-2) // We chose the last-but-one nonce in the chain to fail
 			if (checks[j] == nil) != want {
 				t.Errorf("test %d.%d: validity mismatch: have %v, want %v", i, j, checks[j], want)
 			}
@@ -152,7 +155,6 @@ func testHeaderConcurrentVerification(t *testing.T, threads int) {
 func TestHeaderConcurrentAbortion2(t *testing.T)  { testHeaderConcurrentAbortion(t, 2) }
 func TestHeaderConcurrentAbortion8(t *testing.T)  { testHeaderConcurrentAbortion(t, 8) }
 func TestHeaderConcurrentAbortion32(t *testing.T) { testHeaderConcurrentAbortion(t, 32) }
-
 func testHeaderConcurrentAbortion(t *testing.T, threads int) {
 	// Create a simple chain to verify
 	var (
