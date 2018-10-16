@@ -60,6 +60,8 @@ func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *B
 	if full {
 		// Full block-chain requested
 		blocks := makeBlockChain(genesis, n, engine, db, canonicalSeed)
+		fmt.Println("n: ", n)
+		fmt.Println("block: ", blocks)
 		_, err := blockchain.InsertChain(blocks)
 		return db, blockchain, err
 	}
@@ -80,6 +82,7 @@ func testFork(t *testing.T, blockchain *BlockChain, i, n int, full bool, compara
 
 	// Assert the chains have the same header/block at #i
 	var hash1, hash2 common.Hash
+	fmt.Println("testFork, ", i, " / ", n)
 	if full {
 		hash1 = blockchain.GetBlockByNumber(uint64(i)).Hash()
 		hash2 = blockchain2.GetBlockByNumber(uint64(i)).Hash()
