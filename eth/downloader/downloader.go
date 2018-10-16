@@ -663,7 +663,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 
 					// If every header is known, even future ones, the peer straight out lied about its head
 					if number > height && i == limit-1 {
-						p.log.Warn("Lied about chain head", "reported", height, "found", number)
+						p.log.Warn("Lied about chain head", "reported", height, "found", number, "hash", hash)
 						return 0, errStallingPeer
 					}
 					break
