@@ -42,11 +42,13 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Address", inferWork.InputAddress, "Input Slot", inferWork.InputSlot)
 
 	addr, slot, number := inferWork.InputAddress, inferWork.InputSlot, inferWork.InputBlockNumber
-
-	cacheKey := infer.RLPHashString(inferWork.ModelHash + addr + slot + inferWork.InputBlockNumber)
-	if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
-		RespInfoText(w, v.(uint64))
-		return
+	var cacheKey string
+	if len(inferWork.InputBlockNumber) >= 2 && inferWork.InputBlockNumber[:2] == "0x" {
+		cacheKey = infer.RLPHashString(inferWork.ModelHash + addr + slot + inferWork.InputBlockNumber)
+		if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
+			RespInfoText(w, v.(uint64))
+			return
+		}
 	}
 
 	log.Debug("JSON-RPC request | ctx_getSolidityBytes", "address", addr, "slot", slot, "block number", number)
