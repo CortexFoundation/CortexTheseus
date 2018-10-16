@@ -133,34 +133,6 @@ func DeleteTester() {
 	CuckooFinalize()
 }
 
-func NewFaker() *CuckooFake {
-	return &CuckooFake{}
-}
-
-func NewFakeFailer(number uint64) *Cuckoo {
-	return &Cuckoo{
-		config: Config{
-			PowMode: ModeFake,
-		},
-	}
-}
-
-func NewFakeDelayer(seconds time.Duration) *Cuckoo {
-	return &Cuckoo{
-		config: Config{
-			PowMode: ModeFake,
-		},
-	}
-}
-
-func NewFullFaker() *Cuckoo {
-	return &Cuckoo{
-		config: Config{
-			PowMode: ModeFullFake,
-		},
-	}
-}
-
 // NewShared() func in tests/block_tests_util.go
 func NewShared() *Cuckoo {
 	return &Cuckoo{shared: sharedCuckoo}
