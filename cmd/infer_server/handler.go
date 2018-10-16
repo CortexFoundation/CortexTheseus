@@ -43,7 +43,7 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 
 	addr, slot, number := inferWork.InputAddress, inferWork.InputSlot, inferWork.InputBlockNumber
 
-	cacheKey := inferWork.ModelHash + addr + slot + inferWork.InputBlockNumber
+	cacheKey := infer.RLPHashString(inferWork.ModelHash + addr + slot + inferWork.InputBlockNumber)
 	if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
 		RespInfoText(w, v.(uint64))
 		return
