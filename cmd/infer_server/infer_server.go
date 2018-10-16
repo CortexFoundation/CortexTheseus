@@ -38,8 +38,9 @@ type InferWork struct {
 	ModelHash string
 	InputHash string
 
-	InputAddress string
-	InputSlot    string
+	InputBlockNumber string
+	InputAddress     string
+	InputSlot        string
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
