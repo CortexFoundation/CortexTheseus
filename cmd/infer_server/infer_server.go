@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	storageDir = flag.String("storageDir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
-	cortexURI  = flag.String("cortexURI", "http://localhost:25667", "Cortex core binary's rpc")
-	logLevel   = flag.Int("logLevel", 3, "Log level to emit to screen")
+	storageDir = flag.String("storage_dir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
+	cortexURI  = flag.String("cortex_uri", "http://localhost:25667", "Cortex core binary's rpc")
+	logLevel   = flag.Int("verbosity", 3, "Log level to emit to screen")
 	port       = flag.Int("port", 8827, "Server listen port")
 	IsNotCache = flag.Bool("disable_cache", false, "Disable cache")
 )
@@ -38,8 +38,9 @@ type InferWork struct {
 	ModelHash string
 	InputHash string
 
-	InputAddress string
-	InputSlot    string
+	InputBlockNumber string
+	InputAddress     string
+	InputSlot        string
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {

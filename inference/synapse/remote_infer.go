@@ -14,17 +14,22 @@ func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string
 	requestBody := fmt.Sprintf(`{"Type": 1, "ModelHash":"%s", "InputHash":"%s"}`, modelInfoHash, inputInfoHash)
 	log.Trace(fmt.Sprintf("%v", requestBody))
 
-	return sendRequest(requestBody, uri)
+	return s.sendRequest(requestBody, uri)
 }
 
-func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, addr string, slot string) (uint64, error) {
-	requestBody := fmt.Sprintf(`{"Type": 2, "ModelHash":"%s", "InputAddress":"%s", "InputSlot":"%s"}`, modelInfoHash, addr, slot)
+func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, addr, slot, blockNumber string) (uint64, error) {
+	requestBody := fmt.Sprintf(`{"Type": 2, "ModelHash":"%s", "InputAddress":"%s", "InputSlot":"%s", "InputBlockNumber":"%s"}`, modelInfoHash, addr, slot, blockNumber)
 	log.Trace(fmt.Sprintf("%v", requestBody))
 
-	return sendRequest(requestBody, uri)
+	return s.sendRequest(requestBody, uri)
 }
+func (s *Synapse) sendRequest(requestBody, uri string) (uint64, error) {
+	cacheKey := RLPHashString(requestBody)
+	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+		log.Debug("Infer Success via Cache", "result", v.(uint64))
+		return v.(uint64), nil
+	}
 
-func sendRequest(requestBody, uri string) (uint64, error) {
 	resp, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
@@ -58,5 +63,10 @@ func sendRequest(requestBody, uri string) (uint64, error) {
 	if err != nil {
 		return 0, errors.New("evm.Infer: Type Conversion Error")
 	}
+
+	if !s.config.IsNotCache {
+		s.simpleCache.Store(cacheKey, uint64_output)
+	}
+
 	return uint64_output, nil
 }

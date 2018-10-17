@@ -6,13 +6,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
 	"github.com/ethereum/go-ethereum/infernet"
 	"github.com/ethereum/go-ethereum/infernet/parser"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) (uint64, error) {
@@ -42,7 +38,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 	)
 
 	// Inference Cache
-	cacheKey := modelHash + inputHash
+	cacheKey := RLPHashString(modelHash + inputHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		resCh <- v.(uint64)
@@ -73,8 +69,14 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		return
 	}
 
+	// Input process
+	if procErr := ProcessImage(inputContent); procErr != nil {
+		errCh <- procErr
+		return
+	}
+
 	// Inference Cache
-	cacheKey := modelHash + inputHash
+	cacheKey := RLPHashString(modelHash + inputHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		resCh <- v.(uint64)
@@ -109,13 +111,9 @@ func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte)
 	var (
 		resCh = make(chan uint64)
 		errCh = make(chan error)
-
-		hash common.Hash
 	)
 
-	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, inputContent)
-	inputInfoHash := hexutil.Encode(hw.Sum(hash[:0]))
+	inputInfoHash := RLPHashString(inputContent)
 
 	go func() {
 		s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
