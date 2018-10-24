@@ -1,0 +1,10 @@
+build/*
+
+*.o
+*.a
+
+!cminer/*
+
+miner/gold_miner/GPUs/cuckoo
+miner/gold_miner/GPUs_8GB_+/cuckoo
+miner/gold_miner/GPUs_8GB_+/edges/*
