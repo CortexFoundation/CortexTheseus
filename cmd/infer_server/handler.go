@@ -23,10 +23,10 @@ func infoHashHandler(w http.ResponseWriter, inferWork *InferWork) {
 	label, err := infer.Engine().InferByInfoHash(inferWork.ModelHash, inferWork.InputHash)
 
 	if err == nil {
-		log.Info("Infer Success", "result", label)
+		log.Info("Infer Succeed", "result", label)
 	} else {
 		log.Warn("Infer Failed", "error", err)
-		RespErrorText(w, "Inference Error", "error", err, "model hash", inferWork.ModelHash, "input hash", inferWork.InputHash)
+		RespErrorText(w, err)
 		return
 	}
 
@@ -39,12 +39,11 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 		return
 	}
 
-	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Address", inferWork.InputAddress, "Input Slot", inferWork.InputSlot)
-
 	addr, slot, number := inferWork.InputAddress, inferWork.InputSlot, inferWork.InputBlockNumber
+	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Address", addr, "Input Slot", slot, "Input Block Number", number)
 	var cacheKey string
-	if len(inferWork.InputBlockNumber) >= 2 && inferWork.InputBlockNumber[:2] == "0x" {
-		cacheKey = infer.RLPHashString(inferWork.ModelHash + addr + slot + inferWork.InputBlockNumber)
+	if len(number) >= 2 && number[:2] == "0x" {
+		cacheKey = infer.RLPHashString(inferWork.ModelHash + addr + slot + number)
 		if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
 			RespInfoText(w, v.(uint64))
 			return
@@ -55,18 +54,18 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 	var inputArray hexutil.Bytes
 	if rpcErr := rpcClient.CallContext(context.Background(), &inputArray, "ctx_getSolidityBytes", addr, slot, number); rpcErr != nil {
 		log.Warn("JSON-RPC request failed", "error", rpcErr)
-		RespErrorText(w, "JSON-RPC invoke ctx_getSolidityBytes", "error", rpcErr, "address", addr, "slot", slot)
+		RespErrorText(w, "JSON-RPC invoke ctx_getSolidityBytes", "error", rpcErr)
 		return
 	}
 
-	log.Debug("Infer Task By Input Content", "model info hash", inferWork.ModelHash, "input content", inputArray)
+	log.Debug("Infer Detail", "Input Content", inputArray.String())
 	label, err := infer.Engine().InferByInputContent(inferWork.ModelHash, inputArray)
 
 	if err == nil {
-		log.Info("Infer Result", "result", label)
+		log.Info("Infer Succeed", "result", label)
 	} else {
 		log.Warn("Infer Failed", "error", err)
-		RespErrorText(w, "Inference Error", "error", err, "model hash", inferWork.ModelHash, "address", addr, "slot", slot)
+		RespErrorText(w, err)
 		return
 	}
 

@@ -18,7 +18,6 @@ package vm
 
 import (
 	_ "encoding/hex"
-	"errors"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -456,24 +455,6 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
-var (
-	ErrInvalidInferFlag = "infer while verifying block error"
-)
-
-func CreateVerifyBlockInferError(err error) error {
-	return errors.New(fmt.Sprintf(ErrInvalidInferFlag+": %s", err.Error()))
-}
-
-func ParseVerifyBlockInferError(vbErr error) error {
-	errLen := len(vbErr.Error())
-	flagLen := len(ErrInvalidInferFlag)
-	if errLen >= flagLen && vbErr.Error()[0:flagLen] == ErrInvalidInferFlag {
-		return errors.New(vbErr.Error()[flagLen+2:])
-	}
-
-	return nil
-}
-
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
@@ -493,12 +474,7 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 	}
 
 	if errRes == nil {
-		log.Info("Inference Result", "label", inferRes)
-	}
-
-	// If infer process is at block verifying, add label to error
-	if errRes != nil && evm.vmConfig.VerifyBlock {
-		errRes = CreateVerifyBlockInferError(errRes)
+		log.Info("Inference Succeed", "label", inferRes)
 	}
 
 	return inferRes, errRes
@@ -506,8 +482,8 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) InferArray(modelInfoHash string, addr common.Address, slot common.Hash, inputArray []byte) (uint64, error) {
-	log.Info("Infer Infos", "Model Hash", modelInfoHash)
-	log.Trace2("Input Array", inputArray)
+	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "address", addr.Hex(), "slot", slot.Hex(), "number", evm.BlockNumber)
+	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
 	var (
 		inferRes uint64
@@ -525,14 +501,13 @@ func (evm *EVM) InferArray(modelInfoHash string, addr common.Address, slot commo
 			hexutil.EncodeBig(evm.BlockNumber))
 	}
 
-	log.Info("Inference Result", "infer label", inferRes, "err", errRes)
-
-	// If infer process is at block verifying, add label to error
-	if errRes != nil && evm.vmConfig.VerifyBlock {
-		errRes = CreateVerifyBlockInferError(errRes)
+	if errRes == nil {
+		log.Info("Inference Succeed", "label", inferRes)
 	}
+
 	return inferRes, errRes
 }
+
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
 	modelMetaRaw := evm.StateDB.GetCode(addr)
