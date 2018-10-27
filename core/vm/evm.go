@@ -506,8 +506,8 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) InferArray(modelInfoHash string, addr common.Address, slot common.Hash, inputArray []byte) (uint64, error) {
-	log.Info("Infer Infos", "Model Hash", modelInfoHash)
-	log.Trace2("Input Array", inputArray)
+	log.Info("Infer Infomation", "Model Hash", modelInfoHash, "address", addr.Hex(), "slot", slot.Hex())
+	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
 	var (
 		inferRes uint64
