@@ -4,6 +4,7 @@ package synapse
 
 import (
 	"errors"
+	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/infernet"
@@ -45,9 +46,15 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 		return
 	}
 
+	// Image Path Check
 	inputDir := s.config.StorageDir + "/" + inputHash
 	inputFilePath := inputDir + "/data"
-	log.Debug("Inference Core", "Read Image From File", inputFilePath)
+	log.Debug("Inference Core", "Input Data File", inputFilePath)
+	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
+		errCh <- ErrInputFileNotExist
+		return
+	}
+
 	inputContent, imageErr := ReadImage(inputFilePath)
 	if imageErr != nil {
 		errCh <- imageErr
@@ -78,20 +85,30 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	// Inference Cache
 	cacheKey := RLPHashString(modelHash + inputHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
-		log.Debug("Infer Success via Cache", "result", v.(uint64))
+		log.Debug("Infer Succeed via Cache", "result", v.(uint64))
 		resCh <- v.(uint64)
 		return
 	}
 
-	// Model Check
+	// Model Path Check
 	modelCfg := modelDir + "/data/symbol"
 	modelBin := modelDir + "/data/params"
+	log.Debug("Inference Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "InputInfoHash", inputInfoHash)
+	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
+		errCh <- ErrModelFileNotExist
+		return
+	}
+	if _, binErr := os.Stat(modelBin); os.IsNotExist(binErr) {
+		errCh <- ErrModelFileNotExist
+		return
+	}
+
+	// Model Parse
 	if parseErr := parser.CheckModel(modelCfg, modelBin); parseErr != nil {
 		errCh <- parseErr
 		return
 	}
 
-	log.Debug("Inference Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "InputInfoHash", inputInfoHash)
 	label, inferErr := infernet.InferCore(modelCfg, modelBin, inputContent)
 	if inferErr != nil {
 		errCh <- inferErr
