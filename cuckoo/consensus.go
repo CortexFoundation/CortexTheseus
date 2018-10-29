@@ -20,7 +20,7 @@ import (
 	"encoding/binary"
 
 	"github.com/PoolMiner/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/PoolMiner/crypto"
 )
 
 func Sha3Solution(sol *common.BlockSolution) []byte {

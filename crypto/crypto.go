@@ -17,9 +17,6 @@
 package crypto
 
 import (
-	"errors"
-	"math/big"
-
 	"github.com/PoolMiner/common"
 	"github.com/PoolMiner/crypto/sha3"
 )

@@ -1,4 +1,6 @@
 #include "cuckoo.h"
+#include <stdio.h>
+#include <assert.h>
 namespace cuckoogpu {
 node_t sipnode(siphash_keys *keys, edge_t edge, u32 uorv) {
   return siphash24(keys, 2*edge + uorv) & EDGEMASK;
@@ -38,7 +40,9 @@ int verify(edge_t edges[PROOFSIZE], siphash_keys *keys) {
 void setheader(const char *header, const u32 headerlen, siphash_keys *keys) {
   char hdrkey[32];
   // SHA256((unsigned char *)header, headerlen, (unsigned char *)hdrkey);
+//  printf("call blake2b %d %d %d %d\n", hdrkey, sizeof(hdrkey), header, headerlen);
   blake2b((void *)hdrkey, sizeof(hdrkey), (const void *)header, headerlen, 0, 0);
+//  assert(0);
 #ifdef SIPHASH_COMPAT
   u64 *k = (u64 *)hdrkey;
   u64 k0 = k[0];

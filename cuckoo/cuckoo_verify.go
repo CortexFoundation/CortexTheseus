@@ -1,8 +1,8 @@
 package cuckoo
 
 /*
-#cgo LDFLAGS: -L../../cminer -lcuckoo -lstdc++
-#cgo CFLAGS: -I../../cminer
+#cgo LDFLAGS: -L../cminer -lcuckoo -lstdc++
+#cgo CFLAGS: -I../cminer
 
 #include "gominer.h"
 */

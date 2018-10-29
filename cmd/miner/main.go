@@ -146,7 +146,7 @@ func (cm *Cortex) submit(sol Task) {
 
 //	cortex mining
 func (cm *Cortex) Mining() {
-	var THREAD uint = 10
+	var THREAD uint = 1
 	if cm.chip == "gpu" {
 		THREAD = 1
 	}
@@ -179,7 +179,7 @@ func (cm *Cortex) miningOnce() {
 
 	var currentTask TaskWrapper
 	var taskHeader, taskNonce, taskDifficulty string
-	var THREAD uint = 10
+	var THREAD uint = 1
 	if cm.chip == "gpu" {
 		THREAD = 1
 	}
@@ -233,6 +233,7 @@ func (cm *Cortex) miningOnce() {
 						}
 					}
 				} else if cm.chip == "gpu" {
+					log.Println("call cuckoo_gpu.CuckooFindSolutionsCuda: ", header, curNonce)
 					status, sols := cuckoo_gpu.CuckooFindSolutionsCuda(header, curNonce)
 					if status != 0 {
 						if verboseLevel >= 3 {
@@ -250,7 +251,7 @@ func (cm *Cortex) miningOnce() {
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
 							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-							ok := cuckoo.CuckooVerifyProof(header[:], curNonce, &sol[0], 14, 29)
+							ok := cuckoo.CuckooVerifyProof(header[:], curNonce, &sol[0], 14, 27)
 							// ok, _ := cuckoo.CuckooVerifyHeader(header[:], curNonce, &sol)
 							if ok != 1 {
 								log.Println("verify failed", header[:], curNonce, &sol)
