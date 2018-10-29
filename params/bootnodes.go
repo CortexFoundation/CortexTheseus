@@ -18,31 +18,23 @@ package params
 
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Ethereum network.
-var MainnetBootnodes = []string{
-	// Ethereum Foundation Go Bootnodes
-	//"enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303", // IE
-	//"enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303",  // US-WEST
-	//"enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303", // BR
-	//"enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303", // AU
-	//"enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303",  // SG
-
-	// Ethereum Foundation C++ Bootnodes
-	//"enode://979b7fa28feeb35a4741660a16076f1943202cb72b6af70d327f053e248bab9ba81760f39d0701ef1d8f89cc1fbd2cacba0710a12cd5314d5e0c9021aa3637f9@5.1.83.226:30303", // DE
-	"enode://70691fa0cb63bff2cac8ac9d154767427bc3ced6074698023482530c67f9effdeee4953bd526de2ea196415934f9bc9f1784dd83a10a5eaa1577179363a3b656@139.196.32.192:40404",
-	"enode://0c46a5d6a5e661b6c7bf8d17c367eb1e76a650e0197b47c04c1c8bfddbec5315d660ade0e94fb03ef2c620575cffcc11046699ea5495a5234fe5b4ed696644b5@139.224.209.162:40404",
-}
+var MainnetBootnodes = []string{}
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Ropsten test network.
-var TestnetBootnodes = []string{
+// Cerebro test network.
+var CerebroBootnodes = []string{
+	"enode://d73a0e572ae4a710a228ca39f5cdd83c366fee7cbee25249eb354463cbfb3b07f85d1b5382bdbde5d26dc8c11c6240cc4f80c5c57e71b760c39797185da0f123@47.74.15.143:37566",
+	"enode://0d6eedee4ed1c4a1b9f273de9ed28fb30581b3bad6b733609870b39ed5a716cc59c5067deb1a43570b15f5965ab22ac04c7067a79aef1e240667d78e8ffdf81d@47.254.135.53:37566",
+	"enode://c8119e731b29bed3222ee5e63ec514926fa683f0bc999c73ff171d54a3100aea4211d70640bf937d1d61d39fdf313470b131213ae11ddfea5ccb96669f603749@47.88.174.57:37566",
+	"enode://a4d20d02a05c3674791f1a0cf9900f0db50485037f96c99395287e931a6845f624e16adbce9e84e7106f803278360979e6a6999b7ca8c25cf64b4445a6de75e6@47.52.39.170:37566",
+	"enode://67ef167c2620b9c166161f7226a7b8f8d32e5282244a4ceebf6d18be70551a9b62c20f0f5aeb9b7abcbbfa062c3d925ada47e0e27942cfd1fc2cf2617f42297e@47.75.211.148:37566",
+	"enode://0778ac6fe1a572a2f5834452c1d4b6f77b57a2a4baa72e0e2582ad0dbfe88f41e4e66aa020a451a32936a86c29788d257ccaa19f58e5676943595b945e615b9e@139.224.132.6:37566",
 }
 
 // RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Rinkeby test network.
-var RinkebyBootnodes = []string{
-}
+var RinkebyBootnodes = []string{}
 
 // DiscoveryV5Bootnodes are the enode URLs of the P2P bootstrap nodes for the
 // experimental RLPx v5 topic-discovery network.
-var DiscoveryV5Bootnodes = []string{
-}
+var DiscoveryV5Bootnodes = []string{}

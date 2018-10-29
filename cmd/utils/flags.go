@@ -136,8 +136,8 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
 		Value: eth.DefaultConfig.NetworkId,
 	}
-	TestnetFlag = cli.BoolFlag{
-		Name:  "testnet",
+	CerebroFlag = cli.BoolFlag{
+		Name:  "cerebro",
 		Usage: "Cerebro network: pre-configured cortex test network",
 	}
 	LazynetFlag = cli.BoolFlag{
@@ -656,8 +656,8 @@ var (
 // the a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
-		if ctx.GlobalBool(TestnetFlag.Name) {
-			return filepath.Join(path, "testnet")
+		if ctx.GlobalBool(CerebroFlag.Name) {
+			return filepath.Join(path, "cerebro")
 		}
 		if ctx.GlobalBool(LazynetFlag.Name) {
 			return filepath.Join(path, "lazynet")
@@ -722,8 +722,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
-	case ctx.GlobalBool(TestnetFlag.Name):
-		urls = params.TestnetBootnodes
+	case ctx.GlobalBool(CerebroFlag.Name):
+		urls = params.CerebroBootnodes
 	case ctx.GlobalBool(LazynetFlag.Name):
 		urls = params.RinkebyBootnodes
 	case cfg.BootstrapNodes != nil:
@@ -1016,8 +1016,8 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
 	//case ctx.GlobalBool(DeveloperFlag.Name):
 	//	cfg.DataDir = "" // unless explicitly requested, use memory databases
-	case ctx.GlobalBool(TestnetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
+	case ctx.GlobalBool(CerebroFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "cerebro")
 	case ctx.GlobalBool(LazynetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
 	}
@@ -1160,7 +1160,7 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	// checkExclusive(ctx, DeveloperFlag, TestnetFlag, LazynetFlag)
+	// checkExclusive(ctx, DeveloperFlag, CerebroFlag, LazynetFlag)
 	// checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -1230,21 +1230,17 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
-	// if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
-	// 	// TODO(fjl): force-enable this in --dev mode
-	// 	cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
-	// }
 
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = ctx.GlobalString(StorageDirFlag.Name)
 
 	// Override any default configs for hard coded networks.
 	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
+	case ctx.GlobalBool(CerebroFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 3
+			cfg.NetworkId = 42
 		}
-		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+		cfg.Genesis = core.DefaultCerebroGenesisBlock()
 	case ctx.GlobalBool(LazynetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 4
@@ -1412,8 +1408,8 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ethdb.Database {
 func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
-		genesis = core.DefaultTestnetGenesisBlock()
+	case ctx.GlobalBool(CerebroFlag.Name):
+		genesis = core.DefaultCerebroGenesisBlock()
 	case ctx.GlobalBool(LazynetFlag.Name):
 		genesis = core.DefaultRinkebyGenesisBlock()
 		// case ctx.GlobalBool(DeveloperFlag.Name):

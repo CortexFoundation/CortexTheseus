@@ -121,7 +121,7 @@ var (
 		utils.NodeKeyHexFlag,
 		// utils.DeveloperFlag,
 		// utils.DeveloperPeriodFlag,
-		// utils.TestnetFlag,
+		utils.CerebroFlag,
 		// utils.LazynetFlag,
 		// utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
