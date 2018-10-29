@@ -177,64 +177,76 @@
 			"revisionTime": "2018-08-08T01:06:31Z"
 		},
 		{
-			"checksumSHA1": "CiSQAhxS/ahTUsI+gkUZeSyfmDQ=",
+			"checksumSHA1": "W2Q5h2rCdj2zd1pEJn7sKXyhQ0g=",
+			"path": "github.com/anacrolix/tagflag",
+			"revision": "3a8ff5428f76247838c2d79f1b4fde71b7f6184c",
+			"revisionTime": "2018-08-03T10:54:20Z"
+		},
+		{
+			"checksumSHA1": "1ZgM3McrynvT7EHIRPhkHvooY+8=",
 			"path": "github.com/anacrolix/torrent",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
 			"checksumSHA1": "mmuWh2/dQy4teZNhw7tB1gnF5l4=",
 			"path": "github.com/anacrolix/torrent/bencode",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
+		},
+		{
+			"checksumSHA1": "0uPBrCngDnuroW6ghNPs7/GEG0Y=",
+			"path": "github.com/anacrolix/torrent/fs",
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
 			"checksumSHA1": "2rFrEYRdXoSsLelIrbhB1+0D0WE=",
 			"path": "github.com/anacrolix/torrent/iplist",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
-			"checksumSHA1": "SuF+Ux65gQax8wtiBye1ScP+/yY=",
+			"checksumSHA1": "Q1VUmsF8eWA0dhN3r0/gHV7oXsw=",
 			"path": "github.com/anacrolix/torrent/logonce",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
 			"checksumSHA1": "wFaqJyWNPT+B3XuR5YLICbNIyY8=",
 			"path": "github.com/anacrolix/torrent/metainfo",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
 			"checksumSHA1": "5izMcFZL0A2oW7NsfAO5SkhxccA=",
 			"path": "github.com/anacrolix/torrent/mmap_span",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
 			"checksumSHA1": "4MJpz+q2hB+t97NMMGuTWJ6AT/s=",
 			"path": "github.com/anacrolix/torrent/mse",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
 			"checksumSHA1": "aJ3M3aOfMm94XlmaE62VZpPNWoQ=",
 			"path": "github.com/anacrolix/torrent/peer_protocol",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
 			"checksumSHA1": "z/cSRtHA1v3I0n4chn+5F3eMqWI=",
 			"path": "github.com/anacrolix/torrent/storage",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
-			"checksumSHA1": "fjyi3uGIzM64YKESWqhtY8AdJmQ=",
+			"checksumSHA1": "3CpMFRiGTqj1dXNUEdRJYztULYM=",
 			"path": "github.com/anacrolix/torrent/tracker",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "02f37a34eec3d45541f9843361c063a662ba6c92",
+			"revisionTime": "2018-10-21T07:24:22Z"
 		},
 		{
 			"checksumSHA1": "GrmrrZvvsFiQemOQhnvcFG57pq0=",
@@ -1131,6 +1143,12 @@
 			"revisionTime": "2018-04-18T12:24:29Z"
 		},
 		{
+			"checksumSHA1": "7NP1qUMF8Kx1y0zANxx0e+oq9Oo=",
+			"path": "github.com/fsnotify/fsnotify",
+			"revision": "ccc981bf80385c528a65fbfdd49bf2d8da22aa23",
+			"revisionTime": "2018-08-30T22:02:26Z"
+		},
+		{
 			"checksumSHA1": "0orwvPL96wFckVJyPl39fz2QsgA=",
 			"path": "github.com/gizak/termui",
 			"revision": "991cd3d3809135dc24daf6188dc6edcaf3d7d2d9",
@@ -1786,7 +1804,7 @@
 			"revisionTime": "2017-09-25T11:22:06Z"
 		},
 		{
-			"checksumSHA1": "Y+HGqEkYM15ir+J93MEaHdyFy0c=",
+			"checksumSHA1": "GtamqiJoL7PGHsN454AoffBFMa8=",
 			"path": "golang.org/x/net/context",
 			"revision": "a6577fac2d73be281a500b310739095313165611",
 			"revisionTime": "2017-03-08T20:54:49Z"
