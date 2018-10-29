@@ -654,6 +654,10 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 			pool.removeTx(tx.Hash(), false)
 		}
 	}
+
+	if asm.HasInferOp(tx.Data()) {
+		log.Trace("Should check the infer condition", "hash", hash)
+	}
 	// If the transaction is replacing an already pending one, do directly
 	from, _ := types.Sender(pool.signer, tx) // already validated
 	if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
