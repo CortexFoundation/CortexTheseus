@@ -1,9 +1,7 @@
 package torrent
 
 import (
-	"crypto/tls"
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/anacrolix/dht"
@@ -79,8 +77,6 @@ type ClientConfig struct {
 	// Perform logging and any other behaviour that will help debug.
 	Debug bool `help:"enable debugging"`
 
-	// For querying HTTP trackers.
-	TrackerHttpClient *http.Client
 	// HTTPUserAgent changes default UserAgent for HTTP requests
 	HTTPUserAgent string
 	// Updated occasionally to when there's been some changes to client
@@ -98,19 +94,25 @@ type ClientConfig struct {
 	MinDialTimeout             time.Duration
 	EstablishedConnsPerTorrent int
 	HalfOpenConnsPerTorrent    int
-	TorrentPeersHighWater      int
-	TorrentPeersLowWater       int
+	// Maximum number of peer addresses in reserve.
+	TorrentPeersHighWater int
+	// Minumum number of peers before effort is made to obtain more peers.
+	TorrentPeersLowWater int
 
 	// Limit how long handshake can take. This is to reduce the lingering
 	// impact of a few bad apples. 4s loses 1% of successful handshakes that
 	// are obtained with 60s timeout, and 5% of unsuccessful handshakes.
 	HandshakesTimeout time.Duration
 
+	// The IP addresses as our peers should see them. May differ from the
+	// local interfaces due to NAT or other network configurations.
 	PublicIp4 net.IP
 	PublicIp6 net.IP
 
 	DisableAcceptRateLimiting bool
-	dropDuplicatePeerIds      bool
+	// Don't add connections that have the same peer ID as an existing
+	// connection for a given Torrent.
+	dropDuplicatePeerIds bool
 }
 
 func (cfg *ClientConfig) SetListenAddr(addr string) *ClientConfig {
@@ -123,15 +125,6 @@ func (cfg *ClientConfig) SetListenAddr(addr string) *ClientConfig {
 
 func NewDefaultClientConfig() *ClientConfig {
 	return &ClientConfig{
-		TrackerHttpClient: &http.Client{
-			Timeout: time.Second * 15,
-			Transport: &http.Transport{
-				Dial: (&net.Dialer{
-					Timeout: 15 * time.Second,
-				}).Dial,
-				TLSHandshakeTimeout: 15 * time.Second,
-				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-			}},
 		HTTPUserAgent:                  DefaultHTTPUserAgent,
 		ExtendedHandshakeClientVersion: "go.torrent dev 20150624",
 		Bep20:                          "-GT0001-",
