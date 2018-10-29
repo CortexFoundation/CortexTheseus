@@ -59,9 +59,6 @@ type Config struct {
 
 	// opCall flag
 	CallFakeVM bool
-
-	// Use for verify block flag
-	VerifyBlock bool
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI

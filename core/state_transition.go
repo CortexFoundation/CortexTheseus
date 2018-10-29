@@ -24,6 +24,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
@@ -227,7 +228,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
 
-		if inferErr := vm.ParseVerifyBlockInferError(vmerr); inferErr != nil {
+		// Inference error caused by torrent fs syncing is returned directly.
+		// This is called Built-In Torrent Fs Error
+		if synapse.CheckBuiltInTorrentFsError(vmerr) {
 			return nil, 0, false, vmerr
 		}
 
