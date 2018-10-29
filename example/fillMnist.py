@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-data = np.load('/home/tian/data/ctxc-42-11/warehouse/' + sys.argv[1] + '/data')
+data = np.load('/home/tian/data/ctxc-42-12/warehouse/' + sys.argv[1] + '/data')
 print >> sys.stderr, data
 for i in range(28):
     for j in range(28):

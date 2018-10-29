@@ -38,6 +38,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
@@ -1158,9 +1159,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			parent = chain[i-1]
 		}
 		var (
-			// Make a copy of bc.config, and set VerifyBlock flag true
-			vmCfg = bc.vmConfig
-
 			retry = uint64(0)
 
 			dbState  *state.StateDB
@@ -1169,7 +1167,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			usedGas  uint64
 			pErr     error
 		)
-		vmCfg.VerifyBlock = true
 
 		for {
 			// If the chain is terminating, stop processing blocks
@@ -1184,7 +1181,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			}
 
 			// Process block using the parent state as reference point.
-			receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, vmCfg)
+			receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
 
 			if pErr == nil {
 				break
@@ -1192,12 +1189,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 			// If Infer error and
 			// current block height less then block.BlockNumber,
-			// pending
-			if inferErr := vm.ParseVerifyBlockInferError(pErr); inferErr != nil {
-				log.Warn("Invalid Verify Block Inference", "err", inferErr)
+			// waiting...
+			if synapse.CheckBuiltInTorrentFsError(pErr) {
+				log.Warn("Invalid Verify Block Inference", "err", pErr)
 
 				if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
-					log.Debug("Verify Block Discard", "current block", bc.CurrentBlock().NumberU64(), "verified block", block.NumberU64())
+					log.Info("Verify Block Discard", "current block", bc.CurrentBlock().NumberU64(), "verified block", block.NumberU64())
 					break
 				}
 

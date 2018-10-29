@@ -11,5 +11,5 @@ type Inference interface {
 	InferByInputContent(modelInfoHash string, inputContent []byte) (uint64, error)
 
 	RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) (uint64, error)
-	RemoteInferByInputContent(modelInfoHash, uri string, inputContent []byte) (uint64, error)
+	RemoteInferByInputContent(modelInfoHash, uri string, addr, slot, blockNumber string) (uint64, error)
 }

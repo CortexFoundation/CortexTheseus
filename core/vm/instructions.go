@@ -825,6 +825,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 
 	return nil, nil
 }
+
 func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (
 		value        = stack.pop()

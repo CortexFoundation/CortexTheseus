@@ -344,7 +344,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			} else {
 				origin = pm.blockchain.GetHeaderByNumber(query.Origin.Number)
 			}
-			if origin == nil {
+			if origin == nil || origin.Number.Uint64() > pm.blockchain.CurrentBlock().NumberU64() {
 				break
 			}
 			headers = append(headers, origin)
