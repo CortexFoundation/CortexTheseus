@@ -136,7 +136,6 @@ func (cuckoo *Cuckoo) VerifySolution(hash []byte, nonce uint32, solution *types.
 	return false, common.Hash{}
 }
 
-
 // remote starts a standalone goroutine to handle remote mining related stuff.
 func (cuckoo *Cuckoo) remote() {
 	var (
