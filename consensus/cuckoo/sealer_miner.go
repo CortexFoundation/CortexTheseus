@@ -1,10 +1,11 @@
 // +build !disable_miner
 
 package cuckoo
+
 import (
-	"math/big"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"math/big"
 )
 
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
