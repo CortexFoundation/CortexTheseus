@@ -133,9 +133,9 @@ func (fs *FileStorage) HasBlock(blockNum uint64) bool {
 	return false
 }
 
-func (fs *FileStorage) Close() {
+func (fs *FileStorage) Close() error {
 	log.Info("Torrent File Storage Closed", "database dir", fs.db.Path())
-	fs.db.Close()
+	return fs.db.Close()
 }
 
 var (
