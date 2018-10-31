@@ -4,7 +4,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/infernet/parser"
 	"github.com/ethereum/go-ethereum/log"
@@ -26,8 +25,7 @@ type Synapse struct {
 
 	simpleCache sync.Map
 
-	exitCh  chan struct{}
-	stopSig int32
+	exitCh chan struct{}
 }
 
 func Engine() *Synapse {
@@ -46,9 +44,8 @@ func New(config Config) *Synapse {
 	}
 
 	synapseInstance = &Synapse{
-		config:  config,
-		exitCh:  make(chan struct{}),
-		stopSig: 0,
+		config: config,
+		exitCh: make(chan struct{}),
 	}
 
 	log.Info("Initialising Synapse Engine", "Storage Dir", config.StorageDir, "Cache Disabled", config.IsNotCache)
@@ -56,7 +53,6 @@ func New(config Config) *Synapse {
 }
 
 func (s *Synapse) Close() {
-	atomic.StoreInt32(&s.stopSig, 1)
 	close(s.exitCh)
 	log.Info("Synapse Engine Closed")
 }
