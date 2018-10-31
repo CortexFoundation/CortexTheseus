@@ -1330,7 +1330,7 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 // RegisterStorageService adds a torrent file system to the stack.
 func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
 	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return torrentfs.New(cfg, commit), nil
+		return torrentfs.New(cfg, commit)
 	})
 }
 
