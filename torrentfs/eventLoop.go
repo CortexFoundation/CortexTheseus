@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"os"
-	"os/signal"
 	"runtime"
 	"strconv"
-	"syscall"
+	"sync/atomic"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -18,10 +18,9 @@ import (
 
 // Errors that are used throughout the Torrent API.
 var (
-	ErrBuildConn         = errors.New("build internal-rpc connection failed")
-	ErrGetLatestBlock    = errors.New("get latest block failed")
-	ErrNoRPCClient       = errors.New("no rpc client")
-	ErrNoDownloadManager = errors.New("no download manager")
+	ErrBuildConn      = errors.New("build internal-rpc connection failed")
+	ErrGetLatestBlock = errors.New("get latest block failed")
+	ErrNoRPCClient    = errors.New("no rpc client")
 )
 
 const (
@@ -30,12 +29,13 @@ const (
 	connTryInterval       = 10
 	fetchBlockTryTimes    = 5
 	fetchBlockTryInterval = 3
-	fetchBlockLogStep     = 500
+	fetchBlockLogStep     = 1000
 	minBlockNum           = 0
 )
 
 type TorrentManagerAPI interface {
-	CloseAll(struct{}) error
+	Start() error
+	Close() error
 	NewTorrent(string) error
 	RemoveTorrent(string) error
 	UpdateTorrent(interface{}) error
@@ -48,32 +48,37 @@ type Monitor struct {
 	cl         *rpc.Client
 	fs         *FileStorage
 	dl         TorrentManagerAPI
-	terminate  chan struct{}
-	terminated bool
+	exitCh     chan struct{}
+	terminated int32
 }
 
 // NewMonitor creates a new instance of monitor.
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config) *Monitor {
-	m := &Monitor{
-		flag,
-		nil,
-		NewFileStorage(flag),
-		nil,
-		make(chan struct{}),
-		false,
+func NewMonitor(flag *Config) (*Monitor, error) {
+	// File Storage
+	fs, fsErr := NewFileStorage(flag)
+	if fsErr != nil {
+		return nil, fsErr
 	}
-	if runtime.GOOS != "windows" && flag.IpcPath != "" {
-		m.SetConnection(flag.IpcPath)
-	} else {
-		if flag.RpcURI == "" {
-			return nil
-		}
-		m.SetConnection(flag.RpcURI)
+	log.Info("Torrent file storage initialized")
+
+	// Torrent Manager
+	tMana := NewTorrentManager(flag)
+	if tMana == nil {
+		return nil, errors.New("torrent download manager initialise failed")
 	}
-	return m
+	log.Info("Torrent manager initialized")
+
+	return &Monitor{
+		config:     flag,
+		cl:         nil,
+		fs:         fs,
+		dl:         tMana,
+		exitCh:     make(chan struct{}),
+		terminated: 0,
+	}, nil
 }
 
 func (m *Monitor) Call(result interface{}, method string, args ...interface{}) error {
@@ -85,43 +90,25 @@ func (m *Monitor) Call(result interface{}, method string, args ...interface{}) e
 	}
 }
 
-func (m *Monitor) Terminate() chan<- struct{} {
-	return m.terminate
-}
-
 // SetConnection method builds connection to remote or local communicator.
-func (m *Monitor) SetConnection(clientURI string) (e error) {
+func SetConnection(clientURI string) (*rpc.Client, error) {
 	for i := 0; i < connTryTimes; i++ {
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
-			log.Info("Building internal-rpc connection failed", "URI", clientURI, "times", i)
-			e = err
+			log.Warn("Building internal-rpc connection failed", "URI", clientURI, "times", i, "error", err)
 		} else {
-			e = nil
-			log.Info("Internal-RPC connection established", "URI", clientURI)
-			m.cl = cl
-			break
+			log.Debug("Internal-RPC connection established", "URI", clientURI)
+			return cl, nil
 		}
-		time.Sleep(time.Second * connTryInterval)
-		if m.terminated {
-			return
-		}
-	}
-	return
-}
 
-// SetDownloader ...
-func (m *Monitor) SetDownloader(dl TorrentManagerAPI) error {
-	if dl == nil {
-		return ErrNoDownloadManager
+		time.Sleep(time.Second * connTryInterval)
 	}
-	log.Info("Torrent manager initialized")
-	m.dl = dl
-	return nil
+
+	return nil, errors.New("Building Internal-RPC Connection Failed")
 }
 
 func (m *Monitor) getBlockByNumber(blockNumber uint64) (block *Block, e error) {
-	block = m.fs.GetBlock(blockNumber)
+	block = m.fs.GetBlockByNumber(blockNumber)
 	if block == nil {
 		block = &Block{}
 		blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
@@ -140,6 +127,21 @@ func (m *Monitor) getBlockByNumber(blockNumber uint64) (block *Block, e error) {
 	return
 }
 
+func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
+	var blockNumber hexutil.Uint64
+
+	for i := 0; i < fetchBlockTryTimes; i++ {
+		if err := m.cl.Call(&blockNumber, "ctx_blockNumber"); err == nil {
+			return blockNumber, nil
+		}
+
+		time.Sleep(time.Second * fetchBlockTryInterval)
+		log.Warn("Torrent Fs Internal JSON-RPC ctx_blockNumber", "retry", i)
+	}
+
+	return 0, errors.New("[ Internal JSON-RPC Error ] try to get block number out of times")
+}
+
 func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 	if m.cl == nil {
 		return ErrNoRPCClient
@@ -151,21 +153,6 @@ func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 	if err := m.parseBlock(block); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (m *Monitor) parseNewBlockByNumber(blockNumber uint64) error {
-	if m.cl == nil {
-		return ErrNoRPCClient
-	}
-	block, err := m.getBlockByNumber(blockNumber)
-	if err != nil {
-		return err
-	}
-	if err := m.parseNewBlock(block); err != nil {
-		return err
-	}
-	log.Debug("Fetch block", "Number", block.Number, "Txs", len(block.Txs))
 	return nil
 }
 
@@ -194,7 +181,6 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	}
 
 	var _remainingSize string
-	// log.Info(receipt.ContractAddr.String())
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		return err
 	}
@@ -264,100 +250,155 @@ func (m *Monitor) parseBlock(b *Block) error {
 	return nil
 }
 
-func (m *Monitor) initialCheck(reverse bool) {
-	blockChecked := 0
-	endBlock := m.fs.LatestBlockNumber
-	log.Info("Fetch Block from", "Number", endBlock)
+func (m *Monitor) Stop() {
+	atomic.StoreInt32(&(m.terminated), 1)
+	close(m.exitCh)
 
-	if reverse {
-		lastBlock := m.fs.LatestBlockNumber
-		for i := endBlock; i >= minBlockNum; i-- {
-			if m.terminated {
-				break
-			}
-			m.parseBlockByNumber(i)
-			blockChecked++
-			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
-				log.Info("Blocks have been checked", "from", i, "to", lastBlock)
-				lastBlock = i - 1
-			}
-		}
-	} else {
-		lastBlock := uint64(minBlockNum)
-		for i := uint64(minBlockNum); i <= endBlock; i++ {
-			if m.terminated {
-				break
-			}
-			m.parseBlockByNumber(i)
-			blockChecked++
-			if blockChecked%fetchBlockLogStep == 0 || i == endBlock {
-				log.Info("Blocks have been checked", "from", lastBlock, "to", i)
-				lastBlock = i + 1
-			}
-		}
+	if err := m.fs.Close(); err != nil {
+		log.Error("Monitor File Storage Closed", "error", err)
 	}
-}
-
-func (m *Monitor) getLatestBlock() (b *Block, e error) {
-	b = &Block{}
-	for i := 0; i < fetchBlockTryTimes; i++ {
-		err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true)
-		if err != nil {
-			e = err
-		} else {
-			e = nil
-			break
-		}
-		time.Sleep(time.Second * fetchBlockTryInterval)
+	if err := m.dl.Close(); err != nil {
+		log.Error("Monitor Torrent Manager Closed", "error", err)
 	}
-	return
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
-	b, err := m.getLatestBlock()
-	if err != nil {
-		log.Info("Fetch latest block failed")
+	if err := m.dl.Start(); err != nil {
 		return err
 	}
-	m.parseNewBlock(b)
-	reverse := m.config.SyncMode != "full"
-	go m.initialCheck(reverse)
 
+	go func() {
+		err := m.startWork()
+		if err != nil {
+			log.Error("Torrent Fs Internal Error", "error", err)
+			p, pErr := os.FindProcess(os.Getpid())
+			if pErr != nil {
+				log.Error("Torrent Fs Internal Error", "error", pErr)
+				panic("boom")
+				return
+			}
+
+			sigErr := p.Signal(os.Interrupt)
+			if sigErr != nil {
+				log.Error("Torrent Fs Internal Error", "error", sigErr)
+				panic("boom")
+				return
+			}
+		}
+	}()
+	return nil
+}
+
+func (m *Monitor) startWork() error {
+	// Rpc Client
+	var clientURI string
+	if runtime.GOOS != "windows" && m.config.IpcPath != "" {
+		clientURI = m.config.IpcPath
+	} else {
+		if m.config.RpcURI == "" {
+			return errors.New("Torrent RpcURI is empty")
+		}
+		clientURI = m.config.RpcURI
+	}
+
+	rpcClient, rpcErr := SetConnection(clientURI)
+	if rpcErr != nil {
+		return rpcErr
+	}
+	m.cl = rpcClient
+
+	// Latest block number
+	number, err := m.getBlockNumber()
+	if err != nil {
+		log.Error("Torrent Fs Internal JSON-RPC Error")
+		return err
+	}
+
+	m.fs.LatestBlockNumber.Store(&number)
+
+	go m.syncLastBlock()
+	go m.listenLatestBlock()
+
+	return nil
+}
+
+func (m *Monitor) listenLatestBlock() {
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
 	counter := 0
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+
 	for {
 		select {
 		case <-timer.C:
 			counter += 1
-			// Try to get the latest b
-			b := &Block{}
-			if err := m.cl.Call(b, "eth_getBlockByNumber", "latest", true); err != nil {
+
+			bnum, err := m.getBlockNumber()
+			if err != nil {
+				log.Warn("Torrent Fs Internal JSON-RPC Error", "error", err)
 				timer.Reset(time.Second * 2)
 				continue
 			}
-			bnum := b.Number
+
 			if counter > 10 {
 				counter = 0
-				log.Info("try to fetch new block", "number", bnum)
+				log.Info("Try to fetch blocks", "number", uint64(bnum))
 			}
-			if bnum > m.fs.LatestBlockNumber {
-				m.parseBlock(b)
-				log.Info("Fetch block", "Number", bnum, "Txs", len(b.Txs))
-				for i := m.fs.LatestBlockNumber - 1; i >= minBlockNum; i-- {
-					if m.fs.HasBlock(i) {
+
+			oldNumber := *(m.fs.CurrentBlockNumber())
+			if bnum > oldNumber {
+				// Update latest block number
+				m.fs.LatestBlockNumber.Store(&bnum)
+
+				for i := bnum; i >= oldNumber; i-- {
+					if m.fs.HasBlock(uint64(i)) {
 						break
 					}
-					m.parseNewBlockByNumber(i)
+					m.parseBlockByNumber(uint64(i))
+					log.Debug("Fetch block", "Number", uint64(i))
 				}
 			}
 			timer.Reset(time.Second * 3)
-		case <-m.terminate:
-			m.dl.CloseAll(struct{}{})
-			m.terminated = true
-			return nil
+		case <-m.exitCh:
+			return
+		}
+	}
+}
+
+func (m *Monitor) syncLastBlock() {
+	reverse := m.config.SyncMode != "full"
+
+	blockChecked := 0
+	minNumber := uint64(minBlockNum)
+	maxNumber := uint64(*(m.fs.CurrentBlockNumber()))
+	log.Info("Fetch Block Range", "min", minNumber, "max", maxNumber)
+
+	if reverse {
+		lastBlock := maxNumber
+		for i := maxNumber; i >= minNumber; i-- {
+			if atomic.LoadInt32(&(m.terminated)) == 1 {
+				break
+			}
+
+			blockChecked++
+			m.parseBlockByNumber(uint64(i))
+			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
+				log.Debug("Blocks have been checked", "from", i, "to", lastBlock)
+				lastBlock = i - uint64(1)
+			}
+		}
+	} else {
+		lastBlock := minNumber
+		for i := uint64(minNumber); i <= maxNumber; i++ {
+			if atomic.LoadInt32(&(m.terminated)) == 1 {
+				break
+			}
+
+			blockChecked++
+			m.parseBlockByNumber(i)
+			if blockChecked%fetchBlockLogStep == 0 || i == maxNumber {
+				log.Debug("Blocks have been checked", "from", lastBlock, "to", i)
+				lastBlock = i + uint64(1)
+			}
 		}
 	}
 }
