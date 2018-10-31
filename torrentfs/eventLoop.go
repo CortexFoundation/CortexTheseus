@@ -34,7 +34,8 @@ const (
 )
 
 type TorrentManagerAPI interface {
-	CloseAll(struct{}) error
+	Start() error
+	Close() error
 	NewTorrent(string) error
 	RemoveTorrent(string) error
 	UpdateTorrent(interface{}) error
@@ -96,7 +97,7 @@ func SetConnection(clientURI string) (*rpc.Client, error) {
 		if err != nil {
 			log.Warn("Building internal-rpc connection failed", "URI", clientURI, "times", i, "error", err)
 		} else {
-			log.Info("Internal-RPC connection established", "URI", clientURI)
+			log.Debug("Internal-RPC connection established", "URI", clientURI)
 			return cl, nil
 		}
 
@@ -180,7 +181,6 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	}
 
 	var _remainingSize string
-	// log.Info(receipt.ContractAddr.String())
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		return err
 	}
@@ -254,13 +254,20 @@ func (m *Monitor) Stop() {
 	atomic.StoreInt32(&(m.terminated), 1)
 	close(m.exitCh)
 
-	m.fs.Close()
-	m.dl.CloseAll(struct{}{})
-	log.Info("Torrent Download Manager Closed")
+	if err := m.fs.Close(); err != nil {
+		log.Error("Monitor File Storage Closed", "error", err)
+	}
+	if err := m.dl.Close(); err != nil {
+		log.Error("Monitor Torrent Manager Closed", "error", err)
+	}
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
+	if err := m.dl.Start(); err != nil {
+		return err
+	}
+
 	go func() {
 		err := m.startWork()
 		if err != nil {
@@ -347,7 +354,7 @@ func (m *Monitor) listenLatestBlock() {
 						break
 					}
 					m.parseBlockByNumber(uint64(i))
-					log.Info("Fetch block", "Number", uint64(i))
+					log.Debug("Fetch block", "Number", uint64(i))
 				}
 			}
 			timer.Reset(time.Second * 3)
@@ -375,7 +382,7 @@ func (m *Monitor) syncLastBlock() {
 			blockChecked++
 			m.parseBlockByNumber(uint64(i))
 			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
-				log.Info("Blocks have been checked", "from", i, "to", lastBlock)
+				log.Debug("Blocks have been checked", "from", i, "to", lastBlock)
 				lastBlock = i - uint64(1)
 			}
 		}
@@ -389,7 +396,7 @@ func (m *Monitor) syncLastBlock() {
 			blockChecked++
 			m.parseBlockByNumber(i)
 			if blockChecked%fetchBlockLogStep == 0 || i == maxNumber {
-				log.Info("Blocks have been checked", "from", lastBlock, "to", i)
+				log.Debug("Blocks have been checked", "from", lastBlock, "to", i)
 				lastBlock = i + uint64(1)
 			}
 		}
