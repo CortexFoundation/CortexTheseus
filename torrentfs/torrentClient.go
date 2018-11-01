@@ -193,7 +193,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 
 	tm.mu.Lock()
 	if _, ok := tm.torrents[ih]; ok {
-		log.Warn("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.mu.Unlock()
 		return
 	}

@@ -64,7 +64,7 @@ type FileStorage struct {
 	LatestBlockNumber atomic.Value
 	lock              sync.RWMutex
 
-	readCounter MutexCounter
+	opCounter MutexCounter
 }
 
 // NewFileStorage ...
@@ -87,7 +87,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		filesContractAddr: make(map[common.Address]*FileInfo),
 		blockChecked:      make(map[uint64]bool),
 		db:                db,
-		readCounter:       0,
+		opCounter:         0,
 	}, nil
 }
 
@@ -158,14 +158,12 @@ func (fs *FileStorage) Close() error {
 	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
 
 	// Wait for file storage closed...
-	fs.lock.Lock()
-	fs.lock.Unlock()
-
 	for {
-		if fs.readCounter.IsZero() {
+		if fs.opCounter.IsZero() {
 			return fs.db.Close()
 		}
 
+		// log.Debug("Waiting for boltdb operating...")
 		time.Sleep(time.Microsecond)
 	}
 }
@@ -177,8 +175,8 @@ var (
 func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
 
-	fs.readCounter.Increase()
-	defer fs.readCounter.Decrease()
+	fs.opCounter.Increase()
+	defer fs.opCounter.Decrease()
 
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("blocks"))
@@ -191,9 +189,9 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 		}
 
 		fs.lock.RLock()
-		defer fs.lock.RUnlock()
-
 		v := buk.Get(k)
+		fs.lock.RUnlock()
+
 		if v == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -211,6 +209,9 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 }
 
 func (fs *FileStorage) WriteBlock(b *Block) error {
+	fs.opCounter.Increase()
+	defer fs.opCounter.Decrease()
+
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
 		if err != nil {
@@ -226,9 +227,8 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 		}
 
 		fs.lock.Lock()
-		defer fs.lock.Unlock()
-
 		e := buk.Put(k, v)
+		fs.lock.Unlock()
 
 		return e
 	})
