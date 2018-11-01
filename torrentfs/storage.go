@@ -39,6 +39,20 @@ func NewFileInfo(Meta *FileMeta) *FileInfo {
 	return &FileInfo{Meta, nil, nil, Meta.RawSize}
 }
 
+type MutexCounter int32
+
+func (mc *MutexCounter) Increase() {
+	atomic.AddInt32((*int32)(mc), int32(1))
+}
+
+func (mc *MutexCounter) Decrease() {
+	atomic.AddInt32((*int32)(mc), int32(-1))
+}
+
+func (mc *MutexCounter) IsZero() bool {
+	return atomic.LoadInt32((*int32)(mc)) == 0
+}
+
 // FileStorage ...
 type FileStorage struct {
 	// filesInfoHash     map[metainfo.Hash]*FileInfo
@@ -49,6 +63,8 @@ type FileStorage struct {
 
 	LatestBlockNumber atomic.Value
 	lock              sync.RWMutex
+
+	readCounter MutexCounter
 }
 
 // NewFileStorage ...
@@ -71,6 +87,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		filesContractAddr: make(map[common.Address]*FileInfo),
 		blockChecked:      make(map[uint64]bool),
 		db:                db,
+		readCounter:       0,
 	}, nil
 }
 
@@ -141,10 +158,16 @@ func (fs *FileStorage) Close() error {
 	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
 
 	// Wait for file storage closed...
-	// time.Sleep(time.Millisecond)
 	fs.lock.Lock()
 	fs.lock.Unlock()
-	return fs.db.Close()
+
+	for {
+		if fs.readCounter.IsZero() {
+			return fs.db.Close()
+		}
+
+		time.Sleep(time.Microsecond)
+	}
 }
 
 var (
@@ -153,6 +176,9 @@ var (
 
 func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
+
+	fs.readCounter.Increase()
+	defer fs.readCounter.Decrease()
 
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("blocks"))

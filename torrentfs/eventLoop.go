@@ -391,7 +391,10 @@ func (m *Monitor) syncLastBlock() {
 			}
 
 			blockChecked++
-			m.parseBlockByNumber(uint64(i))
+			if err := m.parseBlockByNumber(uint64(i)); err != nil {
+				log.Error("Sync old block", "number", i, "error", err)
+				return
+			}
 			if blockChecked%fetchBlockLogStep == 0 || i == 0 {
 				log.Debug("Blocks have been checked", "from", i, "to", lastBlock)
 				lastBlock = i - uint64(1)

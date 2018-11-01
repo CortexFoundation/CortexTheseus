@@ -189,7 +189,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	ih := spec.InfoHash
-	log.Info("Get torrent from local file", "InfoHash", ih.HexString())
+	log.Debug("Get torrent from local file", "InfoHash", ih.HexString())
 
 	tm.mu.Lock()
 	if _, ok := tm.torrents[ih]; ok {
@@ -259,7 +259,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 			torrentPending,
 		}
 		tm.mu.Unlock()
-		log.Info("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
+		log.Debug("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 		<-t.GotInfo()
 		tm.torrents[ih].Run()
 	}
@@ -282,7 +282,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 		tm.AddTorrent(seedTorrentPath)
 		return
 	}
-	log.Info("Get torrent from magnet uri", "InfoHash", ih.HexString())
+	log.Debug("Get torrent from magnet uri", "InfoHash", ih.HexString())
 
 	tm.mu.Lock()
 	if _, ok := tm.torrents[ih]; ok {
@@ -308,10 +308,10 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 		torrentPending,
 	}
 	tm.mu.Unlock()
-	log.Info("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
+	log.Debug("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 
 	<-t.GotInfo()
-	log.Info("Torrent gotInfo finished", "InfoHash", ih.HexString())
+	log.Debug("Torrent gotInfo finished", "InfoHash", ih.HexString())
 	tm.torrents[ih].Run()
 
 	f, _ := os.Create(torrentPath)
