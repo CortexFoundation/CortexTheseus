@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -52,6 +53,10 @@ type FileStorage struct {
 
 // NewFileStorage ...
 func NewFileStorage(config *Config) (*FileStorage, error) {
+	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
+		return nil, err
+	}
+
 	db, dbErr := bolt.Open(filepath.Join(config.DataDir,
 		".file.bolt.db"), 0600, &bolt.Options{
 		Timeout: time.Second,
@@ -61,7 +66,6 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 	db.NoSync = true
 
-	// db := NewBoltDB(config.DataDir)
 	return &FileStorage{
 		// filesInfoHash:     make(map[metainfo.Hash]*FileInfo),
 		filesContractAddr: make(map[common.Address]*FileInfo),
@@ -134,7 +138,12 @@ func (fs *FileStorage) HasBlock(blockNum uint64) bool {
 }
 
 func (fs *FileStorage) Close() error {
-	log.Info("Torrent File Storage Closed", "database dir", fs.db.Path())
+	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
+
+	// Wait for file storage closed...
+	// time.Sleep(time.Millisecond)
+	fs.lock.Lock()
+	fs.lock.Unlock()
 	return fs.db.Close()
 }
 
@@ -144,6 +153,7 @@ var (
 
 func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
+
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("blocks"))
 		if buk == nil {
@@ -155,14 +165,16 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 		}
 
 		fs.lock.RLock()
-		v := buk.Get(k)
-		fs.lock.RUnlock()
+		defer fs.lock.RUnlock()
 
-		if v == nil || len(v) == 0 {
+		v := buk.Get(k)
+		if v == nil {
 			return ErrReadDataFromBoltDB
 		}
-		//	log.Println(blockNum, v)
-		json.Unmarshal(v, &block)
+		if err := json.Unmarshal(v, &block); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -188,8 +200,9 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 		}
 
 		fs.lock.Lock()
+		defer fs.lock.Unlock()
+
 		e := buk.Put(k, v)
-		fs.lock.Unlock()
 
 		return e
 	})

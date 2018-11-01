@@ -57,6 +57,7 @@ type Monitor struct {
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
 func NewMonitor(flag *Config) (*Monitor, error) {
+	log.Info("Initialising Torrent FS")
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
 	if fsErr != nil {
@@ -107,36 +108,39 @@ func SetConnection(clientURI string) (*rpc.Client, error) {
 	return nil, errors.New("Building Internal-RPC Connection Failed")
 }
 
-func (m *Monitor) getBlockByNumber(blockNumber uint64) (block *Block, e error) {
-	block = m.fs.GetBlockByNumber(blockNumber)
+func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
+	block := m.fs.GetBlockByNumber(blockNumber)
 	if block == nil {
 		block = &Block{}
 		blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 
 		for i := 0; i < fetchBlockTryTimes; i++ {
 			err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true)
-			if err != nil {
-				e = err
-			} else {
-				e = nil
-				break
+			if err == nil {
+				return block, nil
 			}
+
 			time.Sleep(time.Second * fetchBlockTryInterval)
+			log.Warn("Torrent Fs Internal JSON-RPC ctx_getBlockByNumber", "retry", i, "error", err)
 		}
+
+		return nil, errors.New("[ Internal JSON-RPC Error ] try to get block out of times")
 	}
-	return
+
+	return block, nil
 }
 
 func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 	var blockNumber hexutil.Uint64
 
 	for i := 0; i < fetchBlockTryTimes; i++ {
-		if err := m.cl.Call(&blockNumber, "ctx_blockNumber"); err == nil {
+		err := m.cl.Call(&blockNumber, "ctx_blockNumber")
+		if err == nil {
 			return blockNumber, nil
 		}
 
 		time.Sleep(time.Second * fetchBlockTryInterval)
-		log.Warn("Torrent Fs Internal JSON-RPC ctx_blockNumber", "retry", i)
+		log.Warn("Torrent Fs Internal JSON-RPC ctx_blockNumber", "retry", i, "error", err)
 	}
 
 	return 0, errors.New("[ Internal JSON-RPC Error ] try to get block number out of times")
@@ -150,6 +154,7 @@ func (m *Monitor) parseBlockByNumber(blockNumber uint64) error {
 	if err != nil {
 		return err
 	}
+
 	if err := m.parseBlock(block); err != nil {
 		return err
 	}
@@ -291,6 +296,9 @@ func (m *Monitor) Start() error {
 }
 
 func (m *Monitor) startWork() error {
+	// Wait for ipc start...
+	time.Sleep(time.Second)
+
 	// Rpc Client
 	var clientURI string
 	if runtime.GOOS != "windows" && m.config.IpcPath != "" {
@@ -353,7 +361,10 @@ func (m *Monitor) listenLatestBlock() {
 					if m.fs.HasBlock(uint64(i)) {
 						break
 					}
-					m.parseBlockByNumber(uint64(i))
+					if err := m.parseBlockByNumber(uint64(i)); err != nil {
+						log.Error("Listen latest block", "number", uint64(i), "error", err)
+						return
+					}
 					log.Debug("Fetch block", "Number", uint64(i))
 				}
 			}
@@ -394,7 +405,10 @@ func (m *Monitor) syncLastBlock() {
 			}
 
 			blockChecked++
-			m.parseBlockByNumber(i)
+			if err := m.parseBlockByNumber(i); err != nil {
+				log.Error("Sync old block", "number", i, "error", err)
+				return
+			}
 			if blockChecked%fetchBlockLogStep == 0 || i == maxNumber {
 				log.Debug("Blocks have been checked", "from", lastBlock, "to", i)
 				lastBlock = i + uint64(1)
