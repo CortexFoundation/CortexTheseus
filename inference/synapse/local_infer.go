@@ -7,7 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/infernet"
+	// "github.com/ethereum/go-ethereum/infernet"
+	infernet "github.com/ethereum/go-ethereum/inference/synapse/kernel"
 	"github.com/ethereum/go-ethereum/infernet/parser"
 	"github.com/ethereum/go-ethereum/log"
 )

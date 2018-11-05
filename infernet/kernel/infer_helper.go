@@ -1,8 +1,16 @@
-package infernet
+package kernel
+
+/* #cgo LDFLAGS: activation_kernels.o     blas_kernels.o    convolutional_kernels.o  deconvolutional_kernels.o  gemm_kernels.o    int_convolutional_kernels.o  maxpool_layer_kernels.o  trivial_mul_kernels.o
+#cgo LDFLAGS: avgpool_layer_kernels.o  col2im_kernels.o  crop_layer_kernels.o     dropout_layer_kernels.o    im2col_kernels.o  int_maxpool_layer_kernels.o  scale_kernels.o */
 
 /*
-#cgo LDFLAGS: -L./ -lcortexnet
-#cgo CFLAGS: -I./int_mnist_model
+#cgo LDFLAGS: -lm -pthread
+#cgo LDFLAGS: -L/usr/local/cuda/lib64 -lcuda -lcudart -lcublas -lcurand
+#cgo LDFLAGS: -lstdc++ -shared
+
+#cgo CFLAGS: -I/usr/local/cuda/include/
+#cgo CFLAGS: -DGPU
+#cgo CFLAGS: -Wall -Wno-unused-result -Wno-unknown-pragmas
 
 #include "interface.h"
 */

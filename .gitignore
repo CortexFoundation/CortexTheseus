@@ -62,4 +62,5 @@ sync
 
 # intermediate result
 *.o
+*.syso
 *.a

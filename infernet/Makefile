@@ -76,8 +76,24 @@ EXECOBJ = $(addprefix $(OBJDIR), $(EXECOBJA))
 OBJS = $(addprefix $(OBJDIR), $(OBJ))
 DEPS = $(wildcard src/*.h) Makefile include/cortexnet.h
 
-all: obj  $(SLIB) $(ALIB) $(EXEC)
+all: obj  $(SLIB) $(ALIB) $(EXEC) collect
 
+.PHONY: collect kernel
+KERNEL=./kernel/
+KERNELS = $(addprefix $(KERNEL), $(OBJ))
+
+collect: kernel $(KERNELS)
+kernel:
+	mkdir -p $(KERNEL)
+	cp include/cortexnet.h $(KERNEL)
+	cp src/*.h $(KERNEL)
+
+$(KERNEL)%.o: %.c
+	cp $< $(KERNEL)
+
+$(KERNEL)%.o: %.cu
+	cp $< $(KERNEL)
+	$(NVCC) $(ARCH) $(COMMON) --compiler-options "$(CFLAGS)" -c $< -o $@.syso
 
 $(EXEC): $(EXECOBJ) $(ALIB)
 	$(CC) $(COMMON) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(ALIB)
