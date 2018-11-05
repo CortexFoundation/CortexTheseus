@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include "trimmer.h"
-#include "../miner.h"
+#include "../../miner.h"
 namespace cuckoogpu { 
 
 class cuckoo_hash {

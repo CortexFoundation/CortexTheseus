@@ -1,5 +1,5 @@
-#ifndef H_TRIMMER
-#define H_TRIMMER
+#ifndef H_TRIMMER_CL
+#define H_TRIMMER_CL
 #include <algorithm>
 #include <stdio.h>
 #include <string.h>
@@ -9,13 +9,14 @@
 #include <sys/time.h> // gettimeofday
 #include <unistd.h>
 #include <sys/types.h>
-#include "cuckoo.h"
+#include <ocl.h>
+#include "../cuckoo.h"
 namespace cuckoogpu {
 // TODO(tian) refactor functions under this namespace
 
-//extern __constant__ uint2 recoveredges[PROOFSIZE];
+//extern __constant cl_int2 recoveredges[PROOFSIZE];
 
-__global__ void Recovery(const siphash_keys *sipkeys, ulong4 *buffer, int *indexesi, uint2 *recoveredges);
+//__kernel void Recovery(const siphash_keys &sipkeys, __global cl_ulong4 *buffer, __global int *indexes);
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -70,16 +71,16 @@ const static u32 EDGES_B = ROW_EDGES_B / NX;
 #define FLUSHB 8
 #endif
 
-template <typename Edge> __device__ bool null(Edge e);
+//template <typename Edge> __kernel bool null(Edge e);
 
-__device__ node_t dipnode(const siphash_keys &keys, edge_t nce, u32 uorv) ;
+//__kernel node_t dipnode(const siphash_keys &keys, edge_t nce, u32 uorv) ;
 
-template <typename Edge> u32 __device__ endpoint(const siphash_keys &sipkeys, Edge e, int uorv);
+//template <typename Edge> u32 __kernel endpoint(const siphash_keys &sipkeys, Edge e, int uorv);
 
 #define checkCudaErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
-  if (code != cudaSuccess) {
-   // fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+inline void gpuAssert(cl_int code, const char *file, int line, bool abort=true) {
+  if (code != CL_SUCCESS) {
+//    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
     if (abort) exit(code);
   }
 }
@@ -106,12 +107,12 @@ struct trimparams {
     genA.tpb            =  256;
     genB.blocks         =  NX2;
     genB.tpb            =  128;
-    trim.blocks         =  NX2;
-    trim.tpb            =  512;
+    trim.blocks         =  NX2;//NX2;
+    trim.tpb            =  512;//512;
     tail.blocks         =  NX2;
-    tail.tpb            = 1024;
-    recover.blocks      = 1024;
-    recover.tpb         = 1024;
+    tail.tpb            = 1024;//1024;
+    recover.blocks      = 1024;//1024;
+    recover.tpb         = 1024;//1024;
   }
 };
 
@@ -119,22 +120,28 @@ typedef u32 proof[PROOFSIZE];
 
 // maintains set of trimmable edges
 struct edgetrimmer {
+  cl_platform_id platformId;
+  cl_device_id deviceId;
+  cl_context context;
+  cl_command_queue commandQueue;
+  cl_program program;
   trimparams tp;
   edgetrimmer *dt;
   size_t sizeA, sizeB;
   size_t indexesSize;
-  ulong4 *bufferA;
-  ulong4 *bufferB;
-  ulong4 *bufferAB;
-  int *indexesE;
-  int *indexesE2;
+  cl_mem bufferA;
+  cl_mem bufferB;
+  cl_mem bufferAB;
+  cl_mem indexesE;
+  cl_mem indexesE2;
+  cl_mem recoveredges; //const
   u32 hostA[NX * NY];
   u32 *uvnodes;
   proof sol;
-  siphash_keys sipkeys, *dipkeys;
-  uint2 *recoveredges;
+  siphash_keys sipkeys;//, *dipkeys;
+  cl_mem dipkeys;
 
-  edgetrimmer(const trimparams _tp);
+  edgetrimmer(const trimparams _tp, cl_context context, cl_command_queue commandQueue, cl_program program);
 
   u64 globalbytes() const ;
 
