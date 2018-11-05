@@ -14,8 +14,13 @@ inline cl_platform_id getOnePlatform(){
 inline void getPlatformInfo(cl_platform_id platformId){
 	size_t size = 0;
         cl_int status = clGetPlatformInfo(platformId, CL_PLATFORM_NAME, 0, NULL, &size);
+	if(status != CL_SUCCESS){
+		perror( "get platform info eror. \n");
+		return;
+	}
         char *name = (char*)malloc(size);
         status = clGetPlatformInfo(platformId, CL_PLATFORM_NAME, size, name, NULL);
         printf("platform name: %s\n", name);
+	free(name);
 }
 #endif

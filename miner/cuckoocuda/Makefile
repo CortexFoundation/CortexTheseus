@@ -94,8 +94,8 @@ cudaN31L14.o: src/siphash.cuh src/miner_cl.cpp src/wlt_trimmer.cpp cuckoo.o siph
 #	nvcc -g -std=c++11 -c -o $@.mean.o -rdc=true -DEDGEBITS=25 -DPROOFSIZE=4 -arch sm_35 src/wlt_trimmer.cu $(LIBS)
 #	nvcc -g -c -o $@.temp.o -rdc=true -DEDGEBITS=25 -DPROOFSIZE=4 -arch sm_35 src/miner.cu $(LIBS)
 #	nvcc -g -ccbin g++ -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -rdc=true -dlink -o $@ $@.temp.o $@.mean.o 
-	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=25 -DPROOFSIZE=4 src/wlt_trimmer.cpp
-	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=25 -DPROOFSIZE=4 src/miner_cl.cpp
+	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=28 -DPROOFSIZE=12 src/wlt_trimmer.cpp
+	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/miner_cl.cpp
 	ld -r -o $@ $@.temp.o $@.mean.o
 #	$(GPP) -g -U__STRICT_ANSI__ -o $@ $@.temp.o $@.mean.o cuckoo.o siphash.o blake2b.o -lOpenCL
 
