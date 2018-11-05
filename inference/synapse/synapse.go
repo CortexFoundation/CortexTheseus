@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/infernet/parser"
+	"github.com/ethereum/go-ethereum/inference/synapse/parser"
 	"github.com/ethereum/go-ethereum/log"
 )
 

@@ -7,9 +7,8 @@ import (
 	"os"
 	"strings"
 
-	// "github.com/ethereum/go-ethereum/infernet"
-	infernet "github.com/ethereum/go-ethereum/inference/synapse/kernel"
-	"github.com/ethereum/go-ethereum/infernet/parser"
+	"github.com/ethereum/go-ethereum/inference/synapse/kernel"
+	"github.com/ethereum/go-ethereum/inference/synapse/parser"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -110,7 +109,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		return
 	}
 
-	label, inferErr := infernet.InferCore(modelCfg, modelBin, inputContent)
+	label, inferErr := kernel.InferCore(modelCfg, modelBin, inputContent)
 	if inferErr != nil {
 		errCh <- inferErr
 		return
