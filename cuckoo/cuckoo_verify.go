@@ -8,7 +8,7 @@ package cuckoo
 */
 import "C"
 import (
-	//	"log"
+	"log"
 	"unsafe"
 )
 
@@ -33,6 +33,6 @@ func CuckooVerifyProof(hash []byte, nonce uint64, result *uint32, proofSize uint
 		(C.uint8_t)(proofSize),
 		(C.uint8_t)(edgeBits),
 	)
-
+	log.Println(r)
 	return int(r)
 }

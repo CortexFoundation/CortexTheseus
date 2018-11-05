@@ -13,9 +13,9 @@
 namespace cuckoogpu {
 // TODO(tian) refactor functions under this namespace
 
-extern __constant__ uint2 recoveredges[PROOFSIZE];
+//extern __constant__ uint2 recoveredges[PROOFSIZE];
 
-__global__ void Recovery(const siphash_keys &sipkeys, ulonglong4 *buffer, int *indexes);
+__global__ void Recovery(const siphash_keys *sipkeys, ulong4 *buffer, int *indexesi, uint2 *recoveredges);
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -79,7 +79,7 @@ template <typename Edge> u32 __device__ endpoint(const siphash_keys &sipkeys, Ed
 #define checkCudaErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
   if (code != cudaSuccess) {
-    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+   // fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
     if (abort) exit(code);
   }
 }
@@ -123,15 +123,16 @@ struct edgetrimmer {
   edgetrimmer *dt;
   size_t sizeA, sizeB;
   size_t indexesSize;
-  ulonglong4 *bufferA;
-  ulonglong4 *bufferB;
-  ulonglong4 *bufferAB;
+  ulong4 *bufferA;
+  ulong4 *bufferB;
+  ulong4 *bufferAB;
   int *indexesE;
   int *indexesE2;
   u32 hostA[NX * NY];
   u32 *uvnodes;
   proof sol;
   siphash_keys sipkeys, *dipkeys;
+  uint2 *recoveredges;
 
   edgetrimmer(const trimparams _tp);
 

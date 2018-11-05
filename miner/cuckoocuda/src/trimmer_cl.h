@@ -107,12 +107,12 @@ struct trimparams {
     genA.tpb            =  256;
     genB.blocks         =  NX2;
     genB.tpb            =  128;
-    trim.blocks         =  NX2*2;//NX2;
-    trim.tpb            =  256;//512;
+    trim.blocks         =  NX2;//NX2;
+    trim.tpb            =  512;//512;
     tail.blocks         =  NX2;
-    tail.tpb            = 256;//1024;
-    recover.blocks      = 4096;//1024;
-    recover.tpb         = 256;//1024;
+    tail.tpb            = 1024;//1024;
+    recover.blocks      = 1024;//1024;
+    recover.tpb         = 1024;//1024;
   }
 };
 

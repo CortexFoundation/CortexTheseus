@@ -174,21 +174,17 @@ int blake2b_init_key( blake2b_state *S, size_t outlen, const void *key, size_t k
     G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
   } while(0)
 */
-
-uint64_t tmp_rotr64(const uint64_t w, const unsigned c){
-return ( w >> c ) | ( w << ( 64 - c ) );
-}
 void G(int r, int i, uint64_t *a, uint64_t *b, uint64_t *c, uint64_t *d, uint64_t *m){
 
   do {                                     
     *a = *a + *b + m[blake2b_sigma[r][2*i+0]]; 
-    *d = tmp_rotr64(*d ^ *a, 32);                  
+    *d = rotr64(*d ^ *a, 32);                  
     *c = *c + *d;                              
-    *b = tmp_rotr64(*b ^ *c, 24);                  
+    *b = rotr64(*b ^ *c, 24);                  
     *a = *a + *b + m[blake2b_sigma[r][2*i+1]]; 
-    *d = tmp_rotr64(*d ^ *a, 16);                  
+    *d = rotr64(*d ^ *a, 16);                  
     *c = *c + *d;                              
-    *b = tmp_rotr64(*b ^ *c, 63);                  
+    *b = rotr64(*b ^ *c, 63);                  
   } while(0);
 
 }

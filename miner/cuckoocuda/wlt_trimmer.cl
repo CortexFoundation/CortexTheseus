@@ -266,7 +266,9 @@ __kernel void Recovery(__global const siphash_keys *sipkeys, __global ulong4 *bu
             const int gid = group * dim + lid;
             const int nthreads = get_global_size(0);//gridDim.x * dim;
             //const int FLUSHA2 = 2*FLUSHA;
-            
+           if(gid == 0){
+	   	printf("EDGEBITS = %d, PROOFSIZE = %d\n", EDGEBITS, PROOFSIZE);
+	   } 
 			__local uint2 tmp[NX][FLUSHA2]; // needs to be ulong4 aligned
             const int TMPPERLL4 = sizeof(ulong4) / sizeof(uint2);
             __local int counters[NX];
@@ -412,7 +414,7 @@ __kernel void Recovery(__global const siphash_keys *sipkeys, __global ulong4 *bu
 				if (edgeIndex < bucketEdges) {
                     const int index = group * maxOut + edgeIndex;
                     //uiint2 edge = __ldg(&source[index + halfA]);
-                    uint2 edge = source[index + halfA/sizeof(uint2)];
+                    uint2 edge = source[bufferAB_offset/sizeof(uint2) + index + halfA/sizeof(uint2)];
                     if (null2(edge)) continue;
                     uint node1 = endpoint2(sipkeys, edge, 0);
                     col = (node1 >> XBITS) & XMASK;

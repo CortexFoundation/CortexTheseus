@@ -38,7 +38,7 @@ inline int buildProgram(cl_program program, cl_device_id *deviceId, const char*o
         printf("error : the program is null\n");
         return -1;
     }
-	cl_int err = clBuildProgram(program, 1, deviceId, NULL, NULL, NULL);
+	cl_int err = clBuildProgram(program, 1, deviceId, options, NULL, NULL);
 	if(err != CL_SUCCESS){
 		perror("failed to build program.\n");
 		getProgramBuildInfo(program, *deviceId);

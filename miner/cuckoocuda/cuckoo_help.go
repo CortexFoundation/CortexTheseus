@@ -1,7 +1,7 @@
 package cuckoocuda
 
 /*
-#cgo LDFLAGS: -L./ -lgpugominer -L/opt/amdgpu-pro/lib/x86_64-linux-gnu/ -lOpenCL -lstdc++
+#cgo LDFLAGS: -L./ -lgpugominer -L/usr/local/cuda/lib64 -lcudart -lOpenCL -lstdc++
 #cgo CFLAGS: -I./
 
 #include "miner.h"

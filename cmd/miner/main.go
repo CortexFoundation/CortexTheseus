@@ -251,7 +251,7 @@ func (cm *Cortex) miningOnce() {
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
 							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-							ok := cuckoo.CuckooVerifyProof(header[:], curNonce, &sol[0], 14, 27)
+							ok := cuckoo.CuckooVerifyProof(header[:], curNonce, &sol[0], 4, 25)
 							// ok, _ := cuckoo.CuckooVerifyHeader(header[:], curNonce, &sol)
 							if ok != 1 {
 								log.Println("verify failed", header[:], curNonce, &sol)
