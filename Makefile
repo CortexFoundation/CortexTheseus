@@ -62,8 +62,7 @@ all: cortex-remote cortex-nominer cortex inferServer cuckoo-miner
 clib:
 	make -C $(LIB_MINER_DIR)
 	make -C $(LIB_CUDA_MINER_DIR)
-	make -C ${INFER_NET_DIR}
-	cp ${INFER_NET_DIR}/libcortexnet.so build/bin/
+	make -C ${INFER_NET_DIR} collect
 
 inferServer: clib
 	build/env.sh go run build/ci.go install ./cmd/infer_server
