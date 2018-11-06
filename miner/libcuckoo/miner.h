@@ -3,7 +3,7 @@
 extern "C"
 {
 #endif
-int32_t CuckooFindSolutionsCuda(
+int32_t FindSolutionsByGPU(
         uint8_t *header,
         uint64_t nonce,
         uint32_t *result,

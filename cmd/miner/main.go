@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/PoolMiner/common"
 	"github.com/PoolMiner/cuckoo"
-	cuckoo_gpu "github.com/PoolMiner/miner/cuckoocuda"
+	cuckoo_gpu "github.com/PoolMiner/miner/libcuckoo"
 	"io"
 	"log"
 	"math/rand"
@@ -233,8 +233,8 @@ func (cm *Cortex) miningOnce() {
 						}
 					}
 				} else if cm.chip == "gpu" {
-					log.Println("call cuckoo_gpu.CuckooFindSolutionsCuda: ", header, curNonce)
-					status, sols := cuckoo_gpu.CuckooFindSolutionsCuda(header, curNonce)
+					log.Println("call cuckoo_gpu.FindSolutionsByGPU: ", header, curNonce)
+					status, sols := cuckoo_gpu.FindSolutionsByGPU(header, curNonce)
 					if status != 0 {
 						if verboseLevel >= 3 {
 							log.Println("result: ", status, sols)

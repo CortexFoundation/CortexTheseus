@@ -194,7 +194,7 @@ struct solver_ctx {
 }; // end of namespace cuckoogpu
 
 cuckoogpu::solver_ctx* ctx = NULL;
-int32_t CuckooFindSolutionsCuda(
+int32_t FindSolutionsByGPU(
         uint8_t *header,
         uint64_t nonce,
         result_t *result,

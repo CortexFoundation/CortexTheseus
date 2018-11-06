@@ -275,7 +275,7 @@ namespace cuckoogpu {
 
 cuckoogpu::solver_ctx * ctx = NULL;
 int32_t
-CuckooFindSolutionsCuda(uint8_t * header,
+FindSolutionsByGPU(uint8_t * header,
 			uint64_t nonce,
 			result_t * result,
 			uint32_t resultBuffSize,

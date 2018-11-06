@@ -1,7 +1,9 @@
+// +build opencl
+
 package cuckoocuda
 
 /*
-#cgo LDFLAGS: -L./ -lgpugominer -L/usr/local/cuda/lib64 -lcudart -lOpenCL -lstdc++
+#cgo LDFLAGS: -L./ -lopenclminer -lOpenCL -lstdc++
 #cgo CFLAGS: -I./
 
 #include "miner.h"
@@ -14,7 +16,7 @@ import (
 	"unsafe"
 )
 
-func CuckooFindSolutionsCuda(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32) {
+func FindSolutionsByGPU(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32) {
 	var (
 		_solLength uint32
 		_numSols   uint32
@@ -24,7 +26,7 @@ func CuckooFindSolutionsCuda(hash []byte, nonce uint64) (status_code uint32, ret
 	copy(tmpHash[:], hash)
 
 	start := time.Now()
-	r := C.CuckooFindSolutionsCuda(
+	r := C.FindSolutionsByGPU(
 		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
 		C.uint64_t(nonce),
 		(*C.uint32_t)(unsafe.Pointer(&result[0])),

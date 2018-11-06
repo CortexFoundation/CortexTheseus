@@ -4,16 +4,22 @@
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
-LIB_MINER_DIR = $(shell pwd)/cminer/
-LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
+LIB_CUCKOO_DIR = $(shell pwd)/miner/libcuckoo
 
-cuckoo-miner: clib
-	go build -o build/bin/miner ./cmd/miner 
+all: cuda-miner opencl-miner
+
+cuda-miner: clib
+	go build -o build/bin/cuda_miner ./cmd/miner 
+	@echo "Done building."
+
+opencl-miner: clib
+	go build -o build/bin/opencl_miner -tags opencl ./cmd/miner 
 	@echo "Done building."
 
 clib:
-	make -C $(LIB_CUDA_MINER_DIR)
+	make -C $(LIB_CUCKOO_DIR)
 
 clean:
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+	go clean -cache
 
