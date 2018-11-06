@@ -40,12 +40,13 @@ openclN31L14.o: src/siphash.cuh src/opencl/miner_cl.cpp src/opencl/wlt_trimmer.c
 
 libcudaminer.a: cudaN31L14.o blake2b.o siphash.o cuckoo.o
 	ar cr $@ $^ $<.temp.o  $<.mean.o
+	rm -rf cudaN31L14.o cudaN31L14.o.temp.o $<.temp.p $<.mean.o
 #	$(GPP) -g -o $@ $^ $<.temp.o  $<.mean.o -lOpenCL
 #	ar cr $@ $^
 
 libopenclminer.a: openclN31L14.o blake2b.o siphash.o cuckoo.o
 	ar cr $@ $^ $<.temp.o  $<.mean.o
-
+	rm -rf $^ $<.temp.o $<.mean.o
 clean:
 	rm -rf *.o *.a
 
