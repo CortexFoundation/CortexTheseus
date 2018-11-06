@@ -135,12 +135,9 @@ namespace cuckoogpu {
 			       (void *) &trimmer->dipkeys);
 	    clResult |=
 		clSetKernelArg(recovery_kernel, 1, sizeof (cl_mem),
-			       (void *) &trimmer->bufferA);
-	    clResult |=
-		clSetKernelArg(recovery_kernel, 2, sizeof (cl_mem),
 			       (void *) &trimmer->indexesE2);
 	    clResult |=
-		clSetKernelArg(recovery_kernel, 3, sizeof (cl_mem),
+		clSetKernelArg(recovery_kernel, 2, sizeof (cl_mem),
 			       (void *) &trimmer->recoveredges);
 	    if (clResult != CL_SUCCESS)
 	    {
