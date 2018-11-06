@@ -18,7 +18,7 @@ namespace cuckoogpu {
 
 	cl_int clResult;
 	 dipkeys =
-	    clCreateBuffer(this->context, CL_MEM_READ_WRITE,
+	    clCreateBuffer(this->context, CL_MEM_READ_ONLY,
 			   sizeof (siphash_keys), NULL, &clResult);
 	if (clResult != CL_SUCCESS) {
 	    fprintf(stderr, "%s\n", getCLErrorStr(clResult));
@@ -42,7 +42,7 @@ namespace cuckoogpu {
 	}
 
 	recoveredges =
-	    clCreateBuffer(context, CL_MEM_READ_WRITE,
+	    clCreateBuffer(context, CL_MEM_READ_ONLY,
 			   sizeof (cl_uint2) * PROOFSIZE, NULL, &clResult);
 	if (clResult != CL_SUCCESS)
 	{

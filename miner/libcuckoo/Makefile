@@ -29,8 +29,8 @@ siphash.o: src/siphash.cc src/siphash.h
 
 
 cudaN31L14.o: src/siphash.cuh src/cuda/miner.cu src/cuda/wlt_trimmer.cu Makefile
-	nvcc -g -std=c++11 -c -o $@.mean.o -rdc=true -DEDGEBITS=25 -DPROOFSIZE=4 -arch sm_35 src/cuda/wlt_trimmer.cu $(LIBS)
-	nvcc -g -c -o $@.temp.o -rdc=true -DEDGEBITS=25 -DPROOFSIZE=4 -arch sm_35 src/cuda/miner.cu $(LIBS)
+	nvcc -g -std=c++11 -c -o $@.mean.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/wlt_trimmer.cu $(LIBS)
+	nvcc -g -c -o $@.temp.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/miner.cu $(LIBS)
 	nvcc -g -ccbin g++ -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -rdc=true -dlink -o $@ $@.temp.o $@.mean.o 
 
 openclN31L14.o: src/siphash.cuh src/opencl/miner_cl.cpp src/opencl/wlt_trimmer.cpp Makefile

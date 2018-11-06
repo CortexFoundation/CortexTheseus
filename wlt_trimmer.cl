@@ -177,7 +177,7 @@ null2(uint2 nodes)
 }
 
 __kernel void
-Recovery(__constant const siphash_keys * sipkeys, __global ulong4 * buffer, __global int *indexes, __constant uint2 * recoveredges)
+Recovery(__constant const siphash_keys * sipkeys, __global int *indexes, __constant uint2 * recoveredges)
 {
     const int gid = get_global_id(0);	//blockDim.x * blockIdx.x + threadIdx.x;
     const int lid = get_local_id(0);	//threadIdx.x;
@@ -291,6 +291,8 @@ SeedB(__constant const siphash_keys * sipkeys,
     const int row = group / NX;
     const int bucketEdges = min((int) sourceIndexes[group + halfE], (int) maxOut);
     const int loops = (bucketEdges + dim - 1) / dim;
+    const uint dest_halfA = halfA/sizeof(ulong4);
+    const uint src_halfA = halfA/sizeof(uint2);
 
     for (int loop = 0; loop < loops; loop++)
     {
@@ -301,7 +303,7 @@ SeedB(__constant const siphash_keys * sipkeys,
 	if (edgeIndex < bucketEdges)
 	{
 	    const int index = group * maxOut + edgeIndex;
-	    uint2 edge = source[index + halfA / sizeof (uint2)];
+	    uint2 edge = source[index + src_halfA];
 	    if (null2(edge))
 		continue;
 	    uint node1 = endpoint2(sipkeys, edge, 0);
@@ -321,7 +323,7 @@ SeedB(__constant const siphash_keys * sipkeys,
 	    for (int i = 0; i < nflush; i += TMPPERLL4)
 	    {
 		destination[((ulong) (row * NX + col) * maxOut + cnt +
-			     i) / TMPPERLL4 + halfA / sizeof (ulong4)] = uint2_to_ulong4(tmp[col][i], tmp[col][i + 1], tmp[col][i + 2], tmp[col][i + 3]);
+			     i) / TMPPERLL4 + dest_halfA] = uint2_to_ulong4(tmp[col][i], tmp[col][i + 1], tmp[col][i + 2], tmp[col][i + 3]);
 	    }
 	    for (int t = 0; t < newCount; t++)
 	    {
@@ -342,7 +344,7 @@ SeedB(__constant const siphash_keys * sipkeys,
 	    int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
 					   TMPPERLL4), (int) (maxOut - TMPPERLL4));
 	    destination[((ulong) (row * NX + col) * maxOut + cnt) / TMPPERLL4 +
-			halfA / sizeof (ulong4)] = uint2_to_ulong4(tmp[col][i], tmp[col][i + 1], tmp[col][i + 2], tmp[col][i + 3]);
+			dest_halfA] = uint2_to_ulong4(tmp[col][i], tmp[col][i + 1], tmp[col][i + 2], tmp[col][i + 3]);
 	}
     }
 }

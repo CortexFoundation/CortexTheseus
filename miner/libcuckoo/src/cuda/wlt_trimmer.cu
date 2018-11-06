@@ -333,12 +333,7 @@ int compare(const void *a, const void *b){
         checkCudaErrors(cudaDeviceSynchronize());
 
 	SeedA<<<tp.genA.blocks, tp.genA.tpb>>>(dipkeys, bufferAB, (int *)indexesE, EDGES_A);
-/*
-	ulong *tmpbuffer = (ulong*)malloc(sizeA);
-	cudaMemcpy(tmpbuffer, bufferAB, sizeA, cudaMemcpyDeviceToHost);
-	qsort(tmpbuffer, sizeA/sizeof(long), sizeof(long), compare);
-	saveFile(tmpbuffer, 4096, "cuda_bufferA.txt");
-*/
+
         const u32 halfA = sizeA/2 ;/// sizeof(ulong4);
         const u32 halfE = NX2 / 2;
 	SeedB<<<tp.genB.blocks/2, tp.genB.tpb>>>(dipkeys, (const uint2 *)bufferAB, bufferA, (const int *)indexesE, indexesE2, 0, 0, EDGES_A);

@@ -206,10 +206,6 @@ int32_t FindSolutionsByGPU(
     using std::vector;
     cudaSetDevice(ctx->device);
 
-    uint8_t tmpheader[32] = {3, 181, 241, 90, 114, 14, 82, 48, 238, 210, 214, 200, 40, 238, 92, 242, 246, 224, 171, 116, 220, 131, 19, 117, 176, 2, 253, 46, 114, 109, 164, 25};//{66, 178, 108, 246, 24, 92, 120, 111, 149, 32, 165, 229, 20, 16, 27, 216, 10, 250, 135, 182, 10, 198, 128, 20, 64, 141, 55, 205, 161, 38, 209, 177};
-    nonce = 5882121833590555395;
-	header = tmpheader;
-
     ctx->setheadernonce((char*)header, nonce); //TODO(tian)
     char headerInHex[65];
     for (uint32_t i = 0; i < 32; i++) {
@@ -250,7 +246,6 @@ void CuckooInitialize(uint32_t device) {
 
     trimparams tp;
     int nDevices = 0;
-    device = 0;
     //TODO(tian) make use of multiple gpu
     checkCudaErrors(cudaGetDeviceCount(&nDevices));
     printf("ndevices = %d, device = %d\n", nDevices, device);
