@@ -322,17 +322,24 @@ void CuckooInitialize (uint32_t device)
 	if (commandQueue == NULL)
 		return;
 
-	const char *filename = "wlt_trimmer.cl";
+/*	const char *filename = "wlt_trimmer.cl";
 	string sourceStr;
 	size_t size = 0;
 	convertToString (filename, sourceStr, size);
 	const char *source = sourceStr.c_str ();
 	cl_program program = createProgram (context, &source, size);
-	if (program == NULL)
+*/
+	printf("create program from binary file\n");
+	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);	
+	if (program == NULL){
+		printf("create program error\n");
 		return;
+	}
 	char options[1024] = "-I./";
 	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d", EDGEBITS, PROOFSIZE);
+	
 	buildProgram (program, &(deviceId), options);
+	//saveBinaryFile(program, deviceId);
 	cl_ulong maxThreadsPerBlock = 0;
 	clGetDeviceInfo (deviceId, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (maxThreadsPerBlock), &maxThreadsPerBlock, NULL);
 	assert (tp.genA.tpb <= maxThreadsPerBlock);
