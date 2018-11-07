@@ -167,7 +167,6 @@ func (cm *Cortex) Mining() {
 			}
 		}
 		cm.miningOnce()
-		break
 	}
 	cuckoo.CuckooFinalize()
 }
@@ -259,7 +258,6 @@ func (cm *Cortex) miningOnce() {
 							} else {
 								log.Println("verify successed", header[:], curNonce, &sol)
 								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
-								return
 							}
 							// }
 						}
@@ -309,7 +307,6 @@ func (cm *Cortex) miningOnce() {
 				cm.submit(sol)
 			}
 
-			return
 		default:
 			time.Sleep(100 * time.Millisecond)
 		}
