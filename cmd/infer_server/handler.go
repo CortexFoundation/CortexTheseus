@@ -58,6 +58,13 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 		return
 	}
 
+	// Fixed bugs, ctx_getSolidityBytes returns 0x which stands for state invalid
+	if len(inputArray) == 0 {
+		log.Warn("Input content state invalid", "error", "bytes length is zero")
+		RespErrorText(w, "input bytes length is zero")
+		return
+	}
+
 	log.Debug("Infer Detail", "Input Content", inputArray.String())
 	label, err := infer.Engine().InferByInputContent(inferWork.ModelHash, inputArray)
 

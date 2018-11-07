@@ -56,7 +56,7 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cortex-remote cortex-nominer cortex inferServer cuckoo-miner
+all: cortex-remote cortex-nominer cortex inferServer 
 	# build/env.sh go run build/ci.go install
 
 clib:
