@@ -8,7 +8,7 @@
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
-.PHONY: clib inferServer
+.PHONY: clib inferServer nodekey
 .PHONY: cortex cortex-remote
 
 GOBIN = $(shell pwd)/build/bin
@@ -56,8 +56,13 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cortex-remote cortex-nominer cortex inferServer 
+all: cortex-remote cortex-nominer cortex inferServer nodekey
 	# build/env.sh go run build/ci.go install
+
+nodekey:
+	build/env.sh go run build/ci.go install ./cmd/nodekey
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 clib:
 	make -C $(LIB_MINER_DIR)
