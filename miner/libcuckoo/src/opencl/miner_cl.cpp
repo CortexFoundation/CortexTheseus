@@ -321,15 +321,15 @@ void CuckooInitialize (uint32_t device)
 	cl_command_queue commandQueue = createCommandQueue (context, deviceId);
 	if (commandQueue == NULL)
 		return;
-
-/*	const char *filename = "wlt_trimmer.cl";
+/*
+	const char *filename = "wlt_trimmer.cl";
 	string sourceStr;
 	size_t size = 0;
 	convertToString (filename, sourceStr, size);
 	const char *source = sourceStr.c_str ();
 	cl_program program = createProgram (context, &source, size);
 */
-	printf("create program from binary file\n");
+	//printf("create program from binary file\n");
 	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);	
 	if (program == NULL){
 		printf("create program error\n");

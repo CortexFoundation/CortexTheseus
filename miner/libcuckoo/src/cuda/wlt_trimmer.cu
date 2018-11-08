@@ -369,11 +369,7 @@ int compare(const void *a, const void *b){
         cudaMemcpy(hostA, indexesE, NX * NY * sizeof(u32), cudaMemcpyDeviceToHost);
 
         checkCudaErrors(cudaDeviceSynchronize());
-	for(int i = 0; i < 16; i++){
-		printf("%d ", hostA[i]);
-	}
-	printf("\n");
-		fprintf(stderr, "Host A [0]: %zu\n", hostA[0]);
+	fprintf(stderr, "Host A [0]: %zu\n", hostA[0]);
         return hostA[0];
     }
 
