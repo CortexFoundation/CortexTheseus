@@ -92,7 +92,7 @@ struct solver_ctx {
     soledges[i].x = u2/2;
     soledges[i].y = v2/2;
   }
-//opencl
+
   void solution(const u32 *us, u32 nu, const u32 *vs, u32 nv) {
     u32 ni = 0;
     recordedge(ni++, *us, *vs);
@@ -100,18 +100,13 @@ struct solver_ctx {
       recordedge(ni++, us[(nu+1)&~1], us[nu|1]); // u's in even position; v's in odd
     while (nv--)
       recordedge(ni++, vs[nv|1], vs[(nv+1)&~1]); // u's in odd position; v's in even
-    	assert(ni == PROOFSIZE);
-    	sols.resize(sols.size() + PROOFSIZE);
-	for(int i = 0; i < PROOFSIZE; i++){
-		printf("<%u, %u>, ", soledges[i].x, soledges[i].y);
-	}
-	printf("\n");
-    	cudaMemset(trimmer->indexesE2, 0, trimmer->indexesSize);
-    	cudaMemcpy(trimmer->recoveredges, soledges, sizeof(soledges), cudaMemcpyHostToDevice);
-
-	Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(trimmer->dipkeys, trimmer->bufferA, (int *)trimmer->indexesE2, trimmer->recoveredges);
-    	cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE2, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
-    	checkCudaErrors(cudaDeviceSynchronize());
+    assert(ni == PROOFSIZE);
+    sols.resize(sols.size() + PROOFSIZE);
+    cudaMemcpyToSymbol(recoveredges, soledges, sizeof(soledges));
+    cudaMemset(trimmer->indexesE2, 0, trimmer->indexesSize);
+	Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, trimmer->bufferA, (int *)trimmer->indexesE2);
+    cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE2, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
+    checkCudaErrors(cudaDeviceSynchronize());
 	fprintf(stderr, "Index: %d points: [", sols.size() / PROOFSIZE);
 	for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
 		fprintf(stderr, "<%zu,%zu>, ", soledges[idx].x, soledges[idx].y);
@@ -121,7 +116,7 @@ struct solver_ctx {
 		fprintf(stderr, "%zu,", sols[sols.size() - PROOFSIZE + idx]);
 	}
 	fprintf(stderr, "]\n");
-    	qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), nonce_cmp);
+    qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), nonce_cmp);
   }
 
   u32 path(u32 u, u32 *us) {
@@ -158,6 +153,7 @@ struct solver_ctx {
         const u32 len = nu + nv + 1;
         if (len == PROOFSIZE)
           solution(us, nu, vs, nv);
+        // if (len == 2) printf("edge %x %x\n", edge.x, edge.y);
       } else if (nu < nv) {
         while (nu--)
           cuckoo->set(us[nu+1], us[nu]);
@@ -177,21 +173,33 @@ struct solver_ctx {
       addedge(edges[i]);
 	}
   }
+
   int solve() {
+    // u32 timems,timems2;
+    // struct timeval time0, time1;
+
+    // gettimeofday(&time0, 0);
     u32 nedges = trimmer->trim(this->device);
     if (nedges > MAXEDGES) {
       fprintf(stderr, "OOPS; losing %d edges beyond MAXEDGES=%d\n", nedges-MAXEDGES, MAXEDGES);
       nedges = MAXEDGES;
     }
-
+	// nedges must less then CUCKOO_SIZE, or find-cycle procedure will never stop.
 	nedges = nedges & CUCKOO_MASK;
     cudaMemcpy(edges, trimmer->bufferB, nedges * 8, cudaMemcpyDeviceToHost);
+    // gettimeofday(&time1, 0);
+    // timems = (time1.tv_sec-time0.tv_sec)*1000 + (time1.tv_usec-time0.tv_usec)/1000;
+    // gettimeofday(&time0, 0);
     findcycles(edges, nedges);
+    // gettimeofday(&time1, 0);
+    // timems2 = (time1.tv_sec-time0.tv_sec)*1000 + (time1.tv_usec-time0.tv_usec)/1000;
+    // printf("findcycles edges %d time %d ms total %d ms\n", nedges, timems2, timems+timems2);
     return sols.size() / PROOFSIZE;
   }
 };
 
 }; // end of namespace cuckoogpu
+
 
 cuckoogpu::solver_ctx* ctx = NULL;
 int32_t FindSolutionsByGPU(
@@ -204,6 +212,7 @@ int32_t FindSolutionsByGPU(
 {
     using namespace cuckoogpu;
     using std::vector;
+    // printf("[CuckooFind, sols.size()SolutionsCuda] thread: %d\n", getpid());
     cudaSetDevice(ctx->device);
 
     ctx->setheadernonce((char*)header, nonce); //TODO(tian)
@@ -213,6 +222,7 @@ int32_t FindSolutionsByGPU(
     }
     headerInHex[64] = '\0';
 
+    // printf("Looking for %d-cycle on cuckoo%d(\"%s\",%019lu)\n", PROOFSIZE, NODEBITS, headerInHex,  nonce);
     u32 nsols = ctx->solve();
     vector<vector<u32> > sols;
     vector<vector<u32> >* solutions = &sols;
@@ -223,6 +233,7 @@ int32_t FindSolutionsByGPU(
         for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
             sol.push_back(prf[idx]);
         }
+        // std::sort(sol.begin(), sol.end());
     }
     *solLength = 0;
     *numSol = sols.size();
@@ -239,6 +250,7 @@ int32_t FindSolutionsByGPU(
     return nsols > 0;
 
 }
+
 void CuckooInitialize(uint32_t device) {
     printf("thread: %d\n", getpid());
     using namespace cuckoogpu;
@@ -248,9 +260,9 @@ void CuckooInitialize(uint32_t device) {
     int nDevices = 0;
     //TODO(tian) make use of multiple gpu
     checkCudaErrors(cudaGetDeviceCount(&nDevices));
-    printf("ndevices = %d, device = %d\n", nDevices, device);
     assert(device < nDevices);
     cudaSetDevice(device);
+    // printf("Cuckoo: Device ID %d\n", device);
     cudaDeviceProp prop;
     checkCudaErrors(cudaGetDeviceProperties(&prop, device));
     assert(tp.genA.tpb <= prop.maxThreadsPerBlock);
