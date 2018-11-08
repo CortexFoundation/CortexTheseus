@@ -268,9 +268,6 @@ func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 								atomic.AddInt64(sol_count, 1)
 								log.Println(fmt.Sprintf("solutions=%v, all_time = %vms, avg_time = %vms", *sol_count, *all_time, (*all_time)/(*sol_count)))
 								start_time = end_time
-								if *sol_count == 100{
-									return
-								}
 							}
 							// }
 						}

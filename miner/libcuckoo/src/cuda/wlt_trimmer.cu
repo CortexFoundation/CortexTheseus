@@ -9,7 +9,7 @@ namespace cuckoogpu {
 #define TROMP_ROUND
 #define TROMP_TAIL
 
-#define TIMER
+//#define TIMER
 
 #define DUCK_A_EDGES (EDGES_A)
 #define DUCK_A_EDGES_NX (DUCK_A_EDGES * NX)
@@ -684,7 +684,7 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
 #endif
 
         checkCudaErrors(cudaDeviceSynchronize());
-		fprintf(stderr, "Host A [0]: %zu\n", hostA[0]);
+//		fprintf(stderr, "Host A [0]: %zu\n", hostA[0]);
         return hostA[0];
     }
 
