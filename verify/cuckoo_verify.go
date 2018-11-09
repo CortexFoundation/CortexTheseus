@@ -1,8 +1,6 @@
 package verify
 
 /*
-#cgo LDFLAGS: -lstdc++
-
 #include "gominer.h"
 */
 import "C"
