@@ -104,8 +104,10 @@ namespace cuckoogpu
 
 		void recordedge (const u32 i, const u32 u2, const u32 v2)
 		{
+			if(i < PROOFSIZE){
 			soledges[i].x = u2 / 2;
 			soledges[i].y = v2 / 2;
+			}
 		}
 
 		void solution (const u32 * us, u32 nu, const u32 * vs, u32 nv)

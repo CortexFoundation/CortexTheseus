@@ -477,7 +477,6 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
 		__global__ void Tail2(const uint2 *source, uint2 *destination, const int *sourceIndexes, int *destinationIndexes) {
 	  const int lid = threadIdx.x;
 	  const int group = blockIdx.x;
-	  const int dim = blockDim.x;
 	  int myEdges = sourceIndexes[group];
 	  __shared__ int destIdx;
 

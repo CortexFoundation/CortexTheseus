@@ -107,13 +107,13 @@ struct solver_ctx {
 	Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, trimmer->bufferA, (int *)trimmer->indexesE2);
     cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE2, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
     checkCudaErrors(cudaDeviceSynchronize());
-	fprintf(stderr, "Index: %d points: [", sols.size() / PROOFSIZE);
+	fprintf(stderr, "Index: %zu points: [", sols.size() / PROOFSIZE);
 	for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
-		fprintf(stderr, "<%zu,%zu>, ", soledges[idx].x, soledges[idx].y);
+		fprintf(stderr, "<%u,%u>, ", soledges[idx].x, soledges[idx].y);
 	}
 	fprintf(stderr, "] solutions: [");
 	for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
-		fprintf(stderr, "%zu,", sols[sols.size() - PROOFSIZE + idx]);
+		fprintf(stderr, "%u,", sols[sols.size() - PROOFSIZE + idx]);
 	}
 	fprintf(stderr, "]\n");
     qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), nonce_cmp);
