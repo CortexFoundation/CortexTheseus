@@ -253,25 +253,25 @@ func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 							if verboseLevel >= 3 {
 								log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 							}
-							// if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
-							log.Println("Target Difficulty satisfied")
-							result = sol
-							nonceStr := common.Uint64ToHexString(uint64(curNonce))
-							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-							ok := cuckoo.CuckooVerifyProof(header[:], curNonce, &sol[0], 12, 28)
-							// ok, _ := cuckoo.CuckooVerifyHeader(header[:], curNonce, &sol)
-							if ok != 1 {
-								log.Println("verify failed", header[:], curNonce, &sol)
-							} else {
-								log.Println("verify successed", header[:], curNonce, &sol)
-								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
-								end_time := time.Now().UnixNano() / 1e6
-								atomic.AddInt64(all_time, (end_time - start_time))
-								atomic.AddInt64(sol_count, 1)
-								log.Println(fmt.Sprintf("solutions=%v, all_time = %vms, avg_time = %vms", *sol_count, *all_time, (*all_time)/(*sol_count)))
-								start_time = end_time
+							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+								log.Println("Target Difficulty satisfied")
+								result = sol
+								nonceStr := common.Uint64ToHexString(uint64(curNonce))
+								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
+								ok := cuckoo.CuckooVerifyProof(header[:], curNonce, &sol[0], 12, 28)
+								// ok, _ := cuckoo.CuckooVerifyHeader(header[:], curNonce, &sol)
+								if ok != 1 {
+									log.Println("verify failed", header[:], curNonce, &sol)
+								} else {
+									log.Println("verify successed", header[:], curNonce, &sol)
+									solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
+									end_time := time.Now().UnixNano() / 1e6
+									atomic.AddInt64(all_time, (end_time - start_time))
+									atomic.AddInt64(sol_count, 1)
+									log.Println(fmt.Sprintf("solutions=%v, all_time = %vms, avg_time = %vms", *sol_count, *all_time, (*all_time)/(*sol_count)))
+									start_time = end_time
+								}
 							}
-							// }
 						}
 					}
 				}
@@ -341,11 +341,13 @@ var verboseLevel int
 
 func main() {
 	flag.Parse()
-	if help == true {
+
+	if help {
 		fmt.Println("Usage:\ngo run miner.go -r romote -a account -c gpu\nexample:go run miner.go -r localhost:8009 -a 0xc3d7a1ef810983847510542edfd5bc5551a6321c -c cpu")
 	} else {
 		fmt.Println(account, remote, chip)
 	}
+
 	var cm Miner = &Cortex{
 		chip:         chip,
 		account:      account,
@@ -353,5 +355,6 @@ func main() {
 		deviceId:     uint(deviceId),
 		verboseLevel: uint(verboseLevel),
 	}
+
 	cm.Mining()
 }
