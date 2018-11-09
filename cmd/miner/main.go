@@ -239,7 +239,9 @@ func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 					}
 				} else if cm.chip == "gpu" {
 					//log.Println("call cuckoo_gpu.FindSolutionsByGPU: ", header, curNonce)
+					cm.consta.lock.Lock()
 					status, sols := cuckoo_gpu.FindSolutionsByGPU(header, curNonce)
+					cm.consta.lock.Unlock()
 					if status != 0 {
 						if verboseLevel >= 3 {
 							log.Println("result: ", status, sols)

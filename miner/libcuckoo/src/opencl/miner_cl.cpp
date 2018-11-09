@@ -13,6 +13,8 @@
 #include <sys/types.h>
 #include "trimmer_cl.h"
 #include "../../miner.h"
+#include "wlt_trimmer.h"
+
 namespace cuckoogpu
 {
 
@@ -321,16 +323,16 @@ void CuckooInitialize (uint32_t device)
 	cl_command_queue commandQueue = createCommandQueue (context, deviceId);
 	if (commandQueue == NULL)
 		return;
-/*
-	const char *filename = "wlt_trimmer.cl";
-	string sourceStr;
-	size_t size = 0;
-	convertToString (filename, sourceStr, size);
+
+//	const char *filename = "wlt_trimmer.cl";
+	string sourceStr = get_kernel_source();
+	size_t size = sourceStr.size();
+	//convertToString (filename, sourceStr, size);
 	const char *source = sourceStr.c_str ();
 	cl_program program = createProgram (context, &source, size);
-*/
+
 	//printf("create program from binary file\n");
-	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);	
+//	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);	
 	if (program == NULL){
 		printf("create program error\n");
 		return;
