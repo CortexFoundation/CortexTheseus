@@ -744,21 +744,26 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		return nil, errMetaShapeNotMatch
 	}
 	for idx, modelShape := range modelMeta.InputShape {
-		if modelShape != inputMeta.Shape[idx] {
+		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0{
 			return nil, errMetaShapeNotMatch
 		}
 	}
 
+	//todo cache or zksnark chain protection
+
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
+
+	//todo  
 
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
-	stack.push(interpreter.intPool.get().SetUint64(output))
 
 	interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks + 1)))
 	interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks + 1)))
+
+	stack.push(interpreter.intPool.get().SetUint64(output))
 
 	return nil, nil
 }

@@ -37,6 +37,7 @@ type ModelMeta struct {
 	AuthorAddress common.Address `json:"AuthorAddress"`
 	BlockNum      big.Int        `json:"BlockNum"`
 }
+
 type InputMeta struct {
 	URI           string         `json:"URI"`
 	Hash          common.Address `json:"Hash"`
