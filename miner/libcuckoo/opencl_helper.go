@@ -1,6 +1,6 @@
 // +build opencl
 
-package cuckoocuda
+package libcuckoo
 
 /*
 #cgo LDFLAGS: -L./ -lopenclminer -lOpenCL -lstdc++
@@ -12,7 +12,7 @@ import "C"
 import (
 	"fmt"
 	"log"
-//	"time"
+	//	"time"
 	"unsafe"
 )
 
@@ -25,7 +25,7 @@ func FindSolutionsByGPU(hash []byte, nonce uint64) (status_code uint32, ret [][]
 	var tmpHash = make([]byte, 32)
 	copy(tmpHash[:], hash)
 
-//	start := time.Now()
+	//	start := time.Now()
 	r := C.FindSolutionsByGPU(
 		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
 		C.uint64_t(nonce),
@@ -34,8 +34,8 @@ func FindSolutionsByGPU(hash []byte, nonce uint64) (status_code uint32, ret [][]
 		(*C.uint32_t)(unsafe.Pointer(&_solLength)),
 		(*C.uint32_t)(unsafe.Pointer(&_numSols)))
 
-//	duration := time.Since(start)
-//	log.Println(fmt.Sprintf("CuckooFindSolutionCuda | time=%v, status code=%v", duration, _numSols))
+	//	duration := time.Since(start)
+	//	log.Println(fmt.Sprintf("CuckooFindSolutionCuda | time=%v, status code=%v", duration, _numSols))
 
 	// TODO add warning of discarding possible solutions
 	if uint32(len(result)) < _solLength*_numSols {
