@@ -1,3 +1,7 @@
+#ifndef WLT_TRIMMER_H
+#define WLT_TRIMMER_H
+#include <string>
+static const std::string kernel_source = R"(
 #ifndef EDGEBITS
 #define EDGEBITS 25
 #endif
@@ -415,3 +419,10 @@ Tail(__global const uint2 * source, __global uint2 * destination, __global const
     for (int i = lid; i < myEdges; i += dim)
 	destination[destIdx + lid] = source[group * maxIn + lid];
 }
+
+)";
+
+inline std::string get_kernel_source(){
+	return kernel_source;
+}
+#endif

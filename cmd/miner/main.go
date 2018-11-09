@@ -18,6 +18,7 @@ import (
 
 	// "strconv"
 	"sync"
+	"sync/atomic"
 )
 
 type Miner interface {
@@ -154,6 +155,9 @@ func (cm *Cortex) Mining() {
 	if cm.chip == "gpu" {
 		cuckoo_gpu.CuckooInitialize(cm.deviceId)
 	}
+	var sol_count int64 = 0
+	var all_time int64 = 0
+
 	for {
 		for {
 			cm.consta.lock.Lock()
@@ -166,12 +170,12 @@ func (cm *Cortex) Mining() {
 				break
 			}
 		}
-		cm.miningOnce()
+		cm.miningOnce(&sol_count, &all_time)
 	}
 	cuckoo.CuckooFinalize()
 }
 
-func (cm *Cortex) miningOnce() {
+func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 	type TaskWrapper struct {
 		Lock  sync.Mutex
 		TaskQ Task
@@ -188,6 +192,7 @@ func (cm *Cortex) miningOnce() {
 
 	for nthread := 0; nthread < int(THREAD); nthread++ {
 		go func(tidx uint32, currentTask_ *TaskWrapper) {
+			var start_time int64 = time.Now().UnixNano() / 1e6
 			for {
 				if cm.consta.state == false {
 					return
@@ -233,8 +238,10 @@ func (cm *Cortex) miningOnce() {
 						}
 					}
 				} else if cm.chip == "gpu" {
-					log.Println("call cuckoo_gpu.FindSolutionsByGPU: ", header, curNonce)
+					//log.Println("call cuckoo_gpu.FindSolutionsByGPU: ", header, curNonce)
+					cm.consta.lock.Lock()
 					status, sols := cuckoo_gpu.FindSolutionsByGPU(header, curNonce)
+					cm.consta.lock.Unlock()
 					if status != 0 {
 						if verboseLevel >= 3 {
 							log.Println("result: ", status, sols)
@@ -258,6 +265,11 @@ func (cm *Cortex) miningOnce() {
 							} else {
 								log.Println("verify successed", header[:], curNonce, &sol)
 								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
+								end_time := time.Now().UnixNano() / 1e6
+								atomic.AddInt64(all_time, (end_time - start_time))
+								atomic.AddInt64(sol_count, 1)
+								log.Println(fmt.Sprintf("solutions=%v, all_time = %vms, avg_time = %vms", *sol_count, *all_time, (*all_time)/(*sol_count)))
+								start_time = end_time
 							}
 							// }
 						}
