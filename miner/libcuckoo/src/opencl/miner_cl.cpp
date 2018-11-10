@@ -79,13 +79,22 @@ namespace cuckoogpu
 		u32 vs[MAXPATHLEN];
 		uint32_t device;
 
-		  solver_ctx (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
+  		solver_ctx(){}
+		solver_ctx (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
 		{
 			trimmer = new edgetrimmer (tp, context, commandQueue, program);
 			edges = new cl_uint2[MAXEDGES];
 			cuckoo = new cuckoo_hash ();
 			device = _device;
-		} void setheadernonce (char *const header, const uint64_t nonce)
+		}
+		void init (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
+		{
+			trimmer = new edgetrimmer (tp, context, commandQueue, program);
+			edges = new cl_uint2[MAXEDGES];
+			cuckoo = new cuckoo_hash ();
+			device = _device;
+		}
+	       	void setheadernonce (char *const header, const uint64_t nonce)
 		{
 			uint64_t littleEndianNonce = htole64 (nonce);
 			char headerBuf[40];
@@ -261,11 +270,11 @@ namespace cuckoogpu
 };								// end of namespace cuckoogpu
 
 cuckoogpu::solver_ctx * ctx = NULL;
-int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, result_t * result, uint32_t resultBuffSize, uint32_t * solLength, uint32_t * numSol)
+int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, uint32_t threadId, result_t * result, uint32_t resultBuffSize, uint32_t * solLength, uint32_t * numSol)
 {
 	using namespace cuckoogpu;
 	using std::vector;
-	ctx->setheadernonce ((char *) header, nonce);	//TODO(tian)
+	ctx[threadId].setheadernonce ((char *) header, nonce);	//TODO(tian)
 	char headerInHex[65];
 	for (uint32_t i = 0; i < 32; i++)
 	{
@@ -273,12 +282,12 @@ int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, result_t * result,
 	}
 	headerInHex[64] = '\0';
 
-	u32 nsols = ctx->solve ();
+	u32 nsols = ctx[threadId].solve ();
 	vector < vector < u32 > >sols;
 	vector < vector < u32 > >*solutions = &sols;
 	for (unsigned s = 0; s < nsols; s++)
 	{
-		u32 *prf = &(ctx->sols[s * PROOFSIZE]);
+		u32 *prf = &(ctx[threadId].sols[s * PROOFSIZE]);
 		solutions->push_back (vector < u32 > ());
 		vector < u32 > &sol = solutions->back ();
 		for (uint32_t idx = 0; idx < PROOFSIZE; idx++)
@@ -303,19 +312,18 @@ int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, result_t * result,
 
 }
 
-void CuckooInitialize (uint32_t device)
+void initOne (uint32_t index, uint32_t device)
 {
 	printf ("thread: %d\n", getpid ());
 	using namespace cuckoogpu;
 	using std::vector;
 
 	trimparams tp;
-//    device = 0;
 	//TODO(tian) make use of multiple gpu
 	cl_platform_id platformId = getOnePlatform ();
 	if (platformId == NULL)
 		return;
-	getPlatformInfo (platformId);
+//	getPlatformInfo (platformId);
 	cl_device_id deviceId = getOneDevice (platformId, device);
 	if (deviceId == NULL)
 		return;
@@ -326,14 +334,11 @@ void CuckooInitialize (uint32_t device)
 	if (commandQueue == NULL)
 		return;
 
-//	const char *filename = "wlt_trimmer.cl";
 	string sourceStr = get_kernel_source();
 	size_t size = sourceStr.size();
-	//convertToString (filename, sourceStr, size);
 	const char *source = sourceStr.c_str ();
 	cl_program program = createProgram (context, &source, size);
 
-	//printf("create program from binary file\n");
 //	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);	
 	if (program == NULL){
 		printf("create program error\n");
@@ -351,11 +356,24 @@ void CuckooInitialize (uint32_t device)
 	assert (tp.trim.tpb <= maxThreadsPerBlock);
 	assert (tp.tail.tpb <= maxThreadsPerBlock);
 	assert (tp.recover.tpb <= maxThreadsPerBlock);
-	ctx = new solver_ctx (tp, device, context, commandQueue, program);
+	ctx[index].init(tp, device, context, commandQueue, program);
 	printf ("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
 
-	u64 bytes = ctx->trimmer->globalbytes ();
+	u64 bytes = ctx[index].trimmer->globalbytes ();
 	int unit;
 	for (unit = 0; bytes >= 10240; bytes >>= 10, unit++) ;
 	printf ("Using %lld%cB of global memory.\n", bytes, " KMGT"[unit]);
+}
+
+
+void CuckooInitialize(uint32_t* devices, int deviceNum) {
+    printf("thread: %d\n", getpid());
+    using namespace cuckoogpu;
+    using std::vector;
+
+    ctx = new solver_ctx[deviceNum];
+
+    for(int i = 0; i < deviceNum; i++){
+    	initOne(i, devices[i]);
+    }
 }

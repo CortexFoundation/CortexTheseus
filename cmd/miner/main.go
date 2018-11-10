@@ -20,6 +20,9 @@ import (
 
 	"sync"
 	"sync/atomic"
+
+	"strings"
+	"strconv"
 )
 
 type Miner interface {
@@ -30,9 +33,15 @@ type Connection struct {
 	lock  sync.Mutex
 	state bool
 }
+type DeviceId struct {
+	lock sync.Mutex
+	deviceId uint
+}
+
 type Cortex struct {
 	server, account        string
-	deviceId, verboseLevel uint
+	deviceIds		[]DeviceId
+	verboseLevel uint
 	conn                   *net.TCPConn
 	reader                 *bufio.Reader
 	consta                 Connection
@@ -148,7 +157,11 @@ func (cm *Cortex) submit(sol Task) {
 
 //	cortex mining
 func (cm *Cortex) Mining() {
-	libcuckoo.CuckooInitialize(cm.deviceId)
+	var iDeviceIds []uint
+	for i := 0; i < len(cm.deviceIds); i++{
+		iDeviceIds = append(iDeviceIds, cm.deviceIds[i].deviceId)
+	}
+	libcuckoo.CuckooInitialize(iDeviceIds, (uint)(len(iDeviceIds)))
 	var sol_count int64 = 0
 	var all_time int64 = 0
 
@@ -176,10 +189,9 @@ func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 
 	var currentTask TaskWrapper
 	var taskHeader, taskNonce, taskDifficulty string
-	var THREAD uint = 1
+	var THREAD uint = (uint)(len(cm.deviceIds))
 	rand.Seed(time.Now().UTC().UnixNano())
 	solChan := make(chan Task, THREAD)
-
 	for nthread := 0; nthread < int(THREAD); nthread++ {
 		go func(tidx uint32, currentTask_ *TaskWrapper) {
 			var start_time int64 = time.Now().UnixNano() / 1e6
@@ -199,10 +211,9 @@ func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 				var result common.BlockSolution
 				curNonce := uint64(rand.Int63())
 				// fmt.Println("task: ", header[:], curNonce)
-
-				cm.consta.lock.Lock()
-				status, sols := libcuckoo.FindSolutionsByGPU(header, curNonce)
-				cm.consta.lock.Unlock()
+				cm.deviceIds[tidx].lock.Lock()
+				status, sols := libcuckoo.FindSolutionsByGPU(header, curNonce, tidx)
+				cm.deviceIds[tidx].lock.Unlock()
 				if status != 0 {
 					if verboseLevel >= 3 {
 						log.Println("result: ", status, sols)
@@ -214,7 +225,7 @@ func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 						if verboseLevel >= 3 {
 							log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 						}
-						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+					//	if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 							log.Println("Target Difficulty satisfied")
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
@@ -231,7 +242,7 @@ func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 								log.Println(fmt.Sprintf("solutions=%v, all_time = %vms, avg_time = %vms", *sol_count, *all_time, (*all_time)/(*sol_count)))
 								start_time = end_time
 							}
-						}
+					//	}
 					}
 				}
 			}
@@ -288,17 +299,29 @@ func init() {
 	flag.BoolVar(&help, "help", false, "show help")
 	flag.StringVar(&remote, "pool_uri", "miner-cn.cortexlabs.ai:8009", "mining pool address")
 	flag.StringVar(&account, "account", "0xc3d7a1ef810983847510542edfd5bc5551a6321c", "miner accounts")
-	flag.IntVar(&deviceId, "deviceid", 0, "which GPU device use for mining")
+	flag.StringVar(&strDeviceId, "deviceids", "0", "which GPU device use for mining")
 	flag.IntVar(&verboseLevel, "verbosity", 0, "verbosity level")
 }
 
 var help bool
 var remote, account string
-var deviceId int
+var strDeviceId string
 var verboseLevel int
 
 func main() {
 	flag.Parse()
+	var strDeviceIds []string = strings.Split(strDeviceId, ",")
+	var deviceNum int = len(strDeviceIds)
+	var deviceIds []DeviceId
+	for i := 0; i < deviceNum; i++{
+		var lock sync.Mutex
+		v, error := strconv.Atoi(strDeviceIds[i])
+		if error != nil || v < 0{
+			fmt.Println("parse deviceIds error ", error)
+			return
+		}
+		deviceIds = append(deviceIds, DeviceId{lock, (uint)(v)})
+	}
 
 	if help {
 		fmt.Println("Usage:\ngo run miner.go -r remote -a account -c gpu\nexample:go run miner.go -r localhost:8009 -a 0xc3d7a1ef810983847510542edfd5bc5551a6321c")
@@ -309,7 +332,7 @@ func main() {
 	var cm Miner = &Cortex{
 		account:      account,
 		server:       remote,
-		deviceId:     uint(deviceId),
+		deviceIds:     deviceIds,
 		verboseLevel: uint(verboseLevel),
 	}
 
