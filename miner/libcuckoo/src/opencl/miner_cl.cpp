@@ -373,7 +373,7 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum) {
 
     ctx = new solver_ctx[deviceNum];
 
-    for(int i = 0; i < deviceNum; i++){
+    for(uint32_t i = 0; i < deviceNum; i++){
     	initOne(i, devices[i]);
     }
 }
