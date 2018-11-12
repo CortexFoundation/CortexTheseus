@@ -292,9 +292,6 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum) {
     using namespace cuckoogpu;
     using std::vector;
 
-for(int i = 0; i < deviceNum; i++)
-	printf("%d ", devices[i]);
-printf("\n");
     ctx = new solver_ctx[deviceNum];
 
     for(int i = 0; i < deviceNum; i++){
