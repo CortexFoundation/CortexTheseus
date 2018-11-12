@@ -30,7 +30,7 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	UploadGas             uint64 = 524288
+	UploadGas             uint64 = 400000
 	TxDataZeroGas         uint64 = 4      // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512    // Divisor for the quadratic particle of the memory cost equation.
 	SstoreSetGas          uint64 = 20000  // Once per SLOAD operation.
@@ -46,7 +46,7 @@ const (
 	JumpdestGas      uint64 = 1     // Refunded gas, once per SSTORE operation if the zeroness changes to zero.
 	EpochDuration    uint64 = 30000 // Duration between proof-of-work epochs.
 	CallGas          uint64 = 40    // Once per CALL operation & message call transaction.
-	CreateDataGas    uint64 = 200   //
+	CreateDataGas    uint64 = 10   //
 	CallCreateDepth  uint64 = 1024  // Maximum depth of call/create stack.
 	ExpGas           uint64 = 10    // Once per EXP instruction
 	LogGas           uint64 = 375   // Per LOG* operation.
@@ -60,7 +60,7 @@ const (
 	MemoryGas        uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 
-	MaxCodeSize = 24576 // Maximum bytecode to permit for a contract
+	MaxCodeSize = 512 * 1024//24576// Maximum bytecode to permit for a contract
 
 	// Precompiled contract gas prices
 
@@ -88,8 +88,8 @@ var (
 const (
 	MatureBlks                  = 10                  //For the full node to synchronize the models
 	ExpiredBlks                 = 1000000000000000000 //8409600
-	PER_UPLOAD_BYTES     uint64 = 5 * 1024 * 1024     //How many bytes per upload
-	DEFAULT_UPLOAD_BYTES uint64 = 5 * 1024 * 1024     //default upload bytes
+	PER_UPLOAD_BYTES     uint64 = 4 * 1024 * 1024     //How many bytes per upload
+	DEFAULT_UPLOAD_BYTES uint64 = 1 * 1024 * 1024     //default upload bytes
 	MIN_UPLOAD_BYTES            = 0
 	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT      uint64 = 65536 //max gas limit for model call
