@@ -36,6 +36,8 @@ type ModelMeta struct {
 	Gas           uint64         `json:"Gas"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
 	BlockNum      big.Int        `json:"BlockNum"`
+
+	RawByes       []byte         `json:"RawBytes"`
 }
 
 type InputMeta struct {
@@ -45,6 +47,8 @@ type InputMeta struct {
 	Shape         []uint64       `json:"Shape"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
 	BlockNum      big.Int        `json:"BlockNum"`
+
+	RawByes       []byte         `json:"RawBytes"`
 }
 
 func (mm *ModelMeta) SetBlockNum(num big.Int) error {
