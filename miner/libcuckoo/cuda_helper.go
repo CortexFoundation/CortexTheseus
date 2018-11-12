@@ -54,6 +54,6 @@ func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (status_code
 	return uint32(r), ret
 }
 
-func CuckooInitialize(devices []uint, deviceNum uint) {
+func CuckooInitialize(devices []uint32, deviceNum uint32) {
 	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum))
 }

@@ -121,6 +121,7 @@ typedef u32 proof[PROOFSIZE];
 struct edgetrimmer {
   trimparams tp;
   edgetrimmer *dt;
+  u32 deviceId;
   size_t sizeA, sizeB;
   size_t indexesSize;
   ulonglong4 *bufferA;
@@ -133,7 +134,7 @@ struct edgetrimmer {
   proof sol;
   siphash_keys sipkeys, *dipkeys;
 
-  edgetrimmer(const trimparams _tp);
+  edgetrimmer(const trimparams _tp, u32 _deviceId);
 
   u64 globalbytes() const ;
 

@@ -68,13 +68,13 @@ struct solver_ctx {
 
   solver_ctx(){}
   solver_ctx(const trimparams tp, uint32_t _device = 0) {
-    trimmer = new edgetrimmer(tp);
+    trimmer = new edgetrimmer(tp, _device);
     edges   = new uint2[MAXEDGES];
     cuckoo  = new cuckoo_hash();
     device = _device;
   }
   void init(const trimparams tp, uint32_t _device = 0) {
-    trimmer = new edgetrimmer(tp);
+    trimmer = new edgetrimmer(tp, _device);
     edges   = new uint2[MAXEDGES];
     cuckoo  = new cuckoo_hash();
     device = _device;
@@ -292,6 +292,9 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum) {
     using namespace cuckoogpu;
     using std::vector;
 
+for(int i = 0; i < deviceNum; i++)
+	printf("%d ", devices[i]);
+printf("\n");
     ctx = new solver_ctx[deviceNum];
 
     for(int i = 0; i < deviceNum; i++){

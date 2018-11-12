@@ -77,10 +77,10 @@ const static u32 EDGES_B = ROW_EDGES_B / NX;
 
 //template <typename Edge> u32 __kernel endpoint(const siphash_keys &sipkeys, Edge e, int uorv);
 
-#define checkCudaErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+#define checkOpenclErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cl_int code, const char *file, int line, bool abort=true) {
   if (code != CL_SUCCESS) {
-//    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    fprintf(stderr, "GPUassert: %s %s %d\n", openclGetErrorString(code), file, line);
     if (abort) exit(code);
   }
 }

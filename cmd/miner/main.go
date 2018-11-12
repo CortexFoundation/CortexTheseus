@@ -19,8 +19,6 @@ import (
 	"github.com/PoolMiner/verify"
 
 	"sync"
-	"sync/atomic"
-
 	"strings"
 	"strconv"
 )
@@ -35,7 +33,9 @@ type Connection struct {
 }
 type DeviceId struct {
 	lock sync.Mutex
-	deviceId uint
+	deviceId uint32
+	use_time int64
+	solution_count int64
 }
 
 type Cortex struct {
@@ -157,13 +157,11 @@ func (cm *Cortex) submit(sol Task) {
 
 //	cortex mining
 func (cm *Cortex) Mining() {
-	var iDeviceIds []uint
+	var iDeviceIds []uint32
 	for i := 0; i < len(cm.deviceIds); i++{
 		iDeviceIds = append(iDeviceIds, cm.deviceIds[i].deviceId)
 	}
-	libcuckoo.CuckooInitialize(iDeviceIds, (uint)(len(iDeviceIds)))
-	var sol_count int64 = 0
-	var all_time int64 = 0
+	libcuckoo.CuckooInitialize(iDeviceIds, (uint32)(len(iDeviceIds)))
 
 	for {
 		for {
@@ -177,11 +175,11 @@ func (cm *Cortex) Mining() {
 				break
 			}
 		}
-		cm.miningOnce(&sol_count, &all_time)
+		cm.miningOnce()
 	}
 }
 
-func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
+func (cm *Cortex) miningOnce() {
 	type TaskWrapper struct {
 		Lock  sync.Mutex
 		TaskQ Task
@@ -237,9 +235,9 @@ func (cm *Cortex) miningOnce(sol_count *int64, all_time *int64) {
 								log.Println("verify successed", header[:], curNonce, &sol)
 								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
 								end_time := time.Now().UnixNano() / 1e6
-								atomic.AddInt64(all_time, (end_time - start_time))
-								atomic.AddInt64(sol_count, 1)
-								log.Println(fmt.Sprintf("solutions=%v, all_time = %vms, avg_time = %vms", *sol_count, *all_time, (*all_time)/(*sol_count)))
+								cm.deviceIds[tidx].use_time += (end_time - start_time)
+								cm.deviceIds[tidx].solution_count += 1
+								log.Println(fmt.Sprintf("thread %v: solutions=%v, all_time = %vms, avg_time = %vms", tidx, cm.deviceIds[tidx].solution_count, cm.deviceIds[tidx].use_time, (cm.deviceIds[tidx].use_time)/(cm.deviceIds[tidx].solution_count)))
 								start_time = end_time
 							}
 					//	}
@@ -320,7 +318,7 @@ func main() {
 			fmt.Println("parse deviceIds error ", error)
 			return
 		}
-		deviceIds = append(deviceIds, DeviceId{lock, (uint)(v)})
+		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), 0, 0})
 	}
 
 	if help {

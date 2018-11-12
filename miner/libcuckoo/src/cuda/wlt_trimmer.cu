@@ -509,10 +509,11 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
         return nonce;
     }
 
-    edgetrimmer::edgetrimmer(const trimparams _tp) {
+    edgetrimmer::edgetrimmer(const trimparams _tp, u32 _deviceId) {
         indexesSize = NX * NY * sizeof(u32);
         tp = _tp;
-
+	
+	cudaSetDevice(_deviceId);
         checkCudaErrors(cudaMalloc((void**)&dipkeys, sizeof(siphash_keys)));
         checkCudaErrors(cudaMalloc((void**)&indexesE, indexesSize));
         checkCudaErrors(cudaMalloc((void**)&indexesE2, indexesSize));
@@ -530,6 +531,7 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
         return (sizeA+sizeB) + 2 * indexesSize + sizeof(siphash_keys);
     }
     edgetrimmer::~edgetrimmer() {
+	cudaSetDevice(deviceId);
         cudaFree(bufferA);
         cudaFree(indexesE2);
         cudaFree(indexesE);

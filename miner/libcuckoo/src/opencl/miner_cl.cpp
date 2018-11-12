@@ -366,7 +366,7 @@ void initOne (uint32_t index, uint32_t device)
 }
 
 
-void CuckooInitialize(uint32_t* devices, int deviceNum) {
+void CuckooInitialize(uint32_t* devices, uint32_t deviceNum) {
     printf("thread: %d\n", getpid());
     using namespace cuckoogpu;
     using std::vector;
