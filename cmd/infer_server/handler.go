@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -39,11 +40,13 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 		return
 	}
 
-	addr, slot, number := inferWork.InputAddress, inferWork.InputSlot, inferWork.InputBlockNumber
+	number, txIndex := inferWork.InputBlockNumber, inferWork.InputTxIndex
+	addr, slot := inferWork.InputAddress, inferWork.InputSlot
+
 	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Address", addr, "Input Slot", slot, "Input Block Number", number)
 	var cacheKey string
 	if len(number) >= 2 && number[:2] == "0x" {
-		cacheKey = infer.RLPHashString(inferWork.ModelHash + addr + slot + number)
+		cacheKey = infer.RLPHashString(fmt.Sprintf("%s,%s,%s,%s,%s", inferWork.ModelHash, addr, slot, number, txIndex))
 		if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
 			RespInfoText(w, v.(uint64))
 			return
@@ -52,7 +55,7 @@ func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
 
 	log.Debug("JSON-RPC request | ctx_getSolidityBytes", "address", addr, "slot", slot, "block number", number)
 	var inputArray hexutil.Bytes
-	if rpcErr := rpcClient.CallContext(context.Background(), &inputArray, "ctx_getSolidityBytes", addr, slot, number); rpcErr != nil {
+	if rpcErr := rpcClient.CallContext(context.Background(), &inputArray, "ctx_getSolidityBytes", addr, slot, number, txIndex); rpcErr != nil {
 		log.Warn("JSON-RPC request failed", "error", rpcErr)
 		RespErrorText(w, "JSON-RPC invoke ctx_getSolidityBytes", "error", rpcErr)
 		return

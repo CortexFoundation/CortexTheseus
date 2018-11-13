@@ -39,6 +39,7 @@ type InferWork struct {
 	InputHash string
 
 	InputBlockNumber string
+	InputTxIndex     int
 	InputAddress     string
 	InputSlot        string
 }

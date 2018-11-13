@@ -498,7 +498,9 @@ func (evm *EVM) InferArray(modelInfoHash string, addr common.Address, slot commo
 			evm.vmConfig.InferURI,
 			addr.Hex(),
 			slot.Hex(),
-			hexutil.EncodeBig(evm.BlockNumber))
+			hexutil.EncodeBig(evm.BlockNumber),
+			evm.StateDB.GetTxIndex(),
+		)
 	}
 
 	if errRes == nil {
