@@ -31,10 +31,10 @@ import (
 )
 
 var (
-	//MIN_UPLOAD_BYTES     uint64 = 0
-	//MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
-	//DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
-	//MODEL_GAS_LIMIT      uint64 = 65536
+//MIN_UPLOAD_BYTES     uint64 = 0
+//MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
+//DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
+//MODEL_GAS_LIMIT      uint64 = 65536
 )
 
 // Config are the configuration options for the Interpreter
@@ -260,8 +260,8 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
-				if inputMeta.RawSize > params.MaxCodeSize || len(inputMeta.RawData) > params.MaxCodeSize || inputMeta.RawSize != len(inputMeta.RawData){
-						return nil, ErrInvalidMetaRawSize
+				if inputMeta.RawSize > params.MaxCodeSize || uint64(len(inputMeta.RawBytes)) > params.MaxCodeSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
+					return nil, ErrInvalidMetaRawSize
 				}
 				if inputMeta.RawSize > params.MIN_UPLOAD_BYTES && inputMeta.RawSize <= params.MAX_UPLOAD_BYTES {
 					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
