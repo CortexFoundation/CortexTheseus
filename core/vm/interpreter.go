@@ -209,7 +209,16 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			if modelMeta.BlockNum.Sign() == 0 {
-				if modelMeta.RawSize > params.MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
+				if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
+
+					//must in rawbytes if it is too small
+					if modelMeta.RawSize <= params.MaxRawSize {
+						if modelMeta.RawSize != uint64(len(modelMeta.RawBytes)) {
+							//
+							return nil, ErrInvalidMetaRawSize
+						}
+					}
+
 					if modelMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
 						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 					} else {
@@ -260,10 +269,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
-				if inputMeta.RawSize > params.MaxCodeSize || uint64(len(inputMeta.RawBytes)) > params.MaxCodeSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
+				if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
+					//
 					return nil, ErrInvalidMetaRawSize
 				}
-				if inputMeta.RawSize > params.MIN_UPLOAD_BYTES && inputMeta.RawSize <= params.MAX_UPLOAD_BYTES {
+				if inputMeta.RawSize > 0 && inputMeta.RawSize <= params.MaxRawSize {
 					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
 						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 					} else {
