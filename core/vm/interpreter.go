@@ -260,6 +260,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
+				if inputMeta.RawSize > params.MaxCodeSize || len(inputMeta.RawData) > params.MaxCodeSize || inputMeta.RawSize != len(inputMeta.RawData){
+						return nil, ErrInvalidMetaRawSize
+				}
 				if inputMeta.RawSize > params.MIN_UPLOAD_BYTES && inputMeta.RawSize <= params.MAX_UPLOAD_BYTES {
 					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
 						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))

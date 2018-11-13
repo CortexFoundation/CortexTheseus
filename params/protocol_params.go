@@ -46,7 +46,7 @@ const (
 	JumpdestGas      uint64 = 1     // Refunded gas, once per SSTORE operation if the zeroness changes to zero.
 	EpochDuration    uint64 = 30000 // Duration between proof-of-work epochs.
 	CallGas          uint64 = 40    // Once per CALL operation & message call transaction.
-	CreateDataGas    uint64 = 10   //
+	CreateDataGas    uint64 = 20   //200
 	CallCreateDepth  uint64 = 1024  // Maximum depth of call/create stack.
 	ExpGas           uint64 = 10    // Once per EXP instruction
 	LogGas           uint64 = 375   // Per LOG* operation.
@@ -93,4 +93,5 @@ const (
 	MIN_UPLOAD_BYTES            = 0
 	MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT      uint64 = 65536 //max gas limit for model call
+	INPUT_LIMIT_BYTES = 512 * 1024
 )
