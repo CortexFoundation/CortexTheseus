@@ -17,8 +17,8 @@ func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string
 	return s.sendRequest(requestBody, uri)
 }
 
-func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, addr, slot, blockNumber string) (uint64, error) {
-	requestBody := fmt.Sprintf(`{"Type": 2, "ModelHash":"%s", "InputAddress":"%s", "InputSlot":"%s", "InputBlockNumber":"%s"}`, modelInfoHash, addr, slot, blockNumber)
+func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, addr, slot, blockNumber string, txIndex int) (uint64, error) {
+	requestBody := fmt.Sprintf(`{"Type": 2, "ModelHash":"%s", "InputAddress":"%s", "InputSlot":"%s", "InputBlockNumber":"%s", "InputTxIndex": "%d"}`, modelInfoHash, addr, slot, blockNumber, txIndex)
 	log.Debug("Remote Inference", "request", requestBody)
 
 	return s.sendRequest(requestBody, uri)
