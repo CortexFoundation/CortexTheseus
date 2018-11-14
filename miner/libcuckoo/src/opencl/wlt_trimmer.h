@@ -46,14 +46,14 @@ typedef uint node_t;
 #endif
 
 typedef struct {
-    long k0;
-    long k1;
-    long k2;
-    long k3;
+    ulong k0;
+    ulong k1;
+    ulong k2;
+    ulong k3;
 } siphash_keys;
 
 #define U8TO64_LE(p) ((p))
-#define ROTL(x,b) (long)( ((x) << (b)) | ( (x) >> (64 - (b))) )
+#define ROTL(x,b) (ulong)( ((x) << (b)) | ( (x) >> (64 - (b))) )
 #define SIPROUND \
     do { \
       v0 += v1; v2 += v3; v1 = ROTL(v1,13); \
@@ -213,7 +213,7 @@ Recovery(__constant const siphash_keys * sipkeys, __global int *indexes, __const
 }
 
 __kernel void
-SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut)
+SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut, uint offset)
 {
     const int group = get_group_id(0);
     const int dim = get_local_size(0);
@@ -248,7 +248,7 @@ SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ bu
 	    int cnt = min((int) atomic_add(indexes + row * NX + col, nflush),
 			  (int) (maxOut - nflush));
 	    for (int i = 0; i < nflush; i += TMPPERLL4)
-		buffer[((ulong) (row * NX + col) * maxOut + cnt + i) / TMPPERLL4] = uint2_to_ulong4(tmp[row][i], tmp[row][i + 1], tmp[row][i + 2], tmp[row][i + 3]);
+		buffer[offset/sizeof(ulong4) + ((ulong) (row * NX + col) * maxOut + cnt + i) / TMPPERLL4] = uint2_to_ulong4(tmp[row][i], tmp[row][i + 1], tmp[row][i + 2], tmp[row][i + 3]);
 	    for (int t = 0; t < newCount; t++)
 	    {
 		tmp[row][t] = tmp[row][t + nflush];
@@ -267,7 +267,7 @@ SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ bu
 	{
 	    int cnt = min((int) atomic_add(indexes + row * NX + col, TMPPERLL4),
 			  (int) (maxOut - TMPPERLL4));
-	    buffer[((ulong) (row * NX + col) * maxOut + cnt) / TMPPERLL4] = uint2_to_ulong4(tmp[row][i], tmp[row][i + 1], tmp[row][i + 2], tmp[row][i + 3]);
+	    buffer[offset/sizeof(ulong4) + ((ulong) (row * NX + col) * maxOut + cnt) / TMPPERLL4] = uint2_to_ulong4(tmp[row][i], tmp[row][i + 1], tmp[row][i + 2], tmp[row][i + 3]);
 	}
     }
 }
@@ -276,7 +276,7 @@ __kernel void
 SeedB(__constant const siphash_keys * sipkeys,
       __global const uint2 * __restrict__ source,
       __global ulong4 * __restrict__ destination,
-      __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxOut, const uint halfA, const uint halfE)
+      __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxOut, const uint halfA, const uint halfE, uint offset)
 {
     const int group = get_group_id(0);	//blockIdx.x;
     const int dim = get_local_size(0);	//blockDim.x;
@@ -307,7 +307,7 @@ SeedB(__constant const siphash_keys * sipkeys,
 	if (edgeIndex < bucketEdges)
 	{
 	    const int index = group * maxOut + edgeIndex;
-	    uint2 edge = source[index + src_halfA];
+	    uint2 edge = source[index + src_halfA + offset/sizeof(uint2)];
 	    if (null2(edge))
 		continue;
 	    uint node1 = endpoint2(sipkeys, edge, 0);
@@ -356,7 +356,7 @@ SeedB(__constant const siphash_keys * sipkeys,
 __kernel void
 Round(const int round, __constant const siphash_keys * sipkeys,
       __global const uint2 * __restrict__ source,
-      __global uint2 * __restrict__ destination, __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxIn, const int maxOut)
+      __global uint2 * __restrict__ destination, __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxIn, const int maxOut, uint src_offset, uint dest_offset)
 {
     const int group = get_group_id(0);	//blockIdx.x;
     const int dim = get_local_size(0);	//blockDim.x;
@@ -374,7 +374,7 @@ Round(const int round, __constant const siphash_keys * sipkeys,
 	if (lindex < edgesInBucket)
 	{
 	    const int index = maxIn * group + lindex;
-	    uint2 edge = source[index];
+	    uint2 edge = source[index + src_offset / sizeof(uint2)];
 	    if (null2(edge))
 		continue;
 	    uint node = endpoint2(sipkeys, edge, round & 1);
@@ -388,7 +388,7 @@ Round(const int round, __constant const siphash_keys * sipkeys,
 	if (lindex < edgesInBucket)
 	{
 	    const int index = maxIn * group + lindex;
-	    uint2 edge = source[index];
+	    uint2 edge = source[index + src_offset/sizeof(uint2)];
 	    if (null2(edge))
 		continue;
 	    uint node0 = endpoint2(sipkeys, edge, round & 1);
@@ -397,14 +397,14 @@ Round(const int round, __constant const siphash_keys * sipkeys,
 		uint node1 = endpoint2(sipkeys, edge, (round & 1) ^ 1);
 		const int bucket = node1 & X2MASK;
 		const int bktIdx = min(atomic_add(destinationIndexes + bucket, 1), maxOut - 1);
-		destination[bucket * maxOut + bktIdx] = edge;
+		destination[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = edge;
 	    }
 	}
     }
 }
 
 __kernel void
-Tail(__global const uint2 * source, __global uint2 * destination, __global const int *sourceIndexes, __global int *destinationIndexes, const int maxIn)
+Tail(__global const uint2 * source, __global uint2 * destination, __global const int *sourceIndexes, __global int *destinationIndexes, const int maxIn, uint offset)
 {
     const int lid = get_local_id(0);	//threadIdx.x;
     const int group = get_group_id(0);	//blockIdx.x;
@@ -417,7 +417,7 @@ Tail(__global const uint2 * source, __global uint2 * destination, __global const
 
     barrier(CLK_LOCAL_MEM_FENCE);
     for (int i = lid; i < myEdges; i += dim)
-	destination[destIdx + lid] = source[group * maxIn + lid];
+	destination[destIdx + i + offset/sizeof(uint2)] = source[group * maxIn + i];
 }
 
 )";

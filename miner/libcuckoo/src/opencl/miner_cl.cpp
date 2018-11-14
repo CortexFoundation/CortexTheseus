@@ -132,25 +132,19 @@ namespace cuckoogpu
 
 			cl_int clResult;
 			clResult = clEnqueueWriteBuffer (trimmer->commandQueue, trimmer->recoveredges, CL_TRUE, 0, sizeof (cl_uint2) * PROOFSIZE, soledges, 0, NULL, NULL);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("write buffer error : %d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
+
 			int initV = 0;
 			clResult = clEnqueueFillBuffer (trimmer->commandQueue, trimmer->indexesE2, &initV, sizeof (int), 0, trimmer->indexesSize, 0, NULL, NULL);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("fill buffer error : %d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
+
 			clFinish (trimmer->commandQueue);
 			cl_kernel recovery_kernel = clCreateKernel (trimmer->program, "Recovery", &clResult);
 			clResult |= clSetKernelArg (recovery_kernel, 0, sizeof (cl_mem), (void *) &trimmer->dipkeys);
 			clResult |= clSetKernelArg (recovery_kernel, 1, sizeof (cl_mem), (void *) &trimmer->indexesE2);
 			clResult |= clSetKernelArg (recovery_kernel, 2, sizeof (cl_mem), (void *) &trimmer->recoveredges);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("cl create kernel or set kernel arg error : %d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
+
 			cl_event event;
 			size_t global_work_size[1], local_work_size[1];
 			global_work_size[0] = trimmer->tp.recover.blocks * trimmer->tp.recover.tpb;
@@ -158,10 +152,7 @@ namespace cuckoogpu
 			clEnqueueNDRangeKernel (trimmer->commandQueue, recovery_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 			clFinish (trimmer->commandQueue);
 			clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->indexesE2, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("cl read buffer error:%d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
 
 			fprintf (stderr, "Index: %d points: [", sols.size () / PROOFSIZE);
 			for (uint32_t idx = 0; idx < PROOFSIZE; idx++)
@@ -256,12 +247,10 @@ namespace cuckoogpu
 			}
 			nedges = nedges & CUCKOO_MASK;
 			cl_int clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferB,
-				CL_TRUE, 0, nedges * 8, edges, 0, NULL,
+				CL_TRUE, trimmer->sizeA, nedges * 8, edges, 0, NULL,
 				NULL);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("read buffer edges error : %d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
+
 			findcycles (edges, nedges);
 			return sols.size () / PROOFSIZE;
 		}
@@ -348,7 +337,7 @@ void initOne (uint32_t index, uint32_t device)
 	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d", EDGEBITS, PROOFSIZE);
 	
 	buildProgram (program, &(deviceId), options);
-	//saveBinaryFile(program, deviceId);
+	saveBinaryFile(program, deviceId);
 	cl_ulong maxThreadsPerBlock = 0;
 	clGetDeviceInfo (deviceId, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (maxThreadsPerBlock), &maxThreadsPerBlock, NULL);
 	assert (tp.genA.tpb <= maxThreadsPerBlock);

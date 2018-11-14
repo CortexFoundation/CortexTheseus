@@ -43,23 +43,26 @@ namespace cuckoogpu {
 	const size_t bufferSize = sizeA + sizeB;
 	fprintf(stderr, "bufferSize: %lu\n", bufferSize);
 	bufferA =
-	    clCreateBuffer(context, CL_MEM_READ_WRITE, sizeA, NULL, &clResult);
+	    clCreateBuffer(context, CL_MEM_READ_WRITE, bufferSize, NULL, &clResult);
 	checkOpenclErrors(clResult);
-	bufferB =
+/*	bufferB =
 	    clCreateBuffer(context, CL_MEM_READ_WRITE, sizeB, NULL, &clResult);
 	checkOpenclErrors(clResult);
 	bufferAB =
 	    clCreateBuffer(context, CL_MEM_READ_WRITE, sizeA, NULL, &clResult);
 	checkOpenclErrors(clResult);
+*/
+	bufferB = bufferA;
+	bufferAB = bufferA;
     }
 
     u64 edgetrimmer::globalbytes() const {
-	return (sizeA * 2 + sizeB) + 2 * indexesSize + sizeof (siphash_keys);
+	return (sizeA + sizeB) + 2 * indexesSize + sizeof (siphash_keys);
     }
     edgetrimmer::~edgetrimmer() {
 	clReleaseMemObject(bufferA);
-	clReleaseMemObject(bufferB);
-	clReleaseMemObject(bufferAB);
+	//clReleaseMemObject(bufferB);
+	//clReleaseMemObject(bufferAB);
 	clReleaseMemObject(recoveredges);
 	clReleaseMemObject(indexesE2);
 	clReleaseMemObject(indexesE);
@@ -102,17 +105,17 @@ namespace cuckoogpu {
 	cl_event event;
 	int edges_a = EDGES_A;
 	cl_kernel seedA_kernel = clCreateKernel(program, "SeedA", &clResult);
-	clResult =
+	clResult |=
 	    clSetKernelArg(seedA_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
-	clResult =
+	clResult |=
 	    clSetKernelArg(seedA_kernel, 1, sizeof (cl_mem),
 			   (void *) &bufferAB);
-	clResult =
+	clResult |=
 	    clSetKernelArg(seedA_kernel, 2, sizeof (cl_mem),
 			   (void *) &indexesE);
-	clResult = clSetKernelArg(seedA_kernel, 3, sizeof (int), &edges_a);
-
-	clResult =
+	clResult |= clSetKernelArg(seedA_kernel, 3, sizeof (int), &edges_a);
+	clResult |= clSetKernelArg(seedA_kernel, 4, sizeof(u32), &sizeB); 
+	clResult |=
 	    clEnqueueNDRangeKernel(commandQueue, seedA_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
@@ -143,6 +146,7 @@ namespace cuckoogpu {
 	clResult |= clSetKernelArg(seedB_kernel, 5, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(seedB_kernel, 6, sizeof (u32), &halfA0);
 	clResult |= clSetKernelArg(seedB_kernel, 7, sizeof (u32), &halfE0);
+	clResult |= clSetKernelArg(seedB_kernel, 8, sizeof(u32), &sizeB);
 	checkOpenclErrors(clResult);
 
 	clResult =
@@ -168,6 +172,7 @@ namespace cuckoogpu {
 	clResult |= clSetKernelArg(seedB_kernel, 5, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(seedB_kernel, 6, sizeof (u32), &halfA);
 	clResult |= clSetKernelArg(seedB_kernel, 7, sizeof (u32), &halfE);
+	clResult |= clSetKernelArg(seedB_kernel, 8, sizeof(u32), &sizeB);
 	clResult |=
 	    clEnqueueNDRangeKernel(commandQueue, seedB_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
@@ -201,6 +206,8 @@ namespace cuckoogpu {
 			   (void *) &indexesE);
 	clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
+	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &initV);	
+	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &sizeA);
 	clResult |=
 	    clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
@@ -231,6 +238,8 @@ namespace cuckoogpu {
 			   (void *) &indexesE2);
 	clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
+	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &sizeA);
+	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &initV);
 	clResult |=
 	    clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
@@ -262,6 +271,8 @@ namespace cuckoogpu {
 			   (void *) &indexesE);
 	clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
+	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &initV);
+	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &sizeA);
 	clResult |=
 	    clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
@@ -292,6 +303,8 @@ namespace cuckoogpu {
 			   (void *) &indexesE2);
 	clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
+	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &sizeA);
+	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &initV);
 	clResult |=
 	    clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
@@ -320,6 +333,8 @@ namespace cuckoogpu {
 			   (void *) &indexesE);
 	    clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	    clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
+	    clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &initV);
+	    clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &sizeA);
 	    clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
@@ -344,6 +359,8 @@ namespace cuckoogpu {
 			   (void *) &indexesE2);
 	    clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	    clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
+	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &sizeA);
+	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &initV);
 	    clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
@@ -369,6 +386,7 @@ namespace cuckoogpu {
 	clResult |=
 	    clSetKernelArg(tail_kernel, 3, sizeof (cl_mem), (void *) &indexesE);
 	clResult |= clSetKernelArg(tail_kernel, 4, sizeof (int), &tail_edges);
+	clResult |= clSetKernelArg(tail_kernel, 5, sizeof(u32), &sizeA);
 	clResult |=
 	    clEnqueueNDRangeKernel(commandQueue, tail_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
