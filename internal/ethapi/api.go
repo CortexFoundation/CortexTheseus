@@ -621,7 +621,44 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 
 // GetSolidityBytes same as GetStorageAt returns the storage from the state at the given address, key and
 // block number. But return bytes structure at the storage
-func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber, txId int) (hexutil.Bytes, error) {
+	log.Debug("GetSolidityBytesExt", "address", address.Hex(), "slot", key)
+	if txId < 0 {
+		return nil, nil // TODO(tian) error
+	}
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if err != nil {
+		return nil, err
+	}
+	block, blockErr := s.b.BlockByNumber(ctx, blockNr);
+	if block != nil {
+			return nil, blockErr
+	}
+
+	gp := new(core.GasPool).AddGas(math.MaxUint64)
+	for i, tx := range block.Transactions() {
+		if i == txId {
+			break
+		}
+		header := block.Header()
+		msg, err := tx.AsMessage(types.MakeSigner(s.b.ChainConfig(), block.Number()))
+		evm, _ , err := s.b.GetEVM(ctx, msg, state, header, vm.Config{})
+		if err != nil {
+			return nil, err
+		}
+		_, _, failed, err := core.ApplyMessage(evm, msg, gp)
+		if err != nil || failed {
+			return nil, err
+		}
+	}
+
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return state.GetSolidityBytes(address, common.HexToHash(key))
+}
+
+func (s *PublicBlockChainAPI) GetSolidityBytesExt(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	log.Debug("GetSolidityBytes", "address", address.Hex(), "slot", key)
 
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
