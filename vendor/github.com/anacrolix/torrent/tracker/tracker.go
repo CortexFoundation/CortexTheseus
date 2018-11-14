@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"errors"
+	"net/http"
 	"net/url"
 
 	"github.com/anacrolix/dht/krpc"
@@ -52,8 +53,8 @@ type Announce struct {
 	TrackerUrl string
 	Request    AnnounceRequest
 	HostHeader string
-	ServerName string
 	UserAgent  string
+	HttpClient *http.Client
 	UdpNetwork string
 	// If the port is zero, it's assumed to be the same as the Request.Port
 	ClientIp4 krpc.NodeAddr

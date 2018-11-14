@@ -44,6 +44,7 @@ var (
 	}
 )
 
+
 type Change uint
 
 const (
@@ -53,13 +54,13 @@ const (
 
 type Event struct {
 	Change
-	InfoHash metainfo.Hash
-	FilePath string
+	InfoHash        metainfo.Hash
+	FilePath        string
 }
 
 type entity struct {
 	metainfo.Hash
-	FilePath string
+	FilePath  string
 }
 
 type Instance struct {
@@ -78,7 +79,7 @@ func (i *Instance) handleEvents() {
 	for e := range i.w.Events {
 		if e.Op == fsnotify.Create || e.Op == fsnotify.Remove {
 			log.Printf("event: %s", e)
-			go func() {
+			go func(){
 				time.Sleep(time.Second * 1)
 				i.refresh()
 			}()
@@ -153,9 +154,9 @@ func (i *Instance) torrentRemoved(ih metainfo.Hash) {
 
 func (i *Instance) torrentAdded(e entity) {
 	i.Events <- Event{
-		InfoHash: e.Hash,
-		FilePath: e.FilePath,
-		Change:   Added,
+		InfoHash:        e.Hash,
+		FilePath:        e.FilePath,
+		Change:          Added,
 	}
 }
 
@@ -204,6 +205,7 @@ func NewDirWatch(dirName string) (i *Instance, err error) {
 	}()
 	return
 }
+
 
 func exitSignalHandlers(fs *torrentfs.TorrentFS) {
 	c := make(chan os.Signal, 1)
@@ -263,7 +265,7 @@ func mainExitCode() int {
 						var ss []string
 						slices.MakeInto(&ss, mi.Nodes)
 						t.DownloadAll()
-						go func() {
+						go func(){
 							time.Sleep(time.Second * 5)
 							log.Println(ih, t.Seeding())
 						}()

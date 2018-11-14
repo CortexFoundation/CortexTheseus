@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -38,6 +39,20 @@ func NewFileInfo(Meta *FileMeta) *FileInfo {
 	return &FileInfo{Meta, nil, nil, Meta.RawSize}
 }
 
+type MutexCounter int32
+
+func (mc *MutexCounter) Increase() {
+	atomic.AddInt32((*int32)(mc), int32(1))
+}
+
+func (mc *MutexCounter) Decrease() {
+	atomic.AddInt32((*int32)(mc), int32(-1))
+}
+
+func (mc *MutexCounter) IsZero() bool {
+	return atomic.LoadInt32((*int32)(mc)) == 0
+}
+
 // FileStorage ...
 type FileStorage struct {
 	// filesInfoHash     map[metainfo.Hash]*FileInfo
@@ -48,10 +63,16 @@ type FileStorage struct {
 
 	LatestBlockNumber atomic.Value
 	lock              sync.RWMutex
+
+	opCounter MutexCounter
 }
 
 // NewFileStorage ...
 func NewFileStorage(config *Config) (*FileStorage, error) {
+	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
+		return nil, err
+	}
+
 	db, dbErr := bolt.Open(filepath.Join(config.DataDir,
 		".file.bolt.db"), 0600, &bolt.Options{
 		Timeout: time.Second,
@@ -61,12 +82,12 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 	db.NoSync = true
 
-	// db := NewBoltDB(config.DataDir)
 	return &FileStorage{
 		// filesInfoHash:     make(map[metainfo.Hash]*FileInfo),
 		filesContractAddr: make(map[common.Address]*FileInfo),
 		blockChecked:      make(map[uint64]bool),
 		db:                db,
+		opCounter:         0,
 	}, nil
 }
 
@@ -134,8 +155,17 @@ func (fs *FileStorage) HasBlock(blockNum uint64) bool {
 }
 
 func (fs *FileStorage) Close() error {
-	log.Info("Torrent File Storage Closed", "database dir", fs.db.Path())
-	return fs.db.Close()
+	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
+
+	// Wait for file storage closed...
+	for {
+		if fs.opCounter.IsZero() {
+			return fs.db.Close()
+		}
+
+		// log.Debug("Waiting for boltdb operating...")
+		time.Sleep(time.Microsecond)
+	}
 }
 
 var (
@@ -144,6 +174,10 @@ var (
 
 func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
+
+	fs.opCounter.Increase()
+	defer fs.opCounter.Decrease()
+
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("blocks"))
 		if buk == nil {
@@ -158,11 +192,13 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 		v := buk.Get(k)
 		fs.lock.RUnlock()
 
-		if v == nil || len(v) == 0 {
+		if v == nil {
 			return ErrReadDataFromBoltDB
 		}
-		//	log.Println(blockNum, v)
-		json.Unmarshal(v, &block)
+		if err := json.Unmarshal(v, &block); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -173,6 +209,9 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 }
 
 func (fs *FileStorage) WriteBlock(b *Block) error {
+	fs.opCounter.Increase()
+	defer fs.opCounter.Decrease()
+
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
 		if err != nil {

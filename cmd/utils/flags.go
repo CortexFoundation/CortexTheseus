@@ -655,27 +655,31 @@ var (
 // if none (or the empty string) is specified. If the node is starting a testnet,
 // the a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
-	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
-		if ctx.GlobalBool(CerebroFlag.Name) {
-			return filepath.Join(path, "cerebro")
-		}
-		if ctx.GlobalBool(LazynetFlag.Name) {
-			return filepath.Join(path, "lazynet")
-		}
-		return path
+	switch {
+	case ctx.GlobalIsSet(DataDirFlag.Name):
+		return ctx.GlobalString(DataDirFlag.Name)
+	case ctx.GlobalBool(CerebroFlag.Name):
+		return filepath.Join(node.DefaultDataDir(), "cerebro")
+	case ctx.GlobalBool(LazynetFlag.Name):
+		return filepath.Join(node.DefaultDataDir(), "lazynet")
 	}
-	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
-	return ""
+
+	return node.DefaultDataDir()
 }
 
 // MakeStorageDir retrieves the currently requested data directory, terminating
 // if none (or the empty string) is specified.
 func MakeStorageDir(ctx *cli.Context) string {
-	if path := ctx.GlobalString(StorageDirFlag.Name); path != "" {
-		return path
+	switch {
+	case ctx.GlobalIsSet(StorageDirFlag.Name):
+		return ctx.GlobalString(StorageDirFlag.Name)
+	case ctx.GlobalBool(CerebroFlag.Name):
+		return filepath.Join(node.DefaultStorageDir(), "cerebro")
+	case ctx.GlobalBool(LazynetFlag.Name):
+		return filepath.Join(node.DefaultStorageDir(), "lazynet")
 	}
-	Fatalf("Cannot determine default storage directory, please set manually (--storage.dir)")
-	return ""
+
+	return node.DefaultStorageDir()
 }
 
 // setNodeKey creates a node key from set command line flags, either loading it
@@ -1011,16 +1015,16 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	setWS(ctx, cfg)
 	setNodeUserIdent(ctx, cfg)
 
-	switch {
-	case ctx.GlobalIsSet(DataDirFlag.Name):
-		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	//case ctx.GlobalBool(DeveloperFlag.Name):
-	//	cfg.DataDir = "" // unless explicitly requested, use memory databases
-	case ctx.GlobalBool(CerebroFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "cerebro")
-	case ctx.GlobalBool(LazynetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
-	}
+	cfg.DataDir = MakeDataDir(ctx)
+
+	// switch {
+	// case ctx.GlobalIsSet(DataDirFlag.Name):
+	// 	cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
+	// case ctx.GlobalBool(CerebroFlag.Name):
+	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "cerebro")
+	// case ctx.GlobalBool(LazynetFlag.Name):
+	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
+	// }
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.GlobalString(KeyStoreDirFlag.Name)
@@ -1232,7 +1236,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
-	cfg.StorageDir = ctx.GlobalString(StorageDirFlag.Name)
+	cfg.StorageDir = MakeStorageDir(ctx)
 
 	// Override any default configs for hard coded networks.
 	switch {

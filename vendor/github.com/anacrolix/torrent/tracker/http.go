@@ -2,14 +2,11 @@ package tracker
 
 import (
 	"bytes"
-	"crypto/tls"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/anacrolix/dht/krpc"
 	"github.com/anacrolix/missinggo/httptoo"
@@ -99,19 +96,7 @@ func announceHTTP(opt Announce, _url *url.URL) (ret AnnounceResponse, err error)
 	req, err := http.NewRequest("GET", _url.String(), nil)
 	req.Header.Set("User-Agent", opt.UserAgent)
 	req.Host = opt.HostHeader
-	resp, err := (&http.Client{
-		Timeout: time.Second * 15,
-		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout: 15 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 15 * time.Second,
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-				ServerName:         opt.ServerName,
-			},
-		},
-	}).Do(req)
+	resp, err := opt.HttpClient.Do(req)
 	if err != nil {
 		return
 	}

@@ -193,7 +193,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 
 	tm.mu.Lock()
 	if _, ok := tm.torrents[ih]; ok {
-		log.Debug("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.mu.Unlock()
 		return
 	}
@@ -286,7 +286,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 
 	tm.mu.Lock()
 	if _, ok := tm.torrents[ih]; ok {
-		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		log.Warn("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.mu.Unlock()
 		return
 	}
@@ -315,7 +315,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	tm.torrents[ih].Run()
 
 	f, _ := os.Create(torrentPath)
-	log.Info("Write torrent file", "InfoHash", ih.HexString(), "path", torrentPath)
+	log.Debug("Write torrent file", "InfoHash", ih.HexString(), "path", torrentPath)
 	if err := t.Metainfo().Write(f); err != nil {
 		log.Error("Error while write torrent file", "error", err)
 	}
@@ -324,7 +324,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 
 // UpdateMagnet ...
 func (tm *TorrentManager) UpdateMagnet(ih metainfo.Hash, BytesRequested int64) {
-	log.Info("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
+	log.Debug("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
 	tm.mu.Lock()
 	if t, ok := tm.torrents[ih]; ok {
 		t.bytesRequested = BytesRequested
@@ -391,88 +391,92 @@ func NewTorrentManager(config *Config) *TorrentManager {
 }
 
 func (tm *TorrentManager) Start() error {
-	go func() {
-		for {
-			select {
-			case torrent := <-tm.newTorrent:
-				if isMagnetURI(torrent) {
-					go tm.AddMagnet(torrent)
-				} else {
-					go tm.AddTorrent(torrent)
-				}
-			case torrent := <-tm.removeTorrent:
-				if isMagnetURI(torrent) {
-					go tm.DropMagnet(torrent)
-				} else {
-				}
-			case msg := <-tm.updateTorrent:
-				meta := msg.(FlowControlMeta)
-				go tm.UpdateMagnet(meta.InfoHash, int64(meta.BytesRequested))
-			case <-tm.closeAll:
-				tm.halt = true
-				tm.client.Close()
-				return
-			}
-		}
-	}()
 
-	go func() {
-		var counter uint64
-		for counter = 0; ; counter++ {
-			if tm.halt {
-				return
-			}
-			for ih, t := range tm.torrents {
-				if t.Seeding() {
-					t.bytesCompleted = t.BytesCompleted()
-					t.bytesMissing = t.BytesMissing()
-					if counter >= 20 {
-						log.Debug("Torrent seeding",
-							"InfoHash", ih.HexString(),
-							"completed", t.bytesCompleted,
-							"total", t.bytesCompleted+t.bytesMissing,
-							"seeding", t.Torrent.Seeding(),
-						)
-					}
-				} else if !t.Pending() {
-					t.bytesCompleted = t.BytesCompleted()
-					t.bytesMissing = t.BytesMissing()
-					if t.bytesMissing == 0 {
-						os.Symlink(
-							path.Join(tm.TmpDataDir, ih.HexString()),
-							path.Join(tm.DataDir, ih.HexString()),
-						)
-						t.Seed()
-					} else if t.bytesCompleted >= t.bytesLimitation {
-						t.Pause()
-					} else if t.bytesCompleted < t.bytesLimitation {
-						t.Run()
-					}
-					if counter >= 20 {
-						log.Debug("Torrent progress",
-							"InfoHash", ih.HexString(),
-							"completed", t.bytesCompleted,
-							"requested", t.bytesLimitation,
-							"total", t.bytesCompleted+t.bytesMissing,
-						)
-					}
-				} else {
-					if counter >= 20 {
-						log.Debug("Torrent pending",
-							"InfoHash", ih.HexString(),
-							"completed", t.bytesCompleted,
-							"requested", t.bytesLimitation,
-							"total", t.bytesCompleted+t.bytesMissing,
-						)
-					}
-				}
-			}
-			if counter >= 20 {
-				counter = 0
-			}
-			time.Sleep(time.Second * queryTimeInterval)
-		}
-	}()
+	go tm.mainLoop()
+	go tm.listenTorrentProgress()
 
 	return nil
+}
+
+func (tm *TorrentManager) mainLoop() {
+	for {
+		select {
+		case torrent := <-tm.newTorrent:
+			if isMagnetURI(torrent) {
+				go tm.AddMagnet(torrent)
+			} else {
+				go tm.AddTorrent(torrent)
+			}
+		case torrent := <-tm.removeTorrent:
+			if isMagnetURI(torrent) {
+				go tm.DropMagnet(torrent)
+			} else {
+			}
+		case msg := <-tm.updateTorrent:
+			meta := msg.(FlowControlMeta)
+			go tm.UpdateMagnet(meta.InfoHash, int64(meta.BytesRequested))
+		case <-tm.closeAll:
+			tm.halt = true
+			tm.client.Close()
+			return
+		}
+	}
+}
+
+func (tm *TorrentManager) listenTorrentProgress() {
+	var counter uint64
+	for counter = 0; ; counter++ {
+		if tm.halt {
+			return
+		}
+		for ih, t := range tm.torrents {
+			if t.Seeding() {
+				t.bytesCompleted = t.BytesCompleted()
+				t.bytesMissing = t.BytesMissing()
+				if counter >= 20 {
+					log.Debug("Torrent seeding",
+						"InfoHash", ih.HexString(),
+						"completed", t.bytesCompleted,
+						"total", t.bytesCompleted+t.bytesMissing,
+						"seeding", t.Torrent.Seeding(),
+					)
+				}
+			} else if !t.Pending() {
+				t.bytesCompleted = t.BytesCompleted()
+				t.bytesMissing = t.BytesMissing()
+				if t.bytesMissing == 0 {
+					os.Symlink(
+						path.Join(tm.TmpDataDir, ih.HexString()),
+						path.Join(tm.DataDir, ih.HexString()),
+					)
+					t.Seed()
+				} else if t.bytesCompleted >= t.bytesLimitation {
+					t.Pause()
+				} else if t.bytesCompleted < t.bytesLimitation {
+					t.Run()
+				}
+				if counter >= 20 {
+					log.Debug("Torrent progress",
+						"InfoHash", ih.HexString(),
+						"completed", t.bytesCompleted,
+						"requested", t.bytesLimitation,
+						"total", t.bytesCompleted+t.bytesMissing,
+					)
+				}
+			} else {
+				if counter >= 20 {
+					log.Debug("Torrent pending",
+						"InfoHash", ih.HexString(),
+						"completed", t.bytesCompleted,
+						"requested", t.bytesLimitation,
+						"total", t.bytesCompleted+t.bytesMissing,
+					)
+				}
+			}
+		}
+		if counter >= 20 {
+			counter = 0
+		}
+		time.Sleep(time.Second * queryTimeInterval)
+	}
 }
