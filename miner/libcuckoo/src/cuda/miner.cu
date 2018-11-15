@@ -235,7 +235,7 @@ int32_t FindSolutionsByGPU(
     vector<vector<u32> > sols;
     vector<vector<u32> >* solutions = &sols;
     for (unsigned s = 0; s < nsols; s++) {
-        u32* prf = &(ctx->sols[s * PROOFSIZE]);
+        u32* prf = &(ctx[threadId].sols[s * PROOFSIZE]);
         solutions->push_back(vector<u32>());
         vector<u32>& sol = solutions->back();
         for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
