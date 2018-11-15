@@ -622,21 +622,24 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 // GetSolidityBytes same as GetStorageAt returns the storage from the state at the given address, key and
 // block number. But return bytes structure at the storage
 func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber, txId int) (hexutil.Bytes, error) {
-	log.Debug("GetSolidityBytesExt", "address", address.Hex(), "slot", key)
+	log.Debug("GetSolidityBytes", "address", address.Hex(), "slot", key, "blockNr", blockNr, "txid", txId)
 	if txId < 0 {
 		return nil, nil // TODO(tian) error
 	}
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
-	if err != nil {
+	gp := new(core.GasPool).AddGas(math.MaxUint64)
+
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr - 1)
+	if state == nil || err != nil {
 		return nil, err
 	}
 	block, blockErr := s.b.BlockByNumber(ctx, blockNr);
-	if block != nil {
+	log.Debug("GetSolidityBytes", "block", block, "blockErr", blockErr)
+	if block == nil {
 			return nil, blockErr
 	}
 
-	gp := new(core.GasPool).AddGas(math.MaxUint64)
 	for i, tx := range block.Transactions() {
+		log.Debug("GetSolidityBytes", "i", i, "tx", tx)
 		if i == txId {
 			break
 		}
@@ -650,11 +653,9 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		if err != nil || failed {
 			return nil, err
 		}
+		state.Finalise(true)
 	}
 
-	if state == nil || err != nil {
-		return nil, err
-	}
 	return state.GetSolidityBytes(address, common.HexToHash(key))
 }
 
