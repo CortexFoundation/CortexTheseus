@@ -16,7 +16,7 @@ import (
 	"unsafe"
 )
 
-func FindSolutionsByGPU(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32) {
+func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (status_code uint32, ret [][]uint32) {
 	var (
 		_solLength uint32
 		_numSols   uint32
@@ -29,6 +29,7 @@ func FindSolutionsByGPU(hash []byte, nonce uint64) (status_code uint32, ret [][]
 	r := C.FindSolutionsByGPU(
 		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
 		C.uint64_t(nonce),
+		C.uint32_t(threadId),
 		(*C.uint32_t)(unsafe.Pointer(&result[0])),
 		C.uint32_t(len(result)),
 		(*C.uint32_t)(unsafe.Pointer(&_solLength)),
@@ -53,6 +54,6 @@ func FindSolutionsByGPU(hash []byte, nonce uint64) (status_code uint32, ret [][]
 	return uint32(r), ret
 }
 
-func CuckooInitialize(device uint) {
-	C.CuckooInitialize(C.uint32_t(device))
+func CuckooInitialize(devices []uint32, deviceNum uint32) {
+	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum))
 }

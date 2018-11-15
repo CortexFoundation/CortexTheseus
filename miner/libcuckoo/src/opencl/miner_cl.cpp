@@ -79,13 +79,22 @@ namespace cuckoogpu
 		u32 vs[MAXPATHLEN];
 		uint32_t device;
 
-		  solver_ctx (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
+  		solver_ctx(){}
+		solver_ctx (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
 		{
 			trimmer = new edgetrimmer (tp, context, commandQueue, program);
 			edges = new cl_uint2[MAXEDGES];
 			cuckoo = new cuckoo_hash ();
 			device = _device;
-		} void setheadernonce (char *const header, const uint64_t nonce)
+		}
+		void init (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
+		{
+			trimmer = new edgetrimmer (tp, context, commandQueue, program);
+			edges = new cl_uint2[MAXEDGES];
+			cuckoo = new cuckoo_hash ();
+			device = _device;
+		}
+	       	void setheadernonce (char *const header, const uint64_t nonce)
 		{
 			uint64_t littleEndianNonce = htole64 (nonce);
 			char headerBuf[40];
@@ -104,8 +113,10 @@ namespace cuckoogpu
 
 		void recordedge (const u32 i, const u32 u2, const u32 v2)
 		{
+			if(i < PROOFSIZE){
 			soledges[i].x = u2 / 2;
 			soledges[i].y = v2 / 2;
+			}
 		}
 
 		void solution (const u32 * us, u32 nu, const u32 * vs, u32 nv)
@@ -121,25 +132,19 @@ namespace cuckoogpu
 
 			cl_int clResult;
 			clResult = clEnqueueWriteBuffer (trimmer->commandQueue, trimmer->recoveredges, CL_TRUE, 0, sizeof (cl_uint2) * PROOFSIZE, soledges, 0, NULL, NULL);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("write buffer error : %d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
+
 			int initV = 0;
 			clResult = clEnqueueFillBuffer (trimmer->commandQueue, trimmer->indexesE2, &initV, sizeof (int), 0, trimmer->indexesSize, 0, NULL, NULL);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("fill buffer error : %d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
+
 			clFinish (trimmer->commandQueue);
 			cl_kernel recovery_kernel = clCreateKernel (trimmer->program, "Recovery", &clResult);
 			clResult |= clSetKernelArg (recovery_kernel, 0, sizeof (cl_mem), (void *) &trimmer->dipkeys);
 			clResult |= clSetKernelArg (recovery_kernel, 1, sizeof (cl_mem), (void *) &trimmer->indexesE2);
 			clResult |= clSetKernelArg (recovery_kernel, 2, sizeof (cl_mem), (void *) &trimmer->recoveredges);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("cl create kernel or set kernel arg error : %d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
+
 			cl_event event;
 			size_t global_work_size[1], local_work_size[1];
 			global_work_size[0] = trimmer->tp.recover.blocks * trimmer->tp.recover.tpb;
@@ -147,10 +152,7 @@ namespace cuckoogpu
 			clEnqueueNDRangeKernel (trimmer->commandQueue, recovery_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 			clFinish (trimmer->commandQueue);
 			clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->indexesE2, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("cl read buffer error:%d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
 
 			fprintf (stderr, "Index: %d points: [", sols.size () / PROOFSIZE);
 			for (uint32_t idx = 0; idx < PROOFSIZE; idx++)
@@ -245,12 +247,10 @@ namespace cuckoogpu
 			}
 			nedges = nedges & CUCKOO_MASK;
 			cl_int clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferB,
-				CL_TRUE, 0, nedges * 8, edges, 0, NULL,
+				CL_TRUE, trimmer->sizeA, nedges * 8, edges, 0, NULL,
 				NULL);
-			if (clResult != CL_SUCCESS)
-			{
-				printf ("read buffer edges error : %d\n", clResult);
-			}
+			checkOpenclErrors(clResult);
+
 			findcycles (edges, nedges);
 			return sols.size () / PROOFSIZE;
 		}
@@ -259,11 +259,11 @@ namespace cuckoogpu
 };								// end of namespace cuckoogpu
 
 cuckoogpu::solver_ctx * ctx = NULL;
-int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, result_t * result, uint32_t resultBuffSize, uint32_t * solLength, uint32_t * numSol)
+int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, uint32_t threadId, result_t * result, uint32_t resultBuffSize, uint32_t * solLength, uint32_t * numSol)
 {
 	using namespace cuckoogpu;
 	using std::vector;
-	ctx->setheadernonce ((char *) header, nonce);	//TODO(tian)
+	ctx[threadId].setheadernonce ((char *) header, nonce);	//TODO(tian)
 	char headerInHex[65];
 	for (uint32_t i = 0; i < 32; i++)
 	{
@@ -271,12 +271,12 @@ int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, result_t * result,
 	}
 	headerInHex[64] = '\0';
 
-	u32 nsols = ctx->solve ();
+	u32 nsols = ctx[threadId].solve ();
 	vector < vector < u32 > >sols;
 	vector < vector < u32 > >*solutions = &sols;
 	for (unsigned s = 0; s < nsols; s++)
 	{
-		u32 *prf = &(ctx->sols[s * PROOFSIZE]);
+		u32 *prf = &(ctx[threadId].sols[s * PROOFSIZE]);
 		solutions->push_back (vector < u32 > ());
 		vector < u32 > &sol = solutions->back ();
 		for (uint32_t idx = 0; idx < PROOFSIZE; idx++)
@@ -301,19 +301,18 @@ int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, result_t * result,
 
 }
 
-void CuckooInitialize (uint32_t device)
+void initOne (uint32_t index, uint32_t device)
 {
 	printf ("thread: %d\n", getpid ());
 	using namespace cuckoogpu;
 	using std::vector;
 
 	trimparams tp;
-//    device = 0;
 	//TODO(tian) make use of multiple gpu
 	cl_platform_id platformId = getOnePlatform ();
 	if (platformId == NULL)
 		return;
-	getPlatformInfo (platformId);
+//	getPlatformInfo (platformId);
 	cl_device_id deviceId = getOneDevice (platformId, device);
 	if (deviceId == NULL)
 		return;
@@ -324,14 +323,11 @@ void CuckooInitialize (uint32_t device)
 	if (commandQueue == NULL)
 		return;
 
-//	const char *filename = "wlt_trimmer.cl";
 	string sourceStr = get_kernel_source();
 	size_t size = sourceStr.size();
-	//convertToString (filename, sourceStr, size);
 	const char *source = sourceStr.c_str ();
 	cl_program program = createProgram (context, &source, size);
 
-	//printf("create program from binary file\n");
 //	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);	
 	if (program == NULL){
 		printf("create program error\n");
@@ -341,7 +337,7 @@ void CuckooInitialize (uint32_t device)
 	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d", EDGEBITS, PROOFSIZE);
 	
 	buildProgram (program, &(deviceId), options);
-	//saveBinaryFile(program, deviceId);
+	saveBinaryFile(program, deviceId);
 	cl_ulong maxThreadsPerBlock = 0;
 	clGetDeviceInfo (deviceId, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (maxThreadsPerBlock), &maxThreadsPerBlock, NULL);
 	assert (tp.genA.tpb <= maxThreadsPerBlock);
@@ -349,11 +345,24 @@ void CuckooInitialize (uint32_t device)
 	assert (tp.trim.tpb <= maxThreadsPerBlock);
 	assert (tp.tail.tpb <= maxThreadsPerBlock);
 	assert (tp.recover.tpb <= maxThreadsPerBlock);
-	ctx = new solver_ctx (tp, device, context, commandQueue, program);
+	ctx[index].init(tp, device, context, commandQueue, program);
 	printf ("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
 
-	u64 bytes = ctx->trimmer->globalbytes ();
+	u64 bytes = ctx[index].trimmer->globalbytes ();
 	int unit;
 	for (unit = 0; bytes >= 10240; bytes >>= 10, unit++) ;
 	printf ("Using %lld%cB of global memory.\n", bytes, " KMGT"[unit]);
+}
+
+
+void CuckooInitialize(uint32_t* devices, uint32_t deviceNum) {
+    printf("thread: %d\n", getpid());
+    using namespace cuckoogpu;
+    using std::vector;
+
+    ctx = new solver_ctx[deviceNum];
+
+    for(uint32_t i = 0; i < deviceNum; i++){
+    	initOne(i, devices[i]);
+    }
 }

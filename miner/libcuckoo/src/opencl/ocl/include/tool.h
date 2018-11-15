@@ -43,7 +43,7 @@ inline int convertToString(const char *filename, std::string& s, size_t &fileSiz
     return -1;
 }
 
-inline const char* getCLErrorStr(cl_int clResult){
+inline const char* openclGetErrorString(cl_int clResult){
 	switch(clResult){
 		case CL_SUCCESS					:return "CL_SUCCESS";
 		case CL_DEVICE_NOT_FOUND			:return "CL_DEVICE_NOT_FOUND"; 

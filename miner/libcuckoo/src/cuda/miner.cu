@@ -66,13 +66,20 @@ struct solver_ctx {
   u32 vs[MAXPATHLEN];
   uint32_t device;
 
+  solver_ctx(){}
   solver_ctx(const trimparams tp, uint32_t _device = 0) {
-    trimmer = new edgetrimmer(tp);
+    trimmer = new edgetrimmer(tp, _device);
     edges   = new uint2[MAXEDGES];
     cuckoo  = new cuckoo_hash();
     device = _device;
   }
-
+  void init(const trimparams tp, uint32_t _device = 0) {
+    trimmer = new edgetrimmer(tp, _device);
+    edges   = new uint2[MAXEDGES];
+    cuckoo  = new cuckoo_hash();
+    device = _device;
+  }
+  
   void setheadernonce(char * const header,  const uint64_t nonce) {
     uint64_t littleEndianNonce = htole64(nonce);
     char headerBuf[40];
@@ -107,13 +114,13 @@ struct solver_ctx {
 	Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, trimmer->bufferA, (int *)trimmer->indexesE2);
     cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE2, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
     checkCudaErrors(cudaDeviceSynchronize());
-	fprintf(stderr, "Index: %d points: [", sols.size() / PROOFSIZE);
+	fprintf(stderr, "Index: %zu points: [", sols.size() / PROOFSIZE);
 	for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
-		fprintf(stderr, "<%zu,%zu>, ", soledges[idx].x, soledges[idx].y);
+		fprintf(stderr, "<%u,%u>, ", soledges[idx].x, soledges[idx].y);
 	}
 	fprintf(stderr, "] solutions: [");
 	for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
-		fprintf(stderr, "%zu,", sols[sols.size() - PROOFSIZE + idx]);
+		fprintf(stderr, "%u,", sols[sols.size() - PROOFSIZE + idx]);
 	}
 	fprintf(stderr, "]\n");
     qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), nonce_cmp);
@@ -205,6 +212,7 @@ cuckoogpu::solver_ctx* ctx = NULL;
 int32_t FindSolutionsByGPU(
         uint8_t *header,
         uint64_t nonce,
+	uint32_t threadId,
         result_t *result,
         uint32_t resultBuffSize,
         uint32_t *solLength,
@@ -213,9 +221,9 @@ int32_t FindSolutionsByGPU(
     using namespace cuckoogpu;
     using std::vector;
     // printf("[CuckooFind, sols.size()SolutionsCuda] thread: %d\n", getpid());
-    cudaSetDevice(ctx->device);
+    cudaSetDevice(ctx[threadId].device);
 
-    ctx->setheadernonce((char*)header, nonce); //TODO(tian)
+    ctx[threadId].setheadernonce((char*)header, nonce); //TODO(tian)
     char headerInHex[65];
     for (uint32_t i = 0; i < 32; i++) {
         sprintf(headerInHex + 2 * i, "%02x", *((unsigned int8_t*)(header + i)));
@@ -223,11 +231,11 @@ int32_t FindSolutionsByGPU(
     headerInHex[64] = '\0';
 
     // printf("Looking for %d-cycle on cuckoo%d(\"%s\",%019lu)\n", PROOFSIZE, NODEBITS, headerInHex,  nonce);
-    u32 nsols = ctx->solve();
+    u32 nsols = ctx[threadId].solve();
     vector<vector<u32> > sols;
     vector<vector<u32> >* solutions = &sols;
     for (unsigned s = 0; s < nsols; s++) {
-        u32* prf = &(ctx->sols[s * PROOFSIZE]);
+        u32* prf = &(ctx[threadId].sols[s * PROOFSIZE]);
         solutions->push_back(vector<u32>());
         vector<u32>& sol = solutions->back();
         for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
@@ -251,11 +259,9 @@ int32_t FindSolutionsByGPU(
 
 }
 
-void CuckooInitialize(uint32_t device) {
-    printf("thread: %d\n", getpid());
+void initOne(uint32_t index, uint32_t device){
     using namespace cuckoogpu;
     using std::vector;
-
     trimparams tp;
     int nDevices = 0;
     //TODO(tian) make use of multiple gpu
@@ -271,10 +277,24 @@ void CuckooInitialize(uint32_t device) {
     // assert(tp.tailblocks <= prop.threadDims[0]);
     assert(tp.tail.tpb <= prop.maxThreadsPerBlock);
     assert(tp.recover.tpb <= prop.maxThreadsPerBlock);
-    ctx = new solver_ctx(tp, device);
+    //ctx = new solver_ctx(tp, device);
+    ctx[index].init(tp, device);
+
     printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
-    u64 bytes = ctx->trimmer->globalbytes();
+    u64 bytes = ctx[index].trimmer->globalbytes();
     int unit;
     for (unit=0; bytes >= 10240; bytes>>=10,unit++);
     printf("Using %d%cB of global memory.\n", (u32)bytes, " KMGT"[unit]);
+}
+
+void CuckooInitialize(uint32_t* devices, uint32_t deviceNum) {
+    printf("thread: %d\n", getpid());
+    using namespace cuckoogpu;
+    using std::vector;
+
+    ctx = new solver_ctx[deviceNum];
+
+    for(int i = 0; i < deviceNum; i++){
+    	initOne(i, devices[i]);
+    }
 }

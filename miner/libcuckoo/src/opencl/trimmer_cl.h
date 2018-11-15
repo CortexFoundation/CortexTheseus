@@ -77,10 +77,10 @@ const static u32 EDGES_B = ROW_EDGES_B / NX;
 
 //template <typename Edge> u32 __kernel endpoint(const siphash_keys &sipkeys, Edge e, int uorv);
 
-#define checkCudaErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+#define checkOpenclErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cl_int code, const char *file, int line, bool abort=true) {
   if (code != CL_SUCCESS) {
-//    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    fprintf(stderr, "GPUassert: %s %s %d\n", openclGetErrorString(code), file, line);
     if (abort) exit(code);
   }
 }
@@ -108,11 +108,11 @@ struct trimparams {
     genB.blocks         =  NX2;
     genB.tpb            =  128;
     trim.blocks         =  NX2;//NX2;
-    trim.tpb            =  512;//512;
+    trim.tpb            =  256;//512;
     tail.blocks         =  NX2;
-    tail.tpb            = 1024;//1024;
+    tail.tpb            = 256;//1024;
     recover.blocks      = 1024;//1024;
-    recover.tpb         = 1024;//1024;
+    recover.tpb         = 256;//1024;
   }
 };
 

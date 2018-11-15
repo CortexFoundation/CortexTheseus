@@ -17,6 +17,8 @@
 package crypto
 
 import (
+	"encoding/binary"
+
 	"github.com/PoolMiner/common"
 	"github.com/PoolMiner/crypto/sha3"
 )
@@ -54,4 +56,14 @@ func zeroBytes(bytes []byte) {
 	for i := range bytes {
 		bytes[i] = 0
 	}
+}
+
+func Sha3Solution(sol *common.BlockSolution) []byte {
+	// maximum cycle length 42
+	buf := make([]byte, 42*4)
+	for i := 0; i < len(sol); i++ {
+		binary.BigEndian.PutUint32(buf[i*4:], sol[i])
+	}
+	ret := Keccak256(buf)
+	return ret
 }
