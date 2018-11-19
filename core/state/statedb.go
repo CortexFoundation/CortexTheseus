@@ -226,6 +226,10 @@ func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	return 0
 }
 
+func (self *StateDB) GetTxIndex() int {
+	return self.txIndex
+}
+
 func (self *StateDB) Download(addr common.Address) error {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {

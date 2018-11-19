@@ -1,7 +1,7 @@
 package infernet
 
 /*
-#cgo LDFLAGS: -L./ -Wl,-rpath,./bin/ -lcortexnet
+#cgo LDFLAGS: -L./ -lcortexnet
 #cgo CFLAGS: -I./int_mnist_model
 
 #include "interface.h"

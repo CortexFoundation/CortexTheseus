@@ -122,8 +122,8 @@ var trustedCheckpoints = map[common.Hash]TrustedCheckpoint{
 		CHTRoot:     common.HexToHash("28001955219719cf06de1b08648969139d123a9835fc760547a1e4dabdabc15a"),
 		BloomRoot:   common.HexToHash("395ca2373fc662720ac6b58b3bbe71f68aa0f38b63b2d3553dd32ff3c51eebc4"),
 	},
-	params.TestnetGenesisHash: {
-		name:        "ropsten",
+	params.CerebroGenesisHash: {
+		name:        "cerebro",
 		SectionIdx:  117,
 		SectionHead: common.HexToHash("9529b38631ae30783f56cbe4c3b9f07575b770ecba4f6e20a274b1e2f40fede1"),
 		CHTRoot:     common.HexToHash("6f48e9f101f1fac98e7d74fbbcc4fda138358271ffd974d40d2506f0308bb363"),

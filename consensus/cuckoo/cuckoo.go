@@ -127,24 +127,10 @@ func NewTester() *Cuckoo {
 	// go cuckoo.remote()
 	return cuckoo
 }
+
 func DeleteTester() {
 	// C.CuckooRelease()
 	CuckooFinalize()
-}
-func NewFaker() *Cuckoo {
-	return &Cuckoo{
-		config: Config{
-			PowMode: ModeFake,
-		},
-	}
-}
-
-func NewFullFaker() *Cuckoo {
-	return &Cuckoo{
-		config: Config{
-			PowMode: ModeFullFake,
-		},
-	}
 }
 
 // NewShared() func in tests/block_tests_util.go

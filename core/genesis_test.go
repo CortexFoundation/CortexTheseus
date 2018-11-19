@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -30,14 +31,21 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 )
 
+func TestPrintGenesisBlockHash(t *testing.T) {
+	block := DefaultGenesisBlock().ToBlock(nil)
+	t.Log(fmt.Sprintf("DefaultGenesisBlock.Hash() = %x", block.Hash()))
+	block = DefaultCerebroGenesisBlock().ToBlock(nil)
+	t.Log(fmt.Sprintf("DefaultCerebroGenesisBlock.Hash() = %x", block.Hash()))
+}
+
 func TestDefaultGenesisBlock(t *testing.T) {
 	block := DefaultGenesisBlock().ToBlock(nil)
 	if block.Hash() != params.MainnetGenesisHash {
 		t.Errorf("wrong mainnet genesis hash, got %v, want %v", block.Hash(), params.MainnetGenesisHash)
 	}
-	block = DefaultTestnetGenesisBlock().ToBlock(nil)
-	if block.Hash() != params.TestnetGenesisHash {
-		t.Errorf("wrong testnet genesis hash, got %v, want %v", block.Hash(), params.TestnetGenesisHash)
+	block = DefaultCerebroGenesisBlock().ToBlock(nil)
+	if block.Hash() != params.CerebroGenesisHash {
+		t.Errorf("wrong testnet genesis hash, got %v, want %v", block.Hash(), params.CerebroGenesisHash)
 	}
 }
 
@@ -66,7 +74,7 @@ func TestSetupGenesis(t *testing.T) {
 				return SetupGenesisBlock(db, new(Genesis))
 			},
 			wantErr:    errGenesisNoConfig,
-			wantConfig: params.AllEthashProtocolChanges,
+			wantConfig: params.AllCuckooProtocolChanges,
 		},
 		{
 			name: "no block in DB, genesis == nil",
@@ -98,11 +106,11 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == testnet",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return SetupGenesisBlock(db, DefaultTestnetGenesisBlock())
+				return SetupGenesisBlock(db, DefaultCerebroGenesisBlock())
 			},
-			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.TestnetGenesisHash},
-			wantHash:   params.TestnetGenesisHash,
-			wantConfig: params.TestnetChainConfig,
+			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.CerebroGenesisHash},
+			wantHash:   params.CerebroGenesisHash,
+			wantConfig: params.CerebroChainConfig,
 		},
 		{
 			name: "compatible config in DB",

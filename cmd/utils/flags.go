@@ -136,8 +136,8 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
 		Value: eth.DefaultConfig.NetworkId,
 	}
-	TestnetFlag = cli.BoolFlag{
-		Name:  "testnet",
+	CerebroFlag = cli.BoolFlag{
+		Name:  "cerebro",
 		Usage: "Cerebro network: pre-configured cortex test network",
 	}
 	LazynetFlag = cli.BoolFlag{
@@ -655,27 +655,31 @@ var (
 // if none (or the empty string) is specified. If the node is starting a testnet,
 // the a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
-	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
-		if ctx.GlobalBool(TestnetFlag.Name) {
-			return filepath.Join(path, "testnet")
-		}
-		if ctx.GlobalBool(LazynetFlag.Name) {
-			return filepath.Join(path, "lazynet")
-		}
-		return path
+	switch {
+	case ctx.GlobalIsSet(DataDirFlag.Name):
+		return ctx.GlobalString(DataDirFlag.Name)
+	case ctx.GlobalBool(CerebroFlag.Name):
+		return filepath.Join(node.DefaultDataDir(), "cerebro")
+	case ctx.GlobalBool(LazynetFlag.Name):
+		return filepath.Join(node.DefaultDataDir(), "lazynet")
 	}
-	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
-	return ""
+
+	return node.DefaultDataDir()
 }
 
 // MakeStorageDir retrieves the currently requested data directory, terminating
 // if none (or the empty string) is specified.
 func MakeStorageDir(ctx *cli.Context) string {
-	if path := ctx.GlobalString(StorageDirFlag.Name); path != "" {
-		return path
+	switch {
+	case ctx.GlobalIsSet(StorageDirFlag.Name):
+		return ctx.GlobalString(StorageDirFlag.Name)
+	case ctx.GlobalBool(CerebroFlag.Name):
+		return filepath.Join(node.DefaultStorageDir(), "cerebro")
+	case ctx.GlobalBool(LazynetFlag.Name):
+		return filepath.Join(node.DefaultStorageDir(), "lazynet")
 	}
-	Fatalf("Cannot determine default storage directory, please set manually (--storage.dir)")
-	return ""
+
+	return node.DefaultStorageDir()
 }
 
 // setNodeKey creates a node key from set command line flags, either loading it
@@ -722,8 +726,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
-	case ctx.GlobalBool(TestnetFlag.Name):
-		urls = params.TestnetBootnodes
+	case ctx.GlobalBool(CerebroFlag.Name):
+		urls = params.CerebroBootnodes
 	case ctx.GlobalBool(LazynetFlag.Name):
 		urls = params.RinkebyBootnodes
 	case cfg.BootstrapNodes != nil:
@@ -1011,16 +1015,16 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	setWS(ctx, cfg)
 	setNodeUserIdent(ctx, cfg)
 
-	switch {
-	case ctx.GlobalIsSet(DataDirFlag.Name):
-		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	//case ctx.GlobalBool(DeveloperFlag.Name):
-	//	cfg.DataDir = "" // unless explicitly requested, use memory databases
-	case ctx.GlobalBool(TestnetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(LazynetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
-	}
+	cfg.DataDir = MakeDataDir(ctx)
+
+	// switch {
+	// case ctx.GlobalIsSet(DataDirFlag.Name):
+	// 	cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
+	// case ctx.GlobalBool(CerebroFlag.Name):
+	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "cerebro")
+	// case ctx.GlobalBool(LazynetFlag.Name):
+	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
+	// }
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.GlobalString(KeyStoreDirFlag.Name)
@@ -1160,7 +1164,7 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	// checkExclusive(ctx, DeveloperFlag, TestnetFlag, LazynetFlag)
+	// checkExclusive(ctx, DeveloperFlag, CerebroFlag, LazynetFlag)
 	// checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -1230,21 +1234,17 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
-	// if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
-	// 	// TODO(fjl): force-enable this in --dev mode
-	// 	cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
-	// }
 
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
-	cfg.StorageDir = ctx.GlobalString(StorageDirFlag.Name)
+	cfg.StorageDir = MakeStorageDir(ctx)
 
 	// Override any default configs for hard coded networks.
 	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
+	case ctx.GlobalBool(CerebroFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 3
+			cfg.NetworkId = 42
 		}
-		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+		cfg.Genesis = core.DefaultCerebroGenesisBlock()
 	case ctx.GlobalBool(LazynetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 4
@@ -1334,7 +1334,7 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 // RegisterStorageService adds a torrent file system to the stack.
 func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
 	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return torrentfs.New(cfg, commit), nil
+		return torrentfs.New(cfg, commit)
 	})
 }
 
@@ -1412,8 +1412,8 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ethdb.Database {
 func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
-		genesis = core.DefaultTestnetGenesisBlock()
+	case ctx.GlobalBool(CerebroFlag.Name):
+		genesis = core.DefaultCerebroGenesisBlock()
 	case ctx.GlobalBool(LazynetFlag.Name):
 		genesis = core.DefaultRinkebyGenesisBlock()
 		// case ctx.GlobalBool(DeveloperFlag.Name):
