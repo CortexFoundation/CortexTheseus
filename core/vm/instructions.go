@@ -681,7 +681,7 @@ func opGas(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 }
 
 var (
-	allowedAiCacheTime = -3600 * 24 * 7 * time.Second
+	allowedAiCacheTime = -3600 * 24 * 30 * time.Second
 )
 
 func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -777,6 +777,8 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
+
+	makeLog(1)
 
 	return nil, nil
 }
