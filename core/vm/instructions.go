@@ -27,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	//"time"
+	"time"
 )
 
 var (
@@ -680,6 +680,10 @@ func opGas(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 	return nil, nil
 }
 
+var (
+	allowedAiCacheTime = -3600 * 24 * 7 * time.Second
+)
+
 func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	_modelAddr, _inputAddr := stack.pop(), stack.pop()
 	modelAddr := common.BigToAddress(_modelAddr)
@@ -744,24 +748,33 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		return nil, errMetaShapeNotMatch
 	}
 	for idx, modelShape := range modelMeta.InputShape {
-		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0{
+		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0 {
 			return nil, errMetaShapeNotMatch
 		}
 	}
 
+	//result, err := call("", interpreter.evm.BlockNumber, modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
+
 	//todo cache or zksnark chain protection
+	if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(allowedAiCacheTime).Unix())) <= 0 {
+		//ai cache
+	}
+
+	//if big.NewInt(time.Now().Unix()).Cmp(interpreter.evm.Context.Time.Add(allowedAiCacheTime)) > 0 {
+	// ai cache av
+	//}
 
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
 
-	//todo  
+	//todo
 
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
 
-	interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks + 1)))
-	interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks + 1)))
+	interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
 

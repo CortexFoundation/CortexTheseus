@@ -37,7 +37,7 @@ type ModelMeta struct {
 	AuthorAddress common.Address `json:"AuthorAddress"`
 	BlockNum      big.Int        `json:"BlockNum"`
 
-	RawBytes []byte `json:"RawBytes"`
+	//RawBytes []byte `json:"RawBytes"`
 }
 
 type InputMeta struct {
@@ -48,7 +48,7 @@ type InputMeta struct {
 	AuthorAddress common.Address `json:"AuthorAddress"`
 	BlockNum      big.Int        `json:"BlockNum"`
 
-	RawBytes []byte `json:"RawBytes"`
+	//RawBytes []byte `json:"RawBytes"`
 }
 
 func (mm *ModelMeta) SetBlockNum(num big.Int) error {
@@ -61,10 +61,10 @@ func (mm *ModelMeta) SetGas(gas uint64) error {
 	return nil
 }
 
-func (im *InputMeta) SetRawBytes(rawBytes []byte) error {
+/*func (im *InputMeta) SetRawBytes(rawBytes []byte) error {
 	im.RawBytes = rawBytes
 	return nil
-}
+}*/
 
 func (im *InputMeta) SetBlockNum(num big.Int) error {
 	im.BlockNum = num

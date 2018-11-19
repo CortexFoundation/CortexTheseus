@@ -102,6 +102,7 @@ type Account struct {
 	CodeHash []byte
 	Upload   *big.Int //bytes
 	Num      *big.Int
+	//AiCache map[common.Address]uint64 //input_address:result
 }
 
 // newObject creates a state object.
@@ -119,6 +120,10 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.CodeHash == nil {
 		data.CodeHash = emptyCodeHash
 	}
+
+	/*if data.AiCache == nil {
+		data.AiCache = make(map[string]uint64)
+	}*/
 	return &stateObject{
 		db:            db,
 		address:       address,
@@ -278,6 +283,17 @@ func (self *stateObject) SetBalance(amount *big.Int) {
 func (self *stateObject) setBalance(amount *big.Int) {
 	self.data.Balance = amount
 }
+
+/*func (c *stateObject) AddAiCache(amount *big.Int) {
+        if amount.Sign() == 0 {
+                if c.empty() {
+                        c.touch()
+                }
+
+                return
+        }
+        c.SetUpload(new(big.Int).Add(c.Upload(), amount))
+}*/
 
 func (c *stateObject) AddUpload(amount *big.Int) {
 	if amount.Sign() == 0 {

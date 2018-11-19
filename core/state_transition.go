@@ -241,6 +241,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return nil, 0, false, vmerr
 		}
 	}
+
+	if st.uploading() {
+		//torrent check for upload
+		//return nil, 0, false, vmerr;
+	}
+
 	st.refundGas()
 	//model gas
 	gu := st.gasUsed()
@@ -262,6 +268,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 	//todo change upload
 	if st.uploading() {
+		//check torrent fs 
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			//st.state.Download(st.to())
