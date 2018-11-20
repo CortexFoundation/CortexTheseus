@@ -41,6 +41,7 @@ var (
 	errMetaShapeNotMatch     = errors.New("evm: model&input shape not matched")
 	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
+	errAiRuntime             = errors.New("ai runtime error")
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -758,6 +759,27 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	//todo cache or zksnark chain protection
 	if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(allowedAiCacheTime).Unix())) <= 0 {
 		//ai cache
+		//logs []*Log
+		logs := interpreter.evm.StateDB.GetLogs(interpreter.evm.StateDB.GetTxHash())
+		for log := range logs {
+			//todo
+			if len(topics) == 4 && topics[0] == modelMeta.Hash && topics[1] == inputMeta.Hash {
+				if topics[3] == common.Hash() {
+					interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+					interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+					ret, overflow := bigUint64(topics[2].Big())
+					if overflow {
+						return nil, errGasUintOverflow
+					}
+					stack.push(interpreter.intPool.get().SetUint64(ret))
+				} else {
+					stack.push(interpreter.intPool.getZero())
+					return nil, errAiRuntime
+				}
+				//stack.push(interpreter.intPool.get().SetUint64(topics[2]))
+				return nil, nil
+			}
+		}
 	}
 
 	//if big.NewInt(time.Now().Unix()).Cmp(interpreter.evm.Context.Time.Add(allowedAiCacheTime)) > 0 {
@@ -767,9 +789,12 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
 
 	//todo
-
 	if err != nil {
+		//todo
 		stack.push(interpreter.intPool.getZero())
+		if synapse.CheckBuiltInTorrentFsError(err) {
+			aiLog(modelMeta.Hash, inputMeta.Hash, 0, common.HexToHash(err), interpreter)
+		}
 		return nil, err
 	}
 
@@ -778,7 +803,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
 
-	makeLog(1)
+	aiLog(modelMeta.Hash, inputMeta.Hash, output, common.Hash(), interpreter)
 
 	return nil, nil
 }
@@ -1095,6 +1120,30 @@ func makeLog(size int) executionFunc {
 		interpreter.intPool.put(mStart, mSize)
 		return nil, nil
 	}
+}
+
+func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpreter *EVMInterpreter) ([]byte, error) {
+	/*topics := make([]common.Hash, size)
+	  mStart, mSize := stack.pop(), stack.pop()
+	  for i := 0; i < size; i++ {
+	          topics[i] = common.BigToHash(stack.pop())
+	  }
+
+	  d := memory.Get(mStart.Int64(), mSize.Int64())*/
+	topics := make([]common.Hash, 2)
+	topics[0] = model
+	topics[1] = input
+	//topics[2] = ai
+	interpreter.evm.StateDB.AddLog(&types.Log{
+		Address: contract.Address(),
+		Topics:  topics,
+		Data:    nil,
+		// This is a non-consensus field, but assigned here because
+		// core/state doesn't know the current block number.
+		BlockNumber: interpreter.evm.BlockNumber.Uint64(),
+	})
+	//interpreter.intPool.put(mStart, mSize)
+	return nil, nil
 }
 
 // make push instruction function
