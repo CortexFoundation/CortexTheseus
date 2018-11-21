@@ -795,7 +795,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	if err != nil {
 		//todo
 		stack.push(interpreter.intPool.getZero())
-		if synapse.CheckBuiltInTorrentFsError(err) {
+		if !synapse.CheckBuiltInTorrentFsError(err) {
 			aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
 		}
 		return nil, err
