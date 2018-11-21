@@ -769,10 +769,11 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 				if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
 					interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 					interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-					ret, overflow := bigUint64(topics[2].Big())
-					if overflow {
-						//					return nil, errGasUintOverflow
-					}
+					//ret, overflow := bigUint64(topics[2].Big())
+					//if overflow {
+					//					return nil, errGasUintOverflow
+					//}
+					ret := topics[2].Big().Uint64()
 					stack.push(interpreter.intPool.get().SetUint64(ret))
 				} else {
 					stack.push(interpreter.intPool.getZero())
@@ -1135,9 +1136,10 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 	topics := make([]common.Hash, 2)
 	topics[0] = model
 	topics[1] = input
+	topics[2] = common.BigToHash(big.NewInt(0).SetUint64(ai))
 
 	if err != nil {
-		topics[2] = common.HexToHash(err.Error())
+		topics[3] = common.HexToHash(err.Error())
 	}
 	//topics[2] = ai
 	interpreter.evm.StateDB.AddLog(&types.Log{
