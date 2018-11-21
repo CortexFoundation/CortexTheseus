@@ -1136,7 +1136,7 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 	  }
 
 	  d := memory.Get(mStart.Int64(), mSize.Int64())*/
-	topics := make([]common.Hash, 2)
+	topics := make([]common.Hash, 4)
 	topics[0] = model
 	topics[1] = input
 	topics[2] = common.BigToHash(big.NewInt(0).SetUint64(ai))
