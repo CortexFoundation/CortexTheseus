@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"time"
@@ -760,16 +761,17 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(allowedAiCacheTime).Unix())) <= 0 {
 		//ai cache
 		//logs []*Log
-		logs := interpreter.evm.StateDB.GetLogs(interpreter.evm.StateDB.GetTxHash())
-		for log := range logs {
+		logs := interpreter.evm.StateDB.GetCurrentLogs()
+		for _, log := range logs {
+			topics := log.Topics
 			//todo
-			if len(topics) == 4 && topics[0] == modelMeta.Hash && topics[1] == inputMeta.Hash {
-				if topics[3] == common.Hash() {
+			if len(topics) == 4 && topics[0].Big().Cmp(modelMeta.Hash.Big()) == 0 && topics[1].Big().Cmp(inputMeta.Hash.Big()) == 0 {
+				if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
 					interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 					interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 					ret, overflow := bigUint64(topics[2].Big())
 					if overflow {
-						return nil, errGasUintOverflow
+						//					return nil, errGasUintOverflow
 					}
 					stack.push(interpreter.intPool.get().SetUint64(ret))
 				} else {
@@ -793,7 +795,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//todo
 		stack.push(interpreter.intPool.getZero())
 		if synapse.CheckBuiltInTorrentFsError(err) {
-			aiLog(modelMeta.Hash, inputMeta.Hash, 0, common.HexToHash(err), interpreter)
+			aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
 		}
 		return nil, err
 	}
@@ -803,7 +805,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
 
-	aiLog(modelMeta.Hash, inputMeta.Hash, output, common.Hash(), interpreter)
+	aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
 
 	return nil, nil
 }
@@ -1122,7 +1124,7 @@ func makeLog(size int) executionFunc {
 	}
 }
 
-func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpreter *EVMInterpreter) ([]byte, error) {
+func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpreter *EVMInterpreter, contract *Contract) ([]byte, error) {
 	/*topics := make([]common.Hash, size)
 	  mStart, mSize := stack.pop(), stack.pop()
 	  for i := 0; i < size; i++ {
@@ -1133,6 +1135,10 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 	topics := make([]common.Hash, 2)
 	topics[0] = model
 	topics[1] = input
+
+	if err != nil {
+		topics[2] = common.HexToHash(err.Error())
+	}
 	//topics[2] = ai
 	interpreter.evm.StateDB.AddLog(&types.Log{
 		Address: contract.Address(),
