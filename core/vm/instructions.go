@@ -683,7 +683,7 @@ func opGas(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 }
 
 var (
-	allowedAiCacheTime = params.AI_CACHE_TIME * time.Second//-3600 * 24 * 30 * time.Second
+	allowedAiCacheTime = params.AI_CACHE_TIME * time.Second //-3600 * 24 * 30 * time.Second
 )
 
 func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -762,25 +762,28 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//ai cache
 		//logs []*Log
 		logs := interpreter.evm.StateDB.GetCurrentLogs()
-		for _, log := range logs {
-			topics := log.Topics
-			//todo
-			if len(topics) == 4 && topics[0].Big().Cmp(modelMeta.Hash.Big()) == 0 && topics[1].Big().Cmp(inputMeta.Hash.Big()) == 0 {
-				if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
-					interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-					interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-					//ret, overflow := bigUint64(topics[2].Big())
-					//if overflow {
-					//					return nil, errGasUintOverflow
-					//}
-					ret := topics[2].Big().Uint64()
-					stack.push(interpreter.intPool.get().SetUint64(ret))
-				} else {
-					stack.push(interpreter.intPool.getZero())
-					return nil, errAiRuntime
+		if len(logs) > 0 {
+			for _, log := range logs {
+				topics := log.Topics
+				//todo
+				if len(topics) == 4 && topics[0].Big().Cmp(modelMeta.Hash.Big()) == 0 && topics[1].Big().Cmp(inputMeta.Hash.Big()) == 0 {
+					if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
+						interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+						interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+						//ret, overflow := bigUint64(topics[2].Big())
+						//if overflow {
+						//					return nil, errGasUintOverflow
+						//}
+						ret := topics[2].Big().Uint64()
+						stack.push(interpreter.intPool.get().SetUint64(ret))
+					} else {
+						stack.push(interpreter.intPool.getZero())
+						return nil, errAiRuntime
+					}
+					//stack.push(interpreter.intPool.get().SetUint64(topics[2]))
+					//log todo
+					return nil, nil
 				}
-				//stack.push(interpreter.intPool.get().SetUint64(topics[2]))
-				return nil, nil
 			}
 		}
 	}
