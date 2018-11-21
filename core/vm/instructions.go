@@ -683,7 +683,7 @@ func opGas(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 }
 
 var (
-	allowedAiCacheTime = -3600 * 24 * 30 * time.Second
+	allowedAiCacheTime = params.AI_CACHE_TIME * time.Second//-3600 * 24 * 30 * time.Second
 )
 
 func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -1140,6 +1140,8 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 
 	if err != nil {
 		topics[3] = common.HexToHash(err.Error())
+	} else {
+		topics[3] = common.BigToHash(big.NewInt(0))
 	}
 	//topics[2] = ai
 	interpreter.evm.StateDB.AddLog(&types.Log{

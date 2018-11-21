@@ -94,4 +94,6 @@ const (
 	MODEL_MIN_UPLOAD_BYTES        = 0
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT        uint64 = 65536 //max gas limit for model call
+
+	AI_CACHE_TIME = -3600 * 24 * 7// * time.Second
 )
