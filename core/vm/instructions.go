@@ -762,7 +762,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//ai cache
 		//logs []*Log
 		logs := interpreter.evm.StateDB.GetCurrentLogs()
-		if len(logs) > 0 {
+		if logs != nil && len(logs) > 0 {
 			for _, log := range logs {
 				topics := log.Topics
 				//todo
