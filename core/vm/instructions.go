@@ -1142,7 +1142,8 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 	topics[2] = common.BigToHash(big.NewInt(0).SetUint64(ai))
 
 	if err != nil {
-		topics[3] = common.HexToHash(err.Error())
+		//topics[3] = common.HexToHash(err.Error())
+		topics[3] = common.BigToHash(big.NewInt(1))
 	} else {
 		topics[3] = common.BigToHash(big.NewInt(0))
 	}
