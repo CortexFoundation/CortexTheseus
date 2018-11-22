@@ -768,6 +768,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 				//todo
 				if topics != nil && len(topics) == 4 && topics[0].Big().Cmp(modelMeta.Hash.Big()) == 0 && topics[1].Big().Cmp(inputMeta.Hash.Big()) == 0 {
 					if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
+						//consensus
 						interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 						interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 						//ret, overflow := bigUint64(topics[2].Big())
@@ -805,16 +806,17 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		//todo
 		stack.push(interpreter.intPool.getZero())
 		if !synapse.CheckBuiltInTorrentFsError(err) {
+			//consensus
 			aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
 		}
 		return nil, err
 	}
-
+	//consensus
 	interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 	interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
-
+	//consensus
 	aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
 
 	return nil, nil
@@ -1147,7 +1149,8 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 	topics[1] = input
 	topics[2] = common.BigToHash(big.NewInt(0).SetUint64(ai))
 
-	if err != nil {
+	//err exists and ai output is zero, just for security
+	if err != nil && ai == 0{
 		//topics[3] = common.HexToHash(err.Error())
 		topics[3] = common.BigToHash(big.NewInt(1))
 	} else {
@@ -1157,7 +1160,7 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 	interpreter.evm.StateDB.AddLog(&types.Log{
 		Address: contract.Address(),
 		Topics:  topics,
-		Data:    nil,
+		//Data:    nil,
 		// This is a non-consensus field, but assigned here because
 		// core/state doesn't know the current block number.
 		BlockNumber: interpreter.evm.BlockNumber.Uint64(),
