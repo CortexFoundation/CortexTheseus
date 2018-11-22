@@ -783,9 +783,15 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 					//stack.push(interpreter.intPool.get().SetUint64(topics[2]))
 					//log todo
 					return nil, nil
+				} else {
+					//other logs todo
 				}
 			}
+		} else {
+			// exception todo infer before without log or receipt is not found now
 		}
+	} else {
+		//current mining movement maybe or exception todo
 	}
 
 	//if big.NewInt(time.Now().Unix()).Cmp(interpreter.evm.Context.Time.Add(allowedAiCacheTime)) > 0 {
