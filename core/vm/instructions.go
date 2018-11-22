@@ -1161,6 +1161,7 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 		// This is a non-consensus field, but assigned here because
 		// core/state doesn't know the current block number.
 		BlockNumber: interpreter.evm.BlockNumber.Uint64(),
+		Removed: false,
 	})
 	//interpreter.intPool.put(mStart, mSize)
 	return nil, nil
