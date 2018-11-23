@@ -755,8 +755,8 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		}
 	}
 
-	if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(confirmTime).Unix())) <= 0 {
-	/*	logs := interpreter.evm.StateDB.GetCurrentLogs()
+	/*if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(confirmTime).Unix())) <= 0 {
+		logs := interpreter.evm.StateDB.GetCurrentLogs()
 		if logs != nil && len(logs) > 0 {
 			for _, log := range logs {
 				topics := log.Topics
@@ -777,9 +777,9 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 				}
 			}
 		} else {
-		}*/
+		}
 	} else {
-	}
+	}*/
 
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
 
@@ -787,7 +787,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		stack.push(interpreter.intPool.getZero())
 		if !synapse.CheckBuiltInTorrentFsError(err) {
 			//consensus
-			//aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
+			//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
 		}
 		return nil, err
 	}
@@ -797,7 +797,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
 	//consensus
-	//aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
+	//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
 
 	return nil, nil
 }
@@ -1116,27 +1116,17 @@ func makeLog(size int) executionFunc {
 	}
 }
 
-func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpreter *EVMInterpreter, contract *Contract) ([]byte, error) {
-	/*topics := make([]common.Hash, size)
-	  mStart, mSize := stack.pop(), stack.pop()
-	  for i := 0; i < size; i++ {
-	          topics[i] = common.BigToHash(stack.pop())
-	  }
-
-	  d := memory.Get(mStart.Int64(), mSize.Int64())*/
+/*func makeAiLog(model common.Hash, input common.Hash, ai uint64, err error, interpreter *EVMInterpreter, contract *Contract) ([]byte, error) {
 	topics := make([]common.Hash, 4)
 	topics[0] = model
 	topics[1] = input
 	topics[2] = common.BigToHash(big.NewInt(0).SetUint64(ai))
 
-	//err exists and ai output is zero, just for security
 	if err != nil && ai == 0{
-		//topics[3] = common.HexToHash(err.Error())
 		topics[3] = common.BigToHash(big.NewInt(1))
 	} else {
 		topics[3] = common.BigToHash(big.NewInt(0))
 	}
-	//topics[2] = ai
 	interpreter.evm.StateDB.AddLog(&types.Log{
 		Address: contract.Address(),
 		Topics:  topics,
@@ -1146,9 +1136,8 @@ func aiLog(model common.Hash, input common.Hash, ai uint64, err error, interpret
 		BlockNumber: interpreter.evm.BlockNumber.Uint64(),
 		Removed: false,
 	})
-	//interpreter.intPool.put(mStart, mSize)
 	return nil, nil
-}
+}*/
 
 // make push instruction function
 func makePush(size uint64, pushByteSize int) executionFunc {
