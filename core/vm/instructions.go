@@ -683,7 +683,7 @@ func opGas(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 }
 
 var (
-	allowedAiCacheTime = params.AI_CACHE_TIME * time.Second //-3600 * 24 * 30 * time.Second
+	confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 )
 
 func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -755,7 +755,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		}
 	}
 
-	if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(allowedAiCacheTime).Unix())) <= 0 {
+	if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(confirmTime).Unix())) <= 0 {
 	/*	logs := interpreter.evm.StateDB.GetCurrentLogs()
 		if logs != nil && len(logs) > 0 {
 			for _, log := range logs {
