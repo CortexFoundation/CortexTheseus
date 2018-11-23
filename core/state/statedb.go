@@ -155,9 +155,9 @@ func (self *StateDB) GetCurrentLogs() []*types.Log {
 	return self.logs[self.thash]
 }
 
-func (self *StateDB) GetTxHash() common.Hash {
+/*func (self *StateDB) GetTxHash() common.Hash {
 	return self.thash
-}
+}*/
 
 func (self *StateDB) Logs() []*types.Log {
 	var logs []*types.Log

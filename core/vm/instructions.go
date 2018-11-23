@@ -755,13 +755,8 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		}
 	}
 
-	//result, err := call("", interpreter.evm.BlockNumber, modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
-
-	//todo cache or zksnark chain protection
 	if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(allowedAiCacheTime).Unix())) <= 0 {
-		//ai cache
-		//logs []*Log
-		logs := interpreter.evm.StateDB.GetCurrentLogs()
+	/*	logs := interpreter.evm.StateDB.GetCurrentLogs()
 		if logs != nil && len(logs) > 0 {
 			for _, log := range logs {
 				topics := log.Topics
@@ -771,43 +766,28 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 						//consensus
 						interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 						interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-						//ret, overflow := bigUint64(topics[2].Big())
-						//if overflow {
-						//					return nil, errGasUintOverflow
-						//}
 						ret := topics[2].Big().Uint64()
 						stack.push(interpreter.intPool.get().SetUint64(ret))
 					} else {
 						stack.push(interpreter.intPool.getZero())
 						return nil, errAiRuntime
 					}
-					//stack.push(interpreter.intPool.get().SetUint64(topics[2]))
-					//log todo
 					return nil, nil
 				} else {
-					//other logs todo
 				}
 			}
 		} else {
-			// exception todo infer before without log or receipt is not found now
-		}
+		}*/
 	} else {
-		//current mining movement maybe or exception todo
 	}
-
-	//if big.NewInt(time.Now().Unix()).Cmp(interpreter.evm.Context.Time.Add(allowedAiCacheTime)) > 0 {
-	// ai cache av
-	//}
 
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
 
-	//todo
 	if err != nil {
-		//todo
 		stack.push(interpreter.intPool.getZero())
 		if !synapse.CheckBuiltInTorrentFsError(err) {
 			//consensus
-			aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
+			//aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
 		}
 		return nil, err
 	}
@@ -817,7 +797,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
 	//consensus
-	aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
+	//aiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
 
 	return nil, nil
 }
