@@ -26,7 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	infer "github.com/ethereum/go-ethereum/inference/synapse"
+	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 
@@ -465,9 +465,9 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 	)
 
 	if evm.vmConfig.InferURI == "" {
-		inferRes, errRes = infer.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
+		inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
 	} else {
-		inferRes, errRes = infer.Engine().RemoteInferByInfoHash(
+		inferRes, errRes = synapse.Engine().RemoteInferByInfoHash(
 			modelInfoHash,
 			inputInfoHash,
 			evm.vmConfig.InferURI)
@@ -481,8 +481,8 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) InferArray(modelInfoHash string, addr common.Address, slot common.Hash, inputArray []byte) (uint64, error) {
-	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "address", addr.Hex(), "slot", slot.Hex(), "number", evm.BlockNumber)
+func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, error) {
+	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", evm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
 	var (
@@ -491,15 +491,12 @@ func (evm *EVM) InferArray(modelInfoHash string, addr common.Address, slot commo
 	)
 
 	if evm.vmConfig.InferURI == "" {
-		inferRes, errRes = infer.Engine().InferByInputContent(modelInfoHash, inputArray)
+		inferRes, errRes = synapse.Engine().InferByInputContent(modelInfoHash, inputArray)
 	} else {
-		inferRes, errRes = infer.Engine().RemoteInferByInputContent(
+		inferRes, errRes = synapse.Engine().RemoteInferByInputContent(
 			modelInfoHash,
 			evm.vmConfig.InferURI,
-			addr.Hex(),
-			slot.Hex(),
-			hexutil.EncodeBig(evm.BlockNumber),
-			evm.StateDB.GetTxIndex(),
+			inputArray,
 		)
 	}
 

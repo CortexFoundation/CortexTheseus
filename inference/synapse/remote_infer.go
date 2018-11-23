@@ -1,27 +1,48 @@
 package synapse
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 
 	simplejson "github.com/bitly/go-simplejson"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/inference"
 	"github.com/ethereum/go-ethereum/log"
 	resty "gopkg.in/resty.v1"
 )
 
 func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) (uint64, error) {
-	requestBody := fmt.Sprintf(`{"Type": 1, "ModelHash":"%s", "InputHash":"%s"}`, modelInfoHash, inputInfoHash)
+	inferWork := &inference.IHWork{
+		Type:  inference.INFER_BY_IH,
+		Model: modelInfoHash,
+		Input: inputInfoHash,
+	}
+
+	requestBody, err := json.Marshal(inferWork)
+	if err != nil {
+		return 0, err
+	}
 	log.Debug("Remote Inference", "request", requestBody)
 
-	return s.sendRequest(requestBody, uri)
+	return s.sendRequest(string(requestBody), uri)
 }
 
-func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, addr, slot, blockNumber string, txIndex int) (uint64, error) {
-	requestBody := fmt.Sprintf(`{"Type": 2, "ModelHash":"%s", "InputAddress":"%s", "InputSlot":"%s", "InputBlockNumber":"%s", "InputTxIndex": "%d"}`, modelInfoHash, addr, slot, blockNumber, txIndex)
+func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, inputContent []byte) (uint64, error) {
+	inferWork := &inference.ICWork{
+		Type:  inference.INFER_BY_IC,
+		Model: modelInfoHash,
+		Input: hexutil.Bytes(inputContent),
+	}
+
+	requestBody, err := json.Marshal(inferWork)
+	if err != nil {
+		return 0, err
+	}
 	log.Debug("Remote Inference", "request", requestBody)
 
-	return s.sendRequest(requestBody, uri)
+	return s.sendRequest(string(requestBody), uri)
 }
 
 func (s *Synapse) sendRequest(requestBody, uri string) (uint64, error) {

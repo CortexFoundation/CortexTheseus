@@ -814,9 +814,8 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 
 	output, err := interpreter.evm.InferArray(
 		modelMeta.Hash.Hex(),
-		contract.Address(),
-		common.BigToHash(_inputHeaderOffset),
 		inputBuff)
+
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
