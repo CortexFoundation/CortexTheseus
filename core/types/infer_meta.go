@@ -45,7 +45,7 @@ type InputMeta struct {
 	Hash          common.Address `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	Shape         []uint64       `json:"Shape"`
-	AuthorAddress common.Address `json:"AuthorAddress"`
+	//AuthorAddress common.Address `json:"AuthorAddress"`
 	BlockNum      big.Int        `json:"BlockNum"`
 
 	//RawBytes []byte `json:"RawBytes"`

@@ -291,7 +291,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				} else {
 					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
-				log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			} else {
 				//			log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
 			}
