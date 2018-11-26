@@ -10,7 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"os"
+//	"os"
 	"time"
 
 	"github.com/PoolMiner/common"
@@ -64,7 +64,7 @@ type ReqObj struct {
 func checkError(err error) {
 	if err != nil {
 		log.Println("%s", err.Error())
-		os.Exit(1)
+//		os.Exit(1)
 	}
 }
 

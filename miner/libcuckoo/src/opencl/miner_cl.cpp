@@ -337,7 +337,7 @@ void initOne (uint32_t index, uint32_t device)
 	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d", EDGEBITS, PROOFSIZE);
 	
 	buildProgram (program, &(deviceId), options);
-	saveBinaryFile(program, deviceId);
+//	saveBinaryFile(program, deviceId);
 	cl_ulong maxThreadsPerBlock = 0;
 	clGetDeviceInfo (deviceId, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (maxThreadsPerBlock), &maxThreadsPerBlock, NULL);
 	assert (tp.genA.tpb <= maxThreadsPerBlock);
