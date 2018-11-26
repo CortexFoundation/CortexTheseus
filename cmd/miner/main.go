@@ -10,7 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"os"
+//	"os"
 	"time"
 
 	"github.com/PoolMiner/common"
@@ -61,10 +61,10 @@ type ReqObj struct {
 	Params  []string `json:"params"`
 }
 
-func checkError(err error) {
+func checkError(err error, func_name string) {
 	if err != nil {
-		log.Println("%s", err.Error())
-		os.Exit(1)
+		log.Println(func_name, err.Error())
+//		os.Exit(1)
 	}
 }
 
@@ -81,7 +81,7 @@ func (cm *Cortex) read() map[string]interface{} {
 			cm.consta.lock.Unlock()
 			return nil
 		}
-		checkError(err)
+		checkError(err, "read()")
 		rep = append(rep, tmp...)
 		if isPrefix == false {
 			break
@@ -90,13 +90,13 @@ func (cm *Cortex) read() map[string]interface{} {
 	// fmt.Println("received ", len(rep), " bytes: ", string(rep), "\n")
 	var repObj map[string]interface{}
 	err := json.Unmarshal(rep, &repObj)
-	checkError(err)
+	checkError(err, "read()")
 	return repObj
 }
 
 func (cm *Cortex) write(reqObj ReqObj) {
 	req, err := json.Marshal(reqObj)
-	checkError(err)
+	checkError(err, "write()")
 
 	req = append(req, uint8('\n'))
 	_, _ = cm.conn.Write(req)
@@ -109,10 +109,10 @@ func (cm *Cortex) init() *net.TCPConn {
 	//cm.server = "localhost:8009"
 	//cm.account = "0xc3d7a1ef810983847510542edfd5bc5551a6321c"
 	tcpAddr, err := net.ResolveTCPAddr("tcp", cm.server)
-	checkError(err)
+	checkError(err, "init()")
 
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
-	checkError(err)
+	checkError(err, "init()")
 	cm.consta.lock.Lock()
 	cm.consta.state = true
 	cm.consta.lock.Unlock()
@@ -223,7 +223,7 @@ func (cm *Cortex) miningOnce() {
 						if verboseLevel >= 3 {
 							log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 						}
-						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+//						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 							log.Println("Target Difficulty satisfied")
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
@@ -240,7 +240,7 @@ func (cm *Cortex) miningOnce() {
 								log.Println(fmt.Sprintf("thread %v: solutions=%v, all_time = %vms, avg_time = %vms", tidx, cm.deviceIds[tidx].solution_count, cm.deviceIds[tidx].use_time, (cm.deviceIds[tidx].use_time)/(cm.deviceIds[tidx].solution_count)))
 								start_time = end_time
 							}
-						}
+//						}
 					}
 				}
 			}
