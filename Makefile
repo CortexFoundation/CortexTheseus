@@ -56,7 +56,7 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cortex nodekey cuckoo-miner
+all: cortex-remote cortex nodekey cuckoo-miner
 	# build/env.sh go run build/ci.go install
 
 nodekey:
