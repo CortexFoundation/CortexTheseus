@@ -213,12 +213,12 @@ namespace cuckoogpu {
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
 	checkOpenclErrors(clResult);
-	clFinish(commandQueue);
+//	clFinish(commandQueue);
 
 	clResult = clEnqueueFillBuffer(commandQueue, indexesE2, &initV, sizeof (int), 0,
 			    tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
-	clFinish(commandQueue);
+//	clFinish(commandQueue);
 
 	constRound = 1;
 	edges_a = EDGES_B;
@@ -245,13 +245,13 @@ namespace cuckoogpu {
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
 	checkOpenclErrors(clResult);
-	clFinish(commandQueue);
+//	clFinish(commandQueue);
 
 
 	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0,
 			    tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
-	clFinish(commandQueue);
+//	clFinish(commandQueue);
 
 	constRound = 2;
 	edges_a = EDGES_B / 2;
@@ -278,12 +278,12 @@ namespace cuckoogpu {
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
 	checkOpenclErrors(clResult);
-	clFinish(commandQueue);
+//	clFinish(commandQueue);
 
 	clResult = clEnqueueFillBuffer(commandQueue, indexesE2, &initV, sizeof (int), 0,
 			    tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
-	clFinish(commandQueue);
+//	clFinish(commandQueue);
 
 	constRound = 3;
 	edges_a = EDGES_A / 4;
@@ -310,7 +310,7 @@ namespace cuckoogpu {
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
 	checkOpenclErrors(clResult);
-	clFinish(commandQueue);
+//	clFinish(commandQueue);
 
 	for (int round = 4; round < tp.ntrims; round += 2)
 	{
@@ -318,7 +318,7 @@ namespace cuckoogpu {
 				tmpSize, 0, NULL, NULL);
 		checkOpenclErrors(clResult);
 
-	    clFinish(commandQueue);
+//	    clFinish(commandQueue);
 
 	    constRound = round;
 	    edges_a = EDGES_B / 4;
@@ -339,12 +339,12 @@ namespace cuckoogpu {
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
 		checkOpenclErrors(clResult);
-	    clFinish(commandQueue);
+//	    clFinish(commandQueue);
 
 	    clResult = clEnqueueFillBuffer(commandQueue, indexesE2, &initV, sizeof (int),
 				0, tmpSize, 0, NULL, NULL);
 		checkOpenclErrors(clResult);
-	    clFinish(commandQueue);
+//	    clFinish(commandQueue);
 
 	    constRound = round + 1;
 	    edges_a = EDGES_B / 4;

@@ -213,7 +213,7 @@ Recovery(__constant const siphash_keys * sipkeys, __global int *indexes, __const
 }
 
 __kernel void
-SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut, uint offset)
+SeedA(__constant const siphash_keys * sipkeys, __global uint2 * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut, uint offset)
 {
     const int group = get_group_id(0);
     const int dim = get_local_size(0);
@@ -221,13 +221,13 @@ SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ bu
     const int gid = group * dim + lid;
     const int nthreads = get_global_size(0);
     __local uint2 tmp[NX][FLUSHA2];
-    const int TMPPERLL4 = sizeof (ulong4) / sizeof (uint2);
     __local int counters[NX];
 
     for (int row = lid; row < NX; row += dim)
 	counters[row] = 0;
     barrier(CLK_LOCAL_MEM_FENCE);
 
+    const uint tmp_offset = offset / sizeof(uint2);
     const int col = group % NX;
     const int loops = NEDGES / nthreads;
     for (int i = 0; i < loops; i++)
@@ -247,8 +247,8 @@ SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ bu
 	    int nflush = localIdx - newCount;
 	    int cnt = min((int) atomic_add(indexes + row * NX + col, nflush),
 			  (int) (maxOut - nflush));
-	    for (int i = 0; i < nflush; i += TMPPERLL4)
-		buffer[offset/sizeof(ulong4) + ((ulong) (row * NX + col) * maxOut + cnt + i) / TMPPERLL4] = uint2_to_ulong4(tmp[row][i], tmp[row][i + 1], tmp[row][i + 2], tmp[row][i + 3]);
+	    for (int i = 0; i < nflush; i += 1)
+		buffer[tmp_offset + ((ulong) (row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
 	    for (int t = 0; t < newCount; t++)
 	    {
 		tmp[row][t] = tmp[row][t + nflush];
@@ -257,17 +257,14 @@ SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ bu
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
     }
-    uint2 zero = make_Edge_by_node(0, tmp[0][0], 0, 0);
     for (int row = lid; row < NX; row += dim)
     {
 	int localIdx = min(FLUSHA2, counters[row]);
-	for (int j = localIdx; j % TMPPERLL4; j++)
-	    tmp[row][j] = zero;
-	for (int i = 0; i < localIdx; i += TMPPERLL4)
+	int cnt = min((int) atomic_add(indexes + row * NX + col, 1),
+		  (int) (maxOut - 1));
+	for (int i = 0; i < localIdx; i += 1)
 	{
-	    int cnt = min((int) atomic_add(indexes + row * NX + col, TMPPERLL4),
-			  (int) (maxOut - TMPPERLL4));
-	    buffer[offset/sizeof(ulong4) + ((ulong) (row * NX + col) * maxOut + cnt) / TMPPERLL4] = uint2_to_ulong4(tmp[row][i], tmp[row][i + 1], tmp[row][i + 2], tmp[row][i + 3]);
+	    buffer[tmp_offset + ((ulong) (row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
 	}
     }
 }
@@ -275,7 +272,7 @@ SeedA(__constant const siphash_keys * sipkeys, __global ulong4 * __restrict__ bu
 __kernel void
 SeedB(__constant const siphash_keys * sipkeys,
       __global const uint2 * __restrict__ source,
-      __global ulong4 * __restrict__ destination,
+      __global uint2 * __restrict__ destination,
       __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxOut, const uint halfA, const uint halfE, uint offset)
 {
     const int group = get_group_id(0);	//blockIdx.x;
@@ -285,7 +282,6 @@ SeedB(__constant const siphash_keys * sipkeys,
     const int gid = get_global_id(0);
 
     __local uint2 tmp[NX][FLUSHB2];
-    const int TMPPERLL4 = sizeof (ulong4) / sizeof (uint2);
     __local int counters[NX];
 
     for (int col = lid; col < NX; col += dim)
@@ -295,8 +291,9 @@ SeedB(__constant const siphash_keys * sipkeys,
     const int row = group / NX;
     const int bucketEdges = min((int) sourceIndexes[group + halfE], (int) maxOut);
     const int loops = (bucketEdges + dim - 1) / dim;
-    const uint dest_halfA = halfA/sizeof(ulong4);
+    const uint dest_halfA = halfA/sizeof(uint2);
     const uint src_halfA = halfA/sizeof(uint2);
+    const uint tmp_offset = offset / sizeof(uint2);
 
     for (int loop = 0; loop < loops; loop++)
     {
@@ -307,7 +304,7 @@ SeedB(__constant const siphash_keys * sipkeys,
 	if (edgeIndex < bucketEdges)
 	{
 	    const int index = group * maxOut + edgeIndex;
-	    uint2 edge = source[index + src_halfA + offset/sizeof(uint2)];
+	    uint2 edge = source[index + src_halfA + tmp_offset];
 	    if (null2(edge))
 		continue;
 	    uint node1 = endpoint2(sipkeys, edge, 0);
@@ -324,10 +321,10 @@ SeedB(__constant const siphash_keys * sipkeys,
 	    int nflush = localIdx - newCount;
 	    int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
 					   nflush), (int) (maxOut - nflush));
-	    for (int i = 0; i < nflush; i += TMPPERLL4)
+	    for (int i = 0; i < nflush; i += 1)
 	    {
 		destination[((ulong) (row * NX + col) * maxOut + cnt +
-			     i) / TMPPERLL4 + dest_halfA] = uint2_to_ulong4(tmp[col][i], tmp[col][i + 1], tmp[col][i + 2], tmp[col][i + 3]);
+			     i) + dest_halfA] = tmp[col][i];
 	    }
 	    for (int t = 0; t < newCount; t++)
 	    {
@@ -337,18 +334,15 @@ SeedB(__constant const siphash_keys * sipkeys,
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
     }
-    uint2 zero = make_Edge_by_node(0, tmp[0][0], 0, 0);
     for (int col = lid; col < NX; col += dim)
     {
 	int localIdx = min(FLUSHB2, counters[col]);
-	for (int j = localIdx; j % TMPPERLL4; j++)
-	    tmp[col][j] = zero;
-	for (int i = 0; i < localIdx; i += TMPPERLL4)
+	int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
+			   1), (int) (maxOut - 1));
+	for (int i = 0; i < localIdx; i += 1)
 	{
-	    int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
-					   TMPPERLL4), (int) (maxOut - TMPPERLL4));
-	    destination[((ulong) (row * NX + col) * maxOut + cnt) / TMPPERLL4 +
-			dest_halfA] = uint2_to_ulong4(tmp[col][i], tmp[col][i + 1], tmp[col][i + 2], tmp[col][i + 3]);
+	    destination[((ulong) (row * NX + col) * maxOut + cnt + i) +
+			dest_halfA] = tmp[col][i];
 	}
     }
 }

@@ -187,6 +187,7 @@ struct solver_ctx {
 
     // gettimeofday(&time0, 0);
     u32 nedges = trimmer->trim(this->device);
+//    printf("trim result: %u\n", nedges);
     if (nedges > MAXEDGES) {
       fprintf(stderr, "OOPS; losing %d edges beyond MAXEDGES=%d\n", nedges-MAXEDGES, MAXEDGES);
       nedges = MAXEDGES;

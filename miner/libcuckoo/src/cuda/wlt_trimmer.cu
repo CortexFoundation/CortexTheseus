@@ -126,7 +126,7 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
     }
 
 	template<int maxOut, typename EdgeOut>
-		__global__ void SeedA(const siphash_keys &sipkeys, ulonglong4 * __restrict__ buffer, int * __restrict__ indexes) {
+		__global__ void SeedA(const siphash_keys &sipkeys, uint2 * __restrict__ buffer, int * __restrict__ indexes) {
 			const int group = blockIdx.x;
 			const int dim = blockDim.x;
 			const int lid = threadIdx.x;
@@ -135,7 +135,6 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
 			const int FLUSHA2 = 2*FLUSHA;
 
 			__shared__ EdgeOut tmp[NX][FLUSHA2]; // needs to be ulonglong4 aligned
-			const int TMPPERLL4 = sizeof(ulonglong4) / sizeof(EdgeOut);
 			__shared__ int counters[NX];
 
 			for (int row = lid; row < NX; row += dim)
@@ -158,8 +157,8 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
 					int newCount = localIdx % FLUSHA;
 					int nflush = localIdx - newCount;
 					int cnt = min((int)atomicAdd(indexes + row * NX + col, nflush), (int)(maxOut - nflush));
-					for (int i = 0; i < nflush; i += TMPPERLL4)
-						buffer[((u64)(row * NX + col) * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *)(&tmp[row][i]);
+					for (int i = 0; i < nflush; i += 1)
+						buffer[((u64)(row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
 					for (int t = 0; t < newCount; t++) {
 						tmp[row][t] = tmp[row][t + nflush];
 					}
@@ -170,13 +169,12 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
 			EdgeOut zero = make_Edge(0, tmp[0][0], 0, 0);
 			for (int row = lid; row < NX; row += dim) {
 				int localIdx = min(FLUSHA2, counters[row]);
-				for (int j = localIdx; j % TMPPERLL4; j++)
-					tmp[row][j] = zero;
-				for (int i = 0; i < localIdx; i += TMPPERLL4) {
-					int cnt = min((int)atomicAdd(indexes + row * NX + col, TMPPERLL4), (int)(maxOut - TMPPERLL4));
-					buffer[((u64)(row * NX + col) * maxOut + cnt) / TMPPERLL4] = *(ulonglong4 *)(&tmp[row][i]);
+				int cnt = min((int)atomicAdd(indexes + row * NX + col, localIdx), (int)(maxOut - localIdx));
+				for (int i = 0; i < localIdx; i += 1) {
+					buffer[((u64)(row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
 				}
 			}
+			
 		}
 
 	__global__ void Seed2A(const siphash_keys &sipkeys, ulonglong4 * __restrict__ buffer, int * __restrict__ indexes) {
@@ -247,14 +245,13 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
 	}
 
     template<int maxOut, typename EdgeOut>
-        __global__ void SeedB(const siphash_keys &sipkeys, const EdgeOut * __restrict__ source, ulonglong4 * __restrict__ destination, const int * __restrict__ sourceIndexes, int * __restrict__ destinationIndexes) {
+        __global__ void SeedB(const siphash_keys &sipkeys, const EdgeOut * __restrict__ source, uint2 * __restrict__ destination, const int * __restrict__ sourceIndexes, int * __restrict__ destinationIndexes) {
             const int group = blockIdx.x;
             const int dim = blockDim.x;
             const int lid = threadIdx.x;
             const int FLUSHB2 = 2 * FLUSHB;
 
             __shared__ EdgeOut tmp[NX][FLUSHB2];
-            const int TMPPERLL4 = sizeof(ulonglong4) / sizeof(EdgeOut);
             __shared__ int counters[NX];
 
             // if (group>=0&&lid==0) printf("group  %d  -\n", group);
@@ -282,8 +279,8 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
                     int newCount = localIdx % FLUSHB;
                     int nflush = localIdx - newCount;
                     int cnt = min((int)atomicAdd(destinationIndexes + row * NX + col, nflush), (int)(maxOut - nflush));
-                    for (int i = 0; i < nflush; i += TMPPERLL4)
-                        destination[((u64)(row * NX + col) * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *)(&tmp[col][i]);
+                    for (int i = 0; i < nflush; i += 1)
+                        destination[((u64)(row * NX + col) * maxOut + cnt + i)] = tmp[col][i];
                     for (int t = 0; t < newCount; t++) {
                         tmp[col][t] = tmp[col][t + nflush];
                     }
@@ -294,11 +291,9 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
             EdgeOut zero = make_Edge(0, tmp[0][0], 0, 0);
             for (int col = lid; col < NX; col += dim) {
                 int localIdx = min(FLUSHB2, counters[col]);
-                for (int j = localIdx; j % TMPPERLL4; j++)
-                    tmp[col][j] = zero;
-                for (int i = 0; i < localIdx; i += TMPPERLL4) {
-                    int cnt = min((int)atomicAdd(destinationIndexes + row * NX + col, TMPPERLL4), (int)(maxOut - TMPPERLL4));
-                    destination[((u64)(row * NX + col) * maxOut + cnt) / TMPPERLL4] = *(ulonglong4 *)(&tmp[col][i]);
+                int cnt = min((int)atomicAdd(destinationIndexes + row * NX + col, localIdx), (int)(maxOut - localIdx));
+                for (int i = 0; i < localIdx; i += 1) {
+                    destination[((u64)(row * NX + col) * maxOut + cnt + i)] = tmp[col][i];
                 }
             }
         }
@@ -559,7 +554,7 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
 #endif
 
 #ifdef TROMP_SEEDA
-		SeedA<EDGES_A, uint2><<<tp.genA.blocks, tp.genA.tpb>>>(*dipkeys, bufferAB, (int *)indexesE);
+		SeedA<EDGES_A, uint2><<<tp.genA.blocks, tp.genA.tpb>>>(*dipkeys, (uint2*)bufferAB, (int *)indexesE);
 #else
 		Seed2A<<<tp.genA.blocks, tp.genA.tpb>>>(*dipkeys, bufferAB, (int *)indexesE);
 #endif
@@ -575,8 +570,8 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
         const u32 halfA = sizeA/2 / sizeof(ulonglong4);
         const u32 halfE = NX2 / 2;
 #ifdef TROMP_SEEDB
-		SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)bufferAB, bufferA, (const int *)indexesE, indexesE2);
-		SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)(bufferAB+halfA), bufferA+halfA, (const int *)(indexesE+halfE), indexesE2+halfE);
+		SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)bufferAB, (uint2*)bufferA, (const int *)indexesE, indexesE2);
+		SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)(bufferAB+halfA), (uint2*)(bufferA+halfA), (const int *)(indexesE+halfE), indexesE2+halfE);
 #else
 		Seed2B<<<tp.genB.blocks/2, NX>>>((const uint2 *)bufferAB, bufferA, (const int *)indexesE, indexesE2);
 		Seed2B<<<tp.genB.blocks/2, NX>>>((const uint2 *)(bufferAB+halfA), bufferA+halfA, (const int *)(indexesE+halfE), indexesE2+halfE);
