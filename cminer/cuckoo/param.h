@@ -17,7 +17,7 @@
 #endif
 
 #ifndef XBITS
-#define XBITS 5
+#define XBITS 7
 #endif
 
 #ifndef COMPRESSIONROUND
