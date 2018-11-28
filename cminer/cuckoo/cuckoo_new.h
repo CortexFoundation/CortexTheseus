@@ -74,7 +74,7 @@ u64 siphash24(const siphash_keys *keys, const u64 nonce) {
 #ifndef EDGEBITS
 // the main parameter is the 2-log of the graph size,
 // which is the size in bits of the node identifiers
-#define EDGEBITS 29
+#define EDGEBITS 28
 #endif
 #ifndef PROOFSIZE
 // the next most important parameter is the (even) length
@@ -126,8 +126,11 @@ int verify(edge_t edges[PROOFSIZE], siphash_keys *keys) {
     xor0 ^= uvs[2*n  ] = sipnode(keys, edges[n], 0);
     xor1 ^= uvs[2*n+1] = sipnode(keys, edges[n], 1);
   }
+  
+
   if (xor0|xor1)              // optional check for obviously bad proofs
     return POW_NON_MATCHING;
+
   u32 n = 0, i = 0, j;
   do {                        // follow cycle
     for (u32 k = j = i; (k = (k+2) % (2*PROOFSIZE)) != i; ) {

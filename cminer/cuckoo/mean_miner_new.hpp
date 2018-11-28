@@ -1127,9 +1127,13 @@ public:
   //# trimmer main function
 
   void trimmer(u32 id) {
+//	  fprintf(stdout, "gen U nodes...\n");
     genUnodes(id, 0);
+ //   fprintf(stdout, "barrier...\n");
     barrier();
+  //  fprintf(stdout, "gen V nodes...\n");
     genVnodes(id, 1);
+   // fprintf(stdout, "round ... \n");
 
     for (u32 round = 2; round < ntrims-2; round += 2) {
       barrier();
