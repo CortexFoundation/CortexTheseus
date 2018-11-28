@@ -40,13 +40,6 @@ bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint64_t nonce, ui
     *result_len = 0;
     if (ss.size() > 0)
     {
-	/*printf("sovle result : %d\n", ss.size());
-    	cout << "size = " << sizeof(ss[0].data) << " PROOFSIZE = " << PROOFSIZE << "\n";
-    	for (uint32_t i = 0;  i < sizeof(ss[0].data); i++) {
-       		cout << ss[0].data[i] << " ";
-    	}
-	cout << "\n";
-	*/
         memcpy(result, (uint32_t*)ss[0].data, PROOFSIZE * sizeof(uint32_t));
         memcpy(result_hash, (uchar*)ss[0].hash, 32*sizeof(uchar));
         *result_len = PROOFSIZE;
@@ -107,12 +100,7 @@ void CuckooRelease(uint bot)
 
 uint8_t CuckooSolve(uint8_t *header, uint32_t header_len, uint64_t nonce, result_t *result, uint32_t *result_len, uint8_t *target, uint8_t *hash) {
     uint bot_idx = getMinerBotInstance();
-/*    fprintf(stdout, "nonce =%lu, target=%u, header:", nonce, target);
-    for(int i = 0; i < header_len; i++)
-	    fprintf(stdout, "%u ", header[i]);
-*/
     uint8_t res = botPool[bot_idx]->CuckooSolve((char*)header, header_len, nonce, result, result_len, target, hash);
-//    fprintf(stdout, "solve result : %d\n", res);
     CuckooRelease(bot_idx);
     return res;
 }
@@ -132,9 +120,7 @@ int32_t CuckooFindSolutions(uint8_t *header, uint64_t nonce, result_t *result, u
         auto& sol = sols[n];
         for (size_t i = 0; i < sol.size(); i++) {
             result[i + n * (*solLength)] = sol[i];
-    //        printf(" %d", sol[i]);
         }
-    //    printf("\n");
     }
     return 1;
 }

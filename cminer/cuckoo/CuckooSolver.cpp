@@ -18,7 +18,7 @@ void CuckooSolver::loadParam(){
 
 void CuckooSolver::initSolver(){
     _run = true;
-    printf("Initializing Cuckoo Cycle Solver: nthreads=%d, ntrims=%d...\n", nthreads, ntrims);
+    printf("Initializing Cuckoo Cycle Solver...\n");
     // solver_ctx ctx(nthreads, ntrims, allrounds, showcycle);
 
     solver = new solver_ctx(nthreads, ntrims, allrounds, showcycle);
@@ -129,7 +129,7 @@ bool CuckooSolver::verifySol(u32* sol){
         for(int i=0; i<32; i++){
             // printf("%02x %02x\n",cyclehash[i],target[i]);
             if(cyclehash[i] >  target[i]){
-                printf("difficulty is not satisfied\n");
+                //printf("difficulty is not satisfied\n");
                 valid = false;
                 break;
             } else if(cyclehash[i]<target[i]){
@@ -184,7 +184,7 @@ bool CuckooSolver::verifySol(u32* sol, uchar* hash, uchar* target){
     for (int i = 0;i<32;i++){
         printf("%02x %02x\n",cyclehash[i],target[i]);
         if(cyclehash[i] >  target[i]){
-            printf("difficulty is not satisfied\n");
+            //printf("difficulty is not satisfied\n");
             valid = false;
             return valid;
         }else if(cyclehash[i]<target[i]){
