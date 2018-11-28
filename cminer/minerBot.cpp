@@ -33,11 +33,6 @@ void MinerBot::await() {
 bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint64_t nonce, uint32_t *result, uint *result_len, uchar* target,uchar* result_hash)
 {
     using std::cout;
-/*
-    printf("nonce =%lu, target=%u, header:", nonce, target);
-    for(int i = 0; i < header_len; i++)
-	    printf("%u ", header[i]);
-*/
     cs.setHeaderNonce(header, header_len, nonce);
     cs.setHashTarget(target);
     cs.solve();
@@ -73,12 +68,6 @@ bool MinerBot::CuckooVerify(char *header, uint32_t header_len, uint64_t nonce,
 {
     cs.setHeaderNonce(header, header_len, nonce);
     cs.setHashTarget(target);
-    /*for (uint32_t i = 0; i < header_len; i++) {
-       if (i != 0) printf(",");
-       printf("%d", header[i]);
-    }
-    printf("\n");
-    */
     bool ok = cs.verifySol(result, hash, target);
     return ok;
 }

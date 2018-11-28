@@ -30,19 +30,19 @@ cuckoo:
 	make -C cuckoo
 
 %.o: %.cpp
-	g++ -g -O0 -mavx2 -std=c++11 -c -fPIC $< -o $@
+	g++ -g -mavx2 -std=c++11 -c -fPIC $< -o $@
 
 %.o: %.cc
-	g++ -g -O0 -mavx2 -std=c++11 -c -fPIC $< -o $@
+	g++ -g -mavx2 -std=c++11 -c -fPIC $< -o $@
 
 main: cuckoo/CuckooSolver.o minerBot.o main.cpp
-	g++ --std=c++11 -o main -g -O0  $^ -pthread -L./cuckoo -lblake2b
+	g++ --std=c++11 -o main -g $^ -pthread -L./cuckoo -lblake2b
 
 main-verify: cuckoo/siphash.o cuckoo/cuckoo.o gominer.o main.cpp 
-	g++ --std=c++11 -DVERIFY_ONLY -o main-verify -g -O0 $^ -pthread -L./cuckoo -lblake2b 
+	g++ --std=c++11 -DVERIFY_ONLY -o main-verify -g $^ -pthread -L./cuckoo -lblake2b 
 
 libgominer.so: ${OBJ_LIB}
-	g++ -g -fPIC -shared ${OBJ_LIB} -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.so
+	g++ -fPIC -shared ${OBJ_LIB} -I${IDIR} ${LDFLAG} ${LDLIBS} -o ./libgominer.so
 
 libcuckoo.a: gominer.o cuckoo/siphash.o cuckoo/cuckoo.o cuckoo/blake2b.o
 	ar -rc libcuckoo.a $^
