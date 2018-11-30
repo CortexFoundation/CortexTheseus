@@ -4,11 +4,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto/sha3"
+	"github.com/ethereum/go-ethereum/inference"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 func ReadImage(inputFilePath string) ([]byte, error) {
-	r, rerr := NewFileReader(inputFilePath)
+	r, rerr := inference.NewFileReader(inputFilePath)
 	if rerr != nil {
 		return nil, rerr
 	}
