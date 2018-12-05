@@ -223,7 +223,7 @@ func (cm *Cortex) miningOnce() {
 						if verboseLevel >= 3 {
 							log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 						}
-//						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 							log.Println("Target Difficulty satisfied")
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
@@ -240,7 +240,7 @@ func (cm *Cortex) miningOnce() {
 								log.Println(fmt.Sprintf("thread %v: solutions=%v, all_time = %vms, avg_time = %vms", tidx, cm.deviceIds[tidx].solution_count, cm.deviceIds[tidx].use_time, (cm.deviceIds[tidx].use_time)/(cm.deviceIds[tidx].solution_count)))
 								start_time = end_time
 							}
-//						}
+						}
 					}
 				}
 			}
