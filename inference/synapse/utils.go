@@ -9,6 +9,10 @@ import (
 )
 
 func ArgMax(res []byte) uint64 {
+	if res == nil {
+		return 0
+	}
+
 	var (
 		max    = int8(res[0])
 		label  = uint64(0)

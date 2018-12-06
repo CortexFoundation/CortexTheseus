@@ -66,43 +66,14 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 	}
 
 	if res.Info == inference.RES_OK {
+		var data = []byte(res.Data)
 		if !s.config.IsNotCache {
-			s.simpleCache.Store(cacheKey, res.Data)
+			s.simpleCache.Store(cacheKey, data)
 		}
-		return []byte(res.Data), nil
+		return data, nil
 	} else if res.Info == inference.RES_ERROR {
 		return nil, errors.New(string(res.Data))
 	}
 
 	return nil, errors.New("Remote Infer: response json `info` parse error")
-	/*
-		js, js_err := simplejson.NewJson([]byte(resp.String()))
-		if js_err != nil {
-			return nil, errors.New(fmt.Sprintf("Remote Infer: resonse json parse error | %v ", js_err))
-		}
-
-		msg, msgErr := js.Get("msg").String()
-		if msgErr != nil {
-			return nil, errors.New(fmt.Sprintf("Remote Infer: response `msg` parse error | %v ", msgErr))
-		}
-
-		int_output_tmp, out_err := js.Get("info").String()
-		if out_err != nil {
-			return nil, errors.New(fmt.Sprintf("Remote Infer: response `info` parse error | %v ", out_err))
-		}
-
-		if msg != "ok" {
-			return nil, errors.New(int_output_tmp)
-		}
-
-		uint64_output, err := strconv.ParseUint(int_output_tmp, 10, 64)
-		if err != nil {
-			return nil, errors.New("Remote Infer: result conversion error")
-		}
-
-		if !s.config.IsNotCache {
-			s.simpleCache.Store(cacheKey, uint64_output)
-		}
-
-		return uint64_output, nil */
 }
