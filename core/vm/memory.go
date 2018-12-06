@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common/math"
@@ -121,4 +122,30 @@ func (m *Memory) Print() {
 		fmt.Println("-- empty --")
 	}
 	fmt.Println("####################")
+}
+
+func (m* Memory) GetSolidityBytes(slot int64) ([]byte, error) {
+	bigLen := big.NewInt(0)
+	length_buff := m.Get(slot, 32)
+	bigLen.SetBytes(length_buff)
+	buff := m.Get(slot + 32, bigLen.Int64())
+	return buff, nil
+}
+
+func (m* Memory) GetLengthOfSolidityBytes(slot int64) (uint64, error) {
+	bigLen := big.NewInt(0)
+	length_buff := m.Get(slot, 32)
+	bigLen.SetBytes(length_buff)
+	return bigLen.Uint64(), nil
+}
+
+func (m* Memory) WriteSolidityBytes(slot int64, data []byte) error {
+	bigLen := big.NewInt(0)
+	length_buff := m.Get(slot, 32)
+	bigLen.SetBytes(length_buff)
+	if int64(len(data)) != bigLen.Int64() {
+		return errors.New("solidity memory bytes length not match")
+	}
+	m.Set(uint64(slot + 32), bigLen.Uint64(), data)
+	return nil
 }

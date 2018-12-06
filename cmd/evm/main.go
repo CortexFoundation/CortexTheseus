@@ -118,6 +118,15 @@ var (
 		Name:  "ismodelmeta",
 		Usage: "true if its a model meta",
 	}
+	InferURI = cli.StringFlag{
+		Name:  "inferuri",
+		Usage: "uri for inference server",
+		Value: "http://localhost:8827",
+	}
+	StorageDir = cli.StringFlag{
+		Name:  "storagedir",
+		Usage: "storage address for model and data",
+	}
 )
 
 func init() {
@@ -143,6 +152,8 @@ func init() {
 		DisableStackFlag,
 		MetaJsonFlag,
 		ParseModelMetaFlag,
+		InferURI,
+		StorageDir,
 	}
 	app.Commands = []cli.Command{
 		compileCommand,
