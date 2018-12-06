@@ -8,6 +8,33 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
+func ArgMax(res []byte) uint64 {
+	var (
+		max    = int8(res[0])
+		label  = uint64(0)
+		resLen = len(res)
+	)
+
+	// If result length large than 1, find the index of max value;
+	// Else the question is two-classify model, and value of result[0] is the prediction.
+	if resLen > 1 {
+		for idx := 1; idx < resLen; idx++ {
+			if int8(res[idx]) > max {
+				max = int8(res[idx])
+				label = uint64(idx)
+			}
+		}
+	} else {
+		if max > 0 {
+			label = 1
+		} else {
+			label = 0
+		}
+	}
+
+	return label
+}
+
 func ReadImage(inputFilePath string) ([]byte, error) {
 	r, rerr := inference.NewFileReader(inputFilePath)
 	if rerr != nil {

@@ -836,7 +836,7 @@ func opNNForward(pc *uint64, interpreter *EVMInterpreter, contract *Contract, me
 	// 	contract.Address(),
 	// 	common.BigToHash(_inputHeaderOffset),
 	// 	inputBuff)
-	var err error;
+	var err error
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
@@ -1145,4 +1145,3 @@ func makeSwap(size int64) executionFunc {
 		return nil, nil
 	}
 }
-

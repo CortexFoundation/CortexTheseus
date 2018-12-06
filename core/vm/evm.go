@@ -460,7 +460,7 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
 	var (
-		inferRes uint64
+		inferRes []byte
 		errRes   error
 	)
 
@@ -477,7 +477,7 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 		log.Info("Inference Succeed", "label", inferRes)
 	}
 
-	return inferRes, errRes
+	return synapse.ArgMax(inferRes), errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
@@ -486,7 +486,7 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, err
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
 	var (
-		inferRes uint64
+		inferRes []byte
 		errRes   error
 	)
 
@@ -504,7 +504,7 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, err
 		log.Info("Inference Succeed", "label", inferRes)
 	}
 
-	return inferRes, errRes
+	return synapse.ArgMax(inferRes), errRes
 }
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {

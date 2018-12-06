@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/inference"
 )
 
 const (
@@ -29,10 +33,6 @@ var (
 	ErrInvalidInferTaskType = errors.New("unknown request property type")
 )
 
-const (
-	RespPattern = `{"msg": "%v", "info": "%v"}`
-)
-
 func RespErrorText(w http.ResponseWriter, ctx ...interface{}) {
 	var info = ""
 	if len(ctx)%2 != 0 {
@@ -45,9 +45,31 @@ func RespErrorText(w http.ResponseWriter, ctx ...interface{}) {
 		info = fmt.Sprintf(info, ctx[i], ctx[i+1])
 	}
 
-	fmt.Fprintf(w, fmt.Sprintf(RespPattern, MsgError, strings.TrimSuffix(strings.TrimSuffix(info, ", "), " | ")))
+	var res = &inference.InferResult{
+		Info: inference.RES_ERROR,
+		Data: hexutil.Bytes(info),
+	}
+
+	data, err := json.Marshal(res)
+	if err != nil {
+		log.Error("Json marshal invalid", "err", err, "res", res)
+		return
+	}
+
+	fmt.Fprintf(w, string(data))
 }
 
-func RespInfoText(w http.ResponseWriter, result interface{}) {
-	fmt.Fprintf(w, fmt.Sprintf(RespPattern, MsgCorrect, result))
+func RespInfoText(w http.ResponseWriter, result []byte) {
+	var res = &inference.InferResult{
+		Info: inference.RES_OK,
+		Data: hexutil.Bytes(result),
+	}
+
+	data, err := json.Marshal(res)
+	if err != nil {
+		log.Error("Json marshal invalid", "err", err, "res", res)
+		return
+	}
+
+	fmt.Fprintf(w, string(data))
 }

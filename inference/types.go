@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
+// infer send types
 type InferType uint32
 
 const (
@@ -39,4 +40,15 @@ func RetriveType(input []byte) InferType {
 	}
 
 	return *dec.Type
+}
+
+// infer response types
+const (
+	RES_OK    = "ok"
+	RES_ERROR = "error"
+)
+
+type InferResult struct {
+	Data hexutil.Bytes `json:"data"`
+	Info string        `json:"info"`
 }
