@@ -45,6 +45,7 @@ type Cortex struct {
 	conn                   *net.TCPConn
 	reader                 *bufio.Reader
 	consta                 Connection
+	miner_algorithm int
 }
 
 type Task struct {
@@ -161,7 +162,7 @@ func (cm *Cortex) Mining() {
 	for i := 0; i < len(cm.deviceIds); i++{
 		iDeviceIds = append(iDeviceIds, cm.deviceIds[i].deviceId)
 	}
-	libcuckoo.CuckooInitialize(iDeviceIds, (uint32)(len(iDeviceIds)))
+	libcuckoo.CuckooInitialize(iDeviceIds, (uint32)(len(iDeviceIds)), cm.miner_algorithm)
 
 	for {
 		for {
@@ -223,12 +224,17 @@ func (cm *Cortex) miningOnce() {
 						if verboseLevel >= 3 {
 							log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 						}
-						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+						//if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 							log.Println("Target Difficulty satisfied")
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
 							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-							ok := verify.CuckooVerifyProof(header[:], curNonce, &sol[0], 12, 28)
+							var ok int
+							if cm.miner_algorithm == 0{
+								ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], 12, 28)
+							}else{
+								ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], 12, 28)
+							}
 							if ok != 1 {
 								log.Println("verify failed", header[:], curNonce, &sol)
 							} else {
@@ -240,7 +246,7 @@ func (cm *Cortex) miningOnce() {
 								log.Println(fmt.Sprintf("thread %v: solutions=%v, all_time = %vms, avg_time = %vms", tidx, cm.deviceIds[tidx].solution_count, cm.deviceIds[tidx].use_time, (cm.deviceIds[tidx].use_time)/(cm.deviceIds[tidx].solution_count)))
 								start_time = end_time
 							}
-						}
+						//}
 					}
 				}
 			}
@@ -332,6 +338,7 @@ func main() {
 		server:       remote,
 		deviceIds:     deviceIds,
 		verboseLevel: uint(verboseLevel),
+		miner_algorithm : 1,
 	}
 
 	cm.Mining()

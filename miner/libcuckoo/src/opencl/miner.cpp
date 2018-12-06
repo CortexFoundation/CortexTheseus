@@ -1,5 +1,6 @@
 #include "cuckoo_solver.hpp"
 #include "cuckaroo_solver.hpp"
+#include "kernel_source.h"
 #include "../../miner.h"
 #include <vector>
 
@@ -19,7 +20,7 @@ int32_t FindSolutionsByGPU(
     using namespace cuckoogpu;
     using std::vector;
     // printf("[CuckooFind, sols.size()SolutionsCuda] thread: %d\n", getpid());
-    cudaSetDevice(ctx[threadId]->device);
+    //cudaSetDevice(ctx[threadId]->device);
     ctx[threadId]->setheadernonce((char*)header, nonce);
 
     char headerInHex[65];
@@ -61,23 +62,43 @@ void initOne(uint32_t index, uint32_t device){
     using namespace cuckoogpu;
     using std::vector;
     trimparams tp;
-    int nDevices = 0;
-    //TODO(tian) make use of multiple gpu
-    checkCudaErrors(cudaGetDeviceCount(&nDevices));
-    assert(device < nDevices);
-    cudaSetDevice(device);
-    // printf("Cuckoo: Device ID %d\n", device);
-    cudaDeviceProp prop;
-    checkCudaErrors(cudaGetDeviceProperties(&prop, device));
-    assert(tp.genA.tpb <= prop.maxThreadsPerBlock);
-    assert(tp.genB.tpb <= prop.maxThreadsPerBlock);
-    assert(tp.trim.tpb <= prop.maxThreadsPerBlock);
-    // assert(tp.tailblocks <= prop.threadDims[0]);
-    assert(tp.tail.tpb <= prop.maxThreadsPerBlock);
-    assert(tp.recover.tpb <= prop.maxThreadsPerBlock);
-    //ctx = new solver_ctx(tp, device);
-    ctx[index]->init(tp, device);
+	cl_platform_id platformId = getOnePlatform ();
+	if (platformId == NULL)
+		return;
+//	getPlatformInfo (platformId);
+	cl_device_id deviceId = getOneDevice (platformId, device);
+	if (deviceId == NULL)
+		return;
+	cl_context context = createContext (platformId, deviceId);
+	if (context == NULL)
+		return;
+	cl_command_queue commandQueue = createCommandQueue (context, deviceId);
+	if (commandQueue == NULL)
+		return;
 
+	string sourceStr = get_kernel_source();
+	size_t size = sourceStr.size();
+	const char *source = sourceStr.c_str ();
+	cl_program program = createProgram (context, &source, size);
+
+//	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);	
+	if (program == NULL){
+		printf("create program error\n");
+		return;
+	}
+	char options[1024] = "-I./";
+	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d", EDGEBITS, PROOFSIZE);
+	
+	buildProgram (program, &(deviceId), options);
+//	saveBinaryFile(program, deviceId);
+	cl_ulong maxThreadsPerBlock = 0;
+	clGetDeviceInfo (deviceId, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (maxThreadsPerBlock), &maxThreadsPerBlock, NULL);
+	assert (tp.genA.tpb <= maxThreadsPerBlock);
+	assert (tp.genB.tpb <= maxThreadsPerBlock);
+	assert (tp.trim.tpb <= maxThreadsPerBlock);
+	assert (tp.tail.tpb <= maxThreadsPerBlock);
+	assert (tp.recover.tpb <= maxThreadsPerBlock);
+	ctx[index]->init(tp, device, context, commandQueue, program);
     printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
     u64 bytes = ctx[index]->trimmer->globalbytes();
 
@@ -92,7 +113,7 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
     using std::vector;
 
 
-    for(int i = 0; i < deviceNum; i++){
+    for(uint i = 0; i < deviceNum; i++){
             if(selected == 0){
                     ctx.push_back(new cuckoo_solver_ctx());
             }else{

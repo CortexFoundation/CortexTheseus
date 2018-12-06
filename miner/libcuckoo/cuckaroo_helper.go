@@ -1,9 +1,9 @@
-// +build cuda
+// +build cuckaroo
 
 package libcuckoo
 
 /*
-#cgo LDFLAGS: -L./ -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++
+#cgo LDFLAGS: -L./ -lcuckaroominer -L/usr/local/cuda/lib64 -lcudart -lstdc++
 #cgo CFLAGS: -I./
 
 #include "miner.h"
@@ -12,7 +12,7 @@ import "C"
 import (
 	"fmt"
 	"log"
-//	"time"
+	"time"
 	"unsafe"
 )
 
@@ -25,7 +25,7 @@ func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (status_code
 	var tmpHash = make([]byte, 32)
 	copy(tmpHash[:], hash)
 
-//	start := time.Now()
+	start := time.Now()
 	r := C.FindSolutionsByGPU(
 		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
 		C.uint64_t(nonce),
@@ -35,8 +35,8 @@ func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (status_code
 		(*C.uint32_t)(unsafe.Pointer(&_solLength)),
 		(*C.uint32_t)(unsafe.Pointer(&_numSols)))
 
-//	duration := time.Since(start)
-//	log.Println(fmt.Sprintf("CuckooFindSolutionCuda | time=%v, status code=%v", duration, _numSols))
+	duration := time.Since(start)
+	log.Println(fmt.Sprintf("CuckooFindSolutionCuda | time=%v, status code=%v", duration, _numSols))
 
 	// TODO add warning of discarding possible solutions
 	if uint32(len(result)) < _solLength*_numSols {
@@ -54,6 +54,6 @@ func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (status_code
 	return uint32(r), ret
 }
 
-func CuckooInitialize(devices []uint32, deviceNum uint32, selected int) {
-	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected))
+func CuckooInitialize(devices []uint32, deviceNum uint32) {
+	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum))
 }

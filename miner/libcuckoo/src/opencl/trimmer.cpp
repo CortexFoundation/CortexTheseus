@@ -1,6 +1,6 @@
 #include <time.h>
 
-#include "trimmer_cl.h"
+#include "trimmer.h"
 namespace cuckoogpu {
 
 #define DUCK_A_EDGES_NX (DUCK_A_EDGES * NX)
@@ -9,10 +9,11 @@ namespace cuckoogpu {
 
     edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 			     cl_command_queue commandQueue,
-			     cl_program program) {
+			     cl_program program, int _selected) {
 	this->context = context;
 	this->commandQueue = commandQueue;
 	this->program = program;
+	this->selected = _selected;
 	indexesSize = NX * NY * sizeof (u32);
 	tp = _tp;
 
@@ -104,7 +105,10 @@ namespace cuckoogpu {
 	local_work_size[0] = tp.genA.tpb;
 	cl_event event;
 	int edges_a = EDGES_A;
-	cl_kernel seedA_kernel = clCreateKernel(program, "SeedA", &clResult);
+	cl_kernel seedA_kernel = NULL;
+        if(selected == 0) seedA_kernel = clCreateKernel(program, "Cuckoo_SeedA", &clResult);
+	else seedA_kernel = clCreateKernel(program, "Cuckaroo_SeedA", &clResult);
+checkOpenclErrors(clResult);
 	clResult |=
 	    clSetKernelArg(seedA_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
 	clResult |=

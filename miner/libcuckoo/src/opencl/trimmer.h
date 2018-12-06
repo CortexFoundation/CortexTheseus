@@ -141,13 +141,14 @@ struct edgetrimmer {
   siphash_keys sipkeys;//, *dipkeys;
   cl_mem dipkeys;
 
-  edgetrimmer(const trimparams _tp, cl_context context, cl_command_queue commandQueue, cl_program program);
+  edgetrimmer(const trimparams _tp, cl_context context, cl_command_queue commandQueue, cl_program program, int selected);
 
   u64 globalbytes() const ;
 
   ~edgetrimmer();
 
   u32 trim(uint32_t device);
+  int selected;
 };
 
 };

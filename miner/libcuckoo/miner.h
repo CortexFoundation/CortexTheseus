@@ -11,7 +11,7 @@ int32_t FindSolutionsByGPU(
         uint32_t resultBuffSize,
         uint32_t *solLength,
         uint32_t *numSol);
-void CuckooInitialize(uint32_t *devices, uint32_t deviceNum);
+void CuckooInitialize(uint32_t *devices, uint32_t deviceNum, int selected);
 void CuckooFinalize();
 #ifdef __cplusplus
 }

@@ -45,6 +45,13 @@ typedef uint node_t;
 #define FLUSHB 8
 #endif
 
+#ifndef EDGE_BLOCK_BITS
+#define EDGE_BLOCK_BITS 6
+#endif
+#define EDGE_BLOCK_SIZE (1 << EDGE_BLOCK_BITS)
+#define EDGE_BLOCK_MASK (EDGE_BLOCK_SIZE - 1)
+
+
 typedef struct {
     ulong k0;
     ulong k1;
@@ -180,8 +187,73 @@ null2(uint2 nodes)
     return (nodes.x == 0 && nodes.y == 0);
 }
 
+
+inline ulong dipblock(__constant const siphash_keys *key, const edge_t edge, ulong *buf) {
+  //diphash_state shs(keys);
+  siphash_keys keys = *key;
+  ulong v0 = keys.k0, v1 = keys.k1, v2 = keys.k2, v3 = keys.k3;
+
+  edge_t edge0 = edge & ~EDGE_BLOCK_MASK;
+  uint i;
+  for (i=0; i < EDGE_BLOCK_MASK; i++) {
+    //shs.hash24(edge0 + i);
+	  edge_t nonce = edge0 + i;
+	v3^=nonce;
+	SIPROUND; SIPROUND;
+	v0 ^= nonce;
+	v2 ^= 0xff;	
+	SIPROUND; SIPROUND; SIPROUND; SIPROUND;
+
+//    buf[i] = shs.xor_lanes();
+	buf[i] = (v0 ^ v1) ^ (v2  ^ v3);
+  }
+//  shs.hash24(edge0 + i);
+	  edge_t nonce = edge0 + i;
+    v3^=nonce;
+  SIPROUND; SIPROUND;
+  v0 ^= nonce;
+  v2 ^= 0xff;
+  SIPROUND; SIPROUND; SIPROUND; SIPROUND;
+
+//    buf[i] = shs.xor_lanes();
+  buf[i] = 0;
+  //return shs.xor_lanes();
+  return (v0 ^ v1) ^ (v2  ^ v3);
+}
+
+__kernel void Cuckaroo_Recovery(__constant const siphash_keys *sipkeys,__global int *indexes, __constant uint2* recoveredges) {
+  const int gid = get_global_id(0);//blockDim.x * blockIdx.x + threadIdx.x;
+  const int lid = get_local_id(0);//threadIdx.x;
+  const int nthreads = get_global_size(0);//blockDim.x * gridDim.x;
+  const int loops = NEDGES / nthreads;
+  __local uint nonces[PROOFSIZE];
+  ulong buf[EDGE_BLOCK_SIZE];
+
+  if (lid < PROOFSIZE) nonces[lid] = 0;
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  for (int blk = 0; blk < loops; blk += EDGE_BLOCK_SIZE) {
+    uint nonce0 = gid * loops + blk;
+    const ulong last = dipblock(sipkeys, nonce0, buf);
+    for (int i = 0; i < EDGE_BLOCK_SIZE; i++) {
+      ulong edge = buf[i] ^ last;
+      uint u = edge & EDGEMASK;
+      uint v = (edge >> 32) & EDGEMASK;
+      for (int p = 0; p < PROOFSIZE; p++) {
+        if (recoveredges[p].x == u && recoveredges[p].y == v)
+          nonces[p] = nonce0 + i;
+      }
+    }
+  }
+  barrier(CLK_LOCAL_MEM_FENCE);
+  if (lid < PROOFSIZE) {
+    if (nonces[lid] > 0)
+      indexes[lid] = nonces[lid];
+  }
+}
+
 __kernel void
-Recovery(__constant const siphash_keys * sipkeys, __global int *indexes, __constant uint2 * recoveredges)
+Cuckoo_Recovery(__constant const siphash_keys * sipkeys, __global int *indexes, __constant uint2 * recoveredges)
 {
     const int gid = get_global_id(0);	//blockDim.x * blockIdx.x + threadIdx.x;
     const int lid = get_local_id(0);	//threadIdx.x;
@@ -212,8 +284,64 @@ Recovery(__constant const siphash_keys * sipkeys, __global int *indexes, __const
     }
 }
 
+__kernel void 
+Cuckaroo_SeedA(__constant const siphash_keys* sipkeys, __global uint2 * __restrict__ buffer, __global int * __restrict__ indexes, int maxOut, uint offset) {
+  const int group = get_group_id(0);//blockIdx.x;
+  const int dim = get_local_size(0);//blockDim.x;
+  const int lid = get_local_id(0);//threadIdx.x;
+  const int gid = group * dim + lid;
+  const int nthreads = get_global_size(0);//gridDim.x * dim;
+  //const int FLUSHA2 = 2*FLUSHA;
+
+  __local uint2 tmp[NX][FLUSHA2]; // needs to be ulonglong4 aligned
+  __local int counters[NX];
+  ulong buf[EDGE_BLOCK_SIZE];
+
+  for (int row = lid; row < NX; row += dim)
+    counters[row] = 0;
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+ 
+  const uint tmp_offset = offset / sizeof(uint2);
+  const int col = group % NX;
+  const int loops = NEDGES / nthreads; // assuming THREADS_HAVE_EDGES checked
+  for (int blk = 0; blk < loops; blk += EDGE_BLOCK_SIZE) {
+   uint nonce0 = gid * loops + blk;
+    const ulong last = dipblock(sipkeys, nonce0, buf);
+    for (uint e = 0; e < EDGE_BLOCK_SIZE; e++) {
+      ulong edge = buf[e] ^ last;
+      uint node0 = edge & EDGEMASK;
+      uint node1 = (edge >> 32) & EDGEMASK;
+      int row = node0 & XMASK;
+      int counter = min((int)atomic_add(counters + row, 1), (int)(FLUSHA2-1)); // assuming ROWS_LIMIT_LOSSES checked
+      tmp[row][counter] = make_uint2(node0, node1);
+      barrier(CLK_LOCAL_MEM_FENCE);
+      if (counter == FLUSHA-1) {
+        int localIdx = min(FLUSHA2, counters[row]);
+        int newCount = localIdx % FLUSHA;
+        int nflush = localIdx - newCount;
+        int cnt = min((int)atomic_add(indexes + row * NX + col, nflush), (int)(maxOut - nflush));
+        for (int i = 0; i < nflush; i += 1)
+          buffer[tmp_offset + ((ulong)(row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
+        for (int t = 0; t < newCount; t++) {
+          tmp[row][t] = tmp[row][t + nflush];
+        }
+        counters[row] = newCount;
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+    }
+  }
+  uint2 zero = make_uint2(0, 0);
+  for (int row = lid; row < NX; row += dim) {
+    int localIdx = min(FLUSHA2, counters[row]);
+    int cnt = min((int)atomic_add(indexes + row * NX + col, localIdx), (int)(maxOut - localIdx));
+    for (int i = 0; i < localIdx; i += 1) {
+      buffer[tmp_offset + ((ulong)(row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
+    }
+  }
+}
 __kernel void
-SeedA(__constant const siphash_keys * sipkeys, __global uint2 * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut, uint offset)
+Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global uint2 * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut, uint offset)
 {
     const int group = get_group_id(0);
     const int dim = get_local_size(0);
@@ -260,8 +388,8 @@ SeedA(__constant const siphash_keys * sipkeys, __global uint2 * __restrict__ buf
     for (int row = lid; row < NX; row += dim)
     {
 	int localIdx = min(FLUSHA2, counters[row]);
-	int cnt = min((int) atomic_add(indexes + row * NX + col, 1),
-		  (int) (maxOut - 1));
+	int cnt = min((int) atomic_add(indexes + row * NX + col, localIdx),
+		  (int) (maxOut - localIdx));
 	for (int i = 0; i < localIdx; i += 1)
 	{
 	    buffer[tmp_offset + ((ulong) (row * NX + col) * maxOut + cnt + i)] = tmp[row][i];

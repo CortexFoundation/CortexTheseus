@@ -11,9 +11,8 @@
 #include <sys/time.h>			// gettimeofday
 #include <unistd.h>
 #include <sys/types.h>
-#include "trimmer_cl.h"
-#include "../../miner.h"
-#include "wlt_trimmer.h"
+#include "trimmer.h"
+#include "solver.h"
 
 namespace cuckoogpu
 {
@@ -68,28 +67,25 @@ namespace cuckoogpu
 		return *(u32 *) a - *(u32 *) b;
 	}
 
-	struct solver_ctx
+	struct cuckoo_solver_ctx : public solver_ctx
 	{
-		edgetrimmer *trimmer;
 		cl_uint2 *edges;
 		cuckoo_hash *cuckoo;
 		cl_uint2 soledges[PROOFSIZE];
-		  std::vector < u32 > sols;	// concatenation of all proof's indices
 		u32 us[MAXPATHLEN];
 		u32 vs[MAXPATHLEN];
-		uint32_t device;
 
-  		solver_ctx(){}
-		solver_ctx (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
+  		cuckoo_solver_ctx(){}
+		cuckoo_solver_ctx (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
 		{
-			trimmer = new edgetrimmer (tp, context, commandQueue, program);
+			trimmer = new edgetrimmer (tp, context, commandQueue, program, 0);
 			edges = new cl_uint2[MAXEDGES];
 			cuckoo = new cuckoo_hash ();
 			device = _device;
 		}
 		void init (const trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
 		{
-			trimmer = new edgetrimmer (tp, context, commandQueue, program);
+			trimmer = new edgetrimmer (tp, context, commandQueue, program, 0);
 			edges = new cl_uint2[MAXEDGES];
 			cuckoo = new cuckoo_hash ();
 			device = _device;
@@ -104,7 +100,7 @@ namespace cuckoogpu
 			sols.clear ();
 		}
 
-		~solver_ctx ()
+		~cuckoo_solver_ctx ()
 		{
 			delete cuckoo;
 			delete[]edges;
@@ -139,7 +135,7 @@ namespace cuckoogpu
 			checkOpenclErrors(clResult);
 
 			clFinish (trimmer->commandQueue);
-			cl_kernel recovery_kernel = clCreateKernel (trimmer->program, "Recovery", &clResult);
+			cl_kernel recovery_kernel = clCreateKernel (trimmer->program, "Cuckoo_Recovery", &clResult);
 			clResult |= clSetKernelArg (recovery_kernel, 0, sizeof (cl_mem), (void *) &trimmer->dipkeys);
 			clResult |= clSetKernelArg (recovery_kernel, 1, sizeof (cl_mem), (void *) &trimmer->indexesE2);
 			clResult |= clSetKernelArg (recovery_kernel, 2, sizeof (cl_mem), (void *) &trimmer->recoveredges);
@@ -257,7 +253,7 @@ namespace cuckoogpu
 	};
 
 };								// end of namespace cuckoogpu
-
+/*
 cuckoogpu::solver_ctx * ctx = NULL;
 int32_t FindSolutionsByGPU (uint8_t * header, uint64_t nonce, uint32_t threadId, result_t * result, uint32_t resultBuffSize, uint32_t * solLength, uint32_t * numSol)
 {
@@ -366,3 +362,4 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum) {
     	initOne(i, devices[i]);
     }
 }
+*/

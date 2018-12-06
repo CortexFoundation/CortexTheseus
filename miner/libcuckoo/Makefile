@@ -7,16 +7,18 @@ GCC_ARCH_FLAGS ?= -march=native
 GPP_ARCH_FLAGS ?= -march=native
 
 # -Wno-deprecated-declarations shuts up Apple OSX clang
-FLAGS ?= -Wall -Wno-format -Wno-deprecated-declarations -D_POSIX_C_SOURCE=200112L $(OPT) -DPREFETCH -I. -Isrc/opencl/ocl/include/ $(CPPFLAGS) -pthread -lOpenCL -g
+FLAGS ?= -O0 -Wall -Wno-format -Wno-deprecated-declarations -D_POSIX_C_SOURCE=200112L $(OPT) -DPREFETCH -I. -Isrc/opencl/ocl/include/ $(CPPFLAGS) -pthread -lOpenCL -g
 GPP ?= g++ $(GPP_ARCH_FLAGS) -std=c++11 $(FLAGS)
 CFLAGS ?= -Wall -Wno-format -fomit-frame-pointer $(OPT)
 GCC ?= gcc $(GCC_ARCH_FLAGS) -std=gnu11 $(CFLAGS)
 
-all: cuda opencl
+all: cuda opencl cuckaroo
 
 cuda : libcudaminer.a
 	
 opencl : libopenclminer.a
+
+cuckaroo : libcuckaroominer.a
 
 blake2b.o: src/blake2.h src/blake2-impl.h src/blake2b-ref.cpp
 	$(GPP) -g -Og -c -o blake2b.o src/blake2b-ref.cpp
@@ -28,25 +30,44 @@ siphash.o: src/siphash.cc src/siphash.h
 	$(GPP) -g -c -o $@ $<
 
 
-cudaN31L14.o: src/siphash.cuh src/cuda/miner.cu src/cuda/wlt_trimmer.cu Makefile
-	nvcc -g -std=c++11 -c -o $@.mean.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/wlt_trimmer.cu $(LIBS)
-	nvcc -g -c -o $@.temp.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/miner.cu $(LIBS)
-	nvcc -g -ccbin g++ -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -rdc=true -dlink -o $@ $@.temp.o $@.mean.o 
+cudaN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/cuda/miner.cu src/cuda/trimmer.cu Makefile
+	nvcc -g -std=c++11 -c -o $@.trimmer.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/trimmer.cu $(LIBS)
+#	nvcc -g -c -o $@.solver.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/solver.hpp $(LIBS)
+	nvcc -g -c -o $@.miner.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/miner.cu $(LIBS)
+	nvcc -g -ccbin g++ -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -rdc=true -dlink -o $@ $@.miner.o $@.trimmer.o
 
-openclN31L14.o: src/siphash.cuh src/opencl/miner_cl.cpp src/opencl/wlt_trimmer.cpp Makefile
-	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/wlt_trimmer.cpp
-	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner_cl.cpp
+openclN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/opencl/miner.cpp src/opencl/trimmer.cpp Makefile
+	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/trimmer.cpp
+	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp
 	ld -r -o $@ $@.temp.o $@.mean.o
 
+cpuN31L14.o: src/cuckoo.h src/siphash.h src/cpu/mean.cpp src/cpu/mean.hpp Makefile
+#	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/wlt_trimmer.cpp
+	$(GPP) -g -c -U__STRICT_ANSI__ -o $@ -DEDGEBITS=28 -DPROOFSIZE=12 src/cpu/mean.cpp
+#	ld -r -o $@ $@.temp.o $@.mean.o
+
+cuckarooN31L14.o: src/siphash.cuh src/cuckaroo/compress.hpp src/cuckaroo/graph.hpp src/cuckaroo/miner.cu src/cuckaroo/wlt_trimmer.cu Makefile
+	nvcc -g -std=c++11 -c -o $@.mean.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuckaroo/wlt_trimmer.cu $(LIBS)
+	nvcc -g -std=c++11 -c -o $@.temp.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuckaroo/miner.cu $(LIBS)
+	nvcc -g -ccbin g++ -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -rdc=true -dlink -o $@ $@.temp.o $@.mean.o 
+
 libcudaminer.a: cudaN31L14.o blake2b.o siphash.o cuckoo.o
-	ar cr $@ $^ $<.temp.o  $<.mean.o
-	rm -rf cudaN31L14.o cudaN31L14.o.temp.o $<.temp.p $<.mean.o
+	ar cr $@ $^ $<.trimmer.o $<.miner.o 
+	rm -rf cudaN31L14*.o
 #	$(GPP) -g -o $@ $^ $<.temp.o  $<.mean.o -lOpenCL
 #	ar cr $@ $^
 
 libopenclminer.a: openclN31L14.o blake2b.o siphash.o cuckoo.o
 	ar cr $@ $^ $<.temp.o  $<.mean.o
+	rm -rf openclN31L14*.o
+
+libcpuminer.a: cpuN31L14.o blake2b.o siphash.o cuckoo.o
+	ar cr $@ $^ $<.temp.o  $<.mean.o
 	rm -rf $^ $<.temp.o $<.mean.o
+
+libcuckaroominer.a: cuckarooN31L14.o blake2b.o siphash.o cuckoo.o
+	ar cr $@ $^ $<.temp.o  $<.mean.o
+	rm -rf $^ $<.temp.o $<.mean.o
+
 clean:
 	rm -rf *.o *.a
-

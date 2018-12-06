@@ -15,7 +15,9 @@ namespace cuckoogpu {
 
 extern __constant__ uint2 recoveredges[PROOFSIZE];
 
-__global__ void Recovery(const siphash_keys &sipkeys, ulonglong4 *buffer, int *indexes);
+__global__ void Cuckoo_Recovery(const siphash_keys &sipkeys, ulonglong4 *buffer, int *indexes);
+
+__global__ void Cuckaroo_Recovery(const siphash_keys &sipkeys, ulonglong4 *buffer, int *indexes);
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -132,9 +134,10 @@ struct edgetrimmer {
   u32 hostA[NX * NY];
   u32 *uvnodes;
   proof sol;
+  int selected;
   siphash_keys sipkeys, *dipkeys;
 
-  edgetrimmer(const trimparams _tp, u32 _deviceId);
+  edgetrimmer(const trimparams _tp, u32 _deviceId, int _selected);
 
   u64 globalbytes() const ;
 

@@ -61,3 +61,11 @@ edge_t sipnode_(siphash_keys *keys, edge_t edge, u32 uorv) {
   return sipnode(keys, edge, uorv) << 1 | uorv;
 }
 };
+void print_log(const char *fmt, ...) {
+	if (SQUASH_OUTPUT) return;
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	
+}

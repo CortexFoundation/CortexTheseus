@@ -1,5 +1,6 @@
 #ifndef INCLUDE_SIPHASHXN_H
 #define INCLUDE_SIPHASHXN_H
+#include "siphash.h"
 
 #ifdef __AVX2__
 
@@ -25,6 +26,12 @@
 
 #endif
 
+  typedef struct {
+    u64 k0;
+    u64 k1;
+    u64 k2;
+    u64 k3;
+  } siphash_keys;
 #define SIPROUNDXN \
   do { \
     v0 = ADD(v0,v1); v2 = ADD(v2,v3); v1 = ROT13(v1); \
