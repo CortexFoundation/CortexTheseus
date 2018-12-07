@@ -31,7 +31,7 @@ siphash.o: src/siphash.cc src/siphash.h
 cudaN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/cuda/miner.cu src/cuda/trimmer.cu Makefile
 	nvcc -g -std=c++11 -c -o $@.trimmer.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/trimmer.cu $(LIBS)
 #	nvcc -g -c -o $@.solver.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/solver.hpp $(LIBS)
-	nvcc -g -c -o $@.miner.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/miner.cu $(LIBS)
+	nvcc -g -std=c++11 -c -o $@.miner.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/miner.cu $(LIBS)
 	nvcc -g -ccbin g++ -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -rdc=true -dlink -o $@ $@.miner.o $@.trimmer.o
 
 openclN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/opencl/miner.cpp src/opencl/trimmer.cpp Makefile

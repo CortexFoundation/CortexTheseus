@@ -10,7 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
-//	"os"
+	//	"os"
 	"time"
 
 	"github.com/PoolMiner/common"
@@ -18,9 +18,9 @@ import (
 	"github.com/PoolMiner/miner/libcuckoo"
 	"github.com/PoolMiner/verify"
 
-	"sync"
-	"strings"
 	"strconv"
+	"strings"
+	"sync"
 )
 
 type Miner interface {
@@ -32,19 +32,19 @@ type Connection struct {
 	state bool
 }
 type DeviceId struct {
-	lock sync.Mutex
-	deviceId uint32
-	use_time int64
+	lock           sync.Mutex
+	deviceId       uint32
+	use_time       int64
 	solution_count int64
 }
 
 type Cortex struct {
-	server, account        string
-	deviceIds		[]DeviceId
-	verboseLevel uint
-	conn                   *net.TCPConn
-	reader                 *bufio.Reader
-	consta                 Connection
+	server, account string
+	deviceIds       []DeviceId
+	verboseLevel    uint
+	conn            *net.TCPConn
+	reader          *bufio.Reader
+	consta          Connection
 	miner_algorithm int
 }
 
@@ -65,7 +65,7 @@ type ReqObj struct {
 func checkError(err error, func_name string) {
 	if err != nil {
 		log.Println(func_name, err.Error())
-//		os.Exit(1)
+		//		os.Exit(1)
 	}
 }
 
@@ -159,7 +159,7 @@ func (cm *Cortex) submit(sol Task) {
 //	cortex mining
 func (cm *Cortex) Mining() {
 	var iDeviceIds []uint32
-	for i := 0; i < len(cm.deviceIds); i++{
+	for i := 0; i < len(cm.deviceIds); i++ {
 		iDeviceIds = append(iDeviceIds, cm.deviceIds[i].deviceId)
 	}
 	libcuckoo.CuckooInitialize(iDeviceIds, (uint32)(len(iDeviceIds)), cm.miner_algorithm)
@@ -224,15 +224,15 @@ func (cm *Cortex) miningOnce() {
 						if verboseLevel >= 3 {
 							log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 						}
-						//if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 							log.Println("Target Difficulty satisfied")
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
 							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 							var ok int
-							if cm.miner_algorithm == 0{
+							if cm.miner_algorithm == 0 {
 								ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], 12, 28)
-							}else{
+							} else {
 								ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], 12, 28)
 							}
 							if ok != 1 {
@@ -246,7 +246,7 @@ func (cm *Cortex) miningOnce() {
 								log.Println(fmt.Sprintf("thread %v: solutions=%v, all_time = %vms, avg_time = %vms", tidx, cm.deviceIds[tidx].solution_count, cm.deviceIds[tidx].use_time, (cm.deviceIds[tidx].use_time)/(cm.deviceIds[tidx].solution_count)))
 								start_time = end_time
 							}
-						//}
+						}
 					}
 				}
 			}
@@ -317,10 +317,10 @@ func main() {
 	var strDeviceIds []string = strings.Split(strDeviceId, ",")
 	var deviceNum int = len(strDeviceIds)
 	var deviceIds []DeviceId
-	for i := 0; i < deviceNum; i++{
+	for i := 0; i < deviceNum; i++ {
 		var lock sync.Mutex
 		v, error := strconv.Atoi(strDeviceIds[i])
-		if error != nil || v < 0{
+		if error != nil || v < 0 {
 			fmt.Println("parse deviceIds error ", error)
 			return
 		}
@@ -334,11 +334,11 @@ func main() {
 	}
 
 	var cm Miner = &Cortex{
-		account:      account,
-		server:       remote,
-		deviceIds:     deviceIds,
-		verboseLevel: uint(verboseLevel),
-		miner_algorithm : 1,
+		account:         account,
+		server:          remote,
+		deviceIds:       deviceIds,
+		verboseLevel:    uint(verboseLevel),
+		miner_algorithm: 1,
 	}
 
 	cm.Mining()
