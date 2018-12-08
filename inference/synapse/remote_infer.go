@@ -38,7 +38,7 @@ func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, inputCont
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("Remote Inference", "request", requestBody)
+	log.Debug("Remote Inference", "request", string(requestBody))
 
 	return s.sendRequest(string(requestBody), uri)
 }

@@ -129,7 +129,6 @@ func isMagnetURI(uri string) bool {
 	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
 }
 
-// SetTrackers ...
 func (tm *TorrentManager) SetTrackers(trackers []string) {
 	for _, tracker := range trackers {
 		tm.trackers = append(tm.trackers, tracker)
@@ -180,7 +179,6 @@ func verifyTorrent(info *metainfo.Info, root string) error {
 	return nil
 }
 
-// AddTorrent ...
 func (tm *TorrentManager) AddTorrent(filePath string) {
 	mi, err := metainfo.LoadFromFile(filePath)
 	if err != nil {
@@ -193,7 +191,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 
 	tm.mu.Lock()
 	if _, ok := tm.torrents[ih]; ok {
-		log.Info("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		log.Debug("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		tm.mu.Unlock()
 		return
 	}

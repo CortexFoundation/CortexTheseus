@@ -1,11 +1,11 @@
 package torrentfs
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,7 +14,6 @@ import (
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -24,7 +23,6 @@ const (
 	chunkSize = 1 << 14
 )
 
-// FileInfo ...
 type FileInfo struct {
 	Meta *FileMeta
 	// Transaction hash
@@ -34,7 +32,6 @@ type FileInfo struct {
 	LeftSize     uint64
 }
 
-// NewFileInfo ...
 func NewFileInfo(Meta *FileMeta) *FileInfo {
 	return &FileInfo{Meta, nil, nil, Meta.RawSize}
 }
@@ -53,21 +50,17 @@ func (mc *MutexCounter) IsZero() bool {
 	return atomic.LoadInt32((*int32)(mc)) == 0
 }
 
-// FileStorage ...
 type FileStorage struct {
-	// filesInfoHash     map[metainfo.Hash]*FileInfo
 	filesContractAddr map[common.Address]*FileInfo
-	blockChecked      map[uint64]bool
-	// db                *boltDBClient
-	db *bolt.DB
+	db                *bolt.DB
 
-	LatestBlockNumber atomic.Value
-	lock              sync.RWMutex
+	LastListenBlockNumber uint64
 
+	lock      sync.RWMutex
+	bnLock    sync.Mutex
 	opCounter MutexCounter
 }
 
-// NewFileStorage ...
 func NewFileStorage(config *Config) (*FileStorage, error) {
 	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
 		return nil, err
@@ -82,76 +75,31 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 	db.NoSync = true
 
-	return &FileStorage{
+	fs := &FileStorage{
 		// filesInfoHash:     make(map[metainfo.Hash]*FileInfo),
 		filesContractAddr: make(map[common.Address]*FileInfo),
-		blockChecked:      make(map[uint64]bool),
 		db:                db,
 		opCounter:         0,
-	}, nil
+	}
+	fs.readBlockNumber()
+
+	return fs, nil
 }
 
-func (fs *FileStorage) CurrentBlockNumber() *hexutil.Uint64 {
-	return fs.LatestBlockNumber.Load().(*hexutil.Uint64)
-}
-
-// AddFile ...
 func (fs *FileStorage) AddFile(x *FileInfo) error {
-	// ih := *x.Meta.InfoHash()
-	// if _, ok := fs.filesInfoHash[ih]; ok {
-	// 	return errors.New("file already existed")
-	// }
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
 		return errors.New("file already existed")
 	}
-	// fs.filesInfoHash[ih] = x
 	fs.filesContractAddr[addr] = x
 	return nil
 }
 
-// GetFileByAddr ...
 func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 	if f, ok := fs.filesContractAddr[addr]; ok {
 		return f
 	}
 	return nil
-}
-
-// func (fs *FileStorage) GetFileByInfoHash(ih metainfo.Hash) *FileInfo {
-// 	if f, ok := fs.filesInfoHash[ih]; ok {
-// 		return f
-// 	}
-// 	return nil
-// }
-
-// AddBlock ...
-func (fs *FileStorage) AddBlock(b *Block) error {
-	if fs.HasBlock(b.Number) {
-		return errors.New("block already existed")
-	}
-
-	if b.Number > 0 {
-		pb := fs.GetBlockByNumber(b.Number - 1)
-		if pb != nil && !bytes.Equal(pb.Hash.Bytes(), b.ParentHash.Bytes()) {
-			return errors.New("verify block hash failed")
-		}
-	}
-	nb := fs.GetBlockByNumber(b.Number + 1)
-	if nb != nil && !bytes.Equal(nb.ParentHash.Bytes(), b.Hash.Bytes()) {
-		return errors.New("verify block hash failed")
-	}
-
-	err := fs.WriteBlock(b)
-	return err
-}
-
-// HasBlock ...
-func (fs *FileStorage) HasBlock(blockNum uint64) bool {
-	if b := fs.GetBlockByNumber(blockNum); b != nil {
-		return true
-	}
-	return false
 }
 
 func (fs *FileStorage) Close() error {
@@ -160,6 +108,8 @@ func (fs *FileStorage) Close() error {
 	// Wait for file storage closed...
 	for {
 		if fs.opCounter.IsZero() {
+			// persist storage block number
+			fs.writeBlockNumber()
 			return fs.db.Close()
 		}
 
@@ -233,10 +183,52 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 		return e
 	})
 
+	if err == nil && b.Number > fs.LastListenBlockNumber {
+		fs.bnLock.Lock()
+		fs.LastListenBlockNumber = b.Number
+		fs.bnLock.Unlock()
+	}
+
 	return err
 }
 
-// FlowControlMeta ...
+func (fs *FileStorage) readBlockNumber() error {
+	return fs.db.View(func(tx *bolt.Tx) error {
+		buk := tx.Bucket([]byte("currentBlockNumber"))
+		if buk == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		v := buk.Get([]byte("key"))
+
+		if v == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		number, err := strconv.ParseUint(string(v), 16, 64)
+		if err != nil {
+			return err
+		}
+
+		fs.LastListenBlockNumber = number
+
+		return nil
+	})
+}
+
+func (fs *FileStorage) writeBlockNumber() error {
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber"))
+		if err != nil {
+			return err
+		}
+
+		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastListenBlockNumber, 16)))
+
+		return e
+	})
+}
+
 type FlowControlMeta struct {
 	InfoHash       metainfo.Hash
 	BytesRequested uint64
