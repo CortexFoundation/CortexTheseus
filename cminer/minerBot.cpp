@@ -65,6 +65,14 @@ bool MinerBot::CuckooVerify(char *header, uint32_t header_len, uint64_t nonce,
     return ok;
 }
 
+bool MinerBot::CuckooVerify_cuckaroo(char *header, uint32_t header_len, uint64_t nonce,
+    uint32_t *result, uchar* target, uchar* hash)
+{
+    cs.setHeaderNonce(header, header_len, nonce);
+    cs.setHashTarget(target);
+    bool ok = cs.verifySol_cuckaroo(result, hash, target);
+    return ok;
+}
 
 unsigned int getMinerBotInstance()
 {
@@ -158,6 +166,13 @@ unsigned char CuckooVerify(uint8_t *header, uint32_t header_len, uint64_t nonce,
     // printf("};\n");
     uint bot_idx = getMinerBotInstance();
     uint8_t res = botPool[bot_idx]->CuckooVerify((char*)header, header_len, nonce, result, target, hash);
+    CuckooRelease(bot_idx);
+    return res;
+}
+unsigned char CuckooVerify_cuckaroo(uint8_t *header, uint32_t header_len, uint64_t nonce, result_t *result, uint8_t* target, uint8_t* hash)
+{
+    uint bot_idx = getMinerBotInstance();
+    uint8_t res = botPool[bot_idx]->CuckooVerify_cuckaroo((char*)header, header_len, nonce, result, target, hash);
     CuckooRelease(bot_idx);
     return res;
 }

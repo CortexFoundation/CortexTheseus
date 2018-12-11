@@ -5,7 +5,7 @@ package kernel
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS: -L/usr/local/cuda/lib64 -lcuda -lcudart -lcublas -lcurand
+#cgo LDFLAGS: -L/usr/local/cuda/lib64 -lcudart -lcublas -lcurand
 #cgo LDFLAGS: -lstdc++
 
 #cgo CFLAGS: -I/usr/local/cuda/include/

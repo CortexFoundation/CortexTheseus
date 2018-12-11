@@ -71,3 +71,15 @@ func CuckooVerify(hash *byte, hash_len int, nonce uint64, result *uint32, diff *
 
 	return byte(r)
 }
+
+func CuckooVerify_cuckaroo(hash *byte, hash_len int, nonce uint64, result *uint32, diff *byte, result_hash *byte) byte {
+	r := C.CuckooVerify_cuckaroo(
+		(*C.uint8_t)(unsafe.Pointer(hash)),
+		C.uint32_t(hash_len),
+		C.uint64_t(nonce),
+		(*C.result_t)(unsafe.Pointer(result)),
+		(*C.uint8_t)(unsafe.Pointer(diff)),
+		(*C.uint8_t)(unsafe.Pointer(result_hash)))
+
+	return byte(r)
+}

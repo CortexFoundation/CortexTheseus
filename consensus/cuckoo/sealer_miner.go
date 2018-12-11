@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"math/big"
+	"fmt"
 )
 
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
@@ -52,7 +53,13 @@ search:
 				nonce++
 				continue
 			}
-			r = CuckooVerify(&hash[0], len(hash), (nonce), &result[0], &diff[0], &result_hash[0])
+			if (*header.Number).Uint64() < 100 {
+				fmt.Println("verify cuckoo")
+				r = CuckooVerify(&hash[0], len(hash), (nonce), &result[0], &diff[0], &result_hash[0])
+			}else{
+				fmt.Println("verify cuckaroo")
+				r = CuckooVerify_cuckaroo(&hash[0], len(hash), (nonce), &result[0], &diff[0], &result_hash[0])
+			}
 
 			if r != 0 {
 				// Correct solution found, create a new header with it

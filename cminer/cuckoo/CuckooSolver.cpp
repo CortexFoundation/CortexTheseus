@@ -195,6 +195,58 @@ bool CuckooSolver::verifySol(u32* sol, uchar* hash, uchar* target){
     return valid;
 }
 
+bool CuckooSolver::verifySol_cuckaroo(u32* sol, uchar* hash, uchar* target){
+    // make sure cuckoo solver is initialized with correct header & nonce
+    if(!keyed){
+        printf("error: cuckoo solver header nonce invalid\n");
+        return false;
+    }
+    int pow_rc = verify_cuckaroo(sol, &(solver->trimmer->sip_keys));
+    if(pow_rc != POW_OK){
+        printf("FAILED due to %s\n", errstr[pow_rc]);
+        return false;
+    }
+
+    bool valid = true;
+    printf("Verified with cyclehash ");
+    unsigned char cyclehash[32];
+    blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)sol, sizeof(proof), 0, 0);
+    // /*for (int i=0; i<32; i++){
+    //     printf("%02x", cyclehash[i]);
+    // }
+    // printf("\n");*/
+    // printf("c:cyclehash");
+    // for (int i = 0; i < 32; i++){
+    //     printf(" %d", cyclehash[i]);
+    // }
+    // printf("\n");
+    // printf("C:target");
+    // for (int i = 0; i < 32; i++){
+    //     printf(" %d", target[i]);
+    // }
+    // printf("\n");
+
+    for(int i=0; i<32; i++){
+        if(cyclehash[i] != hash[i]){
+            printf("hash mismatch error\n");
+            valid = false;
+            return valid;
+        }
+    }
+    for (int i = 0;i<32;i++){
+        printf("%02x %02x\n",cyclehash[i],target[i]);
+        if(cyclehash[i] >  target[i]){
+            //printf("difficulty is not satisfied\n");
+            valid = false;
+            return valid;
+        }else if(cyclehash[i]<target[i]){
+                valid = true;
+                break;
+            }
+    }
+    return valid;
+}
+
 void CuckooSolver::setHashTarget(unsigned char* target_){
     // make sure target_ is 32-byte long
     for(int i=0; i<32; i++)

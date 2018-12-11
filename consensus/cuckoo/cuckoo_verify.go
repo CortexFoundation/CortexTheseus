@@ -22,3 +22,14 @@ func CuckooVerifyHeaderNonceAndSolutions(hash []byte, nonce uint64, result *uint
 
 	return int(r)
 }
+
+func CuckooVerifyHeaderNonceAndSolutions_cuckaroo(hash []byte, nonce uint64, result *uint32) int {
+	tmpHash := hash
+	//log.Println("CuckooVerifyHeaderNonceAndSolutions: hash = ", hash, "\nnonce = ", nonce, "\nresult = ", result)
+	r := C.CuckooVerifyHeaderNonceAndSolutions_cuckaroo(
+		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
+		C.uint64_t(uint(nonce)),
+		(*C.uint32_t)(unsafe.Pointer((result))))
+
+	return int(r)
+}

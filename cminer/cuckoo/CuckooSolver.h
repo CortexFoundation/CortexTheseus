@@ -63,6 +63,7 @@ public:
     vector<cuckoo_sol>& getSols(){return sols;}
     bool verifySol(u32* sol);
     bool verifySol(u32* sol, uchar* hash, uchar* target);
+    bool verifySol_cuckaroo(u32* sol, uchar* hash, uchar* target);
 
     // adjust difficulty
     void setHashTarget(unsigned char* target_);
