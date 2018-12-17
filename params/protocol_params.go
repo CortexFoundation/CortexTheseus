@@ -80,20 +80,23 @@ const (
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(2048) // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(2048) // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(2048) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13)   // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DifficultyBoundDivisor = big.NewInt(8)  // The bound divisor of the difficulty, used in the update calculations.
+	GenesisDifficulty      = big.NewInt(16) // Difficulty of the Genesis block.
+	MinimumDifficulty      = big.NewInt(16) // The minimum that the difficulty may ever be.
+
+	HighDifficultyBoundDivisor = big.NewInt(2048) // The bound divisor of the difficulty, used in the update calculations.
+
+	DurationLimit = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 )
 
 const (
 	MatureBlks                    = 10                  //For the full node to synchronize the models
 	ExpiredBlks                   = 1000000000000000000 //8409600
 	PER_UPLOAD_BYTES       uint64 = 1 * 1024 * 1024     //How many bytes per upload
-	DEFAULT_UPLOAD_BYTES   uint64 = 384 * 1024     //default upload bytes
+	DEFAULT_UPLOAD_BYTES   uint64 = 384 * 1024          //default upload bytes
 	MODEL_MIN_UPLOAD_BYTES        = 0
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT        uint64 = 65536 //max gas limit for model call
 
-	CONFIRM_TIME = -3600 * 24 * 7// * time.Second
+	CONFIRM_TIME = -3600 * 24 * 7 // * time.Second
 )
