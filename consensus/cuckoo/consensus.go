@@ -498,7 +498,7 @@ func calcDifficultyHomestead(time uint64, parent *types.Header) *big.Int {
 		x.Set(bigMinus99)
 	}
 	// (parent_diff + parent_diff // 2048 * max(1 - (block_timestamp - parent_timestamp) // 10, -99))
-	if parent.Difficulty.Cmp(big.NewInt(params.HighDifficultyBoundDivisor) >= 0) {
+	if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
 		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
 	} else {
 		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
