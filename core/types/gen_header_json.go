@@ -34,6 +34,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Solution     BlockSolution     `json:"solution"			gencodec:"required"`
 		SolutionHash BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
 		Hash         common.Hash       `json:"hash"`
+		Quota        hexutil.Uint64            `json:"quota"       gencodec:"required"`
+		QuotaUsed    hexutil.Uint64            `json:"quotaUsed"       gencodec:"required"`
 	}
 	var enc Header
 	enc.ParentHash = h.ParentHash
@@ -54,6 +56,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Solution = h.Solution
 	enc.SolutionHash = h.SolutionHash
 	enc.Hash = h.Hash()
+	enc.Quota = hexutil.Uint64(h.Quota)
+	enc.QuotaUsed = hexutil.Uint64(h.QuotaUsed)
 	return json.Marshal(&enc)
 }
 
@@ -77,6 +81,8 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Nonce        *BlockNonce        `json:"nonce"            gencodec:"required"`
 		Solution     *BlockSolution     `json:"solution"			gencodec:"required"`
 		SolutionHash *BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
+		Quota        *hexutil.Uint64             `json:"quota"       gencodec:"required"`
+		QuotaUsed    *hexutil.Uint64             `json:"quotaUsed"       gencodec:"required"`
 	}
 	var dec Header
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -126,6 +132,16 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'gasUsed' for Header")
 	}
 	h.GasUsed = uint64(*dec.GasUsed)
+
+	if dec.Quota == nil {
+		return errors.New("missing required field 'quota' for Header")
+	}
+	h.Quota = uint64(*dec.Quota)
+	if dec.QuotaUsed == nil {
+		return errors.New("missing required field 'quotaUsed' for Header")
+	}
+	h.QuotaUsed = uint64(*dec.QuotaUsed)
+
 	if dec.Time == nil {
 		return errors.New("missing required field 'timestamp' for Header")
 	}
