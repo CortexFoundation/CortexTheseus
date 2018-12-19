@@ -111,6 +111,9 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	}
 	*usedGas += gas
 	*usedQuota += quota
+	if header.Quota < *usedQuota {
+		return nil, 0, err
+	}
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
