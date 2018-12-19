@@ -1162,11 +1162,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			retry = uint64(0)
 			timer = time.NewTimer(0)
 
-			dbState  *state.StateDB
-			receipts types.Receipts
-			logs     []*types.Log
-			usedGas  uint64
-			pErr     error
+			dbState   *state.StateDB
+			receipts  types.Receipts
+			logs      []*types.Log
+			usedGas   uint64
+			usedQuota uint64
+			pErr      error
 		)
 
 		// TODO No Test
@@ -1180,7 +1181,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				}
 
 				// Process block using the parent state as reference point.
-				receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
+				receipts, logs, usedGas, usedQuota, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
 
 				// If Infer error and
 				// current block height less then block.BlockNumber,
@@ -1212,7 +1213,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 
 		// Validate the state using the default validator
-		err = bc.Validator().ValidateState(block, parent, dbState, receipts, usedGas)
+		err = bc.Validator().ValidateState(block, parent, dbState, receipts, usedGas, usedQuota)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			return i, events, coalescedLogs, err

@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	errInsufficientBalanceForGas        = errors.New("insufficient balance to pay for gas")
+	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
 	//PER_UPLOAD_BYTES             uint64 = 10 * 512 * 1024
 )
 
@@ -137,7 +137,7 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error) {
+func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, uint64, bool, error) {
 	return NewStateTransition(evm, msg, gp).TransitionDb()
 }
 
@@ -189,7 +189,7 @@ func (st *StateTransition) preCheck() error {
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
+func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, usedQuota uint64, failed bool, err error) {
 	if err = st.preCheck(); err != nil {
 		return
 	}
@@ -201,10 +201,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	// Pay intrinsic gas
 	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead)
 	if err != nil {
-		return nil, 0, false, err
+		return nil, 0, 0, false, err
 	}
 	if err = st.useGas(gas); err != nil {
-		return nil, 0, false, err
+		return nil, 0, 0, false, err
 	}
 
 	var (
@@ -231,20 +231,21 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		// Inference error caused by torrent fs syncing is returned directly.
 		// This is called Built-In Torrent Fs Error
 		if synapse.CheckBuiltInTorrentFsError(vmerr) {
-			return nil, 0, false, vmerr
+			return nil, 0, 0, false, vmerr
 		}
 
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
 		if vmerr == vm.ErrInsufficientBalance {
-			return nil, 0, false, vmerr
+			return nil, 0, 0, false, vmerr
 		}
 	}
-
+	var quota uint64 = 0
 	if st.uploading() {
 		//torrent check for upload
 		//return nil, 0, false, vmerr;
+		quota = params.PER_UPLOAD_BYTES
 	}
 
 	st.refundGas()
@@ -258,7 +259,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
 				}
 
-				return nil, 0, false, vm.ErrInsufficientBalance
+				return nil, 0, 0, false, vm.ErrInsufficientBalance
 			}
 			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
 		}
@@ -268,7 +269,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 	//todo change upload
 	if st.uploading() {
-		//check torrent fs 
+		//check torrent fs
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			//st.state.Download(st.to())
@@ -277,7 +278,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 
-	return ret, st.gasUsed(), vmerr != nil, err
+	//todo quota needs to be fixed
+
+	return ret, st.gasUsed(), quota, vmerr != nil, err
 }
 
 func (st *StateTransition) uploading() bool {

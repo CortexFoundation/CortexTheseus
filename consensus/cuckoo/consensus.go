@@ -604,6 +604,7 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 		return consensus.ErrUnknownAncestor
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
+	header.Quota = parent.Quota + params.BLOCK_QUOTA
 	return nil
 }
 
