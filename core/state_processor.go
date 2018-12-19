@@ -112,7 +112,9 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	*usedGas += gas
 	*usedQuota += quota
 	if header.Quota < *usedQuota {
-		return nil, 0, err
+		//todo
+		*usedQuota -= quota
+		return nil, 0, ErrQuotaLimitReached//errors.New("quota")
 	}
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
