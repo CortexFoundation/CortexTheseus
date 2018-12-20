@@ -109,8 +109,10 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	} else {
 		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
 	}
+
 	*usedGas += gas
 	*usedQuota += quota
+
 	if header.Quota < *usedQuota {
 		//todo
 		*usedQuota -= quota
