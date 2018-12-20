@@ -83,7 +83,7 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 		return fmt.Errorf("invalid gas used (remote: %d local: %d)", block.GasUsed(), usedGas)
 	}
 
-	if block.QuotaUsed() != usedQuota + parent.QuotaUsed() || block.QuotaUsed() > block.Quota(){
+	if block.QuotaUsed() != usedQuota {//|| block.QuotaUsed() > block.Quota(){
 		return fmt.Errorf("invalid quota used (remote: %d local: %d)", block.QuotaUsed(), usedQuota)
 	}
 

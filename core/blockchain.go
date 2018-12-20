@@ -1181,7 +1181,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				}
 
 				// Process block using the parent state as reference point.
-				receipts, logs, usedGas, usedQuota, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
+				receipts, logs, usedGas, usedQuota, pErr = bc.processor.Process(block, parent.QuotaUsed(), dbState, bc.vmConfig)
 
 				// If Infer error and
 				// current block height less then block.BlockNumber,

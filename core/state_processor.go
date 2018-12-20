@@ -53,7 +53,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, quotaUsed uint64, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, uint64, error) {
 	var (
 		receipts  types.Receipts
 		usedGas   = new(uint64)
@@ -63,6 +63,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		gp        = new(GasPool).AddGas(block.GasLimit())
 		//up       = new(UploadPool).AddUpload(uint64(10*1024*1024))
 	)
+		*usedQuota = quotaUsed
 	// Mutate the the block and state according to any hard-fork specs
 	//if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 	//	misc.ApplyDAOHardFork(statedb)
