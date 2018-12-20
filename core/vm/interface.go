@@ -36,6 +36,7 @@ type StateDB interface {
 	//AddUpload(common.Address, *big.Int)
 	//GetUpload(common.Address) *big.Int
 	Uploading(common.Address) bool
+	Upload(common.Address) *big.Int
 	Download(common.Address) error
 
 	GetNum(common.Address) *big.Int

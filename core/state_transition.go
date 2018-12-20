@@ -261,20 +261,22 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, usedQuota
 
 	//normal gas
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
-	//todo change upload
+
 	var quota uint64 = 0
 	if st.uploading() {
-		//check torrent fs
+
+		if params.PER_UPLOAD_BYTES <= st.state.Upload(st.to()).Uint64() {
+			quota = params.PER_UPLOAD_BYTES
+		} else {
+			quota = st.state.Upload(st.to()).Uint64()
+		}
+
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
-			//st.state.Download(st.to())
 			st.state.SetNum(st.to(), st.evm.BlockNumber)
 			log.Info("Upload OK", "address", st.to().Hex())
 		}
-		quota = params.PER_UPLOAD_BYTES
 	}
-
-	//todo quota needs to be fixed
 
 	return ret, st.gasUsed(), quota, vmerr != nil, err
 }

@@ -381,6 +381,14 @@ func (self *StateDB) AddBalance(addr common.Address, amount *big.Int) {
 	}
 }
 
+func (self *StateDB) Upload(addr common.Address) *big.Int {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Upload()
+	}
+	return nil
+}
+
 // SubBalance subtracts amount from the account associated with addr.
 func (self *StateDB) SubBalance(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
