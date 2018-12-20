@@ -264,12 +264,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, usedQuota
 
 	var quota uint64 = 0
 	if st.uploading() {
-
-		if params.PER_UPLOAD_BYTES <= st.state.Upload(st.to()).Uint64() {
-			quota = params.PER_UPLOAD_BYTES
-		} else {
-			quota = st.state.Upload(st.to()).Uint64()
-		}
+		quota = Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
 
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
@@ -279,6 +274,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, usedQuota
 	}
 
 	return ret, st.gasUsed(), quota, vmerr != nil, err
+}
+
+func Min(x, y uint64) uint64 {
+	if x < y {
+		return x
+	}
+	return y
 }
 
 func (st *StateTransition) uploading() bool {
