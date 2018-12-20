@@ -114,7 +114,6 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	*usedQuota += quota
 
 	if header.Quota < *usedQuota {
-		//todo
 		*usedQuota -= quota
 		return nil, 0, ErrQuotaLimitReached//errors.New("quota")
 	}

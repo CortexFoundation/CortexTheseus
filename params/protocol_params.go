@@ -102,4 +102,6 @@ const (
 
 	CONFIRM_TIME        = -3600 * 24 * 7 // * time.Second
 	BLOCK_QUOTA  uint64 = 512 * 1024     //one block includes 512k file quota
+
+	CTXC_TOP uint64 = 299792458
 )
