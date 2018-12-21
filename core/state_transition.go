@@ -273,6 +273,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, usedQuota
 		}
 	}
 
+	if quota > 0 {
+		log.Info("Quota consumption", "address", st.to().Hex(), "amount", quota)
+	}
+
 	return ret, st.gasUsed(), quota, vmerr != nil, err
 }
 
