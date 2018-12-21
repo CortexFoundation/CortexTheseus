@@ -24,8 +24,66 @@ func ReadImage(inputFilePath string) ([]byte, error) {
 
 	return data, nil
 }
+
 func GetFilePath(hash string) string {
 	return path.Join("/home/wlt/.cortex/storage", hash, "data")
+}
+
+// model&input shape
+type SIZE int
+
+const (
+	S1_28_28   SIZE = 1 * 28 * 28
+	S3_224_224 SIZE = 3 * 224 * 224
+)
+
+const (
+	ModelDataset = map[int][]string{
+		S1_28_28:   []string{"ca3d0286d5758697cdef653c1375960a868ac08a"},
+		S3_224_224: []string{"4d8bc8272b882f315c6a96449ad4568fac0e6038"},
+	}
+
+	InputDataset = map[int][]string{
+		S1_28_28: []string{
+			"18af0aff299483903f38e9c80c1c73288143c689",
+			"265613d54a190df83ac67c2827c8ef1a071fd6a4",
+			"521b31b82f9a1144f45acd52cc55fdb2c150b756",
+			"7d942da381f32180a616cb1ef3515f71f9422c4a",
+			"8839d6579fd4fbb147dd8194c52cfd2fb8d41603",
+			"c35dde5292458e91c6533d671a9cfcf55fc46026",
+			"ce5249145d1c007c13a5a23c34aaf34cf63c4cc2",
+			"ed68da2d3d55b1c163c80f15d0f6490c88da644e",
+		},
+		S3_224_224: []string{
+			"6f67238dda00c9d1b2048e6f846481a8a6a59a07",
+		},
+	}
+)
+
+var InputBufferSet map[string][]byte
+
+func InferIterator(size SIZE) (string, []byte, error) {
+	modelSet, _ := ModelDataset[size]
+	inputSet, _ := InputDataset[size]
+
+	modelIdx, inputIdx := rand.Intn(len(modelSet)), rand.Intn(len(inputSet))
+
+	if _, ok := InputBufferSet[inputSet[inputIdx]]; !ok {
+		buf, readErr := ReadImage(GetFilePath(inputSet[inputIdx]))
+		if readErr != nil {
+			return nil, nil, readErr
+		}
+		InputBufferSet[inputSet[inputIdx]] = buf
+	}
+
+	inputBuf, _ := InputBufferSet[inputSet[inputIdx]]
+
+	return GetFilePath(modelSet[modelIdx], inputBuf, nil)
+
+}
+
+func TestInferLeak(t *testing.T) {
+	t.Log("Test Infer Leak")
 }
 
 func TestInferTime(t *testing.T) {
@@ -75,6 +133,7 @@ func TestInferTime(t *testing.T) {
 	for i := 0; i < loop; i++ {
 		// Load model
 		modelPath := GetFilePath(modelHash)
+
 		start = time.Now()
 		network, mErr := LoadModel(path.Join(modelPath, "symbol"), path.Join(modelPath, "params"))
 		load_du += time.Since(start)

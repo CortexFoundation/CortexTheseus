@@ -628,14 +628,14 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 	}
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
 
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr - 1)
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr-1)
 	if state == nil || err != nil {
 		return nil, err
 	}
-	block, blockErr := s.b.BlockByNumber(ctx, blockNr);
+	block, blockErr := s.b.BlockByNumber(ctx, blockNr)
 	log.Debug("GetSolidityBytes", "block", block, "blockErr", blockErr)
 	if block == nil {
-			return nil, blockErr
+		return nil, blockErr
 	}
 
 	for i, tx := range block.Transactions() {
@@ -645,7 +645,7 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		}
 		header := block.Header()
 		msg, err := tx.AsMessage(types.MakeSigner(s.b.ChainConfig(), block.Number()))
-		evm, _ , err := s.b.GetEVM(ctx, msg, state, header, vm.Config{})
+		evm, _, err := s.b.GetEVM(ctx, msg, state, header, vm.Config{})
 		if err != nil {
 			return nil, err
 		}
