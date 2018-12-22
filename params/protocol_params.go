@@ -90,7 +90,7 @@ var (
 
 	DurationLimit = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
-	CTXC_TOP = big.NewInt(299792458)
+	CTXC_TOP = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
 )
 
 const (
