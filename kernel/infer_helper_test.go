@@ -1,9 +1,13 @@
 package kernel
 
 import (
+	"math/rand"
 	"path"
 	"testing"
 	"time"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/ethereum/go-ethereum/inference"
 )
@@ -37,13 +41,14 @@ const (
 	S3_224_224 SIZE = 3 * 224 * 224
 )
 
-const (
-	ModelDataset = map[int][]string{
-		S1_28_28:   []string{"ca3d0286d5758697cdef653c1375960a868ac08a"},
+var (
+	ModelDataset = map[SIZE][]string{
+		S1_28_28: []string{"ca3d0286d5758697cdef653c1375960a868ac08a"},
+		// S1_28_28:   []string{"test-mnist"},
 		S3_224_224: []string{"4d8bc8272b882f315c6a96449ad4568fac0e6038"},
 	}
 
-	InputDataset = map[int][]string{
+	InputDataset = map[SIZE][]string{
 		S1_28_28: []string{
 			"18af0aff299483903f38e9c80c1c73288143c689",
 			"265613d54a190df83ac67c2827c8ef1a071fd6a4",
@@ -60,7 +65,7 @@ const (
 	}
 )
 
-var InputBufferSet map[string][]byte
+var InputBufferSet = make(map[string][]byte)
 
 func InferIterator(size SIZE) (string, []byte, error) {
 	modelSet, _ := ModelDataset[size]
@@ -71,19 +76,64 @@ func InferIterator(size SIZE) (string, []byte, error) {
 	if _, ok := InputBufferSet[inputSet[inputIdx]]; !ok {
 		buf, readErr := ReadImage(GetFilePath(inputSet[inputIdx]))
 		if readErr != nil {
-			return nil, nil, readErr
+			return "", nil, readErr
 		}
 		InputBufferSet[inputSet[inputIdx]] = buf
 	}
 
 	inputBuf, _ := InputBufferSet[inputSet[inputIdx]]
 
-	return GetFilePath(modelSet[modelIdx], inputBuf, nil)
+	return GetFilePath(modelSet[modelIdx]), inputBuf, nil
 
 }
 
 func TestInferLeak(t *testing.T) {
 	t.Log("Test Infer Leak")
+
+	go func() {
+		http.ListenAndServe("0.0.0.0:8899", nil)
+	}()
+
+	var loop = 100000
+	for idx := 0; idx < loop; idx++ {
+		// if idx%2 == 0 {
+		// modelPath, _, dataErr := InferIterator(S3_224_224)
+		// if dataErr != nil {
+		// t.Fatalf("Read image error: %s\n", dataErr)
+		// return
+		// }
+
+		// net, loadErr := LoadModel(path.Join(modelPath, "symbol"), path.Join(modelPath, "params"))
+		// if loadErr != nil {
+		// t.Fatalf("Load model error: %s\n", loadErr)
+		// }
+		// FreeModel(net)
+		// continue
+		// }
+
+		modelPath, _, dataErr := InferIterator(S1_28_28)
+		if dataErr != nil {
+			t.Fatalf("Read image error: %s\n", dataErr)
+			return
+		}
+
+		net, loadErr := LoadModel(path.Join(modelPath, "symbol"), path.Join(modelPath, "params"))
+		if loadErr != nil {
+			t.Fatalf("Load model error: %s\n", loadErr)
+		}
+		FreeModel(net)
+
+		// _, inferErr := InferCore(path.Join(modelPath, "symbol"), path.Join(modelPath, "params"), imageBuf)
+		// if inferErr != nil {
+		// t.Fatalf("Infer Error: %s\n", inferErr)
+		// }
+	}
+
+	for {
+		time.Sleep(10 * time.Second)
+	}
+
+	t.Log("Infer Leak ended")
 }
 
 func TestInferTime(t *testing.T) {
