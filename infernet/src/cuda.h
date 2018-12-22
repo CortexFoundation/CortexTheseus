@@ -1,6 +1,6 @@
 #ifndef CUDA_H
 #define CUDA_H
-#define DEBUG
+// #define DEBUG
 #include "cortexnet.h"
 
 #ifdef GPU

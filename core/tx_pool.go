@@ -88,10 +88,10 @@ var (
 
 var (
 	// Metrics for the pending pool
-	pendingDiscardCounter   = metrics.NewRegisteredCounter("txpool/pending/discard", nil)
-	pendingReplaceCounter   = metrics.NewRegisteredCounter("txpool/pending/replace", nil)
-	pendingRateLimitCounter = metrics.NewRegisteredCounter("txpool/pending/ratelimit", nil) // Dropped due to rate limiting
-	pendingNofundsCounter   = metrics.NewRegisteredCounter("txpool/pending/nofunds", nil)   // Dropped due to out-of-funds
+	pendingDiscardCounter    = metrics.NewRegisteredCounter("txpool/pending/discard", nil)
+	pendingReplaceCounter    = metrics.NewRegisteredCounter("txpool/pending/replace", nil)
+	p5endingRateLimitCounter = metrics.NewRegisteredCounter("txpool/pending/ratelimit", nil) // Dropped due to rate limiting
+	pendingNofundsCounter    = metrics.NewRegisteredCounter("txpool/pending/nofunds", nil)   // Dropped due to out-of-funds
 
 	// Metrics for the queued pool
 	queuedDiscardCounter   = metrics.NewRegisteredCounter("txpool/queued/discard", nil)

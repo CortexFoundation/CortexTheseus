@@ -1,5 +1,7 @@
 package kernel
 
+// #cgo CFLAGS: -DDEBUG
+
 /*
 #cgo LDFLAGS: -lm -pthread
 #cgo LDFLAGS: -L/usr/local/cuda/lib64 -lcuda -lcudart -lcublas -lcurand
