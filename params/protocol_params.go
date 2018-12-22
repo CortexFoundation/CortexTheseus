@@ -89,6 +89,8 @@ var (
 	HighDifficultyBoundDivisor = big.NewInt(2048) // The bound divisor of the difficulty, used in the update calculations.
 
 	DurationLimit = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+
+	CTXC_TOP = big.NewInt(299792458)
 )
 
 const (
@@ -102,6 +104,4 @@ const (
 
 	CONFIRM_TIME        = -3600 * 24 * 7 // * time.Second
 	BLOCK_QUOTA  uint64 = 512 * 1024     //one block includes 512k file quota
-
-	CTXC_TOP uint64 = 299792458
 )

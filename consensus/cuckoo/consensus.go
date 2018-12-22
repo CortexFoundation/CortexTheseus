@@ -668,9 +668,15 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		blockReward = new(big.Int).Div(blockReward, big0.Exp(big2, new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod), nil))
 		//todo ceiling handed by consensus
 	}
+
 	/*if config.IsConstantinople(header.Number) {
 		blockReward = ConstantinopleBlockReward
 	}*/
+	header.Supply.Add(header.Supply, blockReward)
+	if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+		blockReward = big0
+		header.Supply = params.CTXC_TOP
+	}
 	// Accumulate the rewards for the miner and any included uncles
 	if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
@@ -680,6 +686,12 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 			r.Sub(r, header.Number)
 			r.Mul(r, blockReward)
 			r.Div(r, big8)
+
+			header.Supply.Add(header.Supply, r)
+			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+				r = big0
+				header.Supply = params.CTXC_TOP
+			}
 			state.AddBalance(uncle.Coinbase, r)
 			//todo
 			/*r.Div(blockReward, big8)

@@ -749,7 +749,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			txs.Pop()
 		case core.ErrQuotaLimitReached:
 			log.Trace("Quota limit exceeded for current block", "sender", from)
-                        txs.Pop()
+			txs.Pop()
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
 			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())
@@ -818,12 +818,14 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	num := parent.Number()
 	quota := parent.Quota() + params.BLOCK_QUOTA
 	quotaUsed := parent.QuotaUsed()
+	supply := parent.Supply()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
 		Quota:      quota,
 		QuotaUsed:  quotaUsed,
+		Supply:     supply,
 		Extra:      w.extra,
 		Time:       big.NewInt(timestamp),
 	}
