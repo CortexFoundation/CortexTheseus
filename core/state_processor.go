@@ -111,13 +111,14 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
 	}
 
-	*usedGas += gas
 	*usedQuota += quota
 
 	if header.Quota < *usedQuota {
-		*usedQuota -= quota
-		return nil, 0, ErrQuotaLimitReached//errors.New("quota")
-	}
+                *usedQuota -= quota
+                return nil, 0, ErrQuotaLimitReached//errors.New("quota")
+        }
+
+	*usedGas += gas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
