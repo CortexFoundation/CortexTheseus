@@ -44,7 +44,7 @@ import (
 var (
 	FrontierBlockReward    *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward   *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
+	maxUncles                       = 1                 // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime          = 13 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
 
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
@@ -666,26 +666,30 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 
 	if header.Number.Cmp(params.CortexBlockRewardPeriod) > 0 {
 		blockReward = new(big.Int).Div(blockReward, big0.Exp(big2, new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod), nil))
+		//todo ceiling handed by consensus
 	}
 	/*if config.IsConstantinople(header.Number) {
 		blockReward = ConstantinopleBlockReward
 	}*/
 	// Accumulate the rewards for the miner and any included uncles
-	reward := new(big.Int).Set(blockReward)
-	r := new(big.Int)
-	for _, uncle := range uncles {
-		/*r.Add(uncle.Number, big8)
-		r.Sub(r, header.Number)
-		r.Mul(r, blockReward)
-		r.Div(r, big8)
-		state.AddBalance(uncle.Coinbase, r)*/
-		r.Div(blockReward, big8)
-		state.AddBalance(uncle.Coinbase, r)
-		r.Div(blockReward, big32)
-		reward.Add(reward, r)
-	}
+	if blockReward.Cmp(big0) > 0 {
+		reward := new(big.Int).Set(blockReward)
+		r := new(big.Int)
+		for _, uncle := range uncles {
+			r.Add(uncle.Number, big8)
+			r.Sub(r, header.Number)
+			r.Mul(r, blockReward)
+			r.Div(r, big8)
+			state.AddBalance(uncle.Coinbase, r)
+			//todo
+			/*r.Div(blockReward, big8)
+			state.AddBalance(uncle.Coinbase, r)
+			r.Div(blockReward, big32)
+			reward.Add(reward, r)*/
+		}
 
-	state.AddBalance(header.Coinbase, reward)
+		state.AddBalance(header.Coinbase, reward)
+	}
 }
 
 func Sha3Solution(sol *types.BlockSolution) []byte {
