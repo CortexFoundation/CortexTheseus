@@ -378,6 +378,15 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	if x.Cmp(bigMinus99) < 0 {
 		x.Set(bigMinus99)
 	}
+
+	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
+                y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
+        } else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
+                y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
+        } else {
+                y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+        }
+
 	// parent_diff + (parent_diff / 2048 * max((2 if len(parent.uncles) else 1) - ((timestamp - parent.timestamp) // 9), -99))
 	y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
 	x.Mul(y, x)
@@ -405,6 +414,8 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	//	y.Exp(big2, y, nil)
 	//	x.Add(x, y)
 	//}
+	//diff todo 4096 times
+	x.Mul(x, big4096)
 	return x
 }
 
@@ -652,6 +663,7 @@ var (
 	big32  = big.NewInt(32)
 	big64  = big.NewInt(64)
 	big128 = big.NewInt(128)
+	big4096 = big.NewInt(4096)
 )
 
 // AccumulateRewards credits the coinbase of the given block with the mining
