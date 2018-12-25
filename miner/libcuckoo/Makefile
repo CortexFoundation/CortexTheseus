@@ -34,9 +34,9 @@ cudaN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solve
 	nvcc -g -std=c++11 -c -o $@.miner.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 src/cuda/miner.cu $(LIBS) -lnvidia-ml
 	nvcc -g -ccbin g++ -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -rdc=true -dlink -o $@ $@.miner.o $@.trimmer.o
 
-openclN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/opencl/miner.cpp src/opencl/trimmer.cpp Makefile
+openclN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/opencl/miner.cpp src/opencl/trimmer.cpp src/opencl/monitor.hpp Makefile
 	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/trimmer.cpp
-	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp
+	$(GPP) -g -c -U__STRICT_ANSI__ -DPLATFORM_AMD -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp -lrocm_smi64
 	ld -r -o $@ $@.temp.o $@.mean.o
 
 

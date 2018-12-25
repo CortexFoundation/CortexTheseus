@@ -76,8 +76,8 @@ namespace cuckoogpu {
     u32 edgetrimmer::trim(uint32_t device) {
 	int initV = 0;
 
-	clFinish(commandQueue);
-
+	//clFinish(commandQueue);
+	
 	size_t tmpSize = indexesSize;
 
 	cl_int clResult;

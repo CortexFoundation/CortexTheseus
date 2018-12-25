@@ -149,7 +149,7 @@ namespace cuckoogpu
 			clFinish (trimmer->commandQueue);
 			clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->indexesE2, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
 			checkOpenclErrors(clResult);
-
+/*
 			fprintf (stderr, "Index: %d points: [", sols.size () / PROOFSIZE);
 			for (uint32_t idx = 0; idx < PROOFSIZE; idx++)
 			{
@@ -161,6 +161,7 @@ namespace cuckoogpu
 				fprintf (stderr, "%zu,", sols[sols.size () - PROOFSIZE + idx]);
 			}
 			fprintf (stderr, "]\n");
+			*/
 			qsort (&sols[sols.size () - PROOFSIZE], PROOFSIZE, sizeof (u32), nonce_cmp);
 		}
 

@@ -3,7 +3,7 @@
 package libcuckoo
 
 /*
-#cgo LDFLAGS: -L./ -lopenclminer -L/usr/local/cuda-10.0/lib64 -lOpenCL -lstdc++
+#cgo LDFLAGS: -L./ -lopenclminer -L/usr/local/cuda-10.0/lib64 -lOpenCL -lstdc++ -lrocm_smi64
 #cgo CFLAGS: -I./
 
 #include "miner.h"
@@ -56,4 +56,17 @@ func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (status_code
 
 func CuckooInitialize(devices []uint32, deviceNum uint32, selected int) {
 	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected))
+}
+
+func Monitor(device_count uint32) (fanSpeeds []uint32, temperatures []uint32) {
+	var (
+		_fanSpeeds    [128]uint32
+		_temperatures [128]uint32
+	)
+	C.monitor(C.uint32_t(device_count), (*C.uint32_t)(unsafe.Pointer(&_fanSpeeds[0])), (*C.uint32_t)(unsafe.Pointer(&_temperatures[0])))
+	for i := 0; i < int(device_count); i++ {
+		fanSpeeds = append(fanSpeeds, _fanSpeeds[i])
+		temperatures = append(temperatures, _temperatures[i])
+	}
+	return fanSpeeds, temperatures
 }

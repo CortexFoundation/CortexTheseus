@@ -3,11 +3,19 @@
 #include "kernel_source.h"
 #include "../../miner.h"
 #include <vector>
+#include "monitor.hpp"
 
 //cuckoogpu::cuckoo_solver_ctx* ctx = NULL;
 //cuckoogpu::cuckaroo_solver_ctx* cuckaroo_ctx = NULL;
 std::vector<cuckoogpu::solver_ctx*> ctx;
 
+
+void getDeviceInfo(){
+	getAllDeviceInfo();
+	//device count
+	//driver version
+	//devices memory,compute units, capability, major.minor
+}
 int32_t FindSolutionsByGPU(
         uint8_t *header,
         uint64_t nonce,
@@ -68,7 +76,7 @@ void initOne(uint32_t index, uint32_t device){
 //	getPlatformInfo (platformId);
 	cl_device_id deviceId = getOneDevice (platformId, device);
 	if (deviceId == NULL)
-		return;
+		exit(0);
 	cl_context context = createContext (platformId, deviceId);
 	if (context == NULL)
 		return;
@@ -112,7 +120,10 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
     using namespace cuckoogpu;
     using std::vector;
 
-
+    getDeviceInfo();
+#ifdef PLATFORM_AMD
+    if(monitor_init(deviceNum) < 0) exit(0);
+#endif
     for(uint i = 0; i < deviceNum; i++){
             if(selected == 0){
                     ctx.push_back(new cuckoo_solver_ctx());
@@ -124,5 +135,9 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
 }
 
 int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *temperatures){
+#ifdef PLATFORM_AMD
+	return query_fan_tem(device_count, fanSpeeds, temperatures);
+#else
 	return 0;
+#endif
 }

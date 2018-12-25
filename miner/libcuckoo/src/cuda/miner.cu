@@ -119,7 +119,7 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
     using namespace cuckoogpu;
     using std::vector;
 	getDeviceInfo();
-	if(monitor_init(deviceNum) < 0) return;
+	if(monitor_init(deviceNum) < 0) exit(0);
 	
     for(int i = 0; i < deviceNum; i++){
             if(selected == 0){
