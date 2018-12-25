@@ -101,7 +101,7 @@ struct cuckoo_solver_ctx : public solver_ctx{
 	Cuckoo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, trimmer->bufferA, (int *)trimmer->indexesE2);
     cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE2, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
     checkCudaErrors(cudaDeviceSynchronize());
-	fprintf(stderr, "Index: %zu points: [", sols.size() / PROOFSIZE);
+/*	fprintf(stderr, "Index: %zu points: [", sols.size() / PROOFSIZE);
 	for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
 		fprintf(stderr, "<%u,%u>, ", soledges[idx].x, soledges[idx].y);
 	}
@@ -110,6 +110,7 @@ struct cuckoo_solver_ctx : public solver_ctx{
 		fprintf(stderr, "%u,", sols[sols.size() - PROOFSIZE + idx]);
 	}
 	fprintf(stderr, "]\n");
+	*/
     qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), nonce_cmp);
   }
 

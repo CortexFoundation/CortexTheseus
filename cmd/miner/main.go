@@ -36,6 +36,7 @@ type DeviceId struct {
 	deviceId       uint32
 	use_time       int64
 	solution_count int64
+	hash_rate      float32
 }
 
 type Cortex struct {
@@ -46,6 +47,7 @@ type Cortex struct {
 	reader          *bufio.Reader
 	consta          Connection
 	miner_algorithm int
+	is_new_work     bool
 }
 
 type Task struct {
@@ -180,6 +182,40 @@ func (cm *Cortex) Mining() {
 	}
 }
 
+func (cm *Cortex) printFanAndTemp() {
+	var fanSpeeds []uint32
+	var temperatures []uint32
+	var devCount = len(cm.deviceIds)
+	fanSpeeds, temperatures = libcuckoo.Monitor(uint32(devCount))
+	for dev := 0; dev < devCount; dev++ {
+		var dev_id = cm.deviceIds[dev].deviceId
+		fmt.Printf("\033[0;34;40m GPU%d t=%d%% fan=%d%%", dev_id, temperatures[dev], fanSpeeds[dev])
+		if dev < devCount-1 {
+			fmt.Printf(", ")
+		}
+	}
+	fmt.Printf("\033[0m\n")
+}
+
+func (cm *Cortex) printHashRate() {
+	if cm.is_new_work == false {
+		return
+	}
+	var devCount = len(cm.deviceIds)
+	for dev := 0; dev < devCount; dev++ {
+		var dev_id = cm.deviceIds[dev].deviceId
+		if cm.deviceIds[dev].use_time > 0 {
+			cm.deviceIds[dev].hash_rate = (float32(1000.0*cm.deviceIds[dev].solution_count) / float32(cm.deviceIds[dev].use_time))
+			fmt.Printf("\033[0;36;40m GPU%d hash rate=%.4f", dev_id, cm.deviceIds[dev].hash_rate)
+			if dev < devCount-1 {
+				fmt.Printf(", ")
+			}
+		}
+	}
+	fmt.Printf("\033[0m\n")
+	cm.is_new_work = false
+}
+
 func (cm *Cortex) miningOnce() {
 	type TaskWrapper struct {
 		Lock  sync.Mutex
@@ -214,18 +250,18 @@ func (cm *Cortex) miningOnce() {
 				status, sols := libcuckoo.FindSolutionsByGPU(header, curNonce, tidx)
 				cm.deviceIds[tidx].lock.Unlock()
 				if status != 0 {
-					if verboseLevel >= 3 {
-						log.Println("result: ", status, sols)
-					}
+					//if verboseLevel >= 3 {
+					//	log.Println("result: ", status, sols)
+					//}
 					for _, solUint32 := range sols {
 						var sol common.BlockSolution
 						copy(sol[:], solUint32)
 						sha3hash := common.BytesToHash(crypto.Sha3Solution(&sol))
-						if verboseLevel >= 3 {
-							log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
-						}
+						//if verboseLevel >= 3 {
+						//	log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+						//}
 						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
-							log.Println("Target Difficulty satisfied")
+							//log.Println("Target Difficulty satisfied")
 							result = sol
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
 							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
@@ -238,22 +274,25 @@ func (cm *Cortex) miningOnce() {
 							if ok != 1 {
 								log.Println("verify failed", header[:], curNonce, &sol)
 							} else {
-								log.Println("verify successed", header[:], curNonce, &sol)
+								//log.Println("verify successed", header[:], curNonce, &sol)
 								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
-								end_time := time.Now().UnixNano() / 1e6
-								cm.deviceIds[tidx].use_time += (end_time - start_time)
-								cm.deviceIds[tidx].solution_count += 1
-								log.Println(fmt.Sprintf("thread %v: solutions=%v, all_time = %vms, avg_time = %vms", tidx, cm.deviceIds[tidx].solution_count, cm.deviceIds[tidx].use_time, (cm.deviceIds[tidx].use_time)/(cm.deviceIds[tidx].solution_count)))
-								start_time = end_time
 							}
 						}
 					}
 				}
+
+				end_time := time.Now().UnixNano() / 1e6
+				cm.deviceIds[tidx].use_time += (end_time - start_time)
+				cm.deviceIds[tidx].solution_count += int64(len(sols))
+				start_time = end_time
+				cm.printHashRate()
 			}
 		}(uint32(nthread), &currentTask)
 	}
 
 	cm.getWork()
+
+	iter := 1
 	go func(currentTask_ *TaskWrapper) {
 		for {
 			msg := cm.read()
@@ -261,14 +300,29 @@ func (cm *Cortex) miningOnce() {
 				return
 			}
 			if cm.verboseLevel >= 4 {
-				log.Println("Received: ", msg)
+				//log.Println("Received: ", msg)
 			}
-			reqId, _ := msg["id"].(float64)
+			reqId, result := msg["id"].(float64)
+			if uint32(reqId) == 73 {
+				if bool(result) {
+					fmt.Println("\033[0;35;40m share accepted!\033[0m")
+				} else {
+					fmt.Println("\033[0;35;40m share rejected!\033[0m")
+				}
+			}
 			if uint32(reqId) == 100 || uint32(reqId) == 0 {
 				workInfo, _ := msg["result"].([]interface{})
 				if len(workInfo) >= 3 {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
 					log.Println("Get Work: ", taskHeader, taskDifficulty)
+					cm.is_new_work = true
+
+					if iter%5 == 0 {
+						cm.printFanAndTemp()
+						iter = 0
+					}
+					iter += 1
+
 					currentTask_.Lock.Lock()
 					currentTask_.TaskQ.Nonce = taskNonce
 					currentTask_.TaskQ.Header = taskHeader
@@ -280,6 +334,13 @@ func (cm *Cortex) miningOnce() {
 	}(&currentTask)
 	time.Sleep(2 * time.Second)
 
+	/*	go func() {
+			for {
+				cm.printFanAndTemp()
+				time.Sleep(5 * time.Second)
+			}
+		}()
+	*/
 	for {
 		if cm.consta.state == false {
 			return
@@ -305,6 +366,10 @@ func init() {
 	flag.StringVar(&account, "account", "0xc3d7a1ef810983847510542edfd5bc5551a6321c", "miner accounts")
 	flag.StringVar(&strDeviceId, "deviceids", "0", "which GPU device use for mining")
 	flag.IntVar(&verboseLevel, "verbosity", 0, "verbosity level")
+
+	fmt.Printf("**************************************************************\n")
+	fmt.Printf("*\t\tCortex GPU Miner\t\t\t*\n")
+	fmt.Printf("**************************************************************\n")
 }
 
 var help bool
@@ -324,7 +389,7 @@ func main() {
 			fmt.Println("parse deviceIds error ", error)
 			return
 		}
-		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), 0, 0})
+		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), 0, 0, 0})
 	}
 
 	if help {
@@ -338,7 +403,7 @@ func main() {
 		server:          remote,
 		deviceIds:       deviceIds,
 		verboseLevel:    uint(verboseLevel),
-		miner_algorithm: 1,
+		miner_algorithm: 0,
 	}
 
 	cm.Mining()

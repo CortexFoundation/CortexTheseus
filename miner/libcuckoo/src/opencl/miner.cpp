@@ -122,3 +122,7 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
             initOne(i, devices[i]);
     }
 }
+
+int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *temperatures){
+	return 0;
+}

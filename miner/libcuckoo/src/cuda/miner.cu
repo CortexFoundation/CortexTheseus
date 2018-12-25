@@ -2,10 +2,38 @@
 #include "cuckaroo_solver.hpp"
 #include "../../miner.h"
 #include <vector>
+#include "monitor.hpp"
 
 //cuckoogpu::cuckoo_solver_ctx* ctx = NULL;
 //cuckoogpu::cuckaroo_solver_ctx* cuckaroo_ctx = NULL;
 std::vector<cuckoogpu::solver_ctx*> ctx;
+
+void getDeviceInfo(){
+	int deviceCount = 0;
+	cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
+	if(error_id != cudaSuccess){
+		printf("get device count error : %s\n", cudaGetErrorString(error_id));
+		return;
+	}
+	
+	if(deviceCount == 0){
+		printf("there are no available device that supprot CUDA\n");
+	}
+
+	printf("NVIDIA Cards available: %d\n", deviceCount);
+	int driverVersion = 0, runtimeVersion = 0;
+    cudaDriverGetVersion(&driverVersion);
+    cudaRuntimeGetVersion(&runtimeVersion);
+    printf("\033[0;32;40m CUDA Driver Version / Runtime Version          %d.%d / %d.%d\n", driverVersion/1000, (driverVersion%100)/10, runtimeVersion/1000, (runtimeVersion%100)/10);
+	for(int dev = 0; dev < deviceCount; ++dev){
+        cudaSetDevice(dev);
+        cudaDeviceProp deviceProp;
+        cudaGetDeviceProperties(&deviceProp, dev);
+
+		printf("\033[0;32;40m GPU #%d: %s, %.0fMB, %u compute units, capability: %d.%d\033[0m \n", dev, deviceProp.name, (float)deviceProp.totalGlobalMem/1048576.0f, deviceProp.multiProcessorCount, deviceProp.major, deviceProp.minor);
+	}
+}
+
 
 int32_t FindSolutionsByGPU(
         uint8_t *header,
@@ -78,20 +106,21 @@ void initOne(uint32_t index, uint32_t device){
     //ctx = new solver_ctx(tp, device);
     ctx[index]->init(tp, device);
 
-    printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
+   // printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
     u64 bytes = ctx[index]->trimmer->globalbytes();
 
     int unit;
     for (unit=0; bytes >= 10240; bytes>>=10,unit++);
-    printf("Using %d%cB of global memory.\n", (u32)bytes, " KMGT"[unit]);
+    //printf("Using %d%cB of global memory.\n", (u32)bytes, " KMGT"[unit]);
 }
 
 void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
-    printf("thread: %d\n", getpid());
+    //printf("thread: %d\n", getpid());
     using namespace cuckoogpu;
     using std::vector;
-
-
+	getDeviceInfo();
+	if(monitor_init(deviceNum) < 0) return;
+	
     for(int i = 0; i < deviceNum; i++){
             if(selected == 0){
                     ctx.push_back(new cuckoo_solver_ctx());
@@ -100,4 +129,8 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
             }
             initOne(i, devices[i]);
     }
+}
+
+int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *temperatures){
+	return query_fan_tem(device_count, fanSpeeds, temperatures);	
 }

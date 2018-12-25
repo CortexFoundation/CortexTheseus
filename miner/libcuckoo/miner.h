@@ -13,6 +13,7 @@ int32_t FindSolutionsByGPU(
         uint32_t *numSol);
 void CuckooInitialize(uint32_t *devices, uint32_t deviceNum, int selected);
 void CuckooFinalize();
+int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *temperatures);
 #ifdef __cplusplus
 }
 #endif

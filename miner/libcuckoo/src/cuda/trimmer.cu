@@ -421,7 +421,7 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, uint2 * __restrict__
         sizeB = ROW_EDGES_B * NX * sizeof(uint2);
 
         const size_t bufferSize = sizeA + sizeB;
-        fprintf(stderr, "bufferSize: %lu\n", bufferSize);
+        //fprintf(stderr, "bufferSize: %lu\n", bufferSize);
         checkCudaErrors(cudaMalloc((void**)&bufferA, bufferSize));
         bufferB  = bufferA + sizeA / sizeof(ulonglong4);
         bufferAB = bufferA + sizeB / sizeof(ulonglong4);
