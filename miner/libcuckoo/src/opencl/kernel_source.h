@@ -81,6 +81,7 @@ typedef struct {
 
 #if (EXPAND == 0)
  #define EdgeOut uint2
+ #define EdgeIn uint2
 #else
  #define EdgeIn uint
 #endif
