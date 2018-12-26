@@ -38,11 +38,11 @@ namespace cuckoogpu {
 			   sizeof (cl_uint2) * PROOFSIZE, NULL, &clResult);
 	checkOpenclErrors(clResult);
 
-	sizeA = ROW_EDGES_A * NX * sizeof (cl_uint2);
-	sizeB = ROW_EDGES_B * NX * sizeof (cl_uint2);
+	sizeA = ROW_EDGES_A * NX * (selected == 0 && tp.expand > 0 ? sizeof(uint) : sizeof (cl_uint2));
+	sizeB = ROW_EDGES_B * NX * (selected == 0 && tp.expand > 1 ? sizeof(uint) : sizeof (cl_uint2));
 
 	const size_t bufferSize = sizeA + sizeB;
-	fprintf(stderr, "bufferSize: %lu\n", bufferSize);
+//	fprintf(stderr, "bufferSize: %lu\n", bufferSize);
 	bufferA =
 	    clCreateBuffer(context, CL_MEM_READ_WRITE, bufferSize, NULL, &clResult);
 	checkOpenclErrors(clResult);
@@ -58,19 +58,19 @@ namespace cuckoogpu {
     }
 
     u64 edgetrimmer::globalbytes() const {
-	return (sizeA + sizeB) + 2 * indexesSize + sizeof (siphash_keys);
+		return (sizeA + sizeB) + 2 * indexesSize + sizeof (siphash_keys);
     }
     edgetrimmer::~edgetrimmer() {
-	clReleaseMemObject(bufferA);
-	//clReleaseMemObject(bufferB);
-	//clReleaseMemObject(bufferAB);
-	clReleaseMemObject(recoveredges);
-	clReleaseMemObject(indexesE2);
-	clReleaseMemObject(indexesE);
-	clReleaseMemObject(dipkeys);
-	releaseCommandQueue(commandQueue);
-	releaseProgram(program);
-	releaseContext(context);
+		clReleaseMemObject(bufferA);
+		//clReleaseMemObject(bufferB);
+		//clReleaseMemObject(bufferAB);
+		clReleaseMemObject(recoveredges);
+		clReleaseMemObject(indexesE2);
+		clReleaseMemObject(indexesE);
+		clReleaseMemObject(dipkeys);
+		releaseCommandQueue(commandQueue);
+		releaseProgram(program);
+		releaseContext(context);
     }
 
     u32 edgetrimmer::trim(uint32_t device) {
@@ -106,7 +106,7 @@ namespace cuckoogpu {
 	cl_event event;
 	int edges_a = EDGES_A;
 	cl_kernel seedA_kernel = NULL;
-        if(selected == 0) seedA_kernel = clCreateKernel(program, "Cuckoo_SeedA", &clResult);
+    if(selected == 0) seedA_kernel = clCreateKernel(program, "Cuckoo_SeedA", &clResult);
 	else seedA_kernel = clCreateKernel(program, "Cuckaroo_SeedA", &clResult);
 checkOpenclErrors(clResult);
 	clResult |=
@@ -189,12 +189,19 @@ checkOpenclErrors(clResult);
 			    tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 
-	cl_kernel round_kernel = clCreateKernel(program, "Round", &clResult);
+	cl_kernel round_kernel;
+	cl_kernel round_uint2_uint2_kernel = clCreateKernel(program, "Round", &clResult);
+	cl_kernel round_uint_uint2_kernel = clCreateKernel(program, "Round_uint_uint2", &clResult);
+	cl_kernel round_uint_uint_kernel = clCreateKernel(program, "Round_uint_uint", &clResult);
+
 	global_work_size[0] = tp.trim.blocks * tp.trim.tpb;
 	local_work_size[0] = tp.trim.tpb;
 	int constRound = 0;
 	edges_a = EDGES_A;
 	int edges_b = EDGES_B;
+	if(selected != 0 || tp.expand == 0) round_kernel = round_uint2_uint2_kernel;
+	else if(tp.expand == 1) round_kernel = round_uint_uint2_kernel;
+	else round_kernel = round_uint_uint_kernel;
 	clResult |= clSetKernelArg(round_kernel, 0, sizeof (int), &constRound);
 	clResult |=
 	    clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
@@ -227,6 +234,8 @@ checkOpenclErrors(clResult);
 	constRound = 1;
 	edges_a = EDGES_B;
 	edges_b = EDGES_B / 2;
+	if(selected != 0 || tp.expand < 2) round_kernel = round_uint2_uint2_kernel;
+	else round_kernel = round_uint_uint2_kernel;
 	clResult |= clSetKernelArg(round_kernel, 0, sizeof (int), &constRound);
 	clResult |=
 	    clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
@@ -260,6 +269,7 @@ checkOpenclErrors(clResult);
 	constRound = 2;
 	edges_a = EDGES_B / 2;
 	edges_b = EDGES_A / 4;
+	round_kernel = round_uint2_uint2_kernel;
 	clResult |= clSetKernelArg(round_kernel, 0, sizeof (int), &constRound);
 	clResult |=
 	    clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);

@@ -95,7 +95,7 @@ void initOne(uint32_t index, uint32_t device){
 		return;
 	}
 	char options[1024] = "-I./";
-	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d", EDGEBITS, PROOFSIZE);
+	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d  -DEXPAND=%d", EDGEBITS, PROOFSIZE, tp.expand);
 	
 	buildProgram (program, &(deviceId), options);
 //	saveBinaryFile(program, deviceId);

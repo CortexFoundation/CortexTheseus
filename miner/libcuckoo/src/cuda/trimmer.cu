@@ -259,7 +259,6 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, uint2 * __restrict__
 				}
 				__syncthreads();
 			}
-			EdgeOut zero = make_Edge(0, tmp[0][0], 0, 0);
 			for (int row = lid; row < NX; row += dim) {
 				int localIdx = min(FLUSHA2, counters[row]);
 				int cnt = min((int)atomicAdd(indexes + row * NX + col, localIdx), (int)(maxOut - localIdx));
@@ -314,7 +313,6 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, uint2 * __restrict__
                 }
                 __syncthreads();
             }
-            EdgeOut zero = make_Edge(0, tmp[0][0], 0, 0);
             for (int col = lid; col < NX; col += dim) {
                 int localIdx = min(FLUSHB2, counters[col]);
                 int cnt = min((int)atomicAdd(destinationIndexes + row * NX + col, localIdx), (int)(maxOut - localIdx));

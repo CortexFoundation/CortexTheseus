@@ -73,6 +73,18 @@ typedef struct {
 #define FLUSHB2 (2 * (FLUSHB))
 #define FLUSHA2  (2 * (FLUSHA))
 
+
+
+#ifndef EXPAND
+#define EXPAND 0
+#endif
+
+#if (EXPAND == 0)
+ #define EdgeOut uint2
+#else
+ #define EdgeIn uint
+#endif
+
 inline ulong4
 make_ulong4(ulong r1, ulong r2, ulong r3, ulong r4)
 {
@@ -340,67 +352,73 @@ Cuckaroo_SeedA(__constant const siphash_keys* sipkeys, __global uint2 * __restri
     }
   }
 }
+
 __kernel void
-Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global uint2 * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut, uint offset)
+Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut, uint offset)
 {
     const int group = get_group_id(0);
     const int dim = get_local_size(0);
     const int lid = get_local_id(0);
     const int gid = group * dim + lid;
     const int nthreads = get_global_size(0);
-    __local uint2 tmp[NX][FLUSHA2];
+
+    __local EdgeIn tmp[NX][FLUSHA2];
     __local int counters[NX];
 
     for (int row = lid; row < NX; row += dim)
-	counters[row] = 0;
+		counters[row] = 0;
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    const uint tmp_offset = offset / sizeof(uint2);
+    const uint tmp_offset = offset / sizeof(EdgeIn);
     const int col = group % NX;
     const int loops = NEDGES / nthreads;
     for (int i = 0; i < loops; i++)
     {
-	uint nonce = gid * loops + i;
-	uint node1, node0 = dipnode(sipkeys, (ulong) nonce, 0);
-	if (sizeof (uint2) == sizeof (uint2))
-	    node1 = dipnode(sipkeys, (ulong) nonce, 1);
-	int row = node0 & XMASK;
-	int counter = min((int) atomic_add(counters + row, 1), (int) (FLUSHA2 - 1));
-	tmp[row][counter] = make_Edge_by_node(nonce, tmp[0][0], node0, node1);
-	barrier(CLK_LOCAL_MEM_FENCE);
-	if (counter == FLUSHA - 1)
-	{
-	    int localIdx = min(FLUSHA2, counters[row]);
-	    int newCount = localIdx % FLUSHA;
-	    int nflush = localIdx - newCount;
-	    int cnt = min((int) atomic_add(indexes + row * NX + col, nflush),
-			  (int) (maxOut - nflush));
-	    for (int i = 0; i < nflush; i += 1)
-		buffer[tmp_offset + ((ulong) (row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
-	    for (int t = 0; t < newCount; t++)
-	    {
-		tmp[row][t] = tmp[row][t + nflush];
-	    }
-	    counters[row] = newCount;
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
+		uint nonce = gid * loops + i;
+		uint node1, node0 = dipnode(sipkeys, (ulong) nonce, 0);
+		if (sizeof (EdgeIn) == sizeof (uint2))
+			node1 = dipnode(sipkeys, (ulong) nonce, 1);
+		int row = node0 & XMASK;
+		int counter = min((int) atomic_add(counters + row, 1), (int) (FLUSHA2 - 1));
+#if (EXPAND == 0)
+		tmp[row][counter] = make_Edge_by_node(nonce, tmp[0][0], node0, node1);
+#else 
+		tmp[row][counter] = make_Edge_by_nonce(nonce, tmp[0][0], node0, node1);
+#endif
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if (counter == FLUSHA - 1)
+		{
+			int localIdx = min(FLUSHA2, counters[row]);
+			int newCount = localIdx % FLUSHA;
+			int nflush = localIdx - newCount;
+			int cnt = min((int) atomic_add(indexes + row * NX + col, nflush),
+				  (int) (maxOut - nflush));
+			for (int i = 0; i < nflush; i += 1)
+				buffer[tmp_offset + ((ulong) (row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
+			for (int t = 0; t < newCount; t++)
+			{
+				tmp[row][t] = tmp[row][t + nflush];
+			}
+			counters[row] = newCount;
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
     }
     for (int row = lid; row < NX; row += dim)
     {
-	int localIdx = min(FLUSHA2, counters[row]);
-	int cnt = min((int) atomic_add(indexes + row * NX + col, localIdx),
-		  (int) (maxOut - localIdx));
-	for (int i = 0; i < localIdx; i += 1)
-	{
-	    buffer[tmp_offset + ((ulong) (row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
-	}
+		int localIdx = min(FLUSHA2, counters[row]);
+		int cnt = min((int) atomic_add(indexes + row * NX + col, localIdx),
+			  (int) (maxOut - localIdx));
+		for (int i = 0; i < localIdx; i += 1)
+		{
+			buffer[tmp_offset + ((ulong) (row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
+		}
     }
 }
 
 __kernel void
 SeedB(__constant const siphash_keys * sipkeys,
-      __global const uint2 * __restrict__ source,
-      __global uint2 * __restrict__ destination,
+      __global const EdgeIn * __restrict__ source,
+      __global EdgeIn * __restrict__ destination,
       __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxOut, const uint halfA, const uint halfE, uint offset)
 {
     const int group = get_group_id(0);	//blockIdx.x;
@@ -409,69 +427,73 @@ SeedB(__constant const siphash_keys * sipkeys,
 
     const int gid = get_global_id(0);
 
-    __local uint2 tmp[NX][FLUSHB2];
+    __local EdgeIn tmp[NX][FLUSHB2];
     __local int counters[NX];
 
     for (int col = lid; col < NX; col += dim)
-	counters[col] = 0;
+		counters[col] = 0;
     barrier(CLK_LOCAL_MEM_FENCE);
 
     const int row = group / NX;
     const int bucketEdges = min((int) sourceIndexes[group + halfE], (int) maxOut);
     const int loops = (bucketEdges + dim - 1) / dim;
-    const uint dest_halfA = halfA/sizeof(uint2);
-    const uint src_halfA = halfA/sizeof(uint2);
-    const uint tmp_offset = offset / sizeof(uint2);
+    const uint dest_halfA = halfA/sizeof(EdgeIn);
+    const uint src_halfA = halfA/sizeof(EdgeIn);
+    const uint tmp_offset = offset / sizeof(EdgeIn);
 
     for (int loop = 0; loop < loops; loop++)
     {
-	int col;
-	int counter = 0;
-	const int edgeIndex = loop * dim + lid;
+		int col;
+		int counter = 0;
+		const int edgeIndex = loop * dim + lid;
 
-	if (edgeIndex < bucketEdges)
-	{
-	    const int index = group * maxOut + edgeIndex;
-	    uint2 edge = source[index + src_halfA + tmp_offset];
-	    if (null2(edge))
-		continue;
-	    uint node1 = endpoint2(sipkeys, edge, 0);
-	    col = (node1 >> XBITS) & XMASK;
-	    counter = min((int) atomic_add(counters + col, 1), (int) (FLUSHB2 - 1));
-	    tmp[col][counter] = edge;
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
+		if (edgeIndex < bucketEdges)
+		{
+			const int index = group * maxOut + edgeIndex;
+			EdgeIn edge = source[index + src_halfA + tmp_offset];
+#if (EXPAND == 0)
+			if (null2(edge)) continue;
+			uint node1 = endpoint2(sipkeys, edge, 0);
+#else
+			if (null(edge)) continue;
+			uint node1 = endpoint(sipkeys, edge, 0);
+#endif
+			col = (node1 >> XBITS) & XMASK;
+			counter = min((int) atomic_add(counters + col, 1), (int) (FLUSHB2 - 1));
+			tmp[col][counter] = edge;
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
 
-	if (counter == FLUSHB - 1)
-	{
-	    int localIdx = min(FLUSHB2, counters[col]);
-	    int newCount = localIdx % FLUSHB;
-	    int nflush = localIdx - newCount;
-	    int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
-					   nflush), (int) (maxOut - nflush));
-	    for (int i = 0; i < nflush; i += 1)
-	    {
-		destination[((ulong) (row * NX + col) * maxOut + cnt +
-			     i) + dest_halfA] = tmp[col][i];
-	    }
-	    for (int t = 0; t < newCount; t++)
-	    {
-		tmp[col][t] = tmp[col][t + nflush];
-	    }
-	    counters[col] = newCount;
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
+		if (counter == FLUSHB - 1)
+		{
+			int localIdx = min(FLUSHB2, counters[col]);
+			int newCount = localIdx % FLUSHB;
+			int nflush = localIdx - newCount;
+			int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
+						   nflush), (int) (maxOut - nflush));
+			for (int i = 0; i < nflush; i += 1)
+			{
+				destination[((ulong) (row * NX + col) * maxOut + cnt +
+					 i) + dest_halfA] = tmp[col][i];
+			}
+			for (int t = 0; t < newCount; t++)
+			{
+				tmp[col][t] = tmp[col][t + nflush];
+			}
+			counters[col] = newCount;
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
     }
     for (int col = lid; col < NX; col += dim)
     {
-	int localIdx = min(FLUSHB2, counters[col]);
-	int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
-			   1), (int) (maxOut - 1));
-	for (int i = 0; i < localIdx; i += 1)
-	{
-	    destination[((ulong) (row * NX + col) * maxOut + cnt + i) +
-			dest_halfA] = tmp[col][i];
-	}
+		int localIdx = min(FLUSHB2, counters[col]);
+		int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
+				   1), (int) (maxOut - 1));
+		for (int i = 0; i < localIdx; i += 1)
+		{
+			destination[((ulong) (row * NX + col) * maxOut + cnt + i) +
+				dest_halfA] = tmp[col][i];
+		}
     }
 }
 
@@ -492,38 +514,142 @@ Round(const int round, __constant const siphash_keys * sipkeys,
 
     for (int loop = 0; loop < loops; loop++)
     {
-	const int lindex = loop * dim + lid;
-	if (lindex < edgesInBucket)
-	{
-	    const int index = maxIn * group + lindex;
-	    uint2 edge = source[index + src_offset / sizeof(uint2)];
-	    if (null2(edge))
-		continue;
-	    uint node = endpoint2(sipkeys, edge, round & 1);
-	    Increase2bCounter(ecounters, node >> (2 * XBITS));
-	}
+		const int lindex = loop * dim + lid;
+		if (lindex < edgesInBucket)
+		{
+			const int index = maxIn * group + lindex;
+			uint2 edge = source[index + src_offset / sizeof(uint2)];
+			if (null2(edge))
+				continue;
+			uint node = endpoint2(sipkeys, edge, round & 1);
+			Increase2bCounter(ecounters, node >> (2 * XBITS));
+		}
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     for (int loop = 0; loop < loops; loop++)
     {
-	const int lindex = loop * dim + lid;
-	if (lindex < edgesInBucket)
-	{
-	    const int index = maxIn * group + lindex;
-	    uint2 edge = source[index + src_offset/sizeof(uint2)];
-	    if (null2(edge))
-		continue;
-	    uint node0 = endpoint2(sipkeys, edge, round & 1);
-	    if (Read2bCounter(ecounters, node0 >> (2 * XBITS)))
-	    {
-		uint node1 = endpoint2(sipkeys, edge, (round & 1) ^ 1);
-		const int bucket = node1 & X2MASK;
-		const int bktIdx = min(atomic_add(destinationIndexes + bucket, 1), maxOut - 1);
-		destination[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = edge;
-	    }
-	}
+		const int lindex = loop * dim + lid;
+		if (lindex < edgesInBucket)
+		{
+			const int index = maxIn * group + lindex;
+			uint2 edge = source[index + src_offset/sizeof(uint2)];
+			if (null2(edge))
+				continue;
+			uint node0 = endpoint2(sipkeys, edge, round & 1);
+
+			if (Read2bCounter(ecounters, node0 >> (2 * XBITS)))
+			{
+				uint node1 = endpoint2(sipkeys, edge, (round & 1) ^ 1);
+				const int bucket = node1 & X2MASK;
+				const int bktIdx = min(atomic_add(destinationIndexes + bucket, 1), maxOut - 1);
+				destination[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = edge;
+			}
+		}
     }
 }
+
+__kernel void
+Round_uint_uint2(const int round, __constant const siphash_keys * sipkeys,
+      __global const uint * __restrict__ source,
+      __global uint2 * __restrict__ destination, __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxIn, const int maxOut, uint src_offset, uint dest_offset)
+{
+    const int group = get_group_id(0);	//blockIdx.x;
+    const int dim = get_local_size(0);	//blockDim.x;
+    const int lid = get_local_id(0);	//threadIdx.x;
+    __local uint ecounters[COUNTERWORDS];
+    for (int i = lid; i < COUNTERWORDS; i += dim)
+		ecounters[i] = 0;
+    barrier(CLK_LOCAL_MEM_FENCE);
+    const int edgesInBucket = min(sourceIndexes[group], maxIn);
+    const int loops = (edgesInBucket + dim - 1) / dim;
+
+    for (int loop = 0; loop < loops; loop++)
+    {
+		const int lindex = loop * dim + lid;
+		if (lindex < edgesInBucket)
+		{
+			const int index = maxIn * group + lindex;
+			uint edge = source[index + src_offset / sizeof(uint)];
+			if (null(edge))
+				continue;
+			uint node = endpoint(sipkeys, edge, round & 1);
+			Increase2bCounter(ecounters, node >> (2 * XBITS));
+		}
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for (int loop = 0; loop < loops; loop++)
+    {
+		const int lindex = loop * dim + lid;
+		if (lindex < edgesInBucket)
+		{
+			const int index = maxIn * group + lindex;
+			uint edge = source[index + src_offset/sizeof(uint)];
+			if (null(edge))
+				continue;
+			
+			uint node0 = endpoint(sipkeys, edge, round & 1);
+			if (Read2bCounter(ecounters, node0 >> (2 * XBITS)))
+			{
+				uint node1 = endpoint(sipkeys, edge, (round & 1) ^ 1);
+				const int bucket = node1 & X2MASK;
+				const int bktIdx = min(atomic_add(destinationIndexes + bucket, 1), maxOut - 1);
+				destination[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = (round&1) ? make_uint2(node1, node0) : make_uint2(node0, node1);
+			}
+		}
+    }
+}
+__kernel void
+Round_uint_uint(const int round, __constant const siphash_keys * sipkeys,
+      __global const uint * __restrict__ source,
+      __global uint * __restrict__ destination, __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxIn, const int maxOut, uint src_offset, uint dest_offset)
+{
+    const int group = get_group_id(0);	//blockIdx.x;
+    const int dim = get_local_size(0);	//blockDim.x;
+    const int lid = get_local_id(0);	//threadIdx.x;
+    __local uint ecounters[COUNTERWORDS];
+    for (int i = lid; i < COUNTERWORDS; i += dim)
+		ecounters[i] = 0;
+    barrier(CLK_LOCAL_MEM_FENCE);
+    const int edgesInBucket = min(sourceIndexes[group], maxIn);
+    const int loops = (edgesInBucket + dim - 1) / dim;
+
+    for (int loop = 0; loop < loops; loop++)
+    {
+		const int lindex = loop * dim + lid;
+		if (lindex < edgesInBucket)
+		{
+			const int index = maxIn * group + lindex;
+			uint edge = source[index + src_offset / sizeof(uint)];
+			if (null(edge))
+				continue;
+			
+			uint node = endpoint(sipkeys, edge, round & 1);
+			Increase2bCounter(ecounters, node >> (2 * XBITS));
+		}
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for (int loop = 0; loop < loops; loop++)
+    {
+		const int lindex = loop * dim + lid;
+		if (lindex < edgesInBucket)
+		{
+			const int index = maxIn * group + lindex;
+			uint edge = source[index + src_offset/sizeof(uint)];
+			if (null(edge))
+				continue;
+
+			uint node0 = endpoint(sipkeys, edge, round & 1);
+			if (Read2bCounter(ecounters, node0 >> (2 * XBITS)))
+			{
+				uint node1 = endpoint(sipkeys, edge, (round & 1) ^ 1);
+				const int bucket = node1 & X2MASK;
+				const int bktIdx = min(atomic_add(destinationIndexes + bucket, 1), maxOut - 1);
+				destination[bucket * maxOut + bktIdx + dest_offset/sizeof(uint)] = edge;
+			}
+		}
+    }
+}
+
 
 __kernel void
 Tail(__global const uint2 * source, __global uint2 * destination, __global const int *sourceIndexes, __global int *destinationIndexes, const int maxIn, uint offset)
