@@ -219,7 +219,7 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, uint2 * __restrict__
   }
 }
 	template<int maxOut, typename EdgeOut>
-		__global__ void Cuckoo_SeedA(const siphash_keys &sipkeys, uint2 * __restrict__ buffer, int * __restrict__ indexes) {
+		__global__ void Cuckoo_SeedA(const siphash_keys &sipkeys, EdgeOut * __restrict__ buffer, int * __restrict__ indexes) {
 			const int group = blockIdx.x;
 			const int dim = blockDim.x;
 			const int lid = threadIdx.x;
@@ -271,7 +271,7 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, uint2 * __restrict__
 		}
 
     template<int maxOut, typename EdgeOut>
-        __global__ void SeedB(const siphash_keys &sipkeys, const EdgeOut * __restrict__ source, uint2 * __restrict__ destination, const int * __restrict__ sourceIndexes, int * __restrict__ destinationIndexes) {
+        __global__ void SeedB(const siphash_keys &sipkeys, const EdgeOut * __restrict__ source, EdgeOut * __restrict__ destination, const int * __restrict__ sourceIndexes, int * __restrict__ destinationIndexes) {
             const int group = blockIdx.x;
             const int dim = blockDim.x;
             const int lid = threadIdx.x;
@@ -417,8 +417,8 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, uint2 * __restrict__
         checkCudaErrors(cudaMalloc((void**)&indexesE, indexesSize));
         checkCudaErrors(cudaMalloc((void**)&indexesE2, indexesSize));
 
-        sizeA = ROW_EDGES_A * NX * sizeof(uint2);
-        sizeB = ROW_EDGES_B * NX * sizeof(uint2);
+        sizeA = ROW_EDGES_A * NX * (selected == 0 && tp.expand > 0 ? sizeof(u32) : sizeof(uint2));
+        sizeB = ROW_EDGES_B * NX * (selected == 0 && tp.expand > 1 ? sizeof(u32) : sizeof(uint2));
 
         const size_t bufferSize = sizeA + sizeB;
         //fprintf(stderr, "bufferSize: %lu\n", bufferSize);
@@ -473,8 +473,10 @@ void saveFile(uint2*v, int n, char *filename){
         cudaEventRecord(start, NULL);
 #endif
 
-	if(selected == 0)
-		Cuckoo_SeedA<EDGES_A, uint2><<<tp.genA.blocks, tp.genA.tpb>>>(*dipkeys, (uint2*)bufferAB, (int *)indexesE);
+	if(selected == 0){
+		if(tp.expand == 0) Cuckoo_SeedA<EDGES_A, uint2><<<tp.genA.blocks, tp.genA.tpb>>>(*dipkeys, (uint2*)bufferAB, (int *)indexesE);
+		else Cuckoo_SeedA<EDGES_A, u32><<<tp.genA.blocks, tp.genA.tpb>>>(*dipkeys, (u32*)bufferAB, (int *)indexesE);
+	}
 	else Cuckaroo_SeedA<EDGES_A><<<tp.genA.blocks, tp.genA.tpb>>>(*dipkeys, (uint2*)bufferAB, (int*)indexesE);
 
 #ifdef TIMER
@@ -487,8 +489,13 @@ void saveFile(uint2*v, int n, char *filename){
 
         const u32 halfA = sizeA/2 / sizeof(ulonglong4);
         const u32 halfE = NX2 / 2;
-		SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)bufferAB, (uint2*)bufferA, (const int *)indexesE, indexesE2);
-		SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)(bufferAB+halfA), (uint2*)(bufferA+halfA), (const int *)(indexesE+halfE), indexesE2+halfE);
+		if(selected != 0 || tp.expand == 0){
+			SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)bufferAB, (uint2*)bufferA, (const int *)indexesE, indexesE2);
+			SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)(bufferAB+halfA), (uint2*)(bufferA+halfA), (const int *)(indexesE+halfE), indexesE2+halfE);
+		}else{
+			SeedB<EDGES_A, u32><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const u32 *)bufferAB, (u32*)bufferA, (const int *)indexesE, indexesE2);
+			SeedB<EDGES_A, u32><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const u32 *)(bufferAB+halfA), (u32*)(bufferA+halfA), (const int *)(indexesE+halfE), indexesE2+halfE);	
+		}
 
 #ifdef INDEX_DEBUG
 		cudaMemcpy(hostA, indexesE2, NX * NY * sizeof(u32), cudaMemcpyDeviceToHost);
@@ -505,10 +512,18 @@ void saveFile(uint2*v, int n, char *filename){
 #endif
 
 		cudaMemset(indexesE, 0, indexesSize);
-		Round<EDGES_A, uint2, EDGES_B, uint2><<<tp.trim.blocks, tp.trim.tpb>>>(0, *dipkeys, (const uint2 *)bufferA, (uint2 *)bufferB, (const int *)indexesE2, (int *)indexesE); // to .632
+		if(selected != 0 || tp.expand == 0)
+			Round<EDGES_A, uint2, EDGES_B, uint2><<<tp.trim.blocks, tp.trim.tpb>>>(0, *dipkeys, (const uint2 *)bufferA, (uint2 *)bufferB, (const int *)indexesE2, (int *)indexesE); // to .632
+		else if(tp.expand == 1)
+			Round<EDGES_A, u32, EDGES_B, uint2><<<tp.trim.blocks, tp.trim.tpb>>>(0, *dipkeys, (const u32 *)bufferA, (uint2 *)bufferB, (const int *)indexesE2, (int *)indexesE); // to .632
+		else 
+			Round<EDGES_A, u32, EDGES_B, u32><<<tp.trim.blocks, tp.trim.tpb>>>(0, *dipkeys, (const u32 *)bufferA, (u32 *)bufferB, (const int *)indexesE2, (int *)indexesE); // to .632
 
 		cudaMemset(indexesE2, 0, indexesSize);
-		Round<EDGES_B, uint2, EDGES_B/2, uint2><<<tp.trim.blocks, tp.trim.tpb>>>(1, *dipkeys, (const uint2 *)bufferB, (uint2 *)bufferA, (const int *)indexesE, (int *)indexesE2); // to .296
+		if(selected != 0 || tp.expand < 2)
+			Round<EDGES_B, uint2, EDGES_B/2, uint2><<<tp.trim.blocks, tp.trim.tpb>>>(1, *dipkeys, (const uint2 *)bufferB, (uint2 *)bufferA, (const int *)indexesE, (int *)indexesE2); // to .296
+		else 
+			Round<EDGES_B, u32, EDGES_B/2, uint2><<<tp.trim.blocks, tp.trim.tpb>>>(1, *dipkeys, (const u32 *)bufferB, (uint2 *)bufferA, (const int *)indexesE, (int *)indexesE2); // to .296
 
 		cudaMemset(indexesE, 0, indexesSize);
 		Round<EDGES_B/2, uint2, EDGES_A/4, uint2><<<tp.trim.blocks, tp.trim.tpb>>>(2, *dipkeys, (const uint2 *)bufferA, (uint2 *)bufferB, (const int *)indexesE2, (int *)indexesE); // to .176

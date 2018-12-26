@@ -189,7 +189,7 @@ func (cm *Cortex) printFanAndTemp() {
 	fanSpeeds, temperatures = libcuckoo.Monitor(uint32(devCount))
 	for dev := 0; dev < devCount; dev++ {
 		var dev_id = cm.deviceIds[dev].deviceId
-		fmt.Printf("\033[0;34;40m GPU%d t=%d%% fan=%d%%", dev_id, temperatures[dev], fanSpeeds[dev])
+		fmt.Printf("\033[0;34;40m GPU%d t=%dC fan=%d%%", dev_id, temperatures[dev], fanSpeeds[dev])
 		if dev < devCount-1 {
 			fmt.Printf(", ")
 		}
@@ -204,16 +204,19 @@ func (cm *Cortex) printHashRate() {
 	var devCount = len(cm.deviceIds)
 	for dev := 0; dev < devCount; dev++ {
 		var dev_id = cm.deviceIds[dev].deviceId
-		if cm.deviceIds[dev].use_time > 0 {
+		if cm.deviceIds[dev].use_time > 0 && cm.deviceIds[dev].solution_count > 0 {
 			cm.deviceIds[dev].hash_rate = (float32(1000.0*cm.deviceIds[dev].solution_count) / float32(cm.deviceIds[dev].use_time))
 			fmt.Printf("\033[0;36;40m GPU%d hash rate=%.4f", dev_id, cm.deviceIds[dev].hash_rate)
 			if dev < devCount-1 {
 				fmt.Printf(", ")
 			}
+			cm.is_new_work = false
 		}
 	}
-	fmt.Printf("\033[0m\n")
-	cm.is_new_work = false
+	if cm.is_new_work == false {
+		fmt.Printf("\033[0m\n")
+	}
+	//	cm.is_new_work = false
 }
 
 func (cm *Cortex) miningOnce() {
