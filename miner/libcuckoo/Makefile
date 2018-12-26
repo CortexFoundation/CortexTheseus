@@ -37,9 +37,9 @@ cudaN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solve
 openclN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/opencl/miner.cpp src/opencl/trimmer.cpp src/opencl/monitor.hpp Makefile
 	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/trimmer.cpp
 #has rocm_smi_lib
-#	$(GPP) -g -c -U__STRICT_ANSI__ -DPLATFORM_AMD -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp -lrocm_smi64
+	$(GPP) -g -c -U__STRICT_ANSI__ -DPLATFORM_AMD -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp -lrocm_smi64
 #no rocm_smi_lib
-	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp -lrocm_smi64
+#	$(GPP) -g -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp -lrocm_smi64
 	ld -r -o $@ $@.temp.o $@.mean.o
 
 

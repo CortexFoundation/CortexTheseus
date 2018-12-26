@@ -3,7 +3,8 @@
 package libcuckoo
 
 /*
-#cgo LDFLAGS: -L./ -lopenclminer -L/usr/local/cuda-10.0/lib64 -lOpenCL -lstdc++
+//#cgo LDFLAGS: -L./ -lopenclminer -L/usr/local/cuda-10.0/lib64 -lOpenCL -lstdc++
+#cgo LDFLAGS: -L./ -lopenclminer -L/usr/local/cuda-10.0/lib64 -lOpenCL -lstdc++ -lrocm_smi64
 #cgo CFLAGS: -I./
 
 #include "miner.h"
