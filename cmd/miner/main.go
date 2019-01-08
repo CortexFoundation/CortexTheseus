@@ -187,14 +187,16 @@ func (cm *Cortex) printFanAndTemp() {
 	var temperatures []uint32
 	var devCount = len(cm.deviceIds)
 	fanSpeeds, temperatures = libcuckoo.Monitor(uint32(devCount))
+	var s string = ""
 	for dev := 0; dev < devCount; dev++ {
 		var dev_id = cm.deviceIds[dev].deviceId
-		fmt.Printf("\033[0;34;40m GPU%d t=%dC fan=%d%%", dev_id, temperatures[dev], fanSpeeds[dev])
+		s = fmt.Sprintf("\033[0;34;40m%sGPU%d t=%dC fan=%d%%", s, dev_id, temperatures[dev], fanSpeeds[dev])
 		if dev < devCount-1 {
-			fmt.Printf(", ")
+			s = fmt.Sprintf("%s, ", s)
 		}
 	}
-	fmt.Printf("\033[0m\n")
+	//fmt.Printf("\033[0m\n")
+	log.Println(s, "\033[0m")
 }
 
 func (cm *Cortex) printHashRate() {
@@ -202,19 +204,21 @@ func (cm *Cortex) printHashRate() {
 		return
 	}
 	var devCount = len(cm.deviceIds)
+	var s string = ""
 	for dev := 0; dev < devCount; dev++ {
 		var dev_id = cm.deviceIds[dev].deviceId
 		if cm.deviceIds[dev].use_time > 0 && cm.deviceIds[dev].solution_count > 0 {
 			cm.deviceIds[dev].hash_rate = (float32(1000.0*cm.deviceIds[dev].solution_count) / float32(cm.deviceIds[dev].use_time))
-			fmt.Printf("\033[0;36;40m GPU%d hash rate=%.4f", dev_id, cm.deviceIds[dev].hash_rate)
+			s = fmt.Sprintf("\033[0;36;40m%sGPU%d hash rate=%.4f", s, dev_id, cm.deviceIds[dev].hash_rate)
 			if dev < devCount-1 {
-				fmt.Printf(", ")
+				s = fmt.Sprintf("%s, ", s)
 			}
 			cm.is_new_work = false
 		}
 	}
 	if cm.is_new_work == false {
-		fmt.Printf("\033[0m\n")
+		//fmt.Printf("\033[0m\n")
+		log.Println(s, "\033[0m")
 	}
 	//	cm.is_new_work = false
 }
@@ -277,7 +281,7 @@ func (cm *Cortex) miningOnce() {
 							if ok != 1 {
 								log.Println("verify failed", header[:], curNonce, &sol)
 							} else {
-								//log.Println("verify successed", header[:], curNonce, &sol)
+								log.Println("verify successed", header[:], curNonce, &sol)
 								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
 							}
 						}
@@ -308,9 +312,9 @@ func (cm *Cortex) miningOnce() {
 			reqId, result := msg["id"].(float64)
 			if uint32(reqId) == 73 {
 				if bool(result) {
-					fmt.Println("\033[0;35;40m share accepted!\033[0m")
+					log.Println("\033[0;35;40m share accepted!\033[0m")
 				} else {
-					fmt.Println("\033[0;35;40m share rejected!\033[0m")
+					log.Println("\033[0;35;40m share rejected!\033[0m")
 				}
 			}
 			if uint32(reqId) == 100 || uint32(reqId) == 0 {
@@ -320,7 +324,7 @@ func (cm *Cortex) miningOnce() {
 					log.Println("Get Work: ", taskHeader, taskDifficulty)
 					cm.is_new_work = true
 
-					if iter%5 == 0 {
+					if iter%2 == 0 {
 						cm.printFanAndTemp()
 						iter = 0
 					}
