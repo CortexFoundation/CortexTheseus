@@ -48,7 +48,7 @@ type Cortex struct {
 	reader          *bufio.Reader
 	consta          Connection
 	miner_algorithm int
-	is_new_work     bool
+	share_accepted  int
 }
 
 type Task struct {
@@ -196,32 +196,26 @@ func (cm *Cortex) printFanAndTemp() {
 			s = fmt.Sprintf("%s, ", s)
 		}
 	}
-	//fmt.Printf("\033[0m\n")
 	log.Println(s, "\033[0m")
 }
 
 func (cm *Cortex) printHashRate() {
-	if cm.is_new_work == false {
-		//		return
-	}
 	var devCount = len(cm.deviceIds)
-	var s string = ""
+	var fanSpeeds []uint32
+	var temperatures []uint32
+	fanSpeeds, temperatures = libcuckoo.Monitor(uint32(devCount))
+	var total_solutions int64 = 0
 	for dev := 0; dev < devCount; dev++ {
 		var dev_id = cm.deviceIds[dev].deviceId
 		if cm.deviceIds[dev].use_time > 0 && cm.deviceIds[dev].solution_count > 0 {
 			cm.deviceIds[dev].hash_rate = (float32(1000.0*cm.deviceIds[dev].solution_count) / float32(cm.deviceIds[dev].use_time))
-			s = fmt.Sprintf("\033[0;36;40m%sGPU%d hash rate=%.4f", s, dev_id, cm.deviceIds[dev].hash_rate)
-			if dev < devCount-1 {
-				s = fmt.Sprintf("%s, ", s)
-			}
-			cm.is_new_work = false
+			log.Println(fmt.Sprintf("\033[0;%dmGPU%d hash rate=%.4f, find solutions:%d, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, cm.deviceIds[dev].hash_rate, cm.deviceIds[dev].solution_count, fanSpeeds[dev], temperatures[dev]))
+			total_solutions += cm.deviceIds[dev].solution_count
+		} else {
+			log.Println(fmt.Sprintf("\033[0;%dmGPU%d hash rate=Inf, find solutions: 0, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, fanSpeeds[dev], temperatures[dev]))
 		}
 	}
-	if cm.is_new_work == false {
-		//fmt.Printf("\033[0m\n")
-		log.Println(s, "\033[0m")
-	}
-	//	cm.is_new_work = false
+	log.Println(fmt.Sprintf("\033[0;33mfind total solutions : %d, share accpeted : %d\033[0m", total_solutions, cm.share_accepted))
 }
 
 func (cm *Cortex) miningOnce() {
@@ -300,7 +294,7 @@ func (cm *Cortex) miningOnce() {
 
 	cm.getWork()
 
-	iter := 1
+	//	iter := 1
 	go func(currentTask_ *TaskWrapper) {
 		for {
 			msg := cm.read()
@@ -313,6 +307,7 @@ func (cm *Cortex) miningOnce() {
 			reqId, result := msg["id"].(float64)
 			if uint32(reqId) == 73 {
 				if bool(result) {
+					cm.share_accepted += 1
 					log.Println("\033[0;35;40m share accepted!\033[0m")
 				} else {
 					log.Println("\033[0;35;40m share rejected!\033[0m")
@@ -323,14 +318,14 @@ func (cm *Cortex) miningOnce() {
 				if len(workInfo) >= 3 {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
 					log.Println("Get Work: ", taskHeader, taskDifficulty)
-					cm.is_new_work = true
+					//					cm.is_new_work = true
 
-					if iter%2 == 0 {
-						cm.printFanAndTemp()
-						iter = 0
-					}
-					iter += 1
-
+					/*		if iter%2 == 0 {
+								cm.printFanAndTemp()
+								iter = 0
+							}
+							iter += 1
+					*/
 					currentTask_.Lock.Lock()
 					currentTask_.TaskQ.Nonce = taskNonce
 					currentTask_.TaskQ.Header = taskHeader
@@ -440,6 +435,7 @@ func main() {
 		deviceIds:       deviceIds,
 		verboseLevel:    uint(verboseLevel),
 		miner_algorithm: miner_algorithm,
+		share_accepted:  0,
 	}
 
 	cm.Mining()

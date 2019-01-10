@@ -190,7 +190,7 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, uint2 * __restrict__
       u64 edge = buf[e] ^ last;
       u32 node0 = edge & EDGEMASK;
       u32 node1 = (edge >> 32) & EDGEMASK;
-      int row = node0 & XMASK;
+      int row = node0 >> YZBITS;
       int counter = min((int)atomicAdd(counters + row, 1), (int)(FLUSHA2-1)); // assuming ROWS_LIMIT_LOSSES checked
       tmp[row][counter] = make_uint2(node0, node1);
       __syncthreads();

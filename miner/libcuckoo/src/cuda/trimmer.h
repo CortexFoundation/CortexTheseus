@@ -72,7 +72,7 @@ const u32 ROW_EDGES_B = EDGES_B * NY;
 
 // Number of Parts of BufferB, all but one of which will overlap BufferA
 #ifndef NB
-#define NB 1
+#define NB 2
 #endif
 
 #ifndef NA
