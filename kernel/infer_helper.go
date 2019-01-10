@@ -9,7 +9,8 @@ package kernel
 
 #cgo CFLAGS: -I/usr/local/cuda/include/
 #cgo CFLAGS: -DGPU
-#cgo CFLAGS: -Wall -Wno-unused-result -Wno-unknown-pragmas
+
+#cgo CFLAGS: -Wall -Wno-unused-result -Wno-unknown-pragmas -Wno-unused-variable
 
 #include "interface.h"
 */
