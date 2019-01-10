@@ -30,7 +30,7 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	UploadGas             uint64 = 524288
+	UploadGas             uint64 = 42000
 	TxDataZeroGas         uint64 = 4      // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512    // Divisor for the quadratic particle of the memory cost equation.
 	SstoreSetGas          uint64 = 20000  // Once per SLOAD operation.
@@ -46,7 +46,7 @@ const (
 	JumpdestGas      uint64 = 1     // Refunded gas, once per SSTORE operation if the zeroness changes to zero.
 	EpochDuration    uint64 = 30000 // Duration between proof-of-work epochs.
 	CallGas          uint64 = 40    // Once per CALL operation & message call transaction.
-	CreateDataGas    uint64 = 200   //
+	CreateDataGas    uint64 = 20    //200
 	CallCreateDepth  uint64 = 1024  // Maximum depth of call/create stack.
 	ExpGas           uint64 = 10    // Once per EXP instruction
 	LogGas           uint64 = 375   // Per LOG* operation.
@@ -60,7 +60,8 @@ const (
 	MemoryGas        uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 
-	MaxCodeSize = 24576 // Maximum bytecode to permit for a contract
+	MaxCodeSize = 504 * 1024 //24576// Maximum bytecode to permit for a contract
+	MaxRawSize  = 384 * 1024
 
 	// Precompiled contract gas prices
 
@@ -82,10 +83,25 @@ var (
 	DifficultyBoundDivisor = big.NewInt(8)  // The bound divisor of the difficulty, used in the update calculations.
 	GenesisDifficulty      = big.NewInt(16) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(16) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+
+	MeanDifficultyBoundDivisor = big.NewInt(1024)
+
+	HighDifficultyBoundDivisor = big.NewInt(2048) // The bound divisor of the difficulty, used in the update calculations.
+
+	DurationLimit = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+
+	CTXC_TOP = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
 )
 
 const (
-	MatureBlks  = 10
-	ExpiredBlks = 1000000000000000000 //8409600
+	MatureBlks                    = 10                  //For the full node to synchronize the models
+	ExpiredBlks                   = 1000000000000000000 //8409600
+	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024      //How many bytes per upload
+	DEFAULT_UPLOAD_BYTES   uint64 = 384 * 1024          //default upload bytes
+	MODEL_MIN_UPLOAD_BYTES        = 0
+	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
+	MODEL_GAS_LIMIT        uint64 = 65536 //max gas limit for model call
+
+	CONFIRM_TIME        = -3600 * 24 * 7 // * time.Second
+	BLOCK_QUOTA  uint64 = 512 * 1024     //one block includes 512k file quota
 )

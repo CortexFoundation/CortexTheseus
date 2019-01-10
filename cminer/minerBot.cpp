@@ -37,11 +37,6 @@ bool MinerBot::CuckooSolve(char *header, uint32_t header_len, uint64_t nonce, ui
     cs.setHashTarget(target);
     cs.solve();
     vector<cuckoo_sol> ss = cs.getSols();
-    // cout << "size = " << sizeof(ss[0].data) << " PROOFSIZE = " << PROOFSIZE << "\n";
-    // for (uint32_t i = 0;  i < sizeof(ss[0].data); i++) {
-    //     cout << ss[0].data[i] << " ";
-    // }
-    // cout << "\n";
     *result_len = 0;
     if (ss.size() > 0)
     {
@@ -66,12 +61,6 @@ bool MinerBot::CuckooVerify(char *header, uint32_t header_len, uint64_t nonce,
 {
     cs.setHeaderNonce(header, header_len, nonce);
     cs.setHashTarget(target);
-    // printf("MinerBot::CuckooVerify.header:\n");
-    // for (uint32_t i = 0; i < header_len; i++) {
-    //     if (i != 0) printf(",");
-    //     printf("%d", header[i]);
-    // }
-    // printf("\n");
     bool ok = cs.verifySol(result, hash, target);
     return ok;
 }
@@ -131,9 +120,7 @@ int32_t CuckooFindSolutions(uint8_t *header, uint64_t nonce, result_t *result, u
         auto& sol = sols[n];
         for (size_t i = 0; i < sol.size(); i++) {
             result[i + n * (*solLength)] = sol[i];
-    //        printf(" %d", sol[i]);
         }
-    //    printf("\n");
     }
     return 1;
 }

@@ -36,7 +36,10 @@ type ModelMeta struct {
 	Gas           uint64         `json:"Gas"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
 	BlockNum      big.Int        `json:"BlockNum"`
+
+	//RawBytes []byte `json:"RawBytes"`
 }
+
 type InputMeta struct {
 	URI           string         `json:"URI"`
 	Hash          common.Address `json:"Hash"`
@@ -44,6 +47,8 @@ type InputMeta struct {
 	Shape         []uint64       `json:"Shape"`
 	AuthorAddress common.Address `json:"AuthorAddress"`
 	BlockNum      big.Int        `json:"BlockNum"`
+
+	//RawBytes []byte `json:"RawBytes"`
 }
 
 func (mm *ModelMeta) SetBlockNum(num big.Int) error {
@@ -56,6 +61,11 @@ func (mm *ModelMeta) SetGas(gas uint64) error {
 	return nil
 }
 
+/*func (im *InputMeta) SetRawBytes(rawBytes []byte) error {
+	im.RawBytes = rawBytes
+	return nil
+}*/
+
 func (im *InputMeta) SetBlockNum(num big.Int) error {
 	im.BlockNum = num
 	return nil
@@ -65,6 +75,7 @@ func (mm *ModelMeta) EncodeJSON() (string, error) {
 	data, err := json.Marshal(mm)
 	return string(data), err
 }
+
 func (mm *ModelMeta) DecodeJSON(s string) error {
 	err := json.Unmarshal([]byte(s), mm)
 	return err

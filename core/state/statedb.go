@@ -151,6 +151,14 @@ func (self *StateDB) GetLogs(hash common.Hash) []*types.Log {
 	return self.logs[hash]
 }
 
+/*func (self *StateDB) GetCurrentLogs() []*types.Log {
+	return self.logs[self.thash]
+}*/
+
+/*func (self *StateDB) GetTxHash() common.Hash {
+	return self.thash
+}*/
+
 func (self *StateDB) Logs() []*types.Log {
 	var logs []*types.Log
 	for _, lgs := range self.logs {
@@ -371,6 +379,14 @@ func (self *StateDB) AddBalance(addr common.Address, amount *big.Int) {
 	if stateObject != nil {
 		stateObject.AddBalance(amount)
 	}
+}
+
+func (self *StateDB) Upload(addr common.Address) *big.Int {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Upload()
+	}
+	return nil
 }
 
 // SubBalance subtracts amount from the account associated with addr.

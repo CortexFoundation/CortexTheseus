@@ -12,6 +12,8 @@ var (
 
 	ErrInputFileNotExist = errors.New(ErrInputFileNotExistFlag)
 	ErrModelFileNotExist = errors.New(ErrModelFileNotExistFlag)
+
+	ErrFatal = errors.New("fatal")
 )
 
 // If infered by local, check struct error is enough.
@@ -23,5 +25,5 @@ func CheckBuiltInTorrentFsError(err error) bool {
 
 	errStr := err.Error()
 	return errStr == ErrInputFileNotExistFlag ||
-		errStr == ErrModelFileNotExistFlag
+		errStr == ErrModelFileNotExistFlag || errStr == ErrFatal.Error()
 }

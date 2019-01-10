@@ -25,9 +25,10 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	//"time"
+	"time"
 )
 
 var (
@@ -41,6 +42,7 @@ var (
 	errMetaShapeNotMatch     = errors.New("evm: model&input shape not matched")
 	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
+	errAiRuntime             = errors.New("ai runtime error")
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -680,6 +682,10 @@ func opGas(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 	return nil, nil
 }
 
+var (
+	confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
+)
+
 func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	_modelAddr, _inputAddr := stack.pop(), stack.pop()
 	modelAddr := common.BigToAddress(_modelAddr)
@@ -723,18 +729,54 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		return nil, errMetaShapeNotMatch
 	}
 	for idx, modelShape := range modelMeta.InputShape {
-		if modelShape != inputMeta.Shape[idx] {
+		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0 {
 			return nil, errMetaShapeNotMatch
 		}
 	}
+
+	/*if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(confirmTime).Unix())) <= 0 {
+		logs := interpreter.evm.StateDB.GetCurrentLogs()
+		if logs != nil && len(logs) > 0 {
+			for _, log := range logs {
+				topics := log.Topics
+				//todo
+				if topics != nil && len(topics) == 4 && topics[0].Big().Cmp(modelMeta.Hash.Big()) == 0 && topics[1].Big().Cmp(inputMeta.Hash.Big()) == 0 {
+					if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
+						//consensus
+						interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+						interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+						ret := topics[2].Big().Uint64()
+						stack.push(interpreter.intPool.get().SetUint64(ret))
+					} else {
+						stack.push(interpreter.intPool.getZero())
+						return nil, errAiRuntime
+					}
+					return nil, nil
+				} else {
+				}
+			}
+		} else {
+		}
+	} else {
+	}*/
 
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
 
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
+		if !synapse.CheckBuiltInTorrentFsError(err) {
+			//consensus
+			//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
+		}
 		return nil, err
 	}
+	//consensus
+	interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+
 	stack.push(interpreter.intPool.get().SetUint64(output))
+	//consensus
+	//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
 
 	return nil, nil
 }
@@ -763,7 +805,7 @@ func checkModel(interpreter *EVMInterpreter, stack *Stack, modelAddr common.Addr
 		return nil, errMetaInfoExpired
 	}
 
-	if modelMeta.Gas > MODEL_GAS_LIMIT {
+	if modelMeta.Gas > params.MODEL_GAS_LIMIT {
 		//return nil, errExecutionReverted
 		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
 	}
@@ -1104,6 +1146,29 @@ func makeLog(size int) executionFunc {
 		return nil, nil
 	}
 }
+
+/*func makeAiLog(model common.Hash, input common.Hash, ai uint64, err error, interpreter *EVMInterpreter, contract *Contract) ([]byte, error) {
+	topics := make([]common.Hash, 4)
+	topics[0] = model
+	topics[1] = input
+	topics[2] = common.BigToHash(big.NewInt(0).SetUint64(ai))
+
+	if err != nil && ai == 0{
+		topics[3] = common.BigToHash(big.NewInt(1))
+	} else {
+		topics[3] = common.BigToHash(big.NewInt(0))
+	}
+	interpreter.evm.StateDB.AddLog(&types.Log{
+		Address: contract.Address(),
+		Topics:  topics,
+		//Data:    nil,
+		// This is a non-consensus field, but assigned here because
+		// core/state doesn't know the current block number.
+		BlockNumber: interpreter.evm.BlockNumber.Uint64(),
+		Removed: false,
+	})
+	return nil, nil
+}*/
 
 // make push instruction function
 func makePush(size uint64, pushByteSize int) executionFunc {

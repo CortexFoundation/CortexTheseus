@@ -20,7 +20,8 @@ type Config struct {
 var DefaultConfig = Config{
 	Host:            "localhost",
 	Port:            8085,
-	DefaultTrackers: "http://47.52.39.170:5008/announce",
+	DefaultTrackers: "http://torrent.cortexlabs.ai:5008/announce",
+	//DefaultTrackers: "http://47.52.39.170:5008/announce",
 	SyncMode:        "full",
 	TestMode:        false,
 }

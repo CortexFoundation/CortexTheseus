@@ -36,7 +36,7 @@ cuckoo:
 	g++ -g -mavx2 -std=c++11 -c -fPIC $< -o $@
 
 main: cuckoo/CuckooSolver.o minerBot.o main.cpp
-	g++ --std=c++11 -o main -g  $^ -pthread -L./cuckoo -lblake2b
+	g++ --std=c++11 -o main -g $^ -pthread -L./cuckoo -lblake2b
 
 main-verify: cuckoo/siphash.o cuckoo/cuckoo.o gominer.o main.cpp 
 	g++ --std=c++11 -DVERIFY_ONLY -o main-verify -g $^ -pthread -L./cuckoo -lblake2b 

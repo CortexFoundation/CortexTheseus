@@ -42,10 +42,10 @@ import (
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward    *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward   *big.Int = big.NewInt(9e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	FrontierBlockReward    *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward   *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block upward from Byzantium
 	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
-	allowedFutureBlockTime          = 15 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
+	allowedFutureBlockTime          = 13 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
 
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
 	// It returns the difficulty that a new block should have when created at time given the
@@ -378,6 +378,15 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	if x.Cmp(bigMinus99) < 0 {
 		x.Set(bigMinus99)
 	}
+
+	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
+                y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
+        } else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
+                y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
+        } else {
+                y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+        }
+
 	// parent_diff + (parent_diff / 2048 * max((2 if len(parent.uncles) else 1) - ((timestamp - parent.timestamp) // 9), -99))
 	y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
 	x.Mul(y, x)
@@ -405,6 +414,8 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	//	y.Exp(big2, y, nil)
 	//	x.Add(x, y)
 	//}
+	//diff todo 4096 times
+	//x.Mul(x, big4096)
 	return x
 }
 
@@ -498,7 +509,13 @@ func calcDifficultyHomestead(time uint64, parent *types.Header) *big.Int {
 		x.Set(bigMinus99)
 	}
 	// (parent_diff + parent_diff // 2048 * max(1 - (block_timestamp - parent_timestamp) // 10, -99))
-	y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
+		y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
+	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
+		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
+	} else {
+		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+	}
 	x.Mul(y, x)
 	x.Add(parent.Difficulty, x)
 
@@ -598,6 +615,8 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 		return consensus.ErrUnknownAncestor
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
+	//header.Quota = parent.Quota + params.BLOCK_QUOTA
+	//header.QuotaUsed = parent.QuotaUsed
 	return nil
 }
 
@@ -644,6 +663,7 @@ var (
 	big32  = big.NewInt(32)
 	big64  = big.NewInt(64)
 	big128 = big.NewInt(128)
+	big4096 = big.NewInt(4096)
 )
 
 // AccumulateRewards credits the coinbase of the given block with the mining
@@ -658,25 +678,42 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 
 	if header.Number.Cmp(params.CortexBlockRewardPeriod) > 0 {
 		blockReward = new(big.Int).Div(blockReward, big0.Exp(big2, new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod), nil))
+		//todo ceiling handed by consensus
 	}
+
 	/*if config.IsConstantinople(header.Number) {
 		blockReward = ConstantinopleBlockReward
 	}*/
-	// Accumulate the rewards for the miner and any included uncles
-	reward := new(big.Int).Set(blockReward)
-	r := new(big.Int)
-	for _, uncle := range uncles {
-		r.Add(uncle.Number, big8)
-		r.Sub(r, header.Number)
-		r.Mul(r, blockReward)
-		r.Div(r, big8)
-		state.AddBalance(uncle.Coinbase, r)
-
-		r.Div(blockReward, big32)
-		reward.Add(reward, r)
+	header.Supply.Add(header.Supply, blockReward)
+	if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+		blockReward = big0
+		header.Supply = params.CTXC_TOP
 	}
+	// Accumulate the rewards for the miner and any included uncles
+	if blockReward.Cmp(big0) > 0 {
+		reward := new(big.Int).Set(blockReward)
+		r := new(big.Int)
+		for _, uncle := range uncles {
+			r.Add(uncle.Number, big8)
+			r.Sub(r, header.Number)
+			r.Mul(r, blockReward)
+			r.Div(r, big8)
 
-	state.AddBalance(header.Coinbase, reward)
+			header.Supply.Add(header.Supply, r)
+			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+				r = big0
+				header.Supply = params.CTXC_TOP
+			}
+			state.AddBalance(uncle.Coinbase, r)
+			//todo
+			/*r.Div(blockReward, big8)
+			state.AddBalance(uncle.Coinbase, r)
+			r.Div(blockReward, big32)
+			reward.Add(reward, r)*/
+		}
+
+		state.AddBalance(header.Coinbase, reward)
+	}
 }
 
 func Sha3Solution(sol *types.BlockSolution) []byte {
