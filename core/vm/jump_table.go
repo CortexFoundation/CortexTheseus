@@ -937,14 +937,15 @@ func newFrontierInstructionSet() [256]operation {
 			writes:        true,
 			returns:       true,
 		},
-		NNFORWARD: {
-			execute:       opNNForward,
-			gasCost:       gasInferArray,
-			validateStack: makeStackFunc(3, 1),
-			valid:         true,
-			writes:        true,
-			returns:       true,
-		},
+		/*
+			NNFORWARD: {
+				execute:       opNNForward,
+				gasCost:       gasInferArray,
+				validateStack: makeStackFunc(3, 1),
+				valid:         true,
+				writes:        true,
+				returns:       true,
+			}, */
 		CREATE: {
 			execute:       opCreate,
 			gasCost:       gasCreate,

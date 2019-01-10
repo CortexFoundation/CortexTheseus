@@ -209,7 +209,7 @@ const (
 const (
 	INFER      OpCode = 0xc0
 	INFERARRAY        = 0xc1
-	NNFORWARD         = 0xc2
+	// NNFORWARD         = 0xc2
 )
 
 // 0xf0 range - closures.
@@ -379,7 +379,7 @@ var opCodeToString = map[OpCode]string{
 	// 0x0c range
 	INFER:      "INFER",
 	INFERARRAY: "INFERARRAY",
-	NNFORWARD:  "NNFORWARD",
+	// NNFORWARD:  "NNFORWARD",
 
 	// 0xf0 range
 	CREATE:       "CREATE",
@@ -541,14 +541,14 @@ var stringToOp = map[string]OpCode{
 	"LOG4":           LOG4,
 	"INFER":          INFER,
 	"INFERARRAY":     INFERARRAY,
-	"NNFORWARD":      NNFORWARD,
-	"CREATE":         CREATE,
-	"CREATE2":        CREATE2,
-	"CALL":           CALL,
-	"RETURN":         RETURN,
-	"CALLCODE":       CALLCODE,
-	"REVERT":         REVERT,
-	"SELFDESTRUCT":   SELFDESTRUCT,
+	// "NNFORWARD":      NNFORWARD,
+	"CREATE":       CREATE,
+	"CREATE2":      CREATE2,
+	"CALL":         CALL,
+	"RETURN":       RETURN,
+	"CALLCODE":     CALLCODE,
+	"REVERT":       REVERT,
+	"SELFDESTRUCT": SELFDESTRUCT,
 }
 
 // StringToOp finds the opcode whose name is stored in `str`.
