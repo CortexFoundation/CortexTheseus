@@ -10,7 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	//	"os"
+	"os"
 	"time"
 
 	"github.com/PoolMiner/common"
@@ -18,6 +18,7 @@ import (
 	"github.com/PoolMiner/miner/libcuckoo"
 	"github.com/PoolMiner/verify"
 
+	"github.com/Unknwon/goconfig"
 	"strconv"
 	"strings"
 	"sync"
@@ -201,7 +202,7 @@ func (cm *Cortex) printFanAndTemp() {
 
 func (cm *Cortex) printHashRate() {
 	if cm.is_new_work == false {
-		return
+		//		return
 	}
 	var devCount = len(cm.deviceIds)
 	var s string = ""
@@ -368,14 +369,40 @@ func (cm *Cortex) miningOnce() {
 }
 
 func init() {
-	flag.BoolVar(&help, "help", false, "show help")
-	flag.StringVar(&remote, "pool_uri", "miner-cn.cortexlabs.ai:8009", "mining pool address")
-	flag.StringVar(&account, "account", "0xc3d7a1ef810983847510542edfd5bc5551a6321c", "miner accounts")
-	flag.StringVar(&strDeviceId, "deviceids", "0", "which GPU device use for mining")
-	flag.IntVar(&verboseLevel, "verbosity", 0, "verbosity level")
+	/*
+		flag.BoolVar(&help, "help", false, "show help")
+		flag.StringVar(&remote, "pool_uri", "miner-cn.cortexlabs.ai:8009", "mining pool address")
+		flag.StringVar(&account, "account", "0xc3d7a1ef810983847510542edfd5bc5551a6321c", "miner accounts")
+		flag.StringVar(&strDeviceId, "deviceids", "0", "which GPU device use for mining")
+		flag.IntVar(&verboseLevel, "verbosity", 0, "verbosity level")
+	*/
+
+	cfg, err := goconfig.LoadConfigFile("miner.ini")
+	if err != nil {
+		log.Fatalf("can not load miner.ini", err)
+	}
+
+	remote, err = cfg.GetValue("server", "addr")
+	checkError(err, "init()")
+	account, err = cfg.GetValue("mining", "account")
+	checkError(err, "init()")
+	strDeviceId, err = cfg.GetValue("mining", "devices")
+	checkError(err, "init()")
+	verboseLevel, err = cfg.Int("mining", "verboselevel")
+	checkError(err, "init()")
+	algorithm, err = cfg.GetValue("mining", "algorithm")
+	checkError(err, "init()")
+	if algorithm == "cuckoo" {
+		miner_algorithm = 0
+	} else if algorithm == "cuckaroo" {
+		miner_algorithm = 1
+	} else {
+		log.Fatalf("no support algorithm: ", algorithm)
+		os.Exit(1)
+	}
 
 	fmt.Printf("**************************************************************\n")
-	fmt.Printf("*\t\tCortex GPU Miner\t\t\t*\n")
+	fmt.Printf("**\t\tCortex GPU Miner\t\t\t**\n")
 	fmt.Printf("**************************************************************\n")
 }
 
@@ -383,6 +410,8 @@ var help bool
 var remote, account string
 var strDeviceId string
 var verboseLevel int
+var algorithm string
+var miner_algorithm int
 
 func main() {
 	flag.Parse()
@@ -398,7 +427,7 @@ func main() {
 		}
 		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), 0, 0, 0})
 	}
-
+	fmt.Println(deviceNum)
 	if help {
 		fmt.Println("Usage:\ngo run miner.go -r remote -a account -c gpu\nexample:go run miner.go -r localhost:8009 -a 0xc3d7a1ef810983847510542edfd5bc5551a6321c")
 	} else {
@@ -410,7 +439,7 @@ func main() {
 		server:          remote,
 		deviceIds:       deviceIds,
 		verboseLevel:    uint(verboseLevel),
-		miner_algorithm: 0,
+		miner_algorithm: miner_algorithm,
 	}
 
 	cm.Mining()

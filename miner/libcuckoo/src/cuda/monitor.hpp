@@ -15,7 +15,7 @@ int monitor_init(unsigned int deviceCount){
 	
 	unsigned int device_count = 0;
 	result = nvmlDeviceGetCount(&device_count);
-	if(device_count > deviceCount){
+	if(device_count < deviceCount){
 		printf("there is no much device\n");
 		return -1;
 	}

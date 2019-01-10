@@ -97,9 +97,9 @@ struct cuckoo_solver_ctx : public solver_ctx{
     assert(ni == PROOFSIZE);
     sols.resize(sols.size() + PROOFSIZE);
     cudaMemcpyToSymbol(recoveredges, soledges, sizeof(soledges));
-    cudaMemset(trimmer->indexesE2, 0, trimmer->indexesSize);
-	Cuckoo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, trimmer->bufferA, (int *)trimmer->indexesE2);
-    cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE2, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
+    cudaMemset(trimmer->indexesE[0], 0, trimmer->indexesSize);
+	Cuckoo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, (ulonglong4*)trimmer->bufferA, (int *)trimmer->indexesE[0]);
+    cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE[0], PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
     checkCudaErrors(cudaDeviceSynchronize());
 /*	fprintf(stderr, "Index: %zu points: [", sols.size() / PROOFSIZE);
 	for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {

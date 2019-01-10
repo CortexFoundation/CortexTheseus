@@ -60,9 +60,9 @@ struct cuckaroo_solver_ctx : public solver_ctx{
       // print_log("\n");
       sols.resize(sols.size() + PROOFSIZE);
       cudaMemcpyToSymbol(recoveredges, soledges, sizeof(soledges));
-      cudaMemset(trimmer->indexesE2, 0, trimmer->indexesSize);
-      Cuckaroo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, trimmer->bufferA, (int *)trimmer->indexesE2);
-      cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE2, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
+      cudaMemset(trimmer->indexesE[0], 0, trimmer->indexesSize);
+      Cuckaroo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, (ulonglong4*)trimmer->bufferA, (int *)trimmer->indexesE[0]);
+      cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE[0], PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
       checkCudaErrors(cudaDeviceSynchronize());
       qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), cg->nonce_cmp);
     }
