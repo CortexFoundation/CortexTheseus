@@ -502,17 +502,13 @@ void saveFile(uint2*v, int n, char *filename){
 #endif
 		
 		cudaMemset(indexesE[0], 0, indexesSize);
-//        const u32 halfA = sizeA/2 / sizeof(ulonglong4);
-//        const u32 halfE = NX2 / 2;
 		size_t qA = sizeA / NA;
 		size_t qE = NX2 / NA;
 		for(u32 i = 0; i < NA; i++){
 			if(selected != 0 || tp.expand == 0){
 				SeedB<EDGES_A, uint2><<<tp.genB.blocks/NA, tp.genB.tpb>>>(*dipkeys, (const uint2 *)(bufferAB + i*qA), (uint2*)(bufferA + i*qA), indexesE[1] + i*qE, indexesE[0] + i*qE);
-//				SeedB<EDGES_A, uint2><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const uint2 *)(bufferAB + halfA), (uint2*)(bufferA+halfA), (const int *)(indexesE[1]+halfE), indexesE[0]+halfE);
 			}else{
 				SeedB<EDGES_A, u32><<<tp.genB.blocks/NA, tp.genB.tpb>>>(*dipkeys, (const u32 *)(bufferAB + i*qA), (u32*)(bufferA + i*qA), indexesE[1] + i*qE, indexesE[0] + i*qE);
-//				SeedB<EDGES_A, u32><<<tp.genB.blocks/2, tp.genB.tpb>>>(*dipkeys, (const u32 *)(bufferAB+halfA), (u32*)(bufferA+halfA), (const int *)(indexesE[1]+halfE), indexesE[0]+halfE);	
 			}
 		}
 

@@ -38,6 +38,7 @@ type DeviceId struct {
 	use_time       int64
 	solution_count int64
 	hash_rate      float32
+	gps            int64
 }
 
 type Cortex struct {
@@ -209,10 +210,11 @@ func (cm *Cortex) printHashRate() {
 		var dev_id = cm.deviceIds[dev].deviceId
 		if cm.deviceIds[dev].use_time > 0 && cm.deviceIds[dev].solution_count > 0 {
 			cm.deviceIds[dev].hash_rate = (float32(1000.0*cm.deviceIds[dev].solution_count) / float32(cm.deviceIds[dev].use_time))
-			log.Println(fmt.Sprintf("\033[0;%dmGPU%d hash rate=%.4f, find solutions:%d, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, cm.deviceIds[dev].hash_rate, cm.deviceIds[dev].solution_count, fanSpeeds[dev], temperatures[dev]))
+			gps := (float32(1000.0*cm.deviceIds[dev].gps) / float32(cm.deviceIds[dev].use_time))
+			log.Println(fmt.Sprintf("\033[0;%dmGPU%d GPS=%.4f, hash rate=%.4f, find solutions:%d, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, gps, cm.deviceIds[dev].hash_rate, cm.deviceIds[dev].solution_count, fanSpeeds[dev], temperatures[dev]))
 			total_solutions += cm.deviceIds[dev].solution_count
 		} else {
-			log.Println(fmt.Sprintf("\033[0;%dmGPU%d hash rate=Inf, find solutions: 0, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, fanSpeeds[dev], temperatures[dev]))
+			log.Println(fmt.Sprintf("\033[0;%dmGPU%d GPS=Inf, hash rate=Inf, find solutions: 0, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, fanSpeeds[dev], temperatures[dev]))
 		}
 	}
 	log.Println(fmt.Sprintf("\033[0;33mfind total solutions : %d, share accpeted : %d\033[0m", total_solutions, cm.share_accepted))
@@ -286,6 +288,7 @@ func (cm *Cortex) miningOnce() {
 				end_time := time.Now().UnixNano() / 1e6
 				cm.deviceIds[tidx].use_time += (end_time - start_time)
 				cm.deviceIds[tidx].solution_count += int64(len(sols))
+				cm.deviceIds[tidx].gps += 1
 				start_time = end_time
 				cm.printHashRate()
 			}
@@ -420,7 +423,7 @@ func main() {
 			fmt.Println("parse deviceIds error ", error)
 			return
 		}
-		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), 0, 0, 0})
+		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), 0, 0, 0, 0})
 	}
 	fmt.Println(deviceNum)
 	if help {

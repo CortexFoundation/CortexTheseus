@@ -76,13 +76,13 @@ namespace cuckoogpu
 				checkOpenclErrors (clResult);
 
 				int initV = 0;
-				clResult = clEnqueueFillBuffer (trimmer->commandQueue, trimmer->indexesE2, &initV, sizeof (int), 0, trimmer->indexesSize, 0, NULL, NULL);
+				clResult = clEnqueueFillBuffer (trimmer->commandQueue, trimmer->indexesE, &initV, sizeof (int), 0, trimmer->indexesSize, 0, NULL, NULL);
 				checkOpenclErrors (clResult);
 
 				clFinish (trimmer->commandQueue);
 				cl_kernel recovery_kernel = clCreateKernel (trimmer->program, "Cuckaroo_Recovery", &clResult);
 				clResult |= clSetKernelArg (recovery_kernel, 0, sizeof (cl_mem), (void *) &trimmer->dipkeys);
-				clResult |= clSetKernelArg (recovery_kernel, 1, sizeof (cl_mem), (void *) &trimmer->indexesE2);
+				clResult |= clSetKernelArg (recovery_kernel, 1, sizeof (cl_mem), (void *) &trimmer->indexesE);
 				clResult |= clSetKernelArg (recovery_kernel, 2, sizeof (cl_mem), (void *) &trimmer->recoveredges);
 				checkOpenclErrors (clResult);
 
@@ -92,7 +92,7 @@ namespace cuckoogpu
 				local_work_size[0] = trimmer->tp.recover.tpb;
 				clEnqueueNDRangeKernel (trimmer->commandQueue, recovery_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 				clFinish (trimmer->commandQueue);
-				clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->indexesE2, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
+				clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->indexesE, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
 				checkOpenclErrors (clResult);
 				qsort (&sols[sols.size () - PROOFSIZE], PROOFSIZE, sizeof (u32), cg->nonce_cmp);
 			}

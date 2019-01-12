@@ -7,6 +7,22 @@ namespace cuckoogpu {
 #define DUCK_B_EDGES (EDGES_B)
 #define DUCK_B_EDGES_NX (DUCK_B_EDGES * NX)
 
+
+int com(const void *a, const void *b){
+	cl_uint2 va = *(cl_uint2*)a;
+	cl_uint2 vb = *(cl_uint2*)b;
+	if(va.x == vb.y) return va.y - vb.y;
+	else return va.x - vb.x;
+}
+
+void saveFile(cl_uint2*v, int n, char *filename){
+	qsort(v, n, sizeof(cl_uint2), com);
+	FILE *fp = fopen(filename, "w");
+	for(int i = 0; i < n; i++){
+		fprintf(fp, "%d,%d\n", v[i].x, v[i].y);
+	}
+	fclose(fp);
+}
     edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 			     cl_command_queue commandQueue,
 			     cl_program program, int _selected) {
@@ -23,15 +39,11 @@ namespace cuckoogpu {
 			   sizeof (siphash_keys), NULL, &clResult);
 	checkOpenclErrors(clResult);
 
-	indexesE =
-	    clCreateBuffer(context, CL_MEM_READ_WRITE, indexesSize, NULL,
-			   &clResult);
+	indexesE = clCreateBuffer(context, CL_MEM_READ_WRITE, indexesSize * (1+NB), NULL, &clResult);
 	checkOpenclErrors(clResult);
 
-	indexesE2 =
-	    clCreateBuffer(context, CL_MEM_READ_WRITE, indexesSize, NULL,
-			   &clResult);
-	checkOpenclErrors(clResult);
+//	indexesE2 = clCreateBuffer(context, CL_MEM_READ_WRITE, indexesSize, NULL, &clResult);
+//	checkOpenclErrors(clResult);
 
 	recoveredges =
 	    clCreateBuffer(context, CL_MEM_READ_ONLY,
@@ -41,7 +53,7 @@ namespace cuckoogpu {
 	sizeA = ROW_EDGES_A * NX * (selected == 0 && tp.expand > 0 ? sizeof(uint) : sizeof (cl_uint2));
 	sizeB = ROW_EDGES_B * NX * (selected == 0 && tp.expand > 1 ? sizeof(uint) : sizeof (cl_uint2));
 
-	const size_t bufferSize = sizeA + sizeB;
+	const size_t bufferSize = sizeA + sizeB / NB;
 //	fprintf(stderr, "bufferSize: %lu\n", bufferSize);
 	bufferA =
 	    clCreateBuffer(context, CL_MEM_READ_WRITE, bufferSize, NULL, &clResult);
@@ -65,7 +77,7 @@ namespace cuckoogpu {
 		//clReleaseMemObject(bufferB);
 		//clReleaseMemObject(bufferAB);
 		clReleaseMemObject(recoveredges);
-		clReleaseMemObject(indexesE2);
+		//clReleaseMemObject(indexesE2);
 		clReleaseMemObject(indexesE);
 		clReleaseMemObject(dipkeys);
 		releaseCommandQueue(commandQueue);
@@ -74,27 +86,18 @@ namespace cuckoogpu {
     }
 
     u32 edgetrimmer::trim(uint32_t device) {
-	int initV = 0;
+	const int initV = 0;
+	const int ZERO = 0;
+	const int ONE = 1;
 
-	//clFinish(commandQueue);
-	
 	size_t tmpSize = indexesSize;
 
 	cl_int clResult;
-	clResult =
-	    clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0,
-				tmpSize, 0, NULL, NULL);
+	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0, tmpSize*(1+NB), 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 
-	clResult =
-	    clEnqueueFillBuffer(commandQueue, indexesE2, &initV, sizeof (int),
-				0, tmpSize, 0, NULL, NULL);
-	checkOpenclErrors(clResult);
-
-	clResult =
-	    clEnqueueWriteBuffer(commandQueue, dipkeys, CL_TRUE, 0,
-				 sizeof (siphash_keys), &sipkeys, 0, NULL,
-				 NULL);
+	clResult = clEnqueueWriteBuffer(commandQueue, dipkeys, CL_TRUE, 0,
+				 sizeof (siphash_keys), &sipkeys, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 
 	clFinish(commandQueue);
@@ -108,161 +111,138 @@ namespace cuckoogpu {
 	cl_kernel seedA_kernel = NULL;
     if(selected == 0) seedA_kernel = clCreateKernel(program, "Cuckoo_SeedA", &clResult);
 	else seedA_kernel = clCreateKernel(program, "Cuckaroo_SeedA", &clResult);
-checkOpenclErrors(clResult);
-	clResult |=
-	    clSetKernelArg(seedA_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
-	clResult |=
-	    clSetKernelArg(seedA_kernel, 1, sizeof (cl_mem),
-			   (void *) &bufferAB);
-	clResult |=
-	    clSetKernelArg(seedA_kernel, 2, sizeof (cl_mem),
-			   (void *) &indexesE);
+
+	uint srcIdx_offset = indexesSize/sizeof(u32);
+	uint bufAB_offset = sizeB/NB;
+	checkOpenclErrors(clResult);
+	clResult |= clSetKernelArg(seedA_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
+	clResult |= clSetKernelArg(seedA_kernel, 1, sizeof (cl_mem),(void *) &bufferAB);
+	clResult |= clSetKernelArg(seedA_kernel, 2, sizeof (cl_mem), (void *) &indexesE);
 	clResult |= clSetKernelArg(seedA_kernel, 3, sizeof (int), &edges_a);
-	clResult |= clSetKernelArg(seedA_kernel, 4, sizeof(u32), &sizeB); 
-	clResult |=
-	    clEnqueueNDRangeKernel(commandQueue, seedA_kernel, 1, NULL,
-				   global_work_size, local_work_size, 0, NULL,
-				   &event);
+	clResult |= clSetKernelArg(seedA_kernel, 4, sizeof(u32), &bufAB_offset);
+	clResult |= clSetKernelArg(seedA_kernel, 5, sizeof(u32), &srcIdx_offset);
+	clResult |= clEnqueueNDRangeKernel(commandQueue, seedA_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
+	
 	checkOpenclErrors(clResult);
 	clFinish(commandQueue);
+
 
 	u32 halfA0 = 0;
 	u32 halfE0 = 0;
-	u32 halfA = sizeA / 2;	///sizeof(cl_ulong4);
-	u32 halfE = NX2 / 2;
+	
+	size_t qA = sizeA / NA;
+	size_t qE = NX2 / NA;
 
-	global_work_size[0] = tp.genB.blocks / 2 * tp.genB.tpb;
-	local_work_size[0] = tp.genB.tpb;
 	cl_kernel seedB_kernel = clCreateKernel(program, "SeedB", &clResult);
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 1, sizeof (cl_mem),
-			   (void *) &bufferAB);
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 2, sizeof (cl_mem), (void *) &bufferA);
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 3, sizeof (cl_mem),
-			   (void *) &indexesE);
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 4, sizeof (cl_mem),
-			   (void *) &indexesE2);
-	clResult |= clSetKernelArg(seedB_kernel, 5, sizeof (int), &edges_a);
-	clResult |= clSetKernelArg(seedB_kernel, 6, sizeof (u32), &halfA0);
-	clResult |= clSetKernelArg(seedB_kernel, 7, sizeof (u32), &halfE0);
-	clResult |= clSetKernelArg(seedB_kernel, 8, sizeof(u32), &sizeB);
-	checkOpenclErrors(clResult);
 
-	clResult =
-	    clEnqueueNDRangeKernel(commandQueue, seedB_kernel, 1, NULL,
-				   global_work_size, local_work_size, 0, NULL,
-				   &event);
-	clFinish(commandQueue);
+	global_work_size[0] = tp.genB.blocks / NA * tp.genB.tpb;
+	local_work_size[0] = tp.genB.tpb;
 
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 1, sizeof (cl_mem),
-			   (void *) (&bufferAB));
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 2, sizeof (cl_mem),
-			   (void *) (&bufferA));
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 3, sizeof (cl_mem),
-			   (void *) (&indexesE));
-	clResult |=
-	    clSetKernelArg(seedB_kernel, 4, sizeof (cl_mem),
-			   (void *) (&indexesE2));
-	clResult |= clSetKernelArg(seedB_kernel, 5, sizeof (int), &edges_a);
-	clResult |= clSetKernelArg(seedB_kernel, 6, sizeof (u32), &halfA);
-	clResult |= clSetKernelArg(seedB_kernel, 7, sizeof (u32), &halfE);
-	clResult |= clSetKernelArg(seedB_kernel, 8, sizeof(u32), &sizeB);
-	clResult |=
-	    clEnqueueNDRangeKernel(commandQueue, seedB_kernel, 1, NULL,
-				   global_work_size, local_work_size, 0, NULL,
-				   &event);
-	checkOpenclErrors(clResult);
+	for(u32 i = 0; i < NA; i++){
+		uint idx0_offset = i*qE + indexesSize / sizeof(u32);
+		uint idx1_offset = i*qE;
+		halfA0 = i * qA;
+		clResult |= clSetKernelArg(seedB_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
+		clResult |= clSetKernelArg(seedB_kernel, 1, sizeof (cl_mem), (void *) &bufferAB);
+		clResult |= clSetKernelArg(seedB_kernel, 2, sizeof (cl_mem), (void *) &bufferA);
+		clResult |= clSetKernelArg(seedB_kernel, 3, sizeof (cl_mem), (void *) &indexesE);
+		clResult |= clSetKernelArg(seedB_kernel, 4, sizeof (cl_mem), (void *) &indexesE);
+		clResult |= clSetKernelArg(seedB_kernel, 5, sizeof (int), &edges_a);
+		clResult |= clSetKernelArg(seedB_kernel, 6, sizeof (u32), &halfA0);
+		clResult |= clSetKernelArg(seedB_kernel, 7, sizeof (u32), &halfE0);
+		clResult |= clSetKernelArg(seedB_kernel, 8, sizeof(u32), &bufAB_offset);
+		clResult |= clSetKernelArg(seedB_kernel, 9, sizeof(u32), &idx0_offset);
+		clResult |= clSetKernelArg(seedB_kernel, 10, sizeof(u32), &idx1_offset);
+		checkOpenclErrors(clResult);
+
+		clResult = clEnqueueNDRangeKernel(commandQueue, seedB_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
+		checkOpenclErrors(clResult);
+	}
 
 	clFinish(commandQueue);
 
-	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0,
-			    tmpSize, 0, NULL, NULL);
+	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), indexesSize, tmpSize*(NB), 0, NULL, NULL);
 	checkOpenclErrors(clResult);
+
+	qA = sizeA/ NB;
+	const size_t qB = sizeB/NB;
+	qE = NX2 / NB;
 
 	cl_kernel round_kernel;
 	cl_kernel round_uint2_uint2_kernel = clCreateKernel(program, "Round", &clResult);
 	cl_kernel round_uint_uint2_kernel = clCreateKernel(program, "Round_uint_uint2", &clResult);
 	cl_kernel round_uint_uint_kernel = clCreateKernel(program, "Round_uint_uint", &clResult);
 
-	global_work_size[0] = tp.trim.blocks * tp.trim.tpb;
+	global_work_size[0] = tp.trim.blocks/NB * tp.trim.tpb;
 	local_work_size[0] = tp.trim.tpb;
 	int constRound = 0;
 	edges_a = EDGES_A;
-	int edges_b = EDGES_B;
-	if(selected != 0 || tp.expand == 0) round_kernel = round_uint2_uint2_kernel;
-	else if(tp.expand == 1) round_kernel = round_uint_uint2_kernel;
-	else round_kernel = round_uint_uint_kernel;
-	clResult |= clSetKernelArg(round_kernel, 0, sizeof (int), &constRound);
-	clResult |=
-	    clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
-	clResult |=
-	    clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferA);
-	clResult |=
-	    clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferB);
-	clResult |=
-	    clSetKernelArg(round_kernel, 4, sizeof (cl_mem),
-			   (void *) &indexesE2);
-	clResult |=
-	    clSetKernelArg(round_kernel, 5, sizeof (cl_mem),
-			   (void *) &indexesE);
-	clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
-	clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
-	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &initV);	
-	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &sizeA);
-	clResult |=
-	    clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
-				   global_work_size, local_work_size, 0, NULL,
-				   &event);
-	checkOpenclErrors(clResult);
-//	clFinish(commandQueue);
+	int edges_b = EDGES_B / NB;
 
-	clResult = clEnqueueFillBuffer(commandQueue, indexesE2, &initV, sizeof (int), 0,
-			    tmpSize, 0, NULL, NULL);
+	const size_t bufferSize = sizeA + sizeB / NB;
+	uint bufB_offset = bufferSize - sizeB;
+	for(u32 i = NB; i--; ){
+		uint idx0_offset = (1+i) * indexesSize / sizeof(u32);
+		uint idx1_offset = i*qE;
+		uint buff_offset = i*qA;
+		uint tmp_buffB_offset = bufB_offset + i*qB;
+		if(selected != 0 || tp.expand == 0) round_kernel = round_uint2_uint2_kernel;
+		else if(tp.expand == 1) round_kernel = round_uint_uint2_kernel;
+		else round_kernel = round_uint_uint_kernel;
+		clResult |= clSetKernelArg(round_kernel, 0, sizeof (int), &constRound);
+		clResult |= clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
+		clResult |= clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferA);
+		clResult |= clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferB);
+		clResult |= clSetKernelArg(round_kernel, 4, sizeof (cl_mem), (void *) &indexesE);
+		clResult |= clSetKernelArg(round_kernel, 5, sizeof (cl_mem), (void *) &indexesE);
+		clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
+		clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
+		clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &buff_offset);	
+		clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &tmp_buffB_offset);
+		clResult |= clSetKernelArg(round_kernel, 10, sizeof(u32), &idx1_offset);
+		clResult |= clSetKernelArg(round_kernel, 11, sizeof(u32), &idx0_offset);
+		clResult |= clSetKernelArg(round_kernel, 12, sizeof(u32), &ONE);
+		clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
+		checkOpenclErrors(clResult);
+	//	clFinish(commandQueue);
+	}
+
+//	clResult = clEnqueueReadBuffer(commandQueue, indexesE, CL_TRUE, indexesSize, sizeof (u32), &nedges, 0, NULL, NULL);
+//	printf("round 1 result : %d\n", nedges);
+
+	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0, tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 //	clFinish(commandQueue);
 
 	constRound = 1;
-	edges_a = EDGES_B;
+	uint idx_offset = indexesSize / sizeof(u32);
+	uint nb = NB;
+	global_work_size[0] = tp.trim.blocks * tp.trim.tpb;
+	local_work_size[0] = tp.trim.tpb;
+	edges_a = EDGES_B / NB;
 	edges_b = EDGES_B / 2;
 	if(selected != 0 || tp.expand < 2) round_kernel = round_uint2_uint2_kernel;
 	else round_kernel = round_uint_uint2_kernel;
 	clResult |= clSetKernelArg(round_kernel, 0, sizeof (int), &constRound);
-	clResult |=
-	    clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
-	clResult |=
-	    clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferB);
-	clResult |=
-	    clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferA);
-	clResult |=
-	    clSetKernelArg(round_kernel, 4, sizeof (cl_mem),
-			   (void *) &indexesE);
-	clResult |=
-	    clSetKernelArg(round_kernel, 5, sizeof (cl_mem),
-			   (void *) &indexesE2);
+	clResult |= clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
+	clResult |= clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferB);
+	clResult |= clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferA);
+	clResult |= clSetKernelArg(round_kernel, 4, sizeof (cl_mem), (void *) &indexesE);
+	clResult |= clSetKernelArg(round_kernel, 5, sizeof (cl_mem), (void *) &indexesE);
 	clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
-	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &sizeA);
-	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &initV);
-	clResult |=
-	    clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
-				   global_work_size, local_work_size, 0, NULL,
-				   &event);
+	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &bufB_offset);
+	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &ZERO);
+	clResult |= clSetKernelArg(round_kernel, 10, sizeof(u32), &idx_offset);
+	clResult |= clSetKernelArg(round_kernel, 11, sizeof(u32), &ZERO);
+	clResult |= clSetKernelArg(round_kernel, 12, sizeof(u32), &nb);
+	clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 	checkOpenclErrors(clResult);
 //	clFinish(commandQueue);
 
-
-	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0,
-			    tmpSize, 0, NULL, NULL);
+//	clResult = clEnqueueReadBuffer(commandQueue, indexesE, CL_TRUE, 0, sizeof (u32), &nedges, 0, NULL, NULL);
+//	printf("round 2 result : %d\n", nedges);
+	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), indexesSize, tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 //	clFinish(commandQueue);
 
@@ -271,31 +251,25 @@ checkOpenclErrors(clResult);
 	edges_b = EDGES_A / 4;
 	round_kernel = round_uint2_uint2_kernel;
 	clResult |= clSetKernelArg(round_kernel, 0, sizeof (int), &constRound);
-	clResult |=
-	    clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
-	clResult |=
-	    clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferA);
-	clResult |=
-	    clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferB);
-	clResult |=
-	    clSetKernelArg(round_kernel, 4, sizeof (cl_mem),
-			   (void *) &indexesE2);
-	clResult |=
-	    clSetKernelArg(round_kernel, 5, sizeof (cl_mem),
-			   (void *) &indexesE);
+	clResult |= clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
+	clResult |= clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferA);
+	clResult |= clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferB);
+	clResult |= clSetKernelArg(round_kernel, 4, sizeof (cl_mem), (void *) &indexesE);
+	clResult |= clSetKernelArg(round_kernel, 5, sizeof (cl_mem), (void *) &indexesE);
 	clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
 	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &initV);
-	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &sizeA);
-	clResult |=
-	    clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
-				   global_work_size, local_work_size, 0, NULL,
-				   &event);
+	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &bufB_offset);
+	clResult |= clSetKernelArg(round_kernel, 10, sizeof(u32), &ZERO);
+	clResult |= clSetKernelArg(round_kernel, 11, sizeof(u32), &idx_offset);
+	clResult |= clSetKernelArg(round_kernel, 12, sizeof(u32), &ONE);
+	clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 	checkOpenclErrors(clResult);
 //	clFinish(commandQueue);
 
-	clResult = clEnqueueFillBuffer(commandQueue, indexesE2, &initV, sizeof (int), 0,
-			    tmpSize, 0, NULL, NULL);
+//	clResult = clEnqueueReadBuffer(commandQueue, indexesE, CL_TRUE, indexesSize, sizeof (u32), &nedges, 0, NULL, NULL);
+//	printf("round 3 result : %d\n", nedges);
+	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0, tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 //	clFinish(commandQueue);
 
@@ -303,32 +277,28 @@ checkOpenclErrors(clResult);
 	edges_a = EDGES_A / 4;
 	edges_b = EDGES_B / 4;
 	clResult |= clSetKernelArg(round_kernel, 0, sizeof (int), &constRound);
-	clResult |=
-	    clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
-	clResult |=
-	    clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferB);
-	clResult |=
-	    clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferA);
-	clResult |=
-	    clSetKernelArg(round_kernel, 4, sizeof (cl_mem),
-			   (void *) &indexesE);
-	clResult |=
-	    clSetKernelArg(round_kernel, 5, sizeof (cl_mem),
-			   (void *) &indexesE2);
+	clResult |= clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
+	clResult |= clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferB);
+	clResult |= clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferA);
+	clResult |= clSetKernelArg(round_kernel, 4, sizeof (cl_mem), (void *) &indexesE);
+	clResult |= clSetKernelArg(round_kernel, 5, sizeof (cl_mem), (void *) &indexesE);
 	clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
-	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &sizeA);
+	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &bufB_offset);
 	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &initV);
-	clResult |=
-	    clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
-				   global_work_size, local_work_size, 0, NULL,
-				   &event);
+	clResult |= clSetKernelArg(round_kernel, 10, sizeof(u32), &idx_offset);
+	clResult |= clSetKernelArg(round_kernel, 11, sizeof(u32), &ZERO);
+	clResult |= clSetKernelArg(round_kernel, 12, sizeof(u32), &ONE);
+	clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 	checkOpenclErrors(clResult);
 //	clFinish(commandQueue);
 
+
+//	clResult = clEnqueueReadBuffer(commandQueue, indexesE, CL_TRUE, 0, sizeof (u32), &nedges, 0, NULL, NULL);
+//	printf("round 4 result : %d\n", nedges);
 	for (int round = 4; round < tp.ntrims; round += 2)
 	{
-	    clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0,
+	    clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), indexesSize,
 				tmpSize, 0, NULL, NULL);
 		checkOpenclErrors(clResult);
 
@@ -341,21 +311,20 @@ checkOpenclErrors(clResult);
 	    clResult |= clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
 	    clResult |= clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferA);
 	    clResult |= clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferB);
-	    clResult |= clSetKernelArg(round_kernel, 4, sizeof (cl_mem),
-			   (void *) &indexesE2);
-	    clResult |= clSetKernelArg(round_kernel, 5, sizeof (cl_mem),
-			   (void *) &indexesE);
+	    clResult |= clSetKernelArg(round_kernel, 4, sizeof (cl_mem), (void *) &indexesE);
+	    clResult |= clSetKernelArg(round_kernel, 5, sizeof (cl_mem), (void *) &indexesE);
 	    clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	    clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
 	    clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &initV);
-	    clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &sizeA);
-	    clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
-				   global_work_size, local_work_size, 0, NULL,
-				   &event);
+	    clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &bufB_offset);
+		clResult |= clSetKernelArg(round_kernel, 10, sizeof(u32), &ZERO);
+		clResult |= clSetKernelArg(round_kernel, 11, sizeof(u32), &idx_offset);
+		clResult |= clSetKernelArg(round_kernel, 12, sizeof(u32), &ONE);
+	    clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 		checkOpenclErrors(clResult);
 //	    clFinish(commandQueue);
 
-	    clResult = clEnqueueFillBuffer(commandQueue, indexesE2, &initV, sizeof (int),
+	    clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int),
 				0, tmpSize, 0, NULL, NULL);
 		checkOpenclErrors(clResult);
 //	    clFinish(commandQueue);
@@ -367,14 +336,15 @@ checkOpenclErrors(clResult);
 	    clResult |= clSetKernelArg(round_kernel, 1, sizeof (cl_mem), (void *) &dipkeys);
 	    clResult |= clSetKernelArg(round_kernel, 2, sizeof (cl_mem), (void *) &bufferB);
 	    clResult |= clSetKernelArg(round_kernel, 3, sizeof (cl_mem), (void *) &bufferA);
-	    clResult |= clSetKernelArg(round_kernel, 4, sizeof (cl_mem),
-			   (void *) &indexesE);
-	    clResult |= clSetKernelArg(round_kernel, 5, sizeof (cl_mem),
-			   (void *) &indexesE2);
+	    clResult |= clSetKernelArg(round_kernel, 4, sizeof (cl_mem), (void *) &indexesE);
+	    clResult |= clSetKernelArg(round_kernel, 5, sizeof (cl_mem), (void *) &indexesE);
 	    clResult |= clSetKernelArg(round_kernel, 6, sizeof (int), &edges_a);
 	    clResult |= clSetKernelArg(round_kernel, 7, sizeof (int), &edges_b);
-	clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &sizeA);
-	clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &initV);
+		clResult |= clSetKernelArg(round_kernel, 8, sizeof(u32), &bufB_offset);
+		clResult |= clSetKernelArg(round_kernel, 9, sizeof(u32), &ZERO);
+		clResult |= clSetKernelArg(round_kernel, 10, sizeof(u32), &idx_offset);
+		clResult |= clSetKernelArg(round_kernel, 11, sizeof(u32), &ZERO);
+		clResult |= clSetKernelArg(round_kernel, 12, sizeof(u32), &ONE);
 	    clResult |= clEnqueueNDRangeKernel(commandQueue, round_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
@@ -382,7 +352,10 @@ checkOpenclErrors(clResult);
 	}
 
 	clFinish(commandQueue);
-	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), 0,
+
+//	clResult = clEnqueueReadBuffer(commandQueue, indexesE, CL_TRUE, 0, sizeof (u32), &nedges, 0, NULL, NULL);
+//	printf("round  result : %d\n", nedges);
+	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &initV, sizeof (int), indexesSize,
 			    tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 	clFinish(commandQueue);
@@ -390,30 +363,32 @@ checkOpenclErrors(clResult);
 	global_work_size[0] = tp.tail.blocks * tp.tail.tpb;
 	local_work_size[0] = tp.tail.tpb;
 	int tail_edges = DUCK_B_EDGES / 4;
-	clResult |=
-	    clSetKernelArg(tail_kernel, 0, sizeof (cl_mem), (void *) &bufferA);
-	clResult |=
-	    clSetKernelArg(tail_kernel, 1, sizeof (cl_mem), (void *) &bufferB);
-	clResult |=
-	    clSetKernelArg(tail_kernel, 2, sizeof (cl_mem),
-			   (void *) &indexesE2);
-	clResult |=
-	    clSetKernelArg(tail_kernel, 3, sizeof (cl_mem), (void *) &indexesE);
+	clResult |= clSetKernelArg(tail_kernel, 0, sizeof (cl_mem), (void *) &bufferA);
+	clResult |= clSetKernelArg(tail_kernel, 1, sizeof (cl_mem), (void *) &bufferB);
+	clResult |= clSetKernelArg(tail_kernel, 2, sizeof (cl_mem), (void *) &indexesE);
+	clResult |= clSetKernelArg(tail_kernel, 3, sizeof (cl_mem), (void *) &indexesE);
 	clResult |= clSetKernelArg(tail_kernel, 4, sizeof (int), &tail_edges);
-	clResult |= clSetKernelArg(tail_kernel, 5, sizeof(u32), &sizeA);
-	clResult |=
-	    clEnqueueNDRangeKernel(commandQueue, tail_kernel, 1, NULL,
+	clResult |= clSetKernelArg(tail_kernel, 5, sizeof(u32), &bufB_offset);
+	clResult |= clSetKernelArg(tail_kernel, 6, sizeof(u32), &ZERO);
+	clResult |= clSetKernelArg(tail_kernel, 7, sizeof(u32), &idx_offset);
+	clResult |= clEnqueueNDRangeKernel(commandQueue, tail_kernel, 1, NULL,
 				   global_work_size, local_work_size, 0, NULL,
 				   &event);
 	checkOpenclErrors(clResult);
 	clFinish(commandQueue);
 
-	clResult = clEnqueueReadBuffer(commandQueue, indexesE, CL_TRUE, 0,
-			    NX * NY * sizeof (u32), hostA, 0, NULL, NULL);
+	clResult = clEnqueueReadBuffer(commandQueue, indexesE, CL_TRUE, indexesSize, sizeof (u32), &nedges, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 	clFinish(commandQueue);
 
-	return hostA[0];
+//		fprintf(stderr, "Host A [0]: %zu\n", hostA[0]);
+	cl_uint2 *tmpa = (cl_uint2*)malloc(sizeof(cl_uint2) * nedges);
+//	cudaMemcpy(tmpa, bufferB, sizeof(cl_uint2)*nedges, cudaMemcpyDeviceToHost);
+	clEnqueueReadBuffer(commandQueue, bufferB, CL_TRUE, 0, sizeof(cl_uint2) * nedges, tmpa, 0, NULL, NULL);
+	saveFile(tmpa, nedges, "result.txt");
+	free(tmpa);
+//	printf("tail result %d\n", nedges);
+	return nedges;
     }
 
 };

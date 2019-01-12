@@ -53,15 +53,30 @@ const static u32 YZBITS    = EDGEBITS - XBITS;
 const static u32 NYZ       = 1 << YZBITS;
 const static u32 ZBITS     = YZBITS - YBITS;
 const static u32 NZ        = 1 << ZBITS;
+const u32 ZMASK     = NZ - 1;
 
-#define EPS_A 133/128
-#define EPS_B 85/128
+#ifndef NEPS_A
+#define NEPS_A 133
+#endif
+#ifndef NEPS_B
+#define NEPS_B 88
+#endif
+#define NEPS 128
 
-const static u32 ROW_EDGES_A = NYZ * EPS_A;
-const static u32 ROW_EDGES_B = NYZ * EPS_B;
+const u32 EDGES_A = NZ * NEPS_A / NEPS;
+const u32 EDGES_B = NZ * NEPS_B / NEPS;
 
-const static u32 EDGES_A = ROW_EDGES_A / NX;
-const static u32 EDGES_B = ROW_EDGES_B / NX;
+const u32 ROW_EDGES_A = EDGES_A * NY;
+const u32 ROW_EDGES_B = EDGES_B * NY;
+
+// Number of Parts of BufferB, all but one of which will overlap BufferA
+#ifndef NB
+#define NB 2
+#endif
+
+#ifndef NA
+#define NA  ((NB * NEPS_A + NEPS_B-1) / NEPS_B)
+#endif
 
 #ifndef FLUSHA // should perhaps be in trimparams and passed as template parameter
 #define FLUSHA 16
@@ -133,9 +148,9 @@ struct edgetrimmer {
   cl_mem bufferB;
   cl_mem bufferAB;
   cl_mem indexesE;
-  cl_mem indexesE2;
+//  cl_mem indexesE2;
   cl_mem recoveredges; //const
-  u32 hostA[NX * NY];
+  u32 nedges;
   u32 *uvnodes;
   proof sol;
   siphash_keys sipkeys;//, *dipkeys;

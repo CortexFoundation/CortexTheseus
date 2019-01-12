@@ -36,6 +36,7 @@ typedef uint node_t;
 #define ZBITS     ((YZBITS) - (YBITS))
 #define NZ        (1 << (ZBITS))
 #define COUNTERWORDS  ((NZ) / 16)
+#define ZMASK     (NZ - 1)
 
 #ifndef FLUSHA			// should perhaps be in trimparams and passed as template parameter
 #define FLUSHA 16
@@ -298,7 +299,10 @@ Cuckoo_Recovery(__constant const siphash_keys * sipkeys, __global int *indexes, 
 }
 
 __kernel void 
-Cuckaroo_SeedA(__constant const siphash_keys* sipkeys, __global uint2 * __restrict__ buffer, __global int * __restrict__ indexes, int maxOut, uint offset) {
+Cuckaroo_SeedA(__constant const siphash_keys* sipkeys,
+		__global uint2 * __restrict__ buffer,
+		__global uint * __restrict__ indexes, 
+		const int maxOut, const uint offset, const uint idx_offset) {
   const int group = get_group_id(0);//blockIdx.x;
   const int dim = get_local_size(0);//blockDim.x;
   const int lid = get_local_id(0);//threadIdx.x;
@@ -325,7 +329,7 @@ Cuckaroo_SeedA(__constant const siphash_keys* sipkeys, __global uint2 * __restri
       ulong edge = buf[e] ^ last;
       uint node0 = edge & EDGEMASK;
       uint node1 = (edge >> 32) & EDGEMASK;
-      int row = node0 & XMASK;
+      int row = node0 >> YZBITS;
       int counter = min((int)atomic_add(counters + row, 1), (int)(FLUSHA2-1)); // assuming ROWS_LIMIT_LOSSES checked
       tmp[row][counter] = make_uint2(node0, node1);
       barrier(CLK_LOCAL_MEM_FENCE);
@@ -333,7 +337,7 @@ Cuckaroo_SeedA(__constant const siphash_keys* sipkeys, __global uint2 * __restri
         int localIdx = min(FLUSHA2, counters[row]);
         int newCount = localIdx % FLUSHA;
         int nflush = localIdx - newCount;
-        int cnt = min((int)atomic_add(indexes + row * NX + col, nflush), (int)(maxOut - nflush));
+        int cnt = min((int)atomic_add(indexes + row * NX + col + idx_offset, nflush), (int)(maxOut - nflush));
         for (int i = 0; i < nflush; i += 1)
           buffer[tmp_offset + ((ulong)(row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
         for (int t = 0; t < newCount; t++) {
@@ -347,7 +351,7 @@ Cuckaroo_SeedA(__constant const siphash_keys* sipkeys, __global uint2 * __restri
   uint2 zero = make_uint2(0, 0);
   for (int row = lid; row < NX; row += dim) {
     int localIdx = min(FLUSHA2, counters[row]);
-    int cnt = min((int)atomic_add(indexes + row * NX + col, localIdx), (int)(maxOut - localIdx));
+    int cnt = min((int)atomic_add(indexes + row * NX + col + idx_offset, localIdx), (int)(maxOut - localIdx));
     for (int i = 0; i < localIdx; i += 1) {
       buffer[tmp_offset + ((ulong)(row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
     }
@@ -355,7 +359,7 @@ Cuckaroo_SeedA(__constant const siphash_keys* sipkeys, __global uint2 * __restri
 }
 
 __kernel void
-Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restrict__ buffer, __global int *__restrict__ indexes, int maxOut, uint offset)
+Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restrict__ buffer, __global uint *__restrict__ indexes, int maxOut, uint offset, const uint idx_offset)
 {
     const int group = get_group_id(0);
     const int dim = get_local_size(0);
@@ -379,7 +383,7 @@ Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restri
 		uint node1, node0 = dipnode(sipkeys, (ulong) nonce, 0);
 		if (sizeof (EdgeIn) == sizeof (uint2))
 			node1 = dipnode(sipkeys, (ulong) nonce, 1);
-		int row = node0 & XMASK;
+		int row = node0 >> YZBITS;
 		int counter = min((int) atomic_add(counters + row, 1), (int) (FLUSHA2 - 1));
 #if (EXPAND == 0)
 		tmp[row][counter] = make_Edge_by_node(nonce, tmp[0][0], node0, node1);
@@ -392,7 +396,7 @@ Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restri
 			int localIdx = min(FLUSHA2, counters[row]);
 			int newCount = localIdx % FLUSHA;
 			int nflush = localIdx - newCount;
-			int cnt = min((int) atomic_add(indexes + row * NX + col, nflush),
+			int cnt = min((int) atomic_add(indexes + row * NX + col + idx_offset, nflush),
 				  (int) (maxOut - nflush));
 			for (int i = 0; i < nflush; i += 1)
 				buffer[tmp_offset + ((ulong) (row * NX + col) * maxOut + cnt + i)] = tmp[row][i];
@@ -407,7 +411,7 @@ Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restri
     for (int row = lid; row < NX; row += dim)
     {
 		int localIdx = min(FLUSHA2, counters[row]);
-		int cnt = min((int) atomic_add(indexes + row * NX + col, localIdx),
+		int cnt = min((int) atomic_add(indexes + row * NX + col + idx_offset, localIdx),
 			  (int) (maxOut - localIdx));
 		for (int i = 0; i < localIdx; i += 1)
 		{
@@ -418,9 +422,13 @@ Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restri
 
 __kernel void
 SeedB(__constant const siphash_keys * sipkeys,
-      __global const EdgeIn * __restrict__ source,
-      __global EdgeIn * __restrict__ destination,
-      __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxOut, const uint halfA, const uint halfE, uint offset)
+      __global const EdgeIn * __restrict__ src,
+      __global EdgeIn * __restrict__ dst,
+      __global const uint *__restrict__ srcIdx, 
+	  __global uint *__restrict__ dstIdx, 
+	  const int maxOut, const uint halfA, 
+	  const uint halfE, uint offset,
+	  const uint srcIdx_offset, const uint dstIdx_offset)
 {
     const int group = get_group_id(0);	//blockIdx.x;
     const int dim = get_local_size(0);	//blockDim.x;
@@ -436,7 +444,7 @@ SeedB(__constant const siphash_keys * sipkeys,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     const int row = group / NX;
-    const int bucketEdges = min((int) sourceIndexes[group + halfE], (int) maxOut);
+    const int bucketEdges = min((int) srcIdx[group + halfE + srcIdx_offset], (int) maxOut);
     const int loops = (bucketEdges + dim - 1) / dim;
     const uint dest_halfA = halfA/sizeof(EdgeIn);
     const uint src_halfA = halfA/sizeof(EdgeIn);
@@ -451,7 +459,7 @@ SeedB(__constant const siphash_keys * sipkeys,
 		if (edgeIndex < bucketEdges)
 		{
 			const int index = group * maxOut + edgeIndex;
-			EdgeIn edge = source[index + src_halfA + tmp_offset];
+			EdgeIn edge = src[index + src_halfA + tmp_offset];
 #if (EXPAND == 0)
 			if (null2(edge)) continue;
 			uint node1 = endpoint2(sipkeys, edge, 0);
@@ -459,7 +467,7 @@ SeedB(__constant const siphash_keys * sipkeys,
 			if (null(edge)) continue;
 			uint node1 = endpoint(sipkeys, edge, 0);
 #endif
-			col = (node1 >> XBITS) & XMASK;
+			col = (node1 >> ZBITS) & XMASK;
 			counter = min((int) atomic_add(counters + col, 1), (int) (FLUSHB2 - 1));
 			tmp[col][counter] = edge;
 		}
@@ -470,11 +478,11 @@ SeedB(__constant const siphash_keys * sipkeys,
 			int localIdx = min(FLUSHB2, counters[col]);
 			int newCount = localIdx % FLUSHB;
 			int nflush = localIdx - newCount;
-			int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
+			int cnt = min((int) atomic_add(dstIdx + row * NX + col + halfE + dstIdx_offset,
 						   nflush), (int) (maxOut - nflush));
 			for (int i = 0; i < nflush; i += 1)
 			{
-				destination[((ulong) (row * NX + col) * maxOut + cnt +
+				dst[((ulong) (row * NX + col) * maxOut + cnt +
 					 i) + dest_halfA] = tmp[col][i];
 			}
 			for (int t = 0; t < newCount; t++)
@@ -488,11 +496,10 @@ SeedB(__constant const siphash_keys * sipkeys,
     for (int col = lid; col < NX; col += dim)
     {
 		int localIdx = min(FLUSHB2, counters[col]);
-		int cnt = min((int) atomic_add(destinationIndexes + row * NX + col + halfE,
-				   1), (int) (maxOut - 1));
+		int cnt = min((int) atomic_add(dstIdx + row * NX + col + halfE + dstIdx_offset, 1), (int) (maxOut - 1));
 		for (int i = 0; i < localIdx; i += 1)
 		{
-			destination[((ulong) (row * NX + col) * maxOut + cnt + i) +
+			dst[((ulong) (row * NX + col) * maxOut + cnt + i) +
 				dest_halfA] = tmp[col][i];
 		}
     }
@@ -500,59 +507,84 @@ SeedB(__constant const siphash_keys * sipkeys,
 
 __kernel void
 Round(const int round, __constant const siphash_keys * sipkeys,
-      __global const uint2 * __restrict__ source,
-      __global uint2 * __restrict__ destination, __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxIn, const int maxOut, uint src_offset, uint dest_offset)
+      __global const uint2 * __restrict__ src,
+      __global uint2 * __restrict__ dst,
+	  __global const uint *__restrict__ srcIdx, 
+	  __global uint *__restrict__ dstIdx, 
+	  const uint maxIn, const uint maxOut, 
+	  const uint src_offset, const uint dest_offset,
+	  const uint srcIdx_offset, const uint dstIdx_offset, const uint NP)
 {
     const int group = get_group_id(0);	//blockIdx.x;
     const int dim = get_local_size(0);	//blockDim.x;
     const int lid = get_local_id(0);	//threadIdx.x;
     __local uint ecounters[COUNTERWORDS];
     for (int i = lid; i < COUNTERWORDS; i += dim)
-	ecounters[i] = 0;
+		ecounters[i] = 0;
     barrier(CLK_LOCAL_MEM_FENCE);
-    const int edgesInBucket = min(sourceIndexes[group], maxIn);
-    const int loops = (edgesInBucket + dim - 1) / dim;
 
+	int src_step = 0;
+	int srcIdx_step = 0;
+  for (int i = 0; i < NP; i++) {
+    const int edgesInBucket = min(srcIdx[group + srcIdx_offset + srcIdx_step], maxIn);
+    const int loops = (edgesInBucket + dim - 1) / dim;
     for (int loop = 0; loop < loops; loop++)
     {
 		const int lindex = loop * dim + lid;
 		if (lindex < edgesInBucket)
 		{
 			const int index = maxIn * group + lindex;
-			uint2 edge = source[index + src_offset / sizeof(uint2)];
+			uint2 edge = src[index + src_offset / sizeof(uint2) + src_step];
 			if (null2(edge))
 				continue;
 			uint node = endpoint2(sipkeys, edge, round & 1);
-			Increase2bCounter(ecounters, node >> (2 * XBITS));
+			Increase2bCounter(ecounters, node & ZMASK);
 		}
     }
+	src_step += NX2 * maxIn;
+	srcIdx_step += NX2;
+  }
     barrier(CLK_LOCAL_MEM_FENCE);
+	src_step -= NP*NX2*maxIn;
+	srcIdx_step -= NP*NX2;
+//  src -= NP * NX2 * maxIn; srcIdx -= NP * NX2;
+  for (int i = 0; i < NP; i++) {
+    const int edgesInBucket = min(srcIdx[group + srcIdx_offset + srcIdx_step], maxIn);
+    const int loops = (edgesInBucket + dim - 1) / dim;
     for (int loop = 0; loop < loops; loop++)
     {
 		const int lindex = loop * dim + lid;
 		if (lindex < edgesInBucket)
 		{
 			const int index = maxIn * group + lindex;
-			uint2 edge = source[index + src_offset/sizeof(uint2)];
+			uint2 edge = src[index + src_offset/sizeof(uint2) + src_step];
 			if (null2(edge))
 				continue;
 			uint node0 = endpoint2(sipkeys, edge, round & 1);
 
-			if (Read2bCounter(ecounters, node0 >> (2 * XBITS)))
+			if (Read2bCounter(ecounters, node0 & ZMASK))
 			{
 				uint node1 = endpoint2(sipkeys, edge, (round & 1) ^ 1);
-				const int bucket = node1 & X2MASK;
-				const int bktIdx = min(atomic_add(destinationIndexes + bucket, 1), maxOut - 1);
-				destination[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = edge;
+				const int bucket = node1 >> ZBITS;
+				const int bktIdx = min(atomic_add(dstIdx + (bucket + dstIdx_offset), 1), maxOut - 1);
+				dst[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = edge;
 			}
 		}
     }
+	src_step += NX2 * maxIn;
+	srcIdx += NX2;
+  }
 }
 
 __kernel void
 Round_uint_uint2(const int round, __constant const siphash_keys * sipkeys,
-      __global const uint * __restrict__ source,
-      __global uint2 * __restrict__ destination, __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxIn, const int maxOut, uint src_offset, uint dest_offset)
+      __global const uint * __restrict__ src,
+      __global uint2 * __restrict__ dst,
+	  __global const uint *__restrict__ srcIdx, 
+	  __global uint *__restrict__ dstIdx, 
+	  const uint maxIn, const uint maxOut, 
+	  const uint src_offset, const uint dest_offset,
+	  const uint srcIdx_offset, const uint dstIdx_offset, const uint NP)
 {
     const int group = get_group_id(0);	//blockIdx.x;
     const int dim = get_local_size(0);	//blockDim.x;
@@ -561,7 +593,8 @@ Round_uint_uint2(const int round, __constant const siphash_keys * sipkeys,
     for (int i = lid; i < COUNTERWORDS; i += dim)
 		ecounters[i] = 0;
     barrier(CLK_LOCAL_MEM_FENCE);
-    const int edgesInBucket = min(sourceIndexes[group], maxIn);
+  for (int i = 0; i < NP; i++, src += NX2 * maxIn, srcIdx += NX2) {
+    const int edgesInBucket = min(srcIdx[group + srcIdx_offset], maxIn);
     const int loops = (edgesInBucket + dim - 1) / dim;
 
     for (int loop = 0; loop < loops; loop++)
@@ -570,39 +603,51 @@ Round_uint_uint2(const int round, __constant const siphash_keys * sipkeys,
 		if (lindex < edgesInBucket)
 		{
 			const int index = maxIn * group + lindex;
-			uint edge = source[index + src_offset / sizeof(uint)];
+			uint edge = src[index + src_offset / sizeof(uint)];
 			if (null(edge))
 				continue;
 			uint node = endpoint(sipkeys, edge, round & 1);
-			Increase2bCounter(ecounters, node >> (2 * XBITS));
+			Increase2bCounter(ecounters, node & ZMASK);
 		}
     }
+  }
     barrier(CLK_LOCAL_MEM_FENCE);
+  src -= NP * NX2 * maxIn; srcIdx -= NP * NX2;
+  for (int i = 0; i < NP; i++, src += NX2 * maxIn, srcIdx += NX2) {
+    const int edgesInBucket = min(srcIdx[group + srcIdx_offset], maxIn);
+    const int loops = (edgesInBucket + dim - 1) / dim;
     for (int loop = 0; loop < loops; loop++)
     {
 		const int lindex = loop * dim + lid;
 		if (lindex < edgesInBucket)
 		{
 			const int index = maxIn * group + lindex;
-			uint edge = source[index + src_offset/sizeof(uint)];
+			uint edge = src[index + src_offset/sizeof(uint)];
 			if (null(edge))
 				continue;
 			
 			uint node0 = endpoint(sipkeys, edge, round & 1);
-			if (Read2bCounter(ecounters, node0 >> (2 * XBITS)))
+			if (Read2bCounter(ecounters, node0 & ZMASK))
 			{
 				uint node1 = endpoint(sipkeys, edge, (round & 1) ^ 1);
-				const int bucket = node1 & X2MASK;
-				const int bktIdx = min(atomic_add(destinationIndexes + bucket, 1), maxOut - 1);
-				destination[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = (round&1) ? make_uint2(node1, node0) : make_uint2(node0, node1);
+				const int bucket = node1 >> ZBITS;
+				const int bktIdx = min(atomic_add(dstIdx + (bucket + dstIdx_offset), 1), maxOut - 1);
+				dst[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = (round&1) ? make_uint2(node1, node0) : make_uint2(node0, node1);
 			}
 		}
     }
+  }
 }
+
 __kernel void
 Round_uint_uint(const int round, __constant const siphash_keys * sipkeys,
-      __global const uint * __restrict__ source,
-      __global uint * __restrict__ destination, __global const int *__restrict__ sourceIndexes, __global int *__restrict__ destinationIndexes, const int maxIn, const int maxOut, uint src_offset, uint dest_offset)
+      __global const uint * __restrict__ src,
+      __global uint * __restrict__ dst,
+	  __global const uint *__restrict__ srcIdx,
+	  __global uint *__restrict__ dstIdx, 
+	  const uint maxIn, const uint maxOut, 
+	  const uint src_offset, const uint dest_offset,
+	  const uint srcIdx_offset, const uint dstIdx_offset, const uint NP)
 {
     const int group = get_group_id(0);	//blockIdx.x;
     const int dim = get_local_size(0);	//blockDim.x;
@@ -611,7 +656,9 @@ Round_uint_uint(const int round, __constant const siphash_keys * sipkeys,
     for (int i = lid; i < COUNTERWORDS; i += dim)
 		ecounters[i] = 0;
     barrier(CLK_LOCAL_MEM_FENCE);
-    const int edgesInBucket = min(sourceIndexes[group], maxIn);
+
+  for (int i = 0; i < NP; i++, src += NX2 * maxIn, srcIdx += NX2) {
+    const int edgesInBucket = min(srcIdx[group + srcIdx_offset], maxIn);
     const int loops = (edgesInBucket + dim - 1) / dim;
 
     for (int loop = 0; loop < loops; loop++)
@@ -620,49 +667,54 @@ Round_uint_uint(const int round, __constant const siphash_keys * sipkeys,
 		if (lindex < edgesInBucket)
 		{
 			const int index = maxIn * group + lindex;
-			uint edge = source[index + src_offset / sizeof(uint)];
+			uint edge = src[index + src_offset / sizeof(uint)];
 			if (null(edge))
 				continue;
 			
 			uint node = endpoint(sipkeys, edge, round & 1);
-			Increase2bCounter(ecounters, node >> (2 * XBITS));
+			Increase2bCounter(ecounters, node & ZMASK);
 		}
     }
+  }
     barrier(CLK_LOCAL_MEM_FENCE);
+  for (int i = 0; i < NP; i++, src += NX2 * maxIn, srcIdx += NX2) {
+    const int edgesInBucket = min(srcIdx[group + srcIdx_offset], maxIn);
+    const int loops = (edgesInBucket + dim - 1) / dim;
     for (int loop = 0; loop < loops; loop++)
     {
 		const int lindex = loop * dim + lid;
 		if (lindex < edgesInBucket)
 		{
 			const int index = maxIn * group + lindex;
-			uint edge = source[index + src_offset/sizeof(uint)];
+			uint edge = src[index + src_offset/sizeof(uint)];
 			if (null(edge))
 				continue;
 
 			uint node0 = endpoint(sipkeys, edge, round & 1);
-			if (Read2bCounter(ecounters, node0 >> (2 * XBITS)))
+			if (Read2bCounter(ecounters, node0 & ZMASK))
 			{
 				uint node1 = endpoint(sipkeys, edge, (round & 1) ^ 1);
-				const int bucket = node1 & X2MASK;
-				const int bktIdx = min(atomic_add(destinationIndexes + bucket, 1), maxOut - 1);
-				destination[bucket * maxOut + bktIdx + dest_offset/sizeof(uint)] = edge;
+				const int bucket = node1 >> ZBITS;
+				const int bktIdx = min(atomic_add(dstIdx + bucket, 1), maxOut - 1);
+				dst[bucket * maxOut + bktIdx + dest_offset/sizeof(uint)] = edge;
 			}
 		}
     }
+  }
 }
 
 
 __kernel void
-Tail(__global const uint2 * source, __global uint2 * destination, __global const int *sourceIndexes, __global int *destinationIndexes, const int maxIn, uint offset)
+Tail(__global const uint2 * source, __global uint2 * destination, __global const uint *srcIdx, __global uint *dstIdx, const int maxIn, uint offset, const uint srcIdx_offset, const uint dstIdx_offset)
 {
     const int lid = get_local_id(0);	//threadIdx.x;
     const int group = get_group_id(0);	//blockIdx.x;
     const int dim = get_local_size(0);	//blockDim.x;
-    int myEdges = sourceIndexes[group];
+    int myEdges = srcIdx[group + srcIdx_offset];
     __local int destIdx;
 
     if (lid == 0)
-	destIdx = atomic_add(destinationIndexes, myEdges);
+	destIdx = atomic_add(dstIdx + dstIdx_offset, myEdges);
 
     barrier(CLK_LOCAL_MEM_FENCE);
     for (int i = lid; i < myEdges; i += dim)
