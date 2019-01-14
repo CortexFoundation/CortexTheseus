@@ -271,9 +271,9 @@ func (cm *Cortex) miningOnce() {
 							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 							var ok int
 							if cm.miner_algorithm == 0 {
-								ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], 12, 28)
+								ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], 42, 29)
 							} else {
-								ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], 12, 28)
+								ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], 42, 29)
 							}
 							if ok != 1 {
 								log.Println("verify failed", header[:], curNonce, &sol)

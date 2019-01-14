@@ -108,8 +108,9 @@ namespace cuckoogpu
 			}
 			// nedges must less then CUCKOO_SIZE, or find-cycle procedure will never stop.
 			nedges = nedges & CUCKOO_MASK;
+			size_t bufB_offset = trimmer->sizeA + trimmer->sizeB / NB - trimmer->sizeB;
 			cl_int clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferB,
-				CL_TRUE, trimmer->sizeA, nedges * 8, edges, 0,
+				CL_TRUE, bufB_offset, nedges * 8, edges, 0,
 				NULL,
 				NULL);
 			checkOpenclErrors (clResult);
