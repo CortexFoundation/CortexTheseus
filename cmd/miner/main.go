@@ -18,7 +18,7 @@ import (
 	"github.com/PoolMiner/miner/libcuckoo"
 	"github.com/PoolMiner/verify"
 
-	"github.com/Unknwon/goconfig"
+	"../../goconfig"
 	"strconv"
 	"strings"
 	"sync"
