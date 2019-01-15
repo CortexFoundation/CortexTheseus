@@ -50,6 +50,7 @@ type Cortex struct {
 	consta          Connection
 	miner_algorithm int
 	share_accepted  int
+	share_rejected  int
 }
 
 type Task struct {
@@ -217,7 +218,7 @@ func (cm *Cortex) printHashRate() {
 			log.Println(fmt.Sprintf("\033[0;%dmGPU%d GPS=Inf, hash rate=Inf, find solutions: 0, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, fanSpeeds[dev], temperatures[dev]))
 		}
 	}
-	log.Println(fmt.Sprintf("\033[0;33mfind total solutions : %d, share accpeted : %d\033[0m", total_solutions, cm.share_accepted))
+	log.Println(fmt.Sprintf("\033[0;33mfind total solutions : %d, share accpeted : %d, share rejected : %d\033[0m", total_solutions, cm.share_accepted, cm.share_rejected))
 }
 
 func (cm *Cortex) miningOnce() {
@@ -233,7 +234,6 @@ func (cm *Cortex) miningOnce() {
 	solChan := make(chan Task, THREAD)
 	for nthread := 0; nthread < int(THREAD); nthread++ {
 		go func(tidx uint32, currentTask_ *TaskWrapper) {
-			var start_time int64 = time.Now().UnixNano() / 1e6
 			for {
 				if cm.consta.state == false {
 					return
@@ -251,7 +251,13 @@ func (cm *Cortex) miningOnce() {
 				curNonce := uint64(rand.Int63())
 				// fmt.Println("task: ", header[:], curNonce)
 				cm.deviceIds[tidx].lock.Lock()
+				var start_time int64 = time.Now().UnixNano() / 1e6
 				status, sols := libcuckoo.FindSolutionsByGPU(header, curNonce, tidx)
+				end_time := time.Now().UnixNano() / 1e6
+				cm.deviceIds[tidx].use_time += (end_time - start_time)
+				cm.deviceIds[tidx].solution_count += int64(len(sols))
+				cm.deviceIds[tidx].gps += 1
+				start_time = end_time
 				cm.deviceIds[tidx].lock.Unlock()
 				if status != 0 {
 					//if verboseLevel >= 3 {
@@ -270,10 +276,12 @@ func (cm *Cortex) miningOnce() {
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
 							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 							var ok int
+							var edgebits uint8 = 29
+							var proofsize uint8 = 12
 							if cm.miner_algorithm == 0 {
-								ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], 42, 29)
+								ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
 							} else {
-								ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], 42, 29)
+								ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], proofsize, edgebits)
 							}
 							if ok != 1 {
 								log.Println("verify failed", header[:], curNonce, &sol)
@@ -285,12 +293,6 @@ func (cm *Cortex) miningOnce() {
 					}
 				}
 
-				end_time := time.Now().UnixNano() / 1e6
-				cm.deviceIds[tidx].use_time += (end_time - start_time)
-				cm.deviceIds[tidx].solution_count += int64(len(sols))
-				cm.deviceIds[tidx].gps += 1
-				start_time = end_time
-				cm.printHashRate()
 			}
 		}(uint32(nthread), &currentTask)
 	}
@@ -307,13 +309,13 @@ func (cm *Cortex) miningOnce() {
 			if cm.verboseLevel >= 4 {
 				//log.Println("Received: ", msg)
 			}
-			reqId, result := msg["id"].(float64)
+			reqId, _ := msg["id"].(float64)
+			result, _ := msg["result"].(bool)
 			if uint32(reqId) == 73 {
-				if bool(result) {
+				if result {
 					cm.share_accepted += 1
-					log.Println("\033[0;35;40m share accepted!\033[0m")
 				} else {
-					log.Println("\033[0;35;40m share rejected!\033[0m")
+					cm.share_rejected += 1
 				}
 			}
 			if uint32(reqId) == 100 || uint32(reqId) == 0 {
@@ -340,13 +342,13 @@ func (cm *Cortex) miningOnce() {
 	}(&currentTask)
 	time.Sleep(2 * time.Second)
 
-	/*	go func() {
-			for {
-				cm.printFanAndTemp()
-				time.Sleep(5 * time.Second)
-			}
-		}()
-	*/
+	go func() {
+		for {
+			cm.printHashRate()
+			time.Sleep(2 * time.Second)
+		}
+	}()
+
 	for {
 		if cm.consta.state == false {
 			return
@@ -439,6 +441,7 @@ func main() {
 		verboseLevel:    uint(verboseLevel),
 		miner_algorithm: miner_algorithm,
 		share_accepted:  0,
+		share_rejected:  0,
 	}
 
 	cm.Mining()
