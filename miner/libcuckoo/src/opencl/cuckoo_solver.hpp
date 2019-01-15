@@ -245,7 +245,7 @@ namespace cuckoogpu
 			nedges = nedges & CUCKOO_MASK;
 			size_t bufB_offset = trimmer->sizeA + trimmer->sizeB / NB - trimmer->sizeB;
 			cl_int clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferB,
-				CL_TRUE, bufB_offset, nedges * 7, edges, 0, NULL,
+				CL_TRUE, bufB_offset, nedges * 8, edges, 0, NULL,
 				NULL);
 			checkOpenclErrors(clResult);
 

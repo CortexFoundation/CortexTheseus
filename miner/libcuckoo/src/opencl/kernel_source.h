@@ -359,7 +359,7 @@ Cuckaroo_SeedA(__constant const siphash_keys* sipkeys,
 }
 
 __kernel void
-Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restrict__ buffer, __global uint *__restrict__ indexes, int maxOut, uint offset, const uint idx_offset)
+Cuckoo_SeedA(__constant const siphash_keys * sipkeys, __global EdgeIn * __restrict__ buffer, __global uint *__restrict__ indexes, const uint maxOut, const uint offset, const uint idx_offset)
 {
     const int group = get_group_id(0);
     const int dim = get_local_size(0);

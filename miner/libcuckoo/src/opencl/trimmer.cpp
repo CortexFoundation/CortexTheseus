@@ -106,9 +106,9 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	clResult |= clSetKernelArg(seedA_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
 	clResult |= clSetKernelArg(seedA_kernel, 1, sizeof (cl_mem),(void *) &bufferAB);
 	clResult |= clSetKernelArg(seedA_kernel, 2, sizeof (cl_mem), (void *) &indexesE);
-	clResult |= clSetKernelArg(seedA_kernel, 3, sizeof (int), &edges_a);
-	clResult |= clSetKernelArg(seedA_kernel, 4, sizeof(u32), &bufAB_offset);
-	clResult |= clSetKernelArg(seedA_kernel, 5, sizeof(u32), &srcIdx_offset);
+	clResult |= clSetKernelArg(seedA_kernel, 3, sizeof (u32), &edges_a);
+	clResult |= clSetKernelArg(seedA_kernel, 4, sizeof (u32), &bufAB_offset);
+	clResult |= clSetKernelArg(seedA_kernel, 5, sizeof (u32), &srcIdx_offset);
 	clResult |= clEnqueueNDRangeKernel(commandQueue, seedA_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 	
 	checkOpenclErrors(clResult);
@@ -137,9 +137,9 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 		clResult |= clSetKernelArg(seedB_kernel, 5, sizeof (u32), &edges_a);
 		clResult |= clSetKernelArg(seedB_kernel, 6, sizeof (u32), &halfA0);
 		clResult |= clSetKernelArg(seedB_kernel, 7, sizeof (u32), &halfE0);
-		clResult |= clSetKernelArg(seedB_kernel, 8, sizeof(u32), &bufAB_offset);
-		clResult |= clSetKernelArg(seedB_kernel, 9, sizeof(u32), &idx0_offset);
-		clResult |= clSetKernelArg(seedB_kernel, 10, sizeof(u32), &idx1_offset);
+		clResult |= clSetKernelArg(seedB_kernel, 8, sizeof (u32), &bufAB_offset);
+		clResult |= clSetKernelArg(seedB_kernel, 9, sizeof (u32), &idx0_offset);
+		clResult |= clSetKernelArg(seedB_kernel, 10, sizeof (u32), &idx1_offset);
 		checkOpenclErrors(clResult);
 
 		clResult = clEnqueueNDRangeKernel(commandQueue, seedB_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
