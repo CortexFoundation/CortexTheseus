@@ -17,14 +17,14 @@ struct cuckaroo_solver_ctx : public solver_ctx{
 
   cuckaroo_solver_ctx(){}
   cuckaroo_solver_ctx(trimparams tp, uint32_t _device = 0) {
-    tp.genA.tpb = 128;
+//    tp.genA.tpb = 128;
     trimmer = new edgetrimmer(tp, _device, 1);
     edges   = new uint2[MAXEDGES];
     device = _device;
     cg = new graph<edge_t>(MAXEDGES, MAXEDGES, MAXSOLS, IDXSHIFT);
   }
   void init(trimparams tp, uint32_t _device = 0) {
-    tp.genA.tpb = 128;
+    //tp.genA.tpb = 128;
     trimmer = new edgetrimmer(tp, _device, 1);
     edges   = new uint2[MAXEDGES];
     device = _device;
@@ -60,9 +60,9 @@ struct cuckaroo_solver_ctx : public solver_ctx{
       // print_log("\n");
       sols.resize(sols.size() + PROOFSIZE);
       cudaMemcpyToSymbol(recoveredges, soledges, sizeof(soledges));
-      cudaMemset(trimmer->indexesE[0], 0, trimmer->indexesSize);
-      Cuckaroo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, (ulonglong4*)trimmer->bufferA, (int *)trimmer->indexesE[0]);
-      cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE[0], PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
+      cudaMemset(trimmer->indexesE[1], 0, trimmer->indexesSize);
+      Cuckaroo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, (ulonglong4*)trimmer->bufferA, (int *)trimmer->indexesE[1]);
+      cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE[1], PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
       checkCudaErrors(cudaDeviceSynchronize());
       qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), cg->nonce_cmp);
     }
@@ -81,7 +81,7 @@ struct cuckaroo_solver_ctx : public solver_ctx{
     }
 	// nedges must less then CUCKOO_SIZE, or find-cycle procedure will never stop.
 	nedges = nedges & CUCKOO_MASK;
-    cudaMemcpy(edges, trimmer->bufferB, nedges * 8, cudaMemcpyDeviceToHost);
+    cudaMemcpy(edges, trimmer->bufferB, nedges * sizeof(uint2), cudaMemcpyDeviceToHost);
     // gettimeofday(&time1, 0);
     // timems = (time1.tv_sec-time0.tv_sec)*1000 + (time1.tv_usec-time0.tv_usec)/1000;
     // gettimeofday(&time0, 0);

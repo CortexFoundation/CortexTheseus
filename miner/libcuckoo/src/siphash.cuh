@@ -1,4 +1,4 @@
-//#pragma once
+#pragma once
 #include "siphash.h"
 
 #if (__CUDA_ARCH__  >= 320) // make rotate-left use funnel shifter, 3% speed gain

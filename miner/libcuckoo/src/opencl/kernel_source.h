@@ -496,7 +496,7 @@ SeedB(__constant const siphash_keys * sipkeys,
     for (int col = lid; col < NX; col += dim)
     {
 		int localIdx = min(FLUSHB2, counters[col]);
-		int cnt = min((int) atomic_add(dstIdx + row * NX + col + halfE + dstIdx_offset, 1), (int) (maxOut - 1));
+		int cnt = min((int) atomic_add(dstIdx + row * NX + col + halfE + dstIdx_offset, localIdx), (int) (maxOut - localIdx));
 		for (int i = 0; i < localIdx; i += 1)
 		{
 			dst[((ulong) (row * NX + col) * maxOut + cnt + i) +
@@ -567,7 +567,8 @@ Round(const int round, __constant const siphash_keys * sipkeys,
 				uint node1 = endpoint2(sipkeys, edge, (round & 1) ^ 1);
 				const int bucket = node1 >> ZBITS;
 				const int bktIdx = min(atomic_add(dstIdx + (bucket + dstIdx_offset), 1), maxOut - 1);
-				dst[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = edge;
+				dst[bucket * maxOut + bktIdx + dest_offset/sizeof(uint2)] = (round&1) ? make_uint2(node1, node0) : make_uint2(node0, node1);
+
 			}
 		}
     }
