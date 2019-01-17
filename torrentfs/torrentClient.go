@@ -350,7 +350,7 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 // NewTorrentManager ...
 func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableTCP = true
+	// cfg.DisableTCP = true
 	cfg.DataDir = config.DataDir
 	cfg.DisableEncryption = true
 	listenAddr := &net.TCPAddr{}
