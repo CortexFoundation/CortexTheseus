@@ -1,7 +1,7 @@
 #ifndef WLT_TRIMMER_H
 #define WLT_TRIMMER_H
 #include <string>
-static const std::string kernel_source = R "(
+static const std::string kernel_source = R"(
 #ifndef EDGEBITS
 #define EDGEBITS 25
 #endif

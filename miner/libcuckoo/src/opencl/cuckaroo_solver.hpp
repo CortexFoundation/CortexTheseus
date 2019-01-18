@@ -22,7 +22,7 @@ namespace cuckoogpu
 		}
 		cuckaroo_solver_ctx (trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
 		{
-			tp.genA.tpb = 128;
+//			tp.genA.tpb = 128;
 			trimmer = new edgetrimmer (tp, context, commandQueue, program, 1);
 			edges = new cl_uint2[MAXEDGES];
 			device = _device;
@@ -30,7 +30,7 @@ namespace cuckoogpu
 		}
 		void init (trimparams tp, uint32_t _device = 0, cl_context context = NULL, cl_command_queue commandQueue = NULL, cl_program program = NULL)
 		{
-			tp.genA.tpb = 128;
+//			tp.genA.tpb = 128;
 			trimmer = new edgetrimmer (tp, context, commandQueue, program, 1);
 			edges = new cl_uint2[MAXEDGES];
 			device = _device;
