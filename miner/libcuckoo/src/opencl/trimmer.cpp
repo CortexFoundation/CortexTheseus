@@ -59,7 +59,7 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 }
 
     u64 edgetrimmer::globalbytes() const {
-		return (sizeA + sizeB) + 2 * indexesSize + sizeof (siphash_keys);
+		return (sizeA + sizeB / NB) + (1+NB) * indexesSize + sizeof (siphash_keys);
     }
     edgetrimmer::~edgetrimmer() {
 		clReleaseMemObject(bufferA);
@@ -78,7 +78,7 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	size_t tmpSize = indexesSize;
 
 	cl_int clResult;
-	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &ZERO, sizeof (int), 0, tmpSize*(1+NB), 0, NULL, NULL);
+	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &ZERO, sizeof (int), indexesSize, tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 
 	clResult = clEnqueueWriteBuffer(commandQueue, dipkeys, CL_TRUE, 0, sizeof (siphash_keys), &sipkeys, 0, NULL, NULL);
@@ -103,7 +103,7 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	clResult |= clSetKernelArg(seedA_kernel, 0, sizeof (cl_mem), (void *) &dipkeys);
 	clResult |= clSetKernelArg(seedA_kernel, 1, sizeof (cl_mem),(void *) &bufferAB);
 	clResult |= clSetKernelArg(seedA_kernel, 2, sizeof (cl_mem), (void *) &indexesE);
-	clResult |= clSetKernelArg(seedA_kernel, 3, sizeof (u32), &edges_a);
+	clResult |= clSetKernelArg(seedA_kernel, 3, sizeof (int), &edges_a);
 	clResult |= clSetKernelArg(seedA_kernel, 4, sizeof (u32), &bufAB_offset);
 	clResult |= clSetKernelArg(seedA_kernel, 5, sizeof (u32), &srcIdx_offset);
 	clResult |= clEnqueueNDRangeKernel(commandQueue, seedA_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
@@ -119,6 +119,7 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 
 	cl_kernel seedB_kernel = clCreateKernel(program, "SeedB", &clResult);
 
+	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &ZERO, sizeof (int), 0, tmpSize, 0, NULL, NULL);
 	global_work_size[0] = tp.genB.blocks / NA * tp.genB.tpb;
 	local_work_size[0] = tp.genB.tpb;
 
@@ -192,8 +193,6 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	//	clFinish(commandQueue);
 	}
 
-//	clResult = clEnqueueReadBuffer(commandQueue, indexesE, CL_TRUE, indexesSize, sizeof (u32), &nedges, 0, NULL, NULL);
-//	printf("round 1 result : %d\n", nedges);
 
 	clResult = clEnqueueFillBuffer(commandQueue, indexesE, &ZERO, sizeof (int), 0, tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
@@ -369,11 +368,11 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 //		fprintf(stderr, "Host A [0]: %zu\n", hostA[0]);
 /*	cl_uint2 *tmpa = (cl_uint2*)malloc(sizeof(cl_uint2) * nedges);
 //	cudaMemcpy(tmpa, bufferB, sizeof(cl_uint2)*nedges, cudaMemcpyDeviceToHost);
-	clEnqueueReadBuffer(commandQueue, bufferB, CL_TRUE, 0, sizeof(cl_uint2) * nedges, tmpa, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, bufferB, CL_TRUE, bufB_offset, sizeof(cl_uint2) * nedges, tmpa, 0, NULL, NULL);
 	saveFile(tmpa, nedges, "result.txt");
 	free(tmpa);
-	*/
-//	printf("tail result %d\n", nedges);
+*/
+	printf("tail result %d\n", nedges);
 	return nedges;
     }
 

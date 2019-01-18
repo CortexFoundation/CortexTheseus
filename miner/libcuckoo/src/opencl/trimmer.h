@@ -33,7 +33,7 @@ typedef u64 nonce_t;
 #define NNODES ((node_t)1 << NODEBITS)
 #define NODEMASK (NNODES - 1)
 
-#define IDXSHIFT 10
+#define IDXSHIFT 12
 #define CUCKOO_SIZE (NNODES >> IDXSHIFT)
 #define CUCKOO_MASK (CUCKOO_SIZE - 1)
 // number of (least significant) key bits that survives leftshift by NODEBITS

@@ -1,6 +1,7 @@
 #pragma once
 #include "siphash.h"
 
+namespace cuckoogpu {
 #if (__CUDA_ARCH__  >= 320) // make rotate-left use funnel shifter, 3% speed gain
 typedef uint2 sip64;
 
@@ -92,4 +93,5 @@ __device__ uint64_t dipnode(const siphash_keys &sip_keys, const uint32_t nonce, 
   diphash_state v(sip_keys);
   v.hash24((nonce << 1) | uorv);
   return v.xor_lanes() & EDGEMASK;
+}
 }

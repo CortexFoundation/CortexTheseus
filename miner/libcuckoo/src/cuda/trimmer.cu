@@ -1,7 +1,7 @@
 #include <time.h>
 
 #include "trimmer.h" 
-
+#include "../siphash.cuh"
 namespace cuckoogpu {
 
 #define TROMP_SEEDA
@@ -24,7 +24,7 @@ __device__ ulonglong4 Pack4edges(const uint2 e1, const  uint2 e2, const  uint2 e
 	u64 r4 = (((u64)e4.y << 32) | ((u64)e4.x));
 	return make_ulonglong4(r1, r2, r3, r4);
 }
-
+/*
 __device__ node_t dipnode(const siphash_keys &keys, edge_t nce, u32 uorv) {
   u64 nonce = 2*nce + uorv;
   u64 v0 = keys.k0, v1 = keys.k1, v2 = keys.k2, v3 = keys.k3^ nonce;
@@ -34,7 +34,7 @@ __device__ node_t dipnode(const siphash_keys &keys, edge_t nce, u32 uorv) {
   SIPROUND; SIPROUND; SIPROUND; SIPROUND;
   return (v0 ^ v1 ^ v2  ^ v3) & EDGEMASK;
 }
-
+*/
 // ===== Above =======
 
 __device__ __forceinline__  void Increase2bCounter(u32 *ecounters, const int bucket) {
@@ -64,7 +64,7 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
         return nodes.x == 0 && nodes.y == 0;
     }
 
-
+/*
 __device__ u64 dipblock(const siphash_keys &keys, const edge_t edge, u64 *buf) {
   //diphash_state shs(keys);
   
@@ -97,7 +97,20 @@ __device__ u64 dipblock(const siphash_keys &keys, const edge_t edge, u64 *buf) {
   //return shs.xor_lanes();
   return (v0 ^ v1) ^ (v2  ^ v3);
 }
+*/
 
+__device__ u64 dipblock(const siphash_keys &keys, const edge_t edge, u64 *buf) {
+  diphash_state shs(keys);
+  edge_t edge0 = edge & ~EDGE_BLOCK_MASK;
+  u32 i;
+  for (i=0; i < EDGE_BLOCK_MASK; i++) {
+    shs.hash24(edge0 + i);
+    buf[i] = shs.xor_lanes();
+  }
+  shs.hash24(edge0 + i);
+  buf[i] = 0;
+  return shs.xor_lanes();
+}
 __device__ u32 endpoint(uint2 nodes, int uorv) {
   return uorv ? nodes.y : nodes.x;
 }
@@ -179,6 +192,7 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, ulonglong4 * __restr
   __shared__ int counters[NX];
   u64 buf[EDGE_BLOCK_SIZE];
 
+#pragma unroll
   for (int row = lid; row < NX; row += dim)
     counters[row] = 0;
   __syncthreads();
@@ -219,10 +233,15 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, ulonglong4 * __restr
     u32 grp = row * NX + col;
     for (int j = localIdx; j % TMPPERLL4; j++)
       tmp[row][j] = zero;
+    
+	if(localIdx > 0){
+	int cnt = min((int)atomicAdd(indexes + grp, localIdx), (int)(maxOut - localIdx));
     for (int i = 0; i < localIdx; i += TMPPERLL4) {
-      int cnt = min((int)atomicAdd(indexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
+//      int cnt = min((int)atomicAdd(indexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
       buffer[((u64)grp * maxOut + cnt) / TMPPERLL4] = *(ulonglong4 *)(&tmp[row][i]);
+	  cnt += TMPPERLL4;
     }
+	}
   }
 }
 	template<int maxOut, typename EdgeOut>
@@ -257,9 +276,10 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, ulonglong4 * __restr
 					int localIdx = min(FLUSHA2, counters[row]);
 					int newCount = localIdx % FLUSHA;
 					int nflush = localIdx - newCount;
-					int cnt = min((int)atomicAdd(indexes + row * NX + col, nflush), (int)(maxOut - nflush));
+					u32 grp = row * NX + col;
+					int cnt = min((int)atomicAdd(indexes + grp, nflush), (int)(maxOut - nflush));
 					for (int i = 0; i < nflush; i += TMPPERLL4)
-						buffer[((u64)(row * NX + col) * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4*)(&tmp[row][i]);
+						buffer[((u64)grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4*)(&tmp[row][i]);
 					for (int t = 0; t < newCount; t++) {
 						tmp[row][t] = tmp[row][t + nflush];
 					}
@@ -273,9 +293,13 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, ulonglong4 * __restr
 			u32 grp = row * NX + col;
 			for (int j = localIdx; j % TMPPERLL4; j++)
 			  tmp[row][j] = zero;
+
+			if(localIdx > 0){
+			  int cnt = min((int)atomicAdd(indexes + grp, localIdx), (int)(maxOut - localIdx));
 			for (int i = 0; i < localIdx; i += TMPPERLL4) {
-			  int cnt = min((int)atomicAdd(indexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
-			  buffer[((u64)grp * maxOut + cnt) / TMPPERLL4] = *(ulonglong4 *)(&tmp[row][i]);
+//			  int cnt = min((int)atomicAdd(indexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
+			  buffer[((u64)grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *)(&tmp[row][i]);
+			}
 			}
 		  }
 			
@@ -334,9 +358,14 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, ulonglong4 * __restr
 			u32 grp = row * NX + col;
 			for (int j = localIdx; j % TMPPERLL4; j++)
 			  tmp[col][j] = zero;
+			
+			if(localIdx > 0){
+			  int cnt = min((int)atomicAdd(destinationIndexes + grp, localIdx), (int)(maxOut - localIdx));
 			for (int i = 0; i < localIdx; i += TMPPERLL4) {
-			  int cnt = min((int)atomicAdd(destinationIndexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
+//			  int cnt = min((int)atomicAdd(destinationIndexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
 			  destination[((u64)grp * maxOut + cnt) / TMPPERLL4] = *(ulonglong4 *)(&tmp[col][i]);
+			  cnt += TMPPERLL4;
+			}
 			}
 		  }
         }
@@ -373,6 +402,7 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, ulonglong4 * __restr
             }
 	  }
             __syncthreads();
+
   src -= NP * NX2 * maxIn; srcIds -= NP * NX2;
   for (int i = 0; i < NP; i++, src += NX2 * maxIn, srcIds += NX2) {
     const int edgesInBucket = min(srcIds[group], maxIn);

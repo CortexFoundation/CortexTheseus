@@ -94,6 +94,7 @@ void initOne(uint32_t index, uint32_t device){
 		printf("create program error\n");
 		return;
 	}
+	printf("EDGEBITS = %d, PROOFSIZE = %d, EXPAND=%d\n", EDGEBITS, PROOFSIZE, tp.expand);
 	char options[1024] = "-I./";
 	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d  -DEXPAND=%d", EDGEBITS, PROOFSIZE, tp.expand);
 	
