@@ -236,6 +236,11 @@ func (m *Monitor) Stop() {
 	atomic.StoreInt32(&(m.terminated), 1)
 	close(m.exitCh)
 
+	var stopFilterFlag bool
+	if blockFilterErr := m.cl.Call(&stopFilterFlag, "eth_uninstallFilter", m.listenID); blockFilterErr != nil {
+		log.Error("Block filter stop | IPC eth_uninstallFilter", "error", blockFilterErr)
+	}
+
 	if err := m.fs.Close(); err != nil {
 		log.Error("Monitor File Storage Closed", "error", err)
 	}
