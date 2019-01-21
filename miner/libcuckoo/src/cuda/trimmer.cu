@@ -24,17 +24,6 @@ __device__ ulonglong4 Pack4edges(const uint2 e1, const  uint2 e2, const  uint2 e
 	u64 r4 = (((u64)e4.y << 32) | ((u64)e4.x));
 	return make_ulonglong4(r1, r2, r3, r4);
 }
-/*
-__device__ node_t dipnode(const siphash_keys &keys, edge_t nce, u32 uorv) {
-  u64 nonce = 2*nce + uorv;
-  u64 v0 = keys.k0, v1 = keys.k1, v2 = keys.k2, v3 = keys.k3^ nonce;
-  SIPROUND; SIPROUND;
-  v0 ^= nonce;
-  v2 ^= 0xff;
-  SIPROUND; SIPROUND; SIPROUND; SIPROUND;
-  return (v0 ^ v1 ^ v2  ^ v3) & EDGEMASK;
-}
-*/
 // ===== Above =======
 
 __device__ __forceinline__  void Increase2bCounter(u32 *ecounters, const int bucket) {
@@ -64,40 +53,6 @@ __device__ __forceinline__  bool Read2bCounter(u32 *ecounters, const int bucket)
         return nodes.x == 0 && nodes.y == 0;
     }
 
-/*
-__device__ u64 dipblock(const siphash_keys &keys, const edge_t edge, u64 *buf) {
-  //diphash_state shs(keys);
-  
-  u64 v0 = keys.k0, v1 = keys.k1, v2 = keys.k2, v3 = keys.k3;
-
-  edge_t edge0 = edge & ~EDGE_BLOCK_MASK;
-  u32 i;
-  for (i=0; i < EDGE_BLOCK_MASK; i++) {
-    //shs.hash24(edge0 + i);
-	  edge_t nonce = edge0 + i;
-	v3^=nonce;
-	SIPROUND; SIPROUND;
-	v0 ^= nonce;
-	v2 ^= 0xff;	
-	SIPROUND; SIPROUND; SIPROUND; SIPROUND;
-
-//    buf[i] = shs.xor_lanes();
-	buf[i] = (v0 ^ v1) ^ (v2  ^ v3);
-  }
-//  shs.hash24(edge0 + i);
-	  edge_t nonce = edge0 + i;
-    v3^=nonce;
-  SIPROUND; SIPROUND;
-  v0 ^= nonce;
-  v2 ^= 0xff;
-  SIPROUND; SIPROUND; SIPROUND; SIPROUND;
-
-//    buf[i] = shs.xor_lanes();
-  buf[i] = 0;
-  //return shs.xor_lanes();
-  return (v0 ^ v1) ^ (v2  ^ v3);
-}
-*/
 
 __device__ u64 dipblock(const siphash_keys &keys, const edge_t edge, u64 *buf) {
   diphash_state shs(keys);
@@ -235,11 +190,11 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, ulonglong4 * __restr
       tmp[row][j] = zero;
     
 	if(localIdx > 0){
-	int cnt = min((int)atomicAdd(indexes + grp, localIdx), (int)(maxOut - localIdx));
+		int tmpl = (localIdx + TMPPERLL4 - 1) / TMPPERLL4 * TMPPERLL4;
+	int cnt = min((int)atomicAdd(indexes + grp, tmpl), (int)(maxOut - tmpl));
     for (int i = 0; i < localIdx; i += TMPPERLL4) {
 //      int cnt = min((int)atomicAdd(indexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
-      buffer[((u64)grp * maxOut + cnt) / TMPPERLL4] = *(ulonglong4 *)(&tmp[row][i]);
-	  cnt += TMPPERLL4;
+      buffer[((u64)grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *)(&tmp[row][i]);
     }
 	}
   }
@@ -360,11 +315,11 @@ __global__ void Cuckaroo_SeedA(const siphash_keys &sipkeys, ulonglong4 * __restr
 			  tmp[col][j] = zero;
 			
 			if(localIdx > 0){
-			  int cnt = min((int)atomicAdd(destinationIndexes + grp, localIdx), (int)(maxOut - localIdx));
+				int tmpl = (localIdx + TMPPERLL4 - 1) / TMPPERLL4 * TMPPERLL4;
+			  int cnt = min((int)atomicAdd(destinationIndexes + grp, tmpl), (int)(maxOut - tmpl));
 			for (int i = 0; i < localIdx; i += TMPPERLL4) {
 //			  int cnt = min((int)atomicAdd(destinationIndexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
-			  destination[((u64)grp * maxOut + cnt) / TMPPERLL4] = *(ulonglong4 *)(&tmp[col][i]);
-			  cnt += TMPPERLL4;
+			  destination[((u64)grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *)(&tmp[col][i]);
 			}
 			}
 		  }
@@ -654,10 +609,12 @@ void saveFile(uint2*v, int n, char *filename){
 
         checkCudaErrors(cudaDeviceSynchronize());
 //		fprintf(stderr, "Host A [0]: %zu\n", hostA[0]);
-/*	uint2 *tmpa = (uint2*)malloc(sizeof(uint2) * hostA[0]);
-	cudaMemcpy(tmpa, bufferB, sizeof(uint2)*hostA[0], cudaMemcpyDeviceToHost);
-	saveFile(tmpa, hostA[0], "result.txt");
-	free(tmpa);*/
+/*
+   uint2 *tmpa = (uint2*)malloc(sizeof(uint2) * nedges);
+	cudaMemcpy(tmpa, bufferB, sizeof(uint2)*nedges, cudaMemcpyDeviceToHost);
+	saveFile(tmpa, nedges, "result.txt");
+	free(tmpa);
+	*/
         return nedges;
     }
 
