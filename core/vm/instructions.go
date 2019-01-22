@@ -694,33 +694,12 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		modelMeta *types.ModelMeta
 		inputMeta *types.InputMeta
 	)
+	modelMeta, modelErr := checkModel(interpreter, stack, modelAddr)
+	if modelErr != nil {
+		return nil, modelErr
+	}
+
 	var err error
-	if modelMeta, err = interpreter.evm.GetModelMeta(modelAddr); err != nil {
-		stack.push(interpreter.intPool.getZero())
-		return nil, err
-	}
-	// Model Meta is validation
-	if interpreter.evm.StateDB.Uploading(modelAddr) {
-		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
-	}
-
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0)) <= 0 {
-		return nil, errExecutionReverted
-	}
-
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
-		return nil, errMetaInfoNotMature
-	}
-
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
-		return nil, errMetaInfoExpired
-	}
-
-	if modelMeta.Gas > params.MODEL_GAS_LIMIT {
-		//return nil, errExecutionReverted
-		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
-	}
-
 	if inputMeta, err = interpreter.evm.GetInputMeta(inputAddr); err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
@@ -802,18 +781,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	return nil, nil
 }
 
-func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	_modelAddr, _inputHeaderOffset := stack.pop(), stack.pop()
-	inputBuff, inputError := interpreter.evm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
-	if inputError != nil {
-		return nil, inputError
-	}
-	inputSize := big.NewInt(int64(len(inputBuff)))
-	modelAddr := common.BigToAddress(_modelAddr)
-	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
-
-	// log.Trace(fmt.Sprintf("_inputAddr = %v", _inputAddr))
-	// inputAddr := common.BigToAddress(_inputAddr)
+func checkModel(interpreter *EVMInterpreter, stack *Stack, modelAddr common.Address) (*types.ModelMeta, error) {
 	var (
 		modelMeta *types.ModelMeta
 	)
@@ -841,6 +809,23 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 		//return nil, errExecutionReverted
 		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
 	}
+	return modelMeta, nil
+}
+
+func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	_modelAddr, _inputHeaderOffset := stack.pop(), stack.pop()
+	inputBuff, inputError := interpreter.evm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
+	if inputError != nil {
+		return nil, inputError
+	}
+	inputSize := big.NewInt(int64(len(inputBuff)))
+	modelAddr := common.BigToAddress(_modelAddr)
+	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
+
+	modelMeta, modelErr := checkModel(interpreter, stack, modelAddr)
+	if modelErr != nil {
+		return nil, modelErr
+	}
 
 	//TODO(tian) Model&Input shape should match
 	var dataSize uint64 = 1
@@ -853,9 +838,8 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 
 	output, err := interpreter.evm.InferArray(
 		modelMeta.Hash.Hex(),
-		contract.Address(),
-		common.BigToHash(_inputHeaderOffset),
 		inputBuff)
+
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
@@ -864,6 +848,55 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 
 	return nil, nil
 }
+
+/*
+func opNNForward(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	_modelAddr, _inputHeaderOffset, _outputOffset := stack.pop(), stack.pop(), stack.pop()
+	inputBuff, inputError := interpreter.evm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
+	if inputError != nil {
+		return nil, inputError
+	}
+	inputSize := big.NewInt(int64(len(inputBuff)))
+	modelAddr := common.BigToAddress(_modelAddr)
+	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
+
+	modelMeta, modelErr := checkModel(interpreter, stack, modelAddr)
+	if modelErr != nil {
+		return nil, modelErr
+	}
+
+	//TODO(tian) Model&Input shape should match
+	var dataSize uint64 = 1
+	for _, modelShape := range modelMeta.InputShape {
+		dataSize *= modelShape
+	}
+	if dataSize != inputSize.Uint64() {
+		return nil, errMetaShapeNotMatch
+	}
+
+	// label, err := interpreter.evm.InferArray(
+	// 	modelMeta.Hash.Hex(),
+	// 	contract.Address(),
+	// 	common.BigToHash(_inputHeaderOffset),
+	// 	inputBuff)
+	var err error
+	if err != nil {
+		stack.push(interpreter.intPool.getZero())
+		return nil, err
+	}
+	// TODO(tian) flatten output
+	output_placehold_len, _ := memory.GetLengthOfSolidityBytes(_outputOffset.Int64())
+	fmt.Println("output_placehold_len = ", output_placehold_len)
+	label := 1
+	output := make([]byte, output_placehold_len)
+	output[label] = 1
+	if err := memory.WriteSolidityBytes(_outputOffset.Int64(), output); err != nil {
+		return nil, err
+	}
+	stack.push(interpreter.intPool.get().SetUint64(1))
+	return nil, nil
+}
+*/
 
 func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (

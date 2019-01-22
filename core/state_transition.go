@@ -231,7 +231,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, usedQuota
 		// Inference error caused by torrent fs syncing is returned directly.
 		// This is called Built-In Torrent Fs Error
 		if synapse.CheckBuiltInTorrentFsError(vmerr) {
-			return nil, 0, 0, false, vmerr
+			return nil, 0, 0, false, ErrBuiltInTorrentFS
 		}
 
 		// The only possible consensus-error would be if there wasn't

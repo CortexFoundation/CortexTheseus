@@ -173,7 +173,6 @@ func (c *stateObject) getTrie(db Database) Trie {
 	return c.trie
 }
 
-
 // GetState returns a value in account storage.
 func (self *stateObject) GetState(db Database, key common.Hash) common.Hash {
 	value, exists := self.cachedStorage[key]
@@ -436,4 +435,3 @@ func (self *stateObject) Nonce() uint64 {
 func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
 }
-

@@ -38,7 +38,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
@@ -1186,7 +1185,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				// If Infer error and
 				// current block height less then block.BlockNumber,
 				// waiting...
-				if synapse.CheckBuiltInTorrentFsError(pErr) {
+				if pErr == ErrBuiltInTorrentFS {
 					log.Warn("Invalid Verify Block Inference", "err", pErr)
 
 					if bc.CurrentBlock().NumberU64() >= block.NumberU64() {

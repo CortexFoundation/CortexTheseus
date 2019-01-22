@@ -33,4 +33,7 @@ var (
 	// ErrNonceTooHigh is returned if the nonce of a transaction is higher than the
 	// next one expected based on the local chain.
 	ErrNonceTooHigh = errors.New("nonce too high")
+
+	// ErrBuiltInTorrentFs is returned if torrent fs havn't sync done torrent.
+	ErrBuiltInTorrentFS = errors.New("built-in torrent fs file wait")
 )

@@ -213,7 +213,7 @@ func runCmd(ctx *cli.Context) error {
 		EVMConfig: vm.Config{
 			Tracer:   tracer,
 			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
-			InferURI: "http://localhost:8827",
+			InferURI: ctx.GlobalString(InferURI.Name),
 		},
 	}
 
@@ -235,9 +235,12 @@ func runCmd(ctx *cli.Context) error {
 	}
 	tstart := time.Now()
 	var leftOverGas uint64
-
+	storageDir := "/home/wlt/data/ctxc-2333-10/warehouse"
+	if ctx.GlobalString(StorageDir.Name) != "" {
+		storageDir = ctx.GlobalString(StorageDir.Name)
+	}
 	inferServer := infer.New(infer.Config{
-		StorageDir: "/home/wlt/data/ctxc-2333-10/warehouse",
+		StorageDir: storageDir,
 		IsNotCache: false,
 	})
 

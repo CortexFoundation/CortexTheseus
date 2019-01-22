@@ -320,6 +320,17 @@ func DefaultCerebroGenesisBlock() *Genesis {
 	}
 }
 
+// DefaultTestnetGenesisBlock returns the test network genesis block.
+func DefaultTestnetGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.TestnetChainConfig,
+		Nonce:      0x0000000000000042,
+		GasLimit:   0x2fefd8,
+		Difficulty: big.NewInt(1),
+		Timestamp:  0x0,
+	}
+}
+
 // DefaultRinkebyGenesisBlock returns the Rinkeby network genesis block.
 func DefaultRinkebyGenesisBlock() *Genesis {
 	return &Genesis{

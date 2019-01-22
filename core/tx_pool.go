@@ -612,7 +612,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
 	//	fmt.Println("Has INFER operation !!!")
-		//return ErrHasInferOperation
+	//return ErrHasInferOperation
 	//}
 	return nil
 }

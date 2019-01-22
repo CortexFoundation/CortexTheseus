@@ -45,6 +45,8 @@ var CerebroBootnodes = []string{
 	"enode://3c893c87cef40b090feaad65bae4f69ba8545fd1e0d2212852d85172af6042d07a3373a5187ba93ad2f3c85562a8bac4a3f8969efbfbf4269e0239266be6136b@52.194.191.24:37566",
 }
 
+var TestnetBootnodes = []string{}
+
 // RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Rinkeby test network.
 var RinkebyBootnodes = []string{}

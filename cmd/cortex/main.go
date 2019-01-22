@@ -122,6 +122,7 @@ var (
 		// utils.DeveloperFlag,
 		// utils.DeveloperPeriodFlag,
 		utils.CerebroFlag,
+		utils.TestnetFlag,
 		// utils.LazynetFlag,
 		// utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,

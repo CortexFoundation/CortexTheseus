@@ -1,91 +1,71 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	infer "github.com/ethereum/go-ethereum/inference/synapse"
+	"github.com/ethereum/go-ethereum/inference"
+	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 )
 
-func infoHashHandler(w http.ResponseWriter, inferWork *InferWork) {
-	if inferWork.ModelHash == "" {
+func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
+	if inferWork.Model == "" {
 		RespErrorText(w, ErrModelEmpty)
 		return
 	}
-	if inferWork.InputHash == "" {
+	if inferWork.Input == "" {
 		RespErrorText(w, ErrInputEmpty)
 		return
 	}
 
-	log.Info("Infer Task", "Model Hash", inferWork.ModelHash, "Input Hash", inferWork.InputHash)
-	label, err := infer.Engine().InferByInfoHash(inferWork.ModelHash, inferWork.InputHash)
+	log.Info("Infer Task", "Model Hash", inferWork.Model, "Input Hash", inferWork.Input)
+	label, err := synapse.Engine().InferByInfoHash(inferWork.Model, inferWork.Input)
 
 	if err == nil {
 		log.Info("Infer Succeed", "result", label)
+		RespInfoText(w, label)
 	} else {
 		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, err)
-		return
 	}
-
-	RespInfoText(w, label)
 }
 
-func inputContentHandler(w http.ResponseWriter, inferWork *InferWork) {
-	if inferWork.ModelHash == "" {
+func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
+	if inferWork.Model == "" {
 		RespErrorText(w, ErrModelEmpty)
 		return
 	}
 
-	number, txIndex := inferWork.InputBlockNumber, inferWork.InputTxIndex
-	addr, slot := inferWork.InputAddress, inferWork.InputSlot
+	model, input := inferWork.Model, inferWork.Input
 
-	log.Info("Infer Work", "Model Hash", inferWork.ModelHash, "Input Address", addr, "Input Slot", slot, "Input Block Number", number)
-	var cacheKey string
-	if len(number) >= 2 && number[:2] == "0x" {
-		cacheKey = infer.RLPHashString(fmt.Sprintf("%s,%s,%s,%s,%s", inferWork.ModelHash, addr, slot, number, txIndex))
-		if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
-			RespInfoText(w, v.(uint64))
-			return
-		}
-	}
-
-	log.Debug("JSON-RPC request | ctx_getSolidityBytes", "address", addr, "slot", slot, "block number", number)
-	var inputArray hexutil.Bytes
-	if rpcErr := rpcClient.CallContext(context.Background(), &inputArray, "ctx_getSolidityBytes", addr, slot, number, txIndex); rpcErr != nil {
-		log.Warn("JSON-RPC request failed", "error", rpcErr)
-		RespErrorText(w, "JSON-RPC invoke ctx_getSolidityBytes", "error", rpcErr)
+	log.Info("Infer Work", "Model Hash", model, "Input Content", input)
+	var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
+	if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
+		log.Info("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
+		RespInfoText(w, v.([]byte))
 		return
 	}
 
 	// Fixed bugs, ctx_getSolidityBytes returns 0x which stands for state invalid
-	if len(inputArray) == 0 {
+	if len(input) == 0 {
 		log.Warn("Input content state invalid", "error", "bytes length is zero")
 		RespErrorText(w, "input bytes length is zero")
 		return
 	}
 
-	log.Debug("Infer Detail", "Input Content", inputArray.String())
-	label, err := infer.Engine().InferByInputContent(inferWork.ModelHash, inputArray)
+	label, err := synapse.Engine().InferByInputContent(model, input)
 
-	if err == nil {
-		log.Info("Infer Succeed", "result", label)
-	} else {
+	if err != nil {
 		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, err)
 		return
 	}
 
+	log.Info("Infer Succeed", "result", label)
 	if !(*IsNotCache) {
 		simpleCache.Store(cacheKey, label)
 	}
 
 	RespInfoText(w, label)
-}
-
-func defaultHandler(w http.ResponseWriter, inferWork *InferWork) {
-	RespErrorText(w, ErrInvalidInferTaskType, "type", inferWork.Type)
 }

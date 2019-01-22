@@ -12,9 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) (uint64, error) {
+func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
 	var (
-		resCh = make(chan uint64)
+		resCh = make(chan []byte)
 		errCh = make(chan error)
 	)
 
@@ -26,13 +26,13 @@ func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) (uint64, 
 	case result := <-resCh:
 		return result, nil
 	case err := <-errCh:
-		return 0, err
+		return nil, err
 	case <-s.exitCh:
-		return 0, errors.New("Synapse Engine is closed")
+		return nil, errors.New("Synapse Engine is closed")
 	}
 }
 
-func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh chan uint64, errCh chan error) {
+func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh chan []byte, errCh chan error) {
 	var (
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(string(inputInfoHash[2:]))
@@ -41,8 +41,8 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 	// Inference Cache
 	cacheKey := RLPHashString(modelHash + inputHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
-		log.Debug("Infer Success via Cache", "result", v.(uint64))
-		resCh <- v.(uint64)
+		log.Debug("Infer Success via Cache", "result", v.([]byte))
+		resCh <- v.([]byte)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 	s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
 }
 
-func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte, resCh chan uint64, errCh chan error) {
+func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte, resCh chan []byte, errCh chan error) {
 	var (
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
@@ -85,8 +85,8 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	// Inference Cache
 	cacheKey := RLPHashString(modelHash + inputHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
-		log.Debug("Infer Succeed via Cache", "result", v.(uint64))
-		resCh <- v.(uint64)
+		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
+		resCh <- v.([]byte)
 		return
 	}
 
@@ -124,9 +124,9 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 
 }
 
-func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) (uint64, error) {
+func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
 	var (
-		resCh = make(chan uint64)
+		resCh = make(chan []byte)
 		errCh = make(chan error)
 	)
 
@@ -140,9 +140,9 @@ func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte)
 	case result := <-resCh:
 		return result, nil
 	case err := <-errCh:
-		return 0, err
+		return nil, err
 	case <-s.exitCh:
-		return 0, errors.New("Synapse Engine is closed")
+		return nil, errors.New("Synapse Engine is closed")
 	}
-	return 0, nil
+	return nil, nil
 }
