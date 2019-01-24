@@ -141,21 +141,29 @@ struct edgetrimmer {
   cl_context context;
   cl_command_queue commandQueue;
   cl_program program;
+  cl_kernel kernel_seedA;
+  cl_kernel kernel_seedB1;
+  cl_kernel kernel_seedB2;
+  cl_kernel kernel_round1;
+  cl_kernel kernel_round0;
+  cl_kernel kernel_roundNA;
+  cl_kernel kernel_roundNB;
+  cl_kernel kernel_tail;
+  cl_kernel kernel_recovery;
+
   trimparams tp;
   edgetrimmer *dt;
-  size_t sizeA, sizeB;
+  size_t bufferA1_size, bufferA2_size, bufferB_size, buffer_size;
   size_t indexesSize;
-  cl_mem bufferA;
+  cl_mem bufferA1;
+  cl_mem bufferA2;
   cl_mem bufferB;
-  cl_mem bufferAB;
-  cl_mem indexesE;
-//  cl_mem indexesE2;
+  cl_mem bufferI1;
+  cl_mem bufferI2;
+  cl_mem bufferR;
   cl_mem recoveredges; //const
   u32 nedges;
-  u32 *uvnodes;
-  proof sol;
   siphash_keys sipkeys;//, *dipkeys;
-  cl_mem dipkeys;
 
   edgetrimmer(const trimparams _tp, cl_context context, cl_command_queue commandQueue, cl_program program, int selected);
 

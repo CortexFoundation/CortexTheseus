@@ -1,6 +1,7 @@
 #include "cuckoo_solver.hpp"
 #include "cuckaroo_solver.hpp"
-#include "kernel_source.h"
+//#include "kernel_source.h"
+#include "gold_miner.h"
 #include "../../miner.h"
 #include <vector>
 #include "monitor.hpp"
@@ -96,7 +97,7 @@ void initOne(uint32_t index, uint32_t device){
 	}
 	printf("EDGEBITS = %d, PROOFSIZE = %d, EXPAND=%d\n", EDGEBITS, PROOFSIZE, tp.expand);
 	char options[1024] = "-I./";
-	sprintf (options, "-I./ -DEDGEBITS=%d -DPROOFSIZE=%d  -DEXPAND=%d", EDGEBITS, PROOFSIZE, tp.expand);
+	sprintf (options, "-cl-std=CL2.0 -I./ -DEDGEBITS=%d -DPROOFSIZE=%d  -DEXPAND=%d", EDGEBITS, PROOFSIZE, tp.expand);
 	
 	buildProgram (program, &(deviceId), options);
 //	saveBinaryFile(program, deviceId);
@@ -117,7 +118,6 @@ void initOne(uint32_t index, uint32_t device){
 }
 
 void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
-    printf("thread: %d\n", getpid());
     using namespace cuckoogpu;
     using std::vector;
 

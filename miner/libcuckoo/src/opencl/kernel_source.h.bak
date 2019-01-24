@@ -222,17 +222,17 @@ inline ulong dipblock(__constant const siphash_keys *key, const edge_t edge, ulo
 	buf[i] = (v0 ^ v1) ^ (v2  ^ v3);
   }
 //  shs.hash24(edge0 + i);
-	  edge_t nonce = edge0 + i;
+	edge_t nonce = edge0 + i;
     v3^=nonce;
-  SIPROUND; SIPROUND;
-  v0 ^= nonce;
-  v2 ^= 0xff;
-  SIPROUND; SIPROUND; SIPROUND; SIPROUND;
+	SIPROUND; SIPROUND;
+	v0 ^= nonce;
+	v2 ^= 0xff;
+	SIPROUND; SIPROUND; SIPROUND; SIPROUND;
 
 //    buf[i] = shs.xor_lanes();
-  buf[i] = 0;
+	buf[i] = 0;
   //return shs.xor_lanes();
-  return (v0 ^ v1) ^ (v2  ^ v3);
+	return (v0 ^ v1) ^ (v2  ^ v3);
 }
 
 __kernel void Cuckaroo_Recovery(__constant const siphash_keys *sipkeys,__global int *indexes, __constant uint2* recoveredges) {
@@ -755,7 +755,8 @@ Tail(__global const uint2 * source, __global uchar * destination, __global const
 
 )";
 
-inline std::string get_kernel_source(){
+inline std::string get_kernel_source ()
+{
 	return kernel_source;
 }
 #endif

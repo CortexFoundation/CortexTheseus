@@ -127,27 +127,29 @@ namespace cuckoogpu
 			sols.resize (sols.size () + PROOFSIZE);
 
 			cl_int clResult;
-			clResult = clEnqueueWriteBuffer (trimmer->commandQueue, trimmer->recoveredges, CL_TRUE, 0, sizeof (cl_uint2) * PROOFSIZE, soledges, 0, NULL, NULL);
+			clResult = clEnqueueWriteBuffer (trimmer->commandQueue, trimmer->bufferR, CL_TRUE, 0, sizeof (cl_uint2) * PROOFSIZE, soledges, 0, NULL, NULL);
 			checkOpenclErrors(clResult);
 
 			int initV = 0;
-			clResult = clEnqueueFillBuffer (trimmer->commandQueue, trimmer->indexesE, &initV, sizeof (int), 0, trimmer->indexesSize, 0, NULL, NULL);
+			clResult = clEnqueueFillBuffer (trimmer->commandQueue, trimmer->bufferI2, &initV, sizeof (int), 0, trimmer->indexesSize, 0, NULL, NULL);
 			checkOpenclErrors(clResult);
 
 			clFinish (trimmer->commandQueue);
-			cl_kernel recovery_kernel = clCreateKernel (trimmer->program, "Cuckoo_Recovery", &clResult);
-			clResult |= clSetKernelArg (recovery_kernel, 0, sizeof (cl_mem), (void *) &trimmer->dipkeys);
-			clResult |= clSetKernelArg (recovery_kernel, 1, sizeof (cl_mem), (void *) &trimmer->indexesE);
-			clResult |= clSetKernelArg (recovery_kernel, 2, sizeof (cl_mem), (void *) &trimmer->recoveredges);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 0, sizeof (u32), &trimmer->sipkeys.k0);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 1, sizeof (u32), &trimmer->sipkeys.k1);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 2, sizeof (u32), &trimmer->sipkeys.k2);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 3, sizeof (u32), &trimmer->sipkeys.k3);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 4, sizeof (cl_mem), (void*)&trimmer->bufferR);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 5, sizeof (cl_mem), (void*)&trimmer->bufferI2);
 			checkOpenclErrors(clResult);
 
 			cl_event event;
 			size_t global_work_size[1], local_work_size[1];
 			global_work_size[0] = trimmer->tp.recover.blocks * trimmer->tp.recover.tpb;
 			local_work_size[0] = trimmer->tp.recover.tpb;
-			clEnqueueNDRangeKernel (trimmer->commandQueue, recovery_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
+			clEnqueueNDRangeKernel (trimmer->commandQueue, trimmer->kernel_recovery, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 			clFinish (trimmer->commandQueue);
-			clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->indexesE, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
+			clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferI2, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
 			checkOpenclErrors(clResult);
 /*
 			fprintf (stderr, "Index: %d points: [", sols.size () / PROOFSIZE);
@@ -243,9 +245,8 @@ namespace cuckoogpu
 				nedges = MAXEDGES;
 			}
 			nedges = nedges & CUCKOO_MASK;
-			size_t bufB_offset = trimmer->sizeA + trimmer->sizeB / NB - trimmer->sizeB;
-			cl_int clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferB,
-				CL_TRUE, bufB_offset, nedges * 8, edges, 0, NULL,
+			cl_int clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferA1,
+				CL_TRUE, 0, nedges * 8, edges, 0, NULL,
 				NULL);
 			checkOpenclErrors(clResult);
 
