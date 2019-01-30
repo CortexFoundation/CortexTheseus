@@ -30,7 +30,7 @@ cortex: clib
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 
-cortex-remote:
+cortex-remote: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
