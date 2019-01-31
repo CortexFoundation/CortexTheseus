@@ -353,6 +353,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	// cfg.DisableTCP = true
 	cfg.DataDir = config.DataDir
 	cfg.DisableEncryption = true
+	cfg.ExtendedHandshakeClientVersion = "Cortex Full Node - go-cortex"
+	cfg.EstablishedConnsPerTorrent = 5
+	cfg.HalfOpenConnsPerTorrent = 1
 	listenAddr := &net.TCPAddr{}
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	cfg.SetListenAddr(listenAddr.String())
