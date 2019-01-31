@@ -14,6 +14,7 @@ type Config struct {
 	DefaultTrackers string `toml:",omitempty"`
 	SyncMode        string `toml:",omitempty"`
 	TestMode        bool   `toml:",omitempty"`
+	UploadRate 	int    `toml:",omitempty"`
 }
 
 // DefaultConfig contains default settings for the storage.

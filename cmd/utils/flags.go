@@ -196,6 +196,11 @@ var (
 		Usage: "P2P storage directory",
 		Value: DirectoryString{node.DefaultStorageDir()},
 	}
+	StorageUploadRateFlag = cli.IntFlag{
+		Name:  "storage.uploadrate",
+		Usage: "P2P uoload rate limit, 0 for unlimited",
+		Value: 0,
+	}
 	StorageAddrFlag = cli.StringFlag{
 		Name:  "storage.addr",
 		Usage: "P2P storage listening interface (remote mode)",
@@ -1294,6 +1299,7 @@ func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
 func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
 	cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+	cfg.UploadRate = ctx.GlobalInt(StorageUploadRateFlag.Name)
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""

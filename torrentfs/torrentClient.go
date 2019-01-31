@@ -21,6 +21,7 @@ import (
 	"github.com/anacrolix/torrent/mmap_span"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/ethereum/go-ethereum/log"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -356,6 +357,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cfg.ExtendedHandshakeClientVersion = "Cortex Full Node - go-cortex"
 	cfg.EstablishedConnsPerTorrent = 10
 	cfg.HalfOpenConnsPerTorrent = 0
+	if (config.UploadRate != 0) {
+		cfg.UploadRateLimiter = rate.NewLimiter(rate.Every(time.Duration(config.UploadRate)), 0)
+	}
 	listenAddr := &net.TCPAddr{}
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	cfg.SetListenAddr(listenAddr.String())
