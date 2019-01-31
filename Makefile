@@ -29,6 +29,11 @@ cortex: clib
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+bootnode:
+	build/env.sh go run build/ci.go install -remote_infer ./cmd/bootnode
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+	#mv ./build/bin/bootnode ./build/bin/bootnode
 
 cortex-remote:
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex

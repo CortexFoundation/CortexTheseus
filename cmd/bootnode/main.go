@@ -83,7 +83,6 @@ func main() {
 			utils.Fatalf("-nodekeyhex: %v", err)
 		}
 	}
-
 	if *writeAddr {
 		fmt.Printf("%v\n", discover.PubkeyID(&nodeKey.PublicKey))
 		os.Exit(0)
@@ -101,6 +100,7 @@ func main() {
 	if err != nil {
 		utils.Fatalf("-ResolveUDPAddr: %v", err)
 	}
+
 	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		utils.Fatalf("-ListenUDP: %v", err)
@@ -131,6 +131,5 @@ func main() {
 			utils.Fatalf("%v", err)
 		}
 	}
-
 	select {}
 }
