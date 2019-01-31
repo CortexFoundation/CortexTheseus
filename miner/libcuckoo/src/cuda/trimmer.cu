@@ -85,7 +85,6 @@ namespace cuckoogpu
 		const int nthreads = blockDim.x * gridDim.x;
 		const int loops = NEDGES / nthreads;
 		__shared__ u32 nonces[PROOFSIZE];
-		u64 buf[EDGE_BLOCK_SIZE];
 
 		if (lid < PROOFSIZE)
 			nonces[lid] = 0;
@@ -93,10 +92,23 @@ namespace cuckoogpu
 		for (int blk = 0; blk < loops; blk += EDGE_BLOCK_SIZE)
 		{
 			u32 nonce0 = gid * loops + blk;
-			const u64 last = dipblock (sipkeys, nonce0, buf);
-			for (int i = 0; i < EDGE_BLOCK_SIZE; i++)
+			diphash_state shs(sipkeys);
+			edge_t edge0 = nonce0 & ~EDGE_BLOCK_MASK;
+			u32 i;
+			for(i = 0; i < EDGE_BLOCK_SIZE; i++){
+				shs.hash24(edge0 + i);
+			}
+			const u64 last = shs.xor_lanes();
+
+			diphash_state shs2(sipkeys);
+			for (i = 0; i < EDGE_BLOCK_SIZE; i++)
 			{
-				u64 edge = buf[i] ^ last;
+				u64 edge;
+				if(i == EDGE_BLOCK_MASK) edge = last;
+				else{
+					shs2.hash24(edge0 + i);
+					edge = shs2.xor_lanes() ^ last;
+				}
 				u32 u = edge & EDGEMASK;
 				u32 v = (edge >> 32) & EDGEMASK;
 				for (int p = 0; p < PROOFSIZE; p++)
@@ -144,11 +156,8 @@ namespace cuckoogpu
 		}
 	}
 
-#ifndef FLUSHA					// should perhaps be in trimparams and passed as template parameter
-#define FLUSHA 16
-#endif
 
-	template < int maxOut > __global__ void Cuckaroo_SeedA (const siphash_keys & sipkeys, ulonglong4 * __restrict__ buffer, int *__restrict__ indexes)
+	template < int maxOut > __global__ void Cuckaroo_SeedA (const siphash_keys & sipkeys, ulonglong4* __restrict__ buffer, int *__restrict__ indexes)
 	{
 		const int group = blockIdx.x;
 		const int dim = blockDim.x;
@@ -160,7 +169,6 @@ namespace cuckoogpu
 		__shared__ uint2 tmp[NX][FLUSHA2];	// needs to be ulonglong4 aligned
 		const int TMPPERLL4 = sizeof (ulonglong4) / sizeof (uint2);
 		__shared__ int counters[NX];
-		u64 buf[EDGE_BLOCK_SIZE];
 
 #pragma unroll
 		for (int row = lid; row < NX; row += dim)
@@ -172,16 +180,31 @@ namespace cuckoogpu
 		for (int blk = 0; blk < loops; blk += EDGE_BLOCK_SIZE)
 		{
 			u32 nonce0 = gid * loops + blk;
-			const u64 last = dipblock (sipkeys, nonce0, buf);
-			for (u32 e = 0; e < EDGE_BLOCK_SIZE; e++)
+			diphash_state shs(sipkeys);
+			edge_t edge0 = nonce0 & ~EDGE_BLOCK_MASK;
+			u32 i;
+			for(i = 0; i < EDGE_BLOCK_SIZE; i++){
+				shs.hash24(edge0 + i);
+			}
+			const u64 last = shs.xor_lanes();
+
+			diphash_state shs2(sipkeys);
+			u32 e;
+			for (e = 0; e < EDGE_BLOCK_SIZE; e++)
 			{
-				u64 edge = buf[e] ^ last;
+				u64 edge;
+				if(e == EDGE_BLOCK_MASK) edge = last;
+				else {
+					shs2.hash24(edge0 + e);
+					edge = shs2.xor_lanes() ^ last;
+				}
 				u32 node0 = edge & EDGEMASK;
 				u32 node1 = (edge >> 32) & EDGEMASK;
 				int row = node0 >> YZBITS;
 				int counter = min ((int) atomicAdd (counters + row, 1), (int) (FLUSHA2 - 1));	// assuming ROWS_LIMIT_LOSSES checked
 				tmp[row][counter] = make_uint2 (node0, node1);
 				__syncthreads ();
+				
 				if (counter == FLUSHA - 1)
 				{
 					int localIdx = min (FLUSHA2, counters[row]);
@@ -189,7 +212,11 @@ namespace cuckoogpu
 					int nflush = localIdx - newCount;
 					u32 grp = row * NX + col;
 					int cnt = min ((int) atomicAdd (indexes + grp, nflush), (int) (maxOut - nflush));
-					for (int i = 0; i < nflush; i += TMPPERLL4)
+#pragma unroll
+					for(int i = 0; i < FLUSHA; i += TMPPERLL4){
+						buffer[((u64) grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *) (&tmp[row][i]);
+					}
+					for (int i = FLUSHA; i < nflush; i += TMPPERLL4)
 					{
 						buffer[((u64) grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *) (&tmp[row][i]);
 					}
@@ -199,6 +226,17 @@ namespace cuckoogpu
 					}
 					counters[row] = newCount;
 				}
+			
+				/*
+				if(lid < NX){
+					int grp = lid * NX + col;
+					int lc = min(FLUSHA2, counters[lid]);
+					int cnt = min((int)atomicAdd(indexes + grp, lc), (int)maxOut - lc);
+					for(int i = 0; i < lc; i++){
+						buffer[grp*maxOut + cnt + i] = tmp[lid][i];
+					}
+					counters[lid] = 0;
+				}*/
 				__syncthreads ();
 			}
 		}
@@ -334,7 +372,11 @@ namespace cuckoogpu
 				int nflush = localIdx - newCount;
 				u32 grp = row * NX + col;
 				int cnt = min ((int) atomicAdd (destinationIndexes + grp, nflush), (int) (maxOut - nflush));
-				for (int i = 0; i < nflush; i += TMPPERLL4)
+#pragma unroll
+				for(int i = 0; i < FLUSHB; i+= TMPPERLL4){
+					destination[((u64) grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *) (&tmp[col][i]);
+				}
+				for (int i = FLUSHB; i < nflush; i += TMPPERLL4)
 					destination[((u64) grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *) (&tmp[col][i]);
 				for (int t = 0; t < newCount; t++)
 				{
@@ -525,7 +567,6 @@ namespace cuckoogpu
 	{
 		const int lid = threadIdx.x;
 		const int group = blockIdx.x;
-		const int dim = blockDim.x;
 		int myEdges = sourceIndexes[group];
 		__shared__ int destIdx;
 
@@ -771,7 +812,7 @@ namespace cuckoogpu
 #endif
 
 		checkCudaErrors (cudaDeviceSynchronize ());
-//      fprintf(stderr, "Host A [0]: %zu\n", hostA[0]);
+//      fprintf(stderr, "nedges: %zu\n", nedges);
 /*
    uint2 *tmpa = (uint2*)malloc(sizeof(uint2) * nedges);
 	cudaMemcpy(tmpa, bufferB, sizeof(uint2)*nedges, cudaMemcpyDeviceToHost);

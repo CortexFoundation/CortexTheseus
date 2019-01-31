@@ -57,10 +57,10 @@ const static u32 NZ        = 1 << ZBITS;
 const u32 ZMASK     = NZ - 1;
 
 #ifndef NEPS_A
-#define NEPS_A 133
+#define NEPS_A 128
 #endif
 #ifndef NEPS_B
-#define NEPS_B 88
+#define NEPS_B 85
 #endif
 #define NEPS 128
 
@@ -120,7 +120,7 @@ struct trimparams {
     expand              =    0;
     ntrims              =  176;
     genA.blocks         = 4096;
-    genA.tpb            =  128;
+    genA.tpb            =  256;
     genB.blocks         =  NX2;
     genB.tpb            =  128;
     trim.blocks         =  NX2;

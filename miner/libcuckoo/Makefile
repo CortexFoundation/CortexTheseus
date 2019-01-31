@@ -29,9 +29,9 @@ siphash.o: src/siphash.cc src/siphash.h
 
 
 cudaN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/cuda/miner.cu src/cuda/trimmer.cu src/cuda/monitor.hpp Makefile
-	nvcc -std=c++11 -O3 -c -o $@.trimmer.o -rdc=true -DEDGEBITS=29 -DPROOFSIZE=42 -arch sm_35 -D_FORCE_INLINES src/cuda/trimmer.cu $(LIBS)
+	nvcc -std=c++11 -O3 -c -o $@.trimmer.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 -D_FORCE_INLINES src/cuda/trimmer.cu $(LIBS)
 #	nvcc -g -c -o $@.solver.o -rdc=true -DEDGEBITS=29 -DPROOFSIZE=12 -arch sm_35 src/cuda/solver.hpp $(LIBS)
-	nvcc -std=c++11 -O3 -c -o $@.miner.o -rdc=true -DEDGEBITS=29 -DPROOFSIZE=42 -arch sm_35 -D_FORCE_INLINES src/cuda/miner.cu $(LIBS) -lnvidia-ml
+	nvcc -std=c++11 -O3 -c -o $@.miner.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 -D_FORCE_INLINES src/cuda/miner.cu $(LIBS) -lnvidia-ml
 	nvcc -ccbin g++ -O3 -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -D_FORCE_INLINES -rdc=true -dlink -o $@ $@.miner.o $@.trimmer.o
 
 openclN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/opencl/miner.cpp src/opencl/trimmer.cpp src/opencl/monitor.hpp Makefile
