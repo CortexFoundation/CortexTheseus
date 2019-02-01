@@ -188,15 +188,15 @@ namespace cuckoogpu
 			}
 			const u64 last = shs.xor_lanes();
 
-			shs.set(sipkeys);
+			diphash_state shs2(sipkeys);
 			u32 e;
 			for (e = 0; e < EDGE_BLOCK_SIZE; e++)
 			{
 				u64 edge;
 				if(e == EDGE_BLOCK_MASK) edge = last;
 				else {
-					shs.hash24(edge0 + e);
-					edge = shs.xor_lanes() ^ last;
+					shs2.hash24(edge0 + e);
+					edge = shs2.xor_lanes() ^ last;
 				}
 				u32 node0 = edge & EDGEMASK;
 				u32 node1 = (edge >> 32) & EDGEMASK;
@@ -400,6 +400,7 @@ namespace cuckoogpu
 				int cnt = min ((int) atomicAdd (destinationIndexes + grp, tmpl), (int) (maxOut - tmpl));
 				for (int i = 0; i < localIdx; i += TMPPERLL4)
 				{
+//            int cnt = min((int)atomicAdd(destinationIndexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
 					destination[((u64) grp * maxOut + cnt + i) / TMPPERLL4] = *(ulonglong4 *) (&tmp[col][i]);
 				}
 			}

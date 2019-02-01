@@ -60,7 +60,7 @@ const u32 ZMASK     = NZ - 1;
 #define NEPS_A 128
 #endif
 #ifndef NEPS_B
-#define NEPS_B 85
+#define NEPS_B 84
 #endif
 #define NEPS 128
 

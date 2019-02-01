@@ -118,15 +118,15 @@ struct trimparams {
 
   trimparams() {
     expand              =    0;
-    ntrims              =  176;
-    genA.blocks         = 4096;
-    genA.tpb            =  256;
-    genB.blocks         =  NX2;
+    ntrims              =  80;
+    genA.blocks         = 2048;
+    genA.tpb            =  128;
+    genB.blocks         =  1024;
     genB.tpb            =  128;
-    trim.blocks         =  NX2;//NX2;
-    trim.tpb            =  256;//512;
-    tail.blocks         =  NX2;
-    tail.tpb            = 256;//1024;
+    trim.blocks         =  4096;//NX2;
+    trim.tpb            =  256;
+    tail.blocks         =  4096;
+    tail.tpb            = 256;
     recover.blocks      = 1024;//1024;
     recover.tpb         = 256;//1024;
   }

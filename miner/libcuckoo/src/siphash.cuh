@@ -64,6 +64,9 @@ public:
   __device__ diphash_state(const siphash_keys &sk) {
     v0 = vectorize(sk.k0); v1 = vectorize(sk.k1); v2 = vectorize(sk.k2); v3 = vectorize(sk.k3);
   }
+  __device__ void set(const siphash_keys &sk) {
+    v0 = vectorize(sk.k0); v1 = vectorize(sk.k1); v2 = vectorize(sk.k2); v3 = vectorize(sk.k3);
+  }
   __device__ uint64_t xor_lanes() {
     return devectorize((v0 ^ v1) ^ (v2  ^ v3));
   }

@@ -17,19 +17,9 @@ typedef ulong u64;
 typedef u32 node_t;
 typedef u64 nonce_t;
 
-#define DUCK_SIZE_A 129L
-#define DUCK_SIZE_B 83L
+//#define EDGEBITS 29
+//#define PROOFSIZE 42
 
-#define DUCK_A_EDGES (DUCK_SIZE_A * 1024L)
-#define DUCK_A_EDGES_64 (DUCK_A_EDGES * 64L)
-
-#define DUCK_B_EDGES (DUCK_SIZE_B * 1024L)
-#define DUCK_B_EDGES_64 (DUCK_B_EDGES * 64L)
-
-#define EDGE_BLOCK_SIZE (64)
-#define EDGE_BLOCK_MASK (EDGE_BLOCK_SIZE - 1)
-
-#define EDGEBITS 29
 // number of edges
 #define NEDGES ((node_t)1 << EDGEBITS)
 // used to mask siphash output
@@ -38,6 +28,24 @@ typedef u64 nonce_t;
 #define CTHREADS 1024
 #define BKTMASK4K (4096-1)
 #define BKTGRAN 32
+
+#define DUCK_SIZE_A 129L
+#define DUCK_SIZE_B 83L
+
+#define XBITS 6
+#define YBITS 6
+#define ZBITS (EDGEBITS - 12)
+#define SUB_BUCKET_SIZE (1 << (ZBITS - 7))
+
+#define DUCK_A_EDGES (DUCK_SIZE_A * SUB_BUCKET_SIZE)
+#define DUCK_A_EDGES_64 (DUCK_A_EDGES * 64L)
+
+#define DUCK_B_EDGES (DUCK_SIZE_B * SUB_BUCKET_SIZE)
+#define DUCK_B_EDGES_64 (DUCK_B_EDGES * 64L)
+
+#define EDGE_BLOCK_SIZE (64)
+#define EDGE_BLOCK_MASK (EDGE_BLOCK_SIZE - 1)
+
 
 #define SIPROUND \
 	  do { \
@@ -69,7 +77,7 @@ bool Read2bCounter (__local u32 * ecounters, const int bucket)
 	return (ecounters[word + 4096] & mask) > 0;
 }
 
-__attribute__ ((reqd_work_group_size (128, 1, 1)))
+//__attribute__ ((reqd_work_group_size (128, 1, 1)))
 __kernel void FluffySeed2A (const u64 v0i, const u64 v1i, const u64 v2i, const u64 v3i, __global ulong4 * bufferA, __global ulong4 * bufferB, __global u32 * indexes)
 {
 	const int gid = get_global_id (0);
@@ -89,10 +97,11 @@ __kernel void FluffySeed2A (const u64 v0i, const u64 v1i, const u64 v2i, const u
 		counters[lid] = 0;
 
 	barrier (CLK_LOCAL_MEM_FENCE);
+	const int loops = NEDGES / (get_global_size(0));
 
-	for (int i = 0; i < 1024 * 2; i += EDGE_BLOCK_SIZE)
+	for (int i = 0; i < loops; i += EDGE_BLOCK_SIZE)
 	{
-		u64 blockNonce = gid * (1024 * 2) + i;
+		u64 blockNonce = gid * loops + i;
 
 		v0 = v0i;
 		v1 = v1i;
@@ -120,7 +129,7 @@ __kernel void FluffySeed2A (const u64 v0i, const u64 v1i, const u64 v2i, const u
 			uint2 hash = (uint2) (lookup & EDGEMASK, (lookup >> 32) & EDGEMASK);
 			int bucket = hash.x & 63;
 
-			barrier (CLK_LOCAL_MEM_FENCE);
+			//barrier (CLK_LOCAL_MEM_FENCE);
 
 			int counter = atomic_add (counters + bucket, (u32) 1);
 			int counterLocal = counter % 16;
@@ -161,12 +170,13 @@ __kernel void FluffySeed2A (const u64 v0i, const u64 v1i, const u64 v2i, const u
 
 }
 
-__attribute__ ((reqd_work_group_size (128, 1, 1)))
+//__attribute__ ((reqd_work_group_size (128, 1, 1)))
 __kernel void FluffySeed2B (const __global uint2 * source, __global ulong4 * destination1, __global ulong4 * destination2, const __global int *sourceIndexes, __global int *destinationIndexes,
 	int startBlock)
 {
 	const int lid = get_local_id (0);
 	const int group = get_group_id (0);
+	const int group_size = get_local_size(0);
 
 	__global ulong4 *destination = destination1;
 	__local u64 tmp[64][16];
@@ -183,7 +193,7 @@ __kernel void FluffySeed2B (const __global uint2 * source, __global ulong4 * des
 	const int microBlockNo = group % BKTGRAN;
 	const int bucketEdges = min (sourceIndexes[myBucket + startBlock], (int) (DUCK_A_EDGES_64));
 	const int microBlockEdgesCount = (DUCK_A_EDGES_64 / BKTGRAN);
-	const int loops = (microBlockEdgesCount / 128);
+	const int loops = (microBlockEdgesCount / group_size);
 
 	if ((startBlock == 32) && (myBucket >= 30))
 	{
@@ -194,7 +204,7 @@ __kernel void FluffySeed2B (const __global uint2 * source, __global ulong4 * des
 
 	for (int i = 0; i < loops; i++)
 	{
-		int edgeIndex = (microBlockNo * microBlockEdgesCount) + (128 * i) + lid;
+		int edgeIndex = (microBlockNo * microBlockEdgesCount) + (group_size * i) + lid;
 
 		{
 			uint2 edge = source[ /*offsetMem + */ (myBucket * DUCK_A_EDGES_64) + edgeIndex];
@@ -242,12 +252,13 @@ __kernel void FluffySeed2B (const __global uint2 * source, __global ulong4 * des
 	}
 }
 
-__attribute__ ((reqd_work_group_size (1024, 1, 1)))
+//__attribute__ ((reqd_work_group_size (256, 1, 1)))
 __kernel void FluffyRound1 (const __global uint2 * source1, const __global uint2 * source2, __global uint2 * destination, const __global int *sourceIndexes, __global int *destinationIndexes,
 	const int bktInSize, const int bktOutSize)
 {
 	const int lid = get_local_id (0);
 	const int group = get_group_id (0);
+	const int group_size = get_local_size(0);
 
 	const __global uint2 *source = group < (62 * 64) ? source1 : source2;
 	int groupRead = group < (62 * 64) ? group : group - (62 * 64);
@@ -255,16 +266,16 @@ __kernel void FluffyRound1 (const __global uint2 * source1, const __global uint2
 	__local u32 ecounters[8192];
 
 	const int edgesInBucket = min (sourceIndexes[group], bktInSize);
-	const int loops = (edgesInBucket + CTHREADS) / CTHREADS;
+	const int loops = (edgesInBucket + group_size) / group_size;
 
-	for (int i = 0; i < 8; i++)
-		ecounters[lid + (1024 * i)] = 0;
+	for (int i = 0; i < 8192/group_size; i++)
+		ecounters[lid + (group_size * i)] = 0;
 
 	barrier (CLK_LOCAL_MEM_FENCE);
 
 	for (int i = 0; i < loops; i++)
 	{
-		const int lindex = (i * CTHREADS) + lid;
+		const int lindex = (i * group_size) + lid;
 
 		if (lindex < edgesInBucket)
 		{
@@ -284,7 +295,7 @@ __kernel void FluffyRound1 (const __global uint2 * source1, const __global uint2
 
 	for (int i = 0; i < loops; i++)
 	{
-		const int lindex = (i * CTHREADS) + lid;
+		const int lindex = (i * group_size) + lid;
 
 		if (lindex < edgesInBucket)
 		{
@@ -306,133 +317,7 @@ __kernel void FluffyRound1 (const __global uint2 * source1, const __global uint2
 
 }
 
-__attribute__ ((reqd_work_group_size (1024, 1, 1)))
-__kernel void FluffyRoundN (const __global uint2 * source, __global uint2 * destination, const __global int *sourceIndexes, __global int *destinationIndexes)
-{
-	const int lid = get_local_id (0);
-	const int group = get_group_id (0);
-
-	const int bktInSize = DUCK_B_EDGES;
-	const int bktOutSize = DUCK_B_EDGES;
-
-	__local u32 ecounters[8192];
-
-	const int edgesInBucket = min (sourceIndexes[group], bktInSize);
-	const int loops = (edgesInBucket + CTHREADS) / CTHREADS;
-
-	for (int i = 0; i < 8; i++)
-		ecounters[lid + (1024 * i)] = 0;
-
-	barrier (CLK_LOCAL_MEM_FENCE);
-
-	for (int i = 0; i < loops; i++)
-	{
-		const int lindex = (i * CTHREADS) + lid;
-
-		if (lindex < edgesInBucket)
-		{
-
-			const int index = (bktInSize * group) + lindex;
-
-			uint2 edge = source[index];
-
-			if (edge.x == 0 && edge.y == 0)
-				continue;
-
-			Increase2bCounter (ecounters, (edge.x & EDGEMASK) >> 12);
-		}
-	}
-
-	barrier (CLK_LOCAL_MEM_FENCE);
-
-	for (int i = 0; i < loops; i++)
-	{
-		const int lindex = (i * CTHREADS) + lid;
-
-		if (lindex < edgesInBucket)
-		{
-			const int index = (bktInSize * group) + lindex;
-
-			uint2 edge = source[index];
-
-			if (edge.x == 0 && edge.y == 0)
-				continue;
-
-			if (Read2bCounter (ecounters, (edge.x & EDGEMASK) >> 12))
-			{
-				const int bucket = edge.y & BKTMASK4K;
-				const int bktIdx = min (atomic_add (destinationIndexes + bucket, 1), bktOutSize - 1);
-				destination[(bucket * bktOutSize) + bktIdx] = (uint2) (edge.y, edge.x);
-			}
-		}
-	}
-
-}
-
-__attribute__ ((reqd_work_group_size (64, 1, 1)))
-__kernel void FluffyRoundN_64 (const __global uint2 * source, __global uint2 * destination, const __global int *sourceIndexes, __global int *destinationIndexes)
-{
-	const int lid = get_local_id (0);
-	const int group = get_group_id (0);
-
-	const int bktInSize = DUCK_B_EDGES;
-	const int bktOutSize = DUCK_B_EDGES;
-
-	__local u32 ecounters[8192];
-
-	const int edgesInBucket = min (sourceIndexes[group], bktInSize);
-	const int loops = (edgesInBucket + 64) / 64;
-
-	for (int i = 0; i < 8 * 16; i++)
-		ecounters[lid + (64 * i)] = 0;
-
-	barrier (CLK_LOCAL_MEM_FENCE);
-
-	for (int i = 0; i < loops; i++)
-	{
-		const int lindex = (i * 64) + lid;
-
-		if (lindex < edgesInBucket)
-		{
-
-			const int index = (bktInSize * group) + lindex;
-
-			uint2 edge = source[index];
-
-			if (edge.x == 0 && edge.y == 0)
-				continue;
-
-			Increase2bCounter (ecounters, (edge.x & EDGEMASK) >> 12);
-		}
-	}
-
-	barrier (CLK_LOCAL_MEM_FENCE);
-
-	for (int i = 0; i < loops; i++)
-	{
-		const int lindex = (i * 64) + lid;
-
-		if (lindex < edgesInBucket)
-		{
-			const int index = (bktInSize * group) + lindex;
-
-			uint2 edge = source[index];
-
-			if (edge.x == 0 && edge.y == 0)
-				continue;
-
-			if (Read2bCounter (ecounters, (edge.x & EDGEMASK) >> 12))
-			{
-				const int bucket = edge.y & BKTMASK4K;
-				const int bktIdx = min (atomic_add (destinationIndexes + bucket, 1), bktOutSize - 1);
-				destination[(bucket * bktOutSize) + bktIdx] = (uint2) (edge.y, edge.x);
-			}
-		}
-	}
-
-}
-
-__attribute__ ((reqd_work_group_size (1024, 1, 1)))
+//__attribute__ ((reqd_work_group_size (256, 1, 1)))
 __kernel void FluffyTail (const __global uint2 * source, __global uint2 * destination, const __global int *sourceIndexes, __global int *destinationIndexes)
 {
 	const int lid = get_local_id (0);
@@ -452,13 +337,13 @@ __kernel void FluffyTail (const __global uint2 * source, __global uint2 * destin
 	}
 }
 
-__attribute__ ((reqd_work_group_size (256, 1, 1)))
+//__attribute__ ((reqd_work_group_size (256, 1, 1)))
 __kernel void FluffyRecovery (const u64 v0i, const u64 v1i, const u64 v2i, const u64 v3i, const __constant u64 * recovery, __global int *indexes)
 {
 	const int gid = get_global_id (0);
 	const short lid = get_local_id (0);
 
-	__local u32 nonces[42];
+	__local u32 nonces[PROOFSIZE];
 	u64 sipblock[64];
 
 	u64 v0;
@@ -466,14 +351,15 @@ __kernel void FluffyRecovery (const u64 v0i, const u64 v1i, const u64 v2i, const
 	u64 v2;
 	u64 v3;
 
-	if (lid < 42)
+	if (lid < PROOFSIZE)
 		nonces[lid] = 0;
 
 	barrier (CLK_LOCAL_MEM_FENCE);
 
-	for (int i = 0; i < 1024; i += EDGE_BLOCK_SIZE)
+	const int loops = NEDGES / get_global_size(0);
+	for (int i = 0; i < loops; i += EDGE_BLOCK_SIZE)
 	{
-		u64 blockNonce = gid * 1024 + i;
+		u64 blockNonce = gid * loops + i;
 
 		v0 = v0i;
 		v1 = v1i;
@@ -506,7 +392,7 @@ __kernel void FluffyRecovery (const u64 v0i, const u64 v1i, const u64 v2i, const
 			u64 a = u | (v << 32);
 			u64 b = v | (u << 32);
 
-			for (int i = 0; i < 42; i++)
+			for (int i = 0; i < PROOFSIZE; i++)
 			{
 				if ((recovery[i] == a) || (recovery[i] == b))
 					nonces[i] = blockNonce + s;
@@ -516,7 +402,7 @@ __kernel void FluffyRecovery (const u64 v0i, const u64 v1i, const u64 v2i, const
 
 	barrier (CLK_LOCAL_MEM_FENCE);
 
-	if (lid < 42)
+	if (lid < PROOFSIZE)
 	{
 		if (nonces[lid] > 0)
 			indexes[lid] = nonces[lid];
@@ -525,11 +411,12 @@ __kernel void FluffyRecovery (const u64 v0i, const u64 v1i, const u64 v2i, const
 
 #define BKT_OFFSET 255
 #define BKT_STEP 32
-__attribute__ ((reqd_work_group_size (1024, 1, 1)))
+//__attribute__ ((reqd_work_group_size (256, 1, 1)))
 __kernel void FluffyRoundNO1 (const __global uint2 * source, __global uint2 * destination, const __global int *sourceIndexes, __global int *destinationIndexes)
 {
 	const int lid = get_local_id (0);
 	const int group = get_group_id (0);
+	const int group_size = get_local_size(0);
 
 	const int bktInSize = DUCK_B_EDGES;
 	const int bktOutSize = DUCK_B_EDGES;
@@ -537,16 +424,16 @@ __kernel void FluffyRoundNO1 (const __global uint2 * source, __global uint2 * de
 	__local u32 ecounters[8192];
 
 	const int edgesInBucket = min (sourceIndexes[group], bktInSize);
-	const int loops = (edgesInBucket + CTHREADS) / CTHREADS;
+	const int loops = (edgesInBucket + group_size) / group_size;
 
-	for (int i = 0; i < 8; i++)
-		ecounters[lid + (1024 * i)] = 0;
+	for (int i = 0; i < 8192/group_size; i++)
+		ecounters[lid + (group_size * i)] = 0;
 
 	barrier (CLK_LOCAL_MEM_FENCE);
 
 	for (int i = 0; i < loops; i++)
 	{
-		const int lindex = (i * CTHREADS) + lid;
+		const int lindex = (i * group_size) + lid;
 
 		if (lindex < edgesInBucket)
 		{
@@ -566,7 +453,7 @@ __kernel void FluffyRoundNO1 (const __global uint2 * source, __global uint2 * de
 
 	for (int i = 0; i < loops; i++)
 	{
-		const int lindex = (i * CTHREADS) + lid;
+		const int lindex = (i * group_size) + lid;
 
 		if (lindex < edgesInBucket)
 		{
@@ -588,11 +475,12 @@ __kernel void FluffyRoundNO1 (const __global uint2 * source, __global uint2 * de
 
 }
 
-__attribute__ ((reqd_work_group_size (1024, 1, 1)))
+//__attribute__ ((reqd_work_group_size (256, 1, 1)))
 __kernel void FluffyRoundNON (const __global uint2 * source, __global uint2 * destination, const __global int *sourceIndexes, __global int *destinationIndexes)
 {
 	const int lid = get_local_id (0);
 	const int group = get_group_id (0);
+	const int group_size = get_local_size(0);
 
 	const int bktInSize = DUCK_B_EDGES;
 	const int bktOutSize = DUCK_B_EDGES;
@@ -600,16 +488,16 @@ __kernel void FluffyRoundNON (const __global uint2 * source, __global uint2 * de
 	__local u32 ecounters[8192];
 
 	const int edgesInBucket = min (sourceIndexes[group], bktInSize);
-	const int loops = (edgesInBucket + CTHREADS) / CTHREADS;
+	const int loops = (edgesInBucket + group_size) / group_size;
 
-	for (int i = 0; i < 8; i++)
-		ecounters[lid + (1024 * i)] = 0;
+	for (int i = 0; i < 8192/group_size; i++)
+		ecounters[lid + (group_size * i)] = 0;
 
 	barrier (CLK_LOCAL_MEM_FENCE);
 
 	for (int i = 0; i < loops; i++)
 	{
-		const int lindex = (i * CTHREADS) + lid;
+		const int lindex = (i * group_size) + lid;
 
 		if (lindex < edgesInBucket)
 		{
@@ -629,7 +517,7 @@ __kernel void FluffyRoundNON (const __global uint2 * source, __global uint2 * de
 
 	for (int i = 0; i < loops; i++)
 	{
-		const int lindex = (i * CTHREADS) + lid;
+		const int lindex = (i * group_size) + lid;
 
 		if (lindex < edgesInBucket)
 		{
@@ -651,7 +539,7 @@ __kernel void FluffyRoundNON (const __global uint2 * source, __global uint2 * de
 
 }
 
-__attribute__ ((reqd_work_group_size (1024, 1, 1)))
+//__attribute__ ((reqd_work_group_size (256, 1, 1)))
 __kernel void FluffyTailO (const __global uint2 * source, __global uint2 * destination, const __global int *sourceIndexes, __global int *destinationIndexes)
 {
 	const int lid = get_local_id (0);

@@ -90,8 +90,8 @@ namespace cuckoogpu
 
 				cl_event event;
 				size_t global_work_size[1], local_work_size[1];
-				global_work_size[0] = 2048 * 256;
-				local_work_size[0] = 256;
+				global_work_size[0] = trimmer->tp.recover.blocks * trimmer->tp.recover.tpb;
+				local_work_size[0] = trimmer->tp.recover.tpb;
 				clEnqueueNDRangeKernel (trimmer->commandQueue, trimmer->kernel_recovery, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 				clFinish (trimmer->commandQueue);
 				clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferI2, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);

@@ -8,6 +8,7 @@ namespace cuckoogpu {
 #define DUCK_B_EDGES_NX (DUCK_B_EDGES * NX)
 #define DUCK_SIZE_A  129
 #define DUCK_SIZE_B  83
+#define SUB_BUCKET_SIZE (1<<(ZBITS - 7))
 
 int com(const void *a, const void *b){
 	cl_uint2 va = *(cl_uint2*)a;
@@ -36,10 +37,10 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	tp = _tp;
 
 	cl_int clResult;
-	bufferA1_size =  DUCK_SIZE_A * 1024 * (4096-128) * 2;
-	bufferA2_size = DUCK_SIZE_A * 1024 * 256 * 2;
-	bufferB_size = DUCK_SIZE_B * 1024 * 4096 * 2;
-	buffer_size = (DUCK_SIZE_A + DUCK_SIZE_B) * 1024 * 4096 * 2;
+	bufferA1_size =  DUCK_SIZE_A * SUB_BUCKET_SIZE  * (4096-128) * 2;
+	bufferA2_size = DUCK_SIZE_A * SUB_BUCKET_SIZE  * 256 * 2;
+	bufferB_size = DUCK_SIZE_B * SUB_BUCKET_SIZE * 4096 * 2;
+	buffer_size = (DUCK_SIZE_A + DUCK_SIZE_B) * SUB_BUCKET_SIZE * 4096 * 2;
 
 	bufferA1 = clCreateBuffer(context, CL_MEM_READ_WRITE, bufferA1_size * sizeof(uint), NULL, &clResult);
 	checkOpenclErrors(clResult);
@@ -51,7 +52,7 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	checkOpenclErrors(clResult);
 	bufferI2 = clCreateBuffer(context, CL_MEM_READ_WRITE, indexesSize * sizeof(uint), NULL, &clResult);
 	checkOpenclErrors(clResult);
-	bufferR = clCreateBuffer(context, CL_MEM_READ_WRITE, 42*2*sizeof(uint), NULL, &clResult);
+	bufferR = clCreateBuffer(context, CL_MEM_READ_WRITE, PROOFSIZE*2*sizeof(uint), NULL, &clResult);
 	checkOpenclErrors(clResult);
 
 	kernel_seedA = clCreateKernel(program, "FluffySeed2A", &clResult);
@@ -75,7 +76,7 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 }
 
     u64 edgetrimmer::globalbytes() const {
-		return bufferA1_size + bufferA2_size + bufferB_size + indexesSize * 2;
+		return (bufferA1_size + bufferA2_size + bufferB_size + indexesSize * 2) * sizeof(uint);
     }
     edgetrimmer::~edgetrimmer() {
 		clReleaseMemObject(bufferA1);
@@ -104,8 +105,8 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 //seedA
 	size_t global_work_size[1];
 	size_t local_work_size[1];
-	global_work_size[0] = 2048 * 128;
-	local_work_size[0] = 128;
+	global_work_size[0] = tp.genA.blocks * tp.genA.tpb;
+	local_work_size[0] = tp.genA.tpb;
 	clResult |= clSetKernelArg(kernel_seedA, 0, sizeof (u64), &sipkeys.k0);
 	clResult |= clSetKernelArg(kernel_seedA, 1, sizeof (u64), &sipkeys.k1);
 	clResult |= clSetKernelArg(kernel_seedA, 2, sizeof (u64),  &sipkeys.k2);
@@ -118,8 +119,8 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	checkOpenclErrors(clResult);
 
 //seedB1
-	global_work_size[0] = 1024 * 128;
-	local_work_size[0] = 128;
+	global_work_size[0] = tp.genB.blocks * tp.genB.tpb;
+	local_work_size[0] = tp.genB.tpb;
 	u32 generic_param = 32;
 	clResult |= clSetKernelArg(kernel_seedB1, 0, sizeof (cl_mem), (void *) &bufferA1);
 	clResult |= clSetKernelArg(kernel_seedB1, 1, sizeof (cl_mem), (void *) &bufferA1);
@@ -132,8 +133,8 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	checkOpenclErrors(clResult);
 
 //seedB2
-	global_work_size[0] = 1024 * 128;
-	local_work_size[0] = 128;
+	global_work_size[0] = tp.genB.blocks * tp.genB.tpb;
+	local_work_size[0] = tp.genB.tpb;
 	generic_param = 0;
 	clResult |= clSetKernelArg(kernel_seedB2, 0, sizeof (cl_mem), (void *) &bufferB);
 	clResult |= clSetKernelArg(kernel_seedB2, 1, sizeof (cl_mem), (void *) &bufferA1);
@@ -149,10 +150,10 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	checkOpenclErrors(clResult);
 
 //round1
-	global_work_size[0] = 4096 * 1024;
-	local_work_size[0] = 1024;
-	u32 edges_a = DUCK_SIZE_A * 1024;
-	u32 edges_b = DUCK_SIZE_B * 1024;
+	global_work_size[0] = tp.trim.blocks * tp.trim.tpb;
+	local_work_size[0] = tp.trim.tpb;
+	u32 edges_a = DUCK_SIZE_A * SUB_BUCKET_SIZE;
+	u32 edges_b = DUCK_SIZE_B * SUB_BUCKET_SIZE;
 	clResult |= clSetKernelArg(kernel_round1, 0, sizeof (cl_mem), (void *) &bufferA1);
 	clResult |= clSetKernelArg(kernel_round1, 1, sizeof (cl_mem), (void *) &bufferA2);
 	clResult |= clSetKernelArg(kernel_round1, 2, sizeof (cl_mem), (void *) &bufferB);
@@ -168,8 +169,6 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	checkOpenclErrors(clResult);
 
 //round0
-	global_work_size[0] = 4096 * 1024;
-	local_work_size[0] = 1024;
 	clResult |= clSetKernelArg(kernel_round0, 0, sizeof (cl_mem), (void *) &bufferB);
 	clResult |= clSetKernelArg(kernel_round0, 1, sizeof (cl_mem), (void *) &bufferA1);
 	clResult |= clSetKernelArg(kernel_round0, 2, sizeof (cl_mem), (void *) &bufferI1);
@@ -216,8 +215,8 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	clResult = clEnqueueFillBuffer(commandQueue, bufferI2, &ZERO, sizeof (int), 0, tmpSize, 0, NULL, NULL);
 	checkOpenclErrors(clResult);
 //tail
-	global_work_size[0] = 4096 * 1024;
-	local_work_size[0] = 1024;
+	global_work_size[0] = tp.tail.blocks * tp.tail.tpb;
+	local_work_size[0] = tp.tail.tpb;
 	clResult |= clSetKernelArg(kernel_tail, 0, sizeof (cl_mem), (void *) &bufferB);
 	clResult |= clSetKernelArg(kernel_tail, 1, sizeof (cl_mem), (void *) &bufferA1);
 	clResult |= clSetKernelArg(kernel_tail, 2, sizeof (cl_mem), (void *) &bufferI1);
