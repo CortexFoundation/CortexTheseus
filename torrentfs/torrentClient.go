@@ -352,11 +352,20 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
 	// cfg.DisableTCP = true
+	// cfg.DisableUTP = true
+	cfg.NoDefaultPortForwarding = true
 	cfg.DataDir = config.DataDir
 	cfg.DisableEncryption = true
 	cfg.ExtendedHandshakeClientVersion = "Cortex Full Node - go-cortex"
-	cfg.EstablishedConnsPerTorrent = 10
-	cfg.HalfOpenConnsPerTorrent = 0
+	cfg.EstablishedConnsPerTorrent = 2
+	cfg.HalfOpenConnsPerTorrent = 4
+	// cfg.NoDHT = true
+	cfg.DisableAggressiveUpload = true
+	cfg.TorrentPeersLowWater = 1
+	cfg.TorrentPeersHighWater = 2
+	// cfg.NoUpload = true
+	// cfg.ProxyURL = "socks5://127.0.0.1:12345"
+	// cfg.DhtStartingNodes = nil
 	if (config.UploadRate != 0) {
 		cfg.UploadRateLimiter = rate.NewLimiter(rate.Every(time.Duration(config.UploadRate)), 0)
 	}
