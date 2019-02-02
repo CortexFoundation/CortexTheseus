@@ -55,8 +55,15 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	bufferR = clCreateBuffer(context, CL_MEM_READ_WRITE, PROOFSIZE*2*sizeof(uint), NULL, &clResult);
 	checkOpenclErrors(clResult);
 
-	kernel_seedA = clCreateKernel(program, "FluffySeed2A", &clResult);
-	checkOpenclErrors(clResult);
+	if(this->selected == 0){
+		kernel_seedA = clCreateKernel(program, "Cuckoo_FluffySeed2A", &clResult);
+		kernel_recovery = clCreateKernel(program, "Cuckoo_FluffyRecovery", &clResult);
+	}else{
+		kernel_seedA = clCreateKernel(program, "FluffySeed2A", &clResult);
+		checkOpenclErrors(clResult);
+		kernel_recovery = clCreateKernel(program, "FluffyRecovery", &clResult);
+		checkOpenclErrors(clResult);
+	}
 	kernel_seedB1 = clCreateKernel(program, "FluffySeed2B", &clResult);
 	checkOpenclErrors(clResult);
 	kernel_seedB2 = clCreateKernel(program, "FluffySeed2B", &clResult);
@@ -71,8 +78,7 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	checkOpenclErrors(clResult);
 	kernel_tail = clCreateKernel(program, "FluffyTailO", &clResult);
 	checkOpenclErrors(clResult);
-	kernel_recovery = clCreateKernel(program, "FluffyRecovery", &clResult);
-	checkOpenclErrors(clResult);
+
 }
 
     u64 edgetrimmer::globalbytes() const {

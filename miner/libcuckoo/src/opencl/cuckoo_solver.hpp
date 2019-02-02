@@ -135,10 +135,10 @@ namespace cuckoogpu
 			checkOpenclErrors(clResult);
 
 			clFinish (trimmer->commandQueue);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 0, sizeof (u32), &trimmer->sipkeys.k0);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 1, sizeof (u32), &trimmer->sipkeys.k1);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 2, sizeof (u32), &trimmer->sipkeys.k2);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 3, sizeof (u32), &trimmer->sipkeys.k3);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 0, sizeof (u64), &trimmer->sipkeys.k0);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 1, sizeof (u64), &trimmer->sipkeys.k1);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 2, sizeof (u64), &trimmer->sipkeys.k2);
+				clResult |= clSetKernelArg (trimmer->kernel_recovery, 3, sizeof (u64), &trimmer->sipkeys.k3);
 				clResult |= clSetKernelArg (trimmer->kernel_recovery, 4, sizeof (cl_mem), (void*)&trimmer->bufferR);
 				clResult |= clSetKernelArg (trimmer->kernel_recovery, 5, sizeof (cl_mem), (void*)&trimmer->bufferI2);
 			checkOpenclErrors(clResult);

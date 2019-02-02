@@ -276,8 +276,8 @@ func (cm *Cortex) miningOnce() {
 							nonceStr := common.Uint64ToHexString(uint64(curNonce))
 							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 							var ok int
-							var edgebits uint8 = 29
-							var proofsize uint8 = 42
+							var edgebits uint8 = 28
+							var proofsize uint8 = 12
 							if cm.miner_algorithm == 0 {
 								ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
 							} else {
@@ -427,7 +427,6 @@ func main() {
 		}
 		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), 0, 0, 0, 0})
 	}
-	fmt.Println(deviceNum)
 	if help {
 		fmt.Println("Usage:\ngo run miner.go -r remote -a account -c gpu\nexample:go run miner.go -r localhost:8009 -a 0xc3d7a1ef810983847510542edfd5bc5551a6321c")
 	} else {

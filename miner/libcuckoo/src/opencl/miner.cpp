@@ -95,7 +95,7 @@ void initOne(uint32_t index, uint32_t device){
 		printf("create program error\n");
 		return;
 	}
-	printf("EDGEBITS = %d, PROOFSIZE = %d, EXPAND=%d\n", EDGEBITS, PROOFSIZE, tp.expand);
+//	printf("EDGEBITS = %d, PROOFSIZE = %d, EXPAND=%d\n", EDGEBITS, PROOFSIZE, tp.expand);
 	char options[1024] = "-I./";
 	sprintf (options, "-cl-std=CL2.0 -I./ -DEDGEBITS=%d -DPROOFSIZE=%d  -DEXPAND=%d", EDGEBITS, PROOFSIZE, tp.expand);
 	
@@ -109,12 +109,13 @@ void initOne(uint32_t index, uint32_t device){
 	assert (tp.tail.tpb <= maxThreadsPerBlock);
 	assert (tp.recover.tpb <= maxThreadsPerBlock);
 	ctx[index]->init(tp, device, context, commandQueue, program);
-    printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
-    u64 bytes = ctx[index]->trimmer->globalbytes();
+  //  printf("50%% edges, %d*%d buckets, %d trims, and %d thread blocks.\n", NX, NY, tp.ntrims, NX);
+  //  u64 bytes = ctx[index]->trimmer->globalbytes();
 
-    int unit;
+  /*  int unit;
     for (unit=0; bytes >= 10240; bytes>>=10,unit++);
     printf("Using %d%cB of global memory.\n", (u32)bytes, " KMGT"[unit]);
+    */
 }
 
 void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {

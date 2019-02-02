@@ -77,6 +77,77 @@ bool Read2bCounter (__local u32 * ecounters, const int bucket)
 	return (ecounters[word + 4096] & mask) > 0;
 }
 
+inline u32 dipnode(const u64 v0i, const u64 v1i, const u64 v2i, const u64 v3i, const u32 uorv, const u64 nce){
+	u64 nonce = 2 * nce + uorv;
+	u64 v0 = v0i, v1 = v1i, v2 = v2i, v3 =v3i ^ nonce;	
+	for(int i = 0; i < 2; i++)
+		SIPROUND;
+	v0 ^= nonce;
+	v2 ^= 0xff;
+	for(int i = 0; i < 4; i++)
+		SIPROUND;
+	return (v0 ^ v1 ^ v2 ^ v3) & EDGEMASK;
+}
+
+__kernel void Cuckoo_FluffySeed2A (const u64 v0i, const u64 v1i, const u64 v2i, const u64 v3i, __global ulong4 * bufferA, __global ulong4 * bufferB, __global u32 * indexes)
+{
+	const int gid = get_global_id (0);
+	const short lid = get_local_id (0);
+
+	__global ulong4 *buffer;
+	__local u64 tmp[64][16];
+	__local u32 counters[64];
+
+	if (lid < 64)
+		counters[lid] = 0;
+
+	barrier (CLK_LOCAL_MEM_FENCE);
+	const int loops = NEDGES / (get_global_size(0));
+
+	for (int i = 0; i < loops; i++)
+	{
+		u64 nonce = gid * loops + i;
+		u32 node0 = dipnode(v0i, v1i, v2i, v3i, 0, nonce);
+		u32 node1 = dipnode(v0i, v1i, v2i, v3i, 1, nonce);
+		int bucket = node0 & 63;
+
+		int counter = atomic_add (counters + bucket, (u32) 1);
+		int counterLocal = counter % 16;
+		tmp[bucket][counterLocal] = node0 |  ((u64)node1 <<32);
+
+		barrier (CLK_LOCAL_MEM_FENCE);
+
+		if ((counter > 0) && (counterLocal == 0 || counterLocal == 8))
+		{
+			int cnt = min ((int) atomic_add (indexes + bucket, 8), (int) (DUCK_A_EDGES_64 - 8));
+			int idx = ((bucket < 32 ? bucket : bucket - 32) * DUCK_A_EDGES_64 + cnt) / 4;
+			buffer = bucket < 32 ? bufferA : bufferB;
+
+			buffer[idx] = (ulong4) (atom_xchg (&tmp[bucket][8 - counterLocal], (u64) 0),
+				atom_xchg (&tmp[bucket][9 - counterLocal], (u64) 0), atom_xchg (&tmp[bucket][10 - counterLocal], (u64) 0), atom_xchg (&tmp[bucket][11 - counterLocal], (u64) 0));
+			buffer[idx + 1] = (ulong4) (atom_xchg (&tmp[bucket][12 - counterLocal], (u64) 0),
+				atom_xchg (&tmp[bucket][13 - counterLocal], (u64) 0), atom_xchg (&tmp[bucket][14 - counterLocal], (u64) 0), atom_xchg (&tmp[bucket][15 - counterLocal], (u64) 0));
+		}
+
+	}
+
+	barrier (CLK_LOCAL_MEM_FENCE);
+
+	if (lid < 64)
+	{
+		int counter = counters[lid];
+		int counterBase = (counter % 16) >= 8 ? 8 : 0;
+		int counterCount = (counter % 8);
+		for (int i = 0; i < (8 - counterCount); i++)
+			tmp[lid][counterBase + counterCount + i] = 0;
+		int cnt = min ((int) atomic_add (indexes + lid, 8), (int) (DUCK_A_EDGES_64 - 8));
+		int idx = ((lid < 32 ? lid : lid - 32) * DUCK_A_EDGES_64 + cnt) / 4;
+		buffer = lid < 32 ? bufferA : bufferB;
+		buffer[idx] = (ulong4) (tmp[lid][counterBase], tmp[lid][counterBase + 1], tmp[lid][counterBase + 2], tmp[lid][counterBase + 3]);
+		buffer[idx + 1] = (ulong4) (tmp[lid][counterBase + 4], tmp[lid][counterBase + 5], tmp[lid][counterBase + 6], tmp[lid][counterBase + 7]);
+	}
+
+}
 //__attribute__ ((reqd_work_group_size (128, 1, 1)))
 __kernel void FluffySeed2A (const u64 v0i, const u64 v1i, const u64 v2i, const u64 v3i, __global ulong4 * bufferA, __global ulong4 * bufferB, __global u32 * indexes)
 {
@@ -86,7 +157,7 @@ __kernel void FluffySeed2A (const u64 v0i, const u64 v1i, const u64 v2i, const u
 	__global ulong4 *buffer;
 	__local u64 tmp[64][16];
 	__local u32 counters[64];
-	u64 sipblock[64];
+//	u64 sipblock[64];
 
 	u64 v0;
 	u64 v1;
@@ -118,14 +189,28 @@ __kernel void FluffySeed2A (const u64 v0i, const u64 v1i, const u64 v2i, const u
 			for (int r = 0; r < 4; r++)
 				SIPROUND;
 
-			sipblock[b] = (v0 ^ v1) ^ (v2 ^ v3);
+//			sipblock[b] = (v0 ^ v1) ^ (v2 ^ v3);
 
 		}
-		u64 last = sipblock[EDGE_BLOCK_MASK];
+//		u64 last = sipblock[EDGE_BLOCK_MASK];
+		u64 last = (v0 ^ v1) ^ (v2 ^ v3);
+		v0 = v0i; v1 = v1i; v2 = v2i; v3 = v3i;
 
 		for (short s = 0; s < EDGE_BLOCK_SIZE; s++)
 		{
-			u64 lookup = s == EDGE_BLOCK_MASK ? last : sipblock[s] ^ last;
+			u64 lookup;
+			if(s == EDGE_BLOCK_MASK) lookup = last;
+			else{
+				v3 ^= blockNonce + s;
+				for (int r = 0; r < 2; r++)
+					SIPROUND;
+				v0 ^= blockNonce + s;
+				v2 ^= 0xff;
+				for (int r = 0; r < 4; r++)
+					SIPROUND;
+				lookup = ((v0 ^ v1) ^ (v2 ^ v3)) ^ last;
+			}
+			//u64 lookup = s == EDGE_BLOCK_MASK ? last : sipblock[s] ^ last;
 			uint2 hash = (uint2) (lookup & EDGEMASK, (lookup >> 32) & EDGEMASK);
 			int bucket = hash.x & 63;
 
@@ -334,6 +419,49 @@ __kernel void FluffyTail (const __global uint2 * source, __global uint2 * destin
 	if (lid < myEdges)
 	{
 		destination[destIdx + lid] = source[group * DUCK_B_EDGES + lid];
+	}
+}
+
+__kernel void Cuckoo_FluffyRecovery (const u64 v0i, const u64 v1i, const u64 v2i, const u64 v3i, const __constant u64 * recovery, __global int *indexes)
+{
+	const int gid = get_global_id (0);
+	const short lid = get_local_id (0);
+
+	__local u32 nonces[PROOFSIZE];
+	u64 sipblock[64];
+
+
+	if (lid < PROOFSIZE)
+		nonces[lid] = 0;
+
+	barrier (CLK_LOCAL_MEM_FENCE);
+
+	const int loops = NEDGES / get_global_size(0);
+	for (int i = 0; i < loops; i += 1)
+	{
+		u64 nonce = gid * loops + i;
+		u32 node0 = dipnode(v0i, v1i, v2i, v3i, 0, nonce);
+		u32 node1 = dipnode(v0i, v1i, v2i, v3i, 1, nonce);
+
+		u64 u = node0;//lookup & EDGEMASK;
+		u64 v = node1;//(lookup >> 32) & EDGEMASK;
+
+		u64 a = u | (v << 32);
+		u64 b = v | (u << 32);
+
+		for (int i = 0; i < PROOFSIZE; i++)
+		{
+			if ((recovery[i] == a) || (recovery[i] == b))
+				nonces[i] = nonce;
+		}
+	}
+
+	barrier (CLK_LOCAL_MEM_FENCE);
+
+	if (lid < PROOFSIZE)
+	{
+		if (nonces[lid] > 0)
+			indexes[lid] = nonces[lid];
 	}
 }
 

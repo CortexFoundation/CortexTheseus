@@ -119,7 +119,7 @@ struct trimparams {
   trimparams() {
     expand              =    0;
     ntrims              =  80;
-    genA.blocks         = 2048;
+    genA.blocks         = 4096;
     genA.tpb            =  128;
     genB.blocks         =  1024;
     genB.tpb            =  128;
