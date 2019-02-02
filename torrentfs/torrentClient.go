@@ -21,6 +21,7 @@ import (
 	"github.com/anacrolix/torrent/mmap_span"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 const (
@@ -350,9 +351,11 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 // NewTorrentManager ...
 func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
-	// cfg.DisableTCP = true
+	// (TODO) some network device may not support utp protocol, which results in burst of latency
+	cfg.DisableUTP = true
 	cfg.DataDir = config.DataDir
 	cfg.DisableEncryption = true
+	cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
 	listenAddr := &net.TCPAddr{}
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	cfg.SetListenAddr(listenAddr.String())
