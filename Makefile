@@ -93,9 +93,12 @@ clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
 
-clean-all: clean
+clean-clib:
 	make -C $(LIB_MINER_DIR) clean
 	make -C $(INFER_NET_DIR) clean
+	
+.PHONY: clean-all
+clean-all: clean-clib clean
 
 # The devtools target installs tools required for 'go generate'.
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.
