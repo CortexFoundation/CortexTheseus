@@ -18,11 +18,6 @@ opencl-miner:
 	go build -o build/bin/opencl_miner -tags opencl ./cmd/miner 
 	@echo "Done building."
 
-cuckaroo-miner: 
-	make -C ${LIB_CUCKOO_DIR} cuckaroo
-	go build -o build/bin/cuckaroo_miner -tags cuckaroo ./cmd/miner 
-	@echo "Done building."
-
 clean:
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
 	go clean -cache

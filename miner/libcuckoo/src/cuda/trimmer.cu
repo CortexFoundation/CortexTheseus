@@ -78,7 +78,7 @@ namespace cuckoogpu
 
 	__constant__ uint2 recoveredges[PROOFSIZE];
 
-	__global__ void Cuckaroo_Recovery (const siphash_keys & sipkeys, ulonglong4 * buffer, int *indexes)
+	__global__ void Cuckaroo_Recovery (const siphash_keys & sipkeys, int *indexes)
 	{
 		const int gid = blockDim.x * blockIdx.x + threadIdx.x;
 		const int lid = threadIdx.x;
@@ -121,12 +121,13 @@ namespace cuckoogpu
 		__syncthreads ();
 		if (lid < PROOFSIZE)
 		{
-			if (nonces[lid] > 0)
+			if (nonces[lid] > 0){
 				indexes[lid] = nonces[lid];
+			}
 		}
 	}
 
-	__global__ void Cuckoo_Recovery (const siphash_keys & sipkeys, ulonglong4 * buffer, int *indexes)
+	__global__ void Cuckoo_Recovery (const siphash_keys & sipkeys, int *indexes)
 	{
 		const int gid = blockDim.x * blockIdx.x + threadIdx.x;
 		const int lid = threadIdx.x;
@@ -609,7 +610,9 @@ namespace cuckoogpu
 		tp = _tp;
 
 		cudaSetDevice (_deviceId);
+		this->deviceId = deviceId;
 		checkCudaErrors (cudaMalloc ((void **) &dipkeys, sizeof (siphash_keys)));
+		checkCudaErrors (cudaMalloc ((void **) &dipkeys2, sizeof (siphash_keys)));
 
 		for (int i = 0; i < NB + 1; i++)
 		{
@@ -625,6 +628,7 @@ namespace cuckoogpu
 		checkCudaErrors (cudaMalloc ((void **) &bufferA, bufferSize));
 		bufferB = bufferA + (bufferSize - sizeB);
 		bufferAB = bufferA + sizeB / NB;
+		checkCudaErrors(cudaMalloc((void**)&uvnodes, indexesSize));
 //      bufferB  = bufferA + sizeA / sizeof(ulonglong4);
 //        bufferAB = bufferA + sizeB / sizeof(ulonglong4);
 	}

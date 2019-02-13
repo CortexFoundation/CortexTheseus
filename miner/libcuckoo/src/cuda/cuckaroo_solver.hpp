@@ -46,7 +46,7 @@ struct cuckaroo_solver_ctx : public solver_ctx{
     delete cg;
   }
 
-  int findcycles(uint2 *edges, u32 nedges) {
+  int findcycles(u32 nedges) {
     cg->reset();
     for (u32 i = 0; i < nedges; i++){
       cg->add_compress_edge(edges[i].x, edges[i].y);
@@ -55,18 +55,18 @@ struct cuckaroo_solver_ctx : public solver_ctx{
       // print_log("Solution");
       for (u32 j = 0; j < PROOFSIZE; j++) {
         soledges[j] = edges[cg->sols[s][j]];
-        // print_log(" (%x, %x)", soledges[j].x, soledges[j].y);
+//        print_log(" (%u, %u)", soledges[j].x, soledges[j].y);
       }
       // print_log("\n");
       sols.resize(sols.size() + PROOFSIZE);
-      cudaMemcpyToSymbol(recoveredges, soledges, sizeof(soledges));
-      cudaMemset(trimmer->indexesE[1], 0, trimmer->indexesSize);
-      Cuckaroo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys, (ulonglong4*)trimmer->bufferA, (int *)trimmer->indexesE[1]);
-      cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->indexesE[1], PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost);
+      checkCudaErrors(cudaMemcpyToSymbol(recoveredges, soledges, sizeof(soledges)));
+//      cudaMemset(trimmer->indexesE[1], 0, trimmer->indexesSize);
+      Cuckaroo_Recovery<<<trimmer->tp.recover.blocks, trimmer->tp.recover.tpb>>>(*trimmer->dipkeys2, (int *)trimmer->uvnodes);
+      checkCudaErrors(cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->uvnodes, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost));
       checkCudaErrors(cudaDeviceSynchronize());
       qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), cg->nonce_cmp);
     }
-    return 0;
+    return sols.size() / PROOFSIZE;
   }
   int solve() {
     // u32 timems,timems2;
@@ -85,11 +85,13 @@ struct cuckaroo_solver_ctx : public solver_ctx{
     // gettimeofday(&time1, 0);
     // timems = (time1.tv_sec-time0.tv_sec)*1000 + (time1.tv_usec-time0.tv_usec)/1000;
     // gettimeofday(&time0, 0);
-    findcycles(edges, nedges);
+//    findcycles(nedges);
     // gettimeofday(&time1, 0);
     // timems2 = (time1.tv_sec-time0.tv_sec)*1000 + (time1.tv_usec-time0.tv_usec)/1000;
     // printf("findcycles edges %d time %d ms total %d ms\n", nedges, timems2, timems+timems2);
-    return sols.size() / PROOFSIZE;
+  //  return sols.size() / PROOFSIZE;
+  	checkCudaErrors(cudaMemcpy(trimmer->dipkeys2, trimmer->dipkeys, sizeof(siphash_keys), cudaMemcpyDeviceToDevice));
+  	return nedges;
   }
 };
 

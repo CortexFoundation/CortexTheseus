@@ -35,6 +35,7 @@ type Connection struct {
 type DeviceId struct {
 	lock           sync.Mutex
 	deviceId       uint32
+	start_time	int64
 	use_time       int64
 	solution_count int64
 	hash_rate      float32
@@ -185,22 +186,6 @@ func (cm *Cortex) Mining() {
 	}
 }
 
-func (cm *Cortex) printFanAndTemp() {
-	var fanSpeeds []uint32
-	var temperatures []uint32
-	var devCount = len(cm.deviceIds)
-	fanSpeeds, temperatures = libcuckoo.Monitor(uint32(devCount))
-	var s string = ""
-	for dev := 0; dev < devCount; dev++ {
-		var dev_id = cm.deviceIds[dev].deviceId
-		s = fmt.Sprintf("\033[0;34;40m%sGPU%d t=%dC fan=%d%%", s, dev_id, temperatures[dev], fanSpeeds[dev])
-		if dev < devCount-1 {
-			s = fmt.Sprintf("%s, ", s)
-		}
-	}
-	log.Println(s, "\033[0m")
-}
-
 func (cm *Cortex) printHashRate() {
 	var devCount = len(cm.deviceIds)
 	var fanSpeeds []uint32
@@ -226,12 +211,21 @@ func (cm *Cortex) miningOnce() {
 		Lock  sync.Mutex
 		TaskQ Task
 	}
+	type StreamData struct{
+		nedges uint32
+		threadId uint32
+		Difficulty string
+		nonce uint64
+		header []byte
+	}
 
 	var currentTask TaskWrapper
 	var taskHeader, taskNonce, taskDifficulty string
 	var THREAD uint = (uint)(len(cm.deviceIds))
 	rand.Seed(time.Now().UTC().UnixNano())
 	solChan := make(chan Task, THREAD)
+	nedgesChan := make(chan StreamData, THREAD)
+
 	for nthread := 0; nthread < int(THREAD); nthread++ {
 		go func(tidx uint32, currentTask_ *TaskWrapper) {
 			for {
@@ -245,61 +239,19 @@ func (cm *Cortex) miningOnce() {
 					time.Sleep(100 * time.Millisecond)
 					continue
 				}
-				tgtDiff := common.HexToHash(task.Difficulty[2:])
+				//tgtDiff := common.HexToHash(task.Difficulty[2:])
 				header, _ := hex.DecodeString(task.Header[2:])
-				var result common.BlockSolution
 				curNonce := uint64(rand.Int63())
-				// fmt.Println("task: ", header[:], curNonce)
 				cm.deviceIds[tidx].lock.Lock()
-				var start_time int64 = time.Now().UnixNano() / 1e6
-				status, sols := libcuckoo.FindSolutionsByGPU(header, curNonce, tidx)
-				end_time := time.Now().UnixNano() / 1e6
-				cm.deviceIds[tidx].use_time += (end_time - start_time)
-				cm.deviceIds[tidx].solution_count += int64(len(sols))
-				cm.deviceIds[tidx].gps += 1
-				start_time = end_time
+				var nedges uint32 = libcuckoo.FindSolutionsByGPU(header, curNonce, tidx)
+				nedgesChan <- StreamData{nedges:nedges, threadId:tidx, Difficulty:task.Difficulty, nonce:curNonce, header:header}
 				cm.deviceIds[tidx].lock.Unlock()
-				if status != 0 {
-					//if verboseLevel >= 3 {
-					//	log.Println("result: ", status, sols)
-					//}
-					for _, solUint32 := range sols {
-						var sol common.BlockSolution
-						copy(sol[:], solUint32)
-						sha3hash := common.BytesToHash(crypto.Sha3Solution(&sol))
-						//if verboseLevel >= 3 {
-						//	log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
-						//}
-						if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
-							//log.Println("Target Difficulty satisfied")
-							result = sol
-							nonceStr := common.Uint64ToHexString(uint64(curNonce))
-							digest := common.Uint32ArrayToHexString([]uint32(result[:]))
-							var ok int
-							var edgebits uint8 = 28
-							var proofsize uint8 = 12
-							if cm.miner_algorithm == 0 {
-								ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
-							} else {
-								ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], proofsize, edgebits)
-							}
-							if ok != 1 {
-								log.Println("verify failed", header[:], curNonce, &sol)
-							} else {
-								log.Println("verify successed", header[:], curNonce, &sol)
-								solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
-							}
-						}
-					}
-				}
-
 			}
 		}(uint32(nthread), &currentTask)
 	}
 
 	cm.getWork()
 
-	//	iter := 1
 	go func(currentTask_ *TaskWrapper) {
 		for {
 			msg := cm.read()
@@ -323,14 +275,6 @@ func (cm *Cortex) miningOnce() {
 				if len(workInfo) >= 3 {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
 					log.Println("Get Work: ", taskHeader, taskDifficulty)
-					//					cm.is_new_work = true
-
-					/*		if iter%2 == 0 {
-								cm.printFanAndTemp()
-								iter = 0
-							}
-							iter += 1
-					*/
 					currentTask_.Lock.Lock()
 					currentTask_.TaskQ.Nonce = taskNonce
 					currentTask_.TaskQ.Header = taskHeader
@@ -348,6 +292,59 @@ func (cm *Cortex) miningOnce() {
 			time.Sleep(2 * time.Second)
 		}
 	}()
+	go func() {
+		for {
+			select {
+				case streamData := <-nedgesChan:
+					tidx := streamData.threadId
+//					log.Println(streamData)
+					status, sols := libcuckoo.FindCycles(tidx, streamData.nedges)
+					end_time := time.Now().UnixNano() / 1e6
+					cm.deviceIds[tidx].use_time = (end_time - cm.deviceIds[tidx].start_time)
+					cm.deviceIds[tidx].solution_count += int64(len(sols))
+					cm.deviceIds[tidx].gps += 1
+					tgtDiff := common.HexToHash(streamData.Difficulty[2:])
+					var result common.BlockSolution
+					curNonce := streamData.nonce
+					header := streamData.header
+					if status != 0 {
+						//if verboseLevel >= 3 {
+						//	log.Println("result: ", status, sols)
+						//}
+						for _, solUint32 := range sols {
+							var sol common.BlockSolution
+							copy(sol[:], solUint32)
+							sha3hash := common.BytesToHash(crypto.Sha3Solution(&sol))
+							//if verboseLevel >= 3 {
+							//	log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+							//}
+					//		log.Println(tgtDiff.Big(), sha3hash.Big())
+							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+								result = sol
+								nonceStr := common.Uint64ToHexString(uint64(curNonce))
+								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
+								var ok int
+								var edgebits uint8 = 29
+								var proofsize uint8 = 42
+								if cm.miner_algorithm == 0 {
+									ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
+								} else {
+									ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], proofsize, edgebits)
+								}
+								if ok != 1 {
+									log.Println("verify failed", header[:], curNonce, &sol)
+								} else {
+									log.Println("verify successed", header[:], curNonce, &sol)
+									solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
+								}
+							}
+						}
+					}
+				default:
+					time.Sleep(50 * time.Millisecond)
+			}
+		}
+	}()
 
 	for {
 		if cm.consta.state == false {
@@ -363,7 +360,7 @@ func (cm *Cortex) miningOnce() {
 			}
 
 		default:
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }
@@ -418,6 +415,7 @@ func main() {
 	var strDeviceIds []string = strings.Split(strDeviceId, ",")
 	var deviceNum int = len(strDeviceIds)
 	var deviceIds []DeviceId
+	var start_time int64 = time.Now().UnixNano() / 1e6
 	for i := 0; i < deviceNum; i++ {
 		var lock sync.Mutex
 		v, error := strconv.Atoi(strDeviceIds[i])
@@ -425,7 +423,7 @@ func main() {
 			fmt.Println("parse deviceIds error ", error)
 			return
 		}
-		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), 0, 0, 0, 0})
+		deviceIds = append(deviceIds, DeviceId{lock, (uint32)(v), start_time, 0, 0, 0, 0})
 	}
 	if help {
 		fmt.Println("Usage:\ngo run miner.go -r remote -a account -c gpu\nexample:go run miner.go -r localhost:8009 -a 0xc3d7a1ef810983847510542edfd5bc5551a6321c")

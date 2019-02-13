@@ -47,7 +47,7 @@ func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (status_code
 	for solIdx := uint32(0); solIdx < _numSols; solIdx++ {
 		var sol = make([]uint32, _solLength)
 		copy(sol[:], result[solIdx*_solLength:(solIdx+1)*_solLength])
-		// log.Println(fmt.Sprintf("Index: %v, Solution: %v", solIdx, sol))
+		 log.Println(fmt.Sprintf("Index: %v, Solution: %v", solIdx, sol))
 		ret = append(ret, sol)
 	}
 
