@@ -73,7 +73,6 @@ struct cuckoo_solver_ctx : public solver_ctx{
     memcpy(headerBuf, header, 32);
     memcpy(headerBuf + 32, static_cast<uint64_t*>(&littleEndianNonce), sizeof(nonce));
     setheader(headerBuf, 40, &trimmer->sipkeys);
-    sols.clear();
   }
 
   ~cuckoo_solver_ctx() {
@@ -163,6 +162,7 @@ struct cuckoo_solver_ctx : public solver_ctx{
   }
 
   int findcycles(u32 nedges) {
+    sols.clear();
     memset(cuckoo->cuckoo, 0, CUCKOO_SIZE * sizeof(u64));
     for (u32 i = 0; i < nedges; i++) {
       addedge(edges[i]);

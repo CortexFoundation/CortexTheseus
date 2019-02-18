@@ -318,14 +318,14 @@ func (cm *Cortex) miningOnce() {
 							//if verboseLevel >= 3 {
 							//	log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 							//}
-					//		log.Println(tgtDiff.Big(), sha3hash.Big())
+//							log.Println(tgtDiff.Big(), sha3hash.Big())
 							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 								result = sol
 								nonceStr := common.Uint64ToHexString(uint64(curNonce))
 								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 								var ok int
-								var edgebits uint8 = 28
-								var proofsize uint8 = 12
+								var edgebits uint8 = 29
+								var proofsize uint8 = 42
 								if cm.miner_algorithm == 0 {
 									ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
 								} else {

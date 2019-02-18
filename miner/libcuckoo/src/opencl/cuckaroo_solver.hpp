@@ -44,7 +44,6 @@ namespace cuckoogpu
 			memcpy (headerBuf, header, 32);
 			memcpy (headerBuf + 32, static_cast < uint64_t * >(&littleEndianNonce), sizeof (nonce));
 			setheader (headerBuf, 40, &trimmer->sipkeys);
-			sols.clear ();
 		}
 
 		~cuckaroo_solver_ctx ()
@@ -56,6 +55,7 @@ namespace cuckoogpu
 
 		int findcycles (u32 nedges)
 		{
+			sols.clear ();
 			cg->reset ();
 			for (u32 i = 0; i < nedges; i++)
 			{
@@ -67,7 +67,7 @@ namespace cuckoogpu
 				for (u32 j = 0; j < PROOFSIZE; j++)
 				{
 					soledges[j] = edges[cg->sols[s][j]];
-					// print_log(" (%x, %x)", soledges[j].x, soledges[j].y);
+				//	 print_log(" (%x, %x)", soledges[j].x, soledges[j].y);
 				}
 				// print_log("\n");
 				sols.resize (sols.size () + PROOFSIZE);

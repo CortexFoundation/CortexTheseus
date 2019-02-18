@@ -97,7 +97,6 @@ namespace cuckoogpu
 			memcpy (headerBuf, header, 32);
 			memcpy (headerBuf + 32, static_cast < uint64_t * >(&littleEndianNonce), sizeof (nonce));
 			setheader (headerBuf, 40, &trimmer->sipkeys);
-			sols.clear ();
 		}
 
 		~cuckoo_solver_ctx ()
@@ -216,6 +215,7 @@ namespace cuckoogpu
 
 		int findcycles (u32 nedges)
 		{
+			sols.clear ();
 			memset (cuckoo->cuckoo, 0, CUCKOO_SIZE * sizeof (u64));
 			for (u32 i = 0; i < nedges; i++)
 			{

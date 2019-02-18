@@ -37,7 +37,6 @@ struct cuckaroo_solver_ctx : public solver_ctx{
     memcpy(headerBuf, header, 32);
     memcpy(headerBuf + 32, static_cast<uint64_t*>(&littleEndianNonce), sizeof(nonce));
     setheader(headerBuf, 40, &trimmer->sipkeys);
-    sols.clear();
   }
 
   ~cuckaroo_solver_ctx() {
@@ -47,6 +46,7 @@ struct cuckaroo_solver_ctx : public solver_ctx{
   }
 
   int findcycles(u32 nedges) {
+    sols.clear();
     cg->reset();
     for (u32 i = 0; i < nedges; i++){
       cg->add_compress_edge(edges[i].x, edges[i].y);
