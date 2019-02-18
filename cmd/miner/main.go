@@ -324,8 +324,8 @@ func (cm *Cortex) miningOnce() {
 								nonceStr := common.Uint64ToHexString(uint64(curNonce))
 								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 								var ok int
-								var edgebits uint8 = 29
-								var proofsize uint8 = 42
+								var edgebits uint8 = 28
+								var proofsize uint8 = 12
 								if cm.miner_algorithm == 0 {
 									ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
 								} else {

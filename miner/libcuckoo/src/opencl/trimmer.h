@@ -160,10 +160,11 @@ struct edgetrimmer {
   cl_mem bufferB;
   cl_mem bufferI1;
   cl_mem bufferI2;
+  cl_mem bufferI3;
   cl_mem bufferR;
   cl_mem recoveredges; //const
   u32 nedges;
-  siphash_keys sipkeys;//, *dipkeys;
+  siphash_keys sipkeys, sipkeys2;//, *dipkeys;
 
   edgetrimmer(const trimparams _tp, cl_context context, cl_command_queue commandQueue, cl_program program, int selected);
 

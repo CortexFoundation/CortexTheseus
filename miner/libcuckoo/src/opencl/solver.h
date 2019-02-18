@@ -22,6 +22,7 @@ struct solver_ctx {
   virtual void init(trimparams tp, uint32_t _device, cl_context context, cl_command_queue commandQueue, cl_program program) = 0;
   virtual void setheadernonce(char * const header,  const uint64_t nonce) = 0;
   virtual int solve() = 0;
+  virtual int findcycles(u32 nedges) = 0;
 
   solver_ctx(){}
   virtual ~solver_ctx(){}

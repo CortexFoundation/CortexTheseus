@@ -52,6 +52,8 @@ edgetrimmer::edgetrimmer(const trimparams _tp, cl_context context,
 	checkOpenclErrors(clResult);
 	bufferI2 = clCreateBuffer(context, CL_MEM_READ_WRITE, indexesSize * sizeof(uint), NULL, &clResult);
 	checkOpenclErrors(clResult);
+	bufferI3 = clCreateBuffer(context, CL_MEM_READ_WRITE, indexesSize * sizeof(uint), NULL, &clResult);
+	checkOpenclErrors(clResult);
 	bufferR = clCreateBuffer(context, CL_MEM_READ_WRITE, PROOFSIZE*2*sizeof(uint), NULL, &clResult);
 	checkOpenclErrors(clResult);
 

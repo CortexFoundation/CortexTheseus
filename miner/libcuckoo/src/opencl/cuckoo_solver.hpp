@@ -109,10 +109,10 @@ namespace cuckoogpu
 
 		void recordedge (const u32 i, const u32 u2, const u32 v2)
 		{
-			if(i < PROOFSIZE){
-			soledges[i].x = u2 / 2;
-			soledges[i].y = v2 / 2;
-			}
+						if(i < PROOFSIZE){
+										soledges[i].x = u2 / 2;
+										soledges[i].y = v2 / 2;
+						}
 		}
 
 		void solution (const u32 * us, u32 nu, const u32 * vs, u32 nv)
@@ -131,16 +131,16 @@ namespace cuckoogpu
 			checkOpenclErrors(clResult);
 
 			int initV = 0;
-			clResult = clEnqueueFillBuffer (trimmer->commandQueue, trimmer->bufferI2, &initV, sizeof (int), 0, trimmer->indexesSize, 0, NULL, NULL);
+			clResult = clEnqueueFillBuffer (trimmer->commandQueue, trimmer->bufferI3, &initV, sizeof (int), 0, trimmer->indexesSize, 0, NULL, NULL);
 			checkOpenclErrors(clResult);
 
 			clFinish (trimmer->commandQueue);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 0, sizeof (u64), &trimmer->sipkeys.k0);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 1, sizeof (u64), &trimmer->sipkeys.k1);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 2, sizeof (u64), &trimmer->sipkeys.k2);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 3, sizeof (u64), &trimmer->sipkeys.k3);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 4, sizeof (cl_mem), (void*)&trimmer->bufferR);
-				clResult |= clSetKernelArg (trimmer->kernel_recovery, 5, sizeof (cl_mem), (void*)&trimmer->bufferI2);
+			clResult |= clSetKernelArg (trimmer->kernel_recovery, 0, sizeof (u64), &trimmer->sipkeys2.k0);
+			clResult |= clSetKernelArg (trimmer->kernel_recovery, 1, sizeof (u64), &trimmer->sipkeys2.k1);
+			clResult |= clSetKernelArg (trimmer->kernel_recovery, 2, sizeof (u64), &trimmer->sipkeys2.k2);
+			clResult |= clSetKernelArg (trimmer->kernel_recovery, 3, sizeof (u64), &trimmer->sipkeys2.k3);
+			clResult |= clSetKernelArg (trimmer->kernel_recovery, 4, sizeof (cl_mem), (void*)&trimmer->bufferR);
+			clResult |= clSetKernelArg (trimmer->kernel_recovery, 5, sizeof (cl_mem), (void*)&trimmer->bufferI3);
 			checkOpenclErrors(clResult);
 
 			cl_event event;
@@ -149,21 +149,8 @@ namespace cuckoogpu
 			local_work_size[0] = trimmer->tp.recover.tpb;
 			clEnqueueNDRangeKernel (trimmer->commandQueue, trimmer->kernel_recovery, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
 			clFinish (trimmer->commandQueue);
-			clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferI2, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
+			clResult = clEnqueueReadBuffer (trimmer->commandQueue, trimmer->bufferI3, CL_TRUE, 0, PROOFSIZE * sizeof (u32), &sols[sols.size () - PROOFSIZE], 0, NULL, NULL);
 			checkOpenclErrors(clResult);
-/*
-			fprintf (stderr, "Index: %d points: [", sols.size () / PROOFSIZE);
-			for (uint32_t idx = 0; idx < PROOFSIZE; idx++)
-			{
-				fprintf (stderr, "<%zu,%zu>, ", soledges[idx].x, soledges[idx].y);
-			}
-			fprintf (stderr, "] solutions: [");
-			for (uint32_t idx = 0; idx < PROOFSIZE; idx++)
-			{
-				fprintf (stderr, "%zu,", sols[sols.size () - PROOFSIZE + idx]);
-			}
-			fprintf (stderr, "]\n");
-			*/
 			qsort (&sols[sols.size () - PROOFSIZE], PROOFSIZE, sizeof (u32), nonce_cmp);
 		}
 
@@ -227,13 +214,14 @@ namespace cuckoogpu
 			}
 		}
 
-		void findcycles (cl_uint2 * edges, u32 nedges)
+		int findcycles (u32 nedges)
 		{
 			memset (cuckoo->cuckoo, 0, CUCKOO_SIZE * sizeof (u64));
 			for (u32 i = 0; i < nedges; i++)
 			{
 				addedge (edges[i]);
 			}
+			return sols.size() / PROOFSIZE;
 		}
 
 		int solve ()
@@ -250,8 +238,10 @@ namespace cuckoogpu
 				NULL);
 			checkOpenclErrors(clResult);
 
-			findcycles (edges, nedges);
-			return sols.size () / PROOFSIZE;
+//			findcycles (edges, nedges);
+//			return sols.size () / PROOFSIZE;
+			trimmer->sipkeys2 = trimmer->sipkeys;
+			return nedges;
 		}
 	};
 
