@@ -52,6 +52,7 @@ type Cortex struct {
 	miner_algorithm int
 	share_accepted  int
 	share_rejected  int
+	useGPU		bool
 }
 
 type Task struct {
@@ -243,8 +244,51 @@ func (cm *Cortex) miningOnce() {
 				header, _ := hex.DecodeString(task.Header[2:])
 				curNonce := uint64(rand.Int63())
 				cm.deviceIds[tidx].lock.Lock()
-				var nedges uint32 = libcuckoo.FindSolutionsByGPU(header, curNonce, tidx)
-				nedgesChan <- StreamData{nedges:nedges, threadId:tidx, Difficulty:task.Difficulty, nonce:curNonce, header:header}
+				if cm.useGPU == true{
+					var nedges uint32 = libcuckoo.FindSolutionsByGPU(header, curNonce, tidx)
+					nedgesChan <- StreamData{nedges:nedges, threadId:tidx, Difficulty:task.Difficulty, nonce:curNonce, header:header}
+				}else{
+					status, sols := libcuckoo.RunSolverOnCPU(header, curNonce)
+					end_time := time.Now().UnixNano() / 1e6
+					cm.deviceIds[tidx].use_time = (end_time - cm.deviceIds[tidx].start_time)
+					cm.deviceIds[tidx].solution_count += int64(len(sols))
+					cm.deviceIds[tidx].gps += 1
+					tgtDiff := common.HexToHash(task.Difficulty[2:])
+					var result common.BlockSolution
+					if status != 0 {
+						//if verboseLevel >= 3 {
+						//	log.Println("result: ", status, sols)
+						//}
+						for _, solUint32 := range sols {
+							var sol common.BlockSolution
+							copy(sol[:], solUint32)
+							sha3hash := common.BytesToHash(crypto.Sha3Solution(&sol))
+							//if verboseLevel >= 3 {
+							//	log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
+							//}
+//							log.Println(tgtDiff.Big(), sha3hash.Big())
+							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
+								result = sol
+								nonceStr := common.Uint64ToHexString(uint64(curNonce))
+								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
+								var ok int
+								var edgebits uint8 = 29
+								var proofsize uint8 = 42
+								if cm.miner_algorithm == 0 {
+									ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
+								} else {
+									ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], proofsize, edgebits)
+								}
+								if ok != 1 {
+									log.Println("verify failed", header[:], curNonce, &sol)
+								} else {
+									log.Println("verify successed", header[:], curNonce, &sol)
+									solChan <- Task{Nonce: nonceStr, Header: taskHeader, Solution: digest}
+								}
+							}
+						}
+					}
+				}
 				cm.deviceIds[tidx].lock.Unlock()
 			}
 		}(uint32(nthread), &currentTask)
@@ -398,6 +442,11 @@ func init() {
 		os.Exit(1)
 	}
 
+	useGPU, err = cfg.Bool("mining", "useGPU")
+	checkError(err, "init()")
+	if useGPU == false {
+		strDeviceId = "0"
+	}
 	fmt.Printf("**************************************************************\n")
 	fmt.Printf("**\t\tCortex GPU Miner\t\t\t**\n")
 	fmt.Printf("**************************************************************\n")
@@ -409,6 +458,7 @@ var strDeviceId string
 var verboseLevel int
 var algorithm string
 var miner_algorithm int
+var useGPU bool
 
 func main() {
 	flag.Parse()
@@ -439,6 +489,7 @@ func main() {
 		miner_algorithm: miner_algorithm,
 		share_accepted:  0,
 		share_rejected:  0,
+		useGPU:		useGPU,
 	}
 
 	cm.Mining()

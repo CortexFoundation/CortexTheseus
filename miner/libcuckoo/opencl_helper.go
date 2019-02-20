@@ -79,3 +79,6 @@ func Monitor(device_count uint32) (fanSpeeds []uint32, temperatures []uint32) {
 	}
 	return fanSpeeds, temperatures
 }
+func RunSolverOnCPU(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32){
+	return 0,ret
+}

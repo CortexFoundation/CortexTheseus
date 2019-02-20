@@ -12,11 +12,13 @@ GPP ?= g++ $(GPP_ARCH_FLAGS) -std=c++11 $(FLAGS)
 CFLAGS ?= -Wall -Wno-format -fomit-frame-pointer $(OPT)
 GCC ?= gcc $(GCC_ARCH_FLAGS) -std=gnu11 $(CFLAGS)
 
-all: cuda opencl
+all: cuda opencl cpu
 
 cuda : libcudaminer.a
 	
 opencl : libopenclminer.a
+
+cpu : libcpuminer.a
 
 blake2b.o: src/blake2.h src/blake2-impl.h src/blake2b-ref.cpp
 	$(GPP) -c -o blake2b.o src/blake2b-ref.cpp
@@ -43,6 +45,10 @@ openclN31L14.o: src/siphash.cuh src/opencl/cuckoo_solver.hpp src/opencl/cuckaroo
 	ld -r -o $@ $@.temp.o $@.mean.o
 
 
+cpuminer.o:  src/cpu/bitmap.hpp src/cpu/graph.hpp src/cpu/barrier.hpp src/cpu/siphash.hpp src/cpu/cuckaroo_mean.hpp src/cpu/cuckoo_mean.hpp src/cpu/miner.cpp  Makefile
+	$(GPP) -c -o $@.temp.o -mavx2 -DNSIPHASH=8 -DEDGEBITS=29 -DPROOFSIZE=42 src/cpu/miner.cpp 
+	ld -r -o $@ $@.temp.o
+
 libcudaminer.a: cudaN31L14.o blake2b.o siphash.o cuckoo.o
 	ar cr $@ $^ $<.trimmer.o $<.miner.o 
 	rm -rf cudaN31L14*.o
@@ -52,6 +58,10 @@ libcudaminer.a: cudaN31L14.o blake2b.o siphash.o cuckoo.o
 libopenclminer.a: openclN31L14.o blake2b.o siphash.o cuckoo.o
 	ar cr $@ $^ $<.temp.o  $<.mean.o
 	rm -rf openclN31L14*.o
+
+libcpuminer.a: cpuminer.o blake2b.o siphash.o cuckoo.o
+	ar cr $@ $^
+	rm -rf cpuminer*.o
 
 clean:
 	rm -rf *.o *.a
