@@ -360,6 +360,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	cfg.SetListenAddr(listenAddr.String())
 	cfg.Seed = true
+	cfg.EstablishedConnsPerTorrent = 5
+	cfg.HalfOpenConnsPerTorrent = 3
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
