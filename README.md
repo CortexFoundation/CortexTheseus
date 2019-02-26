@@ -23,6 +23,8 @@
 ## tromp删边方案2 [mean](https://github.com/tromp/cuckoo/blob/master/src/cuckoo/mean.cu)
 lean方案需要大量的对global memory进行atomic操作，会有很多的原子冲突，使得效率低下。mean的方法是将边数据保存下来，并对边进行分桶，同样分别按左边节点和右边节点分别进行分桶、计数、删边。tromp将节点按二进制分为X(6位)Y(6位)Z(17位），分别按X分桶，在对每个桶按Y分桶，然后对每个桶进行Z的计数，然后删边。
 
+GPU上对global memory的访问是昂贵的。像1080ti上每个SM有48KB的shared memory，可以利用起来进行访存优化。
+
 1. SeedA：线程规模：64\*64个block，一个block有256个thread，每个thread生成 edges/nthreads 条边，edges=2^29, nthreads为总的线程数。 每个block需要64\*32的shared memory，作为block生成边的临时存储区，每个线程通过atomic先在shared中按X分成到64个桶中，然后在对global进行atomic找到写入位置，把shared写入到global中。虽然这一步只分成64个桶，但是还是把global也分成64\*64个区块，只不过连续的64个块是一个桶， 这样落在一个桶里的可以根据blockId分散到64个区块中去，进一步减少冲突。 总结，SeedA生成所有边，并对边分成64个桶，每个桶又划分为64个子桶，所以有64\*64个桶。 
 2. SeedB：SeedB是对SeedA生成每个桶进行按Y进行分桶，因此这里block还是64*64个，每个block对一个小桶进行按Y重新分配到新的桶中。同样先对边在shared中分桶，然后在写入到global中。SeedB的global冲突只有在SeedA中属于同一个桶的数据。
 3. Round：SeedA和SeedB之后，同一个桶里的XY是一样的，那么只要统计一个桶里的Z出现的次数，然后进行删边。每个边需要2bit来计数，Z有17位，那么采用bitset需要(2^17)/16*sizeof(int)=32k空间，shared memory是足够的，因此每个block对一个桶进行计数，然后同步操作，然后判断每个边对应bitset的第二bit是否为1，为0的话丢弃，为1的话则根据这条边的另外一个节点的XY存储到global对应桶中。CPU端会调用指定次数的Round，使得边数被删除到一定数量。
