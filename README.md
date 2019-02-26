@@ -3,9 +3,19 @@
 2. [参考2](https://github.com/tromp/cuckoo)
 
 
-## 算法描述
-1. 输入：4个64位的key，边的个数EdgeBits，要找的环长度L
-2. 生成随机二分图：N=2^(EdgeBits+1)表示节点的个数，M=2^EdgeBits表示边的数量, 图G(V,E), V={v0,...,vN-1}，E={e0,...,eM-1}，vi=siphash(i, key), ei=(v2*j, v2*j+1)。siphash是一个生成伪随机数的函数。
+## cuckoo cycle二分图
+1. 二分图是一个图中每个点被分成两个集合，并且任意一条边的两个点分属不同的两个集合。cuckoo cycle里，图的点数N，边数M，N=2\*M，两个集合的点数是一样的。下图是一个N=8，M=4的cuckoo cycle二分图：
+<img src="https://github.com/mimblewimble/grin/blob/master/doc/pow/images/cuckoo_base_numbered_few_edges.png" />
+
+2. cuckoo cycle二分图是采用siphash随机生成的，siphash的输入是4个64位的key和一个nonce。每个图对应4个key和2^N个nonce，根据每个nonce生成一个节点，两个连续的nonce生成的点组成一条边。如上图，假设这里的nonce是0\~8，并且siphash的值也是0\~8。这里的图没有环。
+3. cuckoo cycle问题是在像上面这样规则生成的图里找固定长度L的环，假如在上图中增加几条边，我们可以得到一个环：
+<img src="https://github.com/mimblewimble/grin/blob/master/doc/pow/images/cuckoo_base_numbered_more_edges_cycle.png" />
+
+4. 随着图的规模增大，L的增大，问题的难度也随之增大。这样的图的稀疏度=M/N=1/2, 平均的度=1，找到一个长度为L的难度=1/L。那么我们现在要在N=30，M=29的图上找一个L=42的环，期望越快越好。
+
+## 问题定义
+1. 输入：4个64位的key，边的个数Edgebits=29，要找的环长度L
+2. 生成随机二分图：N=2^(Edgebits+1)表示节点的个数，M=2^Edgebits表示边的数量, 图G(V,E), V={v0,...,vN-1}，E={e0,...,eM-1}，vi=siphash(i, key), ei=(v2\*j, v2\*j+1)。
 3. 找固定长度L的环：在步骤2生成的二分图中查找是否有长度为L的环，如果找到，则返回该环中每条边对应的nonce作为输入key的一个解。
 
 ## 分析
