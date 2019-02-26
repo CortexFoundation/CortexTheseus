@@ -1,6 +1,7 @@
 # PoolMiner
 1. [参考1](https://github.com/tromp/cuckoo/blob/master/doc/cuckoo.pdf?raw=true)
 2. [参考2](https://github.com/tromp/cuckoo)
+3. [参考3](https://github.com/mimblewimble/grin/blob/master/doc/pow/pow.md)
 
 ## 算法描述
 1. 输入：4个64位的key，边的个数EdgeBits，要找的环长度L
