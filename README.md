@@ -5,7 +5,7 @@
 
 ## 算法描述
 1. 输入：4个64位的key，边的个数EdgeBits，要找的环长度L
-2. 生成随机二分图：定义nonce=0\~2^EdgeBits 的32位无符号整数，计算每个nonce和key对应的siphash值（32位uint，0~2^EdgeBits），siphash(2*nonce)作为一条边的左节点，siphash(2*nonce+1)作为一条边的右节点。如此，得到一个有2^EdgeBits条边和2^(EdgeBits+1)个节点的二分图。siphash是一个生成伪随机数的函数。
+2. 生成随机二分图：N=2^(EdgeBits+1)表示节点的个数，M=2^EdgeBits表示边的数量, 图G(V,E), V={v0,...,vN-1}，E={e0,...,eM-1}，vi=siphash(i, key), ei=(v2*j, v2*j+1)。siphash是一个生成伪随机数的函数。
 3. 找固定长度L的环：在步骤2生成的二分图中查找是否有长度为L的环，如果找到，则返回该环中每条边对应的nonce作为输入key的一个解。
 
 ## 分析
@@ -14,8 +14,8 @@
 3. 对于删边之后的图采用并查集找长度为L的环。
 
 ## tromp删边方案1 [lean](https://github.com/tromp/cuckoo/blob/master/src/cuckoo/lean.cu)
-1. cpu端循环调用cuda计数和删边的kernel，第2*i次对图的左边节点进行计数和删边，第2*i+1次对图的右边节点进行计数和删边
-2. count_node_deg: 设cuda线程总数为nthreads，总的边数edges=2^29，每个线程生成edges/nthreads条边，同时对每条边进行计数。计数方法是在global memory中维护一个bitset，bitset的大小为edges/32 * 2，乘2的原因是每个节点需要2个bit来计数。每个线程生成边后将节点映射到bitset对应位置，然后进行atoimc对bitset进行计数。
+1. cpu端循环调用cuda计数和删边的kernel，第2\*i次对图的左边节点进行计数和删边，第2\*i+1次对图的右边节点进行计数和删边
+2. count_node_deg: 设cuda线程总数为nthreads，总的边数edges=2^29，每个线程生成edges/nthreads条边，同时对每条边进行计数。计数方法是在global memory中维护一个bitset，bitset的大小为edges/32 \* 2，乘2的原因是每个节点需要2个bit来计数。每个线程生成边后将节点映射到bitset对应位置，然后进行atoimc对bitset进行计数。
 3. kill_leaf_edges：同样的线程数，每个线程重新生成边，将节点映射到bitset判断第二个bit是否为1，如果为0则删除。一条边是否已经被删除也是通过维护一个bitset来标志，同样也是通过atomic来更新这个bitset。
 4. 迭代指定次数后，将剩余的图返回给cpu端，cpu端进行并查集找环。
 5. 该删边方案的优点在于删边过程不保存边的数据，每次重新计算siphash，只需要两个bitset的显存空间。
