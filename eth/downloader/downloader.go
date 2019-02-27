@@ -27,6 +27,7 @@ import (
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -77,6 +78,7 @@ var (
 	errEmptyHeaderSet          = errors.New("empty header set by peer")
 	errPeersUnavailable        = errors.New("no peers available or all tried for download")
 	errInvalidAncestor         = errors.New("retrieved ancestor is invalid")
+	errBuiltInTorrentFS        = errors.New("retrieved inference op with file syncing")
 	errInvalidChain            = errors.New("retrieved hash chain is invalid")
 	errInvalidBlock            = errors.New("retrieved block is invalid")
 	errInvalidBody             = errors.New("retrieved block body is invalid")
@@ -330,6 +332,8 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 		} else {
 			d.dropPeer(id)
 		}
+	case core.ErrBuiltInTorrentFS:
+		log.Warn("Synchronisation failed with built-in torrent fs error", "peer", id)
 	default:
 		log.Warn("Synchronisation failed, retrying", "err", err)
 	}
@@ -1360,6 +1364,9 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	}
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
 		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
+		if err == core.ErrBuiltInTorrentFS {
+			return err
+		}
 		return errInvalidChain
 	}
 	return nil

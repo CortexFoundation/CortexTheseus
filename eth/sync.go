@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/log"
@@ -197,7 +198,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	}
 
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
+	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil && err != core.ErrBuiltInTorrentFS {
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {

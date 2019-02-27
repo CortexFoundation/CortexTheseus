@@ -30,7 +30,7 @@ cortex: clib
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 
-cortex-remote:
+cortex-remote: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
@@ -56,7 +56,7 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cortex-remote cortex-nominer cortex inferServer nodekey cuckoo-miner
+all: cortex-remote cortex nodekey cuckoo-miner
 	# build/env.sh go run build/ci.go install
 
 nodekey:
@@ -93,9 +93,12 @@ clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
 
-clean-all: clean
+clean-clib:
 	make -C $(LIB_MINER_DIR) clean
 	make -C $(INFER_NET_DIR) clean
+	
+.PHONY: clean-all
+clean-all: clean-clib clean
 
 # The devtools target installs tools required for 'go generate'.
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.

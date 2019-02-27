@@ -1,4 +1,4 @@
-package synapse
+package inference
 
 import (
 	"encoding/binary"

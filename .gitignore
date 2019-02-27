@@ -64,3 +64,6 @@ sync
 *.o
 *.syso
 *.a
+
+# infernet
+infernet/int_mnist_model/

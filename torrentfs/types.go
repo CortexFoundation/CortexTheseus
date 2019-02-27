@@ -82,7 +82,6 @@ func getDisplayNameFromURI(uri string) (string, error) {
 	return m.DisplayName, nil
 }
 
-// Parse ...
 func (t *Transaction) Parse() *FileMeta {
 	if t.Op() == opCreateInput {
 		var meta types.InputMeta

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,39 +9,21 @@ import (
 	"os"
 	"sync"
 
-	infer "github.com/ethereum/go-ethereum/inference/synapse"
+	"github.com/ethereum/go-ethereum/inference"
+	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
 var (
 	storageDir = flag.String("storage_dir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
-	cortexURI  = flag.String("cortex_uri", "http://localhost:25667", "Cortex core binary's rpc")
 	logLevel   = flag.Int("verbosity", 3, "Log level to emit to screen")
 	port       = flag.Int("port", 8827, "Server listen port")
 	IsNotCache = flag.Bool("disable_cache", false, "Disable cache")
 )
 
-const (
-	INFER_TASK_BY_INFO_HASH     = 1
-	INFER_TASK_BY_INPUT_CONTENT = 2
-)
-
 var rpcClient *rpc.Client
 var simpleCache sync.Map
-
-type InferWork struct {
-	// default is zero
-	Type uint32
-
-	ModelHash string
-	InputHash string
-
-	InputBlockNumber string
-	InputTxIndex     int
-	InputAddress     string
-	InputSlot        string
-}
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -58,22 +39,27 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	log.Trace("Handler Info", "request", r, "body", string(body))
 
-	var inferWork InferWork
+	switch inference.RetriveType(body) {
+	case inference.INFER_BY_IH:
+		var iw inference.IHWork
+		if err := json.Unmarshal(body, &iw); err != nil {
+			RespErrorText(w, ErrDataParse)
+		}
+		infoHashHandler(w, &iw)
+		break
 
-	if err := json.Unmarshal(body, &inferWork); err != nil {
-		RespErrorText(w, ErrDataParse)
-		return
-	}
+	case inference.INFER_BY_IC:
+		var iw inference.ICWork
+		if err := json.Unmarshal(body, &iw); err != nil {
+			RespErrorText(w, ErrDataParse)
+		}
+		inputContentHandler(w, &iw)
+		break
 
-	switch inferWork.Type {
-	case INFER_TASK_BY_INFO_HASH:
-		infoHashHandler(w, &inferWork)
-	case INFER_TASK_BY_INPUT_CONTENT:
-		inputContentHandler(w, &inferWork)
 	default:
-		defaultHandler(w, &inferWork)
+		RespErrorText(w, ErrInvalidInferTaskType)
+		break
 	}
-
 }
 
 func main() {
@@ -84,14 +70,7 @@ func main() {
 
 	log.Info("Inference Server", "Help Command", "./infer_server -h")
 
-	var err error
-	if rpcClient, err = rpc.DialContext(context.Background(), *cortexURI); err != nil {
-		log.Error("Cortex core RPC dial", "error", err)
-		return
-	}
-	log.Info("Initilized RPC client", "cortex uri", *cortexURI)
-
-	inferServer := infer.New(infer.Config{
+	inferServer := synapse.New(synapse.Config{
 		StorageDir: *storageDir,
 		IsNotCache: *IsNotCache,
 	})
@@ -100,7 +79,7 @@ func main() {
 	http.HandleFunc("/", handler)
 
 	log.Info(fmt.Sprintf("Http Server Listen on 0.0.0.0:%v", *port))
-	err = http.ListenAndServe(fmt.Sprintf(":%v", *port), nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%v", *port), nil)
 
 	log.Error(fmt.Sprintf("Server Closed with Error %v", err))
 	inferServer.Close()
