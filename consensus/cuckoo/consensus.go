@@ -685,6 +685,10 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		blockReward = ConstantinopleBlockReward
 	}*/
 
+	if header.Supply.Cmp(params.CTXC_INIT) < 0 {
+		header.Supply = params.CTXC_INIT
+	}
+
 	if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
 		blockReward = big0
 		header.Supply = params.CTXC_TOP
