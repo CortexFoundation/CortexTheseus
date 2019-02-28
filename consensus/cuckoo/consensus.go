@@ -380,12 +380,12 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	}
 
 	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
-                y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
-        } else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
-                y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
-        } else {
-                y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
-        }
+		y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
+	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
+		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
+	} else {
+		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+	}
 
 	// parent_diff + (parent_diff / 2048 * max((2 if len(parent.uncles) else 1) - ((timestamp - parent.timestamp) // 9), -99))
 	y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
@@ -658,11 +658,11 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 var (
 	big0 = big.NewInt(0)
 	//big2   = big.NewInt(2)
-	big4   = big.NewInt(4)
-	big8   = big.NewInt(8)
-	big32  = big.NewInt(32)
-	big64  = big.NewInt(64)
-	big128 = big.NewInt(128)
+	big4    = big.NewInt(4)
+	big8    = big.NewInt(8)
+	big32   = big.NewInt(32)
+	big64   = big.NewInt(64)
+	big128  = big.NewInt(128)
 	big4096 = big.NewInt(4096)
 )
 
@@ -684,13 +684,21 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	/*if config.IsConstantinople(header.Number) {
 		blockReward = ConstantinopleBlockReward
 	}*/
-	header.Supply.Add(header.Supply, blockReward)
-	if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+
+	if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
 		blockReward = big0
 		header.Supply = params.CTXC_TOP
 	}
-	// Accumulate the rewards for the miner and any included uncles
+
 	if blockReward.Cmp(big0) > 0 {
+		surplus := new(big.Int).Sub(params.CTXC_TOP, header.Supply)
+		header.Supply.Add(header.Supply, blockReward)
+		if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
+			blockReward = surplus
+			header.Supply = params.CTXC_TOP
+		}
+		// Accumulate the rewards for the miner and any included uncles
+		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
 		for _, uncle := range uncles {
@@ -701,15 +709,25 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 
 			header.Supply.Add(header.Supply, r)
 			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+				//header.Supply = params.CTXC_TOP
+				header.Supply.Sub(header.Supply, r)
 				r = big0
-				header.Supply = params.CTXC_TOP
+				break
 			}
 			state.AddBalance(uncle.Coinbase, r)
 			//todo
-			/*r.Div(blockReward, big8)
-			state.AddBalance(uncle.Coinbase, r)
+			//r.Div(blockReward, big8)
+			//state.AddBalance(uncle.Coinbase, r)
+
 			r.Div(blockReward, big32)
-			reward.Add(reward, r)*/
+			header.Supply.Add(header.Supply, r)
+			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+				header.Supply.Sub(header.Supply, r)
+				r = big0
+				//header.Supply = params.CTXC_TOP
+				break
+			}
+			reward.Add(reward, r)
 		}
 
 		state.AddBalance(header.Coinbase, reward)
