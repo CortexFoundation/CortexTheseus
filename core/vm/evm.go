@@ -146,6 +146,22 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		interpreters: make([]Interpreter, 1),
 	}
 
+	if chainConfig.IsEWASM(ctx.BlockNumber) {
+		// to be implemented by EVM-C and Wagon PRs.
+		// if vmConfig.EWASMInterpreter != "" {
+		//  extIntOpts := strings.Split(vmConfig.EWASMInterpreter, ":")
+		//  path := extIntOpts[0]
+		//  options := []string{}
+		//  if len(extIntOpts) > 1 {
+		//    options = extIntOpts[1..]
+		//  }
+		//  evm.interpreters = append(evm.interpreters, NewEVMVCInterpreter(evm, vmConfig, options))
+		// } else {
+		//      evm.interpreters = append(evm.interpreters, NewEWASMInterpreter(evm, vmConfig))
+		// }
+		panic("No supported ewasm interpreter yet.")
+	}
+
 	evm.interpreters[0] = NewEVMInterpreter(evm, vmConfig)
 	evm.interpreter = evm.interpreters[0]
 
@@ -232,6 +248,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			contract.UseGas(contract.Gas)
 		}
 	}
+
+	//todo deadline verification
 
 	//if evm.interpreter.IsModelMeta(ret) {
 	//only if model is exist from ipfs, swarm or libtorrent ext, load model to memory
