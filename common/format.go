@@ -38,3 +38,5 @@ func (d PrettyDuration) String() string {
 	}
 	return label
 }
+
+type PrettyAge time.Time
