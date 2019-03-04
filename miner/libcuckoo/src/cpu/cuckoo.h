@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <chrono>
 #include <ctime>
-#include "blake2.h"
+#include "../blake2.h"
 #include "siphash.hpp"
 
 #ifdef SIPHASH_COMPAT
@@ -120,7 +120,7 @@ word_t sipnode(siphash_keys *keys, word_t edge, u32 uorv) {
   return keys->siphash24(2*edge + uorv) & EDGEMASK;
 }
 
-enum verify_code { POW_OK, POW_HEADER_LENGTH, POW_TOO_BIG, POW_TOO_SMALL, POW_NON_MATCHING, POW_BRANCH, POW_DEAD_END, POW_SHORT_CYCLE};
+enum verify_code { POW_BAD, POW_OK, POW_HEADER_LENGTH, POW_TOO_BIG, POW_TOO_SMALL, POW_NON_MATCHING, POW_BRANCH, POW_DEAD_END, POW_SHORT_CYCLE};
 const char *errorstr[] = { "OK", "wrong header length", "edge too big", "edges not ascending", "endpoints don't match up", "branch in cycle", "cycle dead ends", "cycle too short"};
 
 // verify that edges are ascending and form a cycle in header-generated graph
@@ -135,6 +135,7 @@ int cuckoo_verify(word_t edges[PROOFSIZE], siphash_keys *keys) {
     xor0 ^= uvs[2*n  ] = sipnode(keys, edges[n], 0);
     xor1 ^= uvs[2*n+1] = sipnode(keys, edges[n], 1);
   }
+
   if (xor0|xor1)              // optional check for obviously bad proofs
     return POW_NON_MATCHING;
   u32 n = 0, i = 0, j;

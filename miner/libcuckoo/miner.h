@@ -24,6 +24,11 @@ int32_t RunSolverOnCPU(
         uint32_t resultBuffSize,
         uint32_t *solLength,
         uint32_t *numSol);
+
+#define result_t uint32_t
+int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits);
+int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits);
+
 #ifdef __cplusplus
 }
 #endif

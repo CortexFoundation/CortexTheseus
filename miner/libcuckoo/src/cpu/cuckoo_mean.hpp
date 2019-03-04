@@ -1053,9 +1053,16 @@ public:
     showcycle = show_cycle;
     cuckoo = 0;
   }
-  void setheadernonce(char* const headernonce, const u32 len, const u32 nonce) {
+  void setheadernonce(char* const headernonce, const u32 len, const uint64_t nonce) {
+    uint64_t littleEndianNonce = htole64(nonce);
+    char headerBuf[40];
+    memcpy(headerBuf, headernonce, 32);
+    memcpy(headerBuf + 32, static_cast<uint64_t*>(&littleEndianNonce), sizeof(nonce));
+    setheader(headerBuf, 40, &trimmer->sip_keys);
+    /*
     ((u32 *)headernonce)[len/sizeof(u32)-1] = htole32(nonce); // place nonce at end
     setheader(headernonce, len, &trimmer->sip_keys);
+    */
     sols.clear();
   }
   ~solver_ctx() {

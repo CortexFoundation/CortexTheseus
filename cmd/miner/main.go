@@ -13,12 +13,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/PoolMiner/common"
-	"github.com/PoolMiner/crypto"
-	"github.com/PoolMiner/miner/libcuckoo"
-	"github.com/PoolMiner/verify"
+	"github.com/ethereum/go-ethereum/PoolMiner/common"
+	"github.com/ethereum/go-ethereum/PoolMiner/crypto"
+	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
+//	"github.com/ethereum/go-ethereum/PoolMiner/verify"
 
-	"github.com/PoolMiner/goconfig"
+	"github.com/ethereum/go-ethereum/PoolMiner/goconfig"
 	"strconv"
 	"strings"
 	"sync"
@@ -198,13 +198,13 @@ func (cm *Cortex) printHashRate() {
 		gps := (float32(1000.0*cm.deviceIds[dev].gps) / float32(cm.deviceIds[dev].use_time))
 		if cm.deviceIds[dev].use_time > 0 && cm.deviceIds[dev].solution_count > 0 {
 			cm.deviceIds[dev].hash_rate = (float32(1000.0*cm.deviceIds[dev].solution_count) / float32(cm.deviceIds[dev].use_time))
-			log.Println(fmt.Sprintf("\033[0;%dmGPU%d GPS=%.4f, hash rate=%.4f, find solutions:%d, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, gps, cm.deviceIds[dev].hash_rate, cm.deviceIds[dev].solution_count, fanSpeeds[dev], temperatures[dev]))
+			log.Println(fmt.Sprintf("\033[0;%dmGPU%d GPS=%.4f, hash rate=%.4f, find solutions:%d, fan=%d%%, t=%dC\033[0m", 32+(dev%2*2), dev_id, gps, cm.deviceIds[dev].hash_rate, cm.deviceIds[dev].solution_count, fanSpeeds[dev], temperatures[dev]))
 			total_solutions += cm.deviceIds[dev].solution_count
 		} else {
-			log.Println(fmt.Sprintf("\033[0;%dmGPU%d GPS=%.4f, hash rate=Inf, find solutions: 0, fan=%d%%, t=%dC\033[0m", 31+(dev*3), dev_id, gps, fanSpeeds[dev], temperatures[dev]))
+			log.Println(fmt.Sprintf("\033[0;%dmGPU%d GPS=%.4f, hash rate=Inf, find solutions: 0, fan=%d%%, t=%dC\033[0m", 32+(dev%2*2), dev_id, gps, fanSpeeds[dev], temperatures[dev]))
 		}
 	}
-	log.Println(fmt.Sprintf("\033[0;33mfind total solutions : %d, share accpeted : %d, share rejected : %d\033[0m", total_solutions, cm.share_accepted, cm.share_rejected))
+	log.Println(fmt.Sprintf("\033[0;36mfind total solutions : %d, share accpeted : %d, share rejected : %d\033[0m", total_solutions, cm.share_accepted, cm.share_rejected))
 }
 
 func (cm *Cortex) miningOnce() {
@@ -266,18 +266,18 @@ func (cm *Cortex) miningOnce() {
 							//if verboseLevel >= 3 {
 							//	log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 							//}
-//							log.Println(tgtDiff.Big(), sha3hash.Big())
+			//				log.Println(tgtDiff.Big(), sha3hash.Big(), header[:], curNonce, sol)
 							if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 								result = sol
 								nonceStr := common.Uint64ToHexString(uint64(curNonce))
 								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 								var ok int
-								var edgebits uint8 = 29
-								var proofsize uint8 = 42
+								var edgebits uint8 = 28
+								var proofsize uint8 = 12
 								if cm.miner_algorithm == 0 {
-									ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
+									ok = libcuckoo.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
 								} else {
-									ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], proofsize, edgebits)
+									ok = libcuckoo.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], proofsize, edgebits)
 								}
 								if ok != 1 {
 									log.Println("verify failed", header[:], curNonce, &sol)
@@ -368,12 +368,12 @@ func (cm *Cortex) miningOnce() {
 								nonceStr := common.Uint64ToHexString(uint64(curNonce))
 								digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 								var ok int
-								var edgebits uint8 = 29
-								var proofsize uint8 = 42
+								var edgebits uint8 = 28
+								var proofsize uint8 = 12
 								if cm.miner_algorithm == 0 {
-									ok = verify.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
+									ok = libcuckoo.CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
 								} else {
-									ok = verify.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], proofsize, edgebits)
+									ok = libcuckoo.CuckooVerifyProof_cuckaroo(header[:], curNonce, &sol[0], proofsize, edgebits)
 								}
 								if ok != 1 {
 									log.Println("verify failed", header[:], curNonce, &sol)

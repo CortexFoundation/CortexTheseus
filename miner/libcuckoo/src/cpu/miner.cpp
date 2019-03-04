@@ -118,3 +118,27 @@ int32_t FindCycles(
 int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *temperatures){
 				return 0;
 }
+void CuckooFinalize(){
+}
+
+int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits) {
+    uint64_t littleEndianNonce = htole64(nonce);
+    char headerBuf[40];
+    memcpy(headerBuf, header, 32);
+    memcpy(headerBuf + 32, static_cast<uint64_t*>(&littleEndianNonce), sizeof(nonce));
+    siphash_keys keys;
+    setheader(headerBuf, 40, &keys);
+    int res = cuckoo_verify(result, &keys);
+    return res;
+}
+
+int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits) {
+    uint64_t littleEndianNonce = htole64(nonce);
+    char headerBuf[40];
+    memcpy(headerBuf, header, 32);
+    memcpy(headerBuf + 32, static_cast<uint64_t*>(&littleEndianNonce), sizeof(nonce));
+    siphash_keys keys;
+    setheader(headerBuf, 40, &keys);
+    int res = cuckaroo_verify(result, keys);
+    return res;
+}
