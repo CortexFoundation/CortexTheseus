@@ -72,6 +72,7 @@ type Table struct {
 	db         *nodeDB // database of known nodes
 	refreshReq chan chan struct{}
 	initDone   chan struct{}
+	closeOnce sync.Once
 	closeReq   chan struct{}
 	closed     chan struct{}
 
@@ -191,12 +192,20 @@ func (tab *Table) ReadRandomNodes(buf []*Node) (n int) {
 
 // Close terminates the network listener and flushes the node database.
 func (tab *Table) Close() {
-	select {
-	case <-tab.closed:
+	tab.closeOnce.Do(func() {
+		if tab.net != nil {
+			tab.net.close()
+		}
+		// Wait for loop to end.
+		close(tab.closeReq)
+		<-tab.closed
+	})
+	//select {
+	//case <-tab.closed:
 		// already closed.
-	case tab.closeReq <- struct{}{}:
-		<-tab.closed // wait for refreshLoop to end.
-	}
+	//case tab.closeReq <- struct{}{}:
+	//	<-tab.closed // wait for refreshLoop to end.
+	//}
 }
 
 // setFallbackNodes sets the initial points of contact. These nodes
@@ -304,11 +313,22 @@ func (tab *Table) lookup(targetID NodeID, refreshIfEmpty bool) []*Node {
 			break
 		}
 		// wait for the next reply
-		for _, n := range <-reply {
+		/*for _, n := range <-reply {
 			if n != nil && !seen[n.ID] {
 				seen[n.ID] = true
 				result.push(n, bucketSize)
 			}
+		}*/
+		select {
+		case nodes := <-reply:
+			for _, n := range nodes {
+				if n != nil && !seen[n.ID] {
+					seen[n.ID] = true
+					result.push(n, bucketSize)
+				}
+			}
+		case <-tab.closeReq:
+			return nil // shutdown, no need to continue.
 		}
 		pendingQueries--
 	}
@@ -318,7 +338,12 @@ func (tab *Table) lookup(targetID NodeID, refreshIfEmpty bool) []*Node {
 func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	fails := tab.db.findFails(n.ID)
 	r, err := tab.net.findnode(n.ID, n.addr(), targetID)
-	if err != nil || len(r) == 0 {
+	//if err != nil || len(r) == 0 {
+	if err == errClosed {
+		// Avoid recording failures on shutdown.
+		reply <- nil
+		return
+	} else if err != nil || len(r) == 0 {
 		fails++
 		tab.db.updateFindFails(n.ID, fails)
 		log.Trace("Findnode failed", "id", n.ID, "failcount", fails, "err", err)
@@ -342,7 +367,8 @@ func (tab *Table) refresh() <-chan struct{} {
 	done := make(chan struct{})
 	select {
 	case tab.refreshReq <- done:
-	case <-tab.closed:
+	//case <-tab.closed:
+	case <-tab.closeReq:
 		close(done)
 	}
 	return done
