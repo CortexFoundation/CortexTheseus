@@ -52,7 +52,7 @@ func hexToCompact(hex []byte) []byte {
 }
 
 func compactToHex(compact []byte) []byte {
-	if len(compact) == 0 {
+	if compact == nil || len(compact) == 0 {
 		return compact
 	}
 
