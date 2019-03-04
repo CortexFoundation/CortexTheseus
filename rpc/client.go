@@ -118,7 +118,9 @@ type Client struct {
 
 	// for dispatch
 	close       chan struct{}
-	didQuit     chan struct{}                  // closed when client quits
+	//didQuit     chan struct{}                  // closed when client quits
+	closing     chan struct{}                  // closed when client is quitting
+	didClose    chan struct{}                  // closed when client quits
 	reconnected chan net.Conn                  // where write/reconnect sends the new connection
 	readErr     chan error                     // errors from read
 	readResp    chan []*jsonrpcMessage         // valid messages from read
@@ -231,7 +233,9 @@ func newClient(initctx context.Context, connectFunc func(context.Context) (net.C
 		isHTTP:      isHTTP,
 		connectFunc: connectFunc,
 		close:       make(chan struct{}),
-		didQuit:     make(chan struct{}),
+		//didQuit:     make(chan struct{}),
+		closing:     make(chan struct{}),
+		didClose:    make(chan struct{}),
 		reconnected: make(chan net.Conn),
 		readErr:     make(chan error),
 		readResp:    make(chan []*jsonrpcMessage),
@@ -268,8 +272,10 @@ func (c *Client) Close() {
 	}
 	select {
 	case c.close <- struct{}{}:
-		<-c.didQuit
-	case <-c.didQuit:
+	//	<-c.didQuit
+	//case <-c.didQuit:
+		<-c.didClose
+	case <-c.didClose:
 	}
 }
 
@@ -469,7 +475,10 @@ func (c *Client) send(ctx context.Context, op *requestOp, msg interface{}) error
 		// This can happen if the client is overloaded or unable to keep up with
 		// subscription notifications.
 		return ctx.Err()
-	case <-c.didQuit:
+	//case <-c.didQuit:
+	case <-c.closing:
+		return ErrClientQuit
+	case <-c.didClose:
 		return ErrClientQuit
 	}
 }
@@ -504,7 +513,8 @@ func (c *Client) reconnect(ctx context.Context) error {
 	case c.reconnected <- newconn:
 		c.writeConn = newconn
 		return nil
-	case <-c.didQuit:
+	//case <-c.didQuit:
+	case <-c.didClose:
 		newconn.Close()
 		return ErrClientQuit
 	}
@@ -522,8 +532,10 @@ func (c *Client) dispatch(conn net.Conn) {
 		requestOpLock = c.requestOp // nil while the send lock is held
 		reading       = true        // if true, a read loop is running
 	)
-	defer close(c.didQuit)
+	//defer close(c.didQuit)
+	defer close(c.didClose)
 	defer func() {
+		close(c.closing)
 		c.closeRequestOps(ErrClientQuit)
 		conn.Close()
 		if reading {
