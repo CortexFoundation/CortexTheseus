@@ -95,7 +95,7 @@ func FindCycles(threadId uint32, nedges uint32) (status_code uint32, ret [][]uin
 }
 
 func CuckooInitialize(devices []uint32, deviceNum uint32, selected int) {
-	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected))
+	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected), 1)
 }
 
 func Monitor(device_count uint32) (fanSpeeds []uint32, temperatures []uint32) {
