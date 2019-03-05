@@ -1,9 +1,9 @@
-// +build cuda_miner 
+// +build cpu_miner
 
 package cuckoo
 
 /*
-#cgo LDFLAGS: -L../../PoolMiner/miner/libcuckoo -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
+#cgo LDFLAGS: -L../../PoolMiner/miner/libcuckoo -lcpuminer -lstdc++
 #cgo CFLAGS: -I./
 
 #include "../../PoolMiner/miner/libcuckoo/miner.h"
@@ -24,10 +24,11 @@ func CuckooInit(threads uint32) {
 
 func CuckooInitialize(threads uint32, nInstances uint32) {
 	var devices []uint32
-	var deviceNum uint32 = 1
+	var deviceNum uint32
+	var selected int
 	devices = append(devices, 0);
-	var selected uint32 = 0
-
+	deviceNum = 1
+	selected = 0
 	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected))
 }
 
@@ -54,19 +55,14 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 	)
 	var tmpHash = make([]byte, 32)
 	copy(tmpHash[:], hash)
-	var threadId uint32 = 0
-	nedges := C.FindSolutionsByGPU(
+	r := C.RunSolverOnCPU(
 		(*C.uint8_t)(unsafe.Pointer(&tmpHash[0])),
 		C.uint64_t(nonce),
-		C.uint32_t(threadId))
-
-	r := C.FindCycles(
-		C.uint32_t(threadId),
-		C.uint32_t(nedges),
 		(*C.uint32_t)(unsafe.Pointer(&result[0])),
 		C.uint32_t(len(result)),
 		(*C.uint32_t)(unsafe.Pointer(&_solLength)),
 		(*C.uint32_t)(unsafe.Pointer(&_numSols)))
+
 
 	if uint32(len(result)) < _solLength*_numSols {
 		log.Println(fmt.Sprintf("WARNING: discard possible solutions, total sol num=%v, received number=%v", _numSols, uint32(len(result))/_solLength))

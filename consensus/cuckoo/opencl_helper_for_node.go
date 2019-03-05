@@ -1,9 +1,9 @@
-// +build cuda_miner 
+// +build opencl_miner 
 
 package cuckoo
 
 /*
-#cgo LDFLAGS: -L../../PoolMiner/miner/libcuckoo -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
+#cgo LDFLAGS: -L../../PoolMiner/miner/libcuckoo -lopenclminer -L/usr/local/cuda/lib64 -lOpenCL -lstdc++
 #cgo CFLAGS: -I./
 
 #include "../../PoolMiner/miner/libcuckoo/miner.h"
@@ -24,10 +24,11 @@ func CuckooInit(threads uint32) {
 
 func CuckooInitialize(threads uint32, nInstances uint32) {
 	var devices []uint32
-	var deviceNum uint32 = 1
+	var deviceNum uint32
+	var selected int
 	devices = append(devices, 0);
-	var selected uint32 = 0
-
+	deviceNum = 1
+	selected = 0
 	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected))
 }
 
