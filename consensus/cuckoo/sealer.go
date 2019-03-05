@@ -68,7 +68,9 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 		pend.Add(1)
 		go func(id int, nonce uint64) {
 			defer pend.Done()
+			cuckoo.lock.Lock()
 			cuckoo.Mine(block, id, nonce, abort, cuckoo.resultCh)
+			cuckoo.lock.Unlock()
 		}(i, uint64(cuckoo.rand.Int63()))
 	}
 	// Wait until sealing is terminated or a nonce is found

@@ -38,6 +38,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"time"
+//	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
 )
 
 // Cuckoo proof-of-work protocol constants.
@@ -693,10 +694,12 @@ func CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, num
 	var r int
 	if number < 10 {
 		fmt.Println("verify cuckoo")
-		r = CuckooVerifyHeaderNonceAndSolutions(hash, uint64(nonce), &sol[0])
+		//r = CuckooVerifyHeaderNonceAndSolutions(hash, uint64(nonce), &sol[0])
+//		r = cuckoo.CuckooVerify(hash, len(hash), nonce, sol[:], nil, nil, nil);
 	}else{
 		fmt.Println("verify cuckaroo")
-		r = CuckooVerifyHeaderNonceAndSolutions_cuckaroo(hash, uint64(nonce), &sol[0])
+//		r = CuckooVerifyHeaderNonceAndSolutions_cuckaroo(hash, uint64(nonce), &sol[0])
+//		r = cuckoo.CuckooSolve(&hash[0], len(hash), nonce, sol[:], nil, nil, nil);
 	}
 	if r != 1 {
 		return false, common.Hash{}
