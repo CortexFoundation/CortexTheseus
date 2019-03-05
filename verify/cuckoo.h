@@ -48,5 +48,7 @@ extern const char *errstr[];
 
 int verify_proof(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_keys *keys);
 
+int verify_proof_cuckaroo(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_keys *keys);
+
 void setheader(const char *header, const u32 headerlen, siphash_keys *keys);
 #endif

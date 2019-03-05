@@ -6,16 +6,21 @@ GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_CUCKOO_DIR = $(shell pwd)/miner/libcuckoo
 
-all: cuda-miner opencl-miner
+all: cuda-miner opencl-miner cuckaroo-miner cpu-miner
 
 cuda-miner: 
 	make -C ${LIB_CUCKOO_DIR} cuda
-	go build -o build/bin/cuda_miner ./cmd/miner 
+	go build -o build/bin/cuda_miner -tags cuda  ./cmd/miner 
 	@echo "Done building."
 
 opencl-miner: 
 	make -C ${LIB_CUCKOO_DIR} opencl
 	go build -o build/bin/opencl_miner -tags opencl ./cmd/miner 
+	@echo "Done building."
+
+cpu-miner: 
+	make -C ${LIB_CUCKOO_DIR} cpu
+	go build -o build/bin/cpu_miner -tags cpu ./cmd/miner 
 	@echo "Done building."
 
 clean:

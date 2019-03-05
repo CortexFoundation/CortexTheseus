@@ -6,4 +6,5 @@
 
 int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits);
 
+int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits);
 #endif // GOMINER_H
