@@ -18,7 +18,9 @@ inline cl_device_id getOneDevice(cl_platform_id platformId, unsigned int deviceI
 	}
 	cl_device_id *deviceIds = (cl_device_id*)malloc(sizeof(cl_device_id) * numDevices);
 	err = clGetDeviceIDs(platformId, CL_DEVICE_TYPE_GPU, numDevices, deviceIds, NULL);
-	return deviceIds[deviceId];
+	cl_device_id ret = deviceIds[deviceId];
+	free(deviceIds);
+	return ret;
 }
 
 inline void getAllDeviceInfo(){
