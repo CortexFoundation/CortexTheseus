@@ -153,11 +153,11 @@ void initOne(uint32_t index, uint32_t device){
     */
 }
 
-void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
+void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0, int printDeviceInfo = 1) {
     using namespace cuckoogpu;
     using std::vector;
-
-    getDeviceInfo();
+    if(printDeviceInfo != 0)
+	getDeviceInfo();
 #ifdef PLATFORM_AMD
     if(monitor_init(deviceNum) < 0) exit(0);
 #endif
