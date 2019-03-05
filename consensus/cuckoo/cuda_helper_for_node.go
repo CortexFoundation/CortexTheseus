@@ -28,7 +28,7 @@ func CuckooInitialize(threads uint32, nInstances uint32) {
 	devices = append(devices, 0);
 	var selected uint32 = 0
 
-	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected))
+	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected), 0)
 }
 
 func CuckooFinalize() {

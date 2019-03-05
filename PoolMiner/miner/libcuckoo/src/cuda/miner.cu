@@ -5,8 +5,6 @@
 #include "monitor.hpp"
 #include "../cuckoo.h"
 
-//cuckoogpu::cuckoo_solver_ctx* ctx = NULL;
-//cuckoogpu::cuckaroo_solver_ctx* cuckaroo_ctx = NULL;
 std::vector<cuckoogpu::solver_ctx*> ctx;
 
 void getDeviceInfo(){
@@ -23,9 +21,9 @@ void getDeviceInfo(){
 
 	printf("NVIDIA Cards available: %d\n", deviceCount);
 	int driverVersion = 0, runtimeVersion = 0;
-    cudaDriverGetVersion(&driverVersion);
-    cudaRuntimeGetVersion(&runtimeVersion);
-    printf("\033[0;32;40m CUDA Driver Version / Runtime Version          %d.%d / %d.%d\n", driverVersion/1000, (driverVersion%100)/10, runtimeVersion/1000, (runtimeVersion%100)/10);
+    	cudaDriverGetVersion(&driverVersion);
+    	cudaRuntimeGetVersion(&runtimeVersion);
+    	printf("\033[0;32;40m CUDA Driver Version / Runtime Version          %d.%d / %d.%d\n", driverVersion/1000, (driverVersion%100)/10, runtimeVersion/1000, (runtimeVersion%100)/10);
 	for(int dev = 0; dev < deviceCount; ++dev){
         cudaSetDevice(dev);
         cudaDeviceProp deviceProp;
@@ -56,32 +54,6 @@ int32_t FindSolutionsByGPU(
 
     // printf("Looking for %d-cycle on cuckoo%d(\"%s\",%019lu)\n", PROOFSIZE, NODEBITS, headerInHex,  nonce);
     u32 nedges = ctx[threadId]->solve();
-    /*u32 nsols = ctx[threadId]->findcycles(nedges);
-    vector<vector<u32> > sols;
-    vector<vector<u32> >* solutions = &sols;
-    for (unsigned s = 0; s < nsols; s++) {
-        u32* prf = &(ctx[threadId]->sols[s * PROOFSIZE]);
-        solutions->push_back(vector<u32>());
-        vector<u32>& sol = solutions->back();
-        for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
-            sol.push_back(prf[idx]);
-        }
-        // std::sort(sol.begin(), sol.end());
-    }
-    *solLength = 0;
-    *numSol = sols.size();
-    if (sols.size() == 0)
-        return 0;
-    *solLength = uint32_t(sols[0].size());
-    for (size_t n = 0; n < min(sols.size(), (size_t)resultBuffSize / (*solLength)); n++)
-    {
-        vector<u32>& sol = sols[n];
-        for (size_t i = 0; i < sol.size(); i++) {
-            result[i + n * (*solLength)] = sol[i];
-        }
-    }
-    return nsols > 0;
-*/
     return nedges;
 }
 
@@ -153,20 +125,21 @@ void initOne(uint32_t index, uint32_t device){
     //printf("Using %d%cB of global memory.\n", (u32)bytes, " KMGT"[unit]);
 }
 
-void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
+void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0, int printDeviceInfo = 1) {
     //printf("thread: %d\n", getpid());
     using namespace cuckoogpu;
     using std::vector;
-	getDeviceInfo();
-	if(monitor_init(deviceNum) < 0) exit(0);
+    if(printDeviceInfo != 0)
+   	getDeviceInfo();
+    if(monitor_init(deviceNum) < 0) exit(0);
 	
     for(int i = 0; i < deviceNum; i++){
-            if(selected == 0){
-                    ctx.push_back(new cuckoo_solver_ctx());
-            }else{
-                    ctx.push_back(new cuckaroo_solver_ctx());
-            }
-            initOne(i, devices[i]);
+        if(selected == 0){
+                ctx.push_back(new cuckoo_solver_ctx());
+        }else{
+                ctx.push_back(new cuckaroo_solver_ctx());
+        }
+        initOne(i, devices[i]);
     }
 }
 
