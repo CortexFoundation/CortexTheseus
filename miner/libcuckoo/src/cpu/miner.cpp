@@ -86,7 +86,7 @@ void create_solver_ctx(SolverParams* params, int selected) {
   }
 }
 
-void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0) {
+void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0, int printDeviceInfo = 1) {
   SolverParams params;
   params.nthreads = 4; //nthreads;
   params.ntrims = 0; //ntrims;
