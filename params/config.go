@@ -47,8 +47,8 @@ var (
 		//EIP158Block:    nil,
 		ByzantiumBlock: big.NewInt(0),
 		//CortexBlock:	     big.NewInt(8409600),
-		ConstantinopleBlock: nil,
-		PetersburgBlock: nil,
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock: big.NewInt(0),
 		Cuckoo:              new(CuckooConfig),
 	}
 
