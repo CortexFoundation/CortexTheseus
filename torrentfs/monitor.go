@@ -236,11 +236,16 @@ func (m *Monitor) Stop() {
 	atomic.StoreInt32(&(m.terminated), 1)
 	close(m.exitCh)
 
+	// var stopFilterFlag bool
+	// if blockFilterErr := m.cl.Call(&stopFilterFlag, "eth_uninstallFilter", m.listenID); blockFilterErr != nil {
+	// log.Error("Block Filter closed | IPC eth_uninstallFilter", "error", blockFilterErr)
+	// }
+
 	if err := m.fs.Close(); err != nil {
-		log.Error("Monitor File Storage Closed", "error", err)
+		log.Error("Monitor File Storage closed", "error", err)
 	}
 	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Torrent Manager Closed", "error", err)
+		log.Error("Monitor Torrent Manager closed", "error", err)
 	}
 }
 
@@ -339,41 +344,48 @@ func (m *Monitor) validateStorage() error {
 func (m *Monitor) listenLatestBlock() {
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
 
+	blockFilter := func() {
+		// If blockchain rolled back, the `eth_getFilterChanges` function will send rewritable
+		// block hash. It's a simple operator to write block to storage.
+		var blockHashes []string
+		if changeErr := m.cl.Call(&blockHashes, "eth_getFilterChanges", m.listenID); changeErr != nil {
+			log.Error("Listen latest block | IPC ctx_getFilterChanges", "error", changeErr)
+			return
+		}
+
+		if len(blockHashes) > 0 {
+			log.Debug("Torrent FS IPC blocks range", "piece", len(blockHashes))
+		}
+
+		for _, hash := range blockHashes {
+			block, rpcErr := m.rpcBlockByHash(hash)
+			if rpcErr != nil {
+				log.Error("Listen latest block", "hash", hash, "error", rpcErr)
+				return
+			}
+
+			log.Debug("Torrent FS IPC block", "number", block.Number, "hash", hash)
+
+			if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
+				log.Error("Parse latest block", "hash", hash, "block", block, "error", parseErr)
+				return
+			}
+
+			if storeErr := m.fs.WriteBlock(block); storeErr != nil {
+				log.Error("Store latest block", "hash", hash, "error", storeErr)
+				return
+			}
+		}
+	}
+
 	for {
 		select {
 		case <-timer.C:
-
-			// If blockchain rolled back, the `eth_getFilterChanges` function will send rewritable
-			// block hash. It's a simple operator to write block to storage.
-			var blockHashes []string
-			if changeErr := m.cl.Call(&blockHashes, "eth_getFilterChanges", m.listenID); changeErr != nil {
-				log.Error("Listen latest block | IPC ctx_getFilterChanges", "error", changeErr)
-				timer.Reset(time.Second * 5)
-				break
-			}
-
-			for _, hash := range blockHashes {
-				block, rpcErr := m.rpcBlockByHash(hash)
-				if rpcErr != nil {
-					log.Error("Listen latest block", "hash", hash, "error", rpcErr)
-					return
-				}
-
-				log.Debug("Torrent FS IPC block", "number", block.Number, "hash", hash)
-
-				if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
-					log.Error("Parse latest block", "hash", hash, "block", block, "error", parseErr)
-					return
-				}
-
-				if storeErr := m.fs.WriteBlock(block); storeErr != nil {
-					log.Error("Store latest block", "hash", hash, "error", storeErr)
-					return
-				}
-			}
+			go blockFilter()
 
 			// Aviod sync in full mode, fresh interval may be less.
 			timer.Reset(time.Second * 3)
+
 		case <-m.exitCh:
 			return
 		}

@@ -21,6 +21,7 @@ import (
 	"github.com/anacrolix/torrent/mmap_span"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 const (
@@ -263,7 +264,6 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 	}
 }
 
-// AddMagnet ...
 func (tm *TorrentManager) AddMagnet(uri string) {
 	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
 	if err != nil {
@@ -351,13 +351,17 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 // NewTorrentManager ...
 func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableTCP = true
+	// (TODO) some network device may not support utp protocol, which results in burst of latency
+	cfg.DisableUTP = true
 	cfg.DataDir = config.DataDir
 	cfg.DisableEncryption = true
+	cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
 	listenAddr := &net.TCPAddr{}
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	cfg.SetListenAddr(listenAddr.String())
 	cfg.Seed = true
+	cfg.EstablishedConnsPerTorrent = 5
+	cfg.HalfOpenConnsPerTorrent = 3
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
