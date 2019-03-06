@@ -1197,48 +1197,48 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, pErr
 		}
 
-		/*
-				Verify:
-					for {
-						select {
-						case <-timer.C:
-							dbState, pErr = state.New(parent.Root(), bc.stateCache)
-							if pErr != nil {
-								return i, events, coalescedLogs, pErr
-							}
+		
+	 //		Verify:
+	 //			for {
+	 //				select {
+	 //				case <-timer.C:
+	 //					dbState, pErr = state.New(parent.Root(), bc.stateCache)
+	 //					if pErr != nil {
+	 //						return i, events, coalescedLogs, pErr
+	 //					}
 
-							// Process block using the parent state as reference point.
-							receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
+	 //					// Process block using the parent state as reference point.
+	 //					receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
 
-							// If Infer error and
-							// current block height less then block.BlockNumber,
-							// waiting...
-							if pErr == ErrBuiltInTorrentFS {
-								log.Warn("Invalid Verify Block Inference", "err", pErr)
+	 //					// If Infer error and
+	 //					// current block height less then block.BlockNumber,
+	 //					// waiting...
+	 //					if pErr == ErrBuiltInTorrentFS {
+	 //						log.Warn("Invalid Verify Block Inference", "err", pErr)
 
-								if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
-									log.Info("Verify Block Discard", "current block", bc.CurrentBlock().NumberU64(), "verified block", block.NumberU64())
-									break Verify
-								}
+	 //						if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
+	 //							log.Info("Verify Block Discard", "current block", bc.CurrentBlock().NumberU64(), "verified block", block.NumberU64())
+	 //							break Verify
+	 //						}
 
-								retry++
-								log.Warn("Retrying Verify Block Inference", "number", block.NumberU64(), "retry", retry)
-								timer.Reset(time.Second * 10)
-								continue
-							}
+	 //						retry++
+	 //						log.Warn("Retrying Verify Block Inference", "number", block.NumberU64(), "retry", retry)
+	 //						timer.Reset(time.Second * 10)
+	 //						continue
+	 //					}
 
-							break Verify
+	 //					break Verify
 
-						case <-bc.quit:
-							return 0, events, coalescedLogs, nil
-						}
-					}
+	 //				case <-bc.quit:
+	 //					return 0, events, coalescedLogs, nil
+	 //				}
+	 //			}
 
-			if pErr != nil {
-				bc.reportBlock(block, receipts, pErr)
-				return i, events, coalescedLogs, pErr
-			}
-		*/
+	 //	if pErr != nil {
+	 //		bc.reportBlock(block, receipts, pErr)
+	 //		return i, events, coalescedLogs, pErr
+	 //	}
+	 //	
 
 		// Validate the state using the default validator
 		err = bc.Validator().ValidateState(block, parent, dbState, receipts, usedGas)
