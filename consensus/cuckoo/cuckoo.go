@@ -140,7 +140,7 @@ func NewShared() *Cuckoo {
 
 func (cuckoo *Cuckoo) InitOnce() {
 	cuckoo.once.Do(func() {
-		CuckooInit(2)
+		CuckooInit(1)
 	})
 }
 

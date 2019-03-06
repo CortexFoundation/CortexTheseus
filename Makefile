@@ -16,6 +16,7 @@ GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/cminer/
 LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/infernet/
+LIB_CUCKOO_DIR = $(shell pwd)/PoolMiner/miner/libcuckoo
 
 # Curkoo algorithm dynamic library path
 OS = $(shell uname)
@@ -26,7 +27,8 @@ ifeq ($(OS), Darwin)
 endif
 
 cortex: clib
-	build/env.sh go run build/ci.go install ./cmd/cortex
+	build/env.sh go run build/ci.go install -cpu_miner ./cmd/cortex
+	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 
@@ -56,7 +58,7 @@ swarm:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-all: cortex-remote cortex nodekey cuckoo-miner
+all: cortex-remote cortex nodekey cuckoo-cuda-miner
 	# build/env.sh go run build/ci.go install
 
 nodekey:
@@ -65,8 +67,7 @@ nodekey:
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 clib:
-	make -C $(LIB_MINER_DIR)
-	make -C $(LIB_CUDA_MINER_DIR)
+	make -C ${LIB_CUCKOO_DIR} cpu
 	make -C ${INFER_NET_DIR} collect
 
 inferServer: clib

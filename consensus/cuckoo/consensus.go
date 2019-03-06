@@ -38,6 +38,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"time"
+//	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
 )
 
 // Cuckoo proof-of-work protocol constants.
@@ -577,7 +578,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
 	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
-	r, sha3 := CuckooVerifyHeader(hash, nonce, &result)
+	r, sha3 := CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64())
 	if sha3.Big().Cmp(targetDiff) > 0 {
 		log.Trace(fmt.Sprintf("VerifySeal: %v, %v %v", r, sha3.Hex(), targetDiff))
 		return errInvalidPoW
@@ -689,8 +690,17 @@ func Sha3Solution(sol *types.BlockSolution) []byte {
 	return ret
 }
 
-func CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution) (ok bool, sha3hash common.Hash) {
-	r := CuckooVerifyHeaderNonceAndSolutions(hash, uint64(nonce), &sol[0])
+func CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64) (ok bool, sha3hash common.Hash) {
+	var r int
+	if number < 10 {
+		fmt.Println("verify cuckoo")
+		//r = CuckooVerifyHeaderNonceAndSolutions(hash, uint64(nonce), &sol[0])
+//		r = cuckoo.CuckooVerify(hash, len(hash), nonce, sol[:], nil, nil, nil);
+	}else{
+		fmt.Println("verify cuckaroo")
+//		r = CuckooVerifyHeaderNonceAndSolutions_cuckaroo(hash, uint64(nonce), &sol[0])
+//		r = cuckoo.CuckooSolve(&hash[0], len(hash), nonce, sol[:], nil, nil, nil);
+	}
 	if r != 1 {
 		return false, common.Hash{}
 	}
