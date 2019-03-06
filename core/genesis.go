@@ -60,6 +60,7 @@ type Genesis struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
+	Supply     *big.Int    `json:"supply"           gencodec:"required"`
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -96,6 +97,7 @@ type genesisSpecMarshaling struct {
 	Number     math.HexOrDecimal64
 	Difficulty *math.HexOrDecimal256
 	Alloc      map[common.UnprefixedAddress]GenesisAccount
+	Supply     math.HexOrDecimal64
 }
 
 type genesisAccountMarshaling struct {
@@ -246,6 +248,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		MixDigest:  g.Mixhash,
 		Coinbase:   g.Coinbase,
 		Root:       root,
+		Supply:     g.Supply,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
@@ -303,9 +306,10 @@ func DefaultGenesisBlock() *Genesis {
 		Config:     params.MainnetChainConfig,
 		Nonce:      66,
 		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-		GasLimit:   5000,
-		Difficulty: big.NewInt(17179869184),
+		GasLimit:   8000000,
+		Difficulty: big.NewInt(1),
 		Alloc:      decodePrealloc(mainnetAllocData),
+		Supply:     params.CTXC_INIT,
 	}
 }
 
@@ -314,9 +318,10 @@ func DefaultCerebroGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.CerebroChainConfig,
 		Nonce:      0x0000000000000042,
-		GasLimit:   0x2fefd8,
+		GasLimit:   8000000,
 		Difficulty: big.NewInt(1),
 		Timestamp:  0x0,
+		Supply:     params.CTXC_INIT,
 	}
 }
 
@@ -325,7 +330,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.TestnetChainConfig,
 		Nonce:      0x0000000000000042,
-		GasLimit:   0x2fefd8,
+		GasLimit:   8000000,
 		Difficulty: big.NewInt(1),
 		Timestamp:  0x0,
 	}
@@ -365,7 +370,7 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
