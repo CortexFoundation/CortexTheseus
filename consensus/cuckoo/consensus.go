@@ -691,16 +691,8 @@ func Sha3Solution(sol *types.BlockSolution) []byte {
 }
 
 func CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64) (ok bool, sha3hash common.Hash) {
-	var r int
-	if number < 10 {
-		fmt.Println("verify cuckoo")
-		//r = CuckooVerifyHeaderNonceAndSolutions(hash, uint64(nonce), &sol[0])
-//		r = cuckoo.CuckooVerify(hash, len(hash), nonce, sol[:], nil, nil, nil);
-	}else{
-		fmt.Println("verify cuckaroo")
-//		r = CuckooVerifyHeaderNonceAndSolutions_cuckaroo(hash, uint64(nonce), &sol[0])
-//		r = cuckoo.CuckooSolve(&hash[0], len(hash), nonce, sol[:], nil, nil, nil);
-	}
+	var r byte
+	r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	if r != 1 {
 		return false, common.Hash{}
 	}

@@ -53,11 +53,11 @@ search:
 				nonce++
 				continue
 			}
-			if (*header.Number).Uint64() < 1000 {
+//			if (*header.Number).Uint64() < 1000 {
 				r = CuckooVerify(&hash[0], len(hash), (nonce), result[:], diff, &result_hash[0])
-			}else{
-				r = CuckooVerify_cuckaroo(&hash[0], len(hash), (nonce), result[:], diff, &result_hash[0])
-			}
+//			}else{
+//				r = CuckooVerify_cuckaroo(&hash[0], len(hash), (nonce), result[:], diff, &result_hash[0])
+//			}
 
 			if r != 0 {
 				// Correct solution found, create a new header with it

@@ -89,11 +89,11 @@ func CuckooVerify(hash *byte, hash_len int, nonce uint64, result []uint32, diff 
 		tmpret[i] = result[i]
 	}
 	var tmpdiff common.Hash
-	for i := 0; i < len(diff); i++ {
+	for i := 0; diff != nil && i < len(diff); i++ {
 		tmpdiff[i] = diff[i]
 	}
 	sha3hash := common.BytesToHash(crypto.Sha3Solution(&tmpret))
-	if sha3hash.Big().Cmp(tmpdiff.Big()) <= 0{
+	if diff == nil || sha3hash.Big().Cmp(tmpdiff.Big()) <= 0{
 		r := C.CuckooVerifyProof(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
@@ -111,11 +111,11 @@ func CuckooVerify_cuckaroo(hash *byte, hash_len int, nonce uint64, result []uint
 		tmpret[i] = result[i]
 	}
 	var tmpdiff common.Hash
-	for i := 0; i < len(diff); i++ {
+	for i := 0; diff != nil && i < len(diff); i++ {
 		tmpdiff[i] = diff[i]
 	}
 	sha3hash := common.BytesToHash(crypto.Sha3Solution(&tmpret))
-	if sha3hash.Big().Cmp(tmpdiff.Big()) <= 0{
+	if diff == nil || sha3hash.Big().Cmp(tmpdiff.Big()) <= 0{
 		r := C.CuckooVerifyProof_cuckaroo(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
