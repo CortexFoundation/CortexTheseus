@@ -38,28 +38,29 @@ var (
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:        big.NewInt(1),
-		HomesteadBlock: nil,
-		DAOForkBlock:   nil,
+		//HomesteadBlock: nil,
+		//DAOForkBlock:   nil,
 		DAOForkSupport: false,
-		EIP150Block:    nil,
-		EIP150Hash:     common.HexToHash("0x"),
-		EIP155Block:    nil,
-		EIP158Block:    nil,
+		//EIP150Block:    nil,
+		//EIP150Hash:     common.HexToHash("0x"),
+		//EIP155Block:    nil,
+		//EIP158Block:    nil,
 		ByzantiumBlock: big.NewInt(0),
 		//CortexBlock:	     big.NewInt(8409600),
-		ConstantinopleBlock: nil,
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock: big.NewInt(0),
 		Cuckoo:              new(CuckooConfig),
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	CerebroChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(42),
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        nil,
+		//HomesteadBlock:      big.NewInt(0),
+		//DAOForkBlock:        nil,
 		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
+		//EIP150Block:         big.NewInt(0),
+		//EIP155Block:         big.NewInt(0),
+		//EIP158Block:         big.NewInt(0),
 		ByzantiumBlock:      big.NewInt(0),
 		ConstantinopleBlock: nil,
 		Cuckoo:              new(CuckooConfig),
@@ -68,12 +69,12 @@ var (
 	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	TestnetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(27),
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        nil,
+		//HomesteadBlock:      big.NewInt(0),
+		//DAOForkBlock:        nil,
 		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
+		//EIP150Block:         big.NewInt(0),
+		//EIP155Block:         big.NewInt(0),
+		//EIP158Block:         big.NewInt(0),
 		ByzantiumBlock:      big.NewInt(0),
 		ConstantinopleBlock: nil,
 		Cuckoo:              new(CuckooConfig),
@@ -82,13 +83,13 @@ var (
 	// RinkebyChainConfig contains the chain parameters to run a node on the Rinkeby test network.
 	RinkebyChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(48888),
-		HomesteadBlock:      big.NewInt(1),
-		DAOForkBlock:        nil,
+		//HomesteadBlock:      big.NewInt(1),
+		//DAOForkBlock:        nil,
 		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(2),
-		EIP150Hash:          common.HexToHash("0x9b095b36c15eaf13044373aef8ee0bd3a382a5abb92e402afa44b8249c3a90e9"),
-		EIP155Block:         big.NewInt(3),
-		EIP158Block:         big.NewInt(3),
+		//EIP150Block:         big.NewInt(2),
+		//EIP150Hash:          common.HexToHash("0x9b095b36c15eaf13044373aef8ee0bd3a382a5abb92e402afa44b8249c3a90e9"),
+		//EIP155Block:         big.NewInt(3),
+		//EIP158Block:         big.NewInt(3),
 		ByzantiumBlock:      big.NewInt(1035301),
 		ConstantinopleBlock: nil,
 		Clique: &CliqueConfig{
@@ -103,16 +104,29 @@ var (
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
 	AllCuckooProtocolChanges = &ChainConfig{
-		big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CuckooConfig), nil}
+		ChainID: big.NewInt(1337),
+		//HomesteadBlock: big.NewInt(0),
+		//DAOForkBlock: nil,
+		DAOForkSupport: false,
+		//EIP150Block: big.NewInt(0),
+		//EIP150Hash: common.Hash{},
+		//EIP155Block: big.NewInt(0),
+		//EIP158Block: big.NewInt(0),
+		ByzantiumBlock: nil,
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock: big.NewInt(0),
+		EWASMBlock: nil,
+		Cuckoo: new(CuckooConfig),
+		Clique: nil}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Clique consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
+	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CuckooConfig), nil}
+	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(CuckooConfig), nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int))
 )
 
@@ -138,6 +152,7 @@ type ChainConfig struct {
 
 	ByzantiumBlock      *big.Int `json:"byzantiumBlock,omitempty"`      // Byzantium switch block (nil = no fork, 0 = already on byzantium)
 	ConstantinopleBlock *big.Int `json:"constantinopleBlock,omitempty"` // Constantinople switch block (nil = no fork, 0 = already activated)
+	PetersburgBlock     *big.Int `json:"petersburgBlock,omitempty"`     // Petersburg switch block (nil = same as Constantinople)
 	EWASMBlock          *big.Int `json:"ewasmBlock,omitempty"`          // EWASM switch block (nil = no fork, 0 = already activated)
 	// Various consensus engines
 	Cuckoo *CuckooConfig `json:"ethash,omitempty"`
@@ -183,6 +198,7 @@ func (c *ChainConfig) String() string {
 		c.EIP158Block,
 		c.ByzantiumBlock,
 		c.ConstantinopleBlock,
+		c.PetersburgBlock,
 		engine,
 	)
 }
@@ -220,6 +236,13 @@ func (c *ChainConfig) IsByzantium(num *big.Int) bool {
 // IsConstantinople returns whether num is either equal to the Constantinople fork block or greater.
 func (c *ChainConfig) IsConstantinople(num *big.Int) bool {
 	return isForked(c.ConstantinopleBlock, num)
+}
+
+// IsPetersburg returns whether num is either
+// - equal to or greater than the PetersburgBlock fork block,
+// - OR is nil, and Constantinople is active
+func (c *ChainConfig) IsPetersburg(num *big.Int) bool {
+        return isForked(c.PetersburgBlock, num) || c.PetersburgBlock == nil && isForked(c.ConstantinopleBlock, num)
 }
 
 // IsEWASM returns whether num represents a block number after the EWASM fork
@@ -292,6 +315,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.ConstantinopleBlock, newcfg.ConstantinopleBlock, head) {
 		return newCompatError("Constantinople fork block", c.ConstantinopleBlock, newcfg.ConstantinopleBlock)
 	}
+	if isForkIncompatible(c.PetersburgBlock, newcfg.PetersburgBlock, head) {
+		return newCompatError("ConstantinopleFix fork block", c.PetersburgBlock, newcfg.PetersburgBlock)
+	}
 	if isForkIncompatible(c.EWASMBlock, newcfg.EWASMBlock, head) {
 		return newCompatError("ewasm fork block", c.EWASMBlock, newcfg.EWASMBlock)
 	}
@@ -361,7 +387,7 @@ func (err *ConfigCompatError) Error() string {
 type Rules struct {
 	ChainID                                   *big.Int
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158 bool
-	IsByzantium                               bool
+	IsByzantium, IsConstantinople, IsPetersburg bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -370,5 +396,5 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
-	return Rules{ChainID: new(big.Int).Set(chainID), IsHomestead: c.IsHomestead(num), IsEIP150: c.IsEIP150(num), IsEIP155: c.IsEIP155(num), IsEIP158: c.IsEIP158(num), IsByzantium: c.IsByzantium(num)}
+	return Rules{ChainID: new(big.Int).Set(chainID), IsHomestead: c.IsHomestead(num), IsEIP150: c.IsEIP150(num), IsEIP155: c.IsEIP155(num), IsEIP158: c.IsEIP158(num), IsByzantium: c.IsByzantium(num), IsPetersburg: c.IsPetersburg(num)}
 }
