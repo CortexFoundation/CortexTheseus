@@ -37,7 +37,7 @@ var (
 var (
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:        big.NewInt(1),
+		ChainID: big.NewInt(1),
 		//HomesteadBlock: nil,
 		//DAOForkBlock:   nil,
 		DAOForkSupport: false,
@@ -48,16 +48,16 @@ var (
 		ByzantiumBlock: big.NewInt(0),
 		//CortexBlock:	     big.NewInt(8409600),
 		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
 		Cuckoo:              new(CuckooConfig),
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	CerebroChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(42),
+		ChainID: big.NewInt(42),
 		//HomesteadBlock:      big.NewInt(0),
 		//DAOForkBlock:        nil,
-		DAOForkSupport:      false,
+		DAOForkSupport: false,
 		//EIP150Block:         big.NewInt(0),
 		//EIP155Block:         big.NewInt(0),
 		//EIP158Block:         big.NewInt(0),
@@ -68,10 +68,10 @@ var (
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	TestnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(27),
+		ChainID: big.NewInt(27),
 		//HomesteadBlock:      big.NewInt(0),
 		//DAOForkBlock:        nil,
-		DAOForkSupport:      false,
+		DAOForkSupport: false,
 		//EIP150Block:         big.NewInt(0),
 		//EIP155Block:         big.NewInt(0),
 		//EIP158Block:         big.NewInt(0),
@@ -82,10 +82,10 @@ var (
 
 	// RinkebyChainConfig contains the chain parameters to run a node on the Rinkeby test network.
 	RinkebyChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(48888),
+		ChainID: big.NewInt(48888),
 		//HomesteadBlock:      big.NewInt(1),
 		//DAOForkBlock:        nil,
-		DAOForkSupport:      false,
+		DAOForkSupport: false,
 		//EIP150Block:         big.NewInt(2),
 		//EIP150Hash:          common.HexToHash("0x9b095b36c15eaf13044373aef8ee0bd3a382a5abb92e402afa44b8249c3a90e9"),
 		//EIP155Block:         big.NewInt(3),
@@ -112,12 +112,12 @@ var (
 		//EIP150Hash: common.Hash{},
 		//EIP155Block: big.NewInt(0),
 		//EIP158Block: big.NewInt(0),
-		ByzantiumBlock: nil,
+		ByzantiumBlock:      nil,
 		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock: big.NewInt(0),
-		EWASMBlock: nil,
-		Cuckoo: new(CuckooConfig),
-		Clique: nil}
+		PetersburgBlock:     big.NewInt(0),
+		EWASMBlock:          nil,
+		Cuckoo:              new(CuckooConfig),
+		Clique:              nil}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Clique consensus.
@@ -242,7 +242,7 @@ func (c *ChainConfig) IsConstantinople(num *big.Int) bool {
 // - equal to or greater than the PetersburgBlock fork block,
 // - OR is nil, and Constantinople is active
 func (c *ChainConfig) IsPetersburg(num *big.Int) bool {
-        return isForked(c.PetersburgBlock, num) || c.PetersburgBlock == nil && isForked(c.ConstantinopleBlock, num)
+	return isForked(c.PetersburgBlock, num) || c.PetersburgBlock == nil && isForked(c.ConstantinopleBlock, num)
 }
 
 // IsEWASM returns whether num represents a block number after the EWASM fork
@@ -385,8 +385,8 @@ func (err *ConfigCompatError) Error() string {
 // Rules is a one time interface meaning that it shouldn't be used in between transition
 // phases.
 type Rules struct {
-	ChainID                                   *big.Int
-	IsHomestead, IsEIP150, IsEIP155, IsEIP158 bool
+	ChainID                                     *big.Int
+	IsHomestead, IsEIP150, IsEIP155, IsEIP158   bool
 	IsByzantium, IsConstantinople, IsPetersburg bool
 }
 

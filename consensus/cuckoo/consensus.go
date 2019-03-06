@@ -38,7 +38,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"time"
-//	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
+	//	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
 )
 
 // Cuckoo proof-of-work protocol constants.
