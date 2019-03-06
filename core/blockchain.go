@@ -1180,8 +1180,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			parent = chain[i-1]
 		}
 		var (
-			retry = uint64(0)
-			timer = time.NewTimer(0)
 
 			dbState   *state.StateDB
 			receipts  types.Receipts
@@ -1191,47 +1189,84 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			pErr      error
 		)
 
+
+		// dbState  *state.StateDB
+		// receipts types.Receipts
+		// logs     []*types.Log
+		// usedGas  uint64
+		// pErr     error
+		// )
+
 		// TODO No Test
-	Verify:
-		for {
-			select {
-			case <-timer.C:
-				dbState, pErr = state.New(parent.Root(), bc.stateCache)
-				if pErr != nil {
-					return i, events, coalescedLogs, pErr
-				}
-
-				// Process block using the parent state as reference point.
-				receipts, logs, usedGas, usedQuota, pErr = bc.processor.Process(block, parent.QuotaUsed(), dbState, bc.vmConfig)
-
-				// If Infer error and
-				// current block height less then block.BlockNumber,
-				// waiting...
-				if pErr == ErrBuiltInTorrentFS {
-					log.Warn("Invalid Verify Block Inference", "err", pErr)
-
-					if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
-						log.Info("Verify Block Discard", "current block", bc.CurrentBlock().NumberU64(), "verified block", block.NumberU64())
-						break Verify
-					}
-
-					retry++
-					log.Warn("Retrying Verify Block Inference", "number", block.NumberU64(), "retry", retry)
-					timer.Reset(time.Second * 10)
-					continue
-				}
-
-				break Verify
-
-			case <-bc.quit:
-				return 0, events, coalescedLogs, nil
-			}
+		dbState, stateErr := state.New(parent.Root(), bc.stateCache)
+		if stateErr != nil {
+			return i, events, coalescedLogs, stateErr
 		}
 
-		if pErr != nil {
+		// Process block using the parent state as reference point.
+		receipts, logs, usedGas, usedQuota, pErr = bc.processor.Process(block, parent.QuotaUsed(), dbState, bc.vmConfig)
+		if pErr == ErrBuiltInTorrentFS {
+			log.Warn("Invalid Block Inference and pass through", "err", pErr)
+			// Strip current block once Built-In Torrent FS error occurs.
+
+			// TODO: be attention to add download blockchain [curNumber, curNumber] for
+			//	avoiding possible attacked.
+			//  break out `for` loop temporarily.
+			// break
+
+			// Append a single chain head event if we've progressed the chain
+			if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
+				events = append(events, ChainHeadEvent{lastCanon})
+			}
+			return i, events, coalescedLogs, pErr
+
+		} else if pErr != nil {
 			bc.reportBlock(block, receipts, pErr)
 			return i, events, coalescedLogs, pErr
 		}
+
+		
+	 //		Verify:
+	 //			for {
+	 //				select {
+	 //				case <-timer.C:
+	 //					dbState, pErr = state.New(parent.Root(), bc.stateCache)
+	 //					if pErr != nil {
+	 //						return i, events, coalescedLogs, pErr
+	 //					}
+
+	 //					// Process block using the parent state as reference point.
+	 //					receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
+
+	 //					// If Infer error and
+	 //					// current block height less then block.BlockNumber,
+	 //					// waiting...
+	 //					if pErr == ErrBuiltInTorrentFS {
+	 //						log.Warn("Invalid Verify Block Inference", "err", pErr)
+
+	 //						if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
+	 //							log.Info("Verify Block Discard", "current block", bc.CurrentBlock().NumberU64(), "verified block", block.NumberU64())
+	 //							break Verify
+	 //						}
+
+	 //						retry++
+	 //						log.Warn("Retrying Verify Block Inference", "number", block.NumberU64(), "retry", retry)
+	 //						timer.Reset(time.Second * 10)
+	 //						continue
+	 //					}
+
+	 //					break Verify
+
+	 //				case <-bc.quit:
+	 //					return 0, events, coalescedLogs, nil
+	 //				}
+	 //			}
+
+	 //	if pErr != nil {
+	 //		bc.reportBlock(block, receipts, pErr)
+	 //		return i, events, coalescedLogs, pErr
+	 //	}
+	 //	
 
 		// Validate the state using the default validator
 		err = bc.Validator().ValidateState(block, parent, dbState, receipts, usedGas, usedQuota)
@@ -1272,6 +1307,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		cache, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, i, cache)
 	}
+
 	// Append a single chain head event if we've progressed the chain
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
 		events = append(events, ChainHeadEvent{lastCanon})

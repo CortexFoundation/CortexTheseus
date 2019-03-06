@@ -220,6 +220,9 @@ func doInstall(cmdline []string) {
 		cc           = flag.String("cc", "", "C compiler to cross build with")
 		remote_infer = flag.Bool("remote_infer", false, "whether to use remote infer")
 		disable_miner = flag.Bool("disable_miner", false, "whether disable miner")
+		cuda_miner = flag.Bool("cuda_miner", false, "whether to use cuda miner")
+		opencl_miner = flag.Bool("opencl_miner", false, "whether to use opencl miner")
+		cpu_miner = flag.Bool("cpu_miner", false, "whether to use cpu miner")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -252,6 +255,15 @@ func doInstall(cmdline []string) {
 		}
 		if *disable_miner {
 			goinstall.Args = append(goinstall.Args, []string{"-tags", "disable_miner"}...)
+		}
+		if *cpu_miner {
+			goinstall.Args = append(goinstall.Args, []string{"-tags", "cpu_miner"}...)
+		}
+		if *cuda_miner {
+			goinstall.Args = append(goinstall.Args, []string{"-tags", "cuda_miner"}...)
+		}
+		if *opencl_miner {
+			goinstall.Args = append(goinstall.Args, []string{"-tags", "opencl_miner"}...)
 		}
 		goinstall.Args = append(goinstall.Args, "-v")
 		goinstall.Args = append(goinstall.Args, packages...)
