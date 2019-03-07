@@ -625,8 +625,14 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 // Finalize implements consensus.Engine, accumulating the block and uncle rewards,
 // setting the final state and assembling the block.
 func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	//log.Info(fmt.Sprintf("parent: %v, current: %v, number: %v, total: %v, epoch: %v", header.ParentHash, header.Supply, header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
+	parent := chain.GetHeaderByHash(header.ParentHash)
+	if parent == nil {
+		return nil, consensus.ErrUnknownAncestor
+	}
+	//log.Info(fmt.Sprintf("parent: %v, current: %v, number: %v, total: %v, epoch: %v", parent.Number, header.Hash(), header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
 	// Accumulate any block and uncle rewards and commit the final state root
-	accumulateRewards(chain.Config(), state, header, uncles)
+	accumulateRewards(chain.Config(), state, header, parent, uncles)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
@@ -671,7 +677,7 @@ var (
 // AccumulateRewards credits the coinbase of the given block with the mining
 // reward. The total reward consists of the static block reward and rewards for
 // included uncles. The coinbase of each uncle block is also rewarded.
-func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header, parent *types.Header, uncles []*types.Header) {
 	// Select the correct block reward based on chain progression
 	blockReward := FrontierBlockReward
 	if config.IsByzantium(header.Number) {
@@ -687,13 +693,20 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		blockReward = ConstantinopleBlockReward
 	}*/
 
+	//parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
+	if parent == nil {
+		return
+	}
+	//log.Info("Parent", "num", parent.Number, "hash", parent.Hash(), "supply", parent.Supply)
+	header.Supply.Add(parent.Supply, big0)
+
 	if header.Supply.Cmp(params.CTXC_INIT) < 0 {
-		header.Supply = params.CTXC_INIT
+		header.Supply.Add(params.CTXC_INIT, big0)
 	}
 
 	if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
 		blockReward = big0
-		header.Supply = params.CTXC_TOP
+		header.Supply.Add(params.CTXC_TOP, big0)
 	}
 
 	if blockReward.Cmp(big0) > 0 {
@@ -701,10 +714,10 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		header.Supply.Add(header.Supply, blockReward)
 		if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
 			blockReward = surplus
-			header.Supply = params.CTXC_TOP
+			header.Supply.Add(params.CTXC_TOP, big0)
 		}
 
-		log.Info(fmt.Sprintf("current: %v, +%v, number: %v, total: %v, epoch: %v", header.Supply, blockReward, header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
+		log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v, total: %v, epoch: %v", parent.Supply, header.Supply, blockReward, header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
 		// Accumulate the rewards for the miner and any included uncles
 		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)

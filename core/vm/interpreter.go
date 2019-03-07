@@ -212,13 +212,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
 
 					//must in rawbytes if it is too small
-					if modelMeta.RawSize <= params.MaxRawSize {
+					//if modelMeta.RawSize <= params.MaxRawSize {
 						//if modelMeta.RawSize != uint64(len(modelMeta.RawBytes)) {
 							//return nil, ErrInvalidMetaRawSize
 						//}
-					} else {
+					//} else {
 						//deal with the big model 
-					}
+					//}
 
 					if modelMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
 						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))

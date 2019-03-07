@@ -671,7 +671,7 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, &w.current.header.QuotaUsed, w.chain.GetVMConfig())
+	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, w.chain.GetVMConfig())
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
 		return nil, err
@@ -747,9 +747,9 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			// Pop the current out-of-gas transaction without shifting in the next from the account
 			log.Trace("Gas limit exceeded for current block", "sender", from)
 			txs.Pop()
-		case core.ErrQuotaLimitReached:
-			log.Trace("Quota limit exceeded for current block", "sender", from)
-			txs.Pop()
+		//case core.ErrQuotaLimitReached:
+		//	log.Trace("Quota limit exceeded for current block", "sender", from)
+		//	txs.Pop()
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
 			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())
@@ -820,15 +820,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 
 	num := parent.Number()
-	quota := parent.Quota() + params.BLOCK_QUOTA
-	quotaUsed := parent.QuotaUsed()
+	//quota := parent.Quota() + params.BLOCK_QUOTA
+	//quotaUsed := parent.QuotaUsed()
 	supply := parent.Supply()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
-		Quota:      quota,
-		QuotaUsed:  quotaUsed,
+//		Quota:      quota,
+//		QuotaUsed:  quotaUsed,
 		Supply:     supply,
 		Extra:      w.extra,
 		Time:       big.NewInt(timestamp),
