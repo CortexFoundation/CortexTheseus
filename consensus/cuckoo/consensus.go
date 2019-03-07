@@ -329,7 +329,8 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	next := new(big.Int).Add(parent.Number, big1)
 	switch {
 	case config.IsConstantinople(next):
-		return calcDifficultyConstantinople(time, parent)
+		//return calcDifficultyConstantinople(time, parent)
+		return calcDifficultyByzantium(time, parent)
 	case config.IsByzantium(next):
 		return calcDifficultyByzantium(time, parent)
 	case config.IsHomestead(next):
