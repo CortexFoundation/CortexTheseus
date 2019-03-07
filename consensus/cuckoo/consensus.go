@@ -329,7 +329,8 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	next := new(big.Int).Add(parent.Number, big1)
 	switch {
 	case config.IsConstantinople(next):
-		return calcDifficultyConstantinople(time, parent)
+		//return calcDifficultyConstantinople(time, parent)
+		return calcDifficultyByzantium(time, parent)
 	case config.IsByzantium(next):
 		return calcDifficultyByzantium(time, parent)
 	case config.IsHomestead(next):
@@ -702,6 +703,8 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 			blockReward = surplus
 			header.Supply = params.CTXC_TOP
 		}
+
+		log.Info(fmt.Sprintf("current: %v, +%v, number: %v, total: %v, epoch: %v", header.Supply, blockReward, header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
 		// Accumulate the rewards for the miner and any included uncles
 		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
