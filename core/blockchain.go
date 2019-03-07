@@ -1150,10 +1150,15 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			var winner []*types.Block
 
 			parent := bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
-			for !bc.HasState(parent.Root()) {
+			for parent != nil && !bc.HasState(parent.Root()) {
 				winner = append(winner, parent)
 				parent = bc.GetBlock(parent.ParentHash(), parent.NumberU64()-1)
 			}
+
+			if parent == nil {
+				return i, nil, nil, errors.New("missing parent")
+			}
+
 			for j := 0; j < len(winner)/2; j++ {
 				winner[j], winner[len(winner)-1-j] = winner[len(winner)-1-j], winner[j]
 			}
