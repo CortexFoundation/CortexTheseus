@@ -684,8 +684,10 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		blockReward = ByzantiumBlockReward
 	}
 
-	if header.Number.Cmp(params.CortexBlockRewardPeriod) > 0 {
-		blockReward = new(big.Int).Div(blockReward, big0.Exp(big2, new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod), nil))
+	if header.Number.Cmp(params.CortexBlockRewardPeriod) >= 0 {
+		d := new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod)
+		e := new(big.Int).Exp(big2, d, nil)
+		blockReward = new(big.Int).Div(blockReward, e)
 		//todo ceiling handed by consensus
 	}
 
@@ -698,23 +700,23 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		return
 	}
 	//log.Info("Parent", "num", parent.Number, "hash", parent.Hash(), "supply", parent.Supply)
-	header.Supply.Add(parent.Supply, big0)
+	header.Supply.Set(parent.Supply)
 
 	if header.Supply.Cmp(params.CTXC_INIT) < 0 {
-		header.Supply.Add(params.CTXC_INIT, big0)
+		header.Supply.Set(params.CTXC_INIT)
 	}
 
 	if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
-		blockReward = big0
-		header.Supply.Add(params.CTXC_TOP, big0)
+		blockReward.Set(big0)
+		header.Supply.Set(params.CTXC_TOP)
 	}
 
 	if blockReward.Cmp(big0) > 0 {
 		surplus := new(big.Int).Sub(params.CTXC_TOP, header.Supply)
 		header.Supply.Add(header.Supply, blockReward)
 		if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
-			blockReward = surplus
-			header.Supply.Add(params.CTXC_TOP, big0)
+			blockReward.Set(surplus)
+			header.Supply.Set(params.CTXC_TOP)
 		}
 
 		log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v, total: %v, epoch: %v", parent.Supply, header.Supply, blockReward, header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
@@ -732,7 +734,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
 				//header.Supply = params.CTXC_TOP
 				header.Supply.Sub(header.Supply, r)
-				r = big0
+				r.Set(big0)
 				break
 			}
 			state.AddBalance(uncle.Coinbase, r)
@@ -744,7 +746,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			header.Supply.Add(header.Supply, r)
 			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
 				header.Supply.Sub(header.Supply, r)
-				r = big0
+				r.Set(big0)
 				//header.Supply = params.CTXC_TOP
 				break
 			}
