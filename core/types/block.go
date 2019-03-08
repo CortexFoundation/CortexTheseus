@@ -120,8 +120,8 @@ type Header struct {
 	Nonce        BlockNonce        `json:"nonce"            gencodec:"required"`
 	Solution     BlockSolution     `json:"solution"			gencodec:"required"`
 	SolutionHash BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
-	Quota        uint64            `json:"quota"       gencodec:"required"`
-	QuotaUsed    uint64            `json:"quotaUsed"       gencodec:"required"`
+	//Quota        uint64            `json:"quota"       gencodec:"required"`
+	//QuotaUsed    uint64            `json:"quotaUsed"       gencodec:"required"`
 	Supply       *big.Int          `json:"supply"           gencodec:"required"`
 }
 
@@ -341,8 +341,8 @@ func (b *Block) TxHash() common.Hash             { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash        { return b.header.ReceiptHash }
 func (b *Block) UncleHash() common.Hash          { return b.header.UncleHash }
 func (b *Block) Extra() []byte                   { return common.CopyBytes(b.header.Extra) }
-func (b *Block) Quota() uint64                   { return b.header.Quota }
-func (b *Block) QuotaUsed() uint64               { return b.header.QuotaUsed }
+//func (b *Block) Quota() uint64                   { return b.header.Quota }
+//func (b *Block) QuotaUsed() uint64               { return b.header.QuotaUsed }
 func (b *Block) Supply() *big.Int                { return new(big.Int).Set(b.header.Supply) }
 func (b *Block) Header() *Header                 { return CopyHeader(b.header) }
 
