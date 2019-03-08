@@ -738,6 +738,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				break
 			}
 			state.AddBalance(uncle.Coinbase, r)
+			log.Info("uncle", "miner", uncle.Coinbase, "reward", r)
 			//todo
 			//r.Div(blockReward, big8)
 			//state.AddBalance(uncle.Coinbase, r)
@@ -750,6 +751,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				//header.Supply = params.CTXC_TOP
 				break
 			}
+			log.Info("nephew", "reward", r)
 			reward.Add(reward, r)
 		}
 
