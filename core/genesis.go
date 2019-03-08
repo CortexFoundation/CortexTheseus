@@ -307,7 +307,7 @@ func DefaultGenesisBlock() *Genesis {
 		Nonce:      66,
 		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
 		GasLimit:   8000000,
-		Difficulty: big.NewInt(1),
+		Difficulty: big.NewInt(32),
 		//Alloc:      decodePrealloc(mainnetAllocData),
 		//Alloc: GenesisAlloc{"0xb07933C29AD6fAe77da3950440eE6bcE2f8b53Ff": {Balance: params.CTXC_INIT}},
 		Alloc: map[common.Address]GenesisAccount{
