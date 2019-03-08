@@ -31,22 +31,22 @@ siphash.o: src/siphash.cc src/siphash.h
 
 
 cudaN31L14.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/cuda/miner.cu src/cuda/trimmer.cu src/cuda/monitor.hpp Makefile
-	nvcc -std=c++11 -O3 -c -o $@.trimmer.o -rdc=true -DEDGEBITS=29 -DPROOFSIZE=42 -arch sm_35 -D_FORCE_INLINES src/cuda/trimmer.cu $(LIBS)
+	nvcc -std=c++11 -O3 -c -o $@.trimmer.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 -D_FORCE_INLINES src/cuda/trimmer.cu $(LIBS)
 #	nvcc -g -c -o $@.solver.o -rdc=true -DEDGEBITS=29 -DPROOFSIZE=12 -arch sm_35 src/cuda/solver.hpp $(LIBS)
-	nvcc -std=c++11 -O3 -c -o $@.miner.o -rdc=true -DEDGEBITS=29 -DPROOFSIZE=42 -arch sm_35 -D_FORCE_INLINES src/cuda/miner.cu $(LIBS) -lnvidia-ml
+	nvcc -std=c++11 -O3 -c -o $@.miner.o -rdc=true -DEDGEBITS=28 -DPROOFSIZE=12 -arch sm_35 -D_FORCE_INLINES src/cuda/miner.cu $(LIBS) -lnvidia-ml
 	nvcc -ccbin g++ -O3 -std=c++11 -m64 -Xcompiler -fpermissive -gencode arch=compute_35,code=sm_35 -D_FORCE_INLINES -rdc=true -dlink -o $@ $@.miner.o $@.trimmer.o
 
 openclN31L14.o: src/siphash.cuh src/opencl/cuckoo_solver.hpp src/opencl/cuckaroo_solver.hpp src/opencl/miner.cpp src/opencl/trimmer.cpp src/opencl/monitor.hpp Makefile
-	$(GPP) -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=29 -DPROOFSIZE=42 src/opencl/trimmer.cpp
+	$(GPP) -c -U__STRICT_ANSI__ -o $@.mean.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/trimmer.cpp
 #has rocm_smi_lib
 #	$(GPP) -g -c -U__STRICT_ANSI__ -DPLATFORM_AMD -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp -lrocm_smi64
 #no rocm_smi_lib
-	$(GPP) -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=29 -DPROOFSIZE=42 src/opencl/miner.cpp -lrocm_smi64 -lOpenCL
+	$(GPP) -c -U__STRICT_ANSI__ -o $@.temp.o -DEDGEBITS=28 -DPROOFSIZE=12 src/opencl/miner.cpp -lrocm_smi64 -lOpenCL
 	ld -r -o $@ $@.temp.o $@.mean.o
 
 
 cpuminer.o:  src/cpu/bitmap.hpp src/cpu/graph.hpp src/cpu/barrier.hpp src/cpu/siphash.hpp src/cpu/cuckaroo_mean.hpp src/cpu/cuckoo_mean.hpp src/cpu/miner.cpp  Makefile
-	$(GPP) -c -o $@.temp.o -mavx2 -DNSIPHASH=8 -DEDGEBITS=29 -DPROOFSIZE=42 src/cpu/miner.cpp 
+	$(GPP) -c -o $@.temp.o -mavx2 -DNSIPHASH=8 -DEDGEBITS=28 -DPROOFSIZE=12 src/cpu/miner.cpp 
 	ld -r -o $@ $@.temp.o
 
 libcudaminer.a: cudaN31L14.o blake2b.o siphash.o cuckoo.o
