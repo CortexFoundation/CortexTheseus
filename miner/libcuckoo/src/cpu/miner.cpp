@@ -19,49 +19,49 @@ int32_t RunSolverOnCPU(
         uint32_t *solLength,
         uint32_t *numSol)
 {
-    using std::vector;
-    // printf("[CuckooFind, sols.size()SolutionsCuda] thread: %d\n", getpid());
-		//
-    if(cuckoo_ctx == NULL && cuckaroo_ctx == NULL){
-    	printf("the solver context is null\n");
-	return 0;
-    }
+				using std::vector;
+				// printf("[CuckooFind, sols.size()SolutionsCuda] thread: %d\n", getpid());
+				//
+				if(cuckoo_ctx == NULL && cuckaroo_ctx == NULL){
+								printf("the solver context is null\n");
+								return 0;
+				}
 
-    u32 nsols = 0;
-    if(cuckoo_ctx != NULL){
-	cuckoo_ctx->setheadernonce((char*)header, HEADERLEN, nonce);
-	nsols = cuckoo_ctx->solve();
-    }
-    else{
-	cuckaroo_ctx->setheadernonce((char*)header, HEADERLEN, nonce);
-	nsols = cuckaroo_ctx->solve();
-    }
+				u32 nsols = 0;
+				if(cuckoo_ctx != NULL){
+								cuckoo_ctx->setheadernonce((char*)header, HEADERLEN, nonce);
+								nsols = cuckoo_ctx->solve();
+				}
+				else{
+								cuckaroo_ctx->setheadernonce((char*)header, HEADERLEN, nonce);
+								nsols = cuckaroo_ctx->solve();
+				}
 
-    vector<vector<u32> > sols;
-    vector<vector<u32> >* solutions = &sols;
-    for (unsigned s = 0; s < nsols; s++) {
-        u32* prf = NULL;
-	if(cuckoo_ctx != NULL) prf = &(cuckoo_ctx->sols[s * PROOFSIZE]);
-	else prf = &(cuckaroo_ctx->sols[s * PROOFSIZE]);
-        solutions->push_back(vector<u32>());
-        vector<u32>& sol = solutions->back();
-        for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
-            sol.push_back(prf[idx]);
-        }
-    }
-    *solLength = 0;
-    *numSol = sols.size();
-    if (sols.size() == 0)
-        return 0;
-    *solLength = uint32_t(sols[0].size());
-    for (size_t n = 0; n < min(sols.size(), (size_t)resultBuffSize / (*solLength)); n++)
-    {
-        vector<u32>& sol = sols[n];
-        for (size_t i = 0; i < sol.size(); i++) {
-            result[i + n * (*solLength)] = sol[i];
-        }
-    }
-    return nsols > 0;
+				vector<vector<u32> > sols;
+				vector<vector<u32> >* solutions = &sols;
+				for (unsigned s = 0; s < nsols; s++) {
+								u32* prf = NULL;
+								if(cuckoo_ctx != NULL) prf = &(cuckoo_ctx->sols[s * PROOFSIZE]);
+								else prf = &(cuckaroo_ctx->sols[s * PROOFSIZE]);
+								solutions->push_back(vector<u32>());
+								vector<u32>& sol = solutions->back();
+								for (uint32_t idx = 0; idx < PROOFSIZE; idx++) {
+												sol.push_back(prf[idx]);
+								}
+				}
+				*solLength = 0;
+				*numSol = sols.size();
+				if (sols.size() == 0)
+								return 0;
+				*solLength = uint32_t(sols[0].size());
+				for (size_t n = 0; n < min(sols.size(), (size_t)resultBuffSize / (*solLength)); n++)
+				{
+								vector<u32>& sol = sols[n];
+								for (size_t i = 0; i < sol.size(); i++) {
+												result[i + n * (*solLength)] = sol[i];
+								}
+				}
+				return nsols > 0;
 }
 
 
@@ -75,7 +75,7 @@ void create_solver_ctx(SolverParams* params, int selected) {
 		 params->allrounds,
 		 params->showcycle,
 		 params->mutate_nonce);
-  	
+
   }else{
 	  cuckaroo_ctx = new cuckaroo_cpu::solver_ctx(
 		 params->nthreads,
@@ -88,7 +88,7 @@ void create_solver_ctx(SolverParams* params, int selected) {
 
 void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0, int printDeviceInfo = 1) {
   SolverParams params;
-  params.nthreads = 4; //nthreads;
+  params.nthreads = deviceNum; //nthreads;
   params.ntrims = 0; //ntrims;
   params.showcycle = true;//showcycle;
   params.allrounds = false;//allrounds;
@@ -106,7 +106,7 @@ int32_t FindSolutionsByGPU(
 }
 
 int32_t FindCycles(
-	uint32_t threadId, 
+	uint32_t threadId,
 	uint32_t nedges,
 	uint32_t *result,
 	uint32_t resultBuffSize,
