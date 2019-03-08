@@ -312,6 +312,7 @@ func DefaultGenesisBlock() *Genesis {
 		//Alloc: GenesisAlloc{"0xb07933C29AD6fAe77da3950440eE6bcE2f8b53Ff": {Balance: params.CTXC_INIT}},
 		Alloc: map[common.Address]GenesisAccount{
                         common.HexToAddress("0xb07933C29AD6fAe77da3950440eE6bcE2f8b53Ff"): {Balance: params.CTXC_INIT}, // ECPairing
+			//common.HexToAddress("0x51c56404a3f7c7f5be03f61c4497eea3d654767e"): {Balance: params.CTXC_INIT},
                 },
 		Supply:     params.CTXC_INIT,
 	}

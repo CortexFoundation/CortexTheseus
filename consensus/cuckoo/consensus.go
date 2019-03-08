@@ -45,6 +45,7 @@ import (
 var (
 	FrontierBlockReward    *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward   *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	ConstantinopleBlockReward = big.NewInt(8e+18)
 	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime          = 13 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
 
@@ -680,26 +681,26 @@ var (
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header, parent *types.Header, uncles []*types.Header) {
 	// Select the correct block reward based on chain progression
 	blockReward := FrontierBlockReward
+
 	if config.IsByzantium(header.Number) {
 		blockReward = ByzantiumBlockReward
 	}
+
+	if config.IsConstantinople(header.Number) {
+                blockReward = ConstantinopleBlockReward
+        }
 
 	if header.Number.Cmp(params.CortexBlockRewardPeriod) >= 0 {
 		d := new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod)
 		e := new(big.Int).Exp(big2, d, nil)
 		blockReward = new(big.Int).Div(blockReward, e)
-		//todo ceiling handed by consensus
 	}
 
-	/*if config.IsConstantinople(header.Number) {
-		blockReward = ConstantinopleBlockReward
-	}*/
-
-	//parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
 	if parent == nil {
 		return
 	}
-	//log.Info("Parent", "num", parent.Number, "hash", parent.Hash(), "supply", parent.Supply)
+	log.Debug("Parent", "num", parent.Number, "hash", parent.Hash(), "supply", parent.Supply)
+
 	header.Supply.Set(parent.Supply)
 
 	if header.Supply.Cmp(params.CTXC_INIT) < 0 {
