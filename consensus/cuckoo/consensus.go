@@ -719,7 +719,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			header.Supply.Set(params.CTXC_TOP)
 		}
 
-		log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v, total: %v, epoch: %v", parent.Supply, header.Supply, blockReward, header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
+		//log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v", parent.Supply, header.Supply, blockReward, header.Number))
 		// Accumulate the rewards for the miner and any included uncles
 		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
@@ -738,7 +738,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				break
 			}
 			state.AddBalance(uncle.Coinbase, r)
-			log.Info("uncle", "miner", uncle.Coinbase, "reward", r)
+			log.Info("uncle", "miner", uncle.Coinbase, "reward", r, "total", header.Supply)
 			//todo
 			//r.Div(blockReward, big8)
 			//state.AddBalance(uncle.Coinbase, r)
@@ -751,7 +751,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				//header.Supply = params.CTXC_TOP
 				break
 			}
-			log.Info("nephew", "reward", r)
+			log.Info("nephew", "reward", r, header.Supply)
 			reward.Add(reward, r)
 		}
 
