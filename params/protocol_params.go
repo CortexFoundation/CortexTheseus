@@ -99,12 +99,9 @@ var (
 
 	DurationLimit = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
-	//CTXC_TOP = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
-	CTXC_TOP = big.NewInt(0).Mul(big.NewInt(1024), big.NewInt(1000000000000000000))
-	//CTXC_INIT = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
-	CTXC_INIT = big.NewInt(0).Mul(big.NewInt(0), big.NewInt(1000000000000000000))
-	//CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
-	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(1024), big.NewInt(1000000000000000000))
+	CTXC_TOP = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
+	CTXC_INIT = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
+	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
 )
 
 const (
