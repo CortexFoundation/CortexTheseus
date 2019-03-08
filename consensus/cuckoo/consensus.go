@@ -752,7 +752,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				//header.Supply = params.CTXC_TOP
 				break
 			}
-			log.Info("nephew", "reward", r, header.Supply)
+			log.Info("nephew", "reward", r, "total", header.Supply)
 			reward.Add(reward, r)
 		}
 
