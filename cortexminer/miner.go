@@ -11,10 +11,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
+//	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
 	"github.com/ethereum/go-ethereum/PoolMiner/config"
 
 	"strconv"
+	"plugin"
 )
 func checkError(err error, func_name string) {
 	if err != nil {
@@ -110,13 +111,36 @@ func (cm *Cortex) submit(sol config.Task) {
 	cm.write(reqSubmit)
 }
 
+var minerPlugin *plugin.Plugin
+const PLUGIN_PATH string = "plugins/"
+const PLUGIN_POST_FIX string = "_helper.so"
+
 //	cortex mining
 func (cm *Cortex) Mining() {
 	var iDeviceIds []uint32
 	for i := 0; i < len(cm.deviceInfos); i++ {
 		iDeviceIds = append(iDeviceIds, cm.deviceInfos[i].DeviceId)
 	}
-	libcuckoo.CuckooInitialize(iDeviceIds, (uint32)(len(iDeviceIds)), cm.param)
+
+	var minerName string = ""
+	if cm.param.Cpu == true {
+		minerName = "cpu"
+	}else if cm.param.Cuda == true {
+		minerName = "cuda"
+	}else if cm.param.Opencl == true{
+		minerName = "opencl"
+	}else{
+		os.Exit(0)
+	}
+
+	var err error
+	minerPlugin, err = plugin.Open(PLUGIN_PATH + minerName + PLUGIN_POST_FIX)
+	m, err := minerPlugin.Lookup("CuckooInitialize")
+	if err != nil {
+		panic (err)
+	}
+	m.(func ([]uint32, uint32, config.Param))(iDeviceIds, (uint32)(len(iDeviceIds)), cm.param)
+
 
 	for {
 		for {
@@ -138,7 +162,11 @@ func (cm *Cortex) printHashRate() {
 	var devCount = len(cm.deviceInfos)
 	var fanSpeeds []uint32
 	var temperatures []uint32
-	fanSpeeds, temperatures = libcuckoo.Monitor(uint32(devCount))
+	m, err := minerPlugin.Lookup("Monitor")
+	if err != nil {
+		panic(err)
+	}
+	fanSpeeds, temperatures = m.(func(uint32) ([]uint32, []uint32))(uint32(devCount))
 	var total_solutions int64 = 0
 	for dev := 0; dev < devCount; dev++ {
 		var dev_id = cm.deviceInfos[dev].DeviceId
@@ -179,10 +207,13 @@ func (cm *Cortex) miningOnce() {
 	var THREAD int = (int)(len(cm.deviceInfos))
 	rand.Seed(time.Now().UTC().UnixNano())
 	solChan := make(chan config.Task, THREAD)
-	//nedgesChan := make(chan config.StreamData, THREAD)
 
+	m, err := minerPlugin.Lookup("RunSolver")
+	if err != nil{
+		panic(err)
+	}
+	m.(func(int, []config.DeviceInfo, config.Param, chan config.Task, bool)(uint32, [][]uint32)) (THREAD, cm.deviceInfos, cm.param, solChan, cm.consta.state)
 
-	libcuckoo.RunSolverOnCPU(THREAD, cm.deviceInfos, cm.param, solChan, cm.consta.state)
 	cm.getWork()
 
 	go func(currentTask_ *config.TaskWrapper) {

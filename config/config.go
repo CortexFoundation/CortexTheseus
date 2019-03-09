@@ -31,6 +31,9 @@ type Param struct {
 	VerboseLevel    uint
 	Algorithm int
 	Threads int
+	Cpu bool
+	Cuda bool
+	Opencl bool
 }
 
 type DeviceInfo struct {
@@ -43,12 +46,15 @@ type DeviceInfo struct {
 	Gps            int64
 }
 
-func (param Param) New(server string, account string, verboseLevel uint, algorithm int, threads int) Param{
+func (param Param) New(server string, account string, verboseLevel uint, algorithm int, threads int, cpu bool, cuda bool, opencl bool) Param{
 	param.Server = server
 	param.Account = account
 	param.VerboseLevel = verboseLevel
 	param.Algorithm = algorithm
 	param.Threads = threads
+	param.Cpu = cpu
+	param.Cuda = cuda
+	param.Opencl = opencl
 	return param
 }
 func (deviceInfo DeviceInfo) New(_lock sync.Mutex, _deviceId uint32, _start_time int64, _use_time int64, _solution_count int64, _hash_rate float32, _gps int64) DeviceInfo{

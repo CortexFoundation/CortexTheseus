@@ -5,22 +5,31 @@
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_CUCKOO_DIR = $(shell pwd)/miner/libcuckoo
+PLUGINS_DIR = $(shell pwd)/plugins
 
-all: cuda-miner opencl-miner  cpu-miner
+all:
+	make -C ${LIB_CUCKOO_DIR}
+	go build -buildmode=plugin -o ${PLUGINS_DIR}/cuda_helper.so ./miner/libcuckoo/cuda_helper.go
+	go build -buildmode=plugin -o ${PLUGINS_DIR}/opencl_helper.so ./miner/libcuckoo/opencl_helper.go
+	go build -buildmode=plugin -o ${PLUGINS_DIR}/cpu_helper.so ./miner/libcuckoo/cpu_helper.go
+	go build -o build/bin/cortex_miner ./cmd/miner
 
 cuda-miner: 
 	make -C ${LIB_CUCKOO_DIR} cuda
-	go build -o build/bin/cuda_miner -tags cuda  ./cmd/miner
+	go build -buildmode=plugin -o ${PLUGINS_DIR}/cuda_helper.so ./miner/libcuckoo/cuda_helper.go
+	go build -o build/bin/cortex_miner  ./cmd/miner
 	@echo "Done building."
 
 opencl-miner: 
 	make -C ${LIB_CUCKOO_DIR} opencl
-	go build -o build/bin/opencl_miner -tags opencl ./cmd/miner
+	go build -buildmode=plugin -o ${PLUGINS_DIR}/opencl_helper.so ./miner/libcuckoo/opencl_helper.go
+	go build -o build/bin/cortex_miner ./cmd/miner
 	@echo "Done building."
 
 cpu-miner: 
 	make -C ${LIB_CUCKOO_DIR} cpu
-	go build -o build/bin/cpu_miner -tags cpu ./cmd/miner
+	go build -buildmode=plugin -o ${PLUGINS_DIR}/cpu_helper.so ./miner/libcuckoo/cpu_helper.go
+	go build -o build/bin/cortex_miner ./cmd/miner
 	@echo "Done building."
 
 clean:
