@@ -57,10 +57,10 @@ const static u32 NZ        = 1 << ZBITS;
 const u32 ZMASK     = NZ - 1;
 
 #ifndef NEPS_A
-#define NEPS_A 128
+#define NEPS_A 133
 #endif
 #ifndef NEPS_B
-#define NEPS_B 84
+#define NEPS_B 88
 #endif
 #define NEPS 128
 
