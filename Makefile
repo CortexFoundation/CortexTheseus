@@ -27,7 +27,7 @@ ifeq ($(OS), Darwin)
 endif
 
 cortex: clib
-	build/env.sh go run build/ci.go install -cpu_miner ./cmd/cortex
+	build/env.sh go run build/ci.go install -cuda_miner ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
@@ -72,7 +72,7 @@ nodekey:
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 clib:
-	make -C ${LIB_CUCKOO_DIR} cpu
+	make -C ${LIB_CUCKOO_DIR} cuda
 	make -C ${INFER_NET_DIR} collect
 
 inferServer: clib

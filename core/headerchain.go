@@ -373,8 +373,6 @@ func (hc *HeaderChain) GetTdByHash(hash common.Hash) *big.Int {
 	return hc.GetTd(hash, *number)
 }
 
-// WriteTd stores a block's total difficulty into the database, also caching it
-// along the way.
 func (hc *HeaderChain) WriteTd(hash common.Hash, number uint64, td *big.Int) error {
 	rawdb.WriteTd(hc.chainDb, hash, number, td)
 	hc.tdCache.Add(hash, new(big.Int).Set(td))
@@ -460,6 +458,7 @@ func (hc *HeaderChain) SetHead(head uint64, delFn DeleteCallback) {
 		}
 		rawdb.DeleteHeader(batch, hash, num)
 		rawdb.DeleteTd(batch, hash, num)
+		rawdb.DeleteTs(batch, hash, num)
 
 		hc.currentHeader.Store(hc.GetHeader(hdr.ParentHash, hdr.Number.Uint64()-1))
 	}

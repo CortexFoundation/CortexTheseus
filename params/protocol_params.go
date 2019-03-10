@@ -30,7 +30,7 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	UploadGas             uint64 = 42000
+	UploadGas             uint64 = 266666
 	TxDataZeroGas         uint64 = 4      // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512    // Divisor for the quadratic particle of the memory cost equation.
 	SstoreSetGas          uint64 = 20000  // Once per SLOAD operation.
@@ -70,7 +70,7 @@ const (
 	TxDataNonZeroGas          uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 
 	MaxCodeSize = 504 * 1024 //24576// Maximum bytecode to permit for a contract
-	MaxRawSize  = 384 * 1024
+	//MaxRawSize  = 384 * 1024
 
 	// Precompiled contract gas prices
 
@@ -99,8 +99,8 @@ var (
 
 	DurationLimit = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
-	CTXC_TOP    = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
-	CTXC_INIT   = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
+	CTXC_TOP = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
+	CTXC_INIT = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
 	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
 )
 
@@ -108,7 +108,7 @@ const (
 	MatureBlks                    = 10                  //For the full node to synchronize the models
 	ExpiredBlks                   = 1000000000000000000 //8409600
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024      //How many bytes per upload
-	DEFAULT_UPLOAD_BYTES   uint64 = 384 * 1024          //default upload bytes
+	DEFAULT_UPLOAD_BYTES   uint64 = 512 * 1024          //default upload bytes
 	MODEL_MIN_UPLOAD_BYTES        = 0
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT        uint64 = 65536 //max gas limit for model call
