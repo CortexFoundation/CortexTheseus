@@ -332,7 +332,7 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 		return nreceived >= bucketSize
 	})
 	t.send(toaddr, findnodePacket, &findnode{
-		Version: 5
+		Version: 5,
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
