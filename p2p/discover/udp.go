@@ -88,6 +88,7 @@ type (
 
 	// findnode is a query for nodes close to the given target.
 	findnode struct {
+		Version uint
 		Target     NodeID // doesn't need to be an actual public key
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
@@ -96,6 +97,7 @@ type (
 
 	// reply to findnode
 	neighbors struct {
+		Version uint
 		Nodes      []rpcNode
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
@@ -330,6 +332,7 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 		return nreceived >= bucketSize
 	})
 	t.send(toaddr, findnodePacket, &findnode{
+		Version: 5
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
@@ -470,7 +473,7 @@ var (
 )
 
 func init() {
-	p := neighbors{Expiration: ^uint64(0)}
+	p := neighbors{Version:5,Expiration: ^uint64(0)}
 	maxSizeNode := rpcNode{IP: make(net.IP, 16), UDP: ^uint16(0), TCP: ^uint16(0)}
 	for n := 0; ; n++ {
 		p.Nodes = append(p.Nodes, maxSizeNode)
@@ -652,7 +655,7 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 	closest := t.closest(target, bucketSize).entries
 	t.mutex.Unlock()
 
-	p := neighbors{Expiration: uint64(time.Now().Add(expiration).Unix())}
+	p := neighbors{Version:5,Expiration: uint64(time.Now().Add(expiration).Unix())}
 	var sent bool
 	// Send neighbors in chunks with at most maxNeighbors per packet
 	// to stay below the 1280 byte limit.
