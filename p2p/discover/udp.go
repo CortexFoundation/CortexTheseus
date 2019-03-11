@@ -277,7 +277,7 @@ func (t *udp) ping(toid NodeID, toaddr *net.UDPAddr) error {
 // when the reply arrives.
 func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan error {
 	req := &ping{
-		Version:    4,
+		Version:    5,
 		From:       t.ourEndpoint,
 		To:         makeEndpoint(toaddr, 0), // TODO: maybe use known TCP port from DB
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
