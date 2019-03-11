@@ -411,6 +411,14 @@ var (
 		Name:  "miner.noverify",
 		Usage: "Disable remote sealing verification",
 	}
+	MinerCudaFlag = cli.BoolFlag{
+		Name: "miner.cuda",
+		Usage: "use cuda miner plugin",
+	}
+	MinerOpenCLFlag = cli.BoolFlag{
+		Name: "miner.opencl",
+		Usage: "use opencl miner plugin",
+	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
