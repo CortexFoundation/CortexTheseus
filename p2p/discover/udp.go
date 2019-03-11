@@ -77,6 +77,7 @@ type (
 		// This field should mirror the UDP envelope address
 		// of the ping packet, which provides a way to discover the
 		// the external address (after NAT).
+		Version uint
 		To rpcEndpoint
 
 		ReplyTok   []byte // This contains the hash of the ping packet.
@@ -599,6 +600,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		return errExpired
 	}
 	t.send(from, pongPacket, &pong{
+		Version: 5,
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),

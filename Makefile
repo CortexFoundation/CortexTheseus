@@ -72,7 +72,7 @@ nodekey:
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 clib:
-	make -C ${LIB_CUCKOO_DIR} cuda
+	make -C ${LIB_CUCKOO_DIR} cpu
 	make -C ${INFER_NET_DIR} collect
 
 inferServer: clib
