@@ -1,13 +1,13 @@
 // +build disable_miner
 
 package cuckoo
+
 import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
-
 	logger := log.New("miner", id)
 	logger.Trace("not miner available for this version of testnet")
 

@@ -419,6 +419,14 @@ var (
 		Name: "miner.opencl",
 		Usage: "use opencl miner plugin",
 	}
+	MinerDevicesFlag = cli.StringFlag{
+		Name: "miner.devices",
+		Usage: "the devices used mining, use --miner.devices=0,1",
+	}
+	MinerAlgorithmFlag = cli.StringFlag{
+		Name: "miner.algorithm",
+		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
+	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -1242,7 +1250,19 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
+	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
+		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
+		cfg.Ethash.UseCuda= cfg.MinerCuda
+	}
+	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
+		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
+		cfg.Ethash.UseOpenCL = cfg.MinerOpenCL
+	}
 
+	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
+	cfg.Ethash.StrDeviceIds = cfg.MinerDevices
+	cfg.Ethash.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
+	cfg.Ethash.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 

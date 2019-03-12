@@ -38,6 +38,9 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		MinerGasPrice           *big.Int
 		MinerRecommit           time.Duration
 		MinerNoverify           bool
+		MinerCuda								bool
+		MinerOpenCL							bool
+		MinerDevices						string
 		Ethash                  cuckoo.Config
 		TxPool                  core.TxPoolConfig
 		GPO                     gasprice.Config
@@ -66,6 +69,9 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.MinerGasPrice = c.MinerGasPrice
 	enc.MinerRecommit = c.MinerRecommit
 	enc.MinerNoverify = c.MinerNoverify
+	enc.MinerCuda = c.MinerCuda
+	enc.MinerOpenCL = c.MinerOpenCL
+	enc.MinerDevices = c.MinerDevices
 	enc.Ethash = c.Ethash
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
@@ -98,6 +104,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		MinerGasPrice           *big.Int
 		MinerRecommit           *time.Duration
 		MinerNoverify           *bool
+		MinerCuda								bool
+		MinerOpenCL							bool
+		MinerDevices						string
 		Ethash                  *cuckoo.Config
 		TxPool                  *core.TxPoolConfig
 		GPO                     *gasprice.Config
@@ -167,6 +176,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.MinerNoverify != nil {
 		c.MinerNoverify = *dec.MinerNoverify
 	}
+	c.MinerCuda = dec.MinerCuda
+	c.MinerOpenCL = dec.MinerOpenCL
+	c.MinerDevices = dec.MinerDevices
 	if dec.Ethash != nil {
 		c.Ethash = *dec.Ethash
 	}

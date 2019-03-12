@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rpc"
+	"plugin"
 )
 
 var sharedCuckoo = New(Config{PowMode: ModeNormal})
@@ -70,6 +71,12 @@ type Config struct {
 	DatasetsOnDisk int
 
 	PowMode Mode
+
+	UseCuda bool
+	UseOpenCL bool
+	StrDeviceIds string
+	Threads int
+	Algorithm string
 }
 
 type Cuckoo struct {
@@ -99,6 +106,7 @@ type Cuckoo struct {
 	closeOnce sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh    chan chan error // Notification channel to exiting backend threads
 	cMutex    sync.Mutex
+	minerPlugin *plugin.Plugin
 }
 
 func New(config Config) *Cuckoo {
@@ -138,9 +146,29 @@ func NewShared() *Cuckoo {
 	return &Cuckoo{shared: sharedCuckoo}
 }
 
+const PLUGIN_PATH string = "consensus/cuckoo/"
+const	PLUGIN_POST_FIX string = "_helper_for_node.so"
+
 func (cuckoo *Cuckoo) InitOnce() {
 	cuckoo.once.Do(func() {
-		CuckooInit(1)
+		var minerName string = "cpu"
+		if cuckoo.config.UseCuda == true {
+			minerName = "cuda"
+		}else if cuckoo.config.UseOpenCL == true{
+			minerName = "opencl"
+		}
+		var err error
+		cuckoo.minerPlugin, err = plugin.Open(PLUGIN_PATH + minerName + PLUGIN_POST_FIX)
+		if err != nil{
+			panic(err)
+		}else{
+			m, err := cuckoo.minerPlugin.Lookup("CuckooInitialize")
+			if err != nil {
+				log.Error("can not find CuckooInit on the plugin")
+			}
+			m.(func(int, bool, string))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.algorithm)
+			CuckooInit(1)
+		}
 	})
 }
 

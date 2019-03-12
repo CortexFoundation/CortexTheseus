@@ -245,7 +245,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		log.Warn("Ethash used in shared mode")
 		return cuckoo.NewShared()
 	default:
-		engine := cuckoo.New(cuckoo.Config{
+	//	engine := cuckoo.New(cuckoo.Config{
 			/* CacheDir:       ctx.ResolvePath(config.CacheDir),
 				CachesInMem:    config.CachesInMem,
 				CachesOnDisk:   config.CachesOnDisk,
@@ -253,7 +253,8 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 				DatasetsInMem:  config.DatasetsInMem,
 				DatasetsOnDisk: config.DatasetsOnDisk,
 			}, notify, noverify) */
-		})
+	//	})
+		engine := cuckoo.New(*config)
 		engine.SetThreads(-1) // Disable CPU mining
 		return engine
 	}
