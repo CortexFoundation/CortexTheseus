@@ -44,7 +44,7 @@ var (
 // out on a block.
 type BlockNonce [8]byte
 type BlockSolution [42]uint32
-type BlockSolutionHash [32]byte
+//type BlockSolutionHash [32]byte
 
 // EncodeNonce converts the given integer to a block nonce.
 func EncodeNonce(i uint64) BlockNonce {
@@ -91,13 +91,13 @@ func (s *BlockSolution) UnmarshalText(input []byte) error {
 	return nil
 }
 
-func (s BlockSolutionHash) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(s[:]).MarshalText()
-}
+//func (s BlockSolutionHash) MarshalText() ([]byte, error) {
+//	return hexutil.Bytes(s[:]).MarshalText()
+//}
 
-func (s BlockSolutionHash) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("BlockSolutionHash", input, s[:])
-}
+//func (s BlockSolutionHash) UnmarshalText(input []byte) error {
+//	return hexutil.UnmarshalFixedText("BlockSolutionHash", input, s[:])
+//}
 
 //go:generate
 
@@ -119,7 +119,7 @@ type Header struct {
 	MixDigest    common.Hash       `json:"mixHash"          gencodec:"required"`
 	Nonce        BlockNonce        `json:"nonce"            gencodec:"required"`
 	Solution     BlockSolution     `json:"solution"			gencodec:"required"`
-	SolutionHash BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
+	//SolutionHash BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
 	//Quota        uint64            `json:"quota"       gencodec:"required"`
 	//QuotaUsed    uint64            `json:"quotaUsed"       gencodec:"required"`
 	Supply       *big.Int          `json:"supply"           gencodec:"required"`
@@ -332,7 +332,7 @@ func (b *Block) NumberU64() uint64               { return b.header.Number.Uint64
 func (b *Block) MixDigest() common.Hash          { return b.header.MixDigest }
 func (b *Block) Nonce() uint64                   { return binary.BigEndian.Uint64(b.header.Nonce[:]) }
 func (b *Block) Solution() BlockSolution         { return b.header.Solution }
-func (b *Block) SolutionHash() BlockSolutionHash { return b.header.SolutionHash }
+//func (b *Block) SolutionHash() BlockSolutionHash { return b.header.SolutionHash }
 func (b *Block) Bloom() Bloom                    { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address        { return b.header.Coinbase }
 func (b *Block) Root() common.Hash               { return b.header.Root }

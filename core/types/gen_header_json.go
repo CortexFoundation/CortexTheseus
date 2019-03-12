@@ -32,7 +32,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		MixDigest    common.Hash       `json:"mixHash"          gencodec:"required"`
 		Nonce        BlockNonce        `json:"nonce"            gencodec:"required"`
 		Solution     BlockSolution     `json:"solution"			gencodec:"required"`
-		SolutionHash BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
+		//SolutionHash BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
 		Hash         common.Hash       `json:"hash"`
 		//Quota        hexutil.Uint64    `json:"quota"       gencodec:"required"`
 		//QuotaUsed    hexutil.Uint64    `json:"quotaUsed"       gencodec:"required"`
@@ -55,7 +55,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.MixDigest = h.MixDigest
 	enc.Nonce = h.Nonce
 	enc.Solution = h.Solution
-	enc.SolutionHash = h.SolutionHash
+	//enc.SolutionHash = h.SolutionHash
 	enc.Hash = h.Hash()
 	//enc.Quota = hexutil.Uint64(h.Quota)
 	//enc.QuotaUsed = hexutil.Uint64(h.QuotaUsed)
@@ -82,7 +82,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		MixDigest    *common.Hash       `json:"mixHash"          gencodec:"required"`
 		Nonce        *BlockNonce        `json:"nonce"            gencodec:"required"`
 		Solution     *BlockSolution     `json:"solution"			gencodec:"required"`
-		SolutionHash *BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
+		//SolutionHash *BlockSolutionHash `json:"solutionHash" 	gencodec:"required"`
 		//Quota        *hexutil.Uint64    `json:"quota"       gencodec:"required"`
 		//QuotaUsed    *hexutil.Uint64    `json:"quotaUsed"       gencodec:"required"`
 		Supply       *hexutil.Big       `json:"supply"           gencodec:"required"`
@@ -133,10 +133,10 @@ func (h *Header) UnmarshalJSON(input []byte) error {
         }
         h.Solution = *dec.Solution
 
-	if dec.SolutionHash == nil {
-                return errors.New("missing required field 'solutionHash' for Header")
-        }
-        h.SolutionHash = *dec.SolutionHash
+	//if dec.SolutionHash == nil {
+        //        return errors.New("missing required field 'solutionHash' for Header")
+        //}
+        //h.SolutionHash = *dec.SolutionHash
 
 	if dec.Supply == nil {
 		return errors.New("missing required field 'supply' for Header")
@@ -177,11 +177,11 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'nonce' for Header")
 	}
 	h.Nonce = *dec.Nonce
-	if dec.Solution != nil {
-		h.Solution = *dec.Solution
-	}
-	if dec.SolutionHash != nil {
-		h.SolutionHash = *dec.SolutionHash
-	}
+	//if dec.Solution != nil {
+	//	h.Solution = *dec.Solution
+	//}
+	//if dec.SolutionHash != nil {
+	//	h.SolutionHash = *dec.SolutionHash
+	//}
 	return nil
 }

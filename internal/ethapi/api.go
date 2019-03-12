@@ -877,7 +877,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"nonce":            head.Nonce,
 		"mixHash":          head.MixDigest,
 		"solution":	    head.Solution,
-		"solutionHash":      head.SolutionHash,
+		//"solutionHash":      head.SolutionHash,
 		"sha3Uncles":       head.UncleHash,
 		"logsBloom":        head.Bloom,
 		"stateRoot":        head.Root,

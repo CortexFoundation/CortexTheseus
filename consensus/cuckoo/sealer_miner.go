@@ -64,7 +64,7 @@ search:
 				header = types.CopyHeader(header)
 				header.Nonce = types.EncodeNonce(uint64(nonce))
 				header.Solution = result
-				header.SolutionHash = result_hash
+				//header.SolutionHash = result_hash
 
 				select {
 				case found <- block.WithSeal(header):
