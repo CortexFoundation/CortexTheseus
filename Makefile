@@ -27,7 +27,7 @@ ifeq ($(OS), Darwin)
 endif
 
 cortex: clib
-	build/env.sh go run build/ci.go install -cuda_miner ./cmd/cortex
+	build/env.sh go run build/ci.go install -cpu_miner ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
