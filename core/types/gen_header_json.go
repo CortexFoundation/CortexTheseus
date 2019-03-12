@@ -128,6 +128,16 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	}
 	h.Number = (*big.Int)(dec.Number)
 
+	 if dec.Solution == nil {
+                return errors.New("missing required field 'solution' for Header")
+        }
+        h.Solution = *dec.Solution
+
+	if dec.SolutionHash == nil {
+                return errors.New("missing required field 'solutionHash' for Header")
+        }
+        h.SolutionHash = *dec.SolutionHash
+
 	if dec.Supply == nil {
 		return errors.New("missing required field 'supply' for Header")
 	}
