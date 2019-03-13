@@ -43,6 +43,7 @@ var (
 	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 	errAiRuntime             = errors.New("ai runtime error")
+	errInvalidJump           = errors.New("evm: invalid jump destination")
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -403,7 +404,8 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 }
 
 func opAddress(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(contract.Address().Big())
+	//stack.push(contract.Address().Big())
+	stack.push(contract.Address().SetBig(interpreter.intPool.get()))
 	return nil, nil
 }
 
@@ -414,12 +416,14 @@ func opBalance(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memo
 }
 
 func opOrigin(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(interpreter.evm.Origin.Big())
+	//stack.push(interpreter.evm.Origin.Big())
+	stack.push(interpreter.evm.Origin.SetBig(interpreter.intPool.get()))
 	return nil, nil
 }
 
 func opCaller(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(contract.Caller().Big())
+	//stack.push(contract.Caller().Big())
+	stack.push(contract.Caller().SetBig(interpreter.intPool.get()))
 	return nil, nil
 }
 
@@ -465,7 +469,8 @@ func opReturnDataCopy(pc *uint64, interpreter *EVMInterpreter, contract *Contrac
 	)
 	defer interpreter.intPool.put(memOffset, dataOffset, length, end)
 
-	if end.BitLen() > 64 || uint64(len(interpreter.returnData)) < end.Uint64() {
+	//if end.BitLen() > 64 || uint64(len(interpreter.returnData)) < end.Uint64() {
+	if !end.IsUint64() || uint64(len(interpreter.returnData)) < end.Uint64() {
 		return nil, errReturnDataOutOfBounds
 	}
 	memory.Set(memOffset.Uint64(), length.Uint64(), interpreter.returnData[dataOffset.Uint64():end.Uint64()])
@@ -638,8 +643,9 @@ func opSstore(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memor
 func opJump(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	pos := stack.pop()
 	if !contract.jumpdests.has(contract.CodeHash, contract.Code, pos) {
-		nop := contract.GetOp(pos.Uint64())
-		return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
+		//nop := contract.GetOp(pos.Uint64())
+		//return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
+		return nil, errInvalidJump
 	}
 	*pc = pos.Uint64()
 
@@ -651,8 +657,9 @@ func opJumpi(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	pos, cond := stack.pop(), stack.pop()
 	if cond.Sign() != 0 {
 		if !contract.jumpdests.has(contract.CodeHash, contract.Code, pos) {
-			nop := contract.GetOp(pos.Uint64())
-			return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
+			//nop := contract.GetOp(pos.Uint64())
+			//return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
+			return nil, errInvalidJump
 		}
 		*pc = pos.Uint64()
 	} else {
