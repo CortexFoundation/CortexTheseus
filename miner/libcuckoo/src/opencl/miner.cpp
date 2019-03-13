@@ -66,7 +66,7 @@ int32_t FindSolutionsByGPU(
 }
 
 int32_t FindCycles(
-	uint32_t threadId, 
+	uint32_t threadId,
 	uint32_t nedges,
 	uint32_t *result,
 	uint32_t resultBuffSize,
@@ -125,7 +125,7 @@ void initOne(uint32_t index, uint32_t device){
 	const char *source = sourceStr.c_str ();
 	cl_program program = createProgram (context, &source, size);
 
-//	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);	
+//	cl_program program = createByBinaryFile("trimmer.bin", context, deviceId);
 	if (program == NULL){
 		printf("create program error\n");
 		return;
@@ -133,7 +133,7 @@ void initOne(uint32_t index, uint32_t device){
 //	printf("EDGEBITS = %d, PROOFSIZE = %d, EXPAND=%d\n", EDGEBITS, PROOFSIZE, tp.expand);
 	char options[1024] = "-I./";
 	sprintf (options, "-cl-std=CL2.0 -I./ -DEDGEBITS=%d -DPROOFSIZE=%d  -DEXPAND=%d", EDGEBITS, PROOFSIZE, tp.expand);
-	
+
 	buildProgram (program, &(deviceId), options);
 //	saveBinaryFile(program, deviceId);
 	cl_ulong maxThreadsPerBlock = 0;
@@ -181,7 +181,7 @@ int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *te
 void CuckooFinalize(){
 }
 
-int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits) {
+int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result) {
     using namespace cuckoogpu;
     uint64_t littleEndianNonce = htole64(nonce);
     char headerBuf[40];
@@ -189,11 +189,11 @@ int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result, uin
     memcpy(headerBuf + 32, (uint64_t*)(&littleEndianNonce), sizeof(nonce));
     siphash_keys key;
     setheader(headerBuf, 40, &key);
-    int res = verify_proof(result, proofSize, edgebits, &key);
+    int res = verify_proof(result, &key);
     return res;
 }
 
-int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits) {
+int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result) {
     using namespace cuckoogpu;
     uint64_t littleEndianNonce = htole64(nonce);
     char headerBuf[40];
@@ -201,6 +201,6 @@ int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *re
     memcpy(headerBuf + 32, (uint64_t*)(&littleEndianNonce), sizeof(nonce));
     siphash_keys key;
     setheader(headerBuf, 40, &key);
-    int res = verify_proof_cuckaroo(result, proofSize, edgebits, &key);
+    int res = verify_proof_cuckaroo(result, &key);
     return res;
 }
