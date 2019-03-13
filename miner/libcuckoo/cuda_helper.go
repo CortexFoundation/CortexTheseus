@@ -1,6 +1,6 @@
 // +build cuda
 
-package libcuckoo
+package main
 
 /*
 #cgo LDFLAGS: -L./ -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
@@ -127,7 +127,7 @@ func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonc
 	}
 }
 
-func RunSolverOnCPU(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, solChan chan config.Task, state bool) (status_code uint32, ret [][]uint32){
+func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, solChan chan config.Task, state bool) (status_code uint32, ret [][]uint32){
 	rand.Seed(time.Now().UTC().UnixNano())
 	nedgesChan := make(chan config.StreamData, THREAD)
 	for nthread := 0; nthread < int(THREAD); nthread++ {

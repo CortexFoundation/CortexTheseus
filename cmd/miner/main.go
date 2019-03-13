@@ -21,6 +21,10 @@ func init() {
 	flag.IntVar(&verboseLevel, "verbosity", 0, "verbosity level")
 	flag.StringVar(&algorithm, "algorithm", "cuckoo", "use cuckoo or cuckaroo")
 	flag.IntVar(&threads, "threads", 1, "how many cpu threads")
+	flag.BoolVar(&cpu, "cpu", false, "use cpu miner")
+	flag.BoolVar(&cuda, "cuda", false, "use cuda miner")
+	flag.BoolVar(&opencl, "opencl", false, "use opencl miner")
+
 /*
 	cfg, err := goconfig.LoadConfigFile("miner.ini")
 	if err == nil {
@@ -53,6 +57,9 @@ var verboseLevel int = 0
 var algorithm string  = ""
 var miner_algorithm int
 var threads int
+var cpu bool
+var cuda bool
+var opencl bool
 
 func main() {
 	flag.Parse()
@@ -64,8 +71,6 @@ func main() {
 		log.Fatalf("no support algorithm: ", algorithm)
 		os.Exit(1)
 	}
-
-	log.Println(help, remote, account, strDeviceId, verboseLevel, algorithm)
 
 	var strDeviceIds []string = strings.Split(strDeviceId, ",")
 	var deviceNum int = len(strDeviceIds)
@@ -91,7 +96,7 @@ func main() {
 	var cortex cortexminer.Cortex
 	cm  := cortex.New(
 		deviceInfos,
-		param.New(remote, account, uint(verboseLevel), miner_algorithm, threads))
+		param.New(remote, account, uint(verboseLevel), miner_algorithm, threads, cpu, cuda, opencl))
 
 	cm.Mining()
 }
