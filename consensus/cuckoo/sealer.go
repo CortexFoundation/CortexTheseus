@@ -119,7 +119,7 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 		log.Info("invalid share difficulty")
 		return false, false, 0
 	}
-	ok, sha3Hash := CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64())
+	ok, sha3Hash := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64())
 	if !ok {
 		fmt.Println("invalid solution ", sha3Hash.Hex())
 		return false, false, 0

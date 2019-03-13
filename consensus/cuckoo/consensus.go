@@ -578,7 +578,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
 	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
-	r, sha3 := CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64())
+	r, sha3 := cuckoo.CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64())
 	if sha3.Big().Cmp(targetDiff) > 0 {
 		log.Trace(fmt.Sprintf("VerifySeal: %v, %v %v", r, sha3.Hex(), targetDiff))
 		return errInvalidPoW
@@ -690,9 +690,17 @@ func Sha3Solution(sol *types.BlockSolution) []byte {
 	return ret
 }
 
-func CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64) (ok bool, sha3hash common.Hash) {
+func (cuckoo *Cuckoo)CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64) (ok bool, sha3hash common.Hash) {
 	var r byte
-	r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
+	if cuckoo.minerPlugin == nil{
+		cuckoo.InitOnce()
+	}
+	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify")
+	if err != nil {
+		panic(err)
+	}
+	r = m.(func(*byte, int, uint64, []uint32, []byte, *byte)(byte))(&hash[0], len(hash), nonce, sol[:], nil, nil)
+	//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	if r != 1 {
 		return false, common.Hash{}
 	}

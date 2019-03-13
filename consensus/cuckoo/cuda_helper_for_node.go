@@ -17,10 +17,11 @@ import (
 	"github.com/ethereum/go-ethereum/PoolMiner/common"
 	"github.com/ethereum/go-ethereum/PoolMiner/crypto"
 	"strconv"
+	"strings"
 )
 
 func CuckooInit(threads uint32) {
-	CuckooInitialize(0, false, "")
+	CuckooInitialize(0, "", "cuckoo")
 }
 
 func CuckooInitialize(threads int, strDeviceIds string, algorithm string) {
@@ -37,7 +38,7 @@ func CuckooInitialize(threads int, strDeviceIds string, algorithm string) {
 		if err != nil {
 			panic ("error deviceId" + strDeviceIds)
 		}
-		devices = append(devices, v)
+		devices = append(devices, uint32(v))
 	}
 
 	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected), 0)
@@ -110,9 +111,7 @@ func CuckooVerify(hash *byte, hash_len int, nonce uint64, result []uint32, diff 
 		r := C.CuckooVerifyProof(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
-			(*C.result_t)(unsafe.Pointer(&tmpret[0])),
-			12,
-			28)
+			(*C.result_t)(unsafe.Pointer(&tmpret[0])))
 		return byte(r)
 	}
 	return 0
@@ -133,9 +132,7 @@ func CuckooVerify_cuckaroo(hash *byte, hash_len int, nonce uint64, result []uint
 		r := C.CuckooVerifyProof_cuckaroo(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
-			(*C.result_t)(unsafe.Pointer(&tmpret[0])),
-			12,
-			28)
+			(*C.result_t)(unsafe.Pointer(&tmpret[0])))
 		return byte(r)
 	}
 	return 0

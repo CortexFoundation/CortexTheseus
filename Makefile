@@ -28,7 +28,9 @@ endif
 
 cortex: clib
 	build/env.sh go build -buildmode=plugin -o consensus/cuckoo/cuda_helper_for_node.so consensus/cuckoo/cuda_helper_for_node.go
-	build/env.sh go run build/ci.go install -cpu_miner ./cmd/cortex
+	build/env.sh go build -buildmode=plugin -o consensus/cuckoo/opencl_helper_for_node.so consensus/cuckoo/opencl_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o consensus/cuckoo/cpu_helper_for_node.so consensus/cuckoo/cpu_helper_for_node.go
+	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
@@ -68,7 +70,7 @@ nodekey:
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 clib:
-	make -C ${LIB_CUCKOO_DIR} cuda
+	make -C ${LIB_CUCKOO_DIR}
 	make -C ${INFER_NET_DIR} collect
 
 inferServer: clib

@@ -33,6 +33,6 @@ cpu-miner:
 	@echo "Done building."
 
 clean:
-	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+	rm -fr build/_workspace/pkg/ $(GOBIN)/* $(PLUGINS_DIR)/*
 	go clean -cache
 

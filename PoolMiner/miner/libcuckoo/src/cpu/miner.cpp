@@ -121,7 +121,7 @@ int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *te
 void CuckooFinalize(){
 }
 
-int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits) {
+int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result) {
     uint64_t littleEndianNonce = htole64(nonce);
     char headerBuf[40];
     memcpy(headerBuf, header, 32);
@@ -132,7 +132,7 @@ int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result, uin
     return res;
 }
 
-int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result, uint8_t proofSize, uint8_t edgebits) {
+int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result) {
     uint64_t littleEndianNonce = htole64(nonce);
     char headerBuf[40];
     memcpy(headerBuf, header, 32);

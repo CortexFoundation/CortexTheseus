@@ -138,7 +138,8 @@ func NewTester() *Cuckoo {
 
 func DeleteTester() {
 	// C.CuckooRelease()
-	CuckooFinalize()
+
+//	CuckooFinalize()
 }
 
 // NewShared() func in tests/block_tests_util.go
@@ -166,8 +167,8 @@ func (cuckoo *Cuckoo) InitOnce() {
 			if err != nil {
 				log.Error("can not find CuckooInit on the plugin")
 			}
-			m.(func(int, bool, string))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.algorithm)
-			CuckooInit(1)
+			m.(func(int, string, string))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
+//			CuckooInit(1)
 		}
 	})
 }
@@ -185,9 +186,12 @@ func (cuckoo *Cuckoo) Close() error {
 		err = <-errc
 		close(cuckoo.exitCh)
 
-		log.Debug("Cuckoo Finalize...")
-		CuckooFinalize()
-		log.Debug("Cuckoo Finalize Successfully")
+		m, err := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+		if err != nil{
+			panic(err)
+		}
+		m.(func())()
+//		CuckooFinalize()
 	})
 	return err
 }
