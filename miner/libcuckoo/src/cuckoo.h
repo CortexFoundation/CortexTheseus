@@ -75,20 +75,20 @@ typedef u32 node_t;
 namespace cuckoogpu {
   // generate edge endpoint in cuckoo graph without partition bit
   node_t sipnode(siphash_keys *keys, edge_t edge, u32 uorv);
-  
+
   enum verify_code { POW_BAD, POW_OK, POW_HEADER_LENGTH, POW_TOO_BIG, POW_TOO_SMALL, POW_NON_MATCHING, POW_BRANCH, POW_DEAD_END, POW_SHORT_CYCLE};
   extern const char *errstr[];
-  
+
   // verify that edges are ascending and form a cycle in header-generated graph
   int verify(edge_t edges[PROOFSIZE], siphash_keys *keys);
-int verify_proof(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_keys *keys);
+  int verify_proof(edge_t* edges, siphash_keys *keys);
 
-int verify_proof_cuckaroo(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_keys *keys);
+  int verify_proof_cuckaroo(edge_t* edges, siphash_keys *keys);
 
-  
+
   // convenience function for extracting siphash keys from header
   void setheader(const char *header, const u32 headerlen, siphash_keys *keys);
-  
+
   // edge endpoint in cuckoo graph with partition bit
   edge_t sipnode_(siphash_keys *keys, edge_t edge, u32 uorv);
 }
@@ -101,7 +101,7 @@ void print_log(const char *fmt, ...);
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
-	
+
 }
 */
 #endif
