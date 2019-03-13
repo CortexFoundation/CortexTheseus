@@ -125,6 +125,7 @@ const char *errorstr[] = { "OK", "wrong header length", "edge too big", "edges n
 
 // verify that edges are ascending and form a cycle in header-generated graph
 int cuckoo_verify(word_t edges[PROOFSIZE], siphash_keys *keys) {
+    printf("cuckoo:%d, %d\n", PROOFSIZE, EDGEBITS);
   word_t uvs[2*PROOFSIZE];
   word_t xor0 = 0, xor1 = 0;
   for (u32 n = 0; n < PROOFSIZE; n++) {
@@ -171,6 +172,7 @@ u64 sipblock(siphash_keys &keys, const word_t edge, u64 *buf) {
 
 // verify that edges are ascending and form a cycle in header-generated graph
 int cuckaroo_verify(word_t edges[PROOFSIZE], siphash_keys &keys) {
+    printf("cuckaroo: %d, %d\n", PROOFSIZE, EDGEBITS);
   word_t xor0 = 0, xor1 = 0;
   u64 sips[EDGE_BLOCK_SIZE];
   word_t uvs[2*PROOFSIZE];

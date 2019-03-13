@@ -1,6 +1,6 @@
 // +build cuda_miner 
 
-package cuckoo
+package main
 
 /*
 #cgo LDFLAGS: -L../../PoolMiner/miner/libcuckoo -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
@@ -16,17 +16,30 @@ import (
 	"unsafe"
 	"github.com/ethereum/go-ethereum/PoolMiner/common"
 	"github.com/ethereum/go-ethereum/PoolMiner/crypto"
+	"strconv"
+	"strings"
 )
 
 func CuckooInit(threads uint32) {
-	CuckooInitialize(0, 1)
+	CuckooInitialize(0, "", "cuckoo")
 }
 
-func CuckooInitialize(threads uint32, nInstances uint32) {
+func CuckooInitialize(threads int, strDeviceIds string, algorithm string) {
+	var arrayDeviceIds []string = strings.Split(strDeviceIds, ",")
+	var deviceNum int = len(arrayDeviceIds)
 	var devices []uint32
-	var deviceNum uint32 = 1
-	devices = append(devices, 0);
-	var selected uint32 = 0
+	var selected int = 0
+	if algorithm == "cuckaroo"{
+		selected = 1
+	}
+
+	for i:=0; i < deviceNum; i++ {
+		v, err := strconv.Atoi(arrayDeviceIds[i])
+		if err != nil {
+			panic ("error deviceId" + strDeviceIds)
+		}
+		devices = append(devices, uint32(v))
+	}
 
 	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected), 0)
 }
@@ -98,9 +111,7 @@ func CuckooVerify(hash *byte, hash_len int, nonce uint64, result []uint32, diff 
 		r := C.CuckooVerifyProof(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
-			(*C.result_t)(unsafe.Pointer(&tmpret[0])),
-			12,
-			28)
+			(*C.result_t)(unsafe.Pointer(&tmpret[0])))
 		return byte(r)
 	}
 	return 0
@@ -121,9 +132,7 @@ func CuckooVerify_cuckaroo(hash *byte, hash_len int, nonce uint64, result []uint
 		r := C.CuckooVerifyProof_cuckaroo(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
-			(*C.result_t)(unsafe.Pointer(&tmpret[0])),
-			12,
-			28)
+			(*C.result_t)(unsafe.Pointer(&tmpret[0])))
 		return byte(r)
 	}
 	return 0

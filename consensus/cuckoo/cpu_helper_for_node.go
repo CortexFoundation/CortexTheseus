@@ -1,6 +1,6 @@
 // +build cpu_miner
 
-package cuckoo
+package main
 
 /*
 #cgo LDFLAGS: -L../../PoolMiner/miner/libcuckoo -lcpuminer -lstdc++
@@ -19,17 +19,18 @@ import (
 )
 
 func CuckooInit(threads uint32) {
-	CuckooInitialize(0, 1)
+	CuckooInitialize(0, "", "cuckoo")
 }
 
-func CuckooInitialize(threads uint32, nInstances uint32) {
+func CuckooInitialize(threads int, strDeviceIds string, algorithm string) {
+//	var deviceNum int = 1
 	var devices []uint32
-	var deviceNum uint32
-	var selected int
-	devices = append(devices, 0);
-	deviceNum = 1
-	selected = 0
-	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected), 0)
+	var selected int = 0
+	if algorithm == "cuckaroo"{
+		selected = 1
+	}
+	devices = append(devices, 0)
+	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(threads), C.int(selected), 0)
 }
 
 func CuckooFinalize() {
@@ -92,9 +93,7 @@ func CuckooVerify(hash *byte, hash_len int, nonce uint64, result []uint32, diff 
 		r := C.CuckooVerifyProof(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
-			(*C.result_t)(unsafe.Pointer(&tmpret[0])),
-			12,
-			28)
+			(*C.result_t)(unsafe.Pointer(&tmpret[0])))
 		return byte(r)
 	}
 	return 0
@@ -114,9 +113,7 @@ func CuckooVerify_cuckaroo(hash *byte, hash_len int, nonce uint64, result []uint
 		r := C.CuckooVerifyProof_cuckaroo(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
-			(*C.result_t)(unsafe.Pointer(&tmpret[0])),
-			12,
-			28)
+			(*C.result_t)(unsafe.Pointer(&tmpret[0])))
 		return byte(r)
 	}
 	return 0

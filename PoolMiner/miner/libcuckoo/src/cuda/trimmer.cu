@@ -317,7 +317,8 @@ namespace cuckoogpu
 
 			if (localIdx > 0)
 			{
-				int cnt = min ((int) atomicAdd (indexes + grp, localIdx), (int) (maxOut - localIdx));
+				int tmpl = (localIdx + TMPPERLL4 - 1) / TMPPERLL4 * TMPPERLL4;
+				int cnt = min ((int) atomicAdd (indexes + grp, tmpl), (int) (maxOut - tmpl));
 				for (int i = 0; i < localIdx; i += TMPPERLL4)
 				{
 //            int cnt = min((int)atomicAdd(indexes + grp, TMPPERLL4), (int)(maxOut - TMPPERLL4));
@@ -748,24 +749,24 @@ namespace cuckoogpu
 		for (u32 i = NB; i--;)
 		{
 			if (selected != 0 || tp.expand == 0)
-				Round < 1, EDGES_A, uint2, EDGES_B / NB, uint2 ><<< tp.trim.blocks / NB, tp.trim.tpb >>> (0, *dipkeys, (const uint2 *) (bufferA + i * qA), (uint2 *) (bufferB + i * qB), indexesE[0] + i * qE, indexesE[1 + i]);	// to .632
+				Round2 < 1, EDGES_A, uint2, EDGES_B / NB, uint2 ><<< tp.trim.blocks / NB, tp.trim.tpb >>> (0, *dipkeys, (const uint2 *) (bufferA + i * qA), (uint2 *) (bufferB + i * qB), indexesE[0] + i * qE, indexesE[1 + i]);	// to .632
 			else if (tp.expand == 1)
-				Round < 1, EDGES_A, u32, EDGES_B / NB, uint2 ><<< tp.trim.blocks / NB, tp.trim.tpb >>> (0, *dipkeys, (const u32 *) (bufferA + i * qA), (uint2 *) (bufferB + i * qB), indexesE[0] + i * qE, indexesE[1 + i]);	// to .632
+				Round2 < 1, EDGES_A, u32, EDGES_B / NB, uint2 ><<< tp.trim.blocks / NB, tp.trim.tpb >>> (0, *dipkeys, (const u32 *) (bufferA + i * qA), (uint2 *) (bufferB + i * qB), indexesE[0] + i * qE, indexesE[1 + i]);	// to .632
 			else
-				Round < 1, EDGES_A, u32, EDGES_B / NB, u32 ><<< tp.trim.blocks / NB, tp.trim.tpb >>> (0, *dipkeys, (const u32 *) (bufferA + i * qA), (u32 *) (bufferB + i * qB), indexesE[0] + i * qE, indexesE[1 + i]);	// to .632
+				Round2 < 1, EDGES_A, u32, EDGES_B / NB, u32 ><<< tp.trim.blocks / NB, tp.trim.tpb >>> (0, *dipkeys, (const u32 *) (bufferA + i * qA), (u32 *) (bufferB + i * qB), indexesE[0] + i * qE, indexesE[1 + i]);	// to .632
 		}
 
 		cudaMemset (indexesE[0], 0, indexesSize);
 
 		if (selected != 0 || tp.expand < 2)
-			Round < NB, EDGES_B / NB, uint2, EDGES_B / 2, uint2 ><<< tp.trim.blocks, tp.trim.tpb >>> (1, *dipkeys, (const uint2 *) bufferB, (uint2 *) bufferA, indexesE[1], indexesE[0]);	// to .296
+			Round2 < NB, EDGES_B / NB, uint2, EDGES_B / 2, uint2 ><<< tp.trim.blocks, tp.trim.tpb >>> (1, *dipkeys, (const uint2 *) bufferB, (uint2 *) bufferA, indexesE[1], indexesE[0]);	// to .296
 		else
-			Round < NB, EDGES_B / NB, u32, EDGES_B / 2, uint2 ><<< tp.trim.blocks, tp.trim.tpb >>> (1, *dipkeys, (const u32 *) bufferB, (uint2 *) bufferA, indexesE[1], indexesE[0]);	// to .296
+			Round2 < NB, EDGES_B / NB, u32, EDGES_B / 2, uint2 ><<< tp.trim.blocks, tp.trim.tpb >>> (1, *dipkeys, (const u32 *) bufferB, (uint2 *) bufferA, indexesE[1], indexesE[0]);	// to .296
 
 		cudaMemset (indexesE[1], 0, indexesSize);
-		Round < 1, EDGES_B / 2, uint2, EDGES_A / 4, uint2 ><<< tp.trim.blocks, tp.trim.tpb >>> (2, *dipkeys, (const uint2 *) bufferA, (uint2 *) bufferB, indexesE[0], indexesE[1]);	// to .176
+		Round2 < 1, EDGES_B / 2, uint2, EDGES_A / 4, uint2 ><<< tp.trim.blocks, tp.trim.tpb >>> (2, *dipkeys, (const uint2 *) bufferA, (uint2 *) bufferB, indexesE[0], indexesE[1]);	// to .176
 		cudaMemset (indexesE[0], 0, indexesSize);
-		Round < 1, EDGES_A / 4, uint2, EDGES_B / 4, uint2 ><<< tp.trim.blocks, tp.trim.tpb >>> (3, *dipkeys, (const uint2 *) bufferB, (uint2 *) bufferA, indexesE[1], indexesE[0]);	// to .117 
+		Round2 < 1, EDGES_A / 4, uint2, EDGES_B / 4, uint2 ><<< tp.trim.blocks, tp.trim.tpb >>> (3, *dipkeys, (const uint2 *) bufferB, (uint2 *) bufferA, indexesE[1], indexesE[0]);	// to .117 
 
 #ifdef INDEX_DEBUG
 		cudaMemcpy (nedges, indexesE[0], sizeof (u32), cudaMemcpyDeviceToHost);
