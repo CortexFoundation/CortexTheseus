@@ -27,6 +27,7 @@ ifeq ($(OS), Darwin)
 endif
 
 cortex: clib
+	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
@@ -38,7 +39,7 @@ cortex-remote: clib
 	mv ./build/bin/cortex ./build/bin/cortex-remote
 
 cortex-nominer: clib
-	build/env.sh go run build/ci.go install -disable_miner -cuda_miner ./cmd/cortex
+	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 	mv ./build/bin/cortex ./build/bin/cortex-nominer
@@ -70,7 +71,6 @@ clib:
 	build/env.sh go build -buildmode=plugin -o plugins/cuda_helper_for_node.so consensus/cuckoo/cuda_helper_for_node.go
 	build/env.sh go build -buildmode=plugin -o plugins/opencl_helper_for_node.so consensus/cuckoo/opencl_helper_for_node.go
 	build/env.sh go build -buildmode=plugin -o plugins/cpu_helper_for_node.so consensus/cuckoo/cpu_helper_for_node.go
-	build/env.sh go run build/ci.go install ./cmd/cortex
 	make -C ${INFER_NET_DIR} collect
 
 inferServer: clib
