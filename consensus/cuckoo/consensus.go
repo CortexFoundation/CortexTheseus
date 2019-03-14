@@ -349,6 +349,7 @@ var (
 	big9          = big.NewInt(9)
 	big10         = big.NewInt(10)
 	big15         = big.NewInt(15)
+	bigMinus9     = big.NewInt(-9)
 	bigMinus99    = big.NewInt(-99)
 )
 
@@ -390,10 +391,14 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
 	}
 
+	//log.Info("cal diff", "x", x, "parent.Difficulty", parent.Difficulty, "y", y)
+
 	// parent_diff + (parent_diff / 2048 * max((2 if len(parent.uncles) else 1) - ((timestamp - parent.timestamp) // 9), -99))
-	y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+	//y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
 	x.Mul(y, x)
 	x.Add(parent.Difficulty, x)
+
+	//log.Info("cal diff", "x", x, "parent.Difficulty", parent.Difficulty, "y", y)
 
 	// minimum difficulty can ever be (before exponential factor)
 	if x.Cmp(params.MinimumDifficulty) < 0 {
@@ -721,7 +726,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		}
 
 		//log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v", parent.Supply, header.Supply, blockReward, header.Number))
-		log.Info("accumulate reward", "parent", toEth(parent.Supply), "current", toEth(header.Supply), "number", header.Number, "reward", toEth(blockReward))
+		log.Info("Block reward", "parent", toEth(parent.Supply), "current", toEth(header.Supply), "number", header.Number, "reward", toEth(blockReward))
 		// Accumulate the rewards for the miner and any included uncles
 		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
@@ -740,7 +745,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				break
 			}
 			state.AddBalance(uncle.Coinbase, r)
-			log.Info("uncle", "miner", uncle.Coinbase, "reward", toEth(r), "total", toEth(header.Supply))
+			log.Info("Uncle reward", "miner", uncle.Coinbase, "reward", toEth(r), "total", toEth(header.Supply))
 			//todo
 			//r.Div(blockReward, big8)
 			//state.AddBalance(uncle.Coinbase, r)
@@ -753,7 +758,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				//header.Supply = params.CTXC_TOP
 				break
 			}
-			log.Info("nephew", "reward", r, "total", header.Supply)
+			log.Info("Nephew reward", "reward", r, "total", header.Supply)
 			reward.Add(reward, r)
 		}
 
