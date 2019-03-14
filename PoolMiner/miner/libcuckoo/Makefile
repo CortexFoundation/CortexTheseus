@@ -12,8 +12,8 @@ GPP ?= g++ $(GPP_ARCH_FLAGS) -std=c++11 $(FLAGS)
 CFLAGS ?= -Wall -Wno-format -fomit-frame-pointer $(OPT)
 GCC ?= gcc $(GCC_ARCH_FLAGS) -std=gnu11 $(CFLAGS)
 
-PROOFSIZE=12
-EDGEBITS=28
+PROOFSIZE=42
+EDGEBITS=29
 
 all: cuda opencl cpu
 
