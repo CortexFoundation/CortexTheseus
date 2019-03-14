@@ -65,13 +65,17 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	}
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
-		pend.Add(1)
-		go func(id int, nonce uint64) {
+	  pend.Add(1)
+		var err error
+		go func(id int, nonce uint64, err *error){
 			defer pend.Done()
 			cuckoo.lock.Lock()
-			cuckoo.Mine(block, id, nonce, abort, cuckoo.resultCh)
+			*err = cuckoo.Mine(block, id, nonce, abort, cuckoo.resultCh)
 			cuckoo.lock.Unlock()
-		}(i, uint64(cuckoo.rand.Int63()))
+		}(i, uint64(cuckoo.rand.Int63()), &err)
+		if err != nil{
+			return err
+		}
 	}
 	// Wait until sealing is terminated or a nonce is found
 	go func() {

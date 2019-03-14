@@ -27,9 +27,6 @@ ifeq ($(OS), Darwin)
 endif
 
 cortex: clib
-	build/env.sh go build -buildmode=plugin -o consensus/cuckoo/cuda_helper_for_node.so consensus/cuckoo/cuda_helper_for_node.go
-	build/env.sh go build -buildmode=plugin -o consensus/cuckoo/opencl_helper_for_node.so consensus/cuckoo/opencl_helper_for_node.go
-	build/env.sh go build -buildmode=plugin -o consensus/cuckoo/cpu_helper_for_node.so consensus/cuckoo/cpu_helper_for_node.go
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
@@ -47,7 +44,7 @@ cortex-remote: clib
 	mv ./build/bin/cortex ./build/bin/cortex-remote
 
 cortex-nominer: clib
-	build/env.sh go run build/ci.go install -disable_miner -cuda_miner ./cmd/cortex
+	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 	mv ./build/bin/cortex ./build/bin/cortex-nominer
@@ -76,6 +73,9 @@ nodekey:
 
 clib:
 	make -C ${LIB_CUCKOO_DIR}
+	build/env.sh go build -buildmode=plugin -o plugins/cuda_helper_for_node.so consensus/cuckoo/cuda_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o plugins/opencl_helper_for_node.so consensus/cuckoo/opencl_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o plugins/cpu_helper_for_node.so consensus/cuckoo/cpu_helper_for_node.go
 	make -C ${INFER_NET_DIR} collect
 
 inferServer: clib
@@ -100,7 +100,8 @@ lint: ## Run linters.
 
 clean:
 	./build/clean_go_build_cache.sh
-	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
+	rm PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
 
 clean-clib:
 	make -C $(LIB_MINER_DIR) clean

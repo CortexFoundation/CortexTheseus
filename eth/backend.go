@@ -260,7 +260,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 			}, notify, noverify) */
 	//	})
 		engine := cuckoo.New(*config)
-		engine.SetThreads(-1) // Disable CPU mining
+		//engine.SetThreads(-1) // Disable CPU mining
 		return engine
 	}
 }
