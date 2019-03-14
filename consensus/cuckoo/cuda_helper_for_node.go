@@ -24,28 +24,26 @@ func CuckooInit(threads uint32) {
 	CuckooInitialize(0, "", "cuckoo")
 }
 
-func CuckooInitialize(threads int, strDeviceIds string, algorithm string) {
+func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error {
 	var arrayDeviceIds []string = strings.Split(strDeviceIds, ",")
-	var deviceNum int = len(arrayDeviceIds)
+	var deviceNum int = 1
 	var devices []uint32
 	var selected int = 0
 	if algorithm == "cuckaroo"{
 		selected = 1
 	}
 
-	for i:=0; i < deviceNum; i++ {
-		v, err := strconv.Atoi(arrayDeviceIds[i])
-		if err != nil {
-			panic ("error deviceId" + strDeviceIds)
-		}
-		devices = append(devices, uint32(v))
+	v, err := strconv.Atoi(arrayDeviceIds[0])
+	if err != nil {
+		return err
 	}
+	devices = append(devices, uint32(v))
 
 	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(deviceNum), C.int(selected), 0)
+	return nil
 }
 
 func CuckooFinalize() {
-	log.Println("finalize()")
 	C.CuckooFinalize()
 }
 

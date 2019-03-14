@@ -9,8 +9,11 @@ import (
 //	"fmt"
 )
 
-func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
-	cuckoo.InitOnce()
+func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error){
+	err = cuckoo.InitOnce()
+	if err != nil{
+		return err
+	}
 
 	var (
 		header = block.Header()
@@ -50,25 +53,18 @@ search:
 			diff := target.Bytes()
 			m, err := cuckoo.minerPlugin.Lookup("CuckooSolve")
 			if err != nil {
-				panic(err)
+				return err
 			}
 			r := m.(func([]byte, int, uint64, []uint32, *uint32, *byte, *byte) byte)(hash, len(hash), nonce, result[:], &result_len, &diff[0], &result_hash[0])
-//			r := CuckooSolve(hash, len(hash), (nonce), result[:], &result_len, &diff[0], &result_hash[0])
 			if r == 0 {
 				nonce++
 				continue
 			}
-//			if (*header.Number).Uint64() < 1000 {
 			m, err = cuckoo.minerPlugin.Lookup("CuckooVerify")
 			if err != nil {
-				panic(err)
+				return err
 			}
 			r = m.(func(*byte, int, uint64, []uint32, []byte, *byte)(byte))(&hash[0], len(hash), nonce, result[:], diff, &result_hash[0]) 
-			//r = CuckooVerify(&hash[0], len(hash), (nonce), result[:], diff, &result_hash[0])
-//			}else{
-//				r = CuckooVerify_cuckaroo(&hash[0], len(hash), (nonce), result[:], diff, &result_hash[0])
-//			}
-
 			if r != 0 {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)
@@ -87,6 +83,7 @@ search:
 			nonce++
 		}
 	}
+	return nil
 }
 
 func (cuckoo *Cuckoo) SetThreads(threads int) {

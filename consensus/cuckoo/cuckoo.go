@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rpc"
 	"plugin"
@@ -147,10 +146,11 @@ func NewShared() *Cuckoo {
 	return &Cuckoo{shared: sharedCuckoo}
 }
 
-const PLUGIN_PATH string = "consensus/cuckoo/"
+const PLUGIN_PATH string = "plugins/"
 const	PLUGIN_POST_FIX string = "_helper_for_node.so"
 
-func (cuckoo *Cuckoo) InitOnce() {
+func (cuckoo *Cuckoo) InitOnce() error {
+	var err error
 	cuckoo.once.Do(func() {
 		var minerName string = "cpu"
 		if cuckoo.config.UseCuda == true {
@@ -158,19 +158,25 @@ func (cuckoo *Cuckoo) InitOnce() {
 		}else if cuckoo.config.UseOpenCL == true{
 			minerName = "opencl"
 		}
-		var err error
-		cuckoo.minerPlugin, err = plugin.Open(PLUGIN_PATH + minerName + PLUGIN_POST_FIX)
-		if err != nil{
-			panic(err)
+		var errc error
+		cuckoo.minerPlugin, errc = plugin.Open(PLUGIN_PATH + minerName + PLUGIN_POST_FIX)
+		if errc != nil{
+			err = errc
+			return
 		}else{
-			m, err := cuckoo.minerPlugin.Lookup("CuckooInitialize")
+			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
 			if err != nil {
-				log.Error("can not find CuckooInit on the plugin")
+				err = errc
+				return
 			}
-			m.(func(int, string, string))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
-//			CuckooInit(1)
+			if cuckoo.config.StrDeviceIds == "" {
+				cuckoo.config.StrDeviceIds = "0"  //default gpu device 0
+			}
+			errc = m.(func(int, string, string)(error))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
+			err = errc
 		}
 	})
+	return err
 }
 
 // Close closes the exit channel to notify all backend threads exiting.
@@ -186,12 +192,12 @@ func (cuckoo *Cuckoo) Close() error {
 		err = <-errc
 		close(cuckoo.exitCh)
 
-		m, err := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-		if err != nil{
-			panic(err)
+		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+		if e != nil{
+			err = e
+			return
 		}
 		m.(func())()
-//		CuckooFinalize()
 	})
 	return err
 }
