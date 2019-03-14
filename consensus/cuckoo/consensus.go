@@ -349,6 +349,7 @@ var (
 	big9          = big.NewInt(9)
 	big10         = big.NewInt(10)
 	big15         = big.NewInt(15)
+	bigMinus1     = big.NewInt(-1)
 	bigMinus9     = big.NewInt(-9)
 	bigMinus99    = big.NewInt(-99)
 )
@@ -379,8 +380,12 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 		x.Sub(big2, x)
 	}
 	// max((2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9, -99)
-	if x.Cmp(bigMinus99) < 0 {
-		x.Set(bigMinus99)
+	if bigParentTime.Cmp(big0) > 0 {
+		if x.Cmp(bigMinus99) < 0 {
+			x.Set(bigMinus99)
+		}
+	} else {
+		x.Set(big0)
 	}
 
 	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
