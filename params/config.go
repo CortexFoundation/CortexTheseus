@@ -32,7 +32,7 @@ var (
 
 var (
 	//CortexBlockRewardPeriod = big.NewInt(8760000)
-	CortexBlockRewardPeriod = big.NewInt(6000)
+	CortexBlockRewardPeriod = big.NewInt(1000)
 )
 
 var (

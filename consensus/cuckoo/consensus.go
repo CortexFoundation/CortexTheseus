@@ -43,11 +43,11 @@ import (
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward    *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward   *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	ConstantinopleBlockReward = big.NewInt(8e+18)
-	maxUncles                       = 2                 // Maximum number of uncles allowed in a single block
-	allowedFutureBlockTime          = 13 * time.Second  // Max time from current time allowed for blocks, before they're considered future blocks
+	FrontierBlockReward       *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward      *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	ConstantinopleBlockReward          = big.NewInt(8e+18)
+	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
+	allowedFutureBlockTime             = 13 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
 	// It returns the difficulty that a new block should have when created at time given the
@@ -687,8 +687,8 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 	}
 
 	if config.IsConstantinople(header.Number) {
-                blockReward = ConstantinopleBlockReward
-        }
+		blockReward = ConstantinopleBlockReward
+	}
 
 	if header.Number.Cmp(params.CortexBlockRewardPeriod) >= 0 {
 		d := new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod)
@@ -721,6 +721,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		}
 
 		//log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v", parent.Supply, header.Supply, blockReward, header.Number))
+		log.Info("accumulate reward", "parent", toEth(parent.Supply), "current", toEth(header.Supply), "number", header.Number, "reward", toEth(blockReward))
 		// Accumulate the rewards for the miner and any included uncles
 		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
@@ -739,7 +740,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				break
 			}
 			state.AddBalance(uncle.Coinbase, r)
-			log.Info("uncle", "miner", uncle.Coinbase, "reward", r, "total", header.Supply)
+			log.Info("uncle", "miner", uncle.Coinbase, "reward", toEth(r), "total", toEth(header.Supply))
 			//todo
 			//r.Div(blockReward, big8)
 			//state.AddBalance(uncle.Coinbase, r)
@@ -760,6 +761,10 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 	}
 }
 
+func toEth(wei *big.Int) *big.Float {
+	return new(big.Float).Quo(new(big.Float).SetInt(wei), new(big.Float).SetInt(big.NewInt(params.Ether)))
+}
+
 func Sha3Solution(sol *types.BlockSolution) []byte {
 	buf := make([]byte, 42*4)
 	for i := 0; i < len(sol); i++ {
@@ -770,16 +775,16 @@ func Sha3Solution(sol *types.BlockSolution) []byte {
 	return ret
 }
 
-func (cuckoo *Cuckoo)CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64) (ok bool, sha3hash common.Hash) {
+func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64) (ok bool, sha3hash common.Hash) {
 	var r byte
-	if cuckoo.minerPlugin == nil{
+	if cuckoo.minerPlugin == nil {
 		cuckoo.InitOnce()
 	}
 	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify")
 	if err != nil {
 		panic(err)
 	}
-	r = m.(func(*byte, int, uint64, []uint32, []byte, *byte)(byte))(&hash[0], len(hash), nonce, sol[:], nil, nil)
+	r = m.(func(*byte, int, uint64, []uint32, []byte, *byte) byte)(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	if r != 1 {
 		return false, common.Hash{}
