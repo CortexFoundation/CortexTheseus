@@ -9,7 +9,7 @@ import (
 //	"fmt"
 )
 
-var big255 = big.NewInt(0).Sub(maxUint256, big.NewInt(1))
+//var big255 = big.NewInt(0).Sub(maxUint256, big.NewInt(1))
 
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
 	cuckoo.InitOnce()
@@ -17,7 +17,7 @@ func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan s
 	var (
 		header = block.Header()
 		hash   = cuckoo.SealHash(header).Bytes()
-		target = new(big.Int).Div(big255, header.Difficulty)
+		target = new(big.Int).Div(maxUint256, header.Difficulty)
 
 		result     types.BlockSolution
 		result_len uint32
