@@ -192,6 +192,9 @@ func (cuckoo *Cuckoo) Close() error {
 		err = <-errc
 		close(cuckoo.exitCh)
 
+		if cuckoo.minerPlugin == nil{
+			return
+		}
 		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
 		if e != nil{
 			err = e

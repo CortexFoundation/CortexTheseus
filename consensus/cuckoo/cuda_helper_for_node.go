@@ -49,14 +49,6 @@ func CuckooFinalize() {
 }
 
 
-func CuckooSolve(hash []byte, nonce uint64, result []uint32) int {
-	_, ret := CuckooFindSolutions(hash, nonce);
-	for i := 0; len(ret) > 0 && i < len(ret[0]); i++ {
-		result[i] = ret[0][i]
-	}
-	return len(ret)
-}
-
 func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32) {
 	var (
 		_solLength uint32

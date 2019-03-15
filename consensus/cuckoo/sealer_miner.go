@@ -47,15 +47,17 @@ search:
 				attempts = 0
 			}
 
-			m, err := cuckoo.minerPlugin.Lookup("CuckooSolve")
+			m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
 			if err != nil {
 				return err
 			}
-			r := m.(func([]byte, uint64, []uint32) int)(hash, nonce, result[:])
+			r, res := m.(func([]byte, uint64)(uint32, [][]uint32))(hash, nonce)
 			if r == 0 {
 				nonce++
 				continue
 			}
+			copy(result[:], res[0][0:len(res[0])])
+
 			m, err = cuckoo.minerPlugin.Lookup("CuckooVerify")
 			if err != nil {
 				return err
