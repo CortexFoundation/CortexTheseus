@@ -14,10 +14,11 @@ import (
 	"log"
 	//	"time"
 	"unsafe"
-	"github.com/ethereum/go-ethereum/PoolMiner/common"
-	"github.com/ethereum/go-ethereum/PoolMiner/crypto"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"strconv"
 	"strings"
+	"math/big"
 )
 
 func CuckooInit(threads uint32) {
@@ -48,13 +49,12 @@ func CuckooFinalize() {
 }
 
 
-func CuckooSolve(hash []byte, hash_len int, nonce uint64, result []uint32, result_len *uint32, diff *byte, result_hash *byte) byte {
+func CuckooSolve(hash []byte, nonce uint64, result []uint32) int {
 	_, ret := CuckooFindSolutions(hash, nonce);
 	for i := 0; len(ret) > 0 && i < len(ret[0]); i++ {
 		result[i] = ret[0][i]
 	}
-	*result_len = uint32(len(ret))
-	return byte(len(ret))
+	return len(ret)
 }
 
 func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32) {
@@ -87,51 +87,32 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 	for solIdx := uint32(0); solIdx < _numSols; solIdx++ {
 		var sol = make([]uint32, _solLength)
 		copy(sol[:], result[solIdx*_solLength:(solIdx+1)*_solLength])
-//		 log.Println(fmt.Sprintf("Index: %v, Solution: %v", solIdx, sol))
 		ret = append(ret, sol)
 	}
 
 	return uint32(r), ret
 }
-func CuckooVerify(hash *byte, hash_len int, nonce uint64, result []uint32, diff []byte, result_hash *byte) byte {
-	var tmpret common.BlockSolution
-	for i := 0; i < len(result); i++ {
-		tmpret[i] = result[i]
-	}
-	var tmpdiff common.Hash
-	for i := 0; diff != nil && i < len(diff); i++ {
-		tmpdiff[i] = diff[i]
-	}
+func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
+	sha3hash := common.BytesToHash(result_sha3)
 
-	sha3hash := common.BytesToHash(crypto.Sha3Solution(&tmpret))
-
-	if diff == nil || sha3hash.Big().Cmp(tmpdiff.Big()) <= 0{
+	if sha3hash.Big().Cmp(diff) <= 0{
 		r := C.CuckooVerifyProof(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
-			(*C.result_t)(unsafe.Pointer(&tmpret[0])))
-		return byte(r)
+			(*C.result_t)(unsafe.Pointer(&result[0])))
+		return (r == 1)
 	}
-	return 0
+	return false
 }
 
-func CuckooVerify_cuckaroo(hash *byte, hash_len int, nonce uint64, result []uint32, diff []byte, result_hash *byte) byte {
-	var tmpret common.BlockSolution
-	for i := 0; i < len(result); i++ {
-		tmpret[i] = result[i]
-	}
-	var tmpdiff common.Hash
-	for i := 0; diff != nil && i < len(diff); i++ {
-		tmpdiff[i] = diff[i]
-	}
-	sha3hash := common.BytesToHash(crypto.Sha3Solution(&tmpret))
-
-	if diff == nil || sha3hash.Big().Cmp(tmpdiff.Big()) <= 0{
+func CuckooVerify_cuckaroo(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
+	sha3hash := common.BytesToHash(result_sha3)
+	if sha3hash.Big().Cmp(diff) <= 0{
 		r := C.CuckooVerifyProof_cuckaroo(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
-			(*C.result_t)(unsafe.Pointer(&tmpret[0])))
-		return byte(r)
+			(*C.result_t)(unsafe.Pointer(&result[0])))
+		return (r==1)
 	}
-	return 0
+	return false
 }

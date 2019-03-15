@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"math/big"
-//	"fmt"
 )
 
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error){
@@ -21,7 +20,6 @@ func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan s
 		target = new(big.Int).Div(maxUint256, header.Difficulty)
 
 		result     types.BlockSolution
-		result_len uint32
 	)
 	var (
 		attempts = int32(0)
@@ -49,13 +47,11 @@ search:
 				attempts = 0
 			}
 
-			var result_hash [32]byte
-			diff := target.Bytes()
 			m, err := cuckoo.minerPlugin.Lookup("CuckooSolve")
 			if err != nil {
 				return err
 			}
-			r := m.(func([]byte, int, uint64, []uint32, *uint32, *byte, *byte) byte)(hash, len(hash), nonce, result[:], &result_len, &diff[0], &result_hash[0])
+			r := m.(func([]byte, uint64, []uint32) int)(hash, nonce, result[:])
 			if r == 0 {
 				nonce++
 				continue
@@ -64,13 +60,12 @@ search:
 			if err != nil {
 				return err
 			}
-			r = m.(func(*byte, int, uint64, []uint32, []byte, *byte)(byte))(&hash[0], len(hash), nonce, result[:], diff, &result_hash[0]) 
-			if r != 0 {
+			ret := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int)(bool))(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
+			if ret {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)
 				header.Nonce = types.EncodeNonce(uint64(nonce))
 				header.Solution = result
-				//header.SolutionHash = result_hash
 
 				select {
 				case found <- block.WithSeal(header):
