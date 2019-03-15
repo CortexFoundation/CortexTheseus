@@ -394,6 +394,14 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
 	} else {
 		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+
+		if x.Cmp(big0) > 0 {
+			x.Set(big1)
+		}
+
+		if x.Cmp(big0) < 0 {
+			x.Set(bigMinus1)
+		}
 	}
 
 	//log.Info("cal diff", "x", x, "parent.Difficulty", parent.Difficulty, "y", y)
@@ -771,7 +779,7 @@ func toEth(wei *big.Int) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(wei), new(big.Float).SetInt(big.NewInt(params.Ether)))
 }
 
-func (cuckoo *Cuckoo)Sha3Solution(sol *types.BlockSolution) []byte {
+func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 	buf := make([]byte, 42*4)
 	for i := 0; i < len(sol); i++ {
 		binary.BigEndian.PutUint32(buf[i*4:], sol[i])
@@ -781,15 +789,15 @@ func (cuckoo *Cuckoo)Sha3Solution(sol *types.BlockSolution) []byte {
 	return ret
 }
 
-func (cuckoo *Cuckoo)CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) (ok bool) {
-	if cuckoo.minerPlugin == nil{
+func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) (ok bool) {
+	if cuckoo.minerPlugin == nil {
 		cuckoo.InitOnce()
 	}
 	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify")
 	if err != nil {
 		panic(err)
 	}
-	r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int)(bool))(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
+	r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
 	//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	return r
 }
