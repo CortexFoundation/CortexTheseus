@@ -851,6 +851,9 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
+	//update model status
+	interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+
 	stack.push(interpreter.intPool.get().SetUint64(output))
 
 	return nil, nil
