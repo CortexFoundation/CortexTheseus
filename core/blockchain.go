@@ -754,6 +754,10 @@ func SetReceiptsData(config *params.ChainConfig, block *types.Block, receipts ty
 	for j := 0; j < len(receipts); j++ {
 		// The transaction hash can be retrieved from the transaction itself
 		receipts[j].TxHash = transactions[j].Hash()
+		// block location fields
+		//receipts[j].BlockHash = block.Hash()
+		//receipts[j].BlockNumber = block.Number()
+		//receipts[j].TransactionIndex = uint(j)
 
 		// The contract address can be derived from the transaction itself
 		if transactions[j].To() == nil {
