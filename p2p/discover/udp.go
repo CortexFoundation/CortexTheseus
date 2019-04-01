@@ -532,6 +532,7 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 	// Packets larger than this size will be cut at the end and treated
 	// as invalid because their hash won't match.
 	buf := make([]byte, 1280)
+	i:=0
 	for {
 		nbytes, from, err := t.conn.ReadFromUDP(buf)
 		if netutil.IsTemporaryError(err) {
@@ -543,7 +544,8 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 			log.Debug("UDP read error", "err", err)
 			return
 		}
-		if t.handlePacket(from, buf[:nbytes]) != nil && unhandled != nil {
+		i++
+		if t.handlePacket(from, buf[:nbytes]) != nil && unhandled != nil && i < 128{
 			select {
 			case unhandled <- ReadPacket{buf[:nbytes], from}:
 			default:
