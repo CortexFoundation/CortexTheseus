@@ -548,7 +548,7 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 			log.Debug("UDP read error", "err", err)
 			return
 		}
-		if t.handlePacket(from, buf[:nbytes]) != nil && unhandled != nil {
+		if t.handlePacket(from, buf[:nbytes]) != nil && unhandled != nil{
 			select {
 			case unhandled <- ReadPacket{buf[:nbytes], from}:
 			default:
