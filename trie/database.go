@@ -21,6 +21,7 @@ import (
 	"io"
 	"sync"
 	"time"
+	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -352,6 +353,9 @@ func (db *Database) node(hash common.Hash, cachegen uint16) node {
 // Node retrieves an encoded cached trie node from memory. If it cannot be found
 // cached, the method queries the persistent database for the content.
 func (db *Database) Node(hash common.Hash) ([]byte, error) {
+	if hash == (common.Hash{}) {
+		return nil, errors.New("not found")
+	}
 	// Retrieve the node from cache if available
 	db.lock.RLock()
 	node := db.nodes[hash]
