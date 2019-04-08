@@ -117,5 +117,5 @@ const (
 	MODEL_GAS_LIMIT        uint64 = 65536 //max gas limit for model call
 
 	CONFIRM_TIME        = -3600 * 24 * 7 // * time.Second
-	BLOCK_QUOTA  uint64 = 512 * 1024     //one block includes 512k file quota
+	BLOCK_QUOTA  = 65536     //one block includes 512k file quota
 )
