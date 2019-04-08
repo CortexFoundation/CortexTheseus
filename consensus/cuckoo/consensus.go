@@ -632,9 +632,9 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 		return consensus.ErrUnknownAncestor
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
-	//header.Supply = parent.Supply
+	header.Supply = new(big.Int).Set(parent.Supply)
 	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(params.BLOCK_QUOTA))
-	header.QuotaUsed = parent.QuotaUsed
+	header.QuotaUsed = new(big.Int).Set(parent.QuotaUsed)
 	return nil
 }
 
