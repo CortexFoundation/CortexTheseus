@@ -41,9 +41,11 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 				feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
 			}
 			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
+			mined :=new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Sub(block.Header().Supply, params.CTXC_INIT)), new(big.Float).SetInt(big.NewInt(params.Ether)))
+			progress := new(big.Float).Quo( new(big.Float).SetInt(block.Header().Supply),  new(big.Float).SetInt(params.CTXC_TOP))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
-				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Header().Difficulty)
+				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Header().Difficulty, "progress", progress, "mined", mined)
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")

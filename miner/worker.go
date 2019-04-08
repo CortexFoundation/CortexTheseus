@@ -822,14 +822,14 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	num := parent.Number()
 	//quota := parent.Quota() + params.BLOCK_QUOTA
 	//quotaUsed := parent.QuotaUsed()
-	supply := parent.Supply()
+	//supply := parent.Supply()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
 //		Quota:      quota,
 //		QuotaUsed:  quotaUsed,
-		Supply:     supply,
+		//Supply:     supply,
 		Extra:      w.extra,
 		Time:       big.NewInt(timestamp),
 	}

@@ -632,6 +632,7 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 		return consensus.ErrUnknownAncestor
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
+	//header.Supply = parent.Supply
 	//header.Quota = parent.Quota + params.BLOCK_QUOTA
 	//header.QuotaUsed = parent.QuotaUsed
 	return nil
@@ -714,7 +715,9 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		return
 	}
 	log.Debug("Parent", "num", parent.Number, "hash", parent.Hash(), "supply", parent.Supply)
-
+	if header.Supply == nil {
+		header.Supply = new(big.Int)
+	}
 	header.Supply.Set(parent.Supply)
 
 	if header.Supply.Cmp(params.CTXC_INIT) < 0 {
