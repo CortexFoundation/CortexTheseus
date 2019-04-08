@@ -104,7 +104,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
+	_, gas, quota, failed, err := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -116,12 +116,12 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
 	}
 
-	//*usedQuota += quota
+	header.QuotaUsed.Add(header.QuotaUsed, quota)
 
-	//if header.Quota < *usedQuota {
-        //       *usedQuota -= quota
-        //        return nil, 0, ErrQuotaLimitReached//errors.New("quota")
-        //}
+	if header.Quota.Cmp(header.QuotaUsed)< 0 {
+               header.QuotaUsed.Sub(header.QuotaUsed, quota)
+               return nil, 0, ErrQuotaLimitReached//errors.New("quota")
+        }
 
 	*usedGas += gas
 
