@@ -748,7 +748,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			log.Trace("Gas limit exceeded for current block", "sender", from)
 			txs.Pop()
 		case core.ErrQuotaLimitReached:
-			log.Trace("Quota limit exceeded for current block", "sender", from)
+			log.Info("Quota limit exceeded for current block", "sender", from)
 			txs.Pop()
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift

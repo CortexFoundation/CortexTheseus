@@ -108,6 +108,14 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	if err != nil {
 		return nil, 0, err
 	}
+
+	header.QuotaUsed.Add(header.QuotaUsed, quota)
+
+        if header.Quota.Cmp(header.QuotaUsed)< 0 {
+               header.QuotaUsed.Sub(header.QuotaUsed, quota)
+               return nil, 0, ErrQuotaLimitReached//errors.New("quota")
+        }
+
 	// Update the state with pending changes
 	var root []byte
 	if config.IsByzantium(header.Number) {
@@ -115,13 +123,6 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	} else {
 		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
 	}
-
-	header.QuotaUsed.Add(header.QuotaUsed, quota)
-
-	if header.Quota.Cmp(header.QuotaUsed)< 0 {
-               header.QuotaUsed.Sub(header.QuotaUsed, quota)
-               return nil, 0, ErrQuotaLimitReached//errors.New("quota")
-        }
 
 	*usedGas += gas
 
