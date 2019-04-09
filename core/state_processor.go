@@ -57,7 +57,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	var (
 		receipts  types.Receipts
 		usedGas   = new(uint64)
-		//usedQuota = new(uint64)
+		//usedQuota = big.NewInt(0)
 		header    = block.Header()
 		allLogs   []*types.Log
 		gp        = new(GasPool).AddGas(block.GasLimit())

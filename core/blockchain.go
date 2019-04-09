@@ -1202,7 +1202,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, pErr
 		}
 
-		// Process block using the parent state as reference point.
+		block.QuotaUsed = new(big.Int).Set(parent.QuotaUsed)
+		// Process block using the parent state as reference point
 		receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
 
 		if pErr != nil {
