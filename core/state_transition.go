@@ -266,7 +266,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	//normal gas
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 
-	var quota = big.NewInt(0)//default used 4 k quota every tx for testing
+	var quota = big.NewInt(512 * 1024)//default used 4 k quota every tx for testing
 	if st.uploading() {
 		quota = Min(big.NewInt(0).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 

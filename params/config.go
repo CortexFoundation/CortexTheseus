@@ -48,8 +48,8 @@ var (
 		EIP158Block:    big.NewInt(0),
 		ByzantiumBlock: big.NewInt(0),
 		//CortexBlock:	     big.NewInt(8409600),
-		//ConstantinopleBlock: big.NewInt(0),
-		//PetersburgBlock:     big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
 		Cuckoo:              new(CuckooConfig),
 	}
 
