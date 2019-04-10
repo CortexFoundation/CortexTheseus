@@ -186,7 +186,8 @@ func (st *StateTransition) preCheck() error {
 		}
 	}
 	if st.uploading() {
-		if st.qp.Cmp(st.state.Upload(st.to())) < 0 {
+		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		if st.qp.Cmp(cost) < 0 {
 			log.Info("Quota validation", "quotapool", st.qp, "cost", st.state.Upload(st.to()))
 			return ErrQuotaLimitReached
 		}
