@@ -632,8 +632,9 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 		return consensus.ErrUnknownAncestor
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
-	//header.Quota = parent.Quota + params.BLOCK_QUOTA
-	//header.QuotaUsed = parent.QuotaUsed
+	header.Supply = new(big.Int).Set(parent.Supply)
+	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(params.BLOCK_QUOTA))
+	header.QuotaUsed = new(big.Int).Set(parent.QuotaUsed)
 	return nil
 }
 
@@ -714,7 +715,9 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		return
 	}
 	log.Debug("Parent", "num", parent.Number, "hash", parent.Hash(), "supply", parent.Supply)
-
+	if header.Supply == nil {
+		header.Supply = new(big.Int)
+	}
 	header.Supply.Set(parent.Supply)
 
 	if header.Supply.Cmp(params.CTXC_INIT) < 0 {
@@ -735,7 +738,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		}
 
 		//log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v", parent.Supply, header.Supply, blockReward, header.Number))
-		log.Info("Block reward", "parent", toCoin(parent.Supply), "current", toCoin(header.Supply), "number", header.Number, "reward", toCoin(blockReward))
+		log.Debug("Block reward", "parent", toCoin(parent.Supply), "current", toCoin(header.Supply), "number", header.Number, "reward", toCoin(blockReward))
 		// Accumulate the rewards for the miner and any included uncles
 		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
@@ -754,7 +757,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				break
 			}
 			state.AddBalance(uncle.Coinbase, r)
-			log.Info("Uncle reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
+			log.Debug("Uncle reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
 			//todo
 			//r.Div(blockReward, big8)
 			//state.AddBalance(uncle.Coinbase, r)
@@ -767,7 +770,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				//header.Supply = params.CTXC_TOP
 				break
 			}
-			log.Info("Nephew reward", "reward", toCoin(r), "total", toCoin(header.Supply))
+			log.Debug("Nephew reward", "reward", toCoin(r), "total", toCoin(header.Supply))
 			reward.Add(reward, r)
 		}
 

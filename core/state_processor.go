@@ -55,15 +55,15 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 	var (
-		receipts  types.Receipts
-		usedGas   = new(uint64)
-		//usedQuota = new(uint64)
-		header    = block.Header()
-		allLogs   []*types.Log
-		gp        = new(GasPool).AddGas(block.GasLimit())
+		receipts types.Receipts
+		usedGas  = new(uint64)
+		//quotaLimit = big.NewInt(0)//parent.quota+64k - parent.quotaUsed
+		header  = block.Header()
+		allLogs []*types.Log
+		gp      = new(GasPool).AddGas(block.GasLimit())
 		//up       = new(UploadPool).AddUpload(uint64(10*1024*1024))
 	)
-		//*usedQuota = quotaUsed
+	//*usedQuota = quotaUsed
 	// Mutate the the block and state according to any hard-fork specs
 	//if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 	//	misc.ApplyDAOHardFork(statedb)
@@ -81,14 +81,16 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	//parent:=p.bc.GetHeaderByHash(header.ParentHash)
 	//if parent == nil {
-        //        return nil,nil,0,consensus.ErrUnknownAncestor
-        //}
+	//        return nil,nil,0,consensus.ErrUnknownAncestor
+	//}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 
 	return receipts, allLogs, *usedGas, nil
 }
-
+var (
+//        big0 = big.NewInt(0)
+)
 // ApplyTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
@@ -104,10 +106,19 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
+	_, gas, quota, failed, err := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
 		return nil, 0, err
 	}
+	if quota.Cmp(big0) > 0 {
+		header.QuotaUsed.Add(header.QuotaUsed, quota)
+
+		if header.Quota.Cmp(header.QuotaUsed) < 0 {
+			header.QuotaUsed.Sub(header.QuotaUsed, quota)
+			return nil, 0, ErrQuotaLimitReached //errors.New("quota")
+		}
+	}
+
 	// Update the state with pending changes
 	var root []byte
 	if config.IsByzantium(header.Number) {
@@ -115,13 +126,6 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	} else {
 		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
 	}
-
-	//*usedQuota += quota
-
-	//if header.Quota < *usedQuota {
-        //       *usedQuota -= quota
-        //        return nil, 0, ErrQuotaLimitReached//errors.New("quota")
-        //}
 
 	*usedGas += gas
 
