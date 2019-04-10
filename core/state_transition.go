@@ -190,7 +190,7 @@ func (st *StateTransition) preCheck() error {
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
 var (
-	big0=big.NewInt(0)
+	big0 = big.NewInt(0)
 )
 
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed *big.Int, failed bool, err error) {
@@ -205,10 +205,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	// Pay intrinsic gas
 	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead)
 	if err != nil {
-		return nil, 0,big0, false, err
+		return nil, 0, big0, false, err
 	}
 	if err = st.useGas(gas); err != nil {
-		return nil, 0,big0, false, err
+		return nil, 0, big0, false, err
 	}
 
 	var (
@@ -235,14 +235,14 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		// Inference error caused by torrent fs syncing is returned directly.
 		// This is called Built-In Torrent Fs Error
 		if synapse.CheckBuiltInTorrentFsError(vmerr) {
-			return nil, 0,big0, false, ErrBuiltInTorrentFS
+			return nil, 0, big0, false, ErrBuiltInTorrentFS
 		}
 
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
 		if vmerr == vm.ErrInsufficientBalance {
-			return nil, 0, big0,false, vmerr
+			return nil, 0, big0, false, vmerr
 		}
 	}
 
@@ -257,7 +257,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
 				}
 
-				return nil, 0,big0, false, vm.ErrInsufficientBalance
+				return nil, 0, big0, false, vm.ErrInsufficientBalance
 			}
 			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
 		}
@@ -266,9 +266,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	//normal gas
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 
-	var quota = big.NewInt(64 * 1024)//default used 4 k quota every tx for testing
+	var quota = big.NewInt(100 * 1024) //default used 4 k quota every tx for testing
 	if st.uploading() {
-		quota = Min(big.NewInt(0).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		quota = Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
@@ -285,7 +285,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 }
 
 func Min(x, y *big.Int) *big.Int {
-	if x.Cmp(y)<0 {
+	if x.Cmp(y) < 0 {
 		return x
 	}
 	return y
