@@ -459,9 +459,9 @@ func (self *StateDB) SubUpload(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SubUpload(amount)
-		log.Info("Uploading progress", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
+		log.Debug("Uploading progress", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
 	} else {
-		log.Info("Uploading failed", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
+		log.Debug("Uploading failed", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
 	}
 }
 

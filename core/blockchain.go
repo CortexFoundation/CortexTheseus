@@ -1188,6 +1188,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		} else {
 			parent = chain[i-1]
 		}
+
+		//parent should not be nil
+
 		var (
 			dbState  *state.StateDB
 			receipts types.Receipts

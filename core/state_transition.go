@@ -54,6 +54,7 @@ The state transitioning model does all the necessary work to work out a valid ne
 */
 type StateTransition struct {
 	gp         *GasPool
+	qp         *big.Int
 	msg        Message
 	gas        uint64
 	gasPrice   *big.Int
@@ -118,9 +119,10 @@ func IntrinsicGas(data []byte, contractCreation, upload, homestead bool) (uint64
 }
 
 // NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
+func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool, qp *big.Int) *StateTransition {
 	return &StateTransition{
 		gp:       gp,
+		qp:       qp,
 		evm:      evm,
 		msg:      msg,
 		gasPrice: msg.GasPrice(),
@@ -137,8 +139,8 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, *big.Int, bool, error) {
-	return NewStateTransition(evm, msg, gp).TransitionDb()
+func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool, qp *big.Int) ([]byte, uint64, *big.Int, bool, error) {
+	return NewStateTransition(evm, msg, gp, qp).TransitionDb()
 }
 
 // to returns the recipient of the message.
@@ -183,6 +185,12 @@ func (st *StateTransition) preCheck() error {
 			return ErrNonceTooLow
 		}
 	}
+	if st.uploading() {
+		if st.qp.Cmp(st.state.Upload(st.to())) < 0 {
+			log.Info("Quota validation", "quotapool", st.qp, "cost", st.state.Upload(st.to()))
+			return ErrQuotaLimitReached
+		}
+	}
 	return st.buyGas()
 }
 
@@ -201,6 +209,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil
+
+	/*if st.uploading() {
+		if st.qp.Cmp(st.state.Upload(st.to())) < 0 {
+			return nil, 0, big0, false,ErrQuotaLimitReached
+		}
+	}*/
 
 	// Pay intrinsic gas
 	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead)
@@ -269,6 +283,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	quota := big.NewInt(0) //default used 4 k quota every tx for testing
 	if st.uploading() {
 		quota = Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+
+		//todo check quota remain
 
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
