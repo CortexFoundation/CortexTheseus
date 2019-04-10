@@ -194,10 +194,9 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		//todo if file not exist ErrBuiltInTorrentFS
-		file := st.evm.Fs.GetFileByAddr(st.to())
-		if file == nil {
-			//todo ?
+		if !st.evm.Fs.Exist(st.to()) {
 			log.Warn("Torrent not exist", "address", st.to())
+			return ErrBuiltInTorrentFS
 		}
 	}
 	return st.buyGas()
