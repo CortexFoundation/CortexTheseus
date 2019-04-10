@@ -88,9 +88,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	return receipts, allLogs, *usedGas, nil
 }
+
 var (
 //        big0 = big.NewInt(0)
 )
+
 // ApplyTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
