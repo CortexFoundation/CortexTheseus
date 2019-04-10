@@ -1203,7 +1203,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 
 		block.Header().Quota = new(big.Int).Add(parent.Quota(), new(big.Int).SetUint64(params.BLOCK_QUOTA))
-		block.Header().QuotaUsed = parent.QuotaUsed()
+		block.Header().QuotaUsed.Set(parent.QuotaUsed())
 
 		log.Info("Quota init", "quota", block.Quota(), "used", block.QuotaUsed(), "txs", len(block.Transactions()), "parent", parent.Quota(), "parent used", parent.QuotaUsed())
 		// Process block using the parent state as reference point
