@@ -711,6 +711,7 @@ func (self *StateDB) Snapshot() int {
 	id := self.nextRevisionId
 	self.nextRevisionId++
 	self.validRevisions = append(self.validRevisions, revision{id, self.journal.length()})
+	//log.Info("snap version len", "len", len(self.validRevisions))
 	return id
 }
 
@@ -721,7 +722,7 @@ func (self *StateDB) RevertToSnapshot(revid int) {
 		return self.validRevisions[i].id >= revid
 	})
 	if idx == len(self.validRevisions) || self.validRevisions[idx].id != revid {
-		panic(fmt.Errorf("revision id %v cannot be reverted", revid))
+		panic(fmt.Errorf("revision id %v cannot be reverted, %v, %v", revid, idx, len(self.validRevisions)))
 	}
 	snapshot := self.validRevisions[idx].journalIndex
 

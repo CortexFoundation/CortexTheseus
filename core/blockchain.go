@@ -1189,20 +1189,24 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			parent = chain[i-1]
 		}
 		var (
-			dbState   *state.StateDB
-			receipts  types.Receipts
-			logs      []*types.Log
-			usedGas   uint64
+			dbState  *state.StateDB
+			receipts types.Receipts
+			logs     []*types.Log
+			usedGas  uint64
 			//usedQuota uint64
-			pErr      error
+			pErr error
 		)
 
 		dbState, pErr = state.New(parent.Root(), bc.stateCache)
 		if pErr != nil {
 			return i, events, coalescedLogs, pErr
 		}
+		//block quota init by parent consensus
+		block.Header().Quota.Add(parent.Quota(), new(big.Int).SetUint64(params.BLOCK_QUOTA))
+		block.Header().QuotaUsed.Set(parent.QuotaUsed())
 
-		// Process block using the parent state as reference point.
+		// log.Info("Quota initialized", "quota", block.Quota(), "used", block.QuotaUsed(), "txs", len(block.Transactions()), "parent", parent.Quota(), "parent used", parent.QuotaUsed())
+		// Process block using the parent state as reference point
 		receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
 
 		if pErr != nil {
