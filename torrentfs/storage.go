@@ -105,10 +105,10 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 	return nil
 }
 
-func (fs *FileStorage) Exist(addr common.Address) bool {
+func Exist(addr common.Address, dataDir string) bool {
 
 	hash := strings.ToLower(string(addr.Hex()[2:]))
-	inputDir := fs.dataDir + "/" + hash
+	inputDir := dataDir + "/" + hash
 	inputFilePath := inputDir + "/data"
 	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
 		return false

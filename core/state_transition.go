@@ -28,7 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
-	//"github.com/ethereum/go-ethereum/torrentfs"
+	"github.com/ethereum/go-ethereum/torrentfs"
 )
 
 var (
@@ -194,7 +194,7 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		//todo if file not exist ErrBuiltInTorrentFS
-		if !st.evm.Fs.Exist(st.to()) {
+		if !torrentfs.Exist(st.to(), st.evm.Config().StorageDir) {
 			log.Warn("Torrent not exist", "address", st.to())
 			return ErrBuiltInTorrentFS
 		}
