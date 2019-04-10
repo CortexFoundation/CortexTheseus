@@ -177,7 +177,10 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return err
 	}
 
+	//log.Debug("Transaction Receipt", "receipt", receipt)
+
 	if receipt.ContractAddr == nil {
+		//log.Warn("Contract address is nil", "receipt", receipt.TxHash)
 		return nil
 	}
 	var _remainingSize string
