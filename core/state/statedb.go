@@ -53,8 +53,8 @@ var (
 type proofList [][]byte
 
 func (n *proofList) Put(key []byte, value []byte) error {
-        *n = append(*n, value)
-        return nil
+	*n = append(*n, value)
+	return nil
 }
 
 // StateDBs within the ethereum protocol are used to store anything
@@ -198,11 +198,11 @@ func (self *StateDB) AddRefund(gas uint64) {
 // SubRefund removes gas from the refund counter.
 // This method will panic if the refund counter goes below zero
 func (self *StateDB) SubRefund(gas uint64) {
-        self.journal.append(refundChange{prev: self.refund})
-        if gas > self.refund {
-                panic("Refund counter below zero")
-        }
-        self.refund -= gas
+	self.journal.append(refundChange{prev: self.refund})
+	if gas > self.refund {
+		panic("Refund counter below zero")
+	}
+	self.refund -= gas
 }
 
 // Exist reports whether the given account address exists in the state.
@@ -365,29 +365,29 @@ func (self *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]
 
 // GetProof returns the MerkleProof for a given Account
 func (self *StateDB) GetProof(a common.Address) ([][]byte, error) {
-        var proof proofList
-        err := self.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
-        return [][]byte(proof), err
+	var proof proofList
+	err := self.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
+	return [][]byte(proof), err
 }
 
 // GetProof returns the StorageProof for given key
 func (self *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
-        var proof proofList
-        trie := self.StorageTrie(a)
-        if trie == nil {
-                return proof, errors.New("storage trie for requested address does not exist")
-        }
-        err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
-        return [][]byte(proof), err
+	var proof proofList
+	trie := self.StorageTrie(a)
+	if trie == nil {
+		return proof, errors.New("storage trie for requested address does not exist")
+	}
+	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
+	return [][]byte(proof), err
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
 func (self *StateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
-        stateObject := self.getStateObject(addr)
-        if stateObject != nil {
-                return stateObject.GetCommittedState(self.db, hash)
-        }
-        return common.Hash{}
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.GetCommittedState(self.db, hash)
+	}
+	return common.Hash{}
 }
 
 // Database retrieves the low level database supporting the lower level trie ops.
@@ -633,14 +633,14 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 		return nil
 	}
 	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
-        for it.Next() {
-                key := common.BytesToHash(db.trie.GetKey(it.Key))
-                if value, dirty := so.dirtyStorage[key]; dirty {
-                        if !cb(key, value) {
+	for it.Next() {
+		key := common.BytesToHash(db.trie.GetKey(it.Key))
+		if value, dirty := so.dirtyStorage[key]; dirty {
+			if !cb(key, value) {
 				continue
 			}
-                }
-                //cb(key, common.BytesToHash(it.Value))
+		}
+		//cb(key, common.BytesToHash(it.Value))
 		if len(it.Value) > 0 {
 			_, content, _, err := rlp.Split(it.Value)
 			if err != nil {
@@ -650,7 +650,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 				return nil
 			}
 		}
-        }
+	}
 	return nil
 }
 
