@@ -177,6 +177,9 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return err
 	}
 
+	if receipt.ContractAddr == nil {
+		return nil
+	}
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		return err
