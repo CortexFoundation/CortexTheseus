@@ -175,46 +175,46 @@ func (c *stateObject) getTrie(db Database) Trie {
 
 // GetState retrieves a value from the account storage trie.
 func (self *stateObject) GetState(db Database, key common.Hash) common.Hash {
-        // If we have a dirty value for this state entry, return it
-        value, dirty := self.dirtyStorage[key]
-        if dirty {
-                return value
-        }
-        // Otherwise return the entry's original value
-        return self.GetCommittedState(db, key)
+	// If we have a dirty value for this state entry, return it
+	value, dirty := self.dirtyStorage[key]
+	if dirty {
+		return value
+	}
+	// Otherwise return the entry's original value
+	return self.GetCommittedState(db, key)
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
 func (self *stateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
-        // If we have the original value cached, return that
-        value, cached := self.originStorage[key]
-        if cached {
-                return value
-        }
-        // Otherwise load the value from the database
-        enc, err := self.getTrie(db).TryGet(key[:])
-        if err != nil {
-                self.setError(err)
-                return common.Hash{}
-        }
-        if len(enc) > 0 {
-                _, content, _, err := rlp.Split(enc)
-                if err != nil {
-                        self.setError(err)
-                }
-                value.SetBytes(content)
-        }
-        self.originStorage[key] = value
-        return value
+	// If we have the original value cached, return that
+	value, cached := self.originStorage[key]
+	if cached {
+		return value
+	}
+	// Otherwise load the value from the database
+	enc, err := self.getTrie(db).TryGet(key[:])
+	if err != nil {
+		self.setError(err)
+		return common.Hash{}
+	}
+	if len(enc) > 0 {
+		_, content, _, err := rlp.Split(enc)
+		if err != nil {
+			self.setError(err)
+		}
+		value.SetBytes(content)
+	}
+	self.originStorage[key] = value
+	return value
 }
 
 // SetState updates a value in account storage.
 func (self *stateObject) SetState(db Database, key, value common.Hash) {
-	 // If the new value is the same as old, don't set
-        prev := self.GetState(db, key)
-        if prev == value {
-                return
-        }
+	// If the new value is the same as old, don't set
+	prev := self.GetState(db, key)
+	if prev == value {
+		return
+	}
 
 	self.db.journal.append(storageChange{
 		account:  &self.address,
@@ -236,10 +236,10 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		delete(self.dirtyStorage, key)
 
 		// Skip noop changes, persist actual changes
-                if value == self.originStorage[key] {
-                        continue
-                }
-                self.originStorage[key] = value
+		if value == self.originStorage[key] {
+			continue
+		}
+		self.originStorage[key] = value
 
 		if (value == common.Hash{}) {
 			self.setError(tr.TryDelete(key[:]))
