@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"math/big"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -107,11 +108,14 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
+
+	qp := new(big.Int).Sub(header.Quota, header.QuotaUsed)
 	// Apply the transaction to the current state (included in the env)
-	_, gas, quota, failed, err := ApplyMessage(vmenv, msg, gp)
+	_, gas, quota, failed, err := ApplyMessage(vmenv, msg, gp, qp)
 	if err != nil {
 		return nil, 0, err
 	}
+
 	if quota.Cmp(big0) > 0 {
 		header.QuotaUsed.Add(header.QuotaUsed, quota)
 
