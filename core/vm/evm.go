@@ -133,7 +133,7 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
-	fs          *torrentfs.FileStorage
+	Fs          *torrentfs.FileStorage
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -162,7 +162,7 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		chainConfig:  chainConfig,
 		chainRules:   chainConfig.Rules(ctx.BlockNumber),
 		interpreters: make([]Interpreter, 1),
-		fs:           fileFs,
+		Fs:           fileFs,
 	}
 
 	if chainConfig.IsEWASM(ctx.BlockNumber) {
