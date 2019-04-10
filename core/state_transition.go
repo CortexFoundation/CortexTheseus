@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
+	//"github.com/ethereum/go-ethereum/torrentfs"
 )
 
 var (
@@ -191,6 +192,8 @@ func (st *StateTransition) preCheck() error {
 			log.Info("Quota validation", "quotapool", st.qp, "cost", st.state.Upload(st.to()))
 			return ErrQuotaLimitReached
 		}
+
+		//todo if file not exist ErrBuiltInTorrentFS
 	}
 	return st.buyGas()
 }
