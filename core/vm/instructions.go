@@ -770,6 +770,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	} else {
 	}*/
 
+	//todo model & input tfs validation
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
 
 	if err != nil {

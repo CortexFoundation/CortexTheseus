@@ -190,34 +190,36 @@ func (st *StateTransition) preCheck() error {
 			return ErrNonceTooLow
 		}
 	}
+
 	if st.uploading() {
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
 			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
-		//if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+
 		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
 			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
 			return ErrQuotaLimitReached
 		}
 
-		meta, err := st.evm.GetMetaHash(st.to())
-		if err != nil {
-			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "err", err)
+		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		if st.qp.Cmp(cost) < 0 {
+			log.Info("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.evm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
+
+		meta, err := st.evm.GetMetaHash(st.to())
+                if err != nil {
+                        log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "err", err)
+                        return ErrQuotaLimitReached
+                }
 
 		if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
 			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
 			return ErrQuotaLimitReached
 		}
-
-		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
-		if st.qp.Cmp(cost) < 0 {
-			log.Info("Quota validation", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.evm.BlockNumber)
-			return ErrQuotaLimitReached
-		}
 	}
+
 	return st.buyGas()
 }
 

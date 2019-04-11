@@ -384,6 +384,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			if model_meta_err != nil {
 				return nil, model_meta_err
 			}
+			//todo model validation
 
 			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
 			var overflow bool
@@ -391,6 +392,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				return nil, errGasUintOverflow
 			}
 		}
+
 		if err != nil || !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
 		}
