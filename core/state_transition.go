@@ -53,6 +53,10 @@ The state transitioning model does all the necessary work to work out a valid ne
 5) Run Script section
 6) Derive new state root
 */
+var (
+	big0 = big.NewInt(0)
+)
+
 type StateTransition struct {
 	gp         *GasPool
 	qp         *big.Int
@@ -187,16 +191,25 @@ func (st *StateTransition) preCheck() error {
 		}
 	}
 	if st.uploading() {
-		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
-		if st.qp.Cmp(cost) < 0 {
-			log.Info("Quota validation", "quotapool", st.qp, "cost", st.state.Upload(st.to()))
+		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
+			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
+			return ErrQuotaLimitReached
+		}
+		//if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
+			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
 
-		//todo if file not exist ErrBuiltInTorrentFS
 		if !torrentfs.Exist(st.to(), st.evm.Config().StorageDir) {
-			log.Warn("Torrent not exist", "address", st.to())
+			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
 			return ErrBuiltInTorrentFS
+		}
+
+		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		if st.qp.Cmp(cost) < 0 {
+			log.Info("Quota validation", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.evm.BlockNumber)
+			return ErrQuotaLimitReached
 		}
 	}
 	return st.buyGas()
@@ -205,9 +218,6 @@ func (st *StateTransition) preCheck() error {
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-var (
-	big0 = big.NewInt(0)
-)
 
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed *big.Int, failed bool, err error) {
 	if err = st.preCheck(); err != nil {

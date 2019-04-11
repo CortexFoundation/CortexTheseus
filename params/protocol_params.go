@@ -108,6 +108,7 @@ var (
 )
 
 const (
+	SeedingBlks		      = 5
 	MatureBlks                    = 10                  //For the full node to synchronize the models
 	ExpiredBlks                   = 1000000000000000000 //8409600
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024      //How many bytes per upload

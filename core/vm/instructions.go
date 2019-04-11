@@ -44,6 +44,9 @@ var (
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
 	errAiRuntime             = errors.New("ai runtime error")
 	errInvalidJump           = errors.New("evm: invalid jump destination")
+
+	big0  = big.NewInt(0)
+	big31 = big.NewInt(31)
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -150,7 +153,7 @@ func opExp(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *
 
 func opSignExtend(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	back := stack.pop()
-	if back.Cmp(big.NewInt(31)) < 0 {
+	if back.Cmp(big31) < 0 {
 		bit := uint(back.Uint64()*8 + 7)
 		num := stack.pop()
 		mask := back.Lsh(common.Big1, bit)
@@ -719,15 +722,15 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	log.Debug(fmt.Sprintf("opInfer:modelMeta: %s", common.Car(modelMeta.EncodeJSON())))
 	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
 
-	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0)) <= 0 {
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big0) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
 
-	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
 		return nil, errMetaInfoNotMature
 	}
 
-	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
+	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
 
@@ -778,8 +781,8 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 		return nil, err
 	}
 	//consensus
-	interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-	interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.evm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.evm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
 	//consensus
@@ -801,14 +804,14 @@ func checkModel(interpreter *EVMInterpreter, stack *Stack, modelAddr common.Addr
 	if interpreter.evm.StateDB.Uploading(modelAddr) {
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0)) <= 0 {
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
 		return nil, errExecutionReverted
 	}
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
 		return nil, errMetaInfoNotMature
 	}
 
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
+	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
 
@@ -852,7 +855,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 		return nil, err
 	}
 	//update model status
-	interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.evm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 
 	stack.push(interpreter.intPool.get().SetUint64(output))
 
