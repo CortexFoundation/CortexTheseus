@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -59,6 +60,7 @@ type FileStorage struct {
 	lock      sync.RWMutex
 	bnLock    sync.Mutex
 	opCounter MutexCounter
+	dataDir   string
 }
 
 func NewFileStorage(config *Config) (*FileStorage, error) {
@@ -80,6 +82,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		filesContractAddr: make(map[common.Address]*FileInfo),
 		db:                db,
 		opCounter:         0,
+		dataDir:           config.DataDir,
 	}
 	fs.readBlockNumber()
 
@@ -100,6 +103,30 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 		return f
 	}
 	return nil
+}
+
+func Exist(addr common.Address, dataDir string) bool {
+
+	hash := strings.ToLower(string(addr.Hex()[2:]))
+	inputDir := dataDir + "/" + hash
+	inputFilePath := inputDir + "/data"
+	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
+		return false
+	}
+
+	return true
+}
+
+func ExistTmp(addr common.Address, dataDir string) bool {
+
+        hash := strings.ToLower(string(addr.Hex()[2:]))
+        inputDir := dataDir + "/.tmp/" + hash
+        inputFilePath := inputDir + "/data"
+        if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
+                return false
+        }
+
+        return true
 }
 
 func (fs *FileStorage) Close() error {

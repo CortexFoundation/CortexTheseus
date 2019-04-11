@@ -352,7 +352,7 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
 	// (TODO) some network device may not support utp protocol, which results in burst of latency
-	cfg.DisableUTP = true
+	cfg.DisableUTP = false
 	cfg.DataDir = config.DataDir
 	cfg.DisableEncryption = true
 	cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
@@ -360,8 +360,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	cfg.SetListenAddr(listenAddr.String())
 	cfg.Seed = true
-	cfg.EstablishedConnsPerTorrent = 5
-	cfg.HalfOpenConnsPerTorrent = 3
+	//cfg.EstablishedConnsPerTorrent = 5
+	//cfg.HalfOpenConnsPerTorrent = 3
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)

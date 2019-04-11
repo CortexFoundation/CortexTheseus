@@ -177,6 +177,12 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return err
 	}
 
+	//log.Debug("Transaction Receipt", "receipt", receipt)
+
+	if receipt.ContractAddr == nil {
+		//log.Warn("Contract address is nil", "receipt", receipt.TxHash)
+		return nil
+	}
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		return err
@@ -354,7 +360,7 @@ func (m *Monitor) listenLatestBlock() {
 		}
 
 		if len(blockHashes) > 0 {
-			log.Debug("Torrent FS IPC blocks range", "piece", len(blockHashes))
+			log.Trace("Torrent FS IPC blocks range", "piece", len(blockHashes))
 		}
 
 		for _, hash := range blockHashes {
@@ -364,7 +370,7 @@ func (m *Monitor) listenLatestBlock() {
 				return
 			}
 
-			log.Debug("Torrent FS IPC block", "number", block.Number, "hash", hash)
+			log.Trace("Torrent FS IPC block", "number", block.Number, "hash", hash)
 
 			if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
 				log.Error("Parse latest block", "hash", hash, "block", block, "error", parseErr)
