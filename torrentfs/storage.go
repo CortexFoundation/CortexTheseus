@@ -117,6 +117,18 @@ func Exist(addr common.Address, dataDir string) bool {
 	return true
 }
 
+func ExistTmp(addr common.Address, dataDir string) bool {
+
+        hash := strings.ToLower(string(addr.Hex()[2:]))
+        inputDir := dataDir + "/.tmp/" + hash
+        inputFilePath := inputDir + "/data"
+        if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
+                return false
+        }
+
+        return true
+}
+
 func (fs *FileStorage) Close() error {
 	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
 
