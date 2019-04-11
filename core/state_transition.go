@@ -200,8 +200,13 @@ func (st *StateTransition) preCheck() error {
 			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
+		meta, err := st.evm.GetMeta(st.to())
+		if meta == nil || err != nil {
+			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "err", err)
+			return ErrQuotaLimitReached
+		}
 
-		if !torrentfs.Exist(st.to(), st.evm.Config().StorageDir) {
+		if !torrentfs.Exist(meta.Hash, st.evm.Config().StorageDir) {
 			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
 			return ErrBuiltInTorrentFS
 		}

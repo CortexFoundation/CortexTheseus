@@ -548,6 +548,15 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, err
 	return synapse.ArgMax(inferRes), errRes
 }
 
+func (evm *EVM) GetMeta(addr common.Address) (meta *types.Meta, err error) {
+	metaRaw := evm.StateDB.GetCode(addr)
+	if meta, err := types.ParseMeta(metaRaw); err != nil {
+		return &types.Meta{}, err
+	} else {
+		return meta, nil
+	}
+}
+
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
 	modelMetaRaw := evm.StateDB.GetCode(addr)

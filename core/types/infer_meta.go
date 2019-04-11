@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	ErrorCodeTypeMeta      = errors.New("Meta should start with 0x0001 or 0x0002")
 	ErrorCodeTypeModelMeta = errors.New("Model meta should start with 0x0001")
 	ErrorCodeTypeInputMeta = errors.New("Input meta should start with 0x0002")
 	ErrorDecodeModelMeta   = errors.New("Model meta decode error")
@@ -25,6 +26,14 @@ type InferMeta interface {
 	RawSize() uint64
 	// Gas() uint64
 	AuthorAddress() common.Address
+}
+
+type Meta struct {
+	URI      string         `json:"URI"`
+	Hash     common.Address `json:"Hash"`
+	RawSize  uint64         `json:"RawSize"`
+	Shape    []uint64       `json:"Shape"`
+	BlockNum big.Int        `json:"BlockNum"`
 }
 
 type ModelMeta struct {
@@ -134,4 +143,19 @@ func ParseInputMeta(code []byte) (*InputMeta, error) {
 	}
 
 	return &inputMeta, nil
+}
+
+func ParseMeta(code []byte) (*Meta, error) {
+	if len(code) < 2 {
+		return nil, ErrorCodeTypeMeta
+	}
+	if !(code[0] == 0x0 && (code[1] == 0x1 || code[1] == 0x2)) {
+		return nil, ErrorCodeTypeMeta
+	}
+	var meta Meta
+	err := rlp.DecodeBytes(code[2:], &meta)
+	if err != nil {
+		return nil, err
+	}
+	return &meta, nil
 }
