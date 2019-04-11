@@ -204,7 +204,7 @@ func (st *StateTransition) preCheck() error {
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 		if st.qp.Cmp(cost) < 0 {
-			log.Info("Quota waiting", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.evm.BlockNumber)
+			log.Info("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.evm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
 

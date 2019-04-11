@@ -565,6 +565,7 @@ func (evm *EVM) GetMetaHash(addr common.Address) (meta common.Address, err error
 			return inputMeta.Hash, nil
 		}
 	}
+
 	return common.EmptyAddress, errors.New("quota limit reached")
 }
 
