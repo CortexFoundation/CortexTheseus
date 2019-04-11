@@ -30,7 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/torrentfs"
-
+	"errors"
 	"fmt"
 )
 
@@ -548,13 +548,24 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, err
 	return synapse.ArgMax(inferRes), errRes
 }
 
-func (evm *EVM) GetMeta(addr common.Address) (meta *types.Meta, err error) {
+func (evm *EVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
 	metaRaw := evm.StateDB.GetCode(addr)
-	if meta, err := types.ParseMeta(metaRaw); err != nil {
-		return &types.Meta{}, err
-	} else {
-		return meta, nil
+	if IsModelMeta(metaRaw) {
+		if modelMeta, err := types.ParseModelMeta(metaRaw); err != nil {
+			return common.EmptyAddress, err
+		} else {
+			return modelMeta.Hash, nil
+		}
 	}
+
+	if IsInputMeta(metaRaw) {
+		if inputMeta, err := types.ParseInputMeta(metaRaw); err != nil {
+			return common.EmptyAddress, err
+		} else {
+			return inputMeta.Hash, nil
+		}
+	}
+	return common.EmptyAddress, errors.New("quota limit reached")
 }
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
