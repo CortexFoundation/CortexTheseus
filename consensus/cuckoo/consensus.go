@@ -435,8 +435,6 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	//	y.Exp(big2, y, nil)
 	//	x.Add(x, y)
 	//}
-	//diff todo 4096 times
-	//x.Mul(x, big4096)
 	return x
 }
 
