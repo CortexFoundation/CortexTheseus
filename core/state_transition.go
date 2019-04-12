@@ -310,8 +310,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if st.uploading() {
 		quota = Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 
-		//todo check quota remain
-
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.evm.BlockNumber)
@@ -319,7 +317,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		}
 	}
 
-	//if quota > 0 {
+	//if quota.Cmp(big0) > 0 {
 	//	log.Info("Quota consumption", "address", st.to().Hex(), "amount", quota)
 	//}
 
@@ -328,6 +326,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 func Min(x, y *big.Int) *big.Int {
 	if x.Cmp(y) < 0 {
+		return x
+	}
+	return y
+}
+
+func Max(x, y *big.Int) *big.Int {
+	if x.Cmp(y) > 0 {
 		return x
 	}
 	return y
