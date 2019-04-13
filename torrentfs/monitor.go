@@ -213,7 +213,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			}
 			//} else if flowCtrl && tx.IsFlowControl() {
 			if flowCtrl && tx.IsFlowControl() {
-				//		log.Debug("Torrent downloading ...", "flow", flowCtrl, "tx_flow", tx.IsFlowControl())
+				//log.Debug("Torrent downloading ...", "tx", tx.Hash.Hex())
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
@@ -322,7 +322,7 @@ func (m *Monitor) startWork() error {
 		return blockFilterErr
 	}
 
-	go m.syncLastBlock()
+	//go m.syncLastBlock()
 	go m.listenLatestBlock()
 
 	return nil
@@ -395,10 +395,11 @@ func (m *Monitor) listenLatestBlock() {
 		select {
 		case <-timer.C:
 			//go blockFilter()
-			go m.syncLastBlock()
+			//go m.syncLastBlock()
 
 			// Aviod sync in full mode, fresh interval may be less.
 			timer.Reset(time.Second * 3)
+			go m.syncLastBlock()
 
 		case <-m.exitCh:
 			return
@@ -407,6 +408,10 @@ func (m *Monitor) listenLatestBlock() {
 }
 
 var lastBlock uint64 = 0
+
+const (
+	batch = 256
+)
 
 func (m *Monitor) syncLastBlock() {
 	//	log.Info("Torrent sync latest block")
@@ -421,9 +426,14 @@ func (m *Monitor) syncLastBlock() {
 	//minNumber := uint64(minBlockNum)
 	minNumber := lastBlock
 	maxNumber := uint64(currentNumber)
-	log.Debug("Torrent sync latest block, range", "min", minNumber, "max", maxNumber)
 
-	//lastBlock := minNumber
+	if maxNumber-minNumber > batch {
+		maxNumber = minNumber + batch
+	}
+	if maxNumber > minNumber {
+		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+	}
+
 	for i := minNumber; i <= maxNumber; i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			break
