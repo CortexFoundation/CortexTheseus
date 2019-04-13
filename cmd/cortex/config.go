@@ -182,7 +182,8 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	if cfg.Ethstats.URL != "" {
 		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
 	}
-	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) && ctx.GlobalString(utils.SyncModeFlag.Name) == "full"
+	//storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) && ctx.GlobalString(utils.SyncModeFlag.Name) == "full"
+	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name)
 	if storageEnabled {
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}
