@@ -51,7 +51,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:        "tracker-uri",
-			Value:       "http://47.52.39.170:5008/announce",
+			Value:       "http://torrent.cortexlabs.ai:5008/announce",
 			Usage:       "tracker uri",
 			Destination: &conf.TrackerURI,
 		},

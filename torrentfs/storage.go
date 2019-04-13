@@ -119,14 +119,14 @@ func Exist(addr common.Address, dataDir string) bool {
 
 func ExistTmp(addr common.Address, dataDir string) bool {
 
-        hash := strings.ToLower(string(addr.Hex()[2:]))
-        inputDir := dataDir + "/.tmp/" + hash
-        inputFilePath := inputDir + "/data"
-        if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
-                return false
-        }
+	hash := strings.ToLower(string(addr.Hex()[2:]))
+	inputDir := dataDir + "/.tmp/" + hash
+	inputFilePath := inputDir + "/torrent"
+	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
+		return false
+	}
 
-        return true
+	return true
 }
 
 func (fs *FileStorage) Close() error {
