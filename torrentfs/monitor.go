@@ -427,6 +427,14 @@ func (m *Monitor) syncLastBlock() {
 	minNumber := lastBlock
 	maxNumber := uint64(currentNumber)
 
+	if lastBlock > uint64(currentNumber) {
+		//block chain rollback
+		minNumber = lastBlock - 2048
+		if minNumber < 0 {
+			minNumber = 0
+		}
+	}
+
 	if maxNumber-minNumber > batch {
 		maxNumber = minNumber + batch
 	}
