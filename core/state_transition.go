@@ -209,10 +209,10 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		meta, err := st.evm.GetMetaHash(st.to())
-                if err != nil {
-                        log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "err", err)
-                        return ErrQuotaLimitReached
-                }
+		if err != nil {
+			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
+			return ErrQuotaLimitReached
+		}
 
 		if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
 			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
