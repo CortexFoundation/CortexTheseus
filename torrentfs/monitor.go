@@ -213,7 +213,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			}
 			//} else if flowCtrl && tx.IsFlowControl() {
 			if flowCtrl && tx.IsFlowControl() {
-				log.Debug("Torrent downloading ...", "flow", flowCtrl, "tx_flow", tx.IsFlowControl())
+				//		log.Debug("Torrent downloading ...", "flow", flowCtrl, "tx_flow", tx.IsFlowControl())
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
@@ -421,7 +421,7 @@ func (m *Monitor) syncLastBlock() {
 	//minNumber := uint64(minBlockNum)
 	minNumber := lastBlock
 	maxNumber := uint64(currentNumber)
-	log.Info("Torrent sync latest block, range", "min", minNumber, "max", maxNumber)
+	log.Debug("Torrent sync latest block, range", "min", minNumber, "max", maxNumber)
 
 	//lastBlock := minNumber
 	for i := minNumber; i <= maxNumber; i++ {
