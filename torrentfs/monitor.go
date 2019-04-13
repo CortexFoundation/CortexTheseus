@@ -180,7 +180,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	//log.Debug("Transaction Receipt", "receipt", receipt)
 
 	if receipt.ContractAddr == nil {
-		//log.Warn("Contract address is nil", "receipt", receipt.TxHash)
+		log.Warn("Contract address is nil", "receipt", receipt.TxHash)
 		return nil
 	}
 	var _remainingSize string
@@ -205,19 +205,20 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 
 func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 	if len(b.Txs) > 0 {
+		log.Info("", len(b.Txs))
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				if err := m.parseFileMeta(&tx, meta); err != nil {
+					log.Error("Parse file meta error", "err", err)
 					return err
 				}
-			}
-			//} else if flowCtrl && tx.IsFlowControl() {
-			if flowCtrl && tx.IsFlowControl() {
+			} else if flowCtrl && tx.IsFlowControl() {
+			//if flowCtrl && tx.IsFlowControl() {
 				//log.Debug("Torrent downloading ...", "tx", tx.Hash.Hex())
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
-					log.Debug("Torrent file not exist", "addr", addr)
+					log.Error("Torrent file not exist", "addr", addr)
 					continue
 				}
 
@@ -410,7 +411,7 @@ func (m *Monitor) listenLatestBlock() {
 var lastBlock uint64 = 0
 
 const (
-	batch = 256
+	batch = 512
 )
 
 func (m *Monitor) syncLastBlock() {
