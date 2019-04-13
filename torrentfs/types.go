@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 const (
@@ -63,7 +64,7 @@ func (t *Transaction) noPayload() bool {
 
 // IsFlowControl ...
 func (t *Transaction) IsFlowControl() bool {
-	return t.noPayload() && t.Amount.Uint64() == 0
+	return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit == params.UploadGas
 }
 
 func getInfohashFromURI(uri string) (*metainfo.Hash, error) {
