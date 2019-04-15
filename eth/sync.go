@@ -179,15 +179,20 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	mode := downloader.FullSync
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		// Fast sync was explicitly requested, and explicitly granted
-		//mode = downloader.FastSync
+		mode = downloader.FastSync
 	} else if currentBlock.NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
 		// The database seems empty as the current block is the genesis. Yet the fast
 		// block is ahead, so fast sync was enabled for this node at a certain point.
 		// The only scenario where this can happen is if the user manually (or via a
 		// bad block) rolled back a fast sync node below the sync point. In this case
 		// however it's safe to reenable fast sync.
-		//atomic.StoreUint32(&pm.fastSync, 1)
-		//mode = downloader.FastSync
+		atomic.StoreUint32(&pm.fastSync, 1)
+		mode = downloader.FastSync
+	}
+
+	if pm.txpool.Config().NoInfers {
+		atomic.StoreUint32(&pm.fastSync, 1)
+		mode = downloader.FastSync
 	}
 
 	if mode == downloader.FastSync {
@@ -201,10 +206,18 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil && err != core.ErrBuiltInTorrentFS {
 		return
 	}
+
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
-		log.Info("Fast sync complete, auto disabling")
-		atomic.StoreUint32(&pm.fastSync, 0)
+		//log.Info("no infers", "status", pm.txpool.Config().NoInfers)
+		if pm.txpool.Config().NoInfers {
+			pm.synchronise(pm.peers.BestPeer())
+			return
+		} else {
+			log.Info("Fast sync complete, auto disabling")
+			atomic.StoreUint32(&pm.fastSync, 0)
+		}
 	}
+
 	atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
 	if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is

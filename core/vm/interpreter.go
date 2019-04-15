@@ -59,6 +59,7 @@ type Config struct {
 
 	// opCall flag
 	CallFakeVM bool
+	StorageDir string
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -191,7 +192,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	in.returnData = nil
 
 	// Don't bother with the execution if there's no code.
-	if len(contract.Code) == 0 {
+	if contract == nil || len(contract.Code) == 0 {
 		return nil, nil
 	}
 
@@ -383,6 +384,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			if model_meta_err != nil {
 				return nil, model_meta_err
 			}
+			//todo model validation
 
 			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
 			var overflow bool
@@ -390,6 +392,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				return nil, errGasUintOverflow
 			}
 		}
+
 		if err != nil || !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
 		}

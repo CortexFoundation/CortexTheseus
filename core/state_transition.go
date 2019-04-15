@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
+	"github.com/ethereum/go-ethereum/torrentfs"
 )
 
 var (
@@ -52,6 +53,10 @@ The state transitioning model does all the necessary work to work out a valid ne
 5) Run Script section
 6) Derive new state root
 */
+var (
+	big0 = big.NewInt(0)
+)
+
 type StateTransition struct {
 	gp         *GasPool
 	qp         *big.Int
@@ -185,22 +190,42 @@ func (st *StateTransition) preCheck() error {
 			return ErrNonceTooLow
 		}
 	}
+
 	if st.uploading() {
+		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
+			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
+			return ErrQuotaLimitReached
+		}
+
+		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
+			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
+			return ErrQuotaLimitReached
+		}
+
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 		if st.qp.Cmp(cost) < 0 {
-			log.Info("Quota validation", "quotapool", st.qp, "cost", st.state.Upload(st.to()))
+			log.Info("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.evm.BlockNumber)
+			return ErrQuotaLimitReached
+		}
+
+		meta, err := st.evm.GetMetaHash(st.to())
+		if err != nil {
+			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
+			return ErrQuotaLimitReached
+		}
+
+		if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
+			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
 			return ErrQuotaLimitReached
 		}
 	}
+
 	return st.buyGas()
 }
 
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-var (
-	big0 = big.NewInt(0)
-)
 
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed *big.Int, failed bool, err error) {
 	if err = st.preCheck(); err != nil {
@@ -285,8 +310,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if st.uploading() {
 		quota = Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 
-		//todo check quota remain
-
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.evm.BlockNumber)
@@ -294,7 +317,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		}
 	}
 
-	//if quota > 0 {
+	//if quota.Cmp(big0) > 0 {
 	//	log.Info("Quota consumption", "address", st.to().Hex(), "amount", quota)
 	//}
 
@@ -308,8 +331,15 @@ func Min(x, y *big.Int) *big.Int {
 	return y
 }
 
+func Max(x, y *big.Int) *big.Int {
+	if x.Cmp(y) > 0 {
+		return x
+	}
+	return y
+}
+
 func (st *StateTransition) uploading() bool {
-	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to())
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) && st.gas >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() {

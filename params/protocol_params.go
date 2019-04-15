@@ -69,7 +69,7 @@ const (
 	MemoryGas                 uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas          uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 
-	MaxCodeSize = 504 * 1024 //24576// Maximum bytecode to permit for a contract
+	MaxCodeSize = 24576// Maximum bytecode to permit for a contract
 	//MaxRawSize  = 384 * 1024
 
 	// Precompiled contract gas prices
@@ -108,7 +108,8 @@ var (
 )
 
 const (
-	MatureBlks                    = 10                  //For the full node to synchronize the models
+	SeedingBlks		      = 6 //for torrent seed spreading
+	MatureBlks                    = 12                  //For the full node to synchronize the models
 	ExpiredBlks                   = 1000000000000000000 //8409600
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024      //How many bytes per upload
 	DEFAULT_UPLOAD_BYTES   uint64 = 0          //default upload bytes

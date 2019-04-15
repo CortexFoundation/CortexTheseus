@@ -416,19 +416,19 @@ var (
 		Usage: "Disable remote sealing verification",
 	}
 	MinerCudaFlag = cli.BoolFlag{
-		Name: "miner.cuda",
+		Name:  "miner.cuda",
 		Usage: "use cuda miner plugin",
 	}
 	MinerOpenCLFlag = cli.BoolFlag{
-		Name: "miner.opencl",
+		Name:  "miner.opencl",
 		Usage: "use opencl miner plugin",
 	}
 	MinerDevicesFlag = cli.StringFlag{
-		Name: "miner.devices",
+		Name:  "miner.devices",
 		Usage: "the devices used mining, use --miner.devices=0,1",
 	}
 	MinerAlgorithmFlag = cli.StringFlag{
-		Name: "miner.algorithm",
+		Name:  "miner.algorithm",
 		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
 	}
 	// Account settings
@@ -1086,6 +1086,9 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolNoLocalsFlag.Name) {
 		cfg.NoLocals = ctx.GlobalBool(TxPoolNoLocalsFlag.Name)
 	}
+	if ctx.GlobalIsSet(TxPoolNoInfersFlag.Name) {
+                cfg.NoInfers = ctx.GlobalBool(TxPoolNoInfersFlag.Name)
+        }
 	if ctx.GlobalIsSet(TxPoolJournalFlag.Name) {
 		cfg.Journal = ctx.GlobalString(TxPoolJournalFlag.Name)
 	}
@@ -1201,7 +1204,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		// TODO : Setting sync mode is temporally forbidden.
-		Fatalf("Setting syncmode is temporally forbidden. The default value is 'full' mode")
+		//Fatalf("Setting syncmode is temporally forbidden. The default value is 'full' mode")
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
 	if ctx.GlobalIsSet(LightServFlag.Name) {
@@ -1262,7 +1265,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
 		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
-		cfg.Ethash.UseCuda= cfg.MinerCuda
+		cfg.Ethash.UseCuda = cfg.MinerCuda
 	}
 	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
 		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)

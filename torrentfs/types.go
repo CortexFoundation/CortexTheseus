@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -63,7 +64,7 @@ func (t *Transaction) noPayload() bool {
 
 // IsFlowControl ...
 func (t *Transaction) IsFlowControl() bool {
-	return t.noPayload() && t.Amount.Uint64() == 0
+	return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas // && t.Receipt.GasLimit >= params.UploadGas
 }
 
 func getInfohashFromURI(uri string) (*metainfo.Hash, error) {
@@ -140,6 +141,9 @@ type TxReceipt struct {
 	ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
 	// Transaction Hash
 	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
+	//Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
+	GasUsed uint64 `json:"gasUsed" gencodec:"required"`
+	Status  uint64 `json:"status"`
 }
 
 // FileMeta ...

@@ -29,7 +29,8 @@ import (
 	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-
+	//"github.com/ethereum/go-ethereum/torrentfs"
+	"errors"
 	"fmt"
 )
 
@@ -132,11 +133,28 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
+	//Fs          *torrentfs.FileStorage
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
 func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *EVM {
+	/*cfg := torrentfs.Config{
+		DataDir:         torrentfs.DefaultConfig.DataDir,
+		Host:            torrentfs.DefaultConfig.Host,
+		Port:            torrentfs.DefaultConfig.Port,
+		DefaultTrackers: torrentfs.DefaultConfig.DefaultTrackers,
+		SyncMode:        torrentfs.DefaultConfig.SyncMode,
+		TestMode:        torrentfs.DefaultConfig.TestMode,
+	}
+	cfg.DataDir = vmConfig.StorageDir
+	fileFs, fsErr := torrentfs.NewFileStorage(&cfg)
+	if fsErr != nil {
+		return nil
+	}
+
+	log.Info("File storage in vm", "fs", fileFs)*/
+
 	evm := &EVM{
 		Context:      ctx,
 		StateDB:      statedb,
@@ -144,6 +162,7 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		chainConfig:  chainConfig,
 		chainRules:   chainConfig.Rules(ctx.BlockNumber),
 		interpreters: make([]Interpreter, 1),
+		//Fs:           fileFs,
 	}
 
 	if chainConfig.IsEWASM(ctx.BlockNumber) {
@@ -177,6 +196,10 @@ func (evm *EVM) Cancel() {
 // Interpreter returns the current interpreter
 func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
+}
+
+func (evm *EVM) Config() Config {
+	return evm.vmConfig
 }
 
 // Call executes the contract associated with the addr with the given input as
@@ -523,6 +546,27 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, err
 	}
 
 	return synapse.ArgMax(inferRes), errRes
+}
+
+func (evm *EVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
+	metaRaw := evm.StateDB.GetCode(addr)
+	if IsModelMeta(metaRaw) {
+		if modelMeta, err := types.ParseModelMeta(metaRaw); err != nil {
+			return common.EmptyAddress, err
+		} else {
+			return modelMeta.Hash, nil
+		}
+	}
+
+	if IsInputMeta(metaRaw) {
+		if inputMeta, err := types.ParseInputMeta(metaRaw); err != nil {
+			return common.EmptyAddress, err
+		} else {
+			return inputMeta.Hash, nil
+		}
+	}
+
+	return common.EmptyAddress, errors.New("quota limit reached")
 }
 
 func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {

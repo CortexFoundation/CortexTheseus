@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -119,7 +120,7 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 		}
 
 		time.Sleep(time.Second * fetchBlockTryInterval)
-		log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err)
+		log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err, "number", blockNumber)
 	}
 
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
@@ -169,18 +170,34 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	m.dl.NewTorrent(meta.URI)
 
-	info := NewFileInfo(meta)
-	info.TxHash = tx.Hash
-
 	var receipt TxReceipt
 	if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 		return err
+	}
+
+	if receipt.ContractAddr == nil {
+		log.Debug("Contract address is nil", "receipt", receipt.TxHash)
+		return nil
+	}
+
+	log.Info("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
+	if receipt.GasUsed != params.UploadGas {
+		log.Debug("Upload gas error", "gas", receipt.GasUsed, "ugas", params.UploadGas)
+		return nil
+	}
+
+	if receipt.Status != 1 {
+		log.Debug("Upload status error", "status", receipt.Status)
+		return nil
 	}
 
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		return err
 	}
+
+	info := NewFileInfo(meta)
+	info.TxHash = tx.Hash
 
 	remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 	info.LeftSize = remainingSize
@@ -202,12 +219,14 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				if err := m.parseFileMeta(&tx, meta); err != nil {
+					log.Error("Parse file meta error", "err", err)
 					return err
 				}
 			} else if flowCtrl && tx.IsFlowControl() {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
+					log.Debug("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit)
 					continue
 				}
 
@@ -237,9 +256,9 @@ func (m *Monitor) Stop() {
 	close(m.exitCh)
 
 	// var stopFilterFlag bool
-	// if blockFilterErr := m.cl.Call(&stopFilterFlag, "eth_uninstallFilter", m.listenID); blockFilterErr != nil {
+	//if blockFilterErr := m.cl.Call(&stopFilterFlag, "eth_uninstallFilter", m.listenID); blockFilterErr != nil {
 	// log.Error("Block Filter closed | IPC eth_uninstallFilter", "error", blockFilterErr)
-	// }
+	//}
 
 	if err := m.fs.Close(); err != nil {
 		log.Error("Monitor File Storage closed", "error", err)
@@ -252,6 +271,7 @@ func (m *Monitor) Stop() {
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
 	if err := m.dl.Start(); err != nil {
+		log.Warn("Torrent start error")
 		return err
 	}
 
@@ -287,6 +307,7 @@ func (m *Monitor) startWork() error {
 		clientURI = m.config.IpcPath
 	} else {
 		if m.config.RpcURI == "" {
+			log.Warn("Torrent rpc uri is empty")
 			return errors.New("Torrent RpcURI is empty")
 		}
 		clientURI = m.config.RpcURI
@@ -294,21 +315,23 @@ func (m *Monitor) startWork() error {
 
 	rpcClient, rpcErr := SetConnection(clientURI)
 	if rpcErr != nil {
+		log.Warn("Torrent rpc client is wrong", "uri", clientURI)
 		return rpcErr
 	}
 	m.cl = rpcClient
 
 	if vaErr := m.validateStorage(); vaErr != nil {
+		log.Warn("Torrent invalid storage")
 		return vaErr
 	}
 
 	// Used for listen latest block
-	if blockFilterErr := m.cl.Call(&m.listenID, "eth_newBlockFilter"); blockFilterErr != nil {
-		log.Error("Start listen block filter | IPC eth_newBlockFilter", "error", blockFilterErr)
-		return blockFilterErr
-	}
+	//if blockFilterErr := m.cl.Call(&m.listenID, "eth_newBlockFilter"); blockFilterErr != nil {
+	//	log.Error("Start listen block filter | IPC eth_newBlockFilter", "error", blockFilterErr)
+	//	return blockFilterErr
+	//}
 
-	go m.syncLastBlock()
+	//go m.syncLastBlock()
 	go m.listenLatestBlock()
 
 	return nil
@@ -344,9 +367,8 @@ func (m *Monitor) validateStorage() error {
 func (m *Monitor) listenLatestBlock() {
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
 
-	blockFilter := func() {
-		// If blockchain rolled back, the `eth_getFilterChanges` function will send rewritable
-		// block hash. It's a simple operator to write block to storage.
+	/*blockFilter := func() {
+		log.Info("Torrent listen latest block status")
 		var blockHashes []string
 		if changeErr := m.cl.Call(&blockHashes, "eth_getFilterChanges", m.listenID); changeErr != nil {
 			log.Error("Listen latest block | IPC ctx_getFilterChanges", "error", changeErr)
@@ -354,7 +376,7 @@ func (m *Monitor) listenLatestBlock() {
 		}
 
 		if len(blockHashes) > 0 {
-			log.Debug("Torrent FS IPC blocks range", "piece", len(blockHashes))
+			log.Trace("Torrent FS IPC blocks range", "piece", len(blockHashes))
 		}
 
 		for _, hash := range blockHashes {
@@ -376,13 +398,14 @@ func (m *Monitor) listenLatestBlock() {
 				return
 			}
 		}
-	}
+	}*/
 
 	for {
 		select {
 		case <-timer.C:
-			go blockFilter()
-
+			//go blockFilter()
+			//go m.syncLastBlock()
+			go m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
 			timer.Reset(time.Second * 3)
 
@@ -392,31 +415,60 @@ func (m *Monitor) listenLatestBlock() {
 	}
 }
 
+var lastBlock uint64 = 0
+
+const (
+	batch = 512
+)
+
 func (m *Monitor) syncLastBlock() {
+	//	log.Info("Torrent sync latest block")
 	// Latest block number
 	var currentNumber hexutil.Uint64
 
-	if err := m.cl.Call(&currentNumber, "ctx_blockNumber"); err != nil {
+	if err := m.cl.Call(&currentNumber, "eth_blockNumber"); err != nil {
 		log.Error("Sync old block | IPC ctx_blockNumber", "error", err)
 		return
 	}
 
-	minNumber := uint64(minBlockNum)
-	maxNumber := uint64(currentNumber)
-	log.Info("Fetch Block Range", "min", minNumber, "max", maxNumber)
+	if uint64(currentNumber) <= 0 {
+		return
+	}
 
-	lastBlock := minNumber
+	//minNumber := uint64(minBlockNum)
+	minNumber := lastBlock
+	maxNumber := uint64(currentNumber) - 3
+
+	if lastBlock > uint64(currentNumber) {
+		//block chain rollback
+		minNumber = lastBlock - 2048
+		if minNumber < 0 {
+			minNumber = 0
+		}
+	}
+
+	if maxNumber-minNumber > batch {
+		maxNumber = minNumber + batch
+	}
+	if maxNumber > minNumber {
+		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+	}
+
 	for i := minNumber; i <= maxNumber; i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			break
 		}
-
 		block := m.fs.GetBlockByNumber(i)
 		if block == nil {
 			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
-			block = rpcBlock
 			if rpcErr != nil {
 				log.Error("Sync old block", "number", i, "error", rpcErr)
+				return
+			}
+			block = rpcBlock
+
+			if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
+				log.Error("Parse new block", "number", i, "block", block, "error", parseErr)
 				return
 			}
 
@@ -424,16 +476,16 @@ func (m *Monitor) syncLastBlock() {
 				log.Error("Store latest block", "number", i, "error", storeErr)
 				return
 			}
-		}
 
-		if parseErr := m.parseBlockTorrentInfo(block, false); parseErr != nil {
+		} else if parseErr := m.parseBlockTorrentInfo(block, false); parseErr != nil {
 			log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
 			return
 		}
 
-		if (i-minNumber)%fetchBlockLogStep == 0 || i == maxNumber {
-			log.Debug("Blocks have been checked", "from", lastBlock, "to", i)
-			lastBlock = i + uint64(1)
-		}
+		//if (i-minNumber)%fetchBlockLogStep == 0 || i == maxNumber {
+		//	log.Debug("Blocks have been checked", "from", lastBlock, "to", i)
+		//	lastBlock = i + uint64(1)
+		//}
 	}
+	lastBlock = maxNumber
 }

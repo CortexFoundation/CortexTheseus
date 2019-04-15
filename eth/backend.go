@@ -165,6 +165,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			InferURI:                config.InferURI,
+			StorageDir:              config.StorageDir,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
@@ -250,15 +251,15 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		log.Warn("Ethash used in shared mode")
 		return cuckoo.NewShared()
 	default:
-	//	engine := cuckoo.New(cuckoo.Config{
-			/* CacheDir:       ctx.ResolvePath(config.CacheDir),
-				CachesInMem:    config.CachesInMem,
-				CachesOnDisk:   config.CachesOnDisk,
-				DatasetDir:     config.DatasetDir,
-				DatasetsInMem:  config.DatasetsInMem,
-				DatasetsOnDisk: config.DatasetsOnDisk,
-			}, notify, noverify) */
-	//	})
+		//	engine := cuckoo.New(cuckoo.Config{
+		/* CacheDir:       ctx.ResolvePath(config.CacheDir),
+			CachesInMem:    config.CachesInMem,
+			CachesOnDisk:   config.CachesOnDisk,
+			DatasetDir:     config.DatasetDir,
+			DatasetsInMem:  config.DatasetsInMem,
+			DatasetsOnDisk: config.DatasetsOnDisk,
+		}, notify, noverify) */
+		//	})
 		engine := cuckoo.New(*config)
 		//engine.SetThreads(-1) // Disable CPU mining
 		return engine

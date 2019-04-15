@@ -609,7 +609,7 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
-	if tx.Size() > 512*1024 {
+	if tx.Size() > 32*1024 {
 		return ErrOversizedData
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
@@ -648,10 +648,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrIntrinsicGas
 	}
 
-	//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
-	//	fmt.Println("Has INFER operation !!!")
-	//return ErrHasInferOperation
-	//}
+	if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
+		fmt.Println("Has INFER operation !!!")
+		return ErrHasInferOperation
+	}
 	return nil
 }
 
@@ -845,6 +845,10 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	return pool.addTxs(txs, false)
+}
+
+func (pool *TxPool) Config () TxPoolConfig {
+	return pool.config
 }
 
 // addTx enqueues a single transaction into the pool if it is valid.

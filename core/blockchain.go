@@ -1210,6 +1210,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 		// log.Info("Quota initialized", "quota", block.Quota(), "used", block.QuotaUsed(), "txs", len(block.Transactions()), "parent", parent.Quota(), "parent used", parent.QuotaUsed())
 		// Process block using the parent state as reference point
+		log.Info("Block process ... ", "number", block.Number())
 		receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
 
 		if pErr != nil {
