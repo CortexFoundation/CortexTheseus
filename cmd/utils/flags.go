@@ -1086,6 +1086,9 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolNoLocalsFlag.Name) {
 		cfg.NoLocals = ctx.GlobalBool(TxPoolNoLocalsFlag.Name)
 	}
+	if ctx.GlobalIsSet(TxPoolNoInfersFlag.Name) {
+                cfg.NoInfers = ctx.GlobalBool(TxPoolNoInfersFlag.Name)
+        }
 	if ctx.GlobalIsSet(TxPoolJournalFlag.Name) {
 		cfg.Journal = ctx.GlobalString(TxPoolJournalFlag.Name)
 	}

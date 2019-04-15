@@ -217,7 +217,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
-					log.Error("Torrent file not exist", "addr", addr)
+					log.Error("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit)
 					continue
 				}
 
@@ -422,7 +422,7 @@ func (m *Monitor) syncLastBlock() {
 		return
 	}
 
-	if uint64(currentNumber)<=0 {
+	if uint64(currentNumber) <= 0 {
 		return
 	}
 
