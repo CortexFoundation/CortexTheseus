@@ -119,7 +119,7 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 		}
 
 		time.Sleep(time.Second * fetchBlockTryInterval)
-		log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err)
+		log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err, "number", blockNumber)
 	}
 
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
@@ -419,6 +419,10 @@ func (m *Monitor) syncLastBlock() {
 
 	if err := m.cl.Call(&currentNumber, "eth_blockNumber"); err != nil {
 		log.Error("Sync old block | IPC ctx_blockNumber", "error", err)
+		return
+	}
+
+	if uint64(currentNumber)<=0 {
 		return
 	}
 
