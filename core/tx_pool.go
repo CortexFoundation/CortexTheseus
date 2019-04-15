@@ -847,6 +847,10 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	return pool.addTxs(txs, false)
 }
 
+func (pool *TxPool) Config () TxPoolConfig {
+	return pool.config
+}
+
 // addTx enqueues a single transaction into the pool if it is valid.
 func (pool *TxPool) addTx(tx *types.Transaction, local bool) error {
 	types.Sender(pool.signer, tx)

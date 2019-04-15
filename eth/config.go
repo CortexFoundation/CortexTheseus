@@ -104,9 +104,9 @@ type Config struct {
 	MinerGasPrice  *big.Int
 	MinerRecommit  time.Duration
 	MinerNoverify  bool
-	MinerCuda bool
-	MinerOpenCL bool
-	MinerDevices string
+	MinerCuda      bool
+	MinerOpenCL    bool
+	MinerDevices   string
 
 	// Ethash options
 	Ethash cuckoo.Config

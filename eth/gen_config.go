@@ -38,9 +38,9 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		MinerGasPrice           *big.Int
 		MinerRecommit           time.Duration
 		MinerNoverify           bool
-		MinerCuda								bool
-		MinerOpenCL							bool
-		MinerDevices						string
+		MinerCuda               bool
+		MinerOpenCL             bool
+		MinerDevices            string
 		Ethash                  cuckoo.Config
 		TxPool                  core.TxPoolConfig
 		GPO                     gasprice.Config
@@ -104,9 +104,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		MinerGasPrice           *big.Int
 		MinerRecommit           *time.Duration
 		MinerNoverify           *bool
-		MinerCuda								bool
-		MinerOpenCL							bool
-		MinerDevices						string
+		MinerCuda               bool
+		MinerOpenCL             bool
+		MinerDevices            string
 		Ethash                  *cuckoo.Config
 		TxPool                  *core.TxPoolConfig
 		GPO                     *gasprice.Config
