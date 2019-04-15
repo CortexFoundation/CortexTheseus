@@ -202,6 +202,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
+		//pm.synchronise(pm.peers.BestPeer())
 		log.Info("Fast sync complete, auto disabling")
 		atomic.StoreUint32(&pm.fastSync, 0)
 	}
