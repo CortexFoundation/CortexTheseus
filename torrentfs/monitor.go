@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -169,24 +170,34 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	m.dl.NewTorrent(meta.URI)
 
-	info := NewFileInfo(meta)
-	info.TxHash = tx.Hash
-
 	var receipt TxReceipt
 	if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
 		return err
 	}
 
-	//log.Debug("Transaction Receipt", "receipt", receipt)
-
 	if receipt.ContractAddr == nil {
-		log.Warn("Contract address is nil", "receipt", receipt.TxHash)
+		log.Debug("Contract address is nil", "receipt", receipt.TxHash)
 		return nil
 	}
+
+	log.Info("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
+	if receipt.GasUsed != params.UploadGas {
+		log.Debug("Upload gas error", "gas", receipt.GasUsed, "ugas", params.UploadGas)
+		return nil
+	}
+
+	if receipt.Status != 1 {
+		log.Debug("Upload status error", "status", receipt.Status)
+		return nil
+	}
+
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		return err
 	}
+
+	info := NewFileInfo(meta)
+	info.TxHash = tx.Hash
 
 	remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
 	info.LeftSize = remainingSize
@@ -212,12 +223,10 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 					return err
 				}
 			} else if flowCtrl && tx.IsFlowControl() {
-				//if flowCtrl && tx.IsFlowControl() {
-				//log.Debug("Torrent downloading ...", "tx", tx.Hash.Hex())
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
-					log.Error("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit)
+					log.Debug("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit)
 					continue
 				}
 
