@@ -190,6 +190,11 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		mode = downloader.FastSync
 	}
 
+	if pm.txpool.Config().NoInfers {
+		atomic.StoreUint32(&pm.fastSync, 1)
+		mode = downloader.FastSync
+	}
+
 	if mode == downloader.FastSync {
 		// Make sure the peer's total difficulty we are synchronizing is higher.
 		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
@@ -210,6 +215,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 			atomic.StoreUint32(&pm.fastSync, 0)
 		}
 	}
+
 	atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
 	if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is
