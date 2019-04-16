@@ -59,6 +59,7 @@ type Monitor struct {
 
 	exitCh     chan struct{}
 	terminated int32
+	lastNumber uint64
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -89,6 +90,7 @@ func NewMonitor(flag *Config) (*Monitor, error) {
 		uncheckedCh: make(chan uint64, 20),
 		exitCh:      make(chan struct{}),
 		terminated:  0,
+		lastNumber:  uint64(0),
 	}, nil
 }
 
@@ -338,9 +340,16 @@ func (m *Monitor) startWork() error {
 }
 
 func (m *Monitor) validateStorage() error {
-	lastNumber := m.fs.LastListenBlockNumber
-	log.Info("Validate Torrent FS Storage", "last IPC listen number", lastNumber)
-	for i := lastNumber; i > 0; i-- {
+	m.lastNumber = m.fs.LastListenBlockNumber
+	end := uint64(0)
+
+	if m.lastNumber > 4096 {
+		end = m.lastNumber - 4096
+	}
+
+	log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end)
+
+	for i := m.lastNumber; i > end; i-- {
 		rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
 		if rpcErr != nil {
 			return rpcErr
@@ -348,7 +357,7 @@ func (m *Monitor) validateStorage() error {
 
 		stBlock := m.fs.GetBlockByNumber(uint64(i))
 		if stBlock == nil {
-			log.Warn("Vaidate Torrent FS Storage state invalid", "number", lastNumber, "error", "LastListenBlockNumber not persistent")
+			log.Warn("Vaidate Torrent FS Storage state invalid", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent")
 			return nil
 		}
 
@@ -415,7 +424,7 @@ func (m *Monitor) listenLatestBlock() {
 	}
 }
 
-var lastBlock uint64 = 0
+//var lastBlock uint64 = m.fs.LastListenBlockNumber
 
 const (
 	batch = 512
@@ -436,12 +445,12 @@ func (m *Monitor) syncLastBlock() {
 	}
 
 	//minNumber := uint64(minBlockNum)
-	minNumber := lastBlock
+	minNumber := m.lastNumber
 	maxNumber := uint64(currentNumber) - 3
 
-	if lastBlock > uint64(currentNumber) {
+	if m.lastNumber > uint64(currentNumber) {
 		//block chain rollback
-		minNumber = lastBlock - 2048
+		minNumber = m.lastNumber - 2048
 		if minNumber < 0 {
 			minNumber = 0
 		}
@@ -487,5 +496,5 @@ func (m *Monitor) syncLastBlock() {
 		//	lastBlock = i + uint64(1)
 		//}
 	}
-	lastBlock = maxNumber
+	m.lastNumber = maxNumber
 }
