@@ -274,10 +274,10 @@ var (
 		Name:  "txpool.nolocals",
 		Usage: "Disables price exemptions for locally submitted transactions",
 	}
-	TxPoolNoInfersFlag = cli.BoolFlag{
-		Name:  "txpool.noinfers",
-		Usage: "Disables infer transactions in this node",
-	}
+	//TxPoolNoInfersFlag = cli.BoolFlag{
+	//	Name:  "txpool.noinfers",
+	//	Usage: "Disables infer transactions in this node",
+	//}
 	TxPoolJournalFlag = cli.StringFlag{
 		Name:  "txpool.journal",
 		Usage: "Disk journal for local transaction to survive node restarts",
@@ -1086,9 +1086,9 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolNoLocalsFlag.Name) {
 		cfg.NoLocals = ctx.GlobalBool(TxPoolNoLocalsFlag.Name)
 	}
-	if ctx.GlobalIsSet(TxPoolNoInfersFlag.Name) {
-                cfg.NoInfers = ctx.GlobalBool(TxPoolNoInfersFlag.Name)
-        }
+	//if ctx.GlobalIsSet(TxPoolNoInfersFlag.Name) {
+        //        cfg.NoInfers = ctx.GlobalBool(TxPoolNoInfersFlag.Name)
+        //}
 	if ctx.GlobalIsSet(TxPoolJournalFlag.Name) {
 		cfg.Journal = ctx.GlobalString(TxPoolJournalFlag.Name)
 	}

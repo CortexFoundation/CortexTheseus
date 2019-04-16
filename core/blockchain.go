@@ -193,6 +193,8 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	// Take ownership of this particular state
 	if !vmConfig.NoInfers {
 		go bc.update()
+	} else {
+		log.Info("Mute mode invoked!!!")
 	}
 	return bc, nil
 }
