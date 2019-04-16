@@ -210,7 +210,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		//log.Info("no infers", "status", pm.txpool.Config().NoInfers)
 		if pm.txpool.Config().NoInfers {
-			atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
+			//atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
 			if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
 				// We've completed a sync cycle, notify all peers of new state. This path is
 				// essential in star-topology networks where a gateway node needs to notify
@@ -220,6 +220,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 				// more reliably update peers or the local TD state.
 				go pm.BroadcastBlock(head, false)
 			}
+			//atomic.StoreUint32(&pm.acceptTxs, 0)
 			pm.synchronise(pm.peers.BestPeer())
 			return
 		} else {

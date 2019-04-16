@@ -60,6 +60,7 @@ type Config struct {
 	// opCall flag
 	CallFakeVM bool
 	StorageDir string
+	NoInfers   bool
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -215,11 +216,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 					//must in rawbytes if it is too small
 					//if modelMeta.RawSize <= params.MaxRawSize {
-						//if modelMeta.RawSize != uint64(len(modelMeta.RawBytes)) {
-							//return nil, ErrInvalidMetaRawSize
-						//}
+					//if modelMeta.RawSize != uint64(len(modelMeta.RawBytes)) {
+					//return nil, ErrInvalidMetaRawSize
+					//}
 					//} else {
-						//deal with the big model 
+					//deal with the big model
 					//}
 
 					if modelMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
@@ -273,7 +274,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
 				//if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
-					//return nil, ErrInvalidMetaRawSize
+				//return nil, ErrInvalidMetaRawSize
 				//}
 				if inputMeta.RawSize > 0 { //&& inputMeta.RawSize <= params.MaxRawSize {
 					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
