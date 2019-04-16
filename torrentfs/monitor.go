@@ -456,6 +456,10 @@ func (m *Monitor) syncLastBlock() {
 		}
 	}
 
+	if maxNumber < 0 {
+		maxNumber = 3
+	}
+
 	if maxNumber-minNumber > batch {
 		maxNumber = minNumber + batch
 	}
