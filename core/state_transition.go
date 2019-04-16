@@ -231,6 +231,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if err = st.preCheck(); err != nil {
 		return
 	}
+
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
@@ -339,7 +340,7 @@ func Max(x, y *big.Int) *big.Int {
 }
 
 func (st *StateTransition) uploading() bool {
-	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) && st.gas >= params.UploadGas
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to())// && st.gas >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() {
