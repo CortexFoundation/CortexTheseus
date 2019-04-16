@@ -340,7 +340,7 @@ func Max(x, y *big.Int) *big.Int {
 }
 
 func (st *StateTransition) uploading() bool {
-	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to())// && st.gas >= params.UploadGas
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() {
