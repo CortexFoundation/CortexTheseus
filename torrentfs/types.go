@@ -64,7 +64,7 @@ func (t *Transaction) noPayload() bool {
 
 // IsFlowControl ...
 func (t *Transaction) IsFlowControl() bool {
-	return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas
+	return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas // && t.Receipt.GasLimit >= params.UploadGas
 }
 
 func getInfohashFromURI(uri string) (*metainfo.Hash, error) {
@@ -142,6 +142,8 @@ type TxReceipt struct {
 	// Transaction Hash
 	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
 	//Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
+	GasUsed uint64 `json:"gasUsed" gencodec:"required"`
+	Status  uint64 `json:"status"`
 }
 
 // FileMeta ...
