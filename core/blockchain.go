@@ -1296,7 +1296,7 @@ func (st *insertStats) report(chain []*types.Block, index int, cache common.Stor
 		)
 		context := []interface{}{
 			"blocks", st.processed, "txs", txs, "mgas", float64(st.usedGas) / 1000000,
-			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed),
+			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed),  "tps", float64(st.usedGas) * 476 / float64(elapsed),
 			"number", end.Number(), "hash", end.Hash(), "cache", cache,
 		}
 		if st.queued > 0 {

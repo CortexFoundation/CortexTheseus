@@ -43,9 +43,9 @@ import (
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward       *big.Int = big.NewInt(2e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward      *big.Int = big.NewInt(2e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	ConstantinopleBlockReward          = big.NewInt(2e+18)
+	FrontierBlockReward       *big.Int = big.NewInt(25e+17) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward      *big.Int = big.NewInt(25e+17) // Block reward in wei for successfully mining a block upward from Byzantium
+	ConstantinopleBlockReward          = big.NewInt(25e+17)
 	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime             = 5 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
