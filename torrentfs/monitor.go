@@ -182,7 +182,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return nil
 	}
 
-	log.Info("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
+	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
 	if receipt.GasUsed != params.UploadGas {
 		log.Debug("Upload gas error", "gas", receipt.GasUsed, "ugas", params.UploadGas)
 		return nil
@@ -462,7 +462,7 @@ func (m *Monitor) syncLastBlock() {
 		maxNumber = minNumber + batch
 	}
 	if maxNumber > minNumber {
-		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
 	}
 
 	for i := minNumber; i <= maxNumber; i++ {
