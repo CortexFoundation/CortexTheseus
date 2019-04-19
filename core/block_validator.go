@@ -66,11 +66,11 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	}
 
 	if !v.bc.HasBlockAndState(block.ParentHash(), block.NumberU64()-1) {
-                if !v.bc.HasBlock(block.ParentHash(), block.NumberU64()-1) {
-                        return consensus.ErrUnknownAncestor
-                }
-                return consensus.ErrPrunedAncestor
-        }
+		if !v.bc.HasBlock(block.ParentHash(), block.NumberU64()-1) {
+			return consensus.ErrUnknownAncestor
+		}
+		return consensus.ErrPrunedAncestor
+	}
 	return nil
 }
 
@@ -150,20 +150,20 @@ func CheckGasLimit(gasUsed, gasLimit, gasFloor, gasCeil, currentGasLimit uint64)
 	contrib := (gasUsed + gasUsed/2) / params.GasLimitBoundDivisor
 	decay := gasLimit/params.GasLimitBoundDivisor - 1
 	limit := gasLimit - decay + contrib
-        if limit < params.MinGasLimit {
-                limit = params.MinGasLimit
-        }
-        // If we're outside our allowed gas range, we try to hone towards them
-        if limit < gasFloor {
-                limit = gasLimit + decay
-                if limit > gasFloor {
-                        limit = gasFloor
-                }
-        } else if limit > gasCeil {
-                limit = gasLimit - decay
-                if limit < gasCeil {
-                        limit = gasCeil
-                }
-        }
-        return limit == currentGasLimit
+	if limit < params.MinGasLimit {
+		limit = params.MinGasLimit
+	}
+	// If we're outside our allowed gas range, we try to hone towards them
+	if limit < gasFloor {
+		limit = gasLimit + decay
+		if limit > gasFloor {
+			limit = gasFloor
+		}
+	} else if limit > gasCeil {
+		limit = gasLimit - decay
+		if limit < gasCeil {
+			limit = gasCeil
+		}
+	}
+	return limit == currentGasLimit
 }
