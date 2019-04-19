@@ -21,9 +21,9 @@ import "math/big"
 const (
 	//all configs should not be changed
 	GasLimitBoundDivisor uint64 = 1024     // The bound divisor of the gas limit, used in update calculations.
-	MinGasLimit          uint64 = 40000000 // Minimum the gas limit may ever be.
-	GenesisGasLimit      uint64 = 40000000 // Gas limit of the Genesis block.
-	MinerGasFloor        uint64 = 40000000
+	MinGasLimit          uint64 = 8000000 // Minimum the gas limit may ever be.
+	GenesisGasLimit      uint64 = 8000000 // Gas limit of the Genesis block.
+	MinerGasFloor        uint64 = 8000000
 	MinerGasCeil         uint64 = 80000000
 
 	MaximumExtraDataSize  uint64 = 32    // Maximum size extra data may be after Genesis.
@@ -33,13 +33,13 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	UploadGas             uint64 = 400000
+	UploadGas             uint64 = 277777
 	TxDataZeroGas         uint64 = 4       // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512     // Divisor for the quadratic particle of the memory cost equation.
 	SstoreSetGas          uint64 = 20000   // Once per SLOAD operation.
 	LogDataGas            uint64 = 8       // Per byte in a LOG* operation's data.
 	CallStipend           uint64 = 2300    // Free gas given at beginning of call.
-	CallInferGas          uint64 = 8000000 // Base gas for call infer
+	CallInferGas          uint64 = 1000000 // Base gas for call infer
 
 	Sha3Gas         uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas     uint64 = 6     // Once per word of the SHA3 operation's data.
