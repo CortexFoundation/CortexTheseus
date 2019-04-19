@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -46,7 +47,7 @@ var (
 	FrontierBlockReward       *big.Int = big.NewInt(25e+17) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward      *big.Int = big.NewInt(25e+17) // Block reward in wei for successfully mining a block upward from Byzantium
 	ConstantinopleBlockReward          = big.NewInt(25e+17)
-	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
+	maxUncles                          = 2               // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime             = 5 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
@@ -273,6 +274,11 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	// Verify that the gasUsed is <= gasLimit
 	if header.GasUsed > header.GasLimit {
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
+	}
+
+	validate := core.CheckGasLimit(parent.GasUsed, parent.GasLimit, params.MinerGasFloor, params.MinerGasCeil, header.GasLimit)
+	if !validate {
+		return fmt.Errorf("invalid gas limit: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
 	}
 
 	// Verify that the gas limit remains within allowed bounds

@@ -19,9 +19,11 @@ package params
 import "math/big"
 
 const (
-	GasLimitBoundDivisor uint64 = 1024     // The bound divisor of the gas limit, used in update calculations.
-	MinGasLimit          uint64 = 1048576  // Minimum the gas limit may ever be.
-	GenesisGasLimit      uint64 = 16777216 // Gas limit of the Genesis block.
+	GasLimitBoundDivisor uint64 = 1024    // The bound divisor of the gas limit, used in update calculations.
+	MinGasLimit          uint64 = 8000000 // Minimum the gas limit may ever be.
+	GenesisGasLimit      uint64 = 8000000 // Gas limit of the Genesis block.
+	MinerGasFloor        uint64 = 8000000
+	MinerGasCeil         uint64 = 80000000
 
 	MaximumExtraDataSize  uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas            uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
@@ -31,11 +33,11 @@ const (
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
 	UploadGas             uint64 = 277777
-	TxDataZeroGas         uint64 = 4      // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
-	QuadCoeffDiv          uint64 = 512    // Divisor for the quadratic particle of the memory cost equation.
-	SstoreSetGas          uint64 = 20000  // Once per SLOAD operation.
-	LogDataGas            uint64 = 8      // Per byte in a LOG* operation's data.
-	CallStipend           uint64 = 2300   // Free gas given at beginning of call.
+	TxDataZeroGas         uint64 = 4       // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
+	QuadCoeffDiv          uint64 = 512     // Divisor for the quadratic particle of the memory cost equation.
+	SstoreSetGas          uint64 = 20000   // Once per SLOAD operation.
+	LogDataGas            uint64 = 8       // Per byte in a LOG* operation's data.
+	CallStipend           uint64 = 2300    // Free gas given at beginning of call.
 	CallInferGas          uint64 = 3900000 // Base gas for call infer
 
 	Sha3Gas         uint64 = 30    // Once per SHA3 operation.
@@ -69,7 +71,7 @@ const (
 	MemoryGas                 uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas          uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 
-	MaxCodeSize = 24576// Maximum bytecode to permit for a contract
+	MaxCodeSize = 24576 // Maximum bytecode to permit for a contract
 	//MaxRawSize  = 384 * 1024
 
 	// Precompiled contract gas prices
@@ -89,8 +91,8 @@ const (
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(2)  // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(2)  // Difficulty of the Genesis block.
+	DifficultyBoundDivisor = big.NewInt(2) // The bound divisor of the difficulty, used in the update calculations.
+	GenesisDifficulty      = big.NewInt(2) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(2) // The minimum that the difficulty may ever be.
 
 	MeanDifficultyBoundDivisor = big.NewInt(1024)
@@ -102,21 +104,21 @@ var (
 	//CTXC_TOP = big.NewInt(0).Mul(big.NewInt(15000), big.NewInt(1000000000000000000))
 	//CTXC_INIT = big.NewInt(0).Mul(big.NewInt(0), big.NewInt(1000000000000000000))
 	//CTXC_MINING = big.NewInt(0).Mul(big.NewInt(15000), big.NewInt(1000000000000000000))
-	CTXC_TOP = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
-        CTXC_INIT = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
-        CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
+	CTXC_TOP    = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
+	CTXC_INIT   = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
+	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
 )
 
 const (
-	SeedingBlks		      = 6 //for torrent seed spreading
+	SeedingBlks                   = 6                   //for torrent seed spreading
 	MatureBlks                    = 12                  //For the full node to synchronize the models
 	ExpiredBlks                   = 1000000000000000000 //8409600
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024      //How many bytes per upload
-	DEFAULT_UPLOAD_BYTES   uint64 = 0          //default upload bytes
+	DEFAULT_UPLOAD_BYTES   uint64 = 0                   //default upload bytes
 	MODEL_MIN_UPLOAD_BYTES        = 0
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT        uint64 = 65536 //max gas limit for model call
 
-	CONFIRM_TIME        = -3600 * 24 * 7 // * time.Second
-	BLOCK_QUOTA  = 24576//32768//65536     //one block includes 64k file quota, even empty block should make more sense
+	CONFIRM_TIME = -3600 * 24 * 7 // * time.Second
+	BLOCK_QUOTA  = 24576          //32768//65536     //one block includes 64k file quota, even empty block should make more sense
 )

@@ -145,3 +145,25 @@ func CalcGasLimit(parent *types.Block, gasFloor, gasCeil uint64) uint64 {
 	}
 	return limit
 }
+
+func CheckGasLimit(gasUsed, gasLimit, gasFloor, gasCeil, currentGasLimit uint64) bool {
+	contrib := (gasUsed + gasUsed/2) / params.GasLimitBoundDivisor
+	decay := gasLimit/params.GasLimitBoundDivisor - 1
+	limit := gasLimit - decay + contrib
+        if limit < params.MinGasLimit {
+                limit = params.MinGasLimit
+        }
+        // If we're outside our allowed gas range, we try to hone towards them
+        if limit < gasFloor {
+                limit = gasLimit + decay
+                if limit > gasFloor {
+                        limit = gasFloor
+                }
+        } else if limit > gasCeil {
+                limit = gasLimit - decay
+                if limit < gasCeil {
+                        limit = gasCeil
+                }
+        }
+        return limit == currentGasLimit
+}
