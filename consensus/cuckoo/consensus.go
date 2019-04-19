@@ -703,7 +703,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		blockReward = ConstantinopleBlockReward
 	}
 
-	if header.Number.Cmp(params.CortexBlockRewardPeriod) > 0 {
+	if header.Number.Cmp(params.CortexBlockRewardPeriod) >= 0 {
 		d := new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod)
 		e := new(big.Int).Exp(big2, d, nil)
 		blockReward = new(big.Int).Div(blockReward, e)
