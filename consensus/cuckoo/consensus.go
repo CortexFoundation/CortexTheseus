@@ -276,9 +276,9 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 
-	validate := core.CheckGasLimit(parent.GasUsed, parent.GasLimit, params.MinerGasFloor, params.MinerGasCeil, header.GasLimit)
+	validate := core.CheckGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit)
 	if !validate {
-		return fmt.Errorf("invalid gas limit: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
+		return fmt.Errorf("invalid gas limit trend: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
 	}
 
 	// Verify that the gas limit remains within allowed bounds
