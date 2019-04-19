@@ -41,13 +41,13 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2, */
 	},
-	NetworkId:     42,
+	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
-	MinerGasFloor: 80000000,
-	MinerGasCeil:  80000000,
+	MinerGasFloor: 8000000,
+	MinerGasCeil:  8000000,
 	MinerGasPrice: big.NewInt(params.GWei),
 	MinerRecommit: 3 * time.Second,
 
