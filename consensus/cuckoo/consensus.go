@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -43,11 +44,11 @@ import (
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward       *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward      *big.Int = big.NewInt(8e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	ConstantinopleBlockReward          = big.NewInt(8e+18)
-	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
-	allowedFutureBlockTime             = 13 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
+	FrontierBlockReward       *big.Int = big.NewInt(25e+17) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward      *big.Int = big.NewInt(25e+17) // Block reward in wei for successfully mining a block upward from Byzantium
+	ConstantinopleBlockReward          = big.NewInt(25e+17)
+	maxUncles                          = 2               // Maximum number of uncles allowed in a single block
+	allowedFutureBlockTime             = 5 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
 	// It returns the difficulty that a new block should have when created at time given the
@@ -275,20 +276,17 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 
+	validate := core.CheckGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit)
+	if !validate {
+		return fmt.Errorf("invalid gas limit trend: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
+	}
+
 	// Verify that the gas limit remains within allowed bounds
 	diff := int64(parent.GasLimit) - int64(header.GasLimit)
 	if diff < 0 {
 		diff *= -1
-		//if (parent.GasLimit-params.GasLimitBoundDivisor) > (parent.GasUsed + parent.GasUsed/2) {
-		//	return fmt.Errorf("diff < 0, invalid gas limit: current %d, parent %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
-		//}
-	} //else if diff == 0 {
+	}
 
-	//} else if diff > 0 {
-	//	if (parent.GasLimit-params.GasLimitBoundDivisor) < (parent.GasUsed + parent.GasUsed/2) {
-	//		return fmt.Errorf("invalid gas limit: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
-	//	}
-	//}
 	limit := parent.GasLimit / params.GasLimitBoundDivisor
 
 	if uint64(diff) >= limit || header.GasLimit < params.MinGasLimit {
@@ -346,6 +344,8 @@ var (
 	expDiffPeriod = big.NewInt(100000)
 	big1          = big.NewInt(1)
 	big2          = big.NewInt(2)
+	big3          = big.NewInt(3)
+	big5          = big.NewInt(5)
 	big9          = big.NewInt(9)
 	big10         = big.NewInt(10)
 	big15         = big.NewInt(15)
@@ -373,7 +373,7 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 
 	// (2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9
 	x.Sub(bigTime, bigParentTime)
-	x.Div(x, big9)
+	x.Div(x, big3)
 	if parent.UncleHash == types.EmptyUncleHash {
 		x.Sub(big1, x)
 	} else {

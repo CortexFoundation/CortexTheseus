@@ -30,7 +30,7 @@ const (
 	removeTorrentChanBuffer         = 16
 	newTorrentChanBuffer            = 32
 	updateTorrentChanBuffer         = 32
-	expansionFactor         float64 = 1.5
+	expansionFactor         float64 = 1
 	// Pending for gotInfo
 	torrentPending     = 0
 	torrentPaused      = 1
@@ -360,8 +360,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	cfg.SetListenAddr(listenAddr.String())
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 5
-	//cfg.HalfOpenConnsPerTorrent = 3
+	cfg.EstablishedConnsPerTorrent = 5
+	cfg.HalfOpenConnsPerTorrent = 3
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
@@ -436,7 +436,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.bytesCompleted = t.BytesCompleted()
 				t.bytesMissing = t.BytesMissing()
 				if counter >= 20 {
-					log.Debug("Torrent seeding",
+					log.Info("Torrent seeding",
 						"InfoHash", ih.HexString(),
 						"completed", t.bytesCompleted,
 						"total", t.bytesCompleted+t.bytesMissing,
@@ -458,7 +458,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					t.Run()
 				}
 				if counter >= 20 {
-					log.Debug("Torrent progress",
+					log.Info("Torrent progress",
 						"InfoHash", ih.HexString(),
 						"completed", t.bytesCompleted,
 						"requested", t.bytesLimitation,
@@ -467,7 +467,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				}
 			} else {
 				if counter >= 20 {
-					log.Debug("Torrent pending",
+					log.Info("Torrent pending",
 						"InfoHash", ih.HexString(),
 						"completed", t.bytesCompleted,
 						"requested", t.bytesLimitation,

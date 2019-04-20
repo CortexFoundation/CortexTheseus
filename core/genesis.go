@@ -306,8 +306,8 @@ func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      66,
-		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-		GasLimit:   8000000,
+		ExtraData:  hexutil.MustDecode("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"),
+		GasLimit:   params.GenesisGasLimit,
 		Difficulty: params.GenesisDifficulty,
 		//Timestamp: uint64(time.Now().Unix()),
 		//Alloc:      decodePrealloc(mainnetAllocData),
@@ -325,7 +325,7 @@ func DefaultCerebroGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.CerebroChainConfig,
 		Nonce:      0x0000000000000042,
-		GasLimit:   8000000,
+		GasLimit:   80000000,
 		Difficulty: big.NewInt(1),
 		Timestamp:  0x0,
 		Supply:     params.CTXC_INIT,
@@ -337,7 +337,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.TestnetChainConfig,
 		Nonce:      0x0000000000000042,
-		GasLimit:   8000000,
+		GasLimit:   80000000,
 		Difficulty: big.NewInt(1),
 		Timestamp:  0x0,
 	}

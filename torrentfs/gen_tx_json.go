@@ -53,33 +53,41 @@ func (t *Transaction) UnmarshalJSON(input []byte) error {
 	if err := json.Unmarshal(input, &dec); err != nil {
 		return err
 	}
+
 	if dec.Price == nil {
 		return errors.New("missing required field 'gasPrice' for Transaction")
 	}
 	t.Price = (*big.Int)(dec.Price)
+
 	if dec.Amount == nil {
 		return errors.New("missing required field 'value' for Transaction")
 	}
 	t.Amount = (*big.Int)(dec.Amount)
+
 	if dec.GasLimit == nil {
 		return errors.New("missing required field 'gas' for Transaction")
 	}
 	t.GasLimit = uint64(*dec.GasLimit)
+
 	if dec.Payload == nil {
 		return errors.New("missing required field 'input' for Transaction")
 	}
 	t.Payload = *dec.Payload
+
 	if dec.From == nil {
 		return errors.New("missing required field 'from' for Transaction")
 	}
 	t.From = dec.From
+
 	if dec.Recipient != nil {
 		t.Recipient = dec.Recipient
 	}
+
 	if dec.Hash == nil {
 		return errors.New("missing required field 'hash' for Transaction")
 	}
 	t.Hash = dec.Hash
+
 	if dec.Receipt != nil {
 		t.Receipt = dec.Receipt
 	}

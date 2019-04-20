@@ -46,8 +46,8 @@ var DefaultConfig = Config{
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
-	MinerGasFloor: 8000000,
-	MinerGasCeil:  16000000,
+	MinerGasFloor: params.MinerGasFloor, //8000000,
+	MinerGasCeil:  params.MinerGasCeil,  //8000000,
 	MinerGasPrice: big.NewInt(params.GWei),
 	MinerRecommit: 3 * time.Second,
 
@@ -104,9 +104,9 @@ type Config struct {
 	MinerGasPrice  *big.Int
 	MinerRecommit  time.Duration
 	MinerNoverify  bool
-	MinerCuda bool
-	MinerOpenCL bool
-	MinerDevices string
+	MinerCuda      bool
+	MinerOpenCL    bool
+	MinerDevices   string
 
 	// Ethash options
 	Ethash cuckoo.Config
