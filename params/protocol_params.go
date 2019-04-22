@@ -21,10 +21,10 @@ import "math/big"
 const (
 	//all configs should not be changed
 	GasLimitBoundDivisor uint64 = 1024     // The bound divisor of the gas limit, used in update calculations.
-	MinGasLimit          uint64 = 16000000 // Minimum the gas limit may ever be.
-	GenesisGasLimit      uint64 = 16000000 // Gas limit of the Genesis block.
-	MinerGasFloor        uint64 = 16000000
-	MinerGasCeil         uint64 = 32000000
+	MinGasLimit          uint64 = 8000000 // Minimum the gas limit may ever be.
+	GenesisGasLimit      uint64 = 8000000 // Gas limit of the Genesis block.
+	MinerGasFloor        uint64 = 8000000
+	MinerGasCeil         uint64 = 16000000
 
 	MaximumExtraDataSize  uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas            uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
