@@ -229,7 +229,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			} else if flowCtrl && tx.IsFlowControl() {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
-				log.Info("Try to upload a file", "addr", addr)
+				log.Info("Try to upload a file", "addr", addr, "tx", tx.Hash.Hex())
 				if file == nil {
 					log.Warn("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit)
 					continue
@@ -450,7 +450,7 @@ func (m *Monitor) syncLastBlock() {
 	}
 
 	//minNumber := uint64(minBlockNum)
-	minNumber := m.lastNumber
+	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
 	if uint64(currentNumber) > 3 {
 		maxNumber = uint64(currentNumber) - 3
