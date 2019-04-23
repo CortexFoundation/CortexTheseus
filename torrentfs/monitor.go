@@ -10,7 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
+	//"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -178,23 +178,24 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	}
 
 	if receipt.ContractAddr == nil {
-		log.Debug("Contract address is nil", "receipt", receipt.TxHash)
+		log.Warn("Contract address is nil", "receipt", receipt.TxHash)
 		return nil
 	}
 
 	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
-	if receipt.GasUsed != params.UploadGas {
-		log.Debug("Upload gas error", "gas", receipt.GasUsed, "ugas", params.UploadGas)
-		return nil
-	}
+	//if receipt.GasUsed != params.UploadGas {
+	//	log.Warn("Upload gas error", "gas", receipt.GasUsed, "ugas", params.UploadGas)
+	//	return nil
+	//}
 
 	if receipt.Status != 1 {
-		log.Debug("Upload status error", "status", receipt.Status)
+		log.Warn("Upload status error", "status", receipt.Status)
 		return nil
 	}
 
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
+		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
 		return err
 	}
 
@@ -220,6 +221,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
+				log.Info("Try to create a file", "meta", meta)
 				if err := m.parseFileMeta(&tx, meta); err != nil {
 					log.Error("Parse file meta error", "err", err)
 					return err
@@ -227,13 +229,15 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			} else if flowCtrl && tx.IsFlowControl() {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
+				log.Info("Try to upload a file", "addr", addr, "tx", tx.Hash.Hex())
 				if file == nil {
-					log.Debug("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit)
+					log.Warn("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit)
 					continue
 				}
 
 				var remainingSize hexutil.Uint64
 				if err := m.cl.Call(&remainingSize, "eth_getUpload", addr.String(), "latest"); err != nil {
+					log.Warn("Failed call get upload", "addr", addr.String())
 					return err
 				}
 
@@ -242,6 +246,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				if file.Meta.RawSize > file.LeftSize {
 					bytesRequested = file.Meta.RawSize - file.LeftSize
 				}
+				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize)
 				m.dl.UpdateTorrent(FlowControlMeta{
 					InfoHash:       *file.Meta.InfoHash(),
 					BytesRequested: bytesRequested,
@@ -445,7 +450,7 @@ func (m *Monitor) syncLastBlock() {
 	}
 
 	//minNumber := uint64(minBlockNum)
-	minNumber := m.lastNumber
+	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
 	if uint64(currentNumber) > 3 {
 		maxNumber = uint64(currentNumber) - 3
@@ -462,7 +467,7 @@ func (m *Monitor) syncLastBlock() {
 		maxNumber = minNumber + batch
 	}
 	if maxNumber > minNumber {
-		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
 	}
 
 	for i := minNumber; i <= maxNumber; i++ {
@@ -488,7 +493,7 @@ func (m *Monitor) syncLastBlock() {
 				return
 			}
 
-		} else if parseErr := m.parseBlockTorrentInfo(block, false); parseErr != nil {
+		} else if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
 			log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
 			return
 		}
