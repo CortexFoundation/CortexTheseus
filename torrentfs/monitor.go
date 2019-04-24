@@ -221,23 +221,23 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 	if len(b.Txs) > 0 {
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				log.Info("Try to create a file", "meta", meta)
+				log.Info("Try to create a file", "meta", meta, "number", b.Number)
 				if err := m.parseFileMeta(&tx, meta); err != nil {
-					log.Error("Parse file meta error", "err", err)
+					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return err
 				}
 			} else if flowCtrl && tx.IsFlowControl() {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
-				log.Info("Try to upload a file", "addr", addr, "tx", tx.Hash.Hex())
+				log.Info("Try to upload a file", "addr", addr, "tx", tx.Hash.Hex(), "number", b.Number)
 				if file == nil {
-					log.Warn("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit)
+					log.Warn("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit, "number", b.Number)
 					continue
 				}
 
 				var remainingSize hexutil.Uint64
 				if err := m.cl.Call(&remainingSize, "eth_getUpload", addr.String(), "latest"); err != nil {
-					log.Warn("Failed call get upload", "addr", addr.String())
+					log.Warn("Failed call get upload", "addr", addr.String(), "number", b.Number)
 					return err
 				}
 
@@ -246,7 +246,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				if file.Meta.RawSize > file.LeftSize {
 					bytesRequested = file.Meta.RawSize - file.LeftSize
 				}
-				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize)
+				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "number", b.Number)
 				m.dl.UpdateTorrent(FlowControlMeta{
 					InfoHash:       *file.Meta.InfoHash(),
 					BytesRequested: bytesRequested,

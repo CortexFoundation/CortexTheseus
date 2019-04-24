@@ -22,6 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -29,9 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	//"github.com/ethereum/go-ethereum/torrentfs"
-	"errors"
-	"fmt"
+	"github.com/ethereum/go-ethereum/torrentfs"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -497,13 +497,21 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
+func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (uint64, error) {
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
 	var (
 		inferRes []byte
 		errRes   error
 	)
+
+	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
+		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
+	}
+
+	if !torrentfs.Available(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, int64(inputRawSize)) {
+		return 0, errors.New("Torrent file input not available, blockchain and torrent not match")
+	}
 
 	if evm.vmConfig.InferURI == "" {
 		inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
