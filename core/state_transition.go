@@ -218,6 +218,10 @@ func (st *StateTransition) preCheck() error {
 			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
 			return ErrQuotaLimitReached
 		}
+
+		//if !torrentfs.Available(meta, st.evm.Config().StorageDir, int64(0)) {
+		//	log.Warn("Torrent file not available now", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
+		//}
 	}
 
 	return st.buyGas()

@@ -55,6 +55,10 @@ func (t *Torrent) Seed() {
 	t.status = torrentSeeding
 }
 
+//func (t *Torrent) Length() int64 {
+//	return t.Length()
+//}
+
 func (t *Torrent) Seeding() bool {
 	return t.status == torrentSeeding
 }

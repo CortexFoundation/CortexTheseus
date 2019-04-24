@@ -771,7 +771,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}*/
 
 	//todo model & input tfs validation
-	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
+	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
 
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -849,7 +849,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 
 	output, err := interpreter.evm.InferArray(
 		modelMeta.Hash.Hex(),
-		inputBuff)
+		inputBuff, modelMeta.RawSize)
 
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
