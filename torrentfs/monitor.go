@@ -237,7 +237,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 
 				var remainingSize hexutil.Uint64
 				if err := m.cl.Call(&remainingSize, "eth_getUpload", addr.String(), "latest"); err != nil {
-					log.Warn("Failed call get upload", "addr", addr.String(), "number", b.Number)
+					log.Warn("Failed call get upload", "addr", addr.String(), "tx", tx.Hash.Hex(), "number", b.Number)
 					return err
 				}
 
@@ -246,7 +246,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				if file.Meta.RawSize > file.LeftSize {
 					bytesRequested = file.Meta.RawSize - file.LeftSize
 				}
-				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "number", b.Number)
+				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
 				m.dl.UpdateTorrent(FlowControlMeta{
 					InfoHash:       *file.Meta.InfoHash(),
 					BytesRequested: bytesRequested,
