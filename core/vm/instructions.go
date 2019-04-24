@@ -785,7 +785,6 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	interpreter.evm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 	interpreter.evm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 
-
 	stack.push(interpreter.intPool.get().SetUint64(output))
 	//consensus
 	//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
@@ -850,7 +849,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 
 	output, err := interpreter.evm.InferArray(
 		modelMeta.Hash.Hex(),
-		inputBuff)
+		inputBuff, modelMeta.RawSize)
 
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
