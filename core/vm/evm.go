@@ -500,6 +500,14 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (uint64, error) {
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
+	if !torrentfs.Exist(common.HexToAddress(modelInfoHash), evm.Config().StorageDir) {
+		return 0, synapse.ErrModelFileNotExist
+	}
+
+	if !torrentfs.Exist(common.HexToAddress(inputInfoHash), evm.Config().StorageDir) {
+		return 0, synapse.ErrModelFileNotExist
+	}
+
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
 	}
@@ -533,6 +541,10 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (uint64, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", evm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
+
+	if !torrentfs.Exist(common.HexToAddress(modelInfoHash), evm.Config().StorageDir) {
+		return 0, synapse.ErrModelFileNotExist
+	}
 
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
