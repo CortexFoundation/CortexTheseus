@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
+	//"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/torrentfs"
 	"time"
 )
@@ -252,7 +253,10 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 	if st.evm.Context.Time.Cmp(point) <= 0 {
 		for i := 0; i < 1200; i++ {
 			if !torrentfs.ExistTmp(meta, dir) {
-				log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
+				duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
+				//duration := time.Duration(mclock.Now()) - time.Duration(st.evm.Context.Time.Int64() * 1000)
+				log.Warn("Waiting for torrent synchronizing", "point", point, "tvm", st.evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber)
+				//log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
 				time.Sleep(time.Second * 15)
 				continue
 			} else {
@@ -263,6 +267,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		}
 	} else {
 		if !torrentfs.ExistTmp(meta, dir) {
+			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
 			errCh <- ErrUnhandleTx
 			return
 		} else {
