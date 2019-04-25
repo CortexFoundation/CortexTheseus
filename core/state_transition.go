@@ -215,7 +215,7 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
-			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
+			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", st.evm.Config().StorageDir)
 			return ErrQuotaLimitReached
 		}
 

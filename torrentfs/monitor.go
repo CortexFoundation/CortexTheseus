@@ -10,7 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
-	//"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -214,11 +214,13 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		InfoHash:       *meta.InfoHash(),
 		BytesRequested: bytesRequested,
 	})
+	log.Info("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
 	return nil
 }
 
 func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 	if len(b.Txs) > 0 {
+		log.Info("Transactions scan", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl)
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				log.Info("Try to create a file", "meta", meta, "number", b.Number)
@@ -419,9 +421,9 @@ func (m *Monitor) listenLatestBlock() {
 		case <-timer.C:
 			//go blockFilter()
 			//go m.syncLastBlock()
-			go m.syncLastBlock()
+			m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			timer.Reset(time.Second * 3)
+			timer.Reset(time.Second * 1)
 
 		case <-m.exitCh:
 			return
@@ -432,7 +434,7 @@ func (m *Monitor) listenLatestBlock() {
 //var lastBlock uint64 = m.fs.LastListenBlockNumber
 
 const (
-	batch = 512
+	batch = 2048
 )
 
 func (m *Monitor) syncLastBlock() {
@@ -452,7 +454,7 @@ func (m *Monitor) syncLastBlock() {
 	//minNumber := uint64(minBlockNum)
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
-	if uint64(currentNumber) > 3 {
+	if uint64(currentNumber) > params.SeedingBlks/2 {
 		maxNumber = uint64(currentNumber) - 3
 	}
 
@@ -481,6 +483,7 @@ func (m *Monitor) syncLastBlock() {
 				log.Error("Sync old block", "number", i, "error", rpcErr)
 				return
 			}
+
 			block = rpcBlock
 
 			if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
@@ -493,7 +496,7 @@ func (m *Monitor) syncLastBlock() {
 				return
 			}
 
-		} else if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
+		} else if parseErr := m.parseBlockTorrentInfo(block, false); parseErr != nil {
 			log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
 			return
 		}
