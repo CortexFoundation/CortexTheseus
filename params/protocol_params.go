@@ -20,8 +20,8 @@ import "math/big"
 
 const (
 	//all configs should not be changed
-	GasLimitBoundDivisor uint64 = 1024     // The bound divisor of the gas limit, used in update calculations.
-	MinGasLimit          uint64 = 16000000 // Minimum the gas limit may ever be.
+	GasLimitBoundDivisor uint64 = 1024        // The bound divisor of the gas limit, used in update calculations.
+	MinGasLimit          uint64 = 16000000    // Minimum the gas limit may ever be.
 	GenesisGasLimit      uint64 = MinGasLimit // Gas limit of the Genesis block.
 	MinerGasFloor        uint64 = MinGasLimit
 	MinerGasCeil         uint64 = 32000000
@@ -120,6 +120,6 @@ const (
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT        uint64 = 65536 //max gas limit for model call
 
-	CONFIRM_TIME = -3600 * 24 * 7 // * time.Second
-	BLOCK_QUOTA  = 24576          //32768//65536     //one block includes 64k file quota, even empty block should make more sense
+	CONFIRM_TIME = -60   // * time.Second
+	BLOCK_QUOTA      = 24576 //32768//65536     //one block includes 64k file quota, even empty block should make more sense
 )

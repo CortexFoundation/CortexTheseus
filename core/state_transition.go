@@ -29,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
 	"github.com/ethereum/go-ethereum/torrentfs"
+	"time"
 )
 
 var (
@@ -180,6 +181,7 @@ func (st *StateTransition) buyGas() error {
 	return nil
 }
 
+var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
@@ -194,12 +196,12 @@ func (st *StateTransition) preCheck() error {
 	if st.uploading() {
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
 			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
 		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
 			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
@@ -211,12 +213,16 @@ func (st *StateTransition) preCheck() error {
 		meta, err := st.evm.GetMetaHash(st.to())
 		if err != nil {
 			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
-		if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
-			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
-			return ErrQuotaLimitReached
+		//if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
+		//	log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", st.evm.Config().StorageDir)
+		//	return ErrQuotaLimitReached
+		//}
+
+		if err := st.TfsAutoCheck(meta, st.evm.Config().StorageDir, 0); err != nil {
+			return err
 		}
 
 		//if !torrentfs.Available(meta, st.evm.Config().StorageDir, int64(0)) {
@@ -225,6 +231,28 @@ func (st *StateTransition) preCheck() error {
 	}
 
 	return st.buyGas()
+}
+
+func (st *StateTransition) TfsAutoCheck(meta common.Address, dir string, level int) error {
+	if level > 120 {
+		return ErrUnhandleTx
+	}
+
+	if !torrentfs.ExistTmp(meta, dir) {
+		log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", level)
+		point := big.NewInt(time.Now().Add(confirmTime).Unix())
+		if st.evm.Context.Time.Cmp(point) <= 0 {
+			//waiting
+			duration := big.NewInt(0).Sub(point, st.evm.Context.Time)
+			log.Info("Waiting for torrent synchronizing", "now", time.Now().Unix(), "point", point, "tvm", st.evm.Context.Time, "duration", duration, "level", level, "number", st.evm.BlockNumber)
+			time.Sleep(time.Second * 15)
+			return st.TfsAutoCheck(meta, dir, level+1)
+		} else {
+			return ErrUnhandleTx
+		}
+	}
+
+	return nil
 }
 
 // TransitionDb will transition the state by applying the current message and
