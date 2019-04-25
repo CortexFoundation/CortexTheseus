@@ -24,8 +24,9 @@ var (
 
 	// ErrGasLimitReached is returned by the gas pool if the amount of gas required
 	// by a transaction is higher than what's left in the block.
-	ErrGasLimitReached    = errors.New("gas limit reached")
+	ErrGasLimitReached   = errors.New("gas limit reached")
 	ErrQuotaLimitReached = errors.New("quota limit reached")
+	ErrUnhandleTx        = errors.New("current unhandle tx encounter")
 
 	// ErrBlacklistedHash is returned if a block to import is on the blacklist.
 	ErrBlacklistedHash = errors.New("blacklisted hash")

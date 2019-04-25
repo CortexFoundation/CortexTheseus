@@ -750,6 +750,9 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		case core.ErrQuotaLimitReached:
 			log.Trace("Quota limit exceeded for current block", "sender", from)
 			txs.Pop()
+		case core.ErrUnhandleTx:
+			log.Trace("Quota limit exceeded for current block", "sender", from)
+                        txs.Pop()
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
 			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())

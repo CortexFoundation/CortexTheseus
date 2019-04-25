@@ -196,12 +196,12 @@ func (st *StateTransition) preCheck() error {
 	if st.uploading() {
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
 			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
 		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
 			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
@@ -213,7 +213,7 @@ func (st *StateTransition) preCheck() error {
 		meta, err := st.evm.GetMetaHash(st.to())
 		if err != nil {
 			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
 		//if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
@@ -221,7 +221,7 @@ func (st *StateTransition) preCheck() error {
 		//	return ErrQuotaLimitReached
 		//}
 
-		if err := st.TfsCheck(meta, st.evm.Config().StorageDir); err != nil {
+		if err := st.TfsAutoCheck(meta, st.evm.Config().StorageDir, 0); err != nil {
 			return err
 		}
 
@@ -233,20 +233,23 @@ func (st *StateTransition) preCheck() error {
 	return st.buyGas()
 }
 
-func (st *StateTransition) TfsCheck(meta common.Address, dir string) error {
+func (st *StateTransition) TfsAutoCheck(meta common.Address, dir string, level int) error {
+	if level > 120 {
+		return ErrUnhandleTx
+	}
+
 	if !torrentfs.ExistTmp(meta, dir) {
-		log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
-		//todo sync
+		log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", level)
 		point := big.NewInt(time.Now().Add(confirmTime).Unix())
 		if st.evm.Context.Time.Cmp(point) <= 0 {
 			//waiting
 			duration := big.NewInt(0).Sub(point, st.evm.Context.Time)
-			//duration.Div(duration, big.NewInt(1000))
-			log.Info("Waiting for torrent synchronizing", "now", time.Now(), "point", point, "tvm", st.evm.Context.Time, "duration", duration)
-			time.Sleep(time.Second * 1)
-			st.TfsCheck(meta, dir)
+			log.Info("Waiting for torrent synchronizing", "now", time.Now().Unix(), "point", point, "tvm", st.evm.Context.Time, "duration", duration, "level", level, "number", st.evm.BlockNumber)
+			time.Sleep(time.Second * 15)
+			return st.TfsAutoCheck(meta, dir, level+1)
+		} else {
+			return ErrUnhandleTx
 		}
-		return ErrQuotaLimitReached
 	}
 
 	return nil
