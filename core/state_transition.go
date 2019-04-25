@@ -222,7 +222,7 @@ func (st *StateTransition) preCheck() error {
 		//}
 		errCh := make(chan error)
 		go func() {
-			st.TfsAutoCheck(meta, st.evm.Config().StorageDir, errCh)
+			st.TorrentSync(meta, st.evm.Config().StorageDir, errCh)
 		}()
 		select {
 		case err := <-errCh:
@@ -242,7 +242,7 @@ func (st *StateTransition) preCheck() error {
 	return st.buyGas()
 }
 
-func (st *StateTransition) TfsAutoCheck(meta common.Address, dir string, errCh chan error) {
+func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
 	//if level > 120 {
 	//return ErrUnhandleTx
 	//	errCh <- ErrUnhandleTx
@@ -250,13 +250,13 @@ func (st *StateTransition) TfsAutoCheck(meta common.Address, dir string, errCh c
 	//}
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
 	if st.evm.Context.Time.Cmp(point) <= 0 {
-		for i := 0; i < 120; i++ {
+		for i := 0; i < 1200; i++ {
 			if !torrentfs.ExistTmp(meta, dir) {
 				log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
 				time.Sleep(time.Second * 15)
 				continue
 			} else {
-				log.Info("Torrent has been found now", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
+				//log.Info("Torrent has been found now", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
 				errCh <- nil
 				return
 			}
@@ -264,6 +264,9 @@ func (st *StateTransition) TfsAutoCheck(meta common.Address, dir string, errCh c
 	} else {
 		if !torrentfs.ExistTmp(meta, dir) {
 			errCh <- ErrUnhandleTx
+			return
+		} else {
+			errCh <- nil
 			return
 		}
 	}
