@@ -8,7 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -220,7 +222,8 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 
 func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 	if len(b.Txs) > 0 {
-		log.Info("Transactions scan", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl)
+		start := mclock.Now()
+		//elapsed = time.Duration(now)
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				log.Info("Try to create a file", "meta", meta, "number", b.Number)
@@ -255,6 +258,8 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				})
 			}
 		}
+		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+		log.Info("Transactions scan", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed))
 	}
 
 	return nil
