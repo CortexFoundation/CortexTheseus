@@ -241,8 +241,8 @@ func (st *StateTransition) TfsCheck(meta common.Address, dir string) error {
 		if st.evm.Context.Time.Cmp(point) <= 0 {
 			//waiting
 			duration := big.NewInt(0).Sub(point, st.evm.Context.Time)
-			duration.Div(duration, big.NewInt(1000))
-			log.Info("Waiting for torrent synchronizing", "duration", duration)
+			//duration.Div(duration, big.NewInt(1000))
+			log.Info("Waiting for torrent synchronizing", "now", time.Now(), "point", point, "tvm", st.evm.Context.Time, "duration", duration)
 			time.Sleep(time.Second * 1)
 			st.TfsCheck(meta, dir)
 		}
