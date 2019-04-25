@@ -29,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
 	"github.com/ethereum/go-ethereum/torrentfs"
+	"time"
 )
 
 var (
@@ -180,6 +181,7 @@ func (st *StateTransition) buyGas() error {
 	return nil
 }
 
+var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
@@ -214,9 +216,13 @@ func (st *StateTransition) preCheck() error {
 			return ErrQuotaLimitReached
 		}
 
-		if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
-			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", st.evm.Config().StorageDir)
-			return ErrQuotaLimitReached
+		//if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
+		//	log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", st.evm.Config().StorageDir)
+		//	return ErrQuotaLimitReached
+		//}
+
+		if err := st.TfsCheck(meta, st.evm.Config().StorageDir); err != nil {
+			return err
 		}
 
 		//if !torrentfs.Available(meta, st.evm.Config().StorageDir, int64(0)) {
@@ -225,6 +231,25 @@ func (st *StateTransition) preCheck() error {
 	}
 
 	return st.buyGas()
+}
+
+func (st *StateTransition) TfsCheck(meta common.Address, dir string) error {
+	if !torrentfs.ExistTmp(meta, dir) {
+		log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
+		//todo sync
+		point := big.NewInt(time.Now().Add(confirmTime).Unix())
+		if st.evm.Context.Time.Cmp(point) <= 0 {
+			//waiting
+			duration := big.NewInt(0).Sub(point, st.evm.Context.Time)
+			duration.Div(duration, big.NewInt(1000))
+			log.Info("Waiting for torrent synchronizing", "duration", duration)
+			time.Sleep(time.Second * 1)
+			st.TfsCheck(meta, dir)
+		}
+		return ErrQuotaLimitReached
+	}
+
+	return nil
 }
 
 // TransitionDb will transition the state by applying the current message and
