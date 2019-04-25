@@ -475,6 +475,8 @@ func (m *Monitor) syncLastBlock() {
 	}
 	if maxNumber > minNumber {
 		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+	} else {
+		return
 	}
 
 	for i := minNumber; i <= maxNumber; i++ {
@@ -512,4 +514,5 @@ func (m *Monitor) syncLastBlock() {
 		//}
 	}
 	m.lastNumber = maxNumber
+	log.Info("Torrent scanning end", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
 }
