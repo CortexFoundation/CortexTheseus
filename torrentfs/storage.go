@@ -187,7 +187,7 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 	return true
 }
 
-func ExistTmp(md5 common.Address, dataDir string) bool {
+func ExistTorrent(md5 common.Address, dataDir string) bool {
 
 	if torrentCache.Contains(md5) {
 		log.Info("Torrent cache hit !!!", "md5", md5, "size", torrentCache.Len(), "limit", limit)

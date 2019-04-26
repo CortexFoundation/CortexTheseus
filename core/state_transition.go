@@ -252,7 +252,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
 	if st.evm.Context.Time.Cmp(point) <= 0 {
 		for i := 0; i < 1200; i++ {
-			if !torrentfs.ExistTmp(meta, dir) {
+			if !torrentfs.ExistTorrent(meta, dir) {
 				duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
 				//duration := time.Duration(mclock.Now()) - time.Duration(st.evm.Context.Time.Int64() * 1000)
 				log.Warn("Waiting for synchronizing", "point", point, "tvm", st.evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber)
@@ -266,7 +266,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 			}
 		}
 	} else {
-		if !torrentfs.ExistTmp(meta, dir) {
+		if !torrentfs.ExistTorrent(meta, dir) {
 			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
 			errCh <- ErrUnhandleTx
 			return
