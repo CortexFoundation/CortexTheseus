@@ -496,16 +496,60 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
+func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
+	point := big.NewInt(time.Now().Add(confirmTime).Unix())
+	if evm.Context.Time.Cmp(point) <= 0 {
+		for i := 0; i < 1200; i++ {
+			if !torrentfs.ExistTorrent(meta, dir) {
+				duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
+				log.Warn("Inference waiting for synchronizing", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber)
+				time.Sleep(time.Second * 15)
+				continue
+			} else {
+				errCh <- nil
+				return
+			}
+		}
+	} else {
+		if !torrentfs.Exist(meta, dir) {
+			log.Warn("Data not exist", "address", meta.Hex(), "number", evm.BlockNumber, "current", evm.BlockNumber, "meta", meta, "storage", dir)
+			errCh <- synapse.ErrModelFileNotExist
+			return
+		} else {
+			errCh <- nil
+			return
+		}
+	}
+
+	log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", evm.BlockNumber, "meta", meta, "storage", dir)
+	errCh <- synapse.ErrModelFileNotExist
+	return
+}
+
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (uint64, error) {
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
-	if !torrentfs.Exist(common.HexToAddress(modelInfoHash), evm.Config().StorageDir) {
-		return 0, synapse.ErrModelFileNotExist
-	}
+	modelErrCh := make(chan error)
+	inputErrCh := make(chan error)
+	go func() {
+		evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
+	}()
+	go func() {
+		evm.DataSync(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, inputErrCh)
+	}()
 
-	if !torrentfs.Exist(common.HexToAddress(inputInfoHash), evm.Config().StorageDir) {
-		return 0, synapse.ErrModelFileNotExist
+	for i := 0; i < 2; i++ {
+		select {
+		case err := <-modelErrCh:
+			if err != nil {
+				return 0, err
+			}
+		case err := <-inputErrCh:
+			if err != nil {
+				return 0, err
+			}
+		}
 	}
 
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
@@ -542,8 +586,16 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", evm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
-	if !torrentfs.Exist(common.HexToAddress(modelInfoHash), evm.Config().StorageDir) {
-		return 0, synapse.ErrModelFileNotExist
+	modelErrCh := make(chan error)
+	go func() {
+		evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
+	}()
+
+	select {
+	case err := <-modelErrCh:
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
