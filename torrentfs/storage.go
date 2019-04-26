@@ -107,16 +107,20 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 	return nil
 }
 
+const (
+	limit = 120
+)
+
 var (
-	torrentCache, _   = lru.New(120)
-	dataCache, _      = lru.New(120)
-	availableCache, _ = lru.New(120)
+	torrentCache, _   = lru.New(limit)
+	dataCache, _      = lru.New(limit)
+	availableCache, _ = lru.New(limit)
 )
 
 func Exist(md5 common.Address, dataDir string) bool {
 
 	if dataCache.Contains(md5) {
-		log.Info("Data cache hit !!!", "md5", md5)
+		log.Info("Data cache hit !!!", "md5", md5, "size", dataCache.Len(), "limit", limit)
 		return true //dataCache.Get(md5)
 	}
 
@@ -139,12 +143,12 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 	//	return false
 	//}
 	if availableCache.Contains(md5) {
-		log.Info("Available cache hit !!!", "md5", md5)
+		log.Info("Available cache hit !!!", "md5", md5, "size", availableCache.Len(), "raw", rawSize, "limit", limit)
 		if length, ok := availableCache.Get(md5); ok {
 			return length.(int64) <= rawSize
 		} else {
 			//return false
-			log.Warn("Available cache purge")
+			log.Warn("Available cache purge", "md5", md5, "raw", rawSize)
 			availableCache.Purge()
 		}
 	}
@@ -174,6 +178,7 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 
 	if info.Length > rawSize {
 		log.Info("Torrent metainfo use a invalid metafile", "hash", md5.Hex(), "rawSize", rawSize, "length", info.Length)
+		availableCache.Add(md5, info.Length)
 		return false
 	}
 
@@ -185,7 +190,7 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 func ExistTmp(md5 common.Address, dataDir string) bool {
 
 	if torrentCache.Contains(md5) {
-		log.Info("Torrent cache hit !!!", "md5", md5)
+		log.Info("Torrent cache hit !!!", "md5", md5, "size", torrentCache.Len(), "limit", limit)
 		return true //torrentCache.Get(md5)
 	}
 
