@@ -15,6 +15,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -60,6 +61,7 @@ type FileStorage struct {
 	bnLock    sync.Mutex
 	opCounter MutexCounter
 	dataDir   string
+	//tmpCache  *lru.Cache
 }
 
 func NewFileStorage(config *Config) (*FileStorage, error) {
@@ -84,6 +86,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir:           config.DataDir,
 	}
 	fs.readBlockNumber()
+	//tmpCache, _ := lru.New(120)
 
 	return fs, nil
 }
@@ -104,7 +107,17 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 	return nil
 }
 
+var (
+	torrentCache, _   = lru.New(120)
+	dataCache, _      = lru.New(120)
+	availableCache, _ = lru.New(120)
+)
+
 func Exist(md5 common.Address, dataDir string) bool {
+
+	if dataCache.Contains(md5) {
+		return true //dataCache.Get(md5)
+	}
 
 	hash := strings.ToLower(string(md5.Hex()[2:]))
 	inputDir := dataDir + "/" + hash
@@ -112,6 +125,8 @@ func Exist(md5 common.Address, dataDir string) bool {
 	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
 		return false
 	}
+
+	dataCache.Add(md5, true)
 
 	return true
 }
@@ -122,6 +137,9 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 	//if err != nil {
 	//	return false
 	//}
+	if availableCache.Contains(md5) {
+		return true //availableCache.Get(md5)
+	}
 
 	hash := strings.ToLower(string(md5.Hex()[2:]))
 	torrentDir := dataDir + "/" + hash
@@ -151,10 +169,16 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 		return false
 	}
 
+	availableCache.Add(md5, true)
+
 	return true
 }
 
 func ExistTmp(md5 common.Address, dataDir string) bool {
+
+	if torrentCache.Contains(md5) {
+		return true //torrentCache.Get(md5)
+	}
 
 	hash := strings.ToLower(string(md5.Hex()[2:]))
 	inputDir := dataDir + "/.tmp/" + hash
@@ -162,6 +186,8 @@ func ExistTmp(md5 common.Address, dataDir string) bool {
 	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
 		return false
 	}
+
+	torrentCache.Add(md5, true)
 
 	return true
 }
