@@ -116,6 +116,7 @@ var (
 func Exist(md5 common.Address, dataDir string) bool {
 
 	if dataCache.Contains(md5) {
+		log.Info("Data cache hit !!!", "md5", md5)
 		return true //dataCache.Get(md5)
 	}
 
@@ -138,7 +139,14 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 	//	return false
 	//}
 	if availableCache.Contains(md5) {
-		return true //availableCache.Get(md5)
+		log.Info("Available cache hit !!!", "md5", md5)
+		if length, ok := availableCache.Get(md5); ok {
+			return length.(int64) <= rawSize
+		} else {
+			//return false
+			log.Warn("Available cache purge")
+			availableCache.Purge()
+		}
 	}
 
 	hash := strings.ToLower(string(md5.Hex()[2:]))
@@ -169,7 +177,7 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 		return false
 	}
 
-	availableCache.Add(md5, true)
+	availableCache.Add(md5, info.Length)
 
 	return true
 }
@@ -177,6 +185,7 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 func ExistTmp(md5 common.Address, dataDir string) bool {
 
 	if torrentCache.Contains(md5) {
+		log.Info("Torrent cache hit !!!", "md5", md5)
 		return true //torrentCache.Get(md5)
 	}
 
