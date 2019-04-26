@@ -532,12 +532,9 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 
 	modelErrCh := make(chan error)
 	inputErrCh := make(chan error)
-	go func() {
-		evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
-	}()
-	go func() {
-		evm.DataSync(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, inputErrCh)
-	}()
+
+	go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
+	go evm.DataSync(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, inputErrCh)
 
 	for i := 0; i < 2; i++ {
 		select {
@@ -587,9 +584,7 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
 	modelErrCh := make(chan error)
-	go func() {
-		evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
-	}()
+	go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
 
 	select {
 	case err := <-modelErrCh:

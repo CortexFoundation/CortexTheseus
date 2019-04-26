@@ -222,9 +222,7 @@ func (st *StateTransition) preCheck() error {
 		//	return ErrQuotaLimitReached
 		//}
 		errCh := make(chan error)
-		go func() {
-			st.TorrentSync(meta, st.evm.Config().StorageDir, errCh)
-		}()
+		go st.TorrentSync(meta, st.evm.Config().StorageDir, errCh)
 		select {
 		case err := <-errCh:
 			if err != nil {
