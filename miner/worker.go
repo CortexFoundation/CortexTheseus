@@ -34,6 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	//"github.com/ethereum/go-ethereum/core/vm"
 )
 
 const (
@@ -752,7 +753,10 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			txs.Pop()
 		case core.ErrUnhandleTx:
 			log.Trace("Quota limit exceeded for current block", "sender", from)
-                        txs.Pop()
+			txs.Pop()
+		//case vm.errMetaInfoNotMature:
+		//       log.Trace("Caused by immature meta", "sender", from)
+		//      txs.Pop()
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
 			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())

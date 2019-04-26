@@ -365,7 +365,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		if vmerr == vm.ErrInsufficientBalance {
 			return nil, 0, big0, false, vmerr
 		}
+
+		if vmerr == vm.ErrMetaInfoNotMature {
+			return nil, 0, big0, false, vmerr
+		}
 	}
+
+	//gas cost below this line
 
 	st.refundGas()
 	//model gas
