@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
+	//"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/torrentfs"
 	"time"
 )
@@ -220,10 +221,19 @@ func (st *StateTransition) preCheck() error {
 		//	log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", st.evm.Config().StorageDir)
 		//	return ErrQuotaLimitReached
 		//}
-
-		if err := st.TfsAutoCheck(meta, st.evm.Config().StorageDir, 0); err != nil {
-			return err
+		errCh := make(chan error)
+		go func() {
+			st.TorrentSync(meta, st.evm.Config().StorageDir, errCh)
+		}()
+		select {
+		case err := <-errCh:
+			if err != nil {
+				return err
+			}
 		}
+		//if err := st.TfsAutoCheck(meta, st.evm.Config().StorageDir, 0); err != nil {
+		//	return err
+		//}
 
 		//if !torrentfs.Available(meta, st.evm.Config().StorageDir, int64(0)) {
 		//	log.Warn("Torrent file not available now", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
@@ -233,26 +243,64 @@ func (st *StateTransition) preCheck() error {
 	return st.buyGas()
 }
 
-func (st *StateTransition) TfsAutoCheck(meta common.Address, dir string, level int) error {
-	if level > 120 {
-		return ErrUnhandleTx
-	}
-
-	if !torrentfs.ExistTmp(meta, dir) {
-		log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", level)
-		point := big.NewInt(time.Now().Add(confirmTime).Unix())
-		if st.evm.Context.Time.Cmp(point) <= 0 {
-			//waiting
-			duration := big.NewInt(0).Sub(point, st.evm.Context.Time)
-			log.Info("Waiting for torrent synchronizing", "now", time.Now().Unix(), "point", point, "tvm", st.evm.Context.Time, "duration", duration, "level", level, "number", st.evm.BlockNumber)
-			time.Sleep(time.Second * 15)
-			return st.TfsAutoCheck(meta, dir, level+1)
+func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
+	//if level > 120 {
+	//return ErrUnhandleTx
+	//	errCh <- ErrUnhandleTx
+	//	return
+	//}
+	point := big.NewInt(time.Now().Add(confirmTime).Unix())
+	if st.evm.Context.Time.Cmp(point) <= 0 {
+		for i := 0; i < 1200; i++ {
+			if !torrentfs.ExistTorrent(meta, dir) {
+				duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
+				//duration := time.Duration(mclock.Now()) - time.Duration(st.evm.Context.Time.Int64() * 1000)
+				log.Warn("Waiting for synchronizing", "point", point, "tvm", st.evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber)
+				//log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
+				time.Sleep(time.Second * 15)
+				continue
+			} else {
+				//log.Info("Torrent has been found now", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
+				errCh <- nil
+				return
+			}
+		}
+	} else {
+		if !torrentfs.ExistTorrent(meta, dir) {
+			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
+			errCh <- ErrUnhandleTx
+			return
 		} else {
-			return ErrUnhandleTx
+			errCh <- nil
+			return
 		}
 	}
 
-	return nil
+	log.Error("Torrent synchronized timeout", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
+	errCh <- ErrUnhandleTx
+	return
+
+	//	if !torrentfs.ExistTmp(meta, dir) {
+	//		log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", level)
+	//		point := big.NewInt(time.Now().Add(confirmTime).Unix())
+	//		if st.evm.Context.Time.Cmp(point) <= 0 {
+	//waiting
+	//			duration := big.NewInt(0).Sub(point, st.evm.Context.Time)
+	//			log.Info("Waiting for torrent synchronizing", "now", time.Now().Unix(), "point", point, "tvm", st.evm.Context.Time, "duration", duration, "level", level, "number", st.evm.BlockNumber)
+	//			time.Sleep(time.Second * 15)
+	//return st.TfsAutoCheck(meta, dir, level+1)
+	//			st.TfsAutoCheck(meta, dir, errCh)
+	//		} else {
+	//return ErrUnhandleTx
+	//			errCh <- ErrUnhandleTx
+	//			return
+	//		}
+	//	} else {
+
+	//return nil
+	//		errCh <- nil
+	//		return
+	//	}
 }
 
 // TransitionDb will transition the state by applying the current message and
@@ -317,7 +365,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		if vmerr == vm.ErrInsufficientBalance {
 			return nil, 0, big0, false, vmerr
 		}
+
+		if vmerr == vm.ErrMetaInfoNotMature {
+			return nil, 0, big0, false, vmerr
+		}
 	}
+
+	//gas cost below this line
 
 	st.refundGas()
 	//model gas

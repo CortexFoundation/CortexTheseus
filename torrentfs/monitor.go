@@ -259,7 +259,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		log.Info("Transactions scan", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed))
+		log.Info("Transactions scanning", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed))
 	}
 
 	return nil
@@ -475,12 +475,17 @@ func (m *Monitor) syncLastBlock() {
 	}
 	if maxNumber > minNumber {
 		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+	} else {
+		return
 	}
 
 	for i := minNumber; i <= maxNumber; i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			log.Warn("Torrent scan terminated", "number", i)
+			maxNumber = i - 1
 			break
 		}
+
 		block := m.fs.GetBlockByNumber(i)
 		if block == nil {
 			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
@@ -512,4 +517,5 @@ func (m *Monitor) syncLastBlock() {
 		//}
 	}
 	m.lastNumber = maxNumber
+	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
 }

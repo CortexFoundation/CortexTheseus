@@ -15,6 +15,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -60,6 +61,7 @@ type FileStorage struct {
 	bnLock    sync.Mutex
 	opCounter MutexCounter
 	dataDir   string
+	//tmpCache  *lru.Cache
 }
 
 func NewFileStorage(config *Config) (*FileStorage, error) {
@@ -84,6 +86,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir:           config.DataDir,
 	}
 	fs.readBlockNumber()
+	//tmpCache, _ := lru.New(120)
 
 	return fs, nil
 }
@@ -104,7 +107,22 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 	return nil
 }
 
+const (
+	limit = 120
+)
+
+var (
+	torrentCache, _   = lru.New(limit)
+	dataCache, _      = lru.New(limit)
+	availableCache, _ = lru.New(limit)
+)
+
 func Exist(md5 common.Address, dataDir string) bool {
+
+	if dataCache.Contains(md5) {
+		log.Info("Data cache hit !!!", "md5", md5, "size", dataCache.Len(), "limit", limit)
+		return true //dataCache.Get(md5)
+	}
 
 	hash := strings.ToLower(string(md5.Hex()[2:]))
 	inputDir := dataDir + "/" + hash
@@ -112,6 +130,8 @@ func Exist(md5 common.Address, dataDir string) bool {
 	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
 		return false
 	}
+
+	dataCache.Add(md5, true)
 
 	return true
 }
@@ -122,6 +142,16 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 	//if err != nil {
 	//	return false
 	//}
+	if availableCache.Contains(md5) {
+		log.Info("Available cache hit !!!", "md5", md5, "size", availableCache.Len(), "raw", rawSize, "limit", limit)
+		if length, ok := availableCache.Get(md5); ok {
+			return length.(int64) <= rawSize
+		} else {
+			//return false
+			log.Warn("Available cache purge", "md5", md5, "raw", rawSize)
+			availableCache.Purge()
+		}
+	}
 
 	hash := strings.ToLower(string(md5.Hex()[2:]))
 	torrentDir := dataDir + "/" + hash
@@ -148,13 +178,21 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 
 	if info.Length > rawSize {
 		log.Info("Torrent metainfo use a invalid metafile", "hash", md5.Hex(), "rawSize", rawSize, "length", info.Length)
+		availableCache.Add(md5, info.Length)
 		return false
 	}
+
+	availableCache.Add(md5, info.Length)
 
 	return true
 }
 
-func ExistTmp(md5 common.Address, dataDir string) bool {
+func ExistTorrent(md5 common.Address, dataDir string) bool {
+
+	if torrentCache.Contains(md5) {
+		log.Info("Torrent cache hit !!!", "md5", md5, "size", torrentCache.Len(), "limit", limit)
+		return true //torrentCache.Get(md5)
+	}
 
 	hash := strings.ToLower(string(md5.Hex()[2:]))
 	inputDir := dataDir + "/.tmp/" + hash
@@ -162,6 +200,8 @@ func ExistTmp(md5 common.Address, dataDir string) bool {
 	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
 		return false
 	}
+
+	torrentCache.Add(md5, true)
 
 	return true
 }
