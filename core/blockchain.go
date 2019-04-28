@@ -1215,6 +1215,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		// log.Info("Quota initialized", "quota", block.Quota(), "used", block.QuotaUsed(), "txs", len(block.Transactions()), "parent", parent.Quota(), "parent used", parent.QuotaUsed())
 		// Process block using the parent state as reference point
 		//log.Info("Block process ... ", "number", block.Number())
+		//log.Info("current block", "number", bc.CurrentHeader().Number)
 		receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
 
 		if pErr != nil {
@@ -1296,7 +1297,7 @@ func (st *insertStats) report(chain []*types.Block, index int, cache common.Stor
 		)
 		context := []interface{}{
 			"blocks", st.processed, "txs", txs, "mgas", float64(st.usedGas) / 1000000,
-			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed),  "tps", float64(st.usedGas) * 476 / float64(elapsed),
+			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed), "tps", float64(st.usedGas) * 476 / float64(elapsed),
 			"number", end.Number(), "hash", end.Hash(), "cache", cache,
 		}
 		if st.queued > 0 {
