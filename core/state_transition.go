@@ -241,6 +241,8 @@ func (st *StateTransition) preCheck() error {
 	return st.buyGas()
 }
 
+const interv = 15
+
 func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
 	//if level > 120 {
 	//return ErrUnhandleTx
@@ -248,14 +250,18 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 	//	return
 	//}
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	if st.evm.Context.Time.Cmp(point) <= 0 {
-		for i := 0; i < 1200; i++ {
+	duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
+	cost := big.NewInt(0)
+
+	//point := big.NewInt(time.Now().Add(confirmTime).Unix())
+	if point.Cmp(st.evm.Context.Time) > 0 {
+		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
-				duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
 				//duration := time.Duration(mclock.Now()) - time.Duration(st.evm.Context.Time.Int64() * 1000)
-				log.Warn("Waiting for synchronizing", "point", point, "tvm", st.evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber)
+				log.Warn("Waiting for synchronizing", "tvm", st.evm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber, "cost", cost)
 				//log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
-				time.Sleep(time.Second * 15)
+				cost.Add(cost, big.NewInt(interv))
+				time.Sleep(time.Second * interv)
 				continue
 			} else {
 				//log.Info("Torrent has been found now", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)

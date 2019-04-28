@@ -121,7 +121,7 @@ const (
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT        uint64 = 65536 //max gas limit for model call
 
-	CONFIRM_TIME = -60 // * time.Second
+	CONFIRM_TIME = -60 // * time.Second block should be protected past this time
 
 	BLOCK_QUOTA = 24576 //32768//65536     //one block includes 64k file quota, even empty block should make more sense
 )

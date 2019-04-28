@@ -498,11 +498,13 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	if evm.Context.Time.Cmp(point) <= 0 {
-		for i := 0; i < 1200; i++ {
+	cost := big.NewInt(0)
+	duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
+	if point.Cmp(evm.Context.Time) > 0 {
+		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
-				duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
 				log.Warn("Inference waiting for synchronizing", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber)
+				cost.Add(cost, big.NewInt(15))
 				time.Sleep(time.Second * 15)
 				continue
 			} else {
