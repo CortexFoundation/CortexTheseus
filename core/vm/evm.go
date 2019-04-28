@@ -507,7 +507,7 @@ func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
 		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
-				log.Warn("Inference waiting for synchronizing", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber, "street", street)
+				log.Warn("Inference synchronizing ... ...", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
 				time.Sleep(time.Second * interv)
 				continue
@@ -516,6 +516,7 @@ func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 				return
 			}
 		}
+		log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", evm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
 	} else {
 		if !torrentfs.Exist(meta, dir) {
 			log.Warn("Data not exist", "address", meta.Hex(), "number", evm.BlockNumber, "current", evm.BlockNumber, "meta", meta, "storage", dir)
@@ -527,9 +528,18 @@ func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 		}
 	}
 
-	log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", evm.BlockNumber, "meta", meta, "storage", dir)
-	errCh <- synapse.ErrModelFileNotExist
-	return
+	if !torrentfs.Exist(meta, dir) {
+		log.Warn("Data not exist", "address", meta.Hex(), "number", evm.BlockNumber, "current", evm.BlockNumber, "meta", meta, "storage", dir)
+		errCh <- synapse.ErrModelFileNotExist
+		return
+	} else {
+		errCh <- nil
+		return
+	}
+
+	//log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", evm.BlockNumber, "meta", meta, "storage", dir, "street", street)
+	//errCh <- synapse.ErrModelFileNotExist
+	//return
 }
 
 // infer function that returns an int64 as output, can be used a categorical output

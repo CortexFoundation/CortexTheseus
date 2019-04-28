@@ -240,7 +240,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		cost := big.NewInt(0)
 		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
-				log.Warn("Torrent synchronizing", "tvm", st.evm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber, "cost", cost, "peek", st.evm.PeekNumber, "street", street)
+				log.Warn("Torrent synchronizing ... ...", "tvm", st.evm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber, "cost", cost, "peek", st.evm.PeekNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
 				time.Sleep(time.Second * interv)
 				continue
@@ -250,6 +250,8 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 				return
 			}
 		}
+
+		log.Error("Torrent synchronized timeout", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
 	} else {
 		if !torrentfs.ExistTorrent(meta, dir) {
 			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
@@ -261,9 +263,14 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		}
 	}
 
-	log.Error("Torrent synchronized timeout", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
-	errCh <- ErrUnhandleTx
-	return
+	if !torrentfs.ExistTorrent(meta, dir) {
+		log.Error("Torrent synchronized failed", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "street", street)
+		errCh <- ErrUnhandleTx
+		return
+	} else {
+		errCh <- nil
+		return
+	}
 }
 
 // TransitionDb will transition the state by applying the current message and
