@@ -496,6 +496,8 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
+const interv = 15
+
 func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
 	cost := big.NewInt(0)
@@ -504,8 +506,8 @@ func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
 				log.Warn("Inference waiting for synchronizing", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber)
-				cost.Add(cost, big.NewInt(15))
-				time.Sleep(time.Second * 15)
+				cost.Add(cost, big.NewInt(interv))
+				time.Sleep(time.Second * interv)
 				continue
 			} else {
 				errCh <- nil
