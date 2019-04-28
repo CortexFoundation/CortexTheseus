@@ -250,11 +250,13 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 	//	return
 	//}
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
-	cost := big.NewInt(0)
+	//duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
+	//cost := big.NewInt(0)
 
 	//point := big.NewInt(time.Now().Add(confirmTime).Unix())
 	if point.Cmp(st.evm.Context.Time) > 0 {
+		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
+		cost := big.NewInt(0)
 		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
 				//duration := time.Duration(mclock.Now()) - time.Duration(st.evm.Context.Time.Int64() * 1000)

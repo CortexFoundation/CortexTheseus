@@ -500,9 +500,9 @@ const interv = 15
 
 func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	cost := big.NewInt(0)
-	duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
 	if point.Cmp(evm.Context.Time) > 0 {
+		cost := big.NewInt(0)
+		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
 		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
 				log.Warn("Inference waiting for synchronizing", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber)
