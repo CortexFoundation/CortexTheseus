@@ -94,8 +94,9 @@ type Context struct {
 	Coinbase    common.Address // Provides information for COINBASE
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int       // Provides information for TIME
-	Difficulty  *big.Int       // Provides information for DIFFICULTY
+	PeekNumber  *big.Int
+	Time        *big.Int // Provides information for TIME
+	Difficulty  *big.Int // Provides information for DIFFICULTY
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -499,13 +500,14 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 const interv = 15
 
 func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
+	street := big.NewInt(0).Sub(evm.PeekNumber, evm.BlockNumber)
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	if point.Cmp(evm.Context.Time) > 0 {
+	if point.Cmp(evm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
 		cost := big.NewInt(0)
 		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
 		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
-				log.Warn("Inference waiting for synchronizing", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber)
+				log.Warn("Inference waiting for synchronizing", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
 				time.Sleep(time.Second * interv)
 				continue

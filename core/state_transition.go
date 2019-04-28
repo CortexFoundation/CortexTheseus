@@ -217,10 +217,6 @@ func (st *StateTransition) preCheck() error {
 			return ErrUnhandleTx
 		}
 
-		//if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
-		//	log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", st.evm.Config().StorageDir)
-		//	return ErrQuotaLimitReached
-		//}
 		errCh := make(chan error)
 		go st.TorrentSync(meta, st.evm.Config().StorageDir, errCh)
 		select {
@@ -229,13 +225,6 @@ func (st *StateTransition) preCheck() error {
 				return err
 			}
 		}
-		//if err := st.TfsAutoCheck(meta, st.evm.Config().StorageDir, 0); err != nil {
-		//	return err
-		//}
-
-		//if !torrentfs.Available(meta, st.evm.Config().StorageDir, int64(0)) {
-		//	log.Warn("Torrent file not available now", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
-		//}
 	}
 
 	return st.buyGas()
@@ -244,29 +233,19 @@ func (st *StateTransition) preCheck() error {
 const interv = 15
 
 func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
-	//if level > 120 {
-	//return ErrUnhandleTx
-	//	errCh <- ErrUnhandleTx
-	//	return
-	//}
+	street := big.NewInt(0).Sub(st.evm.PeekNumber, st.evm.BlockNumber)
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	//duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
-	//cost := big.NewInt(0)
-
-	//point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	if point.Cmp(st.evm.Context.Time) > 0 {
+	if point.Cmp(st.evm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
 		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
 		cost := big.NewInt(0)
 		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
-				//duration := time.Duration(mclock.Now()) - time.Duration(st.evm.Context.Time.Int64() * 1000)
-				log.Warn("Waiting for synchronizing", "tvm", st.evm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber, "cost", cost)
-				//log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
+				log.Warn("Torrent synchronizing", "tvm", st.evm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber, "cost", cost, "peek", st.evm.PeekNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
 				time.Sleep(time.Second * interv)
 				continue
 			} else {
-				//log.Info("Torrent has been found now", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i)
+				log.Debug("Torrent has been found", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "cost", cost)
 				errCh <- nil
 				return
 			}
@@ -285,28 +264,6 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 	log.Error("Torrent synchronized timeout", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
 	errCh <- ErrUnhandleTx
 	return
-
-	//	if !torrentfs.ExistTmp(meta, dir) {
-	//		log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", level)
-	//		point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	//		if st.evm.Context.Time.Cmp(point) <= 0 {
-	//waiting
-	//			duration := big.NewInt(0).Sub(point, st.evm.Context.Time)
-	//			log.Info("Waiting for torrent synchronizing", "now", time.Now().Unix(), "point", point, "tvm", st.evm.Context.Time, "duration", duration, "level", level, "number", st.evm.BlockNumber)
-	//			time.Sleep(time.Second * 15)
-	//return st.TfsAutoCheck(meta, dir, level+1)
-	//			st.TfsAutoCheck(meta, dir, errCh)
-	//		} else {
-	//return ErrUnhandleTx
-	//			errCh <- ErrUnhandleTx
-	//			return
-	//		}
-	//	} else {
-
-	//return nil
-	//		errCh <- nil
-	//		return
-	//	}
 }
 
 // TransitionDb will transition the state by applying the current message and
