@@ -238,8 +238,8 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 				if modelMeta.Gas == uint64(0) {
 					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
-				//} else if modelMeta.Gas > params.MODEL_GAS_LIMIT {
-				//	modelMeta.SetGas(params.MODEL_GAS_LIMIT)
+				} else if modelMeta.Gas > params.MODEL_GAS_LIMIT {
+					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 				} else if int64(modelMeta.Gas) < 0 {
 					modelMeta.SetGas(0)
 				}

@@ -220,7 +220,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	return nil
 }
 
-func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
+func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool, flag uint64) error {
 	if len(b.Txs) > 0 {
 		start := mclock.Now()
 		//elapsed = time.Duration(now)
@@ -259,7 +259,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		log.Info("Transactions scanning", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed))
+		log.Info("Transactions scanning", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed), "progress", float64(flag)/float64(2048))
 	}
 
 	return nil
@@ -428,7 +428,7 @@ func (m *Monitor) listenLatestBlock() {
 			//go m.syncLastBlock()
 			m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			timer.Reset(time.Second * 1)
+			timer.Reset(time.Millisecond * 10)
 
 		case <-m.exitCh:
 			return
@@ -496,7 +496,7 @@ func (m *Monitor) syncLastBlock() {
 
 			block = rpcBlock
 
-			if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
+			if parseErr := m.parseBlockTorrentInfo(block, true, i); parseErr != nil {
 				log.Error("Parse new block", "number", i, "block", block, "error", parseErr)
 				return
 			}
@@ -506,7 +506,7 @@ func (m *Monitor) syncLastBlock() {
 				return
 			}
 
-		} else if parseErr := m.parseBlockTorrentInfo(block, false); parseErr != nil {
+		} else if parseErr := m.parseBlockTorrentInfo(block, false, i); parseErr != nil {
 			log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
 			return
 		}
