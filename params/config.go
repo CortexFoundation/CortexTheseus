@@ -41,8 +41,8 @@ type TrustedCheckpoint struct {
 	Name         string      `json:"-"`
 	SectionIndex uint64      `json:"sectionIndex"`
 	SectionHead  common.Hash `json:"sectionHead"`
-	CHTRoot      common.Hash `json:"chtRoot"`
-	BloomRoot    common.Hash `json:"bloomRoot"`
+	//CHTRoot      common.Hash `json:"chtRoot"`
+	//BloomRoot    common.Hash `json:"bloomRoot"`
 }
 
 var (
@@ -54,10 +54,10 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
-		SectionIndex: 227,
-		SectionHead:  common.HexToHash("0xa2e0b25d72c2fc6e35a7f853cdacb193b4b4f95c606accf7f8fa8415283582c7"),
-		CHTRoot:      common.HexToHash("0xf69bdd4053b95b61a27b106a0e86103d791edd8574950dc96aa351ab9b9f1aa0"),
-		BloomRoot:    common.HexToHash("0xec1b454d4c6322c78ccedf76ac922a8698c3cac4d98748a84af4995b7bd3d744"),
+		SectionIndex: 0,
+		SectionHead:  common.HexToHash("0xa570539c5bd599a82abc6f2ce11f879026beacb1ee5991c5ebc84afabe1d5b2d"),
+		//CHTRoot:      common.HexToHash("0xf91eb151aa7b3c7771cad5a79266a4de282398e70eb18cd00a2ce02ab8f109e5"),
+		//BloomRoot:    common.HexToHash("0xec1b454d4c6322c78ccedf76ac922a8698c3cac4d98748a84af4995b7bd3d744"),
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
