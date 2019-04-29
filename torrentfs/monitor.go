@@ -146,7 +146,7 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
-func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
+/*func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
 	block := m.fs.GetBlockByNumber(blockNumber)
 	if block == nil {
 		return m.rpcBlockByNumber(blockNumber)
@@ -169,7 +169,7 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 	}
 
 	return 0, errors.New("[ Internal IPC Error ] try to get block number out of times")
-}
+}*/
 
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	m.dl.NewTorrent(meta.URI)
@@ -220,10 +220,9 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	return nil
 }
 
-func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool, flag uint64) error {
+func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 	if len(b.Txs) > 0 {
 		start := mclock.Now()
-		//elapsed = time.Duration(now)
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				log.Info("Try to create a file", "meta", meta, "number", b.Number)
@@ -259,7 +258,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool, flag uint64) er
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		log.Info("Transactions scanning", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed), "progress", float64(flag)/float64(2048))
+		log.Info("Transactions scanning", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed))
 	}
 
 	return nil
@@ -496,7 +495,7 @@ func (m *Monitor) syncLastBlock() {
 
 			block = rpcBlock
 
-			if parseErr := m.parseBlockTorrentInfo(block, true, i); parseErr != nil {
+			if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
 				log.Error("Parse new block", "number", i, "block", block, "error", parseErr)
 				return
 			}
@@ -506,7 +505,7 @@ func (m *Monitor) syncLastBlock() {
 				return
 			}
 
-		} else if parseErr := m.parseBlockTorrentInfo(block, false, i); parseErr != nil {
+		} else if parseErr := m.parseBlockTorrentInfo(block, false); parseErr != nil {
 			log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
 			return
 		}
