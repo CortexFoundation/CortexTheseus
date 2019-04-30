@@ -96,7 +96,7 @@ func newTester() *downloadTester {
 	tester.stateDb = ethdb.NewMemDatabase()
 	tester.stateDb.Put(genesis.Root().Bytes(), []byte{0x00})
 
-	tester.downloader = New(FullSync, tester.stateDb, new(event.TypeMux), tester, nil, tester.dropPeer)
+	tester.downloader = New(FullSync, 0, tester.stateDb, new(event.TypeMux), tester, nil, tester.dropPeer)
 
 	return tester
 }
@@ -1309,11 +1309,12 @@ func testBlockHeaderAttackerDropping(t *testing.T, protocol int) {
 		result error
 		drop   bool
 	}{
-		{nil, false},                        // Sync succeeded, all is well
-		{errBusy, false},                    // Sync is already in progress, no problem
-		{errUnknownPeer, false},             // Peer is unknown, was already dropped, don't double drop
-		{errBadPeer, true},                  // Peer was deemed bad for some reason, drop it
-		{errStallingPeer, true},             // Peer was detected to be stalling, drop it
+		{nil, false},            // Sync succeeded, all is well
+		{errBusy, false},        // Sync is already in progress, no problem
+		{errUnknownPeer, false}, // Peer is unknown, was already dropped, don't double drop
+		{errBadPeer, true},      // Peer was deemed bad for some reason, drop it
+		{errStallingPeer, true}, // Peer was detected to be stalling, drop it
+		{errUnsyncedPeer, true},
 		{errNoPeers, false},                 // No peers to download from, soft race, no issue
 		{errTimeout, true},                  // No hashes received in due time, drop the peer
 		{errEmptyHeaderSet, true},           // No headers were returned as a response, drop as it's a dead end

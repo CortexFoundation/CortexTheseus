@@ -25,10 +25,25 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0xd2ebcd4f5c95dd351528b98e46b1a6c2a5bc5a09aa314652f7df63c3e83b30dc")
+	MainnetGenesisHash = common.HexToHash("0x67d9cd9156dd17c10810d912a0dc395b2ecb5c5a97145252491ce9fb596903ac")
 	CerebroGenesisHash = common.HexToHash("0x1875c8fde48d2f71e82708489390ec29385749701a41459622c70565bbc37ccb")
 	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
 )
+
+var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
+	MainnetGenesisHash: MainnetTrustedCheckpoint,
+	//TestnetGenesisHash: TestnetTrustedCheckpoint,
+	//RinkebyGenesisHash: RinkebyTrustedCheckpoint,
+	//GoerliGenesisHash:  GoerliTrustedCheckpoint,
+}
+
+type TrustedCheckpoint struct {
+	Name         string      `json:"-"`
+	SectionIndex uint64      `json:"sectionIndex"`
+	SectionHead  common.Hash `json:"sectionHead"`
+	//CHTRoot      common.Hash `json:"chtRoot"`
+	//BloomRoot    common.Hash `json:"bloomRoot"`
+}
 
 var (
 	//CortexBlockRewardPeriod = big.NewInt(42048000)
@@ -37,9 +52,16 @@ var (
 )
 
 var (
+	MainnetTrustedCheckpoint = &TrustedCheckpoint{
+		Name:         "mainnet",
+		SectionIndex: 0,
+		SectionHead:  common.HexToHash("0xa570539c5bd599a82abc6f2ce11f879026beacb1ee5991c5ebc84afabe1d5b2d"),
+		//CHTRoot:      common.HexToHash("0xf91eb151aa7b3c7771cad5a79266a4de282398e70eb18cd00a2ce02ab8f109e5"),
+		//BloomRoot:    common.HexToHash("0xec1b454d4c6322c78ccedf76ac922a8698c3cac4d98748a84af4995b7bd3d744"),
+	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID: big.NewInt(1),
+		ChainID:        big.NewInt(1),
 		HomesteadBlock: big.NewInt(0),
 		DAOForkBlock:   big.NewInt(0),
 		DAOForkSupport: false,

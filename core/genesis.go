@@ -309,7 +309,6 @@ func DefaultGenesisBlock() *Genesis {
 		ExtraData:  hexutil.MustDecode("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"),
 		GasLimit:   params.GenesisGasLimit,
 		Difficulty: params.GenesisDifficulty,
-		//Timestamp: uint64(time.Now().Unix()),
 		//Alloc:      decodePrealloc(mainnetAllocData),
 		//Alloc: GenesisAlloc{"0xb07933C29AD6fAe77da3950440eE6bcE2f8b53Ff": {Balance: params.CTXC_INIT}},
 		Alloc: map[common.Address]GenesisAccount{

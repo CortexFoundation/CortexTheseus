@@ -146,7 +146,7 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
-func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
+/*func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
 	block := m.fs.GetBlockByNumber(blockNumber)
 	if block == nil {
 		return m.rpcBlockByNumber(blockNumber)
@@ -169,7 +169,7 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 	}
 
 	return 0, errors.New("[ Internal IPC Error ] try to get block number out of times")
-}
+}*/
 
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	m.dl.NewTorrent(meta.URI)
@@ -223,7 +223,6 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 	if len(b.Txs) > 0 {
 		start := mclock.Now()
-		//elapsed = time.Duration(now)
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				log.Info("Try to create a file", "meta", meta, "number", b.Number)
@@ -428,7 +427,7 @@ func (m *Monitor) listenLatestBlock() {
 			//go m.syncLastBlock()
 			m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			timer.Reset(time.Second * 1)
+			timer.Reset(time.Millisecond * 10)
 
 		case <-m.exitCh:
 			return
