@@ -30,8 +30,9 @@ var (
 	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
 )
 
+//It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
-	MainnetGenesisHash: MainnetTrustedCheckpoint,
+	//MainnetGenesisHash: MainnetTrustedCheckpoint,
 	//TestnetGenesisHash: TestnetTrustedCheckpoint,
 	//RinkebyGenesisHash: RinkebyTrustedCheckpoint,
 	//GoerliGenesisHash:  GoerliTrustedCheckpoint,
