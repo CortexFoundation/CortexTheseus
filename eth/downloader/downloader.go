@@ -809,6 +809,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 		}
 	}
 	// Start pulling the header chain skeleton until all is done
+	ancestor := from
 	getHeaders(from)
 
 	for {
@@ -878,6 +879,9 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 						if full := d.blockchain.CurrentBlock().NumberU64(); head < full {
 							head = full
 						}
+					}
+					if head < ancestor {
+						head = ancestor
 					}
 					// If the head is way older than this batch, delay the last few headers
 					if head+uint64(reorgProtThreshold) < headers[n-1].Number.Uint64() {
