@@ -401,7 +401,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 				add = pool.chain.GetBlock(newHead.Hash(), newHead.Number.Uint64())
 			)
 
-			if rem == nil {
+			if rem == nil || add == nil {
 				if newNum < oldNum {
 					log.Debug("Skipping transaction reset caused by setHead",
 						"old", oldHead.Hash(), "oldnum", oldNum, "new", newHead.Hash(), "newnum", newNum)
@@ -419,6 +419,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 					return
 				}
 			}
+
 			for add.NumberU64() > rem.NumberU64() {
 				included = append(included, add.Transactions()...)
 				if add = pool.chain.GetBlock(add.ParentHash(), add.NumberU64()-1); add == nil {
@@ -426,6 +427,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 					return
 				}
 			}
+
 			for rem.Hash() != add.Hash() {
 				discarded = append(discarded, rem.Transactions()...)
 				if rem = pool.chain.GetBlock(rem.ParentHash(), rem.NumberU64()-1); rem == nil {
