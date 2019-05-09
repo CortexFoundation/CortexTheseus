@@ -371,21 +371,34 @@ func (m *Monitor) validateStorage() error {
 			return rpcErr
 		}
 
-		stBlock := m.fs.GetBlockByNumber(uint64(i))
-		if stBlock == nil {
-			log.Warn("Vaidate Torrent FS Storage state invalid", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent")
-			//return nil
+		if rpcBlock == nil {
+			log.Warn("No block found", "number", i)
+			m.lastNumber = uint64(i)
+			//m.fs.LastListenBlockNumber = uint64(i)
 			continue
 		}
 
+		stBlock := m.fs.GetBlockByNumber(uint64(i))
+		if stBlock == nil {
+			log.Warn("Vaidate Torrent FS Storage state failed, rescan", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent", "dirty", m.fs.LastListenBlockNumber)
+			m.lastNumber = uint64(0)
+			//m.fs.LastListenBlockNumber = uint64(0)
+			return nil
+		}
+
 		if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
-			log.Warn("Validate TFS failed", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
-			//return nil
+			log.Warn("Validate TFS continue", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
 			continue
 		}
 
 		// block in storage invalid
 		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash)
+		m.lastNumber = uint64(i)
+		if parseErr := m.parseBlockTorrentInfo(rpcBlock, true); parseErr != nil {
+			log.Error("Parse new block", "number", i, "block", rpcBlock, "error", parseErr)
+			m.lastNumber = uint64(0)
+			return nil
+		}
 		m.fs.WriteBlock(rpcBlock)
 	}
 	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end)
