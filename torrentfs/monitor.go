@@ -352,7 +352,7 @@ func (m *Monitor) startWork() error {
 
 func (m *Monitor) validateStorage() error {
 	//if m.fs.LastListenBlockNumber > 2048 {
-	m.lastNumber = m.fs.LastListenBlockNumber - 2048
+	m.lastNumber = m.fs.LastListenBlockNumber
 	//} else {
 	//	m.lastNumber = uint64(0) //m.fs.LastListenBlockNumber
 	//}
