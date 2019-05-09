@@ -371,9 +371,9 @@ func (m *Monitor) validateStorage() error {
 			return rpcErr
 		}
 
-		if rpcBlock == nil {
+		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash{
 			log.Warn("No block found", "number", i)
-			m.lastNumber = uint64(i)
+			m.lastNumber = uint64(0)
 			//m.fs.LastListenBlockNumber = uint64(i)
 			continue
 		}
