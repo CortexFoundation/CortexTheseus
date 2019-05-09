@@ -395,13 +395,13 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	} else {
 		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
 
-		//if x.Cmp(big0) > 0 {
-		//	x.Set(big1)
-		//}
+		if x.Cmp(big0) > 0 {
+			x.Set(big1)
+		}
 
-		//if x.Cmp(big0) < 0 {
-		//	x.Set(bigMinus1)
-		//}
+		if x.Cmp(big0) < 0 {
+			x.Set(bigMinus1)
+		}
 	}
 
 	//log.Info("cal diff", "x", x, "parent.Difficulty", parent.Difficulty, "y", y)
