@@ -374,12 +374,14 @@ func (m *Monitor) validateStorage() error {
 		stBlock := m.fs.GetBlockByNumber(uint64(i))
 		if stBlock == nil {
 			log.Warn("Vaidate Torrent FS Storage state invalid", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent")
-			return nil
+			//return nil
+			continue
 		}
 
 		if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
 			log.Warn("Validate TFS failed", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
-			return nil
+			//return nil
+			continue
 		}
 
 		// block in storage invalid
