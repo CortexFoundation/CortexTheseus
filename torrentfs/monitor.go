@@ -392,7 +392,7 @@ func (m *Monitor) validateStorage() error {
 		}
 
 		// block in storage invalid
-		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash)
+		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash, "latest", m.fs.LastListenBlockNumber)
 		if parseErr := m.parseBlockTorrentInfo(rpcBlock, true); parseErr != nil {
 			log.Error("Parse new block", "number", i, "block", rpcBlock, "error", parseErr)
 			m.lastNumber = uint64(0)
@@ -401,7 +401,7 @@ func (m *Monitor) validateStorage() error {
 		m.fs.WriteBlock(rpcBlock)
 		m.lastNumber = uint64(i)
 	}
-	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end)
+	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
 
 	return nil
 }
