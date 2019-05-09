@@ -387,19 +387,19 @@ func (m *Monitor) validateStorage() error {
 		}
 
 		if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
-			log.Warn("Validate TFS continue", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
+			//log.Warn("Validate TFS continue", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
 			continue
 		}
 
 		// block in storage invalid
 		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash)
-		m.lastNumber = uint64(i)
 		if parseErr := m.parseBlockTorrentInfo(rpcBlock, true); parseErr != nil {
 			log.Error("Parse new block", "number", i, "block", rpcBlock, "error", parseErr)
 			m.lastNumber = uint64(0)
 			return nil
 		}
 		m.fs.WriteBlock(rpcBlock)
+		m.lastNumber = uint64(i)
 	}
 	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end)
 
