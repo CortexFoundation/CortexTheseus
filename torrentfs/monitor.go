@@ -351,7 +351,11 @@ func (m *Monitor) startWork() error {
 }
 
 func (m *Monitor) validateStorage() error {
-	m.lastNumber = m.fs.LastListenBlockNumber
+	if m.fs.LastListenBlockNumber > 2048 {
+		m.lastNumber = m.fs.LastListenBlockNumber - 2048
+	} else {
+		m.lastNumber = uint64(0) //m.fs.LastListenBlockNumber
+	}
 	end := uint64(0)
 
 	if m.lastNumber > 4096 {
@@ -363,23 +367,28 @@ func (m *Monitor) validateStorage() error {
 	for i := m.lastNumber; i > end; i-- {
 		rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
 		if rpcErr != nil {
+			log.Warn("RPC ERROR", "error", rpcErr)
 			return rpcErr
 		}
 
 		stBlock := m.fs.GetBlockByNumber(uint64(i))
 		if stBlock == nil {
 			log.Warn("Vaidate Torrent FS Storage state invalid", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent")
-			return nil
+			//return nil
+			continue
 		}
 
 		if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
-			return nil
+			log.Warn("Validate TFS failed", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
+			//return nil
+			continue
 		}
 
 		// block in storage invalid
-		log.Debug("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash)
+		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash)
 		m.fs.WriteBlock(rpcBlock)
 	}
+	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end)
 
 	return nil
 }
@@ -442,7 +451,7 @@ const (
 )
 
 func (m *Monitor) syncLastBlock() {
-	//	log.Info("Torrent sync latest block")
+	//log.Info("Torrent sync latest block", "latest", m.lastNumber)
 	// Latest block number
 	var currentNumber hexutil.Uint64
 
