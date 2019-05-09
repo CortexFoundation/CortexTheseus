@@ -351,11 +351,7 @@ func (m *Monitor) startWork() error {
 }
 
 func (m *Monitor) validateStorage() error {
-	//if m.fs.LastListenBlockNumber > 2048 {
 	m.lastNumber = m.fs.LastListenBlockNumber
-	//} else {
-	//	m.lastNumber = uint64(0) //m.fs.LastListenBlockNumber
-	//}
 	end := uint64(0)
 
 	if m.lastNumber > 2048 {
@@ -374,7 +370,6 @@ func (m *Monitor) validateStorage() error {
 		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
 			log.Warn("No block found", "number", i)
 			m.lastNumber = uint64(0)
-			//continue
 			return nil
 		}
 
