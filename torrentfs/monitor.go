@@ -463,7 +463,7 @@ func (m *Monitor) listenLatestBlock() {
 			//go m.syncLastBlock()
 			m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			timer.Reset(time.Millisecond * 10)
+			timer.Reset(time.Millisecond * 1000)
 
 		case <-m.exitCh:
 			return
