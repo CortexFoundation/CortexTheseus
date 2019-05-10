@@ -374,8 +374,8 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 	m.lastNumber = m.fs.LastListenBlockNumber
 	end := uint64(0)
 
-	if m.lastNumber > 2048 {
-		end = m.lastNumber - 2048
+	if m.lastNumber > 4096 {
+		end = m.lastNumber - 4096
 	}
 
 	log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "lastest", m.fs.LastListenBlockNumber)
@@ -390,9 +390,10 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 
 		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
 			log.Warn("No block found", "number", i)
-			m.lastNumber = uint64(0)
-			errCh <- nil
-			return nil
+			m.lastNumber = uint64(i)
+			//errCh <- nil
+			//return nil
+			continue
 		}
 
 		stBlock := m.fs.GetBlockByNumber(uint64(i))
