@@ -62,6 +62,7 @@ type Monitor struct {
 	exitCh     chan struct{}
 	terminated int32
 	lastNumber uint64
+	dirty      bool
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -93,6 +94,7 @@ func NewMonitor(flag *Config) (*Monitor, error) {
 		exitCh:      make(chan struct{}),
 		terminated:  0,
 		lastNumber:  uint64(0),
+		dirty:       false,
 	}, nil
 }
 
@@ -393,7 +395,10 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 			m.lastNumber = uint64(i)
 			//errCh <- nil
 			//return nil
+			m.dirty = true
 			continue
+		} else {
+			m.dirty = false
 		}
 
 		stBlock := m.fs.GetBlockByNumber(uint64(i))
@@ -416,6 +421,12 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		return nil
 	}
 	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
+
+	if m.dirty {
+		log.Warn("Torrent fs status", "dirty", m.dirty)
+		m.lastNumber = uint64(0)
+	}
+
 	errCh <- nil
 	return nil
 }
