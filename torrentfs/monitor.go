@@ -328,14 +328,33 @@ func (m *Monitor) startWork() error {
 
 	rpcClient, rpcErr := SetConnection(clientURI)
 	if rpcErr != nil {
-		log.Warn("Torrent rpc client is wrong", "uri", clientURI)
+		log.Error("Torrent rpc client is wrong", "uri", clientURI, "error", rpcErr)
 		return rpcErr
 	}
 	m.cl = rpcClient
 
-	if vaErr := m.validateStorage(); vaErr != nil {
-		log.Warn("Torrent invalid storage")
+	errCh := make(chan error)
+
+	/*if vaErr := m.validateStorage(); vaErr != nil {
+		log.Error("Torrent invalid storage", "error", vaErr)
 		return vaErr
+	}*/
+	go m.validateStorage(errCh)
+
+	for {
+		select {
+		case err := <-errCh:
+			if err != nil {
+				//return err
+				log.Warn("Starting torrent fs ... ...", "error", err)
+				go m.validateStorage(errCh)
+			} else {
+				log.Info("Torrent fs validation passed")
+				//break
+				go m.listenLatestBlock()
+				return nil
+			}
+		}
 	}
 
 	// Used for listen latest block
@@ -345,12 +364,13 @@ func (m *Monitor) startWork() error {
 	//}
 
 	//go m.syncLastBlock()
-	go m.listenLatestBlock()
+	//go m.listenLatestBlock()
+	log.Warn("... ... ...")
 
 	return nil
 }
 
-func (m *Monitor) validateStorage() error {
+func (m *Monitor) validateStorage(errCh chan error) error {
 	m.lastNumber = m.fs.LastListenBlockNumber
 	end := uint64(0)
 
@@ -364,12 +384,14 @@ func (m *Monitor) validateStorage() error {
 		rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
 		if rpcErr != nil {
 			log.Warn("RPC ERROR", "error", rpcErr)
+			errCh <- rpcErr
 			return rpcErr
 		}
 
 		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
 			log.Warn("No block found", "number", i)
 			m.lastNumber = uint64(0)
+			errCh <- nil
 			return nil
 		}
 
@@ -377,6 +399,7 @@ func (m *Monitor) validateStorage() error {
 		if stBlock == nil {
 			log.Warn("Vaidate Torrent FS Storage state failed, rescan", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent", "dirty", m.fs.LastListenBlockNumber)
 			m.lastNumber = uint64(0)
+			errCh <- nil
 			return nil
 		}
 
@@ -388,10 +411,11 @@ func (m *Monitor) validateStorage() error {
 		// block in storage invalid
 		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash, "latest", m.fs.LastListenBlockNumber)
 		m.lastNumber = uint64(0)
+		errCh <- nil
 		return nil
 	}
 	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
-
+	errCh <- nil
 	return nil
 }
 
