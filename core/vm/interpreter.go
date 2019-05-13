@@ -60,6 +60,7 @@ type Config struct {
 	// opCall flag
 	CallFakeVM bool
 	StorageDir string
+	NoInfers   bool
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -215,11 +216,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 					//must in rawbytes if it is too small
 					//if modelMeta.RawSize <= params.MaxRawSize {
-						//if modelMeta.RawSize != uint64(len(modelMeta.RawBytes)) {
-							//return nil, ErrInvalidMetaRawSize
-						//}
+					//if modelMeta.RawSize != uint64(len(modelMeta.RawBytes)) {
+					//return nil, ErrInvalidMetaRawSize
+					//}
 					//} else {
-						//deal with the big model 
+					//deal with the big model
 					//}
 
 					if modelMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
@@ -235,9 +236,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					return nil, ErrInvalidMetaAuthor
 				}
 
-				if modelMeta.Gas > params.MODEL_GAS_LIMIT {
+				if modelMeta.Gas == uint64(0) {
 					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
-				} else if modelMeta.Gas < 0 {
+				} else if modelMeta.Gas > params.MODEL_GAS_LIMIT {
+					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
+				} else if int64(modelMeta.Gas) < 0 {
 					modelMeta.SetGas(0)
 				}
 
@@ -249,7 +252,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				} else {
 					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
-				log.Info("Model meta created", "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
+				log.Info("Model meta created", "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI, "number", in.evm.BlockNumber)
 			} else {
 				//log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
@@ -273,7 +276,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
 				//if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
-					//return nil, ErrInvalidMetaRawSize
+				//return nil, ErrInvalidMetaRawSize
 				//}
 				if inputMeta.RawSize > 0 { //&& inputMeta.RawSize <= params.MaxRawSize {
 					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {

@@ -191,7 +191,11 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		}
 	}
 	// Take ownership of this particular state
-	go bc.update()
+	if !vmConfig.NoInfers {
+		go bc.update()
+	} else {
+		log.Info("Mute mode invoked!!!")
+	}
 	return bc, nil
 }
 
@@ -874,7 +878,7 @@ var lastWrite uint64
 // WriteBlockWithoutState writes only the block and its metadata to the database,
 // but does not write any state. This is used to construct competing side forks
 // up to the point where they exceed the canonical total difficulty.
-func (bc *BlockChain) WriteBlockWithoutState(block *types.Block, td *big.Int) (err error) {
+func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (err error) {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -883,6 +887,23 @@ func (bc *BlockChain) WriteBlockWithoutState(block *types.Block, td *big.Int) (e
 	}
 	rawdb.WriteBlock(bc.db, block)
 
+	return nil
+}
+
+func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
+	bc.wg.Add(1)
+	defer bc.wg.Done()
+
+	current := bc.CurrentBlock()
+	if block.ParentHash() != current.Hash() {
+		if err := bc.reorg(current, block); err != nil {
+			return err
+		}
+	}
+	// Write the positional metadata for transaction/receipt lookups.
+	// Preimages here is empty, ignore it.
+	rawdb.WriteTxLookupEntries(bc.db, block)
+	bc.insert(block)
 	return nil
 }
 
@@ -1115,10 +1136,30 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 		switch {
 		case err == ErrKnownBlock:
+			var (
+				current  = bc.CurrentBlock()
+				localTd  = bc.GetTd(current.Hash(), current.NumberU64())
+				externTd = bc.GetTd(block.ParentHash(), block.NumberU64()-1) // The first block can't be nil
+			)
+
+			if block != nil {
+				externTd = new(big.Int).Add(externTd, block.Difficulty())
+				if localTd.Cmp(externTd) < 0 {
+					break
+				}
+			}
 			// Block and state both already known. However if the current block is below
 			// this number we did a rollback and we should reimport it nonetheless.
 			if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
 				stats.ignored++
+				continue
+			}
+
+			if block != nil {
+				if err := bc.writeKnownBlock(block); err != nil {
+					return i, nil, nil, err
+				}
+				lastCanon = block
 				continue
 			}
 
@@ -1145,7 +1186,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 			externTd := new(big.Int).Add(bc.GetTd(block.ParentHash(), block.NumberU64()-1), block.Difficulty())
 			if localTd.Cmp(externTd) > 0 {
-				if err = bc.WriteBlockWithoutState(block, externTd); err != nil {
+				if err = bc.writeBlockWithoutState(block, externTd); err != nil {
 					return i, events, coalescedLogs, err
 				}
 				continue
@@ -1210,7 +1251,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 		// log.Info("Quota initialized", "quota", block.Quota(), "used", block.QuotaUsed(), "txs", len(block.Transactions()), "parent", parent.Quota(), "parent used", parent.QuotaUsed())
 		// Process block using the parent state as reference point
-		log.Info("Block process ... ", "number", block.Number())
+		//log.Info("Block process ... ", "number", block.Number())
+		//	log.Info("current block", "number", bc.CurrentHeader().Number)
 		receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
 
 		if pErr != nil {
@@ -1292,7 +1334,7 @@ func (st *insertStats) report(chain []*types.Block, index int, cache common.Stor
 		)
 		context := []interface{}{
 			"blocks", st.processed, "txs", txs, "mgas", float64(st.usedGas) / 1000000,
-			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed),
+			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed), "tps", float64(st.usedGas) * 476 / float64(elapsed),
 			"number", end.Number(), "hash", end.Hash(), "cache", cache,
 		}
 		if st.queued > 0 {
@@ -1413,6 +1455,16 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	for _, tx := range diff {
 		rawdb.DeleteTxLookupEntry(batch, tx.Hash())
 	}
+
+	number := bc.CurrentBlock().NumberU64()
+	for i := number + 1; ; i++ {
+		hash := rawdb.ReadCanonicalHash(bc.db, i)
+		if hash == (common.Hash{}) {
+			break
+		}
+		rawdb.DeleteCanonicalHash(batch, i)
+	}
+
 	batch.Write()
 
 	if len(deletedLogs) > 0 {

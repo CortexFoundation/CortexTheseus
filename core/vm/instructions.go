@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	//"github.com/ethereum/go-ethereum/core"
 	"time"
 )
 
@@ -38,7 +39,7 @@ var (
 	errReturnDataOutOfBounds = errors.New("evm: return data out of bounds")
 	errExecutionReverted     = errors.New("evm: execution reverted")
 	errMetaInfoBlockNum      = errors.New("evm: meta info blocknum <= 0")
-	errMetaInfoNotMature     = errors.New("evm: errMetaInfoNotMature")
+	ErrMetaInfoNotMature     = errors.New("evm: errMetaInfoNotMature")
 	errMetaShapeNotMatch     = errors.New("evm: model&input shape not matched")
 	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
@@ -727,7 +728,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}
 
 	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
-		return nil, errMetaInfoNotMature
+		return nil, ErrMetaInfoNotMature
 	}
 
 	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
@@ -771,7 +772,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}*/
 
 	//todo model & input tfs validation
-	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex())
+	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
 
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -809,7 +810,7 @@ func checkModel(interpreter *EVMInterpreter, stack *Stack, modelAddr common.Addr
 		return nil, errExecutionReverted
 	}
 	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
-		return nil, errMetaInfoNotMature
+		return nil, ErrMetaInfoNotMature
 	}
 
 	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
@@ -849,7 +850,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 
 	output, err := interpreter.evm.InferArray(
 		modelMeta.Hash.Hex(),
-		inputBuff)
+		inputBuff, modelMeta.RawSize)
 
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())

@@ -76,6 +76,7 @@ var (
 	errUnknownPeer             = errors.New("peer is unknown or unhealthy")
 	errBadPeer                 = errors.New("action from bad peer ignored")
 	errStallingPeer            = errors.New("peer is stalling")
+	errUnsyncedPeer            = errors.New("unsynced peer")
 	errNoPeers                 = errors.New("no peers to keep download active")
 	errTimeout                 = errors.New("timeout")
 	errEmptyHeaderSet          = errors.New("empty header set by peer")
@@ -100,6 +101,9 @@ var (
 type Downloader struct {
 	mode SyncMode       // Synchronisation mode defining the strategy used (per sync cycle)
 	mux  *event.TypeMux // Event multiplexer to announce sync operation events
+
+	checkpoint uint64 // Checkpoint block number to enforce head against (e.g. fast sync)
+	genesis    uint64
 
 	queue   *queue   // Scheduler for selecting the hashes to download
 	peers   *peerSet // Set of active peers from which download can proceed
@@ -153,7 +157,7 @@ type Downloader struct {
 	bodyFetchHook    func([]*types.Header) // Method to call upon starting a block body fetch
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
-	noInfers bool
+	noInfers         bool
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -204,7 +208,7 @@ type BlockChain interface {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn, noinfers bool) *Downloader {
+func New(mode SyncMode, checkpoint uint64, stateDb ethdb.Database, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn, noinfers bool) *Downloader {
 	if lightchain == nil {
 		lightchain = chain
 	}
@@ -213,6 +217,7 @@ func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockC
 		mode:           mode,
 		stateDB:        stateDb,
 		mux:            mux,
+		checkpoint:     checkpoint,
 		queue:          newQueue(),
 		peers:          newPeerSet(),
 		rttEstimate:    uint64(rttMaxEstimate),
@@ -233,7 +238,7 @@ func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockC
 			processed: rawdb.ReadFastTrieProgress(stateDb),
 		},
 		trackStateReq: make(chan *stateReq),
-		noInfers: noinfers,
+		noInfers:      noinfers,
 	}
 	go dl.qosTuner()
 	go dl.stateFetcher()
@@ -326,7 +331,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 	case nil:
 	case errBusy:
 
-	case errTimeout, errBadPeer, errStallingPeer,
+	case errTimeout, errBadPeer, errStallingPeer, errUnsyncedPeer,
 		errEmptyHeaderSet, errPeersUnavailable, errTooOld,
 		errInvalidAncestor, errInvalidChain:
 		log.Warn("Synchronisation failed, dropping peer", "peer", id, "err", err)
@@ -411,7 +416,9 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.Int) (err error) {
-	if d.noInfers { fsMinFullBlocks = 0 }
+	if d.noInfers {
+		fsMinFullBlocks = 0
+	}
 	d.mux.Post(StartEvent{})
 	defer func() {
 		// reset on error
@@ -580,6 +587,10 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.Header, error) {
 				return nil, errBadPeer
 			}
 			head := headers[0]
+			if d.mode == FastSync && head.Number.Uint64() < d.checkpoint {
+				p.log.Warn("Remote head below checkpoint", "number", head.Number, "hash", head.Hash())
+				return nil, errUnsyncedPeer
+			}
 			p.log.Debug("Remote head header identified", "number", head.Number, "hash", head.Hash())
 			return head, nil
 
@@ -798,6 +809,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 		}
 	}
 	// Start pulling the header chain skeleton until all is done
+	ancestor := from
 	getHeaders(from)
 
 	for {
@@ -867,6 +879,9 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 						if full := d.blockchain.CurrentBlock().NumberU64(); head < full {
 							head = full
 						}
+					}
+					if head < ancestor {
+						head = ancestor
 					}
 					// If the head is way older than this batch, delay the last few headers
 					if head+uint64(reorgProtThreshold) < headers[n-1].Number.Uint64() {
@@ -1422,7 +1437,9 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 // processFastSyncContent takes fetch results from the queue and writes them to the
 // database. It also controls the synchronisation of state nodes of the pivot block.
 func (d *Downloader) processFastSyncContent(latest *types.Header) error {
-	 if d.noInfers { fsMinFullBlocks = 0 }
+	if d.noInfers {
+		fsMinFullBlocks = 0
+	}
 	// Start syncing state of the reported head block. This should get us most of
 	// the state of the pivot block.
 	stateSync := d.syncState(latest.Root)
@@ -1508,9 +1525,12 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 				continue
 			}
 		}
-		// Fast sync done, pivot commit done, full import
-		if err := d.importBlockResults(afterP); err != nil {
-			return err
+
+		if !d.noInfers {
+			// Fast sync done, pivot commit done, full import
+			if err := d.importBlockResults(afterP); err != nil {
+				return err
+			}
 		}
 	}
 }

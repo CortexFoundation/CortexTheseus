@@ -22,6 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -29,9 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/inference/synapse"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	//"github.com/ethereum/go-ethereum/torrentfs"
-	"errors"
-	"fmt"
+	"github.com/ethereum/go-ethereum/torrentfs"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -94,8 +94,9 @@ type Context struct {
 	Coinbase    common.Address // Provides information for COINBASE
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int       // Provides information for TIME
-	Difficulty  *big.Int       // Provides information for DIFFICULTY
+	PeekNumber  *big.Int
+	Time        *big.Int // Provides information for TIME
+	Difficulty  *big.Int // Provides information for DIFFICULTY
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -496,9 +497,81 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
+const interv = 15
+
+func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
+	street := big.NewInt(0).Sub(evm.PeekNumber, evm.BlockNumber)
+	point := big.NewInt(time.Now().Add(confirmTime).Unix())
+	if point.Cmp(evm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
+		cost := big.NewInt(0)
+		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
+		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
+			if !torrentfs.ExistTorrent(meta, dir) {
+				log.Warn("Inference synchronizing ... ...", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber, "street", street)
+				cost.Add(cost, big.NewInt(interv))
+				time.Sleep(time.Second * interv)
+				continue
+			} else {
+				errCh <- nil
+				return
+			}
+		}
+		log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", evm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
+	} else {
+		if !torrentfs.Exist(meta, dir) {
+			log.Warn("Data not exist", "address", meta.Hex(), "number", evm.BlockNumber, "current", evm.BlockNumber, "meta", meta, "storage", dir)
+			errCh <- synapse.ErrModelFileNotExist
+			return
+		} else {
+			errCh <- nil
+			return
+		}
+	}
+
+	if !torrentfs.Exist(meta, dir) {
+		log.Warn("Data not exist", "address", meta.Hex(), "number", evm.BlockNumber, "current", evm.BlockNumber, "meta", meta, "storage", dir)
+		errCh <- synapse.ErrModelFileNotExist
+		return
+	} else {
+		errCh <- nil
+		return
+	}
+
+	//log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", evm.BlockNumber, "meta", meta, "storage", dir, "street", street)
+	//errCh <- synapse.ErrModelFileNotExist
+	//return
+}
+
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
+func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (uint64, error) {
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
+
+	modelErrCh := make(chan error)
+	inputErrCh := make(chan error)
+
+	go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
+	go evm.DataSync(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, inputErrCh)
+
+	for i := 0; i < 2; i++ {
+		select {
+		case err := <-modelErrCh:
+			if err != nil {
+				return 0, err
+			}
+		case err := <-inputErrCh:
+			if err != nil {
+				return 0, err
+			}
+		}
+	}
+
+	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
+		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
+	}
+
+	if !torrentfs.Available(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, int64(inputRawSize)) {
+		return 0, errors.New("Torrent file input not available, blockchain and torrent not match")
+	}
 
 	var (
 		inferRes []byte
@@ -522,9 +595,23 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string) (uint64, error) {
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte) (uint64, error) {
+func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (uint64, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", evm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
+
+	modelErrCh := make(chan error)
+	go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
+
+	select {
+	case err := <-modelErrCh:
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
+		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
+	}
 
 	var (
 		inferRes []byte

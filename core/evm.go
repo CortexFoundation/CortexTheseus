@@ -34,6 +34,8 @@ type ChainContext interface {
 
 	// GetHeader returns the hash corresponding to their hash.
 	GetHeader(common.Hash, uint64) *types.Header
+
+	CurrentHeader() *types.Header
 }
 
 // NewEVMContext creates a new context for use in the EVM.
@@ -52,6 +54,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		Origin:      msg.From(),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
+		PeekNumber:  new(big.Int).Set(chain.CurrentHeader().Number),
 		Time:        new(big.Int).Set(header.Time),
 		Difficulty:  new(big.Int).Set(header.Difficulty),
 		GasLimit:    header.GasLimit,

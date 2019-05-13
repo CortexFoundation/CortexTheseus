@@ -152,10 +152,15 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	PriceLimit: 1,
 	PriceBump:  10,
 
-	AccountSlots: 16,
-	GlobalSlots:  4096,
-	AccountQueue: 64,
-	GlobalQueue:  1024,
+	//AccountSlots: 16,
+	//GlobalSlots:  4096,
+	//AccountQueue: 64,
+	//GlobalQueue:  1024,
+
+	AccountSlots: 32,
+        GlobalSlots:  8192,
+        AccountQueue: 128,
+        GlobalQueue:  2048,
 
 	Lifetime: 3 * time.Hour,
 }
@@ -389,7 +394,6 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 		if depth := uint64(math.Abs(float64(oldNum) - float64(newNum))); depth > 64 {
 			log.Debug("Skipping deep transaction reorg", "depth", depth)
 		} else {
-			// Reorg seems shallow enough to pull in all transactions into memory
 			var discarded, included types.Transactions
 
 			var (
@@ -397,17 +401,11 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 				add = pool.chain.GetBlock(newHead.Hash(), newHead.Number.Uint64())
 			)
 
-			if rem == nil {
-				// This can happen if a setHead is performed, where we simply discard the old
-				// head from the chain.
-				// If that is the case, we don't have the lost transactions any more, and
-				// there's nothing to add
+			if rem == nil || add == nil {
 				if newNum < oldNum {
-					// If the reorg ended up on a lower number, it's indicative of setHead being the cause
 					log.Debug("Skipping transaction reset caused by setHead",
 						"old", oldHead.Hash(), "oldnum", oldNum, "new", newHead.Hash(), "newnum", newNum)
 				} else {
-					// If we reorged to a same or higher number, then it's not a case of setHead
 					log.Warn("Transaction pool reset with missing oldhead",
 						"old", oldHead.Hash(), "oldnum", oldNum, "new", newHead.Hash(), "newnum", newNum)
 				}
@@ -421,6 +419,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 					return
 				}
 			}
+
 			for add.NumberU64() > rem.NumberU64() {
 				included = append(included, add.Transactions()...)
 				if add = pool.chain.GetBlock(add.ParentHash(), add.NumberU64()-1); add == nil {
@@ -428,6 +427,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 					return
 				}
 			}
+
 			for rem.Hash() != add.Hash() {
 				discarded = append(discarded, rem.Transactions()...)
 				if rem = pool.chain.GetBlock(rem.ParentHash(), rem.NumberU64()-1); rem == nil {

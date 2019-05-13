@@ -46,8 +46,8 @@ var DefaultConfig = Config{
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
-	MinerGasFloor: 8000000,
-	MinerGasCeil:  16000000,
+	MinerGasFloor: params.MinerGasFloor, //8000000,
+	MinerGasCeil:  params.MinerGasCeil,  //8000000,
 	MinerGasPrice: big.NewInt(params.GWei),
 	MinerRecommit: 3 * time.Second,
 
@@ -83,6 +83,8 @@ type Config struct {
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
 	SyncMode  downloader.SyncMode
 	NoPruning bool
+
+	Whitelist map[uint64]common.Hash `toml:"-"`
 
 	// Light client options
 	LightServ  int `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests

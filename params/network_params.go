@@ -34,6 +34,7 @@ const (
 
 	// CHTFrequencyClient is the block frequency for creating CHTs on the client side.
 	CHTFrequencyClient = 32768
+	CHTFrequency       = 32768
 
 	// CHTFrequencyServer is the block frequency for creating CHTs on the server side.
 	// Eventually this can be merged back with the client version, but that requires a

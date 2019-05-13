@@ -71,7 +71,7 @@ var (
 		// utils.EthashDatasetsOnDiskFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
-		utils.TxPoolNoInfersFlag,
+		//utils.TxPoolNoInfersFlag,
 		utils.TxPoolJournalFlag,
 		utils.TxPoolRejournalFlag,
 		utils.TxPoolPriceLimitFlag,

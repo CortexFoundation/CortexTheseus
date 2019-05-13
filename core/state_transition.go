@@ -28,7 +28,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/core/asm"
+	//"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/torrentfs"
+	"time"
 )
 
 var (
@@ -180,6 +182,7 @@ func (st *StateTransition) buyGas() error {
 	return nil
 }
 
+var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
@@ -194,12 +197,12 @@ func (st *StateTransition) preCheck() error {
 	if st.uploading() {
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
 			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
 		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
 			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
@@ -211,16 +214,63 @@ func (st *StateTransition) preCheck() error {
 		meta, err := st.evm.GetMetaHash(st.to())
 		if err != nil {
 			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
-			return ErrQuotaLimitReached
+			return ErrUnhandleTx
 		}
 
-		if !torrentfs.ExistTmp(meta, st.evm.Config().StorageDir) {
-			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta)
-			return ErrQuotaLimitReached
+		errCh := make(chan error)
+		go st.TorrentSync(meta, st.evm.Config().StorageDir, errCh)
+		select {
+		case err := <-errCh:
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return st.buyGas()
+}
+
+const interv = 15
+
+func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
+	street := big.NewInt(0).Sub(st.evm.PeekNumber, st.evm.BlockNumber)
+	point := big.NewInt(time.Now().Add(confirmTime).Unix())
+	if point.Cmp(st.evm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
+		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
+		cost := big.NewInt(0)
+		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
+			if !torrentfs.ExistTorrent(meta, dir) {
+				log.Warn("Torrent synchronizing ... ...", "tvm", st.evm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber, "cost", cost, "peek", st.evm.PeekNumber, "street", street)
+				cost.Add(cost, big.NewInt(interv))
+				time.Sleep(time.Second * interv)
+				continue
+			} else {
+				log.Debug("Torrent has been found", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "cost", cost)
+				errCh <- nil
+				return
+			}
+		}
+
+		log.Error("Torrent synchronized timeout", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
+	} else {
+		if !torrentfs.ExistTorrent(meta, dir) {
+			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
+			errCh <- ErrUnhandleTx
+			return
+		} else {
+			errCh <- nil
+			return
+		}
+	}
+
+	if !torrentfs.ExistTorrent(meta, dir) {
+		log.Error("Torrent synchronized failed", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "street", street)
+		errCh <- ErrUnhandleTx
+		return
+	} else {
+		errCh <- nil
+		return
+	}
 }
 
 // TransitionDb will transition the state by applying the current message and
@@ -231,6 +281,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if err = st.preCheck(); err != nil {
 		return
 	}
+
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
@@ -284,7 +335,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		if vmerr == vm.ErrInsufficientBalance {
 			return nil, 0, big0, false, vmerr
 		}
+
+		if vmerr == vm.ErrMetaInfoNotMature {
+			return nil, 0, big0, false, vmerr
+		}
 	}
+
+	//gas cost below this line
 
 	st.refundGas()
 	//model gas
@@ -339,7 +396,7 @@ func Max(x, y *big.Int) *big.Int {
 }
 
 func (st *StateTransition) uploading() bool {
-	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) && st.gas >= params.UploadGas
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() {

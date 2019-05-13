@@ -11,11 +11,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/boltdb/bolt"
-
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/boltdb/bolt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -61,6 +61,7 @@ type FileStorage struct {
 	bnLock    sync.Mutex
 	opCounter MutexCounter
 	dataDir   string
+	//tmpCache  *lru.Cache
 }
 
 func NewFileStorage(config *Config) (*FileStorage, error) {
@@ -85,6 +86,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir:           config.DataDir,
 	}
 	fs.readBlockNumber()
+	//tmpCache, _ := lru.New(120)
 
 	return fs, nil
 }
@@ -105,26 +107,101 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 	return nil
 }
 
-func Exist(addr common.Address, dataDir string) bool {
+const (
+	limit = 120
+)
 
-	hash := strings.ToLower(string(addr.Hex()[2:]))
+var (
+	torrentCache, _   = lru.New(limit)
+	dataCache, _      = lru.New(limit)
+	availableCache, _ = lru.New(limit)
+)
+
+func Exist(md5 common.Address, dataDir string) bool {
+
+	if dataCache.Contains(md5) {
+		log.Info("Data cache hit !!!", "md5", md5, "size", dataCache.Len(), "limit", limit)
+		return true //dataCache.Get(md5)
+	}
+
+	hash := strings.ToLower(string(md5.Hex()[2:]))
 	inputDir := dataDir + "/" + hash
 	inputFilePath := inputDir + "/data"
 	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
 		return false
 	}
 
+	dataCache.Add(md5, true)
+
 	return true
 }
 
-func ExistTmp(addr common.Address, dataDir string) bool {
+func Available(md5 common.Address, dataDir string, rawSize int64) bool {
+	//cfg := torrent.NewDefaultClientConfig()
+	//cl, err := torrent.NewClient(cfg)
+	//if err != nil {
+	//	return false
+	//}
+	if availableCache.Contains(md5) {
+		log.Info("Available cache hit !!!", "md5", md5, "size", availableCache.Len(), "raw", rawSize, "limit", limit)
+		if length, ok := availableCache.Get(md5); ok {
+			return length.(int64) <= rawSize
+		} else {
+			//return false
+			log.Warn("Available cache purge", "md5", md5, "raw", rawSize)
+			availableCache.Purge()
+		}
+	}
 
-	hash := strings.ToLower(string(addr.Hex()[2:]))
+	hash := strings.ToLower(string(md5.Hex()[2:]))
+	torrentDir := dataDir + "/" + hash
+	torrentFilePath := torrentDir + "/torrent"
+
+	if _, fsErr := os.Stat(torrentFilePath); os.IsNotExist(fsErr) {
+		log.Warn("Torrent dir not exist", "dir", dataDir, "md5", md5.Hex(), "rawSize", rawSize)
+		return false
+	}
+
+	metaInfo, err := metainfo.LoadFromFile(torrentFilePath)
+	if err != nil || metaInfo == nil {
+		log.Warn("Torrent read meta info failed", "dir", dataDir, "md5", md5.Hex(), "rawSize", rawSize, "metaInfo", metaInfo)
+		return false
+	}
+
+	info, err := metaInfo.UnmarshalInfo()
+	if err != nil {
+		log.Warn("Torrent read meta info failed", "dir", dataDir, "md5", md5.Hex(), "rawSize", rawSize, "info", info)
+		return false
+	}
+
+	log.Info("Torrent metainfo", "hash", md5.Hex(), "length", info.Length)
+
+	if info.Length > rawSize {
+		log.Info("Torrent metainfo use a invalid metafile", "hash", md5.Hex(), "rawSize", rawSize, "length", info.Length)
+		availableCache.Add(md5, info.Length)
+		return false
+	}
+
+	availableCache.Add(md5, info.Length)
+
+	return true
+}
+
+func ExistTorrent(md5 common.Address, dataDir string) bool {
+
+	if torrentCache.Contains(md5) {
+		log.Info("Torrent cache hit !!!", "md5", md5, "size", torrentCache.Len(), "limit", limit)
+		return true //torrentCache.Get(md5)
+	}
+
+	hash := strings.ToLower(string(md5.Hex()[2:]))
 	inputDir := dataDir + "/.tmp/" + hash
 	inputFilePath := inputDir + "/torrent"
 	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
 		return false
 	}
+
+	torrentCache.Add(md5, true)
 
 	return true
 }
@@ -210,9 +287,11 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 		return e
 	})
 
-	if err == nil && b.Number > fs.LastListenBlockNumber {
+	//if err == nil && b.Number > fs.LastListenBlockNumber {
+	if err == nil {
 		fs.bnLock.Lock()
 		fs.LastListenBlockNumber = b.Number
+		fs.writeBlockNumber()
 		fs.bnLock.Unlock()
 	}
 
