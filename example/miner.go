@@ -101,7 +101,7 @@ func main() {
 	var reqLogin = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
-		Method:  "eth_submitLogin",
+		Method:  "ctxc_submitLogin",
 		Params:  []string{"0xc3d7a1ef810983847510542edfd5bc5551a6321c"},
 	}
 	write(reqLogin, conn)
@@ -174,7 +174,7 @@ func main() {
 			var reqSubmit = ReqObj{
 				Id:      73,
 				Jsonrpc: "2.0",
-				Method:  "eth_submitWork",
+				Method:  "ctxc_submitWork",
 				Params:  []string{sol.Nonce, sol.Header, sol.Solution},
 			}
 			write(reqSubmit, conn)
@@ -183,7 +183,7 @@ func main() {
 			var reqGetwork = ReqObj{
 				Id:      73,
 				Jsonrpc: "2.0",
-				Method:  "eth_getWork",
+				Method:  "ctxc_getWork",
 				Params:  []string{""},
 			}
 			write(reqGetwork, conn)

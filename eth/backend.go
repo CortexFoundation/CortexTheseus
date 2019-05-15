@@ -278,17 +278,17 @@ func (s *Cortex) APIs() []rpc.API {
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicCortexAPI(s),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicMinerAPI(s),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
@@ -298,7 +298,7 @@ func (s *Cortex) APIs() []rpc.API {
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
 			Public:    true,
@@ -322,27 +322,27 @@ func (s *Cortex) APIs() []rpc.API {
 			Public:    true,
 		},
 
-		{
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicCortexAPI(s),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicMinerAPI(s),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
-			Public:    true,
-		},
+		// {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicCortexAPI(s),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicMinerAPI(s),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
+		// 	Public:    true,
+		// },
 	}...)
 }
 

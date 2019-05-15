@@ -221,24 +221,24 @@ func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 	// to both ctxc and cuckoo namespaces.
 	return []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   &API{cuckoo},
 			Public:    true,
 		},
-		{
-			Namespace: "ethash",
-			Version:   "1.0",
-			Service:   &API{cuckoo},
-			Public:    true,
-		},
+		// {
+		// 	Namespace: "ethash",
+		// 	Version:   "1.0",
+		// 	Service:   &API{cuckoo},
+		// 	Public:    true,
+		// },
 
-		{
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   &API{cuckoo},
-			Public:    true,
-		},
+		// {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   &API{cuckoo},
+		// 	Public:    true,
+		// },
 	}
 }
 

@@ -75,17 +75,17 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 	nonceLock := new(AddrLocker)
 	return []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicCortexAPI(apiBackend),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicBlockChainAPI(apiBackend, vmConfig),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
 			Public:    true,
@@ -104,7 +104,7 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(apiBackend),
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
 			Public:    true,
@@ -115,26 +115,26 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 			Public:    false,
 		},
 
-		{
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicCortexAPI(apiBackend),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicBlockChainAPI(apiBackend, vmConfig),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
-			Public:    true,
-		},
+		// {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicCortexAPI(apiBackend),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicBlockChainAPI(apiBackend, vmConfig),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
+		// 	Public:    true,
+		// },
 	}
 }

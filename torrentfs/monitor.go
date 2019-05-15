@@ -120,7 +120,7 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 
 	for i := 0; i < fetchBlockTryTimes; i++ {
-		err := m.cl.Call(block, "eth_getBlockByNumber", blockNumberHex, true)
+		err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
 		if err == nil {
 			return block, nil
 		}
@@ -136,7 +136,7 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	block := &Block{}
 
 	for i := 0; i < fetchBlockTryTimes; i++ {
-		err := m.cl.Call(block, "eth_getBlockByHash", blockHash, true)
+		err := m.cl.Call(block, "ctxc_getBlockByHash", blockHash, true)
 		if err == nil {
 			return block, nil
 		}
@@ -177,7 +177,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	m.dl.NewTorrent(meta.URI)
 
 	var receipt TxReceipt
-	if err := m.cl.Call(&receipt, "eth_getTransactionReceipt", tx.Hash.String()); err != nil {
+	if err := m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx.Hash.String()); err != nil {
 		return err
 	}
 
@@ -198,7 +198,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	}
 
 	var _remainingSize string
-	if err := m.cl.Call(&_remainingSize, "eth_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
+	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
 		return err
 	}
@@ -242,7 +242,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				}
 
 				var remainingSize hexutil.Uint64
-				if err := m.cl.Call(&remainingSize, "eth_getUpload", addr.String(), "latest"); err != nil {
+				if err := m.cl.Call(&remainingSize, "ctxc_getUpload", addr.String(), "latest"); err != nil {
 					log.Warn("Failed call get upload", "addr", addr.String(), "tx", tx.Hash.Hex(), "number", b.Number)
 					return err
 				}
@@ -271,7 +271,7 @@ func (m *Monitor) Stop() {
 	close(m.exitCh)
 
 	// var stopFilterFlag bool
-	//if blockFilterErr := m.cl.Call(&stopFilterFlag, "eth_uninstallFilter", m.listenID); blockFilterErr != nil {
+	//if blockFilterErr := m.cl.Call(&stopFilterFlag, "ctxc_uninstallFilter", m.listenID); blockFilterErr != nil {
 	// log.Error("Block Filter closed | IPC ctxc_uninstallFilter", "error", blockFilterErr)
 	//}
 
@@ -360,7 +360,7 @@ func (m *Monitor) startWork() error {
 	}
 
 	// Used for listen latest block
-	//if blockFilterErr := m.cl.Call(&m.listenID, "eth_newBlockFilter"); blockFilterErr != nil {
+	//if blockFilterErr := m.cl.Call(&m.listenID, "ctxc_newBlockFilter"); blockFilterErr != nil {
 	//	log.Error("Start listen block filter | IPC ctxc_newBlockFilter", "error", blockFilterErr)
 	//	return blockFilterErr
 	//}
@@ -437,7 +437,7 @@ func (m *Monitor) listenLatestBlock() {
 	/*blockFilter := func() {
 		log.Info("Torrent listen latest block status")
 		var blockHashes []string
-		if changeErr := m.cl.Call(&blockHashes, "eth_getFilterChanges", m.listenID); changeErr != nil {
+		if changeErr := m.cl.Call(&blockHashes, "ctxc_getFilterChanges", m.listenID); changeErr != nil {
 			log.Error("Listen latest block | IPC ctx_getFilterChanges", "error", changeErr)
 			return
 		}
@@ -493,7 +493,7 @@ func (m *Monitor) syncLastBlock() {
 	// Latest block number
 	var currentNumber hexutil.Uint64
 
-	if err := m.cl.Call(&currentNumber, "eth_blockNumber"); err != nil {
+	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
 		log.Error("Sync old block | IPC ctx_blockNumber", "error", err)
 		return
 	}

@@ -120,7 +120,7 @@ func (cm* Cortex)Login() {
 	var reqLogin = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
-		Method:  "eth_submitLogin",
+		Method:  "ctxc_submitLogin",
 		Params:  []string{cm.account},
 	}
 	cm.write(reqLogin)
@@ -132,7 +132,7 @@ func (cm* Cortex)getWork() {
 	req := ReqObj{
 	Id:      100,
 	Jsonrpc: "2.0",
-	Method:  "eth_getWork",
+	Method:  "ctxc_getWork",
 	Params:  []string{""},
 	}
 	cm.write(req)
@@ -143,7 +143,7 @@ func (cm* Cortex)submit(sol Task) {
 	var reqSubmit = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
-		Method:  "eth_submitWork",
+		Method:  "ctxc_submitWork",
 		Params:  []string{sol.Nonce, sol.Header, sol.Solution},
 	}
 	cm.write(reqSubmit)

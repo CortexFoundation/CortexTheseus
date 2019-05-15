@@ -185,17 +185,17 @@ func (s *LightDummyAPI) Mining() bool {
 func (s *LightCortex) APIs() []rpc.API {
 	return append(ctxcapi.GetAPIs(s.ApiBackend, vm.Config{InferURI: s.config.InferURI}), []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   &LightDummyAPI{},
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   filters.NewPublicFilterAPI(s.ApiBackend, true),
 			Public:    true,
@@ -206,22 +206,22 @@ func (s *LightCortex) APIs() []rpc.API {
 			Public:    true,
 		},
 
-		{
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   &LightDummyAPI{},
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.ApiBackend, true),
-			Public:    true,
-		},
+		// {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   &LightDummyAPI{},
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   filters.NewPublicFilterAPI(s.ApiBackend, true),
+		// 	Public:    true,
+		// },
 	}...)
 }
 
