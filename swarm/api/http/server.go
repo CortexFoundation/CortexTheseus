@@ -36,12 +36,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/swarm/api"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	"github.com/ethereum/go-ethereum/swarm/storage"
-	"github.com/ethereum/go-ethereum/swarm/storage/mru"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
+	"github.com/CortexFoundation/CortexTheseus/swarm/api"
+	"github.com/CortexFoundation/CortexTheseus/swarm/log"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage/mru"
 
 	"github.com/rs/cors"
 )

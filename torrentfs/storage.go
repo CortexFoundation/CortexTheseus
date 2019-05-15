@@ -13,8 +13,8 @@ import (
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/boltdb/bolt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	lru "github.com/hashicorp/golang-lru"
 )
 

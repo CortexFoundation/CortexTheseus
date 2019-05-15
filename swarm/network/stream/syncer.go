@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	"github.com/ethereum/go-ethereum/swarm/storage"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
+	"github.com/CortexFoundation/CortexTheseus/swarm/log"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage"
 )
 
 const (

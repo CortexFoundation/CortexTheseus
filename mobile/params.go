@@ -21,9 +21,9 @@ package geth
 import (
 	"encoding/json"
 
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/p2p/discv5"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discv5"
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 // MainnetGenesis returns the JSON spec to use for the main Ethereum network. It

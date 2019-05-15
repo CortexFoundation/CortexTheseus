@@ -9,8 +9,8 @@ import (
 	"strings"
 	"strconv"
 	"sync"
-	"github.com/ethereum/go-ethereum/PoolMiner/cortexminer"
-	"github.com/ethereum/go-ethereum/PoolMiner/config"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/cortexminer"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
 )
 
 func init() {

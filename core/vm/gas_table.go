@@ -19,9 +19,9 @@ package vm
 import (
 	_ "fmt"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 // memoryGasCosts calculates the quadratic gas for memory expansion. It does so

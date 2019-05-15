@@ -25,8 +25,8 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 func verify(t *testing.T, jsondata, calldata string, exp []interface{}) {

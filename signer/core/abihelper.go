@@ -22,8 +22,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
+	"github.com/CortexFoundation/CortexTheseus/common"
 
 	"bytes"
 	"os"

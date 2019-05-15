@@ -24,8 +24,8 @@ import (
 
 	"strings"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	// "github.com/ethereum/go-ethereum/internal/debug"
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	// "github.com/CortexFoundation/CortexTheseus/internal/debug"
 	"gopkg.in/urfave/cli.v1"
 )
 

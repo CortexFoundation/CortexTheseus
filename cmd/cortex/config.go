@@ -27,13 +27,13 @@ import (
 
 	cli "gopkg.in/urfave/cli.v1"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/dashboard"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/torrentfs"
-	whisper "github.com/ethereum/go-ethereum/whisper/whisperv6"
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	"github.com/CortexFoundation/CortexTheseus/dashboard"
+	"github.com/CortexFoundation/CortexTheseus/eth"
+	"github.com/CortexFoundation/CortexTheseus/node"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
 

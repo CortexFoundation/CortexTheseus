@@ -22,14 +22,14 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/inference/synapse"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	//"github.com/ethereum/go-ethereum/core/asm"
-	//"github.com/ethereum/go-ethereum/common/mclock"
-	"github.com/ethereum/go-ethereum/torrentfs"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	//"github.com/CortexFoundation/CortexTheseus/core/asm"
+	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"time"
 )
 

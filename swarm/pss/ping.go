@@ -23,9 +23,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/protocols"
-	"github.com/ethereum/go-ethereum/swarm/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/protocols"
+	"github.com/CortexFoundation/CortexTheseus/swarm/log"
 )
 
 // Generic ping protocol implementation for

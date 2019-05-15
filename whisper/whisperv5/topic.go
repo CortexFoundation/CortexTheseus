@@ -19,8 +19,8 @@
 package whisperv5
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 )
 
 // TopicType represents a cryptographically secure, probabilistic partial

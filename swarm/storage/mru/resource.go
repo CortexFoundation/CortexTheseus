@@ -21,7 +21,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethereum/go-ethereum/swarm/storage"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage"
 )
 
 const (

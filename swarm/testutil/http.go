@@ -23,9 +23,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/swarm/api"
-	"github.com/ethereum/go-ethereum/swarm/storage"
-	"github.com/ethereum/go-ethereum/swarm/storage/mru"
+	"github.com/CortexFoundation/CortexTheseus/swarm/api"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage/mru"
 )
 
 type TestServer interface {

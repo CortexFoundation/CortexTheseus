@@ -20,9 +20,9 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/ethereum/go-ethereum/swarm/chunk"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	"github.com/ethereum/go-ethereum/swarm/multihash"
+	"github.com/CortexFoundation/CortexTheseus/swarm/chunk"
+	"github.com/CortexFoundation/CortexTheseus/swarm/log"
+	"github.com/CortexFoundation/CortexTheseus/swarm/multihash"
 )
 
 // resourceUpdate encapsulates the information sent as part of a resource update

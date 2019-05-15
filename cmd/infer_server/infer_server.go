@@ -9,10 +9,10 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/inference"
-	"github.com/ethereum/go-ethereum/inference/synapse"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/CortexFoundation/CortexTheseus/inference"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
 var (

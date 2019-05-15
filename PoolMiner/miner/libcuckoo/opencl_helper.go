@@ -18,9 +18,9 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"time"
-	"github.com/ethereum/go-ethereum/PoolMiner/config"
-	"github.com/ethereum/go-ethereum/PoolMiner/common"
-	"github.com/ethereum/go-ethereum/PoolMiner/crypto"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/common"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/crypto"
 )
 
 func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (nedges uint32) {

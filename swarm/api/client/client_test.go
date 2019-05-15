@@ -25,13 +25,13 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/swarm/api"
-	swarmhttp "github.com/ethereum/go-ethereum/swarm/api/http"
-	"github.com/ethereum/go-ethereum/swarm/multihash"
-	"github.com/ethereum/go-ethereum/swarm/storage/mru"
-	"github.com/ethereum/go-ethereum/swarm/testutil"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/swarm/api"
+	swarmhttp "github.com/CortexFoundation/CortexTheseus/swarm/api/http"
+	"github.com/CortexFoundation/CortexTheseus/swarm/multihash"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage/mru"
+	"github.com/CortexFoundation/CortexTheseus/swarm/testutil"
 )
 
 func serverFunc(api *api.API) testutil.TestServer {

@@ -21,9 +21,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/swarm/storage/encryption"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage/encryption"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 func TestHasherStore(t *testing.T) {

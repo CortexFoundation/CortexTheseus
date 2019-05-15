@@ -24,8 +24,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common/compiler"
+	"github.com/CortexFoundation/CortexTheseus/accounts/abi/bind"
+	"github.com/CortexFoundation/CortexTheseus/common/compiler"
 )
 
 var (

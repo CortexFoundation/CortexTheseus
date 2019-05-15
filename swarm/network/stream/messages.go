@@ -21,11 +21,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	bv "github.com/ethereum/go-ethereum/swarm/network/bitvector"
-	"github.com/ethereum/go-ethereum/swarm/spancontext"
-	"github.com/ethereum/go-ethereum/swarm/storage"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
+	"github.com/CortexFoundation/CortexTheseus/swarm/log"
+	bv "github.com/CortexFoundation/CortexTheseus/swarm/network/bitvector"
+	"github.com/CortexFoundation/CortexTheseus/swarm/spancontext"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage"
 	opentracing "github.com/opentracing/opentracing-go"
 )
 
