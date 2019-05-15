@@ -585,7 +585,7 @@ func (m *Monitor) syncLastBlock() {
 		//}
 	}
 	m.lastNumber = maxNumber
-	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
+	log.Debug("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
 }
 
 func (m *Monitor) parseAndStore(block *Block, flow bool) error {

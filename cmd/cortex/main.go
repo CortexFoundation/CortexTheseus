@@ -100,7 +100,6 @@ var (
 		utils.MaxPendingPeersFlag,
 		utils.MiningEnabledFlag,
 		utils.MinerThreadsFlag,
-		// utils.MinerLegacyThreadsFlag,
 		utils.MinerNotifyFlag,
 		utils.MinerGasTargetFlag,
 		// utils.MinerLegacyGasTargetFlag,
@@ -357,12 +356,13 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		}
 		cortex.TxPool().SetGasPrice(gasprice)
 
-		// threads := ctx.GlobalInt(utils.MinerLegacyThreadsFlag.Name)
-		// if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
-		// 	threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
-		// }
-		if err := cortex.StartMining(1); err != nil {
+		threads := ctx.GlobalInt(utils.MinerThreadsFlag.Name)
+		if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
+			threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
+		}
+		if err := ethereum.StartMining(threads); err != nil {
 			utils.Fatalf("Failed to start mining: %v", err)
 		}
+
 	}
 }
