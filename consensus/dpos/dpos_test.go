@@ -5,10 +5,10 @@ import (
 
 	"encoding/binary"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +38,7 @@ var (
 	}
 )
 
-func mockNewDposContext(db ethdb.Database) *types.DposContext {
+func mockNewDposContext(db ctxcdb.Database) *types.DposContext {
 	dposContext, err := types.NewDposContextFromProto(db, &types.DposContextProto{})
 	if err != nil {
 		return nil
@@ -80,7 +80,7 @@ func getMintCnt(epochID int64, candidate common.Address, mintCntTrie *trie.Trie)
 }
 
 func TestUpdateMintCnt(t *testing.T) {
-	db, _ := ethdb.NewMemDatabase()
+	db, _ := ctxcdb.NewMemDatabase()
 	dposContext := mockNewDposContext(db)
 
 	// new block still in the same epoch with current block, but newMiner is the first time to mint in the epoch

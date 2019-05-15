@@ -5,10 +5,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/cuckoo"
-	"github.com/ethereum/go-ethereum/core/types"
-	cuckoo_gpu "github.com/ethereum/go-ethereum/miner/cuckoocuda"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	cuckoo_gpu "github.com/CortexFoundation/CortexTheseus/miner/cuckoocuda"
 	"log"
 	"math/rand"
 	"net"
@@ -101,7 +101,7 @@ func main() {
 	var reqLogin = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
-		Method:  "eth_submitLogin",
+		Method:  "ctxc_submitLogin",
 		Params:  []string{"0xc3d7a1ef810983847510542edfd5bc5551a6321c"},
 	}
 	write(reqLogin, conn)
@@ -152,7 +152,7 @@ func main() {
 	write(ReqObj{
 		Id:      100,
 		Jsonrpc: "2.0",
-		Method:  "eth_getWork",
+		Method:  "ctxc_getWork",
 		Params:  []string{""},
 	}, conn)
 
@@ -186,7 +186,7 @@ func main() {
 				var reqSubmit = ReqObj{
 					Id:      73,
 					Jsonrpc: "2.0",
-					Method:  "eth_submitWork",
+					Method:  "ctxc_submitWork",
 					Params:  []string{sol.Nonce, sol.Header, sol.Solution},
 				}
 				write(reqSubmit, conn)

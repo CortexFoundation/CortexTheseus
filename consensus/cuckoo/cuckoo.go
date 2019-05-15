@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/consensus"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"plugin"
 )
 
@@ -218,27 +218,27 @@ func (cuckoo *Cuckoo) Hashrate() float64 {
 
 func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 	// In order to ensure backward compatibility, we exposes cuckoo RPC APIs
-	// to both eth and cuckoo namespaces.
+	// to both ctxc and cuckoo namespaces.
 	return []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   &API{cuckoo},
 			Public:    true,
 		},
-		{
-			Namespace: "ethash",
-			Version:   "1.0",
-			Service:   &API{cuckoo},
-			Public:    true,
-		},
+		// {
+		// 	Namespace: "ethash",
+		// 	Version:   "1.0",
+		// 	Service:   &API{cuckoo},
+		// 	Public:    true,
+		// },
 
-		{
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   &API{cuckoo},
-			Public:    true,
-		},
+		// {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   &API{cuckoo},
+		// 	Public:    true,
+		// },
 	}
 }
 

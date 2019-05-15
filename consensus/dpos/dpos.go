@@ -9,20 +9,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/consensus"
+	"github.com/CortexFoundation/CortexTheseus/consensus/misc"
+	"github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
+	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -83,7 +83,7 @@ var (
 
 type Dpos struct {
 	config *params.DposConfig // Consensus engine configuration parameters
-	db     ethdb.Database     // Database to store and retrieve snapshot checkpoints
+	db     ctxcdb.Database     // Database to store and retrieve snapshot checkpoints
 
 	signer               common.Address
 	signFn               SignerFn
@@ -130,7 +130,7 @@ func sigHash(header *types.Header) (hash common.Hash) {
 	return hash
 }
 
-func New(config *params.DposConfig, db ethdb.Database) *Dpos {
+func New(config *params.DposConfig, db ctxcdb.Database) *Dpos {
 	signatures, _ := lru.NewARC(inmemorySignatures)
 	return &Dpos{
 		config:     config,
@@ -331,7 +331,7 @@ func (s *Dpos) loadConfirmedBlockHeader(chain consensus.ChainReader) (*types.Hea
 }
 
 // store inserts the snapshot into the database.
-func (s *Dpos) storeConfirmedBlockHeader(db ethdb.Database) error {
+func (s *Dpos) storeConfirmedBlockHeader(db ctxcdb.Database) error {
 	return db.Put(confirmedBlockHead, s.confirmedBlockHeader.Hash().Bytes())
 }
 
@@ -473,7 +473,7 @@ func (d *Dpos) Authorize(signer common.Address, signFn SignerFn) {
 	d.mu.Unlock()
 }
 
-// ecrecover extracts the Ethereum account address from a signed header.
+// ecrecover extracts the Cortex account address from a signed header.
 func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, error) {
 	// If the signature's already cached, return that
 	hash := header.Hash()
@@ -485,7 +485,7 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 		return common.Address{}, errMissingSignature
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
-	// Recover the public key and the Ethereum address
+	// Recover the public key and the Cortex address
 	pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
 	if err != nil {
 		return common.Address{}, err

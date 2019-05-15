@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/inference/synapse/parser"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 var synapseInstance *Synapse = nil

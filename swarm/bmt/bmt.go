@@ -1,18 +1,18 @@
-// Copyright 2018 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2018 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package bmt provides a binary merkle tree implementation used for swarm chunk hash
 package bmt
@@ -490,7 +490,7 @@ func (sw *AsyncHasher) Write(i int, section []byte) {
 //
 // b: digest is appended to b
 // length: known length of the input (unsafe; undefined if out of range)
-// meta: metadata to hash together with BMT root for the final digest
+// meta: metadata to hash tocortexer with BMT root for the final digest
 //   e.g., span for protection against existential forgery
 func (sw *AsyncHasher) Sum(b []byte, length int, meta []byte) (s []byte) {
 	sw.mtx.Lock()
@@ -519,7 +519,7 @@ func (sw *AsyncHasher) Sum(b []byte, length int, meta []byte) (s []byte) {
 	if len(meta) == 0 {
 		return append(b, s...)
 	}
-	// hash together meta and BMT root hash using the pools
+	// hash tocortexer meta and BMT root hash using the pools
 	return doSum(sw.pool.hasher(), b, meta, s)
 }
 

@@ -1,18 +1,18 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2016 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 package api
 
@@ -27,11 +27,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/swarm/sctx"
-	"github.com/ethereum/go-ethereum/swarm/storage"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/swarm/sctx"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage"
 )
 
 func init() {
@@ -163,7 +163,7 @@ func (t *testResolveValidator) HeaderByNumber(context.Context, *big.Int) (header
 // TestAPIResolve tests resolving URIs which can either contain content hashes
 // or ENS names
 func TestAPIResolve(t *testing.T) {
-	ensAddr := "swarm.eth"
+	ensAddr := "swarm.ctxc"
 	hashAddr := "1111111111111111111111111111111111111111111111111111111111111111"
 	resolvedAddr := "2222222222222222222222222222222222222222222222222222222222222222"
 	doesResolve := newTestResolveValidator(resolvedAddr)
@@ -189,7 +189,7 @@ func TestAPIResolve(t *testing.T) {
 			desc:      "DNS not configured, ENS address, returns error",
 			dns:       nil,
 			addr:      ensAddr,
-			expectErr: errors.New(`no DNS to resolve name: "swarm.eth"`),
+			expectErr: errors.New(`no DNS to resolve name: "swarm.ctxc"`),
 		},
 		{
 			desc:   "DNS configured, hash address, hash resolves, returns resolved address",
@@ -221,13 +221,13 @@ func TestAPIResolve(t *testing.T) {
 			dns:       doesResolve,
 			addr:      ensAddr,
 			immutable: true,
-			expectErr: errors.New(`immutable address not a content hash: "swarm.eth"`),
+			expectErr: errors.New(`immutable address not a content hash: "swarm.ctxc"`),
 		},
 		{
 			desc:      "DNS configured, ENS address, name doesn't resolve, returns error",
 			dns:       doesntResolve,
 			addr:      ensAddr,
-			expectErr: errors.New(`DNS name not found: "swarm.eth"`),
+			expectErr: errors.New(`DNS name not found: "swarm.ctxc"`),
 		},
 	}
 	for _, x := range tests {
@@ -260,9 +260,9 @@ func TestAPIResolve(t *testing.T) {
 func TestMultiResolver(t *testing.T) {
 	doesntResolve := newTestResolveValidator("")
 
-	ethAddr := "swarm.eth"
-	ethHash := "0x2222222222222222222222222222222222222222222222222222222222222222"
-	ethResolve := newTestResolveValidator(ethHash)
+	ctxcAddr := "swarm.ctxc"
+	ctxcHash := "0x2222222222222222222222222222222222222222222222222222222222222222"
+	ctxcResolve := newTestResolveValidator(ctxcHash)
 
 	testAddr := "swarm.test"
 	testHash := "0x1111111111111111111111111111111111111111111111111111111111111111"
@@ -282,55 +282,55 @@ func TestMultiResolver(t *testing.T) {
 		},
 		{
 			desc:   "One default resolver, returns resolved address",
-			r:      NewMultiResolver(MultiResolverOptionWithResolver(ethResolve, "")),
-			addr:   ethAddr,
-			result: ethHash,
+			r:      NewMultiResolver(MultiResolverOptionWithResolver(ctxcResolve, "")),
+			addr:   ctxcAddr,
+			result: ctxcHash,
 		},
 		{
 			desc: "Two default resolvers, returns resolved address",
 			r: NewMultiResolver(
-				MultiResolverOptionWithResolver(ethResolve, ""),
-				MultiResolverOptionWithResolver(ethResolve, ""),
+				MultiResolverOptionWithResolver(ctxcResolve, ""),
+				MultiResolverOptionWithResolver(ctxcResolve, ""),
 			),
-			addr:   ethAddr,
-			result: ethHash,
+			addr:   ctxcAddr,
+			result: ctxcHash,
 		},
 		{
 			desc: "Two default resolvers, first doesn't resolve, returns resolved address",
 			r: NewMultiResolver(
 				MultiResolverOptionWithResolver(doesntResolve, ""),
-				MultiResolverOptionWithResolver(ethResolve, ""),
+				MultiResolverOptionWithResolver(ctxcResolve, ""),
 			),
-			addr:   ethAddr,
-			result: ethHash,
+			addr:   ctxcAddr,
+			result: ctxcHash,
 		},
 		{
 			desc: "Default resolver doesn't resolve, tld resolver resolve, returns resolved address",
 			r: NewMultiResolver(
 				MultiResolverOptionWithResolver(doesntResolve, ""),
-				MultiResolverOptionWithResolver(ethResolve, "eth"),
+				MultiResolverOptionWithResolver(ctxcResolve, "eth"),
 			),
-			addr:   ethAddr,
-			result: ethHash,
+			addr:   ctxcAddr,
+			result: ctxcHash,
 		},
 		{
 			desc: "Three TLD resolvers, third resolves, returns resolved address",
 			r: NewMultiResolver(
 				MultiResolverOptionWithResolver(doesntResolve, "eth"),
 				MultiResolverOptionWithResolver(doesntResolve, "eth"),
-				MultiResolverOptionWithResolver(ethResolve, "eth"),
+				MultiResolverOptionWithResolver(ctxcResolve, "eth"),
 			),
-			addr:   ethAddr,
-			result: ethHash,
+			addr:   ctxcAddr,
+			result: ctxcHash,
 		},
 		{
 			desc: "One TLD resolver doesn't resolve, returns error",
 			r: NewMultiResolver(
 				MultiResolverOptionWithResolver(doesntResolve, ""),
-				MultiResolverOptionWithResolver(ethResolve, "eth"),
+				MultiResolverOptionWithResolver(ctxcResolve, "eth"),
 			),
-			addr:   ethAddr,
-			result: ethHash,
+			addr:   ctxcAddr,
+			result: ctxcHash,
 		},
 		{
 			desc: "One defautl and one TLD resolver, all doesn't resolve, returns error",
@@ -338,14 +338,14 @@ func TestMultiResolver(t *testing.T) {
 				MultiResolverOptionWithResolver(doesntResolve, ""),
 				MultiResolverOptionWithResolver(doesntResolve, "eth"),
 			),
-			addr:   ethAddr,
-			result: ethHash,
-			err:    errors.New(`DNS name not found: "swarm.eth"`),
+			addr:   ctxcAddr,
+			result: ctxcHash,
+			err:    errors.New(`DNS name not found: "swarm.ctxc"`),
 		},
 		{
 			desc: "Two TLD resolvers, both resolve, returns resolved address",
 			r: NewMultiResolver(
-				MultiResolverOptionWithResolver(ethResolve, "eth"),
+				MultiResolverOptionWithResolver(ctxcResolve, "eth"),
 				MultiResolverOptionWithResolver(testResolve, "test"),
 			),
 			addr:   testAddr,
@@ -354,7 +354,7 @@ func TestMultiResolver(t *testing.T) {
 		{
 			desc: "One TLD resolver, no default resolver, returns error for different TLD",
 			r: NewMultiResolver(
-				MultiResolverOptionWithResolver(ethResolve, "eth"),
+				MultiResolverOptionWithResolver(ctxcResolve, "eth"),
 			),
 			addr: testAddr,
 			err:  NewNoResolverError("test"),

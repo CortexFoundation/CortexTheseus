@@ -9,8 +9,8 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/p2p/discover"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
 )
 
 var (
