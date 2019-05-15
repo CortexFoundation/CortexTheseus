@@ -23,9 +23,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
-// deployEthstats queries the user for various input on deploying an ctxcstats
+// deployCortexstats queries the user for various input on deploying an ctxcstats
 // monitoring server, after which it executes it.
-func (w *wizard) deployEthstats() {
+func (w *wizard) deployCortexstats() {
 	// Select the server to interact with
 	server := w.selectServer()
 	if server == "" {
@@ -34,7 +34,7 @@ func (w *wizard) deployEthstats() {
 	client := w.servers[server]
 
 	// Retrieve any active ctxcstats configurations from the server
-	infos, err := checkEthstats(client, w.network)
+	infos, err := checkCortexstats(client, w.network)
 	if err != nil {
 		infos = &ctxcstatsInfos{
 			port:   80,
@@ -114,7 +114,7 @@ func (w *wizard) deployEthstats() {
 			trusted = append(trusted, client.address)
 		}
 	}
-	if out, err := deployEthstats(client, w.network, infos.port, infos.secret, infos.host, trusted, infos.banned, nocache); err != nil {
+	if out, err := deployCortexstats(client, w.network, infos.port, infos.secret, infos.host, trusted, infos.banned, nocache); err != nil {
 		log.Error("Failed to deploy ctxcstats container", "err", err)
 		if len(out) > 0 {
 			fmt.Printf("%s\n", out)

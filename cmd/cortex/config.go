@@ -76,10 +76,10 @@ type ctxcstatsConfig struct {
 }
 
 type cortexConfig struct {
-	Eth       ctxc.Config
+	Cortex       ctxc.Config
 	Shh       whisper.Config
 	Node      node.Config
-	Ethstats  ctxcstatsConfig
+	Cortexstats  ctxcstatsConfig
 	Dashboard dashboard.Config
 	TorrentFs torrentfs.Config
 }
@@ -112,7 +112,7 @@ func defaultNodeConfig() node.Config {
 func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// Load defaults.
 	cfg := cortexConfig{
-		Eth:       ctxc.DefaultConfig,
+		Cortex:       ctxc.DefaultConfig,
 		Shh:       whisper.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
@@ -132,9 +132,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
-	utils.SetEthConfig(ctx, stack, &cfg.Eth)
-	// if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
-	// 	cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
+	utils.SetCortexConfig(ctx, stack, &cfg.Cortex)
+	// if ctx.GlobalIsSet(utils.CortexStatsURLFlag.Name) {
+	// 	cfg.Cortexstats.URL = ctx.GlobalString(utils.CortexStatsURLFlag.Name)
 	// }
 
 	utils.SetShhConfig(ctx, stack, &cfg.Shh)
@@ -157,7 +157,7 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
-	utils.RegisterEthService(stack, &cfg.Eth)
+	utils.RegisterCortexService(stack, &cfg.Cortex)
 
 	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
 		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
@@ -179,8 +179,8 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	// }
 
 	// Add the Cortex Stats daemon if requested.
-	if cfg.Ethstats.URL != "" {
-		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+	if cfg.Cortexstats.URL != "" {
+		utils.RegisterCortexStatsService(stack, cfg.Cortexstats.URL)
 	}
 	//storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) && ctx.GlobalString(utils.SyncModeFlag.Name) == "full"
 	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name)
@@ -195,8 +195,8 @@ func dumpConfig(ctx *cli.Context) error {
 	_, cfg := makeConfigNode(ctx)
 	comment := ""
 
-	if cfg.Eth.Genesis != nil {
-		cfg.Eth.Genesis = nil
+	if cfg.Cortex.Genesis != nil {
+		cfg.Cortex.Genesis = nil
 		comment += "# Note: this config doesn't contain the genesis block.\n\n"
 	}
 

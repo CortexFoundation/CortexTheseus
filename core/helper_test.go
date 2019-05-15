@@ -24,7 +24,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/event"
 )
 
-// Implement our EthTest Manager
+// Implement our CortexTest Manager
 type TestManager struct {
 	// stateManager *StateManager
 	eventMux *event.TypeMux

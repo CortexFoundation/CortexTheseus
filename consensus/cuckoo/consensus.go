@@ -777,7 +777,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 }
 
 func toCoin(wei *big.Int) *big.Float {
-	return new(big.Float).Quo(new(big.Float).SetInt(wei), new(big.Float).SetInt(big.NewInt(params.Ether)))
+	return new(big.Float).Quo(new(big.Float).SetInt(wei), new(big.Float).SetInt(big.NewInt(params.Cortex)))
 }
 
 func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {

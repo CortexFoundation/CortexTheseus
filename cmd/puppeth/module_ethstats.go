@@ -58,10 +58,10 @@ services:
     restart: always
 `
 
-// deployEthstats deploys a new ctxcstats container to a remote machine via SSH,
+// deployCortexstats deploys a new ctxcstats container to a remote machine via SSH,
 // docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
-func deployEthstats(client *sshClient, network string, port int, secret string, vhost string, trusted []string, banned []string, nocache bool) ([]byte, error) {
+func deployCortexstats(client *sshClient, network string, port int, secret string, vhost string, trusted []string, banned []string, nocache bool) ([]byte, error) {
 	// Generate the content to upload to the server
 	workdir := fmt.Sprintf("%d", rand.Int63())
 	files := make(map[string][]byte)
@@ -126,9 +126,9 @@ func (info *ctxcstatsInfos) Report() map[string]string {
 	}
 }
 
-// checkEthstats does a health-check against an ctxcstats server to verify whether
+// checkCortexstats does a health-check against an ctxcstats server to verify whether
 // it's running, and if yes, gathering a collection of useful infos about it.
-func checkEthstats(client *sshClient, network string) (*ctxcstatsInfos, error) {
+func checkCortexstats(client *sshClient, network string) (*ctxcstatsInfos, error) {
 	// Inspect a possible ctxcstats container on the host
 	infos, err := inspectContainer(client, fmt.Sprintf("%s_ethstats_1", network))
 	if err != nil {
@@ -162,7 +162,7 @@ func checkEthstats(client *sshClient, network string) (*ctxcstatsInfos, error) {
 
 	// Run a sanity check to see if the port is reachable
 	if err = checkPort(host, port); err != nil {
-		log.Warn("Ethstats service seems unreachable", "server", host, "port", port, "err", err)
+		log.Warn("Cortexstats service seems unreachable", "server", host, "port", port, "err", err)
 	}
 	// Container available, assemble and return the useful infos
 	return &ctxcstatsInfos{

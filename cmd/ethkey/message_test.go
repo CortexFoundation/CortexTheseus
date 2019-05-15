@@ -34,7 +34,7 @@ func TestMessageSignVerify(t *testing.T) {
 	message := "test message"
 
 	// Create the key.
-	generate := runEthkey(t, "generate", keyfile)
+	generate := runCortexkey(t, "generate", keyfile)
 	generate.Expect(`
 !! Unsupported terminal, password will be echoed.
 Passphrase: {{.InputLine "foobar"}}
@@ -45,7 +45,7 @@ Repeat passphrase: {{.InputLine "foobar"}}
 	generate.ExpectExit()
 
 	// Sign a message.
-	sign := runEthkey(t, "signmessage", keyfile, message)
+	sign := runCortexkey(t, "signmessage", keyfile, message)
 	sign.Expect(`
 !! Unsupported terminal, password will be echoed.
 Passphrase: {{.InputLine "foobar"}}
@@ -55,7 +55,7 @@ Passphrase: {{.InputLine "foobar"}}
 	sign.ExpectExit()
 
 	// Verify the message.
-	verify := runEthkey(t, "verifymessage", address, signature, message)
+	verify := runCortexkey(t, "verifymessage", address, signature, message)
 	_, matches = verify.ExpectRegexp(`
 Signature verification successful!
 Recovered public key: [0-9a-f]+

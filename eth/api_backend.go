@@ -37,27 +37,27 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
-// EthAPIBackend implements ctxcapi.Backend for full nodes
-type EthAPIBackend struct {
+// CortexAPIBackend implements ctxcapi.Backend for full nodes
+type CortexAPIBackend struct {
 	ctxc *Cortex
 	gpo *gasprice.Oracle
 }
 
 // ChainConfig returns the active chain configuration.
-func (b *EthAPIBackend) ChainConfig() *params.ChainConfig {
+func (b *CortexAPIBackend) ChainConfig() *params.ChainConfig {
 	return b.ctxc.chainConfig
 }
 
-func (b *EthAPIBackend) CurrentBlock() *types.Block {
+func (b *CortexAPIBackend) CurrentBlock() *types.Block {
 	return b.ctxc.blockchain.CurrentBlock()
 }
 
-func (b *EthAPIBackend) SetHead(number uint64) {
+func (b *CortexAPIBackend) SetHead(number uint64) {
 	b.ctxc.protocolManager.downloader.Cancel()
 	b.ctxc.blockchain.SetHead(number)
 }
 
-func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error) {
+func (b *CortexAPIBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error) {
 	// Pending block is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {
 		block := b.ctxc.miner.PendingBlock()
@@ -70,11 +70,11 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNum
 	return b.ctxc.blockchain.GetHeaderByNumber(uint64(blockNr)), nil
 }
 
-func (b *EthAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
+func (b *CortexAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
 	return b.ctxc.blockchain.GetHeaderByHash(hash), nil
 }
 
-func (b *EthAPIBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Block, error) {
+func (b *CortexAPIBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Block, error) {
 	// Pending block is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {
 		block := b.ctxc.miner.PendingBlock()
@@ -87,7 +87,7 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockNumb
 	return b.ctxc.blockchain.GetBlockByNumber(uint64(blockNr)), nil
 }
 
-func (b *EthAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
+func (b *CortexAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
 	// Pending state is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {
 		block, state := b.ctxc.miner.Pending()
@@ -102,18 +102,18 @@ func (b *EthAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 	return stateDb, header, err
 }
 
-func (b *EthAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.Block, error) {
+func (b *CortexAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return b.ctxc.blockchain.GetBlockByHash(hash), nil
 }
 
-func (b *EthAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
+func (b *CortexAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	if number := rawdb.ReadHeaderNumber(b.ctxc.chainDb, hash); number != nil {
 		return rawdb.ReadReceipts(b.ctxc.chainDb, hash, *number), nil
 	}
 	return nil, nil
 }
 
-func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
+func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
 	number := rawdb.ReadHeaderNumber(b.ctxc.chainDb, hash)
 	if number == nil {
 		return nil, nil
@@ -129,11 +129,11 @@ func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*typ
 	return logs, nil
 }
 
-func (b *EthAPIBackend) GetTd(blockHash common.Hash) *big.Int {
+func (b *CortexAPIBackend) GetTd(blockHash common.Hash) *big.Int {
 	return b.ctxc.blockchain.GetTdByHash(blockHash)
 }
 
-func (b *EthAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
+func (b *CortexAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
 	state.SetBalance(msg.From(), math.MaxBig256)
 	vmError := func() error { return nil }
 
@@ -141,31 +141,31 @@ func (b *EthAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *sta
 	return vm.NewEVM(context, state, b.ctxc.chainConfig, vmCfg), vmError, nil
 }
 
-func (b *EthAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
+func (b *CortexAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
 	return b.ctxc.BlockChain().SubscribeRemovedLogsEvent(ch)
 }
 
-func (b *EthAPIBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription {
+func (b *CortexAPIBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription {
 	return b.ctxc.BlockChain().SubscribeChainEvent(ch)
 }
 
-func (b *EthAPIBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
+func (b *CortexAPIBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	return b.ctxc.BlockChain().SubscribeChainHeadEvent(ch)
 }
 
-func (b *EthAPIBackend) SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) event.Subscription {
+func (b *CortexAPIBackend) SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) event.Subscription {
 	return b.ctxc.BlockChain().SubscribeChainSideEvent(ch)
 }
 
-func (b *EthAPIBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
+func (b *CortexAPIBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return b.ctxc.BlockChain().SubscribeLogsEvent(ch)
 }
 
-func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction) error {
+func (b *CortexAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction) error {
 	return b.ctxc.txPool.AddLocal(signedTx)
 }
 
-func (b *EthAPIBackend) GetPoolTransactions() (types.Transactions, error) {
+func (b *CortexAPIBackend) GetPoolTransactions() (types.Transactions, error) {
 	pending, err := b.ctxc.txPool.Pending()
 	if err != nil {
 		return nil, err
@@ -177,56 +177,56 @@ func (b *EthAPIBackend) GetPoolTransactions() (types.Transactions, error) {
 	return txs, nil
 }
 
-func (b *EthAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transaction {
+func (b *CortexAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transaction {
 	return b.ctxc.txPool.Get(hash)
 }
 
-func (b *EthAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
+func (b *CortexAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
 	return b.ctxc.txPool.State().GetNonce(addr), nil
 }
 
-func (b *EthAPIBackend) Stats() (pending int, queued int) {
+func (b *CortexAPIBackend) Stats() (pending int, queued int) {
 	return b.ctxc.txPool.Stats()
 }
 
-func (b *EthAPIBackend) TxPoolContent() (map[common.Address]types.Transactions, map[common.Address]types.Transactions) {
+func (b *CortexAPIBackend) TxPoolContent() (map[common.Address]types.Transactions, map[common.Address]types.Transactions) {
 	return b.ctxc.TxPool().Content()
 }
 
-func (b *EthAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
+func (b *CortexAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
 	return b.ctxc.TxPool().SubscribeNewTxsEvent(ch)
 }
 
-func (b *EthAPIBackend) Downloader() *downloader.Downloader {
+func (b *CortexAPIBackend) Downloader() *downloader.Downloader {
 	return b.ctxc.Downloader()
 }
 
-func (b *EthAPIBackend) ProtocolVersion() int {
-	return b.ctxc.EthVersion()
+func (b *CortexAPIBackend) ProtocolVersion() int {
+	return b.ctxc.CortexVersion()
 }
 
-func (b *EthAPIBackend) SuggestPrice(ctx context.Context) (*big.Int, error) {
+func (b *CortexAPIBackend) SuggestPrice(ctx context.Context) (*big.Int, error) {
 	return b.gpo.SuggestPrice(ctx)
 }
 
-func (b *EthAPIBackend) ChainDb() ctxcdb.Database {
+func (b *CortexAPIBackend) ChainDb() ctxcdb.Database {
 	return b.ctxc.ChainDb()
 }
 
-func (b *EthAPIBackend) EventMux() *event.TypeMux {
+func (b *CortexAPIBackend) EventMux() *event.TypeMux {
 	return b.ctxc.EventMux()
 }
 
-func (b *EthAPIBackend) AccountManager() *accounts.Manager {
+func (b *CortexAPIBackend) AccountManager() *accounts.Manager {
 	return b.ctxc.AccountManager()
 }
 
-func (b *EthAPIBackend) BloomStatus() (uint64, uint64) {
+func (b *CortexAPIBackend) BloomStatus() (uint64, uint64) {
 	sections, _, _ := b.ctxc.bloomIndexer.Sections()
 	return params.BloomBitsBlocks, sections
 }
 
-func (b *EthAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
+func (b *CortexAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
 	for i := 0; i < bloomFilterThreads; i++ {
 		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, b.ctxc.bloomRequests)
 	}

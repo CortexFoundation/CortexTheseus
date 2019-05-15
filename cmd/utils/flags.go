@@ -448,7 +448,7 @@ var (
 	// 	Usage: "Record information useful for VM and contract debugging",
 	// }
 	// Logging and debug settings
-	// EthStatsURLFlag = cli.StringFlag{
+	// CortexStatsURLFlag = cli.StringFlag{
 	// 	Name:  "ethstats",
 	// 	Usage: "Reporting URL of a ctxcstats service (nodename:secret@host:port)",
 	// }
@@ -1190,8 +1190,8 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 	}
 }
 
-// SetEthConfig applies ctxc-related command line flags to the config.
-func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
+// SetCortexConfig applies ctxc-related command line flags to the config.
+func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
 	// checkExclusive(ctx, DeveloperFlag, CerebroFlag, LazynetFlag)
 	// checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
@@ -1355,8 +1355,8 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.DataDir = MakeStorageDir(ctx)
 }
 
-// RegisterEthService adds an Cortex client to the stack.
-func RegisterEthService(stack *node.Node, cfg *ctxc.Config) {
+// RegisterCortexService adds an Cortex client to the stack.
+func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 	var err error
 	if cfg.SyncMode == downloader.LightSync {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
@@ -1400,9 +1400,9 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 	}
 }
 
-// RegisterEthStatsService configures the Cortex Stats daemon and adds it to
+// RegisterCortexStatsService configures the Cortex Stats daemon and adds it to
 // the given node.
-func RegisterEthStatsService(stack *node.Node, url string) {
+func RegisterCortexStatsService(stack *node.Node, url string) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		// Retrieve both ctxc and les services
 		var ctxcServ *ctxc.Cortex

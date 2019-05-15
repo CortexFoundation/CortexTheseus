@@ -42,7 +42,7 @@ ADD genesis.json /genesis.json
 RUN \
   echo 'cortex --cache 512 init /genesis.json' > cortex.sh && \{{if .Unlock}}
 	echo 'mkdir -p /root/.cortex/keystore/ && cp /signer.json /root/.cortex/keystore/' >> cortex.sh && \{{end}}
-	echo $'exec cortex --networkid {{.NetworkID}} --cache 512 --port {{.Port}} --maxpeers {{.Peers}} {{.LightFlag}} --ctxcstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Coinbase}}--miner.coinbase {{.Coinbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> cortex.sh
+	echo $'exec cortex --networkid {{.NetworkID}} --cache 512 --port {{.Port}} --maxpeers {{.Peers}} {{.LightFlag}} --ctxcstats \'{{.Cortexstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Coinbase}}--miner.coinbase {{.Coinbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> cortex.sh
 
 ENTRYPOINT ["/bin/sh", "cortex.sh"]
 `
@@ -65,7 +65,7 @@ services:
       - PORT={{.Port}}/tcp
       - TOTAL_PEERS={{.TotalPeers}}
       - LIGHT_PEERS={{.LightPeers}}
-      - STATS_NAME={{.Ethstats}}
+      - STATS_NAME={{.Cortexstats}}
       - MINER_NAME={{.Coinbase}}
       - GAS_TARGET={{.GasTarget}}
       - GAS_LIMIT={{.GasLimit}}
@@ -102,7 +102,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Peers":     config.peersTotal,
 		"LightFlag": lightFlag,
 		"Bootnodes": strings.Join(bootnodes, ","),
-		"Ethstats":  config.ctxcstats,
+		"Cortexstats":  config.ctxcstats,
 		"Coinbase": config.coinbase,
 		"GasTarget": uint64(1000000 * config.gasTarget),
 		"GasLimit":  uint64(1000000 * config.gasLimit),
@@ -121,7 +121,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"TotalPeers": config.peersTotal,
 		"Light":      config.peersLight > 0,
 		"LightPeers": config.peersLight,
-		"Ethstats":   config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
+		"Cortexstats":   config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
 		"Coinbase":  config.coinbase,
 		"GasTarget":  config.gasTarget,
 		"GasLimit":   config.gasLimit,
@@ -175,7 +175,7 @@ func (info *nodeInfos) Report() map[string]string {
 		"Listener port":            strconv.Itoa(info.port),
 		"Peer count (all total)":   strconv.Itoa(info.peersTotal),
 		"Peer count (light nodes)": strconv.Itoa(info.peersLight),
-		"Ethstats username":        info.ctxcstats,
+		"Cortexstats username":        info.ctxcstats,
 	}
 	if info.gasTarget > 0 {
 		// Miner or signer node

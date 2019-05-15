@@ -83,7 +83,7 @@ type Cortex struct {
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	bloomIndexer  *core.ChainIndexer             // Bloom indexer operating during block imports
 
-	APIBackend *EthAPIBackend
+	APIBackend *CortexAPIBackend
 
 	miner     *miner.Miner
 	synapse   *infer.Synapse
@@ -194,7 +194,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	ctxc.miner = miner.New(ctxc, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
 	ctxc.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
-	ctxc.APIBackend = &EthAPIBackend{ctxc, nil}
+	ctxc.APIBackend = &CortexAPIBackend{ctxc, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.MinerGasPrice
@@ -452,7 +452,7 @@ func (s *Cortex) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Cortex) Engine() consensus.Engine           { return s.engine }
 func (s *Cortex) ChainDb() ctxcdb.Database            { return s.chainDb }
 func (s *Cortex) IsListening() bool                  { return true } // Always listening
-func (s *Cortex) EthVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Cortex) CortexVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
 func (s *Cortex) NetVersion() uint64                 { return s.networkID }
 func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
 

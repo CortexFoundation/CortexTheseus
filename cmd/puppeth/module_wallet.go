@@ -37,7 +37,7 @@ ADD genesis.json /genesis.json
 RUN \
   echo 'node server.js &'                     > wallet.sh && \
 	echo 'cortex --cache 512 init /genesis.json' >> wallet.sh && \
-	echo $'exec cortex --networkid {{.NetworkID}} --port {{.NodePort}} --bootnodes {{.Bootnodes}} --ctxcstats \'{{.Ethstats}}\' --cache=512 --rpc --rpcaddr=0.0.0.0 --rpccorsdomain "*" --rpcvhosts "*"' >> wallet.sh
+	echo $'exec cortex --networkid {{.NetworkID}} --port {{.NodePort}} --bootnodes {{.Bootnodes}} --ctxcstats \'{{.Cortexstats}}\' --cache=512 --rpc --rpcaddr=0.0.0.0 --rpccorsdomain "*" --rpcvhosts "*"' >> wallet.sh
 
 RUN \
 	sed -i 's/PuppethNetworkID/{{.NetworkID}}/g' dist/js/etherwallet-master.js && \
@@ -66,7 +66,7 @@ services:
       - {{.Datadir}}:/root/.cortex
     environment:
       - NODE_PORT={{.NodePort}}/tcp
-      - STATS={{.Ethstats}}{{if .VHost}}
+      - STATS={{.Cortexstats}}{{if .VHost}}
       - VIRTUAL_HOST={{.VHost}}
       - VIRTUAL_PORT=80{{end}}
     logging:
@@ -93,7 +93,7 @@ func deployWallet(client *sshClient, network string, bootnodes []string, config 
 		"NodePort":  config.nodePort,
 		"RPCPort":   config.rpcPort,
 		"Bootnodes": strings.Join(bootnodes, ","),
-		"Ethstats":  config.ctxcstats,
+		"Cortexstats":  config.ctxcstats,
 		"Host":      client.address,
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
@@ -106,7 +106,7 @@ func deployWallet(client *sshClient, network string, bootnodes []string, config 
 		"RPCPort":  config.rpcPort,
 		"VHost":    config.webHost,
 		"WebPort":  config.webPort,
-		"Ethstats": config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
+		"Cortexstats": config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
 	})
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 
@@ -143,7 +143,7 @@ type walletInfos struct {
 func (info *walletInfos) Report() map[string]string {
 	report := map[string]string{
 		"Data directory":         info.datadir,
-		"Ethstats username":      info.ctxcstats,
+		"Cortexstats username":      info.ctxcstats,
 		"Node listener port ":    strconv.Itoa(info.nodePort),
 		"RPC listener port ":     strconv.Itoa(info.rpcPort),
 		"Website address ":       info.webHost,

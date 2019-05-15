@@ -43,8 +43,8 @@ RUN \
 ENTRYPOINT ["/bin/sh", "explorer.sh"]
 `
 
-// explorerEthstats is the configuration file for the ctxcstats javascript client.
-var explorerEthstats = `[
+// explorerCortexstats is the configuration file for the ctxcstats javascript client.
+var explorerCortexstats = `[
   {
     "name"              : "node-app",
     "script"            : "app.js",
@@ -85,7 +85,7 @@ services:
       - {{.Datadir}}:/root/.local/share/io.parity.cortex
     environment:
       - NODE_PORT={{.NodePort}}/tcp
-      - STATS={{.Ethstats}}{{if .VHost}}
+      - STATS={{.Cortexstats}}{{if .VHost}}
       - VIRTUAL_HOST={{.VHost}}
       - VIRTUAL_PORT=3000{{end}}
     logging:
@@ -111,7 +111,7 @@ func deployExplorer(client *sshClient, network string, chainspec []byte, config 
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
 	ctxcstats := new(bytes.Buffer)
-	template.Must(template.New("").Parse(explorerEthstats)).Execute(ctxcstats, map[string]interface{}{
+	template.Must(template.New("").Parse(explorerCortexstats)).Execute(ctxcstats, map[string]interface{}{
 		"Port":   config.nodePort,
 		"Name":   config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
 		"Secret": config.ctxcstats[strings.Index(config.ctxcstats, ":")+1 : strings.Index(config.ctxcstats, "@")],
@@ -126,7 +126,7 @@ func deployExplorer(client *sshClient, network string, chainspec []byte, config 
 		"NodePort": config.nodePort,
 		"VHost":    config.webHost,
 		"WebPort":  config.webPort,
-		"Ethstats": config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
+		"Cortexstats": config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
 	})
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 
@@ -161,7 +161,7 @@ func (info *explorerInfos) Report() map[string]string {
 	report := map[string]string{
 		"Data directory":         info.datadir,
 		"Node listener port ":    strconv.Itoa(info.nodePort),
-		"Ethstats username":      info.ctxcstats,
+		"Cortexstats username":      info.ctxcstats,
 		"Website address ":       info.webHost,
 		"Website listener port ": strconv.Itoa(info.webPort),
 	}

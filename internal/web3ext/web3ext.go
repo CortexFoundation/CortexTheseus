@@ -23,7 +23,7 @@ var Modules = map[string]string{
 	"clique":     Clique_JS,
 	"ethash":     Ethash_JS,
 	"debug":      Debug_JS,
-	"eth":        Eth_JS,
+	"eth":        Cortex_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
 	"personal":   Personal_JS,
@@ -429,7 +429,7 @@ web3._extend({
 });
 `
 
-const Eth_JS = `
+const Cortex_JS = `
 web3._extend({
 	property: 'eth',
 	methods: [

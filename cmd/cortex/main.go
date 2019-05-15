@@ -132,7 +132,7 @@ var (
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
-		// utils.EthStatsURLFlag,
+		// utils.CortexStatsURLFlag,
 		// utils.MetricsEnabledFlag,
 		// utils.FakePoWFlag,
 		// utils.NoCompactionFlag,

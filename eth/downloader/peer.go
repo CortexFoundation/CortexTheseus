@@ -70,7 +70,7 @@ type peerConnection struct {
 
 	peer Peer
 
-	version int        // Eth protocol version number to switch strategies
+	version int        // Cortex protocol version number to switch strategies
 	log     log.Logger // Contextual logger to add extra infos to peer logs
 	lock    sync.RWMutex
 }
