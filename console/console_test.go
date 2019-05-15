@@ -97,7 +97,7 @@ func newTester(t *testing.T, confOverride func(*ctxc.Config)) *tester {
 	}
 	ctxcConf := &ctxc.Config{
 		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
-		Etherbase: common.HexToAddress(testAddress),
+		Coinbase: common.HexToAddress(testAddress),
 		Ethash: ctxcash.Config{
 			PowMode: ctxcash.ModeTest,
 		},

@@ -388,12 +388,12 @@ var (
 		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
 		Value: ctxc.DefaultConfig.MinerGasPrice,
 	}
-	MinerEtherbaseFlag = cli.StringFlag{
+	MinerCoinbaseFlag = cli.StringFlag{
 		Name:  "miner.coinbase",
 		Usage: "Public address for block mining rewards (default = first account)",
 		Value: "0",
 	}
-	MinerLegacyEtherbaseFlag = cli.StringFlag{
+	MinerLegacyCoinbaseFlag = cli.StringFlag{
 		Name:  "coinbase",
 		Usage: "Public address for block mining rewards (default = first account, deprecated, use --miner.coinbase)",
 		Value: "0",
@@ -927,24 +927,24 @@ func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error
 	return accs[index], nil
 }
 
-// setEtherbase retrieves the ctxcerbase either from the directly specified
+// setCoinbase retrieves the coinbase either from the directly specified
 // command line flags or from the keystore if CLI indexed.
-func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *ctxc.Config) {
-	// Extract the current ctxcerbase, new flag overriding legacy one
-	var ctxcerbase string
-	if ctx.GlobalIsSet(MinerLegacyEtherbaseFlag.Name) {
-		ctxcerbase = ctx.GlobalString(MinerLegacyEtherbaseFlag.Name)
+func setCoinbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *ctxc.Config) {
+	// Extract the current coinbase, new flag overriding legacy one
+	var coinbase string
+	if ctx.GlobalIsSet(MinerLegacyCoinbaseFlag.Name) {
+		coinbase = ctx.GlobalString(MinerLegacyCoinbaseFlag.Name)
 	}
-	if ctx.GlobalIsSet(MinerEtherbaseFlag.Name) {
-		ctxcerbase = ctx.GlobalString(MinerEtherbaseFlag.Name)
+	if ctx.GlobalIsSet(MinerCoinbaseFlag.Name) {
+		coinbase = ctx.GlobalString(MinerCoinbaseFlag.Name)
 	}
-	// Convert the ctxcerbase into an address and configure it
-	if ctxcerbase != "" {
-		account, err := MakeAddress(ks, ctxcerbase)
+	// Convert the coinbase into an address and configure it
+	if coinbase != "" {
+		account, err := MakeAddress(ks, coinbase)
 		if err != nil {
 			Fatalf("Invalid miner coinbase: %v", err)
 		}
-		cfg.Etherbase = account.Address
+		cfg.Coinbase = account.Address
 	}
 }
 
@@ -1197,7 +1197,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	setEtherbase(ctx, ks, cfg)
+	setCoinbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	// setEthash(ctx, cfg)

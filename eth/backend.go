@@ -88,12 +88,12 @@ type Cortex struct {
 	miner     *miner.Miner
 	synapse   *infer.Synapse
 	gasPrice  *big.Int
-	ctxcerbase common.Address
+	coinbase common.Address
 
 	networkID     uint64
 	netRPCService *ctxcapi.PublicNetAPI
 
-	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and ctxcerbase)
+	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and coinbase)
 }
 
 func (s *Cortex) AddLesServer(ls LesServer) {
@@ -136,7 +136,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
-		ctxcerbase:      config.Etherbase,
+		coinbase:      config.Coinbase,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
 		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 	}
@@ -350,36 +350,36 @@ func (s *Cortex) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *Cortex) Etherbase() (eb common.Address, err error) {
+func (s *Cortex) Coinbase() (eb common.Address, err error) {
 	s.lock.RLock()
-	ctxcerbase := s.ctxcerbase
+	coinbase := s.coinbase
 	s.lock.RUnlock()
 
-	if ctxcerbase != (common.Address{}) {
-		return ctxcerbase, nil
+	if coinbase != (common.Address{}) {
+		return coinbase, nil
 	}
 	if wallets := s.AccountManager().Wallets(); len(wallets) > 0 {
 		if accounts := wallets[0].Accounts(); len(accounts) > 0 {
-			ctxcerbase := accounts[0].Address
+			coinbase := accounts[0].Address
 
 			s.lock.Lock()
-			s.ctxcerbase = ctxcerbase
+			s.coinbase = coinbase
 			s.lock.Unlock()
 
-			log.Info("Etherbase automatically configured", "address", ctxcerbase)
-			return ctxcerbase, nil
+			log.Info("Coinbase automatically configured", "address", coinbase)
+			return coinbase, nil
 		}
 	}
-	return common.Address{}, fmt.Errorf("etherbase must be explicitly specified")
+	return common.Address{}, fmt.Errorf("coinbase must be explicitly specified")
 }
 
-// SetEtherbase sets the mining reward address.
-func (s *Cortex) SetEtherbase(ctxcerbase common.Address) {
+// SetCoinbase sets the mining reward address.
+func (s *Cortex) SetCoinbase(coinbase common.Address) {
 	s.lock.Lock()
-	s.ctxcerbase = ctxcerbase
+	s.coinbase = coinbase
 	s.lock.Unlock()
 
-	s.miner.SetEtherbase(ctxcerbase)
+	s.miner.SetCoinbase(coinbase)
 }
 
 // StartMining starts the miner with the given number of CPU threads. If mining
@@ -406,15 +406,15 @@ func (s *Cortex) StartMining(threads int) error {
 		s.txPool.SetGasPrice(price)
 
 		// Configure the local mining addess
-		eb, err := s.Etherbase()
+		eb, err := s.Coinbase()
 		if err != nil {
-			log.Error("Cannot start mining without ctxcerbase", "err", err)
-			return fmt.Errorf("etherbase missing: %v", err)
+			log.Error("Cannot start mining without coinbase", "err", err)
+			return fmt.Errorf("coinbase missing: %v", err)
 		}
 		if clique, ok := s.engine.(*clique.Clique); ok {
 			wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
 			if wallet == nil || err != nil {
-				log.Error("Etherbase account unavailable locally", "err", err)
+				log.Error("Coinbase account unavailable locally", "err", err)
 				return fmt.Errorf("signer missing: %v", err)
 			}
 			clique.Authorize(eb, wallet.SignHash)

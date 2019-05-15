@@ -221,8 +221,8 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, ctxc Backend
 	return worker
 }
 
-// setEtherbase sets the ctxcerbase used to initialize the block coinbase field.
-func (w *worker) setEtherbase(addr common.Address) {
+// setCoinbase sets the coinbase used to initialize the block coinbase field.
+func (w *worker) setCoinbase(addr common.Address) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.coinbase = addr
@@ -843,7 +843,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
 		if w.coinbase == (common.Address{}) {
-			log.Error("Refusing to mine without ctxcerbase")
+			log.Error("Refusing to mine without coinbase")
 			return
 		}
 		header.Coinbase = w.coinbase

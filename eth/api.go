@@ -52,14 +52,9 @@ func NewPublicCortexAPI(e *Cortex) *PublicCortexAPI {
 	return &PublicCortexAPI{e}
 }
 
-// Etherbase is the address that mining rewards will be send to
-func (api *PublicCortexAPI) Etherbase() (common.Address, error) {
-	return api.e.Etherbase()
-}
-
-// Coinbase is the address that mining rewards will be send to (alias for Etherbase)
+// Coinbase is the address that mining rewards will be send to
 func (api *PublicCortexAPI) Coinbase() (common.Address, error) {
-	return api.Etherbase()
+	return api.e.Coinbase()
 }
 
 // Hashrate returns the POW hashrate
@@ -130,9 +125,9 @@ func (api *PrivateMinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
 	return true
 }
 
-// SetEtherbase sets the ctxcerbase of the miner
-func (api *PrivateMinerAPI) SetEtherbase(ctxcerbase common.Address) bool {
-	api.e.SetEtherbase(ctxcerbase)
+// SetCoinbase sets the coinbase of the miner
+func (api *PrivateMinerAPI) SetCoinbase(coinbase common.Address) bool {
+	api.e.SetCoinbase(coinbase)
 	return true
 }
 

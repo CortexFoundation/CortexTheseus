@@ -42,7 +42,7 @@ ADD genesis.json /genesis.json
 RUN \
   echo 'cortex --cache 512 init /genesis.json' > cortex.sh && \{{if .Unlock}}
 	echo 'mkdir -p /root/.cortex/keystore/ && cp /signer.json /root/.cortex/keystore/' >> cortex.sh && \{{end}}
-	echo $'exec cortex --networkid {{.NetworkID}} --cache 512 --port {{.Port}} --maxpeers {{.Peers}} {{.LightFlag}} --ctxcstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.ctxcerbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> cortex.sh
+	echo $'exec cortex --networkid {{.NetworkID}} --cache 512 --port {{.Port}} --maxpeers {{.Peers}} {{.LightFlag}} --ctxcstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Coinbase}}--miner.coinbase {{.Coinbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> cortex.sh
 
 ENTRYPOINT ["/bin/sh", "cortex.sh"]
 `
@@ -66,7 +66,7 @@ services:
       - TOTAL_PEERS={{.TotalPeers}}
       - LIGHT_PEERS={{.LightPeers}}
       - STATS_NAME={{.Ethstats}}
-      - MINER_NAME={{.Etherbase}}
+      - MINER_NAME={{.Coinbase}}
       - GAS_TARGET={{.GasTarget}}
       - GAS_LIMIT={{.GasLimit}}
       - GAS_PRICE={{.GasPrice}}
@@ -83,7 +83,7 @@ services:
 // already exists there, it will be overwritten!
 func deployNode(client *sshClient, network string, bootnodes []string, config *nodeInfos, nocache bool) ([]byte, error) {
 	kind := "sealnode"
-	if config.keyJSON == "" && config.ctxcerbase == "" {
+	if config.keyJSON == "" && config.coinbase == "" {
 		kind = "bootnode"
 		bootnodes = make([]string, 0)
 	}
@@ -103,7 +103,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"LightFlag": lightFlag,
 		"Bootnodes": strings.Join(bootnodes, ","),
 		"Ethstats":  config.ctxcstats,
-		"Etherbase": config.ctxcerbase,
+		"Coinbase": config.coinbase,
 		"GasTarget": uint64(1000000 * config.gasTarget),
 		"GasLimit":  uint64(1000000 * config.gasLimit),
 		"GasPrice":  uint64(1000000000 * config.gasPrice),
@@ -122,7 +122,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Light":      config.peersLight > 0,
 		"LightPeers": config.peersLight,
 		"Ethstats":   config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
-		"Etherbase":  config.ctxcerbase,
+		"Coinbase":  config.coinbase,
 		"GasTarget":  config.gasTarget,
 		"GasLimit":   config.gasLimit,
 		"GasPrice":   config.gasPrice,
@@ -159,7 +159,7 @@ type nodeInfos struct {
 	enode      string
 	peersTotal int
 	peersLight int
-	ctxcerbase  string
+	coinbase  string
 	keyJSON    string
 	keyPass    string
 	gasTarget  float64
@@ -183,10 +183,10 @@ func (info *nodeInfos) Report() map[string]string {
 		report["Gas floor (baseline target)"] = fmt.Sprintf("%0.3f MGas", info.gasTarget)
 		report["Gas ceil  (target maximum)"] = fmt.Sprintf("%0.3f MGas", info.gasLimit)
 
-		if info.ctxcerbase != "" {
+		if info.coinbase != "" {
 			// Ethash proof-of-work miner
 			report["Ethash directory"] = info.ctxcashdir
-			report["Miner account"] = info.ctxcerbase
+			report["Miner account"] = info.coinbase
 		}
 		if info.keyJSON != "" {
 			// Clique proof-of-authority signer
@@ -258,7 +258,7 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 		peersTotal: totalPeers,
 		peersLight: lightPeers,
 		ctxcstats:   infos.envvars["STATS_NAME"],
-		ctxcerbase:  infos.envvars["MINER_NAME"],
+		coinbase:  infos.envvars["MINER_NAME"],
 		keyJSON:    keyJSON,
 		keyPass:    keyPass,
 		gasTarget:  gasTarget,
