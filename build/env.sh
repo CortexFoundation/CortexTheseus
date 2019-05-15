@@ -14,7 +14,7 @@ ethdir="$workspace/src/github.com/CortexFoundation"
 if [ ! -L "$ethdir/CortexTheseus" ]; then
     mkdir -p "$ethdir"
     cd "$ethdir"
-    ln -s ../../../../../. go-ethereum
+    ln -s ../../../../../. CortexTheseus
     cd "$root"
 fi
 
