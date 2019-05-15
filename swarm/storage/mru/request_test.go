@@ -69,7 +69,7 @@ func TestEncodingDecodingUpdateRequests(t *testing.T) {
 	const expectedSignature = "0x1c2bab66dc4ed63783d62934e3a628e517888d6949aef0349f3bd677121db9aa09bbfb865904e6c50360e209e0fe6fe757f8a2474cf1b34169c99b95e3fd5a5101"
 	const expectedJSON = `{"rootAddr":"0x6e744a730f7ea0881528576f0354b6268b98e35a6981ef703153ff1b8d32bbef","metaHash":"0x0c0d5c18b89da503af92302a1a64fab6acb60f78e288eb9c3d541655cd359b60","version":1,"period":7,"data":"0x5468697320686f75722773207570646174653a20537761726d2039392e3020686173206265656e2072656c656173656421","multiHash":false}`
 
-	//Put together an unsigned update request that we will serialize to send it to the signer.
+	//Put tocortexer an unsigned update request that we will serialize to send it to the signer.
 	data := []byte("This hour's update: Swarm 99.0 has been released!")
 	request := &Request{
 		SignedResourceUpdate: SignedResourceUpdate{

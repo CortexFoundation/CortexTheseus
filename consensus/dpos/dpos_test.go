@@ -38,7 +38,7 @@ var (
 	}
 )
 
-func mockNewDposContext(db ethdb.Database) *types.DposContext {
+func mockNewDposContext(db ctxcdb.Database) *types.DposContext {
 	dposContext, err := types.NewDposContextFromProto(db, &types.DposContextProto{})
 	if err != nil {
 		return nil
@@ -80,7 +80,7 @@ func getMintCnt(epochID int64, candidate common.Address, mintCntTrie *trie.Trie)
 }
 
 func TestUpdateMintCnt(t *testing.T) {
-	db, _ := ethdb.NewMemDatabase()
+	db, _ := ctxcdb.NewMemDatabase()
 	dposContext := mockNewDposContext(db)
 
 	// new block still in the same epoch with current block, but newMiner is the first time to mint in the epoch

@@ -218,7 +218,7 @@ func (cuckoo *Cuckoo) Hashrate() float64 {
 
 func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 	// In order to ensure backward compatibility, we exposes cuckoo RPC APIs
-	// to both eth and cuckoo namespaces.
+	// to both ctxc and cuckoo namespaces.
 	return []rpc.API{
 		{
 			Namespace: "eth",

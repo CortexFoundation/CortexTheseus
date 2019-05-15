@@ -1,18 +1,18 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2016 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 package abi
 
@@ -114,7 +114,7 @@ func requireUnpackKind(v reflect.Value, t reflect.Type, k reflect.Kind,
 
 // mapAbiToStringField maps abi to struct fields.
 // first round: for each Exportable field that contains a `abi:""` tag
-//   and this field name exists in the arguments, pair them together.
+//   and this field name exists in the arguments, pair them tocortexer.
 // second round: for each argument field that has not been already linked,
 //   find what variable is expected to be mapped into, if it exists and has not been
 //   used, pair them.

@@ -797,7 +797,7 @@ func (c *Server) serve(r fuse.Request) {
 				Error:   fuse.ESTALE.ErrnoName(),
 				// this is the only place that sets both Error and
 				// Out; not sure if i want to do that; might get rid
-				// of len(c.node) things altogether
+				// of len(c.node) things altocortexer
 				Out: logMissingNode{
 					MaxNode: fuse.NodeID(len(c.node)),
 				},

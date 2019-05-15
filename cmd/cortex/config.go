@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2017 The go-cortex Authors
+// This file is part of go-cortex.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// go-cortex is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// go-cortex is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -71,20 +71,20 @@ var tomlSettings = toml.Config{
 	},
 }
 
-type ethstatsConfig struct {
+type ctxcstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
 
-type gethConfig struct {
-	Eth       eth.Config
+type cortexConfig struct {
+	Eth       ctxc.Config
 	Shh       whisper.Config
 	Node      node.Config
-	Ethstats  ethstatsConfig
+	Ethstats  ctxcstatsConfig
 	Dashboard dashboard.Config
 	TorrentFs torrentfs.Config
 }
 
-func loadConfig(file string, cfg *gethConfig) error {
+func loadConfig(file string, cfg *cortexConfig) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -109,10 +109,10 @@ func defaultNodeConfig() node.Config {
 	return cfg
 }
 
-func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
+func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// Load defaults.
-	cfg := gethConfig{
-		Eth:       eth.DefaultConfig,
+	cfg := cortexConfig{
+		Eth:       ctxc.DefaultConfig,
 		Shh:       whisper.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
@@ -178,7 +178,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	// 	utils.RegisterShhService(stack, &cfg.Shh)
 	// }
 
-	// Add the Ethereum Stats daemon if requested.
+	// Add the Cortex Stats daemon if requested.
 	if cfg.Ethstats.URL != "" {
 		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
 	}

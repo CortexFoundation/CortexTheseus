@@ -159,7 +159,7 @@ type Storage interface {
 	GetMeta() (FileDesc, error)
 
 	// List returns file descriptors that match the given file types.
-	// The file types may be OR'ed together.
+	// The file types may be OR'ed tocortexer.
 	List(ft FileType) ([]FileDesc, error)
 
 	// Open opens file with the given 'file descriptor' read-only.

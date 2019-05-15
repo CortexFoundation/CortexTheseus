@@ -272,7 +272,7 @@ func (m *Monitor) Stop() {
 
 	// var stopFilterFlag bool
 	//if blockFilterErr := m.cl.Call(&stopFilterFlag, "eth_uninstallFilter", m.listenID); blockFilterErr != nil {
-	// log.Error("Block Filter closed | IPC eth_uninstallFilter", "error", blockFilterErr)
+	// log.Error("Block Filter closed | IPC ctxc_uninstallFilter", "error", blockFilterErr)
 	//}
 
 	if err := m.fs.Close(); err != nil {
@@ -361,7 +361,7 @@ func (m *Monitor) startWork() error {
 
 	// Used for listen latest block
 	//if blockFilterErr := m.cl.Call(&m.listenID, "eth_newBlockFilter"); blockFilterErr != nil {
-	//	log.Error("Start listen block filter | IPC eth_newBlockFilter", "error", blockFilterErr)
+	//	log.Error("Start listen block filter | IPC ctxc_newBlockFilter", "error", blockFilterErr)
 	//	return blockFilterErr
 	//}
 

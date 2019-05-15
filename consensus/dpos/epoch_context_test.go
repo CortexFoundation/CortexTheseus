@@ -32,7 +32,7 @@ func TestEpochContextCountVotes(t *testing.T) {
 		common.HexToAddress("0x9d9667c71bb09d6ca7c3ed12bfe5e7be24e2ffe1"): {},
 	}
 	balance := int64(5)
-	db, _ := ethdb.NewMemDatabase()
+	db, _ := ctxcdb.NewMemDatabase()
 	stateDB, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	dposContext, err := types.NewDposContext(db)
 	assert.Nil(t, err)
@@ -62,7 +62,7 @@ func TestEpochContextCountVotes(t *testing.T) {
 }
 
 func TestLookupValidator(t *testing.T) {
-	db, _ := ethdb.NewMemDatabase()
+	db, _ := ctxcdb.NewMemDatabase()
 	dposCtx, _ := types.NewDposContext(db)
 	mockEpochContext := &EpochContext{
 		DposContext: dposCtx,
@@ -86,7 +86,7 @@ func TestLookupValidator(t *testing.T) {
 }
 
 func TestEpochContextKickoutValidator(t *testing.T) {
-	db, _ := ethdb.NewMemDatabase()
+	db, _ := ctxcdb.NewMemDatabase()
 	stateDB, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	dposContext, err := types.NewDposContext(db)
 	assert.Nil(t, err)
@@ -261,7 +261,7 @@ func getCandidates(candidateTrie *trie.Trie) map[common.Address]bool {
 }
 
 func TestEpochContextTryElect(t *testing.T) {
-	db, _ := ethdb.NewMemDatabase()
+	db, _ := ctxcdb.NewMemDatabase()
 	stateDB, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	dposContext, err := types.NewDposContext(db)
 	assert.Nil(t, err)

@@ -1,20 +1,20 @@
-// Copyright 2014 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2014 The go-cortex Authors
+// This file is part of go-cortex.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// go-cortex is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// go-cortex is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
 
-// geth is the official command-line client for Ethereum.
+// cortex is the official command-line client for Cortex.
 package main
 
 import (
@@ -175,7 +175,7 @@ var (
 
 func init() {
 	// Initialize the CLI app and start Geth
-	app.Action = geth
+	app.Action = cortex
 	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2013-2018 The go-cortex Authors"
 	app.Commands = []cli.Command{
@@ -262,10 +262,10 @@ func main() {
 	}
 }
 
-// geth is the main entry point into the system if no special subcommand is ran.
+// cortex is the main entry point into the system if no special subcommand is ran.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
-func geth(ctx *cli.Context) error {
+func cortex(ctx *cli.Context) error {
 	if args := ctx.Args(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
@@ -304,7 +304,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		if err != nil {
 			utils.Fatalf("Failed to attach to self: %v", err)
 		}
-		stateReader := ethclient.NewClient(rpcClient)
+		stateReader := ctxcclient.NewClient(rpcClient)
 
 		// Open any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {
@@ -338,12 +338,12 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	// Start auxiliary services if enabled
 	// if ctx.GlobalBool(utils.MiningEnabledFlag.Name) || ctx.GlobalBool(utils.DeveloperFlag.Name) {
 	if ctx.GlobalBool(utils.MiningEnabledFlag.Name) {
-		// Mining only makes sense if a full Ethereum node is running
+		// Mining only makes sense if a full Cortex node is running
 		if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
 			utils.Fatalf("Light clients do not support mining")
 		}
-		var ethereum *eth.Ethereum
-		if err := stack.Service(&ethereum); err != nil {
+		var cortex *ctxc.Cortex
+		if err := stack.Service(&cortex); err != nil {
 			utils.Fatalf("Cortex service not running: %v", err)
 		}
 		// Set the gas price to the limits from the CLI and start mining
@@ -355,13 +355,13 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		if gasprice == nil {
 			gasprice = big.NewInt(0)
 		}
-		ethereum.TxPool().SetGasPrice(gasprice)
+		cortex.TxPool().SetGasPrice(gasprice)
 
 		// threads := ctx.GlobalInt(utils.MinerLegacyThreadsFlag.Name)
 		// if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
 		// 	threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
 		// }
-		if err := ethereum.StartMining(1); err != nil {
+		if err := cortex.StartMining(1); err != nil {
 			utils.Fatalf("Failed to start mining: %v", err)
 		}
 	}

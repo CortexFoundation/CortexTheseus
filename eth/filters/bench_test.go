@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2017 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 package filters
 
@@ -64,10 +64,10 @@ func BenchmarkBloomBits32k(b *testing.B) {
 const benchFilterCnt = 2000
 
 func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
-	benchDataDir := node.DefaultDataDir() + "/geth/chaindata"
+	benchDataDir := node.DefaultDataDir() + "/cortex/chaindata"
 	fmt.Println("Running bloombits benchmark   section size:", sectionSize)
 
-	db, err := ethdb.NewLDBDatabase(benchDataDir, 128, 1024)
+	db, err := ctxcdb.NewLDBDatabase(benchDataDir, 128, 1024)
 	if err != nil {
 		b.Fatalf("error opening database at %v: %v", benchDataDir, err)
 	}
@@ -129,7 +129,7 @@ func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
 	for i := 0; i < benchFilterCnt; i++ {
 		if i%20 == 0 {
 			db.Close()
-			db, _ = ethdb.NewLDBDatabase(benchDataDir, 128, 1024)
+			db, _ = ctxcdb.NewLDBDatabase(benchDataDir, 128, 1024)
 			backend = &testBackend{mux, db, cnt, new(event.Feed), new(event.Feed), new(event.Feed), new(event.Feed)}
 		}
 		var addr common.Address
@@ -146,8 +146,8 @@ func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
 	db.Close()
 }
 
-func forEachKey(db ethdb.Database, startPrefix, endPrefix []byte, fn func(key []byte)) {
-	it := db.(*ethdb.LDBDatabase).NewIterator()
+func forEachKey(db ctxcdb.Database, startPrefix, endPrefix []byte, fn func(key []byte)) {
+	it := db.(*ctxcdb.LDBDatabase).NewIterator()
 	it.Seek(startPrefix)
 	for it.Valid() {
 		key := it.Key()
@@ -166,7 +166,7 @@ func forEachKey(db ethdb.Database, startPrefix, endPrefix []byte, fn func(key []
 
 var bloomBitsPrefix = []byte("bloomBits-")
 
-func clearBloomBits(db ethdb.Database) {
+func clearBloomBits(db ctxcdb.Database) {
 	fmt.Println("Clearing bloombits data...")
 	forEachKey(db, bloomBitsPrefix, bloomBitsPrefix, func(key []byte) {
 		db.Delete(key)
@@ -174,9 +174,9 @@ func clearBloomBits(db ethdb.Database) {
 }
 
 func BenchmarkNoBloomBits(b *testing.B) {
-	benchDataDir := node.DefaultDataDir() + "/geth/chaindata"
+	benchDataDir := node.DefaultDataDir() + "/cortex/chaindata"
 	fmt.Println("Running benchmark without bloombits")
-	db, err := ethdb.NewLDBDatabase(benchDataDir, 128, 1024)
+	db, err := ctxcdb.NewLDBDatabase(benchDataDir, 128, 1024)
 	if err != nil {
 		b.Fatalf("error opening database at %v: %v", benchDataDir, err)
 	}

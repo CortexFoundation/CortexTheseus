@@ -35,7 +35,7 @@ func TestRunCmd(t *testing.T) {
 	debugLogger = vm.NewStructLogger(logconfig)
 	tracer = debugLogger
 	{
-		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ctxcdb.NewMemDatabase()))
 	}
 	statedb.CreateAccount(sender)
 	mh, _ := hex.DecodeString("5c4d1f84063be8e25e83da6452b1821926548b3c2a2a903a0724e14d5c917b00")
