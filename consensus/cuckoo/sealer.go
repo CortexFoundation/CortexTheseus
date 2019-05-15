@@ -109,9 +109,6 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 }
 
 func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
-	// cuckoo.InitOnce()
-	// For return arguments
-	//zeroHash := common.Hash{}
 
 	blockDiff := block.Difficulty()
 	if blockDiff.Cmp(common.Big0) == 0 {
@@ -123,10 +120,11 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 		log.Info("invalid share difficulty")
 		return false, false, 0
 	}
-	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), blockDiff)
-	//sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))
+	//fmt.Println(hashNoNonce, solution, block.NumberU64(), blockDiff, shareDiff, block.Nonce())
+	targetDiff := new(big.Int).Div(maxUint256, shareDiff)
+	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), targetDiff)
 	if !ok {
-		fmt.Println("invalid solution ")
+		fmt.Println("invalid solution")
 		return false, false, 0
 	}
 	sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))
