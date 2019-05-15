@@ -65,15 +65,15 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	}
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
-	  pend.Add(1)
+		pend.Add(1)
 		var err error
-		go func(id int, nonce uint64, err *error){
+		go func(id int, nonce uint64, err *error) {
 			defer pend.Done()
 			cuckoo.lock.Lock()
 			*err = cuckoo.Mine(block, id, nonce, abort, cuckoo.resultCh)
 			cuckoo.lock.Unlock()
 		}(i, uint64(cuckoo.rand.Int63()), &err)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}
@@ -124,11 +124,12 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 		return false, false, 0
 	}
 	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), blockDiff)
-	sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))
+	//sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))
 	if !ok {
 		fmt.Println("invalid solution ")
 		return false, false, 0
 	}
+	sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
 	actualDiff := new(big.Int).Div(maxUint256, sha3Hash.Big())
