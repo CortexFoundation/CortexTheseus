@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2017 The go-cortex Authors
+// This file is part of go-cortex.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// go-cortex is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// go-cortex is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -26,13 +26,13 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
-// nodeDockerfile is the Dockerfile required to run an Ethereum node.
+// nodeDockerfile is the Dockerfile required to run an Cortex node.
 var nodeDockerfile = `
-FROM ethereum/client-go:latest
+FROM cortex/client-go:latest
 
 ADD genesis.json /genesis.json
 {{if .Unlock}}
@@ -40,15 +40,15 @@ ADD genesis.json /genesis.json
 	ADD signer.pass /signer.pass
 {{end}}
 RUN \
-  echo 'geth --cache 512 init /genesis.json' > geth.sh && \{{if .Unlock}}
-	echo 'mkdir -p /root/.ethereum/keystore/ && cp /signer.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}
-	echo $'exec geth --networkid {{.NetworkID}} --cache 512 --port {{.Port}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
+  echo 'cortex --cache 512 init /genesis.json' > cortex.sh && \{{if .Unlock}}
+	echo 'mkdir -p /root/.cortex/keystore/ && cp /signer.json /root/.cortex/keystore/' >> cortex.sh && \{{end}}
+	echo $'exec cortex --networkid {{.NetworkID}} --cache 512 --port {{.Port}} --maxpeers {{.Peers}} {{.LightFlag}} --ctxcstats \'{{.Cortexstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Coinbase}}--miner.coinbase {{.Coinbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> cortex.sh
 
-ENTRYPOINT ["/bin/sh", "geth.sh"]
+ENTRYPOINT ["/bin/sh", "cortex.sh"]
 `
 
 // nodeComposefile is the docker-compose.yml file required to deploy and maintain
-// an Ethereum node (bootnode or miner for now).
+// an Cortex node (bootnode or miner for now).
 var nodeComposefile = `
 version: '2'
 services:
@@ -59,14 +59,14 @@ services:
       - "{{.Port}}:{{.Port}}"
       - "{{.Port}}:{{.Port}}/udp"
     volumes:
-      - {{.Datadir}}:/root/.ethereum{{if .Ethashdir}}
-      - {{.Ethashdir}}:/root/.ethash{{end}}
+      - {{.Datadir}}:/root/.cortex{{if .Ethashdir}}
+      - {{.Ethashdir}}:/root/.ctxcash{{end}}
     environment:
       - PORT={{.Port}}/tcp
       - TOTAL_PEERS={{.TotalPeers}}
       - LIGHT_PEERS={{.LightPeers}}
-      - STATS_NAME={{.Ethstats}}
-      - MINER_NAME={{.Etherbase}}
+      - STATS_NAME={{.Cortexstats}}
+      - MINER_NAME={{.Coinbase}}
       - GAS_TARGET={{.GasTarget}}
       - GAS_LIMIT={{.GasLimit}}
       - GAS_PRICE={{.GasPrice}}
@@ -78,12 +78,12 @@ services:
     restart: always
 `
 
-// deployNode deploys a new Ethereum node container to a remote machine via SSH,
+// deployNode deploys a new Cortex node container to a remote machine via SSH,
 // docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
 func deployNode(client *sshClient, network string, bootnodes []string, config *nodeInfos, nocache bool) ([]byte, error) {
 	kind := "sealnode"
-	if config.keyJSON == "" && config.etherbase == "" {
+	if config.keyJSON == "" && config.coinbase == "" {
 		kind = "bootnode"
 		bootnodes = make([]string, 0)
 	}
@@ -102,8 +102,8 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Peers":     config.peersTotal,
 		"LightFlag": lightFlag,
 		"Bootnodes": strings.Join(bootnodes, ","),
-		"Ethstats":  config.ethstats,
-		"Etherbase": config.etherbase,
+		"Cortexstats":  config.ctxcstats,
+		"Coinbase": config.coinbase,
 		"GasTarget": uint64(1000000 * config.gasTarget),
 		"GasLimit":  uint64(1000000 * config.gasLimit),
 		"GasPrice":  uint64(1000000000 * config.gasPrice),
@@ -115,14 +115,14 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 	template.Must(template.New("").Parse(nodeComposefile)).Execute(composefile, map[string]interface{}{
 		"Type":       kind,
 		"Datadir":    config.datadir,
-		"Ethashdir":  config.ethashdir,
+		"Ethashdir":  config.ctxcashdir,
 		"Network":    network,
 		"Port":       config.port,
 		"TotalPeers": config.peersTotal,
 		"Light":      config.peersLight > 0,
 		"LightPeers": config.peersLight,
-		"Ethstats":   config.ethstats[:strings.Index(config.ethstats, ":")],
-		"Etherbase":  config.etherbase,
+		"Cortexstats":   config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
+		"Coinbase":  config.coinbase,
 		"GasTarget":  config.gasTarget,
 		"GasLimit":   config.gasLimit,
 		"GasPrice":   config.gasPrice,
@@ -153,13 +153,13 @@ type nodeInfos struct {
 	genesis    []byte
 	network    int64
 	datadir    string
-	ethashdir  string
-	ethstats   string
+	ctxcashdir  string
+	ctxcstats   string
 	port       int
 	enode      string
 	peersTotal int
 	peersLight int
-	etherbase  string
+	coinbase  string
 	keyJSON    string
 	keyPass    string
 	gasTarget  float64
@@ -175,7 +175,7 @@ func (info *nodeInfos) Report() map[string]string {
 		"Listener port":            strconv.Itoa(info.port),
 		"Peer count (all total)":   strconv.Itoa(info.peersTotal),
 		"Peer count (light nodes)": strconv.Itoa(info.peersLight),
-		"Ethstats username":        info.ethstats,
+		"Cortexstats username":        info.ctxcstats,
 	}
 	if info.gasTarget > 0 {
 		// Miner or signer node
@@ -183,10 +183,10 @@ func (info *nodeInfos) Report() map[string]string {
 		report["Gas floor (baseline target)"] = fmt.Sprintf("%0.3f MGas", info.gasTarget)
 		report["Gas ceil  (target maximum)"] = fmt.Sprintf("%0.3f MGas", info.gasLimit)
 
-		if info.etherbase != "" {
+		if info.coinbase != "" {
 			// Ethash proof-of-work miner
-			report["Ethash directory"] = info.ethashdir
-			report["Miner account"] = info.etherbase
+			report["Ethash directory"] = info.ctxcashdir
+			report["Miner account"] = info.coinbase
 		}
 		if info.keyJSON != "" {
 			// Clique proof-of-authority signer
@@ -227,7 +227,7 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 
 	// Container available, retrieve its node ID and its genesis json
 	var out []byte
-	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 geth --exec admin.nodeInfo.id --cache=16 attach", network, kind)); err != nil {
+	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 cortex --exec admin.nodeInfo.id --cache=16 attach", network, kind)); err != nil {
 		return nil, ErrServiceUnreachable
 	}
 	id := bytes.Trim(bytes.TrimSpace(out), "\"")
@@ -252,13 +252,13 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 	// Assemble and return the useful infos
 	stats := &nodeInfos{
 		genesis:    genesis,
-		datadir:    infos.volumes["/root/.ethereum"],
-		ethashdir:  infos.volumes["/root/.ethash"],
+		datadir:    infos.volumes["/root/.cortex"],
+		ctxcashdir:  infos.volumes["/root/.ctxcash"],
 		port:       port,
 		peersTotal: totalPeers,
 		peersLight: lightPeers,
-		ethstats:   infos.envvars["STATS_NAME"],
-		etherbase:  infos.envvars["MINER_NAME"],
+		ctxcstats:   infos.envvars["STATS_NAME"],
+		coinbase:  infos.envvars["MINER_NAME"],
 		keyJSON:    keyJSON,
 		keyPass:    keyPass,
 		gasTarget:  gasTarget,

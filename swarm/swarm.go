@@ -1,18 +1,18 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2016 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 package swarm
 
@@ -29,29 +29,29 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/contracts/chequebook"
-	"github.com/ethereum/go-ethereum/contracts/ens"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/discover"
-	"github.com/ethereum/go-ethereum/p2p/protocols"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/swarm/api"
-	httpapi "github.com/ethereum/go-ethereum/swarm/api/http"
-	"github.com/ethereum/go-ethereum/swarm/fuse"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	"github.com/ethereum/go-ethereum/swarm/network"
-	"github.com/ethereum/go-ethereum/swarm/network/stream"
-	"github.com/ethereum/go-ethereum/swarm/pss"
-	"github.com/ethereum/go-ethereum/swarm/state"
-	"github.com/ethereum/go-ethereum/swarm/storage"
-	"github.com/ethereum/go-ethereum/swarm/storage/mock"
-	"github.com/ethereum/go-ethereum/swarm/storage/mru"
-	"github.com/ethereum/go-ethereum/swarm/tracing"
+	"github.com/CortexFoundation/CortexTheseus/accounts/abi/bind"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/contracts/chequebook"
+	"github.com/CortexFoundation/CortexTheseus/contracts/ens"
+	"github.com/CortexFoundation/CortexTheseus/ethclient"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"github.com/CortexFoundation/CortexTheseus/p2p/protocols"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/CortexTheseus/swarm/api"
+	httpapi "github.com/CortexFoundation/CortexTheseus/swarm/api/http"
+	"github.com/CortexFoundation/CortexTheseus/swarm/fuse"
+	"github.com/CortexFoundation/CortexTheseus/swarm/log"
+	"github.com/CortexFoundation/CortexTheseus/swarm/network"
+	"github.com/CortexFoundation/CortexTheseus/swarm/network/stream"
+	"github.com/CortexFoundation/CortexTheseus/swarm/pss"
+	"github.com/CortexFoundation/CortexTheseus/swarm/state"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage/mock"
+	"github.com/CortexFoundation/CortexTheseus/swarm/storage/mru"
+	"github.com/CortexFoundation/CortexTheseus/swarm/tracing"
 )
 
 var (
@@ -110,7 +110,7 @@ func NewSwarm(config *api.Config, mockStore *mock.NodeStore) (self *Swarm, err e
 	var backend chequebook.Backend
 	if config.SwapAPI != "" && config.SwapEnabled {
 		log.Info("connecting to SWAP API", "url", config.SwapAPI)
-		backend, err = ethclient.Dial(config.SwapAPI)
+		backend, err = ctxcclient.Dial(config.SwapAPI)
 		if err != nil {
 			return nil, fmt.Errorf("error connecting to SWAP API %s: %s", config.SwapAPI, err)
 		}
@@ -252,7 +252,7 @@ func parseEnsAPIAddress(s string) (tld, endpoint string, addr common.Address) {
 // ensClient provides functionality for api.ResolveValidator
 type ensClient struct {
 	*ens.ENS
-	*ethclient.Client
+	*ctxcclient.Client
 }
 
 // newEnsClient creates a new ENS client for that is a consumer of
@@ -264,7 +264,7 @@ func newEnsClient(endpoint string, addr common.Address, config *api.Config, priv
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to ENS API %s: %s", endpoint, err)
 	}
-	ethClient := ethclient.NewClient(client)
+	ctxcClient := ctxcclient.NewClient(client)
 
 	ensRoot := config.EnsRoot
 	if addr != (common.Address{}) {
@@ -278,14 +278,14 @@ func newEnsClient(endpoint string, addr common.Address, config *api.Config, priv
 		}
 	}
 	transactOpts := bind.NewKeyedTransactor(privkey)
-	dns, err := ens.NewENS(transactOpts, ensRoot, ethClient)
+	dns, err := ens.NewENS(transactOpts, ensRoot, ctxcClient)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug(fmt.Sprintf("-> Swarm Domain Name Registrar %v @ address %v", endpoint, ensRoot.Hex()))
 	return &ensClient{
 		ENS:    dns,
-		Client: ethClient,
+		Client: ctxcClient,
 	}, err
 }
 
@@ -301,7 +301,7 @@ func detectEnsAddr(client *rpc.Client) (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	block, err := ethclient.NewClient(client).BlockByNumber(ctx, big.NewInt(0))
+	block, err := ctxcclient.NewClient(client).BlockByNumber(ctx, big.NewInt(0))
 	if err != nil {
 		return common.Address{}, err
 	}

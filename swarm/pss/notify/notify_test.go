@@ -9,17 +9,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/p2p/discover"
-	"github.com/ethereum/go-ethereum/p2p/simulations"
-	"github.com/ethereum/go-ethereum/p2p/simulations/adapters"
-	"github.com/ethereum/go-ethereum/swarm/network"
-	"github.com/ethereum/go-ethereum/swarm/pss"
-	"github.com/ethereum/go-ethereum/swarm/state"
-	whisper "github.com/ethereum/go-ethereum/whisper/whisperv5"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/node"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"github.com/CortexFoundation/CortexTheseus/p2p/simulations"
+	"github.com/CortexFoundation/CortexTheseus/p2p/simulations/adapters"
+	"github.com/CortexFoundation/CortexTheseus/swarm/network"
+	"github.com/CortexFoundation/CortexTheseus/swarm/pss"
+	"github.com/CortexFoundation/CortexTheseus/swarm/state"
+	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv5"
 )
 
 var (
@@ -112,7 +112,7 @@ func TestStart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rsrcName := "foo.eth"
+	rsrcName := "foo.ctxc"
 	rsrcTopic := pss.BytesToTopic([]byte(rsrcName))
 
 	// wait for kademlia table to populate
@@ -131,7 +131,7 @@ func TestStart(t *testing.T) {
 	updateMsg := []byte{}
 	ctrlClient := NewController(psses[rightPub])
 	ctrlNotifier := NewController(psses[leftPub])
-	ctrlNotifier.NewNotifier("foo.eth", 2, updateC)
+	ctrlNotifier.NewNotifier("foo.ctxc", 2, updateC)
 
 	pubkeybytes, err := hexutil.Decode(leftPub)
 	if err != nil {
@@ -146,7 +146,7 @@ func TestStart(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctrlClient.Subscribe(rsrcName, pubkey, addrbytes, func(s string, b []byte) error {
-		if s != "foo.eth" || !bytes.Equal(updateMsg, b) {
+		if s != "foo.ctxc" || !bytes.Equal(updateMsg, b) {
 			t.Fatalf("unexpected result in client handler: '%s':'%x'", s, b)
 		}
 		log.Info("client handler receive", "s", s, "b", b)

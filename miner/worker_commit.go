@@ -7,11 +7,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CortexFoundation/CortexTheseus/common"
 
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -40,13 +40,13 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			for i, tx := range block.Transactions() {
 				feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
 			}
-			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
-			mined := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Sub(block.Supply(), params.CTXC_INIT)), new(big.Float).SetInt(big.NewInt(params.Ether)))
+			feesCortex := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Cortex)))
+			mined := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Sub(block.Supply(), params.CTXC_INIT)), new(big.Float).SetInt(big.NewInt(params.Cortex)))
 			peace := new(big.Float).Quo(new(big.Float).SetInt(block.Supply()), new(big.Float).SetInt(params.CTXC_TOP))
 			capacity := new(big.Float).Quo(new(big.Float).SetInt(block.QuotaUsed()), new(big.Float).SetInt(block.Quota()))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
-				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined, "peace", peace, "quota", block.Quota(), "used", block.QuotaUsed(), "capacity", capacity)
+				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined, "peace", peace, "quota", block.Quota(), "used", block.QuotaUsed(), "capacity", capacity)
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")
@@ -60,7 +60,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 func (self *Miner) Start(coinbase common.Address) {
 	atomic.StoreInt32(&self.shouldStart, 1)
-	self.SetEtherbase(coinbase)
+	self.SetCoinbase(coinbase)
 
 	if atomic.LoadInt32(&self.canStart) == 0 {
 		log.Info("Network syncing, will start miner afterwards")

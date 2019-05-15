@@ -1,11 +1,11 @@
 package synapse
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
-	"github.com/ethereum/go-ethereum/inference"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
+	"github.com/CortexFoundation/CortexTheseus/inference"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
 func ArgMax(res []byte) uint64 {

@@ -11,8 +11,8 @@ import (
 	"os"
 	"time"
 
-//	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
-	"github.com/ethereum/go-ethereum/PoolMiner/config"
+//	"github.com/CortexFoundation/CortexTheseus/PoolMiner/miner/libcuckoo"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
 
 	"strconv"
 	"plugin"
@@ -82,7 +82,7 @@ func (cm *Cortex) login() {
 	var reqLogin = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
-		Method:  "eth_submitLogin",
+		Method:  "ctxc_submitLogin",
 		Params:  []string{cm.param.Account},
 	}
 	cm.write(reqLogin)
@@ -94,7 +94,7 @@ func (cm *Cortex) getWork() {
 	req := ReqObj{
 		Id:      100,
 		Jsonrpc: "2.0",
-		Method:  "eth_getWork",
+		Method:  "ctxc_getWork",
 		Params:  []string{""},
 	}
 	cm.write(req)
@@ -105,7 +105,7 @@ func (cm *Cortex) submit(sol config.Task) {
 	var reqSubmit = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
-		Method:  "eth_submitWork",
+		Method:  "ctxc_submitWork",
 		Params:  []string{sol.Nonce, sol.Header, sol.Solution},
 	}
 	cm.write(reqSubmit)

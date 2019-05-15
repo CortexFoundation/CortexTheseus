@@ -1,21 +1,21 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2016 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package ethstats implements the network stats reporting service.
-package ethstats
+// Package ctxcstats implements the network stats reporting service.
+package ctxcstats
 
 import (
 	"context"
@@ -30,17 +30,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/mclock"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/les"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/consensus"
+	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/eth"
+	"github.com/CortexFoundation/CortexTheseus/event"
+	"github.com/CortexFoundation/CortexTheseus/les"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"golang.org/x/net/websocket"
 )
 
@@ -66,12 +66,12 @@ type blockChain interface {
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 }
 
-// Service implements an Ethereum netstats reporting daemon that pushes local
+// Service implements an Cortex netstats reporting daemon that pushes local
 // chain statistics up to a monitoring server.
 type Service struct {
 	server *p2p.Server        // Peer-to-peer server to retrieve networking infos
-	eth    *eth.Ethereum      // Full Ethereum service if monitoring a full node
-	les    *les.LightEthereum // Light Ethereum service if monitoring a light node
+	ctxc    *ctxc.Cortex      // Full Cortex service if monitoring a full node
+	les    *les.LightCortex // Light Cortex service if monitoring a light node
 	engine consensus.Engine   // Consensus engine to retrieve variadic block fields
 
 	node string // Name of the node to display on the monitoring page
@@ -83,7 +83,7 @@ type Service struct {
 }
 
 // New returns a monitoring service ready for stats reporting.
-func New(url string, ethServ *eth.Ethereum, lesServ *les.LightEthereum) (*Service, error) {
+func New(url string, ctxcServ *ctxc.Cortex, lesServ *les.LightCortex) (*Service, error) {
 	// Parse the netstats connection url
 	re := regexp.MustCompile("([^:@]*)(:([^@]*))?@(.+)")
 	parts := re.FindStringSubmatch(url)
@@ -92,13 +92,13 @@ func New(url string, ethServ *eth.Ethereum, lesServ *les.LightEthereum) (*Servic
 	}
 	// Assemble and return the stats service
 	var engine consensus.Engine
-	if ethServ != nil {
-		engine = ethServ.Engine()
+	if ctxcServ != nil {
+		engine = ctxcServ.Engine()
 	} else {
 		engine = lesServ.Engine()
 	}
 	return &Service{
-		eth:    ethServ,
+		ctxc:    ctxcServ,
 		les:    lesServ,
 		engine: engine,
 		node:   parts[1],
@@ -138,9 +138,9 @@ func (s *Service) loop() {
 	// Subscribe to chain events to execute updates on
 	var blockchain blockChain
 	var txpool txPool
-	if s.eth != nil {
-		blockchain = s.eth.BlockChain()
-		txpool = s.eth.TxPool()
+	if s.ctxc != nil {
+		blockchain = s.ctxc.BlockChain()
+		txpool = s.ctxc.TxPool()
 	} else {
 		blockchain = s.les.BlockChain()
 		txpool = s.les.TxPool()
@@ -317,7 +317,7 @@ func (s *Service) readLoop(conn *websocket.Conn) {
 			if !ok {
 				log.Warn("Invalid stats history request", "msg", msg["emit"][1])
 				s.histCh <- nil
-				continue // Ethstats sometime sends invalid history requests, ignore those
+				continue // Cortexstats sometime sends invalid history requests, ignore those
 			}
 			list, ok := request["list"].([]interface{})
 			if !ok {
@@ -374,8 +374,8 @@ func (s *Service) login(conn *websocket.Conn) error {
 
 	var network, protocol string
 	if info := infos.Protocols["eth"]; info != nil {
-		network = fmt.Sprintf("%d", info.(*eth.NodeInfo).Network)
-		protocol = fmt.Sprintf("eth/%d", eth.ProtocolVersions[0])
+		network = fmt.Sprintf("%d", info.(*ctxc.NodeInfo).Network)
+		protocol = fmt.Sprintf("eth/%d", ctxc.ProtocolVersions[0])
 	} else {
 		network = fmt.Sprintf("%d", infos.Protocols["les"].(*les.NodeInfo).Network)
 		protocol = fmt.Sprintf("les/%d", les.ClientProtocolVersions[0])
@@ -432,7 +432,7 @@ func (s *Service) report(conn *websocket.Conn) error {
 // reportLatency sends a ping request to the server, measures the RTT time and
 // finally sends a latency update.
 func (s *Service) reportLatency(conn *websocket.Conn) error {
-	// Send the current time to the ethstats server
+	// Send the current time to the ctxcstats server
 	start := time.Now()
 
 	ping := map[string][]interface{}{
@@ -455,7 +455,7 @@ func (s *Service) reportLatency(conn *websocket.Conn) error {
 	latency := strconv.Itoa(int((time.Since(start) / time.Duration(2)).Nanoseconds() / 1000000))
 
 	// Send back the measured latency
-	log.Trace("Sending measured latency to ethstats", "latency", latency)
+	log.Trace("Sending measured latency to ctxcstats", "latency", latency)
 
 	stats := map[string][]interface{}{
 		"emit": {"latency", map[string]string{
@@ -505,7 +505,7 @@ func (s *Service) reportBlock(conn *websocket.Conn, block *types.Block) error {
 	details := s.assembleBlockStats(block)
 
 	// Assemble the block report and send it to the server
-	log.Trace("Sending new block to ethstats", "number", details.Number, "hash", details.Hash)
+	log.Trace("Sending new block to ctxcstats", "number", details.Number, "hash", details.Hash)
 
 	stats := map[string]interface{}{
 		"id":    s.node,
@@ -527,13 +527,13 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		txs    []txStats
 		uncles []*types.Header
 	)
-	if s.eth != nil {
+	if s.ctxc != nil {
 		// Full nodes have all needed information available
 		if block == nil {
-			block = s.eth.BlockChain().CurrentBlock()
+			block = s.ctxc.BlockChain().CurrentBlock()
 		}
 		header = block.Header()
-		td = s.eth.BlockChain().GetTd(header.Hash(), header.Number.Uint64())
+		td = s.ctxc.BlockChain().GetTd(header.Hash(), header.Number.Uint64())
 
 		txs = make([]txStats, len(block.Transactions()))
 		for i, tx := range block.Transactions() {
@@ -581,8 +581,8 @@ func (s *Service) reportHistory(conn *websocket.Conn, list []uint64) error {
 	} else {
 		// No indexes requested, send back the top ones
 		var head int64
-		if s.eth != nil {
-			head = s.eth.BlockChain().CurrentHeader().Number.Int64()
+		if s.ctxc != nil {
+			head = s.ctxc.BlockChain().CurrentHeader().Number.Int64()
 		} else {
 			head = s.les.BlockChain().CurrentHeader().Number.Int64()
 		}
@@ -599,8 +599,8 @@ func (s *Service) reportHistory(conn *websocket.Conn, list []uint64) error {
 	for i, number := range indexes {
 		// Retrieve the next block if it's known to us
 		var block *types.Block
-		if s.eth != nil {
-			block = s.eth.BlockChain().GetBlockByNumber(number)
+		if s.ctxc != nil {
+			block = s.ctxc.BlockChain().GetBlockByNumber(number)
 		} else {
 			if header := s.les.BlockChain().GetHeaderByNumber(number); header != nil {
 				block = types.NewBlockWithHeader(header)
@@ -617,7 +617,7 @@ func (s *Service) reportHistory(conn *websocket.Conn, list []uint64) error {
 	}
 	// Assemble the history report and send it to the server
 	if len(history) > 0 {
-		log.Trace("Sending historical blocks to ethstats", "first", history[0].Number, "last", history[len(history)-1].Number)
+		log.Trace("Sending historical blocks to ctxcstats", "first", history[0].Number, "last", history[len(history)-1].Number)
 	} else {
 		log.Trace("No history to send to stats server")
 	}
@@ -641,13 +641,13 @@ type pendStats struct {
 func (s *Service) reportPending(conn *websocket.Conn) error {
 	// Retrieve the pending count from the local blockchain
 	var pending int
-	if s.eth != nil {
-		pending, _ = s.eth.TxPool().Stats()
+	if s.ctxc != nil {
+		pending, _ = s.ctxc.TxPool().Stats()
 	} else {
 		pending = s.les.TxPool().Stats()
 	}
 	// Assemble the transaction stats and send it to the server
-	log.Trace("Sending pending transactions to ethstats", "count", pending)
+	log.Trace("Sending pending transactions to ctxcstats", "count", pending)
 
 	stats := map[string]interface{}{
 		"id": s.node,
@@ -682,21 +682,21 @@ func (s *Service) reportStats(conn *websocket.Conn) error {
 		syncing  bool
 		gasprice int
 	)
-	if s.eth != nil {
-		mining = s.eth.Miner().Mining()
-		hashrate = int(s.eth.Miner().HashRate())
+	if s.ctxc != nil {
+		mining = s.ctxc.Miner().Mining()
+		hashrate = int(s.ctxc.Miner().HashRate())
 
-		sync := s.eth.Downloader().Progress()
-		syncing = s.eth.BlockChain().CurrentHeader().Number.Uint64() >= sync.HighestBlock
+		sync := s.ctxc.Downloader().Progress()
+		syncing = s.ctxc.BlockChain().CurrentHeader().Number.Uint64() >= sync.HighestBlock
 
-		price, _ := s.eth.APIBackend.SuggestPrice(context.Background())
+		price, _ := s.ctxc.APIBackend.SuggestPrice(context.Background())
 		gasprice = int(price.Uint64())
 	} else {
 		sync := s.les.Downloader().Progress()
 		syncing = s.les.BlockChain().CurrentHeader().Number.Uint64() >= sync.HighestBlock
 	}
 	// Assemble the node stats and send it to the server
-	log.Trace("Sending node details to ethstats")
+	log.Trace("Sending node details to ctxcstats")
 
 	stats := map[string]interface{}{
 		"id": s.node,

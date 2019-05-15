@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2017 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 package state
 
@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -59,7 +59,7 @@ type Database interface {
 	TrieDB() *trie.Database
 }
 
-// Trie is a Ethereum Merkle Trie.
+// Trie is a Cortex Merkle Trie.
 type Trie interface {
 	TryGet(key []byte) ([]byte, error)
 	TryUpdate(key, value []byte) error
@@ -68,14 +68,14 @@ type Trie interface {
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
-	Prove(key []byte, fromLevel uint, proofDb ethdb.Putter) error
+	Prove(key []byte, fromLevel uint, proofDb ctxcdb.Putter) error
 }
 
 // NewDatabase creates a backing store for state. The returned database is safe for
 // concurrent use and retains cached trie nodes in memory. The pool is an optional
 // intermediate trie-node memory pool between the low level storage layer and the
 // high level trie abstraction.
-func NewDatabase(db ethdb.Database) Database {
+func NewDatabase(db ctxcdb.Database) Database {
 	csc, _ := lru.New(codeSizeCacheSize)
 	return &cachingDB{
 		db:            trie.NewDatabase(db),
@@ -173,6 +173,6 @@ func (m cachedTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	return root, err
 }
 
-func (m cachedTrie) Prove(key []byte, fromLevel uint, proofDb ethdb.Putter) error {
+func (m cachedTrie) Prove(key []byte, fromLevel uint, proofDb ctxcdb.Putter) error {
 	return m.SecureTrie.Prove(key, fromLevel, proofDb)
 }

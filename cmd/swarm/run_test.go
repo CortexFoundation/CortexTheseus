@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2017 The go-cortex Authors
+// This file is part of go-cortex.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// go-cortex is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// go-cortex is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -32,13 +32,13 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/internal/cmdtest"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/swarm"
+	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
+	"github.com/CortexFoundation/CortexTheseus/internal/cmdtest"
+	"github.com/CortexFoundation/CortexTheseus/node"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/CortexTheseus/swarm"
 )
 
 func init() {
@@ -84,7 +84,7 @@ type testCluster struct {
 // ports (assigned by first listening on 127.0.0.1:0 and then passing the ports
 // as flags).
 //
-// When starting more than one node, they are connected together using the
+// When starting more than one node, they are connected tocortexer using the
 // admin SetPeer RPC method.
 
 func newTestCluster(t *testing.T, size int) *testCluster {
@@ -108,7 +108,7 @@ func newTestCluster(t *testing.T, size int) *testCluster {
 		return cluster
 	}
 
-	// connect the nodes together
+	// connect the nodes tocortexer
 	for _, node := range cluster.Nodes {
 		if err := node.Client.Call(nil, "admin_addPeer", cluster.Nodes[0].Enode); err != nil {
 			t.Fatal(err)

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/torrentfs"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	cli "gopkg.in/urfave/cli.v1"
 	glog "log"
 	"os"

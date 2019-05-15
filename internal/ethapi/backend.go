@@ -1,47 +1,47 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2015 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package ethapi implements the general Ethereum API functions.
-package ethapi
+// Package ctxcapi implements the general Cortex API functions.
+package ctxcapi
 
 import (
 	"context"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/downloader"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
+	"github.com/CortexFoundation/CortexTheseus/eth/downloader"
+	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/event"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
 // Backend interface provides the common API services (that are provided by
 // both full and light clients) with access to necessary functions.
 type Backend interface {
-	// General Ethereum API
+	// General Cortex API
 	Downloader() *downloader.Downloader
 	ProtocolVersion() int
 	SuggestPrice(ctx context.Context) (*big.Int, error)
-	ChainDb() ethdb.Database
+	ChainDb() ctxcdb.Database
 	EventMux() *event.TypeMux
 	AccountManager() *accounts.Manager
 
@@ -75,17 +75,17 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 	nonceLock := new(AddrLocker)
 	return []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
-			Service:   NewPublicEthereumAPI(apiBackend),
+			Service:   NewPublicCortexAPI(apiBackend),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicBlockChainAPI(apiBackend, vmConfig),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
 			Public:    true,
@@ -104,7 +104,7 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(apiBackend),
 		}, {
-			Namespace: "eth",
+			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
 			Public:    true,
@@ -115,26 +115,26 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 			Public:    false,
 		},
 
-		{
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicEthereumAPI(apiBackend),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicBlockChainAPI(apiBackend, vmConfig),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
-			Public:    true,
-		}, {
-			Namespace: "ctx",
-			Version:   "1.0",
-			Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
-			Public:    true,
-		},
+		// {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicCortexAPI(apiBackend),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicBlockChainAPI(apiBackend, vmConfig),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
+		// 	Public:    true,
+		// }, {
+		// 	Namespace: "ctx",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
+		// 	Public:    true,
+		// },
 	}
 }

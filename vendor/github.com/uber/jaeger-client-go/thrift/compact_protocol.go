@@ -189,7 +189,7 @@ func (p *TCompactProtocol) writeFieldBeginInternal(name string, typeId TType, id
 	fieldId := int(id)
 	written := 0
 	if fieldId > p.lastFieldId && fieldId-p.lastFieldId <= 15 {
-		// write them together
+		// write them tocortexer
 		err := p.writeByteDirect(byte((fieldId-p.lastFieldId)<<4) | typeToWrite)
 		if err != nil {
 			return 0, err

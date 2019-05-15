@@ -1,21 +1,21 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2015 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package light implements on-demand retrieval capable state and chain objects
-// for the Ethereum Light Client.
+// for the Cortex Light Client.
 package light
 
 import (
@@ -23,11 +23,11 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/ethdb"
 )
 
 // NoOdr is the default context passed to an ODR capable function when the ODR
@@ -39,7 +39,7 @@ var ErrNoPeers = errors.New("no suitable peers available")
 
 // OdrBackend is an interface to a backend service that handles ODR retrievals type
 type OdrBackend interface {
-	Database() ethdb.Database
+	Database() ctxcdb.Database
 	ChtIndexer() *core.ChainIndexer
 	BloomTrieIndexer() *core.ChainIndexer
 	BloomIndexer() *core.ChainIndexer
@@ -49,7 +49,7 @@ type OdrBackend interface {
 
 // OdrRequest is an interface for retrieval requests
 type OdrRequest interface {
-	StoreResult(db ethdb.Database)
+	StoreResult(db ctxcdb.Database)
 }
 
 // TrieID identifies a state or account storage trie
@@ -91,7 +91,7 @@ type TrieRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *TrieRequest) StoreResult(db ethdb.Database) {
+func (req *TrieRequest) StoreResult(db ctxcdb.Database) {
 	req.Proof.Store(db)
 }
 
@@ -104,7 +104,7 @@ type CodeRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *CodeRequest) StoreResult(db ethdb.Database) {
+func (req *CodeRequest) StoreResult(db ctxcdb.Database) {
 	db.Put(req.Hash[:], req.Data)
 }
 
@@ -117,7 +117,7 @@ type BlockRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *BlockRequest) StoreResult(db ethdb.Database) {
+func (req *BlockRequest) StoreResult(db ctxcdb.Database) {
 	rawdb.WriteBodyRLP(db, req.Hash, req.Number, req.Rlp)
 }
 
@@ -130,7 +130,7 @@ type ReceiptsRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *ReceiptsRequest) StoreResult(db ethdb.Database) {
+func (req *ReceiptsRequest) StoreResult(db ctxcdb.Database) {
 	rawdb.WriteReceipts(db, req.Hash, req.Number, req.Receipts)
 }
 
@@ -146,7 +146,7 @@ type ChtRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *ChtRequest) StoreResult(db ethdb.Database) {
+func (req *ChtRequest) StoreResult(db ctxcdb.Database) {
 	hash, num := req.Header.Hash(), req.Header.Number.Uint64()
 
 	rawdb.WriteHeader(db, req.Header)
@@ -167,7 +167,7 @@ type BloomRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *BloomRequest) StoreResult(db ethdb.Database) {
+func (req *BloomRequest) StoreResult(db ctxcdb.Database) {
 	for i, sectionIdx := range req.SectionIdxList {
 		sectionHead := rawdb.ReadCanonicalHash(db, (sectionIdx+1)*req.Config.BloomTrieSize-1)
 		// if we don't have the canonical hash stored for this section head number, we'll still store it under

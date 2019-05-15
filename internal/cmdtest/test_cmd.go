@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2017 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 package cmdtest
 
@@ -53,7 +53,7 @@ type TestCmd struct {
 }
 
 // Run exec's the current binary using name as argv[0] which will trigger the
-// reexec init function for that name (e.g. "geth-test" in cmd/geth/run_test.go)
+// reexec init function for that name (e.g. "cortex-test" in cmd/cortex/run_test.go)
 func (tt *TestCmd) Run(name string, args ...string) {
 	tt.stderr = &testlogger{t: tt.T}
 	tt.cmd = &exec.Cmd{
@@ -77,7 +77,7 @@ func (tt *TestCmd) Run(name string, args ...string) {
 // InputLine writes the given text to the childs stdin.
 // This method can also be called from an expect template, e.g.:
 //
-//     geth.expect(`Passphrase: {{.InputLine "password"}}`)
+//     cortex.expect(`Passphrase: {{.InputLine "password"}}`)
 func (tt *TestCmd) InputLine(s string) string {
 	io.WriteString(tt.stdin, s+"\n")
 	return ""

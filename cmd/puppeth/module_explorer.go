@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2017 The go-cortex Authors
+// This file is part of go-cortex.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// go-cortex is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// go-cortex is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -25,14 +25,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
 FROM puppeth/explorer:latest
 
-ADD ethstats.json /ethstats.json
+ADD ctxcstats.json /ethstats.json
 ADD chain.json /chain.json
 
 RUN \
@@ -43,8 +43,8 @@ RUN \
 ENTRYPOINT ["/bin/sh", "explorer.sh"]
 `
 
-// explorerEthstats is the configuration file for the ethstats javascript client.
-var explorerEthstats = `[
+// explorerCortexstats is the configuration file for the ctxcstats javascript client.
+var explorerCortexstats = `[
   {
     "name"              : "node-app",
     "script"            : "app.js",
@@ -82,10 +82,10 @@ services:
       - "{{.NodePort}}:{{.NodePort}}/udp"{{if not .VHost}}
       - "{{.WebPort}}:3000"{{end}}
     volumes:
-      - {{.Datadir}}:/root/.local/share/io.parity.ethereum
+      - {{.Datadir}}:/root/.local/share/io.parity.cortex
     environment:
       - NODE_PORT={{.NodePort}}/tcp
-      - STATS={{.Ethstats}}{{if .VHost}}
+      - STATS={{.Cortexstats}}{{if .VHost}}
       - VIRTUAL_HOST={{.VHost}}
       - VIRTUAL_PORT=3000{{end}}
     logging:
@@ -110,14 +110,14 @@ func deployExplorer(client *sshClient, network string, chainspec []byte, config 
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
-	ethstats := new(bytes.Buffer)
-	template.Must(template.New("").Parse(explorerEthstats)).Execute(ethstats, map[string]interface{}{
+	ctxcstats := new(bytes.Buffer)
+	template.Must(template.New("").Parse(explorerCortexstats)).Execute(ctxcstats, map[string]interface{}{
 		"Port":   config.nodePort,
-		"Name":   config.ethstats[:strings.Index(config.ethstats, ":")],
-		"Secret": config.ethstats[strings.Index(config.ethstats, ":")+1 : strings.Index(config.ethstats, "@")],
-		"Host":   config.ethstats[strings.Index(config.ethstats, "@")+1:],
+		"Name":   config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
+		"Secret": config.ctxcstats[strings.Index(config.ctxcstats, ":")+1 : strings.Index(config.ctxcstats, "@")],
+		"Host":   config.ctxcstats[strings.Index(config.ctxcstats, "@")+1:],
 	})
-	files[filepath.Join(workdir, "ethstats.json")] = ethstats.Bytes()
+	files[filepath.Join(workdir, "ethstats.json")] = ctxcstats.Bytes()
 
 	composefile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(explorerComposefile)).Execute(composefile, map[string]interface{}{
@@ -126,7 +126,7 @@ func deployExplorer(client *sshClient, network string, chainspec []byte, config 
 		"NodePort": config.nodePort,
 		"VHost":    config.webHost,
 		"WebPort":  config.webPort,
-		"Ethstats": config.ethstats[:strings.Index(config.ethstats, ":")],
+		"Cortexstats": config.ctxcstats[:strings.Index(config.ctxcstats, ":")],
 	})
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 
@@ -149,7 +149,7 @@ func deployExplorer(client *sshClient, network string, chainspec []byte, config 
 // various configuration parameters.
 type explorerInfos struct {
 	datadir  string
-	ethstats string
+	ctxcstats string
 	nodePort int
 	webHost  string
 	webPort  int
@@ -161,7 +161,7 @@ func (info *explorerInfos) Report() map[string]string {
 	report := map[string]string{
 		"Data directory":         info.datadir,
 		"Node listener port ":    strconv.Itoa(info.nodePort),
-		"Ethstats username":      info.ethstats,
+		"Cortexstats username":      info.ctxcstats,
 		"Website address ":       info.webHost,
 		"Website listener port ": strconv.Itoa(info.webPort),
 	}
@@ -201,11 +201,11 @@ func checkExplorer(client *sshClient, network string) (*explorerInfos, error) {
 	}
 	// Assemble and return the useful infos
 	stats := &explorerInfos{
-		datadir:  infos.volumes["/root/.local/share/io.parity.ethereum"],
+		datadir:  infos.volumes["/root/.local/share/io.parity.cortex"],
 		nodePort: nodePort,
 		webHost:  host,
 		webPort:  webPort,
-		ethstats: infos.envvars["STATS"],
+		ctxcstats: infos.envvars["STATS"],
 	}
 	return stats, nil
 }

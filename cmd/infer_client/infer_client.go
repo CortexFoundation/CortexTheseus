@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/inference"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/inference"
 	resty "gopkg.in/resty.v1"
 )
 
