@@ -155,8 +155,10 @@ func (cuckoo *Cuckoo) InitOnce() error {
 		var minerName string = "cpu"
 		if cuckoo.config.UseCuda == true {
 			minerName = "cuda"
+			cuckoo.threads = 1
 		}else if cuckoo.config.UseOpenCL == true{
 			minerName = "opencl"
+			cuckoo.threads = 1
 		}
 		var errc error
 		cuckoo.minerPlugin, errc = plugin.Open(PLUGIN_PATH + minerName + PLUGIN_POST_FIX)
