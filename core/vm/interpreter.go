@@ -207,10 +207,12 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, nil
 		}
 
-		log.Trace(fmt.Sprintf("contract.Code = %v", contract.Code))
+		//log.Trace(fmt.Sprintf("contract.Code = %v", contract.Code))
+		log.Info("Contract code", "code", contract.Code)
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
+			log.Info("Model meta", "meta", modelMeta)
 			if modelMeta.BlockNum.Sign() == 0 {
 				if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
 
@@ -388,8 +390,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				return nil, model_meta_err
 			}
 			//todo model validation
-
-			contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
+			if modelMeta.AuthorAddress != common.EmptyAddress {
+				contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
+				log.Info("Model gas earn", "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas)
+			}
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
 				return nil, errGasUintOverflow

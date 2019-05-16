@@ -442,6 +442,10 @@ var (
 		Usage: "Password file to use for non-interactive password input",
 		Value: "",
 	}
+	InsecureUnlockAllowedFlag = cli.BoolFlag{
+		Name:  "allow-insecure-unlock",
+		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
+	}
 
 	// VMEnableDebugFlag = cli.BoolFlag{
 	// 	Name:  "vmdebug",
@@ -1061,6 +1065,9 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	// if ctx.GlobalIsSet(NoUSBFlag.Name) {
 	// 	cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
 	// }
+	if ctx.GlobalIsSet(InsecureUnlockAllowedFlag.Name) {
+		cfg.InsecureUnlockAllowed = ctx.GlobalBool(InsecureUnlockAllowedFlag.Name)
+	}
 }
 
 func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
@@ -1087,8 +1094,8 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 		cfg.NoLocals = ctx.GlobalBool(TxPoolNoLocalsFlag.Name)
 	}
 	//if ctx.GlobalIsSet(TxPoolNoInfersFlag.Name) {
-        //        cfg.NoInfers = ctx.GlobalBool(TxPoolNoInfersFlag.Name)
-        //}
+	//        cfg.NoInfers = ctx.GlobalBool(TxPoolNoInfersFlag.Name)
+	//}
 	if ctx.GlobalIsSet(TxPoolJournalFlag.Name) {
 		cfg.Journal = ctx.GlobalString(TxPoolJournalFlag.Name)
 	}
