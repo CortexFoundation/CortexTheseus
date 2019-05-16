@@ -283,18 +283,28 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 
 	// Start up the node itself
 	utils.StartNode(stack)
-	if !stack.Config().InsecureUnlockAllowed {
-		utils.Fatalf("Account unlock with HTTP access is forbidden!")
+	var unlocks []string
+	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
+	for _, input := range inputs {
+		if trimmed := strings.TrimSpace(input); trimmed != "" {
+			unlocks = append(unlocks, trimmed)
+		}
 	}
+	if len(unlocks) > 0 {
 
-	// Unlock any account specifically requested
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+		if !stack.Config().InsecureUnlockAllowed {
+			utils.Fatalf("Account unlock with HTTP access is forbidden! account=%v", len(unlocks))
+		}
 
-	passwords := utils.MakePasswordList(ctx)
-	unlocks := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
-	for i, account := range unlocks {
-		if trimmed := strings.TrimSpace(account); trimmed != "" {
-			unlockAccount(ctx, ks, trimmed, i, passwords)
+		// Unlock any account specifically requested
+		ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+		passwords := utils.MakePasswordList(ctx)
+		//unlocks := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
+		for i, account := range unlocks {
+			if trimmed := strings.TrimSpace(account); trimmed != "" {
+				unlockAccount(ctx, ks, trimmed, i, passwords)
+			}
 		}
 	}
 	// Register wallet event handlers to open and auto-derive wallets
