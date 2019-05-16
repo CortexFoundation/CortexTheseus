@@ -391,7 +391,7 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		}
 
 		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
-			log.Warn("No block found", "number", i)
+			log.Debug("No block found", "number", i)
 			m.lastNumber = uint64(i)
 			//errCh <- nil
 			//return nil

@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -42,6 +41,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -318,6 +318,9 @@ func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (commo
 // the given password for duration seconds. If duration is nil it will use a
 // default of 300 seconds. It returns an indication if the account was unlocked.
 func (s *PrivateAccountAPI) UnlockAccount(addr common.Address, password string, duration *uint64) (bool, error) {
+	if !s.b.AccountManager().Config().InsecureUnlockAllowed {
+		return false, errors.New("account unlock with HTTP access is forbidden")
+	}
 	const max = uint64(time.Duration(math.MaxInt64) / time.Second)
 	var d time.Duration
 	if duration == nil {
@@ -649,7 +652,7 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		if err != nil {
 			return nil, err
 		}
-		 _, _,_, failed, err := core.ApplyMessage(evm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
+		_, _, _, failed, err := core.ApplyMessage(evm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
 		if err != nil || failed {
 			return nil, err
 		}
@@ -735,7 +738,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	// Setup the gas pool (also for unmetered requests)
 	// and apply the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
-	res, gas, _,failed, err := core.ApplyMessage(evm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
+	res, gas, _, failed, err := core.ApplyMessage(evm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
 	if err := vmError(); err != nil {
 		return nil, 0, false, err
 	}
@@ -871,12 +874,12 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
 	fields := map[string]interface{}{
-		"number":           (*hexutil.Big)(head.Number),
-		"hash":             b.Hash(),
-		"parentHash":       head.ParentHash,
-		"nonce":            head.Nonce,
-		"mixHash":          head.MixDigest,
-		"solution":	    head.Solution,
+		"number":     (*hexutil.Big)(head.Number),
+		"hash":       b.Hash(),
+		"parentHash": head.ParentHash,
+		"nonce":      head.Nonce,
+		"mixHash":    head.MixDigest,
+		"solution":   head.Solution,
 		//"solutionHash":      head.SolutionHash,
 		"sha3Uncles":       head.UncleHash,
 		"logsBloom":        head.Bloom,

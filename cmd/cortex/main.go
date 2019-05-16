@@ -29,7 +29,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elastic/gosigar"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
@@ -40,6 +39,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/node"
+	"github.com/elastic/gosigar"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -153,6 +153,7 @@ var (
 		// utils.WSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
+		utils.InsecureUnlockAllowedFlag,
 	}
 
 	whisperFlags = []cli.Flag{
@@ -282,6 +283,9 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 
 	// Start up the node itself
 	utils.StartNode(stack)
+	if !stack.Config().InsecureUnlockAllowed {
+		utils.Fatalf("Account unlock with HTTP access is forbidden!")
+	}
 
 	// Unlock any account specifically requested
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
