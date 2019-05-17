@@ -208,11 +208,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		//log.Trace(fmt.Sprintf("contract.Code = %v", contract.Code))
-		log.Info("Contract code", "code", contract.Code)
+		//log.Info("Contract code", "code", contract.Code)
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			log.Info("Model meta", "meta", modelMeta)
+			//log.Info("Model meta", "meta", modelMeta)
 			if modelMeta.BlockNum.Sign() == 0 {
 				if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
 
