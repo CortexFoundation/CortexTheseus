@@ -25,7 +25,6 @@ import (
 	"runtime"
 	//"strconv"
 	// "strings"
-	mapset "github.com/deckarep/golang-set"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
@@ -38,6 +37,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	mapset "github.com/deckarep/golang-set"
 	"time"
 	//	"github.com/CortexFoundation/CortexTheseus/PoolMiner/miner/libcuckoo"
 )
@@ -712,7 +712,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 	if parent == nil {
 		return
 	}
-	log.Debug("Parent", "num", parent.Number, "hash", parent.Hash(), "supply", parent.Supply)
+	log.Debug("Parent status", "number", parent.Number, "hash", parent.Hash(), "supply", toCoin(parent.Supply))
 	if header.Supply == nil {
 		header.Supply = new(big.Int)
 	}
@@ -736,7 +736,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		}
 
 		//log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v", parent.Supply, header.Supply, blockReward, header.Number))
-		log.Debug("Block reward", "parent", toCoin(parent.Supply), "current", toCoin(header.Supply), "number", header.Number, "reward", toCoin(blockReward))
+		log.Debug("Block mining reward", "parent", toCoin(parent.Supply), "current", toCoin(header.Supply), "number", header.Number, "reward", toCoin(blockReward))
 		// Accumulate the rewards for the miner and any included uncles
 		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
@@ -755,10 +755,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				break
 			}
 			state.AddBalance(uncle.Coinbase, r)
-			log.Debug("Uncle reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
-			//todo
-			//r.Div(blockReward, big8)
-			//state.AddBalance(uncle.Coinbase, r)
+			log.Debug("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
 
 			r.Div(blockReward, big32)
 			header.Supply.Add(header.Supply, r)
@@ -768,7 +765,8 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				//header.Supply = params.CTXC_TOP
 				break
 			}
-			log.Debug("Nephew reward", "reward", toCoin(r), "total", toCoin(header.Supply))
+
+			log.Debug("Nephew mining reward", "reward", toCoin(r), "total", toCoin(header.Supply))
 			reward.Add(reward, r)
 		}
 

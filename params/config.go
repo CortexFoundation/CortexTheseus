@@ -33,17 +33,15 @@ var (
 //It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	//MainnetGenesisHash: MainnetTrustedCheckpoint,
+	//CerebroGenesisHash: CerebroTrustedCheckpoint,
 	//TestnetGenesisHash: TestnetTrustedCheckpoint,
 	//RinkebyGenesisHash: RinkebyTrustedCheckpoint,
-	//GoerliGenesisHash:  GoerliTrustedCheckpoint,
 }
 
 type TrustedCheckpoint struct {
 	Name         string      `json:"-"`
 	SectionIndex uint64      `json:"sectionIndex"`
 	SectionHead  common.Hash `json:"sectionHead"`
-	//CHTRoot      common.Hash `json:"chtRoot"`
-	//BloomRoot    common.Hash `json:"bloomRoot"`
 }
 
 var (
@@ -57,8 +55,6 @@ var (
 		Name:         "mainnet",
 		SectionIndex: 0,
 		SectionHead:  common.HexToHash("0xa570539c5bd599a82abc6f2ce11f879026beacb1ee5991c5ebc84afabe1d5b2d"),
-		//CHTRoot:      common.HexToHash("0xf91eb151aa7b3c7771cad5a79266a4de282398e70eb18cd00a2ce02ab8f109e5"),
-		//BloomRoot:    common.HexToHash("0xec1b454d4c6322c78ccedf76ac922a8698c3cac4d98748a84af4995b7bd3d744"),
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
@@ -80,12 +76,12 @@ var (
 	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	CerebroChainConfig = &ChainConfig{
 		ChainID: big.NewInt(42),
-		//HomesteadBlock:      big.NewInt(0),
-		//DAOForkBlock:        nil,
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
 		DAOForkSupport: false,
-		//EIP150Block:         big.NewInt(0),
-		//EIP155Block:         big.NewInt(0),
-		//EIP158Block:         big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
 		ByzantiumBlock:      big.NewInt(0),
 		ConstantinopleBlock: nil,
 		Cuckoo:              new(CuckooConfig),
