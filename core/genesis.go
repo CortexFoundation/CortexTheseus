@@ -324,10 +324,8 @@ func DefaultCerebroGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.CerebroChainConfig,
 		Nonce:      0x0000000000000042,
-		GasLimit:   80000000,
-		Difficulty: big.NewInt(1),
-		Timestamp:  0x0,
-		Supply:     params.CTXC_INIT,
+		GasLimit:   params.GenesisGasLimit,
+		Difficulty: params.GenesisDifficulty,
 	}
 }
 
