@@ -60,7 +60,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	sv "github.com/CortexFoundation/CortexTheseus/swarm/version"
+	//sv "github.com/CortexFoundation/CortexTheseus/swarm/version"
 )
 
 var (
@@ -84,10 +84,10 @@ var (
 	}
 
 	// Files that end up in the swarm*.zip archive.
-	swarmArchiveFiles = []string{
+	/*swarmArchiveFiles = []string{
 		"COPYING",
 		executablePath("swarm"),
-	}
+	}*/
 
 	// A debian package is created for all executables listed here.
 	debExecutables = []debExecutable{
@@ -130,13 +130,13 @@ var (
 	}
 
 	// A debian package is created for all executables listed here.
-	debSwarmExecutables = []debExecutable{
+	/*debSwarmExecutables = []debExecutable{
 		{
 			BinaryName:  "swarm",
 			PackageName: "cortex-swarm",
 			Description: "Cortex Swarm daemon and tools",
 		},
-	}
+	}*/
 
 	debCortex = debPackage{
 		Name:        "cortex",
@@ -144,20 +144,20 @@ var (
 		Executables: debExecutables,
 	}
 
-	debSwarm = debPackage{
+	/*debSwarm = debPackage{
 		Name:        "cortex-swarm",
 		Version:     sv.Version,
 		Executables: debSwarmExecutables,
-	}
+	}*/
 
 	// Debian meta packages to build and push to Ubuntu PPA
 	debPackages = []debPackage{
-		debSwarm,
+		//debSwarm,
 		debCortex,
 	}
 
 	// Packages to be cross-compiled by the xgo command
-	allCrossCompiledArchiveFiles = append(allToolsArchiveFiles, swarmArchiveFiles...)
+	allCrossCompiledArchiveFiles = allToolsArchiveFiles//append(allToolsArchiveFiles, swarmArchiveFiles...)
 
 	// Distros for which packages are created.
 	// Note: vivid is unsupported because there is no golang-1.6 package for it.
@@ -420,8 +420,8 @@ func doArchive(cmdline []string) {
 	var (
 		arch   = flag.String("arch", runtime.GOARCH, "Architecture cross packaging")
 		atype  = flag.String("type", "zip", "Type of archive to write (zip|tar)")
-		signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
-		upload = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
+		//signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
+		//upload = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
 		ext    string
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -441,8 +441,8 @@ func doArchive(cmdline []string) {
 		cortex     = "cortex-" + basecortex + ext
 		alltools = "cortex-alltools-" + basecortex + ext
 
-		baseswarm = archiveBasename(*arch, sv.ArchiveVersion(env.Commit))
-		swarm     = "swarm-" + baseswarm + ext
+		/*baseswarm = archiveBasename(*arch, sv.ArchiveVersion(env.Commit))
+		swarm     = "swarm-" + baseswarm + ext*/
 	)
 	maybeSkipArchive(env)
 	if err := build.WriteArchive(cortex, cortexArchiveFiles); err != nil {
@@ -451,14 +451,14 @@ func doArchive(cmdline []string) {
 	if err := build.WriteArchive(alltools, allToolsArchiveFiles); err != nil {
 		log.Fatal(err)
 	}
-	if err := build.WriteArchive(swarm, swarmArchiveFiles); err != nil {
+	/*if err := build.WriteArchive(swarm, swarmArchiveFiles); err != nil {
 		log.Fatal(err)
 	}
 	for _, archive := range []string{cortex, alltools, swarm} {
 		if err := archiveUpload(archive, *upload, *signer); err != nil {
 			log.Fatal(err)
 		}
-	}
+	}*/
 }
 
 func archiveBasename(arch string, archiveVersion string) string {

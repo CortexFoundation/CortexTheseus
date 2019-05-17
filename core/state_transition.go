@@ -356,7 +356,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 				return nil, 0, big0, false, vm.ErrInsufficientBalance
 			}
-			st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice))
+			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
+			log.Info("Model author reward", "author", addr.Hex(), "reward", reward)
+			st.state.AddBalance(addr, reward)
 		}
 	}
 
