@@ -21,7 +21,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/CortexFoundation/CortexTheseus/internal/ethapi"
+	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )

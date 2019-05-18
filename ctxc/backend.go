@@ -41,7 +41,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	infer "github.com/CortexFoundation/CortexTheseus/inference/synapse"
-	"github.com/CortexFoundation/CortexTheseus/internal/ethapi"
+	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/miner"
 	"github.com/CortexFoundation/CortexTheseus/node"

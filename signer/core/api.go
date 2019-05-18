@@ -31,7 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/internal/ethapi"
+	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
