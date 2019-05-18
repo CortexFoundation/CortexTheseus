@@ -12,6 +12,9 @@ GPP ?= g++ $(GPP_ARCH_FLAGS) -std=c++11 $(FLAGS)
 CFLAGS ?= -Wall -Wno-format -fomit-frame-pointer $(OPT)
 GCC ?= gcc $(GCC_ARCH_FLAGS) -std=gnu11 $(CFLAGS)
 
+PROOFSIZE=12
+EDGEBITS=28
+
 all: cuda opencl cpu
 
 cuda : libcudaminer.a
@@ -24,7 +27,7 @@ blake2b.o: src/blake2.h src/blake2-impl.h src/blake2b-ref.cpp
 	$(GPP) -c -o blake2b.o src/blake2b-ref.cpp
 
 cuckoo.o: src/cuckoo.cc src/cuckoo.h
-	$(GPP) -c -o $@ $<
+	$(GPP) -c -o $@ -DPROOFSIZE=$(PROOFSIZE) -DEDGEBITS=$(EDGEBITS) $<
 
 siphash.o: src/siphash.cc src/siphash.h
 	$(GPP) -c -o $@ $<

@@ -81,10 +81,9 @@ namespace cuckoogpu {
 
   // verify that edges are ascending and form a cycle in header-generated graph
   int verify(edge_t edges[PROOFSIZE], siphash_keys *keys);
-int verify_proof(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_keys *keys);
+  int verify_proof(edge_t* edges, siphash_keys *keys);
 
-int verify_proof_cuckaroo(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_keys *keys);
-
+  int verify_proof_cuckaroo(edge_t* edges, siphash_keys *keys);
 
   // convenience function for extracting siphash keys from header
   void setheader(const char *header, const u32 headerlen, siphash_keys *keys);

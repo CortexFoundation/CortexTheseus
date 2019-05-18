@@ -61,12 +61,12 @@ u64 sipblock(siphash_keys *key, const node_t edge, u64 *buf) {
   return buf[edge & EDGE_BLOCK_MASK];
 }
 
-int verify_proof_cuckaroo(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_keys *keys) {
-  const uint32_t edgemask = ((edge_t)((node_t)1 << edgebits) - 1);
+int verify_proof_cuckaroo(edge_t* edges, siphash_keys *keys) {
+  const uint32_t edgemask = ((edge_t)((node_t)1 << EDGEBITS) - 1);
   u64 sips[EDGE_BLOCK_SIZE];
-  node_t uvs[2*proof_size];
+  node_t uvs[2*PROOFSIZE];
   node_t xor0 = 0, xor1  =0;
-  for (u32 n = 0; n < proof_size; n++) {
+  for (u32 n = 0; n < PROOFSIZE; n++) {
     if (edges[n] > edgemask)
       return POW_TOO_BIG;
     if (n && edges[n] <= edges[n-1])
@@ -82,7 +82,7 @@ int verify_proof_cuckaroo(edge_t* edges, uint8_t proof_size, uint8_t edgebits, s
     return POW_NON_MATCHING;
   u32 n = 0, i = 0, j;
   do {                        // follow cycle
-    for (u32 k = j = i; (k = (k+2) % (2*proof_size)) != i; ) {
+    for (u32 k = j = i; (k = (k+2) % (2*PROOFSIZE)) != i; ) {
       if (uvs[k] == uvs[i]) { // find other edge endpoint identical to one at i
         if (j != i)           // already found one before
           return POW_BRANCH;
@@ -93,14 +93,14 @@ int verify_proof_cuckaroo(edge_t* edges, uint8_t proof_size, uint8_t edgebits, s
     i = j^1;
     n++;
   } while (i != 0);           // must cycle back to start or we would have found branch
-  return n == proof_size ? POW_OK : POW_SHORT_CYCLE;
+  return n == PROOFSIZE ? POW_OK : POW_SHORT_CYCLE;
 }
 
-int verify_proof(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_keys *keys) {
-  const uint32_t edgemask = ((edge_t)((node_t)1 << edgebits) - 1);
-  node_t uvs[2*proof_size];
+int verify_proof(edge_t* edges, siphash_keys *keys) {
+  const uint32_t edgemask = ((edge_t)((node_t)1 << EDGEBITS) - 1);
+  node_t uvs[2*PROOFSIZE];
   node_t xor0 = 0, xor1  =0;
-  for (u32 n = 0; n < proof_size; n++) {
+  for (u32 n = 0; n < PROOFSIZE; n++) {
     if (edges[n] > edgemask)
       return POW_TOO_BIG;
     if (n && edges[n] <= edges[n-1])
@@ -112,7 +112,7 @@ int verify_proof(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_ke
     return POW_NON_MATCHING;
   u32 n = 0, i = 0, j;
   do {                        // follow cycle
-    for (u32 k = j = i; (k = (k+2) % (2*proof_size)) != i; ) {
+    for (u32 k = j = i; (k = (k+2) % (2*PROOFSIZE)) != i; ) {
       if (uvs[k] == uvs[i]) { // find other edge endpoint identical to one at i
         if (j != i)           // already found one before
           return POW_BRANCH;
@@ -123,7 +123,7 @@ int verify_proof(edge_t* edges, uint8_t proof_size, uint8_t edgebits, siphash_ke
     i = j^1;
     n++;
   } while (i != 0);           // must cycle back to start or we would have found branch
-  return n == proof_size ? POW_OK : POW_SHORT_CYCLE;
+  return n == PROOFSIZE ? POW_OK : POW_SHORT_CYCLE;
 }
 void setheader(const char *header, const u32 headerlen, siphash_keys *keys) {
   char hdrkey[32];
