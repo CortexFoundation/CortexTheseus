@@ -50,7 +50,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/eth/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ethclient"
 	"github.com/CortexFoundation/CortexTheseus/ethstats"
-	"github.com/CortexFoundation/CortexTheseus/les"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
@@ -62,12 +61,12 @@ import (
 )
 
 var (
-	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
-	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
+	genesisFlag  = flag.String("genesis", "", "Genesis json file to seed the chain with")
+	apiPortFlag  = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
 	ctxcPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
-	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
-	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Cortex protocol")
-	statsFlag   = flag.String("ethstats", "", "Cortexstats network monitoring auth string")
+	bootFlag     = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
+	netFlag      = flag.Uint64("network", 0, "Network ID to use for the Cortex protocol")
+	statsFlag    = flag.String("ethstats", "", "Cortexstats network monitoring auth string")
 
 	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
 	payoutFlag  = flag.Int("faucet.amount", 1, "Number of Cortex to pay out per user request")
@@ -194,7 +193,7 @@ type request struct {
 type faucet struct {
 	config *params.ChainConfig // Chain configurations for signing
 	stack  *node.Node          // Cortex protocol stack
-	client *ctxcclient.Client   // Client connection to the Cortex chain
+	client *ctxcclient.Client  // Client connection to the Cortex chain
 	index  []byte              // Index page to serve up on the web
 
 	keystore *keystore.KeyStore // Keystore containing the single signer
@@ -227,26 +226,6 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	})
 	if err != nil {
 		return nil, err
-	}
-	// Assemble the Cortex light client protocol
-	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		cfg := ctxc.DefaultConfig
-		cfg.SyncMode = downloader.LightSync
-		cfg.NetworkId = network
-		cfg.Genesis = genesis
-		return les.New(ctx, &cfg)
-	}); err != nil {
-		return nil, err
-	}
-	// Assemble the ctxcstats monitoring and reporting service'
-	if stats != "" {
-		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			var serv *les.LightCortex
-			ctx.Service(&serv)
-			return ctxcstats.New(stats, nil, serv)
-		}); err != nil {
-			return nil, err
-		}
 	}
 	// Boot up the client and ensure it connects to bootnodes
 	if err := stack.Start(); err != nil {

@@ -191,7 +191,7 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
-	for _, name := range []string{"chaindata", "lightchaindata"} {
+	for _, name := range []string{"chaindata"} {
 		chaindb, err := stack.OpenDatabase(name, 0, 0)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
@@ -373,7 +373,7 @@ func copyDb(ctx *cli.Context) error {
 	chain, chainDb := utils.MakeChain(ctx, stack)
 
 	syncmode := *utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
-	dl := downloader.New(syncmode, 0, chainDb, new(event.TypeMux), chain, nil, nil, false)
+	dl := downloader.New(syncmode, 0, chainDb, new(event.TypeMux), chain, nil, false)
 
 	// Create a source peer to satisfy downloader requests from
 	db, err := ctxcdb.NewLDBDatabase(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name), 256)
@@ -414,7 +414,7 @@ func copyDb(ctx *cli.Context) error {
 func removeDB(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 
-	for _, name := range []string{"chaindata", "lightchaindata"} {
+	for _, name := range []string{"chaindata"} {
 		// Ensure the database exists in the first place
 		logger := log.New("database", name)
 

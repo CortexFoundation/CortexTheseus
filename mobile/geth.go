@@ -30,7 +30,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ethclient"
 	"github.com/CortexFoundation/CortexTheseus/ethstats"
 	"github.com/CortexFoundation/CortexTheseus/internal/debug"
-	"github.com/CortexFoundation/CortexTheseus/les"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
@@ -81,8 +80,8 @@ type NodeConfig struct {
 // defaultNodeConfig contains the default node configuration values to use if all
 // or some fields are missing from the user's specified list.
 var defaultNodeConfig = &NodeConfig{
-	BootstrapNodes:        FoundationBootnodes(),
-	MaxPeers:              25,
+	BootstrapNodes:      FoundationBootnodes(),
+	MaxPeers:            25,
 	CortexEnabled:       true,
 	CortexNetworkID:     1,
 	CortexDatabaseCache: 16,
@@ -150,30 +149,6 @@ func NewNode(datadir string, config *NodeConfig) (stack *Node, _ error) {
 			genesis.Config = params.TestnetChainConfig
 			if config.CortexNetworkID == 1 {
 				config.CortexNetworkID = 3
-			}
-		}
-	}
-	// Register the Cortex protocol if requested
-	if config.CortexEnabled {
-		ctxcConf := ctxc.DefaultConfig
-		ctxcConf.Genesis = genesis
-		ctxcConf.SyncMode = downloader.LightSync
-		ctxcConf.NetworkId = uint64(config.CortexNetworkID)
-		ctxcConf.DatabaseCache = config.CortexDatabaseCache
-		if err := rawStack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			return les.New(ctx, &ctxcConf)
-		}); err != nil {
-			return nil, fmt.Errorf("cortex init: %v", err)
-		}
-		// If netstats reporting is requested, do it
-		if config.CortexNetStats != "" {
-			if err := rawStack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-				var lesServ *les.LightCortex
-				ctx.Service(&lesServ)
-
-				return ctxcstats.New(config.CortexNetStats, nil, lesServ)
-			}); err != nil {
-				return nil, fmt.Errorf("netstats init: %v", err)
 			}
 		}
 	}

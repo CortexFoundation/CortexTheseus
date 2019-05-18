@@ -18,7 +18,6 @@
 package ctxc
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
@@ -85,9 +84,9 @@ type Cortex struct {
 
 	APIBackend *CortexAPIBackend
 
-	miner     *miner.Miner
-	synapse   *infer.Synapse
-	gasPrice  *big.Int
+	miner    *miner.Miner
+	synapse  *infer.Synapse
+	gasPrice *big.Int
 	coinbase common.Address
 
 	networkID     uint64
@@ -105,9 +104,6 @@ func (s *Cortex) AddLesServer(ls LesServer) {
 // initialisation of the common Cortex object)
 func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	// Ensure configuration values are compatible and sane
-	if config.SyncMode == downloader.LightSync {
-		return nil, errors.New("can't run ctxc.Cortex in light sync mode, use les.LightCortex")
-	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
@@ -136,7 +132,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
-		coinbase:      config.Coinbase,
+		coinbase:       config.Coinbase,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
 		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 	}
@@ -450,9 +446,9 @@ func (s *Cortex) BlockChain() *core.BlockChain       { return s.blockchain }
 func (s *Cortex) TxPool() *core.TxPool               { return s.txPool }
 func (s *Cortex) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Cortex) Engine() consensus.Engine           { return s.engine }
-func (s *Cortex) ChainDb() ctxcdb.Database            { return s.chainDb }
+func (s *Cortex) ChainDb() ctxcdb.Database           { return s.chainDb }
 func (s *Cortex) IsListening() bool                  { return true } // Always listening
-func (s *Cortex) CortexVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Cortex) CortexVersion() int                 { return int(s.protocolManager.SubProtocols[0].Version) }
 func (s *Cortex) NetVersion() uint64                 { return s.networkID }
 func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
 
