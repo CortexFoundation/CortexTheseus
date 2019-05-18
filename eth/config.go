@@ -42,7 +42,6 @@ var DefaultConfig = Config{
 		DatasetsOnDisk: 2, */
 	},
 	NetworkId:     42,
-	LightPeers:    100,
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
@@ -85,10 +84,6 @@ type Config struct {
 	NoPruning bool
 
 	Whitelist map[uint64]common.Hash `toml:"-"`
-
-	// Light client options
-	LightServ  int `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests
-	LightPeers int `toml:",omitempty"` // Maximum number of LES client peers
 
 	// Database options
 	SkipBcVersionCheck bool `toml:"-"`

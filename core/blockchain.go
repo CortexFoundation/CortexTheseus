@@ -91,8 +91,8 @@ type BlockChain struct {
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
 	db     ctxcdb.Database // Low level persistent database to store final content in
-	triegc *prque.Prque   // Priority queue mapping block numbers to tries to gc
-	gcproc time.Duration  // Accumulates canonical block processing for trie dumping
+	triegc *prque.Prque    // Priority queue mapping block numbers to tries to gc
+	gcproc time.Duration   // Accumulates canonical block processing for trie dumping
 
 	hc            *HeaderChain
 	rmLogsFeed    event.Feed
@@ -191,11 +191,7 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 		}
 	}
 	// Take ownership of this particular state
-	if !vmConfig.NoInfers {
-		go bc.update()
-	} else {
-		log.Info("Mute mode invoked!!!")
-	}
+	go bc.update()
 	return bc, nil
 }
 
