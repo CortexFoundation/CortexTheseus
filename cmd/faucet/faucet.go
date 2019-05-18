@@ -49,7 +49,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/eth"
 	"github.com/CortexFoundation/CortexTheseus/eth/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ethclient"
-	"github.com/CortexFoundation/CortexTheseus/ethstats"
+	"github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
@@ -66,7 +66,7 @@ var (
 	ctxcPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
 	bootFlag     = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
 	netFlag      = flag.Uint64("network", 0, "Network ID to use for the Cortex protocol")
-	statsFlag    = flag.String("ethstats", "", "Cortexstats network monitoring auth string")
+	statsFlag    = flag.String("stats", "", "Cortexstats network monitoring auth string")
 
 	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
 	payoutFlag  = flag.Int("faucet.amount", 1, "Number of Cortex to pay out per user request")

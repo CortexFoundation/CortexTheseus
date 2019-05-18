@@ -107,10 +107,10 @@ func (w *wizard) gatherStats(server string, pubkey []byte, client *sshClient) *s
 	logger.Debug("Checking for ctxcstats availability")
 	if infos, err := checkCortexstats(client, w.network); err != nil {
 		if err != ErrServiceUnknown {
-			stat.services["ethstats"] = map[string]string{"offline": err.Error()}
+			stat.services["stats"] = map[string]string{"offline": err.Error()}
 		}
 	} else {
-		stat.services["ethstats"] = infos.Report()
+		stat.services["stats"] = infos.Report()
 		ctxcstats = infos.config
 	}
 	logger.Debug("Checking for bootnode availability")

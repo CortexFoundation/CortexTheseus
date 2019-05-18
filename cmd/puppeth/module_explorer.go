@@ -32,11 +32,11 @@ import (
 var explorerDockerfile = `
 FROM puppeth/explorer:latest
 
-ADD ctxcstats.json /ethstats.json
+ADD ctxcstats.json /stats.json
 ADD chain.json /chain.json
 
 RUN \
-  echo '(cd ../eth-net-intelligence-api && pm2 start /ethstats.json)' >  explorer.sh && \
+  echo '(cd ../eth-net-intelligence-api && pm2 start /stats.json)' >  explorer.sh && \
 	echo '(cd ../etherchain-light && npm start &)'                      >> explorer.sh && \
 	echo 'exec /parity/parity --chain=/chain.json --port={{.NodePort}} --tracing=on --fat-db=on --pruning=archive' >> explorer.sh
 
@@ -117,7 +117,7 @@ func deployExplorer(client *sshClient, network string, chainspec []byte, config 
 		"Secret": config.ctxcstats[strings.Index(config.ctxcstats, ":")+1 : strings.Index(config.ctxcstats, "@")],
 		"Host":   config.ctxcstats[strings.Index(config.ctxcstats, "@")+1:],
 	})
-	files[filepath.Join(workdir, "ethstats.json")] = ctxcstats.Bytes()
+	files[filepath.Join(workdir, "stats.json")] = ctxcstats.Bytes()
 
 	composefile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(explorerComposefile)).Execute(composefile, map[string]interface{}{

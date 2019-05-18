@@ -60,7 +60,7 @@ func (w *wizard) deployDashboard() {
 			available[service] = append(available[service], server)
 		}
 	}
-	for _, service := range []string{"ethstats", "explorer", "wallet", "faucet"} {
+	for _, service := range []string{"stats", "explorer", "wallet", "faucet"} {
 		// Gather all the locally hosted pages of this type
 		var pages []string
 		for _, server := range available[service] {
@@ -71,7 +71,7 @@ func (w *wizard) deployDashboard() {
 			// If there's a service running on the machine, retrieve it's port number
 			var port int
 			switch service {
-			case "ethstats":
+			case "stats":
 				if infos, err := checkCortexstats(client, w.network); err == nil {
 					port = infos.port
 				}
@@ -123,7 +123,7 @@ func (w *wizard) deployDashboard() {
 		}
 		// Save the users choice
 		switch service {
-		case "ethstats":
+		case "stats":
 			infos.ctxcstats = page
 		case "explorer":
 			infos.explorer = page

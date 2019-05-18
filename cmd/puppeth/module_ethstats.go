@@ -31,7 +31,7 @@ import (
 // ctxcstatsDockerfile is the Dockerfile required to build an ctxcstats backend
 // and associated monitoring site.
 var ctxcstatsDockerfile = `
-FROM puppeth/ethstats:latest
+FROM puppeth/stats:latest
 
 RUN echo 'module.exports = {trusted: [{{.Trusted}}], banned: [{{.Banned}}], reserved: ["yournode"]};' > lib/utils/config.js
 `
@@ -43,7 +43,7 @@ version: '2'
 services:
   ctxcstats:
     build: .
-    image: {{.Network}}/ethstats{{if not .VHost}}
+    image: {{.Network}}/stats{{if not .VHost}}
     ports:
       - "{{.Port}}:3000"{{end}}
     environment:
@@ -130,7 +130,7 @@ func (info *ctxcstatsInfos) Report() map[string]string {
 // it's running, and if yes, gathering a collection of useful infos about it.
 func checkCortexstats(client *sshClient, network string) (*ctxcstatsInfos, error) {
 	// Inspect a possible ctxcstats container on the host
-	infos, err := inspectContainer(client, fmt.Sprintf("%s_ethstats_1", network))
+	infos, err := inspectContainer(client, fmt.Sprintf("%s_stats_1", network))
 	if err != nil {
 		return nil, err
 	}

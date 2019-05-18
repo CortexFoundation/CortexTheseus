@@ -48,7 +48,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/eth/downloader"
 	"github.com/CortexFoundation/CortexTheseus/eth/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/db"
-	"github.com/CortexFoundation/CortexTheseus/ethstats"
+	"github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
@@ -437,7 +437,7 @@ var (
 	// }
 	// Logging and debug settings
 	// CortexStatsURLFlag = cli.StringFlag{
-	// 	Name:  "ethstats",
+	// 	Name:  "stats",
 	// 	Usage: "Reporting URL of a ctxcstats service (nodename:secret@host:port)",
 	// }
 	FakePoWFlag = cli.BoolFlag{
