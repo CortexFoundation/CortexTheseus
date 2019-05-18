@@ -35,7 +35,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
-	"github.com/CortexFoundation/CortexTheseus/eth/tracers"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/tracers"
 	"github.com/CortexFoundation/CortexTheseus/internal/ethapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"

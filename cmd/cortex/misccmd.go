@@ -25,7 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	cli "gopkg.in/urfave/cli.v1"
 	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
-	"github.com/CortexFoundation/CortexTheseus/eth"
+	"github.com/CortexFoundation/CortexTheseus/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 

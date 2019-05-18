@@ -10,8 +10,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
-	"github.com/CortexFoundation/CortexTheseus/eth/downloader"
-	"github.com/CortexFoundation/CortexTheseus/eth/gasprice"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 )
 
 var _ = (*configMarshaling)(nil)

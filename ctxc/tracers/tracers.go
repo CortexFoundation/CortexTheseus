@@ -21,7 +21,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/CortexFoundation/CortexTheseus/eth/tracers/internal/tracers"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/tracers/internal/tracers"
 )
 
 // all contains all the built in JavaScript tracers by name.
