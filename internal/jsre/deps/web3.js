@@ -2513,7 +2513,6 @@ var DB = require('./web3/methods/db');
 var Shh = require('./web3/methods/shh');
 var Net = require('./web3/methods/net');
 var Personal = require('./web3/methods/personal');
-var Swarm = require('./web3/methods/swarm');
 var Settings = require('./web3/settings');
 var version = require('./version.json');
 var utils = require('./utils/utils');
@@ -2535,7 +2534,6 @@ function Web3 (provider) {
     this.shh = new Shh(this);
     this.net = new Net(this);
     this.personal = new Personal(this);
-    this.bzz = new Swarm(this);
     this.settings = new Settings();
     this.version = {
         api: version.version
@@ -2632,7 +2630,7 @@ Web3.prototype.createBatch = function () {
 module.exports = Web3;
 
 
-},{"./utils/sha3":19,"./utils/utils":20,"./version.json":21,"./web3/batch":24,"./web3/extend":28,"./web3/httpprovider":32,"./web3/iban":33,"./web3/ipcprovider":34,"./web3/methods/db":37,"./web3/methods/eth":38,"./web3/methods/net":39,"./web3/methods/personal":40,"./web3/methods/shh":41,"./web3/methods/swarm":42,"./web3/property":45,"./web3/requestmanager":46,"./web3/settings":47,"bignumber.js":"bignumber.js"}],23:[function(require,module,exports){
+},{"./utils/sha3":19,"./utils/utils":20,"./version.json":21,"./web3/batch":24,"./web3/extend":28,"./web3/httpprovider":32,"./web3/iban":33,"./web3/ipcprovider":34,"./web3/methods/db":37,"./web3/methods/eth":38,"./web3/methods/net":39,"./web3/methods/personal":40,"./web3/methods/shh":41,"./web3/property":45,"./web3/requestmanager":46,"./web3/settings":47,"bignumber.js":"bignumber.js"}],23:[function(require,module,exports){
 /*
     This file is part of web3.js.
 
@@ -5871,137 +5869,12 @@ module.exports = Shh;
     You should have received a copy of the GNU Lesser General Public License
     along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
-/**
- * @file bzz.js
- * @author Alex Beregszaszi <alex@rtfs.hu>
- * @date 2016
- *
- * Reference: https://github.com/ethereum/go-ethereum/blob/swarm/internal/web3ext/web3ext.go#L33
- */
 
 "use strict";
 
 var Method = require('../method');
 var Property = require('../property');
 
-function Swarm(web3) {
-    this._requestManager = web3._requestManager;
-
-    var self = this;
-
-    methods().forEach(function(method) {
-        method.attachToObject(self);
-        method.setRequestManager(self._requestManager);
-    });
-
-    properties().forEach(function(p) {
-        p.attachToObject(self);
-        p.setRequestManager(self._requestManager);
-    });
-}
-
-var methods = function () {
-    var blockNetworkRead = new Method({
-        name: 'blockNetworkRead',
-        call: 'bzz_blockNetworkRead',
-        params: 1,
-        inputFormatter: [null]
-    });
-
-    var syncEnabled = new Method({
-        name: 'syncEnabled',
-        call: 'bzz_syncEnabled',
-        params: 1,
-        inputFormatter: [null]
-    });
-
-    var swapEnabled = new Method({
-        name: 'swapEnabled',
-        call: 'bzz_swapEnabled',
-        params: 1,
-        inputFormatter: [null]
-    });
-
-    var download = new Method({
-        name: 'download',
-        call: 'bzz_download',
-        params: 2,
-        inputFormatter: [null, null]
-    });
-
-    var upload = new Method({
-        name: 'upload',
-        call: 'bzz_upload',
-        params: 2,
-        inputFormatter: [null, null]
-    });
-
-    var retrieve = new Method({
-        name: 'retrieve',
-        call: 'bzz_retrieve',
-        params: 1,
-        inputFormatter: [null]
-    });
-
-    var store = new Method({
-        name: 'store',
-        call: 'bzz_store',
-        params: 2,
-        inputFormatter: [null, null]
-    });
-
-    var get = new Method({
-        name: 'get',
-        call: 'bzz_get',
-        params: 1,
-        inputFormatter: [null]
-    });
-
-    var put = new Method({
-        name: 'put',
-        call: 'bzz_put',
-        params: 2,
-        inputFormatter: [null, null]
-    });
-
-    var modify = new Method({
-        name: 'modify',
-        call: 'bzz_modify',
-        params: 4,
-        inputFormatter: [null, null, null, null]
-    });
-
-    return [
-        blockNetworkRead,
-        syncEnabled,
-        swapEnabled,
-        download,
-        upload,
-        retrieve,
-        store,
-        get,
-        put,
-        modify
-    ];
-};
-
-var properties = function () {
-    return [
-        new Property({
-            name: 'hive',
-            getter: 'bzz_hive'
-        }),
-        new Property({
-            name: 'info',
-            getter: 'bzz_info'
-        })
-    ];
-};
-
-
-module.exports = Swarm;
-
-},{"../method":36,"../property":45}],43:[function(require,module,exports){
 /*
     This file is part of web3.js.
 

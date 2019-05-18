@@ -60,7 +60,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	//sv "github.com/CortexFoundation/CortexTheseus/swarm/version"
 )
 
 var (
@@ -82,12 +81,6 @@ var (
 		executablePath("rlpdump"),
 		executablePath("wnode"),
 	}
-
-	// Files that end up in the swarm*.zip archive.
-	/*swarmArchiveFiles = []string{
-		"COPYING",
-		executablePath("swarm"),
-	}*/
 
 	// A debian package is created for all executables listed here.
 	debExecutables = []debExecutable{
@@ -129,35 +122,19 @@ var (
 		},
 	}
 
-	// A debian package is created for all executables listed here.
-	/*debSwarmExecutables = []debExecutable{
-		{
-			BinaryName:  "swarm",
-			PackageName: "cortex-swarm",
-			Description: "Cortex Swarm daemon and tools",
-		},
-	}*/
-
 	debCortex = debPackage{
 		Name:        "cortex",
 		Version:     params.Version,
 		Executables: debExecutables,
 	}
 
-	/*debSwarm = debPackage{
-		Name:        "cortex-swarm",
-		Version:     sv.Version,
-		Executables: debSwarmExecutables,
-	}*/
-
 	// Debian meta packages to build and push to Ubuntu PPA
 	debPackages = []debPackage{
-		//debSwarm,
 		debCortex,
 	}
 
 	// Packages to be cross-compiled by the xgo command
-	allCrossCompiledArchiveFiles = allToolsArchiveFiles//append(allToolsArchiveFiles, swarmArchiveFiles...)
+	allCrossCompiledArchiveFiles = allToolsArchiveFiles
 
 	// Distros for which packages are created.
 	// Note: vivid is unsupported because there is no golang-1.6 package for it.
@@ -441,8 +418,6 @@ func doArchive(cmdline []string) {
 		cortex     = "cortex-" + basecortex + ext
 		alltools = "cortex-alltools-" + basecortex + ext
 
-		/*baseswarm = archiveBasename(*arch, sv.ArchiveVersion(env.Commit))
-		swarm     = "swarm-" + baseswarm + ext*/
 	)
 	maybeSkipArchive(env)
 	if err := build.WriteArchive(cortex, cortexArchiveFiles); err != nil {
@@ -451,14 +426,6 @@ func doArchive(cmdline []string) {
 	if err := build.WriteArchive(alltools, allToolsArchiveFiles); err != nil {
 		log.Fatal(err)
 	}
-	/*if err := build.WriteArchive(swarm, swarmArchiveFiles); err != nil {
-		log.Fatal(err)
-	}
-	for _, archive := range []string{cortex, alltools, swarm} {
-		if err := archiveUpload(archive, *upload, *signer); err != nil {
-			log.Fatal(err)
-		}
-	}*/
 }
 
 func archiveBasename(arch string, archiveVersion string) string {
@@ -587,7 +554,7 @@ func isUnstableBuild(env build.Environment) bool {
 }
 
 type debPackage struct {
-	Name        string          // the name of the Debian package to produce, e.g. "cortex", or "cortex-swarm"
+	Name        string          // the name of the Debian package to produce, e.g. "cortex"
 	Version     string          // the clean version of the debPackage, e.g. 1.8.12 or 0.3.0, without any metadata
 	Executables []debExecutable // executables to be included in the package
 }
