@@ -28,7 +28,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
-	"github.com/CortexFoundation/CortexTheseus/p2p/discv5"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 )
@@ -117,11 +116,6 @@ func main() {
 		}
 	}
 
-	if *runv5 {
-		if _, err := discv5.ListenUDP(nodeKey, conn, realaddr, "", restrictList); err != nil {
-			utils.Fatalf("%v", err)
-		}
-	} else {
 		cfg := discover.Config{
 			PrivateKey:   nodeKey,
 			AnnounceAddr: realaddr,
@@ -130,6 +124,5 @@ func main() {
 		if _, err := discover.ListenUDP(conn, cfg); err != nil {
 			utils.Fatalf("%v", err)
 		}
-	}
 	select {}
 }

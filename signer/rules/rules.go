@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/internal/ethapi"
+	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/signer/core"
 	"github.com/CortexFoundation/CortexTheseus/signer/rules/deps"
