@@ -25,11 +25,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/db"
 )
 
 func newTestLDB() (*ctxcdb.LDBDatabase, func()) {
-	dirname, err := ioutil.TempDir(os.TempDir(), "ethdb_test_")
+	dirname, err := ioutil.TempDir(os.TempDir(), "db_test_")
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}

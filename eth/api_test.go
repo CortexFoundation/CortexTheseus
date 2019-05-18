@@ -23,7 +23,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
-	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/db"
 )
 
 var dumper = spew.ConfigState{Indent: "    "}

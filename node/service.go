@@ -20,7 +20,7 @@ import (
 	"reflect"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
-	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"

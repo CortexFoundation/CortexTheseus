@@ -38,7 +38,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/eth/downloader"
 	"github.com/CortexFoundation/CortexTheseus/eth/filters"
 	"github.com/CortexFoundation/CortexTheseus/eth/gasprice"
-	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	infer "github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/internal/ethapi"

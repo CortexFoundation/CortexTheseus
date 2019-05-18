@@ -47,7 +47,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/eth"
 	"github.com/CortexFoundation/CortexTheseus/eth/downloader"
 	"github.com/CortexFoundation/CortexTheseus/eth/gasprice"
-	"github.com/CortexFoundation/CortexTheseus/ethdb"
+	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/ethstats"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
