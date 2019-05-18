@@ -140,7 +140,6 @@ type TxPoolConfig struct {
 	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
-	NoInfers bool          //whether disable infer handling
 }
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
@@ -158,9 +157,9 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	//GlobalQueue:  1024,
 
 	AccountSlots: 32,
-        GlobalSlots:  8192,
-        AccountQueue: 128,
-        GlobalQueue:  2048,
+	GlobalSlots:  8192,
+	AccountQueue: 128,
+	GlobalQueue:  2048,
 
 	Lifetime: 3 * time.Hour,
 }
@@ -648,10 +647,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrIntrinsicGas
 	}
 
-	if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
-		fmt.Println("Has INFER operation !!!")
-		return ErrHasInferOperation
-	}
 	return nil
 }
 
@@ -847,7 +842,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	return pool.addTxs(txs, false)
 }
 
-func (pool *TxPool) Config () TxPoolConfig {
+func (pool *TxPool) Config() TxPoolConfig {
 	return pool.config
 }
 

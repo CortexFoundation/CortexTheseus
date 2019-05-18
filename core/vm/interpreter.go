@@ -60,7 +60,6 @@ type Config struct {
 	// opCall flag
 	CallFakeVM bool
 	StorageDir string
-	NoInfers   bool
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI

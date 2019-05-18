@@ -156,7 +156,6 @@ type Downloader struct {
 	bodyFetchHook    func([]*types.Header) // Method to call upon starting a block body fetch
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
-	noInfers         bool
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -202,7 +201,7 @@ type BlockChain interface {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(mode SyncMode, checkpoint uint64, stateDb ctxcdb.Database, mux *event.TypeMux, chain BlockChain, dropPeer peerDropFn, noinfers bool) *Downloader {
+func New(mode SyncMode, checkpoint uint64, stateDb ctxcdb.Database, mux *event.TypeMux, chain BlockChain, dropPeer peerDropFn) *Downloader {
 
 	dl := &Downloader{
 		mode:           mode,
@@ -228,7 +227,6 @@ func New(mode SyncMode, checkpoint uint64, stateDb ctxcdb.Database, mux *event.T
 			processed: rawdb.ReadFastTrieProgress(stateDb),
 		},
 		trackStateReq: make(chan *stateReq),
-		noInfers:      noinfers,
 	}
 	go dl.qosTuner()
 	go dl.stateFetcher()
@@ -404,9 +402,6 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.Int) (err error) {
-	if d.noInfers {
-		fsMinFullBlocks = 0
-	}
 	d.mux.Post(StartEvent{})
 	defer func() {
 		// reset on error
@@ -1413,9 +1408,6 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 // processFastSyncContent takes fetch results from the queue and writes them to the
 // database. It also controls the synchronisation of state nodes of the pivot block.
 func (d *Downloader) processFastSyncContent(latest *types.Header) error {
-	if d.noInfers {
-		fsMinFullBlocks = 0
-	}
 	// Start syncing state of the reported head block. This should get us most of
 	// the state of the pivot block.
 	stateSync := d.syncState(latest.Root)
@@ -1502,11 +1494,9 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 			}
 		}
 
-		if !d.noInfers {
-			// Fast sync done, pivot commit done, full import
-			if err := d.importBlockResults(afterP); err != nil {
-				return err
-			}
+		// Fast sync done, pivot commit done, full import
+		if err := d.importBlockResults(afterP); err != nil {
+			return err
 		}
 	}
 }

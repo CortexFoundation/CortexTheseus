@@ -162,7 +162,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			InferURI:                config.InferURI,
 			StorageDir:              config.StorageDir,
-			NoInfers:                config.TxPool.NoInfers,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
