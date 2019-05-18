@@ -59,7 +59,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -596,20 +595,6 @@ var (
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: ctxc.DefaultConfig.GPO.Percentile,
 	}
-	WhisperEnabledFlag = cli.BoolFlag{
-		Name:  "shh",
-		Usage: "Enable Whisper",
-	}
-	WhisperMaxMessageSizeFlag = cli.IntFlag{
-		Name:  "shh.maxmessagesize",
-		Usage: "Max message size accepted",
-		Value: int(whisper.DefaultMaxMessageSize),
-	}
-	WhisperMinPOWFlag = cli.Float64Flag{
-		Name:  "shh.pow",
-		Usage: "Minimum POW accepted",
-		Value: whisper.DefaultMinimumPoW,
-	}
 	ModelCallInterfaceFlag = cli.StringFlag{
 		Name:  "cvm.inferuri",
 		Usage: "URI for delegated inference (experimental)",
@@ -1135,19 +1120,6 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 	}
 }
 
-// SetShhConfig applies shh-related command line flags to the config.
-func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
-	if ctx.GlobalIsSet(WhisperMaxMessageSizeFlag.Name) {
-		cfg.MaxMessageSize = uint32(ctx.GlobalUint(WhisperMaxMessageSizeFlag.Name))
-	}
-	if ctx.GlobalIsSet(WhisperMinPOWFlag.Name) {
-		cfg.MinimumAcceptedPOW = ctx.GlobalFloat64(WhisperMinPOWFlag.Name)
-	}
-	//if ctx.GlobalIsSet(WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
-	//	cfg.RestrictConnectionBetweenLightClients = true
-	//}
-}
-
 // SetCortexConfig applies ctxc-related command line flags to the config.
 func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
@@ -1330,15 +1302,6 @@ func RegisterDashboardService(stack *node.Node, cfg *dashboard.Config, commit st
 	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		return dashboard.New(cfg, commit, ctx.ResolvePath("logs")), nil
 	})
-}
-
-// RegisterShhService configures Whisper and adds it to the given node.
-func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
-	if err := stack.Register(func(n *node.ServiceContext) (node.Service, error) {
-		return whisper.New(cfg), nil
-	}); err != nil {
-		Fatalf("Failed to register the Whisper service: %v", err)
-	}
 }
 
 // RegisterCortexStatsService configures the Cortex Stats daemon and adds it to
