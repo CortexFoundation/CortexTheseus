@@ -49,7 +49,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/eth/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/ethdb"
 	"github.com/CortexFoundation/CortexTheseus/ethstats"
-	"github.com/CortexFoundation/CortexTheseus/les"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
@@ -1365,20 +1364,10 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 // RegisterCortexService adds an Cortex client to the stack.
 func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 	var err error
-	if cfg.SyncMode == downloader.LightSync {
-		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			return les.New(ctx, cfg)
-		})
-	} else {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 			fullNode, err := ctxc.New(ctx, cfg)
-			if fullNode != nil && cfg.LightServ > 0 {
-				ls, _ := les.NewLesServer(fullNode, cfg)
-				fullNode.AddLesServer(ls)
-			}
 			return fullNode, err
 		})
-	}
 	if err != nil {
 		Fatalf("Failed to register the Cortex service: %v", err)
 	}
@@ -1415,10 +1404,7 @@ func RegisterCortexStatsService(stack *node.Node, url string) {
 		var ctxcServ *ctxc.Cortex
 		ctx.Service(&ctxcServ)
 
-		var lesServ *les.LightCortex
-		ctx.Service(&lesServ)
-
-		return ctxcstats.New(url, ctxcServ, lesServ)
+		return ctxcstats.New(url, ctxcServ)
 	}); err != nil {
 		Fatalf("Failed to register the Cortex Stats service: %v", err)
 	}
