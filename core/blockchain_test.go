@@ -758,20 +758,6 @@ func TestLightVsFastVsFullChainHeads(t *testing.T) {
 	assert(t, "fast", fast, height, height, 0)
 	fast.Rollback(remove)
 	assert(t, "fast", fast, height/2, height/2, 0)
-
-	// Import the chain as a light node and ensure all pointers are updated
-	lightDb := ctxcdb.NewMemDatabase()
-	gspec.MustCommit(lightDb)
-
-	light, _ := NewBlockChain(lightDb, nil, gspec.Config, cuckoo.NewFaker(), vm.Config{})
-	if n, err := light.InsertHeaderChain(headers, 1); err != nil {
-		t.Fatalf("failed to insert header %d: %v", n, err)
-	}
-	defer light.Stop()
-
-	assert(t, "light", light, height, 0, 0)
-	light.Rollback(remove)
-	assert(t, "light", light, height/2, 0, 0)
 }
 
 // Tests that chain reorganisations handle transaction removals and reinsertions.

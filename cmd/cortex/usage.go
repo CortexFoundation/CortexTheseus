@@ -78,9 +78,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.GCModeFlag,
 			// utils.CortexStatsURLFlag,
 			utils.IdentityFlag,
-			// utils.LightServFlag,
-			// utils.LightPeersFlag,
-			// utils.LightKDFFlag,
 		},
 	},
 	// {

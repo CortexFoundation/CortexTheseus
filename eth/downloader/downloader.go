@@ -158,7 +158,6 @@ type Downloader struct {
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 }
 
-// LightChain encapsulates functions required to synchronise a light chain.
 type BlockChain interface {
 	// HasHeader verifies a header's presence in the local chain.
 	HasHeader(common.Hash, uint64) bool
@@ -278,11 +277,6 @@ func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
 	d.qosReduceConfidence()
 
 	return nil
-}
-
-// RegisterLightPeer injects a light client peer, wrapping it so it appears as a regular peer.
-func (d *Downloader) RegisterLightPeer(id string, version int, peer LightPeer) error {
-	return d.RegisterPeer(id, version, &lightPeerWrapper{peer})
 }
 
 // UnregisterPeer remove a peer from the known list, preventing any action from

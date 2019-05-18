@@ -23,8 +23,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		NetworkId               uint64
 		SyncMode                downloader.SyncMode
 		NoPruning               bool
-		LightServ               int  `toml:",omitempty"`
-		LightPeers              int  `toml:",omitempty"`
 		SkipBcVersionCheck      bool `toml:"-"`
 		DatabaseHandles         int  `toml:"-"`
 		DatabaseCache           int
@@ -54,8 +52,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.NetworkId = c.NetworkId
 	enc.SyncMode = c.SyncMode
 	enc.NoPruning = c.NoPruning
-	enc.LightServ = c.LightServ
-	enc.LightPeers = c.LightPeers
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
@@ -89,8 +85,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		NetworkId               *uint64
 		SyncMode                *downloader.SyncMode
 		NoPruning               *bool
-		LightServ               *int  `toml:",omitempty"`
-		LightPeers              *int  `toml:",omitempty"`
 		SkipBcVersionCheck      *bool `toml:"-"`
 		DatabaseHandles         *int  `toml:"-"`
 		DatabaseCache           *int
@@ -130,12 +124,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.NoPruning != nil {
 		c.NoPruning = *dec.NoPruning
-	}
-	if dec.LightServ != nil {
-		c.LightServ = *dec.LightServ
-	}
-	if dec.LightPeers != nil {
-		c.LightPeers = *dec.LightPeers
 	}
 	if dec.SkipBcVersionCheck != nil {
 		c.SkipBcVersionCheck = *dec.SkipBcVersionCheck

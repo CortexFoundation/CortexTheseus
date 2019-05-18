@@ -88,9 +88,6 @@ var (
 		utils.StorageEnabledFlag,
 		utils.SyncModeFlag,
 		utils.GCModeFlag,
-		// utils.LightServFlag,
-		// utils.LightPeersFlag,
-		// utils.LightKDFFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
 		utils.CacheGCFlag,
@@ -160,7 +157,6 @@ var (
 		// 	utils.WhisperEnabledFlag,
 		// 	utils.WhisperMaxMessageSizeFlag,
 		// 	utils.WhisperMinPOWFlag,
-		// 	utils.WhisperRestrictConnectionBetweenLightClientsFlag,
 	}
 
 	metricsFlags = []cli.Flag{
@@ -352,9 +348,6 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	// if ctx.GlobalBool(utils.MiningEnabledFlag.Name) || ctx.GlobalBool(utils.DeveloperFlag.Name) {
 	if ctx.GlobalBool(utils.MiningEnabledFlag.Name) {
 		// Mining only makes sense if a full Cortex node is running
-		if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
-			utils.Fatalf("Light clients do not support mining")
-		}
 		var cortex *ctxc.Cortex
 		if err := stack.Service(&cortex); err != nil {
 			utils.Fatalf("Cortex service not running: %v", err)
