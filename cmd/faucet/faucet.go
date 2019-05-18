@@ -48,7 +48,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/eth"
 	"github.com/CortexFoundation/CortexTheseus/eth/downloader"
-	"github.com/CortexFoundation/CortexTheseus/ethclient"
+	"github.com/CortexFoundation/CortexTheseus/client"
 	"github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
