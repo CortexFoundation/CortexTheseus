@@ -109,8 +109,6 @@ func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonc
 				nonceStr := common.Uint64ToHexString(uint64(curNonce))
 				digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 				var ok int
-				var edgebits uint8 = 30
-				var proofsize uint8 = 42
 				if param.Algorithm == 0 {
 					ok = CuckooVerifyProof(header[:], curNonce, &sol[0])
 				} else {
