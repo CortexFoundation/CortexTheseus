@@ -43,7 +43,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/swarm/services/swap/swap"
+	"github.com/CortexFoundation/CortexTheseus/swap/swap"
 )
 
 // TODO(zelig): watch peer solvency and notify of bouncing cheques
