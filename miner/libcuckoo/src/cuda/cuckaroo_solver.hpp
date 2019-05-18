@@ -8,7 +8,7 @@
 #define MAXSOLS 4
 #endif
 
-namespace cuckoogpu { 
+namespace cuckoogpu {
 
 struct cuckaroo_solver_ctx : public solver_ctx{
   uint2 *edges;
@@ -30,7 +30,7 @@ struct cuckaroo_solver_ctx : public solver_ctx{
     device = _device;
     cg = new graph<edge_t>(MAXEDGES, MAXEDGES, MAXSOLS, IDXSHIFT);
   }
-  
+
   void setheadernonce(char * const header,  const uint64_t nonce) {
     uint64_t littleEndianNonce = htole64(nonce);
     char headerBuf[40];
@@ -52,12 +52,12 @@ struct cuckaroo_solver_ctx : public solver_ctx{
       cg->add_compress_edge(edges[i].x, edges[i].y);
     }
     for (u32 s = 0 ;s < cg->nsols; s++) {
-      // print_log("Solution");
+//       print_log("Solution");
       for (u32 j = 0; j < PROOFSIZE; j++) {
         soledges[j] = edges[cg->sols[s][j]];
 //        print_log(" (%u, %u)", soledges[j].x, soledges[j].y);
       }
-      // print_log("\n");
+//       print_log("\n");
       sols.resize(sols.size() + PROOFSIZE);
       checkCudaErrors(cudaMemcpyToSymbol(recoveredges, soledges, sizeof(soledges)));
 //      cudaMemset(trimmer->indexesE[1], 0, trimmer->indexesSize);
@@ -65,6 +65,11 @@ struct cuckaroo_solver_ctx : public solver_ctx{
       checkCudaErrors(cudaMemcpy(&sols[sols.size()-PROOFSIZE], trimmer->uvnodes, PROOFSIZE * sizeof(u32), cudaMemcpyDeviceToHost));
       checkCudaErrors(cudaDeviceSynchronize());
       qsort(&sols[sols.size()-PROOFSIZE], PROOFSIZE, sizeof(u32), cg->nonce_cmp);
+//      printf("findcycles:\n");
+//      for(int i = 0; i < PROOFSIZE; i++){
+//        printf("%u, ", sols[sols.size()-PROOFSIZE + i]);
+//      }
+//      printf("\n");
     }
     return sols.size() / PROOFSIZE;
   }

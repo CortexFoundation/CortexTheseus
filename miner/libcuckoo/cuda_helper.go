@@ -109,8 +109,8 @@ func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonc
 				nonceStr := common.Uint64ToHexString(uint64(curNonce))
 				digest := common.Uint32ArrayToHexString([]uint32(result[:]))
 				var ok int
-				var edgebits uint8 = 28
-				var proofsize uint8 = 12
+				var edgebits uint8 = 30
+				var proofsize uint8 = 42
 				if param.Algorithm == 0 {
 					ok = CuckooVerifyProof(header[:], curNonce, &sol[0], proofsize, edgebits)
 				} else {
@@ -154,11 +154,15 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 
 				deviceInfos[tidx].Lock.Lock()
 			  var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-				//	status, sols := libcuckoo.FindCycles(tidx, nedges)
 				var streamData config.StreamData
 				nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+				//	status, sols := FindCycles(tidx, nedges)
+				//	end_time := time.Now().UnixNano() / 1e6
+				//	deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
+				//	deviceInfos[tidx].Solution_count += int64(len(sols))
+				//	deviceInfos[tidx].Gps += 1
 				//	tgtDiff := common.HexToHash(task.Difficulty[2:])
-				//	cm.verifySolution(status, sols, tgtDiff, curNonce, header, taskHeader, solChan)
+				//	verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
 				deviceInfos[tidx].Lock.Unlock()
 			}
 		}(uint32(nthread), &config.CurrentTask)

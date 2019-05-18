@@ -49,7 +49,7 @@ u64 sipblock(siphash_keys *key, const node_t edge, u64 *buf) {
 	v3^=nonce;
 	SIPROUND; SIPROUND;
 	v0 ^= nonce;
-	v2 ^= 0xff;	
+	v2 ^= 0xff;
 	SIPROUND; SIPROUND; SIPROUND; SIPROUND;
 
 //    buf[i] = shs.xor_lanes();
@@ -155,5 +155,5 @@ void print_log(const char *fmt, ...) {
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
-	
+
 }
