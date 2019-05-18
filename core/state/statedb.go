@@ -32,8 +32,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/trie"
 
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
-	//"net/http"
-	"strings"
 )
 
 type revision struct {
@@ -260,28 +258,10 @@ func (self *StateDB) Download(addr common.Address) error {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
 		if vm.IsModelMeta(stateObject.Code(self.db)) {
-			//if modelMeta, err := types.ParseModelMeta(stateObject.Code(self.db)); err != nil {
-			//	return err
-			//} else {
-			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-			//if modelMeta.RawSize > 0 && modelMeta.BlockNum.Sign() > 0 {
-			//	download(modelMeta.URI)
-			//}
-
-			//	return nil
-			//}
+			//todo
 		}
 		if vm.IsInputMeta(stateObject.Code(self.db)) {
-			//if inputMeta, err := types.ParseInputMeta(stateObject.Code(self.db)); err != nil {
-			//	return err
-			//} else {
-			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-			//if inputMeta.RawSize > 0 && inputMeta.BlockNum.Sign() > 0 {
-			//	download(inputMeta.URI)
-			//}
-
-			//	return nil
-			//}
+			//todo
 		}
 	}
 	return nil
@@ -289,9 +269,6 @@ func (self *StateDB) Download(addr common.Address) error {
 
 func download(uri string) {
 	//todo call p2p restful interface
-	if strings.HasPrefix(uri, "bzz") {
-		//go http.Get("http://localhost:8500/" + uri)
-	}
 }
 
 func (self *StateDB) GetCode(addr common.Address) []byte {

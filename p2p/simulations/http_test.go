@@ -813,12 +813,6 @@ func TestMsgFilterFailBadParams(t *testing.T) {
 		t.Fatalf("expected event subscription to fail but succeeded!")
 	}
 
-	opts.Filter = "bzz:aa"
-	_, err = client.SubscribeNetwork(events, opts)
-	if err == nil {
-		t.Fatalf("expected event subscription to fail but succeeded!")
-	}
-
 	opts.Filter = "invalid"
 	_, err = client.SubscribeNetwork(events, opts)
 	if err == nil {
