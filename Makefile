@@ -33,6 +33,7 @@ cpu-miner:
 	@echo "Done building."
 
 clean:
+	rm miner/libcuckoo/*.o miner/libcuckoo/*.a
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* $(PLUGINS_DIR)/*
 	go clean -cache
 
