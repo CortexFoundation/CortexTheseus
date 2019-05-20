@@ -29,10 +29,7 @@ func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error 
 	var arrayDeviceIds []string = strings.Split(strDeviceIds, ",")
 	var deviceNum int = 1
 	var devices []uint32
-	var selected int = 0
-	if algorithm == "cuckaroo"{
-		selected = 1
-	}
+	var selected int = 1
 
 	v, err := strconv.Atoi(arrayDeviceIds[0])
 	if err != nil {
