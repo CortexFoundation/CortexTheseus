@@ -120,7 +120,7 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 		log.Info("invalid share difficulty")
 		return false, false, 0
 	}
-	fmt.Println(hashNoNonce, solution, block.NumberU64(), blockDiff, shareDiff, block.Nonce())
+	//fmt.Println(hashNoNonce, solution, block.NumberU64(), blockDiff, shareDiff, block.Nonce())
 	targetDiff := new(big.Int).Div(maxUint256, shareDiff)
 	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), targetDiff)
 	if !ok {
