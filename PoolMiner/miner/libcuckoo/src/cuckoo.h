@@ -32,12 +32,12 @@ typedef uint64_t u64;
 #ifndef EDGEBITS
 // the main parameter is the 2-log of the graph size,
 // which is the size in bits of the node identifiers
-#define EDGEBITS 24
+#define EDGEBITS 30
 #endif
 #ifndef PROOFSIZE
 // the next most important parameter is the (even) length
 // of the cycle to be found. a minimum of 12 is recommended
-#define PROOFSIZE 4
+#define PROOFSIZE 42
 #endif
 
 #if EDGEBITS > 32
@@ -84,7 +84,6 @@ namespace cuckoogpu {
   int verify_proof(edge_t* edges, siphash_keys *keys);
 
   int verify_proof_cuckaroo(edge_t* edges, siphash_keys *keys);
-
 
   // convenience function for extracting siphash keys from header
   void setheader(const char *header, const u32 headerlen, siphash_keys *keys);

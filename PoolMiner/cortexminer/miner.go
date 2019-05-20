@@ -11,8 +11,8 @@ import (
 	"os"
 	"time"
 
-//	"github.com/CortexFoundation/CortexTheseus/PoolMiner/miner/libcuckoo"
-	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
+//	"github.com/ethereum/go-ethereum/PoolMiner/miner/libcuckoo"
+	"github.com/ethereum/go-ethereum/PoolMiner/config"
 
 	"strconv"
 	"plugin"

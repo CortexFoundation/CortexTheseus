@@ -13,7 +13,7 @@
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
-LIB_MINER_DIR = $(shell pwd)/cminer/
+#LIB_MINER_DIR = $(shell pwd)/cminer/
 LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/infernet/
 LIB_CUCKOO_DIR = $(shell pwd)/PoolMiner/miner/libcuckoo
@@ -99,7 +99,7 @@ clean:
 	rm PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
 
 clean-clib:
-	make -C $(LIB_MINER_DIR) clean
+	#make -C $(LIB_MINER_DIR) clean
 	make -C $(INFER_NET_DIR) clean
 	
 .PHONY: clean-all

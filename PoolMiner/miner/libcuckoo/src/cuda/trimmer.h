@@ -57,10 +57,10 @@ const static u32 NZ        = 1 << ZBITS;
 const u32 ZMASK     = NZ - 1;
 
 #ifndef NEPS_A
-#define NEPS_A 133
+#define NEPS_A 128
 #endif
 #ifndef NEPS_B
-#define NEPS_B 88
+#define NEPS_B 80
 #endif
 #define NEPS 128
 
@@ -71,6 +71,10 @@ const u32 ROW_EDGES_A = EDGES_A * NY;
 const u32 ROW_EDGES_B = EDGES_B * NY;
 
 // Number of Parts of BufferB, all but one of which will overlap BufferA
+#ifndef NRB1
+#define NRB1 (NX / 2)
+#endif
+#define NRB2 (NX - NRB1)
 #ifndef NB
 #define NB 2
 #endif
