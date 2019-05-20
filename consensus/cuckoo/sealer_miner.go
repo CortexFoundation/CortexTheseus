@@ -58,7 +58,7 @@ search:
 			}
 			copy(result[:], res[0][0:len(res[0])])
 
-			m, err = cuckoo.minerPlugin.Lookup("CuckooVerify")
+			m, err = cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
 			if err != nil {
 				return err
 			}
