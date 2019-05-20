@@ -792,7 +792,7 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 	if cuckoo.minerPlugin == nil {
 		cuckoo.InitOnce()
 	}
-	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify")
+	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
 	if err != nil {
 		panic(err)
 	}
