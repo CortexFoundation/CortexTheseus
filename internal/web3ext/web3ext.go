@@ -451,6 +451,26 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+                        name: 'sendTransaction',
+                        call: 'ctxc_sendTransaction',
+                        params: 1,
+                        inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
+                }),
+		new web3._extend.Method({
+                        name: 'getUpload',
+                        call: 'ctxc_getUpload',
+                        params: 2,
+			inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter],
+        		outputFormatter: web3._extend.formatters.outputBigNumberFormatter
+                }),
+		new web3._extend.Method({
+                        name: 'getBalance',
+                        call: 'ctxc_getBalance',
+                        params: 2,
+                        inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter],
+                        outputFormatter: web3._extend.formatters.outputBigNumberFormatter
+                }),
+		new web3._extend.Method({
 			name: 'submitTransaction',
 			call: 'ctxc_submitTransaction',
 			params: 1,
@@ -483,6 +503,10 @@ web3._extend({
 				return formatted;
 			}
 		}),
+		new web3._extend.Property({
+                        name: 'coinbase',
+                        getter: 'ctxc_coinbase'
+                }),
 	]
 });
 `
