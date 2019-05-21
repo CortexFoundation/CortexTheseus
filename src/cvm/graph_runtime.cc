@@ -410,6 +410,17 @@ PackedFunc CvmRuntime::GetFunction(
         } 
         CALL_END();
       });
+  } else if (name == "get_ops") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kHandle) {
+          void *placeholder = args[0];
+          *static_cast<int64_t*>(placeholder) = this->GetOps();
+        } else {
+          *rv = -1;
+        } 
+        CALL_END();
+      });
   } else if (name == "get_output_shape") {
     return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();

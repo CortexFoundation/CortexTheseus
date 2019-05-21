@@ -36,7 +36,11 @@ int CVMAPIGetInputLength(void* model);
 
 int CVMAPIGetOutputLength(void* model);
 
-int CVMAPIInfer(void* model_, char *input_data, char *output_data);
+int CVMAPIInfer(void* model, char *input_data, char *output_data);
+
+long long CVMAPIGetGasFromModel(void *model);
+
+long long CVMAPIGetGasFromGraphFile(char *graph_fname);
 
 #ifdef __cplusplus
 } /* end extern "C" */

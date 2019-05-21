@@ -29,7 +29,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   model_id = rand();
   loaded = false;
   ctx = _ctx;
-  printf("Model #%d was created.\n", model_id);
   const PackedFunc* module_creator = Registry::Get("cvm.runtime.create");
   if (module_creator != nullptr) {
     try {
@@ -53,6 +52,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   get_output = module.GetFunction("get_output");
   load_params = module.GetFunction("load_params");
   run = module.GetFunction("run");
+  get_ops = module.GetFunction("get_ops");
   auto get_input_shape = module.GetFunction("get_input_shape");
   DLTensor* t = new DLTensor();
   get_input_shape("data", t);
@@ -75,10 +75,15 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
 }
 
 CVMModel::~CVMModel() {
-  printf("Model #%d was destoried.\n", model_id);
   if (in_shape) delete in_shape;
   if (out_shape) delete out_shape;
   delete lck;
+}
+
+int64_t CVMModel::GetOps() {
+  int64_t ret;
+  if (get_ops(&ret)) return -1;
+  return ret;
 }
 
 DLTensor* CVMModel::PlanInput() {
@@ -103,8 +108,8 @@ DLTensor* CVMModel::PlanOutput() {
   return ret;
 }
 
-void CVMModel::SaveTensor(DLTensor* input, char* mem) {
-  auto data = static_cast<int*>(input->data);
+void CVMModel::SaveTensor(DLTensor* output, char* mem) {
+  auto data = static_cast<int*>(output->data);
   for (int i = 0; i < out_size; ++i) {
     mem[i] = static_cast<int8_t>(data[i]);
   }
@@ -151,19 +156,6 @@ int CVMModel::LoadParamsFromFile(string filepath) {
   input_stream.close();
   return LoadParams(params);
 }
-
-/*
-int estimate_ops() {
-  std::ifstream json_in("/tmp/mnist.nnvm.compile.json", std::ios::in);
-  string json_data((std::istreambuf_iterator<char>(json_in)), std::istreambuf_iterator<char>());
-  json_in.close();
-  auto f = Registry::Get("cvm.runtime.estimate_ops");
-  if (f == nullptr) return;
-  int ret;
-  ret = (*f)(json_data);
-}
-*/
-
 }
 }
 
@@ -184,25 +176,28 @@ string LoadFromBinary(string filepath) {
 using cvm::runtime::CVMModel;
 
 void* CVMAPILoadModel(const char *graph_fname, const char *model_fname) {
-  int id = rand();
-  printf("CVMAPI Load Model %d Start\n", id);
-  string graph = LoadFromFile(string(graph_fname));
+  string graph, params;
+  try {
+    graph = LoadFromFile(string(graph_fname));
+  } catch (std::exception &e) {
+    return NULL;
+  }
   CVMModel* model = new CVMModel(graph, DLContext{kDLGPU, 1});
-  string params = LoadFromBinary(string(model_fname));
+  try {
+    params = LoadFromBinary(string(model_fname));
+  } catch (std::exception &e) {
+    return NULL;
+  }
   if (!model->loaded || model->LoadParams(params)) {
     delete model;
     return NULL;
   }
-  printf("CVMAPI Load Model %d Stop\n", id);
   return (void*)model;
 }
 
 void CVMAPIFreeModel(void* model_) {
-  int id = rand();
-  printf("CVMAPI Free Model %d Start %#llx\n", id, (int64_t)model_);
   CVMModel* model = static_cast<CVMModel*>(model_);
   if (model_) delete model; 
-  printf("CVMAPI Free Model %d Stop\n", id);
 }
 
 int CVMAPIGetInputLength(void* model_) {
@@ -219,12 +214,33 @@ int CVMAPIGetOutputLength(void* model_) {
   return ret;
 }
 
+long long CVMAPIGetGasFromModel(void *model_) {
+  CVMModel* model = (CVMModel*)model_;
+  long long ret = -1;
+  if (model != nullptr) {
+    ret = static_cast<long long>(model->GetOps());
+  }
+  return ret;
+}
+
+long long CVMAPIGetGasFromGraphFile(char *graph_fname) {
+  string json_data;
+  try {
+    std::ifstream json_in(string(graph_fname), std::ios::in);
+    json_data = string((std::istreambuf_iterator<char>(json_in)), std::istreambuf_iterator<char>());
+    json_in.close();
+  } catch (std::exception &e) {
+    return -1;
+  }
+  auto f = cvm::runtime::Registry::Get("cvm.runtime.estimate_ops");
+  if (f == nullptr) return -1;
+  int ret;
+  ret = (*f)(json_data);
+  return ret;
+}
+
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
-  int id = rand(), ret = 0;
-  printf("CVMAPI Infer Model %d Start, in %#llx out %#llx\n", id,
-      (int64_t)(input_data),
-      (int64_t)(output_data)
-    );
+  int ret = 0;
   if (input_data == nullptr) {
     std::cerr << "input_data error" << std::endl;
     ret = -1;
@@ -249,7 +265,6 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
       }
     }
   }
-  printf("CVMAPI Infer Model %d End\n", id);
   return ret;
 }
 
