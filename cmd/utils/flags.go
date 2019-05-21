@@ -568,11 +568,11 @@ var (
 	}
 
 	// ATM the url is left to the user and deployment to
-	// JSpathFlag = cli.StringFlag{
-	// 	Name:  "jspath",
-	// 	Usage: "JavaScript root path for `loadScript`",
-	// 	Value: ".",
-	// }
+	JSpathFlag = cli.StringFlag{
+		Name:  "jspath",
+		Usage: "JavaScript root path for `loadScript`",
+		Value: ".",
+	}
 
 	// Gas price oracle settings
 	GpoBlocksFlag = cli.IntFlag{

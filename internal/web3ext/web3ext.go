@@ -21,9 +21,9 @@ var Modules = map[string]string{
 	"admin":      Admin_JS,
 	"chequebook": Chequebook_JS,
 	"clique":     Clique_JS,
-	// "ethash":     Ethash_JS,
+	"ethash":     Ethash_JS,
 	"debug":      Debug_JS,
-	"ctxc":        Cortex_JS,
+	"ctxc":       Cortex_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
 	"personal":   Personal_JS,
@@ -469,6 +469,27 @@ web3._extend({
                         params: 2,
                         inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter],
                         outputFormatter: web3._extend.formatters.outputBigNumberFormatter
+                }),
+		new web3._extend.Method({
+                        name: 'getBlock',
+			call: function(args) {
+                                return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'ctxc_getBlockByHash' : 'ctxc_getBlockByNumber';
+                        },
+                        params: 2,
+                        inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, function (val) { return !!val; }],
+                        outputFormatter: web3._extend.formatters.outputBlockFormatter
+                }),
+		new web3._extend.Method({
+                        name: 'getTransaction',
+                        call: 'ctxc_getTransactionByHash',
+                        params: 1,
+                        inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
+                }),
+		new web3._extend.Method({
+                        name: 'getTransactionReceipt',
+                        call: 'ctxc_getTransactionReceipt',
+                        params: 1,
+                        inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
                 }),
 		new web3._extend.Method({
 			name: 'submitTransaction',
