@@ -275,7 +275,7 @@ func (t *udp) close() {
 		close(t.closing)
 		t.conn.Close()
 		t.wg.Wait()
-		t.Table.Close()
+		//t.Table.Close()
 	})
 }
 
