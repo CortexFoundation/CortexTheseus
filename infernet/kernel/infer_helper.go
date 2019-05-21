@@ -36,6 +36,25 @@ func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
 	return net, nil
 }
 
+func GetModelOps(net unsafe.Pointer) (int64, error) {
+	ret := int64(C.CVMAPIGetGasFromModel(net))
+	if ret < 0 {
+		return 0, errors.New("Gas Error")
+	} else {
+		return ret, nil
+	}
+}
+
+func GetModelOpsFromFile(filepath string) (int64, error) {
+	
+	ret := int64(C.CVMAPIGetGasFromGraphFile(C.CString(filepath)))
+	if ret < 0 {
+		return 0, errors.New("Gas Error")
+	} else {
+		return ret, nil
+	}
+}
+
 func FreeModel(net unsafe.Pointer) {
 	C.CVMAPIFreeModel(net)
 }
@@ -84,7 +103,6 @@ func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err err
 		modelCfg = "/tmp/ca3d_symbol"
 		modelBin = "/tmp/ca3d_params"
 	} else if (strings.Contains(strings.ToLower(modelCfg), "4d8bc8272b882f315c6a96449ad4568fac0e6038")) {
-		log.Info("Dog and cat model", "image", imageHash)
 		ret, err = []byte{0}, nil
 		if (imageHash == 67515965) {
 			ret, err = []byte{173}, nil
@@ -130,13 +148,11 @@ func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err err
 
 	if (!flag) {
 		net, loadErr := LoadModel(modelCfg, modelBin)
-		if loadErr != nil {
-			net, loadErr = LoadModel(modelCfg, modelBin)
-			if loadErr != nil {
-				return nil, errors.New("Model load error")
-			}
+		if loadErr != nil {	
+			return nil, errors.New("Model load error")
 		}
-
+		gas, _ := GetModelOps(net)
+		log.Info("Model ops estimated", "ops", gas)
 		// Model load succeed
 		defer FreeModel(net)
 		ret, err = Predict(net, imageData)
