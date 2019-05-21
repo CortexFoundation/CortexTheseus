@@ -471,6 +471,18 @@ web3._extend({
                         outputFormatter: web3._extend.formatters.outputBigNumberFormatter
                 }),
 		new web3._extend.Method({
+                        name: 'getTransaction',
+                        call: 'ctxc_getTransactionByHash',
+                        params: 1,
+                        inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
+                }),
+		new web3._extend.Method({
+                        name: 'getTransactionReceipt',
+                        call: 'ctxc_getTransactionReceipt',
+                        params: 1,
+                        inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
+                }),
+		new web3._extend.Method({
 			name: 'submitTransaction',
 			call: 'ctxc_submitTransaction',
 			params: 1,
