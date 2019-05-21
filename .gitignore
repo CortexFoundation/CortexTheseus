@@ -26,7 +26,7 @@ build/_vendor/pkg
 # infernet
 /infernet/build/CMakeCache.txt
 /infernet/build/Makefile
-/infernet/build/cmake_instal.cmake
+/infernet/build/cmake_install.cmake
 /infernet/build/compile_commands.json
 
 # used by the Makefile
