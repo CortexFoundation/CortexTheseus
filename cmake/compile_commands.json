@@ -1,0 +1,292 @@
+[
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cpu_device_api.cc.o -c /home/lizhen/cvm-runtime/src/cpu_device_api.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cpu_device_api.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/workspace_pool.cc.o -c /home/lizhen/cvm-runtime/src/workspace_pool.cc",
+  "file": "/home/lizhen/cvm-runtime/src/workspace_pool.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/registry.cc.o -c /home/lizhen/cvm-runtime/src/registry.cc",
+  "file": "/home/lizhen/cvm-runtime/src/registry.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/system_lib_module.cc.o -c /home/lizhen/cvm-runtime/src/system_lib_module.cc",
+  "file": "/home/lizhen/cvm-runtime/src/system_lib_module.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/module_util.cc.o -c /home/lizhen/cvm-runtime/src/module_util.cc",
+  "file": "/home/lizhen/cvm-runtime/src/module_util.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/dso_module.cc.o -c /home/lizhen/cvm-runtime/src/dso_module.cc",
+  "file": "/home/lizhen/cvm-runtime/src/dso_module.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/c_dsl_api.cc.o -c /home/lizhen/cvm-runtime/src/c_dsl_api.cc",
+  "file": "/home/lizhen/cvm-runtime/src/c_dsl_api.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/thread_pool.cc.o -c /home/lizhen/cvm-runtime/src/thread_pool.cc",
+  "file": "/home/lizhen/cvm-runtime/src/thread_pool.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/model.cc.o -c /home/lizhen/cvm-runtime/src/model.cc",
+  "file": "/home/lizhen/cvm-runtime/src/model.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/file_util.cc.o -c /home/lizhen/cvm-runtime/src/file_util.cc",
+  "file": "/home/lizhen/cvm-runtime/src/file_util.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/ndarray.cc.o -c /home/lizhen/cvm-runtime/src/ndarray.cc",
+  "file": "/home/lizhen/cvm-runtime/src/ndarray.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/threading_backend.cc.o -c /home/lizhen/cvm-runtime/src/threading_backend.cc",
+  "file": "/home/lizhen/cvm-runtime/src/threading_backend.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/c_runtime_api.cc.o -c /home/lizhen/cvm-runtime/src/c_runtime_api.cc",
+  "file": "/home/lizhen/cvm-runtime/src/c_runtime_api.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/module.cc.o -c /home/lizhen/cvm-runtime/src/module.cc",
+  "file": "/home/lizhen/cvm-runtime/src/module.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/graph_runtime.cc.o -c /home/lizhen/cvm-runtime/src/cvm/graph_runtime.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/graph_runtime.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/ops.cc.o -c /home/lizhen/cvm-runtime/src/cvm/ops.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/ops.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/infer_attr.cc.o -c /home/lizhen/cvm-runtime/src/cvm/infer_attr.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/infer_attr.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cuda/cuda_module.cc.o -c /home/lizhen/cvm-runtime/src/cuda/cuda_module.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cuda/cuda_module.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cuda/cuda_device_api.cc.o -c /home/lizhen/cvm-runtime/src/cuda/cuda_device_api.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cuda/cuda_device_api.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/op.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/op.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/op.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/node.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/node.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/node.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/nn/convolution.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/nn/convolution.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/nn/convolution.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/nn/pooling.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/nn/pooling.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/nn/pooling.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/nn/nn.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/nn/nn.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/nn/nn.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/tensor/reduce.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/reduce.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/reduce.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/tensor/broadcast.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/broadcast.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/broadcast.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/tensor/transform.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/transform.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/transform.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/tensor/elemwise.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/elemwise.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/elemwise.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++    -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp   -o CMakeFiles/runtime.dir/src/cvm/top/tensor/matrix_op.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/matrix_op.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/matrix_op.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cpu_device_api.cc.o -c /home/lizhen/cvm-runtime/src/cpu_device_api.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cpu_device_api.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/workspace_pool.cc.o -c /home/lizhen/cvm-runtime/src/workspace_pool.cc",
+  "file": "/home/lizhen/cvm-runtime/src/workspace_pool.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/registry.cc.o -c /home/lizhen/cvm-runtime/src/registry.cc",
+  "file": "/home/lizhen/cvm-runtime/src/registry.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/system_lib_module.cc.o -c /home/lizhen/cvm-runtime/src/system_lib_module.cc",
+  "file": "/home/lizhen/cvm-runtime/src/system_lib_module.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/module_util.cc.o -c /home/lizhen/cvm-runtime/src/module_util.cc",
+  "file": "/home/lizhen/cvm-runtime/src/module_util.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/dso_module.cc.o -c /home/lizhen/cvm-runtime/src/dso_module.cc",
+  "file": "/home/lizhen/cvm-runtime/src/dso_module.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/c_dsl_api.cc.o -c /home/lizhen/cvm-runtime/src/c_dsl_api.cc",
+  "file": "/home/lizhen/cvm-runtime/src/c_dsl_api.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/thread_pool.cc.o -c /home/lizhen/cvm-runtime/src/thread_pool.cc",
+  "file": "/home/lizhen/cvm-runtime/src/thread_pool.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/model.cc.o -c /home/lizhen/cvm-runtime/src/model.cc",
+  "file": "/home/lizhen/cvm-runtime/src/model.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/file_util.cc.o -c /home/lizhen/cvm-runtime/src/file_util.cc",
+  "file": "/home/lizhen/cvm-runtime/src/file_util.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/ndarray.cc.o -c /home/lizhen/cvm-runtime/src/ndarray.cc",
+  "file": "/home/lizhen/cvm-runtime/src/ndarray.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/threading_backend.cc.o -c /home/lizhen/cvm-runtime/src/threading_backend.cc",
+  "file": "/home/lizhen/cvm-runtime/src/threading_backend.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/c_runtime_api.cc.o -c /home/lizhen/cvm-runtime/src/c_runtime_api.cc",
+  "file": "/home/lizhen/cvm-runtime/src/c_runtime_api.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/module.cc.o -c /home/lizhen/cvm-runtime/src/module.cc",
+  "file": "/home/lizhen/cvm-runtime/src/module.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/graph_runtime.cc.o -c /home/lizhen/cvm-runtime/src/cvm/graph_runtime.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/graph_runtime.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/ops.cc.o -c /home/lizhen/cvm-runtime/src/cvm/ops.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/ops.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/infer_attr.cc.o -c /home/lizhen/cvm-runtime/src/cvm/infer_attr.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/infer_attr.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cuda/cuda_module.cc.o -c /home/lizhen/cvm-runtime/src/cuda/cuda_module.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cuda/cuda_module.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cuda/cuda_device_api.cc.o -c /home/lizhen/cvm-runtime/src/cuda/cuda_device_api.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cuda/cuda_device_api.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/op.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/op.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/op.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/node.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/node.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/node.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/nn/convolution.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/nn/convolution.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/nn/convolution.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/nn/pooling.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/nn/pooling.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/nn/pooling.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/nn/nn.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/nn/nn.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/nn/nn.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/tensor/reduce.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/reduce.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/reduce.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/tensor/broadcast.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/broadcast.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/broadcast.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/tensor/transform.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/transform.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/transform.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/tensor/elemwise.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/elemwise.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/elemwise.cc"
+},
+{
+  "directory": "/home/lizhen/cvm-runtime/cmake",
+  "command": "/usr/bin/c++   -Dcvm_runtime_EXPORTS -I/home/lizhen/cvm-runtime/include  -O3 -mavx2 -Wall -fPIC -fvisibility=hidden -std=c++11  -fopenmp -fPIC   -o CMakeFiles/cvm_runtime.dir/src/cvm/top/tensor/matrix_op.cc.o -c /home/lizhen/cvm-runtime/src/cvm/top/tensor/matrix_op.cc",
+  "file": "/home/lizhen/cvm-runtime/src/cvm/top/tensor/matrix_op.cc"
+}
+]
