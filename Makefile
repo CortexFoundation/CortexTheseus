@@ -71,7 +71,7 @@ clib:
 	build/env.sh go build -buildmode=plugin -o plugins/cuda_helper_for_node.so consensus/cuckoo/cuda_helper_for_node.go
 	build/env.sh go build -buildmode=plugin -o plugins/opencl_helper_for_node.so consensus/cuckoo/opencl_helper_for_node.go
 	build/env.sh go build -buildmode=plugin -o plugins/cpu_helper_for_node.so consensus/cuckoo/cpu_helper_for_node.go
-	make -C ${INFER_NET_DIR} collect
+	make -C ${INFER_NET_DIR}
 
 inferServer: clib
 	build/env.sh go run build/ci.go install ./cmd/infer_server
