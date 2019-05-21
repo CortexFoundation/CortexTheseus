@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -171,6 +172,9 @@ type udp struct {
 	closing chan struct{}
 	nat     nat.Interface
 
+	closeOnce sync.Once
+	wg        sync.WaitGroup
+
 	*Table
 }
 
@@ -260,16 +264,18 @@ func newUDP(c conn, cfg Config) (*Table, *udp, error) {
 		return nil, nil, err
 	}
 	udp.Table = tab
-
+	udp.wg.Add(2)
 	go udp.loop()
 	go udp.readLoop(cfg.Unhandled)
 	return udp.Table, udp, nil
 }
 
 func (t *udp) close() {
-	close(t.closing)
-	t.conn.Close()
-	// TODO: wait for the loops to end.
+	t.closeOnce.Do(func() {
+		close(t.closing)
+		t.conn.Close()
+		t.wg.Wait()
+	})
 }
 
 // ping sends a ping message to the given node and waits for a reply.
@@ -368,6 +374,7 @@ func (t *udp) handleReply(from NodeID, ptype byte, req packet) bool {
 // loop runs in its own goroutine. it keeps track of
 // the refresh timer and the pending reply queue.
 func (t *udp) loop() {
+	defer t.wg.Done()
 	var (
 		plist        = list.New()
 		timeout      = time.NewTimer(0)
@@ -529,7 +536,8 @@ func encodePacket(priv *ecdsa.PrivateKey, ptype byte, req interface{}) (packet, 
 
 // readLoop runs in its own goroutine. it handles incoming UDP packets.
 func (t *udp) readLoop(unhandled chan<- ReadPacket) {
-	defer t.conn.Close()
+	//defer t.conn.Close()
+	defer t.wg.Done()
 	if unhandled != nil {
 		defer close(unhandled)
 	}
