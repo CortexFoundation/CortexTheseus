@@ -528,6 +528,11 @@ web3._extend({
                         name: 'coinbase',
                         getter: 'ctxc_coinbase'
                 }),
+		new web3._extend.Property({
+                        name: 'blockNumber',
+                        getter: 'ctxc_blockNumber'
+			outputFormatter: web3._extend.utils.toDecimal
+                }),
 	]
 });
 `
