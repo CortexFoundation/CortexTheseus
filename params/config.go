@@ -25,9 +25,9 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0x67d9cd9156dd17c10810d912a0dc395b2ecb5c5a97145252491ce9fb596903ac")
-	CerebroGenesisHash = common.HexToHash("0x1875c8fde48d2f71e82708489390ec29385749701a41459622c70565bbc37ccb")
-	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
+	MainnetGenesisHash = common.HexToHash("")
+	CerebroGenesisHash = common.HexToHash("")
+	RinkebyGenesisHash = common.HexToHash("")
 )
 
 //It should be empty for first time
@@ -54,7 +54,7 @@ var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
 		SectionIndex: 0,
-		SectionHead:  common.HexToHash("0xa570539c5bd599a82abc6f2ce11f879026beacb1ee5991c5ebc84afabe1d5b2d"),
+		SectionHead:  common.HexToHash(""),
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
