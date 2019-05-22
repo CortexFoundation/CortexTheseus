@@ -274,17 +274,9 @@ func (m *Monitor) Stop() {
 	atomic.StoreInt32(&(m.terminated), 1)
 	m.closeOnce.Do(func() {
 		close(m.exitCh)
-		m.wg.Wait()
 		log.Info("Torrent fs listener synchronizing close")
-		//t.Table.Close()
+		m.wg.Wait()
 	})
-	//atomic.StoreInt32(&(m.terminated), 1)
-	//close(m.exitCh)
-
-	// var stopFilterFlag bool
-	//if blockFilterErr := m.cl.Call(&stopFilterFlag, "ctxc_uninstallFilter", m.listenID); blockFilterErr != nil {
-	// log.Error("Block Filter closed | IPC ctxc_uninstallFilter", "error", blockFilterErr)
-	//}
 
 	if err := m.fs.Close(); err != nil {
 		log.Error("Monitor File Storage closed", "error", err)
@@ -348,38 +340,22 @@ func (m *Monitor) startWork() error {
 
 	errCh := make(chan error)
 
-	/*if vaErr := m.validateStorage(); vaErr != nil {
-		log.Error("Torrent invalid storage", "error", vaErr)
-		return vaErr
-	}*/
 	go m.validateStorage(errCh)
 
-	for {
-		select {
-		case err := <-errCh:
-			if err != nil {
-				//return err
-				log.Warn("Starting torrent fs ... ...", "error", err)
-				go m.validateStorage(errCh)
-			} else {
-				log.Info("Torrent fs validation passed")
-				//break
-				m.wg.Add(1)
-				go m.listenLatestBlock()
-				return nil
-			}
+	select {
+	case err := <-errCh:
+		if err != nil {
+			//return err
+			log.Error("Starting torrent fs ... ...", "error", err)
+			return err
+		} else {
+			log.Info("Torrent fs validation passed")
+			//break
+			m.wg.Add(1)
+			go m.listenLatestBlock()
+			return nil
 		}
 	}
-
-	// Used for listen latest block
-	//if blockFilterErr := m.cl.Call(&m.listenID, "ctxc_newBlockFilter"); blockFilterErr != nil {
-	//	log.Error("Start listen block filter | IPC ctxc_newBlockFilter", "error", blockFilterErr)
-	//	return blockFilterErr
-	//}
-
-	//go m.syncLastBlock()
-	//go m.listenLatestBlock()
-	log.Warn("... ... ...")
 
 	return nil
 }
@@ -405,8 +381,6 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
 			log.Debug("No block found", "number", i)
 			m.lastNumber = uint64(i)
-			//errCh <- nil
-			//return nil
 			m.dirty = true
 			continue
 		} else {
