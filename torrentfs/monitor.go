@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -63,6 +64,9 @@ type Monitor struct {
 	terminated int32
 	lastNumber uint64
 	dirty      bool
+
+	closeOnce sync.Once
+	wg        sync.WaitGroup
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -268,7 +272,14 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 
 func (m *Monitor) Stop() {
 	atomic.StoreInt32(&(m.terminated), 1)
-	close(m.exitCh)
+	m.closeOnce.Do(func() {
+		close(m.exitCh)
+		m.wg.Wait()
+		log.Info("Torrent fs listener synchronizing close")
+		//t.Table.Close()
+	})
+	//atomic.StoreInt32(&(m.terminated), 1)
+	//close(m.exitCh)
 
 	// var stopFilterFlag bool
 	//if blockFilterErr := m.cl.Call(&stopFilterFlag, "ctxc_uninstallFilter", m.listenID); blockFilterErr != nil {
@@ -353,6 +364,7 @@ func (m *Monitor) startWork() error {
 			} else {
 				log.Info("Torrent fs validation passed")
 				//break
+				m.wg.Add(1)
 				go m.listenLatestBlock()
 				return nil
 			}
@@ -432,40 +444,8 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 }
 
 func (m *Monitor) listenLatestBlock() {
+	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
-
-	/*blockFilter := func() {
-		log.Info("Torrent listen latest block status")
-		var blockHashes []string
-		if changeErr := m.cl.Call(&blockHashes, "ctxc_getFilterChanges", m.listenID); changeErr != nil {
-			log.Error("Listen latest block | IPC ctx_getFilterChanges", "error", changeErr)
-			return
-		}
-
-		if len(blockHashes) > 0 {
-			log.Trace("Torrent FS IPC blocks range", "piece", len(blockHashes))
-		}
-
-		for _, hash := range blockHashes {
-			block, rpcErr := m.rpcBlockByHash(hash)
-			if rpcErr != nil {
-				log.Error("Listen latest block", "hash", hash, "error", rpcErr)
-				return
-			}
-
-			log.Debug("Torrent FS IPC block", "number", block.Number, "hash", hash)
-
-			if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
-				log.Error("Parse latest block", "hash", hash, "block", block, "error", parseErr)
-				return
-			}
-
-			if storeErr := m.fs.WriteBlock(block); storeErr != nil {
-				log.Error("Store latest block", "hash", hash, "error", storeErr)
-				return
-			}
-		}
-	}*/
 
 	for {
 		select {

@@ -2409,7 +2409,7 @@ var isJson = function (str) {
 };
 
 /**
- * Returns true if given string is a valid Ethereum block header bloom.
+ * Returns true if given string is a valid Cortex block header bloom.
  *
  * @method isBloom
  * @param {String} hex encoded bloom filter
@@ -2508,7 +2508,7 @@ module.exports={
 
 var RequestManager = require('./web3/requestmanager');
 var Iban = require('./web3/iban');
-var Eth = require('./web3/methods/ctxc');
+var Ctxc = require('./web3/methods/ctxc');
 var DB = require('./web3/methods/db');
 var Shh = require('./web3/methods/shh');
 var Net = require('./web3/methods/net');
@@ -2529,7 +2529,7 @@ var BigNumber = require('bignumber.js');
 function Web3 (provider) {
     this._requestManager = new RequestManager(provider);
     this.currentProvider = provider;
-    this.ctxc = new Eth(this);
+    this.ctxc = new Ctxc(this);
     this.db = new DB(this);
     this.shh = new Shh(this);
     this.net = new Net(this);
@@ -2709,7 +2709,7 @@ AllSolidityEvents.prototype.execute = function (options, callback) {
 
     var o = this.encode(options);
     var formatter = this.decode.bind(this);
-    return new Filter(o, 'ctxc', this._requestManager, watches.eth(), formatter, callback);
+    return new Filter(o, 'ctxc', this._requestManager, watches.ctxc(), formatter, callback);
 };
 
 AllSolidityEvents.prototype.attachToContract = function (contract) {
@@ -3334,7 +3334,7 @@ SolidityEvent.prototype.execute = function (indexed, options, callback) {
 
     var o = this.encode(indexed, options);
     var formatter = this.decode.bind(this);
-    return new Filter(o, 'ctxc', this._requestManager, watches.eth(), formatter, callback);
+    return new Filter(o, 'ctxc', this._requestManager, watches.ctxc(), formatter, callback);
 };
 
 /**
@@ -5223,7 +5223,7 @@ var uncleCountCall = function (args) {
     return (utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'ctxc_getUncleCountByBlockHash' : 'ctxc_getUncleCountByBlockNumber';
 };
 
-function Eth(web3) {
+function Ctxc(web3) {
     this._requestManager = web3._requestManager;
 
     var self = this;
@@ -5243,7 +5243,7 @@ function Eth(web3) {
     this.sendIBANTransaction = transfer.bind(null, this);
 }
 
-Object.defineProperty(Eth.prototype, 'defaultBlock', {
+Object.defineProperty(Ctxc.prototype, 'defaultBlock', {
     get: function () {
         return c.defaultBlock;
     },
@@ -5253,7 +5253,7 @@ Object.defineProperty(Eth.prototype, 'defaultBlock', {
     }
 });
 
-Object.defineProperty(Eth.prototype, 'defaultAccount', {
+Object.defineProperty(Ctxc.prototype, 'defaultAccount', {
     get: function () {
         return c.defaultAccount;
     },
@@ -5512,28 +5512,28 @@ var properties = function () {
     ];
 };
 
-Eth.prototype.contract = function (abi) {
+Ctxc.prototype.contract = function (abi) {
     var factory = new Contract(this, abi);
     return factory;
 };
 
-Eth.prototype.filter = function (options, callback, filterCreationErrorCallback) {
-    return new Filter(options, 'ctxc', this._requestManager, watches.eth(), formatters.outputLogFormatter, callback, filterCreationErrorCallback);
+Ctxc.prototype.filter = function (options, callback, filterCreationErrorCallback) {
+    return new Filter(options, 'ctxc', this._requestManager, watches.ctxc(), formatters.outputLogFormatter, callback, filterCreationErrorCallback);
 };
 
-Eth.prototype.namereg = function () {
+Ctxc.prototype.namereg = function () {
     return this.contract(namereg.global.abi).at(namereg.global.address);
 };
 
-Eth.prototype.icapNamereg = function () {
+Ctxc.prototype.icapNamereg = function () {
     return this.contract(namereg.icap.abi).at(namereg.icap.address);
 };
 
-Eth.prototype.isSyncing = function (callback) {
+Ctxc.prototype.isSyncing = function (callback) {
     return new IsSyncing(this._requestManager, callback);
 };
 
-module.exports = Eth;
+module.exports = Ctxc;
 
 },{"../../utils/config":18,"../../utils/utils":20,"../contract":25,"../filter":29,"../formatters":30,"../iban":33,"../method":36,"../namereg":44,"../property":45,"../syncing":48,"../transfer":49,"./watches":43}],39:[function(require,module,exports){
 /*

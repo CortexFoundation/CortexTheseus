@@ -33,7 +33,7 @@ import (
 
 var (
 	consoleFlags = []cli.Flag{
-		//		utils.JSpathFlag,
+			utils.JSpathFlag,
 		utils.ExecFlag, utils.PreloadJSFlag,
 	}
 
@@ -88,7 +88,7 @@ func localConsole(ctx *cli.Context) error {
 	}
 	config := console.Config{
 		DataDir: utils.MakeDataDir(ctx),
-		// DocRoot: ctx.GlobalString(utils.JSpathFlag.Name),
+		DocRoot: ctx.GlobalString(utils.JSpathFlag.Name),
 		Client:  client,
 		Preload: utils.MakeConsolePreloads(ctx),
 	}
