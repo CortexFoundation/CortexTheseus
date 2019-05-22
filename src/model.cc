@@ -156,6 +156,7 @@ int CVMModel::LoadParamsFromFile(string filepath) {
   input_stream.close();
   return LoadParams(params);
 }
+
 }
 }
 
@@ -182,7 +183,7 @@ void* CVMAPILoadModel(const char *graph_fname, const char *model_fname) {
   } catch (std::exception &e) {
     return NULL;
   }
-  CVMModel* model = new CVMModel(graph, DLContext{kDLGPU, 1});
+  CVMModel* model = new CVMModel(graph, DLContext{kDLCPU, 1});
   try {
     params = LoadFromBinary(string(model_fname));
   } catch (std::exception &e) {
@@ -197,7 +198,7 @@ void* CVMAPILoadModel(const char *graph_fname, const char *model_fname) {
 
 void CVMAPIFreeModel(void* model_) {
   CVMModel* model = static_cast<CVMModel*>(model_);
-  if (model_) delete model; 
+  if (model_) delete model;
 }
 
 int CVMAPIGetInputLength(void* model_) {
