@@ -402,6 +402,7 @@ class CvmRuntime : public ModuleNode {
       }
     }
   }
+public:
   /*! \brief Setup the shape, type, and precision */
   int SetupGraph();
   void SetupShape();

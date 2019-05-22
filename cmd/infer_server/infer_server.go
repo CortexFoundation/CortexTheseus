@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	storageDir = flag.String("storage_dir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
+	storageDir = flag.String("storage_dir", "~/.cortex/warehouse", "Inference server's data dir, absolute path")
 	logLevel   = flag.Int("verbosity", 3, "Log level to emit to screen")
 	port       = flag.Int("port", 8827, "Server listen port")
 	IsNotCache = flag.Bool("disable_cache", false, "Disable cache")

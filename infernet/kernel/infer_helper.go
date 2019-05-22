@@ -4,7 +4,7 @@ package kernel
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS: -L/usr/local/cuda/lib64 -L/home/lizhen/CortexTheseus/infernet/build -lcvm_runtime -lcudart -lcuda
+#cgo LDFLAGS: -lcvm_runtime -lcudart -lcuda
 #cgo LDFLAGS: -lstdc++ 
 
 #cgo CFLAGS: -I./include -I/usr/local/cuda/include/ -O2
@@ -148,8 +148,8 @@ func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err err
 
 	if (!flag) {
 		net, loadErr := LoadModel(modelCfg, modelBin)
-		if loadErr != nil {	
-			return nil, errors.New("Model load error")
+		if loadErr != nil {
+			return nil, loadErr
 		}
 		gas, _ := GetModelOps(net)
 		log.Info("Model ops estimated", "ops", gas)
@@ -157,47 +157,5 @@ func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err err
 		defer FreeModel(net)
 		ret, err = Predict(net, imageData)
 	}
-/*
-  fd, _ := os.OpenFile("/tmp/new_infer.txt", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0644)
-	content := []string{}
-	content = append(content, strconv.Itoa(len(imageData)), " ")
-	content = append(content, strconv.Itoa(imageHash), " [")
-	for i := 0; i < len(ret); i++ {
-		content = append(content, strconv.Itoa(int(ret[i])), ", ")
-	}
-	content = append(content, "]\n")
-  fd.Write([]byte(strings.Join(content, "")))
-  fd.Close()
-*/
 	return ret, err
-	/*
-		res, err := Predict(net, imageData)
-		if err != nil {
-			return 0, err
-		}
-
-		var (
-			max    = int8(res[0])
-			label  = uint64(0)
-			resLen = len(res)
-		)
-
-		// If result length large than 1, find the index of max value;
-		// Else the question is two-classify model, and value of result[0] is the prediction.
-		if resLen > 1 {
-			for idx := 1; idx < resLen; idx++ {
-				if int8(res[idx]) > max {
-					max = int8(res[idx])
-					label = uint64(idx)
-				}
-			}
-		} else {
-			if max > 0 {
-				label = 1
-			} else {
-				label = 0
-			}
-		}
-
-		return label, nil */
 }
