@@ -66,10 +66,18 @@ nodekey:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
-plugins/%.so:
-	build/env.sh go build -buildmode=plugin -o plugins/%.so consensus/cuckoo/%.go
+plugins/cuda_helper_for_node.so:
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
+
+plugins/cpu_helper_for_node.so:
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
+
+plugins/opencl_helper_for_node.so:
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/opencl_helper_for_node.go
+
 
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/opencl_helper_for_node.so
+	make -C PoolMiner
 	make -C ${LIB_CUCKOO_DIR}
 	# build/env.sh go build -buildmode=plugin -o plugins/cuda_helper_for_node.so consensus/cuckoo/cuda_helper_for_node.go
 	# build/env.sh go build -buildmode=plugin -o plugins/opencl_helper_for_node.so consensus/cuckoo/opencl_helper_for_node.go
