@@ -2,6 +2,7 @@ build/*
 
 *.o
 *.a
+*.so
 
 !cminer/*
 
