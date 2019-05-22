@@ -48,8 +48,10 @@ public:
   void hash24(const uint64_t nonce) {
     v3 ^= nonce;
     sip_round(); sip_round();
+    sip_round(); sip_round();
     v0 ^= nonce;
     v2 ^= 0xff;
+    sip_round(); sip_round(); sip_round(); sip_round();
     sip_round(); sip_round(); sip_round(); sip_round();
   }
 };

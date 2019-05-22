@@ -48,8 +48,10 @@ u64 sipblock(siphash_keys *key, const node_t edge, u64 *buf) {
 	  edge_t nonce = edge0 + i;
 	v3^=nonce;
 	SIPROUND; SIPROUND;
+	SIPROUND; SIPROUND;
 	v0 ^= nonce;
 	v2 ^= 0xff;
+	SIPROUND; SIPROUND; SIPROUND; SIPROUND;
 	SIPROUND; SIPROUND; SIPROUND; SIPROUND;
 
 //    buf[i] = shs.xor_lanes();
