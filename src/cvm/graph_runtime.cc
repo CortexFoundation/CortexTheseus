@@ -68,7 +68,7 @@ int CvmRuntime::SetupGraph() {
   this->CheckAttr();
   this->SetupStorage();
   this->SetupOpExecs();
-  return 0; 
+  return 0;
 }
 
 int64_t CvmRuntime::GetOps(const std::string& graph_json) {
@@ -328,9 +328,14 @@ std::function<void()> CvmRuntime::CreateCVMOp(
   std::string kv;
   reader.BeginObject();
 // std::cout << param.func_name << std::endl;
+  std::vector<std::pair<std::string, std::string> > kvs;
   while (reader.NextObjectItem(&kv)) {
     std::string val;
     reader.Read(&val);
+    kvs.push_back(make_pair(kv, val));
+  }
+  for (auto x : kvs) {
+    std::string val = x.second;
     CVMValue v;
     //TODO leak
     auto tmp = new char[val.size()  + 1];
@@ -371,7 +376,7 @@ std::function<void()> CvmRuntime::CreateCVMOp(
     );
     func->CallPacked(targs, &rv);
   };
-  
+
   return [](){};
 }
 
@@ -407,7 +412,7 @@ PackedFunc CvmRuntime::GetFunction(
             *rv = -1;
         } else {
           this->GetShape(args[0], args[1]);
-        } 
+        }
         CALL_END();
       });
   } else if (name == "get_ops") {
@@ -418,7 +423,7 @@ PackedFunc CvmRuntime::GetFunction(
           *static_cast<int64_t*>(placeholder) = this->GetOps();
         } else {
           *rv = -1;
-        } 
+        }
         CALL_END();
       });
   } else if (name == "get_output_shape") {
@@ -492,8 +497,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.estimate_ops")
                                     "graph_runtime.estimate_ops is "
                                     "at least 1, but it has "
                                 << args.num_args;
-    
-    *rv = CvmRuntime::EstimateOps(args[0]); 
+
+    *rv = CvmRuntime::EstimateOps(args[0]);
   });
 }  // namespace runtime
 }  // namespace cvm
