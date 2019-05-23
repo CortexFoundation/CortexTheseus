@@ -328,14 +328,14 @@ class ValueVerifyFatal {
   ValueVerifyFatal(const char* file, int line) {
     log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
                 << line << ": ";
-    LOG(ERROR) << log_stream_.str();
-    throw std::logic_error(log_stream_.str());
-  }
+ }
   std::ostringstream &stream() { return log_stream_; }
-  ~ValueVerifyFatal() {
+  ~ValueVerifyFatal() noexcept(false) {
     // throwing out of destructor is evil
     // hopefully we can do it here
     // also log the message before throw
+    LOG(ERROR) << log_stream_.str();
+    throw std::logic_error(log_stream_.str());
   }
 
  private:
@@ -355,11 +355,11 @@ class LogMessageFatal {
     // throwing out of destructor is evil
     // hopefully we can do it here
     // also log the message before throw
+ }
+  std::ostringstream &stream() { return log_stream_; }
+  ~LogMessageFatal() noexcept(false) {
     LOG(ERROR) << log_stream_.str();
     throw std::runtime_error(log_stream_.str());
-  }
-  std::ostringstream &stream() { return log_stream_; }
-  ~LogMessageFatal() {
   }
 
  private:
