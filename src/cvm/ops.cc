@@ -904,7 +904,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
             int col = o_i % y->shape[j];
             o_i /= y->shape[j];
             int tmpcol = col;
-            if(j == axis) tmpcol = col / repeat;
+            if(j == axis) tmpcol = col % x->shape[axis];
             in_i += (j == ndim-1 ? tmpcol : tmpcol * shapeSize);
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
@@ -943,6 +943,64 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
        }
        y_data[i] = x_data[in_i];
    }
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *x = args[0];
+    DLTensor *reps = args[1];
+    DLTensor *y = args[2];
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *repos_data = static_cast<int32_t*>(repos->data);
+    int32_t *y_data = static_cast<int32_t*>(y_data);
+
+    int32_t yndim = y->ndim;
+    int32_t rndim = repos->ndim;
+    int32_t xndim = x->ndim;
+    uint64_t tmp_y_size = 1;
+    for(int i = 0; i < xndim; i++){
+        tmp_y_size *= y->shape[i + yndim - xndim];
+    }
+
+    for(uint64_t i = 0; i < tmp_y_size; i++){
+       uint64_t o_i = i, in_i = 0, shapeSize = 0;
+       for(int j = xndim-1; j >= 0; j--){
+            int yj = j + yndim - xndim;
+            int col = o_i % y->shape[yj];
+            o_i /= y->shape[yj];
+            col = col % x->shape[j];
+            in_i += (j == ndim-1 ? col : col * shapeSize);
+            shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+       }
+       y_data[i] = x_data[in_i];
+    }
+
+    uint64_t othery = 1;
+    for(int i = 0; i < yndim-xndim; i++){
+        othery *= y->shape[i];
+    }
+    for(int i = 1; i < othery; i++){
+        memcpy(y_data + i*tmp_y_size, y_data, tmp_y_size * sizeof(int32_t));
+    }
+});
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *ishape = args[0];
+    int32_t axis = static_cast<int32_t>(args[1]);
+    DLTensor *oshape = args[2];
+    int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
+    int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
+
+    for(uint64_t i = 0; i < getSize(oshape); i++){
+        if(i < axis){
+            oshape_data[i] = ishape_data[i];
+        }else if(i == axis){
+            oshape_data[i] = 1;
+        }else{
+            oshape_data[i] = ishape_data[i-1];
+        }
+    }
 });
 /*********************************cuda op*********************************************/
 #ifdef CVM_RUNTIME_CUDA
