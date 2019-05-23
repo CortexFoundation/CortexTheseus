@@ -486,6 +486,12 @@ web3._extend({
                         inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
                 }),
 		new web3._extend.Method({
+                        name: 'getCode',
+                        call: 'ctxc_getCode',
+                        params: 2,
+			inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter]
+                }),
+		new web3._extend.Method({
                         name: 'getTransactionReceipt',
                         call: 'ctxc_getTransactionReceipt',
                         params: 1,
