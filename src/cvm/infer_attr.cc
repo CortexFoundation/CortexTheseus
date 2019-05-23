@@ -52,7 +52,7 @@ void CvmRuntime::SetupPrecision() {
   std::vector<TShape> shapes;
   static auto& finfer_prec =
       Op::GetAttr<cvm::FInferPrecision>("FInferPrecision");
- 
+
   // inference step function for nid
   auto infer_prec = [&](uint32_t nid) {
     const auto& inode = idx[nid];
@@ -77,7 +77,7 @@ void CvmRuntime::SetupPrecision() {
       // Call inference function of the operator.
       if (finfer == nullptr) {
         std::cout << "no infer precision method " << inode.attrs.op->name << std::endl;
-        finfer = cvm::top::ElemwiseSamePrecision;  
+        finfer = cvm::top::ElemwiseSamePrecision;
       }
       if (!finfer(inode.attrs, &shapes, &iprec, &oprec)) {
         throw utils::Error(std::string("error with ") + inode.attrs.op->name);

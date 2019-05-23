@@ -156,6 +156,7 @@ int CVMModel::LoadParamsFromFile(string filepath) {
   input_stream.close();
   return LoadParams(params);
 }
+
 }
 }
 
@@ -197,7 +198,7 @@ void* CVMAPILoadModel(const char *graph_fname, const char *model_fname) {
 
 void CVMAPIFreeModel(void* model_) {
   CVMModel* model = static_cast<CVMModel*>(model_);
-  if (model_) delete model; 
+  if (model_) delete model;
 }
 
 int CVMAPIGetInputLength(void* model_) {
