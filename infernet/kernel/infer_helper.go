@@ -4,7 +4,7 @@ package kernel
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS: -lcvm_runtime -lcudart -lcuda
+#cgo LDFLAGS: -L../../../infernet/build/ -lcvm_runtime -lcudart -lcuda
 #cgo LDFLAGS: -lstdc++ 
 
 #cgo CFLAGS: -I./include -I/usr/local/cuda/include/ -O2
