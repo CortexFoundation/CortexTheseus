@@ -78,7 +78,7 @@ class LogCheckError {
 #define VERIFY_BINARY_OP(name, op, x, y)                                     \
   if (utils::LogCheckError _check_err = utils::ValueVerify##name(x, y))      \
     utils::ValueVerifyFatal(__FILE__, __LINE__).stream()                     \
-      << "Check failed: " << #x " " #op " " #y << *(_check_err.str)                                    
+      << "Check failed: " << #x " " #op " " #y << *(_check_err.str)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -120,7 +120,7 @@ DEFINE_VERIFY_FUNC(_NE, !=)
 #define CHECK_BINARY_OP(name, op, x, y)                                \
   if (utils::LogCheckError _check_err = utils::LogCheck##name(x, y))   \
     utils::LogMessageFatal(__FILE__, __LINE__).stream()                \
-      << "Check failed: " << #x " " #op " " #y << *(_check_err.str)                                    
+      << "Check failed: " << #x " " #op " " #y << *(_check_err.str)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -230,7 +230,7 @@ class LogMessage {
     log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
                 << line << ": ";
   }
-  ~LogMessage() {  log_stream_ << '\n'; 
+  ~LogMessage() {  log_stream_ << '\n';
   }
   std::ostream& stream() { return log_stream_; }
 
@@ -328,14 +328,14 @@ class ValueVerifyFatal {
   ValueVerifyFatal(const char* file, int line) {
     log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
                 << line << ": ";
-    LOG(ERROR) << log_stream_.str();
-    throw std::logic_error(log_stream_.str());
-  }
+ }
   std::ostringstream &stream() { return log_stream_; }
-  ~ValueVerifyFatal() {
+  ~ValueVerifyFatal() noexcept(false) {
     // throwing out of destructor is evil
     // hopefully we can do it here
     // also log the message before throw
+    LOG(ERROR) << log_stream_.str();
+    throw std::logic_error(log_stream_.str());
   }
 
  private:
@@ -355,11 +355,11 @@ class LogMessageFatal {
     // throwing out of destructor is evil
     // hopefully we can do it here
     // also log the message before throw
+ }
+  std::ostringstream &stream() { return log_stream_; }
+  ~LogMessageFatal() noexcept(false) {
     LOG(ERROR) << log_stream_.str();
     throw std::runtime_error(log_stream_.str());
-  }
-  std::ostringstream &stream() { return log_stream_; }
-  ~LogMessageFatal() {
   }
 
  private:

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
+//	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
@@ -58,13 +58,14 @@ func (s *Synapse) Close() {
 }
 
 func (s *Synapse) VerifyModel(modelInfoHash string) error {
-	modelHash := strings.ToLower(string(modelInfoHash[2:]))
-	modelDir := s.config.StorageDir + "/" + modelHash
+	return nil
+	// modelHash := strings.ToLower(string(modelInfoHash[2:]))
+	// modelDir := s.config.StorageDir + "/" + modelHash
 
-	modelCfg := modelDir + "/data/symbol"
-	modelBin := modelDir + "/data/params"
+	// modelCfg := modelDir + "/data/symbol"
+	// modelBin := modelDir + "/data/params"
 
-	return parser.CheckModel(modelCfg, modelBin)
+	// return parser.CheckModel(modelCfg, modelBin)
 }
 
 func (s *Synapse) VerifyInput(inputInfoHash string) error {

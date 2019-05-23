@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
+//	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
@@ -104,10 +104,10 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	// Model Parse
-	if parseErr := parser.CheckModel(modelCfg, modelBin); parseErr != nil {
-		errCh <- parseErr
-		return
-	}
+	// if parseErr := parser.CheckModel(modelCfg, modelBin); parseErr != nil {
+	// 	errCh <- parseErr
+	// 	return
+	// }
 
 	label, inferErr := kernel.InferCore(modelCfg, modelBin, inputContent)
 	if inferErr != nil {

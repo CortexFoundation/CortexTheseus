@@ -273,7 +273,7 @@ class CvmRuntime : public ModuleNode {
       utils::JSONReader reader(&is);
       reader.Read(&attrs.dict);
       if (attrs.op->attr_parser) {
-        attrs.op->attr_parser(&attrs);        
+        attrs.op->attr_parser(&attrs);
       }
     }
 
@@ -402,6 +402,7 @@ class CvmRuntime : public ModuleNode {
       }
     }
   }
+public:
   /*! \brief Setup the shape, type, and precision */
   int SetupGraph();
   void SetupShape();
@@ -419,7 +420,7 @@ class CvmRuntime : public ModuleNode {
    * \param num_inputs Number of inputs.
    * \return The created executor.
    */
-  std::function<void()> CreateCVMOp(const CVMOpParam& attrs, std::string op_attrs,
+  std::function<void()> CreateCVMOp(const CVMOpParam& param, NodeAttrs* attr,
                                     const std::vector<DLTensor>& args,
                                     size_t num_inputs);
   // Get node entry index.
@@ -454,7 +455,7 @@ class CvmRuntime : public ModuleNode {
   std::vector<NDArray> data_entry_;
   /*! \brief Operator on each node. */
   std::vector<std::function<void()> > op_execs_;
-  
+
   std::string graph_json_;
 };
 

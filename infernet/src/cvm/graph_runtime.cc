@@ -68,7 +68,7 @@ int CvmRuntime::SetupGraph() {
   this->CheckAttr();
   this->SetupStorage();
   this->SetupOpExecs();
-  return 0; 
+  return 0;
 }
 
 int64_t CvmRuntime::GetOps(const std::string& graph_json) {
@@ -277,7 +277,7 @@ void CvmRuntime::SetupOpExecs() {
   op_execs_.resize(this->GetNumOfNodes());
   // setup the array and requirements.
   for (uint32_t nid = 0; nid < this->GetNumOfNodes(); ++nid) {
-    const auto& inode = nodes_[nid];
+    auto& inode = nodes_[nid];
     if (inode.op_type == "null") continue;
     std::vector<DLTensor> args;
     for (const auto& e : inode.inputs) {
@@ -289,13 +289,12 @@ void CvmRuntime::SetupOpExecs() {
     }
     VERIFY(inode.op_type == "cvm_op") << "Can only take cvm_op as op";
 
-    op_execs_[nid] = CreateCVMOp(inode.param, attrs_.op_attrs[nid], args, inode.inputs.size());
+    op_execs_[nid] = CreateCVMOp(inode.param, &inode.attrs, args, inode.inputs.size());
   }
 }
 
 std::function<void()> CvmRuntime::CreateCVMOp(
-    const CVMOpParam& param,
-    const std::string op_attrs,
+    const CVMOpParam& param, NodeAttrs* attr,
     const std::vector<DLTensor>& args,
     size_t num_inputs) {
   struct OpArgs {
@@ -323,22 +322,10 @@ std::function<void()> CvmRuntime::CreateCVMOp(
       t->shape = &(arg_ptr->shape_data[i]);
     }
   }
-  std::stringstream ss; ss << op_attrs;
-  utils::JSONReader reader(&ss);
-  std::string kv;
-  reader.BeginObject();
-// std::cout << param.func_name << std::endl;
-  while (reader.NextObjectItem(&kv)) {
-    std::string val;
-    reader.Read(&val);
-    CVMValue v;
-    //TODO leak
-    auto tmp = new char[val.size()  + 1];
-    strcpy(tmp, val.c_str());
-    v.v_str = const_cast<const char*>(tmp);
-    arg_ptr->arg_values.push_back(v);
-    arg_ptr->arg_tcodes.push_back(kStr);
-  }
+  CVMValue t_attr;
+  t_attr.v_handle = (void*)attr;
+  arg_ptr->arg_values.push_back(t_attr);
+  arg_ptr->arg_tcodes.push_back(kHandle);
 
   if (param.func_name == "__nop") {
     return [](){};
@@ -371,7 +358,7 @@ std::function<void()> CvmRuntime::CreateCVMOp(
     );
     func->CallPacked(targs, &rv);
   };
-  
+
   return [](){};
 }
 
@@ -407,7 +394,7 @@ PackedFunc CvmRuntime::GetFunction(
             *rv = -1;
         } else {
           this->GetShape(args[0], args[1]);
-        } 
+        }
         CALL_END();
       });
   } else if (name == "get_ops") {
@@ -418,7 +405,7 @@ PackedFunc CvmRuntime::GetFunction(
           *static_cast<int64_t*>(placeholder) = this->GetOps();
         } else {
           *rv = -1;
-        } 
+        }
         CALL_END();
       });
   } else if (name == "get_output_shape") {
