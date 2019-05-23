@@ -211,6 +211,13 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	info.TxHash = tx.Hash
 
 	remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+
+	if remainingSize > params.PER_UPLOAD_BYTES {
+		remainingSize = remainingSize - params.PER_UPLOAD_BYTES
+	} else {
+		remainingSize = uint64(0)
+	}
+
 	info.LeftSize = remainingSize
 	info.ContractAddr = receipt.ContractAddr
 	m.fs.AddFile(info)
