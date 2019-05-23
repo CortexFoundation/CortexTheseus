@@ -402,6 +402,7 @@ class CvmRuntime : public ModuleNode {
       }
     }
   }
+public:
   /*! \brief Setup the shape, type, and precision */
   int SetupGraph();
   void SetupShape();
@@ -419,7 +420,7 @@ class CvmRuntime : public ModuleNode {
    * \param num_inputs Number of inputs.
    * \return The created executor.
    */
-  std::function<void()> CreateCVMOp(const CVMOpParam& attrs, std::string op_attrs,
+  std::function<void()> CreateCVMOp(const CVMOpParam& param, NodeAttrs* attr,
                                     const std::vector<DLTensor>& args,
                                     size_t num_inputs);
   // Get node entry index.
