@@ -218,6 +218,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	if meta.RawSize > remainingSize {
 		bytesRequested = meta.RawSize - remainingSize
 	}
+
 	m.dl.UpdateTorrent(FlowControlMeta{
 		InfoHash:       *meta.InfoHash(),
 		BytesRequested: bytesRequested,
