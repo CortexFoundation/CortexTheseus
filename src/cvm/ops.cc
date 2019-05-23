@@ -197,6 +197,7 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
             }
         }
     }
+    if (bias != NULL)
     for(int i = 0; i < M; i++){
         register int32_t biasV = bias[i];
         for(int j = 0; j < N; j++){
