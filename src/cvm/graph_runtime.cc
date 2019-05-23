@@ -438,7 +438,6 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_BEGIN();
         this->SetupGraph();
         CALL_END();
-        std::cout << "error catched" << std::endl;
       });
   } else if (name == "load_params") {
     return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
@@ -488,12 +487,17 @@ CVM_REGISTER_GLOBAL("cvm.runtime.create")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.estimate_ops")
   .set_body([](CVMArgs args, CVMRetValue* rv) {
-    VERIFY_GE(args.num_args, 1) << "The expected number of arguments for "
+    try {
+      VERIFY_GE(args.num_args, 1) << "The expected number of arguments for "
                                     "graph_runtime.estimate_ops is "
                                     "at least 1, but it has "
                                 << args.num_args;
-    
-    *rv = CvmRuntime::EstimateOps(args[0]); 
+      *rv = CvmRuntime::EstimateOps(args[0]); 
+      } catch (std::runtime_error &e) {
+        *rv = -1;
+      } catch (std::logic_error &e) {
+        *rv = -2;
+      }
   });
 }  // namespace runtime
 }  // namespace cvm
