@@ -1,8 +1,0 @@
-/home/lizhen/cvm-runtime/cmake/CMakeFiles/install.dir
-/home/lizhen/cvm-runtime/cmake/CMakeFiles/list_install_components.dir
-/home/lizhen/cvm-runtime/cmake/CMakeFiles/rebuild_cache.dir
-/home/lizhen/cvm-runtime/cmake/CMakeFiles/edit_cache.dir
-/home/lizhen/cvm-runtime/cmake/CMakeFiles/runtime.dir
-/home/lizhen/cvm-runtime/cmake/CMakeFiles/cvm_runtime.dir
-/home/lizhen/cvm-runtime/cmake/CMakeFiles/install/local.dir
-/home/lizhen/cvm-runtime/cmake/CMakeFiles/install/strip.dir
