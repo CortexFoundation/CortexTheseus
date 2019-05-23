@@ -274,16 +274,15 @@ func (m *Monitor) Stop() {
 	atomic.StoreInt32(&(m.terminated), 1)
 	m.closeOnce.Do(func() {
 		close(m.exitCh)
+		if err := m.fs.Close(); err != nil {
+			log.Error("Monitor File Storage closed", "error", err)
+		}
+		if err := m.dl.Close(); err != nil {
+			log.Error("Monitor Torrent Manager closed", "error", err)
+		}
 		log.Info("Torrent fs listener synchronizing close")
 		m.wg.Wait()
 	})
-
-	if err := m.fs.Close(); err != nil {
-		log.Error("Monitor File Storage closed", "error", err)
-	}
-	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Torrent Manager closed", "error", err)
-	}
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
