@@ -4,7 +4,7 @@ package kernel
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS: -L/usr/local/cuda/lib64 -L/home/lizhen/CortexTheseus/infernet/build -lcvm_runtime -lcudart -lcuda
+#cgo LDFLAGS: -lcvm_runtime -lcudart -lcuda
 #cgo LDFLAGS: -lstdc++ 
 
 #cgo CFLAGS: -I./include -I/usr/local/cuda/include/ -O2
@@ -46,7 +46,6 @@ func GetModelOps(net unsafe.Pointer) (int64, error) {
 }
 
 func GetModelOpsFromFile(filepath string) (int64, error) {
-	
 	ret := int64(C.CVMAPIGetGasFromGraphFile(C.CString(filepath)))
 	if ret < 0 {
 		return 0, errors.New("Gas Error")
@@ -85,7 +84,7 @@ func Predict(net unsafe.Pointer, imageData []byte) ([]byte, error) {
 
 func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err error) {
 	net, loadErr := LoadModel(modelCfg, modelBin)
-	if loadErr != nil {	
+	if loadErr != nil {
 		return nil, errors.New("Model load error")
 	}
 	// gas, _ := GetModelOps(net)

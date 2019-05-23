@@ -273,7 +273,7 @@ class CvmRuntime : public ModuleNode {
       utils::JSONReader reader(&is);
       reader.Read(&attrs.dict);
       if (attrs.op->attr_parser) {
-        attrs.op->attr_parser(&attrs);        
+        attrs.op->attr_parser(&attrs);
       }
     }
 
@@ -454,7 +454,7 @@ class CvmRuntime : public ModuleNode {
   std::vector<NDArray> data_entry_;
   /*! \brief Operator on each node. */
   std::vector<std::function<void()> > op_execs_;
-  
+
   std::string graph_json_;
 };
 
