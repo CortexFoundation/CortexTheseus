@@ -18,6 +18,7 @@
 
 #include "cuda_ops.h"
 #include "omp.h"
+#include <immintrin.h>
 
 
 namespace cvm {
@@ -161,7 +162,7 @@ bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias
 
     int blocks = K / 64 * 64;
     for(int i = 0; i < M; i++){
-        int32_t bV = bias[i];
+        int32_t bV = bias != NULL ? bias[i] : 0;
         for(int j = 0; j < N; j++){
             __m256i vc = _mm256_setzero_si256();
             int k = 0;
@@ -197,10 +198,12 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
             }
         }
     }
-    for(int i = 0; i < M; i++){
-        register int32_t biasV = bias[i];
-        for(int j = 0; j < N; j++){
-            c[i*N+j] += biasV;
+    if(bias != NULL){
+        for(int i = 0; i < M; i++){
+            register int32_t biasV = bias[i];
+            for(int j = 0; j < N; j++){
+                c[i*N+j] += biasV;
+            }
         }
     }
 }
@@ -293,15 +296,16 @@ strides (1, 1)
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d").set_body([]
  (CVMArgs args, CVMRetValue* rv){
     VERIFY(args.num_args == 4 || args.num_args == 5);
+    printf("num_args %d\n", args.num_args);
     DLTensor *x = args[0];
     VERIFY(x->ndim == 4);
     DLTensor *w = args[1];
     VERIFY(w->ndim == 4);
     int dlIndex = 2;
 	DLTensor *b = nullptr; //args[2];
-    DLTensor *y = nullptr; 
+    DLTensor *y = nullptr;
     void *_attr;
- 
+
     if(args.num_args == 5){
       b = args[2];
       y = args[3];
@@ -690,7 +694,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_clip")
          DLTensor *y = args[1];
          int32_t *x_data = static_cast<int32_t*>(x->data);
          int32_t *y_data = static_cast<int32_t*>(y->data);
-         
+
          void *_attr = args[2];
          auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
          auto &param = cvm::get<cvm::top::CVMClipParam>(attr->parsed);
@@ -715,7 +719,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_right_shift")
         VERIFY(args.num_args == 3);
         DLTensor *a = args[0];
         DLTensor *c = args[1];
-         
+
         void *_attr = args[2];
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
         auto &param = cvm::get<cvm::top::CVMRightShiftParam>(attr->parsed);
@@ -953,7 +957,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     DLTensor *x = args[0];
-    DLTensor *reps = args[1];
+    DLTensor *repos = args[1];
     DLTensor *y = args[2];
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
@@ -975,8 +979,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
             int col = o_i % y->shape[yj];
             o_i /= y->shape[yj];
             col = col % x->shape[j];
-            in_i += (j == ndim-1 ? col : col * shapeSize);
-            shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+            in_i += (j == xndim-1 ? col : col * shapeSize);
+            shapeSize = (j == xndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
        }
        y_data[i] = x_data[in_i];
     }
