@@ -1,18 +1,18 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2016 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 package params
 
@@ -20,30 +20,28 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0x67d9cd9156dd17c10810d912a0dc395b2ecb5c5a97145252491ce9fb596903ac")
-	CerebroGenesisHash = common.HexToHash("0x1875c8fde48d2f71e82708489390ec29385749701a41459622c70565bbc37ccb")
-	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
+	MainnetGenesisHash = common.HexToHash("")
+	CerebroGenesisHash = common.HexToHash("")
+	RinkebyGenesisHash = common.HexToHash("")
 )
 
 //It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	//MainnetGenesisHash: MainnetTrustedCheckpoint,
+	//CerebroGenesisHash: CerebroTrustedCheckpoint,
 	//TestnetGenesisHash: TestnetTrustedCheckpoint,
 	//RinkebyGenesisHash: RinkebyTrustedCheckpoint,
-	//GoerliGenesisHash:  GoerliTrustedCheckpoint,
 }
 
 type TrustedCheckpoint struct {
 	Name         string      `json:"-"`
 	SectionIndex uint64      `json:"sectionIndex"`
 	SectionHead  common.Hash `json:"sectionHead"`
-	//CHTRoot      common.Hash `json:"chtRoot"`
-	//BloomRoot    common.Hash `json:"bloomRoot"`
 }
 
 var (
@@ -56,9 +54,7 @@ var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
 		SectionIndex: 0,
-		SectionHead:  common.HexToHash("0xa570539c5bd599a82abc6f2ce11f879026beacb1ee5991c5ebc84afabe1d5b2d"),
-		//CHTRoot:      common.HexToHash("0xf91eb151aa7b3c7771cad5a79266a4de282398e70eb18cd00a2ce02ab8f109e5"),
-		//BloomRoot:    common.HexToHash("0xec1b454d4c6322c78ccedf76ac922a8698c3cac4d98748a84af4995b7bd3d744"),
+		SectionHead:  common.HexToHash(""),
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
@@ -80,12 +76,12 @@ var (
 	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	CerebroChainConfig = &ChainConfig{
 		ChainID: big.NewInt(42),
-		//HomesteadBlock:      big.NewInt(0),
-		//DAOForkBlock:        nil,
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
 		DAOForkSupport: false,
-		//EIP150Block:         big.NewInt(0),
-		//EIP155Block:         big.NewInt(0),
-		//EIP158Block:         big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
 		ByzantiumBlock:      big.NewInt(0),
 		ConstantinopleBlock: nil,
 		Cuckoo:              new(CuckooConfig),
@@ -124,7 +120,7 @@ var (
 	}
 
 	// AllCuckooProtocolChanges contains every protocol change (EIPs) introduced
-	// and accepted by the Ethereum core developers into the Cuckoo consensus.
+	// and accepted by the Cortex core developers into the Cuckoo consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
@@ -145,7 +141,7 @@ var (
 		Clique:              nil}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
-	// and accepted by the Ethereum core developers into the Clique consensus.
+	// and accepted by the Cortex core developers into the Clique consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
@@ -168,7 +164,7 @@ type ChainConfig struct {
 	DAOForkBlock   *big.Int `json:"daoForkBlock,omitempty"`   // TheDAO hard-fork switch block (nil = no fork)
 	DAOForkSupport bool     `json:"daoForkSupport,omitempty"` // Whether the nodes supports or opposes the DAO hard-fork
 
-	// EIP150 implements the Gas price changes (https://github.com/ethereum/EIPs/issues/150)
+	// EIP150 implements the Gas price changes (https://github.com/cortex/EIPs/issues/150)
 	EIP150Block *big.Int    `json:"eip150Block,omitempty"` // EIP150 HF block (nil = no fork)
 	EIP150Hash  common.Hash `json:"eip150Hash,omitempty"`  // EIP150 HF hash (needed for header only clients as only gas pricing changed)
 

@@ -2,7 +2,7 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-.PHONY: geth android ios geth-cross swarm evm all test clean
+.PHONY: geth android ios geth-cross evm all test clean
 .PHONY: geth-linux geth-linux-386 geth-linux-amd64 geth-linux-mips64 geth-linux-mips64le
 .PHONY: geth-linux-arm geth-linux-arm-5 geth-linux-arm-6 geth-linux-arm-7 geth-linux-arm64
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
@@ -13,7 +13,7 @@
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
-LIB_MINER_DIR = $(shell pwd)/cminer/
+#LIB_MINER_DIR = $(shell pwd)/cminer/
 LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/infernet/
 LIB_CUCKOO_DIR = $(shell pwd)/PoolMiner/miner/libcuckoo
@@ -58,11 +58,6 @@ cuckoo-miner: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner
 	@echo "Done building."
 
-swarm:
-	build/env.sh go run build/ci.go install ./cmd/swarm
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
-
 all: cortex-remote cortex nodekey cuckoo-cuda-miner
 	# build/env.sh go run build/ci.go install
 
@@ -104,7 +99,7 @@ clean:
 	rm PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
 
 clean-clib:
-	make -C $(LIB_MINER_DIR) clean
+	#make -C $(LIB_MINER_DIR) clean
 	make -C $(INFER_NET_DIR) clean
 	
 .PHONY: clean-all

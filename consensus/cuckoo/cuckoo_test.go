@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
 func TestTestMode(t *testing.T) {

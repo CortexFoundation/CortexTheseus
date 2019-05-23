@@ -9,7 +9,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/ethereum/go-ethereum/inference"
+	"github.com/CortexFoundation/CortexTheseus/inference"
 )
 
 func ReadImage(inputFilePath string) ([]byte, error) {

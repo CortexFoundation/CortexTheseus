@@ -1,20 +1,20 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2015 The go-cortex Authors
+// This file is part of go-cortex.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// go-cortex is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// go-cortex is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
 
-// Contains the geth command usage template and generator.
+// Contains the cortex command usage template and generator.
 
 package main
 
@@ -24,8 +24,8 @@ import (
 
 	"strings"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	// "github.com/ethereum/go-ethereum/internal/debug"
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	// "github.com/CortexFoundation/CortexTheseus/internal/debug"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -76,11 +76,8 @@ var AppHelpFlagGroups = []flagGroup{
 			// utils.LazynetFlag,
 			utils.SyncModeFlag,
 			utils.GCModeFlag,
-			// utils.EthStatsURLFlag,
+			// utils.CortexStatsURLFlag,
 			utils.IdentityFlag,
-			// utils.LightServFlag,
-			// utils.LightPeersFlag,
-			// utils.LightKDFFlag,
 		},
 	},
 	// {
@@ -126,7 +123,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.TxPoolLocalsFlag,
 			utils.TxPoolNoLocalsFlag,
-//			utils.TxPoolNoInfersFlag,
+			//			utils.TxPoolNoInfersFlag,
 			utils.TxPoolJournalFlag,
 			utils.TxPoolRejournalFlag,
 			utils.TxPoolPriceLimitFlag,
@@ -152,6 +149,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.UnlockedAccountFlag,
 			utils.PasswordFileFlag,
+			utils.InsecureUnlockAllowedFlag,
 		},
 	},
 	{
@@ -170,7 +168,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.IPCPathFlag,
 			utils.RPCCORSDomainFlag,
 			utils.RPCVirtualHostsFlag,
-			// utils.JSpathFlag,
+			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
 		},
@@ -201,7 +199,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MinerGasPriceFlag,
 			utils.MinerGasTargetFlag,
 			utils.MinerGasLimitFlag,
-			utils.MinerEtherbaseFlag,
+			utils.MinerCoinbaseFlag,
 			utils.MinerExtraDataFlag,
 			utils.MinerRecommitIntervalFlag,
 			utils.MinerNoVerfiyFlag,
@@ -254,7 +252,7 @@ var AppHelpFlagGroups = []flagGroup{
 	// 		utils.MinerLegacyThreadsFlag,
 	// 		utils.MinerLegacyGasTargetFlag,
 	// 		utils.MinerLegacyGasPriceFlag,
-	// 		utils.MinerLegacyEtherbaseFlag,
+	// 		utils.MinerLegacyCoinbaseFlag,
 	// 		utils.MinerLegacyExtraDataFlag,
 	// 	},
 	// },

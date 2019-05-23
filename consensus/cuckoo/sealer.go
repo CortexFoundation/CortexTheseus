@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/consensus"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	//"github.com/CortexFoundation/CortexTheseus/core/types"
 	"fmt"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 var (
@@ -65,15 +65,15 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	}
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
-	  pend.Add(1)
+		pend.Add(1)
 		var err error
-		go func(id int, nonce uint64, err *error){
+		go func(id int, nonce uint64, err *error) {
 			defer pend.Done()
 			cuckoo.lock.Lock()
 			*err = cuckoo.Mine(block, id, nonce, abort, cuckoo.resultCh)
 			cuckoo.lock.Unlock()
 		}(i, uint64(cuckoo.rand.Int63()), &err)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}
@@ -109,9 +109,6 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 }
 
 func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
-	// cuckoo.InitOnce()
-	// For return arguments
-	//zeroHash := common.Hash{}
 
 	blockDiff := block.Difficulty()
 	if blockDiff.Cmp(common.Big0) == 0 {
@@ -123,12 +120,14 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 		log.Info("invalid share difficulty")
 		return false, false, 0
 	}
-	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), blockDiff)
-	sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))
+	//fmt.Println(hashNoNonce, solution, block.NumberU64(), blockDiff, shareDiff, block.Nonce())
+	targetDiff := new(big.Int).Div(maxUint256, shareDiff)
+	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), targetDiff)
 	if !ok {
-		fmt.Println("invalid solution ")
+		fmt.Println("invalid solution")
 		return false, false, 0
 	}
+	sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
 	actualDiff := new(big.Int).Div(maxUint256, sha3Hash.Big())

@@ -5,7 +5,7 @@ package torrentfs
 import (
 	"encoding/json"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 // MarshalJSON marshals as JSON.

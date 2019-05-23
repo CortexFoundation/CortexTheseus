@@ -1,18 +1,18 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2016 The go-cortex Authors
+// This file is part of go-cortex.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// go-cortex is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// go-cortex is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -22,22 +22,22 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	cli "gopkg.in/urfave/cli.v1"
-	// "github.com/ethereum/go-ethereum/consensus/cuckoo"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/params"
+	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
+	"github.com/CortexFoundation/CortexTheseus/ctxc"
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 var (
 	/* makecacheCommand = cli.Command{
 			Action:    utils.MigrateFlags(makecache),
 			Name:      "makecache",
-			Usage:     "Generate ethash verification cache (for testing)",
+			Usage:     "Generate ctxcash verification cache (for testing)",
 			ArgsUsage: "<blockNum> <outputDir>",
 			Category:  "MISCELLANEOUS COMMANDS",
 			Description: `
-	The makecache command generates an ethash cache in <outputDir>.
+	The makecache command generates an ctxcash cache in <outputDir>.
 
 	This command exists to support the system testing project.
 	Regular users do not need to execute it.
@@ -46,11 +46,11 @@ var (
 	/* makedagCommand = cli.Command{
 			Action:    utils.MigrateFlags(makedag),
 			Name:      "makedag",
-			Usage:     "Generate ethash mining DAG (for testing)",
+			Usage:     "Generate ctxcash mining DAG (for testing)",
 			ArgsUsage: "<blockNum> <outputDir>",
 			Category:  "MISCELLANEOUS COMMANDS",
 			Description: `
-	The makedag command generates an ethash DAG in <outputDir>.
+	The makedag command generates an ctxcash DAG in <outputDir>.
 
 	This command exists to support the system testing project.
 	Regular users do not need to execute it.
@@ -75,32 +75,32 @@ The output of this command is supposed to be machine-readable.
 	}
 )
 
-// makecache generates an ethash verification cache into the provided folder.
+// makecache generates an ctxcash verification cache into the provided folder.
 /* func makecache(ctx *cli.Context) error {
 	args := ctx.Args()
 	if len(args) != 2 {
-		utils.Fatalf(`Usage: geth makecache <block number> <outputdir>`)
+		utils.Fatalf(`Usage: cortex makecache <block number> <outputdir>`)
 	}
 	block, err := strconv.ParseUint(args[0], 0, 64)
 	if err != nil {
 		utils.Fatalf("Invalid block number: %v", err)
 	}
-	ethash.MakeCache(block, args[1])
+	ctxcash.MakeCache(block, args[1])
 
 	return nil
 } */
 
-// makedag generates an ethash mining DAG into the provided folder.
+// makedag generates an ctxcash mining DAG into the provided folder.
 /* func makedag(ctx *cli.Context) error {
 	args := ctx.Args()
 	if len(args) != 2 {
-		utils.Fatalf(`Usage: geth makedag <block number> <outputdir>`)
+		utils.Fatalf(`Usage: cortex makedag <block number> <outputdir>`)
 	}
 	block, err := strconv.ParseUint(args[0], 0, 64)
 	if err != nil {
 		utils.Fatalf("Invalid block number: %v", err)
 	}
-	ethash.MakeDataset(block, args[1])
+	ctxcash.MakeDataset(block, args[1])
 
 	return nil
 } */
@@ -112,8 +112,8 @@ func version(ctx *cli.Context) error {
 		fmt.Println("Git Commit:", gitCommit)
 	}
 	fmt.Println("Architecture:", runtime.GOARCH)
-	fmt.Println("Protocol Versions:", eth.ProtocolVersions)
-	fmt.Println("Network Id:", eth.DefaultConfig.NetworkId)
+	fmt.Println("Protocol Versions:", ctxc.ProtocolVersions)
+	fmt.Println("Network Id:", ctxc.DefaultConfig.NetworkId)
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Operating System:", runtime.GOOS)
 	fmt.Printf("GOPATH=%s\n", os.Getenv("GOPATH"))
@@ -133,6 +133,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with geth. If not, see <http://www.gnu.org/licenses/>.`)
+along with cortex. If not, see <http://www.gnu.org/licenses/>.`)
 	return nil
 }

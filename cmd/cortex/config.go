@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2017 The go-cortex Authors
+// This file is part of go-cortex.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// go-cortex is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// go-cortex is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -27,13 +27,12 @@ import (
 
 	cli "gopkg.in/urfave/cli.v1"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/dashboard"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/torrentfs"
-	whisper "github.com/ethereum/go-ethereum/whisper/whisperv6"
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	"github.com/CortexFoundation/CortexTheseus/dashboard"
+	"github.com/CortexFoundation/CortexTheseus/ctxc"
+	"github.com/CortexFoundation/CortexTheseus/node"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"github.com/naoina/toml"
 )
 
@@ -71,20 +70,19 @@ var tomlSettings = toml.Config{
 	},
 }
 
-type ethstatsConfig struct {
+type ctxcstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
 
-type gethConfig struct {
-	Eth       eth.Config
-	Shh       whisper.Config
+type cortexConfig struct {
+	Cortex       ctxc.Config
 	Node      node.Config
-	Ethstats  ethstatsConfig
+	Cortexstats  ctxcstatsConfig
 	Dashboard dashboard.Config
 	TorrentFs torrentfs.Config
 }
 
-func loadConfig(file string, cfg *gethConfig) error {
+func loadConfig(file string, cfg *cortexConfig) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -103,17 +101,16 @@ func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit)
-	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "ctx", "shh")
-	cfg.WSModules = append(cfg.WSModules, "eth", "ctx", "shh")
+	cfg.HTTPModules = append(cfg.HTTPModules, "ctxc", "shh")
+	cfg.WSModules = append(cfg.WSModules, "ctxc", "shh")
 	cfg.IPCPath = "cortex.ipc"
 	return cfg
 }
 
-func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
+func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// Load defaults.
-	cfg := gethConfig{
-		Eth:       eth.DefaultConfig,
-		Shh:       whisper.DefaultConfig,
+	cfg := cortexConfig{
+		Cortex:       ctxc.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
 		TorrentFs: torrentfs.DefaultConfig,
@@ -132,12 +129,12 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
-	utils.SetEthConfig(ctx, stack, &cfg.Eth)
-	// if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
-	// 	cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
+	utils.SetCortexConfig(ctx, stack, &cfg.Cortex)
+	// if ctx.GlobalIsSet(utils.CortexStatsURLFlag.Name) {
+	// 	cfg.Cortexstats.URL = ctx.GlobalString(utils.CortexStatsURLFlag.Name)
 	// }
 
-	utils.SetShhConfig(ctx, stack, &cfg.Shh)
+	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
 	utils.SetTorrentFsConfig(ctx, &cfg.TorrentFs)
 
@@ -157,7 +154,7 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
-	utils.RegisterEthService(stack, &cfg.Eth)
+	utils.RegisterCortexService(stack, &cfg.Cortex)
 
 	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
 		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
@@ -178,9 +175,9 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	// 	utils.RegisterShhService(stack, &cfg.Shh)
 	// }
 
-	// Add the Ethereum Stats daemon if requested.
-	if cfg.Ethstats.URL != "" {
-		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+	// Add the Cortex Stats daemon if requested.
+	if cfg.Cortexstats.URL != "" {
+		utils.RegisterCortexStatsService(stack, cfg.Cortexstats.URL)
 	}
 	//storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) && ctx.GlobalString(utils.SyncModeFlag.Name) == "full"
 	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name)
@@ -195,8 +192,8 @@ func dumpConfig(ctx *cli.Context) error {
 	_, cfg := makeConfigNode(ctx)
 	comment := ""
 
-	if cfg.Eth.Genesis != nil {
-		cfg.Eth.Genesis = nil
+	if cfg.Cortex.Genesis != nil {
+		cfg.Cortex.Genesis = nil
 		comment += "# Note: this config doesn't contain the genesis block.\n\n"
 	}
 

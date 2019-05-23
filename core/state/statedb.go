@@ -1,20 +1,20 @@
-// Copyright 2014 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2014 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package state provides a caching layer atop the Ethereum state trie.
+// Package state provides a caching layer atop the Cortex state trie.
 package state
 
 import (
@@ -24,16 +24,14 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 
-	"github.com/ethereum/go-ethereum/core/vm"
-	//"net/http"
-	"strings"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
 )
 
 type revision struct {
@@ -57,7 +55,7 @@ func (n *proofList) Put(key []byte, value []byte) error {
 	return nil
 }
 
-// StateDBs within the ethereum protocol are used to store anything
+// StateDBs within the cortex protocol are used to store anything
 // within the merkle trie. StateDBs take care of caching and storing
 // nested states. It's the general query interface to retrieve:
 // * Contracts
@@ -260,28 +258,10 @@ func (self *StateDB) Download(addr common.Address) error {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
 		if vm.IsModelMeta(stateObject.Code(self.db)) {
-			//if modelMeta, err := types.ParseModelMeta(stateObject.Code(self.db)); err != nil {
-			//	return err
-			//} else {
-			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-			//if modelMeta.RawSize > 0 && modelMeta.BlockNum.Sign() > 0 {
-			//	download(modelMeta.URI)
-			//}
-
-			//	return nil
-			//}
+			//todo
 		}
 		if vm.IsInputMeta(stateObject.Code(self.db)) {
-			//if inputMeta, err := types.ParseInputMeta(stateObject.Code(self.db)); err != nil {
-			//	return err
-			//} else {
-			//http://localhost:8500/bzz:/9cd2af7c70391f60b3849f864f5fbd29a0d398b12d14f43b60e26cc939dd547a
-			//if inputMeta.RawSize > 0 && inputMeta.BlockNum.Sign() > 0 {
-			//	download(inputMeta.URI)
-			//}
-
-			//	return nil
-			//}
+			//todo
 		}
 	}
 	return nil
@@ -289,9 +269,6 @@ func (self *StateDB) Download(addr common.Address) error {
 
 func download(uri string) {
 	//todo call p2p restful interface
-	if strings.HasPrefix(uri, "bzz") {
-		//go http.Get("http://localhost:8500/" + uri)
-	}
 }
 
 func (self *StateDB) GetCode(addr common.Address) []byte {
@@ -617,7 +594,7 @@ func (self *StateDB) createObject(addr common.Address) (newobj, prev *stateObjec
 //   1. sends funds to sha(account ++ (nonce + 1))
 //   2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
 //
-// Carrying over the balance ensures that Ether doesn't disappear.
+// Carrying over the balance ensures that Cortex doesn't disappear.
 func (self *StateDB) CreateAccount(addr common.Address) {
 	new, prev := self.createObject(addr)
 	if prev != nil {
@@ -674,7 +651,7 @@ func (self *StateDB) Copy() *StateDB {
 	}
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {
-		// As documented [here](https://github.com/ethereum/go-ethereum/pull/16485#issuecomment-380438527),
+		// As documented [here](https://github.com/CortexFoundation/CortexTheseus/pull/16485#issuecomment-380438527),
 		// and in the Finalise-method, there is a case where an object is in the journal but not
 		// in the stateObjects: OOG after touch on ripeMD prior to Byzantium. Thus, we need to check for
 		// nil

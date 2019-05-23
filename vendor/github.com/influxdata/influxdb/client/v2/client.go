@@ -179,7 +179,7 @@ type client struct {
 }
 
 // BatchPoints is an interface into a batched grouping of points to write into
-// InfluxDB together. BatchPoints is NOT thread-safe, you must create a separate
+// InfluxDB tocortexer. BatchPoints is NOT thread-safe, you must create a separate
 // batch for each goroutine.
 type BatchPoints interface {
 	// AddPoint adds the given point to the Batch of points.

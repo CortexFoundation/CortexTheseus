@@ -1,18 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2015 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
 package discover
 
@@ -23,13 +23,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p/nat"
-	"github.com/ethereum/go-ethereum/p2p/netutil"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
+	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
 // Errors
@@ -171,6 +172,9 @@ type udp struct {
 	closing chan struct{}
 	nat     nat.Interface
 
+	closeOnce sync.Once
+	wg        sync.WaitGroup
+
 	*Table
 }
 
@@ -260,16 +264,19 @@ func newUDP(c conn, cfg Config) (*Table, *udp, error) {
 		return nil, nil, err
 	}
 	udp.Table = tab
-
+	udp.wg.Add(2)
 	go udp.loop()
 	go udp.readLoop(cfg.Unhandled)
 	return udp.Table, udp, nil
 }
 
 func (t *udp) close() {
-	close(t.closing)
-	t.conn.Close()
-	// TODO: wait for the loops to end.
+	t.closeOnce.Do(func() {
+		close(t.closing)
+		t.conn.Close()
+		t.wg.Wait()
+		//t.Table.Close()
+	})
 }
 
 // ping sends a ping message to the given node and waits for a reply.
@@ -368,6 +375,7 @@ func (t *udp) handleReply(from NodeID, ptype byte, req packet) bool {
 // loop runs in its own goroutine. it keeps track of
 // the refresh timer and the pending reply queue.
 func (t *udp) loop() {
+	defer t.wg.Done()
 	var (
 		plist        = list.New()
 		timeout      = time.NewTimer(0)
@@ -529,7 +537,8 @@ func encodePacket(priv *ecdsa.PrivateKey, ptype byte, req interface{}) (packet, 
 
 // readLoop runs in its own goroutine. it handles incoming UDP packets.
 func (t *udp) readLoop(unhandled chan<- ReadPacket) {
-	defer t.conn.Close()
+	//defer t.conn.Close()
+	defer t.wg.Done()
 	if unhandled != nil {
 		defer close(unhandled)
 	}

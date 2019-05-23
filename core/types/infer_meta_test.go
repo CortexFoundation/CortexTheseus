@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	simplejson "github.com/bitly/go-simplejson"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 )
 
 var errorCode = []byte{0x0}

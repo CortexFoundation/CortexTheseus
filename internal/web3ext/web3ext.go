@@ -1,20 +1,20 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2015 The go-cortex Authors
+// This file is part of the go-cortex library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-cortex library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-cortex library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
 
-// package web3ext contains geth specific web3.js extensions.
+// package web3ext contains cortex specific web3.js extensions.
 package web3ext
 
 var Modules = map[string]string{
@@ -23,13 +23,12 @@ var Modules = map[string]string{
 	"clique":     Clique_JS,
 	"ethash":     Ethash_JS,
 	"debug":      Debug_JS,
-	"eth":        Eth_JS,
+	"ctxc":       Cortex_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
 	"personal":   Personal_JS,
 	"rpc":        RPC_JS,
 	"shh":        Shh_JS,
-	"swarmfs":    SWARMFS_JS,
 	"txpool":     TxPool_JS,
 }
 
@@ -429,43 +428,84 @@ web3._extend({
 });
 `
 
-const Eth_JS = `
+const Cortex_JS = `
 web3._extend({
-	property: 'eth',
+	property: 'ctxc',
 	methods: [
 		new web3._extend.Method({
 			name: 'sign',
-			call: 'eth_sign',
+			call: 'ctxc_sign',
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter, null]
 		}),
 		new web3._extend.Method({
 			name: 'resend',
-			call: 'eth_resend',
+			call: 'ctxc_resend',
 			params: 3,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter, web3._extend.utils.fromDecimal, web3._extend.utils.fromDecimal]
 		}),
 		new web3._extend.Method({
 			name: 'signTransaction',
-			call: 'eth_signTransaction',
+			call: 'ctxc_signTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+                        name: 'sendTransaction',
+                        call: 'ctxc_sendTransaction',
+                        params: 1,
+                        inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
+                }),
+		new web3._extend.Method({
+                        name: 'getUpload',
+                        call: 'ctxc_getUpload',
+                        params: 2,
+			inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter],
+        		outputFormatter: web3._extend.formatters.outputBigNumberFormatter
+                }),
+		new web3._extend.Method({
+                        name: 'getBalance',
+                        call: 'ctxc_getBalance',
+                        params: 2,
+                        inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter],
+                        outputFormatter: web3._extend.formatters.outputBigNumberFormatter
+                }),
+		new web3._extend.Method({
+                        name: 'getBlock',
+			call: function(args) {
+                                return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'ctxc_getBlockByHash' : 'ctxc_getBlockByNumber';
+                        },
+                        params: 2,
+                        inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, function (val) { return !!val; }],
+                        outputFormatter: web3._extend.formatters.outputBlockFormatter
+                }),
+		new web3._extend.Method({
+                        name: 'getTransaction',
+                        call: 'ctxc_getTransactionByHash',
+                        params: 1,
+                        inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
+                }),
+		new web3._extend.Method({
+                        name: 'getTransactionReceipt',
+                        call: 'ctxc_getTransactionReceipt',
+                        params: 1,
+                        inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
+                }),
+		new web3._extend.Method({
 			name: 'submitTransaction',
-			call: 'eth_submitTransaction',
+			call: 'ctxc_submitTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransaction',
-			call: 'eth_getRawTransactionByHash',
+			call: 'ctxc_getRawTransactionByHash',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransactionFromBlock',
 			call: function(args) {
-				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'eth_getRawTransactionByBlockHashAndIndex' : 'eth_getRawTransactionByBlockNumberAndIndex';
+				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'ctxc_getRawTransactionByBlockHashAndIndex' : 'ctxc_getRawTransactionByBlockNumberAndIndex';
 			},
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
@@ -474,7 +514,7 @@ web3._extend({
 	properties: [
 		new web3._extend.Property({
 			name: 'pendingTransactions',
-			getter: 'eth_pendingTransactions',
+			getter: 'ctxc_pendingTransactions',
 			outputFormatter: function(txs) {
 				var formatted = [];
 				for (var i = 0; i < txs.length; i++) {
@@ -484,6 +524,15 @@ web3._extend({
 				return formatted;
 			}
 		}),
+		new web3._extend.Property({
+                        name: 'coinbase',
+                        getter: 'ctxc_coinbase'
+                }),
+		new web3._extend.Property({
+                        name: 'blockNumber',
+                        getter: 'ctxc_blockNumber'
+			outputFormatter: web3._extend.utils.toDecimal
+                }),
 	]
 });
 `
@@ -503,8 +552,8 @@ web3._extend({
 			call: 'miner_stop'
 		}),
 		new web3._extend.Method({
-			name: 'setEtherbase',
-			call: 'miner_setEtherbase',
+			name: 'setCoinbase',
+			call: 'miner_setCoinbase',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
 		}),
@@ -620,30 +669,6 @@ web3._extend({
 		new web3._extend.Property({
 			name: 'info',
 			getter: 'shh_info'
-		}),
-	]
-});
-`
-
-const SWARMFS_JS = `
-web3._extend({
-	property: 'swarmfs',
-	methods:
-	[
-		new web3._extend.Method({
-			name: 'mount',
-			call: 'swarmfs_mount',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'unmount',
-			call: 'swarmfs_unmount',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'listmounts',
-			call: 'swarmfs_listmounts',
-			params: 0
 		}),
 	]
 });
