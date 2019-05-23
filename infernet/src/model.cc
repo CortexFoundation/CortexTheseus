@@ -182,7 +182,7 @@ void* CVMAPILoadModel(const char *graph_fname, const char *model_fname) {
   } catch (std::exception &e) {
     return NULL;
   }
-  CVMModel* model = new CVMModel(graph, DLContext{kDLGPU, 1});
+  CVMModel* model = new CVMModel(graph, DLContext{kDLGPU, 0});
   try {
     params = LoadFromBinary(string(model_fname));
   } catch (std::exception &e) {
