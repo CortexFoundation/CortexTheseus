@@ -1047,10 +1047,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::Conv2DParam>(attr->parsed);
     int groups = param.groups;
-	int dilation[2] = {param.dilation[0], param.dilation[1]};
-	int kernel_size[2] = {param.kernel_size[0], param.kernel_size[1]};
-	int padding[2] = {param.padding[0], param.padding[1]};
-	int strides[2] = {param.strides[0], param.strides[1]};
+	int dilation[2] = {static_cast<int>(param.dilation[0]), static_cast<int>(param.dilation[1])};
+	//int kernel_size[2] = {static_cast<int>(param.kernel_size[0]), static_cast<int>(param.kernel_size[1])};
+	int padding[2] = {static_cast<int>(param.padding[0]), static_cast<int>(param.padding[1])};
+	int strides[2] = {static_cast<int>(param.strides[0]), static_cast<int>(param.strides[1])};
 
     int stride_h = strides[0];
     int stride_w = strides[1];
@@ -1339,9 +1339,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max_pool2d")
             void *_attr = args[2];
             auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
             auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
-            int strides[2] = {param.strides[0], param.strides[1]};
-            int pool_size[2] = {param.pool_size[0], param.pool_size[1]};
-            int padding[2] = {param.padding[0], param.padding[1]};
+            int strides[2] = {static_cast<int>(param.strides[0]), static_cast<int>(param.strides[1])};
+            int pool_size[2] = {static_cast<int>(param.pool_size[0]), static_cast<int>(param.pool_size[1])};
+            int padding[2] = {static_cast<int>(param.padding[0]), static_cast<int>(param.padding[1])};
 
             int stride_h = strides[0];
             int stride_w = strides[1];
@@ -1365,7 +1365,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max_pool2d")
                     x_data, n_batch, in_channels, x_h, x_w,
                     filter_h, filter_w,
                     padding[0], padding[1],
-                    strides[0], strides[1],
+                    stride_h, stride_w,
                     y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
             VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
@@ -1380,8 +1380,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.sum")
 		DLTensor *y = args[1];
         void *_attr = args[2];
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-        auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
-		int axis[2] = {param.axis[0], param.axis[1]};
+        //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+		//int axis[2] = {param.axis[0], param.axis[1]};
 
 		int32_t *x_data = static_cast<int32_t*>(x->data);
 		int32_t *y_data = static_cast<int32_t*>(y->data);
