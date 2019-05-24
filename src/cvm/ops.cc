@@ -1009,6 +1009,159 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
         }
     }
 });
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    int num_args = args.num_args;
+    VERIFY(num_args == 3 || num_args == 4);
+    DLTensor *x = args[0];
+    DLTensor *axes = nullptr; //args[1];
+    DLTensor *y = nullptr; //args[2];
+    if(num_args == 2){
+        y = args[1];
+    }else{
+        axes = args[1];
+        y = args[2];
+    }
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+    int32_t *axes_data = axes == nullptr ? nullptr : static_cast<int32_t*>(axes->data);
+    int ndim = y->ndim;
+    for(uint64_t i = 0; i < getSize(y); i++){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0;
+        for(int j = ndim-1; j >= 0; j--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            int xj = j;//axes != nullptr ? axes[j] : j;
+            if(axes != nullptr){
+                xj = axes[j];
+            }else{
+                if(j == ndim-1) xj = 0;
+                if(j == 0) xj = ndim-1;
+            }
+            int xi = 1;
+            for(int tx = ndim-1; tx > xj; tx--){
+                xi *= x->shape[tx];
+            }
+            in_i += col * xi;
+        }
+        y_data[i] = x_data[in_i];
+    }
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_axis")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *x = args[0];
+    DLTensor *y = args[1];
+
+    int32_t axis;
+    int32_t begin;
+    int32_t end;
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    int ndim = y->ndim;
+    if(axis < 0) axis += ndim;
+    if(begin < 0) begin += x->shape[axis];
+    if(end < 0) end += x->shape[axis];
+
+    for(uint64_t i = 0; i < getSize(y); i++){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0;
+        for(int j = ndim-1; j >= 0; j--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            if (j == axis){
+                col += begin;
+            }
+            in_i += (j == ndim-1 ? col : col * shapeSize);
+            shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+        }
+        y_data[i] = x_data[in_i];
+    }
+});
+
+/**
+ * box_nms:
+ */
+#define FORMAT_CORNER 1
+#define FORMAT_CENTER 2
+uint32_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
+    uint32_t x1_min = format == FORMAT_CORNER ? rect1[0] : rect1[0] - rect1[2]/2;
+    uint32_t y1_min = format == FORMAT_CORNER ? rect1[1] : rect1[1] - rect1[3]/2;
+    uint32_t x1_max = format == FORMAT_CORNER ? rect1[2] : x1_min + rect1[2];
+    uint32_t y1_max = format == FORMAT_CORNER ? rect1[3] : y1_min + rect1[3];
+
+    uint32_t x2_min = format == FORMAT_CORNER ? rect2[0] : rect2[0] - rect2[2]/2;
+    uint32_t y2_min = format == FORMAT_CORNER ? rect2[1] : rect2[1] - rect2[3]/2;
+    uint32_t x2_max = format == FORMAT_CORNER ? rect2[2] : x2_min + rect2[2];
+    uint32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
+
+    uint64_t sum_area = (x1_max-x1_min) * (y1_max-y1_min) + (x2_max-x2_min) * (y2_max-y2_min);
+
+    if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
+    uint32_t w = min(x1_max, x2_max) - max(x1_min, x2_min);
+    uint32_t h = min(y1_max, y2_max) - max(y1_min, y2_min);
+    uint64_t overlap_area = h*w*100;
+    return static_cast<uint32_t>(overlap_area / (sum_area - overlap_area));
+}
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.box_nms")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *x = args[0];
+    DLTensor *y = args[1];
+    void* _attr = args[2];
+
+    int32_t overlap_thresh;
+    int32_t valid_thresh;
+    int32_t topk;
+    int32_t coord_start;
+    int32_t score_index;
+    int32_t id_index;
+    int32_t backgroud_id;
+    int32_t force_suppress;
+    int32_t in_format;
+    int32_t out_format;
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    int batch = 1;
+    for(int i = 0; i < x->ndim - 2; i++){
+        batch *= x->shape[i];
+    }
+    int n = x->shape[x->ndim-2];
+    int k = x->shape[x->ndim-1];
+
+    //sort by score
+    //qsort(x_data, n, k * sizeof(int32_t), descending_compare);
+    vector<int32_t*> rows(n);
+    for (int i = 0; i < n; i++) {
+        rows[i] = x_data + i * k;
+    }
+    sort(rows.begin(), rows.end(), [&score_index](const int32_t* a, const int32_t* b){
+        return a[score_index] > b[score_index];
+    });
+
+    vector<bool> removed(n, false);
+    int32_t y_index = 0;
+    size_t row_size = k * sizeof(int32_t) * k;
+    for(int i = 0; i < n; i++){
+        int32_t *row1 = rows[i];
+        if(row1[score_index] < valid_thresh) removed[i] = true;
+        if(removed[i] == false){
+            memcpy(y_data + y_index * row_size, row1, row_size);
+            ++y_index;
+        }
+        for(int j = i+1; j < n && !removed[i]; j++){
+            int32_t row2 = col[j];
+            if(iou(row1+coord_start, row2+coord_start, in_format) > overlap_thresh){
+                removed[j] = true;
+            }
+        }
+    }
+    memset(y_data + y_index * row_size, -1, (getSize(y) - y_index*k) * sizeof(int32_t));
+});
+
 /*********************************cuda op*********************************************/
 #ifdef CVM_RUNTIME_CUDA
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_add")
