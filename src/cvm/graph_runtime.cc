@@ -75,6 +75,7 @@ int64_t CvmRuntime::GetOps(const std::string& graph_json) {
   std::istringstream is(graph_json);
   utils::JSONReader reader(&is);
   this->Load(&reader);
+  this->CheckAttr();
   return this->GetOps();
 }
 void CvmRuntime::GetShape(int index, DLTensor* t) {
@@ -402,6 +403,7 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_BEGIN();
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
           *static_cast<int64_t*>(placeholder) = this->GetOps();
         } else {
           *rv = -1;
