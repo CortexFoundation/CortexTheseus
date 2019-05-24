@@ -18,6 +18,7 @@
 
 #include "cuda_ops.h"
 #include "omp.h"
+#include <immintrin.h>
 
 
 namespace cvm {
@@ -161,7 +162,7 @@ bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias
 
     int blocks = K / 64 * 64;
     for(int i = 0; i < M; i++){
-        int32_t bV = bias[i];
+        int32_t bV = bias != NULL ? bias[i] : 0;
         for(int j = 0; j < N; j++){
             __m256i vc = _mm256_setzero_si256();
             int k = 0;
@@ -197,11 +198,12 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
             }
         }
     }
-    if (bias != NULL)
-    for(int i = 0; i < M; i++){
-        register int32_t biasV = bias[i];
-        for(int j = 0; j < N; j++){
-            c[i*N+j] += biasV;
+    if(bias != NULL){
+        for(int i = 0; i < M; i++){
+            register int32_t biasV = bias[i];
+            for(int j = 0; j < N; j++){
+                c[i*N+j] += biasV;
+            }
         }
     }
 }
@@ -298,11 +300,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d").set_body([]
     VERIFY(x->ndim == 4);
     DLTensor *w = args[1];
     VERIFY(w->ndim == 4);
-    int dlIndex = 2;
 	DLTensor *b = nullptr; //args[2];
-    DLTensor *y = nullptr; 
+    DLTensor *y = nullptr;
     void *_attr;
- 
+
     if(args.num_args == 5){
       b = args[2];
       y = args[3];
@@ -691,7 +692,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_clip")
          DLTensor *y = args[1];
          int32_t *x_data = static_cast<int32_t*>(x->data);
          int32_t *y_data = static_cast<int32_t*>(y->data);
-         
+
          void *_attr = args[2];
          auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
          auto &param = cvm::get<cvm::top::CVMClipParam>(attr->parsed);
@@ -716,7 +717,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_right_shift")
         VERIFY(args.num_args == 3);
         DLTensor *a = args[0];
         DLTensor *c = args[1];
-         
+
         void *_attr = args[2];
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
         auto &param = cvm::get<cvm::top::CVMRightShiftParam>(attr->parsed);
@@ -850,7 +851,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_max")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.concatenate")
 .set_body([](CVMArgs args, CVMRetValue *ret){
         int len = args.num_args;
-        VERIFY(len >= 3);
+        VERIFY(len >= 4);
         DLTensor *input0 = args[0];
         void *_attr = args[--len];
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
@@ -910,7 +911,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
             int col = o_i % y->shape[j];
             o_i /= y->shape[j];
             int tmpcol = col;
-            if(j == axis) tmpcol = col / repeat;
+            if(j == axis) tmpcol = col % x->shape[axis];
             in_i += (j == ndim-1 ? tmpcol : tmpcol * shapeSize);
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
@@ -950,11 +951,222 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
        y_data[i] = x_data[in_i];
    }
 });
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *x = args[0];
+    DLTensor *repos = args[1];
+    DLTensor *y = args[2];
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *repos_data = static_cast<int32_t*>(repos->data);
+    int32_t *y_data = static_cast<int32_t*>(y_data);
+
+    int32_t yndim = y->ndim;
+    int32_t rndim = repos->ndim;
+    int32_t xndim = x->ndim;
+    uint64_t tmp_y_size = 1;
+    for(int i = 0; i < xndim; i++){
+        tmp_y_size *= y->shape[i + yndim - xndim];
+    }
+
+    for(uint64_t i = 0; i < tmp_y_size; i++){
+       uint64_t o_i = i, in_i = 0, shapeSize = 0;
+       for(int j = xndim-1; j >= 0; j--){
+            int yj = j + yndim - xndim;
+            int col = o_i % y->shape[yj];
+            o_i /= y->shape[yj];
+            col = col % x->shape[j];
+            in_i += (j == xndim-1 ? col : col * shapeSize);
+            shapeSize = (j == xndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+       }
+       y_data[i] = x_data[in_i];
+    }
+
+    uint64_t othery = 1;
+    for(int i = 0; i < yndim-xndim; i++){
+        othery *= y->shape[i];
+    }
+    for(int i = 1; i < othery; i++){
+        memcpy(y_data + i*tmp_y_size, y_data, tmp_y_size * sizeof(int32_t));
+    }
+});
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *ishape = args[0];
+    int32_t axis = static_cast<int32_t>(args[1]);
+    DLTensor *oshape = args[2];
+    int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
+    int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
+
+    for(uint64_t i = 0; i < getSize(oshape); i++){
+        if(i < axis){
+            oshape_data[i] = ishape_data[i];
+        }else if(i == axis){
+            oshape_data[i] = 1;
+        }else{
+            oshape_data[i] = ishape_data[i-1];
+        }
+    }
+});
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    int num_args = args.num_args;
+    VERIFY(num_args == 3 || num_args == 4);
+    DLTensor *x = args[0];
+    DLTensor *axes = nullptr; //args[1];
+    DLTensor *y = nullptr; //args[2];
+    if(num_args == 2){
+        y = args[1];
+    }else{
+        axes = args[1];
+        y = args[2];
+    }
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+    int32_t *axes_data = axes == nullptr ? nullptr : static_cast<int32_t*>(axes->data);
+    int ndim = y->ndim;
+    for(uint64_t i = 0; i < getSize(y); i++){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0;
+        for(int j = ndim-1; j >= 0; j--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            int xj = j;//axes != nullptr ? axes[j] : j;
+            if(axes != nullptr){
+                xj = axes[j];
+            }else{
+                if(j == ndim-1) xj = 0;
+                if(j == 0) xj = ndim-1;
+            }
+            int xi = 1;
+            for(int tx = ndim-1; tx > xj; tx--){
+                xi *= x->shape[tx];
+            }
+            in_i += col * xi;
+        }
+        y_data[i] = x_data[in_i];
+    }
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_axis")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *x = args[0];
+    DLTensor *y = args[1];
+
+    int32_t axis;
+    int32_t begin;
+    int32_t end;
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    int ndim = y->ndim;
+    if(axis < 0) axis += ndim;
+    if(begin < 0) begin += x->shape[axis];
+    if(end < 0) end += x->shape[axis];
+
+    for(uint64_t i = 0; i < getSize(y); i++){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0;
+        for(int j = ndim-1; j >= 0; j--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            if (j == axis){
+                col += begin;
+            }
+            in_i += (j == ndim-1 ? col : col * shapeSize);
+            shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+        }
+        y_data[i] = x_data[in_i];
+    }
+});
+
+/**
+ * box_nms:
+ */
+#define FORMAT_CORNER 1
+#define FORMAT_CENTER 2
+uint32_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
+    uint32_t x1_min = format == FORMAT_CORNER ? rect1[0] : rect1[0] - rect1[2]/2;
+    uint32_t y1_min = format == FORMAT_CORNER ? rect1[1] : rect1[1] - rect1[3]/2;
+    uint32_t x1_max = format == FORMAT_CORNER ? rect1[2] : x1_min + rect1[2];
+    uint32_t y1_max = format == FORMAT_CORNER ? rect1[3] : y1_min + rect1[3];
+
+    uint32_t x2_min = format == FORMAT_CORNER ? rect2[0] : rect2[0] - rect2[2]/2;
+    uint32_t y2_min = format == FORMAT_CORNER ? rect2[1] : rect2[1] - rect2[3]/2;
+    uint32_t x2_max = format == FORMAT_CORNER ? rect2[2] : x2_min + rect2[2];
+    uint32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
+
+    uint64_t sum_area = (x1_max-x1_min) * (y1_max-y1_min) + (x2_max-x2_min) * (y2_max-y2_min);
+
+    if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
+    uint32_t w = min(x1_max, x2_max) - max(x1_min, x2_min);
+    uint32_t h = min(y1_max, y2_max) - max(y1_min, y2_min);
+    uint64_t overlap_area = h*w*100;
+    return static_cast<uint32_t>(overlap_area / (sum_area - overlap_area));
+}
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.box_nms")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *x = args[0];
+    DLTensor *y = args[1];
+    void* _attr = args[2];
+
+    int32_t overlap_thresh;
+    int32_t valid_thresh;
+    int32_t topk;
+    int32_t coord_start;
+    int32_t score_index;
+    int32_t id_index;
+    int32_t backgroud_id;
+    int32_t force_suppress;
+    int32_t in_format;
+    int32_t out_format;
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    int batch = 1;
+    for(int i = 0; i < x->ndim - 2; i++){
+        batch *= x->shape[i];
+    }
+    int n = x->shape[x->ndim-2];
+    int k = x->shape[x->ndim-1];
+
+    //sort by score
+    //qsort(x_data, n, k * sizeof(int32_t), descending_compare);
+    vector<int32_t*> rows(n);
+    for (int i = 0; i < n; i++) {
+        rows[i] = x_data + i * k;
+    }
+    sort(rows.begin(), rows.end(), [&score_index](const int32_t* a, const int32_t* b){
+        return a[score_index] > b[score_index];
+    });
+
+    vector<bool> removed(n, false);
+    int32_t y_index = 0;
+    size_t row_size = k * sizeof(int32_t) * k;
+    for(int i = 0; i < n; i++){
+        int32_t *row1 = rows[i];
+        if(row1[score_index] < valid_thresh) removed[i] = true;
+        if(removed[i] == false){
+            memcpy(y_data + y_index * row_size, row1, row_size);
+            ++y_index;
+        }
+        for(int j = i+1; j < n && !removed[i]; j++){
+            int32_t row2 = col[j];
+            if(iou(row1+coord_start, row2+coord_start, in_format) > overlap_thresh){
+                removed[j] = true;
+            }
+        }
+    }
+    memset(y_data + y_index * row_size, -1, (getSize(y) - y_index*k) * sizeof(int32_t));
+});
+
 /*********************************cuda op*********************************************/
 #ifdef CVM_RUNTIME_CUDA
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_add")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-    VERIFY(args.num_args == 3);
+    VERIFY(args.num_args == 4);
     DLTensor *a = args[0];
     DLTensor *b = args[1];
     DLTensor *c = args[2];
@@ -968,34 +1180,35 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_add")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
 .set_body([](CVMArgs args, CVMRetValue* rv){
-    VERIFY(args.num_args == 13 || args.num_args == 12);
+    VERIFY(args.num_args == 5 || args.num_args == 4);
     DLTensor *x = args[0];
+    VERIFY(x->ndim == 4);
     DLTensor *w = args[1];
-    int dlIndex = 2;
+    VERIFY(w->ndim == 4);
 	DLTensor *b = nullptr;
-    if(args.num_args == 13){
-        b = args[dlIndex++];
+    DLTensor *y = nullptr;
+    void *_attr;
+
+    if(args.num_args == 5){
+      b = args[2];
+      y = args[3];
+      _attr = args[4];
+    } else {
+      y = args[2];
+      _attr = args[3];
     }
-    DLTensor *y = args[dlIndex++];
-	std::string groups_str = args[dlIndex++];
-	std::string dilation_str = args[dlIndex++];
-	std::string channels_str = args[dlIndex++];
-	std::string layout_str = args[dlIndex++];
-	std::string kernel_layout_str = args[dlIndex++];
-	std::string kernel_size_str = args[dlIndex++];
-	std::string padding_str = args[dlIndex++];
-	std::string use_bias_str = args[dlIndex++];
-	std::string strides_str = args[dlIndex++];
-	int groups = std::atoi(groups_str.c_str());
-	int dilation[2] = {0};
-	parseToIntPair(dilation_str, dilation);
-	//int channels = std::atoi(channels_str.c_str());
-	int kernel_size[2] = {0};
-	parseToIntPair(kernel_size_str, kernel_size);
-	int padding[2] = {0};
-	parseToIntPair(padding_str, padding);
-	int strides[2] = {0};
-	parseToIntPair(strides_str, strides);
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::Conv2DParam>(attr->parsed);
+    int groups = param.groups;
+	int dilation[2] = {static_cast<int>(param.dilation[0]), static_cast<int>(param.dilation[1])};
+	//int kernel_size[2] = {static_cast<int>(param.kernel_size[0]), static_cast<int>(param.kernel_size[1])};
+	int padding[2] = {static_cast<int>(param.padding[0]), static_cast<int>(param.padding[1])};
+	int strides[2] = {static_cast<int>(param.strides[0]), static_cast<int>(param.strides[1])};
+
+    int stride_h = strides[0];
+    int stride_w = strides[1];
+    int dilation_h = dilation[0];
+    int dilation_w = dilation[1];
 
     int32_t* x_data = (int32_t*)x->data;
     int32_t* w_data = (int32_t*)w->data;
@@ -1003,19 +1216,23 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
 	int32_t* b_data = b != nullptr ? (int32_t*)b->data : nullptr;
 
     int out_channels = static_cast<int>(w->shape[0]);
+    int filter_c = static_cast<int>(w->shape[1]);
     int filter_h = static_cast<int>(w->shape[2]);
     int filter_w = static_cast<int>(w->shape[3]);
-  filter_h = (filter_h - 1) * dilation[0] + 1;
-  filter_w = (filter_w - 1) * dilation[1] + 1;
+    filter_h = (filter_h - 1) * dilation[0] + 1;
+    filter_w = (filter_w - 1) * dilation[1] + 1;
 
     int n_batch = static_cast<int>(x->shape[0]);
     int in_channels = static_cast<int>(x->shape[1]);
     int x_h = static_cast<int>(x->shape[2]);
     int x_w = static_cast<int>(x->shape[3]);
-  int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
-  int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
-//  int o_h = static_cast<int>(y->shape[2]);
-//  int o_w = static_cast<int>(y->shape[3]);
+	int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
+	int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
+    if(n_batch < 1 || in_channels < 1 || x_h < 1 || x_w < 1 || filter_c < 1 || filter_h < 1 || filter_w < 1 ||
+            padding[0] < 0 || padding[1] < 0 || stride_h < 1 || stride_w < 1 || dilation_h < 1 || dilation_w < 1 ||
+             out_channels < 1 || o_h < 1 || o_w < 1){
+        VERIFY(false) << "error args";
+    }
 
     if(groups == 1){
         const char* errorStr = cuda_conv2d(
@@ -1043,67 +1260,29 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
     }
  });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cuda_max_pool2d")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-    VERIFY(args.num_args == 6);
-	DLTensor *x = args[0];
-	DLTensor *y = args[1];
-	std::string strides_str = args[2];
-	std::string pool_size_str = args[3];
-	std::string ceil_mode = args[4];
-	std::string padding_str = args[5];
-	int strides[2] = {0};
-	parseToIntPair(strides_str, strides);
-	int pool_size[2] = {0};
-	parseToIntPair(pool_size_str, pool_size);
-	int padding[2] = {0};
-	parseToIntPair(padding_str, padding);
-
-    int32_t* x_data = (int32_t*)x->data;
-    int32_t* y_data = (int32_t*)y->data;
-
-    int filter_h = pool_size[0];
-    int filter_w = pool_size[1];
-
-    int n_batch = static_cast<int>(x->shape[0]);
-    int in_channels = static_cast<int>(x->shape[1]);
-  int out_channels = in_channels;
-    int x_h = static_cast<int>(x->shape[2]);
-    int x_w = static_cast<int>(x->shape[3]);
-//  int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
-//  int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
-  int o_h = static_cast<int>(y->shape[2]);
-  int o_w = static_cast<int>(y->shape[3]);
-
-    const char* errorStr = cuda_max_pool(
-            x_data, n_batch, in_channels, x_h, x_w,
-            filter_h, filter_w,
-            padding[0], padding[1],
-            strides[0], strides[1],
-            y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
-    VERIFY_EQ(errorStr == NULL, true) << errorStr;
-    });
-
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.dense")
 .set_body([](CVMArgs args, CVMRetValue* rv) {
-        VERIFY(args.num_args == 6 || args.num_args == 5);
         int ndim = args.num_args;
+        VERIFY(ndim == 5 || ndim == 4);
         DLTensor *x = args[0];
         DLTensor *w = args[1];
         DLTensor *b = nullptr;
         DLTensor *y = nullptr;
         int32_t* db = nullptr;
-        if(ndim == 6){
-            b = args[2];
-            y = args[3];
-            db = static_cast<int32_t*>(b->data);
-        }else{
-            y = args[2];
+        if(ndim == 5){
+        b = args[2];
+        VERIFY(b->ndim == 1) << "dense requires 1-D bias";
+        y = args[3];
+        db = static_cast<int32_t*>(b->data);
+        } else{
+        y = args[2];
         }
+        VERIFY(x->ndim == 2) << "dense requires 2-D data";
+        VERIFY(w->ndim == 2) << "dense reuqires 2-D weight";
+
         auto dx = static_cast<int32_t*>(x->data);
         auto dy = static_cast<int32_t*>(y->data);
         auto dw = static_cast<int32_t*>(w->data);
-
         const char* errorStr = cuda_dense(
                 dx, dw, dy,
                 static_cast<int32_t>(x->shape[0]),
@@ -1115,13 +1294,14 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.dense")
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.clip").set_body([](CVMArgs args, CVMRetValue* rv) {
-   VERIFY(args.num_args == 4);
+   VERIFY(args.num_args == 3);
    DLTensor *x = args[0];
    DLTensor *y = args[1];
-   std::string min_str = args[2];
-   std::string max_str = args[3];
-   int min = std::atoi(min_str.c_str());
-   int max = std::atoi(max_str.c_str());
+   void *_attr = args[2];
+   auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+   auto& param = cvm::get<cvm::top::ClipParam>(attr->parsed);
+   int max = param.a_max;
+   int min = param.a_min;
 
    const char *errorStr = cuda_clip(
            static_cast<int32_t*>(x->data),
@@ -1132,7 +1312,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.clip").set_body([](CVMArgs args, CVMRe
  });
 
  CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.relu").set_body([](CVMArgs args, CVMRetValue* rv) {
-   VERIFY(args.num_args == 2);
+   VERIFY(args.num_args == 3);
    DLTensor *x = args[0];
    DLTensor *y = args[1];
    const char* errorStr = cuda_relu(
@@ -1144,7 +1324,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.clip").set_body([](CVMArgs args, CVMRe
  });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.flatten").set_body([]
 (CVMArgs args, CVMRetValue* rv){
-     VERIFY(args.num_args == 2);
+     VERIFY(args.num_args == 3);
      DLTensor *x = args[0];
      DLTensor *y = args[1];
 
@@ -1157,7 +1337,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.flatten").set_body([]
 });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_add")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
+        VERIFY(args.num_args == 4);
         DLTensor *args0 = args[0];
         DLTensor *args1 = args[1];
         DLTensor *args2 = args[2];
@@ -1181,7 +1361,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_add")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_sub")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
+        VERIFY(args.num_args == 4);
         DLTensor *args0 = args[0];
         DLTensor *args1 = args[1];
         DLTensor *args2 = args[2];
@@ -1205,7 +1385,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_sub")
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_mul")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
+        VERIFY(args.num_args == 4);
         DLTensor *args0 = args[0];
         DLTensor *args1 = args[1];
         DLTensor *args2 = args[2];
@@ -1229,7 +1409,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_mul")
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
+        VERIFY(args.num_args == 4);
         DLTensor *args0 = args[0];
         DLTensor *args1 = args[1];
         DLTensor *args2 = args[2];
@@ -1253,7 +1433,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_right_shift")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
+        VERIFY(args.num_args == 4);
         DLTensor *args0 = args[0];
         DLTensor *args1 = args[1];
         DLTensor *args2 = args[2];
@@ -1276,7 +1456,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_right_shift")
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_left_shift")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
+        VERIFY(args.num_args == 4);
         DLTensor *args0 = args[0];
         DLTensor *args1 = args[1];
         DLTensor *args2 = args[2];
@@ -1306,19 +1486,18 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_left_shift")
 */
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max_pool2d")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-            VERIFY(args.num_args == 6);
+            VERIFY(args.num_args == 3);
             DLTensor *x = args[0];
             DLTensor *y = args[1];
-            std::string strides_str = args[2];
-            std::string pool_size_str = args[3];
-            std::string ceil_mode = args[4];
-            std::string padding_str = args[5];
-            int strides[2] = {0};
-            parseToIntPair(strides_str, strides);
-            int pool_size[2] = {0};
-            parseToIntPair(pool_size_str, pool_size);
-            int padding[2] = {0};
-            parseToIntPair(padding_str, padding);
+            void *_attr = args[2];
+            auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+            auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
+            int strides[2] = {static_cast<int>(param.strides[0]), static_cast<int>(param.strides[1])};
+            int pool_size[2] = {static_cast<int>(param.pool_size[0]), static_cast<int>(param.pool_size[1])};
+            int padding[2] = {static_cast<int>(param.padding[0]), static_cast<int>(param.padding[1])};
+
+            int stride_h = strides[0];
+            int stride_w = strides[1];
 
             int32_t* x_data = (int32_t*)x->data;
             int32_t* y_data = (int32_t*)y->data;
@@ -1331,15 +1510,15 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max_pool2d")
             int out_channels = in_channels;
             int x_h = static_cast<int>(x->shape[2]);
             int x_w = static_cast<int>(x->shape[3]);
-            //	int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
-            //	int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
+            //  int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
+            //  int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
             int o_h = static_cast<int>(y->shape[2]);
             int o_w = static_cast<int>(y->shape[3]);
             const char* errorStr = cuda_max_pool(
                     x_data, n_batch, in_channels, x_h, x_w,
                     filter_h, filter_w,
                     padding[0], padding[1],
-                    strides[0], strides[1],
+                    stride_h, stride_w,
                     y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
             VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
@@ -1352,9 +1531,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.sum")
         VERIFY(args.num_args == 3);
 		DLTensor *x = args[0];
 		DLTensor *y = args[1];
-		std::string axis_str = args[2];
-		int axis[2] = {0};
-		parseToIntPair(axis_str, axis);
+        void *_attr = args[2];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+		//int axis[2] = {param.axis[0], param.axis[1]};
 
 		int32_t *x_data = static_cast<int32_t*>(x->data);
 		int32_t *y_data = static_cast<int32_t*>(y->data);
@@ -1371,7 +1551,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.reshape")
         VERIFY(args.num_args == 3);
          DLTensor *x = args[0];
 		 DLTensor *y = args[1];
-         std::string newshape = args[2];
+//         std::string newshape = args[2];
          const char* errorStr = cuda_reshape(
                  static_cast<int32_t*>(x->data),
                  static_cast<int32_t*>(y->data),
@@ -1388,11 +1568,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_clip")
     .set_body([](CVMArgs args, CVMRetValue *ret){
         VERIFY(args.num_args == 3);
          DLTensor *x = args[0];
-     DLTensor *y = args[1];
+         DLTensor *y = args[1];
          int32_t *x_data = static_cast<int32_t*>(x->data);
          int32_t *y_data = static_cast<int32_t*>(y->data);
-         std::string str_precision = args[2];
-         int32_t precision = std::atoi(str_precision.c_str());
+         void *_attr = args[2];
+         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+         auto &param = cvm::get<cvm::top::CVMClipParam>(attr->parsed);
+	     int32_t precision = param.precision;
          VERIFY(precision > 0) << "precision must greater zero";
          const char* errorStr = cuda_cvm_clip(
                  x_data,
@@ -1411,13 +1593,14 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_clip")
  * */
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_right_shift")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
+        VERIFY(args.num_args == 3);
         DLTensor *a = args[0];
         DLTensor *c = args[1];
-        std::string str_precision = args[2];
-        std::string str_b = args[3];
-        int32_t precision = std::atoi(str_precision.c_str());
-        int32_t b = std::atoi(str_b.c_str());
+        void *_attr = args[2];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        auto &param = cvm::get<cvm::top::CVMRightShiftParam>(attr->parsed);
+        int32_t precision = param.precision;
+        int32_t b = param.shift_bit;
         int32_t* a_data = static_cast<int32_t*>(a->data);
         int32_t* c_data = static_cast<int32_t*>(c->data);
         VERIFY_GT(precision, 0) << "precision must greater zero";
@@ -1433,13 +1616,14 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_right_shift")
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_left_shift")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
+        VERIFY(args.num_args == 3);
         DLTensor *a = args[0];
         DLTensor *c = args[1];
-        std::string str_precision = args[2];
-        std::string str_b = args[3];
-        int32_t precision = std::atoi(str_precision.c_str());
-        int32_t b = std::atoi(str_b.c_str());
+        void *_attr = args[2];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        auto &param = cvm::get<cvm::top::CVMLeftShiftParam>(attr->parsed);
+        int32_t precision = param.precision;
+        int32_t b = param.shift_bit;std::string str_precision = args[2];
         int32_t* a_data = static_cast<int32_t*>(a->data);
         int32_t* c_data = static_cast<int32_t*>(c->data);
         VERIFY_GT(precision, 0) << "precision must greater zero";
@@ -1465,7 +1649,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.log2")
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.abs")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 2);
+        VERIFY(args.num_args == 3);
         DLTensor *dlx = args[0];
         DLTensor *y = args[1];
         int32_t *y_data = static_cast<int32_t*>(y->data);
@@ -1476,7 +1660,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.abs")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 2);
+        VERIFY(args.num_args == 3);
         DLTensor *dlx = args[0];
         DLTensor *y = args[1];
         int32_t *y_data = static_cast<int32_t*>(y->data);
@@ -1487,7 +1671,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_max")
     .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
+        VERIFY(args.num_args == 4);
         DLTensor *a = args[0];
         DLTensor *b = args[1];
         DLTensor *c = args[2];
@@ -1511,11 +1695,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_max")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.concatenate")
 .set_body([](CVMArgs args, CVMRetValue *ret){
         int len = args.num_args;
-        VERIFY(len >= 3);
+        VERIFY(len >= 4);
         DLTensor *input0 = args[0];
-        std::string str_axis = args[--len];
+        void *_attr = args[--len];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        auto &param = cvm::get<cvm::top::ConcatenateParam>(attr->parsed);
         DLTensor *output = args[--len];
-        int32_t axis = std::atoi(str_axis.c_str());
+        int32_t axis = param.axis;
         int32_t ndim = static_cast<int32_t>(input0->ndim);
         VERIFY(-ndim <= axis && axis < ndim);
         if(axis < 0) axis += ndim;
