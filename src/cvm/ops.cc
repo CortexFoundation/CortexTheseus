@@ -1009,6 +1009,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
         }
     }
 });
+
+/*
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     int num_args = args.num_args;
@@ -1080,10 +1082,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_axis")
         y_data[i] = x_data[in_i];
     }
 });
-
+*/
 /**
  * box_nms:
  */
+
+/*
 #define FORMAT_CORNER 1
 #define FORMAT_CENTER 2
 uint32_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
@@ -1161,7 +1165,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.box_nms")
     }
     memset(y_data + y_index * row_size, -1, (getSize(y) - y_index*k) * sizeof(int32_t));
 });
-
+*/ 
 /*********************************cuda op*********************************************/
 #ifdef CVM_RUNTIME_CUDA
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_add")
@@ -1639,7 +1643,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_left_shift")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.log2")
     .set_body([](CVMArgs args, CVMRetValue *ret){
 //        std::string x_str = args[0];
-        VERIFY(args.num_args == 2);
+        VERIFY(args.num_args == 3);
         DLTensor *dlx = args[0];
         DLTensor *y = args[1];
         int32_t *y_data = static_cast<int32_t*>(y->data);
