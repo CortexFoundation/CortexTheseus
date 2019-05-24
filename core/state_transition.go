@@ -372,7 +372,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.evm.BlockNumber)
-			log.Info("Upload OK", "address", st.to().Hex())
+			log.Info("Upload OK", "address", st.to().Hex(), "waiting", params.MatureBlks)
+			//todo vote for model
 		}
 	}
 

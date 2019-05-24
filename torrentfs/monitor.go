@@ -211,13 +211,22 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	info.TxHash = tx.Hash
 
 	remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+
 	info.LeftSize = remainingSize
 	info.ContractAddr = receipt.ContractAddr
 	m.fs.AddFile(info)
-	var bytesRequested uint64
+	bytesRequested := uint64(0)
 	if meta.RawSize > remainingSize {
+
+		if remainingSize > params.PER_UPLOAD_BYTES {
+			remainingSize = remainingSize - params.PER_UPLOAD_BYTES
+		} else {
+			remainingSize = uint64(0)
+		}
+
 		bytesRequested = meta.RawSize - remainingSize
 	}
+
 	m.dl.UpdateTorrent(FlowControlMeta{
 		InfoHash:       *meta.InfoHash(),
 		BytesRequested: bytesRequested,
@@ -274,16 +283,15 @@ func (m *Monitor) Stop() {
 	atomic.StoreInt32(&(m.terminated), 1)
 	m.closeOnce.Do(func() {
 		close(m.exitCh)
+		if err := m.fs.Close(); err != nil {
+			log.Error("Monitor File Storage closed", "error", err)
+		}
+		if err := m.dl.Close(); err != nil {
+			log.Error("Monitor Torrent Manager closed", "error", err)
+		}
 		log.Info("Torrent fs listener synchronizing close")
 		m.wg.Wait()
 	})
-
-	if err := m.fs.Close(); err != nil {
-		log.Error("Monitor File Storage closed", "error", err)
-	}
-	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Torrent Manager closed", "error", err)
-	}
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
@@ -424,8 +432,6 @@ func (m *Monitor) listenLatestBlock() {
 	for {
 		select {
 		case <-timer.C:
-			//go blockFilter()
-			//go m.syncLastBlock()
 			m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
 			timer.Reset(time.Millisecond * 1000)
@@ -436,14 +442,11 @@ func (m *Monitor) listenLatestBlock() {
 	}
 }
 
-//var lastBlock uint64 = m.fs.LastListenBlockNumber
-
 const (
 	batch = 2048
 )
 
 func (m *Monitor) syncLastBlock() {
-	//log.Info("Torrent sync latest block", "latest", m.lastNumber)
 	// Latest block number
 	var currentNumber hexutil.Uint64
 
@@ -494,23 +497,7 @@ func (m *Monitor) syncLastBlock() {
 
 		block := m.fs.GetBlockByNumber(i)
 		if block == nil {
-			//rpcBlock, rpcErr := m.rpcBlockByNumber(i)
-			//if rpcErr != nil {
-			//	log.Error("Sync old block", "number", i, "error", rpcErr)
-			//	return
-			//}
-
 			block = rpcBlock
-
-			/*if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil {
-				log.Error("Parse new block", "number", i, "block", block, "error", parseErr)
-				return
-			}
-
-			if storeErr := m.fs.WriteBlock(block); storeErr != nil {
-				log.Error("Store latest block", "number", i, "error", storeErr)
-				return
-			}*/
 
 			if err := m.parseAndStore(block, true); err != nil {
 				log.Error("Fail to parse and storge latest block", "number", i, "error", err)
@@ -532,11 +519,6 @@ func (m *Monitor) syncLastBlock() {
 				}
 			}
 		}
-
-		//if (i-minNumber)%fetchBlockLogStep == 0 || i == maxNumber {
-		//	log.Debug("Blocks have been checked", "from", lastBlock, "to", i)
-		//	lastBlock = i + uint64(1)
-		//}
 	}
 	m.lastNumber = maxNumber
 	log.Debug("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
