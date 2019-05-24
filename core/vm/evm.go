@@ -593,7 +593,7 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", evm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
-	modelErrCh := make(chan error)
+	/*modelErrCh := make(chan error)
 	go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
 
 	select {
@@ -601,7 +601,7 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		if err != nil {
 			return 0, err
 		}
-	}
+	}*/
 
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
