@@ -36,7 +36,7 @@ func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
 	return net, nil
 }
 
-func GetModelOps(net unsafe.Pointer) (int64, error) {
+func GetModelOpsFromModel(net unsafe.Pointer) (int64, error) {
 	ret := int64(C.CVMAPIGetGasFromModel(net))
 	if ret < 0 {
 		return 0, errors.New("Gas Error")
@@ -45,12 +45,12 @@ func GetModelOps(net unsafe.Pointer) (int64, error) {
 	}
 }
 
-func GetModelOpsFromFile(filepath string) (int64, error) {
+func GetModelOps(filepath string) (uint64, error) {
 	ret := int64(C.CVMAPIGetGasFromGraphFile(C.CString(filepath)))
 	if ret < 0 {
 		return 0, errors.New("Gas Error")
 	} else {
-		return ret, nil
+		return uint64(ret), nil
 	}
 }
 
@@ -84,11 +84,11 @@ func Predict(net unsafe.Pointer, imageData []byte) ([]byte, error) {
 
 func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err error) {
 	net, loadErr := LoadModel(modelCfg, modelBin)
+	defer FreeModel(net)
 	if loadErr != nil {
 		return nil, errors.New("Model load error")
 	}
-	// gas, _ := GetModelOps(net)
-	defer FreeModel(net)
+	
 	ret, err = Predict(net, imageData)
 	return ret, err
 }

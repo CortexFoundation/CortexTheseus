@@ -24,6 +24,7 @@ build/_vendor/pkg
 .settings
 
 # infernet
+/infernet/build/*
 /infernet/build/CMakeCache.txt
 /infernet/build/Makefile
 /infernet/build/cmake_install.cmake

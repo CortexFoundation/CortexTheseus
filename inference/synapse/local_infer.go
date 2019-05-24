@@ -32,6 +32,42 @@ func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, 
 	}
 }
 
+func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+	var (
+	modelHash = strings.ToLower(modelInfoHash[2:])
+	modelDir  = s.config.StorageDir + "/" + modelHash
+
+	// Model Path Check
+	modelCfg = modelDir + "/data/symbol"
+	modelBin = modelDir + "/data/params"
+	)
+	// Inference Cache
+	cacheKey := RLPHashString("estimate_ops" + modelHash)
+	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+		log.Debug("Infer Success via Cache", "result", v.(uint64))
+		return v.(uint64), nil
+	}
+	
+	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
+		return 0, ErrModelFileNotExist
+	}
+	
+	if _, binErr := os.Stat(modelBin); os.IsNotExist(binErr) {
+		return 0, ErrModelFileNotExist
+	}
+
+	gas, err = kernel.GetModelOps(modelCfg)
+	if err != nil {
+		return 0, err
+	}
+
+	if !s.config.IsNotCache {
+		s.simpleCache.Store(cacheKey, gas)
+	}
+	return gas, err
+}
+
+
 func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh chan []byte, errCh chan error) {
 	var (
 		modelHash = strings.ToLower(modelInfoHash[2:])
