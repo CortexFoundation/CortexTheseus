@@ -21,7 +21,7 @@ import (
 	"unsafe"
 //	"strings"
 //	"strconv"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
