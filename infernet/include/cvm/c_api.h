@@ -28,7 +28,7 @@ typedef unsigned int nn_uint;
 extern "C" {
 #endif
 
-void* CVMAPILoadModel(const char *graph_fname, const char *model_fname);
+void* CVMAPILoadModel(const char *graph_fname, const char *model_fname, int device_type, int device_id);
 
 void CVMAPIFreeModel(void* model);
 

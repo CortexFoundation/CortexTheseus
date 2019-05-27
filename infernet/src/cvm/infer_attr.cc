@@ -264,7 +264,8 @@ void CvmRuntime::SetupType() {
   auto infer_type = [&](uint32_t nid) {
     const auto& inode = idx[nid];
     if (inode.op_type == "null") {
-      // Variable node. No operator. Only one output entry.
+      VERIFY(rtype[nid] == 4 || rtype[nid] == 9) << "Placeholder type should be int32 or uint32";
+        // Variable node. No operator. Only one output entry.
     } else {
       const uint32_t num_inputs = inode.param.num_inputs;
       const uint32_t num_outputs = inode.param.num_outputs;
