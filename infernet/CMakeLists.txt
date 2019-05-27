@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 project(cvm C CXX CUDA)
+
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 # Utility functions
 include(cmake/util/Util.cmake)
@@ -81,7 +82,6 @@ endif()
 
 message(STATUS "Build with CVM runtime support...")
 file(GLOB RUNTIME_CVM_SRCS src/cvm/*.cc src/cuda/*.cc)
-#file(GLOB RUNTIME_CVM_SRCS src/cvm/cuda_ops.cu)
 list(APPEND RUNTIME_CVM_SRCS src/cvm/cuda_ops.cu)
 list(APPEND RUNTIME_SRCS ${RUNTIME_CVM_SRCS})
 file(GLOB CVM_TOP_SRCS src/cvm/top/*.cc
@@ -90,10 +90,8 @@ file(GLOB CVM_TOP_SRCS src/cvm/top/*.cc
 list(APPEND RUNTIME_SRCS ${CVM_TOP_SRCS})
 
 # Module rules
-# include(cmake/modules/VTA.cmake)
 include(cmake/modules/CUDA.cmake)
 
-add_library(runtime ${RUNTIME_SRCS})
 add_library(cvm_runtime SHARED ${RUNTIME_SRCS})
 target_link_libraries(cvm_runtime ${CVM_RUNTIME_LINKER_LIBS})
 
