@@ -15,6 +15,7 @@ package kernel
 */
 import "C"
 import (
+	"fmt"
 //	"os"
 //	"time"
 	"errors"
@@ -28,6 +29,7 @@ func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
 	net := C.CVMAPILoadModel(
 		C.CString(modelCfg),
 		C.CString(modelBin),
+		0, 0
 	)
 
 	if net == nil {
@@ -88,7 +90,11 @@ func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err err
 	if loadErr != nil {
 		return nil, errors.New("Model load error")
 	}
-	
+	expectedInputSize := int(C.CVMAPIGetInputLength(net))
+	if expectedInputSize != len(imageData) {
+		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",
+																		  expectedInputSize, len(imageData)))
+	}
 	ret, err = Predict(net, imageData)
 	return ret, err
 }
