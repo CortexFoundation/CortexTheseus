@@ -19,13 +19,13 @@ using std::string;
 namespace cvm {
 namespace runtime {
 
-std::mutex CVMModel::mtx;
+//std::mutex CVMModel::mtx;
 
 CVMModel::CVMModel(const string& graph, DLContext _ctx):
   in_shape(NULL), out_shape(NULL)
 {
-  CVMModel::mtx.lock();
-  lck = new std::lock_guard<std::mutex>(CVMModel::mtx, std::adopt_lock);
+//  CVMModel::mtx.lock();
+//  lck = new std::lock_guard<std::mutex>(CVMModel::mtx, std::adopt_lock);
   model_id = rand();
   loaded = false;
   ctx = _ctx;
@@ -77,7 +77,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
 CVMModel::~CVMModel() {
   if (in_shape) delete in_shape;
   if (out_shape) delete out_shape;
-  delete lck;
+//  delete lck;
 }
 
 int64_t CVMModel::GetOps() {
@@ -183,7 +183,7 @@ void* CVMAPILoadModel(const char *graph_fname, const char *model_fname) {
   } catch (std::exception &e) {
     return NULL;
   }
-  CVMModel* model = new CVMModel(graph, DLContext{kDLCPU, 0});
+  CVMModel* model = new CVMModel(graph, DLContext{kDLGPU, 0});
   try {
     params = LoadFromBinary(string(model_fname));
   } catch (std::exception &e) {
@@ -235,9 +235,9 @@ long long CVMAPIGetGasFromGraphFile(char *graph_fname) {
   }
   auto f = cvm::runtime::Registry::Get("cvm.runtime.estimate_ops");
   if (f == nullptr) return -1;
-  int ret;
+  int64_t ret;
   ret = (*f)(json_data);
-  return ret;
+  return static_cast<long long>(ret);
 }
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {

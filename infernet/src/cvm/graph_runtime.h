@@ -388,17 +388,7 @@ class CvmRuntime : public ModuleNode {
     for (auto i = 0; i < nodes_.size(); ++i) {
       if (nodes_[i].op_type != "null") {
         nodes_[i].LoadOp();
-        if (nodes_[i].attrs.op->name == "flatten") {
-          uint64_t size = 1;
-          for (auto x: attrs_.shape[i]) {
-            size *= x;
-          }
-          std::ostringstream size_s;
-          size_s << "{\"shape\":\"(" << size << ")\"}";
-          nodes_[i].LoadOpAttr(size_s.str());
-        } else {
-          nodes_[i].LoadOpAttr(attrs_.op_attrs[i]);
-        }
+        nodes_[i].LoadOpAttr(attrs_.op_attrs[i]);
       }
     }
   }

@@ -4,12 +4,32 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"encoding/binary"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	resty "gopkg.in/resty.v1"
 )
+
+func (s *Synapse) RemoteGasByModelHash(modelInfoHash, uri string) (uint64, error) {
+	inferWork := &inference.GasWork{
+		Type:  inference.GAS_BY_H,
+		Model: modelInfoHash,
+	}
+
+	requestBody, errMarshal := json.Marshal(inferWork)
+	if errMarshal != nil {
+		return 0, errMarshal
+	}
+	log.Debug("Remote Inference", "request", string(requestBody))
+
+	retArray, err := s.sendRequest(string(requestBody), uri)
+	if err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint64(retArray), nil 
+}
 
 func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) ([]byte, error) {
 	inferWork := &inference.IHWork{

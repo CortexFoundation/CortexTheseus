@@ -3,11 +3,39 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"encoding/binary"
 
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
+
+
+func Uint64ToBytes(i uint64) []byte {
+	var buf = make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(i))
+	return buf			
+}
+
+func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
+	log.Info("Gas Task", "Model Hash", inferWork.Model)
+	if inferWork.Model == "" {
+		RespErrorText(w, ErrModelEmpty)
+		return
+	}
+
+	ret, err := synapse.Engine().GetGasByInfoHash(inferWork.Model)
+	ret_arr := Uint64ToBytes(ret)
+
+	if err == nil {
+		log.Info("Get Operators Succeed", "result", ret)
+		RespInfoText(w, ret_arr)
+	} else {
+		log.Warn("Get Operators Failed", "error", err)
+		RespErrorText(w, err)
+	}
+}
+
 
 func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 	if inferWork.Model == "" {

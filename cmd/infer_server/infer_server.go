@@ -56,6 +56,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		inputContentHandler(w, &iw)
 		break
 
+	case inference.GAS_BY_H:
+		var iw inference.GasWork
+		if err := json.Unmarshal(body, &iw); err != nil {
+			RespErrorText(w, ErrDataParse)
+		}
+		gasHandler(w, &iw)
+		break
+
+
 	default:
 		RespErrorText(w, ErrInvalidInferTaskType)
 		break
