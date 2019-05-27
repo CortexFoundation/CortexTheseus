@@ -1034,7 +1034,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
             o_i /= y->shape[j];
             int xj = j;//axes != nullptr ? axes[j] : j;
             if(axes != nullptr){
-                xj = axes[j];
+                xj = axes_data[j];
             }else{
                 if(j == ndim-1) xj = 0;
                 if(j == 0) xj = ndim-1;
@@ -1100,10 +1100,10 @@ uint32_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     uint64_t sum_area = (x1_max-x1_min) * (y1_max-y1_min) + (x2_max-x2_min) * (y2_max-y2_min);
 
     if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
-    uint32_t w = min(x1_max, x2_max) - max(x1_min, x2_min);
-    uint32_t h = min(y1_max, y2_max) - max(y1_min, y2_min);
-    uint64_t overlap_area = h*w*100;
-    return static_cast<uint32_t>(overlap_area / (sum_area - overlap_area));
+    uint32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
+    uint32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
+    uint64_t overlap_area = h*w;
+    return static_cast<uint32_t>(overlap_area*100 / (sum_area - overlap_area));
 }
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.box_nms")
 .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -1132,34 +1132,34 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.box_nms")
     int n = x->shape[x->ndim-2];
     int k = x->shape[x->ndim-1];
 
-    //sort by score
-    //qsort(x_data, n, k * sizeof(int32_t), descending_compare);
-    vector<int32_t*> rows(n);
+    std::vector<int32_t*> rows(n);
     for (int i = 0; i < n; i++) {
         rows[i] = x_data + i * k;
     }
-    sort(rows.begin(), rows.end(), [&score_index](const int32_t* a, const int32_t* b){
+    std::sort(rows.begin(), rows.end(), [&score_index](const int32_t* a, const int32_t* b){
         return a[score_index] > b[score_index];
     });
 
-    vector<bool> removed(n, false);
+    std::vector<bool> removed(n, false);
     int32_t y_index = 0;
-    size_t row_size = k * sizeof(int32_t) * k;
     for(int i = 0; i < n; i++){
         int32_t *row1 = rows[i];
         if(row1[score_index] < valid_thresh) removed[i] = true;
         if(removed[i] == false){
-            memcpy(y_data + y_index * row_size, row1, row_size);
-            ++y_index;
+            std::memcpy(&y_data[y_index], row1, k*sizeof(int32_t));
+            y_index += k;
         }
         for(int j = i+1; j < n && !removed[i]; j++){
-            int32_t row2 = col[j];
+            int32_t* row2 = rows[j];
             if(iou(row1+coord_start, row2+coord_start, in_format) > overlap_thresh){
                 removed[j] = true;
             }
         }
     }
-    memset(y_data + y_index * row_size, -1, (getSize(y) - y_index*k) * sizeof(int32_t));
+    uint64_t ysize = getSize(y);
+    if(y_index < ysize){
+        std::memset(&y_data[y_index], -1, (ysize - y_index) * sizeof(int32_t));
+    }
 });
 
 /*********************************cuda op*********************************************/
