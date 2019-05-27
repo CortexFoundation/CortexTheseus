@@ -29,7 +29,7 @@ func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
 	net := C.CVMAPILoadModel(
 		C.CString(modelCfg),
 		C.CString(modelBin),
-		0, 0
+		0, 0,
 	)
 
 	if net == nil {
