@@ -76,7 +76,6 @@ void CvmRuntime::SetupPrecision() {
       auto finfer = finfer_prec.get(inode.attrs.op, nullptr);
       // Call inference function of the operator.
       if (finfer == nullptr) {
-        std::cout << "no infer precision method " << inode.attrs.op->name << std::endl;
         finfer = cvm::top::ElemwiseSamePrecision;
       }
       if (!finfer(inode.attrs, &shapes, &iprec, &oprec)) {
@@ -111,21 +110,20 @@ int64_t CvmRuntime::GetOps() {
   for (uint32_t nid = 0; nid < idx.size(); ++nid) {
     auto inode = idx[nid];
     if (inode.op_type == "null") {
-      int64_t osize = rshape[nid].Size();
-      osize /= rshape[nid][0];
-      ret += osize;
+//      int64_t osize = rshape[nid].Size();
+//      osize /= rshape[nid][0];
+//      ret += osize;
     } else {
       auto op = idx[nid].attrs.op->name;
       if (opcount.find(op) == opcount.end()) {
         opcount[op] = 0;
         ops.push_back(op);
       }
-
       int64_t t = 0;
       if (op == "dense") {
         auto shape1 = rshape[inode.inputs[0].node_id];
         auto shape2 = rshape[inode.inputs[1].node_id];
-        t = static_cast<int64_t>(shape2[1]) * 2;
+        t = static_cast<int64_t>(shape2[1]) * 3;
         auto& param = cvm::get<cvm::top::DenseParam>(inode.attrs.parsed);
         if (param.use_bias) {
           t += 1;
@@ -133,7 +131,7 @@ int64_t CvmRuntime::GetOps() {
       } else if (op == "conv2d") {
         auto shape1 = rshape[inode.inputs[0].node_id];
         auto shape2 = rshape[inode.inputs[1].node_id];
-        t = (static_cast<int64_t>(shape2[1]) * shape2[2] * shape2[3] * 2);
+        t = (static_cast<int64_t>(shape2[1]) * shape2[2] * shape2[3] * 3);
         auto& param = cvm::get<cvm::top::Conv2DParam>(inode.attrs.parsed);
         if (param.use_bias) {
           t += 1;

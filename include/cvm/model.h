@@ -43,8 +43,8 @@ private:
   PackedFunc get_ops;
   PackedFunc run;
   Module module;
-  std::lock_guard<std::mutex> *lck;
-  static std::mutex mtx;
+//  std::lock_guard<std::mutex> *lck;
+//  static std::mutex mtx;
   int64_t *in_shape{NULL}, *out_shape{NULL};
   int in_ndim, out_ndim;
   int64_t in_size, out_size, model_id;
