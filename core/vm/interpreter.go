@@ -27,6 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"net/http"
 	//"strings"
+	"github.com/anacrolix/torrent"
 	"sync/atomic"
 )
 
@@ -237,6 +238,8 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					return nil, ErrInvalidMetaAuthor
 				}
 
+				//todo Hash check
+
 				if modelMeta.Gas == uint64(0) {
 					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 				} else if modelMeta.Gas > params.MODEL_GAS_LIMIT {
@@ -244,6 +247,12 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				} else if int64(modelMeta.Gas) < 0 {
 					modelMeta.SetGas(0)
 				}
+				spec, err := torrent.TorrentSpecFromMagnetURI(modelMeta.URI)
+				if err != nil {
+					log.Error("Error uri must be magnet", "Err", err)
+				}
+
+				modelMeta.Hash = common.HexToAddress(spec.InfoHash.HexString())
 
 				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
 				modelMeta.SetBlockNum(*in.evm.BlockNumber)
@@ -253,7 +262,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				} else {
 					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
-				log.Info("Model meta created", "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI, "number", in.evm.BlockNumber)
+				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex, "author", modelMeta.AuthorAddress.Hex, "gas", modelMeta.Gas, "uri", modelMeta.URI, "number", in.evm.BlockNumber)
 			} else {
 				//log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
