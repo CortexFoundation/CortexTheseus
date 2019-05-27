@@ -193,11 +193,11 @@ var (
 		Usage: "P2P storage listening port (remote mode)",
 		Value: torrentfs.DefaultConfig.Port,
 	}
-	StorageTrackerFlag = cli.StringFlag{
-		Name:  "storage.tracker",
-		Usage: "P2P storage tracker list",
-		Value: torrentfs.DefaultConfig.DefaultTrackers,
-	}
+	//StorageTrackerFlag = cli.StringFlag{
+	//	Name:  "storage.tracker",
+	//	Usage: "P2P storage tracker list",
+	//	Value: torrentfs.DefaultConfig.DefaultTrackers,
+	//}
 	// Dashboard settings
 	DashboardEnabledFlag = cli.BoolFlag{
 		Name:  metrics.DashboardEnabledFlag,
@@ -1226,7 +1226,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		cfg.IpcPath = filepath.Join(path, IPCPath)
 		log.Info("IPCPath", "path", cfg.IpcPath)
 	}
-	cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
+	//cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
 }

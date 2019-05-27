@@ -115,7 +115,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.StorageAddrFlag,
 			utils.StoragePortFlag,
 			utils.StorageDirFlag,
-			utils.StorageTrackerFlag,
+			//utils.StorageTrackerFlag,
 		},
 	},
 	{
