@@ -176,14 +176,20 @@ string LoadFromBinary(string filepath) {
 
 using cvm::runtime::CVMModel;
 
-void* CVMAPILoadModel(const char *graph_fname, const char *model_fname) {
+void* CVMAPILoadModel(const char *graph_fname, const char *model_fname,
+        int device_type, int device_id) {
   string graph, params;
   try {
     graph = LoadFromFile(string(graph_fname));
   } catch (std::exception &e) {
     return NULL;
   }
-  CVMModel* model = new CVMModel(graph, DLContext{kDLCPU, 0});
+  CVMModel* model = nullptr;
+  if (device_type == 0) {
+    model = new CVMModel(graph, DLContext{kDLCPU, 0});
+  } else {
+    model = new CVMModel(graph, DLContext{kDLGPU, device_id});
+  }
   try {
     params = LoadFromBinary(string(model_fname));
   } catch (std::exception &e) {
