@@ -385,7 +385,7 @@ class CvmRuntime : public ModuleNode {
     }
     VERIFY_EQ(bitmask, 1|2|4|8|16) << "invalid format";
     VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size());
-    for (auto i = 0; i < nodes_.size(); ++i) {
+    for (auto i = 0ULL; i < nodes_.size(); ++i) {
       if (nodes_[i].op_type != "null") {
         nodes_[i].LoadOp();
         nodes_[i].LoadOpAttr(attrs_.op_attrs[i]);
