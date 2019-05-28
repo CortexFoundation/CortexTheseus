@@ -1,7 +1,7 @@
 package kernel
 
 import (
-//	"fmt"
+	"fmt"
 //	"os"
 //	"time"
 	"errors"
@@ -9,105 +9,111 @@ import (
 //	"strings"
 //	"strconv"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"plugin"
 )
 
-const PLUGIN_PATH string = "plugins/"
-const PLUGIN_POST_FIX string = "_cvm.so"
-var cvm_plugin  *plugin.Plugin = nil
-var LRU map[int]*lru.Cache
-
-func Init(cortex string)(*plugin.Plugin, error){
-	if cvm_plugin == nil{
-		so_path := PLUGIN_PATH + cortex + PLUGIN_POST_FIX
-		cvm_plugin, err := plugin.Open(so_path)
-		if err != nil{
-			log.Error("infer helper", "init cvm plugin error", err)
-			return nil, err
-		}
-		return cvm_plugin, nil
-	}
-	return cvm_plugin, nil
+type Model struct {
+	model unsafe.Pointer
+	lib *plugin.Plugin
+	ops int64
+	size int64
 }
 
-func LoadModel(modelCfg, modelBin string, deviceType string) (unsafe.Pointer, error) {
-	cvm_plugin, err := Init(deviceType)
-	m, err := cvm_plugin.Lookup("LoadModel")
-	if err != nil{
+func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin string) *Model {
+    
+	var model unsafe.Pointer
+	var size int64
+	var ops int64
+
+	if m, err := lib.Lookup("LoadModel"); err != nil {
 		log.Error("infer helper", "LoadModel", "error", err)
-		return nil, err
-	}
-	net, err := m.(func(string, string, uint32)(unsafe.Pointer, error))(modelCfg, modelBin, 0)
-	if net == nil || err != nil {
-		log.Error("infer helper", "LoadModel", "error", err)
-=======
-)
-
-
-func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
-	if LRU == nil {
-		LRU = make(map[int]*lru.Cache)
-	}
-	if cache, ok := LRU[0]; !ok {
-		cache = lru.New(4000000)
-		LRU[0] = cache
-		cache.OnEvicted = func(key lru.Key, value interface{}) {
-			FreeModel(value.(unsafe.Pointer))
-		}
-	}
-	cache, _ := LRU[0]
-
-	if model, ok := cache.Get(modelCfg); ok {
-		if model == nil {
-			return nil, errors.New("Model error")
-		} else {
-			return model.(unsafe.Pointer), nil
-		}
-	}
-
-	model := C.CVMAPILoadModel(
-		C.CString(modelCfg),
-		C.CString(modelBin),
-		1, 1,
-	)
-	storage_size := C.CVMAPIGetStorageSize(model)
-	storage_weight := int64(storage_size) / 1000
-	log.Info("Model loaded", "memory", storage_size)
-
-	if model == nil {
->>>>>>> origin/dev-zhen
-		return nil, errors.New("Model load error")
-	}
-
-	cache.Add(modelCfg, model, storage_weight)
-
-	return model, nil
-}
-
-func GetModelOpsFromModel(net unsafe.Pointer, deviceType string) (int64, error) {
-	cvm_plugin, err := Init(deviceType)
-	m, err := cvm_plugin.Lookup("GetModelOpsFromModel")
-	if err != nil{
-		log.Error("infer helper", "GetModelOpsFromModel", "error", err)
-		return -1, err
-	}
-	ret,err := m.(func(unsafe.Pointer)(int64, error))(net)
-	if ret < 0 {
-		return 0, errors.New("Gas Error")
+		return nil
 	} else {
-		return ret, nil
+		model, err = m.(func(string, string, int)(unsafe.Pointer, error))(modelCfg, modelBin, deviceId)
+		if model == nil || err != nil {
+			log.Error("infer helper", "LoadModel", "error", err)
+			return nil
+		}
+	}
+
+    if m, err := lib.Lookup("GetStorageSize"); err != nil {
+		log.Error("Error while get model size")
+		return nil
+	} else {
+		ret, err := m.(func(unsafe.Pointer)(int64, error))(model)
+		if err != nil {
+			return nil
+		}
+		size = ret
+	}
+    
+	if m, err := lib.Lookup("GetModelOpsFromModel"); err != nil {
+		log.Error("infer helper", "GetModelOpsFromModel", "error", err)
+		return nil
+	} else {
+		ret, err := m.(func(unsafe.Pointer)(int64, error))(model)
+		if err != nil || ret < 0 {
+			log.Error("infer helper", "GetModelOpsFromModel", "error", err)
+			return nil
+		}
+		ops = ret
+	}
+	
+	return &Model{
+		model: model,
+		lib: lib,
+		ops: ops,
+		size: size,
 	}
 }
 
-func GetModelOps(filepath string, deviceType string) (uint64, error) {
-	cvm_plugin, err := Init(deviceType)
-	m, err := cvm_plugin.Lookup("GetModelOps")
+func (m *Model) Ops()(int64) {
+	return m.ops;
+}
+
+func (m *Model) Size()(int64) {
+	return m.size;
+}
+
+func (m *Model) GetInputLength() int {
+	f, err := m.lib.Lookup("GetInputLength")
+
+	if err != nil {
+		log.Error("infer helper", "GetInputLength", "error", err)
+		return -1
+	}
+	ret, err := f.(func(unsafe.Pointer)(int, error))(m.model)
+	
+	if ret < 0 {
+		return -1
+	} else {
+		return int(ret)
+	}
+}
+
+func (m *Model) GetOutputLength() int {
+	f, err := m.lib.Lookup("GetOutputLength")
+
+	if err != nil {
+		log.Error("infer helper", "GetOutputLength", "error", err)
+		return -1
+	}
+	ret, err := f.(func(unsafe.Pointer)(int, error))(m.model)
+	
+	if ret < 0 {
+		return -1
+	} else {
+		return int(ret)
+	}
+}
+
+func GetModelOps(lib *plugin.Plugin, filepath string) (uint64, error) {
+	m, err := lib.Lookup("GetModelOps")
 	if err != nil{
 		log.Error("infer helper", "GetModelOps", "error", err)
 		return 0, err
 	}
-	ret, err := m.(func(string)(int64, error))(filepath)
+	ret, err := m.(func(string)(uint64, error))(filepath)
 	if ret < 0 {
 		return 0, errors.New("Gas Error")
 	} else {
@@ -115,50 +121,27 @@ func GetModelOps(filepath string, deviceType string) (uint64, error) {
 	}
 }
 
-func FreeModel(net unsafe.Pointer, deviceType string) {
-	cvm_plugin, err := Init(deviceType)
-	m, err := cvm_plugin.Lookup("FreeModel")
-	if err != nil{
+func (m *Model) Free() {
+	f, err := m.lib.Lookup("FreeModel")
+	if err != nil {
 		log.Error("infer helper", "FreeModel", "error", err)
 		return
 	}
-	m.(func(unsafe.Pointer)())(net)
+	f.(func(unsafe.Pointer)())(m.model)
 }
 
-func Predict(net unsafe.Pointer, imageData []byte, deviceType string) ([]byte, error) {
-	cvm_plugin, err := Init(deviceType)
-	if net == nil {
-		return nil, errors.New("Internal error: network is null in InferProcess")
+func (m *Model) Predict(imageData []byte) ([]byte, error) {
+    expectedInputLength := m.GetInputLength()
+	if expectedInputLength != len(imageData) {
+		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",																	  expectedInputLength, len(imageData)))
 	}
-	m, err := cvm_plugin.Lookup("Predict")
-	if err != nil{
+
+	f, err := m.lib.Lookup("Predict")
+	if err != nil {
 		log.Error("infer helper", "Predict", "error", err)
 		return nil, err
 	}
-	res, err := m.(func(unsafe.Pointer, []byte)([]byte, error))(net, imageData)
+	res, err := f.(func(unsafe.Pointer, []byte)([]byte, error))(m.model, imageData)
 	return res, err
 }
 
-<<<<<<< HEAD
-func InferCore(modelCfg, modelBin string, imageData []byte, deviceType string, deviceId int) (ret []byte, err error) {
-	cvm_plugin, err := Init(deviceType)
-	m, err := cvm_plugin.Lookup("InferCore")
-	if err != nil{
-		log.Error("infer helper", "InferCore", "error", err)
-		return nil, err
-=======
-func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err error) {
-	net, loadErr := LoadModel(modelCfg, modelBin)
-	// defer FreeModel(net)
-	if loadErr != nil {
-		return nil, errors.New("Model load error")
-	}
-	expectedInputSize := int(C.CVMAPIGetInputLength(net))
-	if expectedInputSize != len(imageData) {
-		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",
-																		  expectedInputSize, len(imageData)))
->>>>>>> origin/dev-zhen
-	}
-	ret, err = m.(func(string, string, []byte, int)([]byte, error))(modelCfg, modelBin, imageData, deviceId)
-	return ret, err
-}
