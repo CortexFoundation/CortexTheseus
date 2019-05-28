@@ -913,7 +913,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_right_shift")
         if (b == 0) {
             memcpy(c_data, a_data, size * sizeof(int32_t));
         } else if (b == 1) {
-#pragma omp parallel for
+            #pragma omp parallel for
             for(uint64_t i = 0; i < size; i++){
                 int32_t shift_a = (a_data[i] + 1) >> 1;
                 if (shift_a > max)
@@ -924,13 +924,16 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_right_shift")
             }
         } else {
             b -= 1;
-#pragma omp parallel
+            #pragma omp parallel
             {
-#pragma omp for
+            #pragma omp for
             for(uint64_t i = 0; i < size; i++){
                 c_data[i] = a_data[i] >> b;
                 ++c_data[i];
                 c_data[i] >>= 1;
+            }
+            #pragma omp for
+            for(uint64_t i = 0; i < size; i++){
                 auto& shift_a = c_data[i];
                 if (shift_a > max)
                     shift_a = max;

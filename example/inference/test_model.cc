@@ -5,6 +5,17 @@
 #include <omp.h>
 using namespace std;
 int run_LIF(string model_root) {
+
+    cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
+    cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
+    cvm::runtime::im2col_cnt = 0;
+    cvm::runtime::cvm_op_rightshift_cnt = 0;
+    cvm::runtime::cvm_op_clip_cnt = 0;
+    cvm::runtime::cvm_op_dense_cnt = 0;
+    cvm::runtime::cvm_op_maxpool_cnt = 0;
+    cvm::runtime::cvm_op_broadcast_cnt = 0;
+    cvm::runtime::cvm_op_concat_cnt = 0;
+
     string json_path = model_root + "/symbol";
     string params_path = model_root + "/params";
     cerr << "load " << json_path << "\n";
@@ -30,43 +41,43 @@ int run_LIF(string model_root) {
         CVMAPIInfer(model, input.data(), output.data());
     }
     double ellapsed_time = (omp_get_wtime() - start) / n_run;
-    cout << "total gemm.trans time:" << cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run << "\n";
-    cout << "total  gemm.gemm time:" << cvm::runtime::transpose_int8_avx256_gemm_cnt / n_run << "\n";
-    cout << "total     im2col time:" << cvm::runtime::im2col_cnt / n_run<< "\n";
+    cout << "total gemm.trans time: " << cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run << "\n";
+    cout << "total  gemm.gemm time: " << cvm::runtime::transpose_int8_avx256_gemm_cnt / n_run << "\n";
+    cout << "total     im2col time: " << cvm::runtime::im2col_cnt / n_run<< "\n";
     double sum_time = 0;
     sum_time +=  cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run;
     sum_time +=  cvm::runtime::transpose_int8_avx256_gemm_cnt / n_run;
     sum_time +=  cvm::runtime::im2col_cnt / n_run;
-    cout << "total gemm time" << (sum_time) << "/" << ellapsed_time
+    cout << "total gemm time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
     sum_time = 0;
-    cout << "total naive dense time" << (cvm::runtime::cvm_op_dense_cnt) << "/" << ellapsed_time
+    cout << "total naive dense time: " << (cvm::runtime::cvm_op_dense_cnt) << "/" << ellapsed_time
          << " " <<  cvm::runtime::cvm_op_dense_cnt / ellapsed_time <<"\n";
     sum_time = (cvm::runtime::cvm_op_maxpool_cnt) / n_run;
-    cout << "total maxpool time" <<  sum_time << "/" << ellapsed_time
+    cout << "total maxpool time: " <<  sum_time << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
     sum_time = (cvm::runtime::cvm_op_broadcast_cnt) / n_run;
-    cout << "total broadcast time" <<  sum_time << "/" << ellapsed_time
+    cout << "total broadcast time: " <<  sum_time << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
 
 
-    sum_time +=  cvm::runtime::cvm_op_clip_cnt / n_run;
-    cout << "total clip time" << (sum_time) << "/" << ellapsed_time
+    sum_time =  cvm::runtime::cvm_op_clip_cnt / n_run;
+    cout << "total clip time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
 
 
-    sum_time +=  cvm::runtime::cvm_op_rightshift_cnt / n_run;
-    cout << "total rightshift time" << (sum_time) << "/" << ellapsed_time
+    sum_time =  cvm::runtime::cvm_op_rightshift_cnt / n_run;
+    cout << "total rightshift time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
 
-    sum_time +=  cvm::runtime::cvm_op_concat_cnt / n_run;
-    cout << "total concat time" << (sum_time) << "/" << ellapsed_time
+    sum_time =  cvm::runtime::cvm_op_concat_cnt / n_run;
+    cout << "total concat time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
 
     CVMAPIFreeModel(model);
     return 0;
 }
-int main() {
+void test_thread() {
     vector<std::thread> threads;
     for (int t = 0; t < 1; ++t) {
         cerr << "threads t = " << t << "\n";
@@ -75,7 +86,7 @@ int main() {
                 // model_root = "/home/tian/cortex_fullnode_storage/cifar_resnet20_v2/data";
                 // model_root = "/home/lizhen/storage/mnist/data/";
                 // model_root = "/home/lizhen/storage/animal10/data";
-                model_root = "/home/tian/cortex_fullnode_storage/imagenet_inceptionV3/data";
+                // model_root = "/home/tian/cortex_fullnode_storage/imagenet_inceptionV3/data";
                 run_LIF(model_root);
                 //run_LIF(model_root);
         }));
@@ -83,5 +94,25 @@ int main() {
     for (auto& thread : threads) {
         thread.join();
     }
+}
+
+void test_models() {
+    auto model_roots = {
+        "/home/tian/model_storage/resnet50_v1/data/",
+        "/home/tian/cortex_fullnode_storage/imagenet_inceptionV3/data",
+        "/home/tian/model_storage/animal10/data",
+        "/home/tian/model_storage/mnist/data"
+    };
+    // string model_root = "/home/tian/model_storage/resnet50_v1/data/";
+    // model_root = "/home/tian/cortex_fullnode_storage/cifar_resnet20_v2/data";
+    // model_root = "/home/lizhen/storage/mnist/data/";
+    // model_root = "/home/lizhen/storage/animal10/data";
+    // model_root = "/home/tian/cortex_fullnode_storage/imagenet_inceptionV3/data";
+    for (auto model_root : model_roots) {
+        run_LIF(model_root);
+    }
+}
+int main() {
+    test_models();
     return 0;
 }
