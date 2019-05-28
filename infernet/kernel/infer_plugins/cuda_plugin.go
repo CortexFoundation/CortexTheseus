@@ -2,7 +2,7 @@ package main
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS:  -L../../ -lcvm_runtime_cuda -lcudart -lcuda
+#cgo LDFLAGS:  -L../../build/gpu -lcvm_runtime_cuda -lcudart -lcuda
 #cgo LDFLAGS: -lstdc++ 
 
 #cgo CFLAGS: -I../include -I/usr/local/cuda/include/ -O2
@@ -13,7 +13,6 @@ package main
 */
 import "C"
 import (
-	"fmt"
 //	"os"
 //	"time"
 	"errors"
@@ -83,18 +82,29 @@ func Predict(net unsafe.Pointer, imageData []byte) ([]byte, error) {
 	return res, nil
 }
 
-func InferCore(modelCfg, modelBin string, imageData []byte, deviceId int) (ret []byte, err error) {
-	log.Info("infer on cuda", "........................")
-	net, loadErr := LoadModel(modelCfg, modelBin, deviceId)
-	defer FreeModel(net)
-	if loadErr != nil {
-		return nil, errors.New("Model load error")
+func GetStorageSize(net unsafe.Pointer)(int64, error) {
+	if net == nil {
+		return 0, errors.New("Internal error: network is null in InferProcess")
 	}
-	expectedInputSize := int(C.CVMAPIGetInputLength(net))
-	if expectedInputSize != len(imageData) {
-		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",
-																		  expectedInputSize, len(imageData)))
+
+	ret := int64(C.CVMAPIGetStorageSize(net))
+	if ret == -1 {
+		return 0, errors.New("Model size is 0")
 	}
-	ret, err = Predict(net, imageData)
-	return ret, err
+
+	return ret, nil
 }
+
+func GetInputLength(net unsafe.Pointer)(int, error) {
+	if net == nil {
+		return 0, errors.New("Internal error: network is null in InferProcess")
+	}
+
+	ret := int(C.CVMAPIGetInputLength(net))
+	if ret == -1 {
+		return 0, errors.New("Model result len is 0")
+	}
+
+	return ret, nil
+}
+

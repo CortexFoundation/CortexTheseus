@@ -20,8 +20,7 @@ var (
 	logLevel   = flag.Int("verbosity", 3, "Log level to emit to screen")
 	port       = flag.Int("port", 8827, "Server listen port")
 	IsNotCache = flag.Bool("disable_cache", false, "Disable cache")
-	deviceType = flag.String("device_type", "cpu", "device type")
-	deviceId = flag.Int("device_id", 0, "device id")
+	DeviceType = flag.String("device", "cpu", "cpu or gpu")
 )
 
 var rpcClient *rpc.Client
@@ -39,7 +38,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log.Trace("Handler Info", "request", r, "body", string(body))
+    log.Trace("Handler Info", "request", r)
 
 	switch inference.RetriveType(body) {
 	case inference.INFER_BY_IH:
@@ -84,8 +83,7 @@ func main() {
 	inferServer := synapse.New(synapse.Config{
 		StorageDir: *storageDir,
 		IsNotCache: *IsNotCache,
-		DeviceType: *deviceType,
-		DeviceId: *deviceId,
+		DeviceType: *DeviceType,
 	})
 	log.Info("Initilized inference server with synapse engine")
 

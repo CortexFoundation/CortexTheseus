@@ -4,15 +4,22 @@ import (
 	"os"
 	"strings"
 	"sync"
-
+	"plugin"
 //	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/common/lru"
 )
 
 var synapseInstance *Synapse = nil
+
+const PLUGIN_PATH string = "plugins/"
+const PLUGIN_POST_FIX string = "_cvm.so"
+
 var defaultConfig Config = Config{
 	StorageDir: "",
 	IsNotCache: false,
+	DeviceType: "cpu",
+	DeviceId: 0,
 }
 
 type Config struct {
@@ -24,9 +31,9 @@ type Config struct {
 
 type Synapse struct {
 	config Config
-
 	simpleCache sync.Map
-
+	lib *plugin.Plugin
+	caches map[int]*lru.Cache
 	exitCh chan struct{}
 }
 
@@ -45,9 +52,17 @@ func New(config Config) *Synapse {
 		return synapseInstance
 	}
 
+	lib, err := plugin.Open(PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX)
+	if err != nil {
+		log.Error("infer helper", "init cvm plugin error", err)
+		return nil         
+	}
+
 	synapseInstance = &Synapse{
 		config: config,
+		lib: lib,
 		exitCh: make(chan struct{}),
+		caches: make(map[int]*lru.Cache),
 	}
 
 	log.Info("Initialising Synapse Engine", "Storage Dir", config.StorageDir, "Cache Disabled", config.IsNotCache)
