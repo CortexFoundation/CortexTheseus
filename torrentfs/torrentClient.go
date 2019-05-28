@@ -370,6 +370,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cfg.Seed = true
 	//cfg.EstablishedConnsPerTorrent = 5
 	//cfg.HalfOpenConnsPerTorrent = 3
+	log.Info("Torrent client configuration", "config", cfg)
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
