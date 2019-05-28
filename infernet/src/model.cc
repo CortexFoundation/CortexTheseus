@@ -19,7 +19,7 @@ using std::string;
 namespace cvm {
 namespace runtime {
 
-//std::mutex CVMModel::mtx;
+// std::mutex CVMModel::mtx;
 
 CVMModel::CVMModel(const string& graph, DLContext _ctx):
   in_shape(NULL), out_shape(NULL)
@@ -40,6 +40,10 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     } catch (std::exception &e) {
       return;
     }
+    auto init = module.GetFunction("init");
+    if (init()) {
+      return;
+    }
     auto setup = module.GetFunction("setup");
     if (setup()) {
       return;
@@ -53,6 +57,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   load_params = module.GetFunction("load_params");
   run = module.GetFunction("run");
   get_ops = module.GetFunction("get_ops");
+  get_storage_size = module.GetFunction("get_storage_size");
   auto get_input_shape = module.GetFunction("get_input_shape");
   DLTensor* t = new DLTensor();
   get_input_shape("data", t);
@@ -78,6 +83,12 @@ CVMModel::~CVMModel() {
   if (in_shape) delete in_shape;
   if (out_shape) delete out_shape;
 //  delete lck;
+}
+
+int64_t CVMModel::GetStorageSize() {
+  int64_t ret;
+  if (get_storage_size(&ret)) return -1;
+  return ret;
 }
 
 int64_t CVMModel::GetOps() {
@@ -244,6 +255,15 @@ long long CVMAPIGetGasFromGraphFile(char *graph_fname) {
   int64_t ret;
   ret = (*f)(json_data);
   return static_cast<long long>(ret);
+}
+
+long long CVMAPIGetStorageSize(void *model_) {
+  CVMModel* model = (CVMModel*)model_;
+  long long ret = -1;
+  if (model != nullptr) {
+    ret = static_cast<long long>(model->GetStorageSize());
+  }
+  return ret;
 }
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
