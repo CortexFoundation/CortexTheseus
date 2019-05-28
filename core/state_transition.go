@@ -201,7 +201,7 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
-			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
+			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
 			return ErrUnhandleTx
 		}
 
