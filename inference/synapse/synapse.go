@@ -18,6 +18,8 @@ var defaultConfig Config = Config{
 type Config struct {
 	StorageDir string
 	IsNotCache bool
+	DeviceType string
+	DeviceId int
 }
 
 type Synapse struct {

@@ -629,6 +629,15 @@ var (
 		Usage: "InfluxDB `host` tag attached to all measurements",
 		Value: "localhost",
 	}
+	InferDeviceTypeFlag = cli.StringFlag{
+		Name: "infer.device.type",
+		Usage: "infer device type : cuda or cpu",
+	}
+	InferDeviceIdFlag = cli.IntFlag{
+		Name: "infer.device.id",
+		Usage: "device id",
+		Value: 0,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1154,6 +1163,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.Ethash.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
+	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
+	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
 
 	// Override any default configs for hard coded networks.
 	switch {
