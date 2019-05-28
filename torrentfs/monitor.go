@@ -520,7 +520,7 @@ func (m *Monitor) syncLastBlock() {
 		} else {
 			if block.Hash.Hex() == rpcBlock.Hash.Hex() {
 
-				if parseErr := m.parseBlockTorrentInfo(block, false); parseErr != nil { //dirty to do
+				if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
 					log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
 					return
 				}
