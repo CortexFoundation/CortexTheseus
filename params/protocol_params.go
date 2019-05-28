@@ -39,7 +39,7 @@ const (
 	SstoreSetGas          uint64 = 20000   // Once per SLOAD operation.
 	LogDataGas            uint64 = 8       // Per byte in a LOG* operation's data.
 	CallStipend           uint64 = 2300    // Free gas given at beginning of call.
-	CallInferGas          uint64 = 1000000 // Base gas for call infer
+	CallInferGas          uint64 = 100000 // Base gas for call infer
 
 	Sha3Gas         uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas     uint64 = 6     // Once per word of the SHA3 operation's data.
