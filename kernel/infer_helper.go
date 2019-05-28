@@ -9,13 +9,14 @@ import (
 //	"strings"
 //	"strconv"
 	"github.com/CortexFoundation/CortexTheseus/log"
-<<<<<<< HEAD
+	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"plugin"
 )
 
 const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_cvm.so"
 var cvm_plugin  *plugin.Plugin = nil
+var LRU map[int]*lru.Cache
 
 func Init(cortex string)(*plugin.Plugin, error){
 	if cvm_plugin == nil{
@@ -41,10 +42,8 @@ func LoadModel(modelCfg, modelBin string, deviceType string) (unsafe.Pointer, er
 	if net == nil || err != nil {
 		log.Error("infer helper", "LoadModel", "error", err)
 =======
-	"github.com/CortexFoundation/CortexTheseus/common/lru"
 )
 
-var LRU map[int]*lru.Cache
 
 func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
 	if LRU == nil {
