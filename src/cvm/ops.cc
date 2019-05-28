@@ -33,6 +33,7 @@ double cvm_op_dense_cnt = 0;
 double cvm_op_maxpool_cnt = 0;
 double cvm_op_broadcast_cnt = 0;
 double cvm_op_concat_cnt = 0;
+
 #define CVM_PROFILING
 
 #define CVM_RUNTIME_CUDA
@@ -115,17 +116,71 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
   auto dx = static_cast<int32_t*>(x->data);
   auto dy = static_cast<int32_t*>(y->data);
   auto dw = static_cast<int32_t*>(w->data);
-  // assert(y->shape[0] == 1); // not tested yet
+  auto N = y->shape[1], K = x->shape[1];
+  int blocks = K / 32 * 32;
+  // std::cerr << y->shape[0] << " " << y->shape[1] << "\n";
+  // std::cerr << x->shape[0] << " " << x->shape[1] << "\n";
+  // std::cerr << w->shape[0] << " " << w->shape[1] << "\n";
+  int32_t weight_size = w->shape[0] * w->shape[1];
+  std::unique_ptr<int8_t> int8_filter(new int8_t[sizeof(int8_t) * weight_size]);
+  if(!int8_filter) {
+      CHECK(false) << "create buffer int8_filter failed";
+  }
+
+  for(int32_t i = 0; i < weight_size; i++){
+      *(int8_filter.get() + i) = static_cast<int8_t>(dw[i]);
+  }
+
+  int32_t x_size = x->shape[0] * x->shape[1];
+  std::unique_ptr<int8_t> int8_x(new int8_t[sizeof(int8_t) * x_size]);
+  if(!int8_x) {
+      CHECK(false) << "create buffer int8_x failed";
+  }
+  bool all_positive = true;
+  for(int32_t i = 0; i < x_size; i++){
+      int8_x.get()[i] = static_cast<int8_t>(dx[i]);
+      if ((int8_x.get()[i]) < 0)
+          all_positive = false;
+  }
+  // std::cerr << "all_positive = " << all_positive << "\n";
+
+  int16_t int16[16];
+  for(int i = 0; i < 16; i++)
+      int16[i] = 1;
+  __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
+
   for (uint32_t di = 0; di < y->shape[0]; di++) {
-      for (uint32_t oi = 0; oi < y->shape[1]; oi++) {
-          int32_t sum = 0;
-          for (uint32_t xi = 0; xi < x->shape[1]; xi++) {
-              sum += dx[di * x->shape[1] + xi] * dw[oi * w->shape[1] + xi];
+      auto cdy = dy + di * N;
+      auto ap_outer = int8_x.get() + di * K;
+#pragma omp parallel for
+      for (uint32_t oi = 0; oi < N; oi++) {
+          auto bp_inner = int8_filter.get() + oi * K;
+          auto ap_inner = ap_outer;
+          int sum = 0;
+
+          int k = 0;
+          if (all_positive) {
+              __m256i vc = _mm256_setzero_si256();
+              for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
+                  __m256i va = _mm256_loadu_si256((__m256i*)bp_inner);
+                  __m256i vb = _mm256_loadu_si256((__m256i*)ap_inner);
+                  __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+                  __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+                  vc = _mm256_add_epi32(vresult2, vc);
+              }
+              for(int ti = 0; ti < 8; ti++){
+                  sum += ((int32_t*)&vc)[ti];
+              }
+          }
+
+          // remained part
+          for(; k < K; k++){
+              sum += ap_inner[k] * bp_inner[k];
           }
           if(db != nullptr){
               sum += db[oi];
           }
-          dy[di * y->shape[1] + oi] = sum;
+          cdy[oi] = sum;
       }
   }
 
@@ -256,7 +311,7 @@ if (K % 32 == 0) {
     free(tr_b);
 #ifdef CVM_PROFILING
     double et = omp_get_wtime() - start;
-    std::cerr << "gemm " << N << " " << M << " " << K << " " << et * 1000 << " " << N * M * K / 1024.0 / 1024.0 << "\n";
+    // std::cerr << "gemm " << N << " " << M << " " << K << " " << et * 1000 << " " << N * M * K / 1024.0 / 1024.0 << "\n";
     transpose_int8_avx256_gemm_cnt += et;
 #endif
 }
@@ -1023,33 +1078,53 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.concatenate")
         VERIFY(-ndim <= axis && axis < ndim);
         if(axis < 0) axis += ndim;
         VERIFY(axis < input0->ndim) << "axis out of bounds.";
-
-        int32_t *out_data = static_cast<int32_t*>(out->data);
-        for(uint64_t i = 0; i < getSize(out); i++){
-            uint64_t o_i = i, in_i = 0, in_i2 = 0, shapeSize = 0;
-            for(int j = out->ndim-1; j >= 0; j--){
-                uint64_t col = o_i % out->shape[j];
-                o_i /= out->shape[j];
-                uint64_t tmpcol = col;
-                if(j == axis){
-                    uint64_t allShapeSize = 0;
-                    for(int k = 0; k < len; k++){
-                        tmpcol = col - allShapeSize;
-                        DLTensor *input = args[k];
-                        allShapeSize += input->shape[axis];
-                        if(col < allShapeSize){
-                            in_i = k;
-                            break;
+        //TODO(kaihuo) check shape of all inputs
+        int n_batch = input0->shape[0];
+        // std::cerr << "n_batch " << n_batch << "\n";
+        if (axis == 1 && n_batch == 1) {
+            int32_t *out_data = static_cast<int32_t*>(out->data);
+            uint64_t offset = 0;
+            for(int k = 0; k < len; k++){
+                DLTensor* input = args[k];
+                int input_size_current = 1;
+                //std::cerr << "\n";
+                for (int i = 0; i < input->ndim; ++i) {
+                    input_size_current *= input->shape[i];
+                //    std::cerr << input->shape[i] << " " ;
+                }
+                //std::cerr << "\n";
+                //std::cerr << "k = " << k << " " << input_size_current << "\n";
+                memcpy(out_data + offset, input->data, sizeof(int32_t) * input_size_current);
+                offset += input_size_current;
+            }
+        } else {
+            int32_t *out_data = static_cast<int32_t*>(out->data);
+            for(uint64_t i = 0; i < getSize(out); i++){
+                uint64_t o_i = i, in_i = 0, in_i2 = 0, shapeSize = 0;
+                for(int j = out->ndim-1; j >= 0; j--){
+                    uint64_t col = o_i % out->shape[j];
+                    o_i /= out->shape[j];
+                    uint64_t tmpcol = col;
+                    if(j == axis){
+                        uint64_t allShapeSize = 0;
+                        for(int k = 0; k < len; k++){
+                            tmpcol = col - allShapeSize;
+                            DLTensor *input = args[k];
+                            allShapeSize += input->shape[axis];
+                            if(col < allShapeSize){
+                                in_i = k;
+                                break;
+                            }
                         }
                     }
+                    in_i2 += (j == out->ndim-1 ? tmpcol : tmpcol * shapeSize);
+                    DLTensor* input = args[in_i];
+                    shapeSize = (j == out->ndim-1 ? input->shape[j] : shapeSize * input->shape[j]);
                 }
-                in_i2 += (j == out->ndim-1 ? tmpcol : tmpcol * shapeSize);
-                DLTensor* input = args[in_i];
-                shapeSize = (j == out->ndim-1 ? input->shape[j] : shapeSize * input->shape[j]);
+                DLTensor *input = args[in_i];
+                int32_t *input_data = static_cast<int32_t*>(input->data);
+                out_data[i] = input_data[in_i2];
             }
-            DLTensor *input = args[in_i];
-            int32_t *input_data = static_cast<int32_t*>(input->data);
-            out_data[i] = input_data[in_i2];
         }
 #ifdef CVM_PROFILING
         cvm_op_concat_cnt += omp_get_wtime() - start;
