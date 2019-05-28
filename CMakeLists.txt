@@ -82,9 +82,18 @@ if(NOT USE_RTTI)
 endif()
 
 message(STATUS "Build with CVM runtime support...")
-file(GLOB RUNTIME_CVM_SRCS src/cvm/*.cc src/cuda/*.cc)
-list(APPEND RUNTIME_CVM_SRCS src/cvm/cuda_ops.cu)
+file(GLOB RUNTIME_CVM_SRCS src/cvm/*.cc)
+if(${USE_CUDA} STREQUAL "ON")
+    message("use cuda")
+    set (EXECUTE_NAME cvm_runtime_cuda)
+    add_definitions(-DCVM_RUNTIME_CUDA)
+    file(GLOB RUNTIME_CVM_CUDA_SRCS src/cuda/*.cc)
+    list(APPEND RUNTIME_CVM_SRCS src/cvm/cuda_ops.cu)
+else()
+    set (EXECUTE_NAME cvm_runtime_cpu)
+endif()
 list(APPEND RUNTIME_SRCS ${RUNTIME_CVM_SRCS})
+list(APPEND RUNTIME_SRCS ${RUNTIME_CVM_CUDA_SRCS})
 file(GLOB CVM_TOP_SRCS src/cvm/top/*.cc
           src/cvm/top/nn/*.cc
           src/cvm/top/tensor/*.cc)
@@ -93,14 +102,14 @@ list(APPEND RUNTIME_SRCS ${CVM_TOP_SRCS})
 # Module rules
 include(cmake/modules/CUDA.cmake)
 
-add_library(cvm_runtime SHARED ${RUNTIME_SRCS})
-target_link_libraries(cvm_runtime ${CVM_RUNTIME_LINKER_LIBS})
+add_library(${EXECUTE_NAME} SHARED ${RUNTIME_SRCS})
+target_link_libraries(${EXECUTE_NAME} ${CVM_RUNTIME_LINKER_LIBS})
 
 # Installation rules
-install(TARGETS cvm_runtime DESTINATION lib${LIB_SUFFIX})
+install(TARGETS ${EXECUTE_NAME} DESTINATION lib${LIB_SUFFIX})
 
 # More target definitions
 if(MSVC)
-  target_compile_definitions(cvm_runtime PRIVATE -DHalide_EXPORTS)
-  target_compile_definitions(cvm_runtime PRIVATE -DCVM_EXPORTS)
+    target_compile_definitions(${EXECUTE_NAME} PRIVATE -DHalide_EXPORTS)
+    target_compile_definitions(${EXECUTE_NAME} PRIVATE -DCVM_EXPORTS)
 endif()
