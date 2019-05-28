@@ -40,7 +40,7 @@ int run_LIF(string model_root) {
     cout << "total gemm time" << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
     sum_time = 0;
-    cout << "total navive dense time" << (cvm::runtime::cvm_op_dense_cnt) << "/" << ellapsed_time
+    cout << "total naive dense time" << (cvm::runtime::cvm_op_dense_cnt) << "/" << ellapsed_time
          << " " <<  cvm::runtime::cvm_op_dense_cnt / ellapsed_time <<"\n";
     sum_time = (cvm::runtime::cvm_op_maxpool_cnt) / n_run;
     cout << "total maxpool time" <<  sum_time << "/" << ellapsed_time
