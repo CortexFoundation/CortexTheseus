@@ -262,7 +262,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				} else {
 					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
-				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex, "author", modelMeta.AuthorAddress.Hex, "gas", modelMeta.Gas, "uri", modelMeta.URI, "number", in.evm.BlockNumber)
+				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "uri", modelMeta.URI, "number", in.evm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
 			} else {
 				//log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
