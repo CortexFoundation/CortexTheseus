@@ -19,15 +19,35 @@ package params
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Cortex network.
 var MainnetTrackers = []string{
+	"udp://47.91.91.217:5008/announce",
+	"udp://47.74.1.234:5008/announce",
+	"udp://47.88.7.24:5008/announce",
+	"udp://47.91.43.70:5008/announce",
+	"udp://47.91.106.117:5008/announce",
+	"udp://47.91.147.37:5008/announce",
+	"udp://47.89.178.175:5008/announce",
+	"udp://47.88.214.96:5008/announce",
+	"udp://torrent.cortexlabs.ai:5008/announce",
+
 	"http://47.91.91.217:5008/announce",
-	"http://47.74.1.234:5008/announce",
-	"http://47.88.7.24:5008/announce",
-	"http://47.91.43.70:5008/announce",
-	"http://47.91.106.117:5008/announce",
-	"http://47.91.147.37:5008/announce",
-	"http://47.89.178.175:5008/announce",
-	"http://47.88.214.96:5008/announce",
-	"http://torrent.cortexlabs.ai:5008/announce",
+        "http://47.74.1.234:5008/announce",
+        "http://47.88.7.24:5008/announce",
+        "http://47.91.43.70:5008/announce",
+        "http://47.91.106.117:5008/announce",
+        "http://47.91.147.37:5008/announce",
+        "http://47.89.178.175:5008/announce",
+        "http://47.88.214.96:5008/announce",
+        "http://torrent.cortexlabs.ai:5008/announce",
+
+	"ws://47.91.91.217:5008/announce",
+        "ws://47.74.1.234:5008/announce",
+        "ws://47.88.7.24:5008/announce",
+        "ws://47.91.43.70:5008/announce",
+        "ws://47.91.106.117:5008/announce",
+        "ws://47.91.147.37:5008/announce",
+        "ws://47.89.178.175:5008/announce",
+        "ws://47.88.214.96:5008/announce",
+        "ws://torrent.cortexlabs.ai:5008/announce",
 }
 
 var CerebroTrackers = []string{}

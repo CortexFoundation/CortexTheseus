@@ -201,7 +201,7 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
-			log.Warn("Uploading file is not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
+			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
 			return ErrUnhandleTx
 		}
 
@@ -211,7 +211,7 @@ func (st *StateTransition) preCheck() error {
 			return ErrQuotaLimitReached
 		}
 
-		/*meta, err := st.evm.GetMetaHash(st.to())
+		meta, err := st.evm.GetMetaHash(st.to())
 		if err != nil {
 			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
 			return ErrUnhandleTx
@@ -224,13 +224,13 @@ func (st *StateTransition) preCheck() error {
 			if err != nil {
 				return err
 			}
-		}*/
+		}
 	}
 
 	return st.buyGas()
 }
 
-const interv = 15
+const interv = 5
 
 func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
 	street := big.NewInt(0).Sub(st.evm.PeekNumber, st.evm.BlockNumber)
@@ -238,7 +238,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 	if point.Cmp(st.evm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
 		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
 		cost := big.NewInt(0)
-		for i := 0; i < 1200 && duration.Cmp(cost) > 0; i++ {
+		for i := 0; i < 3600 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
 				log.Warn("Torrent synchronizing ... ...", "tvm", st.evm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber, "cost", cost, "peek", st.evm.PeekNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
@@ -374,6 +374,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			st.state.SetNum(st.to(), st.evm.BlockNumber)
 			log.Info("Upload OK", "address", st.to().Hex(), "waiting", params.MatureBlks)
 			//todo vote for model
+		} else {
+			log.Info("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex())
 		}
 	}
 
@@ -398,7 +400,9 @@ func Max(x, y *big.Int) *big.Int {
 	return y
 }
 
+//vote to model
 func (st *StateTransition) uploading() bool {
+	log.Debug("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
 	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 

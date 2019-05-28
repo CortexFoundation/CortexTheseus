@@ -22,6 +22,8 @@ import (
 	"github.com/anacrolix/torrent/storage"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+
+	"github.com/anacrolix/dht"
 )
 
 const (
@@ -357,6 +359,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
 	// (TODO) some network device may not support utp protocol, which results in burst of latency
 	cfg.DisableUTP = false
+	cfg.NoDHT = false
+	cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs
 	cfg.DataDir = config.DataDir
 	cfg.DisableEncryption = true
 	cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
@@ -366,6 +370,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cfg.Seed = true
 	//cfg.EstablishedConnsPerTorrent = 5
 	//cfg.HalfOpenConnsPerTorrent = 3
+	log.Info("Torrent client configuration", "config", cfg)
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
@@ -390,6 +395,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 
 	if len(config.DefaultTrackers) > 0 {
 		//TorrentManager.SetTrackers(strings.Split(config.DefaultTrackers, ","))
+		log.Info("Tracker list", "trackers", config.DefaultTrackers)
 		TorrentManager.SetTrackers(config.DefaultTrackers)
 	}
 	log.Info("Torrent client initialized")
