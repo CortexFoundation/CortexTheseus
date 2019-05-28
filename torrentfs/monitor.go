@@ -459,17 +459,27 @@ func (m *Monitor) syncLastBlock() {
 		return
 	}
 
-	//minNumber := uint64(minBlockNum)
+	if uint64(currentNumber) < m.lastNumber {
+		log.Warn("Torrent fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
+		if m.lastNumber > 12 {
+			m.lastNumber = m.lastNumber - 12
+		}
+	}
+	//minNumber := uint64(0)
+	//if m.lastNumber > 6 {
+	//	minNumber = m.lastNumber - 6
+	//}
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
 	if uint64(currentNumber) > params.SeedingBlks/2 {
-		maxNumber = uint64(currentNumber) - 3
+		//maxNumber = uint64(currentNumber) - 2
+		maxNumber = uint64(currentNumber)
 	}
 
 	if m.lastNumber > uint64(currentNumber) {
 		//block chain rollback
-		if m.lastNumber > 2048 {
-			minNumber = m.lastNumber - 2048
+		if m.lastNumber > batch {
+			minNumber = m.lastNumber - batch
 		}
 	}
 
@@ -477,6 +487,9 @@ func (m *Monitor) syncLastBlock() {
 		maxNumber = minNumber + batch
 	}
 	if maxNumber > minNumber {
+		if minNumber > 4 {
+                        minNumber = minNumber - 4
+                }
 		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return
