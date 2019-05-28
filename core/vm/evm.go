@@ -540,24 +540,24 @@ func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (uint64, error) {
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
-	modelErrCh := make(chan error)
-	inputErrCh := make(chan error)
+	//modelErrCh := make(chan error)
+	//inputErrCh := make(chan error)
 
-	go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
-	go evm.DataSync(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, inputErrCh)
+	//go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
+	//go evm.DataSync(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, inputErrCh)
 
-	for i := 0; i < 2; i++ {
-		select {
-		case err := <-modelErrCh:
-			if err != nil {
-				return 0, err
-			}
-		case err := <-inputErrCh:
-			if err != nil {
-				return 0, err
-			}
-		}
-	}
+	//for i := 0; i < 2; i++ {
+	//	select {
+	//	case err := <-modelErrCh:
+	//		if err != nil {
+	//			return 0, err
+	//		}
+	//	case err := <-inputErrCh:
+	//		if err != nil {
+	//			return 0, err
+	//		}
+	//	}
+	//}
 
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
