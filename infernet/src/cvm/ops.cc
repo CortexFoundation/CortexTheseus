@@ -383,7 +383,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d").set_body([]
             const int M = out_channels;
             const int K = in_channels * filter_h * filter_w;
             const int N = o_h * o_w;
-            flag = true;
+            flag = false;
             if(flag){
                 matrix_mul(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
                     M, K, N);

@@ -39,7 +39,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Trace("Handler Info", "request", r, "body", string(body))
+	// log.Trace("Handler Info", "request", r, "body", string(body))
 
 	switch inference.RetriveType(body) {
 	case inference.INFER_BY_IH:

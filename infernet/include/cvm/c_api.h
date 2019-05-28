@@ -40,6 +40,8 @@ int CVMAPIInfer(void* model, char *input_data, char *output_data);
 
 long long CVMAPIGetGasFromModel(void *model);
 
+long long CVMAPIGetStorageSize(void *model);
+
 long long CVMAPIGetGasFromGraphFile(char *graph_fname);
 
 #ifdef __cplusplus

@@ -9,6 +9,7 @@ import (
 //	"strings"
 //	"strconv"
 	"github.com/CortexFoundation/CortexTheseus/log"
+<<<<<<< HEAD
 	"plugin"
 )
 
@@ -39,9 +40,50 @@ func LoadModel(modelCfg, modelBin string, deviceType string) (unsafe.Pointer, er
 	net, err := m.(func(string, string, uint32)(unsafe.Pointer, error))(modelCfg, modelBin, 0)
 	if net == nil || err != nil {
 		log.Error("infer helper", "LoadModel", "error", err)
+=======
+	"github.com/CortexFoundation/CortexTheseus/common/lru"
+)
+
+var LRU map[int]*lru.Cache
+
+func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
+	if LRU == nil {
+		LRU = make(map[int]*lru.Cache)
+	}
+	if cache, ok := LRU[0]; !ok {
+		cache = lru.New(4000000)
+		LRU[0] = cache
+		cache.OnEvicted = func(key lru.Key, value interface{}) {
+			FreeModel(value.(unsafe.Pointer))
+		}
+	}
+	cache, _ := LRU[0]
+
+	if model, ok := cache.Get(modelCfg); ok {
+		if model == nil {
+			return nil, errors.New("Model error")
+		} else {
+			return model.(unsafe.Pointer), nil
+		}
+	}
+
+	model := C.CVMAPILoadModel(
+		C.CString(modelCfg),
+		C.CString(modelBin),
+		1, 1,
+	)
+	storage_size := C.CVMAPIGetStorageSize(model)
+	storage_weight := int64(storage_size) / 1000
+	log.Info("Model loaded", "memory", storage_size)
+
+	if model == nil {
+>>>>>>> origin/dev-zhen
 		return nil, errors.New("Model load error")
 	}
-	return net, nil
+
+	cache.Add(modelCfg, model, storage_weight)
+
+	return model, nil
 }
 
 func GetModelOpsFromModel(net unsafe.Pointer, deviceType string) (int64, error) {
@@ -98,12 +140,25 @@ func Predict(net unsafe.Pointer, imageData []byte, deviceType string) ([]byte, e
 	return res, err
 }
 
+<<<<<<< HEAD
 func InferCore(modelCfg, modelBin string, imageData []byte, deviceType string, deviceId int) (ret []byte, err error) {
 	cvm_plugin, err := Init(deviceType)
 	m, err := cvm_plugin.Lookup("InferCore")
 	if err != nil{
 		log.Error("infer helper", "InferCore", "error", err)
 		return nil, err
+=======
+func InferCore(modelCfg, modelBin string, imageData []byte) (ret []byte, err error) {
+	net, loadErr := LoadModel(modelCfg, modelBin)
+	// defer FreeModel(net)
+	if loadErr != nil {
+		return nil, errors.New("Model load error")
+	}
+	expectedInputSize := int(C.CVMAPIGetInputLength(net))
+	if expectedInputSize != len(imageData) {
+		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",
+																		  expectedInputSize, len(imageData)))
+>>>>>>> origin/dev-zhen
 	}
 	ret, err = m.(func(string, string, []byte, int)([]byte, error))(modelCfg, modelBin, imageData, deviceId)
 	return ret, err

@@ -55,20 +55,25 @@ void CvmRuntime::Run() {
  * \param ctxs The context of the host and devices where graph nodes will be
  * executed on.
  */
-void CvmRuntime::Init(const std::string& graph_json,
-                        const std::vector<CVMContext>& ctxs) {
-  ctxs_ = ctxs;
+void CvmRuntime::SetGraph(const std::string& graph_json) {
   graph_json_ = graph_json;
 }
 
-int CvmRuntime::SetupGraph() {
+void CvmRuntime::SetContext(const std::vector<CVMContext>& ctxs) {
+  ctxs_ = ctxs;
+}
+
+void CvmRuntime::Init() {
   std::istringstream is(graph_json_);
   utils::JSONReader reader(&is);
   this->Load(&reader);
   this->CheckAttr();
+  this->PlanStorage();
+}
+
+void CvmRuntime::Setup() {
   this->SetupStorage();
   this->SetupOpExecs();
-  return 0;
 }
 
 int64_t CvmRuntime::GetOps(const std::string& graph_json) {
@@ -78,6 +83,7 @@ int64_t CvmRuntime::GetOps(const std::string& graph_json) {
   this->CheckAttr();
   return this->GetOps();
 }
+
 void CvmRuntime::GetShape(int index, DLTensor* t) {
   VERIFY_LE(index, attrs_.shape.size());
   auto shape = attrs_.shape[index];
@@ -207,15 +213,13 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
   }
 }
 
-void CvmRuntime::SetupStorage() {
+void CvmRuntime::PlanStorage() {
   // Grab saved optimization plan from graph.
   std::vector<CVMType> vtype;
   for (const std::string& s_type : attrs_.dltype) {
     vtype.push_back(cvm::runtime::String2CVMType(s_type));
   }
 
-  // Size and device type of each storage pool entry.
-  std::vector<PoolEntry> pool_entry;
   // Find the maximum space size.
   for (size_t i = 0; i < attrs_.shape.size(); ++i) {
     int storage_id = attrs_.storage_id[i];
@@ -245,6 +249,22 @@ void CvmRuntime::SetupStorage() {
     pool_entry[sid].size = std::max(pool_entry[sid].size, bytes);
     pool_entry[sid].device_type = device_type;
   }
+}
+
+int64_t CvmRuntime::GetStorageSize() {
+  int64_t ret = 0;
+  for (const auto& pit : pool_entry) {
+    ret += (static_cast<int64_t>(pit.size + 3) / 4) * 4;
+  }
+  return ret;
+}
+
+void CvmRuntime::SetupStorage() {
+  // Grab saved optimization plan from graph.
+  std::vector<CVMType> vtype;
+  for (const std::string& s_type : attrs_.dltype) {
+    vtype.push_back(cvm::runtime::String2CVMType(s_type));
+  }
 
   // Allocate the space.
   for (const auto& pit : pool_entry) {
@@ -258,7 +278,7 @@ void CvmRuntime::SetupStorage() {
     CVMContext ctx = cit == ctxs_.end() ? ctxs_[0] : *cit;
     shape.push_back(static_cast<int64_t>(pit.size + 3) / 4);
     storage_pool_.push_back(
-        NDArray::Empty(shape, DLDataType{kDLFloat, 32, 1}, ctx));
+        NDArray::Empty(shape, DLDataType{kDLInt, 32, 1}, ctx));
   }
 
   // Assign the pooled entries. A unified memory pool is used to simplifiy
@@ -398,6 +418,18 @@ PackedFunc CvmRuntime::GetFunction(
         }
         CALL_END();
       });
+  } else if (name == "get_storage_size") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kHandle) {
+          void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
+          *static_cast<int64_t*>(placeholder) = this->GetStorageSize();
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
   } else if (name == "get_ops") {
     return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
@@ -425,7 +457,13 @@ PackedFunc CvmRuntime::GetFunction(
   } else if (name == "setup") {
     return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
-        this->SetupGraph();
+        this->Setup();
+        CALL_END();
+      });
+  } else if (name == "init") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        this->Init();
         CALL_END();
       });
   } else if (name == "load_params") {
@@ -444,7 +482,8 @@ PackedFunc CvmRuntime::GetFunction(
 
 Module CvmRuntimeCreate(const std::string& sym_json, const std::vector<CVMContext>& ctxs) {
   std::shared_ptr<CvmRuntime> exec = std::make_shared<CvmRuntime>();
-  exec->Init(sym_json, ctxs);
+  exec->SetGraph(sym_json);
+  exec->SetContext(ctxs);
   return Module(exec);
 }
 
@@ -482,11 +521,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.estimate_ops")
                                     "at least 1, but it has "
                                 << args.num_args;
       *rv = CvmRuntime::EstimateOps(args[0]); 
-      } catch (std::runtime_error &e) {
-        *rv = -1;
-      } catch (std::logic_error &e) {
-        *rv = -2;
-      }
+    } catch (std::runtime_error &e) {
+      *rv = -1;
+    } catch (std::logic_error &e) {
+      *rv = -2;
+    }
   });
 }  // namespace runtime
 }  // namespace cvm

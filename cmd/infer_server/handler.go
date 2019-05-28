@@ -51,7 +51,7 @@ func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 	label, err := synapse.Engine().InferByInfoHash(inferWork.Model, inferWork.Input)
 
 	if err == nil {
-		log.Info("Infer Succeed", "result", label)
+	//	log.Info("Infer Succeed", "result", label)
 		RespInfoText(w, label)
 	} else {
 		log.Warn("Infer Failed", "error", err)
@@ -67,10 +67,10 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 
 	model, input := inferWork.Model, inferWork.Input
 
-	//log.Info("Infer Work", "Model Hash", model, "Input Content", input)
+	log.Info("Infer Work", "Model Hash", model)
 	var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
 	if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
-		log.Info("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
+	//	log.Info("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
 		RespInfoText(w, v.([]byte))
 		return
 	}
@@ -90,7 +90,7 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 		return
 	}
 
-	log.Info("Infer Succeed", "result", label)
+	// log.Info("Infer Succeed", "result", label)
 	if !(*IsNotCache) {
 		simpleCache.Store(cacheKey, label)
 	}
