@@ -376,7 +376,7 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		end = m.lastNumber - 4096
 	}
 
-	log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "lastest", m.fs.LastListenBlockNumber)
+	log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
 
 	for i := m.lastNumber; i > end; i-- {
 		rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
