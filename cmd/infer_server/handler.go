@@ -67,7 +67,7 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 
 	model, input := inferWork.Model, inferWork.Input
 
-	log.Info("Infer Work", "Model Hash", model, "Input Content", input)
+	//log.Info("Infer Work", "Model Hash", model, "Input Content", input)
 	var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
 	if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
 		log.Info("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))

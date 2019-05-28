@@ -56,7 +56,7 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		return 0, ErrModelFileNotExist
 	}
 
-	gas, err = kernel.GetModelOps(modelCfg)
+	gas, err = kernel.GetModelOps(modelCfg, s.config.DeviceType)
 	if err != nil {
 		return 0, err
 	}
@@ -145,7 +145,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	// 	return
 	// }
 
-	label, inferErr := kernel.InferCore(modelCfg, modelBin, inputContent)
+	label, inferErr := kernel.InferCore(modelCfg, modelBin, inputContent, s.config.DeviceType, s.config.DeviceId)
 	if inferErr != nil {
 		errCh <- inferErr
 		return

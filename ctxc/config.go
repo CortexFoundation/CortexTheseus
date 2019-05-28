@@ -104,6 +104,8 @@ type Config struct {
 	MinerCuda      bool
 	MinerOpenCL    bool
 	MinerDevices   string
+	InferDeviceType string
+	InferDeviceId int
 
 	// Ethash options
 	Ethash cuckoo.Config
