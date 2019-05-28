@@ -27,6 +27,7 @@ public:
   int LoadParamsFromFile(string filepath);
   int GetInputLength();
   int GetOutputLength();
+  int64_t GetStorageSize();
   int64_t GetOps();
   int Run(DLTensor*& input, DLTensor*& output);
   DLTensor* PlanInput();
@@ -42,6 +43,7 @@ private:
   PackedFunc load_params;
   PackedFunc get_ops;
   PackedFunc run;
+  PackedFunc get_storage_size;
   Module module;
 //  std::lock_guard<std::mutex> *lck;
 //  static std::mutex mtx;

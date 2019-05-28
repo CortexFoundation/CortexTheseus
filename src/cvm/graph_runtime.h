@@ -81,8 +81,8 @@ class CvmRuntime : public ModuleNode {
    *  executed on.
    */
 
-  void Init(const std::string& graph_json,
-            const std::vector<CVMContext>& ctxs);
+  void SetGraph(const std::string& graph_json);
+  void SetContext(const std::vector<CVMContext>& ctxs);
 
   int64_t GetOps();
   int64_t GetOps(const std::string& sym_json);
@@ -385,7 +385,7 @@ class CvmRuntime : public ModuleNode {
     }
     VERIFY_EQ(bitmask, 1|2|4|8|16) << "invalid format";
     VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size());
-    for (auto i = 0; i < nodes_.size(); ++i) {
+    for (unsigned int i = 0; i < nodes_.size(); ++i) {
       if (nodes_[i].op_type != "null") {
         nodes_[i].LoadOp();
         nodes_[i].LoadOpAttr(attrs_.op_attrs[i]);
@@ -394,13 +394,16 @@ class CvmRuntime : public ModuleNode {
   }
 public:
   /*! \brief Setup the shape, type, and precision */
-  int SetupGraph();
+  void Init();
+  void Setup();
   void SetupShape();
   void SetupType();
   void SetupPrecision();
   bool CheckAttr();
+  void PlanStorage();
   /*! \brief Setup the temporal storage */
   void SetupStorage();
+  int64_t GetStorageSize();
   /*! \brief Setup the executors. */
   void SetupOpExecs();
   /*!
@@ -441,6 +444,8 @@ public:
   std::vector<CVMContext> ctxs_;
   /*! \brief Common storage pool for all devices. */
   std::vector<NDArray> storage_pool_;
+
+  std::vector<PoolEntry> pool_entry;
   /*! \brief Data entry of each node. */
   std::vector<NDArray> data_entry_;
   /*! \brief Operator on each node. */

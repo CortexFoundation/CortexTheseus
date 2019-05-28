@@ -27,6 +27,10 @@ bool CvmRuntime::CheckAttr() {
 std::vector<TShape> GetTShapeArray(const std::vector<std::vector<int64_t> > &shapes) {
   std::vector<TShape> ret;
   for (auto shape : shapes) {
+    VERIFY_LE(shape.size(), 6) << "shape size should not larger than 6";
+    for (int i = 0; i < shape.size(); ++i) {
+      VERIFY_LE(shape[i], 0x7fffffff) << "tensor size should not larger than the range of int32";
+    }
     if (shape.size() == 1) {
       ret.push_back(TShape{shape[0]});
     } else if (shape.size() == 2) {
@@ -35,6 +39,10 @@ std::vector<TShape> GetTShapeArray(const std::vector<std::vector<int64_t> > &sha
       ret.push_back(TShape{shape[0], shape[1], shape[2]});
     } else if (shape.size() == 4) {
       ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3]});
+    } else if (shape.size() == 5) {
+      ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3], shape[4]});
+    } else if (shape.size() == 6) {
+      ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]});
     } else {
       ret.push_back(TShape());
     }
@@ -120,33 +128,39 @@ int64_t CvmRuntime::GetOps() {
         ops.push_back(op);
       }
       int64_t t = 0;
+      int len = 0;
       if (op == "dense") {
-        auto shape1 = rshape[inode.inputs[0].node_id];
         auto shape2 = rshape[inode.inputs[1].node_id];
         t = static_cast<int64_t>(shape2[1]) * 3;
         auto& param = cvm::get<cvm::top::DenseParam>(inode.attrs.parsed);
         if (param.use_bias) {
           t += 1;
         }
+        len += 32 - __builtin_clz(unsigned(t));
       } else if (op == "conv2d") {
         auto shape1 = rshape[inode.inputs[0].node_id];
         auto shape2 = rshape[inode.inputs[1].node_id];
         t = (static_cast<int64_t>(shape2[1]) * shape2[2] * shape2[3] * 3);
+        len += 96 - __builtin_clz((unsigned)shape2[1]) - __builtin_clz((unsigned)shape2[2])
+                  - __builtin_clz((unsigned)shape2[3] * 3);
         auto& param = cvm::get<cvm::top::Conv2DParam>(inode.attrs.parsed);
         if (param.use_bias) {
           t += 1;
         }
      } else if (op == "max_pool2d") {
-        t = rshape[nid].Size();
-        t /= rshape[nid][0];
         auto& param = cvm::get<cvm::top::MaxPool2DParam>(inode.attrs.parsed);
         t = param.pool_size.Size();
+        len += 32 - __builtin_clz((unsigned)t);
       } else {
         t = 1;
       }
       int64_t osize = rshape[nid].Size();
       osize /= rshape[nid][0];
+      len += 32 - __builtin_clz((unsigned)osize);
       t *= osize;
+      if (len > 40 || t > (1ll << 40)) {
+        return -1;
+      }
 /*
       std::cout << op << "    ";
       for (int i = op.length(); i < 20; ++i) std::cout << ' ';
@@ -252,19 +266,23 @@ inline bool SameType(const cvm::NodeAttrs attrs,
 void CvmRuntime::SetupType() {
   auto &idx = nodes_;
   std::vector<int> rtype;
-  rtype.resize(nodes_.size(), 4);
+  std::vector<std::string> &dltype = attrs_.dltype;
+  for (unsigned int i = 0; i < dltype.size(); ++i) {
+    VERIFY(dltype[i] == "uint32" || dltype[i] == "int32") << "type " << dltype[i] << " are not supported.";
+    int t = dltype[i] == "uint32" ? 9 : 4;
+    rtype.push_back(t);
+  }
+
   static auto& finfer_type =
       Op::GetAttr<cvm::FInferNodeEntryAttr<int> >("FInferType");
   // reshape shape vector
 
   // Temp space for shape inference.
   std::vector<int> itype, otype;
-
   // inference step function for nid
   auto infer_type = [&](uint32_t nid) {
     const auto& inode = idx[nid];
     if (inode.op_type == "null") {
-      VERIFY(rtype[nid] == 4 || rtype[nid] == 9) << "Placeholder type should be int32 or uint32";
         // Variable node. No operator. Only one output entry.
     } else {
       const uint32_t num_inputs = inode.param.num_inputs;
