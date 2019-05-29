@@ -148,12 +148,15 @@ inline bool Conv2DInferPrecision(const NodeAttrs& attrs,
 		                             std::vector<TShape>* shapes,
 																 std::vector<int>* iattr,
 																 std::vector<int>* oattr) {
-	if (shapes->size() == 0 || shapes->at(0)[1] == 0)
-		return false;
+  if (shapes->size() == 0 || shapes->at(0)[1] == 0)
+      return false;
   const PARAM& param = cvm::get<PARAM>(attrs.parsed);
-  int64_t max_size = param.kernel_size.Size() * shapes->at(0)[1];
-	if (iattr->size() == 0 || oattr->size() == 0) return false;
-	int prec = iattr->at(0) * 2;
+  int64_t max_size = param.kernel_size.Size();
+  max_size *= shapes->at(0)[1];
+  max_size /= int(param.groups + 0.5);
+
+  if (iattr->size() == 0 || oattr->size() == 0) return false;
+  int prec = iattr->at(0) + iattr->at(1);
   while (max_size) {
     prec++;
     max_size >>= 1;

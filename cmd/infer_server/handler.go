@@ -47,7 +47,7 @@ func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 		return
 	}
 
-	log.Info("Infer Task", "Model Hash", inferWork.Model, "Input Hash", inferWork.Input)
+	log.Debug("Infer Task", "Model Hash", inferWork.Model, "Input Hash", inferWork.Input)
 	label, err := synapse.Engine().InferByInfoHash(inferWork.Model, inferWork.Input)
 
 	if err == nil {

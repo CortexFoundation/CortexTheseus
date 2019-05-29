@@ -94,11 +94,18 @@ void CvmRuntime::SetupPrecision() {
           VERIFY(precision[entry_id(inode.inputs[i])] <= iprec[i] && iprec[i] <= 32)
              << "Check precision failed, "
              << "expected to be at most " << iprec[i]
-             << " but " << precision[entry_id(inode.inputs[i])];
+             << " but " << precision[entry_id(inode.inputs[i])]
+             << ", i =" << i << " " << entry_id(inode.inputs[i])
+             << " | nid = " << nid;
           precision[entry_id(inode.inputs[i])] = iprec[i];
       }
       for (uint32_t i = 0; i < num_outputs; ++i) {
         precision[entry_id(nid, i)] = oprec[i];
+        VERIFY(oprec[i] <= 32)
+            << " nid = " << nid << "i = " << i
+            << " precison = " << oprec[i]
+            << " name= " << inode.name
+            << " inode.attrs = " << attrs_.op_attrs[nid];
       }
     }
   };

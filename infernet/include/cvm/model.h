@@ -17,6 +17,16 @@ using std::string;
 namespace cvm {
 namespace runtime {
 
+extern double transpose_int8_avx256_transpose_cnt;
+extern double transpose_int8_avx256_gemm_cnt;
+extern double im2col_cnt;
+extern double cvm_op_rightshift_cnt;
+extern double cvm_op_clip_cnt;
+extern double cvm_op_dense_cnt;
+extern double cvm_op_maxpool_cnt;
+extern double cvm_op_broadcast_cnt;
+extern double cvm_op_concat_cnt;
+
 struct CVMModel {
 public:
   bool loaded{false};
