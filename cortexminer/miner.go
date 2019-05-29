@@ -70,11 +70,11 @@ func (cm *Cortex) init() *net.TCPConn {
 	checkError(err, "init()")
 
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	cm.conn.SetKeepAlive(true)
+        cm.conn.SetNoDelay(true)
 	checkError(err, "init()")
 	cm.consta.state = true
 	cm.reader = bufio.NewReader(cm.conn)
-	cm.conn.SetKeepAlive(true)
-	cm.conn.SetNoDelay(true)
 	return cm.conn
 }
 
