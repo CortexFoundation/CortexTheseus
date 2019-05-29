@@ -15,6 +15,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 //------------------------------------------------------------------------------
@@ -25,7 +26,8 @@ var (
 	ErrGetLatestBlock = errors.New("get latest block failed")
 	ErrNoRPCClient    = errors.New("no rpc client")
 
-	ErrBlockHash = errors.New("block or parent block hash invalid")
+	ErrBlockHash  = errors.New("block or parent block hash invalid")
+	blockCache, _ = lru.New(6)
 )
 
 const (
@@ -488,8 +490,8 @@ func (m *Monitor) syncLastBlock() {
 	}
 	if maxNumber > minNumber {
 		if minNumber > 4 {
-                        minNumber = minNumber - 4
-                }
+			minNumber = minNumber - 4
+		}
 		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return
@@ -508,29 +510,33 @@ func (m *Monitor) syncLastBlock() {
 			return
 		}
 
-		block := m.fs.GetBlockByNumber(i)
-		if block == nil {
-			block = rpcBlock
+		if hash, _ := blockCache.Get(i); hash != rpcBlock.Hash.Hex() {
 
-			if err := m.parseAndStore(block, true); err != nil {
-				log.Error("Fail to parse and storge latest block", "number", i, "error", err)
-				return
-			}
+			block := m.fs.GetBlockByNumber(i)
+			if block == nil {
+				block = rpcBlock
 
-		} else {
-			if block.Hash.Hex() == rpcBlock.Hash.Hex() {
-
-				if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
-					log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
+				if err := m.parseAndStore(block, true); err != nil {
+					log.Error("Fail to parse and storge latest block", "number", i, "error", err)
 					return
 				}
+
 			} else {
-				//dirty tfs
-				if err := m.parseAndStore(rpcBlock, true); err != nil {
-					log.Error("Dirty tfs fail to parse and storge latest block", "number", i, "error", err)
-					return
+				if block.Hash.Hex() == rpcBlock.Hash.Hex() {
+
+					if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
+						log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
+						return
+					}
+				} else {
+					//dirty tfs
+					if err := m.parseAndStore(rpcBlock, true); err != nil {
+						log.Error("Dirty tfs fail to parse and storge latest block", "number", i, "error", err)
+						return
+					}
 				}
 			}
+			blockCache.Add(i, rpcBlock.Hash.Hex())
 		}
 	}
 	m.lastNumber = maxNumber
