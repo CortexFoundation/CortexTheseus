@@ -15,18 +15,40 @@ var synapseInstance *Synapse = nil
 const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_cvm.so"
 
-var defaultConfig Config = Config{
-	StorageDir: "",
-	IsNotCache: false,
-	DeviceType: "cpu",
-	DeviceId: 0,
+/*
+// Config ...
+type Config struct {
+	DataDir string 
+	RpcURI  string `toml:",omitempty"`
+	IpcPath string `toml:",omitempty"`
+	// Host is the host interface on which to start the storage server. If this
+	// field is empty, no storage will be started.
+	Host string `toml:",omitempty"`
+	// Port is the TCP port number on which to start the storage server. The
+	// default zero value is/ valid and will pick a port number randomly.
+	Port            int    `toml:",omitempty"`
+	DefaultTrackers string `toml:",omitempty"`
+	SyncMode        string `toml:",omitempty"`
+	TestMode        bool   `toml:",omitempty"`
 }
+*/
 
 type Config struct {
-	StorageDir string
-	IsNotCache bool
-	DeviceType string
-	DeviceId int
+	StorageDir    string    `toml:",omitempty"`
+	IsNotCache    bool      `toml:",omitempty"`
+	DeviceType    string    `toml:",omitempty"`
+	DeviceId      int       `toml:",omitempty"`
+	IsRemoteInfer bool      `toml:",omitempty"`
+	InferURI      string    `toml:",omitempty"`
+}
+
+var DefaultConfig Config = Config{
+	StorageDir    : "",
+	IsNotCache    : false,
+	DeviceType    : "cpu",
+	DeviceId      : 0,
+	IsRemoteInfer : false,
+	InferURI      : "",
 }
 
 type Synapse struct {
@@ -40,22 +62,27 @@ type Synapse struct {
 func Engine() *Synapse {
 	if synapseInstance == nil {
 		log.Error("Synapse Engine has not been initalized")
-		return New(defaultConfig)
+		return New(DefaultConfig)
 	}
 
 	return synapseInstance
 }
 
 func New(config Config) *Synapse {
+	var lib *plugin.Plugin = nil
+
 	if synapseInstance != nil {
 		log.Warn("Synapse Engine has been initalized")
 		return synapseInstance
 	}
 
-	lib, err := plugin.Open(PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX)
-	if err != nil {
-		log.Error("infer helper", "init cvm plugin error", err)
-		return nil         
+	if config.IsRemoteInfer {
+		var err error = nil
+		lib, err = plugin.Open(PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX)
+		if err != nil {
+			log.Error("infer helper", "init cvm plugin error", err)
+			return nil         
+		}	
 	}
 
 	synapseInstance = &Synapse{

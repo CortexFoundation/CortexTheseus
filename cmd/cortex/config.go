@@ -33,6 +33,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/naoina/toml"
 )
 
@@ -80,6 +81,7 @@ type cortexConfig struct {
 	Cortexstats  ctxcstatsConfig
 	Dashboard dashboard.Config
 	TorrentFs torrentfs.Config
+	Synapse   synapse.Config
 }
 
 func loadConfig(file string, cfg *cortexConfig) error {
@@ -109,11 +111,12 @@ func defaultNodeConfig() node.Config {
 
 func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// Load defaults.
-	cfg := cortexConfig{
-		Cortex:       ctxc.DefaultConfig,
+	cfg := cortexConfig {
+		Cortex:    ctxc.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
 		TorrentFs: torrentfs.DefaultConfig,
+		Synapse  : synapse.DefaultConfig,
 	}
 
 	// Load config file.
@@ -137,6 +140,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
 	utils.SetTorrentFsConfig(ctx, &cfg.TorrentFs)
+	utils.SetSynapseConfig(ctx, &cfg.Synapse)
 
 	return stack, cfg
 }

@@ -21,6 +21,7 @@ var (
 	port       = flag.Int("port", 8827, "Server listen port")
 	IsNotCache = flag.Bool("disable_cache", false, "Disable cache")
 	DeviceType = flag.String("device", "cpu", "cpu or gpu")
+	DeviceId   = flag.Int("device_id", 0, "device id")
 )
 
 var rpcClient *rpc.Client
@@ -84,6 +85,7 @@ func main() {
 		StorageDir: *storageDir,
 		IsNotCache: *IsNotCache,
 		DeviceType: *DeviceType,
+		DeviceId: *DeviceId,
 	})
 	log.Info("Initilized inference server with synapse engine")
 

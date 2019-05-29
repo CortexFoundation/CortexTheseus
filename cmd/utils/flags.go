@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	// "math/big"
 
 	"path/filepath"
@@ -58,6 +57,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -181,7 +182,7 @@ var (
 	StorageDirFlag = DirectoryFlag{
 		Name:  "storage.dir",
 		Usage: "P2P storage directory",
-		Value: DirectoryString{node.DefaultStorageDir()},
+		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
 	StorageAddrFlag = cli.StringFlag{
 		Name:  "storage.addr",
@@ -665,14 +666,14 @@ func MakeStorageDir(ctx *cli.Context) string {
 	case ctx.GlobalIsSet(StorageDirFlag.Name):
 		return ctx.GlobalString(StorageDirFlag.Name)
 	case ctx.GlobalBool(CerebroFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "cerebro")
+		return filepath.Join(node.DefaultStorageDir(""), "cerebro")
 	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "testnet")
+		return filepath.Join(node.DefaultStorageDir(""), "testnet")
 	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "lazynet")
+		return filepath.Join(node.DefaultStorageDir(""), "lazynet")
 	}
 
-	return node.DefaultStorageDir()
+	return node.DefaultStorageDir(MakeDataDir(ctx))
 }
 
 // setNodeKey creates a node key from set command line flags, either loading it
@@ -1221,6 +1222,10 @@ func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
 	cfg.Host = ctx.GlobalString(DashboardAddrFlag.Name)
 	cfg.Port = ctx.GlobalInt(DashboardPortFlag.Name)
 	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
+}
+
+func SetSynapseConfig(ctx *cli.Context, cfg *synapse.Config) {
+
 }
 
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
