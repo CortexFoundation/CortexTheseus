@@ -14,12 +14,12 @@ import (
 	"log"
 	//	"time"
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/PoolMiner/common"
+	"github.com/ethereum/go-ethereum/PoolMiner/config"
+	"github.com/ethereum/go-ethereum/PoolMiner/crypto"
 	"math/rand"
 	"time"
 	"unsafe"
-	"github.com/ethereum/go-ethereum/PoolMiner/config"
-	"github.com/ethereum/go-ethereum/PoolMiner/common"
-	"github.com/ethereum/go-ethereum/PoolMiner/crypto"
 )
 
 func FindSolutionsByGPU(hash []byte, nonce uint64, threadId uint32) (nedges uint32) {
@@ -61,7 +61,7 @@ func FindCycles(threadId uint32, nedges uint32) (status_code uint32, ret [][]uin
 	for solIdx := uint32(0); solIdx < _numSols; solIdx++ {
 		var sol = make([]uint32, _solLength)
 		copy(sol[:], result[solIdx*_solLength:(solIdx+1)*_solLength])
-	//	 log.Println(fmt.Sprintf("Index: %v, Solution: %v", solIdx, sol))
+		//	 log.Println(fmt.Sprintf("Index: %v, Solution: %v", solIdx, sol))
 		ret = append(ret, sol)
 	}
 
@@ -88,14 +88,14 @@ func Monitor(device_count uint32) (fanSpeeds []uint32, temperatures []uint32) {
 //var nonceIndex int = 0
 //var noncesOfFindSolution int = 0
 
-func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonce uint64, header []byte, taskHeader string, solChan chan config.Task, deviceInfos []config.DeviceInfo, param config.Param){
+func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonce uint64, header []byte, taskHeader string, solChan chan config.Task, deviceInfos []config.DeviceInfo, param config.Param) {
 	var result common.BlockSolution
 	if status != 0 {
 		//if verboseLevel >= 3 {
 		//	log.Println("result: ", status, sols)
 		//}
-//			noncesOfFindSolution += 1
-//			log.Println("nonceIndex=", nonceIndex,"nonce=",curNonce, "noncesOfFindSolution = ", noncesOfFindSolution)
+		//			noncesOfFindSolution += 1
+		//			log.Println("nonceIndex=", nonceIndex,"nonce=",curNonce, "noncesOfFindSolution = ", noncesOfFindSolution)
 		for _, solUint32 := range sols {
 			var sol common.BlockSolution
 			copy(sol[:], solUint32)
@@ -103,7 +103,7 @@ func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonc
 			//if verboseLevel >= 3 {
 			//	log.Println(curNonce, "\n sol hash: ", hex.EncodeToString(sha3hash.Bytes()), "\n tgt hash: ", hex.EncodeToString(tgtDiff.Bytes()))
 			//}
-//				log.Println(tgtDiff.Big(), sha3hash.Big(), header[:], curNonce, sol)
+			//				log.Println(tgtDiff.Big(), sha3hash.Big(), header[:], curNonce, sol)
 			if sha3hash.Big().Cmp(tgtDiff.Big()) <= 0 {
 				result = sol
 				nonceStr := common.Uint64ToHexString(uint64(curNonce))
@@ -125,7 +125,7 @@ func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonc
 	}
 }
 
-func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, solChan chan config.Task, state bool) (status_code uint32, ret [][]uint32){
+func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, solChan chan config.Task, state bool) (status_code uint32, ret [][]uint32) {
 	rand.Seed(time.Now().UTC().UnixNano())
 	nedgesChan := make(chan config.StreamData, THREAD)
 	for nthread := 0; nthread < int(THREAD); nthread++ {
@@ -144,16 +144,16 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 				}
 				//tgtDiff := common.HexToHash(task.Difficulty[2:])
 				header, _ := hex.DecodeString(task.Header[2:])
-			//	for i := 0; i < len(header); i++ {
-			//		header[i] = 0
-			//	}
+				//	for i := 0; i < len(header); i++ {
+				//		header[i] = 0
+				//	}
 				curNonce := uint64(rand.Int63())
-			//	curNonce := nonces[nonceIndex%len(nonces)]
-			//	nonceIndex += 1
+				//	curNonce := nonces[nonceIndex%len(nonces)]
+				//	nonceIndex += 1
 
 				deviceInfos[tidx].Lock.Lock()
 				//log.Println("run solution")
-			  var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
+				var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
 				var streamData config.StreamData
 				nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
 				//	status, sols := FindCycles(tidx, nedges)
@@ -168,30 +168,28 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 		}(uint32(nthread), &config.CurrentTask)
 	}
 
-
 	go func() {
 		for {
 			select {
-				case streamData := <-nedgesChan:
-					tidx := streamData.ThreadId
-//					log.Println(streamData)
-					status, sols := FindCycles(tidx, streamData.Nedges)
-					end_time := time.Now().UnixNano() / 1e6
-					deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
-					deviceInfos[tidx].Solution_count += int64(len(sols))
-					deviceInfos[tidx].Gps += 1
-					tgtDiff := common.HexToHash(streamData.Difficulty[2:])
-					curNonce := streamData.Nonce
-					header := streamData.Header
-			    verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-				default:
-					time.Sleep(50 * time.Millisecond)
+			case streamData := <-nedgesChan:
+				tidx := streamData.ThreadId
+				//					log.Println(streamData)
+				status, sols := FindCycles(tidx, streamData.Nedges)
+				end_time := time.Now().UnixNano() / 1e6
+				deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
+				deviceInfos[tidx].Solution_count += int64(len(sols))
+				deviceInfos[tidx].Gps += 1
+				tgtDiff := common.HexToHash(streamData.Difficulty[2:])
+				curNonce := streamData.Nonce
+				header := streamData.Header
+				verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
+			default:
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}()
-	return 0,ret
+	return 0, ret
 }
-
 
 func CuckooVerifyProof(hash []byte, nonce uint64, result *uint32) int {
 	tmpHash := hash
@@ -201,7 +199,6 @@ func CuckooVerifyProof(hash []byte, nonce uint64, result *uint32) int {
 		(*C.uint32_t)(unsafe.Pointer((result))))
 	return int(r)
 }
-
 
 func CuckooVerifyProof_cuckaroo(hash []byte, nonce uint64, result *uint32) int {
 	tmpHash := hash
