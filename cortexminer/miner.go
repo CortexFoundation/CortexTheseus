@@ -208,6 +208,7 @@ func readNonce()(ret []uint64) {
 }
 
 func (cm *Cortex) miningOnce() {
+	 log.Println("mining once")
 	var taskHeader, taskNonce, taskDifficulty string
 	var THREAD int = (int)(len(cm.deviceInfos))
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -218,7 +219,7 @@ func (cm *Cortex) miningOnce() {
 		panic(err)
 	}
 	m.(func(int, []config.DeviceInfo, config.Param, chan config.Task, bool)(uint32, [][]uint32)) (THREAD, cm.deviceInfos, cm.param, solChan, cm.consta.state)
-
+	log.Println(".....")
 	cm.getWork()
 
 	go func(currentTask_ *config.TaskWrapper) {
@@ -244,11 +245,12 @@ func (cm *Cortex) miningOnce() {
 				if len(workInfo) >= 3 {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
 					log.Println("Get Work: ", taskHeader, taskDifficulty)
-					currentTask_.Lock.Lock()
-					defer currentTask_.Lock.Unlock()
+					//currentTask_.Lock.Lock()
+					//defer currentTask_.Lock.Unlock()
 					currentTask_.TaskQ.Nonce = taskNonce
 					currentTask_.TaskQ.Header = taskHeader
 					currentTask_.TaskQ.Difficulty = taskDifficulty
+					//currentTask_.Lock.Unlock()
 				}
 			}
 		}
