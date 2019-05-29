@@ -61,8 +61,8 @@ func (cm *Cortex) write(reqObj ReqObj) {
 //	init cortex miner
 func (cm *Cortex) init() *net.TCPConn {
 	log.Println("Cortex Init")
-	cm.consta.lock.Lock()
-	defer cm.consta.lock.Unlock()
+	//cm.consta.lock.Lock()
+	//defer cm.consta.lock.Unlock()
 	//cm.server = "cortex.waterhole.xyz:8008"
 	//cm.server = "localhost:8009"
 	//cm.account = "0xc3d7a1ef810983847510542edfd5bc5551a6321c"
@@ -72,9 +72,11 @@ func (cm *Cortex) init() *net.TCPConn {
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	cm.conn.SetKeepAlive(true)
         cm.conn.SetNoDelay(true)
+	log.Println("Cortex connect successfully")
 	checkError(err, "init()")
 	cm.consta.state = true
 	cm.reader = bufio.NewReader(cm.conn)
+	log.Println("Cortex Init successfully")
 	return cm.conn
 }
 
