@@ -246,11 +246,11 @@ func (cm *Cortex) miningOnce() {
 				if len(workInfo) >= 3 {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
 					log.Println("Get Work: ", taskHeader, taskDifficulty)
-					currentTask_.Lock.Lock()
+					//currentTask_.Lock.Lock()
 					currentTask_.TaskQ.Nonce = taskNonce
 					currentTask_.TaskQ.Header = taskHeader
 					currentTask_.TaskQ.Difficulty = taskDifficulty
-					currentTask_.Lock.Unlock()
+					//currentTask_.Lock.Unlock()
 				}
 			}
 		}

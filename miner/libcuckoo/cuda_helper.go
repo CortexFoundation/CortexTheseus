@@ -135,9 +135,9 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 					return
 				}
 				//log.Println("run")
-				currentTask_.Lock.Lock()
+				//currentTask_.Lock.Lock()
 				task := currentTask_.TaskQ
-				currentTask_.Lock.Unlock()
+				//currentTask_.Lock.Unlock()
 				if len(task.Difficulty) == 0 {
 					time.Sleep(100 * time.Millisecond)
 					continue
@@ -151,7 +151,7 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 				//	curNonce := nonces[nonceIndex%len(nonces)]
 				//	nonceIndex += 1
 
-				deviceInfos[tidx].Lock.Lock()
+				//deviceInfos[tidx].Lock.Lock()
 				//log.Println("run solution")
 				var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
 				var streamData config.StreamData
@@ -163,7 +163,7 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 				//	deviceInfos[tidx].Gps += 1
 				//	tgtDiff := common.HexToHash(task.Difficulty[2:])
 				//	verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-				deviceInfos[tidx].Lock.Unlock()
+				//deviceInfos[tidx].Lock.Unlock()
 			}
 		}(uint32(nthread), &config.CurrentTask)
 	}
