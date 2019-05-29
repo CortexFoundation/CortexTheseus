@@ -146,8 +146,8 @@ func (cm *Cortex) Mining() {
 	for {
 		for {
 			cm.consta.lock.Lock()
+			defer cm.consta.lock.Unlock()
 			consta := cm.consta.state
-			cm.consta.lock.Unlock()
 			if consta == false {
 				cm.init()
 				cm.login()
@@ -241,10 +241,10 @@ func (cm *Cortex) miningOnce() {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
 					log.Println("Get Work: ", taskHeader, taskDifficulty)
 					currentTask_.Lock.Lock()
+					defer currentTask_.Lock.Unlock()
 					currentTask_.TaskQ.Nonce = taskNonce
 					currentTask_.TaskQ.Header = taskHeader
 					currentTask_.TaskQ.Difficulty = taskDifficulty
-					currentTask_.Lock.Unlock()
 				}
 			}
 		}
@@ -265,8 +265,8 @@ func (cm *Cortex) miningOnce() {
 		select {
 		case sol := <-solChan:
 			config.CurrentTask.Lock.Lock()
+			defer config.CurrentTask.Lock.Unlock()
 			task := config.CurrentTask.TaskQ
-			config.CurrentTask.Lock.Unlock()
 			if sol.Header == task.Header {
 				cm.submit(sol)
 			}
