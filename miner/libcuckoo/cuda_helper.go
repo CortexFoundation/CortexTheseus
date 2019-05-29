@@ -142,33 +142,34 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 			for nthread := uint32(0); nthread < uint32(THREAD); nthread++ {
 				select {
 				case task := <-taskChan:
-					go func(tidx uint32, currentTask_ *config.TaskWrapper) {
-						taskNumber[tidx] = taskNumber[tidx] + 1
-						if len(task.Difficulty) == 0 {
-							//time.Sleep(100 * time.Millisecond)
-							return
-						}
-						header, _ := hex.DecodeString(task.Header[2:])
-						curNonce := uint64(rand.Int63())
-						tmp := taskNumber[tidx]
-						go func(tmp uint32) {
-							for {
-								if tmp < taskNumber[tidx] {
-									log.Println("Task thread quit [", tidx, "] task", tmp, taskNumber[tidx])
-									return
-								}
-								curNonce = uint64(curNonce + 1)
-								deviceInfos[tidx].Lock.Lock()
-								//log.Println("lock", tidx)
-								var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-								//log.Println("unlock", tidx)
-								deviceInfos[tidx].Lock.Unlock()
-								var streamData config.StreamData
-								nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+					//go func(tidx uint32, currentTask_ *config.TaskWrapper) {
+					tidx := uint32(nthread)
+					taskNumber[tidx] = taskNumber[tidx] + 1
+					if len(task.Difficulty) == 0 {
+						//time.Sleep(100 * time.Millisecond)
+						return
+					}
+					header, _ := hex.DecodeString(task.Header[2:])
+					curNonce := uint64(rand.Int63())
+					tmp := taskNumber[tidx]
+					go func(tmp uint32) {
+						for {
+							if tmp < taskNumber[tidx] {
+								log.Println("Task thread quit [", tidx, "] task", tmp, taskNumber[tidx])
+								return
 							}
-						}(tmp)
-						log.Println("New task", tidx, curNonce, header)
-					}(uint32(nthread), &config.CurrentTask)
+							curNonce = uint64(curNonce + 1)
+							deviceInfos[tidx].Lock.Lock()
+							//log.Println("lock", tidx)
+							var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
+							//log.Println("unlock", tidx)
+							deviceInfos[tidx].Lock.Unlock()
+							var streamData config.StreamData
+							nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+						}
+					}(tmp)
+					log.Println("New task", tidx, curNonce, header)
+					//}(uint32(nthread), &config.CurrentTask)
 				default:
 					continue
 				}
