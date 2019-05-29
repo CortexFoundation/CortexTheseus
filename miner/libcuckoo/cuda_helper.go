@@ -135,9 +135,9 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 					return
 				}
 				//log.Println("run")
-				//currentTask_.Lock.Lock()
+				currentTask_.Lock.Lock()
 				task := currentTask_.TaskQ
-				//currentTask_.Lock.Unlock()
+				currentTask_.Lock.Unlock()
 				if len(task.Difficulty) == 0 {
 					time.Sleep(100 * time.Millisecond)
 					continue
