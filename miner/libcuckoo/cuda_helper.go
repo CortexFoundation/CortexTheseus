@@ -139,9 +139,10 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 				return
 			}
 
-			for nthread := uint32(0); nthread < uint32(THREAD); nthread++ {
-				select {
-				case task := <-taskChan:
+			//	for nthread := uint32(0); nthread < uint32(THREAD); nthread++ {
+			select {
+			case task := <-taskChan:
+				for nthread := uint32(0); nthread < uint32(THREAD); nthread++ {
 					//go func(tidx uint32, currentTask_ *config.TaskWrapper) {
 					tidx := uint32(nthread)
 					taskNumber[tidx] = taskNumber[tidx] + 1
@@ -169,11 +170,12 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 						}
 					}(tmp)
 					log.Println("New task", tidx, curNonce, header)
-					//}(uint32(nthread), &config.CurrentTask)
-				default:
-					continue
 				}
+				//}(uint32(nthread), &config.CurrentTask)
+			default:
+				continue
 			}
+			//	}
 		}
 	}()
 	/*for nthread := 0; nthread < int(THREAD); nthread++ {

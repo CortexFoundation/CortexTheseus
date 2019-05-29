@@ -222,7 +222,7 @@ func (cm *Cortex) miningOnce() {
 	var THREAD int = (int)(len(cm.deviceInfos))
 	rand.Seed(time.Now().UTC().UnixNano())
 	solChan := make(chan config.Task, THREAD)
-	taskChan := make(chan config.Task, THREAD)
+	taskChan := make(chan config.Task, 1)
 
 	m, err := minerPlugin.Lookup("RunSolver")
 	if err != nil {
@@ -260,9 +260,9 @@ func (cm *Cortex) miningOnce() {
 					currentTask_.TaskQ.Header = taskHeader
 					currentTask_.TaskQ.Difficulty = taskDifficulty
 					currentTask_.Lock.Unlock()
-					for i := 0; i < THREAD; i++ {
+					//for i := 0; i < THREAD; i++ {
 						taskChan <- currentTask_.TaskQ
-					}
+					//}
 				}
 			}
 		}
