@@ -25,16 +25,16 @@ func checkError(err error, func_name string) {
 }
 
 func (cm *Cortex) read() map[string]interface{} {
-	rep := make([]byte, 0, 4096) // big buffer
+	rep := make([]byte, 0, 1024) // big buffer
 	for {
 		tmp, isPrefix, err := cm.reader.ReadLine()
 		if err == io.EOF {
 			log.Println("Tcp disconnectted")
+			cm.consta.lock.Lock()
+			defer  cm.consta.lock.Unlock()
 			cm.conn.Close()
 			cm.conn = nil
-			cm.consta.lock.Lock()
 			cm.consta.state = false
-			cm.consta.lock.Unlock()
 			return nil
 		}
 		checkError(err, "read()")
@@ -61,6 +61,8 @@ func (cm *Cortex) write(reqObj ReqObj) {
 //	init cortex miner
 func (cm *Cortex) init() *net.TCPConn {
 	log.Println("Cortex Init")
+	cm.consta.lock.Lock()
+	defer cm.consta.lock.Unlock()
 	//cm.server = "cortex.waterhole.xyz:8008"
 	//cm.server = "localhost:8009"
 	//cm.account = "0xc3d7a1ef810983847510542edfd5bc5551a6321c"
@@ -69,11 +71,10 @@ func (cm *Cortex) init() *net.TCPConn {
 
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	checkError(err, "init()")
-	cm.consta.lock.Lock()
 	cm.consta.state = true
-	cm.consta.lock.Unlock()
 	cm.reader = bufio.NewReader(cm.conn)
 	cm.conn.SetKeepAlive(true)
+	cm.conn.SetNoDelay(true)
 	return cm.conn
 }
 
