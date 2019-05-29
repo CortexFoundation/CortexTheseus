@@ -61,8 +61,8 @@ func (cm *Cortex) write(reqObj ReqObj) {
 //	init cortex miner
 func (cm *Cortex) init() *net.TCPConn {
 	log.Println("Cortex Init")
-	//cm.consta.lock.Lock()
-	//defer cm.consta.lock.Unlock()
+	cm.consta.lock.Lock()
+	defer cm.consta.lock.Unlock()
 	//cm.server = "cortex.waterhole.xyz:8008"
 	//cm.server = "localhost:8009"
 	//cm.account = "0xc3d7a1ef810983847510542edfd5bc5551a6321c"
@@ -82,6 +82,7 @@ func (cm *Cortex) init() *net.TCPConn {
 
 //	miner login to mining pool
 func (cm *Cortex) login() {
+	log.Println("Cortex login ...")
 	var reqLogin = ReqObj{
 		Id:      73,
 		Jsonrpc: "2.0",
@@ -90,6 +91,7 @@ func (cm *Cortex) login() {
 	}
 	cm.write(reqLogin)
 	cm.read()
+	log.Println("Cortex login suc")
 }
 
 //	get mining task
@@ -147,8 +149,8 @@ func (cm *Cortex) Mining() {
 
 	for {
 		for {
-			cm.consta.lock.Lock()
-			defer cm.consta.lock.Unlock()
+			//cm.consta.lock.Lock()
+			//defer cm.consta.lock.Unlock()
 			consta := cm.consta.state
 			if consta == false {
 				cm.init()
