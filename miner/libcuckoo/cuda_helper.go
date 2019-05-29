@@ -128,7 +128,51 @@ func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonc
 func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, taskChan chan config.Task, solChan chan config.Task, state bool) (status_code uint32, ret [][]uint32) {
 	rand.Seed(time.Now().UTC().UnixNano())
 	nedgesChan := make(chan config.StreamData, THREAD)
-	for nthread := 0; nthread < int(THREAD); nthread++ {
+	taskNumber := [6]uint32{0, 0, 0, 0, 0, 0}
+	go func() {
+		for {
+			if state == false {
+				log.Println("Exit task thread")
+				return
+			}
+
+			for nthread := uint32(0); nthread < uint32(THREAD); nthread++ {
+				select {
+				case task := <-taskChan:
+					go func(tidx uint32, currentTask_ *config.TaskWrapper) {
+						taskNumber[tidx] = taskNumber[tidx] + 1
+						if len(task.Difficulty) == 0 {
+							//time.Sleep(100 * time.Millisecond)
+							return
+						}
+						header, _ := hex.DecodeString(task.Header[2:])
+						curNonce := uint64(rand.Int63())
+						tmp := taskNumber[tidx]
+						go func(tmp uint32) {
+							for {
+								if tmp < taskNumber[tidx] {
+									log.Println("Task thread quit [", tidx, "] task", tmp, taskNumber[tidx])
+									return
+								}
+								curNonce = uint64(curNonce + 1)
+								deviceInfos[tidx].Lock.Lock()
+								//log.Println("lock", tidx)
+								var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
+								//log.Println("unlock", tidx)
+								deviceInfos[tidx].Lock.Unlock()
+								var streamData config.StreamData
+								nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+							}
+						}(tmp)
+						log.Println("New task", tidx, curNonce, header)
+					}(uint32(nthread), &config.CurrentTask)
+				default:
+					continue
+				}
+			}
+		}
+	}()
+	/*for nthread := 0; nthread < int(THREAD); nthread++ {
 		go func(tidx uint32, currentTask_ *config.TaskWrapper) {
 			number := uint32(0)
 			for {
@@ -137,10 +181,6 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 					return
 				}
 				select {
-				//log.Println("run")
-				//currentTask_.Lock.Lock()
-				//task := currentTask_.TaskQ
-				//currentTask_.Lock.Unlock()
 				case task := <-taskChan:
 					{
 
@@ -148,38 +188,24 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 							time.Sleep(100 * time.Millisecond)
 							continue
 						}
-						//tgtDiff := common.HexToHash(task.Difficulty[2:])
 						header, _ := hex.DecodeString(task.Header[2:])
-						//	for i := 0; i < len(header); i++ {
-						//		header[i] = 0
-						//	}
 						curNonce := uint64(rand.Int63())
-						//	curNonce := nonces[nonceIndex%len(nonces)]
-						//	nonceIndex += 1
 						number = number + 1
 						tmp := number
 						go func(tmp uint32) {
 							for {
 								if tmp < number {
-									log.Println("Task thread quit [", tidx, "] task", tmp)
-									break
+									log.Println("Task thread quit [", tidx, "] task", tmp, number)
+									return
 								}
-								//deviceInfos[tidx].Lock.Lock()
-								//log.Println("run solution")
 								curNonce = uint64(curNonce + 1)
 								deviceInfos[tidx].Lock.Lock()
+								log.Println("lock", tidx)
 								var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
+								log.Println("unlock", tidx)
 								deviceInfos[tidx].Lock.Unlock()
 								var streamData config.StreamData
 								nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
-								//	status, sols := FindCycles(tidx, nedges)
-								//	end_time := time.Now().UnixNano() / 1e6
-								//	deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
-								//	deviceInfos[tidx].Solution_count += int64(len(sols))
-								//	deviceInfos[tidx].Gps += 1
-								//	tgtDiff := common.HexToHash(task.Difficulty[2:])
-								//	verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-								//deviceInfos[tidx].Lock.Unlock()
 							}
 						}(tmp)
 						log.Println("New task", tidx, curNonce, header)
@@ -189,7 +215,7 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 				}
 			}
 		}(uint32(nthread), &config.CurrentTask)
-	}
+	}*/
 
 	go func() {
 		for {
