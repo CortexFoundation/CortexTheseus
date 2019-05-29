@@ -128,7 +128,10 @@ func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonc
 func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, taskChan chan config.Task, solChan chan config.Task, state bool) (status_code uint32, ret [][]uint32) {
 	rand.Seed(time.Now().UTC().UnixNano())
 	nedgesChan := make(chan config.StreamData, THREAD)
-	taskNumber := [6]uint32{0, 0, 0, 0, 0, 0}
+	var taskNumber = make([]uint32, THREAD)
+	for i := 0; i < THREAD; i++ {
+		taskNumber[i] = uint32(0)
+	}
 	go func() {
 		for {
 			if state == false {
