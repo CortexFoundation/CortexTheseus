@@ -147,19 +147,27 @@ func (cm *Cortex) Mining() {
 		panic(err)
 	}
 	m.(func([]uint32, uint32, config.Param))(iDeviceIds, (uint32)(len(iDeviceIds)), cm.param)
+	go func() {
+                for {
+                        cm.printHashRate()
+                        time.Sleep(2 * time.Second)
+                }
+        }()
 
 	for {
-		//for {
-		//cm.consta.lock.Lock()
-		//defer cm.consta.lock.Unlock()
-		consta := cm.consta.state
-		if consta == false {
-			cm.init()
-			cm.login()
-		} else {
-			break
+		for {
+			//cm.consta.lock.Lock()
+			//defer cm.consta.lock.Unlock()
+			consta := cm.consta.state
+			if consta == false {
+				cm.init()
+				cm.login()
+			} else {
+				break
+				//return
+			}
 		}
-		//}
+		time.Sleep(1 * time.Second)
 		cm.miningOnce()
 	}
 }
@@ -256,13 +264,6 @@ func (cm *Cortex) miningOnce() {
 		}
 	}(&config.CurrentTask)
 	time.Sleep(2 * time.Second)
-
-	go func() {
-		for {
-			cm.printHashRate()
-			time.Sleep(2 * time.Second)
-		}
-	}()
 
 	for {
 		if cm.consta.state == false {
