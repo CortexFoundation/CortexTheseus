@@ -148,11 +148,11 @@ func (cm *Cortex) Mining() {
 	}
 	m.(func([]uint32, uint32, config.Param))(iDeviceIds, (uint32)(len(iDeviceIds)), cm.param)
 	go func() {
-                for {
-                        cm.printHashRate()
-                        time.Sleep(2 * time.Second)
-                }
-        }()
+		for {
+			cm.printHashRate()
+			time.Sleep(2 * time.Second)
+		}
+	}()
 
 	for {
 		for {
@@ -222,12 +222,13 @@ func (cm *Cortex) miningOnce() {
 	var THREAD int = (int)(len(cm.deviceInfos))
 	rand.Seed(time.Now().UTC().UnixNano())
 	solChan := make(chan config.Task, THREAD)
+	taskChan := make(chan config.Task, THREAD)
 
 	m, err := minerPlugin.Lookup("RunSolver")
 	if err != nil {
 		panic(err)
 	}
-	m.(func(int, []config.DeviceInfo, config.Param, chan config.Task, bool) (uint32, [][]uint32))(THREAD, cm.deviceInfos, cm.param, solChan, cm.consta.state)
+	m.(func(int, []config.DeviceInfo, config.Param, chan config.Task, chan config.Task, bool) (uint32, [][]uint32))(THREAD, cm.deviceInfos, cm.param, taskChan, solChan, cm.consta.state)
 	log.Println(".....")
 	cm.getWork()
 
@@ -253,12 +254,15 @@ func (cm *Cortex) miningOnce() {
 				workInfo, _ := msg["result"].([]interface{})
 				if len(workInfo) >= 3 {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
-					log.Println("Get Work: ", taskHeader, taskDifficulty)
+					log.Println("Get Work in task: ", taskHeader, taskDifficulty)
 					currentTask_.Lock.Lock()
 					currentTask_.TaskQ.Nonce = taskNonce
 					currentTask_.TaskQ.Header = taskHeader
 					currentTask_.TaskQ.Difficulty = taskDifficulty
 					currentTask_.Lock.Unlock()
+					for i := 0; i < THREAD; i++ {
+						taskChan <- currentTask_.TaskQ
+					}
 				}
 			}
 		}
@@ -273,10 +277,10 @@ func (cm *Cortex) miningOnce() {
 		case sol := <-solChan:
 			//config.CurrentTask.Lock.Lock()
 			//defer config.CurrentTask.Lock.Unlock()
-			task := config.CurrentTask.TaskQ
-			if sol.Header == task.Header {
+			//task := config.CurrentTask.TaskQ
+		//	if sol.Header == task.Header {
 				cm.submit(sol)
-			}
+		//	}
 
 		default:
 			time.Sleep(50 * time.Millisecond)

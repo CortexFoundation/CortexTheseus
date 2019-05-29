@@ -125,45 +125,68 @@ func verifySolution(status uint32, sols [][]uint32, tgtDiff common.Hash, curNonc
 	}
 }
 
-func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, solChan chan config.Task, state bool) (status_code uint32, ret [][]uint32) {
+func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, taskChan chan config.Task, solChan chan config.Task, state bool) (status_code uint32, ret [][]uint32) {
 	rand.Seed(time.Now().UTC().UnixNano())
 	nedgesChan := make(chan config.StreamData, THREAD)
 	for nthread := 0; nthread < int(THREAD); nthread++ {
 		go func(tidx uint32, currentTask_ *config.TaskWrapper) {
+			number := uint32(0)
 			for {
 				if state == false {
+					log.Println("Exit task thread")
 					return
 				}
+				select {
 				//log.Println("run")
-				currentTask_.Lock.Lock()
-				task := currentTask_.TaskQ
-				currentTask_.Lock.Unlock()
-				if len(task.Difficulty) == 0 {
-					time.Sleep(100 * time.Millisecond)
+				//currentTask_.Lock.Lock()
+				//task := currentTask_.TaskQ
+				//currentTask_.Lock.Unlock()
+				case task := <-taskChan:
+					{
+
+						if len(task.Difficulty) == 0 {
+							time.Sleep(100 * time.Millisecond)
+							continue
+						}
+						//tgtDiff := common.HexToHash(task.Difficulty[2:])
+						header, _ := hex.DecodeString(task.Header[2:])
+						//	for i := 0; i < len(header); i++ {
+						//		header[i] = 0
+						//	}
+						curNonce := uint64(rand.Int63())
+						//	curNonce := nonces[nonceIndex%len(nonces)]
+						//	nonceIndex += 1
+						number = number + 1
+						tmp := number
+						go func(tmp uint32) {
+							for {
+								if tmp < number {
+									log.Println("Task thread quit [", tidx, "] task", tmp)
+									break
+								}
+								//deviceInfos[tidx].Lock.Lock()
+								//log.Println("run solution")
+								curNonce = uint64(curNonce + 1)
+								deviceInfos[tidx].Lock.Lock()
+								var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
+								deviceInfos[tidx].Lock.Unlock()
+								var streamData config.StreamData
+								nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+								//	status, sols := FindCycles(tidx, nedges)
+								//	end_time := time.Now().UnixNano() / 1e6
+								//	deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
+								//	deviceInfos[tidx].Solution_count += int64(len(sols))
+								//	deviceInfos[tidx].Gps += 1
+								//	tgtDiff := common.HexToHash(task.Difficulty[2:])
+								//	verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
+								//deviceInfos[tidx].Lock.Unlock()
+							}
+						}(tmp)
+						log.Println("New task", tidx, curNonce, header)
+					}
+				default:
 					continue
 				}
-				//tgtDiff := common.HexToHash(task.Difficulty[2:])
-				header, _ := hex.DecodeString(task.Header[2:])
-				//	for i := 0; i < len(header); i++ {
-				//		header[i] = 0
-				//	}
-				curNonce := uint64(rand.Int63())
-				//	curNonce := nonces[nonceIndex%len(nonces)]
-				//	nonceIndex += 1
-
-				deviceInfos[tidx].Lock.Lock()
-				//log.Println("run solution")
-				var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-				var streamData config.StreamData
-				nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
-				//	status, sols := FindCycles(tidx, nedges)
-				//	end_time := time.Now().UnixNano() / 1e6
-				//	deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
-				//	deviceInfos[tidx].Solution_count += int64(len(sols))
-				//	deviceInfos[tidx].Gps += 1
-				//	tgtDiff := common.HexToHash(task.Difficulty[2:])
-				//	verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-				deviceInfos[tidx].Lock.Unlock()
 			}
 		}(uint32(nthread), &config.CurrentTask)
 	}
