@@ -148,7 +148,7 @@ func (cm *Cortex) Mining() {
 
 
 	for {
-		for {
+		//for {
 			//cm.consta.lock.Lock()
 			//defer cm.consta.lock.Unlock()
 			consta := cm.consta.state
@@ -158,7 +158,7 @@ func (cm *Cortex) Mining() {
 			} else {
 				break
 			}
-		}
+		//}
 		cm.miningOnce()
 	}
 }
