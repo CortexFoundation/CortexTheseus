@@ -109,16 +109,6 @@ var AppHelpFlagGroups = []flagGroup{
 	//	},
 	//},
 	{
-		Name: "STORAGE",
-		Flags: []cli.Flag{
-			utils.StorageEnabledFlag,
-			utils.StorageAddrFlag,
-			utils.StoragePortFlag,
-			utils.StorageDirFlag,
-			utils.StorageTrackerFlag,
-		},
-	},
-	{
 		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
 			utils.TxPoolLocalsFlag,
@@ -207,6 +197,23 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MinerOpenCLFlag,
 			utils.MinerDevicesFlag,
 			utils.MinerAlgorithmFlag,
+		},
+	},
+	{
+		Name: "INFER",
+		Flags: []cli.Flag{
+			utils.InferDeviceTypeFlag,
+			utils.InferDeviceIdFlag,
+		},
+	},
+	{
+		Name: "STORAGE",
+		Flags: []cli.Flag{
+			utils.StorageEnabledFlag,
+			utils.StorageAddrFlag,
+			utils.StoragePortFlag,
+			utils.StorageDirFlag,
+			utils.StorageTrackerFlag,
 		},
 	},
 	{

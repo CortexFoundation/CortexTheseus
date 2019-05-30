@@ -52,8 +52,8 @@ var DefaultConfig Config = Config{
 }
 
 type Synapse struct {
-	config Config
-	simpleCache sync.Map
+	config *Config
+	simpleCache *sync.Map
 	lib *plugin.Plugin
 	caches map[int]*lru.Cache
 	exitCh chan struct{}
@@ -62,13 +62,13 @@ type Synapse struct {
 func Engine() *Synapse {
 	if synapseInstance == nil {
 		log.Error("Synapse Engine has not been initalized")
-		return New(DefaultConfig)
+		return New(&DefaultConfig)
 	}
 
 	return synapseInstance
 }
 
-func New(config Config) *Synapse {
+func New(config *Config) *Synapse {
 	var lib *plugin.Plugin = nil
 
 	if synapseInstance != nil {

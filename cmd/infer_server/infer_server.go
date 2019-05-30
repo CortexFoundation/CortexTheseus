@@ -81,11 +81,13 @@ func main() {
 
 	log.Info("Inference Server", "Help Command", "./infer_server -h")
 
-	inferServer := synapse.New(synapse.Config{
+	inferServer := synapse.New(&synapse.Config{
 		StorageDir: *storageDir,
 		IsNotCache: *IsNotCache,
 		DeviceType: *DeviceType,
 		DeviceId: *DeviceId,
+		IsRemoteInfer: false,
+		InferURI: "",
 	})
 	log.Info("Initilized inference server with synapse engine")
 

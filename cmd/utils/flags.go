@@ -57,7 +57,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -174,6 +173,7 @@ var (
 		Usage: `Blockchain garbage collection mode ("full", "archive")`,
 		Value: "full",
 	}
+
 	// P2P storage settings
 	StorageEnabledFlag = cli.BoolFlag{
 		Name:  "storage",
@@ -415,6 +415,17 @@ var (
 		Name:  "miner.algorithm",
 		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
 	}
+	InferDeviceTypeFlag = cli.StringFlag{
+		Name: "infer.devicetype",
+		Usage: "infer device type : cpu or gpu",
+		Value: "cpu",
+	}
+	InferDeviceIdFlag = cli.IntFlag{
+		Name: "infer.devices",
+		Usage: "the device used infering, use --infer.devices=2, not available on cpu",
+		Value: 0,
+	}
+
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -629,15 +640,6 @@ var (
 		Name:  "metrics.influxdb.host.tag",
 		Usage: "InfluxDB `host` tag attached to all measurements",
 		Value: "localhost",
-	}
-	InferDeviceTypeFlag = cli.StringFlag{
-		Name: "infer.device.type",
-		Usage: "infer device type : cuda or cpu",
-	}
-	InferDeviceIdFlag = cli.IntFlag{
-		Name: "infer.device.id",
-		Usage: "device id",
-		Value: 0,
 	}
 )
 
@@ -1222,10 +1224,6 @@ func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
 	cfg.Host = ctx.GlobalString(DashboardAddrFlag.Name)
 	cfg.Port = ctx.GlobalInt(DashboardPortFlag.Name)
 	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
-}
-
-func SetSynapseConfig(ctx *cli.Context, cfg *synapse.Config) {
-
 }
 
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
