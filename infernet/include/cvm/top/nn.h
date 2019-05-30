@@ -321,9 +321,18 @@ struct LayoutTransformParam : public utils::Parameter<LayoutTransformParam> {
   }
 };
 
+struct GetValidCountsParam : public utils::Parameter<GetValidCountsParam> {
+  int score_threshold;
+
+  CVMUTIL_DECLARE_PARAMETER(GetValidCountsParam) {
+    CVMUTIL_DECLARE_FIELD(score_threshold).set_default(0)
+      .describe("Lower limit of score for valid bounding boxes.");
+  }
+};
+
 struct NonMaximumSuppressionParam : public utils::Parameter<NonMaximumSuppressionParam> {
   bool return_indices;
-  float iou_threshold;
+  int iou_threshold;
   bool force_suppress;
   int top_k;
   int id_index;
@@ -335,7 +344,7 @@ struct NonMaximumSuppressionParam : public utils::Parameter<NonMaximumSuppressio
     CVMUTIL_DECLARE_FIELD(max_output_size).set_default(-1)
       .describe("Max number of output valid boxes for each instance."
                 "By default all valid boxes are returned.");
-    CVMUTIL_DECLARE_FIELD(iou_threshold).set_default(0.5)
+    CVMUTIL_DECLARE_FIELD(iou_threshold).set_default(50)
       .describe("Non-maximum suppression threshold.");
     CVMUTIL_DECLARE_FIELD(force_suppress).set_default(false)
       .describe("Suppress all detections regardless of class_id.");
