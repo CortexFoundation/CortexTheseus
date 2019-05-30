@@ -73,6 +73,50 @@ So with `shape=(2,0)`, we will obtain the same result as in the above example.
 .set_num_outputs(1)
 .set_support_level(4);
 
+inline bool LUTInferShape(const NodeAttrs& attrs,
+						  std::vector<TShape>* in_shape,
+						  std::vector<TShape>* out_shape) {
+  VERIFY_EQ(in_shape->size(), 2U);
+  VERIFY_EQ(out_shape->size(), 1U);
+  const TShape& dshape = (*in_shape)[0];
+  const TShape& lutshape = (*in_shape)[1];
+  if (dshape.ndim() == 0) return false;
+  if (lutshape.ndim() == 0) return false;
+  TShape oshape(dshape.ndim());
+	for (size_t j = 0; j < dshape.ndim(); ++j) {
+	  oshape[j] = dshape[j];
+	}
+	return true;
+}
+
+inline bool LUTInferType(const NodeAttrs& attrs,
+                          std::vector<int>* in_attrs,
+                          std::vector<int>* out_attrs) {
+  VERIFY_EQ(in_attrs->size(), 2U);
+  VERIFY_EQ(out_attrs->size(), 1U);
+  VERIFY_EQ((*in_attrs)[0], kInt32);
+  CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 0, static_cast<int>(kInt32));
+  CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 1, (*in_attrs)[1]);
+  CVM_ASSIGN_OUTPUT_TYPE(attrs, *out_attrs, 0, (*in_attrs)[1]);
+  return true;
+}
+
+DMLC_REGISTER_PARAMETER(CVMLUTParam);
+CVM_REGISTER_OP(cvm_lut)
+.describe(R"doc(CVMLUT look up input with table.
+)doc" CVM_ADD_FILELINE)
+.set_num_inputs(2)
+.set_num_outputs(1)
+.set_attr_parser(ParamParser<CVMLUTParam>)
+.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<CVMLUTParam>)
+.set_attr<FInferShape>("FInferShape", LUTInferShape)
+.set_attr<FInferType>("FInferType", LUTInferType)
+.add_argument("data", "Tensor", "input")
+.add_argument("table", "Tensor", "The table to lookup")
+.add_arguments(CVMLUTParam::__FIELDS__())
+.set_support_level(4);
+
+
 // binary broadcast op
 inline bool BinaryBroadcastShape(const cvm::NodeAttrs& attrs,
                                  std::vector<TShape>* in_attrs,
@@ -203,6 +247,7 @@ inline bool BinaryBroadcastCorrectLayout(const NodeAttrs& attrs,
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_add, add)
 .add_alias("__add_symbol__")
+.add_alias("add")
 .describe(R"code(Returns element-wise sum of the input arrays with broadcasting.
 
 Example::
@@ -221,6 +266,7 @@ Example::
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_sub, subtract)
 .add_alias("__sub_symbol__")
+.add_alias("subtract")
 .describe(R"code(Returns element-wise difference of the input arrays with broadcasting.
 
 Example::
@@ -239,6 +285,7 @@ Example::
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_mul, multiply)
 .add_alias("__mul_symbol__")
+.add_alias("multiply")
 .describe(R"code(Returns element-wise product of the input arrays with broadcasting.
 
 Example::
@@ -257,6 +304,7 @@ Example::
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_div, divide)
 .add_alias("__div_symbol__")
+.add_alias("div")
 .describe(R"code(Returns element-wise division of the input arrays with broadcasting.
 
 Example::
@@ -470,6 +518,73 @@ Example::
 
 )code" CVM_ADD_FILELINE)
 .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>);
+
+DMLC_REGISTER_PARAMETER(NonMaximumSuppressionParam);
+
+bool NMSShape(const NodeAttrs& attrs,
+              std::vector<TShape> *in_attrs,
+              std::vector<TShape> *out_attrs) {
+  const NonMaximumSuppressionParam& param =
+    cvm::get<NonMaximumSuppressionParam>(attrs.parsed);
+  VERIFY_EQ(in_attrs->size(), 2U) << "Inputs: [data, valid_count]";
+  TShape dshape = in_attrs->at(0);
+  TShape vshape = in_attrs->at(1);
+  VERIFY_EQ(dshape.ndim(), 3U) << "Input data should be 3-D.";
+  VERIFY_EQ(vshape.ndim(), 1U) << "Input valid count should be 1-D.";
+  VERIFY_EQ(dshape[2], 6U) << "Data input should have shape "
+    "(batch_size, num_anchors, 6).";
+  VERIFY_EQ(dshape[0], vshape[0]) << "batch_size mismatch.";
+  out_attrs->clear();
+  if (param.return_indices) {
+    TShape oshape = TShape(2);
+    oshape[0] = dshape[0];
+    oshape[1] = dshape[1];
+    CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_attrs, 0, oshape);
+  } else {
+    CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_attrs, 0, dshape);
+  }
+  return true;
+}
+
+inline bool NMSInferType(const NodeAttrs &attrs,
+                         std::vector<int> *in_attrs,
+                         std::vector<int> *out_attrs) {
+  DTYPE_ASSIGN(out_attrs->at(0), in_attrs->at(0));
+  return true;
+}
+
+inline bool NMSInferLayout(const NodeAttrs& attrs,
+                           std::vector<Layout> *ilayouts,
+                           const std::vector<Layout> *last_ilayouts,
+                           std::vector<Layout> *olayouts) {
+  static const Layout kNCHW("NCHW");
+  VERIFY_EQ(ilayouts->size(), 2U);
+  VERIFY_EQ(olayouts->size(), 1U);
+  CVM_ASSIGN_LAYOUT(*ilayouts, 0, kNCHW);
+  CVM_ASSIGN_LAYOUT(*ilayouts, 1, kNCHW);
+  return true;
+}
+
+CVM_REGISTER_OP(non_max_suppression)
+  .describe(R"doc("Non-maximum suppression."
+)doc" CVM_ADD_FILELINE)
+.add_alias("vision.non_max_suppression")
+.set_num_inputs(2)
+.set_num_outputs(1)
+.set_attr_parser(ParamParser<NonMaximumSuppressionParam>)
+.set_attr<FGetAttrDict>("FGetAttrDict",
+                        ParamGetAttrDict<NonMaximumSuppressionParam>)
+.add_arguments(NonMaximumSuppressionParam::__FIELDS__())
+.add_argument("data", "Tensor", "Input data.")
+.add_argument("valid_count", "Tensor", "Number of valid anchor boxes.")
+.set_attr<FListInputNames>("FListInputNames", [](const NodeAttrs& attrs) {
+  return std::vector<std::string>{"data", "valid_count"};
+})
+.set_attr<FInferShape>("FInferShape", NMSShape)
+.set_attr<FInferType>("FInferType", NMSInferType)
+.set_attr<FCorrectLayout>("FCorrectLayout", NMSInferLayout)
+.set_support_level(4);
+
 
 }  // namespace top
 }  // namespace cvm

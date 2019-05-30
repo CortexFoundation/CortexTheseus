@@ -107,6 +107,7 @@ CVM_REGISTER_ELEMWISE_UNARY_OP(relu)
    max(input, 0)
 
 )code" CVM_ADD_FILELINE)
+.add_alias("nn.relu")
 .set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
 .set_support_level(1);
 
