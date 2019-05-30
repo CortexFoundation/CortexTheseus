@@ -182,7 +182,7 @@ func (cm *Cortex) Mining() {
 
 	tcpCh := make(chan bool, 1)
 	loginCh := make(chan bool, 1)
-	startCh := make(chan bool, 1)
+	//startCh := make(chan bool, 1)
 	go func() {
 		for {
 			//select {
@@ -204,8 +204,10 @@ func (cm *Cortex) Mining() {
 						continue
 					}
 					//readableCh <- true
+					cm.consta.lock.Lock()
 					cm.consta.state = true
-					startCh <- true
+					cm.consta.lock.Unlock()
+					//startCh <- true
 				}
 			}
 			time.Sleep(500 * time.Millisecond)
@@ -214,17 +216,14 @@ func (cm *Cortex) Mining() {
 	}()
 	//stateCh <- false
 
-	//for {
-	select {
+	/*select {
 	case suc := <-startCh:
 		if suc {
-			//break
 			log.Println("Start mining")
 		}
-	}
-	//}
+	}*/
 
-	//time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	miningCh := make(chan string, 1)
 	go cm.mining(miningCh)
