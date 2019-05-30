@@ -167,23 +167,25 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 							case exit := <-tmp1:
 								if exit == "pong" {
 								}
-								for {
-									select {
-									case exit := <-tmp:
-										if exit == "ping" {
-											log.Println("Task thread quit [", tidx, "] task : ", taskNumber[tidx])
-											tmp1 <- "pong"
-											return
+								go func() {
+									for {
+										select {
+										case exit := <-tmp:
+											if exit == "ping" {
+												log.Println("Task thread quit [", tidx, "] task : ", taskNumber[tidx])
+												tmp1 <- "pong"
+												return
+											}
+										default:
+											curNonce = uint64(curNonce + 1)
+											//deviceInfos[tidx].Lock.Lock()
+											var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
+											var streamData config.StreamData
+											nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+											//deviceInfos[tidx].Lock.Unlock()
 										}
-									default:
-										curNonce = uint64(curNonce + 1)
-										deviceInfos[tidx].Lock.Lock()
-										var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-										var streamData config.StreamData
-										nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
-										deviceInfos[tidx].Lock.Unlock()
 									}
-								}
+								}()
 							}
 						}(exitCh[tidx], readyCh[tidx])
 						log.Println("New task", tidx, curNonce, header)
@@ -199,11 +201,11 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 									}
 								default:
 									curNonce = uint64(curNonce + 1)
-									deviceInfos[tidx].Lock.Lock()
+									//deviceInfos[tidx].Lock.Lock()
 									var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
 									var streamData config.StreamData
 									nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
-									deviceInfos[tidx].Lock.Unlock()
+									//deviceInfos[tidx].Lock.Unlock()
 								}
 							}
 						}(exitCh[tidx], readyCh[tidx])
@@ -273,8 +275,8 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 				curNonce := streamData.Nonce
 				header := streamData.Header
 				verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-			//default:
-			//	time.Sleep(50 * time.Millisecond)
+				//default:
+				//	time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}()
