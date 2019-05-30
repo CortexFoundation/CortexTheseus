@@ -210,7 +210,7 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 									}
 								default:
 									curNonce = uint64(curNonce + 1)
-									//deviceInfos[tidx].Lock.Lock()
+									deviceInfos[tidx].Lock.Lock()
 									var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
 										status, sols := FindCycles(tidx, nedges)
 										end_time := time.Now().UnixNano() / 1e6
