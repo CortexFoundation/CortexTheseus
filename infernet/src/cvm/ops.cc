@@ -1255,7 +1255,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     int num_args = args.num_args;
-    VERIFY(num_args == 3 || num_args == 4);
+    VERIFY(num_args == 4 || num_args == 5);
     DLTensor *x = args[0];
     DLTensor *axes = nullptr; //args[1];
     DLTensor *y = nullptr; //args[2];
@@ -1317,6 +1317,35 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_axis")
             if (j == axis){
                 col += begin;
             }
+            in_i += (j == ndim-1 ? col : col * shapeSize);
+            shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+        }
+        y_data[i] = x_data[in_i];
+    }
+});
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *x = args[0];
+    DLTensor *begin = args[1];
+    DLTensor *end = args[2];
+    DLTensor *step = args[3];
+    DLTensor *y = args[4];
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+    int32_t *begin_data = static_cast<int32_t*>(begin->data);
+    int32_t *end_data = static_cast<int32_t*>(end->data);
+    int32_t *step_data = static_cast<int32_t*>(step->data);
+
+    int ndim = y->ndim;
+
+    for(uint64_t i = 0; i < getSize(y); i++){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0;
+        for(int j = ndim-1; j >= 0; j--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            col += (begin_data[j] < 0 ? begin_data[j] + x->shape[j] : begin_data[j]) + (step_data[j] < 0 ? step_data[j] + x->shape[j] : step_data[j]);
+            col %= x->shape[j];
             in_i += (j == ndim-1 ? col : col * shapeSize);
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
@@ -1455,7 +1484,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
     int32_t coord_start;
     int32_t score_index;
     int32_t id_index;
-    int32_t backgroud_id;
     bool force_suppress;
     bool return_indices;
     bool invalid_to_bottom;
@@ -1559,15 +1587,55 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
     DLTensor *y = args[2];
     DLTensor *_attr = args[3];
 
-    int32_t axis; //TODO get from attr
+    int32_t axis = 0; //TODO get from attr
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
-    // axis == null
-    for(uint64_t i = 0; i < getSize(indices); i++){
-        y_data[i] = x_data[indices_data[i]];
+    int32_t yndim = y->ndim;
+    int32_t xndim = x->ndim;
+    int32_t indices_ndim = indices->ndim;
+
+    for(uint64_t i = 0; i < getSize(y); i++){
+        //y_data[i] = x_data[indices_data[i]];
+        uint64_t o_i = i, x_i = 0, indices_i = 0, x_shape_size = 0, indices_shape_size = 0;
+        for(uint32_t j = yndim - 1, k = indices_ndim-1; j>=axis; j--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            if(j < axis + indices_ndim){
+                indices_i += (indices_shape_size == 0 ? col : col * indices_shape_size);
+                indices_shape_size = (indices_shape_size == 0 ? indices->shape[k]
+                        : indices_shape_size * indices->shape[k]);
+                --k;
+            }
+        }
+
+        o_i = i;
+        int32_t k = xndim - 1;
+        for(uint32_t j = yndim - 1; j >= axis + indices_ndim; j--, k--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            x_i += (j == yndim-1 ? col : col * x_shape_size);
+            x_shape_size = (j == yndim-1 ? x->shape[k] : x_shape_size * x->shape[k]);
+        }
+
+        uint64_t x_indices_i = indices_data[indices_i];
+        x_i += (x_shape_size == 0 ? x_indices_i : x_indices_i * x_shape_size);
+        x_shape_size = (x_shape_size == 0 ? x->shape[k] : x_shape_size * x->shape[k]);
+        --k;
+
+        o_i = i;
+        for(uint32_t j = yndim - 1; j>=0 && k >= 0; j--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            if(j < axis){
+                x_i += x_shape_size == 0 ? col : col * x_shape_size;
+                x_shape_size = x_shape_size == 0 ? x->shape[k] : x_shape_size * x->shape[k];
+                --k;
+            }
+        }
+        y_data[i] = x_data[x_i];
     }
 });
 
@@ -2138,6 +2206,27 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.concatenate")
             preSize += input->shape[axis];
         }
 });
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *indices = args[1];
+    DLTensor *y = args[2];
+    DLTensor *_attr = args[3];
+
+    int32_t axis = 0; //TODO get from attr
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *indices_data = static_cast<int32_t*>(indices->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    int32_t yndim = y->ndim;
+    int32_t xndim = x->ndim;
+    int32_t indices_ndim = indices->ndim;
+    const char* errorStr = cuda_take(
+            x_data, indices_data, y_data, axis, getSize(y), x->shape, indices->shape, y->shape, yndim, xndim, indices_ndim);
+    VERIFY(errorStr == NULL) << errorStr;
+});
+
 #endif // end of CVM_RUNTIME_CUDA
 }
 }

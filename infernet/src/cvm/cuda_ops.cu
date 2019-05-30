@@ -1551,3 +1551,65 @@ const char* cuda_concatenate(const int32_t *input, const int64_t *ishape, const 
     }
     return check_cuda_error(cudaGetLastError());
 }
+
+__global__ void kernel_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t axis, const int64_t ysize, 
+        const int64_t *xshape, const int64_t *indices_shape, const int64_t *yshape, const int32_t yndim, const int32_t xndim, const int32_t indices_ndim){
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < ysize){
+        uint64_t o_i = i, x_i = 0, indices_i = 0, x_shape_size = 0, indices_shape_size = 0;
+        for(int32_t j = yndim - 1, k = indices_ndim-1; j>=axis; j--){
+            uint64_t col = o_i % yshape[j];
+            o_i /= yshape[j];
+            if(j < axis + indices_ndim){
+                indices_i += (indices_shape_size == 0 ? col : col * indices_shape_size);
+                indices_shape_size = (indices_shape_size == 0 ? indices_shape[k]
+                        : indices_shape_size * indices_shape[k]);
+                --k;
+            }
+        }
+
+        o_i = i;
+        int32_t k = xndim - 1;
+        for(int32_t j = yndim - 1; j >= axis + indices_ndim; j--, k--){
+            uint64_t col = o_i % yshape[j];
+            o_i /= yshape[j];
+            x_i += (j == yndim-1 ? col : col * x_shape_size);
+            x_shape_size = (j == yndim-1 ? xshape[k] : x_shape_size * xshape[k]);
+        }
+
+        uint64_t x_indices_i = indices_data[indices_i];
+        x_i += (x_shape_size == 0 ? x_indices_i : x_indices_i * x_shape_size);
+        x_shape_size = (x_shape_size == 0 ? xshape[k] : x_shape_size * xshape[k]);
+        --k;
+
+        o_i = i;
+        for(int32_t j = yndim - 1; j>=0 && k >= 0; j--){
+            uint64_t col = o_i % yshape[j];
+            o_i /= yshape[j];
+            if(j < axis){
+                x_i += x_shape_size == 0 ? col : col * x_shape_size;
+                x_shape_size = x_shape_size == 0 ? xshape[k] : x_shape_size * xshape[k];
+                --k;
+            }
+        }
+        y_data[i] = x_data[x_i];
+    }
+}
+
+const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t axis, const int64_t ysize, 
+        const int64_t *xshape, const int64_t *indices_shape, const int64_t *yshape, const int32_t yndim, const int32_t xndim, const int32_t indices_ndim){
+
+    int64_t *dev_xshape, *dev_indices_shape, *dev_yshape;
+    cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
+    cudaMalloc((void**)&dev_indices_shape, sizeof(int64_t) * indices_ndim);
+    cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
+
+    int bSize = 256;
+    int gSize = (ysize + bSize - 1) / bSize;
+    kernel_take<<<gSize, bSize>>>(x_data, indices_data, y_data, axis, ysize, dev_xshape, dev_indices_shape, dev_yshape, yndim, xndim, indices_ndim);
+
+    cudaFree(dev_xshape);
+    cudaFree(dev_indices_shape);
+    cudaFree(dev_yshape);
+    return check_cuda_error(cudaGetLastError());
+}
