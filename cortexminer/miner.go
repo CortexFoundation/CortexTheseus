@@ -72,7 +72,7 @@ func (cm *Cortex) init() *net.TCPConn {
 	checkError(err, "init()")
 
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
-	cm.conn.SetKeepAlive(true)
+	//cm.conn.SetKeepAlive(true)
 	cm.conn.SetNoDelay(true)
 	log.Println("Cortex connect successfully")
 	checkError(err, "init()")
@@ -92,7 +92,7 @@ func (cm *Cortex) login() {
 		Params:  []string{cm.param.Account},
 	}
 	cm.write(reqLogin)
-	//cm.read()
+	cm.read()
 	log.Println("Cortex login suc")
 }
 
@@ -167,6 +167,7 @@ func (cm *Cortex) Mining() {
 				break
 				//return
 			}
+			time.Sleep(10 * time.Millisecond)
 		}
 		time.Sleep(1 * time.Second)
 		cm.miningOnce()
@@ -266,6 +267,7 @@ func (cm *Cortex) miningOnce() {
 					//}
 				}
 			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}(&config.CurrentTask)
 	time.Sleep(2 * time.Second)

@@ -132,6 +132,11 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 	for i := 0; i < THREAD; i++ {
 		taskNumber[i] = uint32(0)
 	}
+
+	var exitCh = make([]chan bool, THREAD)
+	for i := 0; i < THREAD; i++ {
+		exitCh[i] = make(chan bool, 1)
+        }
 	go func() {
 		for {
 			if state == false {
@@ -152,7 +157,10 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 					}
 					header, _ := hex.DecodeString(task.Header[2:])
 					curNonce := uint64(rand.Int63())
-					tmp := taskNumber[tidx]
+					if taskNumber[tidx] > 1 {
+						exitCh[tidx] <- true
+					}
+					/*tmp := taskNumber[tidx]
 					go func(tmp uint32) {
 						for {
 							if tmp < taskNumber[tidx] {
@@ -164,12 +172,33 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 							//log.Println("lock", tidx)
 							var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
 							//log.Println("unlock", tidx)
-							//deviceInfos[tidx].Lock.Unlock()
 							var streamData config.StreamData
 							nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
 							deviceInfos[tidx].Lock.Unlock()
+							time.Sleep(10 * time.Millisecond)
 						}
-					}(tmp)
+					}(tmp)*/
+					go func(tmp chan bool) {
+						for {
+							select {
+							case exit := <-tmp:
+								if exit {
+									log.Println("Task thread quit [", tidx, "] task : ", taskNumber[tidx])
+									return
+								}
+							default:
+								curNonce = uint64(curNonce + 1)
+								deviceInfos[tidx].Lock.Lock()
+								//log.Println("lock", tidx)
+								var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
+								//log.Println("unlock", tidx)
+								var streamData config.StreamData
+								nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+								deviceInfos[tidx].Lock.Unlock()
+								//time.Sleep(10 * time.Millisecond)
+							}
+						}
+					}(exitCh[tidx])
 					log.Println("New task", tidx, curNonce, header)
 				}
 				//}(uint32(nthread), &config.CurrentTask)
