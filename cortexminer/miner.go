@@ -257,7 +257,7 @@ func (cm *Cortex) miningOnce(quitCh chan string) {
 	var THREAD int = (int)(len(cm.deviceInfos))
 	rand.Seed(time.Now().UTC().UnixNano())
 	solChan := make(chan config.Task, THREAD)
-	taskChan := make(chan config.Task, 1)
+	taskChan := make(chan config.Task, 4)
 
 	m, err := minerPlugin.Lookup("RunSolver")
 	if err != nil {
