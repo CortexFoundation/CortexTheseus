@@ -1404,6 +1404,173 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.box_nms")
         std::memset(&y_data[y_index], -1, (ysize - y_index) * sizeof(int32_t));
     }
 });
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *valid_count = args[1];
+    DLTensor *y = args[2];
+    void* _attr = args[3];
+
+    int32_t score_threshold; //TODO get from attr
+
+    VERIFY(x->ndim == 3);
+    int32_t batchs = x->shape[0];
+    int32_t n = x->shape[1];
+    int32_t k = x->shape[2];
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    for(int32_t i = 0; i < batchs; i++){
+        int32_t y_index = 0;
+        int32_t *input = x_data + i * n * k;
+        int32_t *output = y_data + i * n * k;
+        for(int32_t j = 0; j < n; j++){
+            int32_t *row = input + j * k;
+            if(row[1] > score_threshold){
+                std::memcpy(&output[y_index * k], row, k * sizeof(int32_t));
+                y_index += 1;
+            }
+        }
+        valid_count_data[i] = y_index;
+        if(y_index < n){
+            std::memset(&output[y_index * k], -1, (n-y_index) * k * sizeof(int32_t));
+        }
+    }
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *valid_count = args[1];
+    DLTensor *y = args[2];
+    void* _attr = args[3];
+
+    //TODO get from attr
+    int32_t max_output_size;
+    int32_t iou_threshold;
+    int32_t topk;
+    int32_t coord_start;
+    int32_t score_index;
+    int32_t id_index;
+    int32_t backgroud_id;
+    bool force_suppress;
+    bool return_indices;
+    bool invalid_to_bottom;
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+   // int batch = 1;
+   // for(int i = 0; i < x->ndim - 2; i++){
+   //     batch *= x->shape[i];
+   // }
+   // int n = x->shape[x->ndim-2];
+   // int k = x->shape[x->ndim-1];
+    int32_t batchs = x->shape[0];
+    int32_t n = x->shape[1];
+    int32_t k = x->shape[2];
+
+    for(int32_t b = 0; b < batchs; b++){
+        int32_t vc = valid_count_data[b];
+        std::vector<int32_t*> rows(n);
+        int32_t *x_batch = x_data + b * n * k;
+        int32_t *y_batch = y_data + b * n * k;
+
+        for (int i = 0; i < n; i++) {
+            rows[i] = x_batch + i * k;
+        }
+        std::sort(rows.begin(), rows.end(), [&score_index](const int32_t* a, const int32_t* b){
+                return a[score_index] > b[score_index];
+        });
+        if(topk > 0 && topk < vc){
+            for(int i = 0; i < vc - topk; i++){
+                std::memset(rows[i+topk], -1, k * sizeof(int32_t));
+            }
+        }
+
+        std::vector<bool> removed(n, false);
+        for(int i = (topk < vc ? topk : vc); i < n; i++){
+            removed[i] = true;
+        }
+
+        int32_t y_index = 0;
+        for(int i = 0; i < vc; i++){
+            int32_t *row1 = rows[i];
+            if(removed[i] == false){
+                std::memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
+                y_index += 1;
+            }
+            for(int j = i+1; j < n && !removed[i] && iou_threshold > 0; j++){
+                int32_t* row2 = rows[j];
+                if(force_suppress || (id_index < 0 || row1[0] == row2[0])){
+                    if(iou(row1+coord_start, row2+coord_start, FORMAT_CORNER) > iou_threshold){
+                        removed[j] = true;
+                    }
+                }
+            }
+        }
+        if(y_index < n){
+            std::memset(&y_batch[y_index*k], -1, (n - y_index) * k * sizeof(int32_t));
+        }
+        if(max_output_size > 0){
+            if(max_output_size < y_index){
+                std::memset(&y_batch[max_output_size * k], -1, (y_index - max_output_size) * k * sizeof(int32_t));
+            }
+        }
+    }
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.bias_add")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *bias = args[1];
+    DLTensor *y = args[2];
+    int32_t axis; //TODO get from attr
+    int32_t ndim = x->ndim;
+    VERIFY(axis > 0 && axis < ndim);
+
+    const int32_t *x_data = static_cast<int32_t*>(x->data);
+    const int32_t *bias_data = static_cast<int32_t*>(bias->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    for(uint64_t i = 0; i < getSize(y); i++){
+        int32_t bV = 0;
+        int64_t o_i = i;
+        for(uint64_t j = ndim - 1; j >= 0; j--){
+            uint64_t col = o_i % y->shape[j];
+            o_i /= y->shape[j];
+            if(j == axis){
+                bV = bias_data[axis];
+                break;
+            }
+        }
+        y_data[i] = x_data[i] + bV;
+    }
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *indices = args[1];
+    DLTensor *y = args[2];
+    DLTensor *_attr = args[3];
+
+    int32_t axis; //TODO get from attr
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *indices_data = static_cast<int32_t*>(indices->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    // axis == null
+    for(uint64_t i = 0; i < getSize(indices); i++){
+        y_data[i] = x_data[indices_data[i]];
+    }
+});
+
 /*********************************cuda op*********************************************/
 #ifdef CVM_RUNTIME_CUDA
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_add")
