@@ -264,15 +264,12 @@ func (cm *Cortex) miningOnce(quitCh chan string) {
 		panic(err)
 	}
 	m.(func(int, []config.DeviceInfo, config.Param, chan config.Task, chan config.Task, bool) (uint32, [][]uint32))(THREAD, cm.deviceInfos, cm.param, taskChan, solChan, cm.consta.state)
-	log.Println(".....")
-	cm.getWork()
+	go cm.getWork()
 
 	go func(currentTask_ *config.TaskWrapper) {
 		for {
 			msg := cm.read()
 			if cm.consta.state == false || msg == nil {
-				time.Sleep(1 * time.Second)
-				//return
 				continue
 			}
 
@@ -306,13 +303,13 @@ func (cm *Cortex) miningOnce(quitCh chan string) {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}(&config.CurrentTask)
-	time.Sleep(2 * time.Second)
+
+	//time.Sleep(1 * time.Second)
 
 	for {
-		if cm.consta.state == false {
-			//return
-			continue
-		}
+		//if cm.consta.state == false {
+		//	continue
+		//}
 		select {
 		case sol := <-solChan:
 			//config.CurrentTask.Lock.Lock()
@@ -321,9 +318,6 @@ func (cm *Cortex) miningOnce(quitCh chan string) {
 			//	if sol.Header == task.Header {
 			cm.submit(sol)
 		//	}
-
-		default:
-			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }
