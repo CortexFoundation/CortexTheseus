@@ -273,8 +273,8 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 				curNonce := streamData.Nonce
 				header := streamData.Header
 				verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-			default:
-				time.Sleep(50 * time.Millisecond)
+			//default:
+			//	time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}()
