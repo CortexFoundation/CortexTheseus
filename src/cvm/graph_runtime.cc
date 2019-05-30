@@ -155,6 +155,11 @@ NDArray CvmRuntime::GetOutput(int index) const {
   uint32_t eid = this->entry_id(outputs_[index]);
   return data_entry_[eid];
 }
+
+int CvmRuntime::GetOutputNum() {
+  return static_cast<int>(outputs_.size());
+}
+
 /*!
  * \brief Copy index-th output to data_out.
  * \param index The output index.
@@ -437,6 +442,18 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           *static_cast<int64_t*>(placeholder) = this->GetOps();
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
+  } else if (name == "get_output_num") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kHandle) {
+          void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
+          *static_cast<int32_t*>(placeholder) = this->GetOutputNum();
         } else {
           *rv = -1;
         }
