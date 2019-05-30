@@ -12,6 +12,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"plugin"
 )
 
@@ -152,6 +153,7 @@ const	PLUGIN_POST_FIX string = "_helper_for_node.so"
 func (cuckoo *Cuckoo) InitOnce() error {
 	var err error
 	cuckoo.once.Do(func() {
+		log.Debug("InitOnce", "start", "")	
 		var minerName string = "cpu"
 		if cuckoo.config.UseCuda == true {
 			minerName = "cuda"
@@ -161,17 +163,23 @@ func (cuckoo *Cuckoo) InitOnce() error {
 			cuckoo.threads = 1
 		}
 		var errc error
-		cuckoo.minerPlugin, errc = plugin.Open(PLUGIN_PATH + minerName + PLUGIN_POST_FIX)
-		if errc != nil{
+		so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
+		log.Debug("InitOnce", "so path", so_path)	
+		cuckoo.minerPlugin, errc = plugin.Open(so_path)
+		if errc != nil {
+			log.Error("InitOnce", "Error", errc)	
 			err = errc
 			return
 		}else{
+			log.Debug("InitOnce", "Lookup", so_path + "CuckooInitialize")	
 			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
 			if err != nil {
+				log.Error("InitOnce", "Error", errc)	
 				err = errc
 				return
 			}
 			if cuckoo.config.StrDeviceIds == "" {
+				log.Debug("InitOnce", "Setting Device", cuckoo.config.StrDeviceIds)	
 				cuckoo.config.StrDeviceIds = "0"  //default gpu device 0
 			}
 			errc = m.(func(int, string, string)(error))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)

@@ -451,53 +451,6 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
-                        name: 'sendTransaction',
-                        call: 'ctxc_sendTransaction',
-                        params: 1,
-                        inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
-                }),
-		new web3._extend.Method({
-                        name: 'getUpload',
-                        call: 'ctxc_getUpload',
-                        params: 2,
-			inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter],
-        		outputFormatter: web3._extend.formatters.outputBigNumberFormatter
-                }),
-		new web3._extend.Method({
-                        name: 'getBalance',
-                        call: 'ctxc_getBalance',
-                        params: 2,
-                        inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter],
-                        outputFormatter: web3._extend.formatters.outputBigNumberFormatter
-                }),
-		new web3._extend.Method({
-                        name: 'getBlock',
-			call: function(args) {
-                                return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'ctxc_getBlockByHash' : 'ctxc_getBlockByNumber';
-                        },
-                        params: 2,
-                        inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, function (val) { return !!val; }],
-                        outputFormatter: web3._extend.formatters.outputBlockFormatter
-                }),
-		new web3._extend.Method({
-                        name: 'getTransaction',
-                        call: 'ctxc_getTransactionByHash',
-                        params: 1,
-                        inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
-                }),
-		new web3._extend.Method({
-                        name: 'getCode',
-                        call: 'ctxc_getCode',
-                        params: 2,
-			inputFormatter: [web3._extend.formatters.inputAddressFormatter, web3._extend.formatters.inputDefaultBlockNumberFormatter]
-                }),
-		new web3._extend.Method({
-                        name: 'getTransactionReceipt',
-                        call: 'ctxc_getTransactionReceipt',
-                        params: 1,
-                        inputFormatter: [web3._extend.formatters.outputTransactionFormatter]
-                }),
-		new web3._extend.Method({
 			name: 'submitTransaction',
 			call: 'ctxc_submitTransaction',
 			params: 1,
@@ -530,15 +483,6 @@ web3._extend({
 				return formatted;
 			}
 		}),
-		new web3._extend.Property({
-                        name: 'coinbase',
-                        getter: 'ctxc_coinbase'
-                }),
-		new web3._extend.Property({
-                        name: 'blockNumber',
-                        getter: 'ctxc_blockNumber'
-			outputFormatter: web3._extend.utils.toDecimal
-                }),
 	]
 });
 `

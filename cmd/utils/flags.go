@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	// "math/big"
 
 	"path/filepath"
@@ -58,6 +57,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -173,6 +173,7 @@ var (
 		Usage: `Blockchain garbage collection mode ("full", "archive")`,
 		Value: "full",
 	}
+
 	// P2P storage settings
 	StorageEnabledFlag = cli.BoolFlag{
 		Name:  "storage",
@@ -181,7 +182,7 @@ var (
 	StorageDirFlag = DirectoryFlag{
 		Name:  "storage.dir",
 		Usage: "P2P storage directory",
-		Value: DirectoryString{node.DefaultStorageDir()},
+		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
 	StorageAddrFlag = cli.StringFlag{
 		Name:  "storage.addr",
@@ -414,6 +415,17 @@ var (
 		Name:  "miner.algorithm",
 		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
 	}
+	InferDeviceTypeFlag = cli.StringFlag{
+		Name: "infer.devicetype",
+		Usage: "infer device type : cpu or gpu",
+		Value: "cpu",
+	}
+	InferDeviceIdFlag = cli.IntFlag{
+		Name: "infer.devices",
+		Usage: "the device used infering, use --infer.devices=2, not available on cpu",
+		Value: 0,
+	}
+
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -656,14 +668,14 @@ func MakeStorageDir(ctx *cli.Context) string {
 	case ctx.GlobalIsSet(StorageDirFlag.Name):
 		return ctx.GlobalString(StorageDirFlag.Name)
 	case ctx.GlobalBool(CerebroFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "cerebro")
+		return filepath.Join(node.DefaultStorageDir(""), "cerebro")
 	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "testnet")
+		return filepath.Join(node.DefaultStorageDir(""), "testnet")
 	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "lazynet")
+		return filepath.Join(node.DefaultStorageDir(""), "lazynet")
 	}
 
-	return node.DefaultStorageDir()
+	return node.DefaultStorageDir(MakeDataDir(ctx))
 }
 
 // setNodeKey creates a node key from set command line flags, either loading it
@@ -1154,6 +1166,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.Ethash.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
+	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
+	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
 
 	// Override any default configs for hard coded networks.
 	switch {
@@ -1164,7 +1178,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.Genesis = core.DefaultCerebroGenesisBlock()
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 27
+			cfg.NetworkId = 28
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.GlobalBool(LazynetFlag.Name):

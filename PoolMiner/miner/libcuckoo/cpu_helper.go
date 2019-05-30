@@ -17,9 +17,9 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"time"
-	"github.com/ethereum/go-ethereum/PoolMiner/config"
-	"github.com/ethereum/go-ethereum/PoolMiner/common"
-	"github.com/ethereum/go-ethereum/PoolMiner/crypto"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/common"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/crypto"
 )
 
 //var nonceIndex int = 0

@@ -8,8 +8,9 @@ import (
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
+//	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/common/lru"
 )
 
 func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
@@ -31,6 +32,42 @@ func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, 
 		return nil, errors.New("Synapse Engine is closed")
 	}
 }
+
+func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+	var (
+	modelHash = strings.ToLower(modelInfoHash[2:])
+	modelDir  = s.config.StorageDir + "/" + modelHash
+
+	// Model Path Check
+	modelCfg = modelDir + "/data/symbol"
+	modelBin = modelDir + "/data/params"
+	)
+	// Inference Cache
+	cacheKey := RLPHashString("estimate_ops" + modelHash)
+	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+		log.Debug("Infer Success via Cache", "result", v.(uint64))
+		return v.(uint64), nil
+	}
+	
+	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
+		return 0, ErrModelFileNotExist
+	}
+	
+	if _, binErr := os.Stat(modelBin); os.IsNotExist(binErr) {
+		return 0, ErrModelFileNotExist
+	}
+
+	gas, err = kernel.GetModelOps(s.lib, modelCfg)
+	if err != nil {
+		return 0, err
+	}
+
+	if !s.config.IsNotCache {
+		s.simpleCache.Store(cacheKey, gas)
+	}
+	return gas, err
+}
+
 
 func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh chan []byte, errCh chan error) {
 	var (
@@ -62,6 +99,28 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 	}
 
 	s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
+}
+
+func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte)([]byte, error) {
+	var model *kernel.Model 
+	
+	if _, ok := s.caches[s.config.DeviceId]; !ok {
+		s.caches[s.config.DeviceId] = lru.New(4000000)
+	}
+
+	ret, ok := s.caches[s.config.DeviceId].Get(modelCfg)
+
+	if ok {
+		model = ret.(*kernel.Model)
+	} else {
+		model = kernel.New(s.lib, s.config.DeviceId, modelCfg, modelBin)
+		if model == nil {
+			return nil, errors.New("create model error") 
+		}
+		s.caches[s.config.DeviceId].Add(modelCfg, model, model.Size() / 1000)
+	}
+	
+	return model.Predict(inputContent)
 }
 
 func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte, resCh chan []byte, errCh chan error) {
@@ -104,12 +163,12 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	// Model Parse
-	if parseErr := parser.CheckModel(modelCfg, modelBin); parseErr != nil {
-		errCh <- parseErr
-		return
-	}
+	// if parseErr := parser.CheckModel(modelCfg, modelBin); parseErr != nil {
+	// 	errCh <- parseErr
+	// 	return
+	// }
 
-	label, inferErr := kernel.InferCore(modelCfg, modelBin, inputContent)
+	label, inferErr := s.infer(modelCfg, modelBin, inputContent) 
 	if inferErr != nil {
 		errCh <- inferErr
 		return

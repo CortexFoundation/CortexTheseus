@@ -139,9 +139,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 	}
 
-	ctxc.synapse = infer.New(infer.Config{
-		StorageDir: config.StorageDir,
-		IsNotCache: false,
+	ctxc.synapse = infer.New(&infer.Config{
+		StorageDir    : config.StorageDir,
+		DeviceType    : config.InferDeviceType,
+		DeviceId      : config.InferDeviceId,
+		IsRemoteInfer : config.InferURI == "",
+		InferURI      : config.InferURI,
+		IsNotCache    : false,
 	})
 
 	var (
