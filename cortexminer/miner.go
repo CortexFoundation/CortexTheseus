@@ -163,7 +163,7 @@ func (cm *Cortex) Mining() {
 	go func() {
 		for {
 			cm.printHashRate()
-			time.Sleep(2 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 	}()
 
@@ -256,7 +256,7 @@ func (cm *Cortex) miningOnce(quitCh chan string) {
 	var taskHeader, taskNonce, taskDifficulty string
 	var THREAD int = (int)(len(cm.deviceInfos))
 	rand.Seed(time.Now().UTC().UnixNano())
-	solChan := make(chan config.Task, THREAD)
+	solChan := make(chan config.Task, THREAD*2)
 	taskChan := make(chan config.Task, 4)
 
 	m, err := minerPlugin.Lookup("RunSolver")
@@ -315,9 +315,9 @@ func (cm *Cortex) miningOnce(quitCh chan string) {
 			//config.CurrentTask.Lock.Lock()
 			//defer config.CurrentTask.Lock.Unlock()
 			//task := config.CurrentTask.TaskQ
-			//	if sol.Header == task.Header {
-			cm.submit(sol)
-		//	}
+			if sol.Header == config.CurrentTask.TaskQ.Header {
+				cm.submit(sol)
+			}
 		}
 	}
 }
