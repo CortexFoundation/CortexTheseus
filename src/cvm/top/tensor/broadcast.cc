@@ -101,7 +101,7 @@ inline bool LUTInferType(const NodeAttrs& attrs,
   return true;
 }
 
-DMLC_REGISTER_PARAMETER(CVMLUTParam);
+CVMUTIL_REGISTER_PARAMETER(CVMLUTParam);
 CVM_REGISTER_OP(cvm_lut)
 .describe(R"doc(CVMLUT look up input with table.
 )doc" CVM_ADD_FILELINE)
@@ -519,7 +519,7 @@ Example::
 )code" CVM_ADD_FILELINE)
 .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>);
 
-DMLC_REGISTER_PARAMETER(NonMaximumSuppressionParam);
+CVMUTIL_REGISTER_PARAMETER(NonMaximumSuppressionParam);
 
 bool NMSShape(const NodeAttrs& attrs,
               std::vector<TShape> *in_attrs,
