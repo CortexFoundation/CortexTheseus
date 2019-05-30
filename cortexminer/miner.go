@@ -29,7 +29,8 @@ func (cm *Cortex) read() map[string]interface{} {
 	rep := make([]byte, 0, 1024) // big buffer
 	for {
 		tmp, isPrefix, err := cm.reader.ReadLine()
-		if err == io.EOF {
+		//if err == io.EOF {
+		if err != nil {
 			log.Println("Tcp disconnectted")
 			cm.consta.lock.Lock()
 			defer cm.consta.lock.Unlock()
@@ -38,7 +39,7 @@ func (cm *Cortex) read() map[string]interface{} {
 			cm.consta.state = false
 			return nil
 		}
-		checkError(err, "read()")
+		//checkError(err, "read()")
 		rep = append(rep, tmp...)
 		if isPrefix == false {
 			break
@@ -91,7 +92,7 @@ func (cm *Cortex) login() {
 		Params:  []string{cm.param.Account},
 	}
 	cm.write(reqLogin)
-	cm.read()
+	//cm.read()
 	log.Println("Cortex login suc")
 }
 

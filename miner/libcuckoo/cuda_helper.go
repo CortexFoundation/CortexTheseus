@@ -164,9 +164,10 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 							//log.Println("lock", tidx)
 							var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
 							//log.Println("unlock", tidx)
-							deviceInfos[tidx].Lock.Unlock()
+							//deviceInfos[tidx].Lock.Unlock()
 							var streamData config.StreamData
 							nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+							deviceInfos[tidx].Lock.Unlock()
 						}
 					}(tmp)
 					log.Println("New task", tidx, curNonce, header)
