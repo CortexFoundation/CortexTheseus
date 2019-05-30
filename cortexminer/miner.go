@@ -166,6 +166,7 @@ func (cm *Cortex) Mining() {
 				break
 				//return
 			}
+			time.Sleep(10 * time.Millisecond)
 		}
 		time.Sleep(1 * time.Second)
 		cm.miningOnce()
@@ -265,6 +266,7 @@ func (cm *Cortex) miningOnce() {
 					//}
 				}
 			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}(&config.CurrentTask)
 	time.Sleep(2 * time.Second)
