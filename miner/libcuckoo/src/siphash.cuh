@@ -86,8 +86,10 @@ public:
   __device__ void hash24(const uint64_t nonce) {
     v3 ^= vectorize(nonce);
     dip_round(); dip_round();
+    dip_round(); dip_round();
     v0 ^= vectorize(nonce);
     v2 ^= vectorize(0xff);
+    dip_round(); dip_round(); dip_round(); dip_round();
     dip_round(); dip_round(); dip_round(); dip_round();
   }
 };
