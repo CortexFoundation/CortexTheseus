@@ -25,71 +25,85 @@ func checkError(err error, func_name string) {
 	}
 }
 
-func (cm *Cortex) read() map[string]interface{} {
-	rep := make([]byte, 0, 1024) // big buffer
-	//for {
+//var stateCh = make(chan bool, 1)
+//var readableCh = make(chan bool, 1)
+
+func (cm *Cortex) read(msgCh chan map[string]interface{}) {
 	tmp, isPrefix, err := cm.reader.ReadLine()
-	//if err == io.EOF {
-	if err != nil {
-		log.Println("Tcp disconnected")
+	if err == io.EOF {
+		log.Println("Tcp disconnect")
 		cm.consta.lock.Lock()
-		defer cm.consta.lock.Unlock()
-		//cm.conn.Close()
-		//cm.conn = nil
 		cm.consta.state = false
-		//time.Sleep(2 * time.Second)
-		return nil
+		cm.consta.lock.Unlock()
+		//stateCh <- false
+		for {
+			if cm.consta.state {
+				log.Println("Tcp reconnect successfully")
+				return
+			}
+			log.Println("Tcp reconnecting")
+			time.Sleep(1 * time.Second)
+		}
 	}
-	rep = append(rep, tmp...)
+
+	if err != nil {
+		return
+	}
+
 	if isPrefix == false {
-		//break
 	}
-	//}
-	// fmt.Println("received ", len(rep), " bytes: ", string(rep), "\n")
 	var repObj map[string]interface{}
-	err = json.Unmarshal(rep, &repObj)
-	checkError(err, "read err")
-	return repObj
+	err = json.Unmarshal(tmp, &repObj)
+	if err != nil {
+		//msgCh <- nil
+		return
+	}
+	msgCh <- repObj
 }
 
 func (cm *Cortex) write(reqObj ReqObj) {
 	req, err := json.Marshal(reqObj)
-	checkError(err, "write()")
+	if err != nil {
+		return
+	}
 
 	req = append(req, uint8('\n'))
 	if cm.conn != nil {
-		_, _ = cm.conn.Write(req)
+		go cm.conn.Write(req)
 	}
 }
 
 //	init cortex miner
-func (cm *Cortex) init(tcpCh chan bool) *net.TCPConn {
-	log.Println("Cortex Init")
+func (cm *Cortex) init(tcpCh chan bool) {
+	log.Println("Cortex connecting")
 	cm.consta.lock.Lock()
 	defer cm.consta.lock.Unlock()
-	//cm.server = "cortex.waterhole.xyz:8008"
-	//cm.server = "localhost:8009"
-	//cm.account = "0xc3d7a1ef810983847510542edfd5bc5551a6321c"
 	tcpAddr, err := net.ResolveTCPAddr("tcp", cm.param.Server)
 	if err != nil {
 		tcpCh <- false
-		return nil
+		log.Println("Cortex connecting", err)
+		return
 	}
 
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		tcpCh <- false
-		return nil
+		log.Println("Cortex dial", err)
+		return
 	}
-	//checkError(err, "init()")
-	//cm.conn.SetKeepAlive(true)
+
+	if cm.conn == nil {
+		tcpCh <- false
+		log.Println("Cortex connect is null")
+		return
+	}
+	cm.conn.SetKeepAlive(true)
 	cm.conn.SetNoDelay(true)
-	log.Println("Cortex connect successfully")
-	cm.consta.state = true
 	cm.reader = bufio.NewReader(cm.conn)
-	log.Println("Cortex Init successfully")
+	//cm.consta.state = true
 	tcpCh <- true
-	return cm.conn
+	//readableCh <- true
+	log.Println("Cortex connect successfully")
 }
 
 //	miner login to mining pool
@@ -103,8 +117,7 @@ func (cm *Cortex) login(loginCh chan bool) {
 	}
 	cm.write(reqLogin)
 	cm.getWork()
-	//cm.read()
-	log.Println("Cortex login suc")
+	log.Println("Cortex login successfully")
 	loginCh <- true
 }
 
@@ -167,15 +180,15 @@ func (cm *Cortex) Mining() {
 		}
 	}()
 
-	//for {
 	tcpCh := make(chan bool, 1)
 	loginCh := make(chan bool, 1)
+	startCh := make(chan bool, 1)
 	go func() {
 		for {
-			//cm.consta.lock.Lock()
-			//defer cm.consta.lock.Unlock()
-			consta := cm.consta.state
-			if consta == false {
+			//select {
+			//case state := <-stateCh:
+
+			if !cm.consta.state {
 				go cm.init(tcpCh)
 				select {
 				case suc := <-tcpCh:
@@ -190,21 +203,36 @@ func (cm *Cortex) Mining() {
 					if !suc {
 						continue
 					}
+					//readableCh <- true
+					cm.consta.state = true
+					startCh <- true
 				}
 			}
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
+			//}
 		}
 	}()
-	time.Sleep(1 * time.Second)
+	//stateCh <- false
+
+	//for {
+	select {
+	case suc := <-startCh:
+		if suc {
+			//break
+			log.Println("Start mining")
+		}
+	}
+	//}
+
+	//time.Sleep(1 * time.Second)
 
 	miningCh := make(chan string, 1)
-	go cm.miningOnce(miningCh)
+	go cm.mining(miningCh)
 	select {
 	case quit := <-miningCh:
 		if quit == "quit" {
 		}
 	}
-	//}
 }
 
 func (cm *Cortex) printHashRate() {
@@ -251,30 +279,43 @@ func readNonce() (ret []uint64) {
 	return ret
 }
 
-func (cm *Cortex) miningOnce(quitCh chan string) {
-	log.Println("mining once")
+func (cm *Cortex) mining(quitCh chan string) {
 	var taskHeader, taskNonce, taskDifficulty string
 	var THREAD int = (int)(len(cm.deviceInfos))
 	rand.Seed(time.Now().UTC().UnixNano())
-	solChan := make(chan config.Task, THREAD*2)
-	taskChan := make(chan config.Task, 4)
+	solChan := make(chan config.Task, THREAD)
+	taskChan := make(chan config.Task, THREAD)
 
 	m, err := minerPlugin.Lookup("RunSolver")
 	if err != nil {
 		panic(err)
 	}
 	m.(func(int, []config.DeviceInfo, config.Param, chan config.Task, chan config.Task, bool) (uint32, [][]uint32))(THREAD, cm.deviceInfos, cm.param, taskChan, solChan, cm.consta.state)
+	go func() {
+		for {
+			select {
+			case sol := <-solChan:
+				if sol.Header == config.CurrentTask.TaskQ.Header {
+					cm.submit(sol)
+				}
+			}
+		}
+	}()
+
+	msgCh := make(chan map[string]interface{}, THREAD)
+	go func() {
+		for {
+			cm.read(msgCh)
+		}
+	}()
+
 	go cm.getWork()
 
-	go func(currentTask_ *config.TaskWrapper) {
-		for {
-			msg := cm.read()
+	for {
+		select {
+		case msg := <-msgCh:
 			if cm.consta.state == false || msg == nil {
 				continue
-			}
-
-			if cm.param.VerboseLevel >= 4 {
-				//log.Println("Received: ", msg)
 			}
 			reqId, _ := msg["id"].(float64)
 			result, _ := msg["result"].(bool)
@@ -290,34 +331,15 @@ func (cm *Cortex) miningOnce(quitCh chan string) {
 				if len(workInfo) >= 3 {
 					taskHeader, taskNonce, taskDifficulty = workInfo[0].(string), workInfo[1].(string), workInfo[2].(string)
 					log.Println("Get Work in task: ", taskHeader, taskDifficulty)
-					currentTask_.Lock.Lock()
-					currentTask_.TaskQ.Nonce = taskNonce
-					currentTask_.TaskQ.Header = taskHeader
-					currentTask_.TaskQ.Difficulty = taskDifficulty
-					currentTask_.Lock.Unlock()
-					//for i := 0; i < THREAD; i++ {
-					taskChan <- currentTask_.TaskQ
-					//}
+					config.CurrentTask.Lock.Lock()
+					config.CurrentTask.TaskQ.Nonce = taskNonce
+					config.CurrentTask.TaskQ.Header = taskHeader
+					config.CurrentTask.TaskQ.Difficulty = taskDifficulty
+					config.CurrentTask.Lock.Unlock()
+					taskChan <- config.CurrentTask.TaskQ
 				}
-			}
-			time.Sleep(10 * time.Millisecond)
-		}
-	}(&config.CurrentTask)
-
-	//time.Sleep(1 * time.Second)
-
-	for {
-		//if cm.consta.state == false {
-		//	continue
-		//}
-		select {
-		case sol := <-solChan:
-			//config.CurrentTask.Lock.Lock()
-			//defer config.CurrentTask.Lock.Unlock()
-			//task := config.CurrentTask.TaskQ
-			if sol.Header == config.CurrentTask.TaskQ.Header {
-				cm.submit(sol)
 			}
 		}
 	}
+	quitCh <- "quit"
 }
