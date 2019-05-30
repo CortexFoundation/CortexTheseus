@@ -179,8 +179,17 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 										curNonce = uint64(curNonce + 1)
 										deviceInfos[tidx].Lock.Lock()
 										var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-										var streamData config.StreamData
-										nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+										status, sols := FindCycles(tidx, nedges)
+										end_time := time.Now().UnixNano() / 1e6
+										deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
+										deviceInfos[tidx].Solution_count += int64(len(sols))
+										deviceInfos[tidx].Gps += 1
+										tgtDiff := common.HexToHash(task.Difficulty[2:])
+									//	curNonce := streamData.Nonce
+									//	header := streamData.Header
+										verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
+				//						var streamData config.StreamData
+				//						nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
 										deviceInfos[tidx].Lock.Unlock()
 									}
 								}
@@ -201,8 +210,17 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 									curNonce = uint64(curNonce + 1)
 									deviceInfos[tidx].Lock.Lock()
 									var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-									var streamData config.StreamData
-									nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
+										status, sols := FindCycles(tidx, nedges)
+										end_time := time.Now().UnixNano() / 1e6
+										deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
+										deviceInfos[tidx].Solution_count += int64(len(sols))
+										deviceInfos[tidx].Gps += 1
+										tgtDiff := common.HexToHash(task.Difficulty[2:])
+									//	curNonce := streamData.Nonce
+									//	header := streamData.Header
+										verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
+								//	var streamData config.StreamData
+								//	nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
 									deviceInfos[tidx].Lock.Unlock()
 								}
 							}
