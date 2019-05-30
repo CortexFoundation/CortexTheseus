@@ -1,103 +1,147 @@
 package kernel
 
-// #cgo CFLAGS: -DDEBUG
-
-/*
-#cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS: -L/usr/local/cuda/lib64 -lcudart -lcublas -lcurand
-#cgo LDFLAGS: -lstdc++
-
-#cgo CFLAGS: -I/usr/local/cuda/include/
-#cgo CFLAGS: -DGPU
-
-#cgo CFLAGS: -Wall -Wno-unused-result -Wno-unknown-pragmas -Wno-unused-variable
-
-#include "interface.h"
-*/
-import "C"
 import (
+	"fmt"
+//	"os"
+//	"time"
 	"errors"
 	"unsafe"
+//	"strings"
+//	"strconv"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"plugin"
 )
 
-func LoadModel(modelCfg, modelBin string) (unsafe.Pointer, error) {
-	net := C.load_model(
-		C.CString(modelCfg),
-		C.CString(modelBin),
-	)
-
-	if net == nil {
-		return nil, errors.New("Model load error")
-	}
-	return net, nil
+type Model struct {
+	model unsafe.Pointer
+	lib *plugin.Plugin
+	ops int64
+	size int64
 }
 
-func FreeModel(net unsafe.Pointer) {
-	C.free_model(net)
-}
+func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin string) *Model {
+    
+	var model unsafe.Pointer
+	var size int64
+	var ops int64
 
-func Predict(net unsafe.Pointer, imageData []byte) ([]byte, error) {
-	if net == nil {
-		return nil, errors.New("Internal error: network is null in InferProcess")
+	if m, err := lib.Lookup("LoadModel"); err != nil {
+		log.Error("infer helper", "LoadModel", "error", err)
+		return nil
+	} else {
+		model, err = m.(func(string, string, int)(unsafe.Pointer, error))(modelCfg, modelBin, deviceId)
+		if model == nil || err != nil {
+			log.Error("infer helper", "LoadModel", "error", err)
+			return nil
+		}
 	}
 
-	resLen := int(C.get_output_length(net))
-	if resLen == 0 {
-		return nil, errors.New("Model result len is 0")
-	}
-
-	res := make([]byte, resLen)
-
-	flag := C.predict(
-		net,
-		(*C.char)(unsafe.Pointer(&imageData[0])),
-		(*C.char)(unsafe.Pointer(&res[0])))
-
-	if flag != 0 {
-		return nil, errors.New("Predict Error")
-	}
-
-	return res, nil
-}
-
-func InferCore(modelCfg, modelBin string, imageData []byte) ([]byte, error) {
-	net, loadErr := LoadModel(modelCfg, modelBin)
-	if loadErr != nil {
-		return nil, errors.New("Model load error")
-	}
-
-	// Model load succeed
-	defer FreeModel(net)
-
-	return Predict(net, imageData)
-	/*
-		res, err := Predict(net, imageData)
+    if m, err := lib.Lookup("GetStorageSize"); err != nil {
+		log.Error("Error while get model size")
+		return nil
+	} else {
+		ret, err := m.(func(unsafe.Pointer)(int64, error))(model)
 		if err != nil {
-			return 0, err
+			return nil
 		}
-
-		var (
-			max    = int8(res[0])
-			label  = uint64(0)
-			resLen = len(res)
-		)
-
-		// If result length large than 1, find the index of max value;
-		// Else the question is two-classify model, and value of result[0] is the prediction.
-		if resLen > 1 {
-			for idx := 1; idx < resLen; idx++ {
-				if int8(res[idx]) > max {
-					max = int8(res[idx])
-					label = uint64(idx)
-				}
-			}
-		} else {
-			if max > 0 {
-				label = 1
-			} else {
-				label = 0
-			}
+		size = ret
+	}
+    
+	if m, err := lib.Lookup("GetModelOpsFromModel"); err != nil {
+		log.Error("infer helper", "GetModelOpsFromModel", "error", err)
+		return nil
+	} else {
+		ret, err := m.(func(unsafe.Pointer)(int64, error))(model)
+		if err != nil || ret < 0 {
+			log.Error("infer helper", "GetModelOpsFromModel", "error", err)
+			return nil
 		}
-
-		return label, nil */
+		ops = ret
+	}
+	
+	return &Model{
+		model: model,
+		lib: lib,
+		ops: ops,
+		size: size,
+	}
 }
+
+func (m *Model) Ops()(int64) {
+	return m.ops;
+}
+
+func (m *Model) Size()(int64) {
+	return m.size;
+}
+
+func (m *Model) GetInputLength() int {
+	f, err := m.lib.Lookup("GetInputLength")
+
+	if err != nil {
+		log.Error("infer helper", "GetInputLength", "error", err)
+		return -1
+	}
+	ret, err := f.(func(unsafe.Pointer)(int, error))(m.model)
+	
+	if ret < 0 {
+		return -1
+	} else {
+		return int(ret)
+	}
+}
+
+func (m *Model) GetOutputLength() int {
+	f, err := m.lib.Lookup("GetOutputLength")
+
+	if err != nil {
+		log.Error("infer helper", "GetOutputLength", "error", err)
+		return -1
+	}
+	ret, err := f.(func(unsafe.Pointer)(int, error))(m.model)
+	
+	if ret < 0 {
+		return -1
+	} else {
+		return int(ret)
+	}
+}
+
+func GetModelOps(lib *plugin.Plugin, filepath string) (uint64, error) {
+	m, err := lib.Lookup("GetModelOps")
+	if err != nil{
+		log.Error("infer helper", "GetModelOps", "error", err)
+		return 0, err
+	}
+	ret, err := m.(func(string)(uint64, error))(filepath)
+	if ret < 0 {
+		return 0, errors.New("Gas Error")
+	} else {
+		return uint64(ret), nil
+	}
+}
+
+func (m *Model) Free() {
+	f, err := m.lib.Lookup("FreeModel")
+	if err != nil {
+		log.Error("infer helper", "FreeModel", "error", err)
+		return
+	}
+	f.(func(unsafe.Pointer)())(m.model)
+}
+
+func (m *Model) Predict(imageData []byte) ([]byte, error) {
+    expectedInputLength := m.GetInputLength()
+	if expectedInputLength != len(imageData) {
+		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",																	  expectedInputLength, len(imageData)))
+	}
+
+	f, err := m.lib.Lookup("Predict")
+	if err != nil {
+		log.Error("infer helper", "Predict", "error", err)
+		return nil, err
+	}
+	res, err := f.(func(unsafe.Pointer, []byte)([]byte, error))(m.model, imageData)
+	return res, err
+}
+

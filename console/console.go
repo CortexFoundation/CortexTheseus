@@ -28,6 +28,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre"
 	"github.com/CortexFoundation/CortexTheseus/internal/web3ext"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
@@ -139,6 +140,7 @@ func (c *Console) init(preload []string) error {
 	}
 	flatten := "var ctxc = web3.ctxc; var personal = web3.personal; "
 	for api := range apis {
+		log.Error("try to load web3", "api", api)
 		if api == "web3" {
 			continue // manually mapped or ignore
 		}

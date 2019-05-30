@@ -2,10 +2,11 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-GOBIN = $(shell pwd)/build/bin
+CBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_CUCKOO_DIR = $(shell pwd)/miner/libcuckoo
 PLUGINS_DIR = $(shell pwd)/plugins
+CORTEXPATH = $(shell pwd)/../build/_workspace
 
 all:
 	make -C ${LIB_CUCKOO_DIR}
@@ -34,6 +35,6 @@ cpu-miner:
 
 clean:
 	rm miner/libcuckoo/*.o miner/libcuckoo/*.a
-	rm -fr build/_workspace/pkg/ $(GOBIN)/* $(PLUGINS_DIR)/*
+	rm -fr build/_workspace/pkg/ $(CBIN)/* $(PLUGINS_DIR)/*
 	go clean -cache
 

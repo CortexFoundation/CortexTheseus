@@ -87,6 +87,8 @@ var (
 		utils.StorageAddrFlag,
 		utils.StorageEnabledFlag,
 		utils.SyncModeFlag,
+		utils.InferDeviceTypeFlag,
+		utils.InferDeviceIdFlag,
 		utils.GCModeFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,

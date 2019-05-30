@@ -17,6 +17,7 @@ var (
 )
 
 func CheckMetaHash(version string, infoHash string) error {
+	return nil
 	if version == Model_V1 {
 		return checkModelVersionOne(infoHash)
 	}

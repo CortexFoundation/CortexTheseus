@@ -19,8 +19,8 @@ package crypto
 import (
 	"encoding/binary"
 
-	"github.com/ethereum/go-ethereum/PoolMiner/common"
-	"github.com/ethereum/go-ethereum/PoolMiner/crypto/sha3"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/common"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/crypto/sha3"
 )
 
 // Keccak256 calculates and returns the Keccak256 hash of the input data.

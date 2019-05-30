@@ -23,6 +23,13 @@ build/_vendor/pkg
 .project
 .settings
 
+# infernet
+/infernet/build/*
+/infernet/build/CMakeCache.txt
+/infernet/build/Makefile
+/infernet/build/cmake_install.cmake
+/infernet/build/compile_commands.json
+
 # used by the Makefile
 /build/_workspace/
 /build/bin/

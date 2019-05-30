@@ -16,10 +16,12 @@ import (
 )
 
 var (
-	storageDir = flag.String("storage_dir", "/home/wlt/InferenceServer/warehouse", "Inference server's data dir, absolute path")
+	storageDir = flag.String("storage_dir", "~/.cortex/warehouse", "Inference server's data dir, absolute path")
 	logLevel   = flag.Int("verbosity", 3, "Log level to emit to screen")
 	port       = flag.Int("port", 8827, "Server listen port")
 	IsNotCache = flag.Bool("disable_cache", false, "Disable cache")
+	DeviceType = flag.String("device", "cpu", "cpu or gpu")
+	DeviceId   = flag.Int("device_id", 0, "device id")
 )
 
 var rpcClient *rpc.Client
@@ -37,7 +39,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Trace("Handler Info", "request", r, "body", string(body))
+    log.Trace("Handler Info", "request", r)
 
 	switch inference.RetriveType(body) {
 	case inference.INFER_BY_IH:
@@ -56,6 +58,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		inputContentHandler(w, &iw)
 		break
 
+	case inference.GAS_BY_H:
+		var iw inference.GasWork
+		if err := json.Unmarshal(body, &iw); err != nil {
+			RespErrorText(w, ErrDataParse)
+		}
+		gasHandler(w, &iw)
+		break
+
+
 	default:
 		RespErrorText(w, ErrInvalidInferTaskType)
 		break
@@ -70,9 +81,13 @@ func main() {
 
 	log.Info("Inference Server", "Help Command", "./infer_server -h")
 
-	inferServer := synapse.New(synapse.Config{
+	inferServer := synapse.New(&synapse.Config{
 		StorageDir: *storageDir,
 		IsNotCache: *IsNotCache,
+		DeviceType: *DeviceType,
+		DeviceId: *DeviceId,
+		IsRemoteInfer: false,
+		InferURI: "",
 	})
 	log.Info("Initilized inference server with synapse engine")
 

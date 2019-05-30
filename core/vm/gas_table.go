@@ -510,8 +510,14 @@ func gasInfer(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, me
 	if err != nil {
 		return 0, err
 	}
+	
+	modelOps, errOps := evm.OpsInfer(common.BigToAddress(stack.Back(0)))
+	if errOps != nil {
+		return 0, errOps
+	}
+	modelGas := modelOps / params.InferOpsPerGas
 	var overflow bool
-	if gas, overflow = math.SafeAdd(gas, params.CallInferGas); overflow {
+	if gas, overflow = math.SafeAdd(gas, modelGas); overflow {
 		return 0, errGasUintOverflow
 	}
 	return gas, nil
@@ -522,8 +528,17 @@ func gasInferArray(gt params.GasTable, evm *EVM, contract *Contract, stack *Stac
 	if err != nil {
 		return 0, err
 	}
+	
+	modelOps, errOps := evm.OpsInfer(common.BigToAddress(stack.Back(0)))
+	if errOps != nil {
+		return 0, errOps
+	}
+	modelGas :=  modelOps / params.InferOpsPerGas
+	if modelGas < params.CallInferGas {
+		modelGas = params.CallInferGas
+	}
 	var overflow bool
-	if gas, overflow = math.SafeAdd(gas, params.CallInferGas); overflow {
+	if gas, overflow = math.SafeAdd(gas, modelGas); overflow {
 		return 0, errGasUintOverflow
 	}
 	return gas, nil
