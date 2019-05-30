@@ -63,7 +63,7 @@ func (cm *Cortex) write(reqObj ReqObj) {
 }
 
 //	init cortex miner
-func (cm *Cortex) init() *net.TCPConn {
+func (cm *Cortex) init(tcpCh chan bool) *net.TCPConn {
 	log.Println("Cortex Init")
 	cm.consta.lock.Lock()
 	defer cm.consta.lock.Unlock()
@@ -71,21 +71,29 @@ func (cm *Cortex) init() *net.TCPConn {
 	//cm.server = "localhost:8009"
 	//cm.account = "0xc3d7a1ef810983847510542edfd5bc5551a6321c"
 	tcpAddr, err := net.ResolveTCPAddr("tcp", cm.param.Server)
-	checkError(err, "init()")
+	if err != nil {
+		tcpCh <- false
+		return nil
+	}
 
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
-	checkError(err, "init()")
+	if err != nil {
+		tcpCh <- false
+		return nil
+	}
+	//checkError(err, "init()")
 	//cm.conn.SetKeepAlive(true)
 	cm.conn.SetNoDelay(true)
 	log.Println("Cortex connect successfully")
 	cm.consta.state = true
 	cm.reader = bufio.NewReader(cm.conn)
 	log.Println("Cortex Init successfully")
+	tcpCh <- true
 	return cm.conn
 }
 
 //	miner login to mining pool
-func (cm *Cortex) login() {
+func (cm *Cortex) login(loginCh chan bool) {
 	log.Println("Cortex login ...")
 	var reqLogin = ReqObj{
 		Id:      73,
@@ -94,8 +102,10 @@ func (cm *Cortex) login() {
 		Params:  []string{cm.param.Account},
 	}
 	cm.write(reqLogin)
+	cm.getWork()
 	//cm.read()
 	log.Println("Cortex login suc")
+	loginCh <- true
 }
 
 //	get mining task
@@ -158,14 +168,29 @@ func (cm *Cortex) Mining() {
 	}()
 
 	//for {
+	tcpCh := make(chan bool, 1)
+	loginCh := make(chan bool, 1)
 	go func() {
 		for {
 			//cm.consta.lock.Lock()
 			//defer cm.consta.lock.Unlock()
 			consta := cm.consta.state
 			if consta == false {
-				cm.init()
-				cm.login()
+				go cm.init(tcpCh)
+				select {
+				case suc := <-tcpCh:
+					if !suc {
+						continue
+					}
+				}
+
+				go cm.login(loginCh)
+				select {
+				case suc := <-loginCh:
+					if !suc {
+						continue
+					}
+				}
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
