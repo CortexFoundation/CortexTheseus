@@ -37,6 +37,7 @@ func (cm *Cortex) read() map[string]interface{} {
 			cm.conn.Close()
 			cm.conn = nil
 			cm.consta.state = false
+			time.Sleep(2 * time.Second)
 			return nil
 		}
 		//checkError(err, "read()")
