@@ -70,9 +70,11 @@ func DefaultDataDir() string {
 }
 
 // DefaultStorageDir is the default storage directory to use for the models and inputs.
-func DefaultStorageDir() string {
+func DefaultStorageDir(DataDir string) string {
+	if DataDir == "" {
+		DataDir = DefaultDataDir()
+	}
 	// Try to place the data folder in the user's home dir
-	DataDir := DefaultDataDir()
 	if DataDir != "" {
 		return filepath.Join(DataDir, "storage")
 	}

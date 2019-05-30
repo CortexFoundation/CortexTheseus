@@ -65,6 +65,7 @@ nodekey:
 	build/env.sh go run build/ci.go install ./cmd/nodekey
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
+
 PoolMiner/miner/libcuckoo/%.a: PoolMiner
 	make -C PoolMiner
 	
@@ -114,7 +115,8 @@ lint: ## Run linters.
 clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
-	rm PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
+	rm -rf infernet/build/*
+	rm -f PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
 
 clean-clib:
 	#make -C $(LIB_MINER_DIR) clean

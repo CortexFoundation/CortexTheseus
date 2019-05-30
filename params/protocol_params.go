@@ -33,7 +33,7 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	UploadGas             uint64 = 277777
+	UploadGas             uint64 = 555555
 	TxDataZeroGas         uint64 = 4       // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512     // Divisor for the quadratic particle of the memory cost equation.
 	SstoreSetGas          uint64 = 20000   // Once per SLOAD operation.
@@ -113,13 +113,13 @@ var (
 
 const (
 	SeedingBlks = 6                   //for torrent seed spreading
-	MatureBlks  = 36                  //For the full node to synchronize the models
+	MatureBlks  = 100                  //For the full node to synchronize the models
 	ExpiredBlks = 1000000000000000000 //8409600
 
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024 //How many bytes per upload
 	DEFAULT_UPLOAD_BYTES   uint64 = 0              //default upload bytes
 	MODEL_MIN_UPLOAD_BYTES        = 0
-	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 * 1024
+	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT        uint64 = 10000 //max gas limit for model call
 
 	CONFIRM_TIME = -60 // * time.Second block should be protected past this time

@@ -16,6 +16,6 @@ cpu:
 gpu:
 		@mkdir -p build/gpu && cd build/gpu && cmake ../.. && $(MAKE)
 
-# clean rule
-# clean:
-# 	@mkdir -p build && cd build && cmake .. && $(MAKE) clean
+clean:
+		@mkdir -p build/gpu && cd build/gpu && cmake ../.. && $(MAKE) clean
+		@mkdir -p build/cpu && cd build/cpu && cmake ../.. && $(MAKE) clean

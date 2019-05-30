@@ -51,13 +51,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
-type LesServer interface {
-	Start(srvr *p2p.Server)
-	Stop()
-	Protocols() []p2p.Protocol
-	SetBloomBitsIndexer(bbIndexer *core.ChainIndexer)
-}
-
 // Cortex implements the Cortex full node service.
 type Cortex struct {
 	config      *Config
@@ -70,7 +63,6 @@ type Cortex struct {
 	txPool          *core.TxPool
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
-	lesServer       LesServer
 
 	// DB interfaces
 	chainDb ctxcdb.Database // Block chain database
@@ -93,11 +85,6 @@ type Cortex struct {
 	netRPCService *ctxcapi.PublicNetAPI
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and coinbase)
-}
-
-func (s *Cortex) AddLesServer(ls LesServer) {
-	s.lesServer = ls
-	ls.SetBloomBitsIndexer(s.bloomIndexer)
 }
 
 // New creates a new Cortex object (including the
@@ -152,9 +139,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 	}
 
-	ctxc.synapse = infer.New(infer.Config{
-		StorageDir: config.StorageDir,
-		IsNotCache: false,
+	ctxc.synapse = infer.New(&infer.Config{
+		StorageDir    : config.StorageDir,
+		DeviceType    : config.InferDeviceType,
+		DeviceId      : config.InferDeviceId,
+		IsRemoteInfer : config.InferURI == "",
+		InferURI      : config.InferURI,
+		IsNotCache    : false,
 	})
 
 	var (
@@ -454,10 +445,7 @@ func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
 func (s *Cortex) Protocols() []p2p.Protocol {
-	if s.lesServer == nil {
-		return s.protocolManager.SubProtocols
-	}
-	return append(s.protocolManager.SubProtocols, s.lesServer.Protocols()...)
+	return s.protocolManager.SubProtocols
 }
 
 // Start implements node.Service, starting all internal goroutines needed by the
@@ -473,9 +461,6 @@ func (s *Cortex) Start(srvr *p2p.Server) error {
 	maxPeers := srvr.MaxPeers
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
-	if s.lesServer != nil {
-		s.lesServer.Start(srvr)
-	}
 	return nil
 }
 
@@ -487,9 +472,6 @@ func (s *Cortex) Stop() error {
 	s.engine.Close()
 	s.synapse.Close()
 	s.protocolManager.Stop()
-	if s.lesServer != nil {
-		s.lesServer.Stop()
-	}
 	s.txPool.Stop()
 	s.miner.Stop()
 	s.eventMux.Stop()

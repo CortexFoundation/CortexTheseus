@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	// "math/big"
 
 	"path/filepath"
@@ -58,6 +57,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -173,6 +173,7 @@ var (
 		Usage: `Blockchain garbage collection mode ("full", "archive")`,
 		Value: "full",
 	}
+
 	// P2P storage settings
 	StorageEnabledFlag = cli.BoolFlag{
 		Name:  "storage",
@@ -181,7 +182,7 @@ var (
 	StorageDirFlag = DirectoryFlag{
 		Name:  "storage.dir",
 		Usage: "P2P storage directory",
-		Value: DirectoryString{node.DefaultStorageDir()},
+		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
 	StorageAddrFlag = cli.StringFlag{
 		Name:  "storage.addr",
@@ -193,11 +194,11 @@ var (
 		Usage: "P2P storage listening port (remote mode)",
 		Value: torrentfs.DefaultConfig.Port,
 	}
-	StorageTrackerFlag = cli.StringFlag{
-		Name:  "storage.tracker",
-		Usage: "P2P storage tracker list",
-		Value: torrentfs.DefaultConfig.DefaultTrackers,
-	}
+	//StorageTrackerFlag = cli.StringFlag{
+	//	Name:  "storage.tracker",
+	//	Usage: "P2P storage tracker list",
+	//	Value: torrentfs.DefaultConfig.DefaultTrackers,
+	//}
 	// Dashboard settings
 	DashboardEnabledFlag = cli.BoolFlag{
 		Name:  metrics.DashboardEnabledFlag,
@@ -414,6 +415,17 @@ var (
 		Name:  "miner.algorithm",
 		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
 	}
+	InferDeviceTypeFlag = cli.StringFlag{
+		Name: "infer.devicetype",
+		Usage: "infer device type : cpu or gpu",
+		Value: "cpu",
+	}
+	InferDeviceIdFlag = cli.IntFlag{
+		Name: "infer.devices",
+		Usage: "the device used infering, use --infer.devices=2, not available on cpu",
+		Value: 0,
+	}
+
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -629,15 +641,6 @@ var (
 		Usage: "InfluxDB `host` tag attached to all measurements",
 		Value: "localhost",
 	}
-	InferDeviceTypeFlag = cli.StringFlag{
-		Name: "infer.device.type",
-		Usage: "infer device type : cuda or cpu",
-	}
-	InferDeviceIdFlag = cli.IntFlag{
-		Name: "infer.device.id",
-		Usage: "device id",
-		Value: 0,
-	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -665,14 +668,14 @@ func MakeStorageDir(ctx *cli.Context) string {
 	case ctx.GlobalIsSet(StorageDirFlag.Name):
 		return ctx.GlobalString(StorageDirFlag.Name)
 	case ctx.GlobalBool(CerebroFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "cerebro")
+		return filepath.Join(node.DefaultStorageDir(""), "cerebro")
 	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "testnet")
+		return filepath.Join(node.DefaultStorageDir(""), "testnet")
 	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(), "lazynet")
+		return filepath.Join(node.DefaultStorageDir(""), "lazynet")
 	}
 
-	return node.DefaultStorageDir()
+	return node.DefaultStorageDir(MakeDataDir(ctx))
 }
 
 // setNodeKey creates a node key from set command line flags, either loading it
@@ -1237,7 +1240,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		cfg.IpcPath = filepath.Join(path, IPCPath)
 		log.Info("IPCPath", "path", cfg.IpcPath)
 	}
-	cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
+	//cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
 }

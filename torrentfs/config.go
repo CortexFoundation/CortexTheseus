@@ -1,5 +1,9 @@
 package torrentfs
 
+import (
+	"github.com/CortexFoundation/CortexTheseus/params"
+)
+
 // Config ...
 type Config struct {
 	DataDir string `toml:",omitempty"`
@@ -11,7 +15,7 @@ type Config struct {
 	// Port is the TCP port number on which to start the storage server. The
 	// default zero value is/ valid and will pick a port number randomly.
 	Port            int    `toml:",omitempty"`
-	DefaultTrackers string `toml:",omitempty"`
+	DefaultTrackers []string `toml:",omitempty"`
 	SyncMode        string `toml:",omitempty"`
 	TestMode        bool   `toml:",omitempty"`
 }
@@ -20,7 +24,7 @@ type Config struct {
 var DefaultConfig = Config{
 	Host:            "localhost",
 	Port:            8085,
-	DefaultTrackers: "http://torrent.cortexlabs.ai:5008/announce",
+	DefaultTrackers: params.MainnetTrackers, //"http://torrent.cortexlabs.ai:5008/announce",
 	//DefaultTrackers: "http://47.52.39.170:5008/announce",
 	SyncMode: "full",
 	TestMode: false,
