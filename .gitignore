@@ -77,3 +77,4 @@ infernet/int_mnist_model/
 node_modules/
 plugins/
 *.log
+*.rdb

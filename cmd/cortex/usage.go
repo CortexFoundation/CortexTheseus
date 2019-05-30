@@ -109,7 +109,7 @@ var AppHelpFlagGroups = []flagGroup{
 	//	},
 	//},
 	{
-		Name: "TRANSACTION POOL",
+	Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
 			utils.TxPoolLocalsFlag,
 			utils.TxPoolNoLocalsFlag,
@@ -213,7 +213,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.StorageAddrFlag,
 			utils.StoragePortFlag,
 			utils.StorageDirFlag,
-			utils.StorageTrackerFlag,
 		},
 	},
 	{

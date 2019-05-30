@@ -32,10 +32,10 @@ struct DenseParam : public utils::Parameter<DenseParam> {
   static const constexpr int kBias = 2;
 };
 
-struct CVMLUTParam : public dmlc::Parameter<CVMLUTParam> {
+struct CVMLUTParam : public utils::Parameter<CVMLUTParam> {
 	int in_dim;
-  DMLC_DECLARE_PARAMETER(CVMLUTParam) {
-    DMLC_DECLARE_FIELD(in_dim)
+  CVMUTIL_DECLARE_PARAMETER(CVMLUTParam) {
+    CVMUTIL_DECLARE_FIELD(in_dim)
       .describe("In dimension indicates the inputs value range.");
   }
 };
@@ -321,7 +321,7 @@ struct LayoutTransformParam : public utils::Parameter<LayoutTransformParam> {
   }
 };
 
-struct NonMaximumSuppressionParam : public dmlc::Parameter<NonMaximumSuppressionParam> {
+struct NonMaximumSuppressionParam : public utils::Parameter<NonMaximumSuppressionParam> {
   bool return_indices;
   float iou_threshold;
   bool force_suppress;
@@ -331,25 +331,25 @@ struct NonMaximumSuppressionParam : public dmlc::Parameter<NonMaximumSuppression
   int score_index;
   int max_output_size;
   bool invalid_to_bottom;
-  DMLC_DECLARE_PARAMETER(NonMaximumSuppressionParam) {
-    DMLC_DECLARE_FIELD(max_output_size).set_default(-1)
+  CVMUTIL_DECLARE_PARAMETER(NonMaximumSuppressionParam) {
+    CVMUTIL_DECLARE_FIELD(max_output_size).set_default(-1)
       .describe("Max number of output valid boxes for each instance."
                 "By default all valid boxes are returned.");
-    DMLC_DECLARE_FIELD(iou_threshold).set_default(0.5)
+    CVMUTIL_DECLARE_FIELD(iou_threshold).set_default(0.5)
       .describe("Non-maximum suppression threshold.");
-    DMLC_DECLARE_FIELD(force_suppress).set_default(false)
+    CVMUTIL_DECLARE_FIELD(force_suppress).set_default(false)
       .describe("Suppress all detections regardless of class_id.");
-    DMLC_DECLARE_FIELD(top_k).set_default(-1)
+    CVMUTIL_DECLARE_FIELD(top_k).set_default(-1)
       .describe("Keep maximum top k detections before nms, -1 for no limit.");
-    DMLC_DECLARE_FIELD(coord_start).set_default(2)
+    CVMUTIL_DECLARE_FIELD(coord_start).set_default(2)
       .describe("Start index of the consecutive 4 coordinates.");
-    DMLC_DECLARE_FIELD(score_index).set_default(1)
+    CVMUTIL_DECLARE_FIELD(score_index).set_default(1)
       .describe("Index of the scores/confidence of boxes.");
-    DMLC_DECLARE_FIELD(id_index).set_default(0)
+    CVMUTIL_DECLARE_FIELD(id_index).set_default(0)
       .describe("Axis index of id.");
-    DMLC_DECLARE_FIELD(return_indices).set_default(true)
+    CVMUTIL_DECLARE_FIELD(return_indices).set_default(true)
       .describe("Whether to return box indices in input data.");
-    DMLC_DECLARE_FIELD(invalid_to_bottom).set_default(false)
+    CVMUTIL_DECLARE_FIELD(invalid_to_bottom).set_default(false)
       .describe("Whether to move all invalid bounding boxes to the bottom.");
   }
 };

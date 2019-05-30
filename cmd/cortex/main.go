@@ -81,7 +81,7 @@ var (
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolLifetimeFlag,
-		utils.StorageTrackerFlag,
+		//utils.StorageTrackerFlag,
 		utils.StorageDirFlag,
 		utils.StoragePortFlag,
 		utils.StorageAddrFlag,
