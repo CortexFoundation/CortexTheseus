@@ -27,29 +27,28 @@ func checkError(err error, func_name string) {
 
 func (cm *Cortex) read() map[string]interface{} {
 	rep := make([]byte, 0, 1024) // big buffer
-	for {
-		tmp, isPrefix, err := cm.reader.ReadLine()
-		//if err == io.EOF {
-		if err != nil {
-			log.Println("Tcp disconnectted")
-			cm.consta.lock.Lock()
-			defer cm.consta.lock.Unlock()
-			cm.conn.Close()
-			cm.conn = nil
-			cm.consta.state = false
-			time.Sleep(2 * time.Second)
-			return nil
-		}
-		//checkError(err, "read()")
-		rep = append(rep, tmp...)
-		if isPrefix == false {
-			break
-		}
+	//for {
+	tmp, isPrefix, err := cm.reader.ReadLine()
+	//if err == io.EOF {
+	if err != nil {
+		log.Println("Tcp disconnected")
+		cm.consta.lock.Lock()
+		defer cm.consta.lock.Unlock()
+		//cm.conn.Close()
+		//cm.conn = nil
+		cm.consta.state = false
+		//time.Sleep(2 * time.Second)
+		return nil
 	}
+	rep = append(rep, tmp...)
+	if isPrefix == false {
+		//break
+	}
+	//}
 	// fmt.Println("received ", len(rep), " bytes: ", string(rep), "\n")
 	var repObj map[string]interface{}
-	err := json.Unmarshal(rep, &repObj)
-	checkError(err, "read()")
+	err = json.Unmarshal(rep, &repObj)
+	checkError(err, "read err")
 	return repObj
 }
 
@@ -58,7 +57,9 @@ func (cm *Cortex) write(reqObj ReqObj) {
 	checkError(err, "write()")
 
 	req = append(req, uint8('\n'))
-	_, _ = cm.conn.Write(req)
+	if cm.conn != nil {
+		_, _ = cm.conn.Write(req)
+	}
 }
 
 //	init cortex miner
@@ -73,10 +74,10 @@ func (cm *Cortex) init() *net.TCPConn {
 	checkError(err, "init()")
 
 	cm.conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	checkError(err, "init()")
 	//cm.conn.SetKeepAlive(true)
 	cm.conn.SetNoDelay(true)
 	log.Println("Cortex connect successfully")
-	checkError(err, "init()")
 	cm.consta.state = true
 	cm.reader = bufio.NewReader(cm.conn)
 	log.Println("Cortex Init successfully")
@@ -93,7 +94,7 @@ func (cm *Cortex) login() {
 		Params:  []string{cm.param.Account},
 	}
 	cm.write(reqLogin)
-	cm.read()
+	//cm.read()
 	log.Println("Cortex login suc")
 }
 
@@ -156,7 +157,8 @@ func (cm *Cortex) Mining() {
 		}
 	}()
 
-	for {
+	//for {
+	go func() {
 		for {
 			//cm.consta.lock.Lock()
 			//defer cm.consta.lock.Unlock()
@@ -164,15 +166,20 @@ func (cm *Cortex) Mining() {
 			if consta == false {
 				cm.init()
 				cm.login()
-			} else {
-				break
-				//return
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
-		time.Sleep(1 * time.Second)
-		cm.miningOnce()
+	}()
+	time.Sleep(1 * time.Second)
+
+	miningCh := make(chan string, 1)
+	go cm.miningOnce(miningCh)
+	select {
+	case quit := <-miningCh:
+		if quit == "quit" {
+		}
 	}
+	//}
 }
 
 func (cm *Cortex) printHashRate() {
@@ -219,7 +226,7 @@ func readNonce() (ret []uint64) {
 	return ret
 }
 
-func (cm *Cortex) miningOnce() {
+func (cm *Cortex) miningOnce(quitCh chan string) {
 	log.Println("mining once")
 	var taskHeader, taskNonce, taskDifficulty string
 	var THREAD int = (int)(len(cm.deviceInfos))
@@ -238,9 +245,12 @@ func (cm *Cortex) miningOnce() {
 	go func(currentTask_ *config.TaskWrapper) {
 		for {
 			msg := cm.read()
-			if cm.consta.state == false {
-				return
+			if cm.consta.state == false || msg == nil {
+				time.Sleep(1 * time.Second)
+				//return
+				continue
 			}
+
 			if cm.param.VerboseLevel >= 4 {
 				//log.Println("Received: ", msg)
 			}
@@ -264,7 +274,7 @@ func (cm *Cortex) miningOnce() {
 					currentTask_.TaskQ.Difficulty = taskDifficulty
 					currentTask_.Lock.Unlock()
 					//for i := 0; i < THREAD; i++ {
-						taskChan <- currentTask_.TaskQ
+					taskChan <- currentTask_.TaskQ
 					//}
 				}
 			}
@@ -275,15 +285,16 @@ func (cm *Cortex) miningOnce() {
 
 	for {
 		if cm.consta.state == false {
-			return
+			//return
+			continue
 		}
 		select {
 		case sol := <-solChan:
 			//config.CurrentTask.Lock.Lock()
 			//defer config.CurrentTask.Lock.Unlock()
 			//task := config.CurrentTask.TaskQ
-		//	if sol.Header == task.Header {
-				cm.submit(sol)
+			//	if sol.Header == task.Header {
+			cm.submit(sol)
 		//	}
 
 		default:
