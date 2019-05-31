@@ -538,7 +538,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.estimate_ops")
                                     "graph_runtime.estimate_ops is "
                                     "at least 1, but it has "
                                 << args.num_args;
-      *rv = CvmRuntime::EstimateOps(args[0]); 
+      *rv = CvmRuntime::EstimateOps(args[0]);
     } catch (std::runtime_error &e) {
       *rv = -1;
     } catch (std::logic_error &e) {

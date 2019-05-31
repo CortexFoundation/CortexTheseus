@@ -59,7 +59,13 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   get_ops = module.GetFunction("get_ops");
   get_storage_size = module.GetFunction("get_storage_size");
   auto get_output_num = module.GetFunction("get_output_num");
-  out_num = get_output_num();
+  get_output_num(&out_num);
+
+  //TODO(lizhen) check output num
+  if (out_num < 1) {
+      std::cerr << "out_num: " << out_num << "\n";
+      out_num = 1;
+  }
 
   auto get_input_shape = module.GetFunction("get_input_shape");
   DLTensor* t = new DLTensor();
@@ -67,7 +73,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   get_input_shape("data", t);
   in_size = 1;
   for (int i = 0; i < t->ndim; ++i) in_size *= t->shape[i];
-  
+
   dims.push_back(t->ndim);
   int64_t *shape = new int64_t[t->ndim];
   memcpy(shape, t->shape, t->ndim * sizeof(int64_t));
@@ -79,8 +85,8 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     out_size[k] = 1;
     get_output_shape(k, t);
     out_size[k] = 1;
-    for (int i = 0; i < t->ndim; ++i) out_size[k] *= t->shape[i]; 
-    
+    for (int i = 0; i < t->ndim; ++i) out_size[k] *= t->shape[i];
+
     dims.push_back(t->ndim);
     shape = new int64_t[t->ndim];
     memcpy(shape, t->shape, t->ndim * sizeof(int64_t));
@@ -128,7 +134,7 @@ DLTensor* CVMModel::PlanInput(char *input) {
 }
 
 std::vector<DLTensor*> CVMModel::PlanOutput() {
-  vector<DLTensor*> ret;
+  std::vector<DLTensor*> ret;
   for (int i = 0; i < out_num; ++i) {
     DLTensor *t;
     CVMArrayAlloc(shapes[i + 1], dims[i + 1], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &t);
@@ -139,7 +145,7 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
 
 void CVMModel::SaveTensor(DLTensor* output, char* mem) {
   auto data = static_cast<int*>(output->data);
-  for (int i = 0; i < out_size; ++i) {
+  for (int i = 0; i < out_size[0]; ++i) {
     mem[i] = static_cast<int8_t>(data[i]);
   }
 }
@@ -164,11 +170,11 @@ int CVMModel::Run_() {
   return run();
 }
 
-int CVMModel::Run(DLTensor* input, vector<DLTensor*> output) {
+int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
   int ret = SetInput_("data", input) ||
     Run_();
-
-    GetOutput_(0, output);
+  auto output = outputs[0];
+  ret |= GetOutput_(0, output);
   return ret;
 }
 
@@ -177,7 +183,7 @@ int CVMModel::GetInputLength() {
 }
 
 int CVMModel::GetOutputLength() {
-  return static_cast<int>(out_size);
+  return static_cast<int>(out_size[0]);
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -296,18 +302,19 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
   } else {
     CVMModel* model = (CVMModel*)model_;
     DLTensor* input = model->PlanInput(input_data);
-    auto output = model->PlanOutput();
+    auto outputs = model->PlanOutput();
     if (input == nullptr) {
       std::cerr << "input == nullptr || output == nullptr" << std::endl;
       ret = -1;
     } else {
-      ret = model->Run(input, output);
+      ret = model->Run(input, outputs);
       if (ret == 0) {
+        auto output = outputs[0];
         model->SaveTensor(output, output_data);
         if (input)
           CVMArrayFree(input);
-        for (int i = 0; i < output.size(); ++i)
-          CVMArrayFree(output[i]);
+        for (int i = 0; i < outputs.size(); ++i)
+          CVMArrayFree(outputs[i]);
       }
     }
   }
