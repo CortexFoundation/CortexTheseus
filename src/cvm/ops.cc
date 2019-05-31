@@ -36,6 +36,7 @@ double cvm_op_dense_cnt = 0;
 double cvm_op_maxpool_cnt = 0;
 double cvm_op_broadcast_cnt = 0;
 double cvm_op_concat_cnt = 0;
+double cvm_op_upsampling_cnt = 0;
 
 #define CVM_PROFILING
 
@@ -1582,6 +1583,67 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
     take(indices, x, y);
 });
 
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
+    .set_body([](CVMArgs args, CVMRetValue *ret){
+#ifdef CVM_PROFILING
+        double start = omp_get_wtime();
+#endif
+    VERIFY(args.num_args == 3);
+	DLTensor *x = args[0];
+	DLTensor *y = args[1];
+
+    VERIFY_EQ(x->ndim,     4) << "dimension should be 4D, Got: " << x->ndim;
+    VERIFY_EQ(x->ndim,     y->ndim) << "dimension should match " << x->ndim << "!=" << y->ndim;
+    VERIFY_EQ(x->shape[0], y->shape[0]) << "batch size should match";
+    VERIFY_EQ(x->shape[1], y->shape[1]) << "batch size should match";
+
+	void *_attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::UpSamplingParam>(attr->parsed);
+    VERIFY_EQ(param.method, "NEAREST_NEIGHBOR") << "only accept method = NEAREST_NEIGHBOR ";
+    VERIFY_EQ(param.layout, "NCHW") << "only accept NHWC, Got:" << param.layout;
+
+	int scale = {(int)param.scale};
+    int h = x->shape[2], w = x->shape[3];
+    int oh = y->shape[2], ow = y->shape[3];
+    int n_batch = x->shape[0], n_channels = x->shape[1];
+
+    auto x_data = static_cast<int32_t*>(x->data);
+    auto y_data = static_cast<int32_t*>(y->data);
+
+    // std::cerr << "scale = " << scale << "\n";
+    // std::cerr << "input = " << x->shape[0] << " " << x->shape[1]
+    //           << " " << x->shape[2] << " " << x->shape[3]
+    //           << "\n";
+
+    // std::cerr << "output = " << y->shape[0] << " " << y->shape[1]
+    //           << " " << y->shape[2] << " " << y->shape[3]
+    //           << "\n";
+
+    //TODO(tian) optimize nested for-loop for scale
+    #pragma omp parallel for collapse(2)
+    for (uint32_t batch = 0; batch < n_batch; batch++) {
+        for (uint32_t c = 0; c< n_channels; c++) {
+            auto bc_y_data = y_data + batch * n_channels * oh * ow + c * oh * ow;
+            auto bc_x_data = x_data + batch * n_channels *  h *  w + c *  h *  w;
+            for (uint64_t xy = 0; xy < h * w; xy++) {
+                uint32_t x = 2 * (xy / w), y = 2 * (xy % w);
+                for (int xs = 0; xs < scale; xs++){
+                    for (int ys = 0; ys < scale; ys++) {
+                        bc_y_data[(x + xs) * ow + y + xs] = bc_x_data[xy];
+                    }
+                }
+            }
+        }
+    }
+
+#ifdef CVM_PROFILING
+    cvm_op_upsampling_cnt += omp_get_wtime() - start;
+    start = omp_get_wtime();
+#endif
+
+});
+
 /*********************************cuda op*********************************************/
 #ifdef CVM_RUNTIME_CUDA
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_add")
@@ -2149,6 +2211,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.concatenate")
             preSize += input->shape[axis];
         }
 });
+
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
     DLTensor *x = args[0];
