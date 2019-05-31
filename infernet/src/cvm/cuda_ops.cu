@@ -1665,7 +1665,7 @@ __global__ void kernel_repeat(const int32_t *x_data, int32_t *y_data, const int6
     }
 }
 const char* kernel_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
-        const int64_t *yshape, const int64_t ysize, const int32_t xndim, const int32_t yndim const int32_t axis){
+        const int64_t *yshape, const int64_t ysize, const int32_t xndim, const int32_t yndim, const int32_t axis){
     int64_t *dev_xshape, *dev_yshape;
     cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
     cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);

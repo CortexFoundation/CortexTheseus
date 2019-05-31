@@ -1187,8 +1187,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
     int32_t yndim = y->ndim;
+    int32_t xndim = x->ndim;
     // TODO(kaihuo) check
-    int32_t *reps = param.reps; //TODO get from attr
+    TShape ts_reps = param.reps; //TODO get from attr
+    int64_t *reps = ts_reps.begin();
+
     int i = 0, j = 0;
     for(i = yndim-1, j = xndim-1; i >= 0 && j >= 0; i--, j--){
         VERIFY(x->shape[j] * reps[i] == y->shape[i]);
@@ -1197,7 +1200,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
         VERIFY(reps[i] == y->shape[i]);
     }
 
-    int32_t xndim = x->ndim;
     uint64_t tmp_y_size = 1;
     for(int i = 0; i < xndim; i++){
         tmp_y_size *= y->shape[i + yndim - xndim];
@@ -1227,12 +1229,15 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
 .set_body([](CVMArgs args, CVMRetValue *ret){
+    VERIFY(args.num_args == 3);
     DLTensor *ishape = args[0];
     DLTensor *oshape = args[1];
     void *_attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
 
-    int32_t axis; // TODO get from attr
-    VERIFY(axis >= 0)
+    int32_t axis = param.axis; // TODO get from attr
+    VERIFY(axis >= 0);
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
     int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
     for(uint64_t i = 0; i < getSize(oshape); i++){
@@ -1253,18 +1258,22 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     DLTensor *x = args[0];
     DLTensor *y = args[1];
     void *_attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::TransposeParam>(attr->parsed);
 
-    int32_t *axes_data; // TODO get from attr
+    TShape axes = param.axes; // TODO get from attr
+    int64_t *axes_data = axes.begin();
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
-    int ndim = y->ndim;o
+    int ndim = y->ndim;
+
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
         for(int j = ndim-1; j >= 0; j--){
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
             int xj = j;//axes != nullptr ? axes[j] : j;
-            if(axes != nullptr){
+            if(axes_data != nullptr){
                 xj = axes_data[j];
             }else{
                 if(j == ndim-1) xj = 0;
@@ -1285,13 +1294,18 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice")
     DLTensor *x = args[0];
     DLTensor *y = args[1];
     void *_attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::StridedSliceParam>(attr->parsed);
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
     //TODO get from attr
-    int32_t *begin_data;
-    int32_t *end_data;
-    int32_t *step_data;
+    TShape begin = param.begin;
+    TShape end = param.end;
+    TShape stride = param.stride;
+    int64_t *begin_data = begin.begin();
+    int64_t *end_data = end.begin();
+    int64_t *step_data = stride.begin();
 
     int ndim = y->ndim;
 
@@ -1340,8 +1354,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
     DLTensor *valid_count = args[1];
     DLTensor *y = args[2];
     void* _attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::GetValidCountsParam>(attr->parsed);
 
-    int32_t score_threshold; //TODO get from attr
+    int32_t score_threshold = param.score_threshold; //TODO get from attr
 
     VERIFY(x->ndim == 3);
     int32_t batchs = x->shape[0];
@@ -1376,17 +1392,19 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
     DLTensor *valid_count = args[1];
     DLTensor *y = args[2];
     void* _attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::NonMaximumSuppressionParam>(attr->parsed);
 
     //TODO get from attr
-    int32_t max_output_size;
-    int32_t iou_threshold;
-    int32_t topk;
-    int32_t coord_start;
-    int32_t score_index;
-    int32_t id_index;
-    bool force_suppress;
-    bool return_indices;
-    bool invalid_to_bottom;
+    int32_t max_output_size = param.max_output_size;
+    int32_t iou_threshold = param.iou_threshold;
+    int32_t topk = param.top_k;
+    int32_t coord_start = param.coord_start;
+    int32_t score_index = param.score_index;
+    int32_t id_index = param.id_index;
+    bool force_suppress = param.force_suppress;
+    bool return_indices = param.return_indices;
+    bool invalid_to_bottom = invalid_to_bottom;
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
@@ -1457,7 +1475,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.bias_add")
     DLTensor *x = args[0];
     DLTensor *bias = args[1];
     DLTensor *y = args[2];
-    int32_t axis; //TODO get from attr
+    int32_t axis=1; //TODO get from attr
     int32_t ndim = x->ndim;
     VERIFY(axis > 0 && axis < ndim);
 
@@ -1485,9 +1503,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
     DLTensor *y = args[2];
-    DLTensor *_attr = args[3];
+    void *_attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
 
-    int32_t axis = 0; //TODO get from attr
+    int32_t axis = param.axis.value(); //TODO get from attr
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
