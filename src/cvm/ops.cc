@@ -1498,17 +1498,16 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.bias_add")
     }
 });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
-.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-    DLTensor *x = args[0];
-    DLTensor *indices = args[1];
-    DLTensor *y = args[2];
-    void *_attr = args[3];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
+void take(DLTensor *x, DLTensor *indices, DLTensor *y){
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *indices_data = static_cast<int32_t*>(indices->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
 
-    int32_t axis = param.axis.value(); //TODO get from attr
-
+    for(uint64_t i = 0; i < getSize(y); i++){
+        y_data[i] = x_data[indices_data[i]];
+    }
+}
+void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
@@ -1557,6 +1556,30 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
         }
         y_data[i] = x_data[x_i];
     }
+}
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *indices = args[1];
+    DLTensor *y = args[2];
+    void *_attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
+
+    int32_t axis = param.axis.value(); //TODO get from attr
+    take(x, indices, y, axis);
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *indices = args[1];
+    DLTensor *y = args[2];
+    void *_attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::CVMLUTParam>(attr->parsed);
+
+    take(indices, x, y);
 });
 
 /*********************************cuda op*********************************************/
