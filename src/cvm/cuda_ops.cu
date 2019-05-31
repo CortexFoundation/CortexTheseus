@@ -1622,10 +1622,7 @@ __global__ void kernel_bias_add(const int32_t *x_data, const int32_t * bias_data
     int32_t i = threadIdx.x + blockDim.x * blockIdx.x;
     if(i < ysize){
         int32_t bV = 0;
-        int64_t o_i = i;
-        for(uint64_t j = ndim - 1; j >= 0; j--){
-            uint64_t col = o_i % yshape[j];
-            o_i /= yshape[j];
+        for(int32_t j = ndim - 1; j >= 0; j--){
             if(j == axis){
                 bV = bias_data[axis];
                 break;
@@ -1679,5 +1676,31 @@ const char* kernel_repeat(const int32_t *x_data, int32_t *y_data, const int64_t 
 
     cudaFree(dev_xshape);
     cudaFree(dev_yshape);
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_upsampling_nearest(const int32_t *x_data, int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw,
+        const int32_t oh, const int32_t ow){
+    int ox = threadIdx.x;
+    int oy = threadIdx.y;
+    int channel = blockIdx.x;
+
+    for(int r = oy; r < oh; r += blockDim.y){
+        for(int c = ox; c < ow; c += blockDim.x){
+            y_data[channel * oh * ow + r * ow + c] = x_data[channel * ih * iw + r/scale * iw + c/scale];
+        }
+    }
+}
+
+const char* cuda_upsampling_nearest(const int32_t *x_data, int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw, 
+        const int32_t oh, const int32_t ow, const int32_t batch, const int32_t channel){
+    dim3 block(1, 32, 32);
+    int grid =  channel;
+
+    for(int i = 0; i < batch; i++){
+        kernel_upsampling_nearest<<<grid, block>>>(x_data + i*channel*ih*iw, 
+                y_data + i*channel*oh*ow, 
+                scale, ih, iw, oh, ow);
+    }
     return check_cuda_error(cudaGetLastError());
 }
