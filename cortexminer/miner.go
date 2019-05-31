@@ -29,13 +29,17 @@ func checkError(err error, func_name string) {
 //var readableCh = make(chan bool, 1)
 
 func (cm *Cortex) read(msgCh chan map[string]interface{}) {
+	if cm.reader == nil {
+		return
+	}
+
 	tmp, isPrefix, err := cm.reader.ReadLine()
 	if err == io.EOF {
 		log.Println("Tcp disconnect")
 		cm.consta.lock.Lock()
 		cm.consta.state = false
 		cm.consta.lock.Unlock()
-		//stateCh <- false
+		//		stateCh <- false
 		for {
 			if cm.consta.state {
 				log.Println("Tcp reconnect successfully")
@@ -176,18 +180,16 @@ func (cm *Cortex) Mining() {
 	go func() {
 		for {
 			cm.printHashRate()
-			time.Sleep(5 * time.Second)
+			time.Sleep(3 * time.Second)
 		}
 	}()
 
-	tcpCh := make(chan bool, 1)
-	loginCh := make(chan bool, 1)
-	//startCh := make(chan bool, 1)
-	go func() {
+	tcpCh := make(chan bool)
+	loginCh := make(chan bool)
+	startCh := make(chan bool)
+	init := true
+	go func(start chan bool) {
 		for {
-			//select {
-			//case state := <-stateCh:
-
 			if !cm.consta.state {
 				go cm.init(tcpCh)
 				select {
@@ -203,29 +205,27 @@ func (cm *Cortex) Mining() {
 					if !suc {
 						continue
 					}
-					//readableCh <- true
 					cm.consta.lock.Lock()
 					cm.consta.state = true
 					cm.consta.lock.Unlock()
-					//startCh <- true
+					if init {
+						init = false
+						start <- true
+					}
 				}
 			}
-			time.Sleep(500 * time.Millisecond)
-			//}
+			time.Sleep(100 * time.Millisecond)
 		}
-	}()
-	//stateCh <- false
+	}(startCh)
 
-	/*select {
+	select {
 	case suc := <-startCh:
 		if suc {
 			log.Println("Start mining")
 		}
-	}*/
+	}
 
-	time.Sleep(3 * time.Second)
-
-	miningCh := make(chan string, 1)
+	miningCh := make(chan string)
 	go cm.mining(miningCh)
 	select {
 	case quit := <-miningCh:
@@ -308,7 +308,7 @@ func (cm *Cortex) mining(quitCh chan string) {
 		}
 	}()
 
-	go cm.getWork()
+	//go cm.getWork()
 
 	for {
 		select {

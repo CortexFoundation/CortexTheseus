@@ -135,155 +135,80 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 
 	var exitCh = make([]chan string, THREAD)
 	for i := 0; i < THREAD; i++ {
-		exitCh[i] = make(chan string, 1)
+		exitCh[i] = make(chan string)
 	}
 
 	var readyCh = make([]chan string, THREAD)
 	for i := 0; i < THREAD; i++ {
-		readyCh[i] = make(chan string, 1)
+		readyCh[i] = make(chan string)
 	}
 	go func() {
 		for {
 			if state == false {
 				log.Println("Exit task thread")
-				return
+				continue
 			}
 
 			select {
 			case task := <-taskChan:
 				for nthread := uint32(0); nthread < uint32(THREAD); nthread++ {
-					tidx := uint32(nthread)
-					taskNumber[tidx] = taskNumber[tidx] + 1
-					if len(task.Difficulty) == 0 {
-						return
+					if len(task.Difficulty) == 0 || len(task.Header) < 2{
+						break
 					}
-					header, _ := hex.DecodeString(task.Header[2:])
-					curNonce := uint64(rand.Int63())
+
+					tidx := nthread
+                                        taskNumber[tidx] = taskNumber[tidx] + 1
+
 					if taskNumber[tidx] > 1 {
 						go func(exitCh chan string) { exitCh <- "ping" }(exitCh[tidx])
-
-						go func(tmp chan string, tmp1 chan string) {
-							select {
-							case exit := <-tmp1:
-								if exit == "pong" {
-								}
-								go func() {
-									for {
-										select {
-										case exit := <-tmp:
-											if exit == "ping" {
-												log.Println("Task thread quit [", tidx, "] task : ", taskNumber[tidx])
-												tmp1 <- "pong"
-												return
-											}
-										default:
-											curNonce = uint64(curNonce + 1)
-											//deviceInfos[tidx].Lock.Lock()
-											var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-											status, sols := FindCycles(tidx, nedges)
-											end_time := time.Now().UnixNano() / 1e6
-											deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
-											deviceInfos[tidx].Solution_count += int64(len(sols))
-											deviceInfos[tidx].Gps += 1
-											tgtDiff := common.HexToHash(task.Difficulty[2:])
-											//	curNonce := streamData.Nonce
-											//	header := streamData.Header
-											verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-											//						var streamData config.StreamData
-											//						nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
-											//deviceInfos[tidx].Lock.Unlock()
-										}
-									}
-								}()
-							}
-						}(exitCh[tidx], readyCh[tidx])
-						log.Println("New task", tidx, curNonce, header)
-					} else {
-						go func(tmp chan string, tmp1 chan string) {
-							for {
-								select {
-								case exit := <-tmp:
-									if exit == "ping" {
-										log.Println("Task thread quit [", tidx, "] task : ", taskNumber[tidx])
-										tmp1 <- "pong"
-										return
-									}
-								default:
-									curNonce = uint64(curNonce + 1)
-//									deviceInfos[tidx].Lock.Lock()
-									var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-									status, sols := FindCycles(tidx, nedges)
-									end_time := time.Now().UnixNano() / 1e6
-									deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
-									deviceInfos[tidx].Solution_count += int64(len(sols))
-									deviceInfos[tidx].Gps += 1
-									tgtDiff := common.HexToHash(task.Difficulty[2:])
-									//	curNonce := streamData.Nonce
-									//	header := streamData.Header
-									verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-									//	var streamData config.StreamData
-									//	nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
-//									deviceInfos[tidx].Lock.Unlock()
-								}
-							}
-						}(exitCh[tidx], readyCh[tidx])
-						log.Println("New task init", tidx, curNonce, header)
 					}
+
+					header, _ := hex.DecodeString(task.Header[2:])
+                                        curNonce := uint64(rand.Int63())
+
+					go func(exit chan string, ready chan string) {
+						select {
+						case <-ready:
+							go func() {
+								for {
+									select {
+									case <-exit:
+										log.Println("Task thread quit [", tidx, "] task : ", taskNumber[tidx])
+										ready <- "pong"
+										return
+									default:
+										curNonce = uint64(curNonce + 1)
+										//deviceInfos[tidx].Lock.Lock()
+										var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
+										status, sols := FindCycles(tidx, nedges)
+										end_time := time.Now().UnixNano() / 1e6
+										deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
+										deviceInfos[tidx].Solution_count += int64(len(sols))
+										deviceInfos[tidx].Gps += 1
+										tgtDiff := common.HexToHash(task.Difficulty[2:])
+										verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
+										//deviceInfos[tidx].Lock.Unlock()
+									}
+								}
+							}()
+						}
+					}(exitCh[tidx], readyCh[tidx])
+
+					if taskNumber[tidx] == 1 {
+						readyCh[tidx] <- "pong"
+					}
+
+					log.Println("New task", tidx, curNonce, header)
 				}
 			}
 		}
 	}()
-	/*for nthread := 0; nthread < int(THREAD); nthread++ {
-		go func(tidx uint32, currentTask_ *config.TaskWrapper) {
-			number := uint32(0)
-			for {
-				if state == false {
-					log.Println("Exit task thread")
-					return
-				}
-				select {
-				case task := <-taskChan:
-					{
-
-						if len(task.Difficulty) == 0 {
-							time.Sleep(100 * time.Millisecond)
-							continue
-						}
-						header, _ := hex.DecodeString(task.Header[2:])
-						curNonce := uint64(rand.Int63())
-						number = number + 1
-						tmp := number
-						go func(tmp uint32) {
-							for {
-								if tmp < number {
-									log.Println("Task thread quit [", tidx, "] task", tmp, number)
-									return
-								}
-								curNonce = uint64(curNonce + 1)
-								deviceInfos[tidx].Lock.Lock()
-								log.Println("lock", tidx)
-								var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
-								log.Println("unlock", tidx)
-								deviceInfos[tidx].Lock.Unlock()
-								var streamData config.StreamData
-								nedgesChan <- streamData.New(nedges, tidx, task.Difficulty, curNonce, header)
-							}
-						}(tmp)
-						log.Println("New task", tidx, curNonce, header)
-					}
-				default:
-					continue
-				}
-			}
-		}(uint32(nthread), &config.CurrentTask)
-	}*/
 
 	go func() {
 		for {
 			select {
 			case streamData := <-nedgesChan:
 				tidx := streamData.ThreadId
-				//					log.Println(streamData)
 				status, sols := FindCycles(tidx, streamData.Nedges)
 				end_time := time.Now().UnixNano() / 1e6
 				deviceInfos[tidx].Use_time = (end_time - deviceInfos[tidx].Start_time)
@@ -293,8 +218,6 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 				curNonce := streamData.Nonce
 				header := streamData.Header
 				verifySolution(status, sols, tgtDiff, curNonce, header, config.CurrentTask.TaskQ.Header, solChan, deviceInfos, param)
-				//default:
-				//	time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}()
