@@ -1138,9 +1138,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     DLTensor *x = args[0];
     DLTensor *y = args[1];
     void *_attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::RepeatParam>(attr->parsed);
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
-    int32_t axis; // TODO get from attr
+    int32_t axis = param.axis;
     // int repeat = std::atoi(str_repeat.c_str());
     int ndim = x->ndim;
     if(axis < 0) axis = axis + ndim;
@@ -1161,6 +1163,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.negative")
 .set_body([](CVMArgs args, CVMRetValue *ret){
+    VERIFY(args.num_args == 3);
     DLTensor *x = args[0];
     DLTensor *y = args[1];
     int32_t *x_data = static_cast<int32_t*>(x->data);
@@ -1173,17 +1176,20 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.negative")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
 .set_body([](CVMArgs args, CVMRetValue *ret){
+    VERIFY(args.num_args == 3);
     DLTensor *x = args[0];
     DLTensor *y = args[1];
     void* _attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::TileParam>(attr->parsed);
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
     int32_t yndim = y->ndim;
     // TODO(kaihuo) check
-    int32_t *reps; //TODO get from attr
-    int i = 0;
+    int32_t *reps = param.reps; //TODO get from attr
+    int i = 0, j = 0;
     for(i = yndim-1, j = xndim-1; i >= 0 && j >= 0; i--, j--){
         VERIFY(x->shape[j] * reps[i] == y->shape[i]);
     }
