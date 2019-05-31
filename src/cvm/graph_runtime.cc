@@ -88,6 +88,7 @@ void CvmRuntime::GetShape(int index, DLTensor* t) {
   VERIFY_LE(index, attrs_.shape.size());
   auto shape = attrs_.shape[index];
   t->ndim = shape.size();
+  if (t->shape)  delete t->shape;
   t->shape = new int64_t[t->ndim];
   for (int i = 0; i < t->ndim; ++i) {
     t->shape[i] = shape[i];
