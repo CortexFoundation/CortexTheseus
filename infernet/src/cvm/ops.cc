@@ -1497,10 +1497,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.bias_add")
 
     for(uint64_t i = 0; i < getSize(y); i++){
         int32_t bV = 0;
-        int64_t o_i = i;
-        for(uint64_t j = ndim - 1; j >= 0; j--){
-            uint64_t col = o_i % y->shape[j];
-            o_i /= y->shape[j];
+        for(int32_t j = ndim - 1; j >= 0; j--){
             if(j == axis){
                 bV = bias_data[axis];
                 break;
@@ -1571,6 +1568,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
 }
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
     DLTensor *y = args[2];
@@ -1584,12 +1582,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
     DLTensor *y = args[2];
-    void *_attr = args[3];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::CVMLUTParam>(attr->parsed);
+  //  void *_attr = args[3];
+  //  auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+  //  auto &param = cvm::get<cvm::top::CVMLUTParam>(attr->parsed);
 
     take(indices, x, y);
 });
@@ -1637,17 +1636,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
         for (uint32_t c = 0; c< n_channels; c++) {
             auto bc_y_data = y_data + batch * n_channels * oh * ow + c * oh * ow;
             auto bc_x_data = x_data + batch * n_channels *  h *  w + c *  h *  w;
-            for (uint64_t xy = 0; xy < h * w; xy++) {
-                uint32_t x = 2 * (xy / w), y = 2 * (xy % w);
-                for (int xs = 0; xs < scale; xs++){
-                    for (int ys = 0; ys < scale; ys++) {
-                        bc_y_data[(x + xs) * ow + y + xs] = bc_x_data[xy];
-                    }
+            for(int y = 0; y < oh; y++){
+                for(int x = 0; x < ow; x++){
+                    bc_y_data[y * ow + x] = bc_x_data[y/scale * w + x/scale];
                 }
             }
         }
     }
-
 #ifdef CVM_PROFILING
     cvm_op_upsampling_cnt += omp_get_wtime() - start;
     start = omp_get_wtime();

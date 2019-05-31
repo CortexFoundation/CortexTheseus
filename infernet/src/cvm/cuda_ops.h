@@ -86,4 +86,8 @@ const char* cuda_bias_add(const int32_t *x_data, const int32_t * bias_data, int3
         int64_t ysize, const int64_t *yshape, const int32_t ndim, const int32_t axis);
 const char* kernel_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
         const int64_t *yshape, const int64_t ysize, const int32_t xndim, const int32_t yndim, const int32_t axis);
+const char* cuda_upsampling_nearest(const int32_t *x_data, const int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw,
+        const int32_t oh, const int32_t ow, const int32_t batch, const int32_t channel);
+const char* cuda_upsampling_nearest(const int32_t *x_data, int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw,
+        const int32_t oh, const int32_t ow, const int32_t batch, const int32_t channel);
 #endif
