@@ -1695,7 +1695,7 @@ __global__ void kernel_upsampling_nearest(const int32_t *x_data, int32_t *y_data
 const char* cuda_upsampling_nearest(const int32_t *x_data, int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw, 
         const int32_t oh, const int32_t ow, const int32_t batch, const int32_t channel){
     dim3 block(1, 32, 32);
-    dim3 grid(1, 1, channel);
+    int grid =  channel;
 
     for(int i = 0; i < batch; i++){
         kernel_upsampling_nearest<<<grid, block>>>(x_data + i*channel*ih*iw, 
