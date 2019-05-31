@@ -82,4 +82,8 @@ const char* cuda_concatenate(const int32_t *input, const int64_t *ishape, const 
         const int64_t preShapeSize, const int64_t curShapeSize, const int32_t axis, bool debug);
 const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t axis, const int64_t ysize,
         const int64_t *xshape, const int64_t *indices_shape, const int64_t *yshape, const int32_t yndim, const int32_t xndim, const int32_t indices_ndim);
+const char* cuda_bias_add(const int32_t *x_data, const int32_t * bias_data, int32_t *y_data,
+        int64_t ysize, const int64_t *yshape, const int32_t ndim, const int32_t axis);
+const char* kernel_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
+        const int64_t *yshape, const int64_t ysize, const int32_t xndim, const int32_t yndim const int32_t axis);
 #endif
