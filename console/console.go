@@ -140,7 +140,7 @@ func (c *Console) init(preload []string) error {
 	}
 	flatten := "var ctxc = web3.ctxc; var personal = web3.personal; "
 	for api := range apis {
-		log.Error("try to load web3", "api", api)
+		log.Info("try to load web3", "api", api)
 		if api == "web3" {
 			continue // manually mapped or ignore
 		}
