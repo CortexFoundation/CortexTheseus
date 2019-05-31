@@ -189,7 +189,10 @@ int CVMModel::GetInputLength() {
 }
 
 int CVMModel::GetOutputLength() {
-  return static_cast<int>(out_size[0]);
+  int ret = 0;
+  for (int i = 0; i < out_num; ++i)
+    ret += static_cast<int>(out_size[i]);
+  return ret;
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -315,7 +318,6 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
     } else {
       ret = model->Run(input, outputs);
       if (ret == 0) {
-        auto output = outputs[0];
         model->SaveTensor(outputs, output_data);
         if (input)
           CVMArrayFree(input);
