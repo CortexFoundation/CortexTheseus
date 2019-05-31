@@ -823,6 +823,21 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_add")
             c[i] = a[i] + b[i];
         }
     });
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_sub")
+    .set_body([](CVMArgs args, CVMRetValue *ret){
+        VERIFY(args.num_args == 4);
+        DLTensor *args0 = args[0];
+        DLTensor *args1 = args[1];
+        DLTensor *args2 = args[2];
+        int32_t *a = static_cast<int32_t*>(args0->data);
+        int32_t *b = static_cast<int32_t*>(args1->data);
+        int32_t *c = static_cast<int32_t*>(args2->data);
+
+#pragma omp parallel for
+        for(uint64_t i = 0; i < getSize(args0); i++){
+            c[i] = a[i] - b[i];
+        }
+    });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.reshape")
     .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -1233,7 +1248,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
     auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
 
     int32_t axis = param.axis; // TODO get from attr
-    VERIFY(axis >= 0);
+    axis = axis < 0 ? axis + ishape->ndim : axis;
+    VERIFY(axis >= 0 && axis < ishape->ndim);
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
     int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
     for(uint64_t i = 0; i < getSize(oshape); i++){
@@ -1285,7 +1301,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     }
 });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice")
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     DLTensor *x = args[0];
     DLTensor *y = args[1];
