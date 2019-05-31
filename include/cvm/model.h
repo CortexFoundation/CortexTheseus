@@ -39,7 +39,7 @@ public:
   int GetOutputLength();
   int64_t GetStorageSize();
   int64_t GetOps();
-  int Run(DLTensor*& input, DLTensor*& output);
+  int Run(DLTensor* input, std::vector<DLTensor*> output);
   DLTensor* PlanInput();
   DLTensor* PlanInput(char*);
   DLTensor* PlanOutput();
@@ -57,9 +57,9 @@ private:
   Module module;
 //  std::lock_guard<std::mutex> *lck;
 //  static std::mutex mtx;
-  int64_t *in_shape{NULL}, *out_shape{NULL};
-  int in_ndim, out_ndim;
-  int64_t in_size, out_size, model_id;
+  int64_t in_size, *out_size, out_num, model_id;
+  std::vector<int> dims;
+  std::vector<int64_t*> shapes;
   int dtype_code{kDLInt};
   int dtype_bits{32};
   int dtype_lanes{1};
