@@ -48,7 +48,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     if (setup()) {
       return;
     }
-    loaded = true;
   } else {
     return;
   }
@@ -61,13 +60,12 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   auto get_output_num = module.GetFunction("get_output_num");
   get_output_num(&out_num);
 
-  //TODO(lizhen) check output num
   if (out_num < 1) {
-      std::cerr << "out_num: " << out_num << "\n";
-      out_num = 1;
+      return;
   }
 
   auto get_input_shape = module.GetFunction("get_input_shape");
+  
   DLTensor* t = new DLTensor();
   t->shape = nullptr;
   get_input_shape("data", t);
@@ -93,6 +91,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     shapes.push_back(shape);
  }
 
+  loaded = true;
   delete t->shape;
   delete t;
 }
@@ -143,10 +142,12 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
   return ret;
 }
 
-void CVMModel::SaveTensor(DLTensor* output, char* mem) {
-  auto data = static_cast<int*>(output->data);
-  for (int i = 0; i < out_size[0]; ++i) {
-    mem[i] = static_cast<int8_t>(data[i]);
+void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
+  for (int k = 0; k < outputs.size(); ++k) {
+    auto data = static_cast<int*>(outputs[k]->data);
+    for (int i = 0; i < out_size[k]; ++i) {
+      *mem++ = static_cast<int8_t>(data[i]);
+    }  
   }
 }
 
@@ -171,11 +172,16 @@ int CVMModel::Run_() {
 }
 
 int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
-  int ret = SetInput_("data", input) ||
-    Run_();
-  auto output = outputs[0];
-  ret |= GetOutput_(0, output);
-  return ret;
+  int ret = SetInput_("data", input) || Run_();
+  if (ret) return ret;
+
+  for (int i = 0; i < outputs.size(); ++i) {
+    if (ret = GetOutput_(i, outputs[i])) {
+      return ret;
+    }
+  }
+  
+  return 0;
 }
 
 int CVMModel::GetInputLength() {
@@ -310,7 +316,7 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
       ret = model->Run(input, outputs);
       if (ret == 0) {
         auto output = outputs[0];
-        model->SaveTensor(output, output_data);
+        model->SaveTensor(outputs, output_data);
         if (input)
           CVMArrayFree(input);
         for (int i = 0; i < outputs.size(); ++i)
