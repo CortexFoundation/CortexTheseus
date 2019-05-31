@@ -488,9 +488,9 @@ func (m *Monitor) syncLastBlock() {
 	if maxNumber > batch+minNumber {
 		maxNumber = minNumber + batch
 	}
-	if maxNumber > minNumber {
-		if minNumber > 4 {
-			minNumber = minNumber - 4
+	if maxNumber >= minNumber {
+		if minNumber > 5 {
+			minNumber = minNumber - 5
 		}
 		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
@@ -510,7 +510,7 @@ func (m *Monitor) syncLastBlock() {
 			return
 		}
 
-		if hash, _ := blockCache.Get(i); hash != rpcBlock.Hash.Hex() {
+		if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
 
 			block := m.fs.GetBlockByNumber(i)
 			if block == nil {

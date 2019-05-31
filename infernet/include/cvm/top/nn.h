@@ -84,22 +84,22 @@ struct CVMRightShiftParam : public utils::Parameter<CVMRightShiftParam> {
 //  // Shared by softmax and log_softmax
 //  struct SoftmaxParam : public utils::Parameter<SoftmaxParam> {
 //    int axis;
-//  
+//
 //    CVMUTIL_DECLARE_PARAMETER(SoftmaxParam) {
 //      CVMUTIL_DECLARE_FIELD(axis).set_default(-1)
 //          .describe("The axis to sum over when computing softmax.");
 //    }
 //  };
-//  
+//
 //  struct LeakyReLUParam : public utils::Parameter<LeakyReLUParam> {
 //    double alpha;
-//  
+//
 //    CVMUTIL_DECLARE_PARAMETER(LeakyReLUParam) {
 //      CVMUTIL_DECLARE_FIELD(alpha).set_lower_bound(0.0).set_default(0.25)
 //          .describe("slope coefficient for the negative half axis.");
 //    }
 //  };
-//  
+//
 //  struct PReLUParam : public utils::Parameter<PReLUParam> {
 //    int axis;
 //    CVMUTIL_DECLARE_PARAMETER(PReLUParam) {
@@ -107,11 +107,11 @@ struct CVMRightShiftParam : public utils::Parameter<CVMRightShiftParam> {
 //        .describe("Specify which shape axis the channel is specified.");
 //    }
 //  };
-//  
+//
 //  struct PadParam : public utils::Parameter<PadParam> {
 //    float pad_value;
 //    Tuple<Tuple<int> > pad_width;
-//  
+//
 //    CVMUTIL_DECLARE_PARAMETER(PadParam) {
 //      CVMUTIL_DECLARE_FIELD(pad_value).set_default(0.0)
 //        .describe("The value to be padded.");
@@ -321,9 +321,18 @@ struct LayoutTransformParam : public utils::Parameter<LayoutTransformParam> {
   }
 };
 
+struct GetValidCountsParam : public utils::Parameter<GetValidCountsParam> {
+  int score_threshold;
+
+  CVMUTIL_DECLARE_PARAMETER(GetValidCountsParam) {
+    CVMUTIL_DECLARE_FIELD(score_threshold).set_default(0)
+      .describe("Lower limit of score for valid bounding boxes.");
+  }
+};
+
 struct NonMaximumSuppressionParam : public utils::Parameter<NonMaximumSuppressionParam> {
   bool return_indices;
-  float iou_threshold;
+  int iou_threshold;
   bool force_suppress;
   int top_k;
   int id_index;
@@ -335,7 +344,7 @@ struct NonMaximumSuppressionParam : public utils::Parameter<NonMaximumSuppressio
     CVMUTIL_DECLARE_FIELD(max_output_size).set_default(-1)
       .describe("Max number of output valid boxes for each instance."
                 "By default all valid boxes are returned.");
-    CVMUTIL_DECLARE_FIELD(iou_threshold).set_default(0.5)
+    CVMUTIL_DECLARE_FIELD(iou_threshold).set_default(50)
       .describe("Non-maximum suppression threshold.");
     CVMUTIL_DECLARE_FIELD(force_suppress).set_default(false)
       .describe("Suppress all detections regardless of class_id.");
@@ -351,6 +360,28 @@ struct NonMaximumSuppressionParam : public utils::Parameter<NonMaximumSuppressio
       .describe("Whether to return box indices in input data.");
     CVMUTIL_DECLARE_FIELD(invalid_to_bottom).set_default(false)
       .describe("Whether to move all invalid bounding boxes to the bottom.");
+  }
+};
+
+struct UpSamplingParam : public utils::Parameter<UpSamplingParam> {
+  int scale;
+  std::string layout;
+  std::string method;
+
+  CVMUTIL_DECLARE_PARAMETER(UpSamplingParam) {
+    CVMUTIL_DECLARE_FIELD(scale)
+      .describe("upsampling scaling factor");
+    CVMUTIL_DECLARE_FIELD(layout)
+      .set_default("NCHW")
+      .describe("Dimension ordering of data. Can be 'NCHW', 'NHWC', etc."
+                "'N', 'C', 'H', 'W' stands for batch, channel, height, and width"
+                "dimensions respectively. Upsampling is applied on the 'H' and"
+                "'W' dimensions.");
+    CVMUTIL_DECLARE_FIELD(method)
+      .set_default("NEAREST_NEIGHBOR")
+      .describe("Specify the mode to use for scaling."
+                "NEAREST_NEIGHBOR -  Nearest Neighbor"
+                "BILINEAR - Bilinear Interpolation");
   }
 };
 

@@ -80,4 +80,6 @@ const char* cuda_cvm_left_shift(const int32_t *a, const int32_t b, const int32_t
 const char* cuda_concatenate(const int32_t *input, const int64_t *ishape, const int32_t idim, const int32_t in,
         int32_t *output, int64_t* oshape, const int32_t odim, const int32_t on,
         const int64_t preShapeSize, const int64_t curShapeSize, const int32_t axis, bool debug);
+const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t axis, const int64_t ysize,
+        const int64_t *xshape, const int64_t *indices_shape, const int64_t *yshape, const int32_t yndim, const int32_t xndim, const int32_t indices_ndim);
 #endif
