@@ -375,7 +375,7 @@ std::function<void()> CvmRuntime::CreateCVMOp(
   if (device_type == kDLGPU) module_name += "_cuda";
   module_name += ".";
   auto func = cvm::runtime::Registry::Get(module_name + op);
-  VERIFY(func != nullptr) << "function undefined";
+  VERIFY(func != nullptr) << "function undefined " << module_name + op;
   return [arg_ptr, op, func, device_type](){
     CVMRetValue rv;
     CVMArgs targs(
