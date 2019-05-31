@@ -26,11 +26,11 @@ extern double cvm_op_dense_cnt;
 extern double cvm_op_maxpool_cnt;
 extern double cvm_op_broadcast_cnt;
 extern double cvm_op_concat_cnt;
+extern double cvm_op_upsampling_cnt;
 
 struct CVMModel {
 public:
   bool loaded{false};
-  DLContext ctx;
   CVMModel(const string& graph, DLContext _ctx);
   ~CVMModel();
   int LoadParams(const string& params_str);
@@ -39,27 +39,29 @@ public:
   int GetOutputLength();
   int64_t GetStorageSize();
   int64_t GetOps();
-  int Run(DLTensor*& input, DLTensor*& output);
+  int Run(DLTensor* input, std::vector<DLTensor*> output);
   DLTensor* PlanInput();
   DLTensor* PlanInput(char*);
-  DLTensor* PlanOutput();
-  void SaveTensor(DLTensor* input, char *data);
+  std::vector<DLTensor*> PlanOutput();
+  void SaveTensor(std::vector<DLTensor*> outputs, char *data);
 private:
   int SetInput_(string index, DLTensor* input);
   int Run_();
   int GetOutput_(int index, DLTensor* output);
-  PackedFunc set_input;
-  PackedFunc get_output;
-  PackedFunc load_params;
-  PackedFunc get_ops;
-  PackedFunc run;
-  PackedFunc get_storage_size;
-  Module module;
-//  std::lock_guard<std::mutex> *lck;
-//  static std::mutex mtx;
-  int64_t *in_shape{NULL}, *out_shape{NULL};
-  int in_ndim, out_ndim;
-  int64_t in_size, out_size, model_id;
+  DLContext ctx_;
+  PackedFunc set_input_;
+  PackedFunc get_output_;
+  PackedFunc load_params_;
+  PackedFunc get_ops_;
+  PackedFunc run_;
+  PackedFunc get_storage_size_;
+  Module module_;
+  int64_t in_size_;
+  int64_t *out_size_;
+  int64_t out_num_;
+  int64_t model_id_;
+  std::vector<int> dims_;
+  std::vector<int64_t*> shapes_;
   int dtype_code{kDLInt};
   int dtype_bits{32};
   int dtype_lanes{1};

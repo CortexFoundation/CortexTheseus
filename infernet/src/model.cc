@@ -22,107 +22,134 @@ namespace runtime {
 // std::mutex CVMModel::mtx;
 
 CVMModel::CVMModel(const string& graph, DLContext _ctx):
-  in_shape(NULL), out_shape(NULL)
+  out_size_(NULL)
 {
-//  CVMModel::mtx.lock();
-//  lck = new std::lock_guard<std::mutex>(CVMModel::mtx, std::adopt_lock);
-  model_id = rand();
+  model_id_ = rand();
   loaded = false;
-  ctx = _ctx;
+  ctx_ = _ctx;
   const PackedFunc* module_creator = Registry::Get("cvm.runtime.create");
   if (module_creator != nullptr) {
     try {
-      module = (*module_creator)(
+      module_ = (*module_creator)(
         graph,
-        static_cast<int>(ctx.device_type),
-        static_cast<int>(ctx.device_id)
+        static_cast<int>(ctx_.device_type),
+        static_cast<int>(ctx_.device_id)
       );
     } catch (std::exception &e) {
       return;
     }
-    auto init = module.GetFunction("init");
+    auto init = module_.GetFunction("init");
     if (init()) {
       return;
     }
-    auto setup = module.GetFunction("setup");
+    auto setup = module_.GetFunction("setup");
     if (setup()) {
       return;
     }
-    loaded = true;
   } else {
     return;
   }
-  set_input = module.GetFunction("set_input");
-  get_output = module.GetFunction("get_output");
-  load_params = module.GetFunction("load_params");
-  run = module.GetFunction("run");
-  get_ops = module.GetFunction("get_ops");
-  get_storage_size = module.GetFunction("get_storage_size");
-  auto get_input_shape = module.GetFunction("get_input_shape");
+  set_input_ = module_.GetFunction("set_input");
+  get_output_ = module_.GetFunction("get_output");
+  load_params_ = module_.GetFunction("load_params");
+  run_ = module_.GetFunction("run");
+  get_ops_ = module_.GetFunction("get_ops");
+  get_storage_size_ = module_.GetFunction("get_storage_size");
+  auto get_output_num = module_.GetFunction("get_output_num");
+  get_output_num(&out_num_);
+
+  if (out_num_< 1) {
+      return;
+  }
+
+  auto get_input_shape = module_.GetFunction("get_input_shape");
+
   DLTensor* t = new DLTensor();
+  t->shape = nullptr;
   get_input_shape("data", t);
-  in_ndim = t->ndim;
-  in_shape = new int64_t[in_ndim];
-  memcpy(in_shape, t->shape, in_ndim * sizeof(int64_t));
-  in_size = 1;
-  for (int i = 0; i < in_ndim; ++i) in_size *= in_shape[i];
+  in_size_ = 1;
+  for (int i = 0; i < t->ndim; ++i)
+      in_size_ *= t->shape[i];
 
-  auto get_output_shape = module.GetFunction("get_output_shape");
-  get_output_shape(0, t);
-  out_ndim = t->ndim;
-  out_shape = new int64_t[out_ndim];
-  memcpy(out_shape, t->shape, out_ndim * sizeof(int64_t));
-  out_size = 1;
-  for (int i = 0; i < out_ndim; ++i) out_size *= out_shape[i];
+  dims_.push_back(t->ndim);
+  int64_t *shape = new int64_t[t->ndim];
+  memcpy(shape, t->shape, t->ndim * sizeof(int64_t));
+  shapes_.push_back(shape);
 
+  auto get_output_shape = module_.GetFunction("get_output_shape");
+  out_size_ = new int64_t[out_num_];
+  for (int k = 0; k < out_num_; ++k) {
+    out_size_[k] = 1;
+    get_output_shape(k, t);
+    out_size_[k] = 1;
+    for (int i = 0; i < t->ndim; ++i)
+        out_size_[k] *= t->shape[i];
+
+    dims_.push_back(t->ndim);
+    shape = new int64_t[t->ndim];
+    memcpy(shape, t->shape, t->ndim * sizeof(int64_t));
+    shapes_.push_back(shape);
+ }
+
+  loaded = true;
   delete t->shape;
   delete t;
 }
 
 CVMModel::~CVMModel() {
-  if (in_shape) delete in_shape;
-  if (out_shape) delete out_shape;
+  for (int i = 0; i < shapes_.size(); ++i) {
+      if (shapes_[i])
+          delete shapes_[i];
+  }
+  if (out_size_)
+      delete out_size_;
 //  delete lck;
 }
 
 int64_t CVMModel::GetStorageSize() {
   int64_t ret;
-  if (get_storage_size(&ret)) return -1;
+  if (get_storage_size_(&ret)) return -1;
   return ret;
 }
 
 int64_t CVMModel::GetOps() {
   int64_t ret;
-  if (get_ops(&ret)) return -1;
+  if (get_ops_(&ret)) return -1;
   return ret;
 }
 
 DLTensor* CVMModel::PlanInput() {
   DLTensor* ret;
-  CVMArrayAlloc(in_shape, in_ndim, dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
+  CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
   return ret;
 }
 
 DLTensor* CVMModel::PlanInput(char *input) {
   DLTensor* ret = nullptr;
-  CVMArrayAlloc(in_shape, in_ndim, dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
+  CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
   auto data = static_cast<int*>(ret->data);
-  for (int i = 0; i < in_size; ++i) {
+  for (int i = 0; i < in_size_; ++i) {
     data[i] = input[i];
   }
   return ret;
 }
 
-DLTensor* CVMModel::PlanOutput() {
-  DLTensor* ret;
-  CVMArrayAlloc(out_shape, out_ndim, dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
+std::vector<DLTensor*> CVMModel::PlanOutput() {
+  std::vector<DLTensor*> ret;
+  for (int i = 0; i < out_num_; ++i) {
+    DLTensor *t;
+    CVMArrayAlloc(shapes_[i + 1], dims_[i + 1], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &t);
+    ret.push_back(t);
+  }
   return ret;
 }
 
-void CVMModel::SaveTensor(DLTensor* output, char* mem) {
-  auto data = static_cast<int*>(output->data);
-  for (int i = 0; i < out_size; ++i) {
-    mem[i] = static_cast<int8_t>(data[i]);
+void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
+  for (int k = 0; k < outputs.size(); ++k) {
+    auto data = static_cast<int*>(outputs[k]->data);
+    for (int i = 0; i < out_size_[k]; ++i) {
+      *mem++ = static_cast<int8_t>(data[i]);
+    }
   }
 }
 
@@ -131,34 +158,44 @@ int CVMModel::LoadParams(const string &params) {
   CVMByteArray arr;
   arr.data = params.c_str();
   arr.size = params.length();
-  return load_params(arr);
+  return load_params_(arr);
 }
 
 int CVMModel::SetInput_(string index, DLTensor* input) {
-  return input == nullptr ? -1 : set_input(index, input);
+  return input == nullptr ? -1 : set_input_(index, input);
 }
 
 int CVMModel::GetOutput_(int index, DLTensor* output) {
-  return output == nullptr ? -1 : get_output(index, output);
+  return output == nullptr ? -1 : get_output_(index, output);
 }
 
 int CVMModel::Run_() {
-  return run();
+  return run_();
 }
 
-int CVMModel::Run(DLTensor*& input, DLTensor*& output) {
-  int ret = SetInput_("data", input) ||
-    Run_() ||
-    GetOutput_(0, output);
-  return ret;
+int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
+  int ret = SetInput_("data", input) || Run_();
+  if (ret) return ret;
+
+  for (int i = 0; i < outputs.size(); ++i) {
+    ret = GetOutput_(i, outputs[i]);
+    if (ret) {
+      return ret;
+    }
+  }
+
+  return 0;
 }
 
 int CVMModel::GetInputLength() {
-  return static_cast<int>(in_size);
+  return static_cast<int>(in_size_);
 }
 
 int CVMModel::GetOutputLength() {
-  return static_cast<int>(out_size);
+  int ret = 0;
+  for (int i = 0; i < out_num_; ++i)
+    ret += static_cast<int>(out_size_[i]);
+  return ret;
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -277,18 +314,18 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
   } else {
     CVMModel* model = (CVMModel*)model_;
     DLTensor* input = model->PlanInput(input_data);
-    DLTensor* output = model->PlanOutput();
-    if (input == nullptr || output == nullptr) {
+    auto outputs = model->PlanOutput();
+    if (input == nullptr) {
       std::cerr << "input == nullptr || output == nullptr" << std::endl;
       ret = -1;
     } else {
-      ret = model->Run(input, output);
+      ret = model->Run(input, outputs);
       if (ret == 0) {
-        model->SaveTensor(output, output_data);
+        model->SaveTensor(outputs, output_data);
         if (input)
           CVMArrayFree(input);
-        if (output)
-          CVMArrayFree(output);
+        for (int i = 0; i < outputs.size(); ++i)
+          CVMArrayFree(outputs[i]);
       }
     }
   }
