@@ -86,6 +86,7 @@ inline bool LUTInferShape(const NodeAttrs& attrs,
 	for (size_t j = 0; j < dshape.ndim(); ++j) {
 	  oshape[j] = dshape[j];
 	}
+  CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, 0, oshape);
 	return true;
 }
 
@@ -94,10 +95,26 @@ inline bool LUTInferType(const NodeAttrs& attrs,
                           std::vector<int>* out_attrs) {
   VERIFY_EQ(in_attrs->size(), 2U);
   VERIFY_EQ(out_attrs->size(), 1U);
-  VERIFY_EQ((*in_attrs)[0], kInt32);
-  CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 0, static_cast<int>(kInt32));
+  // VERIFY_EQ((*in_attrs)[0], kInt32);
+  CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 0, (*in_attrs)[0]);
   CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 1, (*in_attrs)[1]);
   CVM_ASSIGN_OUTPUT_TYPE(attrs, *out_attrs, 0, (*in_attrs)[1]);
+  return true;
+}
+
+inline bool LUTCorrectLayout(const NodeAttrs& attrs,
+                              std::vector<Layout> *ilayouts,
+                              const std::vector<Layout> *last_ilayouts,
+                              std::vector<Layout> *olayouts) {
+  VERIFY_EQ(ilayouts->size(), last_ilayouts->size());
+  VERIFY_EQ(olayouts->size(), 1U);
+
+  for (size_t i = 0; i < ilayouts->size(); ++i) {
+    const Layout& input = last_ilayouts->at(i).defined() ?
+                          last_ilayouts->at(i) : ilayouts->at(i);
+    CVM_ASSIGN_LAYOUT(*ilayouts, i, input);
+  }
+
   return true;
 }
 
