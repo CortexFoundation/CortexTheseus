@@ -776,6 +776,38 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.bias_add")
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
 });
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
+    .set_body([](CVMArgs args, CVMRetValue *ret){
+#ifdef CVM_PROFILING
+        double start = omp_get_wtime();
+#endif
+    VERIFY(args.num_args == 3);
+	DLTensor *x = args[0];
+	DLTensor *y = args[1];
+
+    VERIFY_EQ(x->ndim,     4) << "dimension should be 4D, Got: " << x->ndim;
+    VERIFY_EQ(x->ndim,     y->ndim) << "dimension should match " << x->ndim << "!=" << y->ndim;
+    VERIFY_EQ(x->shape[0], y->shape[0]) << "batch size should match";
+    VERIFY_EQ(x->shape[1], y->shape[1]) << "batch size should match";
+
+	void *_attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::UpSamplingParam>(attr->parsed);
+    VERIFY_EQ(param.method, "NEAREST_NEIGHBOR") << "only accept method = NEAREST_NEIGHBOR ";
+    VERIFY_EQ(param.layout, "NCHW") << "only accept NHWC, Got:" << param.layout;
+
+	int scale = {(int)param.scale};
+    int h = x->shape[2], w = x->shape[3];
+    int oh = y->shape[2], ow = y->shape[3];
+    int n_batch = x->shape[0], n_channels = x->shape[1];
+
+    auto x_data = static_cast<int32_t*>(x->data);
+    auto y_data = static_cast<int32_t*>(y->data);
+
+    const char* errorStr = cuda_upsampling_nearest(x_data, y_data, scale, h, w, oh, ow, n_batch, n_channels);
+    VERIFY_EQ(errorStr == NULL, true) << errorStr;
+});
 }
 }
 }
