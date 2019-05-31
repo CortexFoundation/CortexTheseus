@@ -27,6 +27,7 @@ extern double cvm_op_maxpool_cnt;
 extern double cvm_op_broadcast_cnt;
 extern double cvm_op_concat_cnt;
 extern double cvm_op_upsampling_cnt;
+extern double cvm_op_inline_matmul_cnt;
 
 struct CVMModel {
 public:
