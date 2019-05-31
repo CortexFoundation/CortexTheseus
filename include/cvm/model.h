@@ -31,7 +31,6 @@ extern double cvm_op_upsampling_cnt;
 struct CVMModel {
 public:
   bool loaded{false};
-  DLContext ctx;
   CVMModel(const string& graph, DLContext _ctx);
   ~CVMModel();
   int LoadParams(const string& params_str);
@@ -49,6 +48,7 @@ private:
   int SetInput_(string index, DLTensor* input);
   int Run_();
   int GetOutput_(int index, DLTensor* output);
+  DLContext ctx_;
   PackedFunc set_input_;
   PackedFunc get_output_;
   PackedFunc load_params_;

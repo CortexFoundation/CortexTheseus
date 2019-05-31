@@ -24,19 +24,16 @@ namespace runtime {
 CVMModel::CVMModel(const string& graph, DLContext _ctx):
   out_size_(NULL)
 {
-//  CVMModel::mtx.lock();
-//  lck = new std::lock_guard<std::mutex>(CVMModel::mtx, std::adopt_lock);
-  shapes_.clear();
   model_id_ = rand();
   loaded = false;
-  ctx = _ctx;
+  ctx_ = _ctx;
   const PackedFunc* module_creator = Registry::Get("cvm.runtime.create");
   if (module_creator != nullptr) {
     try {
       module_ = (*module_creator)(
         graph,
-        static_cast<int>(ctx.device_type),
-        static_cast<int>(ctx.device_id)
+        static_cast<int>(ctx_.device_type),
+        static_cast<int>(ctx_.device_id)
       );
     } catch (std::exception &e) {
       return;
