@@ -32,6 +32,29 @@ struct ExpandDimsParam : public utils::Parameter<ExpandDimsParam> {
   }
 };
 
+struct RepeatParam : public utils::Parameter<RepeatParam> {
+  int repeats;
+  int axis;
+
+  CVMUTIL_DECLARE_PARAMETER(RepeatParam) {
+    CVMUTIL_DECLARE_FIELD(repeats)
+      .describe("The number of repetitions for each element.");
+    CVMUTIL_DECLARE_FIELD(axis).set_default(0)
+        .describe(" The axis along which to repeat values.");
+  }
+};
+
+struct TileParam : public utils::Parameter<TileParam> {
+  Tuple<int> reps;
+
+  CVMUTIL_DECLARE_PARAMETER(TileParam) {
+    CVMUTIL_DECLARE_FIELD(reps)
+      .describe("The number of times for repeating the tensor a."
+                "Each dim sizeof reps must be a positive integer.");
+  }
+};
+
+
 struct SplitParam : public utils::Parameter<SplitParam> {
   // numpy convention, only support indices, not support list.
   Tuple<int> indices_or_sections;

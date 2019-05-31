@@ -73,6 +73,50 @@ So with `shape=(2,0)`, we will obtain the same result as in the above example.
 .set_num_outputs(1)
 .set_support_level(4);
 
+inline bool LUTInferShape(const NodeAttrs& attrs,
+						  std::vector<TShape>* in_shape,
+						  std::vector<TShape>* out_shape) {
+  VERIFY_EQ(in_shape->size(), 2U);
+  VERIFY_EQ(out_shape->size(), 1U);
+  const TShape& dshape = (*in_shape)[0];
+  const TShape& lutshape = (*in_shape)[1];
+  if (dshape.ndim() == 0) return false;
+  if (lutshape.ndim() == 0) return false;
+  TShape oshape(dshape.ndim());
+	for (size_t j = 0; j < dshape.ndim(); ++j) {
+	  oshape[j] = dshape[j];
+	}
+	return true;
+}
+
+inline bool LUTInferType(const NodeAttrs& attrs,
+                          std::vector<int>* in_attrs,
+                          std::vector<int>* out_attrs) {
+  VERIFY_EQ(in_attrs->size(), 2U);
+  VERIFY_EQ(out_attrs->size(), 1U);
+  VERIFY_EQ((*in_attrs)[0], kInt32);
+  CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 0, static_cast<int>(kInt32));
+  CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 1, (*in_attrs)[1]);
+  CVM_ASSIGN_OUTPUT_TYPE(attrs, *out_attrs, 0, (*in_attrs)[1]);
+  return true;
+}
+
+CVMUTIL_REGISTER_PARAMETER(CVMLUTParam);
+CVM_REGISTER_OP(cvm_lut)
+.describe(R"doc(CVMLUT look up input with table.
+)doc" CVM_ADD_FILELINE)
+.set_num_inputs(2)
+.set_num_outputs(1)
+.set_attr_parser(ParamParser<CVMLUTParam>)
+.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<CVMLUTParam>)
+.set_attr<FInferShape>("FInferShape", LUTInferShape)
+.set_attr<FInferType>("FInferType", LUTInferType)
+.add_argument("data", "Tensor", "input")
+.add_argument("table", "Tensor", "The table to lookup")
+.add_arguments(CVMLUTParam::__FIELDS__())
+.set_support_level(4);
+
+
 // binary broadcast op
 inline bool BinaryBroadcastShape(const cvm::NodeAttrs& attrs,
                                  std::vector<TShape>* in_attrs,
@@ -203,6 +247,7 @@ inline bool BinaryBroadcastCorrectLayout(const NodeAttrs& attrs,
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_add, add)
 .add_alias("__add_symbol__")
+.add_alias("add")
 .describe(R"code(Returns element-wise sum of the input arrays with broadcasting.
 
 Example::
@@ -221,6 +266,7 @@ Example::
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_sub, subtract)
 .add_alias("__sub_symbol__")
+.add_alias("subtract")
 .describe(R"code(Returns element-wise difference of the input arrays with broadcasting.
 
 Example::
@@ -239,6 +285,7 @@ Example::
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_mul, multiply)
 .add_alias("__mul_symbol__")
+.add_alias("multiply")
 .describe(R"code(Returns element-wise product of the input arrays with broadcasting.
 
 Example::
@@ -257,6 +304,7 @@ Example::
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_div, divide)
 .add_alias("__div_symbol__")
+.add_alias("div")
 .describe(R"code(Returns element-wise division of the input arrays with broadcasting.
 
 Example::
