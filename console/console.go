@@ -28,6 +28,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre"
 	"github.com/CortexFoundation/CortexTheseus/internal/web3ext"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
@@ -139,6 +140,7 @@ func (c *Console) init(preload []string) error {
 	}
 	flatten := "var ctxc = web3.ctxc; var personal = web3.personal; "
 	for api := range apis {
+		log.Error("try to load web3", "api", api)
 		if api == "web3" {
 			continue // manually mapped or ignore
 		}
@@ -277,10 +279,10 @@ func (c *Console) Welcome() {
 	// Print some generic Geth metadata
 	fmt.Fprintf(c.printer, "Welcome to the Cortex JavaScript console!\n\n")
 	c.jsre.Run(`
-		console.log("instance: " + web3.version.node);
-		console.log("coinbase: " + ctxc.coinbase);
-		console.log("at block: " + ctxc.blockNumber + " (" + new Date(1000 * ctxc.getBlock(ctxc.blockNumber).timestamp) + ")");
-		console.log(" datadir: " + admin.datadir);
+		console.log("Instance: " + web3.version.node);
+		console.log("Coinbase: " + ctxc.coinbase);
+		console.log("   Block: " + ctxc.blockNumber + " (" + new Date(1000 * ctxc.getBlock(ctxc.blockNumber).timestamp) + ")");
+		console.log(" Datadir: " + admin.datadir);
 	`)
 	// List all the supported modules for the user to call
 	if apis, err := c.client.SupportedModules(); err == nil {

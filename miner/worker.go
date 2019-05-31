@@ -752,7 +752,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			log.Trace("Quota limit exceeded for current block", "sender", from)
 			txs.Pop()
 		case core.ErrUnhandleTx:
-			log.Trace("Quota limit exceeded for current block", "sender", from)
+			log.Trace("Consensus forbiden error", "sender", from)
 			txs.Pop()
 		//case vm.errMetaInfoNotMature:
 		//       log.Trace("Caused by immature meta", "sender", from)

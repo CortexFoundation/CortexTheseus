@@ -65,6 +65,7 @@ nodekey:
 	build/env.sh go run build/ci.go install ./cmd/nodekey
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
+
 PoolMiner/miner/libcuckoo/%.a: PoolMiner
 	make -C PoolMiner
 	
@@ -79,12 +80,12 @@ plugins/opencl_helper_for_node.so:  PoolMiner/miner/libcuckoo/libopenclminer.a
 
 plugins/cuda_cvm.so:
 	cmake -S infernet/ -B infernet/build/gpu -D USE_CUDA=ON
-	make -C ${INFER_NET_DIR}
+	make -C ${INFER_NET_DIR} -j8
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cuda_plugin.go
 
 plugins/cpu_cvm.so:
 	cmake -S infernet/ -B infernet/build/cpu -D USE_CUDA=OFF
-	make -C ${INFER_NET_DIR}
+	make -C ${INFER_NET_DIR} -j8
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
 
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/opencl_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
@@ -114,7 +115,8 @@ lint: ## Run linters.
 clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
-	rm PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
+	rm -rf infernet/build/*
+	rm -f PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
 
 clean-clib:
 	#make -C $(LIB_MINER_DIR) clean

@@ -109,8 +109,8 @@ func defaultNodeConfig() node.Config {
 
 func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// Load defaults.
-	cfg := cortexConfig{
-		Cortex:       ctxc.DefaultConfig,
+	cfg := cortexConfig {
+		Cortex:    ctxc.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
 		TorrentFs: torrentfs.DefaultConfig,
@@ -180,7 +180,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 		utils.RegisterCortexStatsService(stack, cfg.Cortexstats.URL)
 	}
 	//storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) && ctx.GlobalString(utils.SyncModeFlag.Name) == "full"
-	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name)
+	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || ctx.GlobalString(utils.ModelCallInterfaceFlag.Name) == ""
 	if storageEnabled {
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}

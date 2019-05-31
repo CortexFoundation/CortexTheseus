@@ -88,6 +88,7 @@ void CvmRuntime::GetShape(int index, DLTensor* t) {
   VERIFY_LE(index, attrs_.shape.size());
   auto shape = attrs_.shape[index];
   t->ndim = shape.size();
+  if (t->shape)  delete t->shape;
   t->shape = new int64_t[t->ndim];
   for (int i = 0; i < t->ndim; ++i) {
     t->shape[i] = shape[i];
@@ -155,6 +156,11 @@ NDArray CvmRuntime::GetOutput(int index) const {
   uint32_t eid = this->entry_id(outputs_[index]);
   return data_entry_[eid];
 }
+
+int CvmRuntime::GetOutputNum() {
+  return static_cast<int>(outputs_.size());
+}
+
 /*!
  * \brief Copy index-th output to data_out.
  * \param index The output index.
@@ -442,6 +448,18 @@ PackedFunc CvmRuntime::GetFunction(
         }
         CALL_END();
       });
+  } else if (name == "get_output_num") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kHandle) {
+          void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
+          *static_cast<int32_t*>(placeholder) = this->GetOutputNum();
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
   } else if (name == "get_output_shape") {
     return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
@@ -520,7 +538,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.estimate_ops")
                                     "graph_runtime.estimate_ops is "
                                     "at least 1, but it has "
                                 << args.num_args;
-      *rv = CvmRuntime::EstimateOps(args[0]); 
+      *rv = CvmRuntime::EstimateOps(args[0]);
     } catch (std::runtime_error &e) {
       *rv = -1;
     } catch (std::logic_error &e) {
