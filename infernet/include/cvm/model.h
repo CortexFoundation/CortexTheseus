@@ -42,7 +42,7 @@ public:
   int Run(DLTensor* input, std::vector<DLTensor*> output);
   DLTensor* PlanInput();
   DLTensor* PlanInput(char*);
-  DLTensor* PlanOutput();
+  std::vector<DLTensor*> PlanOutput();
   void SaveTensor(DLTensor* input, char *data);
 private:
   int SetInput_(string index, DLTensor* input);

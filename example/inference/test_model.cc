@@ -106,8 +106,8 @@ void test_models() {
         // "/home/tian/model_storage/vgg16_mxz/data",
         // "/home/tian/model_storage/vgg19_mxz/data",
         "/home/tian/model_storage/squeezenet_gcv1.1/data",
-        "/home/tian/model_storage/squeezenet_gcv1.0/data",
-        "/home/tian/model_storage/octconv_resnet26_0.250/data"
+        // "/home/tian/model_storage/squeezenet_gcv1.0/data",
+        //"/home/tian/model_storage/octconv_resnet26_0.250/data"
     };
     // string model_root = "/home/tian/model_storage/resnet50_v1/data/";
     // model_root = "/home/tian/cortex_fullnode_storage/cifar_resnet20_v2/data";
