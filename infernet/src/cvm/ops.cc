@@ -1273,15 +1273,21 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
     VERIFY(axis >= 0 && axis < ishape->ndim);
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
     int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
-    for(uint64_t i = 0; i < getSize(oshape); i++){
-        if(i < axis){
-            oshape_data[i] = ishape_data[i];
-        }else if(i == axis){
-            oshape_data[i] = 1;
-        }else{
-            oshape_data[i] = ishape_data[i-1];
-        }
+   // for(uint64_t i = 0; i < getSize(oshape); i++){
+   //     if(i < axis){
+   //         oshape_data[i] = ishape_data[i];
+   //     }else if(i == axis){
+   //         oshape_data[i] = 1;
+   //     }else{
+   //         oshape_data[i] = ishape_data[i-1];
+   //     }
+   //     printf("%d ", oshape_data[i]);
+   // }
+   // printf("\n");
+    if(ishape_data == oshape_data){
+        return;
     }
+    memcpy(oshape_data, ishape_data, getSize(ishape)* sizeof(int32_t));
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
@@ -1300,10 +1306,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int ndim = y->ndim;
     printf("transpose: axes ndim=%d, yndim=%d:  ", axes.ndim(), ndim);
-    for(int i = 0; i < ndim; i++){
-        printf("%d ", axes_data[i]);
-    }
-    printf("\n");
 
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
@@ -1366,9 +1368,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
         y_data[i] = x_data[in_i];
-        if(i < 10){
-            printf("%d ", y_data[i]);
-        }
+        if(i < 10)
+        printf("%d ", y_data[i]);
     }
     printf("\n");
 });
@@ -1400,9 +1401,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
                 shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
             }
             y_data[i] = x_data[in_i];
-            printf("%d ", y_data[i]);
         }
-        printf("\n");
 });
 
 /**
