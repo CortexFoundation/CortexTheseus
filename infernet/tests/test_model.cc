@@ -86,11 +86,11 @@ void test_thread() {
     for (int t = 0; t < 1; ++t) {
         cerr << "threads t = " << t << "\n";
         threads.push_back(thread([&]() {
-                string model_root = "/home/tian/model_storage/resnet50_v1/data/";
-                // model_root = "/home/tian/cortex_fullnode_storage/cifar_resnet20_v2/data";
+                string model_root = "/home/kaihuo/model_storage/resnet50_v1/data/";
+                // model_root = "/home/kaihuo/cortex_fullnode_storage/cifar_resnet20_v2/data";
                 // model_root = "/home/lizhen/storage/mnist/data/";
                 // model_root = "/home/lizhen/storage/animal10/data";
-                // model_root = "/home/tian/cortex_fullnode_storage/imagenet_inceptionV3/data";
+                // model_root = "/home/kaihuo/cortex_fullnode_storage/imagenet_inceptionV3/data";
                 run_LIF(model_root);
                 //run_LIF(model_root);
         }));
@@ -102,16 +102,16 @@ void test_thread() {
 
 void test_models() {
     auto model_roots = {
-        "/home/tian/model_storage/resnet50_v1/data/",
-        "/home/tian/cortex_fullnode_storage/imagenet_inceptionV3/data",
-        "/home/tian/model_storage/animal10/data",
-        "/home/tian/model_storage/mnist/data",
-        "/home/tian/model_storage/resnet50_v2/data",
-        "/home/tian/model_storage/vgg16_gcv/data",
-        "/home/tian/model_storage/vgg19_gcv/data",
-        "/home/tian/model_storage/squeezenet_gcv1.1/data",
-        "/home/tian/model_storage/squeezenet_gcv1.0/data",
-        "/home/tian/model_storage/octconv_resnet26_0.250/data"
+       // "/home/kaihuo/model_storage/resnet50_v1/data/",
+       // "/home/kaihuo/cortex_fullnode_storage/imagenet_inceptionV3/data",
+       // "/home/kaihuo/model_storage/animal10/data",
+       // "/home/kaihuo/model_storage/mnist/data",
+       // "/home/kaihuo/model_storage/resnet50_v2/data",
+       // "/home/kaihuo/model_storage/vgg16_gcv/data",
+       // "/home/kaihuo/model_storage/vgg19_gcv/data",
+       // "/home/kaihuo/model_storage/squeezenet_gcv1.1/data",
+       // "/home/kaihuo/model_storage/squeezenet_gcv1.0/data",
+        "/home/kaihuo/model_storage/octconv_resnet26_0.250/data"
     };
     for (auto model_root : model_roots) {
         run_LIF(model_root);
