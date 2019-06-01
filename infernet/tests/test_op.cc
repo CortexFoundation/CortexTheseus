@@ -110,13 +110,13 @@ std::function<void()> get_func(
   return [](){};
 }
 void test_op_take() {
-    string attr_str = "{\"axis\": \"[0,2,3]\"}";
-    std::vector<int> dims_ = {4, 4, 4};
-    vector<std::vector<int64_t>> shapes_ = {{5,2,2,3}, {4,1,1,2}, {4,2,1,2}};
+    string attr_str = "{\"axes\": \"[0,2,3,1]\"}";
+    std::vector<int> dims_ = {4, 4};
+    vector<std::vector<int64_t>> shapes_ = {{5,2,2,3}, {5,2,3,2}};
     CVMOpParam params;
-    params.num_inputs = 2;
+    params.num_inputs = 1;
     params.num_outputs= 1;
-    params.func_name = "slice_like";
+    params.func_name = "expand_dim";
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;

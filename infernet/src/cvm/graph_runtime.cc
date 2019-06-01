@@ -230,7 +230,7 @@ void CvmRuntime::PlanStorage() {
     int len = 0;
     for (int64_t sz : attrs_.shape[i]) {
       VERIFY_LE(sz, 0x7fffffffll);
-      len += 32 - __builtin_clz(static_cast<unsigned>(sz)); 
+      len += 32 - __builtin_clz(static_cast<unsigned>(sz));
       size *= static_cast<size_t>(sz);
     }
     VERIFY_LE(len, 48);

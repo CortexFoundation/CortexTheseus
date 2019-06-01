@@ -1206,9 +1206,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     // int repeat = std::atoi(str_repeat.c_str());
     int ndim = x->ndim;
     if(axis < 0) axis = axis + ndim;
-#ifdef CVM_PROFILING
-    printf("repeat axis: %d\n", axis);
-#endif
 
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
@@ -1254,9 +1251,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
     // TODO(kaihuo) check
     TShape ts_reps = param.reps; //TODO get from attr
     int64_t *reps = ts_reps.begin();
-#ifdef CVM_PROFILING
-    printf("tile xndim=%d, yndim=%d, reps.ndim=%d\n", xndim, yndim, ts_reps.ndim());
-#endif
 
     int i = 0, j = 0;
     for(i = yndim-1, j = xndim-1; i >= 0 && j >= 0; i--, j--){
@@ -1307,15 +1301,21 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
     VERIFY(axis >= 0 && axis < ishape->ndim);
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
     int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
-    for(uint64_t i = 0; i < getSize(oshape); i++){
-        if(i < axis){
-            oshape_data[i] = ishape_data[i];
-        }else if(i == axis){
-            oshape_data[i] = 1;
-        }else{
-            oshape_data[i] = ishape_data[i-1];
-        }
+   // for(uint64_t i = 0; i < getSize(oshape); i++){
+   //     if(i < axis){
+   //         oshape_data[i] = ishape_data[i];
+   //     }else if(i == axis){
+   //         oshape_data[i] = 1;
+   //     }else{
+   //         oshape_data[i] = ishape_data[i-1];
+   //     }
+   //     printf("%d ", oshape_data[i]);
+   // }
+   // printf("\n");
+    if(ishape_data == oshape_data){
+        return;
     }
+    memcpy(oshape_data, ishape_data, getSize(ishape)* sizeof(int32_t));
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
@@ -1333,13 +1333,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int ndim = y->ndim;
-#ifdef CVM_PROFILING
-    // printf("transpose: axes ndim=%d, yndim=%d:  ", axes.ndim(), ndim);
-    // for(int i = 0; i < ndim; i++){
-    //     printf("%d ", axes_data[i]);
-    // }
-    // printf("\n");
-#endif
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
         for(int j = ndim-1; j >= 0; j--){
@@ -1380,13 +1373,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
     int64_t *begin_data = begin.begin();
     int64_t *end_data = end.begin();
     int64_t *step_data = stride.begin();
-#ifdef CVM_PROFILING
-    // printf("strided_slice : ");
-    // for(int i = 0; i < ndim; i++){
-    //     printf("(%d %d %d %d), ", begin_data[i], end_data[i], stride.ndim(), step_data[i]);
-    // }
-    // printf("\n");
-#endif
 
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
@@ -1403,15 +1389,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
         y_data[i] = x_data[in_i];
-#ifdef CVM_PROFILING
-        if(i < 10){
-            printf("%d ", y_data[i]);
-        }
-#endif
     }
-#ifdef CVM_PROFILING
-    printf("\n");
-#endif
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
@@ -1467,10 +1445,12 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
     int32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
     int64_t overlap_area = static_cast<int64_t>(h)*w;
-    int64_t ret = (overlap_area*100 / (sum_area - overlap_area));
-#ifdef CVM_PROFILING
-    // printf("ret=%d\n", ret);
-#endif
+    int64_t ret = (overlap_area / ((sum_area - overlap_area)/100));
+    printf("%d %d %d %d %ld %ld %d\n", std::min(x1_max, x2_max),
+            std::max(x1_min, x2_min),
+            std::min(y1_max, y2_max),
+            std::max(y1_min, y2_min),
+            overlap_area, sum_area,ret);
     return ret;
 }
 
@@ -1493,9 +1473,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
-#ifdef CVM_PROFILING
-    printf("get_valid_count: n=%d, k=%d, score_threshold=%d\n", n, k, score_threshold);
-#endif
 
     for(int32_t i = 0; i < batchs; i++){
         int32_t y_index = 0;
@@ -1512,13 +1489,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
         if(y_index < n){
             std::memset(&output[y_index * k], -1, (n-y_index) * k * sizeof(int32_t));
         }
-#ifdef CVM_PROFILING
-        printf("%d ", valid_count_data[i]);
-#endif
     }
-#ifdef CVM_PROFILING
-    printf("\n");
-#endif
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
@@ -1554,10 +1525,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
     int32_t batchs = x->shape[0];
     int32_t n = x->shape[1];
     int32_t k = x->shape[2];
-#ifdef CVM_PROFILING
-    printf("non_max_suppression: max_output_size=%d, iou_threshold=%d, topk=%d, coord_start=%d, score_index=%d, id_index=%d, force_suppress=%d n=%d, k=%d\n",
-            max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress, n, k);
-#endif
 
     for(int32_t b = 0; b < batchs; b++){
         int32_t vc = valid_count_data[b];
@@ -1585,9 +1552,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
         int32_t y_index = 0;
         for(int i = 0; i < vc; i++){
             int32_t *row1 = rows[i];
-            for(int j = 0; j < k; j++){
+            for(int j = 0; j < k; j++)
                 printf("%d ", row1[j]);
-            }
             printf("\n");
 
             if(removed[i] == false){
@@ -1700,7 +1666,6 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
 }
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-        printf("take\n");
     VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
@@ -1715,7 +1680,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-        printf("lut\n");
     VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
