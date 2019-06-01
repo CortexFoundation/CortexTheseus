@@ -36,9 +36,9 @@ func (cm *Cortex) read(msgCh chan map[string]interface{}) {
 	tmp, isPrefix, err := cm.reader.ReadLine()
 	if err == io.EOF {
 		log.Println("Tcp disconnect")
-		cm.consta.lock.Lock()
+		//cm.consta.lock.Lock()
 		cm.consta.state = false
-		cm.consta.lock.Unlock()
+		//cm.consta.lock.Unlock()
 		//		stateCh <- false
 		for {
 			if cm.consta.state {
@@ -80,8 +80,8 @@ func (cm *Cortex) write(reqObj ReqObj) {
 //	init cortex miner
 func (cm *Cortex) init(tcpCh chan bool) {
 	log.Println("Cortex connecting")
-	cm.consta.lock.Lock()
-	defer cm.consta.lock.Unlock()
+	//cm.consta.lock.Lock()
+	//defer cm.consta.lock.Unlock()
 	tcpAddr, err := net.ResolveTCPAddr("tcp", cm.param.Server)
 	if err != nil {
 		tcpCh <- false
@@ -205,9 +205,9 @@ func (cm *Cortex) Mining() {
 					if !suc {
 						continue
 					}
-					cm.consta.lock.Lock()
+					//cm.consta.lock.Lock()
 					cm.consta.state = true
-					cm.consta.lock.Unlock()
+					//cm.consta.lock.Unlock()
 					if init {
 						init = false
 						start <- true
