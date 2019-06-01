@@ -87,7 +87,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.clip").set_body([](CVMArgs args, CVMRetValu
 */
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetValue* rv) {
 #ifdef CVM_PROFILING
-        double start = omp_get_wtime();
+  double start = omp_get_wtime();
 #endif
   int ndim = args.num_args;
   VERIFY(ndim == 5 || ndim == 4);
@@ -1427,6 +1427,7 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
     int64_t overlap_area = static_cast<int64_t>(h)*w;
     int64_t ret = (overlap_area*100 / (sum_area - overlap_area));
+    printf("ret=%d\n", ret);
     return ret;
 }
 
@@ -1466,7 +1467,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
         if(y_index < n){
             std::memset(&output[y_index * k], -1, (n-y_index) * k * sizeof(int32_t));
         }
+        printf("%d ", valid_count_data[i]);
     }
+    printf("\n");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
@@ -1531,13 +1534,18 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
         int32_t y_index = 0;
         for(int i = 0; i < vc; i++){
             int32_t *row1 = rows[i];
+            for(int j = 0; j < k; j++){
+                printf("%d ", row1[j]);
+            }
+            printf("\n");
+
             if(removed[i] == false){
                 std::memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
                 y_index += 1;
             }
             for(int j = i+1; j < n && !removed[i] && iou_threshold > 0; j++){
                 int32_t* row2 = rows[j];
-                if(force_suppress || (id_index < 0 || row1[0] == row2[0])){
+                if(force_suppress || (id_index < 0 || row1[id_index] == row2[id_index])){
                     if(iou(row1+coord_start, row2+coord_start, FORMAT_CORNER) > iou_threshold){
                         removed[j] = true;
                     }
