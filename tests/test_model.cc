@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <cvm/runtime/registry.h>
 #include <cvm/op.h>
+#include "npy.hpp"
 using namespace std;
 
 using cvm::runtime::PackedFunc;
@@ -65,11 +66,21 @@ int run_LIF(string model_root) {
     int output_size = CVMAPIGetOutputLength(model);
     input.resize(input_size); // 1 * 1 * 28 * 28);
     output.resize(output_size); //1 * 10);
+
+    {
+       std::vector<unsigned long> tshape;
+       npy::LoadArrayFromNumpy("/tmp/yolo/data.npy", tshape, input);
+       std::cerr << tshape.size() << "\n";
+       for (auto x : tshape) {
+           std::cerr << x << " ";
+       }
+       std::cerr << "\n";
+    }
     double start = omp_get_wtime();
     int n_run = 1;
     for (int i = 0; i < n_run; i++) {
         if (i % 10 == 0)
-                cerr << "i = " << i << "\n";
+			cerr << "i = " << i << "\n";
         CVMAPIInfer(model, input.data(), output.data());
     }
     double ellapsed_time = (omp_get_wtime() - start) / n_run;
@@ -114,6 +125,15 @@ int run_LIF(string model_root) {
     cout << "total matmul     time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
     CVMAPIFreeModel(model);
+
+	std::cout << "output size = " << output.size() << "\n";
+	for (auto i = 0; i < std::min(64UL, output.size()); i++) {
+		std::cout << (int32_t)output[i] << " ";
+	}
+	for (auto i = std::max(0UL, (size_t)((int)(output.size()) - 64)); i < output.size(); i++) {
+		std::cout << (int32_t)output[i] << " ";
+	}
+	std::cout << "\n";
     return 0;
 }
 void test_thread() {
