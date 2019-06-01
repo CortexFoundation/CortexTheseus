@@ -1,4 +1,3 @@
-
 #include <cvm/runtime/ndarray.h>
 #include <cvm/runtime/packed_func.h>
 #include <cvm/runtime/registry.h>
@@ -777,7 +776,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.bias_add")
 
 });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.upsampling")
     .set_body([](CVMArgs args, CVMRetValue *ret){
 #ifdef CVM_PROFILING
         double start = omp_get_wtime();

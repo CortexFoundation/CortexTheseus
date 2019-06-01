@@ -336,7 +336,7 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
     }
 #ifdef CVM_PROFILING
     double cost_time = omp_get_wtime() - start;
-    std::cerr << "matrix_mul = " << M << " " << K << " " << N << " | " << cost_time << "\n";
+    // std::cerr << "matrix_mul = " << M << " " << K << " " << N << " | " << cost_time << "\n";
     cvm_op_inline_matmul_cnt += cost_time;
 #endif
 }
@@ -531,7 +531,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d").set_body([]
             int8_filter[i] = static_cast<int8_t>(w_data[i]);
         }
 #ifdef CVM_PROFILING
-        std::cerr << "n_batch = " << n_batch << "\n";
+        // std::cerr << "n_batch = " << n_batch << "\n";
 #endif
         for(int i = 0; i < n_batch; i++){
             bool has_negetive = false;

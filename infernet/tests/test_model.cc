@@ -4,6 +4,12 @@
 #include <thread>
 #include <omp.h>
 using namespace std;
+
+void test_op_take() {
+
+
+}
+
 int run_LIF(string model_root) {
 
     cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
@@ -117,7 +123,8 @@ void test_models() {
         // "/home/tian/model_storage/squeezenet_gcv1.1/data",
         // "/home/tian/model_storage/squeezenet_gcv1.0/data",
         // "/home/tian/model_storage/octconv_resnet26_0.250/data"
-        "/home/tian/model_storage/yolo3_darknet53/data"
+         "/home/tian/model_storage/yolo3_darknet53_b1/data",
+         "/home/tian/model_storage/yolo3_darknet53/data"
     };
     for (auto model_root : model_roots) {
         run_LIF(model_root);
