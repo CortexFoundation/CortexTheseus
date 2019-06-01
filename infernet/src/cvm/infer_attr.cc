@@ -120,22 +120,22 @@ int64_t CvmRuntime::GetOps() {
   const auto rshape = GetTShapeArray(attrs_.shape);
   // inference step function for nid
   int64_t ret = 0;
-  std::vector<std::string> ops;
-  std::unordered_map<std::string, int64_t> opcount;
+  // std::vector<std::string> ops;
+  // std::unordered_map<std::string, int64_t> opcount;
   for (uint32_t nid = 0; nid < idx.size(); ++nid) {
     auto inode = idx[nid];
+    int64_t t = 0;
+    int len = 0;
     if (inode.op_type == "null") {
-//      int64_t osize = rshape[nid].Size();
-//      osize /= rshape[nid][0];
-//      ret += osize;
+      t = 1;
     } else {
       auto op = idx[nid].attrs.op->name;
-      if (opcount.find(op) == opcount.end()) {
-        opcount[op] = 0;
-        ops.push_back(op);
+      /*
+        if (opcount.find(op) == opcount.end()) {
+          opcount[op] = 0;
+          ops.push_back(op);
       }
-      int64_t t = 0;
-      int len = 0;
+      */
       if (op == "dense") {
         auto shape2 = rshape[inode.inputs[1].node_id];
         t = static_cast<int64_t>(shape2[1]) * 3;
@@ -161,11 +161,12 @@ int64_t CvmRuntime::GetOps() {
       } else {
         t = 1;
       }
+
       int64_t osize = rshape[nid].Size();
       osize /= rshape[nid][0];
       len += 32 - __builtin_clz((unsigned)osize);
       t *= osize;
-      if (len > 40 || t > (1ll << 40)) {
+      if (len > 40 || t > (1ll << 38)) {
         return -1;
       }
 /*
@@ -175,9 +176,9 @@ int64_t CvmRuntime::GetOps() {
         std::cout << rshape[n.node_id] << "    ";
       }
       std::cout << rshape[nid] << ' ' << t << std::endl;
+      opcount[op] += t;
 */
       ret += t;
-      opcount[op] += t;
     }
   }
   return ret;
