@@ -311,32 +311,62 @@ if (K % 32 == 0) {
     return true;
 }
 
+void transpose(const int8_t *A, int8_t *B, int K, int N) {
+    for(int i = 0; i < N; i++) {
+        for(int k = 0; k < K; k++) {
+            B[i * K + k] = A[k * N + i];
+        }
+    }
+}
+
 void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
-        int32_t *c, const int M, const int K, const int N){
+        int32_t *c, const int M, const int K, const int N, int algo = 0){
     std::memset(c, 0, sizeof(int32_t) * M * N);
 #ifdef CVM_PROFILING
     double start = omp_get_wtime();
 #endif
-#pragma omp parallel for
-    for(int i = 0; i < M; i++){
-        for(int k = 0; k < K; k++){
-           int32_t aV = static_cast<int32_t>(a[i * K + k]);
-            for(int j = 0; j < N; j++){
-                c[i*N + j] += aV * static_cast<int32_t>(b[k*N + j]);
-            }
-        }
-    }
-    if(bias != NULL){
+    if (true || N > M ) {
+        #pragma omp parallel for
         for(int i = 0; i < M; i++){
-            int32_t biasV = bias[i];
-            for(int j = 0; j < N; j++){
-                c[i*N+j] += biasV;
+            for(int k = 0; k < K; k++){
+                int32_t aV = static_cast<int32_t>(a[i * K + k]);
+                for(int j = 0; j < N; j++){
+                    c[i*N + j] += aV * static_cast<int32_t>(b[k*N + j]);
+                }
             }
         }
+    } else {
+        std::vector<int8_t> tr_b(N * K);
+		transpose(b, tr_b.data(), K, N);
+		#pragma omp parallel
+		{
+			int i, j, k;
+			#pragma omp for
+			for (i = 0; i < M; i++) {
+				auto ap = a + i * K;
+				for (j = 0; j < N; j++) {
+					int32_t dot = 0;
+					auto tr_bp = tr_b.data() + j * K;
+					for (k = 0; k < K; k++) {
+						dot += ap[k] * static_cast<int32_t>(tr_bp[k]);
+					}
+					c[i*N + j] = dot;
+				}
+			}
+		}
     }
+
+	if(bias != NULL){
+		#pragma omp parallel for collapse(2)
+		for(int i = 0; i < M; i++){
+			for(int j = 0; j < N; j++){
+				c[i*N+j] += bias[i];
+			}
+		}
+	}
 #ifdef CVM_PROFILING
     double cost_time = omp_get_wtime() - start;
-    // std::cerr << "matrix_mul = " << M << " " << K << " " << N << " | " << cost_time << "\n";
+    // std::cerr << "matrix_mul = " << M << " " << K << " " << N << " " << M * K * N << "  " << cost_time << "\n";
     cvm_op_inline_matmul_cnt += cost_time;
 #endif
 }
