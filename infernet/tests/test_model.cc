@@ -166,7 +166,8 @@ void test_models() {
        // "/home/kaihuo/model_storage/vgg19_gcv/data",
        // "/home/kaihuo/model_storage/squeezenet_gcv1.1/data",
        // "/home/kaihuo/model_storage/squeezenet_gcv1.0/data",
-        "/home/kaihuo/model_storage/octconv_resnet26_0.250/data"
+       // "/home/kaihuo/model_storage/octconv_resnet26_0.250/data",
+        "/home/tian/model_storage/yolo3_darknet53_b1/data"
     };
     for (auto model_root : model_roots) {
         run_LIF(model_root);
