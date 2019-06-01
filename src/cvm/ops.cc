@@ -1157,6 +1157,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     // int repeat = std::atoi(str_repeat.c_str());
     int ndim = x->ndim;
     if(axis < 0) axis = axis + ndim;
+    printf("repeat axis: %d\n", axis);
 
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
@@ -1202,6 +1203,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
     // TODO(kaihuo) check
     TShape ts_reps = param.reps; //TODO get from attr
     int64_t *reps = ts_reps.begin();
+    printf("tile xndim=%d, yndim=%d, reps.ndim=%d\n", xndim, yndim, ts_reps.ndim());
 
     int i = 0, j = 0;
     for(i = yndim-1, j = xndim-1; i >= 0 && j >= 0; i--, j--){
@@ -1278,6 +1280,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int ndim = y->ndim;
+    printf("transpose: axes ndim=%d, yndim=%d:  ", axes.ndim(), ndim);
+    for(int i = 0; i < ndim; i++){
+        printf("%d ", axes_data[i]);
+    }
+    printf("\n");
 
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
@@ -1285,7 +1292,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
             int xj = j;//axes != nullptr ? axes[j] : j;
-            if(axes_data != nullptr){
+            if(axes.ndim() > 0){
                 xj = axes_data[j];
             }else{
                 if(j == ndim-1) xj = 0;
@@ -1315,24 +1322,36 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
     TShape begin = param.begin;
     TShape end = param.end;
     TShape stride = param.stride;
+    int ndim = y->ndim;
     int64_t *begin_data = begin.begin();
     int64_t *end_data = end.begin();
     int64_t *step_data = stride.begin();
-
-    int ndim = y->ndim;
+    printf("strided_slice : ");
+    for(int i = 0; i < ndim; i++){
+        printf("(%d %d %d %d), ", begin_data[i], end_data[i], stride.ndim(), step_data[i]);
+    }
+    printf("\n");
 
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
         for(int j = ndim-1; j >= 0; j--){
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
-            col += (begin_data[j] < 0 ? begin_data[j] + x->shape[j] : begin_data[j]) + (step_data[j] < 0 ? step_data[j] + x->shape[j] : step_data[j]);
+            if(stride.ndim() == 0){
+                col += (begin_data[j] < 0 ? begin_data[j] + x->shape[j] : begin_data[j]);
+            }else{
+                col += (begin_data[j] < 0 ? begin_data[j] + x->shape[j] : begin_data[j]) + (step_data[j] < 0 ? step_data[j] + x->shape[j] : step_data[j]);
+            }
             col %= x->shape[j];
             in_i += (j == ndim-1 ? col : col * shapeSize);
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
         y_data[i] = x_data[in_i];
+        if(i < 10){
+            printf("%d ", y_data[i]);
+        }
     }
+    printf("\n");
 });
 /**
  * box_nms:
@@ -1340,24 +1359,25 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
 
 #define FORMAT_CORNER 1
 #define FORMAT_CENTER 2
-uint32_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
-    uint32_t x1_min = format == FORMAT_CORNER ? rect1[0] : rect1[0] - rect1[2]/2;
-    uint32_t y1_min = format == FORMAT_CORNER ? rect1[1] : rect1[1] - rect1[3]/2;
-    uint32_t x1_max = format == FORMAT_CORNER ? rect1[2] : x1_min + rect1[2];
-    uint32_t y1_max = format == FORMAT_CORNER ? rect1[3] : y1_min + rect1[3];
+int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
+    int32_t x1_min = format == FORMAT_CORNER ? rect1[0] : rect1[0] - rect1[2]/2;
+    int32_t y1_min = format == FORMAT_CORNER ? rect1[1] : rect1[1] - rect1[3]/2;
+    int32_t x1_max = format == FORMAT_CORNER ? rect1[2] : x1_min + rect1[2];
+    int32_t y1_max = format == FORMAT_CORNER ? rect1[3] : y1_min + rect1[3];
 
-    uint32_t x2_min = format == FORMAT_CORNER ? rect2[0] : rect2[0] - rect2[2]/2;
-    uint32_t y2_min = format == FORMAT_CORNER ? rect2[1] : rect2[1] - rect2[3]/2;
-    uint32_t x2_max = format == FORMAT_CORNER ? rect2[2] : x2_min + rect2[2];
-    uint32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
+    int32_t x2_min = format == FORMAT_CORNER ? rect2[0] : rect2[0] - rect2[2]/2;
+    int32_t y2_min = format == FORMAT_CORNER ? rect2[1] : rect2[1] - rect2[3]/2;
+    int32_t x2_max = format == FORMAT_CORNER ? rect2[2] : x2_min + rect2[2];
+    int32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
 
-    uint64_t sum_area = (x1_max-x1_min) * (y1_max-y1_min) + (x2_max-x2_min) * (y2_max-y2_min);
+    int64_t sum_area = static_cast<int64_t>((x1_max-x1_min)) * (y1_max-y1_min) + static_cast<int64_t>((x2_max-x2_min)) * (y2_max-y2_min);
 
     if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
-    uint32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
-    uint32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
-    uint64_t overlap_area = h*w;
-    return static_cast<uint32_t>(overlap_area*100 / (sum_area - overlap_area));
+    int32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
+    int32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
+    int64_t overlap_area = static_cast<int64_t>(h)*w;
+    int64_t ret = (overlap_area*100 / (sum_area - overlap_area));
+    return ret;
 }
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
@@ -1379,6 +1399,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
+    printf("get_valid_count: n=%d, k=%d, score_threshold=%d\n", n, k, score_threshold);
 
     for(int32_t i = 0; i < batchs; i++){
         int32_t y_index = 0;
@@ -1431,6 +1452,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
     int32_t batchs = x->shape[0];
     int32_t n = x->shape[1];
     int32_t k = x->shape[2];
+    printf("non_max_suppression: max_output_size=%d, iou_threshold=%d, topk=%d, coord_start=%d, score_index=%d, id_index=%d, force_suppress=%d n=%d, k=%d\n",
+            max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress, n, k);
 
     for(int32_t b = 0; b < batchs; b++){
         int32_t vc = valid_count_data[b];
@@ -1568,6 +1591,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
 }
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+        printf("take\n");
     VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
@@ -1582,6 +1606,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+        printf("lut\n");
     VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
