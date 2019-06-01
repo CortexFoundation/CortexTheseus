@@ -1400,7 +1400,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
                 shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
             }
             y_data[i] = x_data[in_i];
+            printf("%d ", y_data[i]);
         }
+        printf("\n");
 });
 
 /**
@@ -1674,6 +1676,28 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
   //  auto &param = cvm::get<cvm::top::CVMLUTParam>(attr->parsed);
 
     take(indices, x, y);
+
+   // int32_t *x_data = static_cast<int32_t*>(x->data);
+   // int32_t *y_data = static_cast<int32_t*>(y->data);
+
+   // FILE *fp = fopen("/tmp/zkh/lut_out.txt", "a+");
+   // int32_t min = x_data[0], max = x_data[0];
+   // int32_t min_out = y_data[0], max_out = y_data[0];
+   // for(int i = 0; i < getSize(x); i++){
+   //     min = min > x_data[i] ? x_data[i] : min;
+   //     max = max < x_data[i] ? x_data[i] : max;
+   // }
+   // for(int i = 0; i < getSize(y); i++){
+   //     min_out = min_out > y_data[i] ? y_data[i] : min_out;
+   //     max_out = max_out < y_data[i] ? y_data[i] : max_out;
+   // }
+   // fprintf(fp, "cvm_lut:%d %d %d %d\n", min, max, min_out, max_out);
+
+   // for(int i = 0; i < 20; i++){
+   //     fprintf(fp, "%d,", y_data[i]);
+   // }
+   // fprintf(fp, "\n");
+   // fclose(fp);
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
