@@ -1353,6 +1353,37 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
     }
     printf("\n");
 });
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+        DLTensor *x = args[0];
+        DLTensor *shape = args[1];
+        DLTensor *y = args[2];
+        //std::string str_axis = args[3];
+        void* _attr = args[3];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        auto &param = cvm::get<cvm::top::SliceLikeParam>(attr->parsed);
+        Tuple<int> axis = param.axis;
+        int *axis_data = axis.begin();
+
+        int32_t *x_data = static_cast<int32_t*>(x->data);
+        // TODO(kaihuo) check
+        //  int32_t *shape_like = static_cast<int32_t*>(shape->data);
+        int32_t *y_data = static_cast<int32_t*>(y->data);
+        int ndim = x->ndim;
+
+        for(uint64_t i = 0; i < getSize(y); i++){
+            uint64_t o_i = i, in_i = 0, shapeSize = 0;
+            for(int j = ndim-1; j >= 0; j--){
+                int col = o_i % y->shape[j];
+                o_i /= y->shape[j];
+                in_i += (j == ndim-1 ? col : col * shapeSize);
+                shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+            }
+            y_data[i] = x_data[in_i];
+        }
+});
+
 /**
  * box_nms:
  */
