@@ -87,7 +87,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.clip").set_body([](CVMArgs args, CVMRetValu
 */
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetValue* rv) {
 #ifdef CVM_PROFILING
-        double start = omp_get_wtime();
+  double start = omp_get_wtime();
 #endif
   int ndim = args.num_args;
   VERIFY(ndim == 5 || ndim == 4);
