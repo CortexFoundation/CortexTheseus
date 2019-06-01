@@ -552,6 +552,19 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d").set_body([]
         free(int8_filter);
     }
 
+    FILE *fp = fopen("/tmp/zkh/conv.txt", "a+");
+    int32_t min = y_data[0], max=y_data[0];
+    for(int i = 0; i < getSize(y); i++){
+        min = min > y_data[i] ? y_data[i] : min;
+        max = max < y_data[i] ? y_data[i] : max;
+    }
+    fprintf(fp, "conv: %d %d\n", min, max);
+    for(int i = 0; i < 20; i++){
+        fprintf(fp, "%d ", y_data[i]);
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
+
  });
 
 inline int32_t broadcast_i_index(int64_t* oshape, uint64_t o_index, int64_t* ishape, int idim){
@@ -648,6 +661,20 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_mul")
                 c[i] = a[a_index] * b[b_index];
             }
         }
+
+        FILE *fp = fopen("/tmp/zkh/mul.txt", "a+");
+        int32_t min = c[0], max = c[0];
+        for(uint64_t i = 0; i < getSize(args0); i++){
+            min = min > c[i] ? c[i] : min;
+            max = max < c[i] ? c[i] : max;
+        }
+        fprintf(fp, "%d %d\n", min, max);
+        for(uint64_t i = 0; i < 20 && i < getSize(args0); i++){
+            fprintf(fp, "%d ", c[i]);
+        }
+        fprintf(fp, "\n");
+        fclose(fp);
+
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_div")
     .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -1173,6 +1200,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int32_t axis = param.axis;
+    int32_t repeat = param.repeats;
     // int repeat = std::atoi(str_repeat.c_str());
     int ndim = x->ndim;
     if(axis < 0) axis = axis + ndim;
@@ -1180,11 +1208,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
         for(int j = ndim-1; j >= 0; j--){
-            int col = o_i % y->shape[j];
+            uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
-            int tmpcol = col;
-            if(j == axis) tmpcol = col % x->shape[axis];
-            in_i += (j == ndim-1 ? tmpcol : tmpcol * shapeSize);
+            if(j == axis) col = col / repeat;
+            in_i += (j == ndim-1 ? col : col * shapeSize);
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
         y_data[i] = x_data[in_i];
@@ -1304,6 +1331,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int ndim = y->ndim;
 
+    FILE *fp = fopen("/tmp/zkh/transpose.txt", "a+");
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
         for(int j = ndim-1; j >= 0; j--){
@@ -1324,6 +1352,18 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
         }
         y_data[i] = x_data[in_i];
     }
+    int32_t min = y_data[0], max= y_data[0];
+    for(uint64_t i = 0; i < getSize(y); i++){
+        min = min > y_data[i] ? y_data[i] : min;
+        max = max < y_data[i] ? y_data[i] : max;
+    }
+    fprintf(fp, "%d %d\n", min, max);
+    for(uint64_t i = 0; i < 20 && i < getSize(y); i++){
+        fprintf(fp, "%d ", y_data[i]);
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
+
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
@@ -1361,7 +1401,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
         }
         y_data[i] = x_data[in_i];
         if(i < 10)
-        printf("%d ", y_data[i]);
+            printf("%d ", y_data[i]);
     }
     printf("\n");
 });
@@ -1420,11 +1460,11 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
     int64_t overlap_area = static_cast<int64_t>(h)*w;
     int64_t ret = (overlap_area / ((sum_area - overlap_area)/100));
-    printf("%d %d %d %d %ld %ld %d\n", std::min(x1_max, x2_max),
-            std::max(x1_min, x2_min),
-            std::min(y1_max, y2_max),
-            std::max(y1_min, y2_min),
-            overlap_area, sum_area,ret);
+    //printf("%d %d %d %d %ld %ld %d\n", std::min(x1_max, x2_max),
+    //        std::max(x1_min, x2_min),
+    //        std::min(y1_max, y2_max),
+    //        std::max(y1_min, y2_min),
+    //        overlap_area, sum_area,ret);
     return ret;
 }
 
@@ -1526,9 +1566,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
         int32_t y_index = 0;
         for(int i = 0; i < vc; i++){
             int32_t *row1 = rows[i];
-            for(int j = 0; j < k; j++)
-                printf("%d ", row1[j]);
-            printf("\n");
+            //for(int j = 0; j < k; j++)
+            //    printf("%d ", row1[j]);
+            //printf("\n");
 
             if(removed[i] == false){
                 std::memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
@@ -1664,27 +1704,27 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
 
     take(indices, x, y);
 
-   // int32_t *x_data = static_cast<int32_t*>(x->data);
-   // int32_t *y_data = static_cast<int32_t*>(y->data);
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
 
-   // FILE *fp = fopen("/tmp/zkh/lut_out.txt", "a+");
-   // int32_t min = x_data[0], max = x_data[0];
-   // int32_t min_out = y_data[0], max_out = y_data[0];
-   // for(int i = 0; i < getSize(x); i++){
-   //     min = min > x_data[i] ? x_data[i] : min;
-   //     max = max < x_data[i] ? x_data[i] : max;
-   // }
-   // for(int i = 0; i < getSize(y); i++){
-   //     min_out = min_out > y_data[i] ? y_data[i] : min_out;
-   //     max_out = max_out < y_data[i] ? y_data[i] : max_out;
-   // }
-   // fprintf(fp, "cvm_lut:%d %d %d %d\n", min, max, min_out, max_out);
+    FILE *fp = fopen("/tmp/zkh/lut_out.txt", "a+");
+    int32_t min = x_data[0], max = x_data[0];
+    int32_t min_out = y_data[0], max_out = y_data[0];
+    for(int i = 0; i < getSize(x); i++){
+        min = min > x_data[i] ? x_data[i] : min;
+        max = max < x_data[i] ? x_data[i] : max;
+    }
+    for(int i = 0; i < getSize(y); i++){
+        min_out = min_out > y_data[i] ? y_data[i] : min_out;
+        max_out = max_out < y_data[i] ? y_data[i] : max_out;
+    }
+    fprintf(fp, "cvm_lut:%d %d %d %d\n", min, max, min_out, max_out);
 
-   // for(int i = 0; i < 20; i++){
-   //     fprintf(fp, "%d,", y_data[i]);
-   // }
-   // fprintf(fp, "\n");
-   // fclose(fp);
+    for(int i = 0; i < 20; i++){
+        fprintf(fp, "%d ", y_data[i]);
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
