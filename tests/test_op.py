@@ -2,12 +2,10 @@ import mxnet as mx
 from mxnet import ndarray as nd
 import numpy as np
 
-n, m = 100, 1000
-ishape = (16, 169, 3, 25)
 a = nd.arange(0, stop=60).reshape((5, 2, 2, 3))
-b = nd.zeros(shape=(4, 1, 1, 2))
-c = nd.slice_like(a, b, axes=(0, 2, 3))
-c.shape
+#c = nd.transpose(a, axes=(0, 2, 3, 1))
+c = nd.expand_dims(a, axis=(-1))
+print(c.shape)
 print(c.asnumpy().flatten())
 #nd.slice()
 
