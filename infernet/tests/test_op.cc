@@ -64,6 +64,7 @@ std::function<void()> get_func(
     std::vector<int> arg_tcodes;
     std::vector<int64_t> shape_data;
   };
+
   std::shared_ptr<OpArgs> arg_ptr = std::make_shared<OpArgs>();
   // setup address.
   arg_ptr->args = std::move(args);
@@ -96,7 +97,7 @@ std::function<void()> get_func(
   module_name += ".";
   auto func = cvm::runtime::Registry::Get(module_name + op);
   VERIFY(func != nullptr) << "function undefined " << module_name + op;
-  return [arg_ptr, op, func, device_type](){
+  return [arg_ptr, op, func](){
     CVMRetValue rv;
     CVMArgs targs(
       arg_ptr->arg_values.data(),
@@ -118,8 +119,9 @@ void test_op_take() {
     params.func_name = "strided_slice";
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
-      DLTensor* dl = &args[i];
+      DLTensor* dl;
       CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+      args[i] = *dl;
     }
 
     NodeAttrs attr;
