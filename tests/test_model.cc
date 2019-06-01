@@ -3,10 +3,34 @@
 #include <iostream>
 #include <thread>
 #include <omp.h>
+#include <cvm/runtime/registry.h>
+#include <cvm/op.h>
 using namespace std;
 
-void test_op_take() {
+using cvm::runtime::PackedFunc;
+using cvm::runtime::Registry;
+struct OpArgs {
+    std::vector<DLTensor> args;
+    std::vector<CVMValue> arg_values;
+    std::vector<int> arg_tcodes;
+    std::vector<int64_t> shape_data;
+};
 
+void test_op_take() {
+    CVMValue t_attr;
+    const PackedFunc* op = Registry::Get("cvm.runtime.cvm.take");
+    cvm::NodeAttrs* attr;
+    std::shared_ptr<OpArgs> arg_ptr = std::make_shared<OpArgs>();
+    t_attr.v_handle = (void*)attr;
+    arg_ptr->arg_values.push_back(t_attr);
+    arg_ptr->arg_tcodes.push_back(kHandle);
+    cvm::runtime::CVMRetValue rv;
+    cvm::runtime::CVMArgs targs(
+      arg_ptr->arg_values.data(),
+      arg_ptr->arg_tcodes.data(),
+      static_cast<int>(arg_ptr->arg_values.size())
+    );
+    // (*op)(ta);
 
 }
 
