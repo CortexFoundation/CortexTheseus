@@ -3,10 +3,34 @@
 #include <iostream>
 #include <thread>
 #include <omp.h>
+#include <cvm/runtime/registry.h>
+#include <cvm/op.h>
 using namespace std;
 
-void test_op_take() {
+using cvm::runtime::PackedFunc;
+using cvm::runtime::Registry;
+struct OpArgs {
+    std::vector<DLTensor> args;
+    std::vector<CVMValue> arg_values;
+    std::vector<int> arg_tcodes;
+    std::vector<int64_t> shape_data;
+};
 
+void test_op_take() {
+    CVMValue t_attr;
+    const PackedFunc* op = Registry::Get("cvm.runtime.cvm.take");
+    cvm::NodeAttrs* attr;
+    std::shared_ptr<OpArgs> arg_ptr = std::make_shared<OpArgs>();
+    t_attr.v_handle = (void*)attr;
+    arg_ptr->arg_values.push_back(t_attr);
+    arg_ptr->arg_tcodes.push_back(kHandle);
+    cvm::runtime::CVMRetValue rv;
+    cvm::runtime::CVMArgs targs(
+      arg_ptr->arg_values.data(),
+      arg_ptr->arg_tcodes.data(),
+      static_cast<int>(arg_ptr->arg_values.size())
+    );
+    // (*op)(ta);
 
 }
 
@@ -124,7 +148,7 @@ void test_models() {
         // "/home/tian/model_storage/squeezenet_gcv1.0/data",
         // "/home/tian/model_storage/octconv_resnet26_0.250/data"
          "/home/tian/model_storage/yolo3_darknet53_b1/data",
-         "/home/tian/model_storage/yolo3_darknet53/data"
+        // "/home/tian/model_storage/yolo3_darknet53/data"
     };
     for (auto model_root : model_roots) {
         run_LIF(model_root);
