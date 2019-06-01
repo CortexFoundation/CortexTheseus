@@ -4,6 +4,12 @@
 #include <thread>
 #include <omp.h>
 using namespace std;
+
+void test_op_take() {
+
+
+}
+
 int run_LIF(string model_root) {
 
     cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
@@ -16,13 +22,14 @@ int run_LIF(string model_root) {
     cvm::runtime::cvm_op_broadcast_cnt = 0;
     cvm::runtime::cvm_op_concat_cnt = 0;
     cvm::runtime::cvm_op_upsampling_cnt = 0;
+    cvm::runtime::cvm_op_inline_matmul_cnt = 0;
 
     string json_path = model_root + "/symbol";
     string params_path = model_root + "/params";
     cerr << "load " << json_path << "\n";
     cerr << "load " << params_path << "\n";
     cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-            CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
+        CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
     );
     if (model == nullptr) {
         std::cerr << "model loaded failed\n";
@@ -77,6 +84,10 @@ int run_LIF(string model_root) {
 
     sum_time =  cvm::runtime::cvm_op_upsampling_cnt / n_run;
     cout << "total upsampling time: " << (sum_time) << "/" << ellapsed_time
+         << " " <<  sum_time / ellapsed_time <<"\n";
+
+    sum_time =  cvm::runtime::cvm_op_inline_matmul_cnt / n_run;
+    cout << "total matmul     time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
     CVMAPIFreeModel(model);
     return 0;
