@@ -315,7 +315,7 @@ void CvmRuntime::SetupOpExecs() {
       args.push_back(*(data_entry_[eid].operator->()));
     }
     VERIFY(inode.op_type == "cvm_op") << "Can only take cvm_op as op";
-
+    // std::cerr << inode.name << "\n";
     op_execs_[nid] = CreateCVMOp(inode.param, &inode.attrs, args, inode.inputs.size());
   }
 }

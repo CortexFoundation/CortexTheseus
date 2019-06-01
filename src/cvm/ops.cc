@@ -32,6 +32,7 @@ double cvm_op_maxpool_cnt = 0;
 double cvm_op_broadcast_cnt = 0;
 double cvm_op_concat_cnt = 0;
 double cvm_op_upsampling_cnt = 0;
+double cvm_op_inline_matmul_cnt = 0;
 
 #define CVM_PROFILING
 
@@ -309,6 +310,7 @@ if (K % 32 == 0) {
 #endif
     return true;
 }
+
 void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
         int32_t *c, const int M, const int K, const int N){
     std::memset(c, 0, sizeof(int32_t) * M * N);
@@ -326,14 +328,16 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
     }
     if(bias != NULL){
         for(int i = 0; i < M; i++){
-            register int32_t biasV = bias[i];
+            int32_t biasV = bias[i];
             for(int j = 0; j < N; j++){
                 c[i*N+j] += biasV;
             }
         }
     }
 #ifdef CVM_PROFILING
-        cvm_op_dense_cnt += omp_get_wtime() - start;
+    double cost_time = omp_get_wtime() - start;
+    // std::cerr << "matrix_mul = " << M << " " << K << " " << N << " | " << cost_time << "\n";
+    cvm_op_inline_matmul_cnt += cost_time;
 #endif
 }
 inline bool is_a_ge_zero_and_a_lt_b(int a, int b) {
@@ -344,11 +348,12 @@ void im2col_cpu(const int32_t* data_im, const int channels,
         const int pad_h, const int pad_w,
         const int stride_h, const int stride_w,
         const int dilation_h, const int dilation_w,
-        int8_t* data_col, bool &flag) {
+        int8_t* data_col, bool &has_negetive)
+{
 #ifdef CVM_PROFILING
     double start = omp_get_wtime();
 #endif
-    auto data_col_init = data_col;
+    // auto data_col_init = data_col;
     const int output_h = (height + 2 * pad_h -
             (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
     const int output_w = (width + 2 * pad_w -
@@ -368,7 +373,19 @@ void im2col_cpu(const int32_t* data_im, const int channels,
                         for (int output_col = output_w; output_col; output_col--) {
                             if (is_a_ge_zero_and_a_lt_b(input_col, width)) {
                                 int32_t tv = data_im[input_row * width + input_col];
-                                if(tv < 0) flag = true;
+                                if(tv < 0) {
+#ifdef CVM_PROFILING
+//                                    if (!has_negetive) {
+//                                        if (tv > -25) {
+//                                            tv = 0;
+//                                        } else {
+//                                            std::cerr << channel << " " << kernel_row << " " << kernel_col << " "
+//                                                << input_row << " " << output_rows << " " << tv << "\n";
+                                            has_negetive = true;
+//                                        }
+//                                    }
+#endif
+                                }
                                 *(data_col++) = static_cast<int8_t>(tv);
                             } else {
                                 *(data_col++) = 0;
@@ -513,15 +530,17 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d").set_body([]
         for(int32_t i = 0; i < fn; i++){
             int8_filter[i] = static_cast<int8_t>(w_data[i]);
         }
-
+#ifdef CVM_PROFILING
+        // std::cerr << "n_batch = " << n_batch << "\n";
+#endif
         for(int i = 0; i < n_batch; i++){
-            bool flag = false;
+            bool has_negetive = false;
             im2col_cpu(x_data + i * in_channels * x_h * x_w, in_channels, x_h, x_w, filter_h, filter_w, padding[0], padding[1],
-                    stride_h, stride_w, dilation_h, dilation_w, data_col, flag);
+                    stride_h, stride_w, dilation_h, dilation_w, data_col, has_negetive);
             const int M = out_channels;
             const int K = in_channels * filter_h * filter_w;
             const int N = o_h * o_w;
-            if(flag){
+            if(has_negetive){
                 matrix_mul(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
                     M, K, N);
             }else{
