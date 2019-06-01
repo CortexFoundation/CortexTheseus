@@ -11,6 +11,7 @@
 #include <cvm/runtime/serializer.h>
 #include <cvm/node.h>
 #include <cvm/runtime/c_runtime_api.h>
+#include "../npy.hpp"
 
 using namespace std;
 
@@ -110,13 +111,13 @@ std::function<void()> get_func(
   return [](){};
 }
 void test_op_take() {
-    string attr_str = "{\"axes\": \"[0,2,3,1]\"}";
-    std::vector<int> dims_ = {4, 4};
-    vector<std::vector<int64_t>> shapes_ = {{5,2,2,3}, {5,2,3,2}};
+    string attr_str = "{}";
+    std::vector<int> dims_ = {4, 1, 4};
+    vector<std::vector<int64_t>> shapes_ = {{1, 32, 416, 416}, {1}, {1,32,416, 416}};
     CVMOpParam params;
-    params.num_inputs = 1;
+    params.num_inputs = 2;
     params.num_outputs= 1;
-    params.func_name = "expand_dim";
+    params.func_name = "broadcast_mul";
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
@@ -124,20 +125,31 @@ void test_op_take() {
       args[i] = *dl;
     }
 
+    std::vector<unsigned long> tshape;
+    std::vector<int32_t> tdata;
+    npy::LoadArrayFromNumpy("/tmp/yolo/out/broadcast_mul72_0.mrt.dump.in.npy", tshape, tdata);
+    int32_t *dldata = static_cast<int32_t*>(args[0].data);
+    memcpy(dldata, tdata.data(), sizeof(int32_t) * tdata.size());
 
-    int s = 1;
-    for(int i = 0; i < shapes_[0].size(); i++){
-        s *= shapes_[0][i];
-    }
-    int32_t *x = static_cast<int32_t*>(args[0].data);
-    for(int i = 0; i<s; i++){
-        x[i] = i;
-    }
+    std::vector<unsigned long> tshape2;
+    std::vector<int32_t> tdata2;
+    int32_t *dldata2 = static_cast<int32_t*>(args[1].data);
+    npy::LoadArrayFromNumpy("/tmp/yolo/out/broadcast_mul72_1.mrt.dump.in.npy", tshape2, tdata2);
+    memcpy(dldata2, tdata2.data(), sizeof(int32_t) * tdata2.size());
+
     NodeAttrs attr;
     LoadOp(params.func_name, attr);
     LoadOpAttr(attr_str, attr);
     auto op_slice = get_func(params, &attr, args, params.num_inputs);
     op_slice();
+
+    int32_t *dldata3 = static_cast<int32_t*>(args[2].data);
+    std::vector<unsigned long> tshape3;
+    std::vector<int32_t> tdata3;
+    npy::LoadArrayFromNumpy("/tmp/yolo/out/broadcast_mul72_0.mrt.dump.out.npy", tshape3, tdata3);
+    int ret =  memcmp(dldata3, tdata3.data(), sizeof(int32_t) * tdata3.size());
+    printf("%d\n", ret);
+
 }
 int main() {
     test_op_take();
