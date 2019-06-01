@@ -110,13 +110,13 @@ std::function<void()> get_func(
   return [](){};
 }
 void test_op_take() {
-    string attr_str = "{\"end\": \"[16, 169, 3, 25]\", \"begin\": \"[0, 0, 0, 5]\"}";
-    std::vector<int> dims_ = {4, 4};
-    vector<std::vector<int64_t>> shapes_ = {{16, 169, 3, 25}, {16, 169, 3, 20}};
+    string attr_str = "{\"axis\": \"[0,2,3]\"}";
+    std::vector<int> dims_ = {4, 4, 4};
+    vector<std::vector<int64_t>> shapes_ = {{5,2,2,3}, {4,1,1,2}, {4,2,1,2}};
     CVMOpParam params;
-    params.num_inputs = 1;
+    params.num_inputs = 2;
     params.num_outputs= 1;
-    params.func_name = "strided_slice";
+    params.func_name = "slice_like";
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
@@ -124,6 +124,15 @@ void test_op_take() {
       args[i] = *dl;
     }
 
+
+    int s = 1;
+    for(int i = 0; i < shapes_[0].size(); i++){
+        s *= shapes_[0][i];
+    }
+    int32_t *x = static_cast<int32_t*>(args[0].data);
+    for(int i = 0; i<s; i++){
+        x[i] = i;
+    }
     NodeAttrs attr;
     LoadOp(params.func_name, attr);
     LoadOpAttr(attr_str, attr);
