@@ -8,7 +8,6 @@
 #include <cvm/op_attr_types.h>
 #include "top/elemwise_op_common.h"
 #include <cvm/graph_attr_types.h>
-
 #include <iostream>
 
 using cvm::Op;
@@ -143,6 +142,10 @@ int64_t CvmRuntime::GetOps() {
         if (param.use_bias) {
           t += 1;
         }
+        len += 32 - __builtin_clz(unsigned(t));
+      } else if (op == "non_max_suppression") {
+        auto shape1 = rshape[inode.inputs[0].node_id];
+        t = static_cast<int64_t>(shape1[1]) * 20;
         len += 32 - __builtin_clz(unsigned(t));
       } else if (op == "conv2d") {
         auto shape1 = rshape[inode.inputs[0].node_id];
