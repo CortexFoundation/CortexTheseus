@@ -27,6 +27,7 @@ extern double cvm_op_maxpool_cnt;
 extern double cvm_op_broadcast_cnt;
 extern double cvm_op_concat_cnt;
 extern double cvm_op_upsampling_cnt;
+extern double cvm_op_inline_matmul_cnt;
 
 struct CVMModel {
 public:
@@ -60,6 +61,7 @@ private:
   int64_t *out_size_;
   int64_t out_num_;
   int64_t model_id_;
+  bool is_output_int32;
   std::vector<int> dims_;
   std::vector<int64_t*> shapes_;
   int dtype_code{kDLInt};

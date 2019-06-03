@@ -82,4 +82,18 @@ const char* cuda_concatenate(const int32_t *input, const int64_t *ishape, const 
         const int64_t preShapeSize, const int64_t curShapeSize, const int32_t axis, bool debug);
 const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t axis, const int64_t ysize,
         const int64_t *xshape, const int64_t *indices_shape, const int64_t *yshape, const int32_t yndim, const int32_t xndim, const int32_t indices_ndim);
+const char* cuda_bias_add(const int32_t *x_data, const int32_t * bias_data, int32_t *y_data,
+        int64_t ysize, const int64_t *yshape, const int32_t ndim, const int32_t axis);
+const char* cuda_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
+        const int64_t *yshape, const int64_t ysize, const int32_t xndim, const int32_t yndim, const int32_t axis);
+const char* cuda_upsampling_nearest(const int32_t *x_data, const int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw,
+        const int32_t oh, const int32_t ow, const int32_t batch, const int32_t channel);
+const char* cuda_upsampling_nearest(const int32_t *x_data, int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw,
+        const int32_t oh, const int32_t ow, const int32_t batch, const int32_t channel);
+const char* cuda_negative(const int32_t *x_data, int32_t *y_data, int32_t n);
+const char* cuda_tile(const int32_t *x_data, int32_t *y_data, const int32_t ysize, const int32_t yndim, const int32_t xndim,
+        const int64_t *xshape, const int64_t *yshape);
+const char *cuda_expand_dims(const int32_t *ishape_data, int32_t *oshape_data, const int32_t axis, const int32_t n);
+const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int32_t *y_data,
+        const int64_t *xshape, const int64_t *yshape, const int32_t ndim, const int32_t ysize);
 #endif

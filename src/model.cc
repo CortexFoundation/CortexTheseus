@@ -67,6 +67,10 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   if (out_num_< 1) {
     return;
   }
+  auto get_output_precision = module_.GetFunction("get_output_precision");
+  int precision;
+  get_output_precision(&precision);
+  is_output_int32 = precision > 8;
 
   auto get_input_shape = module_.GetFunction("get_input_shape");
 
@@ -151,52 +155,55 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
 }
 
 void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
-  bool is_same_shape = (outputs.size() > 1);
-  for (int k = 1; k < outputs.size(); ++k) {
-    if (outputs[k]->ndim != outputs[0]->ndim) {
-      is_same_shape = false;
-    }
+  bool can_concat = true;
+  if (outputs.size() == 1) {
+    can_concat = false;
   }
-  if (is_same_shape) {
-    for (int k = 1; k < outputs.size(); ++k) {
-      for (int i = 0; i < outputs[0]->ndim; ++i) {
-        if (outputs[k]->shape[i] != outputs[0]->shape[i]) {
-          is_same_shape = false;
-        }
+  std::vector<uint64_t> xs(outputs.size());
+  std::vector<uint64_t> ys(outputs.size());
+  if (can_concat) {
+    for (size_t k = 0; k < outputs.size(); ++k) {
+      ys[k] = outputs[k]->shape[outputs[k]->ndim - 1];
+      xs[k] = out_size_[k] / ys[k];
+    }
+    for (size_t k = 1; k < outputs.size(); ++k) {
+      if (xs[k] != xs[0]) {
+        can_concat = false;
+        break;
       }
     }
   }
-  if (!is_same_shape) {
+  if (can_concat) {
+    if (is_output_int32) {
+      int32_t* cp = static_cast<int32_t*>((void*)(mem));
+      int32_t nx = xs[0] / 4;  // truncate result
+      for (int xidx = 0; xidx < nx; xidx++) {
+        for (int k = 0; k < outputs.size(); ++k) {
+          auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
+          for (int i = 0; i < ys[k]; ++i) {
+            *cp = data[i];
+            ++cp;
+          }
+        }
+      }
+    } else {
+      auto cp = mem;
+      for (int xidx = 0; xidx < xs[0]; xidx++) {
+        for (int k = 0; k < outputs.size(); ++k) {
+          auto data = static_cast<int*>(outputs[k]->data) + xidx * ys[k];
+          for (int i = 0; i < ys[k]; ++i) {
+            *cp++ = static_cast<int8_t>(data[i]);
+          }
+        }
+      }
+    }
+  } else {
     for (int k = 0; k < outputs.size(); ++k) {
       auto data = static_cast<int*>(outputs[k]->data);
       for (int i = 0; i < out_size_[k]; ++i) {
         *mem++ = static_cast<int8_t>(data[i]);
       }
     }
-  } else {
-    int ndim = outputs[0]->ndim;
-    int64_t* shape;
-    std::vector<int*> datas;
-    for (int k = 0; k < outputs.size(); ++k) {
-      datas.push_back(static_cast<int*>(outputs[k]->data));
-    }
-
-    std::function<void(int, int)> recur;
-    recur = [&](int index, int i){
-      index = index * shape[i];
-      if (i == ndim - 1) {
-        for (int d = 0; d < ndim; ++d) {
-          for (int k = 0; k < shape[i]; ++k) {
-            *mem++ = static_cast<int8_t>(datas[d][index + k]);
-          }
-        }
-      } else {
-        for (int k = 0; k < shape[i]; ++k) {
-          recur(index + k, i + 1);
-        }
-      }
-    };
-    recur(0, 0);
   }
 }
 
@@ -241,7 +248,7 @@ int CVMModel::GetInputLength() {
 int CVMModel::GetOutputLength() {
   int ret = 0;
   for (int i = 0; i < out_num_; ++i)
-    ret += static_cast<int>(out_size_[i]);
+    ret += static_cast<int>(out_size_[i]) * (is_output_int32 ? 4 : 1);
   return ret;
 }
 

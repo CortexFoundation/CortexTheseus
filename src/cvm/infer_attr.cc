@@ -237,7 +237,7 @@ void CvmRuntime::SetupShape() {
         VERIFY_EQ(oshape[i], rshape[entry_id(nid, i)])
           << "Check output shape failed, "
           << "expected to be " << oshape[i]
-          << " but " << rshape[entry_id(nid, i)];
+          << " but " << rshape[entry_id(nid, i)] << inode.attrs.op->name;
       }
     }
   };

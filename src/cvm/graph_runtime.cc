@@ -80,7 +80,7 @@ void CvmRuntime::GetShape(int index, DLTensor* t) {
   VERIFY_LE(index, attrs_.shape.size());
   auto shape = attrs_.shape[index];
   t->ndim = shape.size();
-  if (t->shape)  delete t->shape;
+  if (t->shape) delete t->shape;
   t->shape = new int64_t[t->ndim];
   for (int i = 0; i < t->ndim; ++i) {
     t->shape[i] = shape[i];
@@ -147,6 +147,16 @@ NDArray CvmRuntime::GetOutput(int index) const {
   VERIFY_LT(static_cast<size_t>(index), outputs_.size());
   uint32_t eid = this->entry_id(outputs_[index]);
   return data_entry_[eid];
+}
+
+int CvmRuntime::GetOutputPrecision() {
+  int ret = 0;
+  for (unsigned int index = 0; index < outputs_.size(); ++index) {
+    uint32_t eid = this->entry_id(outputs_[index]);
+    int precision = attrs_.precision[eid];
+    ret = std::max(ret, precision);
+  }
+  return ret;
 }
 
 int CvmRuntime::GetOutputNum() {
@@ -230,7 +240,7 @@ void CvmRuntime::PlanStorage() {
     int len = 0;
     for (int64_t sz : attrs_.shape[i]) {
       VERIFY_LE(sz, 0x7fffffffll);
-      len += 32 - __builtin_clz(static_cast<unsigned>(sz)); 
+      len += 32 - __builtin_clz(static_cast<unsigned>(sz));
       size *= static_cast<size_t>(sz);
     }
     VERIFY_LE(len, 48);
@@ -312,7 +322,7 @@ void CvmRuntime::SetupOpExecs() {
       args.push_back(*(data_entry_[eid].operator->()));
     }
     VERIFY(inode.op_type == "cvm_op") << "Can only take cvm_op as op";
-
+    // std::cerr << inode.name << "\n";
     op_execs_[nid] = CreateCVMOp(inode.param, &inode.attrs, args, inode.inputs.size());
   }
 }
@@ -440,6 +450,19 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           *static_cast<int64_t*>(placeholder) = this->GetOps();
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
+  } else if (name == "get_output_precision") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kHandle) {
+          void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
+          auto precision = this->GetOutputPrecision();
+          *static_cast<int64_t*>(placeholder) = precision;
         } else {
           *rv = -1;
         }
