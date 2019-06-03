@@ -40,7 +40,7 @@ int run_LIF(string model_root) {
     cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
     cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
     cvm::runtime::im2col_cnt = 0;
-    cvm::runtime::cvm_op_rightshift_cnt = 0;
+    cvm::runtime::cvm_op_cvm_shift_cnt = 0;
     cvm::runtime::cvm_op_clip_cnt = 0;
     cvm::runtime::cvm_op_dense_cnt = 0;
     cvm::runtime::cvm_op_maxpool_cnt = 0;
@@ -48,6 +48,8 @@ int run_LIF(string model_root) {
     cvm::runtime::cvm_op_concat_cnt = 0;
     cvm::runtime::cvm_op_upsampling_cnt = 0;
     cvm::runtime::cvm_op_inline_matmul_cnt = 0;
+    cvm::runtime::cvm_op_chnwise_conv_cnt = 0;
+    cvm::runtime::cvm_op_depthwise_conv_cnt = 0;
 
     string json_path = model_root + "/symbol";
     string params_path = model_root + "/params";
@@ -66,10 +68,10 @@ int run_LIF(string model_root) {
     int output_size = CVMAPIGetOutputLength(model);
     input.resize(input_size); // 1 * 1 * 28 * 28);
     output.resize(output_size); //1 * 10);
-    if (model_root.find("yolo") >= 0)
+    if (model_root.find("yolo") != string::npos)
     {
        std::vector<unsigned long> tshape;
-       npy::LoadArrayFromNumpy("/tmp/yolo/data.npy", tshape, input);
+       npy::LoadArrayFromNumpy("/tmp/yolo/out/data.npy", tshape, input);
        std::cerr << tshape.size() << "\n";
        for (auto x : tshape) {
            std::cerr << x << " ";
@@ -83,6 +85,7 @@ int run_LIF(string model_root) {
 			cerr << "i = " << i << "\n";
         CVMAPIInfer(model, input.data(), output.data());
     }
+    CVMAPIFreeModel(model);
     double ellapsed_time = (omp_get_wtime() - start) / n_run;
     cout << "total gemm.trans time: " << cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run << "\n";
     cout << "total  gemm.gemm time: " << cvm::runtime::transpose_int8_avx256_gemm_cnt / n_run << "\n";
@@ -109,7 +112,7 @@ int run_LIF(string model_root) {
          << " " <<  sum_time / ellapsed_time <<"\n";
 
 
-    sum_time =  cvm::runtime::cvm_op_rightshift_cnt / n_run;
+    sum_time =  cvm::runtime::cvm_op_cvm_shift_cnt / n_run;
     cout << "total rightshift time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
 
@@ -124,10 +127,22 @@ int run_LIF(string model_root) {
     sum_time =  cvm::runtime::cvm_op_inline_matmul_cnt / n_run;
     cout << "total matmul     time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
-    CVMAPIFreeModel(model);
-    if (model_root.find("yolo") >= 0) {
+
+    sum_time =  cvm::runtime::cvm_op_elemwise_cnt / n_run;
+    cout << "total elemwise   time: " << (sum_time) << "/" << ellapsed_time
+         << " " <<  sum_time / ellapsed_time <<"\n";
+
+    sum_time =  cvm::runtime::cvm_op_chnwise_conv_cnt / n_run;
+    cout << "total chn conv2d time: " << (sum_time) << "/" << ellapsed_time
+         << " " <<  sum_time / ellapsed_time <<"\n";
+
+    sum_time =  cvm::runtime::cvm_op_depthwise_conv_cnt / n_run;
+    cout << "total depth conv2d time: " << (sum_time) << "/" << ellapsed_time
+         << " " <<  sum_time / ellapsed_time <<"\n";
+
+    if (model_root.find("yolo") != string::npos) {
         uint64_t ns =  output.size() / 4;
-        std::cout << "output size = " << ns << "\n";
+        std::cout << "yolo output size = " << ns << "\n";
         int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
         for (auto i = 0; i < std::min(60UL, ns); i++) {
             std::cout << (int32_t)int32_output[i] << " ";
@@ -177,12 +192,12 @@ void test_models() {
        // "/home/kaihuo/cortex_fullnode_storage/imagenet_inceptionV3/data",
        // "/home/kaihuo/model_storage/animal10/data",
        // "/home/kaihuo/model_storage/mnist/data",
-       // "/home/kaihuo/model_storage/resnet50_v2/data",
+       "/home/kaihuo/model_storage/resnet50_v2/data",
        // "/home/kaihuo/model_storage/vgg16_gcv/data",
        // "/home/kaihuo/model_storage/vgg19_gcv/data",
        // "/home/kaihuo/model_storage/squeezenet_gcv1.1/data",
        // "/home/kaihuo/model_storage/squeezenet_gcv1.0/data",
-        // "/home/kaihuo/model_storage/octconv_resnet26_0.250/data",
+        "/home/kaihuo/model_storage/octconv_resnet26_0.250/data",
         "/home/tian/model_storage/yolo3_darknet53_b1/data"
     };
     for (auto model_root : model_roots) {
