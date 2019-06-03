@@ -1376,8 +1376,9 @@ uint32_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     uint32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
     uint32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
     uint64_t overlap_area = h*w;
-    return static_cast<uint32_t>(overlap_area*100 / (sum_area - overlap_area));
+    return static_cast<uint32_t>(overlap_area * 100 / (sum_area - overlap_area));
 }
+
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.box_nms")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     DLTensor *x = args[0];
@@ -1445,7 +1446,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
     int32_t score_threshold; //TODO get from attr
 
     VERIFY(x->ndim == 3);
-    int32_t batchs = x->shape[0];
+    int32_t batches = x->shape[0];
     int32_t n = x->shape[1];
     int32_t k = x->shape[2];
 
@@ -1453,7 +1454,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
-    for(int32_t i = 0; i < batchs; i++){
+    for(int32_t i = 0; i < batches; i++){
         int32_t y_index = 0;
         int32_t *input = x_data + i * n * k;
         int32_t *output = y_data + i * n * k;
@@ -1499,11 +1500,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
    // }
    // int n = x->shape[x->ndim-2];
    // int k = x->shape[x->ndim-1];
-    int32_t batchs = x->shape[0];
+    int32_t batches = x->shape[0];
     int32_t n = x->shape[1];
     int32_t k = x->shape[2];
 
-    for(int32_t b = 0; b < batchs; b++){
+    for(int32_t b = 0; b < batches; b++){
         int32_t vc = valid_count_data[b];
         std::vector<int32_t*> rows(n);
         int32_t *x_batch = x_data + b * n * k;
