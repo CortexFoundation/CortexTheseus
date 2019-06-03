@@ -928,9 +928,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
         for(int i = 0; i < n_batch; i++){
             for(int j = 0; j < channels; j++){
                 int32_t sum = 0;
+                int32_t *x_ptr = x_data + i * channels * x_h * x_w + j * x_h * x_w;
                 for(int h = 0; h < x_h; h++){
                     for(int w = 0; w < x_w; w++){
-                        sum += x_data[i * channels * x_h * x_w + j * x_h * x_w + h * x_w + w];
+                        sum += *x_ptr++;
                     }
                 }
                 y_data[i*channels + j] = sum;
@@ -1443,7 +1444,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     int64_t *axes_data = axes.begin();
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
+    
     int ndim = y->ndim;
+    int mul_xj[8];
+    mul_xj[ndim] = 1;
+    for(int i = ndim - 1; i > 0; i--){
+        mul_xj[i] = mul_xj[i + 1] * x->shape[i];
+    }
 
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
@@ -1457,11 +1464,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
                 if(j == ndim - 1) xj = 0;
                 if(j == 0) xj = ndim - 1;
             }
-            int xi = 1;
-            for(int tx = ndim - 1; tx > xj; tx--){
-                xi *= x->shape[tx];
-            }
-            in_i += col * xi;
+            in_i += col * mul_xj[xj + 1];
         }
         y_data[i] = x_data[in_i];
     }
@@ -1558,6 +1561,7 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
     int32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
     int64_t overlap_area = static_cast<int64_t>(h)*w;
+    if (sum_area - overlap_area == 0) return 0;
     int64_t ret = (overlap_area / ((sum_area - overlap_area)/100));
     //printf("%d %d %d %d %ld %ld %d\n", std::min(x1_max, x2_max),
     //        std::max(x1_min, x2_min),
