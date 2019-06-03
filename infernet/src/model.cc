@@ -252,6 +252,10 @@ int CVMModel::GetOutputLength() {
   return ret;
 }
 
+int CVMModel::GetSizeofOutput() {
+  return is_output_int32 ? 4 : 1; 
+}
+
 int CVMModel::LoadParamsFromFile(string filepath) {
   std::ifstream input_stream(filepath, std::ios::binary);
   std::string params = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
@@ -356,6 +360,15 @@ long long CVMAPIGetStorageSize(void *model_) {
   }
   return ret;
 }
+
+int CVMAPISizeofOutput(void *model_) {
+  CVMModel* model = (CVMModel*)model_;
+  if (model != nullptr) {
+    return model->GetSizeofOutput();
+  }
+  return -1;
+}
+
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
   int ret = 0;

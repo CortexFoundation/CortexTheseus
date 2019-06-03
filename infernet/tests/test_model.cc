@@ -141,7 +141,7 @@ int run_LIF(string model_root) {
          << " " <<  sum_time / ellapsed_time <<"\n";
 
     if (model_root.find("yolo") != string::npos) {
-        uint64_t ns =  output.size() / 4;
+        uint64_t ns =  output.size() / 4 / 4;
         std::cout << "yolo output size = " << ns << "\n";
         int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
         for (auto i = 0; i < std::min(60UL, ns); i++) {
