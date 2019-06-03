@@ -30,6 +30,7 @@ extern double cvm_op_upsampling_cnt;
 extern double cvm_op_inline_matmul_cnt;
 extern double cvm_op_elemwise_cnt;
 extern double cvm_op_chnwise_conv_cnt;
+extern double cvm_op_chnwise_conv1x1_cnt;
 extern double cvm_op_depthwise_conv_cnt;
 
 struct CVMModel {
