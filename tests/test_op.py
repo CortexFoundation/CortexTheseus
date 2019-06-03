@@ -10,9 +10,9 @@ print(c.asnumpy().flatten())
 #nd.slice()
 
 import json
-js = json.load(open('/home/kaihuo/model_storage/yolo3_darknet53/data/symbol'))
+js = json.load(open('/home/tian/model_storage/mobilenetv1.0_imagenet/data/symbol'))
 for idx, x in enumerate(js['nodes']):
-    if (x['name'] == 'repeat'):
+    if (x['name'] == 'conv2d'):
         for input_idx in x['inputs']:
             child_id = input_idx[0]
             print (input_idx, child_id, js['attrs']['shape'][1][child_id])

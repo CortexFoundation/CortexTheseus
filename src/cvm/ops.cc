@@ -37,7 +37,9 @@ double cvm_op_upsampling_cnt = 0;
 double cvm_op_inline_matmul_cnt = 0;
 double cvm_op_elemwise_cnt = 0;
 double cvm_op_chnwise_conv_cnt = 0;
+double cvm_op_chnwise_conv1x1_cnt = 0;
 double cvm_op_depthwise_conv_cnt = 0;
+double cvm_op_depthwise_conv1x1_cnt = 0;
 
 
 inline uint64_t getSize(DLTensor *dlTensor){
@@ -464,10 +466,6 @@ void im2col_cpu(const int32_t* data_im, const int channels,
         }
       }
     }
-    // std::cout << "inchannel = " << channel
-    //           << " " << data_col -  data_col_init << " "
-    //           << "hw = " << height << ", " << width << " " << stride_h << " " <<  stride_w
-    //           << "\n";
   }
 #ifdef CVM_PROFILING
   im2col_cnt +=  omp_get_wtime() - start;
@@ -596,6 +594,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
     }else{
 #ifdef CVM_PROFILING
         double start = omp_get_wtime();
+        double start_1x1 = omp_get_wtime();
 #endif
         int8_t *data_col = (int8_t*)malloc(sizeof(int8_t) * in_channels * filter_h * filter_w * o_h * o_w);
         if(data_col == NULL){
@@ -630,6 +629,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
         free(int8_filter);
 #ifdef CVM_PROFILING
         cvm_op_chnwise_conv_cnt += omp_get_wtime() - start;
+        if (filter_h == 1 && filter_w == 1) {
+          cvm_op_chnwise_conv1x1_cnt += omp_get_wtime() - start;
+        }
 #endif
     }
 });
@@ -841,38 +843,38 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_left_shift")
 * padding (1, 1)
 */
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
+    .set_body([](CVMArgs args, CVMRetValue *ret)
+{
 #ifdef CVM_PROFILING
         double start = omp_get_wtime();
 #endif
-    VERIFY(args.num_args == 3);
-    DLTensor *x = args[0];
-    DLTensor *y = args[1];
-    void *_attr = args[2];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
-    int strides[2] = {(int)param.strides[0], (int)param.strides[1]};
-    int pool_size[2] = {(int)param.pool_size[0], (int)param.pool_size[1]};
-    int padding[2] = {(int)param.padding[0], (int)param.padding[1]};
+  // TODO(kaihuo) optimize cpu's maxpool efficiency, e.g. using modified im2col
+  VERIFY(args.num_args == 3);
+  DLTensor *x = args[0];
+  DLTensor *y = args[1];
+  void *_attr = args[2];
+  auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+  auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
+  int strides[2] = {(int)param.strides[0], (int)param.strides[1]};
+  int pool_size[2] = {(int)param.pool_size[0], (int)param.pool_size[1]};
+  int padding[2] = {(int)param.padding[0], (int)param.padding[1]};
 
-    int stride_h = strides[0];
-    int stride_w = strides[1];
+  int stride_h = strides[0];
+  int stride_w = strides[1];
 
-    int32_t* x_data = (int32_t*)x->data;
-    int32_t* y_data = (int32_t*)y->data;
+  int32_t* x_data = (int32_t*)x->data;
+  int32_t* y_data = (int32_t*)y->data;
 
-    int filter_h = pool_size[0];
-    int filter_w = pool_size[1];
+  int filter_h = pool_size[0];
+  int filter_w = pool_size[1];
 
-    int n_batch = static_cast<int>(x->shape[0]);
-    int in_channels = static_cast<int>(x->shape[1]);
-    int out_channels = in_channels;
-    int x_h = static_cast<int>(x->shape[2]);
-    int x_w = static_cast<int>(x->shape[3]);
-//  int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
-//  int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
-    int o_h = static_cast<int>(y->shape[2]);
-    int o_w = static_cast<int>(y->shape[3]);
+  int n_batch = static_cast<int>(x->shape[0]);
+  int in_channels = static_cast<int>(x->shape[1]);
+  int out_channels = in_channels;
+  int x_h = static_cast<int>(x->shape[2]);
+  int x_w = static_cast<int>(x->shape[3]);
+  int o_h = static_cast<int>(y->shape[2]);
+  int o_w = static_cast<int>(y->shape[3]);
 #define GETX(n, c, h, w) x_data[(n) * in_channels * x_h * x_w + (c) * x_h * x_w + (h) * x_w + (w)]
 #define GETW(o, i, h, w) w_data[(o) * in_channels * filter_h * filter_w + (i) * filter_h * filter_w + (h) * filter_w + (w)]
 #define GETY(n, c, h, w) y_data[(n) * out_channels * o_h * o_w + (c) * o_h * o_w + (h) * o_w + (w)]
@@ -910,33 +912,34 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
 * axis (2, 3)
 */
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
-        DLTensor *x = args[0];
-        DLTensor *y = args[1];
-        //TODO(@kaihuo) unused axis, check
-        //void *_attr = args[2];
-        // auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-        //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
-        // int axis[2] = {(int)param.axis[0], (int)param.axis[1]};
-        int32_t *x_data = static_cast<int32_t*>(x->data);
-        int32_t *y_data = static_cast<int32_t*>(y->data);
-        int n_batch = static_cast<int>(x->shape[0]);
-        int channels = static_cast<int>(x->shape[1]);
-        int x_h = static_cast<int>(x->shape[2]);
-        int x_w = static_cast<int>(x->shape[3]);
-        for(int i = 0; i < n_batch; i++){
-            for(int j = 0; j < channels; j++){
-                int32_t sum = 0;
-                for(int h = 0; h < x_h; h++){
-                    for(int w = 0; w < x_w; w++){
-                        sum += x_data[i * channels * x_h * x_w + j * x_h * x_w + h * x_w + w];
-                    }
-                }
-                y_data[i*channels + j] = sum;
-            }
-        }
-    });
+    .set_body([](CVMArgs args, CVMRetValue *ret)
+{
+  VERIFY(args.num_args == 3);
+  DLTensor *x = args[0];
+  DLTensor *y = args[1];
+  //TODO(@kaihuo) unused axis, check
+  //void *_attr = args[2];
+  // auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+  //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+  // int axis[2] = {(int)param.axis[0], (int)param.axis[1]};
+  int32_t *x_data = static_cast<int32_t*>(x->data);
+  int32_t *y_data = static_cast<int32_t*>(y->data);
+  int n_batch = static_cast<int>(x->shape[0]);
+  int channels = static_cast<int>(x->shape[1]);
+  int x_h = static_cast<int>(x->shape[2]);
+  int x_w = static_cast<int>(x->shape[3]);
+  for(int i = 0; i < n_batch; i++){
+      for(int j = 0; j < channels; j++){
+          int32_t sum = 0;
+          for(int h = 0; h < x_h; h++){
+              for(int w = 0; w < x_w; w++){
+                  sum += x_data[i * channels * x_h * x_w + j * x_h * x_w + h * x_w + w];
+              }
+          }
+          y_data[i*channels + j] = sum;
+      }
+  }
+});
 
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_add")
@@ -1294,7 +1297,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.concatenate")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
 .set_body([](CVMArgs args, CVMRetValue *ret){
 #ifdef CVM_PROFILING
-    static double use_time = 0.0;
     double start = omp_get_wtime();
 #endif
     VERIFY(args.num_args == 3);
@@ -1327,8 +1329,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     }
 #ifdef CVM_PROFILING
     double end = omp_get_wtime();
+    static double use_time = 0.0;
     use_time += end-start;
-    printf("repeat use time: %.4lf\n", use_time);
 #endif
 });
 
@@ -1506,7 +1508,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
-.set_body([](CVMArgs args, CVMRetValue *ret){
+    .set_body([](CVMArgs args, CVMRetValue *ret)
+{
         DLTensor *x = args[0];
         DLTensor *shape = args[1];
         DLTensor *y = args[2];
