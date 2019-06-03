@@ -64,9 +64,9 @@ long Run(const std::string& graph_str, const std::string& param_str, int device_
             double end = omp_get_wtime();
 
             std::cout << "run time : " << end - start << " s" << std::endl;
-            std::cout << "verify result 0 " << (verify(outputs[0], "/tmp/yolo/result0.npy") == 0 ? "success\n" : "failed\n");
-            std::cout << "verify result 1 " << (verify(outputs[1], "/tmp/yolo/result1.npy") == 0 ? "success\n" : "failed\n");
-            std::cout << "verify result 2 " << (verify(outputs[2], "/tmp/yolo/result2.npy") == 0 ? "success\n" : "failed\n");
+            std::cout << "verify result 0 " << (verify(outputs[0], "/tmp/yolo/out/result_0.npy") == 0 ? "success\n" : "failed\n");
+            std::cout << "verify result 1 " << (verify(outputs[1], "/tmp/yolo/out/result_1.npy") == 0 ? "success\n" : "failed\n");
+            std::cout << "verify result 2 " << (verify(outputs[2], "/tmp/yolo/out/result_2.npy") == 0 ? "success\n" : "failed\n");
 
             if (input)
                 CVMArrayFree(input);
@@ -82,7 +82,7 @@ int main()
 {
     std::vector<unsigned long> tshape;
     std::vector<char> tdata;
-    npy::LoadArrayFromNumpy("/tmp/yolo/data.npy", tshape, tdata);
+    npy::LoadArrayFromNumpy("/tmp/yolo/out/data.npy", tshape, tdata);
 
     clock_t read_t1 = clock();
     // parameters in binary
