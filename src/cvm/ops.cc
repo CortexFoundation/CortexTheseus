@@ -418,80 +418,71 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
 #endif
 }
 inline bool is_a_ge_zero_and_a_lt_b(int a, int b) {
-    return static_cast<unsigned>(a) < static_cast<unsigned>(b);
+  return static_cast<unsigned>(a) < static_cast<unsigned>(b);
 }
 void im2col_cpu(const int32_t* data_im, const int channels,
-        const int height, const int width, const int kernel_h, const int kernel_w,
-        const int pad_h, const int pad_w,
-        const int stride_h, const int stride_w,
-        const int dilation_h, const int dilation_w,
-        int8_t* data_col, bool &has_negetive)
+    const int height, const int width, const int kernel_h, const int kernel_w,
+    const int pad_h, const int pad_w,
+    const int stride_h, const int stride_w,
+    const int dilation_h, const int dilation_w,
+    int8_t* data_col, bool &has_negetive)
 {
 #ifdef CVM_PROFILING
-    double start = omp_get_wtime();
+  double start = omp_get_wtime();
 #endif
-    // auto data_col_init = data_col;
-    const int output_h = (height + 2 * pad_h -
-            (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
-    const int output_w = (width + 2 * pad_w -
-            (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
-    const int channel_size = height * width;
-    for (int channel = channels; channel--; data_im += channel_size) {
-        for (int kernel_row = 0; kernel_row < kernel_h; kernel_row++) {
-            for (int kernel_col = 0; kernel_col < kernel_w; kernel_col++) {
-                int input_row = -pad_h + kernel_row * dilation_h;
-                for (int output_rows = output_h; output_rows; output_rows--) {
-                    if (!is_a_ge_zero_and_a_lt_b(input_row, height)) {
-                        for (int output_cols = output_w; output_cols; output_cols--) {
-                            *(data_col++) = 0;
-                        }
-                    } else {
-                        int input_col = -pad_w + kernel_col * dilation_w;
-                        for (int output_col = output_w; output_col; output_col--) {
-                            if (is_a_ge_zero_and_a_lt_b(input_col, width)) {
-                                int32_t tv = data_im[input_row * width + input_col];
-                                if(tv < 0) {
-#ifdef CVM_PROFILING
-//                                    if (!has_negetive) {
-//                                        if (tv > -25) {
-//                                            tv = 0;
-//                                        } else {
-//                                            std::cerr << channel << " " << kernel_row << " " << kernel_col << " "
-//                                                << input_row << " " << output_rows << " " << tv << "\n";
-                                            has_negetive = true;
-//                                        }
-//                                    }
-#endif
-                                }
-                                *(data_col++) = static_cast<int8_t>(tv);
-                            } else {
-                                *(data_col++) = 0;
-                            }
-                            input_col += stride_w;
-                        }
-                    }
-                    input_row += stride_h;
-                }
+  // auto data_col_init = data_col;
+  const int output_h = (height + 2 * pad_h -
+      (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
+  const int output_w = (width + 2 * pad_w -
+      (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
+  const int channel_size = height * width;
+  for (int channel = channels; channel--; data_im += channel_size) {
+    for (int kernel_row = 0; kernel_row < kernel_h; kernel_row++) {
+      for (int kernel_col = 0; kernel_col < kernel_w; kernel_col++) {
+        int input_row = -pad_h + kernel_row * dilation_h;
+        for (int output_rows = output_h; output_rows; output_rows--) {
+          if (!is_a_ge_zero_and_a_lt_b(input_row, height)) {
+            for (int output_cols = output_w; output_cols; output_cols--) {
+              *(data_col++) = 0;
             }
+          } else {
+            int input_col = -pad_w + kernel_col * dilation_w;
+            for (int output_col = output_w; output_col; output_col--) {
+              if (is_a_ge_zero_and_a_lt_b(input_col, width)) {
+                int32_t tv = data_im[input_row * width + input_col];
+                if(tv < 0) {
+                  has_negetive = true;
+                }
+                *(data_col++) = static_cast<int8_t>(tv);
+              } else {
+                *(data_col++) = 0;
+              }
+              input_col += stride_w;
+            }
+          }
+          input_row += stride_h;
         }
-        // std::cout << "inchannel = " << channel
-        //           << " " << data_col -  data_col_init << " "
-        //           << "hw = " << height << ", " << width << " " << stride_h << " " <<  stride_w
-        //           << "\n";
+      }
     }
+    // std::cout << "inchannel = " << channel
+    //           << " " << data_col -  data_col_init << " "
+    //           << "hw = " << height << ", " << width << " " << stride_h << " " <<  stride_w
+    //           << "\n";
+  }
 #ifdef CVM_PROFILING
-    im2col_cnt +=  omp_get_wtime() - start;
+  im2col_cnt +=  omp_get_wtime() - start;
 #endif
 }
 
-inline void depthwise_conv2d(
-        int32_t *x_data, int32_t n_batch, int32_t in_channels, int32_t x_h, int32_t x_w,
-        int32_t *w_data, int32_t filter_c, int32_t filter_h, int32_t filter_w,
-        int32_t *y_data, int32_t out_channels, int32_t o_h, int32_t o_w,
-        int32_t *b_data,
-        int32_t padding[2], int32_t stride_h, int32_t stride_w, int32_t dilation_h, int32_t dilation_w,
-        int32_t groups)
+void depthwise_conv2d(
+   int32_t *x_data, int32_t n_batch, int32_t in_channels, int32_t x_h, int32_t x_w,
+   int32_t *w_data, int32_t filter_c, int32_t filter_h, int32_t filter_w,
+   int32_t *y_data, int32_t out_channels, int32_t o_h, int32_t o_w,
+   int32_t *b_data,
+   int32_t padding[2], int32_t stride_h, int32_t stride_w, int32_t dilation_h, int32_t dilation_w,
+   int32_t groups)
 {
+  // TODO(kaihuo) optimize cpu's depthwise conv efficiency, e.g. using modified im2col
   for(int n = 0; n < n_batch; ++n){
     for(int c = 0; c < in_channels; ++c){
       for(int h = 0; h < o_h; ++h){
@@ -582,11 +573,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
     int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
     if(n_batch < 1 || in_channels < 1 || x_h < 1 || x_w < 1 || filter_c < 1 || filter_h < 1 || filter_w < 1 ||
             padding[0] < 0 || padding[1] < 0 || stride_h < 1 || stride_w < 1 || dilation_h < 1 || dilation_w < 1 ||
-             out_channels < 1 || o_h < 1 || o_w < 1){
-        VERIFY(false) << "error args";
+             out_channels < 1 || o_h < 1 || o_w < 1)
+    {
+        VERIFY(false) << "error args of conv2d";
     }
 
     if(groups > 1){
+        VERIFY(groups == in_channels && groups == out_channels) << "only support depthwise conv with groups = channels";
 #ifdef CVM_PROFILING
         double start = omp_get_wtime();
 #endif
@@ -636,10 +629,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
         free(data_col);
         free(int8_filter);
 #ifdef CVM_PROFILING
-    cvm_op_chnwise_conv_cnt += omp_get_wtime() - start;
+        cvm_op_chnwise_conv_cnt += omp_get_wtime() - start;
 #endif
     }
- });
+});
 
 inline int32_t broadcast_i_index(int64_t* oshape, uint64_t o_index, int64_t* ishape, int idim){
     if(idim == 1 && ishape[0] == 1) return 0;
@@ -973,35 +966,37 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_add")
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_sub")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
-        DLTensor *args0 = args[0];
-        DLTensor *args1 = args[1];
-        DLTensor *args2 = args[2];
-        int32_t *a = static_cast<int32_t*>(args0->data);
-        int32_t *b = static_cast<int32_t*>(args1->data);
-        int32_t *c = static_cast<int32_t*>(args2->data);
+    .set_body([](CVMArgs args, CVMRetValue *ret)
+{
+  VERIFY(args.num_args == 4);
+  DLTensor *args0 = args[0];
+  DLTensor *args1 = args[1];
+  DLTensor *args2 = args[2];
+  int32_t *a = static_cast<int32_t*>(args0->data);
+  int32_t *b = static_cast<int32_t*>(args1->data);
+  int32_t *c = static_cast<int32_t*>(args2->data);
 
 #pragma omp parallel for
-        for(uint64_t i = 0; i < getSize(args0); i++){
-            c[i] = a[i] - b[i];
-        }
+  for(uint64_t i = 0; i < getSize(args0); i++){
+      c[i] = a[i] - b[i];
+  }
 
-        print_to_file(args2, "/tmp/zkh/elemwise_sub.txt");
-    });
+  print_to_file(args2, "/tmp/zkh/elemwise_sub.txt");
+});
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.reshape")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 3);
-         DLTensor *x = args[0];
-         DLTensor *y = args[1];
-         // TODO(kaihuo) CHECK
-         // void *_attr = args[2];
-         // auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-         // auto &param = cvm::get<cvm::top::ReshapeParam>(attr->parsed);
-         if(x->data == y->data) return;
-         std::memcpy(y->data, x->data, getSize(x) * sizeof(int32_t));
-    });
+    .set_body([](CVMArgs args, CVMRetValue *ret)
+{
+  VERIFY(args.num_args == 3);
+  DLTensor *x = args[0];
+  DLTensor *y = args[1];
+  // TODO(kaihuo) CHECK
+  // void *_attr = args[2];
+  // auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+  // auto &param = cvm::get<cvm::top::ReshapeParam>(attr->parsed);
+  if(x->data == y->data) return;
+  std::memcpy(y->data, x->data, getSize(x) * sizeof(int32_t));
+});
 
 /*\brief:
  * x, input data
@@ -1041,7 +1036,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_clip")
     cvm_op_clip_cnt += omp_get_wtime() - start;
 #endif
     print_to_file(y, "/tmp/zkh/cvm_clip.txt");
- });
+});
 
 /*
  * a, input data
@@ -1302,7 +1297,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     static double use_time = 0.0;
     double start = omp_get_wtime();
 #endif
-
     VERIFY(args.num_args == 3);
     DLTensor *x = args[0];
     DLTensor *y = args[1];
@@ -1313,20 +1307,23 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int32_t axis = param.axis;
     int32_t repeat = param.repeats;
+    int32_t ndim = x->ndim;
     // int repeat = std::atoi(str_repeat.c_str());
-    int ndim = x->ndim;
-    if(axis < 0) axis = axis + ndim;
+    {
+      if(axis < 0) axis = axis + ndim;
 
-    for(uint64_t i = 0; i < getSize(y); i++){
+      #pragma omp parallel for
+      for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
         for(int j = ndim-1; j >= 0; j--){
-            uint64_t col = o_i % y->shape[j];
-            o_i /= y->shape[j];
-            if(j == axis) col = col / repeat;
-            in_i += (j == ndim-1 ? col : col * shapeSize);
-            shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+          uint64_t col = o_i % y->shape[j];
+          o_i /= y->shape[j];
+          if(j == axis) col = col / repeat;
+          in_i += (j == ndim-1 ? col : col * shapeSize);
+          shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
         y_data[i] = x_data[in_i];
+      }
     }
 #ifdef CVM_PROFILING
     double end = omp_get_wtime();
