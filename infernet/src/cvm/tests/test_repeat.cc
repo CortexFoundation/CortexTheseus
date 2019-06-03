@@ -23,7 +23,7 @@ int main(){
             int col = o_i % oshape[j];
             o_i /= oshape[j];
             int tmpcol = col;
-            if(j == axis) tmpcol = col % ishape[j];
+            if(j == axis) tmpcol = col / ishape[j];
             in_i += (j == ndim-1 ? tmpcol : tmpcol * shapeSize);
             shapeSize = (j == ndim-1 ? ishape[j] : shapeSize * ishape[j]);
         }

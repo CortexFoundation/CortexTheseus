@@ -12,7 +12,7 @@ print(c.asnumpy().flatten())
 import json
 js = json.load(open('/home/kaihuo/model_storage/yolo3_darknet53/data/symbol'))
 for idx, x in enumerate(js['nodes']):
-    if (x['name'] == 'strided_slice'):
+    if (x['name'] == 'repeat'):
         for input_idx in x['inputs']:
             child_id = input_idx[0]
             print (input_idx, child_id, js['attrs']['shape'][1][child_id])
