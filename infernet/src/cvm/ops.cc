@@ -1401,7 +1401,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
-.set_body([](CVMArgs args, CVMRetValue *ret){
+    .set_body([](CVMArgs args, CVMRetValue *ret)
+{
     VERIFY(args.num_args == 3);
     DLTensor *ishape = args[0];
     DLTensor *oshape = args[1];
@@ -1411,20 +1412,26 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
 
     int32_t axis = param.axis; // TODO get from attr
     axis = axis < 0 ? axis + ishape->ndim : axis;
-    VERIFY(axis >= 0 && axis < ishape->ndim);
+    VERIFY(axis >= 0 && axis <= ishape->ndim) << axis << " ishape->dim: " << ishape->ndim;
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
     int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
-   // for(uint64_t i = 0; i < getSize(oshape); i++){
-   //     if(i < axis){
-   //         oshape_data[i] = ishape_data[i];
-   //     }else if(i == axis){
-   //         oshape_data[i] = 1;
-   //     }else{
-   //         oshape_data[i] = ishape_data[i-1];
-   //     }
-   //     printf("%d ", oshape_data[i]);
-   // }
-   // printf("\n");
+    if(ishape_data == oshape_data){
+        return;
+    }
+    memcpy(oshape_data, ishape_data, getSize(ishape)* sizeof(int32_t));
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.squeeze")
+    .set_body([](CVMArgs args, CVMRetValue *ret)
+{
+    VERIFY(args.num_args == 3);
+    DLTensor *ishape = args[0];
+    DLTensor *oshape = args[1];
+    // void *_attr = args[2];
+    // auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    // auto &param = cvm::get<cvm::top::SqueezeParam>(attr->parsed);
+    int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
+    int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
     if(ishape_data == oshape_data){
         return;
     }
@@ -1730,6 +1737,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y){
         y_data[i] = x_data[indices_data[i]];
     }
 }
+
 void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
@@ -1742,7 +1750,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
     for(uint64_t i = 0; i < getSize(y); i++){
         //y_data[i] = x_data[indices_data[i]];
         uint64_t o_i = i, x_i = 0, indices_i = 0, x_shape_size = 0, indices_shape_size = 0;
-        for(uint32_t j = yndim - 1, k = indices_ndim-1; j>=axis; j--){
+        for(int32_t j = yndim - 1, k = indices_ndim-1; j>=axis; j--){
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
             if(j < axis + indices_ndim){
@@ -1755,7 +1763,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
 
         o_i = i;
         int32_t k = xndim - 1;
-        for(uint32_t j = yndim - 1; j >= axis + indices_ndim; j--, k--){
+        for(int32_t j = yndim - 1; j >= axis + indices_ndim; j--, k--){
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
             x_i += (j == yndim-1 ? col : col * x_shape_size);
@@ -1768,7 +1776,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
         --k;
 
         o_i = i;
-        for(uint32_t j = yndim - 1; j>=0 && k >= 0; j--){
+        for(int32_t j = yndim - 1; j>=0 && k >= 0; j--){
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
             if(j < axis){
@@ -1865,6 +1873,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
 #endif
 
 });
+
 }
 }
 
