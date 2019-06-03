@@ -3,7 +3,38 @@
 #include <iostream>
 #include <thread>
 #include <omp.h>
+#include <cvm/runtime/registry.h>
+#include <cvm/op.h>
+#include "npy.hpp"
 using namespace std;
+
+using cvm::runtime::PackedFunc;
+using cvm::runtime::Registry;
+struct OpArgs {
+    std::vector<DLTensor> args;
+    std::vector<CVMValue> arg_values;
+    std::vector<int> arg_tcodes;
+    std::vector<int64_t> shape_data;
+};
+
+void test_op_take() {
+    CVMValue t_attr;
+    const PackedFunc* op = Registry::Get("cvm.runtime.cvm.take");
+    cvm::NodeAttrs* attr;
+    std::shared_ptr<OpArgs> arg_ptr = std::make_shared<OpArgs>();
+    t_attr.v_handle = (void*)attr;
+    arg_ptr->arg_values.push_back(t_attr);
+    arg_ptr->arg_tcodes.push_back(kHandle);
+    cvm::runtime::CVMRetValue rv;
+    cvm::runtime::CVMArgs targs(
+      arg_ptr->arg_values.data(),
+      arg_ptr->arg_tcodes.data(),
+      static_cast<int>(arg_ptr->arg_values.size())
+    );
+    // (*op)(ta);
+
+}
+
 int run_LIF(string model_root) {
 
     cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
@@ -16,13 +47,14 @@ int run_LIF(string model_root) {
     cvm::runtime::cvm_op_broadcast_cnt = 0;
     cvm::runtime::cvm_op_concat_cnt = 0;
     cvm::runtime::cvm_op_upsampling_cnt = 0;
+    cvm::runtime::cvm_op_inline_matmul_cnt = 0;
 
     string json_path = model_root + "/symbol";
     string params_path = model_root + "/params";
     cerr << "load " << json_path << "\n";
     cerr << "load " << params_path << "\n";
     cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-            CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
+        CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
     );
     if (model == nullptr) {
         std::cerr << "model loaded failed\n";
@@ -34,11 +66,21 @@ int run_LIF(string model_root) {
     int output_size = CVMAPIGetOutputLength(model);
     input.resize(input_size); // 1 * 1 * 28 * 28);
     output.resize(output_size); //1 * 10);
+    if (model_root.find("yolo") >= 0)
+    {
+       std::vector<unsigned long> tshape;
+       npy::LoadArrayFromNumpy("/tmp/yolo/data.npy", tshape, input);
+       std::cerr << tshape.size() << "\n";
+       for (auto x : tshape) {
+           std::cerr << x << " ";
+       }
+       std::cerr << "\n";
+    }
     double start = omp_get_wtime();
     int n_run = 1;
     for (int i = 0; i < n_run; i++) {
         if (i % 10 == 0)
-                cerr << "i = " << i << "\n";
+			cerr << "i = " << i << "\n";
         CVMAPIInfer(model, input.data(), output.data());
     }
     double ellapsed_time = (omp_get_wtime() - start) / n_run;
@@ -78,7 +120,36 @@ int run_LIF(string model_root) {
     sum_time =  cvm::runtime::cvm_op_upsampling_cnt / n_run;
     cout << "total upsampling time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
+
+    sum_time =  cvm::runtime::cvm_op_inline_matmul_cnt / n_run;
+    cout << "total matmul     time: " << (sum_time) << "/" << ellapsed_time
+         << " " <<  sum_time / ellapsed_time <<"\n";
     CVMAPIFreeModel(model);
+    if (model_root.find("yolo") >= 0) {
+        uint64_t ns =  output.size() / 4;
+        std::cout << "output size = " << ns << "\n";
+        int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
+        for (auto i = 0; i < std::min(60UL, ns); i++) {
+            std::cout << (int32_t)int32_output[i] << " ";
+            if ((i + 1) % 6 == 0)
+                std::cout << "\n";
+        }
+        for (auto i = (size_t)(std::max(0, ((int)(ns) - 60))); i < ns; i++) {
+            std::cout << (int32_t)int32_output[i] << " ";
+            if ((i + 1) % 6 == 0)
+                std::cout << "\n";
+        }
+        std::cout << "\n";
+    } else {
+        std::cout << "output size = " << output.size() << "\n";
+        for (auto i = 0; i < std::min(6UL * 10, output.size()); i++) {
+            std::cout << (int32_t)output[i] << " ";
+        }
+        for (auto i = (size_t)(std::max(0, ((int)(output.size()) - 6 * 10))); i < output.size(); i++) {
+            std::cout << (int32_t)output[i] << " ";
+        }
+        std::cout << "\n";
+    }
     return 0;
 }
 void test_thread() {
@@ -86,11 +157,11 @@ void test_thread() {
     for (int t = 0; t < 1; ++t) {
         cerr << "threads t = " << t << "\n";
         threads.push_back(thread([&]() {
-                string model_root = "/home/tian/model_storage/resnet50_v1/data/";
-                // model_root = "/home/tian/cortex_fullnode_storage/cifar_resnet20_v2/data";
+                string model_root = "/home/kaihuo/model_storage/resnet50_v1/data/";
+                // model_root = "/home/kaihuo/cortex_fullnode_storage/cifar_resnet20_v2/data";
                 // model_root = "/home/lizhen/storage/mnist/data/";
                 // model_root = "/home/lizhen/storage/animal10/data";
-                // model_root = "/home/tian/cortex_fullnode_storage/imagenet_inceptionV3/data";
+                // model_root = "/home/kaihuo/cortex_fullnode_storage/imagenet_inceptionV3/data";
                 run_LIF(model_root);
                 //run_LIF(model_root);
         }));
@@ -102,16 +173,17 @@ void test_thread() {
 
 void test_models() {
     auto model_roots = {
-        "/home/tian/model_storage/resnet50_v1/data/",
-        "/home/tian/cortex_fullnode_storage/imagenet_inceptionV3/data",
-        "/home/tian/model_storage/animal10/data",
-        "/home/tian/model_storage/mnist/data",
-        "/home/tian/model_storage/resnet50_v2/data",
-        "/home/tian/model_storage/vgg16_gcv/data",
-        "/home/tian/model_storage/vgg19_gcv/data",
-        "/home/tian/model_storage/squeezenet_gcv1.1/data",
-        "/home/tian/model_storage/squeezenet_gcv1.0/data",
-        "/home/tian/model_storage/octconv_resnet26_0.250/data"
+       // "/home/kaihuo/model_storage/resnet50_v1/data/",
+       // "/home/kaihuo/cortex_fullnode_storage/imagenet_inceptionV3/data",
+       // "/home/kaihuo/model_storage/animal10/data",
+       // "/home/kaihuo/model_storage/mnist/data",
+       // "/home/kaihuo/model_storage/resnet50_v2/data",
+       // "/home/kaihuo/model_storage/vgg16_gcv/data",
+       // "/home/kaihuo/model_storage/vgg19_gcv/data",
+       // "/home/kaihuo/model_storage/squeezenet_gcv1.1/data",
+       // "/home/kaihuo/model_storage/squeezenet_gcv1.0/data",
+        // "/home/kaihuo/model_storage/octconv_resnet26_0.250/data",
+        "/home/tian/model_storage/yolo3_darknet53_b1/data"
     };
     for (auto model_root : model_roots) {
         run_LIF(model_root);
