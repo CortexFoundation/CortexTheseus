@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <cvm/runtime/registry.h>
 #include <cvm/op.h>
+#include "npy.hpp"
 using namespace std;
 
 using cvm::runtime::PackedFunc;
@@ -65,11 +66,21 @@ int run_LIF(string model_root) {
     int output_size = CVMAPIGetOutputLength(model);
     input.resize(input_size); // 1 * 1 * 28 * 28);
     output.resize(output_size); //1 * 10);
+    if (model_root.find("yolo") >= 0)
+    {
+       std::vector<unsigned long> tshape;
+       npy::LoadArrayFromNumpy("/tmp/yolo/data.npy", tshape, input);
+       std::cerr << tshape.size() << "\n";
+       for (auto x : tshape) {
+           std::cerr << x << " ";
+       }
+       std::cerr << "\n";
+    }
     double start = omp_get_wtime();
     int n_run = 1;
     for (int i = 0; i < n_run; i++) {
         if (i % 10 == 0)
-                cerr << "i = " << i << "\n";
+			cerr << "i = " << i << "\n";
         CVMAPIInfer(model, input.data(), output.data());
     }
     double ellapsed_time = (omp_get_wtime() - start) / n_run;
@@ -114,6 +125,31 @@ int run_LIF(string model_root) {
     cout << "total matmul     time: " << (sum_time) << "/" << ellapsed_time
          << " " <<  sum_time / ellapsed_time <<"\n";
     CVMAPIFreeModel(model);
+    if (model_root.find("yolo") >= 0) {
+        uint64_t ns =  output.size() / 4;
+        std::cout << "output size = " << ns << "\n";
+        int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
+        for (auto i = 0; i < std::min(60UL, ns); i++) {
+            std::cout << (int32_t)int32_output[i] << " ";
+            if ((i + 1) % 6 == 0)
+                std::cout << "\n";
+        }
+        for (auto i = (size_t)(std::max(0, ((int)(ns) - 60))); i < ns; i++) {
+            std::cout << (int32_t)int32_output[i] << " ";
+            if ((i + 1) % 6 == 0)
+                std::cout << "\n";
+        }
+        std::cout << "\n";
+    } else {
+        std::cout << "output size = " << output.size() << "\n";
+        for (auto i = 0; i < std::min(6UL * 10, output.size()); i++) {
+            std::cout << (int32_t)output[i] << " ";
+        }
+        for (auto i = (size_t)(std::max(0, ((int)(output.size()) - 6 * 10))); i < output.size(); i++) {
+            std::cout << (int32_t)output[i] << " ";
+        }
+        std::cout << "\n";
+    }
     return 0;
 }
 void test_thread() {
@@ -146,7 +182,8 @@ void test_models() {
        // "/home/kaihuo/model_storage/vgg19_gcv/data",
        // "/home/kaihuo/model_storage/squeezenet_gcv1.1/data",
        // "/home/kaihuo/model_storage/squeezenet_gcv1.0/data",
-        "/home/kaihuo/model_storage/octconv_resnet26_0.250/data"
+        // "/home/kaihuo/model_storage/octconv_resnet26_0.250/data",
+        "/home/tian/model_storage/yolo3_darknet53_b1/data"
     };
     for (auto model_root : model_roots) {
         run_LIF(model_root);

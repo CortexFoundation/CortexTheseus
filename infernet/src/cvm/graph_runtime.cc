@@ -29,15 +29,6 @@
 namespace cvm {
 namespace runtime {
 
-template<class T>
-void CVMPrint(std::vector<T> data, std::string name = "") {
-    std::cout << name << " = [";
-    for (auto x: data) {
-        std::cout << x << " ";
-    }
-    std::cout << "]\n";
-}
-
 /*!
  * \brief Run all the operations one by one.
  */
@@ -47,6 +38,7 @@ void CvmRuntime::Run() {
     if (op_execs_[i]) op_execs_[i]();
   }
 }
+
 /*!
  * \brief Initialize the graph executor with graph and context.
  * \param graph_json The execution graph.
@@ -235,9 +227,13 @@ void CvmRuntime::PlanStorage() {
       device_type = attrs_.device_index[i];
     }
     size_t size = 1;
+    int len = 0;
     for (int64_t sz : attrs_.shape[i]) {
+      VERIFY_LE(sz, 0x7fffffffll);
+      len += 32 - __builtin_clz(static_cast<unsigned>(sz));
       size *= static_cast<size_t>(sz);
     }
+    VERIFY_LE(len, 48);
     VERIFY_GE(storage_id, 0) << "Do not support runtime shape op";
     DLDataType t = vtype[i];
     size_t bits = t.bits * t.lanes;
@@ -261,6 +257,7 @@ int64_t CvmRuntime::GetStorageSize() {
   int64_t ret = 0;
   for (const auto& pit : pool_entry) {
     ret += (static_cast<int64_t>(pit.size + 3) / 4) * 4;
+    VERIFY_LE(ret, 0x0000ffffffffffffull);
   }
   return ret;
 }

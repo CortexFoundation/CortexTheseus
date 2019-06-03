@@ -151,7 +151,28 @@ void test_op_take() {
     printf("%d\n", ret);
 
 }
+namespace cvm {
+namespace runtime {
+extern void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
+        int32_t *c, const int M, const int K, const int N, int algo);
+}
+}
+void test_matrix_mul() {
+    int M = 7, K = 2, N = 3;
+    vector<int8_t> a(M * K), b(K * N);
+    vector<int32_t> c(M * N);
+    vector<int32_t> bias(M);
+    // std::generate(v.begin(), v.end(), [n = 0] () mutable { return n++; });
+    std::generate(a.begin(), a.end(), [n = 0] () mutable { return n++; });
+    std::generate(b.begin(), b.end(), [n = 0] () mutable { return n++; });
+    std::generate(bias.begin(), bias.end(), [n = 0] () mutable { return n++; });
+    matrix_mul(a.data(), b.data(), bias.data(), c.data(), M, K, N, 0);
+    for (auto x : c) {
+        std::cout << x << " ";
+    }
+    std::cout << "\n";
+}
 int main() {
-    test_op_take();
+    test_matrix_mul();
     return 0;
 }
