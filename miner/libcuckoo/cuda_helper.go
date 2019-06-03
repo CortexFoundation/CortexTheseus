@@ -152,19 +152,19 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 			select {
 			case task := <-taskChan:
 				for nthread := uint32(0); nthread < uint32(THREAD); nthread++ {
-					if len(task.Difficulty) == 0 || len(task.Header) < 2{
+					if len(task.Difficulty) == 0 || len(task.Header) < 2 {
 						break
 					}
 
 					tidx := nthread
-                                        taskNumber[tidx] = taskNumber[tidx] + 1
+					taskNumber[tidx] += 1
 
 					if taskNumber[tidx] > 1 {
 						go func(exitCh chan string) { exitCh <- "ping" }(exitCh[tidx])
 					}
 
 					header, _ := hex.DecodeString(task.Header[2:])
-                                        curNonce := uint64(rand.Int63())
+					curNonce := uint64(rand.Int63())
 
 					go func(exit chan string, ready chan string) {
 						select {
@@ -177,7 +177,7 @@ func RunSolver(THREAD int, deviceInfos []config.DeviceInfo, param config.Param, 
 										ready <- "pong"
 										return
 									default:
-										curNonce = uint64(curNonce + 1)
+										curNonce += 1
 										//deviceInfos[tidx].Lock.Lock()
 										var nedges uint32 = FindSolutionsByGPU(header, curNonce, tidx)
 										status, sols := FindCycles(tidx, nedges)
