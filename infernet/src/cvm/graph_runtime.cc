@@ -451,7 +451,8 @@ PackedFunc CvmRuntime::GetFunction(
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
-          *static_cast<int32_t*>(placeholder) = this->GetOutputNum();
+          auto num_output = this->GetOutputNum();
+          *static_cast<int64_t*>(placeholder) = num_output;
         } else {
           *rv = -1;
         }
