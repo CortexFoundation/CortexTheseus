@@ -178,7 +178,8 @@ func (cuckoo *Cuckoo) remote() {
 	// submitWork verifies the submitted pow solution, returning
 	// whether the solution was accepted or not (not can be both a bad pow as well as
 	// any other error, like no pending work or stale mining result).
-	submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash, sol types.BlockSolution) bool {
+	// submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash, sol types.BlockSolution) bool {
+	submitWork := func(nonce types.BlockNonce, hash common.Hash, sol types.BlockSolution) bool {
 		// Make sure the work submitted is present
 		block := works[hash]
 		if block == nil {
@@ -189,7 +190,7 @@ func (cuckoo *Cuckoo) remote() {
 		// Verify the correctness of submitted result.
 		header := block.Header()
 		header.Nonce = nonce
-		header.MixDigest = mixDigest
+		//header.MixDigest = mixDigest
 		header.Solution = sol
 		if err := cuckoo.VerifySeal(nil, header); err != nil {
 			log.Warn("Invalid proof-of-work submitted", "hash", hash, "err", err)
@@ -238,7 +239,8 @@ func (cuckoo *Cuckoo) remote() {
 
 		case result := <-cuckoo.submitWorkCh:
 			// Verify submitted PoW solution based on maintained mining blocks.
-			if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
+			//if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
+			if submitWork(result.nonce, result.hash, result.solution) {
 				//fmt.Println("yes")
 				result.errc <- nil
 			} else {

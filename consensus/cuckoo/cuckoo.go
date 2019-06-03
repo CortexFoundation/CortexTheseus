@@ -38,7 +38,7 @@ const (
 // mineResult wraps the pow solution parameters for the specified block.
 type mineResult struct {
 	nonce     types.BlockNonce
-	mixDigest common.Hash
+	//mixDigest common.Hash
 	hash      common.Hash
 	solution  types.BlockSolution
 
