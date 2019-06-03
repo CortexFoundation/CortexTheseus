@@ -43,6 +43,7 @@ public:
   int GetOutputLength();
   int64_t GetStorageSize();
   int64_t GetOps();
+  int GetSizeofOutput();
   int Run(DLTensor* input, std::vector<DLTensor*> output);
   DLTensor* PlanInput();
   DLTensor* PlanInput(char*);

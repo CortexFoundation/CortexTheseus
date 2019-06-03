@@ -462,7 +462,7 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           auto precision = this->GetOutputPrecision();
-          *static_cast<int64_t*>(placeholder) = precision;
+          *static_cast<int32_t*>(placeholder) = precision;
         } else {
           *rv = -1;
         }
@@ -475,7 +475,7 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           auto num_output = this->GetOutputNum();
-          *static_cast<int64_t*>(placeholder) = num_output;
+          *static_cast<int32_t*>(placeholder) = num_output;
         } else {
           *rv = -1;
         }
