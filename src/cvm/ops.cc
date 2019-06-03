@@ -311,32 +311,62 @@ if (K % 32 == 0) {
     return true;
 }
 
+void transpose(const int8_t *A, int8_t *B, int K, int N) {
+    for(int i = 0; i < N; i++) {
+        for(int k = 0; k < K; k++) {
+            B[i * K + k] = A[k * N + i];
+        }
+    }
+}
+
 void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
-        int32_t *c, const int M, const int K, const int N){
+        int32_t *c, const int M, const int K, const int N, int algo = 0){
     std::memset(c, 0, sizeof(int32_t) * M * N);
 #ifdef CVM_PROFILING
     double start = omp_get_wtime();
 #endif
-#pragma omp parallel for
-    for(int i = 0; i < M; i++){
-        for(int k = 0; k < K; k++){
-           int32_t aV = static_cast<int32_t>(a[i * K + k]);
-            for(int j = 0; j < N; j++){
-                c[i*N + j] += aV * static_cast<int32_t>(b[k*N + j]);
-            }
-        }
-    }
-    if(bias != NULL){
+    if (N > M ) {
+        #pragma omp parallel for
         for(int i = 0; i < M; i++){
-            int32_t biasV = bias[i];
-            for(int j = 0; j < N; j++){
-                c[i*N+j] += biasV;
+            for(int k = 0; k < K; k++){
+                int32_t aV = static_cast<int32_t>(a[i * K + k]);
+                for(int j = 0; j < N; j++){
+                    c[i*N + j] += aV * static_cast<int32_t>(b[k*N + j]);
+                }
             }
         }
+    } else {
+        std::vector<int8_t> tr_b(N * K);
+		transpose(b, tr_b.data(), K, N);
+		#pragma omp parallel
+		{
+			int i, j, k;
+			#pragma omp for
+			for (i = 0; i < M; i++) {
+				auto ap = a + i * K;
+				for (j = 0; j < N; j++) {
+					int32_t dot = 0;
+					auto tr_bp = tr_b.data() + j * K;
+					for (k = 0; k < K; k++) {
+						dot += ap[k] * static_cast<int32_t>(tr_bp[k]);
+					}
+					c[i*N + j] = dot;
+				}
+			}
+		}
     }
+
+	if(bias != NULL){
+		#pragma omp parallel for collapse(2)
+		for(int i = 0; i < M; i++){
+			for(int j = 0; j < N; j++){
+				c[i*N+j] += bias[i];
+			}
+		}
+	}
 #ifdef CVM_PROFILING
     double cost_time = omp_get_wtime() - start;
-    // std::cerr << "matrix_mul = " << M << " " << K << " " << N << " | " << cost_time << "\n";
+    // std::cerr << "matrix_mul = " << M << " " << K << " " << N << " " << M * K * N << "  " << cost_time << "\n";
     cvm_op_inline_matmul_cnt += cost_time;
 #endif
 }
@@ -1331,39 +1361,26 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int ndim = y->ndim;
 
-    FILE *fp = fopen("/tmp/zkh/transpose.txt", "a+");
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0, shapeSize = 0;
         for(int j = ndim-1; j >= 0; j--){
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
             int xj = j;//axes != nullptr ? axes[j] : j;
-            if(axes.ndim() > 0){
+            if(axes.ndim() > 0) {
                 xj = axes_data[j];
-            }else{
-                if(j == ndim-1) xj = 0;
-                if(j == 0) xj = ndim-1;
+            } else {
+                if(j == ndim - 1) xj = 0;
+                if(j == 0) xj = ndim - 1;
             }
             int xi = 1;
-            for(int tx = ndim-1; tx > xj; tx--){
+            for(int tx = ndim - 1; tx > xj; tx--){
                 xi *= x->shape[tx];
             }
             in_i += col * xi;
         }
         y_data[i] = x_data[in_i];
     }
-    int32_t min = y_data[0], max= y_data[0];
-    for(uint64_t i = 0; i < getSize(y); i++){
-        min = min > y_data[i] ? y_data[i] : min;
-        max = max < y_data[i] ? y_data[i] : max;
-    }
-    fprintf(fp, "%d %d\n", min, max);
-    for(uint64_t i = 0; i < 20 && i < getSize(y); i++){
-        fprintf(fp, "%d ", y_data[i]);
-    }
-    fprintf(fp, "\n");
-    fclose(fp);
-
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
@@ -1400,10 +1417,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
         y_data[i] = x_data[in_i];
-        if(i < 10)
-            printf("%d ", y_data[i]);
     }
-    printf("\n");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
