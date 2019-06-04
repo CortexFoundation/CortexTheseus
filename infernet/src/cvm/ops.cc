@@ -1519,7 +1519,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     int64_t *axes_data = axes.begin();
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
+
     int ndim = y->ndim;
+    int mul_xj[8];
+    mul_xj[ndim] = 1;
+    for(int i = ndim - 1; i > 0; i--){
+        mul_xj[i] = mul_xj[i + 1] * x->shape[i];
+    }
 
     for(uint64_t i = 0; i < getSize(y); i++){
         uint64_t o_i = i, in_i = 0;
@@ -1533,11 +1539,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
                 if(j == ndim - 1) xj = 0;
                 if(j == 0) xj = ndim - 1;
             }
-            int xi = 1;
-            for(int tx = ndim - 1; tx > xj; tx--){
-                xi *= x->shape[tx];
-            }
-            in_i += col * xi;
+            in_i += col * mul_xj[xj + 1];
         }
         y_data[i] = x_data[in_i];
     }
@@ -1634,7 +1636,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
     int32_t score_threshold = param.score_threshold; //TODO get from attr
 
     VERIFY(x->ndim == 3);
-    int32_t batchs = x->shape[0];
+    int32_t batches = x->shape[0];
     int32_t n = x->shape[1];
     int32_t k = x->shape[2];
 
@@ -1642,7 +1644,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
-    get_valid_count(x_data, y_data, valid_count_data, batchs, n, k, score_threshold);
+    get_valid_count(x_data, y_data, valid_count_data, batches, n, k, score_threshold);
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
