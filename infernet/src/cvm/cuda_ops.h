@@ -95,6 +95,7 @@ const char* cuda_negative(const int32_t *x_data, int32_t *y_data, int32_t n);
 const char* cuda_tile(const int32_t *x_data, int32_t *y_data, const int32_t ysize, const int32_t yndim, const int32_t xndim,
         const int64_t *xshape, const int64_t *yshape);
 const char *cuda_expand_dims(const int32_t *ishape_data, int32_t *oshape_data, const int32_t axis, const int32_t n);
+const char *cuda_squeeze(const int32_t *ishape_data, int32_t *oshape_data, const int32_t n);
 const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int32_t *y_data,
         const int64_t *xshape, const int64_t *yshape, const int32_t ndim, const int32_t ysize, const int32_t axes_ndim);
 const char* cuda_stride_slice(const int32_t *x_data, int32_t *y_data, const int64_t *begin_data,

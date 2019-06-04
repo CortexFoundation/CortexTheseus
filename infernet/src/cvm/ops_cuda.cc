@@ -904,6 +904,24 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_lut")
     VERIFY(errorStr == NULL) << errorStr;
 });
 
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.squeeze")
+    .set_body([](CVMArgs args, CVMRetValue *ret)
+{
+    VERIFY(args.num_args == 3);
+    DLTensor *ishape = args[0];
+    DLTensor *oshape = args[1];
+    // void *_attr = args[2];
+    // auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    // auto &param = cvm::get<cvm::top::SqueezeParam>(attr->parsed);
+    int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
+    int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
+    if(ishape_data == oshape_data){
+        return;
+    }
+    const char* errorStr = cuda_squeeze(ishape_data, oshape_data, getSize(ishape));
+    VERIFY(errorStr == NULL) << errorStr;
+});
+
 }
 }
 }
