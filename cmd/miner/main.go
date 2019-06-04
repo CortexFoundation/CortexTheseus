@@ -11,6 +11,7 @@ import (
 	"sync"
 	"github.com/ethereum/go-ethereum/PoolMiner/cortexminer"
 	"github.com/ethereum/go-ethereum/PoolMiner/config"
+	"runtime"
 )
 
 func init() {
@@ -62,6 +63,7 @@ var cuda bool
 var opencl bool
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 	if algorithm == "cuckoo" {
 		miner_algorithm = 0
