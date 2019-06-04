@@ -288,71 +288,70 @@ bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias
     memset(bp, 0, sizeof(bp));
 
     int blocks = K / 32 * 32;
-if (K % 32 == 0) {
-#pragma omp parallel for
-    for(int i = 0; i < M; i++){
+    if (K % 32 == 0) {
+      #pragma omp parallel for
+      for(int i = 0; i < M; i++){
         int32_t bV = bias != NULL ? bias[i] : 0;
         for(int j = 0; j < N; j++){
-            __m256i vc = _mm256_setzero_si256();
-            int k = 0;
-            auto ap_inner = a + i * K;
-            auto bp_inner = tr_b + j * K;
-            for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
-                __m256i va = _mm256_loadu_si256((__m256i*)(ap_inner));
-                __m256i vb = _mm256_loadu_si256((__m256i*)bp_inner);
-                __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
-                __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
-                vc = _mm256_add_epi32(vresult2, vc);
-            }
-            int sum = 0;
-            for(int ti = 0; ti < 8; ti++){
-                sum += ((int32_t*)&vc)[ti];
-            }
-            c[i*N+j] = sum + bV;
+          __m256i vc = _mm256_setzero_si256();
+          int k = 0;
+          auto ap_inner = a + i * K;
+          auto bp_inner = tr_b + j * K;
+          for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
+            __m256i va = _mm256_loadu_si256((__m256i*)(ap_inner));
+            __m256i vb = _mm256_loadu_si256((__m256i*)bp_inner);
+            __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+            __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+            vc = _mm256_add_epi32(vresult2, vc);
+          }
+          int sum = 0;
+          for(int ti = 0; ti < 8; ti++){
+            sum += ((int32_t*)&vc)[ti];
+          }
+          c[i*N+j] = sum + bV;
         }
-    }
-} else {
-    for(int i = 0; i < M; i++){
+      }
+    } else {
+      for(int i = 0; i < M; i++){
         int32_t bV = bias != NULL ? bias[i] : 0;
         for(int j = 0; j < N; j++){
-            __m256i vc = _mm256_setzero_si256();
-            int k = 0;
-            auto ap_inner = a + i * K;
-            auto bp_inner = tr_b + j * K;
-            for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
-                __m256i va = _mm256_loadu_si256((__m256i*)(ap_inner));
-                __m256i vb = _mm256_loadu_si256((__m256i*)bp_inner);
-                __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
-                __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
-                vc = _mm256_add_epi32(vresult2, vc);
+          __m256i vc = _mm256_setzero_si256();
+          int k = 0;
+          auto ap_inner = a + i * K;
+          auto bp_inner = tr_b + j * K;
+          for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
+            __m256i va = _mm256_loadu_si256((__m256i*)(ap_inner));
+            __m256i vb = _mm256_loadu_si256((__m256i*)bp_inner);
+            __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+            __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+            vc = _mm256_add_epi32(vresult2, vc);
 
+          }
+          if (K % 32 != 0) {
+            memcpy(ap, ap_inner, sizeof(int8_t) * (K - k));
+            memcpy(bp, bp_inner, sizeof(int8_t) * (K - k));
+            {
+              __m256i va = _mm256_loadu_si256((__m256i*)ap);
+              __m256i vb = _mm256_loadu_si256((__m256i*)bp);
+              __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+              __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+              vc = _mm256_add_epi32(vresult2, vc);
             }
-            if (K % 32 != 0) {
-                memcpy(ap, ap_inner, sizeof(int8_t) * (K - k));
-                memcpy(bp, bp_inner, sizeof(int8_t) * (K - k));
-                {
-                    __m256i va = _mm256_loadu_si256((__m256i*)ap);
-                    __m256i vb = _mm256_loadu_si256((__m256i*)bp);
-                    __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
-                    __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
-                    vc = _mm256_add_epi32(vresult2, vc);
-                }
-                k = K;
-            }
-            int sum = 0;
-            for(int ti = 0; ti < 8; ti++){
-                sum += ((int32_t*)&vc)[ti];
-            }
-            c[i*N+j] = sum + bV;
+            k = K;
+          }
+          int sum = 0;
+          for(int ti = 0; ti < 8; ti++){
+            sum += ((int32_t*)&vc)[ti];
+          }
+          c[i*N+j] = sum + bV;
         }
-    }
+      }
 
-}
+    }
 
     free(tr_b);
 #ifdef CVM_PROFILING
     double et = omp_get_wtime() - start;
-    // std::cerr << "gemm " << N << " " << M << " " << K << " " << et * 1000 << " " << N * M * K / 1024.0 / 1024.0 << "\n";
     transpose_int8_avx256_gemm_cnt += et;
 #endif
     return true;
@@ -502,6 +501,67 @@ void depthwise_conv2d(
     }
   }
 }
+
+void depthwise_conv2d_single(
+   int32_t *x_data, int32_t n_batch, int32_t in_channels, int32_t x_h, int32_t x_w,
+   int32_t *w_data, int32_t filter_c, int32_t filter_h, int32_t filter_w,
+   int32_t *y_data, int32_t out_channels, int32_t o_h, int32_t o_w,
+   int32_t *b_data,
+   int32_t padding[2], int32_t stride_h, int32_t stride_w, int32_t dilation_h, int32_t dilation_w,
+   int32_t groups)
+{
+  // std::cerr << "depth wise imcol\n";
+  int32_t fn = out_channels * filter_h * filter_w;
+  int8_t *int8_filter = (int8_t*)malloc(sizeof(int8_t) * fn);
+  if(int8_filter == NULL){
+    CHECK(false);
+  }
+  for(int32_t i = 0; i < fn; i++){
+    int8_filter[i] = static_cast<int8_t>(w_data[i]);
+  }
+  const int M = 1;
+  const int K = filter_h * filter_w;
+  const int N = o_h * o_w;
+
+  int8_t *data_col = (int8_t*)malloc(sizeof(int8_t) * in_channels * filter_h * filter_w * o_h * o_w);
+  if(data_col == NULL){
+    delete int8_filter;
+    CHECK(false) << "malloc failed when alloc " << data_col;
+  }
+  bool has_negetive = false;
+  im2col_cpu(
+      x_data + 0* in_channels * x_h * x_w, //+ channel * x_h * x_w,
+      in_channels, x_h, x_w,
+      filter_h, filter_w,
+      padding[0], padding[1],
+      stride_h, stride_w,
+      dilation_h, dilation_w,
+      data_col, has_negetive
+      );
+  std::memset(y_data, 0, sizeof(int32_t) * in_channels * M * N);
+  for(int batch = 0; batch < n_batch; batch++) {
+    auto y_data_batch = y_data + batch * in_channels * N;
+    #pragma omp parallel for
+    for (int channel = 0; channel < out_channels; channel++) {
+      auto c = y_data_batch + channel * N;
+      auto a = int8_filter + channel * K;
+      auto b = data_col + channel * K * N;
+      for(int k = 0; k < K; k++){
+        int32_t aV = static_cast<int32_t>(a[k]);
+        for(int j = 0; j < N; j++){
+          c[j] += aV * static_cast<int32_t>(b[k*N + j]);
+        }
+      }
+      if (b_data) {
+        for(int j = 0; j < N; j++){
+          c[j] += b_data[channel];
+        }
+      }
+    }
+  }
+  free(data_col);
+  free(int8_filter);
+}
 /*
 input
 weight
@@ -577,17 +637,19 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
     }
 
     if(groups > 1){
-        VERIFY(groups == in_channels && groups == out_channels) << "only support depthwise conv with groups = channels";
+        VERIFY(groups == in_channels && groups == out_channels)
+          << "only support depthwise conv with groups = channels"
+          << "Got: " << groups << " " << in_channels << " " << out_channels << "\n";
 #ifdef CVM_PROFILING
         double start = omp_get_wtime();
 #endif
-        depthwise_conv2d(
-                x_data, n_batch, in_channels, x_h, x_w,
-                w_data, filter_c, filter_h, filter_w,
-                y_data, out_channels, o_h, o_w,
-                b_data,
-                padding, stride_h, stride_w, dilation[0], dilation[1],
-                groups);
+        depthwise_conv2d_single(
+            x_data, n_batch, in_channels, x_h, x_w,
+            w_data, filter_c, filter_h, filter_w,
+            y_data, out_channels, o_h, o_w,
+            b_data,
+            padding, stride_h, stride_w, dilation[0], dilation[1],
+            groups);
 #ifdef CVM_PROFILING
     cvm_op_depthwise_conv_cnt += omp_get_wtime() - start;
 #endif
