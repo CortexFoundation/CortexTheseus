@@ -80,7 +80,7 @@ void CvmRuntime::GetShape(int index, DLTensor* t) {
   VERIFY_LE(index, attrs_.shape.size());
   auto shape = attrs_.shape[index];
   t->ndim = shape.size();
-  if (t->shape)  delete t->shape;
+  if (t->shape) delete t->shape;
   t->shape = new int64_t[t->ndim];
   for (int i = 0; i < t->ndim; ++i) {
     t->shape[i] = shape[i];
@@ -147,6 +147,16 @@ NDArray CvmRuntime::GetOutput(int index) const {
   VERIFY_LT(static_cast<size_t>(index), outputs_.size());
   uint32_t eid = this->entry_id(outputs_[index]);
   return data_entry_[eid];
+}
+
+int CvmRuntime::GetOutputPrecision() {
+  int ret = 0;
+  for (unsigned int index = 0; index < outputs_.size(); ++index) {
+    uint32_t eid = this->entry_id(outputs_[index]);
+    int precision = attrs_.precision[eid];
+    ret = std::max(ret, precision);
+  }
+  return ret;
 }
 
 int CvmRuntime::GetOutputNum() {
@@ -445,6 +455,19 @@ PackedFunc CvmRuntime::GetFunction(
         }
         CALL_END();
       });
+  } else if (name == "get_output_precision") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kHandle) {
+          void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
+          auto precision = this->GetOutputPrecision();
+          *static_cast<int32_t*>(placeholder) = precision;
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
   } else if (name == "get_output_num") {
     return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
@@ -452,7 +475,8 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           auto num_output = this->GetOutputNum();
-          *static_cast<int64_t*>(placeholder) = num_output;
+          std::cerr << " #output" << num_output << "\n";
+          *static_cast<int32_t*>(placeholder) = num_output;
         } else {
           *rv = -1;
         }

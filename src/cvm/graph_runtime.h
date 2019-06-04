@@ -393,6 +393,7 @@ class CvmRuntime : public ModuleNode {
     }
   }
   int GetOutputNum(); 
+  int GetOutputPrecision(); 
 public:
   /*! \brief Setup the shape, type, and precision */
   void Init();

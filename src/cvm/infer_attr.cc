@@ -8,7 +8,6 @@
 #include <cvm/op_attr_types.h>
 #include "top/elemwise_op_common.h"
 #include <cvm/graph_attr_types.h>
-
 #include <iostream>
 
 using cvm::Op;
@@ -137,16 +136,24 @@ int64_t CvmRuntime::GetOps() {
       }
       */
       if (op == "dense") {
-        auto shape2 = rshape[inode.inputs[1].node_id];
-        t = static_cast<int64_t>(shape2[1]) * 3;
+        auto shape1 = rshape[inode.inputs[1].node_id];
+        VERIFY_GE(shape1.ndim(), 2);
+        t = static_cast<int64_t>(shape1[1]) * 3;
         auto& param = cvm::get<cvm::top::DenseParam>(inode.attrs.parsed);
         if (param.use_bias) {
           t += 1;
         }
         len += 32 - __builtin_clz(unsigned(t));
+      } else if (op == "non_max_suppression") {
+        auto shape1 = rshape[inode.inputs[0].node_id];
+        VERIFY_GE(shape1.ndim(), 1);
+        t = static_cast<int64_t>(shape1[0]) * 20;
+        len += 32 - __builtin_clz(unsigned(t));
       } else if (op == "conv2d") {
         auto shape1 = rshape[inode.inputs[0].node_id];
         auto shape2 = rshape[inode.inputs[1].node_id];
+        VERIFY_GE(shape1.ndim(), 4);
+        VERIFY_GE(shape2.ndim(), 4);
         t = (static_cast<int64_t>(shape2[1]) * shape2[2] * shape2[3] * 3);
         len += 96 - __builtin_clz((unsigned)shape2[1]) - __builtin_clz((unsigned)shape2[2])
                   - __builtin_clz((unsigned)shape2[3] * 3);
@@ -154,14 +161,22 @@ int64_t CvmRuntime::GetOps() {
         if (param.use_bias) {
           t += 1;
         }
-     } else if (op == "max_pool2d") {
+      } else if (op == "max_pool2d") {
         auto& param = cvm::get<cvm::top::MaxPool2DParam>(inode.attrs.parsed);
         t = param.pool_size.Size();
+        len += 32 - __builtin_clz((unsigned)t);
+      } else if (op == "sum") {
+        auto shape1 = rshape[inode.inputs[0].node_id];
+        VERIFY(rshape[nid].Size() != 0);
+        int64_t d = shape1.Size() / rshape[nid].Size();
+        t = static_cast<int>(d);
         len += 32 - __builtin_clz((unsigned)t);
       } else {
         t = 1;
       }
 
+      VERIFY_GE(rshape[nid].ndim(), 1);
+      VERIFY(rshape[nid][0] != 0);
       int64_t osize = rshape[nid].Size();
       osize /= rshape[nid][0];
       len += 32 - __builtin_clz((unsigned)osize);
