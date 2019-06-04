@@ -1796,6 +1796,7 @@ const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int3
         cudaFree(dev_axes);
     }
 
+    print_to_file(y_data, ysize, "/tmp/tian/transpose_cuda.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
