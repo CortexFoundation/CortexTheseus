@@ -1672,6 +1672,7 @@ const char* cuda_upsampling_nearest(const int32_t *x_data, int32_t *y_data, cons
                 y_data + i*channel*oh*ow, 
                 scale, ih, iw, oh, ow);
     }
+    print_to_file(y_data, batch * channel * oh * ow, "/tmp/zkh/cuda_upsampliing.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -2007,12 +2008,12 @@ const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_
         const int64_t *xshape, const int64_t *yshape, const int64_t *indices_shape, const int32_t yndim,
         const int32_t xndim, const int32_t indices_ndim, const int32_t ysize, const int32_t axis){
     int64_t *dev_xshape, *dev_yshape, *dev_indices_shape;
-    cudaMalloc((void**)&dev_xshape, sizeof(int32_t) * xndim);
-    cudaMalloc((void**)&dev_yshape, sizeof(int32_t) * yndim);
-    cudaMalloc((void**)&dev_indices_shape, sizeof(int32_t) * indices_ndim);
-    cudaMemcpy(dev_xshape, xshape, sizeof(int32_t)*xndim, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_yshape, yshape, sizeof(int32_t)*yndim, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_indices_shape, indices_shape, sizeof(int32_t)*indices_ndim, cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
+    cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
+    cudaMalloc((void**)&dev_indices_shape, sizeof(int64_t) * indices_ndim);
+    cudaMemcpy(dev_xshape, xshape, sizeof(int64_t)*xndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_yshape, yshape, sizeof(int64_t)*yndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_indices_shape, indices_shape, sizeof(int64_t)*indices_ndim, cudaMemcpyHostToDevice);
 
     int threadSize = 256;
     int blockSize = (ysize + threadSize - 1) / threadSize;

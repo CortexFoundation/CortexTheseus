@@ -1775,6 +1775,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 
     int32_t axis = param.axis.value(); //TODO get from attr
     take(x, indices, y, axis);
+    print_to_file(y, "/tmp/zkh/take.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
@@ -1847,7 +1848,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
     cvm_op_upsampling_cnt += omp_get_wtime() - start;
     start = omp_get_wtime();
 #endif
-
 });
 
 }
