@@ -18,8 +18,8 @@
 int dtype_code = kDLInt;
 int dtype_bits = 8;
 int dtype_lanes = 1;
-int device_type = kDLCPU;
-int device_id = 0;
+int device_type = kDLGPU;
+int device_id = 7;
 
 int verify(DLTensor *output, std::string filename){
     std::vector<unsigned long> tshape;
@@ -99,7 +99,7 @@ int main()
 
     int32_t *output = new int32_t[1*100];
     for (int i = 0; i < 1; i++) {
-        Run(json_data, params_data, (int)kDLCPU, 0, tdata.data(), output);
+        Run(json_data, params_data, (int)device_type, 0, tdata.data(), output);
     }
 
     delete output;
