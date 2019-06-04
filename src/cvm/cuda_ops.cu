@@ -891,7 +891,8 @@ const char* cuda_broadcast_add(const int32_t *a, const int32_t *b, int32_t* c,
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-        bool debug){
+        bool debug)
+{
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1736,6 +1737,14 @@ const char *cuda_expand_dims(const int32_t *ishape_data, int32_t *oshape_data, c
         return NULL;
     }
     cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    return check_cuda_error(cudaGetLastError());
+}
+
+const char *cuda_squeeze(const int32_t *ishape_data, int32_t *oshape_data, const int32_t n){
+    if(oshape_data == ishape_data){
+        return NULL;
+    }
+    // cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
     return check_cuda_error(cudaGetLastError());
 }
 
