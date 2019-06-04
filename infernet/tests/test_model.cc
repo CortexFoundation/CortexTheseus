@@ -67,8 +67,18 @@ int run_LIF(string model_root) {
     vector<char> input, output;
     int input_size = CVMAPIGetInputLength(model);
     int output_size = CVMAPIGetOutputLength(model);
-    input.resize(input_size); // 1 * 1 * 28 * 28);
-    output.resize(output_size); //1 * 10);
+    input.resize(input_size, 0); // 1 * 1 * 28 * 28);
+    output.resize(output_size, 0); //1 * 10);
+    if (model_root.find("trec") != string::npos)
+    {
+       std::vector<unsigned long> tshape;
+       npy::LoadArrayFromNumpy("/tmp/trec/out/data.npy", tshape, input);
+       std::cerr << tshape.size() << "\n";
+       for (auto x : tshape) {
+           std::cerr << x << " ";
+       }
+       std::cerr << "\n";
+    }
     if (model_root.find("yolo") != string::npos)
     {
        std::vector<unsigned long> tshape;
@@ -193,13 +203,14 @@ void test_thread() {
 
 void test_models() {
     auto model_roots = {
-       "/home/tian/model_storage/mobilenetv1.0_imagenet/data",
+       // "/home/tian/model_storage/dcnet_mnist_v1/data"
+       // "/home/tian/model_storage/mobilenetv1.0_imagenet/data",
        // "/home/tian/model_storage/resnet50_v1_imagenet/data",
        // "/home/tian/model_storage/animal10/data",
        // "/home/tian/model_storage/dcnet_v0_mnist/data",
        // "/home/tian/model_storage/resnet50_v2/data",
        // "/home/tian/model_storage/vgg16_gcv/data",
-       // "/home/tian/model_storage/sentiment_trec/data",
+       "/home/tian/model_storage/sentiment_trec/data",
        // "/home/tian/model_storage/vgg19_gcv/data",
        // "/home/tian/model_storage/squeezenet_gcv1.1/data",
        // "/home/tian/model_storage/squeezenet_gcv1.0/data",

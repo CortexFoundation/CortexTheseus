@@ -35,7 +35,9 @@ struct CVMOpParam {
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
   attrs.name = op_type;
-  attrs.op = cvm::Op::Get(attrs.name);
+  std::cerr << "op_type " << op_type << "\n";
+  attrs.op = cvm::Op::Get(op_type);
+  std::cerr << "op_type =====" << op_type << "\n";
 }
 void LoadOpAttr(std::string json_, NodeAttrs& attrs) {
   std::istringstream is(json_);
@@ -196,15 +198,15 @@ void test_depthwise_conv () {
     int i_h = shapes_[0][2];
     int i_w = shapes_[0][3];
     if (false) {
-    for (int c = 0; c < shapes_[0][1]; c++) {
-      for (int i = 0; i < shapes_[0][2]; i++) {
-        for (int j = 0; j < shapes_[0][3]; j++) {
-          std::cerr << dldata[(c) * i_h * i_w +  i * i_w + j] << " ";
+      for (int c = 0; c < shapes_[0][1]; c++) {
+        for (int i = 0; i < shapes_[0][2]; i++) {
+          for (int j = 0; j < shapes_[0][3]; j++) {
+            std::cerr << dldata[(c) * i_h * i_w +  i * i_w + j] << " ";
+          }
+          std::cerr << "\n";
         }
         std::cerr << "\n";
       }
-        std::cerr << "\n";
-    }
     }
 
     std::vector<unsigned long> tshape2;
@@ -250,7 +252,112 @@ void test_depthwise_conv () {
     }
     }
 }
+void test_transpose() {
+    string attr_str = " {\"axes\": \"(1, 2, 0)\"} ";
+    std::vector<int> dims_ = {3,  3};
+    vector<std::vector<int64_t>> shapes_ = {{38, 32, 300},{32, 300, 38}};
+    CVMOpParam params;
+    params.num_inputs = 1;
+    params.num_outputs= 1;
+    params.func_name = "transpose";
+    std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
+    for (uint32_t i = 0; i < args.size(); i++) {
+      DLTensor* dl;
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+      args[i] = *dl;
+    }
+
+    std::vector<unsigned long> tshape;
+    std::vector<int32_t> tdata;
+    npy::LoadArrayFromNumpy("/tmp/transpose/in.x.npy", tshape, tdata);
+    int32_t *dldata = static_cast<int32_t*>(args[0].data);
+    memcpy(dldata, tdata.data(), sizeof(int32_t) * tdata.size());
+
+    NodeAttrs attr;
+    LoadOp(params.func_name, attr);
+    LoadOpAttr(attr_str, attr);
+    auto op_slice = get_func(params, &attr, args, params.num_inputs);
+    op_slice();
+
+    int32_t *dldata3 = static_cast<int32_t*>(args[1].data);
+    std::vector<unsigned long> tshape3;
+    std::vector<int32_t> tdata3;
+    npy::LoadArrayFromNumpy("/tmp/transpose/out.y.npy", tshape3, tdata3);
+    int ret =  memcmp(dldata3, tdata3.data(), sizeof(int32_t) * tdata3.size());
+    printf("match %d | %d\n", ret == 0, ret);
+
+    if (true) {
+    std::cerr << "Expected\n";
+    for (int c = 0; c < shapes_[0][0] *  shapes_[0][1] *  shapes_[0][2] ; c++) {
+        std::cerr << tdata3.data()[c] << " ";
+    }
+    std::cerr << "\n";
+    std::cerr << "Got\n";
+    for (int c = 0; c < shapes_[1][0] *  shapes_[1][1] *  shapes_[1][2] ; c++) {
+        std::cerr << dldata3[c] << " ";
+    }
+    std::cerr << "\n";
+    }
+}
+void test_take() {
+    string attr_str = " {\"axis\": \"0\"} ";
+    CVMOpParam params;
+    params.func_name = "take";
+    params.num_inputs = 2;
+    params.num_outputs= 1;
+    std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
+    std::vector<std::vector<unsigned long>> tshape(args.size());
+    std::vector<std::vector<int32_t>> tdata(args.size());
+    npy::LoadArrayFromNumpy("/tmp/take/in.x.npy", tshape[0], tdata[0]);
+    npy::LoadArrayFromNumpy("/tmp/take/in.w.npy", tshape[1], tdata[1]);
+    npy::LoadArrayFromNumpy("/tmp/take/out.y.npy", tshape[2], tdata[2]);
+    vector<std::vector<int64_t>> shapes_(args.size());
+    std::vector<int> dims_(args.size());
+    for (auto idx = 0; idx < args.size(); idx++) {
+      shapes_[idx].resize(tshape[idx].size());
+      dims_[idx] = (tshape[idx].size());
+      std::cout << tshape[idx].size() << "\n";
+      for (auto j = 0; j < shapes_[idx].size(); j++) {
+        shapes_[idx][j] = tshape[idx][j];
+        std::cout << tshape[idx][j] << " ";
+      }
+      std::cout << "\n";
+    }
+
+    for (uint32_t i = 0; i < args.size(); i++) {
+      DLTensor* dl;
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+      args[i] = *dl;
+      if (i < params.num_inputs) {
+        int32_t *dldata = static_cast<int32_t*>(args[i].data);
+        memcpy(dldata, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
+      }
+    }
+
+    NodeAttrs attr;
+    LoadOp(params.func_name, attr);
+    LoadOpAttr(attr_str, attr);
+    auto op_slice = get_func(params, &attr, args, params.num_inputs);
+    op_slice();
+
+    int32_t *dldata3 = static_cast<int32_t*>(args[params.num_inputs].data);
+    int ret =  memcmp(dldata3, tdata[params.num_inputs].data(), sizeof(int32_t) * tdata[params.num_inputs].size());
+    printf("match %d | %d\n", ret == 0, ret);
+
+    if (true) {
+    std::cerr << "Expected " << shapes_[0][0] << " " <<  shapes_[0][1] << " " << shapes_[0][2] << "\n";
+    for (int c = 0; c < tdata[params.num_inputs].size() ; c++) {
+        std::cerr << tdata[params.num_inputs].data()[c] << " ";
+    }
+    std::cerr << "\n";
+    std::cerr << "Got " << shapes_[0][0] << " " <<  shapes_[0][1] << " " << shapes_[0][2] << "\n";
+    for (int c = 0; c < tdata[params.num_inputs].size() ; c++) {
+        std::cerr << dldata3[c] << " ";
+    }
+    std::cerr << "\n";
+    }
+}
 int main() {
-    test_depthwise_conv();
+    test_take();
     return 0;
 }
