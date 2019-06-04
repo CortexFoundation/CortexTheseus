@@ -172,7 +172,85 @@ void test_matrix_mul() {
     }
     std::cout << "\n";
 }
+void test_depthwise_conv () {
+    string attr_str = " {\"layout\": \"NCHW\", \"kernel_layout\": \"OIHW\", \"kernel_size\": \"[3, 3]\", \"padding\": \"(1, 1)\", \"use_bias\": \"True\", \"strides\": \"(1, 1)\", \"channels\": \"10\", \"dilation\": \"(1, 1)\", \"groups\": \"1024\"} ";
+    std::vector<int> dims_ = {4, 4, 4};
+    vector<std::vector<int64_t>> shapes_ = {{1, 1024, 7, 7}, {1024, 1, 3, 3}, {1, 1024, 7, 7}};
+    CVMOpParam params;
+    params.num_inputs = 2;
+    params.num_outputs= 1;
+    params.func_name = "conv2d";
+    std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
+    for (uint32_t i = 0; i < args.size(); i++) {
+      DLTensor* dl;
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+      args[i] = *dl;
+    }
+
+    std::vector<unsigned long> tshape;
+    std::vector<int32_t> tdata;
+    npy::LoadArrayFromNumpy("/tmp/conv2d_depthwise/in.x.npy", tshape, tdata);
+    int32_t *dldata = static_cast<int32_t*>(args[0].data);
+    memcpy(dldata, tdata.data(), sizeof(int32_t) * tdata.size());
+    int n_c = shapes_[0][1];
+    int i_h = shapes_[0][2];
+    int i_w = shapes_[0][3];
+    if (false) {
+    for (int c = 0; c < shapes_[0][1]; c++) {
+      for (int i = 0; i < shapes_[0][2]; i++) {
+        for (int j = 0; j < shapes_[0][3]; j++) {
+          std::cerr << dldata[(c) * i_h * i_w +  i * i_w + j] << " ";
+        }
+        std::cerr << "\n";
+      }
+        std::cerr << "\n";
+    }
+    }
+
+    std::vector<unsigned long> tshape2;
+    std::vector<int32_t> tdata2;
+    int32_t *dldata2 = static_cast<int32_t*>(args[1].data);
+    npy::LoadArrayFromNumpy("/tmp/conv2d_depthwise/in.w.npy", tshape2, tdata2);
+    memcpy(dldata2, tdata2.data(), sizeof(int32_t) * tdata2.size());
+
+    NodeAttrs attr;
+    LoadOp(params.func_name, attr);
+    LoadOpAttr(attr_str, attr);
+    auto op_slice = get_func(params, &attr, args, params.num_inputs);
+    op_slice();
+
+    int32_t *dldata3 = static_cast<int32_t*>(args[2].data);
+    std::vector<unsigned long> tshape3;
+    std::vector<int32_t> tdata3;
+    npy::LoadArrayFromNumpy("/tmp/conv2d_depthwise/out.y.npy", tshape3, tdata3);
+    int ret =  memcmp(dldata3, tdata3.data(), sizeof(int32_t) * tdata3.size());
+    printf("match %d | %d\n", ret == 0, ret);
+    int o_h = shapes_[2][2];
+    int o_w = shapes_[2][3];
+    if (false) {
+    std::cerr << "Expected\n";
+    for (int c = 0; c < n_c; c++) {
+      for (int i = 0; i < o_h; i++) {
+        for (int j = 0; j < o_w; j++) {
+          std::cerr << tdata3.data()[(c) * o_h * o_w +  i * o_w + j] << " ";
+        }
+        std::cerr << "\n";
+      }
+        std::cerr << "\n";
+    }
+    std::cerr << "Got\n";
+    for (int c = 0; c < n_c; c++) {
+      for (int i = 0; i < o_h; i++) {
+        for (int j = 0; j < o_w; j++) {
+          std::cerr << dldata3[(c ) * o_h * o_w +  i * o_w + j] << " ";
+        }
+        std::cerr << "\n";
+      }
+        std::cerr << "\n";
+    }
+    }
+}
 int main() {
-    test_matrix_mul();
+    test_depthwise_conv();
     return 0;
 }
