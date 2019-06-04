@@ -45,9 +45,8 @@ type TrustedCheckpoint struct {
 }
 
 var (
-	//CortexBlockRewardPeriod = big.NewInt(42048000)
 	CortexBlockRewardPeriod = big.NewInt(255228800)
-	//CortexBlockRewardPeriod = big.NewInt(1000)
+	CerebroBlockRewardPeriod = big.NewInt(1000000)
 )
 
 var (
