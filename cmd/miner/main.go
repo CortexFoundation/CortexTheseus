@@ -63,7 +63,7 @@ var cuda bool
 var opencl bool
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU() * 4)
 	flag.Parse()
 	if algorithm == "cuckoo" {
 		miner_algorithm = 0
