@@ -49,7 +49,10 @@ struct cuckaroo_solver_ctx : public solver_ctx{
     sols.clear();
     cg->reset();
     for (u32 i = 0; i < nedges; i++){
-      cg->add_compress_edge(edges[i].x, edges[i].y);
+      if(cg->add_compress_edge(edges[i].x, edges[i].y) == -1) {
+          printf("add edge failed .........\n");
+          return 0;
+      }
     }
     for (u32 s = 0 ;s < cg->nsols; s++) {
 //       print_log("Solution");
