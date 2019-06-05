@@ -236,19 +236,6 @@ func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 			Service:   &API{cuckoo},
 			Public:    true,
 		},
-		// {
-		// 	Namespace: "ethash",
-		// 	Version:   "1.0",
-		// 	Service:   &API{cuckoo},
-		// 	Public:    true,
-		// },
-
-		// {
-		// 	Namespace: "ctx",
-		// 	Version:   "1.0",
-		// 	Service:   &API{cuckoo},
-		// 	Public:    true,
-		// },
 	}
 }
 
