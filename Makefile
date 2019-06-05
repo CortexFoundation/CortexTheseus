@@ -34,7 +34,12 @@ cortex: clib
 bootnode:
 	build/env.sh go run build/ci.go install ./cmd/bootnode
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+	@echo "Run \"$(GOBIN)/bootnode\" to launch cortex bootnode."
+
+torrent:
+	build/env.sh go run build/ci.go install ./cmd/torrentfs
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 
 cortex-remote: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex

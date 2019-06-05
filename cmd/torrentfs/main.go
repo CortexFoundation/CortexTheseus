@@ -83,9 +83,8 @@ func mainExitCode(conf *Config) int {
 	cfg.Host = conf.Host
 	cfg.Port = conf.Port
 	cfg.DataDir = conf.Dir
-	cfg.DefaultTrackers = conf.TrackerURI
 
-	tfs := torrentfs.New(&cfg, "")
+	tfs, _ := torrentfs.New(&cfg, "")
 	tfs.Start(nil)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)

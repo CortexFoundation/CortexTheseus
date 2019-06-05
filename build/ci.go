@@ -74,6 +74,7 @@ var (
 		"COPYING",
 		executablePath("abigen"),
 		executablePath("bootnode"),
+		executablePath("torrentfs"),
 		executablePath("evm"),
 		executablePath("miner"),
 		executablePath("cortex"),
@@ -91,6 +92,10 @@ var (
 			BinaryName:  "bootnode",
 			Description: "Cortex bootnode.",
 		},
+		{
+                        BinaryName:  "torrentfs",
+                        Description: "Cortex torrentfs.",
+                },
 		{
 			BinaryName:  "evm",
 			Description: "Developer utility version of the EVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
