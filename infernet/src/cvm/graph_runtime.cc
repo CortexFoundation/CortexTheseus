@@ -159,6 +159,17 @@ int CvmRuntime::GetOutputPrecision() {
   return ret;
 }
 
+int CvmRuntime::GetInputPrecision() {
+  int ret = 0;
+  for (unsigned int eid = 0; eid < nodes_.size(); ++eid) {
+    int precision = attrs_.precision[eid];
+    std::cerr << nodes_[eid].name << " " << precision << "\n";
+    if (nodes_[eid].name == "data")
+      ret = std::max(ret, precision);
+  }
+  return ret;
+}
+
 int CvmRuntime::GetOutputNum() {
   return static_cast<int>(outputs_.size());
 }
@@ -462,6 +473,19 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           auto precision = this->GetOutputPrecision();
+          *static_cast<int32_t*>(placeholder) = precision;
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
+  } else if (name == "get_input_precision") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kHandle) {
+          void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
+          auto precision = this->GetInputPrecision();
           *static_cast<int32_t*>(placeholder) = precision;
         } else {
           *rv = -1;
