@@ -42,8 +42,8 @@ double cvm_op_chnwise_conv1x1_cnt = 0;
 double cvm_op_depthwise_conv_cnt = 0;
 double cvm_op_depthwise_conv1x1_cnt = 0;
 
-// #define CVM_PROFILING
-// #define CVM_PRINT_OP_RESULT
+#define CVM_PROFILING
+//#define CVM_PRINT_OP_RESULT
 
 inline uint64_t getSize(DLTensor *dlTensor){
   uint64_t size = 1;
@@ -152,6 +152,20 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
   auto dx = static_cast<int32_t*>(x->data);
   auto dy = static_cast<int32_t*>(y->data);
   auto dw = static_cast<int32_t*>(w->data);
+
+  for (uint32_t di = 0; di < y->shape[0]; di++) {
+      for (uint32_t oi = 0; oi < y->shape[1]; oi++) {
+          int32_t sum = 0;
+          for (uint32_t xi = 0; xi < x->shape[1]; xi++) {
+              sum += dx[di * x->shape[1] + xi] * dw[oi * w->shape[1] + xi];
+          }
+          if(db != nullptr){
+              sum += db[oi];
+          }
+          dy[di * y->shape[1] + oi] = sum;
+      }
+  }
+  /*
   auto N = y->shape[1], K = x->shape[1];
   int blocks = K / 32 * 32;
   // std::cerr << y->shape[0] << " " << y->shape[1] << "\n";
@@ -223,6 +237,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
 #ifdef CVM_PROFILING
         cvm_op_dense_cnt += omp_get_wtime() - start;
 #endif
+  */
+        print_to_file(y, "/tmp/zkh/dense.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
@@ -699,8 +715,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
         }
 #endif
     }
-    print_to_file(x, "/tmp/tian/conv2d.txt");
-    print_to_file(y, "/tmp/tian/conv2d.txt");
+    print_to_file(x, "/tmp/zkh/conv2d.txt");
+    print_to_file(y, "/tmp/zkh/conv2d.txt");
 });
 
 inline int32_t broadcast_i_index(int64_t* oshape, uint64_t o_index, int64_t* ishape, int idim){
@@ -808,11 +824,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_mul")
             }
         }
 
-        // print_to_file(args2, "/tmp/tian/mul.txt");
+        // print_to_file(args2, "/tmp/zkh/mul.txt");
 
 #ifdef CVM_PROFILING
         cvm_op_broadcast_cnt += omp_get_wtime() - start;
 #endif
+        print_to_file(args2, "/tmp/zkh/mul.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_div")
@@ -1028,7 +1045,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_add")
             c[i] = a[i] + b[i];
         }
 
-        // print_to_file(args2, "/tmp/tian/elemwise_add.txt");
+        // print_to_file(args2, "/tmp/zkh/elemwise_add.txt");
 
 #ifdef CVM_PROFILING
     cvm_op_elemwise_cnt += omp_get_wtime() - start;
@@ -1051,7 +1068,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_sub")
       c[i] = a[i] - b[i];
   }
 
-  print_to_file(args2, "/tmp/tian/elemwise_sub.txt");
+  print_to_file(args2, "/tmp/zkh/elemwise_sub.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.reshape")
@@ -1105,7 +1122,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_clip")
 #ifdef CVM_PROFILING
   cvm_op_clip_cnt += omp_get_wtime() - start;
 #endif
-  print_to_file(y, "/tmp/tian/cvm_clip.txt");
+  print_to_file(y, "/tmp/zkh/cvm_clip.txt");
 }
 );
 
@@ -1174,6 +1191,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_right_shift")
 #ifdef CVM_PROFILING
     cvm_op_cvm_shift_cnt += omp_get_wtime() - start;
 #endif
+    print_to_file(c, "/tmp/zkh/cvm_right_shift.txt");
     });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_left_shift")
@@ -1257,13 +1275,46 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
         VERIFY(args.num_args == 3);
         DLTensor *dlx = args[0];
         DLTensor *y = args[1];
+        void* _attr = args[2];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+        TShape axis = param.axis;
+        VERIFY(axis.ndim() <= 1);
+        int64_t *axis_data = axis.begin();
+        //bool keepdims = param.keepdims;
+        //bool exclude = param.exclude;
+
         int32_t *y_data = static_cast<int32_t*>(y->data);
         int32_t* x = static_cast<int32_t*>(dlx->data);
-        int max = x[0];
-        for(uint64_t i = 1; i < getSize(dlx); i++){
-            if(max < x[i]) max = x[i];
+        if(axis.ndim() == 0){
+            int max = x[0];
+            for(uint64_t i = 1; i < getSize(dlx); i++){
+                if(max < x[i]) max = x[i];
+            }
+            y_data[0] = max;
+        }else if(axis.ndim() == 1){
+            VERIFY(dlx->ndim == y->ndim+1);
+            int32_t maxV = (int32_t)1 << 31;
+            memset(y_data, maxV, getSize(y)*sizeof(int32_t));
+            for(uint64_t i = 0; i < getSize(dlx); i++){
+                uint64_t in_i = i, o_i = 0, shapeSize = 0;
+                for(int j = dlx->ndim-1; j >= 0; j--){
+                    uint64_t col = in_i % dlx->shape[j];
+                    in_i /= dlx->shape[j];
+                    if(j != axis_data[0]){
+                        int yj = j > axis_data[0] ? j-1 : j;
+                        o_i += (yj == y->ndim-1 ? col : col * shapeSize);
+                        shapeSize = (yj == y->ndim-1 ? y->shape[yj] : shapeSize * y->shape[yj]);
+                    }
+                }
+                if(y_data[o_i] < x[i]){
+                    y_data[o_i] =  x[i];
+                }
+            }
+        }else{
+
         }
-        y_data[0] = max;
+        print_to_file(y, "/tmp/zkh/max.txt");
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_max")
     .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -1400,7 +1451,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     static double use_time = 0.0;
     use_time += end-start;
 #endif
-    print_to_file(y, "/tmp/tian/repeat.txt");
+    print_to_file(y, "/tmp/zkh/repeat.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.negative")
@@ -1466,7 +1517,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
     for(size_t i = 1; i < othery; i++){
         memcpy(y_data + i*tmp_y_size, y_data, tmp_y_size * sizeof(int32_t));
     }
-    print_to_file(y, "/tmp/tian/tile.txt");
+    print_to_file(y, "/tmp/zkh/tile.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
@@ -1488,7 +1539,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
         return;
     }
     memcpy(oshape_data, ishape_data, getSize(ishape)* sizeof(int32_t));
-    print_to_file(oshape, "/tmp/tian/expanddim.txt");
+    print_to_file(oshape, "/tmp/zkh/expanddim.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.squeeze")
@@ -1507,7 +1558,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.squeeze")
         return;
     }
     memcpy(oshape_data, ishape_data, getSize(ishape)* sizeof(int32_t));
-    print_to_file(oshape, "/tmp/tian/squeeze.txt");
+    print_to_file(oshape, "/tmp/zkh/squeeze.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
@@ -1557,7 +1608,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
         y_data[i] = x_data[in_i];
       }
     }
-    print_to_file(y, "/tmp/tian/transpose.txt");
+    print_to_file(y, "/tmp/zkh/transpose.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
@@ -1596,8 +1647,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
         }
         y_data[i] = x_data[in_i];
     }
-    print_to_file(x, "/tmp/tian/strided_slice.txt");
-    print_to_file(y, "/tmp/tian/strided_slice.txt");
+    print_to_file(x, "/tmp/zkh/strided_slice.txt");
+    print_to_file(y, "/tmp/zkh/strided_slice.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
@@ -1629,7 +1680,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
             }
             y_data[i] = x_data[in_i];
         }
-        print_to_file(y, "/tmp/tian/slice_like.txt");
+        print_to_file(y, "/tmp/zkh/slice_like.txt");
 });
 
 /**
@@ -1804,9 +1855,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
     int32_t axis = param.axis.value(); //TODO get from attr
     std::cerr << "axis = " << axis << " " << x->ndim << " " << y->ndim << "\n";
     take(x, indices, y, axis);
-    print_to_file(x, "/tmp/tian/take.txt");
-    print_to_file(indices, "/tmp/tian/take.txt");
-    print_to_file(y, "/tmp/tian/take.txt");
+    print_to_file(y, "/tmp/zkh/take.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
@@ -1821,7 +1870,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
 
     take(indices, x, y);
 
-    print_to_file(y, "/tmp/tian/cvm_lut.txt");
+    print_to_file(y, "/tmp/zkh/cvm_lut.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
@@ -1862,7 +1911,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
   //           << " " << y->shape[2] << " " << y->shape[3]
   //           << "\n";
 
-  //TODO(tian) optimize nested for-loop for scale
+  //TODO(zkh) optimize nested for-loop for scale
   #pragma omp parallel for collapse(2)
   for (uint32_t batch = 0; batch < n_batch; batch++) {
     for (uint32_t c = 0; c< n_channels; c++) {
