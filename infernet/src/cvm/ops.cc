@@ -42,8 +42,8 @@ double cvm_op_chnwise_conv1x1_cnt = 0;
 double cvm_op_depthwise_conv_cnt = 0;
 double cvm_op_depthwise_conv1x1_cnt = 0;
 
-#define CVM_PROFILING
-//#define CVM_PRINT_OP_RESULT
+// #define CVM_PROFILING
+// #define CVM_PRINT_OP_RESULT
 
 inline uint64_t getSize(DLTensor *dlTensor){
   uint64_t size = 1;

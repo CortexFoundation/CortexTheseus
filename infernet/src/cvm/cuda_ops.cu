@@ -2037,6 +2037,6 @@ const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_
     int threadSize = 256;
     int blockSize = (ysize + threadSize - 1) / threadSize;
     kernel_take_noaxis<<<blockSize, threadSize>>>(x_data, indices_data, y_data, ysize);
-
+    print_to_file(y_data, ysize, "/tmp/cu_take.log");
     return check_cuda_error(cudaGetLastError());
 }
