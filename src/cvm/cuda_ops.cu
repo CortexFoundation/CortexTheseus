@@ -6,6 +6,29 @@
 #include <string.h>
 #include "nms.h"
 
+//#define CVM_PRINT_CUDA_RESULT
+
+void print_to_file(const int32_t *y, int32_t n, char*filename){
+#ifdef CVM_PRINT_CUDA_RESULT
+    int32_t *y_data = new int32_t[n];
+    cudaMemcpy(y_data, y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
+
+    FILE *fp = fopen(filename, "a+");
+    
+    int32_t min = y_data[0], max= y_data[0];
+    for(uint64_t i = 0; i < n; i++){
+        min = min > y_data[i] ? y_data[i] : min;
+        max = max < y_data[i] ? y_data[i] : max;
+    }
+    fprintf(fp, "%d %d\n", min, max);
+    for(uint64_t i = 0; i < 1000 && i < n; i++){
+        fprintf(fp, "%d ", y_data[i]);
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
+    delete y_data;
+#endif
+}
 inline int32_t getShareMemorySize(int32_t device_id){
     static int32_t sharedMemPerBlock = 0;
     if(sharedMemPerBlock == 0){
@@ -312,6 +335,7 @@ const char* cuda_conv2d(
         if(bias != NULL)
             cudaFree(dev_b);
     }
+    print_to_file(output, o_c * o_h * o_w, "/tmp/zkh/cuda_conv2d.txt");
     return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_depthwise_conv2d(
@@ -1439,6 +1463,7 @@ const char* cuda_cvm_clip(const int32_t* x, const int32_t precision, int32_t *y,
         cudaFree(tmp_x);
     }
     
+    print_to_file(y, n, "/tmp/zkh/cuda_cvm_clip.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -1610,25 +1635,6 @@ __global__ void kernel_repeat(const int32_t *x_data, int32_t *y_data, const int6
         y_data[i] = x_data[in_i];
     }
 }
-void print_to_file(const int32_t *y, int32_t n, char*filename){
-    int32_t *y_data = new int32_t[n];
-    cudaMemcpy(y_data, y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-
-    FILE *fp = fopen(filename, "a+");
-    
-    int32_t min = y_data[0], max= y_data[0];
-    for(uint64_t i = 0; i < n; i++){
-        min = min > y_data[i] ? y_data[i] : min;
-        max = max < y_data[i] ? y_data[i] : max;
-    }
-    fprintf(fp, "%d %d\n", min, max);
-    for(uint64_t i = 0; i < 20 && i < n; i++){
-        fprintf(fp, "%d ", y_data[i]);
-    }
-    fprintf(fp, "\n");
-    fclose(fp);
-    delete y_data;
-}
 const char* cuda_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
         const int64_t *yshape, const int64_t ysize, const int32_t xndim, const int32_t yndim, 
         const int32_t axis, const int32_t repeat){
@@ -1738,6 +1744,7 @@ const char *cuda_expand_dims(const int32_t *ishape_data, int32_t *oshape_data, c
         return NULL;
     }
     cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    print_to_file(oshape_data, n, "/tmp/zkh/cuda_expand_dims.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -1796,6 +1803,7 @@ const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int3
         cudaFree(dev_axes);
     }
 
+    print_to_file(y_data, ysize, "/tmp/zkh/cuda_transpose.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -2023,6 +2031,12 @@ const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_
     cudaFree(dev_xshape);
     cudaFree(dev_yshape);
     cudaFree(dev_indices_shape);
+    int xsize = 1;
+    for(int i = 0; i < xndim; i++){
+        xsize *= xshape[i];
+    }
+    print_to_file(x_data, xsize, "/tmp/zkh/cuda_take.txt");
+    print_to_file(y_data, ysize, "/tmp/zkh/cuda_take.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
