@@ -11,7 +11,7 @@
 #include <cvm/runtime/serializer.h>
 #include <cvm/node.h>
 #include <cvm/runtime/c_runtime_api.h>
-#include "../npy.hpp"
+#include "npy.hpp"
 
 using namespace std;
 
@@ -329,7 +329,50 @@ void test_take() {
     std::cerr << "\n";
     }
 }
+void test_max() {
+    string attr_str = " {\"axis\": \"(2)\"} ";
+    std::vector<int> dims_ = {3,  2};
+    vector<std::vector<int64_t>> shapes_ = {{3,3,3},{3, 3}};
+    CVMOpParam params;
+    params.num_inputs = 1;
+    params.num_outputs= 1;
+    params.func_name = "max";
+    std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
+    for (uint32_t i = 0; i < args.size(); i++) {
+      DLTensor* dl;
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLGPU, 0, &dl);
+      args[i] = *dl;
+    }
+
+    DLTensor* dl;
+    CVMArrayAlloc(shapes_[0].data(), dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+    int32_t *data = static_cast<int32_t*>(dl->data);
+    for(int i = 0; i < 27; i++){
+        data[i] = i;
+    }
+    CVMStreamHandle stream1;
+    CVMStreamCreate(kDLGPU, 0, &stream1);
+    CVMArrayCopyFromTo(dl, &args[0], stream1);
+    printf("copy from to success\n");
+
+    NodeAttrs attr;
+    LoadOp(params.func_name, attr);
+    LoadOpAttr(attr_str, attr);
+    auto op_slice = get_func(params, &attr, args, params.num_inputs);
+    op_slice();
+
+    std::vector<unsigned long> tshape;
+    std::vector<int32_t> tdata;
+    npy::LoadArrayFromNumpy("./tests/out.npy", tshape, tdata);
+    int32_t *odata = static_cast<int32_t*>(args[1].data);
+    for(int i = 0; i < 9; i++){
+        printf("%d ", odata[i]);
+    }
+    printf("\n");
+    printf("%d\n", memcmp(odata, tdata.data(), sizeof(int32_t)*tdata.size()));
+}
 int main() {
-    test_take();
+//    test_take();
+    test_max();
     return 0;
 }
