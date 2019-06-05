@@ -67,7 +67,8 @@ private:
   int64_t *out_size_;
   int32_t out_num_;
   int64_t model_id_;
-  bool is_output_int32;
+  bool is_output_int32_;
+  bool is_input_int32_;
   std::vector<int> dims_;
   std::vector<int64_t*> shapes_;
   int dtype_code{kDLInt};
