@@ -53,7 +53,7 @@ void CvmRuntime::SetupPrecision() {
   std::vector<Node> &idx = nodes_;
   std::vector<int> &precision = attrs_.precision;
   const auto rshape = GetTShapeArray(attrs_.shape);
-  precision.resize(nodes_.size(), -1);
+  VERIFY_EQ(precision.size(), nodes_.size()) << "nodes should have the corresponding precision.";
   // Temp space for shape inference.
   std::vector<int> iprec, oprec;
   std::vector<TShape> shapes;
