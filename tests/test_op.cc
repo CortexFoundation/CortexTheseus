@@ -32,6 +32,8 @@ struct CVMOpParam {
   std::string attrs;
 };
 
+int ctx = kDLGPU;
+
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
   attrs.name = op_type;
@@ -94,7 +96,7 @@ std::function<void()> get_func(
 
 
   auto op = param.func_name;
-  int device_type = static_cast<int>(kDLCPU);
+  int device_type = static_cast<int>(kDLGPU);
   std::string module_name = "cvm.runtime.cvm";
   if (device_type == kDLGPU) module_name += "_cuda";
   module_name += ".";
@@ -123,7 +125,7 @@ void test_op_take() {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
       args[i] = *dl;
     }
 
@@ -185,7 +187,7 @@ void test_depthwise_conv () {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
       args[i] = *dl;
     }
 
@@ -263,7 +265,7 @@ void test_transpose() {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
       args[i] = *dl;
     }
 
@@ -323,14 +325,16 @@ void test_take() {
       }
       std::cout << "\n";
     }
-
+    DLTensor* cpu_tensor;
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
       args[i] = *dl;
       if (i < params.num_inputs) {
-        int32_t *dldata = static_cast<int32_t*>(args[i].data);
-        memcpy(dldata, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
+        CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
+        memcpy(cpu_tensor->data, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
+        CVMArrayCopyFromTo(cpu_tensor, dl, nullptr);
+        CVMArrayFree(cpu_tensor);
       }
     }
 
@@ -340,8 +344,14 @@ void test_take() {
     auto op_slice = get_func(params, &attr, args, params.num_inputs);
     op_slice();
 
-    int32_t *dldata3 = static_cast<int32_t*>(args[params.num_inputs].data);
-    int ret =  memcmp(dldata3, tdata[params.num_inputs].data(), sizeof(int32_t) * tdata[params.num_inputs].size());
+    vector<int32_t> cpu_output_tensor(tdata[params.num_inputs].size());
+    {
+      int i = params.num_inputs; // first output
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
+      CVMArrayCopyFromTo(&args[i], cpu_tensor, nullptr);
+      CVMArrayFree(cpu_tensor);
+    }
+    int ret =  memcmp(cpu_output_tensor.data(), tdata[params.num_inputs].data(), sizeof(int32_t) * tdata[params.num_inputs].size());
     printf("match %d | %d\n", ret == 0, ret);
 
     if (true) {
@@ -352,7 +362,7 @@ void test_take() {
     std::cerr << "\n";
     std::cerr << "Got " << shapes_[0][0] << " " <<  shapes_[0][1] << " " << shapes_[0][2] << "\n";
     for (int c = 0; c < tdata[params.num_inputs].size() ; c++) {
-        std::cerr << dldata3[c] << " ";
+        std::cerr << cpu_output_tensor[c] << " ";
     }
     std::cerr << "\n";
     }
