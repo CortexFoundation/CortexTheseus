@@ -32,8 +32,8 @@ struct DenseParam : public utils::Parameter<DenseParam> {
   static const constexpr int kBias = 2;
 };
 
-struct CVMLUTParam : public utils::Parameter<CVMLUTParam> {
-	int in_dim;
+struct CVMLUTParam : public utils::Parameter<CVMLUTParam> {  
+  int in_dim;
   CVMUTIL_DECLARE_PARAMETER(CVMLUTParam) {
     CVMUTIL_DECLARE_FIELD(in_dim)
       .describe("In dimension indicates the inputs value range.");
@@ -42,8 +42,8 @@ struct CVMLUTParam : public utils::Parameter<CVMLUTParam> {
 
 
 struct CVMClipParam : public utils::Parameter<CVMClipParam> {
-	int precision;
-	bool is_sign;
+  int precision;
+  bool is_sign;
   CVMUTIL_DECLARE_PARAMETER(CVMClipParam) {
     CVMUTIL_DECLARE_FIELD(precision)
       .describe("Precision such that value out of range this will be clipped.");
@@ -53,30 +53,30 @@ struct CVMClipParam : public utils::Parameter<CVMClipParam> {
 };
 
 struct CVMLeftShiftParam : public utils::Parameter<CVMLeftShiftParam> {
-	int precision;
-	bool is_sign;
-	int shift_bit;
+  int precision;
+  bool is_sign;
+  int shift_bit;
   CVMUTIL_DECLARE_PARAMETER(CVMLeftShiftParam) {
     CVMUTIL_DECLARE_FIELD(precision)
       .describe("Precision such that value out of range this will be clipped.");
     CVMUTIL_DECLARE_FIELD(is_sign).set_default(true)
       .describe("Clip range is sign int or unsigned int.");
-		CVMUTIL_DECLARE_FIELD(shift_bit)
-			.describe("Left shift bit.");
+    CVMUTIL_DECLARE_FIELD(shift_bit)
+      .describe("Left shift bit.");
   }
 };
 
 struct CVMRightShiftParam : public utils::Parameter<CVMRightShiftParam> {
-	int precision;
-	bool is_sign;
-	int shift_bit;
+  int precision;
+  bool is_sign;
+  int shift_bit;
   CVMUTIL_DECLARE_PARAMETER(CVMRightShiftParam) {
     CVMUTIL_DECLARE_FIELD(precision)
       .describe("Precision such that value out of range this will be clipped.");
     CVMUTIL_DECLARE_FIELD(is_sign).set_default(true)
       .describe("Clip range is sign int or unsigned int.");
-		CVMUTIL_DECLARE_FIELD(shift_bit)
-			.describe("Left shift bit.");
+    CVMUTIL_DECLARE_FIELD(shift_bit)
+      .describe("Left shift bit.");
   }
 };
 

@@ -45,9 +45,8 @@ type TrustedCheckpoint struct {
 }
 
 var (
-	//CortexBlockRewardPeriod = big.NewInt(42048000)
 	CortexBlockRewardPeriod = big.NewInt(255228800)
-	//CortexBlockRewardPeriod = big.NewInt(1000)
+	CerebroBlockRewardPeriod = big.NewInt(1000000)
 )
 
 var (
@@ -176,7 +175,7 @@ type ChainConfig struct {
 	PetersburgBlock     *big.Int `json:"petersburgBlock,omitempty"`     // Petersburg switch block (nil = same as Constantinople)
 	EWASMBlock          *big.Int `json:"ewasmBlock,omitempty"`          // EWASM switch block (nil = no fork, 0 = already activated)
 	// Various consensus engines
-	Cuckoo *CuckooConfig `json:"ethash,omitempty"`
+	Cuckoo *CuckooConfig `json:"cuckoo,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
 }
 

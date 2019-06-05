@@ -38,7 +38,7 @@ const (
 // mineResult wraps the pow solution parameters for the specified block.
 type mineResult struct {
 	nonce     types.BlockNonce
-	mixDigest common.Hash
+	//mixDigest common.Hash
 	hash      common.Hash
 	solution  types.BlockSolution
 
@@ -57,7 +57,7 @@ type hashrate struct {
 // sealWork wraps a seal work package for remote sealer.
 type sealWork struct {
 	errc chan error
-	res  chan [3]string
+	res  chan [4]string
 }
 
 // compatiable with cuckoo interface
@@ -236,19 +236,6 @@ func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
 			Service:   &API{cuckoo},
 			Public:    true,
 		},
-		// {
-		// 	Namespace: "ethash",
-		// 	Version:   "1.0",
-		// 	Service:   &API{cuckoo},
-		// 	Public:    true,
-		// },
-
-		// {
-		// 	Namespace: "ctx",
-		// 	Version:   "1.0",
-		// 	Service:   &API{cuckoo},
-		// 	Public:    true,
-		// },
 	}
 }
 

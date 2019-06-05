@@ -4,6 +4,7 @@
 #include <math.h>
 #include <memory>
 #include <string.h>
+#include "nms.h"
 
 inline int32_t getShareMemorySize(int32_t device_id){
     static int32_t sharedMemPerBlock = 0;
@@ -45,6 +46,18 @@ const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, int32_t n, boo
         cudaFree(dev_b);
         cudaFree(dev_c);
     }
+    return check_cuda_error(cudaGetLastError());
+}
+__global__ void kernel_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, int32_t n){
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < n)
+        c[i] = a[i] - b[i];
+}
+
+const char* cuda_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, int32_t n){
+    int blockSize = 256;
+    int gridSize = (n + blockSize - 1) / blockSize;
+    kernel_elemwise_sub<<<gridSize, blockSize>>>(a, b, c, n);
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -878,7 +891,8 @@ const char* cuda_broadcast_add(const int32_t *a, const int32_t *b, int32_t* c,
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-        bool debug){
+        bool debug)
+{
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1552,9 +1566,405 @@ const char* cuda_concatenate(const int32_t *input, const int64_t *ishape, const 
     return check_cuda_error(cudaGetLastError());
 }
 
-__global__ void kernel_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t axis, const int64_t ysize, 
-        const int64_t *xshape, const int64_t *indices_shape, const int64_t *yshape, const int32_t yndim, const int32_t xndim, const int32_t indices_ndim){
+__global__ void kernel_bias_add(const int32_t *x_data, const int32_t * bias_data, int32_t *y_data, 
+        int64_t ysize, const int64_t *yshape, const int32_t ndim, const int32_t axis){
+    int32_t i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < ysize){
+        int32_t bV = 0;
+        for(int32_t j = ndim - 1; j >= 0; j--){
+            if(j == axis){
+                bV = bias_data[axis];
+                break;
+            }
+        }
+        y_data[i] = x_data[i] + bV;
+    }
+}
+const char* cuda_bias_add(const int32_t *x_data, const int32_t * bias_data, int32_t *y_data, 
+        int64_t ysize, const int64_t *yshape, const int32_t ndim, const int32_t axis){
+    int64_t *dev_yshape;
+    cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * ndim);
+    cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
+
+    int bSize = 256;
+    int gSize = (ysize + bSize - 1) / bSize;
+    kernel_bias_add<<<gSize, bSize>>>(x_data, bias_data, y_data, ysize, dev_yshape, ndim, axis);
+
+    cudaFree(dev_yshape);
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
+        const int64_t *yshape, const int64_t ysize, const int32_t ndim, const int32_t axis, 
+        const int32_t repeat){
+    int32_t i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < ysize){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0;
+        for(int j = ndim-1; j >= 0; j--){
+            uint64_t col = o_i % yshape[j];
+            o_i /= yshape[j];
+            if(j == axis) col = col / repeat;
+            in_i += (j == ndim-1 ? col : col * shapeSize);
+            shapeSize = (j == ndim-1 ? xshape[j] : shapeSize * xshape[j]);
+        }
+        y_data[i] = x_data[in_i];
+    }
+}
+void print_to_file(const int32_t *y, int32_t n, char*filename){
+    int32_t *y_data = new int32_t[n];
+    cudaMemcpy(y_data, y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
+
+    FILE *fp = fopen(filename, "a+");
+    
+    int32_t min = y_data[0], max= y_data[0];
+    for(uint64_t i = 0; i < n; i++){
+        min = min > y_data[i] ? y_data[i] : min;
+        max = max < y_data[i] ? y_data[i] : max;
+    }
+    fprintf(fp, "%d %d\n", min, max);
+    for(uint64_t i = 0; i < 20 && i < n; i++){
+        fprintf(fp, "%d ", y_data[i]);
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
+    delete y_data;
+}
+const char* cuda_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
+        const int64_t *yshape, const int64_t ysize, const int32_t xndim, const int32_t yndim, 
+        const int32_t axis, const int32_t repeat){
+    int64_t *dev_xshape, *dev_yshape;
+    cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
+    cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
+    cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * xndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * xndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * yndim, cudaMemcpyHostToDevice);
+
+    int bSize = 256;
+    int gSize = (ysize + bSize - 1) / bSize;
+    kernel_repeat<<<gSize, bSize>>>(x_data, y_data, dev_xshape, dev_yshape, ysize, yndim, axis, repeat);
+
+    cudaFree(dev_xshape);
+    cudaFree(dev_yshape);
+
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_upsampling_nearest(const int32_t *x_data, int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw,
+        const int32_t oh, const int32_t ow){
+    int ox = threadIdx.x;
+    int oy = threadIdx.y;
+    int channel = blockIdx.x;
+
+    for(int r = oy; r < oh; r += blockDim.y){
+        for(int c = ox; c < ow; c += blockDim.x){
+            y_data[channel * oh * ow + r * ow + c] = x_data[channel * ih * iw + r/scale * iw + c/scale];
+        }
+    }
+}
+
+const char* cuda_upsampling_nearest(const int32_t *x_data, int32_t *y_data, const int32_t scale, const int32_t ih, const int32_t iw, 
+        const int32_t oh, const int32_t ow, const int32_t batch, const int32_t channel){
+    dim3 block(1, 32, 32);
+    int grid =  channel;
+
+    for(int i = 0; i < batch; i++){
+        kernel_upsampling_nearest<<<grid, block>>>(x_data + i*channel*ih*iw, 
+                y_data + i*channel*oh*ow, 
+                scale, ih, iw, oh, ow);
+    }
+    print_to_file(y_data, batch * channel * oh * ow, "/tmp/zkh/cuda_upsampliing.txt");
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_negative(const int32_t *x_data, int32_t *y_data, int32_t n){
     int i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < n){
+        y_data[i] = -x_data[i];
+    }
+}
+const char* cuda_negative(const int32_t *x_data, int32_t *y_data, int32_t n){
+    int threadSize = 256;
+    int blockSize = (n + threadSize - 1) / threadSize;
+    kernel_negative<<<blockSize, threadSize>>>(x_data, y_data, n);
+    return check_cuda_error(cudaGetLastError());
+}
+
+
+__global__ void kernel_tile(const int32_t *x_data, int32_t *y_data, const int32_t ysize, const int32_t yndim, const int32_t xndim,
+        const int64_t *xshape, const int64_t *yshape){
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if(i < ysize){
+       uint64_t o_i = i, in_i = 0, shapeSize = 0;
+       for(int j = xndim-1; j >= 0; j--){
+            int yj = j + yndim - xndim;
+            int col = o_i % yshape[yj];
+            o_i /= yshape[yj];
+            col = col % xshape[j];
+            in_i += (j == xndim-1 ? col : col * shapeSize);
+            shapeSize = (j == xndim-1 ? xshape[j] : shapeSize * xshape[j]);
+       }
+       y_data[i] = x_data[in_i];
+    }
+}
+const char* cuda_tile(const int32_t *x_data, int32_t *y_data, const int32_t ysize, const int32_t yndim, const int32_t xndim,
+        const int64_t *xshape, const int64_t *yshape){
+    uint64_t tmp_y_size = 1;
+    for(int i = 0; i < xndim; i++){
+        tmp_y_size *= yshape[i + yndim - xndim];
+    }
+
+    int64_t *dev_xshape, *dev_yshape;
+    cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
+    cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
+    cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * xndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * yndim, cudaMemcpyHostToDevice);
+    
+    int threadSize = 256;
+    int blockSize = (tmp_y_size + threadSize - 1) / threadSize;
+    kernel_tile<<<blockSize, threadSize>>>(x_data, y_data, tmp_y_size, yndim, xndim, dev_xshape, dev_yshape);
+
+    uint64_t othery = 1;
+    for(int i = 0; i < yndim-xndim; i++){
+        othery *= yshape[i];
+    }
+    for(size_t i = 1; i < othery; i++){
+        cudaMemcpy(y_data + i*tmp_y_size, y_data, tmp_y_size * sizeof(int32_t), cudaMemcpyDeviceToDevice);
+    }
+    return check_cuda_error(cudaGetLastError());
+}
+
+const char *cuda_expand_dims(const int32_t *ishape_data, int32_t *oshape_data, const int32_t axis, const int32_t n){
+    if(oshape_data == ishape_data){
+        return NULL;
+    }
+    cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    return check_cuda_error(cudaGetLastError());
+}
+
+const char *cuda_squeeze(const int32_t *ishape_data, int32_t *oshape_data, const int32_t n){
+    if(oshape_data == ishape_data){
+        return NULL;
+    }
+    // cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_transpose(const int32_t *x_data, const int64_t *axes_data, int32_t *y_data, 
+        const int64_t *xshape, const int64_t *yshape, const int32_t ndim, const int32_t ysize, 
+        const int32_t axes_ndim){
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < ysize){
+        uint64_t in_i = 0, o_i = i;
+        for(int j = ndim-1; j >= 0; j--){
+            uint64_t col = o_i % yshape[j];
+            o_i /= yshape[j];
+            int xj = j;
+            if(axes_ndim > 0){
+                xj = axes_data[j];
+            }else{
+                if(j == ndim-1) xj = 0;
+                if(j == 0) xj = ndim-1;
+            }
+            int xi = 1;
+            for(int tx = ndim-1; tx > xj; tx--){
+                xi *= xshape[tx];
+            }
+            in_i += col * xi;
+        }
+        y_data[i] = x_data[in_i];
+    }
+}
+const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int32_t *y_data, 
+        const int64_t *xshape, const int64_t *yshape, const int32_t ndim, const int32_t ysize,
+        const int32_t axes_ndim){
+    int64_t *dev_xshape, *dev_yshape, *dev_axes;
+    cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * ndim);
+    cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * ndim);
+    cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
+    if(axes_ndim > 0){
+        cudaMalloc((void**)&dev_axes, sizeof(int64_t) * axes_ndim);
+        cudaMemcpy(dev_axes, axes_data, sizeof(int64_t) * axes_ndim, cudaMemcpyHostToDevice);
+    }
+
+    int threadSize = 256;
+    int blockSize = (ysize + threadSize - 1) / threadSize;
+    kernel_transpose<<<blockSize, threadSize>>>(x_data, dev_axes, y_data, dev_xshape, dev_yshape, ndim, ysize, axes_ndim);
+    cudaFree(dev_xshape);
+    cudaFree(dev_yshape);
+    if(axes_ndim > 0){
+        cudaFree(dev_axes);
+    }
+
+    print_to_file(y_data, ysize, "/tmp/tian/transpose_cuda.txt");
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_stride_slice(const int32_t *x_data, int32_t *y_data, const int64_t *begin_data,
+        const int64_t *step_data, const int64_t *xshape, const int64_t *yshape, 
+        const int32_t step_ndim, const int32_t y_ndim, const int32_t ysize){
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < ysize){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0;
+        for(int j = y_ndim-1; j >= 0; j--){
+            uint64_t col = o_i % yshape[j];
+            o_i /= yshape[j];
+            if(step_ndim == 0){
+                col += (begin_data[j] < 0 ? begin_data[j] + xshape[j] : begin_data[j]);
+            }else{
+                col += (begin_data[j] < 0 ? begin_data[j] + xshape[j] : begin_data[j]) + (step_data[j] < 0 ? step_data[j] + xshape[j] : step_data[j]);
+            }
+            col %= xshape[j];
+            in_i += (j == y_ndim-1 ? col : col * shapeSize);
+            shapeSize = (j == y_ndim-1 ? xshape[j] : shapeSize * xshape[j]);
+        }
+        y_data[i] = x_data[in_i];
+    }
+}
+const char* cuda_stride_slice(const int32_t *x_data, int32_t *y_data, const int64_t *begin_data,
+        const int64_t *step_data, const int64_t *xshape, const int64_t *yshape, 
+        const int32_t step_ndim, const int32_t y_ndim, const int32_t ysize, const int32_t x_ndim){
+    int64_t *dev_xshape, *dev_yshape, *dev_begin, *dev_step;
+    cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * x_ndim);
+    cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * y_ndim);
+    cudaMalloc((void**)&dev_begin, sizeof(int64_t) * y_ndim);
+    cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * x_ndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * y_ndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_begin, begin_data, sizeof(int64_t) * y_ndim, cudaMemcpyHostToDevice);
+    if(step_ndim > 0){
+        cudaMalloc((void**)&dev_step, sizeof(int64_t) * step_ndim);
+        cudaMemcpy(dev_step, step_data, sizeof(int64_t) * step_ndim, cudaMemcpyHostToDevice);
+    }
+
+    int threadSize = 256;
+    int blockSize = (ysize + threadSize - 1) / threadSize;
+    kernel_stride_slice<<<blockSize, threadSize>>>(x_data,  y_data, dev_begin, dev_step, 
+            dev_xshape, dev_yshape, step_ndim, y_ndim, ysize);
+    cudaFree(dev_xshape);
+    cudaFree(dev_yshape);
+    cudaFree(dev_begin);
+    if(step_ndim > 0){
+        cudaFree(dev_step);
+    }
+
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_slice_like(const int32_t *x_data, int32_t *y_data, const int64_t *xshape, const int64_t *yshape,
+        const int32_t ysize, const int32_t ndim){
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if(i < ysize){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0;
+        for(int j = ndim-1; j >= 0; j--){
+            int col = o_i % yshape[j];
+            o_i /= yshape[j];
+            in_i += (j == ndim-1 ? col : col * shapeSize);
+            shapeSize = (j == ndim-1 ? xshape[j] : shapeSize * xshape[j]);
+        }
+        y_data[i] = x_data[in_i];
+    }
+}
+const char* cuda_slice_like(const int32_t *x_data, int32_t *y_data, const int64_t *xshape, const int64_t *yshape,
+        const int32_t ysize, const int32_t ndim){
+    int64_t *dev_xshape, *dev_yshape;
+    cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * ndim);
+    cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * ndim);
+    cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_yshape, xshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
+    
+    int threadSize = 256;
+    int blockSize = (ysize + threadSize - 1) / threadSize;
+    kernel_slice_like<<<blockSize, threadSize>>>(x_data, y_data, dev_xshape, dev_yshape, ysize, ndim);
+
+    cudaFree(dev_xshape);
+    cudaFree(dev_yshape);
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_get_valid_count(const int32_t *input, bool *saved, const int32_t n, const int32_t k, const int32_t score_threshold){
+    int j = threadIdx.x + blockIdx.x * blockDim.x;
+    if(j < n){
+        const int32_t *row = input + j * k;
+        saved[j] = row[1] > score_threshold ? 1 : 0;
+    }
+}
+const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_t *valid_count_data,
+        const int32_t n, const int32_t k,
+        const int32_t score_threshold, const int32_t batchs){
+    
+    int32_t *host_count = new int32_t[batchs];
+    bool *saved = new bool[n];
+    bool *dev_saved;
+    cudaMalloc((void**)&dev_saved, sizeof(bool)*n);
+
+    for(int32_t i = 0; i < batchs; i++){
+        int32_t y_index = 0;
+        const int32_t *input = x_data + i * n * k;
+        int32_t *output = y_data + i * n * k;
+
+        int threadSize = 256;
+        int blockSize = (n + threadSize - 1) / threadSize;
+        kernel_get_valid_count<<<blockSize, threadSize>>>(input, dev_saved, n, k, score_threshold);
+        cudaMemcpy(saved, dev_saved, sizeof(bool) * n, cudaMemcpyDeviceToHost);
+
+        for(int32_t j = 0; j < n; j++){
+            const int32_t *row = input + j * k;
+            if(saved[j]){
+                cudaMemcpy(&output[y_index * k], row, k * sizeof(int32_t), cudaMemcpyDeviceToDevice);
+                y_index += 1;
+            }
+        }
+        host_count[i] = y_index;
+        //valid_count_data[i] = y_index;
+        if(y_index < n){
+            cudaMemset(&output[y_index * k], -1, (n-y_index) * k * sizeof(int32_t));
+        }
+    }
+    cudaMemcpy(valid_count_data, host_count, sizeof(int32_t) * batchs, cudaMemcpyHostToDevice);
+    cudaFree(dev_saved);
+    delete saved;
+    delete host_count;
+
+    /*
+    int32_t *h_x = new int32_t[batchs * n * k];
+    int32_t *h_vc = new int32_t[batchs];
+    int32_t *h_y = new int32_t[batchs * n * k];
+    cudaMemcpy(h_x, x_data, batchs*n*k*sizeof(int32_t), cudaMemcpyDeviceToHost);
+    get_valid_count(h_x, h_y, h_vc, batchs, n, k, score_threshold);
+    cudaMemcpy(y_data, h_y, batchs*n*k*sizeof(int32_t), cudaMemcpyHostToDevice);
+    cudaMemcpy(valid_count_data, h_vc, batchs*sizeof(int32_t), cudaMemcpyHostToDevice);
+    delete h_x;
+    delete h_vc;
+    delete h_y;
+    */
+    return check_cuda_error(cudaGetLastError());
+}
+
+const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_count_data, int32_t *d_y_data, const int32_t batchs, const int32_t n, const int32_t k,
+        const int32_t max_output_size, const int32_t iou_threshold, const int32_t topk, 
+        const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress){
+    int32_t *x_data = new int32_t[batchs * n * k];
+    int32_t *valid_count_data = new int32_t[batchs];
+    int32_t *y_data = new int32_t[batchs * n * k];
+    cudaMemcpy(x_data, d_x_data, batchs*n*k*sizeof(int32_t), cudaMemcpyDeviceToHost);
+    cudaMemcpy(valid_count_data, d_valid_count_data, batchs*sizeof(int32_t), cudaMemcpyDeviceToHost);
+
+    non_max_suppression(
+            x_data, valid_count_data, y_data, batchs, n, k,
+            max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
+
+    cudaMemcpy(d_y_data, y_data, batchs * n * k * sizeof(int32_t), cudaMemcpyHostToDevice);
+    delete x_data;
+    delete valid_count_data;
+    delete y_data;
+    return check_cuda_error(cudaGetLastError());
+}
+
+
+__global__ void kernel_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, 
+        const int64_t *xshape, const int64_t *yshape, const int64_t *indices_shape, const int32_t yndim,
+        const int32_t xndim, const int32_t indices_ndim, const int32_t ysize, const int32_t axis){
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
     if(i < ysize){
         uint64_t o_i = i, x_i = 0, indices_i = 0, x_shape_size = 0, indices_shape_size = 0;
         for(int32_t j = yndim - 1, k = indices_ndim-1; j>=axis; j--){
@@ -1577,7 +1987,7 @@ __global__ void kernel_take(const int32_t *x_data, const int32_t *indices_data, 
             x_shape_size = (j == yndim-1 ? xshape[k] : x_shape_size * xshape[k]);
         }
 
-        uint64_t x_indices_i = indices_data[indices_i];
+        uint64_t x_indices_i = min(max(indices_data[indices_i], 0), (int32_t)xshape[k]);
         x_i += (x_shape_size == 0 ? x_indices_i : x_indices_i * x_shape_size);
         x_shape_size = (x_shape_size == 0 ? xshape[k] : x_shape_size * xshape[k]);
         --k;
@@ -1595,21 +2005,38 @@ __global__ void kernel_take(const int32_t *x_data, const int32_t *indices_data, 
         y_data[i] = x_data[x_i];
     }
 }
-
-const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t axis, const int64_t ysize, 
-        const int64_t *xshape, const int64_t *indices_shape, const int64_t *yshape, const int32_t yndim, const int32_t xndim, const int32_t indices_ndim){
-
-    int64_t *dev_xshape, *dev_indices_shape, *dev_yshape;
+const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, 
+        const int64_t *xshape, const int64_t *yshape, const int64_t *indices_shape, const int32_t yndim,
+        const int32_t xndim, const int32_t indices_ndim, const int32_t ysize, const int32_t axis){
+    int64_t *dev_xshape, *dev_yshape, *dev_indices_shape;
     cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
-    cudaMalloc((void**)&dev_indices_shape, sizeof(int64_t) * indices_ndim);
     cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
+    cudaMalloc((void**)&dev_indices_shape, sizeof(int64_t) * indices_ndim);
+    cudaMemcpy(dev_xshape, xshape, sizeof(int64_t)*xndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_yshape, yshape, sizeof(int64_t)*yndim, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_indices_shape, indices_shape, sizeof(int64_t)*indices_ndim, cudaMemcpyHostToDevice);
 
-    int bSize = 256;
-    int gSize = (ysize + bSize - 1) / bSize;
-    kernel_take<<<gSize, bSize>>>(x_data, indices_data, y_data, axis, ysize, dev_xshape, dev_indices_shape, dev_yshape, yndim, xndim, indices_ndim);
+    int threadSize = 256;
+    int blockSize = (ysize + threadSize - 1) / threadSize;
+    kernel_take<<<blockSize, threadSize>>>(x_data, indices_data, y_data, dev_xshape, dev_yshape, dev_indices_shape,
+            yndim, xndim, indices_ndim, ysize, axis);
 
     cudaFree(dev_xshape);
-    cudaFree(dev_indices_shape);
     cudaFree(dev_yshape);
+    cudaFree(dev_indices_shape);
+    return check_cuda_error(cudaGetLastError());
+}
+
+__global__ void kernel_take_noaxis(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t ysize){
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if(i < ysize){
+        y_data[i] = x_data[indices_data[i]];
+    }
+}
+const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const int32_t ysize){
+    int threadSize = 256;
+    int blockSize = (ysize + threadSize - 1) / threadSize;
+    kernel_take_noaxis<<<blockSize, threadSize>>>(x_data, indices_data, y_data, ysize);
+
     return check_cuda_error(cudaGetLastError());
 }

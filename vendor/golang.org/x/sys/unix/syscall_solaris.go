@@ -263,7 +263,7 @@ func Wait4(pid int, wstatus *WaitStatus, options int, rusage *Rusage) (int, erro
 
 //sys	cortexostname(buf []byte) (n int, err error)
 
-func Gethostname() (name string, err error) {
+func Ctxcostname() (name string, err error) {
 	var buf [MaxHostNameLen]byte
 	n, err := cortexostname(buf[:])
 	if n != 0 {

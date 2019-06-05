@@ -32,10 +32,14 @@ cortex: clib
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 bootnode:
-	build/env.sh go run build/ci.go install -cpu_miner ./cmd/bootnode
+	build/env.sh go run build/ci.go install ./cmd/bootnode
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-	#mv ./build/bin/bootnode ./build/bin/bootnode
+	@echo "Run \"$(GOBIN)/bootnode\" to launch cortex bootnode."
+
+torrent:
+	build/env.sh go run build/ci.go install ./cmd/torrentfs
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 
 cortex-remote: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
@@ -79,12 +83,12 @@ plugins/opencl_helper_for_node.so:  PoolMiner/miner/libcuckoo/libopenclminer.a
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/opencl_helper_for_node.go
 
 plugins/cuda_cvm.so:
-	cmake -S infernet/ -B infernet/build/gpu -D USE_CUDA=ON
+	cmake -S infernet/ -B infernet/build/gpu -DUSE_CUDA=ON
 	make -C ${INFER_NET_DIR} -j8
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cuda_plugin.go
 
 plugins/cpu_cvm.so:
-	cmake -S infernet/ -B infernet/build/cpu -D USE_CUDA=OFF
+	cmake -S infernet/ -B infernet/build/cpu -DUSE_CUDA=OFF
 	make -C ${INFER_NET_DIR} -j8
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
 
@@ -104,7 +108,7 @@ android:
 ios:
 	build/env.sh go run build/ci.go xcode --local
 	@echo "Done building."
-	@echo "Import \"$(GOBIN)/Geth.framework\" to use the library."
+	@echo "Import \"$(GOBIN)/Ctxc.framework\" to use the library."
 
 test: all
 	build/env.sh go run build/ci.go test

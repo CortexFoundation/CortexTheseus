@@ -138,13 +138,20 @@ public:
     }
   }
 
-  void add_edge(word_t u, word_t v) {
-    assert(u < MAXNODES);
-    assert(v < MAXNODES);
+  int add_edge(word_t u, word_t v) {
+  //  assert(u < MAXNODES);
+  //  assert(v < MAXNODES);
+    if(u >= MAXNODES || v >= MAXNODES){
+        return -1;
+    }
     v += MAXNODES; // distinguish partitions
     if (adjlist[u] != NIL && adjlist[v] != NIL) { // possibly part of a cycle
       sols[nsols][0] = nlinks/2;
-      assert(!visited.test(u));
+     // assert(!visited.test(u));
+      if(visited.test(u)) {
+          printf("u has visited..........\n");
+          return -1;
+      }
       cycles_with_link(1, u, v);
     }
     word_t ulink = nlinks++;
@@ -154,9 +161,10 @@ public:
     links[vlink].next = adjlist[v];
     links[adjlist[u] = ulink].to = u;
     links[adjlist[v] = vlink].to = v;
+    return 0;
   }
 
-  void add_compress_edge(word_t u, word_t v) {
-    add_edge(compressu->compress(u), compressv->compress(v));
+  int add_compress_edge(word_t u, word_t v) {
+    return add_edge(compressu->compress(u), compressv->compress(v));
   }
 };

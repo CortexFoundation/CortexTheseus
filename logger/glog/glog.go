@@ -123,7 +123,7 @@ var severityName = []string{
 // matching vmodule filters.
 var trimPrefixes = []string{
 	"/github.com/CortexFoundation/CortexTheseus",
-	"/github.com/cortex/ethash",
+	"/github.com/cortex/cuckoo",
 }
 
 func trimToImportPath(file string) string {

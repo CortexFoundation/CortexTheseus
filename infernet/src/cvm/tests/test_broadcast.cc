@@ -55,12 +55,13 @@ int main(){
     int o_index = -1;
     for(int i = 0; i < 3*1*3*3; i++){
         o_index = broadcast_o_index(cshape, 4, o_index);
-        cout << "o_index: ";
-        print(o_index, cshape);
+        //cout << "o_index: ";
+        //print(o_index, cshape);
         int a_index = broadcast_i_index(cshape, o_index, ashape, 4);
-        cout << "a_index: ";
-        print(a_index, ashape);
+        //cout << "a_index: ";
+        //print(a_index, ashape);
         int b_index = broadcast_i_index(cshape, o_index, bshape, 4);
+        cout << o_index << endl;
     }
     return 0;
 }

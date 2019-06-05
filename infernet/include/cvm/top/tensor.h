@@ -45,10 +45,10 @@ struct RepeatParam : public utils::Parameter<RepeatParam> {
 };
 
 struct TileParam : public utils::Parameter<TileParam> {
-  Tuple<int> reps;
+  TShape reps;
 
   CVMUTIL_DECLARE_PARAMETER(TileParam) {
-    CVMUTIL_DECLARE_FIELD(reps)
+    CVMUTIL_DECLARE_FIELD(reps).set_default(TShape{0})
       .describe("The number of times for repeating the tensor a."
                 "Each dim sizeof reps must be a positive integer.");
   }
@@ -57,14 +57,14 @@ struct TileParam : public utils::Parameter<TileParam> {
 
 struct SplitParam : public utils::Parameter<SplitParam> {
   // numpy convention, only support indices, not support list.
-  Tuple<int> indices_or_sections;
+  TShape indices_or_sections;
   int axis;
   // additional hint whether it is equal_split mode
   // deduced from indices_or_sections
   bool equal_split;
 
   CVMUTIL_DECLARE_PARAMETER(SplitParam) {
-    CVMUTIL_DECLARE_FIELD(indices_or_sections)
+    CVMUTIL_DECLARE_FIELD(indices_or_sections).set_default(TShape{0})
         .describe("Number of outputs to be splitted");
     CVMUTIL_DECLARE_FIELD(axis).set_default(1)
         .describe("the axis to be splitted.");
@@ -83,16 +83,16 @@ struct TakeParam : public utils::Parameter<TakeParam> {
 
 struct StridedSliceParam : public utils::Parameter<StridedSliceParam> {
   // numpy convention, only support indices, not support list.
-  Tuple<int64_t> begin;
-  Tuple<int64_t> end;
-  Tuple<int64_t> stride;
+  TShape begin;
+  TShape end;
+  TShape stride;
 
   CVMUTIL_DECLARE_PARAMETER(StridedSliceParam) {
-    CVMUTIL_DECLARE_FIELD(begin)
+    CVMUTIL_DECLARE_FIELD(begin).set_default(TShape{0})
         .describe("Indices for begin of slice");
-    CVMUTIL_DECLARE_FIELD(end)
+    CVMUTIL_DECLARE_FIELD(end).set_default(TShape{1})
         .describe("Indices for end of the slice");
-    CVMUTIL_DECLARE_FIELD(stride).set_default(Tuple<int64_t>())
+    CVMUTIL_DECLARE_FIELD(stride).set_default(TShape{})
         .describe("Stride values of the slice");
   }
 };

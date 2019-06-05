@@ -29,15 +29,6 @@
 namespace cvm {
 namespace runtime {
 
-template<class T>
-void CVMPrint(std::vector<T> data, std::string name = "") {
-    std::cout << name << " = [";
-    for (auto x: data) {
-        std::cout << x << " ";
-    }
-    std::cout << "]\n";
-}
-
 /*!
  * \brief Run all the operations one by one.
  */
@@ -47,6 +38,7 @@ void CvmRuntime::Run() {
     if (op_execs_[i]) op_execs_[i]();
   }
 }
+
 /*!
  * \brief Initialize the graph executor with graph and context.
  * \param graph_json The execution graph.
@@ -88,7 +80,7 @@ void CvmRuntime::GetShape(int index, DLTensor* t) {
   VERIFY_LE(index, attrs_.shape.size());
   auto shape = attrs_.shape[index];
   t->ndim = shape.size();
-  if (t->shape)  delete t->shape;
+  if (t->shape) delete t->shape;
   t->shape = new int64_t[t->ndim];
   for (int i = 0; i < t->ndim; ++i) {
     t->shape[i] = shape[i];
@@ -155,6 +147,16 @@ NDArray CvmRuntime::GetOutput(int index) const {
   VERIFY_LT(static_cast<size_t>(index), outputs_.size());
   uint32_t eid = this->entry_id(outputs_[index]);
   return data_entry_[eid];
+}
+
+int CvmRuntime::GetOutputPrecision() {
+  int ret = 0;
+  for (unsigned int index = 0; index < outputs_.size(); ++index) {
+    uint32_t eid = this->entry_id(outputs_[index]);
+    int precision = attrs_.precision[eid];
+    ret = std::max(ret, precision);
+  }
+  return ret;
 }
 
 int CvmRuntime::GetOutputNum() {
@@ -235,9 +237,13 @@ void CvmRuntime::PlanStorage() {
       device_type = attrs_.device_index[i];
     }
     size_t size = 1;
+    int len = 0;
     for (int64_t sz : attrs_.shape[i]) {
+      VERIFY_LE(sz, 0x7fffffffll);
+      len += 32 - __builtin_clz(static_cast<unsigned>(sz));
       size *= static_cast<size_t>(sz);
     }
+    VERIFY_LE(len, 48);
     VERIFY_GE(storage_id, 0) << "Do not support runtime shape op";
     DLDataType t = vtype[i];
     size_t bits = t.bits * t.lanes;
@@ -261,6 +267,7 @@ int64_t CvmRuntime::GetStorageSize() {
   int64_t ret = 0;
   for (const auto& pit : pool_entry) {
     ret += (static_cast<int64_t>(pit.size + 3) / 4) * 4;
+    VERIFY_LE(ret, 0x0000ffffffffffffull);
   }
   return ret;
 }
@@ -315,7 +322,7 @@ void CvmRuntime::SetupOpExecs() {
       args.push_back(*(data_entry_[eid].operator->()));
     }
     VERIFY(inode.op_type == "cvm_op") << "Can only take cvm_op as op";
-
+    // std::cerr << inode.name << "\n";
     op_execs_[nid] = CreateCVMOp(inode.param, &inode.attrs, args, inode.inputs.size());
   }
 }
@@ -448,6 +455,19 @@ PackedFunc CvmRuntime::GetFunction(
         }
         CALL_END();
       });
+  } else if (name == "get_output_precision") {
+    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kHandle) {
+          void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
+          auto precision = this->GetOutputPrecision();
+          *static_cast<int32_t*>(placeholder) = precision;
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
   } else if (name == "get_output_num") {
     return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
@@ -455,7 +475,8 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           auto num_output = this->GetOutputNum();
-          *static_cast<int64_t*>(placeholder) = num_output;
+          std::cerr << " #output" << num_output << "\n";
+          *static_cast<int32_t*>(placeholder) = num_output;
         } else {
           *rv = -1;
         }
