@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	//"github.com/CortexFoundation/CortexTheseus/core/types"
-	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
@@ -156,8 +156,8 @@ func (cuckoo *Cuckoo) remote() {
 	//   result[0], 32 bytes hex encoded current block header pow-hash
 	//   result[1], 32 bytes hex encoded seed hash used for DAG
 	//   result[2], 32 bytes hex encoded boundary condition ("target"), 2^256/difficulty
-	getWork := func() ([3]string, error) {
-		var res [3]string
+	getWork := func() ([4]string, error) {
+		var res [4]string
 		if currentWork == nil {
 			return res, errNoMiningWork
 		}
@@ -170,6 +170,7 @@ func (cuckoo *Cuckoo) remote() {
 		n.Div(n, currentWork.Difficulty())
 		n.Lsh(n, 1)
 		res[2] = common.BytesToHash(n.Bytes()).Hex()
+		res[3] = hexutil.EncodeBig(currentWork.Number())
 		// Trace the seal work fetched by remote sealer.
 		works[cuckoo.SealHash(currentWork.Header())] = currentWork
 		return res, nil

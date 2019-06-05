@@ -57,7 +57,7 @@ type hashrate struct {
 // sealWork wraps a seal work package for remote sealer.
 type sealWork struct {
 	errc chan error
-	res  chan [3]string
+	res  chan [4]string
 }
 
 // compatiable with cuckoo interface
