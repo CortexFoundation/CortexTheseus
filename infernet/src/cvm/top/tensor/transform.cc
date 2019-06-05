@@ -90,7 +90,7 @@ inline bool TileShape(const cvm::NodeAttrs& attrs,
     CHECK_GT(reps[i], 0)
         << "Tile reps value should always be larger than 0, but get: " << reps[i];
   }
-  
+
   uint32_t odim = std::max(sdim, rdim);
   std::vector<int64_t> oshape(odim);
   for (size_t i = 0; i < odim; ++i) {
@@ -482,7 +482,7 @@ CVM_REGISTER_OP(cast)
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseArbitraryLayout<1, 1>)
 .set_num_inputs(1)
 .set_num_outputs(1)
-.set_attr<FInferPrecision>("FInferPrecision", 
+.set_attr<FInferPrecision>("FInferPrecision",
   [](const NodeAttrs& attrs,
    std::vector<TShape>* shapes,
    std::vector<int>* iattr,
@@ -922,7 +922,7 @@ inline bool StridedSliceInferShape(const NodeAttrs& attrs,
   return true;
 }
 
-CVM_REGISTER_OP(strided_slice)
+CVM_REGISTER_OP(slice)
 .describe(R"code(Strided slice of an array.
 
 Examples::
@@ -946,6 +946,7 @@ Examples::
                                                 [[ 5.,  6.],
                                                  [ 7.,  8.]]]
 )code" CVM_ADD_FILELINE)
+.add_alias("strided_slice")
 .add_argument("data", "Tensor", "Array to be sliced")
 .add_arguments(StridedSliceParam::__FIELDS__())
 .set_attr_parser(StridedSliceParamParser)

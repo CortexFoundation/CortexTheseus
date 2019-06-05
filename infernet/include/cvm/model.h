@@ -20,13 +20,18 @@ namespace runtime {
 extern double transpose_int8_avx256_transpose_cnt;
 extern double transpose_int8_avx256_gemm_cnt;
 extern double im2col_cnt;
-extern double cvm_op_rightshift_cnt;
+extern double cvm_op_cvm_shift_cnt;
 extern double cvm_op_clip_cnt;
 extern double cvm_op_dense_cnt;
 extern double cvm_op_maxpool_cnt;
 extern double cvm_op_broadcast_cnt;
 extern double cvm_op_concat_cnt;
 extern double cvm_op_upsampling_cnt;
+extern double cvm_op_inline_matmul_cnt;
+extern double cvm_op_elemwise_cnt;
+extern double cvm_op_chnwise_conv_cnt;
+extern double cvm_op_chnwise_conv1x1_cnt;
+extern double cvm_op_depthwise_conv_cnt;
 
 struct CVMModel {
 public:
@@ -39,6 +44,7 @@ public:
   int GetOutputLength();
   int64_t GetStorageSize();
   int64_t GetOps();
+  int GetSizeofOutput();
   int Run(DLTensor* input, std::vector<DLTensor*> output);
   DLTensor* PlanInput();
   DLTensor* PlanInput(char*);
@@ -58,8 +64,9 @@ private:
   Module module_;
   int64_t in_size_;
   int64_t *out_size_;
-  int64_t out_num_;
+  int32_t out_num_;
   int64_t model_id_;
+  bool is_output_int32;
   std::vector<int> dims_;
   std::vector<int64_t*> shapes_;
   int dtype_code{kDLInt};

@@ -42,10 +42,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     if (init()) {
       return;
     }
-    auto setup = module_.GetFunction("setup");
-    if (setup()) {
-      return;
-    }
   } else {
     return;
   }
@@ -55,12 +51,26 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   run_ = module_.GetFunction("run");
   get_ops_ = module_.GetFunction("get_ops");
   get_storage_size_ = module_.GetFunction("get_storage_size");
+  auto storage_size = GetStorageSize();
+
+  if (storage_size > (1ll << 38) || storage_size == -1) {
+    return;
+  }
+
+  auto setup = module_.GetFunction("setup");
+  if (setup()) {
+    return;
+  }
   auto get_output_num = module_.GetFunction("get_output_num");
   get_output_num(&out_num_);
-
+  std::cerr << "get_output_num = " << out_num_ << "\n";
   if (out_num_< 1) {
-      return;
+    return;
   }
+  auto get_output_precision = module_.GetFunction("get_output_precision");
+  int precision;
+  get_output_precision(&precision);
+  is_output_int32 = precision > 8;
 
   auto get_input_shape = module_.GetFunction("get_input_shape");
 
@@ -69,7 +79,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   get_input_shape("data", t);
   in_size_ = 1;
   for (int i = 0; i < t->ndim; ++i)
-      in_size_ *= t->shape[i];
+    in_size_ *= t->shape[i];
 
   dims_.push_back(t->ndim);
   int64_t *shape = new int64_t[t->ndim];
@@ -145,10 +155,54 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
 }
 
 void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
-  for (int k = 0; k < outputs.size(); ++k) {
-    auto data = static_cast<int*>(outputs[k]->data);
-    for (int i = 0; i < out_size_[k]; ++i) {
-      *mem++ = static_cast<int8_t>(data[i]);
+  bool can_concat = true;
+  if (outputs.size() == 1) {
+    can_concat = false;
+  }
+  std::vector<uint64_t> xs(outputs.size());
+  std::vector<uint64_t> ys(outputs.size());
+  if (can_concat) {
+    for (size_t k = 0; k < outputs.size(); ++k) {
+      ys[k] = outputs[k]->shape[outputs[k]->ndim - 1];
+      xs[k] = out_size_[k] / ys[k];
+    }
+    for (size_t k = 1; k < outputs.size(); ++k) {
+      if (xs[k] != xs[0]) {
+        can_concat = false;
+        break;
+      }
+    }
+  }
+  if (can_concat) {
+    if (is_output_int32) {
+      int32_t* cp = static_cast<int32_t*>((void*)(mem));
+      int32_t nx = xs[0] / 4;  // truncate result
+      for (int xidx = 0; xidx < nx; xidx++) {
+        for (int k = 0; k < outputs.size(); ++k) {
+          auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
+          for (int i = 0; i < ys[k]; ++i) {
+            *cp = data[i];
+            ++cp;
+          }
+        }
+      }
+    } else {
+      auto cp = mem;
+      for (int xidx = 0; xidx < xs[0]; xidx++) {
+        for (int k = 0; k < outputs.size(); ++k) {
+          auto data = static_cast<int*>(outputs[k]->data) + xidx * ys[k];
+          for (int i = 0; i < ys[k]; ++i) {
+            *cp++ = static_cast<int8_t>(data[i]);
+          }
+        }
+      }
+    }
+  } else {
+    for (int k = 0; k < outputs.size(); ++k) {
+      auto data = static_cast<int*>(outputs[k]->data);
+      for (int i = 0; i < out_size_[k]; ++i) {
+        *mem++ = static_cast<int8_t>(data[i]);
+      }
     }
   }
 }
@@ -194,8 +248,12 @@ int CVMModel::GetInputLength() {
 int CVMModel::GetOutputLength() {
   int ret = 0;
   for (int i = 0; i < out_num_; ++i)
-    ret += static_cast<int>(out_size_[i]);
+    ret += static_cast<int>(out_size_[i]) * (is_output_int32 ? 4 : 1);
   return ret;
+}
+
+int CVMModel::GetSizeofOutput() {
+  return is_output_int32 ? 4 : 1;
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -302,6 +360,15 @@ long long CVMAPIGetStorageSize(void *model_) {
   }
   return ret;
 }
+
+int CVMAPISizeofOutput(void *model_) {
+  CVMModel* model = (CVMModel*)model_;
+  if (model != nullptr) {
+    return model->GetSizeofOutput();
+  }
+  return -1;
+}
+
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
   int ret = 0;
