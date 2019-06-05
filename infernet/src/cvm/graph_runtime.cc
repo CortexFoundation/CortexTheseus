@@ -163,7 +163,7 @@ int CvmRuntime::GetInputPrecision() {
   int ret = 0;
   for (unsigned int eid = 0; eid < nodes_.size(); ++eid) {
     int precision = attrs_.precision[eid];
-    std::cerr << nodes_[eid].name << " " << precision << "\n";
+    // std::cerr << nodes_[eid].name << " " << precision << "\n";
     if (nodes_[eid].name == "data")
       ret = std::max(ret, precision);
   }
