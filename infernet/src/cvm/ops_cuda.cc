@@ -883,8 +883,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
-//    take(x, indices, y, axis);
-    std::cerr << "cuda take axis = " << axis << " ysize = " << getSize(y) <<  "\n";
+    // take(x, indices, y, axis);
+    // std::cerr << "cuda take axis = " << axis << " ysize = " << getSize(y) <<  "\n";
     const char* errorStr = cuda_take(x_data, indices_data, y_data, x->shape, y->shape,
             indices->shape, y->ndim, x->ndim, indices->ndim, getSize(y), axis);
     VERIFY(errorStr == NULL) << errorStr;

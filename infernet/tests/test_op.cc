@@ -96,7 +96,7 @@ std::function<void()> get_func(
 
 
   auto op = param.func_name;
-  int device_type = static_cast<int>(kDLGPU);
+  int device_type = static_cast<int>(ctx);
   std::string module_name = "cvm.runtime.cvm";
   if (device_type == kDLGPU) module_name += "_cuda";
   module_name += ".";
@@ -113,47 +113,6 @@ std::function<void()> get_func(
   };
 
   return [](){};
-}
-void test_op_take() {
-    string attr_str = "{}";
-    std::vector<int> dims_ = {4, 1, 4};
-    vector<std::vector<int64_t>> shapes_ = {{1, 32, 416, 416}, {1}, {1,32,416, 416}};
-    CVMOpParam params;
-    params.num_inputs = 2;
-    params.num_outputs= 1;
-    params.func_name = "broadcast_mul";
-    std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
-    for (uint32_t i = 0; i < args.size(); i++) {
-      DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
-      args[i] = *dl;
-    }
-
-    std::vector<unsigned long> tshape;
-    std::vector<int32_t> tdata;
-    npy::LoadArrayFromNumpy("/tmp/yolo/out/broadcast_mul72_0.mrt.dump.in.npy", tshape, tdata);
-    int32_t *dldata = static_cast<int32_t*>(args[0].data);
-    memcpy(dldata, tdata.data(), sizeof(int32_t) * tdata.size());
-
-    std::vector<unsigned long> tshape2;
-    std::vector<int32_t> tdata2;
-    int32_t *dldata2 = static_cast<int32_t*>(args[1].data);
-    npy::LoadArrayFromNumpy("/tmp/yolo/out/broadcast_mul72_1.mrt.dump.in.npy", tshape2, tdata2);
-    memcpy(dldata2, tdata2.data(), sizeof(int32_t) * tdata2.size());
-
-    NodeAttrs attr;
-    LoadOp(params.func_name, attr);
-    LoadOpAttr(attr_str, attr);
-    auto op_slice = get_func(params, &attr, args, params.num_inputs);
-    op_slice();
-
-    int32_t *dldata3 = static_cast<int32_t*>(args[2].data);
-    std::vector<unsigned long> tshape3;
-    std::vector<int32_t> tdata3;
-    npy::LoadArrayFromNumpy("/tmp/yolo/out/broadcast_mul72_0.mrt.dump.out.npy", tshape3, tdata3);
-    int ret =  memcmp(dldata3, tdata3.data(), sizeof(int32_t) * tdata3.size());
-    printf("%d\n", ret);
-
 }
 namespace cvm {
 namespace runtime {
@@ -349,9 +308,12 @@ void test_take() {
       int i = params.num_inputs; // first output
       CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
       CVMArrayCopyFromTo(&args[i], cpu_tensor, nullptr);
+      memcpy(cpu_output_tensor.data(), cpu_tensor->data, sizeof(int32_t) * tdata[i].size());
       CVMArrayFree(cpu_tensor);
     }
-    int ret =  memcmp(cpu_output_tensor.data(), tdata[params.num_inputs].data(), sizeof(int32_t) * tdata[params.num_inputs].size());
+    int ret =  memcmp(cpu_output_tensor.data(),
+                      tdata[params.num_inputs].data(),
+                      sizeof(int32_t) * tdata[params.num_inputs].size());
     printf("match %d | %d\n", ret == 0, ret);
 
     if (true) {
