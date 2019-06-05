@@ -63,10 +63,14 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   }
   auto get_output_num = module_.GetFunction("get_output_num");
   get_output_num(&out_num_);
-
+  std::cerr << "get_output_num = " << out_num_ << "\n";
   if (out_num_< 1) {
     return;
   }
+  auto get_output_precision = module_.GetFunction("get_output_precision");
+  int precision;
+  get_output_precision(&precision);
+  is_output_int32 = precision > 8;
 
   auto get_input_shape = module_.GetFunction("get_input_shape");
 
@@ -130,7 +134,8 @@ DLTensor* CVMModel::PlanInput() {
   return ret;
 }
 
-DLTensor* CVMModel::PlanInput(char *input) {
+template<typename Type>
+DLTensor* CVMModel::PlanInput(Type *input) {
   DLTensor* ret = nullptr;
   CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
   auto data = static_cast<int*>(ret->data);
@@ -152,122 +157,55 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
 
 void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
   bool can_concat = true;
-  bool int32_dtype = false;
   if (outputs.size() == 1) {
-      can_concat = false;
-  }
-  //TODO(lizhen) determine output dtype by infer preicision
-  {
-    for (size_t k = 0; k < outputs.size(); ++k) {
-      auto data = static_cast<int*>(outputs[k]->data);
-      for (size_t j = 0; j < out_size_[k]; j++) {
-          if (data[j] > 127) {
-              int32_dtype = true;
-              break;
-          }
-      }
-    }
+    can_concat = false;
   }
   std::vector<uint64_t> xs(outputs.size());
   std::vector<uint64_t> ys(outputs.size());
   if (can_concat) {
-      for (size_t k = 0; k < outputs.size(); ++k) {
-          uint64_t s = 1;
-          for (int j = 0; j < outputs[k]->ndim - 1; j++) {
-              s *= outputs[k]->shape[j];
-          }
-          xs[k] = s;
-          ys[k] = outputs[k]->shape[outputs[k]->ndim - 1];
+    for (size_t k = 0; k < outputs.size(); ++k) {
+      ys[k] = outputs[k]->shape[outputs[k]->ndim - 1];
+      xs[k] = out_size_[k] / ys[k];
+    }
+    for (size_t k = 1; k < outputs.size(); ++k) {
+      if (xs[k] != xs[0]) {
+        can_concat = false;
+        break;
       }
-      for (size_t k = 0; k < outputs.size(); ++k) {
-          // std::cerr << k << " " << xs[k] << "\n";
-          if (xs[k] != xs[0]) {
-              can_concat = false;
-              break;
-          }
-      }
+    }
   }
   if (can_concat) {
-      if (int32_dtype) {
-          int32_t* cp = static_cast<int32_t*>((void*)(mem));
-          int32_t nx = xs[0] / 4;  // truncate result
-          for (int xidx = 0; xidx < nx; xidx++) {
-              for (int k = 0; k < outputs.size(); ++k) {
-                  auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
-                  for (int i = 0; i < ys[k]; ++i) {
-                      *cp = data[i];
-                      ++cp;
-                  }
-              }
+    if (is_output_int32) {
+      int32_t* cp = static_cast<int32_t*>((void*)(mem));
+      int32_t nx = xs[0] / 4;  // truncate result
+      for (int xidx = 0; xidx < nx; xidx++) {
+        for (int k = 0; k < outputs.size(); ++k) {
+          auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
+          for (int i = 0; i < ys[k]; ++i) {
+            *cp = data[i];
+            ++cp;
           }
-      } else {
-          auto cp = mem;
-          for (int xidx = 0; xidx < xs[0]; xidx++) {
-              for (int k = 0; k < outputs.size(); ++k) {
-                  auto data = static_cast<int*>(outputs[k]->data) + xidx * ys[k];
-                  for (int i = 0; i < ys[k]; ++i) {
-                      *cp++ = static_cast<int8_t>(data[i]);
-                  }
-              }
-          }
+        }
       }
+    } else {
+      auto cp = mem;
+      for (int xidx = 0; xidx < xs[0]; xidx++) {
+        for (int k = 0; k < outputs.size(); ++k) {
+          auto data = static_cast<int*>(outputs[k]->data) + xidx * ys[k];
+          for (int i = 0; i < ys[k]; ++i) {
+            *cp++ = static_cast<int8_t>(data[i]);
+          }
+        }
+      }
+    }
   } else {
-      for (int k = 0; k < outputs.size(); ++k) {
-          auto data = static_cast<int*>(outputs[k]->data);
-          for (int i = 0; i < out_size_[k]; ++i) {
-              *mem++ = static_cast<int8_t>(data[i]);
-          }
+    for (int k = 0; k < outputs.size(); ++k) {
+      auto data = static_cast<int*>(outputs[k]->data);
+      for (int i = 0; i < out_size_[k]; ++i) {
+        *mem++ = static_cast<int8_t>(data[i]);
       }
+    }
   }
-  // bool is_same_shape = (outputs.size() > 1);
-  // for (int k = 1; k < outputs.size(); ++k) {
-  //   if (outputs[k]->ndim != outputs[0]->ndim) {
-  //     is_same_shape = false;
-  //   }
-  // }
-  // std::cerr << "is_same_shape = " << is_same_shape << "\n";
-  // if (is_same_shape) {
-  //   for (int k = 1; k < outputs.size(); ++k) {
-  //     for (int i = 0; i < outputs[0]->ndim; ++i) {
-  //       if (outputs[k]->shape[i] != outputs[0]->shape[i]) {
-  //         is_same_shape = false;
-  //       }
-  //     }
-  //   }
-  // }
-  // std::cerr << "is_same_shape = " << is_same_shape << "\n";
-  // if (!is_same_shape) {
-  //   for (int k = 0; k < outputs.size(); ++k) {
-  //     auto data = static_cast<int*>(outputs[k]->data);
-  //     for (int i = 0; i < out_size_[k]; ++i) {
-  //       *mem++ = static_cast<int8_t>(data[i]);
-  //     }
-  //   }
-  // } else {
-  //   int ndim = outputs[0]->ndim;
-  //   int64_t* shape;
-  //   std::vector<int*> datas;
-  //   for (int k = 0; k < outputs.size(); ++k) {
-  //     datas.push_back(static_cast<int*>(outputs[k]->data));
-  //   }
-
-  //   std::function<void(int, int)> recur;
-  //   recur = [&](int index, int i){
-  //     index = index * shape[i];
-  //     if (i == ndim - 1) {
-  //       for (int d = 0; d < ndim; ++d) {
-  //         for (int k = 0; k < shape[i]; ++k) {
-  //           *mem++ = static_cast<int8_t>(datas[d][index + k]);
-  //         }
-  //       }
-  //     } else {
-  //       for (int k = 0; k < shape[i]; ++k) {
-  //         recur(index + k, i + 1);
-  //       }
-  //     }
-  //   };
-  //   recur(0, 0);
-  // }
 }
 
 int CVMModel::LoadParams(const string &params) {
@@ -311,8 +249,12 @@ int CVMModel::GetInputLength() {
 int CVMModel::GetOutputLength() {
   int ret = 0;
   for (int i = 0; i < out_num_; ++i)
-    ret += static_cast<int>(out_size_[i]);
+    ret += static_cast<int>(out_size_[i]) * (is_output_int32 ? 4 : 1);
   return ret;
+}
+
+int CVMModel::GetSizeofOutput() {
+  return is_output_int32 ? 4 : 1;
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -416,6 +358,43 @@ long long CVMAPIGetStorageSize(void *model_) {
   long long ret = -1;
   if (model != nullptr) {
     ret = static_cast<long long>(model->GetStorageSize());
+  }
+  return ret;
+}
+
+int CVMAPISizeofOutput(void *model_) {
+  CVMModel* model = (CVMModel*)model_;
+  if (model != nullptr) {
+    return model->GetSizeofOutput();
+  }
+  return -1;
+}
+
+int CVMAPIInferInt32(void* model_, char *input_data, char *output_data) {
+  int ret = 0;
+  if (input_data == nullptr) {
+    std::cerr << "input_data error" << std::endl;
+    ret = -1;
+  } else if (output_data == nullptr) {
+    std::cerr << "output error" << std::endl;
+    ret = -1;
+  } else {
+    CVMModel* model = (CVMModel*)model_;
+    DLTensor* input = model->PlanInput((int32_t*)input_data);
+    auto outputs = model->PlanOutput();
+    if (input == nullptr) {
+      std::cerr << "input == nullptr || output == nullptr" << std::endl;
+      ret = -1;
+    } else {
+      ret = model->Run(input, outputs);
+      if (ret == 0) {
+        model->SaveTensor(outputs, output_data);
+        if (input)
+          CVMArrayFree(input);
+        for (int i = 0; i < outputs.size(); ++i)
+          CVMArrayFree(outputs[i]);
+      }
+    }
   }
   return ret;
 }

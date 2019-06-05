@@ -6,7 +6,7 @@
 #include <string.h>
 #include "nms.h"
 
-//#define CVM_PRINT_CUDA_RESULT
+#define CVM_PRINT_CUDA_RESULT
 
 void print_to_file(const int32_t *y, int32_t n, char*filename){
 #ifdef CVM_PRINT_CUDA_RESULT
@@ -1395,6 +1395,7 @@ const char* cuda_abs(const int32_t *x, int32_t *y, const int32_t n, bool debug){
     }
     return check_cuda_error(cudaGetLastError());
 }
+
 __global__ void kernel_max(const int32_t *x, int32_t *y, int32_t n){
    __shared__ int32_t buf[256];
    int32_t tid = threadIdx.x;
@@ -1417,23 +1418,44 @@ __global__ void kernel_max(const int32_t *x, int32_t *y, int32_t n){
 
    if(tid == 0) y[0] = buf[0];
 }
-const char* cuda_max(const int32_t *x, int32_t *y, const int32_t n, bool debug){
-   const int32_t *dev_x = x;
-   int32_t *tmp_x, *dev_y = y;
-   if(debug){
-       cudaMalloc((void**)&tmp_x, sizeof(int32_t) * n);
-       dev_x = tmp_x;
-       cudaMalloc((void**)&dev_y, sizeof(int32_t));
-       cudaMemcpy(tmp_x, x, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-   }
 
-   kernel_max<<<1, 256>>>(dev_x, dev_y, n);
+__global__ void kernel_max_one_axis(const int32_t *x, int32_t *y, const int64_t axis, const int64_t *xshape, const int64_t *yshape,
+        const int32_t xndim, const int32_t yndim, const int64_t xsize){
+    int32_t i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < xsize){
+        uint64_t in_i = i, o_i = 0, shapeSize = 0;
+        for(int j = xndim-1; j >= 0; j--){
+            uint64_t col = in_i % xshape[j];
+            in_i /= xshape[j];
+            if(j != axis){
+                int yj = j > axis ? j-1 : j;
+                o_i += (yj == yndim-1 ? col : col * shapeSize);
+                shapeSize = (yj == yndim-1 ? yshape[yj] : shapeSize * yshape[yj]);
+            }
+        }
+        if(y[o_i] < x[i]){
+            y[o_i] =  x[i];
+        }
+    }
+}
+const char* cuda_max(const int32_t *x, int32_t *y, const int32_t n, const int64_t *axis, const int64_t*xshape, const int64_t *yshape, 
+        const int32_t xndim, const int32_t yndim){
+   if(axis == NULL){
+       kernel_max<<<1, 256>>>(x, y, n);
+   }else{
+       int64_t *dev_xshape, *dev_yshape;
+       cudaMalloc((void**)&dev_xshape, sizeof(int64_t)*xndim);
+       cudaMalloc((void**)&dev_yshape, sizeof(int64_t)*yndim);
+       cudaMemcpy(dev_xshape, xshape, sizeof(int64_t)*xndim, cudaMemcpyHostToDevice);
+       cudaMemcpy(dev_yshape, yshape, sizeof(int64_t)*yndim, cudaMemcpyHostToDevice);
 
-   if(debug){
-       cudaMemcpy(y, dev_y, sizeof(int32_t), cudaMemcpyDeviceToHost);
-       cudaFree(tmp_x);
-       cudaFree(dev_y);
+       int bSize = 256;
+       int gSize = (n + bSize - 1) / bSize;
+       kernel_max_one_axis<<<gSize, bSize>>>(x, y, axis[0], dev_xshape, dev_yshape, xndim, yndim, n);
+       cudaFree(dev_xshape);
+       cudaFree(dev_yshape);
    }
+   print_to_file(y, n, "/tmp/zkh/cuda_max.txt");
    return check_cuda_error(cudaGetLastError());
 }
 

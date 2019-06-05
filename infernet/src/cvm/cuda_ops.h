@@ -76,7 +76,7 @@ const char* cuda_sum(
 const char* cuda_reshape(const int32_t *x, int32_t *y, int32_t size, bool debug);
 const char* cuda_log(const int32_t *x, int32_t *y, bool debug);
 const char* cuda_abs(const int32_t *x, int32_t *y, const int32_t n, bool debug);
-const char* cuda_max(const int32_t *x, int32_t *y, const int32_t n, bool debug);
+const char* cuda_max(const int32_t *x, int32_t *y, const int32_t n, const int64_t *axis, const int64_t *xshape, const int64_t *yshape, const int32_t xndim, const int32_t yndim);
 const char* cuda_cvm_clip(const int32_t* x, const int32_t precision, int32_t *y, const int32_t n, bool debug);
 const char* cuda_cvm_right_shift(const int32_t *a, const int32_t b, const int32_t precision, int32_t *c, const int32_t n, bool debug);
 const char* cuda_cvm_left_shift(const int32_t *a, const int32_t b, const int32_t precision, int32_t *c, const int32_t n, bool debug);
