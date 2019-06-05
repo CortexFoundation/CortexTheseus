@@ -552,6 +552,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
         auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
         TShape axis = param.axis;
+        VERIFY(axis.ndim() <= 1);
         int64_t *axis_data = axis.begin();
         //bool keepdims = param.keepdims;
         //bool exclude = param.exclude;
@@ -559,7 +560,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
             axis_data = NULL;
         }
 
-        const char* errorStr = cuda_max(x, y_data, getSize(dlx), axis_data, dlx->shape, y->shape, dlx->ndim, y->ndim);
+        const char* errorStr = cuda_max(x, y_data, getSize(y), axis_data, dlx->shape, y->shape, dlx->ndim, y->ndim);
         VERIFY(errorStr == NULL) << errorStr;
     });
 

@@ -1279,6 +1279,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
         auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
         TShape axis = param.axis;
+        VERIFY(axis.ndim() <= 1);
         int64_t *axis_data = axis.begin();
         //bool keepdims = param.keepdims;
         //bool exclude = param.exclude;
