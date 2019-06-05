@@ -644,7 +644,7 @@ func (evm *EVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	}
 
 	if evm.vmConfig.InferURI == "" {
-		opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelInfoHash)
+		//opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelInfoHash)
 	} else {
 		opsRes, errRes = synapse.Engine().RemoteGasByModelHash(
 			modelInfoHash,
