@@ -27,7 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
-var errEthashStopped = errors.New("cuckoo stopped")
+var errCuckooStopped = errors.New("cuckoo stopped")
 
 // API exposes cuckoo related methods for the RPC interface.
 type API struct {
@@ -53,7 +53,7 @@ func (api *API) GetWork() ([4]string, error) {
 	select {
 	case api.cuckoo.fetchWorkCh <- &sealWork{errc: errc, res: workCh}:
 	case <-api.cuckoo.exitCh:
-		return [4]string{}, errEthashStopped
+		return [4]string{}, errCuckooStopped
 	}
 
 	select {
