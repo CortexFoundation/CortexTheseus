@@ -39,7 +39,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		MinerCuda               bool
 		MinerOpenCL             bool
 		MinerDevices            string
-		Ethash                  cuckoo.Config
+		Cuckoo                  cuckoo.Config
 		TxPool                  core.TxPoolConfig
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
@@ -68,7 +68,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.MinerCuda = c.MinerCuda
 	enc.MinerOpenCL = c.MinerOpenCL
 	enc.MinerDevices = c.MinerDevices
-	enc.Ethash = c.Ethash
+	enc.Cuckoo = c.Cuckoo
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
@@ -101,7 +101,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		MinerCuda               bool
 		MinerOpenCL             bool
 		MinerDevices            string
-		Ethash                  *cuckoo.Config
+		Cuckoo                  *cuckoo.Config
 		TxPool                  *core.TxPoolConfig
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
@@ -167,8 +167,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	c.MinerCuda = dec.MinerCuda
 	c.MinerOpenCL = dec.MinerOpenCL
 	c.MinerDevices = dec.MinerDevices
-	if dec.Ethash != nil {
-		c.Ethash = *dec.Ethash
+	if dec.Cuckoo != nil {
+		c.Cuckoo = *dec.Cuckoo
 	}
 	if dec.TxPool != nil {
 		c.TxPool = *dec.TxPool

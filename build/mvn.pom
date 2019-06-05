@@ -4,14 +4,14 @@
                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.ethereum</groupId>
-  <artifactId>geth</artifactId>
+  <groupId>org.CortexFoundation</groupId>
+  <artifactId>ctxc</artifactId>
   <version>{{.Version}}</version>
   <packaging>aar</packaging>
 
   <name>Android Ethereum Client</name>
-  <description>Android port of the go-ethereum libraries and node</description>
-  <url>https://github.com/ethereum/go-ethereum</url>
+  <description>Android port of the CortexTheseus libraries and node</description>
+  <url>https://github.com/CortexFoundation/CortexTheseus</url>
   <inceptionYear>2015</inceptionYear>
 
   <licenses>
@@ -24,7 +24,7 @@
 
   <organization>
     <name>Ethereum</name>
-    <url>https://ethereum.org</url>
+    <url>https://CortexFoundation.org</url>
   </organization>
 
   <developers>
@@ -48,10 +48,10 @@
 
   <issueManagement>
     <system>GitHub Issues</system>
-    <url>https://github.com/ethereum/go-ethereum/issues/</url>
+    <url>https://github.com/CortexFoundation/CortexTheseus/issues/</url>
   </issueManagement>
 
   <scm>
-    <url>https://github.com/ethereum/go-ethereum</url>
+    <url>https://github.com/CortexFoundation/CortexTheseus</url>
   </scm>
 </project>

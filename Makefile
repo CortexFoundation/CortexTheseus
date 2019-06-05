@@ -32,10 +32,14 @@ cortex: clib
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 bootnode:
-	build/env.sh go run build/ci.go install -cpu_miner ./cmd/bootnode
+	build/env.sh go run build/ci.go install ./cmd/bootnode
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-	#mv ./build/bin/bootnode ./build/bin/bootnode
+	@echo "Run \"$(GOBIN)/bootnode\" to launch cortex bootnode."
+
+torrent:
+	build/env.sh go run build/ci.go install ./cmd/torrentfs
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 
 cortex-remote: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
@@ -104,7 +108,7 @@ android:
 ios:
 	build/env.sh go run build/ci.go xcode --local
 	@echo "Done building."
-	@echo "Import \"$(GOBIN)/Geth.framework\" to use the library."
+	@echo "Import \"$(GOBIN)/Ctxc.framework\" to use the library."
 
 test: all
 	build/env.sh go run build/ci.go test

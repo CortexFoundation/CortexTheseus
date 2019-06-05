@@ -10,21 +10,23 @@ fi
 # Create fake Go workspace if it doesn't exist yet.
 workspace="$PWD/build/_workspace"
 root="$PWD"
-dir="$workspace/src/github.com/CortexFoundation"
-if [ ! -L "$dir/CortexTheseus" ]; then
-    mkdir -p "$dir"
-    cd "$dir"
-    ln -s ../../../../../. CortexTheseus
+ethdir="$workspace/src/github.com/CortexFoundation"
+if [ ! -L "$ethdir/PoolMiner" ]; then
+    mkdir -p "$ethdir"
+    cd "$ethdir"
+    ln -s ../../../../../. PoolMiner
     cd "$root"
 fi
 
 # Set up the environment to use the workspace.
+# Also add Godeps workspace so we build using canned dependencies.
 GOPATH="$workspace"
-export GOPATH
+GOBIN="$PWD/build/bin"
+export GOPATH GOBIN
 
 # Run the command inside the workspace.
-cd "$dir/CortexTheseus"
-PWD="$dir/CortexTheseus"
+cd "$ethdir/PoolMiner"
+PWD="$ethdir/PoolMiner"
 
 # Launch the arguments with the configured environment.
 exec "$@"

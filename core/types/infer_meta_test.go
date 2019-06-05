@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	simplejson "github.com/bitly/go-simplejson"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	simplejson "github.com/bitly/go-simplejson"
 )
 
 var errorCode = []byte{0x0}

@@ -1,18 +1,18 @@
-// Copyright 2016 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 // +build none
 
@@ -63,21 +63,20 @@ import (
 )
 
 var (
-	// Files that end up in the cortex*.zip archive.
-	cortexArchiveFiles = []string{
+	// Files that end up in the geth*.zip archive.
+	gethArchiveFiles = []string{
 		"COPYING",
-		executablePath("cortex"),
+		executablePath("geth"),
 	}
 
-	// Files that end up in the cortex-alltools*.zip archive.
+	// Files that end up in the geth-alltools*.zip archive.
 	allToolsArchiveFiles = []string{
 		"COPYING",
 		executablePath("abigen"),
 		executablePath("bootnode"),
-		executablePath("torrentfs"),
 		executablePath("evm"),
-		executablePath("miner"),
-		executablePath("cortex"),
+		executablePath("geth"),
+		executablePath("puppeth"),
 		executablePath("rlpdump"),
 		executablePath("wnode"),
 	}
@@ -86,31 +85,23 @@ var (
 	debExecutables = []debExecutable{
 		{
 			BinaryName:  "abigen",
-			Description: "Source code generator to convert Cortex contract definitions into easy to use, compile-time type-safe Go packages.",
+			Description: "Source code generator to convert Ethereum contract definitions into easy to use, compile-time type-safe Go packages.",
 		},
 		{
 			BinaryName:  "bootnode",
-			Description: "Cortex bootnode.",
+			Description: "Ethereum bootnode.",
 		},
-		{
-                        BinaryName:  "torrentfs",
-                        Description: "Cortex torrentfs.",
-                },
 		{
 			BinaryName:  "evm",
-			Description: "Developer utility version of the EVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+			Description: "Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
-			BinaryName:  "cortex-remote",
-			Description: "Developer utility version of the EVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+			BinaryName:  "geth",
+			Description: "Ethereum CLI client.",
 		},
 		{
-			BinaryName:  "miner",
-			Description: "2 in 1 miner",
-		},
-		{
-			BinaryName:  "cortex",
-			Description: "Cortex CLI client.",
+			BinaryName:  "puppeth",
+			Description: "Ethereum private network manager.",
 		},
 		{
 			BinaryName:  "rlpdump",
@@ -118,19 +109,20 @@ var (
 		},
 		{
 			BinaryName:  "wnode",
-			Description: "Cortex Whisper diagnostic tool",
+			Description: "Ethereum Whisper diagnostic tool",
 		},
 	}
 
-	debCortex = debPackage{
-		Name:        "cortex",
+
+	debEthereum = debPackage{
+		Name:        "CortexFoundation",
 		Version:     params.Version,
 		Executables: debExecutables,
 	}
 
 	// Debian meta packages to build and push to Ubuntu PPA
 	debPackages = []debPackage{
-		debCortex,
+		debEthereum,
 	}
 
 	// Packages to be cross-compiled by the xgo command
@@ -193,13 +185,8 @@ func main() {
 
 func doInstall(cmdline []string) {
 	var (
-		arch         = flag.String("arch", "", "Architecture to cross build for")
-		cc           = flag.String("cc", "", "C compiler to cross build with")
-		remote_infer = flag.Bool("remote_infer", false, "whether to use remote infer")
-		disable_miner = flag.Bool("disable_miner", false, "whether disable miner")
-		cuda_miner = flag.Bool("cuda_miner", false, "whether to use cuda miner")
-		opencl_miner = flag.Bool("opencl_miner", false, "whether to use opencl miner")
-		cpu_miner = flag.Bool("cpu_miner", false, "whether to use cpu miner")
+		arch = flag.String("arch", "", "Architecture to cross build for")
+		cc   = flag.String("cc", "", "C compiler to cross build with")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -213,7 +200,7 @@ func doInstall(cmdline []string) {
 
 		if minor < 9 {
 			log.Println("You have Go version", runtime.Version())
-			log.Println("go-cortex requires at least Go version 1.9 and cannot")
+			log.Println("cortex requires at least Go version 1.9 and cannot")
 			log.Println("be compiled with an earlier version. Please upgrade your Go installation.")
 			os.Exit(1)
 		}
@@ -227,21 +214,6 @@ func doInstall(cmdline []string) {
 
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
-		if *remote_infer {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "remote"}...)
-		}
-		if *disable_miner {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "disable_miner"}...)
-		}
-		if *cpu_miner {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "cpu_miner"}...)
-		}
-		if *cuda_miner {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "cuda_miner"}...)
-		}
-		if *opencl_miner {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "opencl_miner"}...)
-		}
 		goinstall.Args = append(goinstall.Args, "-v")
 		goinstall.Args = append(goinstall.Args, packages...)
 		build.MustRun(goinstall)
@@ -256,9 +228,6 @@ func doInstall(cmdline []string) {
 	}
 	// Seems we are cross compiling, work around forbidden GOBIN
 	goinstall := goToolArch(*arch, *cc, "install", buildFlags(env)...)
-	if *remote_infer {
-		goinstall.Args = append(goinstall.Args, []string{"-tags", "remote"}...)
-	}
 	goinstall.Args = append(goinstall.Args, "-v")
 	goinstall.Args = append(goinstall.Args, []string{"-buildmode", "archive"}...)
 	goinstall.Args = append(goinstall.Args, packages...)
@@ -369,7 +338,7 @@ func doLint(cmdline []string) {
 	build.MustRun(goTool("get", "gopkg.in/alecthomas/gometalinter.v2"))
 	build.MustRunCommand(filepath.Join(GOBIN, "gometalinter.v2"), "--install")
 
-	// Run fast linters batched tocortexer
+	// Run fast linters batched together
 	configs := []string{
 		"--vendor",
 		"--tests",
@@ -397,8 +366,8 @@ func doArchive(cmdline []string) {
 	var (
 		arch   = flag.String("arch", runtime.GOARCH, "Architecture cross packaging")
 		atype  = flag.String("type", "zip", "Type of archive to write (zip|tar)")
-		//signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
-		//upload = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
+		signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
+		upload = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
 		ext    string
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -414,17 +383,21 @@ func doArchive(cmdline []string) {
 	var (
 		env = build.Env()
 
-		basecortex = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
-		cortex     = "cortex-" + basecortex + ext
-		alltools = "cortex-alltools-" + basecortex + ext
-
+		basegeth = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
+		geth     = "geth-" + basegeth + ext
+		alltools = "geth-alltools-" + basegeth + ext
 	)
 	maybeSkipArchive(env)
-	if err := build.WriteArchive(cortex, cortexArchiveFiles); err != nil {
+	if err := build.WriteArchive(geth, gethArchiveFiles); err != nil {
 		log.Fatal(err)
 	}
 	if err := build.WriteArchive(alltools, allToolsArchiveFiles); err != nil {
 		log.Fatal(err)
+	}
+	for _, archive := range []string{geth, alltools} {
+		if err := archiveUpload(archive, *upload, *signer); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -492,7 +465,7 @@ func maybeSkipArchive(env build.Environment) {
 func doDebianSource(cmdline []string) {
 	var (
 		signer  = flag.String("signer", "", `Signing key name, also used as package author`)
-		upload  = flag.String("upload", "", `Where to upload the source package (usually "ppa:cortex/cortex")`)
+		upload  = flag.String("upload", "", `Where to upload the source package (usually "ppa:CortexFoundation/CortexFoundation")`)
 		workdir = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
 		now     = time.Now()
 	)
@@ -538,7 +511,7 @@ func makeWorkdir(wdflag string) string {
 	if wdflag != "" {
 		err = os.MkdirAll(wdflag, 0744)
 	} else {
-		wdflag, err = ioutil.TempDir("", "cortex-build-")
+		wdflag, err = ioutil.TempDir("", "geth-build-")
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -554,7 +527,7 @@ func isUnstableBuild(env build.Environment) bool {
 }
 
 type debPackage struct {
-	Name        string          // the name of the Debian package to produce, e.g. "cortex"
+	Name        string          // the name of the Debian package to produce, e.g. "CortexFoundation", or "CortexFoundation-swarm"
 	Version     string          // the clean version of the debPackage, e.g. 1.8.12 or 0.3.0, without any metadata
 	Executables []debExecutable // executables to be included in the package
 }
@@ -564,7 +537,6 @@ type debMetadata struct {
 
 	PackageName string
 
-	// go-cortex version being built. Note that this
 	// is not the debian package version. The package version
 	// is constructed by VersionString.
 	Version string
@@ -592,7 +564,7 @@ func (d debExecutable) Package() string {
 func newDebMetadata(distro, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
 	if author == "" {
 		// No signing key, use default author.
-		author = "Cortex Builds <fjl@cortex.org>"
+		author = "Ethereum Builds <fjl@CortexFoundation.org>"
 	}
 	return debMetadata{
 		PackageName: name,
@@ -655,7 +627,7 @@ func (meta debMetadata) ExeConflicts(exe debExecutable) string {
 		// be preferred and the conflicting files should be handled via
 		// alternates. We might do this eventually but using a conflict is
 		// easier now.
-		return "cortex, " + exe.Package()
+		return "CortexFoundation, " + exe.Package()
 	}
 	return ""
 }
@@ -694,7 +666,7 @@ func doWindowsInstaller(cmdline []string) {
 	var (
 		arch    = flag.String("arch", runtime.GOARCH, "Architecture for cross build packaging")
 		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. WINDOWS_SIGNING_KEY)`)
-		upload  = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
+		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
 		workdir = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -706,28 +678,28 @@ func doWindowsInstaller(cmdline []string) {
 	var (
 		devTools []string
 		allTools []string
-		cortexTool string
+		gethTool string
 	)
 	for _, file := range allToolsArchiveFiles {
 		if file == "COPYING" { // license, copied later
 			continue
 		}
 		allTools = append(allTools, filepath.Base(file))
-		if filepath.Base(file) == "cortex.exe" {
-			cortexTool = file
+		if filepath.Base(file) == "geth.exe" {
+			gethTool = file
 		} else {
 			devTools = append(devTools, file)
 		}
 	}
 
 	// Render NSIS scripts: Installer NSIS contains two installer sections,
-	// first section contains the cortex binary, second section holds the dev tools.
+	// first section contains the geth binary, second section holds the dev tools.
 	templateData := map[string]interface{}{
 		"License":  "COPYING",
-		"Ctxc":     cortexTool,
+		"Ctxc":     gethTool,
 		"DevTools": devTools,
 	}
-	build.Render("build/nsis.cortex.nsi", filepath.Join(*workdir, "cortex.nsi"), 0644, nil)
+	build.Render("build/nsis.geth.nsi", filepath.Join(*workdir, "geth.nsi"), 0644, nil)
 	build.Render("build/nsis.install.nsh", filepath.Join(*workdir, "install.nsh"), 0644, templateData)
 	build.Render("build/nsis.uninstall.nsh", filepath.Join(*workdir, "uninstall.nsh"), 0644, allTools)
 	build.Render("build/nsis.pathupdate.nsh", filepath.Join(*workdir, "PathUpdate.nsh"), 0644, nil)
@@ -742,14 +714,14 @@ func doWindowsInstaller(cmdline []string) {
 	if env.Commit != "" {
 		version[2] += "-" + env.Commit[:8]
 	}
-	installer, _ := filepath.Abs("cortex-" + archiveBasename(*arch, params.ArchiveVersion(env.Commit)) + ".exe")
+	installer, _ := filepath.Abs("geth-" + archiveBasename(*arch, params.ArchiveVersion(env.Commit)) + ".exe")
 	build.MustRunCommand("makensis.exe",
 		"/DOUTPUTFILE="+installer,
 		"/DMAJORVERSION="+version[0],
 		"/DMINORVERSION="+version[1],
 		"/DBUILDVERSION="+version[2],
 		"/DARCH="+*arch,
-		filepath.Join(*workdir, "cortex.nsi"),
+		filepath.Join(*workdir, "geth.nsi"),
 	)
 
 	// Sign and publish installer.
@@ -765,7 +737,7 @@ func doAndroidArchive(cmdline []string) {
 		local  = flag.Bool("local", false, `Flag whether we're only doing a local build (skip Maven artifacts)`)
 		signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. ANDROID_SIGNING_KEY)`)
 		deploy = flag.String("deploy", "", `Destination to deploy the archive (usually "https://oss.sonatype.org")`)
-		upload = flag.String("upload", "", `Destination to upload the archive (usually "cortexstore/builds")`)
+		upload = flag.String("upload", "", `Destination to upload the archive (usually "gethstore/builds")`)
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -780,11 +752,11 @@ func doAndroidArchive(cmdline []string) {
 	// Build the Android archive and Maven resources
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 	build.MustRun(gomobileTool("init", "--ndk", os.Getenv("ANDROID_NDK")))
-	build.MustRun(gomobileTool("bind", "-ldflags", "-s -w", "--target", "android", "--javapkg", "org.cortex", "-v", "github.com/CortexFoundation/CortexTheseus/mobile"))
+	build.MustRun(gomobileTool("bind", "-ldflags", "-s -w", "--target", "android", "--javapkg", "org.CortexFoundation", "-v", "github.com/CortexFoundation/CortexTheseus/mobile"))
 
 	if *local {
 		// If we're building locally, copy bundle to build dir and skip Maven
-		os.Rename("cortex.aar", filepath.Join(GOBIN, "cortex.aar"))
+		os.Rename("geth.aar", filepath.Join(GOBIN, "geth.aar"))
 		return
 	}
 	meta := newMavenMetadata(env)
@@ -794,8 +766,8 @@ func doAndroidArchive(cmdline []string) {
 	maybeSkipArchive(env)
 
 	// Sign and upload the archive to Azure
-	archive := "cortex-" + archiveBasename("android", params.ArchiveVersion(env.Commit)) + ".aar"
-	os.Rename("cortex.aar", archive)
+	archive := "geth-" + archiveBasename("android", params.ArchiveVersion(env.Commit)) + ".aar"
+	os.Rename("geth.aar", archive)
 
 	if err := archiveUpload(archive, *upload, *signer); err != nil {
 		log.Fatal(err)
@@ -885,7 +857,7 @@ func newMavenMetadata(env build.Environment) mavenMetadata {
 	}
 	return mavenMetadata{
 		Version:      version,
-		Package:      "cortex-" + version,
+		Package:      "geth-" + version,
 		Develop:      isUnstableBuild(env),
 		Contributors: contribs,
 	}
@@ -898,7 +870,7 @@ func doXCodeFramework(cmdline []string) {
 		local  = flag.Bool("local", false, `Flag whether we're only doing a local build (skip Maven artifacts)`)
 		signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. IOS_SIGNING_KEY)`)
 		deploy = flag.String("deploy", "", `Destination to deploy the archive (usually "trunk")`)
-		upload = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
+		upload = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -914,7 +886,7 @@ func doXCodeFramework(cmdline []string) {
 		build.MustRun(bind)
 		return
 	}
-	archive := "cortex-" + archiveBasename("ios", params.ArchiveVersion(env.Commit))
+	archive := "geth-" + archiveBasename("ios", params.ArchiveVersion(env.Commit))
 	if err := os.Mkdir(archive, os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
@@ -1038,7 +1010,7 @@ func xgoTool(args []string) *exec.Cmd {
 
 func doPurge(cmdline []string) {
 	var (
-		store = flag.String("store", "", `Destination from where to purge archives (usually "cortexstore/builds")`)
+		store = flag.String("store", "", `Destination from where to purge archives (usually "gethstore/builds")`)
 		limit = flag.Int("days", 30, `Age threshold above which to delete unstalbe archives`)
 	)
 	flag.CommandLine.Parse(cmdline)
