@@ -36,6 +36,7 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 
 	monitor, moErr := NewMonitor(config)
 	if moErr != nil {
+		log.Error("Failed create monitor")
 		return nil, moErr
 	}
 
@@ -55,7 +56,11 @@ func (tfs *TorrentFS) APIs() []rpc.API { return nil }
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Start(server *p2p.Server) error {
-	log.Info("Torrent monitor starting")
+	log.Info("Torrent monitor starting", "torrentfs", tfs)
+	if tfs.monitor == nil {
+		log.Error("Monitor is error")
+		return nil
+	}
 	return tfs.monitor.Start()
 }
 
