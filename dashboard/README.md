@@ -15,14 +15,14 @@ As the dashboard depends on certain NPM packages (which are not included in the 
 $ (cd dashboard/assets && yarn install && yarn flow)
 ```
 
-Normally the dashboard assets are bundled into Geth via `go-bindata` to avoid external dependencies. Rebuilding Geth after each UI modification however is not feasible from a developer perspective. Instead, we can run `yarn dev` to watch for file system changes and refresh the browser automatically.
+Normally the dashboard assets are bundled into Ctxc via `go-bindata` to avoid external dependencies. Rebuilding Ctxc after each UI modification however is not feasible from a developer perspective. Instead, we can run `yarn dev` to watch for file system changes and refresh the browser automatically.
 
 ```
 $ geth --dashboard --vmodule=dashboard=5
 $ (cd dashboard/assets && yarn dev)
 ```
 
-To bundle up the final UI into Geth, run `go generate`:
+To bundle up the final UI into Ctxc, run `go generate`:
 
 ```
 $ (cd dashboard && go generate)

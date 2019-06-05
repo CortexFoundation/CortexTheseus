@@ -101,14 +101,14 @@ invoking methods with the following info:
       * the total amount
       * the number of unique recipients
 
-* Geth todos
+* Ctxc todos
     - The signer should pass the `Origin` header as call-info to the UI. As of right now, the way that info about the request is
 put together is a bit of a hack into the http server. This could probably be greatly improved
-    - Relay: Geth should be started in `geth --external_signer localhost:8550`.
-    - Currently, the Geth APIs use `common.Address` in the arguments to transaction submission (e.g `to` field). This
+    - Relay: Ctxc should be started in `geth --external_signer localhost:8550`.
+    - Currently, the Ctxc APIs use `common.Address` in the arguments to transaction submission (e.g `to` field). This
   type is 20 `bytes`, and is incapable of carrying checksum information. The signer uses `common.MixedcaseAddress`, which
   retains the original input.
-    - The Geth api should switch to use the same type, and relay `to`-account verbatim to the external api.
+    - The Ctxc api should switch to use the same type, and relay `to`-account verbatim to the external api.
 
 * [x] Storage
     * [x] An encrypted key-value storage should be implemented
@@ -125,7 +125,7 @@ put together is a bit of a hack into the http server. This could probably be gre
 
 ### External API
 
-The signer listens to HTTP requests on `rpcaddr`:`rpcport`, with the same JSONRPC standard as Geth. The messages are
+The signer listens to HTTP requests on `rpcaddr`:`rpcport`, with the same JSONRPC standard as Ctxc. The messages are
 expected to be JSON [jsonrpc 2.0 standard](http://www.jsonrpc.org/specification).
 
 Some of these call can require user interaction. Clients must be aware that responses
