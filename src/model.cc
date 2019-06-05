@@ -67,10 +67,18 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   if (out_num_< 1) {
     return;
   }
-  auto get_output_precision = module_.GetFunction("get_output_precision");
-  int precision;
-  get_output_precision(&precision);
-  is_output_int32 = precision > 8;
+  {
+    auto get_input_precision = module_.GetFunction("get_input_precision");
+    int input_precision;
+    get_input_precision(&input_precision);
+    is_input_int32_ = input_precision > 8;
+  }
+  {
+    auto get_output_precision = module_.GetFunction("get_output_precision");
+    int output_precision;
+    get_output_precision(&output_precision);
+    is_output_int32_ = output_precision > 8;
+  }
 
   auto get_input_shape = module_.GetFunction("get_input_shape");
 
@@ -107,7 +115,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
 }
 
 CVMModel::~CVMModel() {
-  for (int i = 0; i < shapes_.size(); ++i) {
+  for (size_t i = 0; i < shapes_.size(); ++i) {
       if (shapes_[i])
           delete shapes_[i];
   }
@@ -175,13 +183,13 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
     }
   }
   if (can_concat) {
-    if (is_output_int32) {
+    if (is_output_int32_) {
       int32_t* cp = static_cast<int32_t*>((void*)(mem));
       int32_t nx = xs[0] / 4;  // truncate result
       for (int xidx = 0; xidx < nx; xidx++) {
-        for (int k = 0; k < outputs.size(); ++k) {
+        for (size_t k = 0; k < outputs.size(); ++k) {
           auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
-          for (int i = 0; i < ys[k]; ++i) {
+          for (size_t i = 0; i < ys[k]; ++i) {
             *cp = data[i];
             ++cp;
           }
@@ -189,17 +197,17 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
       }
     } else {
       auto cp = mem;
-      for (int xidx = 0; xidx < xs[0]; xidx++) {
-        for (int k = 0; k < outputs.size(); ++k) {
+      for (size_t xidx = 0; xidx < xs[0]; xidx++) {
+        for (size_t k = 0; k < outputs.size(); ++k) {
           auto data = static_cast<int*>(outputs[k]->data) + xidx * ys[k];
-          for (int i = 0; i < ys[k]; ++i) {
+          for (size_t i = 0; i < ys[k]; ++i) {
             *cp++ = static_cast<int8_t>(data[i]);
           }
         }
       }
     }
   } else {
-    for (int k = 0; k < outputs.size(); ++k) {
+    for (size_t k = 0; k < outputs.size(); ++k) {
       auto data = static_cast<int*>(outputs[k]->data);
       for (int i = 0; i < out_size_[k]; ++i) {
         *mem++ = static_cast<int8_t>(data[i]);
@@ -232,7 +240,7 @@ int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
   int ret = SetInput_("data", input) || Run_();
   if (ret) return ret;
 
-  for (int i = 0; i < outputs.size(); ++i) {
+  for (size_t i = 0; i < outputs.size(); ++i) {
     ret = GetOutput_(i, outputs[i]);
     if (ret) {
       return ret;
@@ -243,18 +251,18 @@ int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
 }
 
 int CVMModel::GetInputLength() {
-  return static_cast<int>(in_size_);
+  return static_cast<int>(in_size_) * (is_input_int32_ ? 4 : 1);
 }
 
 int CVMModel::GetOutputLength() {
   int ret = 0;
   for (int i = 0; i < out_num_; ++i)
-    ret += static_cast<int>(out_size_[i]) * (is_output_int32 ? 4 : 1);
+    ret += static_cast<int>(out_size_[i]) * (is_output_int32_ ? 4 : 1);
   return ret;
 }
 
 int CVMModel::GetSizeofOutput() {
-  return is_output_int32 ? 4 : 1;
+  return is_output_int32_ ? 4 : 1;
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -420,7 +428,7 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
         model->SaveTensor(outputs, output_data);
         if (input)
           CVMArrayFree(input);
-        for (int i = 0; i < outputs.size(); ++i)
+        for (size_t i = 0; i < outputs.size(); ++i)
           CVMArrayFree(outputs[i]);
       }
     }
