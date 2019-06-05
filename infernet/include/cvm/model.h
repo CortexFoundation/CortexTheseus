@@ -47,7 +47,8 @@ public:
   int GetSizeofOutput();
   int Run(DLTensor* input, std::vector<DLTensor*> output);
   DLTensor* PlanInput();
-  DLTensor* PlanInput(char*);
+  template<typename Type>
+  DLTensor* PlanInput(Type*);
   std::vector<DLTensor*> PlanOutput();
   void SaveTensor(std::vector<DLTensor*> outputs, char *data);
 private:
