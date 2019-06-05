@@ -134,7 +134,8 @@ DLTensor* CVMModel::PlanInput() {
   return ret;
 }
 
-DLTensor* CVMModel::PlanInput(char *input) {
+template<typename Type>
+DLTensor* CVMModel::PlanInput(Type *input) {
   DLTensor* ret = nullptr;
   CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
   auto data = static_cast<int*>(ret->data);
@@ -369,6 +370,34 @@ int CVMAPISizeofOutput(void *model_) {
   return -1;
 }
 
+int CVMAPIInferInt32(void* model_, char *input_data, char *output_data) {
+  int ret = 0;
+  if (input_data == nullptr) {
+    std::cerr << "input_data error" << std::endl;
+    ret = -1;
+  } else if (output_data == nullptr) {
+    std::cerr << "output error" << std::endl;
+    ret = -1;
+  } else {
+    CVMModel* model = (CVMModel*)model_;
+    DLTensor* input = model->PlanInput((int32_t*)input_data);
+    auto outputs = model->PlanOutput();
+    if (input == nullptr) {
+      std::cerr << "input == nullptr || output == nullptr" << std::endl;
+      ret = -1;
+    } else {
+      ret = model->Run(input, outputs);
+      if (ret == 0) {
+        model->SaveTensor(outputs, output_data);
+        if (input)
+          CVMArrayFree(input);
+        for (int i = 0; i < outputs.size(); ++i)
+          CVMArrayFree(outputs[i]);
+      }
+    }
+  }
+  return ret;
+}
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
   int ret = 0;
