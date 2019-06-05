@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"sync"
 	"net"
-	"github.com/ethereum/go-ethereum/PoolMiner/config"
+	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
 )
 
 type Miner interface {
