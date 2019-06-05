@@ -214,7 +214,7 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ctxcdb.Dat
 		return nil, err
 	}
 	if db, ok := db.(*ctxcdb.LDBDatabase); ok {
-		db.Meter("eth/db/chaindata/")
+		db.Meter("ctxc/db/chaindata/")
 	}
 	return db, nil
 }
