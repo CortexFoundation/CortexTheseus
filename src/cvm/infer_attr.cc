@@ -53,7 +53,10 @@ void CvmRuntime::SetupPrecision() {
   std::vector<Node> &idx = nodes_;
   std::vector<int> &precision = attrs_.precision;
   const auto rshape = GetTShapeArray(attrs_.shape);
-  VERIFY_EQ(precision.size(), nodes_.size()) << "nodes should have the corresponding precision.";
+  if (precision.size() == 0) {
+    precision.resize(nodes_.size(), -1);
+  }
+  VERIFY_GE(precision.size(), nodes_.size()) << "nodes should have the corresponding precision.";
   // Temp space for shape inference.
   std::vector<int> iprec, oprec;
   std::vector<TShape> shapes;
@@ -90,7 +93,7 @@ void CvmRuntime::SetupPrecision() {
       }
       // Save to the result map.
       for (uint32_t i = 0; i < num_inputs; ++i) {
-          VERIFY(precision[entry_id(inode.inputs[i])] <= iprec[i] && iprec[i] <= 32)
+          VERIFY(iprec[i] <= 32)
              << "Check precision failed, "
              << "expected to be at most " << iprec[i]
              << " but " << precision[entry_id(inode.inputs[i])]
