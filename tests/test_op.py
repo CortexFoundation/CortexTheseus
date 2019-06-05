@@ -2,12 +2,12 @@ import mxnet as mx
 from mxnet import ndarray as nd
 import numpy as np
 
-a = nd.arange(0, stop=3*100*36).reshape((3,100,36))
+a = nd.arange(0, stop=27).reshape((3,3,3))
 #c = nd.transpose(a, axes=(0, 2, 3, 1))
 c = nd.max(a, axis=(2))
 print(c.shape)
 #print(a)
-#print(c.asnumpy().flatten())
+print(c.asnumpy().flatten())
 #nd.slice()
 np.save("./tests/out.npy", c.asnumpy().astype("int32"))
 

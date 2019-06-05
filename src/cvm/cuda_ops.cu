@@ -1058,6 +1058,7 @@ const char* cuda_broadcast_mul(const int32_t *a, const int32_t *b, int32_t* c, c
         cudaFree(dev_c);
         cudaFree(tmp_b);
     }
+    print_to_file(dev_c, n, "/tmp/zkh/cuda_mul.txt");
     return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_broadcast_div(const int32_t *a, const int32_t *b, int32_t*c, const int32_t n,
@@ -1396,7 +1397,7 @@ const char* cuda_abs(const int32_t *x, int32_t *y, const int32_t n, bool debug){
     return check_cuda_error(cudaGetLastError());
 }
 
-__global__ void kernel_max(const int32_t *x, int32_t *y, int32_t n){
+__global__ void kernel_max(const int32_t *x, int32_t *y, int64_t n){
    __shared__ int32_t buf[256];
    int32_t tid = threadIdx.x;
    int32_t maxValue = (int32_t)1 << 31;
@@ -1423,22 +1424,36 @@ __global__ void kernel_max_one_axis(const int32_t *x, int32_t *y, const int64_t 
         const int32_t xndim, const int32_t yndim, const int64_t xsize){
     int32_t i = threadIdx.x + blockDim.x * blockIdx.x;
     if(i < xsize){
-        uint64_t in_i = i, o_i = 0, shapeSize = 0;
-        for(int j = xndim-1; j >= 0; j--){
-            uint64_t col = in_i % xshape[j];
-            in_i /= xshape[j];
-            if(j != axis){
-                int yj = j > axis ? j-1 : j;
-                o_i += (yj == yndim-1 ? col : col * shapeSize);
-                shapeSize = (yj == yndim-1 ? yshape[yj] : shapeSize * yshape[yj]);
+        uint64_t o_i = i, in_i = 0, shapeSize = 0, axis_size = 0;
+        for(int j = xndim - 1; j > axis; j--){
+            int yj = j - 1;
+            int64_t col = o_i % yshape[yj];
+            o_i /= yshape[yj];
+            in_i += (j == xndim - 1 ? col : col * shapeSize);
+            shapeSize = (j == xndim - 1 ? xshape[j] : shapeSize * xshape[j]);
+        }
+
+        axis_size = shapeSize;
+        if(shapeSize == 0) axis_size = 1;
+        shapeSize = (xndim -1 == axis ? xshape[axis] : shapeSize * xshape[axis]);
+
+        for(int j = axis-1; j >= 0; j--){
+            int64_t col = o_i % yshape[j];
+            o_i /= yshape[j];
+            in_i +=  col * shapeSize;
+            shapeSize = shapeSize * xshape[j];
+        }
+
+        int32_t maxV = x[in_i];
+        for(int j = 0; j < xshape[axis]; j++){
+            if(maxV < x[in_i + j * axis_size]){
+                maxV = x[in_i + j * axis_size];
             }
         }
-        if(y[o_i] < x[i]){
-            y[o_i] =  x[i];
-        }
+        y[i] = maxV;
     }
 }
-const char* cuda_max(const int32_t *x, int32_t *y, const int32_t n, const int64_t *axis, const int64_t*xshape, const int64_t *yshape, 
+const char* cuda_max(const int32_t *x, int32_t *y, const uint64_t n, const int64_t *axis, const int64_t*xshape, const int64_t *yshape, 
         const int32_t xndim, const int32_t yndim){
    if(axis == NULL){
        kernel_max<<<1, 256>>>(x, y, n);
@@ -1451,7 +1466,9 @@ const char* cuda_max(const int32_t *x, int32_t *y, const int32_t n, const int64_
 
        int bSize = 256;
        int gSize = (n + bSize - 1) / bSize;
-       kernel_max_one_axis<<<gSize, bSize>>>(x, y, axis[0], dev_xshape, dev_yshape, xndim, yndim, n);
+       const int64_t axis_data = axis[0];
+       int32_t maxV = (int32_t)1 << 31;
+       kernel_max_one_axis<<<gSize, bSize>>>(x, y, axis_data, dev_xshape, dev_yshape, xndim, yndim, n);
        cudaFree(dev_xshape);
        cudaFree(dev_yshape);
    }
@@ -1520,6 +1537,7 @@ const char* cuda_cvm_right_shift(const int32_t *a, const int32_t b, const int32_
         cudaFree(dev_c);
         cudaFree(tmp_a);
     }
+    print_to_file(dev_c, n, "/tmp/zkh/cuda_cvm_right_shft.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -1774,7 +1792,8 @@ const char *cuda_squeeze(const int32_t *ishape_data, int32_t *oshape_data, const
     if(oshape_data == ishape_data){
         return NULL;
     }
-    // cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    print_to_file(oshape_data, n, "/tmp/zkh/cuda_squeeze.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
