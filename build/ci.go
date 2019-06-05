@@ -77,7 +77,6 @@ var (
 		executablePath("evm"),
 		executablePath("miner"),
 		executablePath("cortex"),
-		executablePath("puppeth"),
 		executablePath("rlpdump"),
 		executablePath("wnode"),
 	}
@@ -107,10 +106,6 @@ var (
 		{
 			BinaryName:  "cortex",
 			Description: "Cortex CLI client.",
-		},
-		{
-			BinaryName:  "puppeth",
-			Description: "Cortex private network manager.",
 		},
 		{
 			BinaryName:  "rlpdump",
