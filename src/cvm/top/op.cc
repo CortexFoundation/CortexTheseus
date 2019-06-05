@@ -52,11 +52,15 @@ Op& Op::add_alias(const std::string& alias) {  // NOLINT(*)
 // find operator by name
 const Op* Op::Get(const std::string& name) {
   const Op* op = utils::Registry<Op>::Find(name);
-  auto allnames = utils::Registry<Op>::ListAllNames();
   CHECK(op != nullptr)
       << "Operator " << name << " is not registered";
   return op;
 }
+// get names of all the operators
+const std::vector<std::string> Op::GetAll() {
+  return utils::Registry<Op>::ListAllNames();
+}
+
 
 // Get attribute map by key
 const any* Op::GetAttrMap(const std::string& key) {

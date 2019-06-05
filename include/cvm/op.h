@@ -259,6 +259,12 @@ class CVM_DLL Op {
    * \return Pointer to a Op, valid throughout program lifetime.
    */
   static const Op* Get(const std::string& op_name);
+   /*!
+   * \brief Get all Ops.
+   * \param none.
+   * \return Vector of strings, include all Op names.
+   */
+  static const std::vector<std::string> GetAll();
   /*!
    * \brief Get additional registered attribute about operators.
    *  If nothing has been registered, an empty OpMap will be returned.
@@ -268,6 +274,7 @@ class CVM_DLL Op {
    */
   template<typename ValueType>
   static const OpMap<ValueType>& GetAttr(const std::string& attr_name);
+  
 
  private:
   template<typename ValueType>
