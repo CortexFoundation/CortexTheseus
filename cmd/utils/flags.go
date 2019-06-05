@@ -219,37 +219,7 @@ var (
 		Usage: "Dashboard metrics collection refresh rate",
 		Value: dashboard.DefaultConfig.Refresh,
 	}
-	// Ethash settings
-	/* EthashCacheDirFlag = DirectoryFlag{
-		Name:  "ethash.cachedir",
-		Usage: "Directory to store the ctxcash verification caches (default = inside the datadir)",
-	}
-	EthashCachesInMemoryFlag = cli.IntFlag{
-		Name:  "ethash.cachesinmem",
-		Usage: "Number of recent ctxcash caches to keep in memory (16MB each)",
-		Value: ctxc.DefaultConfig.Ethash.CachesInMem,
-	}
-	EthashCachesOnDiskFlag = cli.IntFlag{
-		Name:  "ethash.cachesondisk",
-		Usage: "Number of recent ctxcash caches to keep on disk (16MB each)",
-		Value: ctxc.DefaultConfig.Ethash.CachesOnDisk,
-	}
-	EthashDatasetDirFlag = DirectoryFlag{
-		Name:  "ethash.dagdir",
-		Usage: "Directory to store the ctxcash mining DAGs (default = inside home folder)",
-		Value: DirectoryString{ctxc.DefaultConfig.Ethash.DatasetDir},
-	}
-	EthashDatasetsInMemoryFlag = cli.IntFlag{
-		Name:  "ethash.dagsinmem",
-		Usage: "Number of recent ctxcash mining DAGs to keep in memory (1+GB each)",
-		Value: ctxc.DefaultConfig.Ethash.DatasetsInMem,
-	}
-	EthashDatasetsOnDiskFlag = cli.IntFlag{
-		Name:  "ethash.dagsondisk",
-		Usage: "Number of recent ctxcash mining DAGs to keep on disk (1+GB each)",
-		Value: ctxc.DefaultConfig.Ethash.DatasetsOnDisk,
-	} */
-	// Transaction pool settings
+		// Transaction pool settings
 	TxPoolLocalsFlag = cli.StringFlag{
 		Name:  "txpool.locals",
 		Usage: "Comma separated accounts to treat as locals (no flush, priority inclusion)",
@@ -1026,27 +996,6 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
-/* func setEthash(ctx *cli.Context, cfg *ctxc.Config) {
-	if ctx.GlobalIsSet(EthashCacheDirFlag.Name) {
-		cfg.Ethash.CacheDir = ctx.GlobalString(EthashCacheDirFlag.Name)
-	}
-	if ctx.GlobalIsSet(EthashDatasetDirFlag.Name) {
-		cfg.Ethash.DatasetDir = ctx.GlobalString(EthashDatasetDirFlag.Name)
-	}
-	if ctx.GlobalIsSet(EthashCachesInMemoryFlag.Name) {
-		cfg.Ethash.CachesInMem = ctx.GlobalInt(EthashCachesInMemoryFlag.Name)
-	}
-	if ctx.GlobalIsSet(EthashCachesOnDiskFlag.Name) {
-		cfg.Ethash.CachesOnDisk = ctx.GlobalInt(EthashCachesOnDiskFlag.Name)
-	}
-	if ctx.GlobalIsSet(EthashDatasetsInMemoryFlag.Name) {
-		cfg.Ethash.DatasetsInMem = ctx.GlobalInt(EthashDatasetsInMemoryFlag.Name)
-	}
-	if ctx.GlobalIsSet(EthashDatasetsOnDiskFlag.Name) {
-		cfg.Ethash.DatasetsOnDisk = ctx.GlobalInt(EthashDatasetsOnDiskFlag.Name)
-	}
-} */
-
 // checkExclusive verifies that only a single instance of the provided flags was
 // set by the user. Each flag might optionally be followed by a string type to
 // specialize it further.
@@ -1094,7 +1043,6 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	setCoinbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
-	// setEthash(ctx, cfg)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		// TODO : Setting sync mode is temporally forbidden.
@@ -1153,17 +1101,17 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
 		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
-		cfg.Ethash.UseCuda = cfg.MinerCuda
+		cfg.Cuckoo.UseCuda = cfg.MinerCuda
 	}
 	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
 		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
-		cfg.Ethash.UseOpenCL = cfg.MinerOpenCL
+		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
 	}
 
 	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
-	cfg.Ethash.StrDeviceIds = cfg.MinerDevices
-	cfg.Ethash.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
-	cfg.Ethash.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
+	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
+	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
+	cfg.Cuckoo.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
@@ -1351,14 +1299,6 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		engine = cuckoo.NewFaker()
 		if !ctx.GlobalBool(FakePoWFlag.Name) {
 			engine = cuckoo.New(cuckoo.Config{})
-			/* engine = ctxcash.New(ctxcash.Config{
-				CacheDir:       stack.ResolvePath(ctxc.DefaultConfig.Ethash.CacheDir),
-				CachesInMem:    ctxc.DefaultConfig.Ethash.CachesInMem,
-				CachesOnDisk:   ctxc.DefaultConfig.Ethash.CachesOnDisk,
-				DatasetDir:     stack.ResolvePath(ctxc.DefaultConfig.Ethash.DatasetDir),
-				DatasetsInMem:  ctxc.DefaultConfig.Ethash.DatasetsInMem,
-				DatasetsOnDisk: ctxc.DefaultConfig.Ethash.DatasetsOnDisk,
-			}, nil, false) */
 		}
 	}
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {

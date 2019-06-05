@@ -115,7 +115,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb),
+		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.MinerNotify, config.MinerNoverify, chainDb),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
@@ -229,13 +229,13 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 	// Otherwise assume proof-of-work
 	switch config.PowMode {
 	case cuckoo.ModeFake:
-		log.Warn("Ethash used in fake mode")
+		log.Warn("Cuckoo used in fake mode")
 		return cuckoo.NewFaker()
 	case cuckoo.ModeTest:
-		log.Warn("Ethash used in test mode")
+		log.Warn("Cuckoo used in test mode")
 		return cuckoo.NewTester()
 	case cuckoo.ModeShared:
-		log.Warn("Ethash used in shared mode")
+		log.Warn("Cuckoo used in shared mode")
 		return cuckoo.NewShared()
 	default:
 		//	engine := cuckoo.New(cuckoo.Config{

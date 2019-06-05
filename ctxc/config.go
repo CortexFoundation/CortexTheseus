@@ -34,12 +34,7 @@ import (
 // DefaultConfig contains default settings for use on the Cortex main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
-	Ethash:   cuckoo.Config{
-		/* CacheDir:       "ethash",
-		CachesInMem:    2,
-		CachesOnDisk:   3,
-		DatasetsInMem:  1,
-		DatasetsOnDisk: 2, */
+	Cuckoo:   cuckoo.Config{
 	},
 	NetworkId:     42,
 	DatabaseCache: 768,
@@ -64,11 +59,6 @@ func init() {
 			home = user.HomeDir
 		}
 	}
-	/* if runtime.GOOS == "windows" {
-		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, "AppData", "Ethash")
-	} else {
-		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, ".ctxcash")
-	} */
 }
 
 //go:generate gencodec -type Config -field-override configMarshaling -formats toml -out gen_config.go
@@ -107,8 +97,7 @@ type Config struct {
 	InferDeviceType string
 	InferDeviceId int
 
-	// Ethash options
-	Ethash cuckoo.Config
+	Cuckoo cuckoo.Config
 
 	// Transaction pool options
 	TxPool core.TxPoolConfig
