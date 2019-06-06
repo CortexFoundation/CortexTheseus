@@ -6,37 +6,46 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"math/big"
 )
 
-func ArgMax(res []byte) uint64 {
-	if res == nil {
-		return 0
+func GetFirstObject(byte_res []byte) *big.Int {
+	if byte_res == nil || len(byte_res) < 6 {
+		return big.NewInt(0)
 	}
 
+	res := big.NewInt(0)
+	res_tmp := make([]byte, 32)
+	
+	// for i := 0; i < len(res_tmp) / 4; i++ {
+	// 	res_tmp[i] = 255;
+	// 	if i == 0  {
+	// 		res_tmp[i] = 0
+	// 	}
+	// }
+	res.SetBytes(res_tmp)
+	return res 
+}
+
+func ArgMax(res []byte) *big.Int {
+	if res == nil {
+		return big.NewInt(0)
+	}
+	ret := big.NewInt(0)
 	var (
 		max    = int8(res[0])
 		label  = uint64(0)
 		resLen = len(res)
 	)
 
-	// If result length large than 1, find the index of max value;
-	// Else the question is two-classify model, and value of result[0] is the prediction.
-	if resLen > 1 {
-		for idx := 1; idx < resLen; idx++ {
-			if int8(res[idx]) > max {
-				max = int8(res[idx])
-				label = uint64(idx)
-			}
-		}
-	} else {
-		if max > 0 {
-			label = 1
-		} else {
-			label = 0
+	for idx := 1; idx < resLen; idx++ {
+		if int8(res[idx]) > max {
+			max = int8(res[idx])
+			label = uint64(idx)
 		}
 	}
-
-	return label
+	ret.SetInt64(int64(label))
+	return ret
 }
 
 func ReadImage(inputFilePath string) ([]byte, error) {
