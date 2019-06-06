@@ -414,9 +414,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.sum")
         VERIFY(args.num_args == 3);
 		DLTensor *x = args[0];
 		DLTensor *y = args[1];
-        void *_attr = args[2];
-        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-        //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+    //void *_attr = args[2];
+    //auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
 		//int axis[2] = {param.axis[0], param.axis[1]};
 
 		int32_t *x_data = static_cast<int32_t*>(x->data);
@@ -742,7 +742,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.strided_slice")
     TShape begin = param.begin;
     //TShape end = param.end;
     TShape stride = param.stride;
-    int ndim = y->ndim;
     int64_t *begin_data = begin.begin();
     //int64_t *end_data = end.begin();
     int64_t *step_data = stride.begin();
@@ -755,14 +754,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.strided_slice")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.slice_like")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     DLTensor *x = args[0];
-    DLTensor *shape = args[1];
+    //DLTensor *shape = args[1];
     DLTensor *y = args[2];
-    //std::string str_axis = args[3];
-    void* _attr = args[3];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::SliceLikeParam>(attr->parsed);
-    Tuple<int> axis = param.axis;
-    int *axis_data = axis.begin();
+    //void* _attr = args[3];
+    //auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    //auto &param = cvm::get<cvm::top::SliceLikeParam>(attr->parsed);
+    //Tuple<int> axis = param.axis;
+    //int *axis_data = axis.begin();
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     // TODO(kaihuo) check
@@ -817,7 +815,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.non_max_suppression")
     int32_t id_index = param.id_index;
     bool force_suppress = param.force_suppress;
     bool return_indices = param.return_indices;
-    bool invalid_to_bottom = invalid_to_bottom;
+    bool invalid_to_bottom = param.invalid_to_bottom;
+    CHECK(return_indices == false) << "no support return_indices and invalid_to_bottom";
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);

@@ -36,7 +36,6 @@ void test_op_take() {
 }
 
 int run_LIF(string model_root) {
-
   cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
   cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
   cvm::runtime::im2col_cnt = 0;
