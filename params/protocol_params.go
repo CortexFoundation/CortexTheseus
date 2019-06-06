@@ -94,7 +94,7 @@ const (
 
 var (
 	DifficultyBoundDivisor = big.NewInt(2) // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(512) // Difficulty of the Genesis block.
+	GenesisDifficulty      = big.NewInt(2) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(2) // The minimum that the difficulty may ever be.
 
 	MeanDifficultyBoundDivisor = big.NewInt(1024)
