@@ -200,7 +200,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
   for(int i = 0; i < 16; i++)
       int16[i] = 1;
   __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
-  std::cerr << " batch = " << y->shape[0] << "\n";
+  // std::cerr << " batch = " << y->shape[0] << "\n";
   for (uint32_t di = 0; di < y->shape[0]; di++) {
       auto cdy = dy + di * N;
       auto data_outer = int8_x.get() + di * K;
@@ -1556,7 +1556,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.squeeze")
     // auto &param = cvm::get<cvm::top::SqueezeParam>(attr->parsed);
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
     int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
-    std::cerr << ishape_data << " " << oshape_data << "\n";
+    // std::cerr << ishape_data << " " << oshape_data << "\n";
     if(ishape_data == oshape_data){
         return;
     }
@@ -1856,7 +1856,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
     auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
 
     int32_t axis = param.axis.value(); //TODO get from attr
-    std::cerr << "axis = " << axis << " " << x->ndim << " " << y->ndim << "\n";
+    // std::cerr << "axis = " << axis << " " << x->ndim << " " << y->ndim << "\n";
     take(x, indices, y, axis);
     print_to_file(y, "/tmp/zkh/take.txt");
 });

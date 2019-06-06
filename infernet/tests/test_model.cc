@@ -57,7 +57,7 @@ int run_LIF(string model_root) {
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
+      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 1, 0)
       );
   if (model == nullptr) {
     std::cerr << "model loaded failed\n";
@@ -89,7 +89,7 @@ int run_LIF(string model_root) {
     std::cerr << "\n";
   }
   double start = omp_get_wtime();
-  int n_run = 10;
+  int n_run = 1;
   for (int i = 0; i < n_run; i++) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
@@ -186,10 +186,10 @@ void test_thread() {
   for (int t = 0; t < 1; ++t) {
     cerr << "threads t = " << t << "\n";
     threads.push_back(thread([&]() {
-          string model_root = "/home/tian/model_storage/resnet50_v1/data/";
+          string model_root = "/home/lizhen/model_storage/resnet50_v1/data/";
           // model_root = "/home/kaihuo/cortex_fullnode_storage/cifar_resnet20_v2/data";
-          // model_root = "/home/tian/storage/mnist/data/";
-          // model_root = "/home/tian/storage/animal10/data";
+          // model_root = "/home/lizhen/storage/mnist/data/";
+          // model_root = "/home/lizhen/storage/animal10/data";
           // model_root = "/home/kaihuo/cortex_fullnode_storage/imagenet_inceptionV3/data";
           run_LIF(model_root);
           //run_LIF(model_root);
