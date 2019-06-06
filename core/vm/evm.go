@@ -538,7 +538,7 @@ func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (uint64, error) {
+func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (*big.Int, error) {
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
 	//modelErrCh := make(chan error)
@@ -561,11 +561,11 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	//}
 
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
-		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
+		return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 	}
 
 	if !torrentfs.Available(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, int64(inputRawSize)) {
-		return 0, errors.New("Torrent file input not available, blockchain and torrent not match")
+		return nil, errors.New("Torrent file input not available, blockchain and torrent not match")
 	}
 
 	var (
@@ -585,8 +585,9 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
 	}
+	ret := synapse.ArgMax(inferRes)
 
-	return synapse.ArgMax(inferRes), errRes
+	return big.NewInt(int64(ret)), errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output

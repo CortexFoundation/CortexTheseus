@@ -35,7 +35,6 @@ extern double cvm_op_depthwise_conv_cnt;
 
 struct CVMModel {
 public:
-  bool loaded{false};
   CVMModel(const string& graph, DLContext _ctx);
   ~CVMModel();
   int LoadParams(const string& params_str);
@@ -46,6 +45,7 @@ public:
   int64_t GetOps();
   int GetSizeofOutput();
   int Run(DLTensor* input, std::vector<DLTensor*> output);
+  bool loaded_{false};
   DLTensor* PlanInput();
   DLTensor* PlanInput(void*);
   std::vector<DLTensor*> PlanOutput();
@@ -66,7 +66,7 @@ private:
   int64_t *out_size_;
   int32_t out_num_;
   int64_t model_id_;
-  bool is_output_int32_;
+  int8_t output_bytes_;
   bool is_input_int32_;
   std::vector<int> dims_;
   std::vector<int64_t*> shapes_;
