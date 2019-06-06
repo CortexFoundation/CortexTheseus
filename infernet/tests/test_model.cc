@@ -185,10 +185,10 @@ void test_thread() {
   for (int t = 0; t < 1; ++t) {
     cerr << "threads t = " << t << "\n";
     threads.push_back(thread([&]() {
-          string model_root = "/home/lizhen/model_storage/resnet50_v1/data/";
+          string model_root = "/home/tian/model_storage/resnet50_v1/data/";
           // model_root = "/home/kaihuo/cortex_fullnode_storage/cifar_resnet20_v2/data";
-          // model_root = "/home/lizhen/storage/mnist/data/";
-          // model_root = "/home/lizhen/storage/animal10/data";
+          // model_root = "/home/tian/storage/mnist/data/";
+          // model_root = "/home/tian/storage/animal10/data";
           // model_root = "/home/kaihuo/cortex_fullnode_storage/imagenet_inceptionV3/data";
           run_LIF(model_root);
           //run_LIF(model_root);
@@ -201,19 +201,19 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-     "/home/lizhen/model_storage/dcnet_mnist_v1/data",
-     "/home/lizhen/model_storage/mobilenetv1.0_imagenet/data",
-     "/home/lizhen/model_storage/resnet50_v1_imagenet/data",
-     "/home/lizhen/model_storage/animal10/data",
-     //"/home/lizhen/model_storage/dcnet_v0_mnist/data",
-     "/home/lizhen/model_storage/resnet50_v2/data",
-     "/home/lizhen/model_storage/vgg16_gcv/data",
-    // "/home/lizhen/model_storage/sentiment_trec/data",
-     "/home/lizhen/model_storage/vgg19_gcv/data",
-     "/home/lizhen/model_storage/squeezenet_gcv1.1/data",
-     "/home/lizhen/model_storage/squeezenet_gcv1.0/data",
-     "/home/lizhen/model_storage/octconv_resnet26_0.250/data",
-     "/home/lizhen/model_storage/yolo3_darknet53_b1/data"
+     "/data/model_storage/dcnet_mnist_v1/data",
+     "/data/model_storage/mobilenetv1.0_imagenet/data",
+     "/data/model_storage/resnet50_v1_imagenet/data",
+     "/data/model_storage/animal10/data",
+     "/data/model_storage/dcnet_v0_mnist/data",
+     "/data/model_storage/resnet50_v2/data",
+     "/data/model_storage/vgg16_gcv/data",
+     "/data/model_storage/sentiment_trec/data",
+     "/data/model_storage/vgg19_gcv/data",
+     "/data/model_storage/squeezenet_gcv1.1/data",
+     "/data/model_storage/squeezenet_gcv1.0/data",
+     "/data/model_storage/octconv_resnet26_0.250/data",
+     "/data/model_storage/yolo3_darknet53_b1/data"
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);
