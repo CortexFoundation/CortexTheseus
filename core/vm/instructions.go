@@ -785,8 +785,8 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	//consensus
 	interpreter.evm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 	interpreter.evm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-
-	stack.push(interpreter.intPool.get().SetUint64(output))
+	// interpreter.intPool.get().SetUint64(output)
+	stack.push(output)
 	//consensus
 	//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
 
@@ -858,13 +858,13 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 	}
 	//update model status
 	interpreter.evm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-
-	stack.push(interpreter.intPool.get().SetUint64(output))
+	// interpreter.intPool.get().SetUint64
+	stack.push((output))
 
 	return nil, nil
 }
 
-/*
+// experimental feature
 func opNNForward(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	_modelAddr, _inputHeaderOffset, _outputOffset := stack.pop(), stack.pop(), stack.pop()
 	inputBuff, inputError := interpreter.evm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
@@ -911,7 +911,6 @@ func opNNForward(pc *uint64, interpreter *EVMInterpreter, contract *Contract, me
 	stack.push(interpreter.intPool.get().SetUint64(1))
 	return nil, nil
 }
-*/
 
 func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (

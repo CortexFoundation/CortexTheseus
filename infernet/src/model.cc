@@ -25,7 +25,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   out_size_(NULL)
 {
   model_id_ = rand();
-  loaded = false;
+  loaded_ = false;
   ctx_ = _ctx;
   const PackedFunc* module_creator = Registry::Get("cvm.runtime.create");
   if (module_creator != nullptr) {
@@ -63,7 +63,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   }
   auto get_output_num = module_.GetFunction("get_output_num");
   get_output_num(&out_num_);
-  std::cerr << "get_output_num = " << out_num_ << "\n";
+  // std::cerr << "get_output_num = " << out_num_ << "\n";
   if (out_num_< 1) {
     return;
   }
@@ -71,13 +71,19 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     auto get_input_precision = module_.GetFunction("get_input_precision");
     int input_precision;
     get_input_precision(&input_precision);
+    // std::cerr << " input_precision = " << input_precision << "\n";
     is_input_int32_ = input_precision > 8;
   }
   {
     auto get_output_precision = module_.GetFunction("get_output_precision");
     int output_precision;
     get_output_precision(&output_precision);
-    is_output_int32_ = output_precision > 8;
+    output_bytes_ = 1;
+    if (output_precision > 8)
+        output_bytes_ = 2;
+    if (output_precision > 16)
+        output_bytes_ = 4;
+    std::cerr << " output_precision = " << output_precision << "\n";
   }
 
   auto get_input_shape = module_.GetFunction("get_input_shape");
@@ -109,7 +115,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     shapes_.push_back(shape);
  }
 
-  loaded = true;
+  loaded_ = true;
   delete t->shape;
   delete t;
 }
@@ -142,13 +148,18 @@ DLTensor* CVMModel::PlanInput() {
   return ret;
 }
 
-template<typename Type>
-DLTensor* CVMModel::PlanInput(Type *input) {
+DLTensor* CVMModel::PlanInput(void *input) {
   DLTensor* ret = nullptr;
   CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
   auto data = static_cast<int*>(ret->data);
-  for (int i = 0; i < in_size_; ++i) {
-    data[i] = input[i];
+  if (is_input_int32_) {
+      for (int i = 0; i < in_size_; ++i) {
+          data[i] = static_cast<int32_t*>(input)[i];
+      }
+  } else {
+      for (int i = 0; i < in_size_; ++i) {
+          data[i] = static_cast<int8_t*>(input)[i];
+      }
   }
   return ret;
 }
@@ -183,12 +194,24 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
     }
   }
   if (can_concat) {
-    if (is_output_int32_) {
+    if (output_bytes_ == 4) {
       int32_t* cp = static_cast<int32_t*>((void*)(mem));
-      int32_t nx = xs[0] / 4;  // truncate result
+      int32_t nx = xs[0] / output_bytes_;  // truncate result
       for (int xidx = 0; xidx < nx; xidx++) {
         for (size_t k = 0; k < outputs.size(); ++k) {
           auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
+          for (size_t i = 0; i < ys[k]; ++i) {
+            *cp = data[i];
+            ++cp;
+          }
+        }
+      }
+    } else if (output_bytes_ == 2){
+      int16_t* cp = static_cast<int16_t*>((void*)(mem));
+      int32_t nx = xs[0] / output_bytes_;  // truncate result
+      for (int xidx = 0; xidx < nx; xidx++) {
+        for (size_t k = 0; k < outputs.size(); ++k) {
+          auto data = static_cast<int16_t*>(outputs[k]->data) + xidx * ys[k];
           for (size_t i = 0; i < ys[k]; ++i) {
             *cp = data[i];
             ++cp;
@@ -251,18 +274,19 @@ int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
 }
 
 int CVMModel::GetInputLength() {
+  // std::cerr << " GetInputLength = " << in_size_ << " " << is_input_int32_ << "\n";
   return static_cast<int>(in_size_) * (is_input_int32_ ? 4 : 1);
 }
 
 int CVMModel::GetOutputLength() {
   int ret = 0;
   for (int i = 0; i < out_num_; ++i)
-    ret += static_cast<int>(out_size_[i]) * (is_output_int32_ ? 4 : 1);
+    ret += static_cast<int>(out_size_[i]) * output_bytes_;
   return ret;
 }
 
 int CVMModel::GetSizeofOutput() {
-  return is_output_int32_ ? 4 : 1;
+  return output_bytes_;
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -310,7 +334,7 @@ void* CVMAPILoadModel(const char *graph_fname, const char *model_fname,
   } catch (std::exception &e) {
     return NULL;
   }
-  if (!model->loaded || model->LoadParams(params)) {
+  if (!model->loaded_ || model->LoadParams(params)) {
     delete model;
     return NULL;
   }
@@ -378,35 +402,6 @@ int CVMAPISizeofOutput(void *model_) {
   return -1;
 }
 
-int CVMAPIInferInt32(void* model_, char *input_data, char *output_data) {
-  int ret = 0;
-  if (input_data == nullptr) {
-    std::cerr << "input_data error" << std::endl;
-    ret = -1;
-  } else if (output_data == nullptr) {
-    std::cerr << "output error" << std::endl;
-    ret = -1;
-  } else {
-    CVMModel* model = (CVMModel*)model_;
-    DLTensor* input = model->PlanInput((int32_t*)input_data);
-    auto outputs = model->PlanOutput();
-    if (input == nullptr) {
-      std::cerr << "input == nullptr || output == nullptr" << std::endl;
-      ret = -1;
-    } else {
-      ret = model->Run(input, outputs);
-      if (ret == 0) {
-        model->SaveTensor(outputs, output_data);
-        if (input)
-          CVMArrayFree(input);
-        for (int i = 0; i < outputs.size(); ++i)
-          CVMArrayFree(outputs[i]);
-      }
-    }
-  }
-  return ret;
-}
-
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
   int ret = 0;
   if (input_data == nullptr) {
@@ -417,7 +412,8 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
     ret = -1;
   } else {
     CVMModel* model = (CVMModel*)model_;
-    DLTensor* input = model->PlanInput(input_data);
+    DLTensor* input = nullptr;
+    input = model->PlanInput(input_data);
     auto outputs = model->PlanOutput();
     if (input == nullptr) {
       std::cerr << "input == nullptr || output == nullptr" << std::endl;
