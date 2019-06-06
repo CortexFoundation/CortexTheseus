@@ -591,7 +591,7 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (uint64, error) {
+func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (*big.Int, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", evm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
@@ -606,7 +606,7 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	}*/
 
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
-		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
+		return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 	}
 
 	var (
@@ -628,7 +628,8 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		log.Info("Inference Succeed", "label", inferRes)
 	}
 
-	return synapse.ArgMax(inferRes), errRes
+	ret := synapse.ArgMax(inferRes)
+	return big.NewInt(int64(ret)), errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
