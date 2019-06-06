@@ -637,15 +637,14 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	modelMeta, err := evm.GetModelMeta(addr)
-	fmt.Println("ops infer ", modelMeta, err, evm.vmConfig.InferURI)
+	// fmt.Println("ops infer ", modelMeta, err, evm.vmConfig.InferURI)
 	if err != nil {
 		return 0, err
 	}
 	modelRawSize := modelMeta.RawSize
 	modelInfoHash := strings.ToLower(string(modelMeta.Hash.Hex()[2:]))
-
-	if !torrentfs.Available(addr, evm.Config().StorageDir, int64(modelRawSize)) {
-		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
+	if !torrentfs.Available(modelMeta.Hash, evm.Config().StorageDir, int64(modelRawSize)) {
+		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelInfoHash)
 	}
 
 	if evm.vmConfig.InferURI == "" {
