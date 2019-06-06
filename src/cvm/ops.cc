@@ -1004,27 +1004,44 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
   VERIFY(args.num_args == 3);
   DLTensor *x = args[0];
   DLTensor *y = args[1];
-  //TODO(@kaihuo) unused axis, check
-  //void *_attr = args[2];
-  // auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-  //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
-  // int axis[2] = {(int)param.axis[0], (int)param.axis[1]};
+  void *_attr = args[2];
+  auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+  auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+  TShape axis = param.axis;
+  VERIFY(axis.ndim() <= 1);
+  int64_t *axis_data = axis.begin();
+  //bool keepdims = param.keepdims; //the reduce axis is always 1
+  //bool exclude = param.exclude;
   int32_t *x_data = static_cast<int32_t*>(x->data);
   int32_t *y_data = static_cast<int32_t*>(y->data);
-  int n_batch = static_cast<int>(x->shape[0]);
-  int channels = static_cast<int>(x->shape[1]);
-  int x_h = static_cast<int>(x->shape[2]);
-  int x_w = static_cast<int>(x->shape[3]);
-  for(int i = 0; i < n_batch; i++){
-      for(int j = 0; j < channels; j++){
-          int32_t sum = 0;
-          for(int h = 0; h < x_h; h++){
-              for(int w = 0; w < x_w; w++){
-                  sum += x_data[i * channels * x_h * x_w + j * x_h * x_w + h * x_w + w];
-              }
-          }
-          y_data[i*channels + j] = sum;
+  if(axis.ndim() == 0){
+    int32_t sum = 0;
+    for(uint64_t i = 0; i < getSize(x); i++){
+        sum += x_data[i];
+    }
+    y_data[0] = sum;
+  }else{
+    std::vector<int32_t> realAxis(axis.ndim(), 0);
+    for(uint32_t i = 0; i < axis.ndim(); i++){
+      int32_t val = axis_data[i];
+      if(val < 0) val += x->ndim;
+      VERIFY(val < x->ndim && val >= 0);
+      realAxis[val] = 1;
+    }
+    memset(y_data, 0, getSize(y)*sizeof(int32_t));
+    for(uint64_t i = 0; i < getSize(x); i++){
+      uint64_t in_i = i, o_i = 0, shapeSize = 1;
+      for(int j = x->ndim-1, yj = y->ndim-1; j>=0; j--){
+        uint64_t col = in_i % x->shape[j];
+        in_i /= x->shape[j];
+        if(realAxis[j] == 0){
+          o_i += col * shapeSize;
+          shapeSize *= y->shape[yj];
+          yj -= 1;
+        }
       }
+      y_data[o_i] += x_data[i];
+    }
   }
 });
 
@@ -1296,15 +1313,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
             }
             y_data[0] = max;
         }else{
-          std::vector<int32_t> realAxis(axis.ndim());
-          for(int i = 0; i < axis.ndim(); i++){
-            int val = axis_data[i];
+          std::vector<int32_t> realAxis(axis.ndim(), 0);
+          for(uint32_t i = 0; i < axis.ndim(); i++){
+            int32_t val = axis_data[i];
             if(val < 0) val += dlx->ndim;
             VERIFY(val < dlx->ndim && val >= 0);
-            realAxis[i] = val;
+            realAxis[val] = 1;
           }
-          std::sort(realAxis.begin(), realAxis.end());
-          realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
           int32_t maxV = (int32_t)1 << 31;
           memset(y_data, maxV, getSize(y)*sizeof(int32_t));
           for(uint64_t i = 0; i < getSize(dlx); i++){
@@ -1312,7 +1327,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
             for(int j = dlx->ndim-1, yj = y->ndim-1; j>=0; j--){
                 uint64_t col = in_i % dlx->shape[j];
                 in_i /= dlx->shape[j];
-                if(std::count(realAxis.begin(), realAxis.end(), j) == 0){
+                if(realAxis[j] == 0){
                     o_i += col * shapeSize;
                     shapeSize *= y->shape[yj];
                     yj -= 1;
@@ -1740,7 +1755,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
     int32_t id_index = param.id_index;
     bool force_suppress = param.force_suppress;
     bool return_indices = param.return_indices;
-    bool invalid_to_bottom = param.invalid_to_bottom;
+    //bool invalid_to_bottom = param.invalid_to_bottom;
     CHECK(return_indices == false) << "no support return_indices and invalid_to_bottom";
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
