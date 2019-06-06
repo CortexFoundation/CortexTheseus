@@ -235,7 +235,7 @@ func DefaultWSEndpoint() string {
 // NodeName returns the devp2p node identifier.
 func (c *Config) NodeName() string {
 	name := c.name()
-	// Backwards compatibility: previous versions used title-cased "Geth", keep that.
+	// Backwards compatibility: previous versions used title-cased "Ctxc", keep that.
 	if name == "cortex" || name == "cortex-testnet" {
 		name = "Cortex"
 	}
@@ -262,7 +262,7 @@ func (c *Config) name() string {
 }
 
 // These resources are resolved differently for "cortex" instances.
-var isOldGethResource = map[string]bool{
+var isOldCtxcResource = map[string]bool{
 	"chaindata":          true,
 	"nodes":              true,
 	"nodekey":            true,
@@ -280,7 +280,7 @@ func (c *Config) ResolvePath(path string) string {
 	}
 	// Backwards-compatibility: ensure that data directory files created
 	// by cortex 1.4 are used if they exist.
-	if c.name() == "cortex" && isOldGethResource[path] {
+	if c.name() == "cortex" && isOldCtxcResource[path] {
 		oldpath := ""
 		if c.Name == "cortex" {
 			oldpath = filepath.Join(c.DataDir, path)

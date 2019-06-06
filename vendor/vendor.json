@@ -483,12 +483,6 @@
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
-			"checksumSHA1": "ElWGD45ZICUqL2qQtRvGO3b+tkE=",
-			"path": "github.com/ethereum/go-ethereum/consensus/ethash",
-			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
-			"revisionTime": "2018-09-15T10:22:30Z"
-		},
-		{
 			"checksumSHA1": "67Lw3ndx1KrduXeMUrz3mZZ1mNc=",
 			"path": "github.com/ethereum/go-ethereum/consensus/misc",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",

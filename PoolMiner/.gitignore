@@ -1,5 +1,5 @@
-build/*
-
+build/_workspace/*
+build/bin/*
 *.o
 *.a
 *.so

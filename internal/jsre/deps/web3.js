@@ -2607,7 +2607,7 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                 inputFormatter: utils.toDecimal
             }),
             new Property({
-                name: 'version.ethereum',
+                name: 'version.cortex',
                 getter: 'ctxc_protocolVersion',
                 inputFormatter: utils.toDecimal
             }),
@@ -4493,7 +4493,7 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
     };
 
     /**
-     * This method should be used to create iban object from ethereum address
+     * This method should be used to create iban object from cortex address
      *
      * @method fromAddress
      * @param {String} address
@@ -5723,12 +5723,6 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
         You should have received a copy of the GNU Lesser General Public License
         along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
     */
-    /** @file shh.js
-     * @authors:
-     *   Fabian Vogelsteller <fabian@ethereum.org>
-     *   Marek Kotewicz <marek@ethcore.io>
-     * @date 2017
-     */
 
     var Method = require('../method');
     var Filter = require('../filter');
@@ -6204,7 +6198,7 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
 
     /**
      * It's responsible for passing messages to providers
-     * It's also responsible for polling the ethereum node for incoming messages
+     * It's also responsible for polling the cortex node for incoming messages
      * Default poll timeout is 1 second
      * Singleton
      */
