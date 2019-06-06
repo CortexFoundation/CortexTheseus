@@ -57,7 +57,7 @@ int run_LIF(string model_root) {
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 1, 0)
+      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
       );
   if (model == nullptr) {
     std::cerr << "model loaded failed\n";
@@ -202,7 +202,7 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-    "/home/tian/model_storage/yolo3_darknet53_int16/data",
+    // "/home/tian/model_storage/yolo3_darknet53_int16/data",
     // "/home/tian/model_storage/dcnet_mnist_v1/data",
     // "/home/tian/model_storage/mobilenetv1.0_imagenet/data",
     // "/home/tian/model_storage/resnet50_v1_imagenet/data",

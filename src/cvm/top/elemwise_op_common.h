@@ -75,11 +75,21 @@ inline bool ElemwiseShape(const NodeAttrs& attrs,
     attrs, in_attrs, out_attrs, TShape());
 }
 
+inline bool NonScalePrecision(const NodeAttrs& attrs,
+                              std::vector<TShape>* shapes,
+                              std::vector<int>* iattr,
+                              std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
+  oattr->assign(0, iattr->at(0));
+  return true;
+}
+
 template<int def_v>
 inline bool ElemwisePrecision(const NodeAttrs& attrs,
                                   std::vector<TShape>* shapes,
 																	std::vector<int>* iattr,
 																	std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
   for (int& v : *oattr) {
     v = def_v;
   }
@@ -90,6 +100,7 @@ inline bool ElemwiseSamePrecision(const NodeAttrs& attrs,
                                   std::vector<TShape>* shapes,
 																	std::vector<int>* iattr,
 																	std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
   int def_v = -1;
   for (int v : *iattr) {
     if (v != -1) {
@@ -110,6 +121,7 @@ inline bool ElemwisePlusonePrecision(const NodeAttrs& attrs,
 		                                 std::vector<TShape>* shapes,
 																		 std::vector<int>* iattr,
 																		 std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
   int def_v = -1;
   for (int v : *iattr) {
     if (v > def_v) {
@@ -150,6 +162,7 @@ inline bool ElemwiseSumPrecision(const NodeAttrs& attrs,
                                  std::vector<TShape>* shapes,
 																 std::vector<int>* iattr,
 																 std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
   int def_v = 0;
   for (int v : *iattr) {
     if (v == -1) {
@@ -182,8 +195,8 @@ inline bool ElemwiseSecondPrecision(const NodeAttrs& attrs,
 inline bool ElemwiseFirstPrecision(const NodeAttrs& attrs,
                                    std::vector<TShape>* shapes,
                                    std::vector<int>* iattr,
-                                   std::vector<int>* oattr)
-{
+                                   std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
   if (iattr->size() == 0) return false;
   int def_v = iattr->at(0);
   if (def_v == -1) return false;

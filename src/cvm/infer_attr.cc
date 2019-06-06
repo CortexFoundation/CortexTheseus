@@ -27,8 +27,9 @@ std::vector<TShape> GetTShapeArray(const std::vector<std::vector<int64_t> > &sha
   std::vector<TShape> ret;
   for (auto shape : shapes) {
     VERIFY_LE(shape.size(), 6) << "shape size should not larger than 6";
-    for (int i = 0; i < shape.size(); ++i) {
-      VERIFY_LE(shape[i], 0x7fffffff) << "tensor size should not larger than the range of int32";
+    for (size_t i = 0; i < shape.size(); ++i) {
+      VERIFY_LE(shape[i], 0x7fffffff)
+        << "tensor size should not larger than the range of int32";
     }
     if (shape.size() == 1) {
       ret.push_back(TShape{shape[0]});
@@ -89,7 +90,6 @@ void CvmRuntime::SetupPrecision() {
         VERIFY(false)
           << "operator " << inode.attrs.name
           << " has not registered FInferPrecision";
-        // finfer = cvm::top::ElemwiseSamePrecision;
       }
       if (!finfer(inode.attrs, &shapes, &iprec, &oprec)) {
         VERIFY(false)
