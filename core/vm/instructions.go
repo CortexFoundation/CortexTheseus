@@ -864,7 +864,7 @@ func opInferArray(pc *uint64, interpreter *EVMInterpreter, contract *Contract, m
 	return nil, nil
 }
 
-/*
+// experimental feature
 func opNNForward(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	_modelAddr, _inputHeaderOffset, _outputOffset := stack.pop(), stack.pop(), stack.pop()
 	inputBuff, inputError := interpreter.evm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
@@ -911,7 +911,6 @@ func opNNForward(pc *uint64, interpreter *EVMInterpreter, contract *Contract, me
 	stack.push(interpreter.intPool.get().SetUint64(1))
 	return nil, nil
 }
-*/
 
 func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (
