@@ -25,7 +25,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   out_size_(NULL)
 {
   model_id_ = rand();
-  loaded = false;
+  loaded_ = false;
   ctx_ = _ctx;
   const PackedFunc* module_creator = Registry::Get("cvm.runtime.create");
   if (module_creator != nullptr) {
@@ -78,7 +78,12 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     auto get_output_precision = module_.GetFunction("get_output_precision");
     int output_precision;
     get_output_precision(&output_precision);
-    is_output_int32_ = output_precision > 8;
+    output_bytes_ = 1;
+    if (output_precision > 8)
+        output_bytes_ = 2;
+    if (output_precision > 16)
+        output_bytes_ = 4;
+    std::cerr << " output_precision = " << output_precision << "\n";
   }
 
   auto get_input_shape = module_.GetFunction("get_input_shape");
@@ -110,7 +115,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     shapes_.push_back(shape);
  }
 
-  loaded = true;
+  loaded_ = true;
   delete t->shape;
   delete t;
 }
@@ -189,12 +194,24 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
     }
   }
   if (can_concat) {
-    if (is_output_int32_) {
+    if (output_bytes_ == 4) {
       int32_t* cp = static_cast<int32_t*>((void*)(mem));
-      int32_t nx = xs[0] / 4;  // truncate result
+      int32_t nx = xs[0] / output_bytes_;  // truncate result
       for (int xidx = 0; xidx < nx; xidx++) {
         for (size_t k = 0; k < outputs.size(); ++k) {
           auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
+          for (size_t i = 0; i < ys[k]; ++i) {
+            *cp = data[i];
+            ++cp;
+          }
+        }
+      }
+    } else if (output_bytes_ == 2){
+      int16_t* cp = static_cast<int16_t*>((void*)(mem));
+      int32_t nx = xs[0] / output_bytes_;  // truncate result
+      for (int xidx = 0; xidx < nx; xidx++) {
+        for (size_t k = 0; k < outputs.size(); ++k) {
+          auto data = static_cast<int16_t*>(outputs[k]->data) + xidx * ys[k];
           for (size_t i = 0; i < ys[k]; ++i) {
             *cp = data[i];
             ++cp;
@@ -264,12 +281,12 @@ int CVMModel::GetInputLength() {
 int CVMModel::GetOutputLength() {
   int ret = 0;
   for (int i = 0; i < out_num_; ++i)
-    ret += static_cast<int>(out_size_[i]) * (is_output_int32_ ? 4 : 1);
+    ret += static_cast<int>(out_size_[i]) * output_bytes_;
   return ret;
 }
 
 int CVMModel::GetSizeofOutput() {
-  return is_output_int32_ ? 4 : 1;
+  return output_bytes_;
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -317,7 +334,7 @@ void* CVMAPILoadModel(const char *graph_fname, const char *model_fname,
   } catch (std::exception &e) {
     return NULL;
   }
-  if (!model->loaded || model->LoadParams(params)) {
+  if (!model->loaded_ || model->LoadParams(params)) {
     delete model;
     return NULL;
   }
