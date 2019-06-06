@@ -150,14 +150,27 @@ Example::
 )code" CVM_ADD_FILELINE)
 .set_attr<FInferPrecision>("FInferPrecision",
   [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<ReduceParam>(attrs.parsed);
-  int ndim = param.axis.ndim();
-  if (ndim == 0) ndim = 1;
-  (*oattr)[0] = ndim * iattr->at(0);
-  return true;
+     std::vector<TShape>* shapes,
+     std::vector<int>* iattr,
+     std::vector<int>* oattr) -> bool {
+  IN_PREC_CHECK(iattr, attrs.name);
+  auto& axis = cvm::get<ReduceParam>(attrs.parsed).axis;
+  const TShape& ishp = shapes->at(0);
+  std::vector<int> axis_shp;
+  int64_t suml = 1;
+  if (axis.ndim() == 0){
+    for (const auto& dim : ishp) suml *= dim;
+  } else {
+    for (const auto& idx : axis) suml *= ishp[idx];
+  }
+  for (int oprec = 0; oprec <= 32; ++oprec) {
+    int64_t range = 1 << oprec;
+    if (suml < range) {
+      oattr->assign(0, oprec+iattr->at(0));
+      return true;
+    }
+  }
+  return false;
 });
 
 CVM_REGISTER_REDUCE_OP(max)

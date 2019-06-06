@@ -28,30 +28,30 @@ Used to produce invalide node during optimization.
 CVM_REGISTER_ELEMWISE_UNARY_OP(abs)
 .describe(R"code(Take absolute value of elements of the input.
 )code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", NonScalePrecision)
 .set_support_level(3);
 
 // sigmoid
-CVM_REGISTER_ELEMWISE_UNARY_OP(sigmoid)
-.describe(R"code(Computes sigmoid.
-
-.. math::
-  Y = 1 / (1 + exp(-X))
-
-)code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-.set_support_level(1);
+// CVM_REGISTER_ELEMWISE_UNARY_OP(sigmoid)
+// .describe(R"code(Computes sigmoid.
+// 
+// .. math::
+//   Y = 1 / (1 + exp(-X))
+// 
+// )code" CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+// .set_support_level(1);
 
 // tanh
-CVM_REGISTER_ELEMWISE_UNARY_OP(tanh)
-.describe(R"code(Computes hyperbolic tangent.
-
-.. math::
-   Y = sinh(X) / cosh(X)
-
-)code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-.set_support_level(1);
+// CVM_REGISTER_ELEMWISE_UNARY_OP(tanh)
+// .describe(R"code(Computes hyperbolic tangent.
+// 
+// .. math::
+//    Y = sinh(X) / cosh(X)
+// 
+// )code" CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+// .set_support_level(1);
 
 // log2
 CVM_REGISTER_ELEMWISE_UNARY_OP(log2)
@@ -65,38 +65,38 @@ CVM_REGISTER_ELEMWISE_UNARY_OP(log2)
 .set_support_level(1);
 
 // log
-CVM_REGISTER_ELEMWISE_UNARY_OP(log)
-.describe(R"code(Returns the log input array, computed element-wise.
-
-.. math::
-   log(x)
-
-)code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<5>)
-.set_support_level(1);
+// CVM_REGISTER_ELEMWISE_UNARY_OP(log)
+// .describe(R"code(Returns the log input array, computed element-wise.
+// 
+// .. math::
+//    log(x)
+// 
+// )code" CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<5>)
+// .set_support_level(1);
 
 // sqrt
-CVM_REGISTER_ELEMWISE_UNARY_OP(sqrt)
-.describe(R"code(Returns the sqrt input array, computed element-wise.
-
-.. math::
-   \sqrt(x)
-
-)code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", 
-    [](const NodeAttrs& attrs,
-      std::vector<TShape>* shapes,
-      std::vector<int>* iattr,
-      std::vector<int>* oattr) -> bool {
-      if (iattr->size() != oattr->size()) {
-        return false;
-      }
-      for (int i = 0; i < oattr->size(); ++i) {
-        (*oattr)[i] = (iattr->at(i) + 1) >> 1;
-      }
-      return true;
-    })
-.set_support_level(1);
+// CVM_REGISTER_ELEMWISE_UNARY_OP(sqrt)
+// .describe(R"code(Returns the sqrt input array, computed element-wise.
+// 
+// .. math::
+//    \sqrt(x)
+// 
+// )code" CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", 
+//     [](const NodeAttrs& attrs,
+//       std::vector<TShape>* shapes,
+//       std::vector<int>* iattr,
+//       std::vector<int>* oattr) -> bool {
+//       if (iattr->size() != oattr->size()) {
+//         return false;
+//       }
+//       for (int i = 0; i < oattr->size(); ++i) {
+//         (*oattr)[i] = (iattr->at(i) + 1) >> 1;
+//       }
+//       return true;
+//     })
+// .set_support_level(1);
 
 // binary ops
 
@@ -136,19 +136,19 @@ CVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_mod)
 .set_support_level(1);
 
 // logical
-CVM_REGISTER_ELEMWISE_BINARY_OP(logical_and)
-.describe(R"code(Elementwise compute the logical AND
-
-)code")
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
-
-CVM_REGISTER_ELEMWISE_BINARY_OP(logical_or)
-.describe(R"code(Elementwise compute the logical OR
-
-)code")
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
+// CVM_REGISTER_ELEMWISE_BINARY_OP(logical_and)
+// .describe(R"code(Elementwise compute the logical AND
+// 
+// )code")
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_OP(logical_or)
+// .describe(R"code(Elementwise compute the logical OR
+// 
+// )code")
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
 
 // negative
 CVM_REGISTER_ELEMWISE_UNARY_OP(negative)
@@ -159,298 +159,298 @@ CVM_REGISTER_ELEMWISE_UNARY_OP(negative)
 .set_support_level(3);
 
 // logical NOT
-CVM_REGISTER_ELEMWISE_UNARY_OP(logical_not)
-.describe(R"code(Elementwise compute the logical NOT
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
+// CVM_REGISTER_ELEMWISE_UNARY_OP(logical_not)
+// .describe(R"code(Elementwise compute the logical NOT
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
 
 // copy
-CVM_REGISTER_ELEMWISE_UNARY_OP(copy)
-.describe(R"code(Copy tensor to another one.
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-.set_support_level(3);
-
-CVMUTIL_REGISTER_PARAMETER(InitOpParam);
-CVMUTIL_REGISTER_PARAMETER(InitOpWithScalarParam);
-CVMUTIL_REGISTER_PARAMETER(FillValueParam);
+// CVM_REGISTER_ELEMWISE_UNARY_OP(copy)
+// .describe(R"code(Copy tensor to another one.
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+// .set_support_level(3);
+// 
+// CVMUTIL_REGISTER_PARAMETER(InitOpParam);
+// CVMUTIL_REGISTER_PARAMETER(InitOpWithScalarParam);
+// CVMUTIL_REGISTER_PARAMETER(FillValueParam);
 
 // full
-CVM_REGISTER_INIT_OP(full)
-.describe(R"code(Fill array with scalar value
-
-)code"  CVM_ADD_FILELINE)
-.set_attr_parser(ParamParser<InitOpWithScalarParam>)
-.set_attr<FGetAttrDict>(
-  "FGetAttrDict", ParamGetAttrDict<InitOpWithScalarParam>)
-.add_arguments(InitOpWithScalarParam::__FIELDS__())
-.set_attr<FInferShape>("FInferShape", ZeroShape<InitOpWithScalarParam>)
-.set_attr<FInferType>("FInferType", ZeroType<InitOpWithScalarParam>)
-.set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
-.set_attr<FInferPrecision>("FInferPrecision",
-    [](const NodeAttrs& attrs,
-      std::vector<TShape>* shapes,
-      std::vector<int>* iattr,
-      std::vector<int>* oattr) -> bool {
-    auto& param = cvm::get<InitOpWithScalarParam>(attrs.parsed);
-    auto fill_value = param.fill_value;
-    int prec = CORTEX_LOG2(fill_value);
-    if (oattr->size() == 0) return false;
-    (*oattr)[0] = prec;
-     return true;
-  })
-.set_support_level(4);
-
-CVM_REGISTER_INIT_OP(zeros)
-.describe(R"code(Fill target with zeros
-
-)code"  CVM_ADD_FILELINE)
-.set_attr_parser(ParamParser<InitOpParam>)
-.set_attr<FGetAttrDict>(
-  "FGetAttrDict", ParamGetAttrDict<InitOpParam>)
-.add_arguments(InitOpParam::__FIELDS__())
-.set_attr<FInferShape>("FInferShape", ZeroShape<InitOpParam>)
-.set_attr<FInferType>("FInferType", ZeroType<InitOpParam>)
-.set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
-
-CVM_REGISTER_INIT_OP(ones)
-.describe(R"code(Fill target with ones
-
-)code"  CVM_ADD_FILELINE)
-.set_attr_parser(ParamParser<InitOpParam>)
-.set_attr<FGetAttrDict>(
-  "FGetAttrDict", ParamGetAttrDict<InitOpParam>)
-.add_arguments(InitOpParam::__FIELDS__())
-.set_attr<FInferShape>("FInferShape", ZeroShape<InitOpParam>)
-.set_attr<FInferType>("FInferType", ZeroType<InitOpParam>)
-.set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
+// CVM_REGISTER_INIT_OP(full)
+// .describe(R"code(Fill array with scalar value
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr_parser(ParamParser<InitOpWithScalarParam>)
+// .set_attr<FGetAttrDict>(
+//   "FGetAttrDict", ParamGetAttrDict<InitOpWithScalarParam>)
+// .add_arguments(InitOpWithScalarParam::__FIELDS__())
+// .set_attr<FInferShape>("FInferShape", ZeroShape<InitOpWithScalarParam>)
+// .set_attr<FInferType>("FInferType", ZeroType<InitOpWithScalarParam>)
+// .set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
+// .set_attr<FInferPrecision>("FInferPrecision",
+//     [](const NodeAttrs& attrs,
+//       std::vector<TShape>* shapes,
+//       std::vector<int>* iattr,
+//       std::vector<int>* oattr) -> bool {
+//     auto& param = cvm::get<InitOpWithScalarParam>(attrs.parsed);
+//     auto fill_value = param.fill_value;
+//     int prec = CORTEX_LOG2(fill_value);
+//     if (oattr->size() == 0) return false;
+//     (*oattr)[0] = prec;
+//      return true;
+//   })
+// .set_support_level(4);
+// 
+// CVM_REGISTER_INIT_OP(zeros)
+// .describe(R"code(Fill target with zeros
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr_parser(ParamParser<InitOpParam>)
+// .set_attr<FGetAttrDict>(
+//   "FGetAttrDict", ParamGetAttrDict<InitOpParam>)
+// .add_arguments(InitOpParam::__FIELDS__())
+// .set_attr<FInferShape>("FInferShape", ZeroShape<InitOpParam>)
+// .set_attr<FInferType>("FInferType", ZeroType<InitOpParam>)
+// .set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
+// 
+// CVM_REGISTER_INIT_OP(ones)
+// .describe(R"code(Fill target with ones
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr_parser(ParamParser<InitOpParam>)
+// .set_attr<FGetAttrDict>(
+//   "FGetAttrDict", ParamGetAttrDict<InitOpParam>)
+// .add_arguments(InitOpParam::__FIELDS__())
+// .set_attr<FInferShape>("FInferShape", ZeroShape<InitOpParam>)
+// .set_attr<FInferType>("FInferType", ZeroType<InitOpParam>)
+// .set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
 
 // full_like
-CVM_REGISTER_INIT_LIKE_OP(full_like)
-.describe(R"code(Return an scalar value array with the same shape and type
-as the input array
+// CVM_REGISTER_INIT_LIKE_OP(full_like)
+// .describe(R"code(Return an scalar value array with the same shape and type
+// as the input array
+// 
+// )code"  CVM_ADD_FILELINE)
+// .add_arguments(FillValueParam::__FIELDS__())
+// .set_attr_parser(ParamParser<FillValueParam>)
+// .set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<FillValueParam>)
+// .set_attr<FInferPrecision>("FInferPrecision",
+//     [](const NodeAttrs& attrs,
+//       std::vector<TShape>* shapes,
+//       std::vector<int>* iattr,
+//       std::vector<int>* oattr) -> bool {
+//     auto& param = cvm::get<FillValueParam>(attrs.parsed);
+//     auto fill_value = param.fill_value;
+//     int prec = CORTEX_LOG2(fill_value);
+//     if (oattr->size() == 0) return false;
+//     (*oattr)[0] = prec;
+//      return true;
+//   })
+// .set_support_level(4);
 
-)code"  CVM_ADD_FILELINE)
-.add_arguments(FillValueParam::__FIELDS__())
-.set_attr_parser(ParamParser<FillValueParam>)
-.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<FillValueParam>)
-.set_attr<FInferPrecision>("FInferPrecision",
-    [](const NodeAttrs& attrs,
-      std::vector<TShape>* shapes,
-      std::vector<int>* iattr,
-      std::vector<int>* oattr) -> bool {
-    auto& param = cvm::get<FillValueParam>(attrs.parsed);
-    auto fill_value = param.fill_value;
-    int prec = CORTEX_LOG2(fill_value);
-    if (oattr->size() == 0) return false;
-    (*oattr)[0] = prec;
-     return true;
-  })
-.set_support_level(4);
-
-CVM_REGISTER_INIT_LIKE_OP(zeros_like)
-.describe(R"code(Return an array of zeros with the same shape and type
-as the input array.
-
-)code")
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
-
-CVM_REGISTER_INIT_LIKE_OP(ones_like)
-.describe(R"code(Return an array of ones with the same shape and type
-as the input array.
-
-)code")
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
+// CVM_REGISTER_INIT_LIKE_OP(zeros_like)
+// .describe(R"code(Return an array of zeros with the same shape and type
+// as the input array.
+// 
+// )code")
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
+// 
+// CVM_REGISTER_INIT_LIKE_OP(ones_like)
+// .describe(R"code(Return an array of ones with the same shape and type
+// as the input array.
+// 
+// )code")
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
 
 // unary scalar op
-CVMUTIL_REGISTER_PARAMETER(ScalarParam);
+// CVMUTIL_REGISTER_PARAMETER(ScalarParam);
+// 
+// #define CVM_REGISTER_ELEMWISE_BINARY_SCALAR(op)                        \
+//   CVM_REGISTER_ELEMWISE_UNARY_OP(op)                                   \
+//   .add_arguments(ScalarParam::__FIELDS__())                             \
+//   .set_attr_parser(ParamParser<ScalarParam>)                            \
+//   .set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<ScalarParam>)
+// 
+// inline bool AddScalarInferPrecision(const NodeAttrs& attrs,
+//       std::vector<TShape>* shapes,
+//       std::vector<int>* iattr,
+//       std::vector<int>* oattr) {
+//   auto& param = cvm::get<ScalarParam>(attrs.parsed);
+//   int prec = CORTEX_LOG2(param.scalar);
+//   (*oattr)[0] = std::max(prec, iattr->at(0)) + 1;
+//   return true;
+// }
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__add_scalar__)
+// .describe(R"code(Tensor add scalar
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", AddScalarInferPrecision)
+// .set_support_level(3);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__sub_scalar__)
+// .describe(R"code(Tensor substract scalar
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", AddScalarInferPrecision)
+// .set_support_level(3);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__rsub_scalar__)
+// .describe(R"code(scalar substract Tensor
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", AddScalarInferPrecision)
+// .set_support_level(3);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__lshift_scalar__)
+// .describe(R"code(Tensor left shift by scalar
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision",
+//   [](const NodeAttrs& attrs,
+//    std::vector<TShape>* shapes,
+//    std::vector<int>* iattr,
+//    std::vector<int>* oattr) -> bool {
+//   auto& param = cvm::get<ScalarParam>(attrs.parsed);
+//   (*oattr)[0] = param.scalar + iattr->at(0);
+//   return true;
+// })
+// .set_support_level(3);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__rshift_scalar__)
+// .describe(R"code(Tensor right shift by scalar
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision",
+//   [](const NodeAttrs& attrs,
+//    std::vector<TShape>* shapes,
+//    std::vector<int>* iattr,
+//    std::vector<int>* oattr) -> bool {
+//   auto& param = cvm::get<ScalarParam>(attrs.parsed);
+//   (*oattr)[0] = iattr->at(0) - param.scalar;
+//   return true;
+// })
+// .set_support_level(3);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__mul_scalar__)
+// .describe(R"code(Tensor multiplies scalar
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision",
+//   [](const NodeAttrs& attrs,
+//    std::vector<TShape>* shapes,
+//    std::vector<int>* iattr,
+//    std::vector<int>* oattr) -> bool {
+//   auto& param = cvm::get<ScalarParam>(attrs.parsed);
+//   (*oattr)[0] = CORTEX_LOG2(param.scalar) + iattr->at(0);
+//   return true;
+// })
+// .set_support_level(3);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__div_scalar__)
+// .describe(R"code(Tensor divides scalar
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision",
+//   [](const NodeAttrs& attrs,
+//    std::vector<TShape>* shapes,
+//    std::vector<int>* iattr,
+//    std::vector<int>* oattr) -> bool {
+//   auto& param = cvm::get<ScalarParam>(attrs.parsed);
+//   (*oattr)[0] = iattr->at(0) - CORTEX_LOG2(param.scalar);
+//   return true;
+// })
+// .set_support_level(3);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__rdiv_scalar__)
+// .describe(R"code(scalar divides Tensor
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision",
+//   [](const NodeAttrs& attrs,
+//    std::vector<TShape>* shapes,
+//    std::vector<int>* iattr,
+//    std::vector<int>* oattr) -> bool {
+//   auto& param = cvm::get<ScalarParam>(attrs.parsed);
+//   (*oattr)[0] = CORTEX_LOG2(param.scalar);
+//   return true;
+// })
+// .set_support_level(3);
+// 
+// CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__pow_scalar__)
+// .describe(R"code(Tensor power scalar
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision",
+//   [](const NodeAttrs& attrs,
+//    std::vector<TShape>* shapes,
+//    std::vector<int>* iattr,
+//    std::vector<int>* oattr) -> bool {
+//   auto& param = cvm::get<ScalarParam>(attrs.parsed);
+//   (*oattr)[0] = param.scalar * iattr->at(0);
+//   return true;
+// })
+// .set_support_level(3);
 
-#define CVM_REGISTER_ELEMWISE_BINARY_SCALAR(op)                        \
-  CVM_REGISTER_ELEMWISE_UNARY_OP(op)                                   \
-  .add_arguments(ScalarParam::__FIELDS__())                             \
-  .set_attr_parser(ParamParser<ScalarParam>)                            \
-  .set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<ScalarParam>)
+// CVMUTIL_REGISTER_PARAMETER(ElementWiseReduceParam);
+// 
+// inline bool ElemwiseSumInferPrecision(const NodeAttrs& attrs,
+//    std::vector<TShape>* shapes,
+//    std::vector<int>* iattr,
+//    std::vector<int>* oattr) {
+//   uint64_t sum = 0;
+//   for (auto x : *iattr) {
+//     if (x > 32) return false;
+//     sum += (1ull << x);
+//   }
+//   if (sum >= (1ull << 32)) return false;
+//   (*oattr)[0] = CORTEX_LOG2(sum);
+//   return true;
+// }
+// 
+// CVM_REGISTER_ELEMWISE_REDUCE_OP(elemwise_sum)
+// .describe(R"code(Adds all input arguments element-wise.
+// 
+// )code"  CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwiseSumInferPrecision)
+// .set_support_level(4);
 
-inline bool AddScalarInferPrecision(const NodeAttrs& attrs,
-      std::vector<TShape>* shapes,
-      std::vector<int>* iattr,
-      std::vector<int>* oattr) {
-  auto& param = cvm::get<ScalarParam>(attrs.parsed);
-  int prec = CORTEX_LOG2(param.scalar);
-  (*oattr)[0] = std::max(prec, iattr->at(0)) + 1;
-  return true;
-}
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__add_scalar__)
-.describe(R"code(Tensor add scalar
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", AddScalarInferPrecision)
-.set_support_level(3);
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__sub_scalar__)
-.describe(R"code(Tensor substract scalar
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", AddScalarInferPrecision)
-.set_support_level(3);
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__rsub_scalar__)
-.describe(R"code(scalar substract Tensor
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", AddScalarInferPrecision)
-.set_support_level(3);
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__lshift_scalar__)
-.describe(R"code(Tensor left shift by scalar
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision",
-  [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<ScalarParam>(attrs.parsed);
-  (*oattr)[0] = param.scalar + iattr->at(0);
-  return true;
-})
-.set_support_level(3);
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__rshift_scalar__)
-.describe(R"code(Tensor right shift by scalar
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision",
-  [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<ScalarParam>(attrs.parsed);
-  (*oattr)[0] = iattr->at(0) - param.scalar;
-  return true;
-})
-.set_support_level(3);
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__mul_scalar__)
-.describe(R"code(Tensor multiplies scalar
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision",
-  [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<ScalarParam>(attrs.parsed);
-  (*oattr)[0] = CORTEX_LOG2(param.scalar) + iattr->at(0);
-  return true;
-})
-.set_support_level(3);
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__div_scalar__)
-.describe(R"code(Tensor divides scalar
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision",
-  [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<ScalarParam>(attrs.parsed);
-  (*oattr)[0] = iattr->at(0) - CORTEX_LOG2(param.scalar);
-  return true;
-})
-.set_support_level(3);
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__rdiv_scalar__)
-.describe(R"code(scalar divides Tensor
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision",
-  [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<ScalarParam>(attrs.parsed);
-  (*oattr)[0] = CORTEX_LOG2(param.scalar);
-  return true;
-})
-.set_support_level(3);
-
-CVM_REGISTER_ELEMWISE_BINARY_SCALAR(__pow_scalar__)
-.describe(R"code(Tensor power scalar
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision",
-  [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<ScalarParam>(attrs.parsed);
-  (*oattr)[0] = param.scalar * iattr->at(0);
-  return true;
-})
-.set_support_level(3);
-
-CVMUTIL_REGISTER_PARAMETER(ElementWiseReduceParam);
-
-inline bool ElemwiseSumInferPrecision(const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) {
-  uint64_t sum = 0;
-  for (auto x : *iattr) {
-    if (x > 32) return false;
-    sum += (1ull << x);
-  }
-  if (sum >= (1ull << 32)) return false;
-  (*oattr)[0] = CORTEX_LOG2(sum);
-  return true;
-}
-
-CVM_REGISTER_ELEMWISE_REDUCE_OP(elemwise_sum)
-.describe(R"code(Adds all input arguments element-wise.
-
-)code"  CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSumInferPrecision)
-.set_support_level(4);
-
-CVMUTIL_REGISTER_PARAMETER(IndicatorParam);
+// CVMUTIL_REGISTER_PARAMETER(IndicatorParam);
 
 // indicator function
-CVM_REGISTER_INDICATOR_OP(greater)
-.describe(R"code(Greater function that returns a mask tensor
-with 1.0 if (left > right), otherwise 0.0 element-wise.
+// CVM_REGISTER_INDICATOR_OP(greater)
+// .describe(R"code(Greater function that returns a mask tensor
+// with 1.0 if (left > right), otherwise 0.0 element-wise.
+// 
+// )code" CVM_ADD_FILELINE)
+// .add_argument("lhs", "Tensor", "First input")
+// .add_argument("rhs", "Tensor", "Second input")
+// .set_num_inputs(2)
+// .set_attr<cvm::FInferShape>("FInferShape", ElemwiseShape<2, 1>)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
 
-)code" CVM_ADD_FILELINE)
-.add_argument("lhs", "Tensor", "First input")
-.add_argument("rhs", "Tensor", "Second input")
-.set_num_inputs(2)
-.set_attr<cvm::FInferShape>("FInferShape", ElemwiseShape<2, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
 
-
-CVM_REGISTER_INDICATOR_OP(less)
-  .describe(R"code(Less function that returns a mask tensor
-with 1.0 if (left < right), otherwise 0.0 element-wise.
-
-)code" CVM_ADD_FILELINE)
-.add_argument("lhs", "Tensor", "First input")
-.add_argument("rhs", "Tensor", "Second input")
-.set_num_inputs(2)
-.set_attr<cvm::FInferShape>("FInferShape", ElemwiseShape<2, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
-.set_support_level(4);
+// CVM_REGISTER_INDICATOR_OP(less)
+//   .describe(R"code(Less function that returns a mask tensor
+// with 1.0 if (left < right), otherwise 0.0 element-wise.
+// 
+// )code" CVM_ADD_FILELINE)
+// .add_argument("lhs", "Tensor", "First input")
+// .add_argument("rhs", "Tensor", "Second input")
+// .set_num_inputs(2)
+// .set_attr<cvm::FInferShape>("FInferShape", ElemwiseShape<2, 1>)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwisePrecision<1>)
+// .set_support_level(4);
 
 CVMUTIL_REGISTER_PARAMETER(ClipParam);
 
@@ -514,11 +514,12 @@ Example::
 .set_attr<cvm::FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
 .set_attr<FInferPrecision>("FInferPrecision",
   [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
+     std::vector<TShape>* shapes,
+     std::vector<int>* iattr,
+     std::vector<int>* oattr) -> bool {
+  IN_PREC_CHECK(iattr, attrs.name);
   auto& param = cvm::get<CVMClipParam>(attrs.parsed);
-  (*oattr)[0] = param.precision;
+  oattr->assign(0, param.precision);
   return true;
 })
 .add_argument("data", "Tensor", "input")
@@ -547,6 +548,7 @@ CVM_REGISTER_OP(cvm_left_shift)
    std::vector<TShape>* shapes,
    std::vector<int>* iattr,
    std::vector<int>* oattr) -> bool {
+  IN_PREC_CHECK(iattr, attrs.name);
   auto& param = cvm::get<CVMLeftShiftParam>(attrs.parsed);
   if (iattr->at(0) + param.shift_bit > 32) return false;
   (*oattr)[0] = param.precision;
@@ -583,8 +585,9 @@ which means to implement via tricky equation.
    std::vector<TShape>* shapes,
    std::vector<int>* iattr,
    std::vector<int>* oattr) -> bool {
+  IN_PREC_CHECK(iattr, attrs.name);
   auto& param = cvm::get<CVMRightShiftParam>(attrs.parsed);
-  (*oattr)[0] = param.precision;
+  oattr->assign(0, param.precision);
   return true;
 })
 .add_argument("data", "Tensor", "input")
