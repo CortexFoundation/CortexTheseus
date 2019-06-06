@@ -4,16 +4,18 @@
 #include <math.h>
 #include <memory>
 #include <string.h>
+#include <iostream>
+#include <string>
 #include "nms.h"
 
 #define CVM_PRINT_CUDA_RESULT
 
-void print_to_file(const int32_t *y, int32_t n, char*filename){
+void print_to_file(const int32_t *y, int32_t n, std::string filename){
 #ifdef CVM_PRINT_CUDA_RESULT
     int32_t *y_data = new int32_t[n];
     cudaMemcpy(y_data, y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
 
-    FILE *fp = fopen(filename, "a+");
+    FILE *fp = fopen(filename.c_str(), "a+");
     
     int32_t min = y_data[0], max= y_data[0];
     for(uint64_t i = 0; i < n; i++){
@@ -1467,7 +1469,6 @@ const char* cuda_max(const int32_t *x, int32_t *y, const uint64_t n, const int64
        int bSize = 256;
        int gSize = (n + bSize - 1) / bSize;
        const int64_t axis_data = axis[0];
-       int32_t maxV = (int32_t)1 << 31;
        kernel_max_one_axis<<<gSize, bSize>>>(x, y, axis_data, dev_xshape, dev_yshape, xndim, yndim, n);
        cudaFree(dev_xshape);
        cudaFree(dev_yshape);
