@@ -36,7 +36,6 @@ void test_op_take() {
 }
 
 int run_LIF(string model_root) {
-
   cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
   cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
   cvm::runtime::im2col_cnt = 0;
@@ -57,7 +56,7 @@ int run_LIF(string model_root) {
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
+      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 1, 0)
       );
   if (model == nullptr) {
     std::cerr << "model loaded failed\n";
@@ -89,7 +88,7 @@ int run_LIF(string model_root) {
     std::cerr << "\n";
   }
   double start = omp_get_wtime();
-  int n_run = 10;
+  int n_run = 1;
   for (int i = 0; i < n_run; i++) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
