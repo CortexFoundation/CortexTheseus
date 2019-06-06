@@ -3,7 +3,7 @@ package main
 /*
 #cgo LDFLAGS: -lm -pthread
 #cgo LDFLAGS:  -L../../build/gpu -lcvm_runtime_cuda -lcudart -lcuda
-#cgo LDFLAGS: -lstdc++ 
+#cgo LDFLAGS: -lstdc++
 
 #cgo CFLAGS: -I../include -I/usr/local/cuda/include/ -O2
 
@@ -13,16 +13,16 @@ package main
 */
 import "C"
 import (
-//	"os"
-//	"time"
+	//	"os"
+	//	"time"
 	"errors"
 	"unsafe"
-//	"strings"
-//	"strconv"
+	//	"strings"
+	//	"strconv"
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
-func LoadModel(modelCfg, modelBin string,  deviceId int) (unsafe.Pointer, error) {
+func LoadModel(modelCfg, modelBin string, deviceId int) (unsafe.Pointer, error) {
 	net := C.CVMAPILoadModel(
 		C.CString(modelCfg),
 		C.CString(modelBin),
@@ -82,7 +82,7 @@ func Predict(net unsafe.Pointer, imageData []byte) ([]byte, error) {
 	return res, nil
 }
 
-func GetStorageSize(net unsafe.Pointer)(int64, error) {
+func GetStorageSize(net unsafe.Pointer) (int64, error) {
 	if net == nil {
 		return 0, errors.New("Internal error: network is null in InferProcess")
 	}
@@ -95,7 +95,7 @@ func GetStorageSize(net unsafe.Pointer)(int64, error) {
 	return ret, nil
 }
 
-func GetInputLength(net unsafe.Pointer)(int, error) {
+func GetInputLength(net unsafe.Pointer) (int, error) {
 	if net == nil {
 		return 0, errors.New("Internal error: network is null in InferProcess")
 	}
@@ -107,4 +107,3 @@ func GetInputLength(net unsafe.Pointer)(int, error) {
 
 	return ret, nil
 }
-
