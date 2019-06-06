@@ -329,6 +329,7 @@ void test_take() {
     std::cerr << "\n";
     }
 }
+
 void test_max() {
     string attr_str = " {\"axis\": \"(2)\"} ";
     std::vector<int> dims_ = {3,  2};

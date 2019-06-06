@@ -89,7 +89,7 @@ int run_LIF(string model_root) {
     std::cerr << "\n";
   }
   double start = omp_get_wtime();
-  int n_run = 1;
+  int n_run = 10;
   for (int i = 0; i < n_run; i++) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
@@ -202,19 +202,19 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-    // "/home/tian/model_storage/dcnet_mnist_v1/data"
-    // "/home/tian/model_storage/mobilenetv1.0_imagenet/data",
-    // "/home/tian/model_storage/resnet50_v1_imagenet/data",
-    // "/home/tian/model_storage/animal10/data",
-    // "/home/tian/model_storage/dcnet_v0_mnist/data",
-    // "/home/tian/model_storage/resnet50_v2/data",
-    // "/home/tian/model_storage/vgg16_gcv/data",
+    "/home/tian/model_storage/dcnet_mnist_v1/data",
+    "/home/tian/model_storage/mobilenetv1.0_imagenet/data",
+    "/home/tian/model_storage/resnet50_v1_imagenet/data",
+    "/home/tian/model_storage/animal10/data",
+    "/home/tian/model_storage/dcnet_v0_mnist/data",
+    "/home/tian/model_storage/resnet50_v2/data",
+    "/home/tian/model_storage/vgg16_gcv/data",
     "/home/tian/model_storage/sentiment_trec/data",
-    // "/home/tian/model_storage/vgg19_gcv/data",
-    // "/home/tian/model_storage/squeezenet_gcv1.1/data",
-    // "/home/tian/model_storage/squeezenet_gcv1.0/data",
-    // "/home/tian/model_storage/octconv_resnet26_0.250/data",
-    // "/home/tian/model_storage/yolo3_darknet53_b1/data"
+    "/home/tian/model_storage/vgg19_gcv/data",
+    "/home/tian/model_storage/squeezenet_gcv1.1/data",
+    "/home/tian/model_storage/squeezenet_gcv1.0/data",
+    "/home/tian/model_storage/octconv_resnet26_0.250/data",
+    "/home/tian/model_storage/yolo3_darknet53_b1/data"
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);
