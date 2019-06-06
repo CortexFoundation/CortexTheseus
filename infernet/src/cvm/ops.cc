@@ -1292,27 +1292,33 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
                 if(max < x[i]) max = x[i];
             }
             y_data[0] = max;
-        }else if(axis.ndim() == 1){
-            VERIFY(dlx->ndim == y->ndim+1);
-            int32_t maxV = (int32_t)1 << 31;
-            memset(y_data, maxV, getSize(y)*sizeof(int32_t));
-            for(uint64_t i = 0; i < getSize(dlx); i++){
-                uint64_t in_i = i, o_i = 0, shapeSize = 0;
-                for(int j = dlx->ndim-1; j >= 0; j--){
-                    uint64_t col = in_i % dlx->shape[j];
-                    in_i /= dlx->shape[j];
-                    if(j != axis_data[0]){
-                        int yj = j > axis_data[0] ? j-1 : j;
-                        o_i += (yj == y->ndim-1 ? col : col * shapeSize);
-                        shapeSize = (yj == y->ndim-1 ? y->shape[yj] : shapeSize * y->shape[yj]);
-                    }
-                }
-                if(y_data[o_i] < x[i]){
-                    y_data[o_i] =  x[i];
+        }else{
+          std::vector<int32_t> realAxis(axis.ndim());
+          for(int i = 0; i < axis.ndim(); i++){
+            int val = axis_data[i];
+            if(val < 0) val += dlx->ndim;
+            VERIFY(val < dlx->ndim && val >= 0);
+            realAxis[i] = val;
+          }
+          std::sort(realAxis.begin(), realAxis.end());
+          realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
+          int32_t maxV = (int32_t)1 << 31;
+          memset(y_data, maxV, getSize(y)*sizeof(int32_t));
+          for(uint64_t i = 0; i < getSize(dlx); i++){
+            uint64_t in_i = i, o_i = 0, shapeSize = 1;
+            for(int j = dlx->ndim-1, yj = y->ndim-1; j>=0; j--){
+                uint64_t col = in_i % dlx->shape[j];
+                in_i /= dlx->shape[j];
+                if(std::count(realAxis.begin(), realAxis.end(), j) == 0){
+                    o_i += col * shapeSize;
+                    shapeSize *= y->shape[yj];
+                    yj -= 1;
                 }
             }
-        }else{
-
+            if(y_data[o_i] < x[i]){
+                y_data[o_i] = x[i];
+            }
+          }
         }
         print_to_file(y, "/tmp/zkh/max.txt");
     });
