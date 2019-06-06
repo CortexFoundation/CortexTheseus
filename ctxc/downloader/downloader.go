@@ -293,13 +293,13 @@ func (d *Downloader) UnregisterPeer(id string) error {
 	d.queue.Revoke(id)
 
 	// If this peer was the master peer, abort sync immediately
-	d.cancelLock.RLock()
-	master := id == d.cancelPeer
-	d.cancelLock.RUnlock()
+	//d.cancelLock.RLock()
+	//master := id == d.cancelPeer
+	//d.cancelLock.RUnlock()
 
-	if master {
-		d.cancel()
-	}
+	//if master {
+	//	d.cancel()
+	//}
 	return nil
 }
 
