@@ -560,7 +560,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
             axis_data = NULL;
         }
 
-        const char* errorStr = cuda_max(x, y_data, getSize(y), axis_data, dlx->shape, y->shape, dlx->ndim, y->ndim);
+        const char* errorStr = cuda_max(x, y_data, getSize(y), axis_data, dlx->shape,
+            y->shape, dlx->ndim, y->ndim);
         VERIFY(errorStr == NULL) << errorStr;
     });
 
@@ -815,7 +816,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.non_max_suppression")
     int32_t id_index = param.id_index;
     bool force_suppress = param.force_suppress;
     bool return_indices = param.return_indices;
-    bool invalid_to_bottom = param.invalid_to_bottom;
+    //bool invalid_to_bottom = param.invalid_to_bottom;
     CHECK(return_indices == false) << "no support return_indices and invalid_to_bottom";
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
