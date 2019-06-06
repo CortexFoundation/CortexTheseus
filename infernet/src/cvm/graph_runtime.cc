@@ -499,7 +499,7 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           auto num_output = this->GetOutputNum();
-          std::cerr << " #output" << num_output << "\n";
+          // std::cerr << " #output" << num_output << "\n";
           *static_cast<int32_t*>(placeholder) = num_output;
         } else {
           *rv = -1;

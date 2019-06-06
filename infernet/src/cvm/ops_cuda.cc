@@ -548,7 +548,19 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
         DLTensor *y = args[1];
         int32_t *y_data = static_cast<int32_t*>(y->data);
         int32_t* x = static_cast<int32_t*>(dlx->data);
-        const char* errorStr = cuda_max(x, y_data, getSize(dlx), DEBUG_OP);
+        void* _attr = args[2];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+        TShape axis = param.axis;
+        VERIFY(axis.ndim() <= 1);
+        int64_t *axis_data = axis.begin();
+        //bool keepdims = param.keepdims;
+        //bool exclude = param.exclude;
+        if(axis.ndim() == 0){
+            axis_data = NULL;
+        }
+
+        const char* errorStr = cuda_max(x, y_data, getSize(y), axis_data, dlx->shape, y->shape, dlx->ndim, y->ndim);
         VERIFY(errorStr == NULL) << errorStr;
     });
 

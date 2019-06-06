@@ -89,7 +89,7 @@ int run_LIF(string model_root) {
     std::cerr << "\n";
   }
   double start = omp_get_wtime();
-  int n_run = 1;
+  int n_run = 10;
   for (int i = 0; i < n_run; i++) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
