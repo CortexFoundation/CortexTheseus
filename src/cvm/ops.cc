@@ -53,9 +53,9 @@ inline uint64_t getSize(DLTensor *dlTensor){
   return size;
 }
 
-void print_to_file(DLTensor *y, char *filename){
+void print_to_file(DLTensor *y, std::string filename){
 #if defined(CVM_PRINT_OP_RESULT)
-  FILE *fp = fopen(filename, "a+");
+  FILE *fp = fopen(filename.c_str(), "a+");
   int32_t *y_data = static_cast<int32_t*>(y->data);
 
   int32_t min = y_data[0], max= y_data[0];
@@ -234,10 +234,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
       }
   }
 
+  */
 #ifdef CVM_PROFILING
         cvm_op_dense_cnt += omp_get_wtime() - start;
 #endif
-  */
         print_to_file(y, "/tmp/zkh/dense.txt");
 });
 
@@ -675,7 +675,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
     } else {
 #ifdef CVM_PROFILING
       double start = omp_get_wtime();
-      double start_1x1 = omp_get_wtime();
+      //double start_1x1 = omp_get_wtime();
 #endif
       int8_t *data_col = (int8_t*)malloc(sizeof(int8_t) * in_channels * filter_h * filter_w * o_h * o_w);
       if(data_col == NULL){
@@ -1198,7 +1198,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_left_shift")
     .set_body([](CVMArgs args, CVMRetValue *ret){
         VERIFY(args.num_args == 3);
 #ifdef CVM_PROFILING
-    double start = omp_get_wtime();
+    //double start = omp_get_wtime();
 #endif
         DLTensor *a = args[0];
         DLTensor *c = args[1];
@@ -1628,7 +1628,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
     TShape stride = param.stride;
     int ndim = y->ndim;
     int64_t *begin_data = begin.begin();
-    int64_t *end_data = end.begin();
+    //int64_t *end_data = end.begin();
     int64_t *step_data = stride.begin();
 
     for(uint64_t i = 0; i < getSize(y); i++){
@@ -1654,15 +1654,16 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
     .set_body([](CVMArgs args, CVMRetValue *ret)
 {
+        VERIFY(args.num_args == 4);
         DLTensor *x = args[0];
-        DLTensor *shape = args[1];
+        //DLTensor *shape = args[1];
         DLTensor *y = args[2];
         //std::string str_axis = args[3];
-        void* _attr = args[3];
-        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-        auto &param = cvm::get<cvm::top::SliceLikeParam>(attr->parsed);
-        Tuple<int> axis = param.axis;
-        int *axis_data = axis.begin();
+        //void* _attr = args[3];
+        //auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        //auto &param = cvm::get<cvm::top::SliceLikeParam>(attr->parsed);
+        //Tuple<int> axis = param.axis;
+        //int *axis_data = axis.begin();
 
         int32_t *x_data = static_cast<int32_t*>(x->data);
         // TODO(kaihuo) check
@@ -1730,7 +1731,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
     int32_t id_index = param.id_index;
     bool force_suppress = param.force_suppress;
     bool return_indices = param.return_indices;
-    bool invalid_to_bottom = invalid_to_bottom;
+    bool invalid_to_bottom = param.invalid_to_bottom;
+    CHECK(return_indices == false && invalid_to_bottom == false) << "no support return_indices and invalid_to_bottom";
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
@@ -1894,10 +1896,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
   VERIFY_EQ(param.method, "NEAREST_NEIGHBOR") << "only accept method = NEAREST_NEIGHBOR ";
   VERIFY_EQ(param.layout, "NCHW") << "only accept NHWC, Got:" << param.layout;
 
-  int scale = {(int)param.scale};
-  int h = x->shape[2], w = x->shape[3];
-  int oh = y->shape[2], ow = y->shape[3];
-  int n_batch = x->shape[0], n_channels = x->shape[1];
+  uint32_t scale = {(uint32_t)param.scale};
+  uint32_t h = x->shape[2], w = x->shape[3];
+  uint32_t oh = y->shape[2], ow = y->shape[3];
+  uint32_t n_batch = x->shape[0], n_channels = x->shape[1];
 
   auto x_data = static_cast<int32_t*>(x->data);
   auto y_data = static_cast<int32_t*>(y->data);
@@ -1917,8 +1919,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
     for (uint32_t c = 0; c< n_channels; c++) {
       auto bc_y_data = y_data + batch * n_channels * oh * ow + c * oh * ow;
       auto bc_x_data = x_data + batch * n_channels *  h *  w + c *  h *  w;
-      for(int y = 0; y < oh; y++){
-        for(int x = 0; x < ow; x++){
+      for(uint32_t y = 0; y < oh; y++){
+        for(uint32_t x = 0; x < ow; x++){
             bc_y_data[y * ow + x] = bc_x_data[y/scale * w + x/scale];
         }
       }
