@@ -76,9 +76,9 @@ inline bool ElemwiseShape(const NodeAttrs& attrs,
 }
 
 template<int def_v>
-inline bool ElemwisePrecision(const NodeAttrs& attrs, 
+inline bool ElemwisePrecision(const NodeAttrs& attrs,
                                   std::vector<TShape>* shapes,
-																	std::vector<int>* iattr, 
+																	std::vector<int>* iattr,
 																	std::vector<int>* oattr) {
   for (int& v : *oattr) {
     v = def_v;
@@ -86,9 +86,9 @@ inline bool ElemwisePrecision(const NodeAttrs& attrs,
   return true;
 }
 
-inline bool ElemwiseSamePrecision(const NodeAttrs& attrs, 
+inline bool ElemwiseSamePrecision(const NodeAttrs& attrs,
                                   std::vector<TShape>* shapes,
-																	std::vector<int>* iattr, 
+																	std::vector<int>* iattr,
 																	std::vector<int>* oattr) {
   int def_v = -1;
   for (int v : *iattr) {
@@ -101,7 +101,7 @@ inline bool ElemwiseSamePrecision(const NodeAttrs& attrs,
     v = def_v;
   }
   for (int& v : *iattr) {
-    v = def_v;
+    if (v == -1) v = def_v;
   }
   return true;
 }
@@ -180,11 +180,12 @@ inline bool ElemwiseSecondPrecision(const NodeAttrs& attrs,
 }
 
 inline bool ElemwiseFirstPrecision(const NodeAttrs& attrs,
-		                               std::vector<TShape>* shapes,
-																	 std::vector<int>* iattr,
-																	 std::vector<int>* oattr) {
+                                   std::vector<TShape>* shapes,
+                                   std::vector<int>* iattr,
+                                   std::vector<int>* oattr)
+{
   if (iattr->size() == 0) return false;
-	int def_v = iattr->at(0);
+  int def_v = iattr->at(0);
   if (def_v == -1) return false;
   for (int& v : *oattr) {
     v = def_v;
