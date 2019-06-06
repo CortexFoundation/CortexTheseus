@@ -6,7 +6,7 @@
 #include <string.h>
 #include "nms.h"
 
-#define CVM_PRINT_CUDA_RESULT
+// #define CVM_PRINT_CUDA_RESULT
 
 void print_to_file(const int32_t *y, int32_t n, char*filename){
 #ifdef CVM_PRINT_CUDA_RESULT
@@ -346,7 +346,8 @@ __global__ void kernel_depthwise_conv2d(
         int32_t stride_h, int32_t stride_w,
         int32_t dilation_h, int32_t dilation_w, // TODO dilation > 1
         int32_t groups,
-        int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w){
+        int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w)
+{
     //    int g_y = blockDim.y * blockIdx.y + threadIdx.y;
     int g_x = blockDim.x * blockIdx.x + threadIdx.x;
     int l_y = threadIdx.y; 
@@ -957,11 +958,11 @@ __global__ void kernel_broadcast_sub(const int32_t *a, const int32_t *b, int32_t
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] - b[bi];
     }
 }
@@ -969,7 +970,7 @@ const char* cuda_broadcast_sub(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1011,11 +1012,11 @@ __global__ void kernel_broadcast_mul(const int32_t *a, const int32_t *b, int32_t
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] * b[bi];
     }
 }
@@ -1023,7 +1024,7 @@ const char* cuda_broadcast_mul(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1065,11 +1066,11 @@ __global__ void kernel_broadcast_div(const int32_t *a, const int32_t *b, int32_t
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] / b[bi];
     }
 }
@@ -1077,7 +1078,7 @@ const char* cuda_broadcast_div(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1126,8 +1127,8 @@ __global__ void kernel_broadcast_right_shift(const int32_t *a, const int32_t *b,
 ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] >> b[bi];
     }
 }
@@ -1135,7 +1136,7 @@ const char* cuda_broadcast_right_shift(const int32_t *a, const int32_t* b, int32
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a;
     const int32_t *dev_b = b;
     int32_t *tmp_a, *tmp_b;
@@ -1177,11 +1178,11 @@ __global__ void kernel_broadcast_left_shift(const int32_t *a, const int32_t *b, 
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] << b[bi];
     }
 }
@@ -1189,7 +1190,7 @@ const char* cuda_broadcast_left_shift(const int32_t *a, const int32_t *b, int32_
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1230,11 +1231,11 @@ __global__ void kernel_broadcast_max(const int32_t *a, const int32_t *b, int32_t
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] > b[bi] ? a[ai] : b[bi];
     }
 }
@@ -1242,7 +1243,7 @@ const char* cuda_broadcast_max(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1332,7 +1333,7 @@ const char* cuda_sum(
 const char* cuda_reshape(const int32_t *x, int32_t *y, int32_t n, bool debug){
     if(x == y) return NULL;
     if(debug)
-		 memcpy(y, x, n * sizeof(int32_t));
+     memcpy(y, x, n * sizeof(int32_t));
     else
         cudaMemcpy(y, x, n*sizeof(int32_t), cudaMemcpyDeviceToDevice);
     return check_cuda_error(cudaGetLastError());
@@ -1578,8 +1579,8 @@ const char* cuda_cvm_left_shift(const int32_t *a, const int32_t b, const int32_t
 __global__ void kernel_concatenate(const int32_t *input, const int64_t *ishape, int32_t *output, 
         int64_t* oshape, const int32_t odim, const int32_t n,  
         const int64_t preShapeSize, const int64_t curShapeSize, const int32_t axis){
-	int i = threadIdx.x + blockDim.x * blockIdx.x;
-	if(i < n){
+  int i = threadIdx.x + blockDim.x * blockIdx.x;
+  if(i < n){
         int32_t o_i = i, in_i2 = 0, shapeSize = 0;
         for(int j = odim-1; j >= 0; j--){
             int64_t col = o_i % oshape[j];
@@ -1596,7 +1597,7 @@ __global__ void kernel_concatenate(const int32_t *input, const int64_t *ishape, 
             shapeSize = (j == odim-1 ? ishape[j] : shapeSize * ishape[j]);
         }
         output[i] = input[in_i2];
-	}
+  }
 }
 const char* cuda_concatenate(const int32_t *input, const int64_t *ishape, const int32_t idim, const int32_t in, 
         int32_t *output, int64_t* oshape, const int32_t odim, const int32_t on,  
