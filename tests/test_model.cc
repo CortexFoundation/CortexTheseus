@@ -56,7 +56,7 @@ int run_LIF(string model_root) {
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 1, 0)
+      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
       );
   if (model == nullptr) {
     std::cerr << "model loaded failed\n";
