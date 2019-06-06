@@ -1120,6 +1120,15 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 							peer.log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", pid)
 						} else {
 							d.dropPeer(pid)
+							// If this peer was the master peer, abort sync immediately
+							d.cancelLock.RLock()
+							master := pid == d.cancelPeer
+							d.cancelLock.RUnlock()
+
+							if master {
+								d.cancel()
+								return errTimeout
+							}
 						}
 					}
 				}
