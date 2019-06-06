@@ -86,10 +86,15 @@ void CvmRuntime::SetupPrecision() {
       auto finfer = finfer_prec.get(inode.attrs.op, nullptr);
       // Call inference function of the operator.
       if (finfer == nullptr) {
-        finfer = cvm::top::ElemwiseSamePrecision;
+        VERIFY(false)
+          << "operator " << inode.attrs.name
+          << " has not registered FInferPrecision";
+        // finfer = cvm::top::ElemwiseSamePrecision;
       }
       if (!finfer(inode.attrs, &shapes, &iprec, &oprec)) {
-        throw utils::Error(std::string("error with ") + inode.attrs.op->name);
+        VERIFY(false)
+          << "operator " << inode.attrs.name
+          << ": infer precision failed";
       }
       // Save to the result map.
       for (uint32_t i = 0; i < num_inputs; ++i) {

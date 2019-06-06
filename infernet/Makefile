@@ -9,7 +9,7 @@ PKG_LDFLAGS =
 all: cpu gpu
 
 cpu:
-		@mkdir -p build/cpu && cd build/cpu && cmake ../.. -DUSE_CUDA=OFF && $(MAKE)
+		@mkdir -p build/cpu && cd build/cpu && cmake ../.. -DUSE_CUDA=OFF -DCMAKE_BUILD_TYPE=Debug && $(MAKE)
 
 gpu:
 		@mkdir -p build/gpu && cd build/gpu && cmake ../.. -DUSE_CUDA=ON && $(MAKE)

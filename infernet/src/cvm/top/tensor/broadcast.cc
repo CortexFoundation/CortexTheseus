@@ -118,6 +118,15 @@ inline bool LUTCorrectLayout(const NodeAttrs& attrs,
   return true;
 }
 
+inline bool LUTInferPrecision(const NodeAttrs& attrs, 
+                                  std::vector<TShape>* shapes,
+                                  std::vector<int>* iattr,
+                                  std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
+  oattr->assign(0, iattr->at(1));
+  return true;
+}
+
 CVMUTIL_REGISTER_PARAMETER(CVMLUTParam);
 CVM_REGISTER_OP(cvm_lut)
 .describe(R"doc(CVMLUT look up input with table.
@@ -128,6 +137,7 @@ CVM_REGISTER_OP(cvm_lut)
 .set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<CVMLUTParam>)
 .set_attr<FInferShape>("FInferShape", LUTInferShape)
 .set_attr<FInferType>("FInferType", LUTInferType)
+// .set_attr<FInferPrecision>("FInferPrecision", LUTInferPrecision)
 .add_argument("data", "Tensor", "input")
 .add_argument("table", "Tensor", "The table to lookup")
 .add_arguments(CVMLUTParam::__FIELDS__())

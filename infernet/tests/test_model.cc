@@ -52,8 +52,9 @@ int run_LIF(string model_root) {
   cvm::runtime::cvm_op_depthwise_conv_cnt = 0;
   cvm::runtime::cvm_op_chnwise_conv1x1_cnt = 0;
 
-  string json_path = model_root + "/symbol";
-  string params_path = model_root + "/params";
+  string prefix = string("yolo3_darknet53_voc.all") + ".nnvm.compile";
+  string json_path = model_root + "/" + prefix + ".json";
+  string params_path = model_root + "/" + prefix + ".params";
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
@@ -209,12 +210,13 @@ void test_models() {
     // "/home/tian/model_storage/dcnet_v0_mnist/data",
     // "/home/tian/model_storage/resnet50_v2/data",
     // "/home/tian/model_storage/vgg16_gcv/data",
-    "/home/tian/model_storage/sentiment_trec/data",
+    // "/home/tian/model_storage/sentiment_trec/data",
     // "/home/tian/model_storage/vgg19_gcv/data",
     // "/home/tian/model_storage/squeezenet_gcv1.1/data",
     // "/home/tian/model_storage/squeezenet_gcv1.0/data",
     // "/home/tian/model_storage/octconv_resnet26_0.250/data",
     // "/home/tian/model_storage/yolo3_darknet53_b1/data"
+    "/home/serving/tvm-cvm/data/",
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);
