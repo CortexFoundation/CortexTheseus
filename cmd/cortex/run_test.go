@@ -43,7 +43,7 @@ type testcortex struct {
 }
 
 func init() {
-	// Run the app if we've been exec'd as "cortex-test" in runGeth.
+	// Run the app if we've been exec'd as "cortex-test" in runCtxc.
 	reexec.Register("cortex-test", func() {
 		if err := app.Run(os.Args); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -63,7 +63,7 @@ func TestMain(m *testing.M) {
 
 // spawns cortex with the given command line args. If the args don't set --datadir, the
 // child g gets a temporary data directory.
-func runGeth(t *testing.T, args ...string) *testcortex {
+func runCtxc(t *testing.T, args ...string) *testcortex {
 	tt := &testcortex{}
 	tt.TestCmd = cmdtest.NewTestCmd(t, tt)
 	for i, arg := range args {

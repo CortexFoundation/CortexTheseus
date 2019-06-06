@@ -4,8 +4,33 @@
 #include <math.h>
 #include <memory>
 #include <string.h>
+#include <iostream>
+#include <string>
 #include "nms.h"
 
+// #define CVM_PRINT_CUDA_RESULT
+
+void print_to_file(const int32_t *y, int32_t n, std::string filename){
+#ifdef CVM_PRINT_CUDA_RESULT
+    int32_t *y_data = new int32_t[n];
+    cudaMemcpy(y_data, y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
+
+    FILE *fp = fopen(filename.c_str(), "a+");
+    
+    int32_t min = y_data[0], max= y_data[0];
+    for(uint64_t i = 0; i < n; i++){
+        min = min > y_data[i] ? y_data[i] : min;
+        max = max < y_data[i] ? y_data[i] : max;
+    }
+    fprintf(fp, "%d %d\n", min, max);
+    for(uint64_t i = 0; i < 1000 && i < n; i++){
+        fprintf(fp, "%d ", y_data[i]);
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
+    delete y_data;
+#endif
+}
 inline int32_t getShareMemorySize(int32_t device_id){
     static int32_t sharedMemPerBlock = 0;
     if(sharedMemPerBlock == 0){
@@ -312,6 +337,7 @@ const char* cuda_conv2d(
         if(bias != NULL)
             cudaFree(dev_b);
     }
+    print_to_file(output, o_c * o_h * o_w, "/tmp/zkh/cuda_conv2d.txt");
     return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_depthwise_conv2d(
@@ -322,7 +348,8 @@ __global__ void kernel_depthwise_conv2d(
         int32_t stride_h, int32_t stride_w,
         int32_t dilation_h, int32_t dilation_w, // TODO dilation > 1
         int32_t groups,
-        int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w){
+        int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w)
+{
     //    int g_y = blockDim.y * blockIdx.y + threadIdx.y;
     int g_x = blockDim.x * blockIdx.x + threadIdx.x;
     int l_y = threadIdx.y; 
@@ -933,11 +960,11 @@ __global__ void kernel_broadcast_sub(const int32_t *a, const int32_t *b, int32_t
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] - b[bi];
     }
 }
@@ -945,7 +972,7 @@ const char* cuda_broadcast_sub(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -987,11 +1014,11 @@ __global__ void kernel_broadcast_mul(const int32_t *a, const int32_t *b, int32_t
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] * b[bi];
     }
 }
@@ -999,7 +1026,7 @@ const char* cuda_broadcast_mul(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1034,17 +1061,18 @@ const char* cuda_broadcast_mul(const int32_t *a, const int32_t *b, int32_t* c, c
         cudaFree(dev_c);
         cudaFree(tmp_b);
     }
+    print_to_file(dev_c, n, "/tmp/zkh/cuda_mul.txt");
     return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_broadcast_div(const int32_t *a, const int32_t *b, int32_t*c, const int32_t n,
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] / b[bi];
     }
 }
@@ -1052,7 +1080,7 @@ const char* cuda_broadcast_div(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1101,8 +1129,8 @@ __global__ void kernel_broadcast_right_shift(const int32_t *a, const int32_t *b,
 ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] >> b[bi];
     }
 }
@@ -1110,7 +1138,7 @@ const char* cuda_broadcast_right_shift(const int32_t *a, const int32_t* b, int32
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a;
     const int32_t *dev_b = b;
     int32_t *tmp_a, *tmp_b;
@@ -1152,11 +1180,11 @@ __global__ void kernel_broadcast_left_shift(const int32_t *a, const int32_t *b, 
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] << b[bi];
     }
 }
@@ -1164,7 +1192,7 @@ const char* cuda_broadcast_left_shift(const int32_t *a, const int32_t *b, int32_
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1205,11 +1233,11 @@ __global__ void kernel_broadcast_max(const int32_t *a, const int32_t *b, int32_t
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim
-	){
+  ){
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if(i < n){
-	int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-	int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+  int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
+  int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
         c[i] = a[ai] > b[bi] ? a[ai] : b[bi];
     }
 }
@@ -1217,7 +1245,7 @@ const char* cuda_broadcast_max(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t *ashape, int32_t adim,
         int64_t *bshape, int32_t bdim,
         int64_t *cshape, int32_t cdim,
-	bool debug){
+  bool debug){
     const int32_t *dev_a = a, *dev_b = b;
     int32_t *tmp_a, *tmp_b;
     int32_t *dev_c = c;
@@ -1307,7 +1335,7 @@ const char* cuda_sum(
 const char* cuda_reshape(const int32_t *x, int32_t *y, int32_t n, bool debug){
     if(x == y) return NULL;
     if(debug)
-		 memcpy(y, x, n * sizeof(int32_t));
+     memcpy(y, x, n * sizeof(int32_t));
     else
         cudaMemcpy(y, x, n*sizeof(int32_t), cudaMemcpyDeviceToDevice);
     return check_cuda_error(cudaGetLastError());
@@ -1371,7 +1399,8 @@ const char* cuda_abs(const int32_t *x, int32_t *y, const int32_t n, bool debug){
     }
     return check_cuda_error(cudaGetLastError());
 }
-__global__ void kernel_max(const int32_t *x, int32_t *y, int32_t n){
+
+__global__ void kernel_max(const int32_t *x, int32_t *y, int64_t n){
    __shared__ int32_t buf[256];
    int32_t tid = threadIdx.x;
    int32_t maxValue = (int32_t)1 << 31;
@@ -1393,23 +1422,59 @@ __global__ void kernel_max(const int32_t *x, int32_t *y, int32_t n){
 
    if(tid == 0) y[0] = buf[0];
 }
-const char* cuda_max(const int32_t *x, int32_t *y, const int32_t n, bool debug){
-   const int32_t *dev_x = x;
-   int32_t *tmp_x, *dev_y = y;
-   if(debug){
-       cudaMalloc((void**)&tmp_x, sizeof(int32_t) * n);
-       dev_x = tmp_x;
-       cudaMalloc((void**)&dev_y, sizeof(int32_t));
-       cudaMemcpy(tmp_x, x, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-   }
 
-   kernel_max<<<1, 256>>>(dev_x, dev_y, n);
+__global__ void kernel_max_one_axis(const int32_t *x, int32_t *y, const int64_t axis, const int64_t *xshape, const int64_t *yshape,
+        const int32_t xndim, const int32_t yndim, const int64_t xsize){
+    int32_t i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i < xsize){
+        uint64_t o_i = i, in_i = 0, shapeSize = 0, axis_size = 0;
+        for(int j = xndim - 1; j > axis; j--){
+            int yj = j - 1;
+            int64_t col = o_i % yshape[yj];
+            o_i /= yshape[yj];
+            in_i += (j == xndim - 1 ? col : col * shapeSize);
+            shapeSize = (j == xndim - 1 ? xshape[j] : shapeSize * xshape[j]);
+        }
 
-   if(debug){
-       cudaMemcpy(y, dev_y, sizeof(int32_t), cudaMemcpyDeviceToHost);
-       cudaFree(tmp_x);
-       cudaFree(dev_y);
+        axis_size = shapeSize;
+        if(shapeSize == 0) axis_size = 1;
+        shapeSize = (xndim -1 == axis ? xshape[axis] : shapeSize * xshape[axis]);
+
+        for(int j = axis-1; j >= 0; j--){
+            int64_t col = o_i % yshape[j];
+            o_i /= yshape[j];
+            in_i +=  col * shapeSize;
+            shapeSize = shapeSize * xshape[j];
+        }
+
+        int32_t maxV = x[in_i];
+        for(int j = 0; j < xshape[axis]; j++){
+            if(maxV < x[in_i + j * axis_size]){
+                maxV = x[in_i + j * axis_size];
+            }
+        }
+        y[i] = maxV;
+    }
+}
+const char* cuda_max(const int32_t *x, int32_t *y, const uint64_t n, const int64_t *axis, const int64_t*xshape, const int64_t *yshape, 
+        const int32_t xndim, const int32_t yndim){
+   if(axis == NULL){
+       kernel_max<<<1, 256>>>(x, y, n);
+   }else{
+       int64_t *dev_xshape, *dev_yshape;
+       cudaMalloc((void**)&dev_xshape, sizeof(int64_t)*xndim);
+       cudaMalloc((void**)&dev_yshape, sizeof(int64_t)*yndim);
+       cudaMemcpy(dev_xshape, xshape, sizeof(int64_t)*xndim, cudaMemcpyHostToDevice);
+       cudaMemcpy(dev_yshape, yshape, sizeof(int64_t)*yndim, cudaMemcpyHostToDevice);
+
+       int bSize = 256;
+       int gSize = (n + bSize - 1) / bSize;
+       const int64_t axis_data = axis[0];
+       kernel_max_one_axis<<<gSize, bSize>>>(x, y, axis_data, dev_xshape, dev_yshape, xndim, yndim, n);
+       cudaFree(dev_xshape);
+       cudaFree(dev_yshape);
    }
+   print_to_file(y, n, "/tmp/zkh/cuda_max.txt");
    return check_cuda_error(cudaGetLastError());
 }
 
@@ -1439,6 +1504,7 @@ const char* cuda_cvm_clip(const int32_t* x, const int32_t precision, int32_t *y,
         cudaFree(tmp_x);
     }
     
+    print_to_file(y, n, "/tmp/zkh/cuda_cvm_clip.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -1473,6 +1539,7 @@ const char* cuda_cvm_right_shift(const int32_t *a, const int32_t b, const int32_
         cudaFree(dev_c);
         cudaFree(tmp_a);
     }
+    print_to_file(dev_c, n, "/tmp/zkh/cuda_cvm_right_shft.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -1513,8 +1580,8 @@ const char* cuda_cvm_left_shift(const int32_t *a, const int32_t b, const int32_t
 __global__ void kernel_concatenate(const int32_t *input, const int64_t *ishape, int32_t *output, 
         int64_t* oshape, const int32_t odim, const int32_t n,  
         const int64_t preShapeSize, const int64_t curShapeSize, const int32_t axis){
-	int i = threadIdx.x + blockDim.x * blockIdx.x;
-	if(i < n){
+  int i = threadIdx.x + blockDim.x * blockIdx.x;
+  if(i < n){
         int32_t o_i = i, in_i2 = 0, shapeSize = 0;
         for(int j = odim-1; j >= 0; j--){
             int64_t col = o_i % oshape[j];
@@ -1531,7 +1598,7 @@ __global__ void kernel_concatenate(const int32_t *input, const int64_t *ishape, 
             shapeSize = (j == odim-1 ? ishape[j] : shapeSize * ishape[j]);
         }
         output[i] = input[in_i2];
-	}
+  }
 }
 const char* cuda_concatenate(const int32_t *input, const int64_t *ishape, const int32_t idim, const int32_t in, 
         int32_t *output, int64_t* oshape, const int32_t odim, const int32_t on,  
@@ -1609,25 +1676,6 @@ __global__ void kernel_repeat(const int32_t *x_data, int32_t *y_data, const int6
         }
         y_data[i] = x_data[in_i];
     }
-}
-void print_to_file(const int32_t *y, int32_t n, char*filename){
-    int32_t *y_data = new int32_t[n];
-    cudaMemcpy(y_data, y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-
-    FILE *fp = fopen(filename, "a+");
-    
-    int32_t min = y_data[0], max= y_data[0];
-    for(uint64_t i = 0; i < n; i++){
-        min = min > y_data[i] ? y_data[i] : min;
-        max = max < y_data[i] ? y_data[i] : max;
-    }
-    fprintf(fp, "%d %d\n", min, max);
-    for(uint64_t i = 0; i < 20 && i < n; i++){
-        fprintf(fp, "%d ", y_data[i]);
-    }
-    fprintf(fp, "\n");
-    fclose(fp);
-    delete y_data;
 }
 const char* cuda_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
         const int64_t *yshape, const int64_t ysize, const int32_t xndim, const int32_t yndim, 
@@ -1738,6 +1786,7 @@ const char *cuda_expand_dims(const int32_t *ishape_data, int32_t *oshape_data, c
         return NULL;
     }
     cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    print_to_file(oshape_data, n, "/tmp/zkh/cuda_expand_dims.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -1745,7 +1794,8 @@ const char *cuda_squeeze(const int32_t *ishape_data, int32_t *oshape_data, const
     if(oshape_data == ishape_data){
         return NULL;
     }
-    // cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+    print_to_file(oshape_data, n, "/tmp/zkh/cuda_squeeze.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -1796,7 +1846,7 @@ const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int3
         cudaFree(dev_axes);
     }
 
-    print_to_file(y_data, ysize, "/tmp/tian/transpose_cuda.txt");
+    print_to_file(y_data, ysize, "/tmp/zkh/cuda_transpose.txt");
     return check_cuda_error(cudaGetLastError());
 }
 
@@ -2024,6 +2074,12 @@ const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_
     cudaFree(dev_xshape);
     cudaFree(dev_yshape);
     cudaFree(dev_indices_shape);
+    int xsize = 1;
+    for(int i = 0; i < xndim; i++){
+        xsize *= xshape[i];
+    }
+    print_to_file(x_data, xsize, "/tmp/zkh/cuda_take.txt");
+    print_to_file(y_data, ysize, "/tmp/zkh/cuda_take.txt");
     return check_cuda_error(cudaGetLastError());
 }
 

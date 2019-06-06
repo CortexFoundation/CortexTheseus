@@ -394,10 +394,15 @@ class CvmRuntime : public ModuleNode {
     }
     VERIFY_EQ(bitmask, 1|2|4|8|16) << "invalid format";
     VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size());
-    for (auto i = 0ULL; i < nodes_.size(); ++i) {
+    for (auto i = 0U; i < nodes_.size(); ++i) {
       if (nodes_[i].op_type != "null") {
         nodes_[i].LoadOp();
         nodes_[i].LoadOpAttr(attrs_.op_attrs[i]);
+      }
+    }
+    for (auto i = 0U; i < nodes_.size(); ++i) {
+      for (auto e: nodes_[i].inputs) {
+        VERIFY_LT(entry_id(e), entry_id(i, 0)) << "the graph does not follow the topological order.";
       }
     }
   }

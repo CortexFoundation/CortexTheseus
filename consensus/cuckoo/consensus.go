@@ -602,7 +602,6 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 		result        = header.Solution
 		nonce  uint64 = uint64(header.Nonce.Uint64())
 		hash          = cuckoo.SealHash(header).Bytes()
-		// result_hash = header.SolutionHash
 	)
 
 	targetDiff := new(big.Int).Div(maxUint256, header.Difficulty)

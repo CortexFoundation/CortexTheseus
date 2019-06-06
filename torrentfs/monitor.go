@@ -355,12 +355,10 @@ func (m *Monitor) startWork() error {
 	select {
 	case err := <-errCh:
 		if err != nil {
-			//return err
 			log.Error("Starting torrent fs ... ...", "error", err)
 			return err
 		} else {
 			log.Info("Torrent fs validation passed")
-			//break
 			m.wg.Add(1)
 			go m.listenLatestBlock()
 			return nil
@@ -416,6 +414,7 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		errCh <- nil
 		return nil
 	}
+
 	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
 
 	if m.dirty {

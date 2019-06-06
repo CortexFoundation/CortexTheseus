@@ -27,7 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
-var errEthashStopped = errors.New("cuckoo stopped")
+var errCuckooStopped = errors.New("cuckoo stopped")
 
 // API exposes cuckoo related methods for the RPC interface.
 type API struct {
@@ -40,27 +40,27 @@ type API struct {
 //   result[0] - 32 bytes hex encoded current block header pow-hash
 //   result[1] - 32 bytes hex encoded seed hash used for DAG
 //   result[2] - 32 bytes hex encoded boundary condition ("target"), 2^256/difficulty
-func (api *API) GetWork() ([3]string, error) {
+func (api *API) GetWork() ([4]string, error) {
 	if api.cuckoo.config.PowMode != ModeNormal && api.cuckoo.config.PowMode != ModeTest {
-		return [3]string{}, errors.New("not supported")
+		return [4]string{}, errors.New("not supported")
 	}
 
 	var (
-		workCh = make(chan [3]string, 1)
+		workCh = make(chan [4]string, 1)
 		errc   = make(chan error, 1)
 	)
 
 	select {
 	case api.cuckoo.fetchWorkCh <- &sealWork{errc: errc, res: workCh}:
 	case <-api.cuckoo.exitCh:
-		return [3]string{}, errEthashStopped
+		return [4]string{}, errCuckooStopped
 	}
 
 	select {
 	case work := <-workCh:
 		return work, nil
 	case err := <-errc:
-		return [3]string{}, err
+		return [4]string{}, err
 	}
 }
 

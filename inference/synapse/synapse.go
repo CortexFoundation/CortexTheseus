@@ -53,7 +53,7 @@ var DefaultConfig Config = Config{
 
 type Synapse struct {
 	config *Config
-	simpleCache *sync.Map
+	simpleCache sync.Map
 	lib *plugin.Plugin
 	caches map[int]*lru.Cache
 	exitCh chan struct{}
@@ -76,7 +76,7 @@ func New(config *Config) *Synapse {
 		return synapseInstance
 	}
 
-	if config.IsRemoteInfer {
+	if !config.IsRemoteInfer {
 		var err error = nil
 		lib, err = plugin.Open(PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX)
 		if err != nil {
