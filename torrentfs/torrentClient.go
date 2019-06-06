@@ -469,7 +469,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.bytesMissing = t.BytesMissing()
 				if t.bytesMissing == 0 {
 					os.Symlink(
-						path.Join(tm.TmpDataDir, ih.HexString()),
+						path.Join(defaultTmpFilePath, ih.HexString()),
 						path.Join(tm.DataDir, ih.HexString()),
 					)
 					t.Seed()
