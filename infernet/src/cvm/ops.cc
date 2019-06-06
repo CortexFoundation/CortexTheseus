@@ -152,6 +152,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
   auto dx = static_cast<int32_t*>(x->data);
   auto dy = static_cast<int32_t*>(y->data);
   auto dw = static_cast<int32_t*>(w->data);
+  if (true) {
 
   for (uint32_t di = 0; di < y->shape[0]; di++) {
       for (uint32_t oi = 0; oi < y->shape[1]; oi++) {
@@ -165,7 +166,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
           dy[di * y->shape[1] + oi] = sum;
       }
   }
-  /*
+
+  }  else {
   auto N = y->shape[1], K = x->shape[1];
   int blocks = K / 32 * 32;
   // std::cerr << y->shape[0] << " " << y->shape[1] << "\n";
@@ -178,7 +180,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
   }
 
   for(int32_t i = 0; i < weight_size; i++){
-      *(int8_filter.get() + i) = static_cast<int8_t>(dw[i]);
+    int8_filter.get()[i] = static_cast<int8_t>(dw[i]);
   }
 
   int32_t x_size = x->shape[0] * x->shape[1];
@@ -188,9 +190,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
   }
   bool all_positive = true;
   for(int32_t i = 0; i < x_size; i++){
-      int8_x.get()[i] = static_cast<int8_t>(dx[i]);
-      if ((int8_x.get()[i]) < 0)
-          all_positive = false;
+    int8_x.get()[i] = static_cast<int8_t>(dx[i]);
+    if ((int8_x.get()[i]) < 0)
+      all_positive = false;
   }
   // std::cerr << "all_positive = " << all_positive << "\n";
 
@@ -198,34 +200,34 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
   for(int i = 0; i < 16; i++)
       int16[i] = 1;
   __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
-
+  std::cerr << " batch = " << y->shape[0] << "\n";
   for (uint32_t di = 0; di < y->shape[0]; di++) {
       auto cdy = dy + di * N;
-      auto ap_outer = int8_x.get() + di * K;
-#pragma omp parallel for
+      auto data_outer = int8_x.get() + di * K;
+      #pragma omp parallel for
       for (uint32_t oi = 0; oi < N; oi++) {
           auto bp_inner = int8_filter.get() + oi * K;
-          auto ap_inner = ap_outer;
+          auto data_inner = data_outer;
           int sum = 0;
 
           int k = 0;
           if (all_positive) {
               __m256i vc = _mm256_setzero_si256();
-              for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
-                  __m256i va = _mm256_loadu_si256((__m256i*)bp_inner);
-                  __m256i vb = _mm256_loadu_si256((__m256i*)ap_inner);
-                  __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+              for(k = 0; k < blocks; k+=32, data_inner+=32, bp_inner+=32){
+                  __m256i v_weight = _mm256_loadu_si256((__m256i*)bp_inner);
+                  __m256i v_data = _mm256_loadu_si256((__m256i*)data_inner);
+                  __m256i vresult1 = _mm256_maddubs_epi16(v_data, v_weight);
                   __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
                   vc = _mm256_add_epi32(vresult2, vc);
               }
-              for(int ti = 0; ti < 8; ti++){
+              for(uint32_t ti = 0; ti < 8; ti++){
                   sum += ((int32_t*)&vc)[ti];
               }
           }
 
           // remained part
           for(; k < K; k++){
-              sum += ap_inner[k] * bp_inner[k];
+              sum += data_inner[k] * bp_inner[k];
           }
           if(db != nullptr){
               sum += db[oi];
@@ -233,12 +235,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
           cdy[oi] = sum;
       }
   }
+  }
 
-  */
 #ifdef CVM_PROFILING
-        cvm_op_dense_cnt += omp_get_wtime() - start;
+  cvm_op_dense_cnt += omp_get_wtime() - start;
 #endif
-        print_to_file(y, "/tmp/zkh/dense.txt");
+  print_to_file(y, "/tmp/zkh/dense.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
@@ -260,9 +262,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
 });
 
 bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias,
-        int32_t *c, const int M, const int K, const int N){
+        int32_t *c, const int M, const int K, const int N)
+{
 #ifdef CVM_PROFILING
-    double start = omp_get_wtime();
+  double start = omp_get_wtime();
 #endif
     int8_t *tr_b = (int8_t*)malloc(sizeof(int8_t) * K*N);
     if (tr_b == NULL) return false;
@@ -549,14 +552,14 @@ void depthwise_conv2d_single(
   }
   bool has_negetive = false;
   im2col_cpu(
-      x_data + 0* in_channels * x_h * x_w, //+ channel * x_h * x_w,
-      in_channels, x_h, x_w,
-      filter_h, filter_w,
-      padding[0], padding[1],
-      stride_h, stride_w,
-      dilation_h, dilation_w,
-      data_col, has_negetive
-      );
+    x_data + 0* in_channels * x_h * x_w, //+ channel * x_h * x_w,
+    in_channels, x_h, x_w,
+    filter_h, filter_w,
+    padding[0], padding[1],
+    stride_h, stride_w,
+    dilation_h, dilation_w,
+    data_col, has_negetive
+  );
   std::memset(y_data, 0, sizeof(int32_t) * in_channels * M * N);
   for(int batch = 0; batch < n_batch; batch++) {
     auto y_data_batch = y_data + batch * in_channels * N;
@@ -1738,7 +1741,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
     bool force_suppress = param.force_suppress;
     bool return_indices = param.return_indices;
     bool invalid_to_bottom = param.invalid_to_bottom;
-    CHECK(return_indices == false && invalid_to_bottom == false) << "no support return_indices and invalid_to_bottom";
+    CHECK(return_indices == false) << "no support return_indices and invalid_to_bottom";
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
@@ -1797,7 +1800,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
     int32_t xndim = x->ndim;
     int32_t indices_ndim = indices->ndim;
     if (axis == 0 && xndim == 2 && yndim == 3) {
-      std::cerr << "axis == 0 && xndim == 2 && yndim == 3" << "\n";
+      // std::cerr << "axis == 0 && xndim == 2 && yndim == 3" << "\n";
       int wn = 1;
       for (int i = 0; i < indices_ndim; i++)
         wn *= indices->shape[i];

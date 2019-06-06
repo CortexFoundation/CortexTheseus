@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	//"github.com/CortexFoundation/CortexTheseus/core/types"
-	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
@@ -156,8 +156,8 @@ func (cuckoo *Cuckoo) remote() {
 	//   result[0], 32 bytes hex encoded current block header pow-hash
 	//   result[1], 32 bytes hex encoded seed hash used for DAG
 	//   result[2], 32 bytes hex encoded boundary condition ("target"), 2^256/difficulty
-	getWork := func() ([3]string, error) {
-		var res [3]string
+	getWork := func() ([4]string, error) {
+		var res [4]string
 		if currentWork == nil {
 			return res, errNoMiningWork
 		}
@@ -170,6 +170,7 @@ func (cuckoo *Cuckoo) remote() {
 		n.Div(n, currentWork.Difficulty())
 		n.Lsh(n, 1)
 		res[2] = common.BytesToHash(n.Bytes()).Hex()
+		res[3] = hexutil.EncodeBig(currentWork.Number())
 		// Trace the seal work fetched by remote sealer.
 		works[cuckoo.SealHash(currentWork.Header())] = currentWork
 		return res, nil
@@ -178,7 +179,8 @@ func (cuckoo *Cuckoo) remote() {
 	// submitWork verifies the submitted pow solution, returning
 	// whether the solution was accepted or not (not can be both a bad pow as well as
 	// any other error, like no pending work or stale mining result).
-	submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash, sol types.BlockSolution) bool {
+	// submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash, sol types.BlockSolution) bool {
+	submitWork := func(nonce types.BlockNonce, hash common.Hash, sol types.BlockSolution) bool {
 		// Make sure the work submitted is present
 		block := works[hash]
 		if block == nil {
@@ -189,7 +191,7 @@ func (cuckoo *Cuckoo) remote() {
 		// Verify the correctness of submitted result.
 		header := block.Header()
 		header.Nonce = nonce
-		header.MixDigest = mixDigest
+		//header.MixDigest = mixDigest
 		header.Solution = sol
 		if err := cuckoo.VerifySeal(nil, header); err != nil {
 			log.Warn("Invalid proof-of-work submitted", "hash", hash, "err", err)
@@ -238,7 +240,8 @@ func (cuckoo *Cuckoo) remote() {
 
 		case result := <-cuckoo.submitWorkCh:
 			// Verify submitted PoW solution based on maintained mining blocks.
-			if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
+			//if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
+			if submitWork(result.nonce, result.hash, result.solution) {
 				//fmt.Println("yes")
 				result.errc <- nil
 			} else {

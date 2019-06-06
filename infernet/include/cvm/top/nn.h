@@ -32,7 +32,7 @@ struct DenseParam : public utils::Parameter<DenseParam> {
   static const constexpr int kBias = 2;
 };
 
-struct CVMLUTParam : public utils::Parameter<CVMLUTParam> {  
+struct CVMLUTParam : public utils::Parameter<CVMLUTParam> {
   int in_dim;
   CVMUTIL_DECLARE_PARAMETER(CVMLUTParam) {
     CVMUTIL_DECLARE_FIELD(in_dim)

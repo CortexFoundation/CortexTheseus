@@ -120,7 +120,7 @@ func (p *peerConnection) Reset() {
 func (p *peerConnection) FetchHeaders(from uint64, count int) error {
 	// Sanity check the protocol version
 	if p.version < 62 {
-		panic(fmt.Sprintf("header fetch [eth/62+] requested on ctxc/%d", p.version))
+		panic(fmt.Sprintf("header fetch [ctxc/62+] requested on ctxc/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
 	if !atomic.CompareAndSwapInt32(&p.headerIdle, 0, 1) {
@@ -138,7 +138,7 @@ func (p *peerConnection) FetchHeaders(from uint64, count int) error {
 func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 	// Sanity check the protocol version
 	if p.version < 62 {
-		panic(fmt.Sprintf("body fetch [eth/62+] requested on ctxc/%d", p.version))
+		panic(fmt.Sprintf("body fetch [ctxc/62+] requested on ctxc/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
 	if !atomic.CompareAndSwapInt32(&p.blockIdle, 0, 1) {
@@ -160,7 +160,7 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 func (p *peerConnection) FetchReceipts(request *fetchRequest) error {
 	// Sanity check the protocol version
 	if p.version < 63 {
-		panic(fmt.Sprintf("body fetch [eth/63+] requested on ctxc/%d", p.version))
+		panic(fmt.Sprintf("body fetch [ctxc/63+] requested on ctxc/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
 	if !atomic.CompareAndSwapInt32(&p.receiptIdle, 0, 1) {
@@ -182,7 +182,7 @@ func (p *peerConnection) FetchReceipts(request *fetchRequest) error {
 func (p *peerConnection) FetchNodeData(hashes []common.Hash) error {
 	// Sanity check the protocol version
 	if p.version < 63 {
-		panic(fmt.Sprintf("node data fetch [eth/63+] requested on ctxc/%d", p.version))
+		panic(fmt.Sprintf("node data fetch [ctxc/63+] requested on ctxc/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
 	if !atomic.CompareAndSwapInt32(&p.stateIdle, 0, 1) {

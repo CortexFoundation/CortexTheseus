@@ -115,7 +115,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb),
+		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.MinerNotify, config.MinerNoverify, chainDb),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
@@ -132,7 +132,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		//	return nil, fmt.Errorf("Blockchain DB version mismatch (%d / %d).\n", bcVersion, core.BlockChainVersion)
 		//}
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
-			return nil, fmt.Errorf("database version is v%d, Geth %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
+			return nil, fmt.Errorf("database version is v%d, Ctxc %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
 		} else if bcVersion != nil && *bcVersion < core.BlockChainVersion {
 			log.Warn("Upgrade blockchain database version", "from", *bcVersion, "to", core.BlockChainVersion)
 		}
@@ -214,7 +214,7 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ctxcdb.Dat
 		return nil, err
 	}
 	if db, ok := db.(*ctxcdb.LDBDatabase); ok {
-		db.Meter("eth/db/chaindata/")
+		db.Meter("ctxc/db/chaindata/")
 	}
 	return db, nil
 }
@@ -229,13 +229,13 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 	// Otherwise assume proof-of-work
 	switch config.PowMode {
 	case cuckoo.ModeFake:
-		log.Warn("Ethash used in fake mode")
+		log.Warn("Cuckoo used in fake mode")
 		return cuckoo.NewFaker()
 	case cuckoo.ModeTest:
-		log.Warn("Ethash used in test mode")
+		log.Warn("Cuckoo used in test mode")
 		return cuckoo.NewTester()
 	case cuckoo.ModeShared:
-		log.Warn("Ethash used in shared mode")
+		log.Warn("Cuckoo used in shared mode")
 		return cuckoo.NewShared()
 	default:
 		//	engine := cuckoo.New(cuckoo.Config{

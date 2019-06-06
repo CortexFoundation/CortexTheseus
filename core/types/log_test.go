@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var unmarshalLogTests = map[string]struct {

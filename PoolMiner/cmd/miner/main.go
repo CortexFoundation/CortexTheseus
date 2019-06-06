@@ -11,6 +11,7 @@ import (
 	"sync"
 	"github.com/CortexFoundation/CortexTheseus/PoolMiner/cortexminer"
 	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
+	"runtime"
 )
 
 func init() {
@@ -62,6 +63,7 @@ var cuda bool
 var opencl bool
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU() * 4)
 	flag.Parse()
 	if algorithm == "cuckoo" {
 		miner_algorithm = 0
