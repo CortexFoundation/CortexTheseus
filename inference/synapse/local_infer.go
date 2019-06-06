@@ -168,7 +168,8 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	// 	return
 	// }
 
-	label, inferErr := s.infer(modelCfg, modelBin, inputContent) 
+	label, inferErr := s.infer(modelCfg, modelBin, inputContent)
+
 	if inferErr != nil {
 		errCh <- inferErr
 		return
