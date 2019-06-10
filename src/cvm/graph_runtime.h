@@ -263,9 +263,10 @@ class CvmRuntime : public ModuleNode {
 
     void LoadOp() {
       if (op_type == "null") return;
-      attrs.name = GetOpName(param.func_name);
-      param.func_name = attrs.name;
-      attrs.op = cvm::Op::Get(attrs.name);
+      attrs.name = this->name;
+      // attrs.name = GetOpName(param.func_name);
+      // param.func_name = attrs.name;
+      attrs.op = cvm::Op::Get(param.func_name);
     }
 
     void LoadOpAttr(std::string json_) {

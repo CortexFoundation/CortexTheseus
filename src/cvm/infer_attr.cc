@@ -68,10 +68,14 @@ void CvmRuntime::SetupPrecision() {
   auto infer_prec = [&](uint32_t nid) {
     const auto& inode = idx[nid];
     if (inode.op_type == "null") {
-      if (precision[nid] == -1) {
-         precision[nid] = 8;
-      }
       // Variable node. No operator. Only one output entry.
+      const auto& eid = entry_id(nid, 0);
+      VERIFY_NE(precision[eid], -1)
+        << "variable node " << inode.name
+        << "'s precision has not been set";
+      VERIFY_LE(precision[eid], 32)
+        << "variable node " << inode.name
+        << "'s precision out of INT32";
     } else {
       const uint32_t num_inputs = inode.param.num_inputs;
       const uint32_t num_outputs = inode.param.num_outputs;
@@ -79,8 +83,9 @@ void CvmRuntime::SetupPrecision() {
       iprec.resize(num_inputs, -1);
       shapes.resize(num_inputs, TShape());
       for (uint32_t i = 0; i < iprec.size(); ++i) {
-        iprec[i] = precision[entry_id(inode.inputs[i])];
-        shapes[i] = rshape[entry_id(inode.inputs[i])];
+        const auto& eid = entry_id(inode.inputs[i]);
+        iprec[i] = precision[eid];
+        shapes[i] = rshape[eid];
       }
       VERIFY_GE(num_outputs, 1) << "an operator has at least 1 outputs";
       oprec.resize(num_outputs, -1);
@@ -97,18 +102,9 @@ void CvmRuntime::SetupPrecision() {
           << ": infer precision failed";
       }
       // Save to the result map.
-      for (uint32_t i = 0; i < num_inputs; ++i) {
-          VERIFY(iprec[i] <= 32)
-             << "Check precision failed, "
-             << "expected to be at most " << iprec[i]
-             << " but " << precision[entry_id(inode.inputs[i])]
-             << ", i =" << i << " " << entry_id(inode.inputs[i])
-             << " | nid = " << nid;
-          precision[entry_id(inode.inputs[i])] = iprec[i];
-      }
       for (uint32_t i = 0; i < num_outputs; ++i) {
         precision[entry_id(nid, i)] = oprec[i];
-        VERIFY(oprec[i] <= 32)
+        VERIFY_LE(oprec[i], 32)
             << " nid = " << nid << "i = " << i
             << " precison = " << oprec[i]
             << " name= " << inode.name

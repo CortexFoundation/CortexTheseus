@@ -35,7 +35,7 @@ void test_op_take() {
 
 }
 
-int run_LIF(string model_root) {
+int run_LIF(string model_root, string model_name) {
   cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
   cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
   cvm::runtime::im2col_cnt = 0;
@@ -51,7 +51,7 @@ int run_LIF(string model_root) {
   cvm::runtime::cvm_op_depthwise_conv_cnt = 0;
   cvm::runtime::cvm_op_chnwise_conv1x1_cnt = 0;
 
-  string prefix = string("yolo3_darknet53_voc.all") + ".nnvm.compile";
+  string prefix = model_name + ".nnvm.compile";
   string json_path = model_root + "/" + prefix + ".json";
   string params_path = model_root + "/" + prefix + ".params";
   cerr << "load " << json_path << "\n";
@@ -154,7 +154,7 @@ int run_LIF(string model_root) {
   cout << "total chnconv2d1x1 time: " << (sum_time) << "/" << ellapsed_time
     << " " <<  sum_time / ellapsed_time <<"\n";
 
-  if (model_root.find("yolo") != string::npos) {
+  if (json_path.find("yolo") != string::npos) {
     uint64_t ns =  output.size() / 4 / 4;
     std::cout << "yolo output size = " << ns << "\n";
     int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
@@ -191,7 +191,7 @@ void test_thread() {
           // model_root = "/home/lizhen/storage/mnist/data/";
           // model_root = "/home/lizhen/storage/animal10/data";
           // model_root = "/home/kaihuo/cortex_fullnode_storage/imagenet_inceptionV3/data";
-          run_LIF(model_root);
+          run_LIF(model_root, "");
           //run_LIF(model_root);
           }));
   }
@@ -218,8 +218,15 @@ void test_models() {
     // "/home/tian/model_storage/yolo3_darknet53_b1/data"
     "/home/serving/tvm-cvm/data/",
   };
+  auto model_names = {
+    "yolo3_darknet53_voc.all",
+    "resnet50_mxg",
+    "mobilenet1_0",
+  };
   for (auto model_root : model_roots) {
-    run_LIF(model_root);
+    for (auto model_name : model_names) {
+      run_LIF(model_root, model_name);
+    }
   }
 }
 int main() {
