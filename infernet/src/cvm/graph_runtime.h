@@ -72,6 +72,9 @@ class CvmRuntime : public ModuleNode {
   }
   void Run();
 
+  std::string version() const {
+    return version_.substr(0, 32);
+  }
   /*!
    * \brief Initialize the graph executor with graph and context.
    * \param graph_json The execution graph.
@@ -386,6 +389,8 @@ class CvmRuntime : public ModuleNode {
       } else if (key == "attrs") {
         reader->Read(&attrs_);
         bitmask |= 16;
+      } else if (key == "version") {
+        reader->Read(&version_);
       } else if (key == "metadata") {
         break;
       } else {
@@ -469,6 +474,8 @@ public:
   std::vector<std::function<void()> > op_execs_;
 
   std::string graph_json_;
+  
+  std::string version_{std::string("cvm_1.0.0")};
 };
 
 std::vector<CVMContext> CVMGetAllContext(const CVMArgs& args);
