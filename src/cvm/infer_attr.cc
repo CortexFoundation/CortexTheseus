@@ -93,7 +93,7 @@ void CvmRuntime::SetupPrecision() {
       // Call inference function of the operator.
       if (finfer == nullptr) {
         VERIFY(false)
-          << "operator " << inode.attrs.name
+          << "operator " << inode.attrs.op->name
           << " has not registered FInferPrecision";
       }
       if (!finfer(inode.attrs, &shapes, &iprec, &oprec)) {

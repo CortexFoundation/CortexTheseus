@@ -47,20 +47,6 @@ CVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_sub)
 )code"  CVM_ADD_FILELINE)
 .set_support_level(1);
 
-// CVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_mul)
-// .set_attr<FInferPrecision>("FInferPrecision", BinaryMultiplyPrecision)
-// .describe(R"code(Element-wise multiplication
-// 
-// )code"  CVM_ADD_FILELINE)
-// .set_support_level(1);
-
-// CVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_div)
-// .describe(R"code(Element-wise division
-// 
-// )code"  CVM_ADD_FILELINE)
-// .set_attr<FInferPrecision>("FInferPrecision", ElemwiseFirstPrecision)
-// .set_support_level(1);
-
 // negative
 CVM_REGISTER_ELEMWISE_UNARY_OP(negative)
 .describe(R"code(Elemenwise numeric negative
