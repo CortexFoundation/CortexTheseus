@@ -62,7 +62,7 @@ class CvmRuntime : public ModuleNode {
    * \return The corresponding member function.
    */
   virtual PackedFunc GetFunction(const std::string& name,
-                                 const std::shared_ptr<ModuleNode>& sptr_to_self);
+    const std::shared_ptr<ModuleNode>& sptr_to_self);
 
   /*!
    * \return The type key of the executor.
@@ -71,6 +71,10 @@ class CvmRuntime : public ModuleNode {
     return "CvmRuntime";
   }
   void Run();
+
+  std::string postprocess_method() const {
+    return postprocess_method_.substr(0, 32);
+  }
 
   std::string version() const {
     return version_.substr(0, 32);
@@ -391,6 +395,8 @@ class CvmRuntime : public ModuleNode {
         bitmask |= 16;
       } else if (key == "version") {
         reader->Read(&version_);
+      } else if (key == "postprocess") {
+        reader->Read(&postprocess_method_);
       } else if (key == "metadata") {
         break;
       } else {
@@ -476,6 +482,8 @@ public:
   std::string graph_json_;
   
   std::string version_{std::string("cvm_1.0.0")};
+
+  std::string postprocess_method_;
 };
 
 std::vector<CVMContext> CVMGetAllContext(const CVMArgs& args);
