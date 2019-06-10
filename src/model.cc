@@ -360,6 +360,10 @@ int CVMAPIGetOutputLength(void* model_) {
   return ret;
 }
 
+void CVMAPIGetVersion(void *model, char* version) {
+  strcpy(version, "cvm_1.0.0");
+}
+
 long long CVMAPIGetGasFromModel(void *model_) {
   CVMModel* model = (CVMModel*)model_;
   long long ret = -1;
