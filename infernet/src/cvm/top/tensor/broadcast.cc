@@ -196,5 +196,77 @@ Example::
 )code" CVM_ADD_FILELINE)
 .set_attr<FInferPrecision>("FInferPrecision", BinaryMultiplyPrecision);
 
+// CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_div, divide)
+// .add_alias("__div_symbol__")
+// .describe(R"code(Returns element-wise division of the input arrays with broadcasting.
+// 
+// Example::
+// 
+//    x = [[ 6.,  6.,  6.],
+//         [ 6.,  6.,  6.]]
+// 
+//    y = [[ 2.],
+//         [ 3.]]
+// 
+//    broadcast_div(x, y) = [[ 3.,  3.,  3.],
+//                           [ 2.,  2.,  2.]]
+// 
+// )code" CVM_ADD_FILELINE)
+// // TODO(wlt): broadcast_div infer precision
+// .set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
+
+CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_max, maximum)
+.add_alias("__max_symbol__")
+.describe(R"code(Returns element-wise max of the input arrays with broadcasting.
+
+Example::
+
+   x = [[ 1.,  2.,  3.],
+        [ 4.,  5.,  6.]]
+
+   y = [[ 2.],
+        [ 3.]]
+
+   broadcast_max(x, y) = [[ 2.,  2.,  3.],
+                          [ 4.,  5.,  6.]]
+
+)code" CVM_ADD_FILELINE)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
+
+// CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_left_shift, left_shift)
+// .add_alias("__left_shift_symbol__")
+// .describe(R"code(Returns element-wise x << y of the input arrays with broadcasting.
+// 
+// Example::
+// 
+//    x = [[ 1.,  2.,  3.],
+//         [ 4.,  5.,  6.]]
+// 
+//    y = [[ 2.],
+//         [ 1.]]
+// 
+//    broadcast_left_shift(x, y) = [[ 4.,  8.,  12.],
+//                                  [ 8.,  10., 12.]]
+// 
+// )code" CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
+// 
+// CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_right_shift, right_shift)
+// .add_alias("__right_shift_symbol__")
+// .describe(R"code(Returns element-wise x >> y of the input arrays with broadcasting.
+// 
+// Example::
+// 
+//    x = [[ 4.,  8.,  12.],
+//         [ 8.,  10., 12.]]
+// 
+//    y = [[ 2.],
+//         [ 1.]]
+// 
+//    broadcast_right_shift(x, y) = [[ 1.,  2.,  3.],
+//                                   [ 4.,  5.,  6.]]
+// 
+// )code" CVM_ADD_FILELINE);
+
 }  // namespace top
 }  // namespace cvm
