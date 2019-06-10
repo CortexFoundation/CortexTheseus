@@ -250,6 +250,15 @@ inline std::string attr_assign_error_msg(const NodeAttrs& attrs,
     << " has not been infered precision";             \
   }
 
+inline int GetBit(int64_t size) {
+  int prec = 0;
+  while (size) {
+    prec ++;
+    size >>= 1;
+  }
+  return prec;
+}
+
 // simply return the shape as same
 inline bool SameShape(const NodeAttrs& attrs,
                       std::vector<TShape> *ishape,

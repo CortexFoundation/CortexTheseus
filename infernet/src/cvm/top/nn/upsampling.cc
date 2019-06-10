@@ -71,7 +71,7 @@ CVM_REGISTER_OP(upsampling)
 .set_attr<FInferShape>("FInferShape", UpSamplingInferShape)
 .set_attr<FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<FCorrectLayout>("FCorrectLayout", UpsamplingLayout)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_num_outputs(1)
 .set_num_inputs(1)
 .set_support_level(2);
