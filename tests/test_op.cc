@@ -12,6 +12,8 @@
 #include <cvm/node.h>
 #include <cvm/runtime/c_runtime_api.h>
 #include "npy.hpp"
+#include <string.h>
+#include <fstream>
 
 using namespace std;
 
@@ -28,10 +30,11 @@ struct CVMOpParam {
   std::string func_name;
   uint32_t num_inputs;
   uint32_t num_outputs;
-  uint32_t flatten_data;
+  uint32_t flatten_data = false;
   std::string attrs;
 };
 
+//int ctx = kDLCPU;
 int ctx = kDLGPU;
 
 void LoadOp(string op_type, NodeAttrs& attrs) {
@@ -72,7 +75,7 @@ std::function<void()> get_func(
 
   std::shared_ptr<OpArgs> arg_ptr = std::make_shared<OpArgs>();
   // setup address.
-  arg_ptr->args = std::move(args);
+  arg_ptr->args = args;
   if (param.flatten_data) {
     arg_ptr->shape_data.resize(arg_ptr->args.size());
   }
@@ -316,45 +319,67 @@ void test_take() {
                       sizeof(int32_t) * tdata[params.num_inputs].size());
     printf("match %d | %d\n", ret == 0, ret);
 
-    if (true) {
-    std::cerr << "Expected " << shapes_[0][0] << " " <<  shapes_[0][1] << " " << shapes_[0][2] << "\n";
-    for (int c = 0; c < tdata[params.num_inputs].size() ; c++) {
-        std::cerr << tdata[params.num_inputs].data()[c] << " ";
-    }
-    std::cerr << "\n";
-    std::cerr << "Got " << shapes_[0][0] << " " <<  shapes_[0][1] << " " << shapes_[0][2] << "\n";
-    for (int c = 0; c < tdata[params.num_inputs].size() ; c++) {
-        std::cerr << cpu_output_tensor[c] << " ";
-    }
-    std::cerr << "\n";
-    }
+    //if (true) {
+    //std::cerr << "Expected " << shapes_[0][0] << " " <<  shapes_[0][1] << " " << shapes_[0][2] << "\n";
+    //for (int c = 0; c < tdata[params.num_inputs].size() ; c++) {
+    //    std::cerr << tdata[params.num_inputs].data()[c] << " ";
+    //}
+    //std::cerr << "\n";
+    //std::cerr << "Got " << shapes_[0][0] << " " <<  shapes_[0][1] << " " << shapes_[0][2] << "\n";
+    //for (int c = 0; c < tdata[params.num_inputs].size() ; c++) {
+    //    std::cerr << cpu_output_tensor[c] << " ";
+    //}
+    //std::cerr << "\n";
+    //}
 }
 
-void test_max() {
-    string attr_str = " {\"axis\": \"(2)\"} ";
-    std::vector<int> dims_ = {3,  2};
-    vector<std::vector<int64_t>> shapes_ = {{3,3,3},{3, 3}};
+void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
+  printf("\ntest %s\n", op_name.c_str());
+  for(int i = 0; i < num_test; i++){
+    string attr_path = "/tmp/" + op_name + "/attr" + std::to_string(i) + ".txt";
+    ifstream infile;
+    infile.open(attr_path);
+    string attr_str = "";
+    getline(infile, attr_str);
+    infile.close();
+    //string attr_str = " {\"axis\": \"" + std::to_string(i-1) + "\"} ";
+    std::cout << attr_str << endl;
     CVMOpParam params;
-    params.num_inputs = 1;
-    params.num_outputs= 1;
-    params.func_name = "max";
+    params.func_name = op_name;
+    params.num_inputs = num_inputs;
+    params.num_outputs= num_outputs;
+    params.flatten_data = false;
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
+    std::vector<std::vector<unsigned long>> tshape(args.size());
+    std::vector<std::vector<int32_t>> tdata(args.size());
+    npy::LoadArrayFromNumpy("/tmp/"+op_name+"/in0.npy", tshape[0], tdata[0]);
+    string out_path = "/tmp/"+op_name+"/out" + std::to_string(i) + ".npy";
+    cout << out_path << endl;
+    npy::LoadArrayFromNumpy(out_path, tshape[1], tdata[1]);
+    vector<std::vector<int64_t>> shapes_(args.size());
+    std::vector<int> dims_(args.size());
+    for (auto idx = 0; idx < args.size(); idx++) {
+      shapes_[idx].resize(tshape[idx].size());
+      dims_[idx] = (tshape[idx].size());
+      std::cout << "tshape[idx].size() = " << tshape[idx].size() << "\n";
+      for (auto j = 0; j < shapes_[idx].size(); j++) {
+        shapes_[idx][j] = tshape[idx][j];
+        std::cout << tshape[idx][j] << " ";
+      }
+      std::cout << "\n";
+    }
+    DLTensor* cpu_tensor;
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLGPU, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
       args[i] = *dl;
+      if (i < params.num_inputs) {
+        CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
+        memcpy(cpu_tensor->data, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
+        CVMArrayCopyFromTo(cpu_tensor, dl, nullptr);
+        CVMArrayFree(cpu_tensor);
+      }
     }
-
-    DLTensor* dl;
-    CVMArrayAlloc(shapes_[0].data(), dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &dl);
-    int32_t *data = static_cast<int32_t*>(dl->data);
-    for(int i = 0; i < 27; i++){
-        data[i] = i;
-    }
-    CVMStreamHandle stream1;
-    CVMStreamCreate(kDLGPU, 0, &stream1);
-    CVMArrayCopyFromTo(dl, &args[0], stream1);
-    printf("copy from to success\n");
 
     NodeAttrs attr;
     LoadOp(params.func_name, attr);
@@ -362,18 +387,28 @@ void test_max() {
     auto op_slice = get_func(params, &attr, args, params.num_inputs);
     op_slice();
 
-    std::vector<unsigned long> tshape;
-    std::vector<int32_t> tdata;
-    npy::LoadArrayFromNumpy("./tests/out.npy", tshape, tdata);
-    int32_t *odata = static_cast<int32_t*>(args[1].data);
-    for(int i = 0; i < 9; i++){
-        printf("%d ", odata[i]);
+    vector<int32_t> cpu_output_tensor(tdata[params.num_inputs].size());
+    {
+      int i = params.num_inputs; // first output
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
+      CVMArrayCopyFromTo(&args[i], cpu_tensor, nullptr);
+      memcpy(cpu_output_tensor.data(), cpu_tensor->data, sizeof(int32_t) * tdata[i].size());
+      CVMArrayFree(cpu_tensor);
     }
-    printf("\n");
-    printf("%d\n", memcmp(odata, tdata.data(), sizeof(int32_t)*tdata.size()));
+    int ret =  memcmp(cpu_output_tensor.data(),
+        tdata[params.num_inputs].data(),
+        sizeof(int32_t) * tdata[params.num_inputs].size());
+    printf("match %d | %d\n", ret == 0, ret);
+    assert(ret == 0);
+  }
 }
 int main() {
 //    test_take();
-    test_max();
+//    test_op("concatenate", 2, 1, 4);//pass
+//    test_op("repeat", 1, 1, 4); //pass
+//    test_op("tile", 1, 1, 5); //pass
+//    test_op("transpose", 1, 1, 5);// 5th case failed
+//    test_op("strided_slice", 1, 1, 3);
+//    test_op("slice_like", 2, 1, 3); // pass
     return 0;
 }
