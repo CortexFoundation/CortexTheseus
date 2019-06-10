@@ -539,6 +539,7 @@ func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (*big.Int, error) {
+	// fmt.Println("infer", modelInfoHash, inputInfoHash)
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
 	//modelErrCh := make(chan error)
@@ -573,6 +574,7 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		errRes   error
 	)
 
+	// fmt.Println("==infer", modelInfoHash, inputInfoHash)
 	if evm.vmConfig.InferURI == "" {
 		inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
 	} else {
@@ -586,8 +588,8 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		log.Info("Inference Succeed", "label", inferRes)
 	}
 	ret := synapse.ArgMax(inferRes)
-
-	return big.NewInt(int64(ret)), errRes
+	// fmt.Println("infer result: ", inferRes, ret)
+	return ret, errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
@@ -629,20 +631,20 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	}
 
 	ret := synapse.ArgMax(inferRes)
-	return big.NewInt(int64(ret)), errRes
+	return ret, errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (evm *EVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	modelMeta, err := evm.GetModelMeta(addr)
+	// fmt.Println("ops infer ", modelMeta, err, evm.vmConfig.InferURI)
 	if err != nil {
 		return 0, err
 	}
 	modelRawSize := modelMeta.RawSize
 	modelInfoHash := strings.ToLower(string(modelMeta.Hash.Hex()[2:]))
-
-	if !torrentfs.Available(addr, evm.Config().StorageDir, int64(modelRawSize)) {
-		return 0, errors.New("Torrent file model not available, blockchain and torrent not match")
+	if !torrentfs.Available(modelMeta.Hash, evm.Config().StorageDir, int64(modelRawSize)) {
+		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelInfoHash)
 	}
 
 	if evm.vmConfig.InferURI == "" {
@@ -692,6 +694,7 @@ func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err er
 func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
 	inputMetaRaw := evm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
+	// fmt.Println("inputMetaRaw: %v", inputMetaRaw)
 	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {
 		return &types.InputMeta{}, err
 	} else {

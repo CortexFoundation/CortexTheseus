@@ -143,7 +143,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		StorageDir    : config.StorageDir,
 		DeviceType    : config.InferDeviceType,
 		DeviceId      : config.InferDeviceId,
-		IsRemoteInfer : config.InferURI == "",
+		IsRemoteInfer : config.InferURI != "",
 		InferURI      : config.InferURI,
 		IsNotCache    : false,
 	})

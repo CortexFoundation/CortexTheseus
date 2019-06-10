@@ -728,6 +728,7 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	}
 
 	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", interpreter.evm.StateDB.GetNum(inputAddr), "Current", interpreter.evm.BlockNumber, "MB", params.MatureBlks)
 		return nil, ErrMetaInfoNotMature
 	}
 

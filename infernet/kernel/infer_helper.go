@@ -133,7 +133,8 @@ func (m *Model) Free() {
 func (m *Model) Predict(imageData []byte) ([]byte, error) {
     expectedInputLength := m.GetInputLength()
 	if expectedInputLength != len(imageData) {
-		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",																	  expectedInputLength, len(imageData)))
+		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",
+																			 expectedInputLength, len(imageData)))
 	}
 
 	f, err := m.lib.Lookup("Predict")
