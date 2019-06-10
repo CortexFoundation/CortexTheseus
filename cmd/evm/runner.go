@@ -1,18 +1,18 @@
-// Copyright 2017 The go-cortex Authors
-// This file is part of go-cortex.
+// Copyright 2017 The CortexFoundation Authors
+// This file is part of CortexFoundation.
 //
-// go-cortex is free software: you can redistribute it and/or modify
+// CortexFoundation is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-cortex is distributed in the hope that it will be useful,
+// CortexFoundation is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexFoundation. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -140,19 +140,20 @@ func runCmd(ctx *cli.Context) error {
 		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
-	ih, _ := hex.DecodeString("c8727fa5f4e9d90d6168f2398be2289b17ab18c2")
+	ih, _ := hex.DecodeString("c35dde5292458e91c6533d671a9cfcf55fc46026")
 	testInputMeta, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
 			Hash:          common.BytesToAddress(ih),
 			RawSize:       10000,
-			Shape:         []uint64{1},
+			Shape:         []uint64{1, 28, 28},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 		})
-	fmt.Println(testModelMeta1)
-	fmt.Println(testModelMeta2)
-	fmt.Println(testInputMeta)
+	fmt.Println("testModelMeta1", testModelMeta1)
+	fmt.Println("testModelMeta2", testModelMeta2)
+	fmt.Println("testInputMeta", testInputMeta)
 	statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"), append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
 	statedb.SetCode(common.HexToAddress("0x049d8385c81200339fca354f2696fd57ea96255e"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
+	statedb.SetCode(common.HexToAddress("0x2001"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
 	// simple address for the sake of debuging
 	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
 	statedb.SetCode(common.HexToAddress("0x1002"), append([]byte{0x0, 0x1}, []byte(testModelMeta2)...))
@@ -202,6 +203,11 @@ func runCmd(ctx *cli.Context) error {
 		code = common.Hex2Bytes(bin)
 	}
 
+	storageDir := ""
+	if ctx.GlobalString(StorageDir.Name) != "" {
+		storageDir = ctx.GlobalString(StorageDir.Name)
+	}
+
 	initialGas := ctx.GlobalUint64(GasFlag.Name)
 	runtimeConfig := runtime.Config{
 		Origin:      sender,
@@ -213,7 +219,7 @@ func runCmd(ctx *cli.Context) error {
 		EVMConfig: vm.Config{
 			Tracer:   tracer,
 			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
-			InferURI: ctx.GlobalString(InferURI.Name),
+			StorageDir:  storageDir,
 		},
 	}
 
@@ -235,13 +241,12 @@ func runCmd(ctx *cli.Context) error {
 	}
 	tstart := time.Now()
 	var leftOverGas uint64
-	storageDir := "/home/wlt/data/ctxc-2333-10/warehouse"
-	if ctx.GlobalString(StorageDir.Name) != "" {
-		storageDir = ctx.GlobalString(StorageDir.Name)
-	}
-	inferServer := infer.New(infer.Config{
+	fmt.Println("evm storageDir", storageDir)
+	inferServer := infer.New(&infer.Config{
 		StorageDir: storageDir,
 		IsNotCache: false,
+			IsRemoteInfer: false,
+			DeviceType: "cpu",
 	})
 
 	if ctx.GlobalBool(CreateFlag.Name) {
