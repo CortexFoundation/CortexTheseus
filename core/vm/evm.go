@@ -50,25 +50,25 @@ type (
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
-func run(evm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
+func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsHomestead
-		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
+		if cvm.ChainConfig().IsByzantium(cvm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium
 		}
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
-	for _, interpreter := range evm.interpreters {
+	for _, interpreter := range cvm.interpreters {
 		if interpreter.CanRun(contract.Code) {
-			if evm.interpreter != interpreter {
+			if cvm.interpreter != interpreter {
 				// Ensure that the interpreter pointer is set back
 				// to its current value upon return.
 				defer func(i Interpreter) {
-					evm.interpreter = i
-				}(evm.interpreter)
-				evm.interpreter = interpreter
+					cvm.interpreter = i
+				}(cvm.interpreter)
+				cvm.interpreter = interpreter
 			}
 			return interpreter.Run(contract, input, readOnly)
 		}
@@ -122,7 +122,7 @@ type CVM struct {
 	// chain rules contains the chain rules for the current epoch
 	chainRules params.Rules
 	// virtual machine configuration options used to initialise the
-	// evm.
+	// cvm.
 	vmConfig Config
 	// global (to this context) cortex virtual machine
 	// used throughout the execution of the tx.
@@ -157,7 +157,7 @@ func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 
 	log.Info("File storage in vm", "fs", fileFs)*/
 
-	evm := &CVM{
+	cvm := &CVM{
 		Context:      ctx,
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
@@ -176,91 +176,91 @@ func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		//  if len(extIntOpts) > 1 {
 		//    options = extIntOpts[1..]
 		//  }
-		//  evm.interpreters = append(evm.interpreters, NewCVMVCInterpreter(evm, vmConfig, options))
+		//  cvm.interpreters = append(cvm.interpreters, NewCVMVCInterpreter(cvm, vmConfig, options))
 		// } else {
-		//      evm.interpreters = append(evm.interpreters, NewEWASMInterpreter(evm, vmConfig))
+		//      cvm.interpreters = append(cvm.interpreters, NewEWASMInterpreter(cvm, vmConfig))
 		// }
 		panic("No supported ewasm interpreter yet.")
 	}
 
-	evm.interpreters[0] = NewCVMInterpreter(evm, vmConfig)
-	evm.interpreter = evm.interpreters[0]
+	cvm.interpreters[0] = NewCVMInterpreter(cvm, vmConfig)
+	cvm.interpreter = cvm.interpreters[0]
 
-	return evm
+	return cvm
 }
 
 // Cancel cancels any running CVM operation. This may be called concurrently and
 // it's safe to be called multiple times.
-func (evm *CVM) Cancel() {
-	atomic.StoreInt32(&evm.abort, 1)
+func (cvm *CVM) Cancel() {
+	atomic.StoreInt32(&cvm.abort, 1)
 }
 
 // Interpreter returns the current interpreter
-func (evm *CVM) Interpreter() Interpreter {
-	return evm.interpreter
+func (cvm *CVM) Interpreter() Interpreter {
+	return cvm.interpreter
 }
 
-func (evm *CVM) Config() Config {
-	return evm.vmConfig
+func (cvm *CVM) Config() Config {
+	return cvm.vmConfig
 }
 
 // Call executes the contract associated with the addr with the given input as
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
 		return nil, gas, nil, nil
 	}
 
 	// Fail if we're trying to execute above the call depth limit
-	if evm.depth > int(params.CallCreateDepth) {
+	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
-	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+	if !cvm.Context.CanTransfer(cvm.StateDB, caller.Address(), value) {
 		return nil, gas, nil, ErrInsufficientBalance
 	}
 
 	var (
 		to       = AccountRef(addr)
-		snapshot = evm.StateDB.Snapshot()
+		snapshot = cvm.StateDB.Snapshot()
 	)
-	if !evm.StateDB.Exist(addr) {
+	if !cvm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsHomestead
-		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
+		if cvm.ChainConfig().IsByzantium(cvm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium
 		}
-		if precompiles[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
+		if precompiles[addr] == nil && cvm.ChainConfig().IsEIP158(cvm.BlockNumber) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
-			if evm.vmConfig.Debug && evm.depth == 0 {
-				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
-				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
+			if cvm.vmConfig.Debug && cvm.depth == 0 {
+				cvm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+				cvm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
 			return nil, gas, nil, nil
 		}
-		evm.StateDB.CreateAccount(addr)
+		cvm.StateDB.CreateAccount(addr)
 	}
-	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
+	cvm.Transfer(cvm.StateDB, caller.Address(), to.Address(), value)
 
 	// Initialise a new contract and set the code that is to be used by the CVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, to, value, gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
 
 	start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
-	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+	if cvm.vmConfig.Debug && cvm.depth == 0 {
+		cvm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 
 		defer func() { // Lazy evaluation of the parameters
-			evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 		}()
 	}
-	ret, err = run(evm, contract, input, false)
+	ret, err = run(cvm, contract, input, false)
 
-	if evm.vmConfig.RPC_GetInternalTransaction {
+	if cvm.vmConfig.RPC_GetInternalTransaction {
 		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
 	}
 
@@ -268,7 +268,7 @@ func (evm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
 	if err != nil {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -286,33 +286,33 @@ func (evm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 //
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
-func (evm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+func (cvm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
 		return nil, gas, nil, nil
 	}
 
 	// Fail if we're trying to execute above the call depth limit
-	if evm.depth > int(params.CallCreateDepth) {
+	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
-	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
+	if !cvm.CanTransfer(cvm.StateDB, caller.Address(), value) {
 		return nil, gas, nil, ErrInsufficientBalance
 	}
 
 	var (
-		snapshot = evm.StateDB.Snapshot()
+		snapshot = cvm.StateDB.Snapshot()
 		to       = AccountRef(caller.Address())
 	)
 	// initialise a new contract and set the code that is to be used by the
 	// CVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := NewContract(caller, to, value, gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
 
-	ret, err = run(evm, contract, input, false)
+	ret, err = run(cvm, contract, input, false)
 	if err != nil {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -325,27 +325,27 @@ func (evm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 //
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
-func (evm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+func (cvm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
 		return nil, gas, nil, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
-	if evm.depth > int(params.CallCreateDepth) {
+	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
 	}
 
 	var (
-		snapshot = evm.StateDB.Snapshot()
+		snapshot = cvm.StateDB.Snapshot()
 		to       = AccountRef(caller.Address())
 	)
 
 	// Initialise a new contract and make initialise the delegate values
 	contract := NewContract(caller, to, nil, gas).AsDelegate()
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
 
-	ret, err = run(evm, contract, input, false)
+	ret, err = run(cvm, contract, input, false)
 	if err != nil {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 			// for addr, mGas := range contract.ModelGas {
@@ -360,31 +360,31 @@ func (evm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 // as parameters while disallowing any modifications to the state during the call.
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
-func (evm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+func (cvm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
 		return nil, gas, nil, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
-	if evm.depth > int(params.CallCreateDepth) {
+	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
 	}
 
 	var (
 		to       = AccountRef(addr)
-		snapshot = evm.StateDB.Snapshot()
+		snapshot = cvm.StateDB.Snapshot()
 	)
 	// Initialise a new contract and set the code that is to be used by the
 	// CVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := NewContract(caller, to, new(big.Int), gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
 
 	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in Homestead this also counts for code storage gas errors.
-	ret, err = run(evm, contract, input, true)
+	ret, err = run(cvm, contract, input, true)
 	if err != nil {
-		evm.StateDB.RevertToSnapshot(snapshot)
+		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -393,30 +393,30 @@ func (evm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 }
 
 // create creates a new contract using code as deployment code.
-func (evm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
+func (cvm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
-	if evm.depth > int(params.CallCreateDepth) {
+	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, common.Address{}, gas, nil, ErrDepth
 	}
-	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
+	if !cvm.CanTransfer(cvm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, nil, ErrInsufficientBalance
 	}
-	nonce := evm.StateDB.GetNonce(caller.Address())
-	evm.StateDB.SetNonce(caller.Address(), nonce+1)
+	nonce := cvm.StateDB.GetNonce(caller.Address())
+	cvm.StateDB.SetNonce(caller.Address(), nonce+1)
 
 	// Ensure there's no existing contract already at the designated address
-	contractHash := evm.StateDB.GetCodeHash(address)
-	if evm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+	contractHash := cvm.StateDB.GetCodeHash(address)
+	if cvm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
 		return nil, common.Address{}, 0, nil, ErrContractAddressCollision
 	}
 	// Create a new account on the state
-	snapshot := evm.StateDB.Snapshot()
-	evm.StateDB.CreateAccount(address)
-	if evm.ChainConfig().IsEIP158(evm.BlockNumber) {
-		evm.StateDB.SetNonce(address, 1)
+	snapshot := cvm.StateDB.Snapshot()
+	cvm.StateDB.CreateAccount(address)
+	if cvm.ChainConfig().IsEIP158(cvm.BlockNumber) {
+		cvm.StateDB.SetNonce(address, 1)
 	}
-	evm.Transfer(evm.StateDB, caller.Address(), address, value)
+	cvm.Transfer(cvm.StateDB, caller.Address(), address, value)
 
 	// initialise a new contract and set the code that is to be used by the
 	// CVM. The contract is a scoped environment for this execution context
@@ -424,23 +424,23 @@ func (evm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	contract := NewContract(caller, AccountRef(address), value, gas)
 	contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
 
-	if evm.vmConfig.NoRecursion && evm.depth > 0 {
+	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
 		return nil, address, gas, nil, nil
 	}
 
-	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), address, true, code, gas, value)
+	if cvm.vmConfig.Debug && cvm.depth == 0 {
+		cvm.vmConfig.Tracer.CaptureStart(caller.Address(), address, true, code, gas, value)
 	}
 	start := time.Now()
 
-	ret, err := run(evm, contract, nil, false)
+	ret, err := run(cvm, contract, nil, false)
 
-	if evm.vmConfig.RPC_GetInternalTransaction {
+	if cvm.vmConfig.RPC_GetInternalTransaction {
 		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
 	}
 
 	// check whether the max code size has been exceeded
-	maxCodeSizeExceeded := evm.ChainConfig().IsEIP158(evm.BlockNumber) && len(ret) > params.MaxCodeSize
+	maxCodeSizeExceeded := cvm.ChainConfig().IsEIP158(cvm.BlockNumber) && len(ret) > params.MaxCodeSize
 	// if the contract creation ran successfully and no errors were returned
 	// calculate the gas required to store the code. If the code could not
 	// be stored due to not enough gas set an error and let it be handled
@@ -448,7 +448,7 @@ func (evm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	if err == nil && !maxCodeSizeExceeded {
 		createDataGas := uint64(len(ret)) * params.CreateDataGas
 		if contract.UseGas(createDataGas) {
-			evm.StateDB.SetCode(address, ret)
+			cvm.StateDB.SetCode(address, ret)
 		} else {
 			err = ErrCodeStoreOutOfGas
 		}
@@ -457,8 +457,8 @@ func (evm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
-	if maxCodeSizeExceeded || (err != nil && (evm.ChainConfig().IsHomestead(evm.BlockNumber) || err != ErrCodeStoreOutOfGas)) {
-		evm.StateDB.RevertToSnapshot(snapshot)
+	if maxCodeSizeExceeded || (err != nil && (cvm.ChainConfig().IsHomestead(cvm.BlockNumber) || err != ErrCodeStoreOutOfGas)) {
+		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
@@ -467,42 +467,42 @@ func (evm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	if maxCodeSizeExceeded && err == nil {
 		err = errMaxCodeSizeExceeded
 	}
-	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+	if cvm.vmConfig.Debug && cvm.depth == 0 {
+		cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 	}
 	return ret, address, contract.Gas, contract.ModelGas, err
 
 }
 
 // Create creates a new contract using code as deployment code.
-func (evm *CVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	contractAddr = crypto.CreateAddress(caller.Address(), evm.StateDB.GetNonce(caller.Address()))
-	return evm.create(caller, code, gas, value, contractAddr)
+func (cvm *CVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+	contractAddr = crypto.CreateAddress(caller.Address(), cvm.StateDB.GetNonce(caller.Address()))
+	return cvm.create(caller, code, gas, value, contractAddr)
 }
 
 // Create2 creates a new contract using code as deployment code.
 //
 // The different between Create2 with Create is Create2 uses sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code))[12:]
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
-func (evm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
-	return evm.create(caller, code, gas, endowment, contractAddr)
+	return cvm.create(caller, code, gas, endowment, contractAddr)
 }
 
 // ChainConfig returns the environment's chain configuration
-func (evm *CVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
+func (cvm *CVM) ChainConfig() *params.ChainConfig { return cvm.chainConfig }
 
 const interv = 5
 
-func (evm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
-	street := big.NewInt(0).Sub(evm.PeekNumber, evm.BlockNumber)
+func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
+	street := big.NewInt(0).Sub(cvm.PeekNumber, cvm.BlockNumber)
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	if point.Cmp(evm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
+	if point.Cmp(cvm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
 		cost := big.NewInt(0)
-		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), evm.Context.Time)
+		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), cvm.Context.Time)
 		for i := 0; i < 3600 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
-				log.Warn("Inference synchronizing ... ...", "point", point, "tvm", evm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", evm.BlockNumber, "street", street)
+				log.Warn("Inference synchronizing ... ...", "point", point, "tvm", cvm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", cvm.BlockNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
 				time.Sleep(time.Second * interv)
 				continue
@@ -511,10 +511,10 @@ func (evm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 				return
 			}
 		}
-		log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", evm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
+		log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", cvm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
 	} else {
 		if !torrentfs.Exist(meta, dir) {
-			log.Warn("Data not exist", "address", meta.Hex(), "number", evm.BlockNumber, "current", evm.BlockNumber, "meta", meta, "storage", dir)
+			log.Warn("Data not exist", "address", meta.Hex(), "number", cvm.BlockNumber, "current", cvm.BlockNumber, "meta", meta, "storage", dir)
 			errCh <- synapse.ErrModelFileNotExist
 			return
 		} else {
@@ -524,7 +524,7 @@ func (evm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	}
 
 	if !torrentfs.Exist(meta, dir) {
-		log.Warn("Data not exist", "address", meta.Hex(), "number", evm.BlockNumber, "current", evm.BlockNumber, "meta", meta, "storage", dir)
+		log.Warn("Data not exist", "address", meta.Hex(), "number", cvm.BlockNumber, "current", cvm.BlockNumber, "meta", meta, "storage", dir)
 		errCh <- synapse.ErrModelFileNotExist
 		return
 	} else {
@@ -532,21 +532,21 @@ func (evm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 		return
 	}
 
-	//log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", evm.BlockNumber, "meta", meta, "storage", dir, "street", street)
+	//log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", cvm.BlockNumber, "meta", meta, "storage", dir, "street", street)
 	//errCh <- synapse.ErrModelFileNotExist
 	//return
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (*big.Int, error) {
+func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (*big.Int, error) {
 	// fmt.Println("infer", modelInfoHash, inputInfoHash)
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
 	//modelErrCh := make(chan error)
 	//inputErrCh := make(chan error)
 
-	//go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
-	//go evm.DataSync(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, inputErrCh)
+	//go cvm.DataSync(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, modelErrCh)
+	//go cvm.DataSync(common.HexToAddress(inputInfoHash), cvm.Config().StorageDir, inputErrCh)
 
 	//for i := 0; i < 2; i++ {
 	//	select {
@@ -560,12 +560,12 @@ func (evm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	//		}
 	//	}
 	//}
-	if (!evm.vmConfig.DebugInferVM) {
-		if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
+	if (!cvm.vmConfig.DebugInferVM) {
+		if !torrentfs.Available(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, int64(modelRawSize)) {
 			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 		}
 
-		if !torrentfs.Available(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, int64(inputRawSize)) {
+		if !torrentfs.Available(common.HexToAddress(inputInfoHash), cvm.Config().StorageDir, int64(inputRawSize)) {
 			return nil, errors.New("Torrent file input not available, blockchain and torrent not match")
 		}
 	}
@@ -576,32 +576,32 @@ func (evm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	)
 
 	// fmt.Println("==infer", modelInfoHash, inputInfoHash)
-	if evm.vmConfig.InferURI == "" {
+	if cvm.vmConfig.InferURI == "" {
 		inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
 	} else {
 		inferRes, errRes = synapse.Engine().RemoteInferByInfoHash(
 			modelInfoHash,
 			inputInfoHash,
-			evm.vmConfig.InferURI)
+			cvm.vmConfig.InferURI)
 	}
 
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
 	}
 	ret := synapse.ArgMax(inferRes)
-	if evm.vmConfig.DebugInferVM {
+	if cvm.vmConfig.DebugInferVM {
 		fmt.Println("infer result: ", inferRes, ret)
 	}
 	return ret, errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (*big.Int, error) {
-	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", evm.BlockNumber)
+func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (*big.Int, error) {
+	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
 	/*modelErrCh := make(chan error)
-	go evm.DataSync(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, modelErrCh)
+	go cvm.DataSync(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, modelErrCh)
 
 	select {
 	case err := <-modelErrCh:
@@ -610,7 +610,7 @@ func (evm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		}
 	}*/
 
-	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
+	if !torrentfs.Available(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, int64(modelRawSize)) {
 		return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 	}
 
@@ -619,12 +619,12 @@ func (evm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		errRes   error
 	)
 
-	if evm.vmConfig.InferURI == "" {
+	if cvm.vmConfig.InferURI == "" {
 		inferRes, errRes = synapse.Engine().InferByInputContent(modelInfoHash, inputArray)
 	} else {
 		inferRes, errRes = synapse.Engine().RemoteInferByInputContent(
 			modelInfoHash,
-			evm.vmConfig.InferURI,
+			cvm.vmConfig.InferURI,
 			inputArray,
 		)
 	}
@@ -638,32 +638,32 @@ func (evm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
-	modelMeta, err := evm.GetModelMeta(addr)
-	// fmt.Println("ops infer ", modelMeta, err, evm.vmConfig.InferURI)
+func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
+	modelMeta, err := cvm.GetModelMeta(addr)
+	// fmt.Println("ops infer ", modelMeta, err, cvm.vmConfig.InferURI)
 	if err != nil {
 		return 0, err
 	}
 	modelInfoHash := strings.ToLower(string(modelMeta.Hash.Hex()[2:]))
 	modelRawSize := modelMeta.RawSize
-	if !evm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash, evm.Config().StorageDir, int64(modelRawSize)) {
+	if !cvm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash, cvm.Config().StorageDir, int64(modelRawSize)) {
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelInfoHash)
 	}
 
-	if evm.vmConfig.InferURI == "" {
+	if cvm.vmConfig.InferURI == "" {
 		opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
 	} else {
 		opsRes, errRes = synapse.Engine().RemoteGasByModelHash(
 			modelInfoHash,
-			evm.vmConfig.InferURI)
+			cvm.vmConfig.InferURI)
 	}
 
 	return opsRes, errRes
 }
 
 
-func (evm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
-	metaRaw := evm.StateDB.GetCode(addr)
+func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
+	metaRaw := cvm.StateDB.GetCode(addr)
 	if IsModelMeta(metaRaw) {
 		if modelMeta, err := types.ParseModelMeta(metaRaw); err != nil {
 			return common.EmptyAddress, err
@@ -683,9 +683,9 @@ func (evm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error
 	return common.EmptyAddress, errors.New("quota limit reached")
 }
 
-func (evm *CVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
+func (cvm *CVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
-	modelMetaRaw := evm.StateDB.GetCode(addr)
+	modelMetaRaw := cvm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
 	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
 		return &types.ModelMeta{}, err
@@ -694,8 +694,8 @@ func (evm *CVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err er
 	}
 }
 
-func (evm *CVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
-	inputMetaRaw := evm.StateDB.GetCode(addr)
+func (cvm *CVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
+	inputMetaRaw := cvm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
 	// fmt.Println("inputMetaRaw: %v", inputMetaRaw)
 	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {

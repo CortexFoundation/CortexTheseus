@@ -648,11 +648,11 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		}
 		header := block.Header()
 		msg, err := tx.AsMessage(types.MakeSigner(s.b.ChainConfig(), block.Number()))
-		evm, _, err := s.b.GetCVM(ctx, msg, state, header, vm.Config{})
+		cvm, _, err := s.b.GetCVM(ctx, msg, state, header, vm.Config{})
 		if err != nil {
 			return nil, err
 		}
-		_, _, _, failed, err := core.ApplyMessage(evm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
+		_, _, _, failed, err := core.ApplyMessage(cvm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
 		if err != nil || failed {
 			return nil, err
 		}
@@ -724,21 +724,21 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Get a new instance of the CVM.
 	vmCfg.CallFakeVM = true
-	evm, vmError, err := s.b.GetCVM(ctx, msg, state, header, vmCfg)
+	cvm, vmError, err := s.b.GetCVM(ctx, msg, state, header, vmCfg)
 	if err != nil {
 		return nil, 0, false, err
 	}
-	// Wait for the context to be done and cancel the evm. Even if the
+	// Wait for the context to be done and cancel the cvm. Even if the
 	// CVM has finished, cancelling may be done (repeatedly)
 	go func() {
 		<-ctx.Done()
-		evm.Cancel()
+		cvm.Cancel()
 	}()
 
 	// Setup the gas pool (also for unmetered requests)
 	// and apply the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
-	res, gas, _, failed, err := core.ApplyMessage(evm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
+	res, gas, _, failed, err := core.ApplyMessage(cvm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
 	if err := vmError(); err != nil {
 		return nil, 0, false, err
 	}
