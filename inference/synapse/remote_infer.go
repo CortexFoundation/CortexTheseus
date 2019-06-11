@@ -28,7 +28,7 @@ func (s *Synapse) RemoteGasByModelHash(modelInfoHash, uri string) (uint64, error
 	if err != nil {
 		return 0, err
 	}
-	return binary.BigEndian.Uint64(retArray), nil 
+	return binary.BigEndian.Uint64(retArray), nil
 }
 
 func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) ([]byte, error) {

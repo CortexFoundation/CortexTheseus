@@ -774,7 +774,9 @@ func opInfer(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 
 	//todo model & input tfs validation
 	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
-
+	if interpreter.evm.vmConfig.DebugInferVM {
+		fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
+	}
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		if !synapse.CheckBuiltInTorrentFsError(err) {

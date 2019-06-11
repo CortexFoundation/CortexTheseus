@@ -560,13 +560,14 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	//		}
 	//	}
 	//}
+	if (!evm.vmConfig.DebugInferVM) {
+		if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
+			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
+		}
 
-	if !torrentfs.Available(common.HexToAddress(modelInfoHash), evm.Config().StorageDir, int64(modelRawSize)) {
-		return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
-	}
-
-	if !torrentfs.Available(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, int64(inputRawSize)) {
-		return nil, errors.New("Torrent file input not available, blockchain and torrent not match")
+		if !torrentfs.Available(common.HexToAddress(inputInfoHash), evm.Config().StorageDir, int64(inputRawSize)) {
+			return nil, errors.New("Torrent file input not available, blockchain and torrent not match")
+		}
 	}
 
 	var (
@@ -588,7 +589,9 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		log.Info("Inference Succeed", "label", inferRes)
 	}
 	ret := synapse.ArgMax(inferRes)
-	// fmt.Println("infer result: ", inferRes, ret)
+	if evm.vmConfig.DebugInferVM {
+		fmt.Println("infer result: ", inferRes, ret)
+	}
 	return ret, errRes
 }
 
@@ -641,14 +644,14 @@ func (evm *EVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	if err != nil {
 		return 0, err
 	}
-	modelRawSize := modelMeta.RawSize
 	modelInfoHash := strings.ToLower(string(modelMeta.Hash.Hex()[2:]))
-	if !torrentfs.Available(modelMeta.Hash, evm.Config().StorageDir, int64(modelRawSize)) {
+	modelRawSize := modelMeta.RawSize
+	if !evm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash, evm.Config().StorageDir, int64(modelRawSize)) {
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelInfoHash)
 	}
 
 	if evm.vmConfig.InferURI == "" {
-		//opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelInfoHash)
+		opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
 	} else {
 		opsRes, errRes = synapse.Engine().RemoteGasByModelHash(
 			modelInfoHash,
