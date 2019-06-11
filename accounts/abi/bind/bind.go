@@ -51,7 +51,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 
 	for i := 0; i < len(types); i++ {
 		// Parse the actual ABI to generate the binding for
-		evmABI, err := abi.JSON(strings.NewReader(abis[i]))
+		cvmABI, err := abi.JSON(strings.NewReader(abis[i]))
 		if err != nil {
 			return "", err
 		}
@@ -69,7 +69,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 			transacts = make(map[string]*tmplMethod)
 			events    = make(map[string]*tmplEvent)
 		)
-		for _, original := range evmABI.Methods {
+		for _, original := range cvmABI.Methods {
 			// Normalize the method for capital cases and non-anonymous inputs/outputs
 			normalized := original
 			normalized.Name = methodNormalizer[lang](original.Name)
@@ -95,7 +95,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 				transacts[original.Name] = &tmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
 			}
 		}
-		for _, original := range evmABI.Events {
+		for _, original := range cvmABI.Events {
 			// Skip anonymous events as they don't support explicit filtering
 			if original.Anonymous {
 				continue
@@ -121,7 +121,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 			Type:        capitalise(types[i]),
 			InputABI:    strings.Replace(strippedABI, "\"", "\\\"", -1),
 			InputBin:    strings.TrimSpace(bytecodes[i]),
-			Constructor: evmABI.Constructor,
+			Constructor: cvmABI.Constructor,
 			Calls:       calls,
 			Transacts:   transacts,
 			Events:      events,

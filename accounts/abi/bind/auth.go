@@ -26,6 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/ethereum/go-ethereum/accounts"
 )
 
 // NewTransactor is a utility method to easily create a transaction signer from
@@ -40,6 +41,22 @@ func NewTransactor(keyin io.Reader, passphrase string) (*TransactOpts, error) {
 		return nil, err
 	}
 	return NewKeyedTransactor(key.PrivateKey), nil
+}
+
+func NewTransactorFromKeyStore(keystore *keystore.KeyStore, account accounts.Account) (*TransactOpts, error) {
+	return &TransactOpts{
+		From: account.Address,
+		Signer: func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			if address != account.Address {
+				return nil, errors.New("not authorized to sign this account")
+			}
+			signature, err := keystore.SignHash(account, signer.Hash(tx).Bytes())
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignature(signer, signature)
+		},
+	}, nil
 }
 
 // NewKeyedTransactor is a utility method to easily create a transaction signer

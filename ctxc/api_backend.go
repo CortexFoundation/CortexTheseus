@@ -133,12 +133,12 @@ func (b *CortexAPIBackend) GetTd(blockHash common.Hash) *big.Int {
 	return b.ctxc.blockchain.GetTdByHash(blockHash)
 }
 
-func (b *CortexAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
+func (b *CortexAPIBackend) GetCVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.CVM, func() error, error) {
 	state.SetBalance(msg.From(), math.MaxBig256)
 	vmError := func() error { return nil }
 
-	context := core.NewEVMContext(msg, header, b.ctxc.BlockChain(), nil)
-	return vm.NewEVM(context, state, b.ctxc.chainConfig, vmCfg), vmError, nil
+	context := core.NewCVMContext(msg, header, b.ctxc.BlockChain(), nil)
+	return vm.NewCVM(context, state, b.ctxc.chainConfig, vmCfg), vmError, nil
 }
 
 func (b *CortexAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {

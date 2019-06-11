@@ -153,7 +153,7 @@ int run_LIF(string model_root) {
   cout << "total chnconv2d1x1 time: " << (sum_time) << "/" << ellapsed_time
     << " " <<  sum_time / ellapsed_time <<"\n";
 
-  if (model_root.find("yolo") != string::npos) {
+  if (json_path.find("yolo") != string::npos) {
     uint64_t ns =  output.size() / 4 / 4;
     std::cout << "yolo output size = " << ns << "\n";
     int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
@@ -205,7 +205,7 @@ void test_models() {
      "/data/model_storage/mobilenetv1.0_imagenet/data",
      "/data/model_storage/resnet50_v1_imagenet/data",
      "/data/model_storage/animal10/data",
-     "/data/model_storage/dcnet_v0_mnist/data",
+     // "/data/model_storage/dcnet_v0_mnist/data",
      "/data/model_storage/resnet50_v2/data",
      "/data/model_storage/vgg16_gcv/data",
      "/data/model_storage/sentiment_trec/data",
@@ -214,6 +214,7 @@ void test_models() {
      "/data/model_storage/squeezenet_gcv1.0/data",
      "/data/model_storage/octconv_resnet26_0.250/data",
      "/data/model_storage/yolo3_darknet53_b1/data"
+     // "/tmp/yxnet",
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);

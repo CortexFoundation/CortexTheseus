@@ -69,7 +69,7 @@ type StateTransition struct {
 	value      *big.Int
 	data       []byte
 	state      vm.StateDB
-	evm        *vm.EVM
+	cvm        *vm.CVM
 	modelGas   map[common.Address]uint64
 }
 
@@ -126,28 +126,28 @@ func IntrinsicGas(data []byte, contractCreation, upload, homestead bool) (uint64
 }
 
 // NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool, qp *big.Int) *StateTransition {
+func NewStateTransition(cvm *vm.CVM, msg Message, gp *GasPool, qp *big.Int) *StateTransition {
 	return &StateTransition{
 		gp:       gp,
 		qp:       qp,
-		evm:      evm,
+		cvm:      cvm,
 		msg:      msg,
 		gasPrice: msg.GasPrice(),
 		value:    msg.Value(),
 		data:     msg.Data(),
-		state:    evm.StateDB,
+		state:    cvm.StateDB,
 	}
 }
 
 // ApplyMessage computes the new state by applying the given message
 // against the old state within the environment.
 //
-// ApplyMessage returns the bytes returned by any EVM execution (if it took place),
+// ApplyMessage returns the bytes returned by any CVM execution (if it took place),
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool, qp *big.Int) ([]byte, uint64, *big.Int, bool, error) {
-	return NewStateTransition(evm, msg, gp, qp).TransitionDb()
+func ApplyMessage(cvm *vm.CVM, msg Message, gp *GasPool, qp *big.Int) ([]byte, uint64, *big.Int, bool, error) {
+	return NewStateTransition(cvm, msg, gp, qp).TransitionDb()
 }
 
 // to returns the recipient of the message.
@@ -196,29 +196,29 @@ func (st *StateTransition) preCheck() error {
 
 	if st.uploading() {
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
-			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
+			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
 			return ErrUnhandleTx
 		}
 
-		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.evm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
-			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "seeding", params.SeedingBlks)
+		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.cvm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
+			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "seeding", params.SeedingBlks)
 			return ErrUnhandleTx
 		}
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 		if st.qp.Cmp(cost) < 0 {
-			log.Info("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.evm.BlockNumber)
+			log.Info("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
 
-		meta, err := st.evm.GetMetaHash(st.to())
+		meta, err := st.cvm.GetMetaHash(st.to())
 		if err != nil {
-			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber)
+			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
 			return ErrUnhandleTx
 		}
 
 		errCh := make(chan error)
-		go st.TorrentSync(meta, st.evm.Config().StorageDir, errCh)
+		go st.TorrentSync(meta, st.cvm.Config().StorageDir, errCh)
 		select {
 		case err := <-errCh:
 			if err != nil {
@@ -233,28 +233,28 @@ func (st *StateTransition) preCheck() error {
 const interv = 5
 
 func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
-	street := big.NewInt(0).Sub(st.evm.PeekNumber, st.evm.BlockNumber)
+	street := big.NewInt(0).Sub(st.cvm.PeekNumber, st.cvm.BlockNumber)
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
-	if point.Cmp(st.evm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
-		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.evm.Context.Time)
+	if point.Cmp(st.cvm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
+		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.cvm.Context.Time)
 		cost := big.NewInt(0)
 		for i := 0; i < 3600 && duration.Cmp(cost) > 0; i++ {
 			if !torrentfs.ExistTorrent(meta, dir) {
-				log.Warn("Torrent synchronizing ... ...", "tvm", st.evm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.evm.BlockNumber, "cost", cost, "peek", st.evm.PeekNumber, "street", street)
+				log.Warn("Torrent synchronizing ... ...", "tvm", st.cvm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.cvm.BlockNumber, "cost", cost, "peek", st.cvm.PeekNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
 				time.Sleep(time.Second * interv)
 				continue
 			} else {
-				log.Debug("Torrent has been found", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "level", i, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "cost", cost)
+				log.Debug("Torrent has been found", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "meta", meta, "storage", dir, "level", i, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "cost", cost)
 				errCh <- nil
 				return
 			}
 		}
 
-		log.Error("Torrent synchronized timeout", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
+		log.Error("Torrent synchronized timeout", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
 	} else {
 		if !torrentfs.ExistTorrent(meta, dir) {
-			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir)
+			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "meta", meta, "storage", dir)
 			errCh <- ErrUnhandleTx
 			return
 		} else {
@@ -264,7 +264,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 	}
 
 	if !torrentfs.ExistTorrent(meta, dir) {
-		log.Error("Torrent synchronized failed", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.evm.BlockNumber, "meta", meta, "storage", dir, "street", street)
+		log.Error("Torrent synchronized failed", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "meta", meta, "storage", dir, "street", street)
 		errCh <- ErrUnhandleTx
 		return
 	} else {
@@ -284,7 +284,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
-	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
+	homestead := st.cvm.ChainConfig().IsHomestead(st.cvm.BlockNumber)
 	contractCreation := msg.To() == nil
 
 	/*if st.uploading() {
@@ -303,21 +303,21 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	}
 
 	var (
-		evm = st.evm
+		cvm = st.cvm
 		// vm errors do not effect consensus and are therefor
 		// not assigned to err, except for insufficient balance
 		// error.
 		vmerr error
 	)
 	if contractCreation {
-		ret, _, st.gas, st.modelGas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
+		ret, _, st.gas, st.modelGas, vmerr = cvm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
 		//	fmt.Println("Has INFER operation !!! continue ...")
 		//}
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, st.modelGas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		ret, st.gas, st.modelGas, vmerr = cvm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 
 	if vmerr != nil {
@@ -363,7 +363,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	}
 
 	//normal gas
-	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
+	st.state.AddBalance(st.cvm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 
 	quota := big.NewInt(0) //default used 4 k quota every tx for testing
 	if st.uploading() {
@@ -371,7 +371,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
-			st.state.SetNum(st.to(), st.evm.BlockNumber)
+			st.state.SetNum(st.to(), st.cvm.BlockNumber)
 			log.Info("Upload OK", "address", st.to().Hex(), "waiting", params.MatureBlks)
 			//todo vote for model
 		} else {

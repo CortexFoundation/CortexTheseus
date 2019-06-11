@@ -28,7 +28,7 @@ func (s *Synapse) RemoteGasByModelHash(modelInfoHash, uri string) (uint64, error
 	if err != nil {
 		return 0, err
 	}
-	return binary.BigEndian.Uint64(retArray), nil 
+	return binary.BigEndian.Uint64(retArray), nil
 }
 
 func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) ([]byte, error) {
@@ -75,7 +75,7 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 		SetBody(requestBody).
 		Post(uri)
 	if err != nil || resp.StatusCode() != 200 {
-		return nil, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, uri, err))
+		return nil, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "cvm.Infer: External Call Error: ", requestBody, resp, uri, err))
 	}
 
 	log.Debug("Remote Inference", "response", resp.String())

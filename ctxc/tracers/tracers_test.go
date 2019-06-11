@@ -161,18 +161,18 @@ func TestCallTracer(t *testing.T) {
 			}
 			statedb := tests.MakePreState(ctxcdb.NewMemDatabase(), test.Genesis.Alloc)
 
-			// Create the tracer, the EVM environment and run it
+			// Create the tracer, the CVM environment and run it
 			tracer, err := New("callTracer")
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+			cvm := vm.NewCVM(context, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
 
 			msg, err := tx.AsMessage(signer)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
 			}
-			st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
+			st := core.NewStateTransition(cvm, msg, new(core.GasPool).AddGas(tx.Gas()))
 			if _, _, _, err = st.TransitionDb(); err != nil {
 				t.Fatalf("failed to execute transaction: %v", err)
 			}

@@ -328,6 +328,7 @@ class ValueVerifyFatal {
   ValueVerifyFatal(const char* file, int line) {
     log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
                 << line << ": ";
+    log_stream_ << "\n\n";
  }
   std::ostringstream &stream() { return log_stream_; }
   ~ValueVerifyFatal() noexcept(false) {

@@ -89,20 +89,14 @@ inline bool ReduceShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(out_attrs->size(), 1U);
   if ((*in_attrs)[0].ndim() == 0) return false;
   const ReduceParam& param = cvm::get<ReduceParam>(attrs.parsed);
+  VERIFY_EQ(param.exclude, false)
+    << "operator " << attrs.op->name
+    << " only supported attribute exclude false vs. "
+    << param.exclude;
   CVM_ASSIGN_OUTPUT_SHAPE(
       attrs, *out_attrs, 0,
       ReduceShapeImpl((*in_attrs)[0], param.axis,
                       param.keepdims, param.exclude));
-  return true;
-}
-
-inline bool CollapseShape(const cvm::NodeAttrs& attrs,
-                          std::vector<TShape>* in_attrs,
-                          std::vector<TShape>* out_attrs) {
-  VERIFY_EQ(in_attrs->size(), 2U);
-  VERIFY_EQ(out_attrs->size(), 1U);
-  if ((*in_attrs)[0].ndim() == 1) return false;
-  CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_attrs, 0, (*in_attrs)[1]);
   return true;
 }
 
@@ -150,13 +144,22 @@ Example::
 )code" CVM_ADD_FILELINE)
 .set_attr<FInferPrecision>("FInferPrecision",
   [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<ReduceParam>(attrs.parsed);
-  int ndim = param.axis.ndim();
-  if (ndim == 0) ndim = 1;
-  (*oattr)[0] = ndim * iattr->at(0);
+     std::vector<TShape>* shapes,
+     std::vector<int>* iattr,
+     std::vector<int>* oattr) -> bool {
+  IN_PREC_CHECK(iattr, attrs.name);
+  auto& axis = cvm::get<ReduceParam>(attrs.parsed).axis;
+  const TShape& ishp = shapes->at(0);
+  std::vector<int> axis_shp;
+  int64_t suml = 1;
+  if (axis.ndim() == 0){
+    suml = ishp.Size();
+  } else {
+    for (const auto& idx : axis) suml *= ishp[idx];
+  }
+  int oprec = iattr->at(0);
+  oprec += GetBit(suml);
+  (*oattr)[0] = oprec;
   return true;
 });
 
@@ -164,90 +167,13 @@ CVM_REGISTER_REDUCE_OP(max)
 .describe(R"code(Computes the max of array elements over given axes.
 
 )code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision);
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
 
-CVM_REGISTER_REDUCE_OP(min)
-.describe(R"code(Computes the min of array elements over given axes.
-
-)code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision);
-
-CVM_REGISTER_BASE_REDUCE_OP(collapse_sum)
-.add_argument("data", "Tensor", "The input")
-.add_argument("as", "Tensor", "The reference")
-.set_attr<FInferShape>("FInferShape", CollapseShape)
-.set_attr<FInferType>("FInferType", ElemwiseType<2, 1>)
-.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<2, 1>)
-.set_num_inputs(2)
-.describe(R"code(Reduces lhs to the shape of rhs via sum)code" CVM_ADD_FILELINE);
-
-inline bool InferFixedType(const NodeAttrs& attrs,
-                          std::vector<int>* in_attrs,
-                          std::vector<int>* out_attrs) {
-  VERIFY_EQ(in_attrs->size(), 1U);
-  VERIFY_EQ(out_attrs->size(), 1U);
-  const ReduceParam& param = cvm::get<ReduceParam>(attrs.parsed);
-  CVM_ASSIGN_OUTPUT_TYPE(attrs, *out_attrs, 0, param.dtype);
-  return true;
-}
-
-CVM_REGISTER_BASE_REDUCE_OP(argmax)
-.describe(R"code(Creates an operation that finds the indices of the maximum
-values over a given axis.
-
-)code" CVM_ADD_FILELINE)
-.add_argument("data", "Tensor", "The input")
-.set_attr<FInferShape>("FInferShape", ReduceShape)
-.set_attr<FInferType>("FInferType", InferFixedType)
-.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
-.set_num_inputs(1);
-
-CVM_REGISTER_BASE_REDUCE_OP(argmin)
-.describe(R"code(Creates an operation that finds the indices of the minimum
-values over a given axis.
-
-)code" CVM_ADD_FILELINE)
-.add_argument("data", "Tensor", "The input")
-.set_attr<FInferShape>("FInferShape", ReduceShape)
-.set_attr<FInferType>("FInferType", InferFixedType)
-.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
-.set_num_inputs(1);
-
-CVM_REGISTER_REDUCE_OP(mean)
-  .describe(R"code(Computes the mean of array elements over given axes.
-
-Example::
-
-  data = [[[1,2],[2,3],[1,3]],
-          [[1,4],[4,3],[5,2]],
-          [[7,1],[7,2],[7,3]]]
-
-  mean(data)
-  [3.22]
-
-  mean(data, axis=[1,2])
-  [ 2.  3.16666667  4.5]
-
-)code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision);
-
-CVM_REGISTER_REDUCE_OP(prod)
-  .describe(R"code(Computes the products of array elements over given axes.
-
-Example::
-
-  data = [[[1,2],[2,3],[1,3]],
-          [[1,4],[4,3],[5,2]],
-          [[7,1],[7,2],[7,3]]]
-
-  mean(data, axis=1)
-  [35562240]
-
-  mean(data, axis=[1,2])
-  [ 36  480  2058]
-
-)code" CVM_ADD_FILELINE);
-
+// CVM_REGISTER_REDUCE_OP(min)
+// .describe(R"code(Computes the min of array elements over given axes.
+// 
+// )code" CVM_ADD_FILELINE)
+// .set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
 
 }  // namespace top
 }  // namespace cvm

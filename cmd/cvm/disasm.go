@@ -20,36 +20,31 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
-	"github.com/CortexFoundation/CortexTheseus/cmd/evm/internal/compiler"
-
+	"github.com/CortexFoundation/CortexTheseus/core/asm"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
-var compileCommand = cli.Command{
-	Action:    compileCmd,
-	Name:      "compile",
-	Usage:     "compiles easm source to evm binary",
+var disasmCommand = cli.Command{
+	Action:    disasmCmd,
+	Name:      "disasm",
+	Usage:     "disassembles cvm binary",
 	ArgsUsage: "<file>",
 }
 
-func compileCmd(ctx *cli.Context) error {
-	debug := ctx.GlobalBool(DebugFlag.Name)
-
+func disasmCmd(ctx *cli.Context) error {
 	if len(ctx.Args().First()) == 0 {
 		return errors.New("filename required")
 	}
 
 	fn := ctx.Args().First()
-	src, err := ioutil.ReadFile(fn)
+	in, err := ioutil.ReadFile(fn)
 	if err != nil {
 		return err
 	}
 
-	bin, err := compiler.Compile(fn, src, debug)
-	if err != nil {
-		return err
-	}
-	fmt.Println(bin)
-	return nil
+	code := strings.TrimSpace(string(in))
+	fmt.Printf("%v\n", code)
+	return asm.PrintDisassembled(code)
 }

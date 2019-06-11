@@ -20,7 +20,7 @@ import (
 	"fmt"
 )
 
-// OpCode is an EVM opcode
+// OpCode is an CVM opcode
 type OpCode byte
 
 // IsPush specifies if an opcode is a PUSH opcode.
