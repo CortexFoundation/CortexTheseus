@@ -23,6 +23,11 @@ var (
 	errInvalidSealResult = errors.New("invalid or stale proof-of-work solution")
 )
 
+const (
+	// staleThreshold is the maximum depth of the acceptable stale but valid ethash solution.
+	staleThreshold = 7
+)
+
 func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	// If we're running a fake PoW, simply return a 0 nonce immediately
 	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
@@ -207,7 +212,7 @@ func (cuckoo *Cuckoo) remote() {
 		// Solutions seems to be valid, return to the miner and notify acceptance.
 		select {
 		case cuckoo.resultCh <- block.WithSeal(header):
-			delete(works, hash)
+			//delete(works, hash)
 			return true
 		default:
 			log.Info("Work submitted is stale", "hash", hash)
@@ -221,10 +226,10 @@ func (cuckoo *Cuckoo) remote() {
 	for {
 		select {
 		case block := <-cuckoo.workCh:
-			if currentWork != nil && block.ParentHash() != currentWork.ParentHash() {
-				// Start new round mining, throw out all previous work.
-				works = make(map[common.Hash]*types.Block)
-			}
+			//if currentWork != nil && block.ParentHash() != currentWork.ParentHash() {
+			// Start new round mining, throw out all previous work.
+			//	works = make(map[common.Hash]*types.Block)
+			//}
 			// Update current work with new received block.
 			// Note same work can be past twice, happens when changing CPU threads.
 			currentWork = block
@@ -268,6 +273,15 @@ func (cuckoo *Cuckoo) remote() {
 			for id, rate := range rates {
 				if time.Since(rate.ping) > 10*time.Second {
 					delete(rates, id)
+				}
+			}
+
+			if currentWork != nil {
+				for hash, block := range works {
+					if block.NumberU64()+staleThreshold <= currentWork.NumberU64() {
+						delete(works, hash)
+						log.Info("Stale work clear", "hash", hash, "number", block.NumberU64(), "current", currentWork.NumberU64())
+					}
 				}
 			}
 
