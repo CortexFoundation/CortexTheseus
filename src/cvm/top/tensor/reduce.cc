@@ -89,6 +89,10 @@ inline bool ReduceShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(out_attrs->size(), 1U);
   if ((*in_attrs)[0].ndim() == 0) return false;
   const ReduceParam& param = cvm::get<ReduceParam>(attrs.parsed);
+  VERIFY_EQ(param.exclude, false)
+    << "operator " << attrs.op->name
+    << " only supported attribute exclude false vs. "
+    << param.exclude;
   CVM_ASSIGN_OUTPUT_SHAPE(
       attrs, *out_attrs, 0,
       ReduceShapeImpl((*in_attrs)[0], param.axis,

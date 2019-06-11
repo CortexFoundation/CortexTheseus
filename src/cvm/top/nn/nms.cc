@@ -30,6 +30,13 @@ bool NMSShape(const NodeAttrs& attrs,
     "(batch_size, num_anchors, 6).";
   VERIFY_EQ(dshape[0], vshape[0]) << "batch_size mismatch.";
   out_attrs->clear();
+
+  VERIFY_EQ(param.return_indices, false)
+    << "NonMaximumSuppressionParam only supported return_indices false vs. "
+    << param.return_indices;
+  VERIFY_EQ(param.invalid_to_bottom, true)
+    << "NonMaximumSuppressionParam only supported invalid_to_bottom false vs. "
+    << param.invalid_to_bottom;
   if (param.return_indices) {
     TShape oshape = TShape(2);
     oshape[0] = dshape[0];

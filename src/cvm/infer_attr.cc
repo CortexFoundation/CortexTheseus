@@ -295,9 +295,11 @@ void CvmRuntime::SetupType() {
   std::vector<int> rtype;
   std::vector<std::string> &dltype = attrs_.dltype;
   for (unsigned int i = 0; i < dltype.size(); ++i) {
-    VERIFY(dltype[i] == "uint32" || dltype[i] == "int32") << "type " << dltype[i] << " are not supported.";
-    int t = dltype[i] == "uint32" ? 9 : 4;
-    rtype.push_back(t);
+    VERIFY_EQ(dltype[i], "int32")
+      << "type " << dltype[i] << " are not supported.";
+    // VERIFY(dltype[i] == "uint32" || dltype[i] == "int32") << "type " << dltype[i] << " are not supported.";
+    // int t = dltype[i] == "uint32" ? 9 : 4;
+    rtype.push_back(4);
   }
 
   static auto& finfer_type =

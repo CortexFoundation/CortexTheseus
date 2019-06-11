@@ -26,20 +26,25 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
 
   const Conv2DParam& param = cvm::get<Conv2DParam>(attrs.parsed);
 
+  VERIFY_EQ(param.layout, "NCHW")
+    << "Conv2D only supported layout: NCHW vs. " << param.layout;
+  VERIFY_EQ(param.kernel_layout, "OIHW")
+    << "Conv2D only supported kernel layout: OIHW vs. " << param.kernel_layout;
   const Layout in_layout(param.layout);
   const Layout kernel_layout(param.kernel_layout);
-  VERIFY(in_layout.convertible(kNCHW))
-    << "Conv only support input layouts that are convertible from NCHW."
-    << " But got " << in_layout;
-  VERIFY(kernel_layout.convertible(kOIHW))
-    << "Conv only support kernel layouts that are convertible from OIHW."
-    << " But got "<< kernel_layout;
+  // VERIFY(in_layout.convertible(kNCHW))
+  //   << "Conv only support input layouts that are convertible from NCHW."
+  //   << " But got " << in_layout;
+  // VERIFY(kernel_layout.convertible(kOIHW))
+  //   << "Conv only support kernel layouts that are convertible from OIHW."
+  //   << " But got "<< kernel_layout;
 
   Layout out_layout(param.out_layout);
   if (!out_layout.defined()) out_layout = in_layout;
-  VERIFY(out_layout.convertible(kNCHW))
-    << "Conv only support output layouts that are convertible from NCHW."
-    << " But got " << out_layout;
+  VERIFY_EQ(out_layout.name(), "NCHW");
+  // VERIFY(out_layout.convertible(kNCHW))
+  //   << "Conv only support output layouts that are convertible from NCHW."
+  //   << " But got " << out_layout;
 
   if (param.use_bias) {
     VERIFY_EQ(in_shape->size(), 3U) << "Input:[data, weight, bias]";
@@ -50,7 +55,7 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
 
   TShape dshape = in_shape->at(0);
   if (dshape.ndim() == 0) return false;
-  dshape = ConvertLayout(dshape, in_layout, kNCHW);
+  // dshape = ConvertLayout(dshape, in_layout, kNCHW);
 
   VERIFY_EQ(dshape.ndim(), 4U) << "Input data should be 4D";
   VERIFY_EQ(param.kernel_size.ndim(), 2U);
@@ -62,13 +67,19 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
       << "input channels must divide group size";
   VERIFY_EQ(param.channels % param.groups, 0U)
       << "output channels must divide group size";
+  bool check_groups = ((dshape[1] == param.groups) || (param.groups == 1));
+  if (not check_groups) {
+    VERIFY(false)
+      << "Conv2D only supported groups (1 or in_channels " << param.channels
+      << ") vs. " << param.groups;
+  }
 
   TShape wshape({param.channels,
                  dshape[1] / param.groups,
                  param.kernel_size[0],
                  param.kernel_size[1]});
 
-  wshape = ConvertLayout(wshape, kOIHW, kernel_layout);
+  // wshape = ConvertLayout(wshape, kOIHW, kernel_layout);
 
   if (in_shape->at(Conv2DParam::kWeight).ndim() == 0) {
     CVM_ASSIGN_INPUT_SHAPE(attrs, *in_shape, Conv2DParam::kWeight, wshape);
@@ -98,7 +109,7 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
   // Perform incomplete shape inference. Fill in the missing values in data shape.
   // 1) We can always fill in the batch_size.
   // 2) We can back-calculate the input height/width if the corresponding stride is 1.
-  oshape = ConvertLayout((*out_shape)[0], out_layout, kNCHW);
+  // oshape = ConvertLayout((*out_shape)[0], out_layout, kNCHW);
   dshape[0] = oshape[0];
   if (oshape[2] && param.strides[0] == 1) {
     dshape[2] = oshape[2] + dilated_ksize_y - 1 - 2 * param.padding[0];

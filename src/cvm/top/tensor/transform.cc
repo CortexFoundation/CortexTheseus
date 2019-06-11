@@ -181,7 +181,12 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
   TShape dshape;
   dim_t size = 0;
   bool has_zero = false;
-  int axis = param.axis >= 0 ? param.axis : in_shape->at(0).ndim() + param.axis;
+  int ndim = in_shape->at(0).ndim();
+  CHECK(-ndim - 1 <= param.axis && param.axis <= ndim)
+    << "repeat only accepts `axis` in [-data.ndim - 1, data.ndim]"
+    << ", but got axis = " << param.axis
+    << ", and data.ndim = " << ndim;
+  int axis = param.axis >= 0 ? param.axis : ndim + param.axis;
   for (size_t i = 0; i < in_shape->size(); ++i) {
     TShape tmp = (*in_shape)[i];
     if (tmp.ndim()) {
