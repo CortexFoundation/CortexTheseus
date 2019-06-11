@@ -46,7 +46,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/db"
-	"github.com/CortexFoundation/CortexTheseus/stats"
+	// "github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
@@ -1220,17 +1220,17 @@ func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit stri
 
 // RegisterCortexStatsService configures the Cortex Stats daemon and adds it to
 // the given node.
-func RegisterCortexStatsService(stack *node.Node, url string) {
-	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		// Retrieve both ctxc and les services
-		var ctxcServ *ctxc.Cortex
-		ctx.Service(&ctxcServ)
-
-		return ctxcstats.New(url, ctxcServ)
-	}); err != nil {
-		Fatalf("Failed to register the Cortex Stats service: %v", err)
-	}
-}
+// func RegisterCortexStatsService(stack *node.Node, url string) {
+// 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+// 		// Retrieve both ctxc and les services
+// 		var ctxcServ *ctxc.Cortex
+// 		ctx.Service(&ctxcServ)
+// 
+// 		return ctxcstats.New(url, ctxcServ)
+// 	}); err != nil {
+// 		Fatalf("Failed to register the Cortex Stats service: %v", err)
+// 	}
+// }
 
 func SetupMetrics(ctx *cli.Context) {
 	if metrics.Enabled {

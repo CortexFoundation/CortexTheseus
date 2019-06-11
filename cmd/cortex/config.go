@@ -175,9 +175,9 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	// }
 
 	// Add the Cortex Stats daemon if requested.
-	if cfg.Cortexstats.URL != "" {
-		utils.RegisterCortexStatsService(stack, cfg.Cortexstats.URL)
-	}
+	// if cfg.Cortexstats.URL != "" {
+	// 	utils.RegisterCortexStatsService(stack, cfg.Cortexstats.URL)
+	// }
 	//storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) && ctx.GlobalString(utils.SyncModeFlag.Name) == "full"
 	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || ctx.GlobalString(utils.ModelCallInterfaceFlag.Name) == ""
 	if storageEnabled {
