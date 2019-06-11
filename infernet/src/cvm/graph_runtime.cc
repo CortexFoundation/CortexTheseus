@@ -219,6 +219,8 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
   size_t size = static_cast<size_t>(sz);
   VERIFY(size == names.size())
       << "Invalid parameters file format";
+
+  std::vector<int> &precision = attrs_.precision;
   for (size_t i = 0; i < size; ++i) {
     int in_idx = GetInputIndex(names[i]);
     VERIFY_GE(in_idx, 0) << "Found param for non-existent input: " << names[i];
@@ -229,6 +231,21 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
     NDArray temp;
     temp.Load(strm);
     data_entry_[eid].CopyFrom(temp);
+    uint64_t size = 1;
+    for (cvm_index_t i = 0; i < data_entry_[eid]->ndim; ++i) {
+      size *= static_cast<uint64_t>(data_entry_[eid]->shape[i]);
+    }
+    VERIFY_NE(precision[eid], -1)
+      << "parameter " << names[i]
+      << " do not set precision";
+    int64_t range = (1 << (precision[eid] - 1)) - 1;
+    int32_t* data = static_cast<int32_t*>(data_entry_[eid]->data);
+    for (uint64_t i = 0; i < size; ++i) {
+      VERIFY_LE(data[i], range)
+        << "parameter " << names[i] << " index=" << i
+        << " number=" << data[i]
+        << " do not satisfied precision " << precision[eid];
+    }
   }
 }
 

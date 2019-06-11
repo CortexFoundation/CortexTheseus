@@ -1297,7 +1297,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
             y_data[0] = max;
         }else{
           std::vector<int32_t> realAxis(axis.ndim());
-          for(int i = 0; i < axis.ndim(); i++){
+          for(size_t i = 0; i < axis.ndim(); i++){
             int val = axis_data[i];
             if(val < 0) val += dlx->ndim;
             VERIFY(val < dlx->ndim && val >= 0);

@@ -75,123 +75,58 @@ inline bool ElemwiseShape(const NodeAttrs& attrs,
     attrs, in_attrs, out_attrs, TShape());
 }
 
-template<int def_v>
-inline bool ElemwisePrecision(const NodeAttrs& attrs,
+inline bool SamePrecision(const NodeAttrs& attrs,
+                              std::vector<TShape>* shapes,
+                              std::vector<int>* iattr,
+                              std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
+  (*oattr)[0] = iattr->at(0);
+  return true;
+}
+
+inline bool BinaryPlusPrecision(const NodeAttrs& attrs,
+                              std::vector<TShape>* shapes,
+                              std::vector<int>* iattr,
+                              std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
+  VERIFY_EQ(iattr->size(), 2U);
+  int max_prec = std::max(iattr->at(0), iattr->at(1));
+  (*oattr)[0] = max_prec + 1;
+  return true;
+}
+
+inline bool BinaryMultiplyPrecision(const NodeAttrs& attrs,
+                              std::vector<TShape>* shapes,
+                              std::vector<int>* iattr,
+                              std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
+  VERIFY_EQ(iattr->size(), 2U);
+  (*oattr)[0] = iattr->at(0) + iattr->at(1);
+  return true;
+}
+
+inline bool MaxInPrecision(const NodeAttrs& attrs,
+                              std::vector<TShape>* shapes,
+                              std::vector<int>* iattr,
+                              std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
+  VERIFY_GT(iattr->size(), 0);
+  int max_prec = iattr->at(0);
+  for (auto prec : (*iattr)) {
+    if (prec > max_prec) max_prec = prec;
+  }
+  for (auto& v : (*oattr)) v = max_prec;
+  return true;
+}
+
+template<int max_v>
+inline bool MaxPrecision(const NodeAttrs& attrs,
                                   std::vector<TShape>* shapes,
 																	std::vector<int>* iattr,
 																	std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
   for (int& v : *oattr) {
-    v = def_v;
-  }
-  return true;
-}
-
-inline bool ElemwiseSamePrecision(const NodeAttrs& attrs,
-                                  std::vector<TShape>* shapes,
-																	std::vector<int>* iattr,
-																	std::vector<int>* oattr) {
-  int def_v = -1;
-  for (int v : *iattr) {
-    if (v != -1) {
-      def_v = v; break;
-    }
-  }
-  if (def_v == -1) return false;
-  for (int& v : *oattr) {
-    v = def_v;
-  }
-  for (int& v : *iattr) {
-    if (v == -1) v = def_v;
-  }
-  return true;
-}
-
-inline bool ElemwisePlusonePrecision(const NodeAttrs& attrs,
-		                                 std::vector<TShape>* shapes,
-																		 std::vector<int>* iattr,
-																		 std::vector<int>* oattr) {
-  int def_v = -1;
-  for (int v : *iattr) {
-    if (v > def_v) {
-      def_v = v;
-    }
-  }
-  if (def_v == -1) return false;
-  for (int& v : *oattr) {
-    v = def_v + 1;
-  }
-  for (int& v : *iattr) {
-    if (v == -1) v = def_v;
-  }
-  return true;
-}
-
-inline bool ElemwiseMaxPrecision(const NodeAttrs& attrs,
-		                                 std::vector<TShape>* shapes,
-																		 std::vector<int>* iattr,
-																		 std::vector<int>* oattr) {
-  int def_v = -1;
-  for (int v : *iattr) {
-    if (v > def_v) {
-      def_v = v;
-    }
-  }
-  if (def_v == -1) return false;
-  for (int& v : *oattr) {
-    v = def_v;
-  }
-  for (int& v : *iattr) {
-    if (v == -1) v = def_v;
-  }
-  return true;
-}
-
-inline bool ElemwiseSumPrecision(const NodeAttrs& attrs,
-                                 std::vector<TShape>* shapes,
-																 std::vector<int>* iattr,
-																 std::vector<int>* oattr) {
-  int def_v = 0;
-  for (int v : *iattr) {
-    if (v == -1) {
-      return false;
-    }
-    def_v += v;
-  }
-  for (int& v : *oattr) {
-    v = def_v;
-  }
-  return true;
-}
-
-inline bool ElemwiseSecondPrecision(const NodeAttrs& attrs,
-		                               std::vector<TShape>* shapes,
-																	 std::vector<int>* iattr,
-																	 std::vector<int>* oattr) {
-  if (iattr->size() < 2) return false;
-	int def_v = iattr->at(1);
-  if (def_v == -1) return false;
-  for (int& v : *oattr) {
-    v = def_v;
-  }
-  for (int& v : *iattr) {
-    if (v == -1) v = def_v;
-  }
-  return true;
-}
-
-inline bool ElemwiseFirstPrecision(const NodeAttrs& attrs,
-                                   std::vector<TShape>* shapes,
-                                   std::vector<int>* iattr,
-                                   std::vector<int>* oattr)
-{
-  if (iattr->size() == 0) return false;
-  int def_v = iattr->at(0);
-  if (def_v == -1) return false;
-  for (int& v : *oattr) {
-    v = def_v;
-  }
-  for (int& v : *iattr) {
-    if (v == -1) v = def_v;
+    v = max_v;
   }
   return true;
 }

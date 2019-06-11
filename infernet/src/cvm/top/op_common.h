@@ -236,6 +236,29 @@ inline std::string attr_assign_error_msg(const NodeAttrs& attrs,
   else                                                        \
     CHECK_EQ(lhs, rhs) << "type inference inconsistent";     \
 
+/*!
+ * \brief macro check attributes precision valid
+ *  Use macro so we can see the error file more clearly
+ * \param attr input attributes
+ * \param msg log message
+ */
+#define IN_PREC_CHECK(attr, op_name)                  \
+  for (size_t i = 0; i < attr->size(); ++i) {         \
+    VERIFY_NE(attr->at(i), -1)                        \
+    << "operator " << op_name                         \
+    << "'s inputs(" << i << ")"                       \
+    << " has not been infered precision";             \
+  }
+
+inline int GetBit(int64_t size) {
+  int prec = 0;
+  while (size) {
+    prec ++;
+    size >>= 1;
+  }
+  return prec;
+}
+
 // simply return the shape as same
 inline bool SameShape(const NodeAttrs& attrs,
                       std::vector<TShape> *ishape,
