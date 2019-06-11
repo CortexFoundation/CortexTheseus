@@ -14,7 +14,7 @@ import (
 func Uint64ToBytes(i uint64) []byte {
 	var buf = make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, uint64(i))
-	return buf			
+	return buf
 }
 
 func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
