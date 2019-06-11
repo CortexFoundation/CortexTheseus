@@ -49,7 +49,7 @@ type Config struct {
 	NoRecursion bool
 	// Enable recording of SHA3/keccak preimages
 	EnablePreimageRecording bool
-	// JumpTable contains the EVM instruction table. This
+	// JumpTable contains the CVM instruction table. This
 	// may be left uninitialised and will be set to the default
 	// table.
 	JumpTable [256]operation
@@ -91,9 +91,9 @@ type Interpreter interface {
 	CanRun([]byte) bool
 }
 
-// EVMInterpreter represents an EVM interpreter
-type EVMInterpreter struct {
-	evm      *EVM
+// CVMInterpreter represents an CVM interpreter
+type CVMInterpreter struct {
+	evm      *CVM
 	cfg      Config
 	gasTable params.GasTable
 	intPool  *intPool
@@ -102,8 +102,8 @@ type EVMInterpreter struct {
 	returnData []byte // Last CALL's return data for subsequent reuse
 }
 
-// NewEVMInterpreter returns a new instance of the Interpreter.
-func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
+// NewCVMInterpreter returns a new instance of the Interpreter.
+func NewCVMInterpreter(evm *CVM, cfg Config) *CVMInterpreter {
 	// We use the STOP instruction whether to see
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
@@ -120,14 +120,14 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 		}
 	}
 
-	return &EVMInterpreter{
+	return &CVMInterpreter{
 		evm:      evm,
 		cfg:      cfg,
 		gasTable: evm.ChainConfig().GasTable(evm.BlockNumber),
 	}
 }
 
-func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
+func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
 	if in.evm.chainRules.IsByzantium {
 		if in.readOnly {
 			// If the interpreter is operating in readonly mode, make sure no
@@ -169,7 +169,7 @@ func IsInputMeta(code []byte) bool {
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
-func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	if in.intPool == nil {
 		in.intPool = poolOfIntPools.get()
 		defer func() {
@@ -467,6 +467,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
-func (in *EVMInterpreter) CanRun(code []byte) bool {
+func (in *CVMInterpreter) CanRun(code []byte) bool {
 	return true
 }

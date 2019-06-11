@@ -648,7 +648,7 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		}
 		header := block.Header()
 		msg, err := tx.AsMessage(types.MakeSigner(s.b.ChainConfig(), block.Number()))
-		evm, _, err := s.b.GetEVM(ctx, msg, state, header, vm.Config{})
+		evm, _, err := s.b.GetCVM(ctx, msg, state, header, vm.Config{})
 		if err != nil {
 			return nil, err
 		}
@@ -683,7 +683,7 @@ type CallArgs struct {
 }
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, timeout time.Duration) ([]byte, uint64, bool, error) {
-	defer func(start time.Time) { log.Debug("Executing EVM call finished", "runtime", time.Since(start)) }(time.Now())
+	defer func(start time.Time) { log.Debug("Executing CVM call finished", "runtime", time.Since(start)) }(time.Now())
 
 	state, header, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
@@ -722,14 +722,14 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	// this makes sure resources are cleaned up.
 	defer cancel()
 
-	// Get a new instance of the EVM.
+	// Get a new instance of the CVM.
 	vmCfg.CallFakeVM = true
-	evm, vmError, err := s.b.GetEVM(ctx, msg, state, header, vmCfg)
+	evm, vmError, err := s.b.GetCVM(ctx, msg, state, header, vmCfg)
 	if err != nil {
 		return nil, 0, false, err
 	}
 	// Wait for the context to be done and cancel the evm. Even if the
-	// EVM has finished, cancelling may be done (repeatedly)
+	// CVM has finished, cancelling may be done (repeatedly)
 	go func() {
 		<-ctx.Done()
 		evm.Cancel()
@@ -807,7 +807,7 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (h
 	return hexutil.Uint64(hi), nil
 }
 
-// ExecutionResult groups all structured logs emitted by the EVM
+// ExecutionResult groups all structured logs emitted by the CVM
 // while replaying a transaction in debug mode as well as transaction
 // execution status, the amount of gas used and the return value
 type ExecutionResult struct {
@@ -817,7 +817,7 @@ type ExecutionResult struct {
 	StructLogs  []StructLogRes `json:"structLogs"`
 }
 
-// StructLogRes stores a structured log emitted by the EVM while replaying a
+// StructLogRes stores a structured log emitted by the CVM while replaying a
 // transaction in debug mode
 type StructLogRes struct {
 	Pc      uint64             `json:"pc"`
@@ -831,7 +831,7 @@ type StructLogRes struct {
 	Storage *map[string]string `json:"storage,omitempty"`
 }
 
-// formatLogs formats EVM returned structured logs for json output
+// formatLogs formats CVM returned structured logs for json output
 func FormatLogs(logs []vm.StructLog) []StructLogRes {
 	formatted := make([]StructLogRes, len(logs))
 	for index, trace := range logs {

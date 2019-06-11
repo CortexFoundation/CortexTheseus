@@ -22,7 +22,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 )
 
-func NewEnv(cfg *Config) *vm.EVM {
+func NewEnv(cfg *Config) *vm.CVM {
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
@@ -37,5 +37,5 @@ func NewEnv(cfg *Config) *vm.EVM {
 		GasPrice:    cfg.GasPrice,
 	}
 
-	return vm.NewEVM(context, cfg.State, cfg.ChainConfig, cfg.EVMConfig)
+	return vm.NewCVM(context, cfg.State, cfg.ChainConfig, cfg.CVMConfig)
 }

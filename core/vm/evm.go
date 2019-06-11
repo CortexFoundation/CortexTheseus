@@ -45,12 +45,12 @@ type (
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	// GetHashFunc returns the nth block hash in the blockchain
-	// and is used by the BLOCKHASH EVM op code.
+	// and is used by the BLOCKHASH CVM op code.
 	GetHashFunc func(uint64) common.Hash
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
-func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
+func run(evm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsHomestead
 		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
@@ -76,7 +76,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 	return nil, ErrNoCompatibleInterpreter
 }
 
-// Context provides the EVM with auxiliary information. Once provided
+// Context provides the CVM with auxiliary information. Once provided
 // it shouldn't be modified.
 type Context struct {
 	// CanTransfer returns whether the account contains
@@ -100,7 +100,7 @@ type Context struct {
 	Difficulty  *big.Int // Provides information for DIFFICULTY
 }
 
-// EVM is the Cortex Virtual Machine base object and provides
+// CVM is the Cortex Virtual Machine base object and provides
 // the necessary tools to run a contract on the given state with
 // the provided context. It should be noted that any error
 // generated through any of the calls should be considered a
@@ -108,8 +108,8 @@ type Context struct {
 // specific errors should ever be performed. The interpreter makes
 // sure that any errors generated are to be considered faulty code.
 //
-// The EVM should never be reused and is not thread safe.
-type EVM struct {
+// The CVM should never be reused and is not thread safe.
+type CVM struct {
 	// Context provides auxiliary blockchain related information
 	Context
 	// StateDB gives access to the underlying state
@@ -128,7 +128,7 @@ type EVM struct {
 	// used throughout the execution of the tx.
 	interpreters []Interpreter
 	interpreter  Interpreter
-	// abort is used to abort the EVM calling operations
+	// abort is used to abort the CVM calling operations
 	// NOTE: must be set atomically
 	abort int32
 	// callGasTemp holds the gas available for the current call. This is needed because the
@@ -138,9 +138,9 @@ type EVM struct {
 	//Fs          *torrentfs.FileStorage
 }
 
-// NewEVM returns a new EVM. The returned EVM is not thread safe and should
+// NewCVM returns a new CVM. The returned CVM is not thread safe and should
 // only ever be used *once*.
-func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *EVM {
+func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *CVM {
 	/*cfg := torrentfs.Config{
 		DataDir:         torrentfs.DefaultConfig.DataDir,
 		Host:            torrentfs.DefaultConfig.Host,
@@ -157,7 +157,7 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 
 	log.Info("File storage in vm", "fs", fileFs)*/
 
-	evm := &EVM{
+	evm := &CVM{
 		Context:      ctx,
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
@@ -168,7 +168,7 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 	}
 
 	if chainConfig.IsEWASM(ctx.BlockNumber) {
-		// to be implemented by EVM-C and Wagon PRs.
+		// to be implemented by CVM-C and Wagon PRs.
 		// if vmConfig.EWASMInterpreter != "" {
 		//  extIntOpts := strings.Split(vmConfig.EWASMInterpreter, ":")
 		//  path := extIntOpts[0]
@@ -176,31 +176,31 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		//  if len(extIntOpts) > 1 {
 		//    options = extIntOpts[1..]
 		//  }
-		//  evm.interpreters = append(evm.interpreters, NewEVMVCInterpreter(evm, vmConfig, options))
+		//  evm.interpreters = append(evm.interpreters, NewCVMVCInterpreter(evm, vmConfig, options))
 		// } else {
 		//      evm.interpreters = append(evm.interpreters, NewEWASMInterpreter(evm, vmConfig))
 		// }
 		panic("No supported ewasm interpreter yet.")
 	}
 
-	evm.interpreters[0] = NewEVMInterpreter(evm, vmConfig)
+	evm.interpreters[0] = NewCVMInterpreter(evm, vmConfig)
 	evm.interpreter = evm.interpreters[0]
 
 	return evm
 }
 
-// Cancel cancels any running EVM operation. This may be called concurrently and
+// Cancel cancels any running CVM operation. This may be called concurrently and
 // it's safe to be called multiple times.
-func (evm *EVM) Cancel() {
+func (evm *CVM) Cancel() {
 	atomic.StoreInt32(&evm.abort, 1)
 }
 
 // Interpreter returns the current interpreter
-func (evm *EVM) Interpreter() Interpreter {
+func (evm *CVM) Interpreter() Interpreter {
 	return evm.interpreter
 }
 
-func (evm *EVM) Config() Config {
+func (evm *CVM) Config() Config {
 	return evm.vmConfig
 }
 
@@ -208,7 +208,7 @@ func (evm *EVM) Config() Config {
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+func (evm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil, nil
 	}
@@ -243,7 +243,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 
-	// Initialise a new contract and set the code that is to be used by the EVM.
+	// Initialise a new contract and set the code that is to be used by the CVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
@@ -264,7 +264,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
 	}
 
-	// When an error was returned by the EVM or when setting the creation code
+	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
 	if err != nil {
@@ -286,7 +286,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 //
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
-func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+func (evm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil, nil
 	}
@@ -305,7 +305,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 		to       = AccountRef(caller.Address())
 	)
 	// initialise a new contract and set the code that is to be used by the
-	// EVM. The contract is a scoped environment for this execution context
+	// CVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
@@ -325,7 +325,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 //
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
-func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+func (evm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil, nil
 	}
@@ -360,7 +360,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 // as parameters while disallowing any modifications to the state during the call.
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
-func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+func (evm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil, nil
 	}
@@ -374,12 +374,12 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		snapshot = evm.StateDB.Snapshot()
 	)
 	// Initialise a new contract and set the code that is to be used by the
-	// EVM. The contract is a scoped environment for this execution context
+	// CVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := NewContract(caller, to, new(big.Int), gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
-	// When an error was returned by the EVM or when setting the creation code
+	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in Homestead this also counts for code storage gas errors.
 	ret, err = run(evm, contract, input, true)
@@ -393,7 +393,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 }
 
 // create creates a new contract using code as deployment code.
-func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
+func (evm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
 	if evm.depth > int(params.CallCreateDepth) {
@@ -419,7 +419,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	evm.Transfer(evm.StateDB, caller.Address(), address, value)
 
 	// initialise a new contract and set the code that is to be used by the
-	// EVM. The contract is a scoped environment for this execution context
+	// CVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := NewContract(caller, AccountRef(address), value, gas)
 	contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
@@ -454,7 +454,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 		}
 	}
 
-	// When an error was returned by the EVM or when setting the creation code
+	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
 	if maxCodeSizeExceeded || (err != nil && (evm.ChainConfig().IsHomestead(evm.BlockNumber) || err != ErrCodeStoreOutOfGas)) {
@@ -475,7 +475,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 }
 
 // Create creates a new contract using code as deployment code.
-func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+func (evm *CVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	contractAddr = crypto.CreateAddress(caller.Address(), evm.StateDB.GetNonce(caller.Address()))
 	return evm.create(caller, code, gas, value, contractAddr)
 }
@@ -484,17 +484,17 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 //
 // The different between Create2 with Create is Create2 uses sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code))[12:]
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
-func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+func (evm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
 	return evm.create(caller, code, gas, endowment, contractAddr)
 }
 
 // ChainConfig returns the environment's chain configuration
-func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
+func (evm *CVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 const interv = 5
 
-func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
+func (evm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	street := big.NewInt(0).Sub(evm.PeekNumber, evm.BlockNumber)
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
 	if point.Cmp(evm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
@@ -538,7 +538,7 @@ func (evm *EVM) DataSync(meta common.Address, dir string, errCh chan error) {
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (*big.Int, error) {
+func (evm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (*big.Int, error) {
 	// fmt.Println("infer", modelInfoHash, inputInfoHash)
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
@@ -596,7 +596,7 @@ func (evm *EVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (*big.Int, error) {
+func (evm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (*big.Int, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", evm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
@@ -638,7 +638,7 @@ func (evm *EVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (evm *EVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
+func (evm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	modelMeta, err := evm.GetModelMeta(addr)
 	// fmt.Println("ops infer ", modelMeta, err, evm.vmConfig.InferURI)
 	if err != nil {
@@ -662,7 +662,7 @@ func (evm *EVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 }
 
 
-func (evm *EVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
+func (evm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
 	metaRaw := evm.StateDB.GetCode(addr)
 	if IsModelMeta(metaRaw) {
 		if modelMeta, err := types.ParseModelMeta(metaRaw); err != nil {
@@ -683,7 +683,7 @@ func (evm *EVM) GetMetaHash(addr common.Address) (meta common.Address, err error
 	return common.EmptyAddress, errors.New("quota limit reached")
 }
 
-func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
+func (evm *CVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
 	modelMetaRaw := evm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
@@ -694,7 +694,7 @@ func (evm *EVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err er
 	}
 }
 
-func (evm *EVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
+func (evm *CVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
 	inputMetaRaw := evm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
 	// fmt.Println("inputMetaRaw: %v", inputMetaRaw)

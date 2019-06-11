@@ -33,7 +33,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
-// VMTest checks EVM execution without block or transaction context.
+// VMTest checks CVM execution without block or transaction context.
 // See https://github.com/cortex/tests/wiki/VM-Tests for the test format specification.
 type VMTest struct {
 	json vmJSON
@@ -115,12 +115,12 @@ func (t *VMTest) Run(vmconfig vm.Config) error {
 }
 
 func (t *VMTest) exec(statedb *state.StateDB, vmconfig vm.Config) ([]byte, uint64, map[common.Address]uint64, error) {
-	evm := t.newEVM(statedb, vmconfig)
+	evm := t.newCVM(statedb, vmconfig)
 	e := t.json.Exec
 	return evm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.GasLimit, e.Value)
 }
 
-func (t *VMTest) newEVM(statedb *state.StateDB, vmconfig vm.Config) *vm.EVM {
+func (t *VMTest) newCVM(statedb *state.StateDB, vmconfig vm.Config) *vm.CVM {
 	initialCall := true
 	canTransfer := func(db vm.StateDB, address common.Address, amount *big.Int) bool {
 		if initialCall {
@@ -143,7 +143,7 @@ func (t *VMTest) newEVM(statedb *state.StateDB, vmconfig vm.Config) *vm.EVM {
 		GasPrice:    t.json.Exec.GasPrice,
 	}
 	vmconfig.NoRecursion = true
-	return vm.NewEVM(context, statedb, params.MainnetChainConfig, vmconfig)
+	return vm.NewCVM(context, statedb, params.MainnetChainConfig, vmconfig)
 }
 
 func vmTestBlockHash(n uint64) common.Hash {

@@ -77,7 +77,7 @@ func TestRunCmd(t *testing.T) {
 		GasPrice:    new(big.Int),
 		Value:       new(big.Int),
 		BlockNumber: new(big.Int).SetUint64(blockNumber),
-		EVMConfig: vm.Config{
+		CVMConfig: vm.Config{
 			Tracer:   tracer,
 			Debug:    true,
 			InferURI: "http://127.0.0.1:5000/infer",

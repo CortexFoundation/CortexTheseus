@@ -49,7 +49,7 @@ var runCommand = cli.Command{
 	Name:        "run",
 	Usage:       "run arbitrary evm binary",
 	ArgsUsage:   "<code>",
-	Description: `The run command runs arbitrary EVM code.`,
+	Description: `The run command runs arbitrary CVM code.`,
 }
 
 // readGenesis will read the given JSON format genesis file and return
@@ -216,7 +216,7 @@ func runCmd(ctx *cli.Context) error {
 		GasPrice:    utils.GlobalBig(ctx, PriceFlag.Name),
 		Value:       utils.GlobalBig(ctx, ValueFlag.Name),
 		BlockNumber: new(big.Int).SetUint64(blockNumber),
-		EVMConfig: vm.Config{
+		CVMConfig: vm.Config{
 			Tracer:   tracer,
 			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
 			StorageDir:  storageDir,
