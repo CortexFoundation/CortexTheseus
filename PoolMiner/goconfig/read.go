@@ -217,7 +217,7 @@ func (c *ConfigFile) loadFile(fileName string) (err error) {
 // LoadConfigFile reads a file and returns a new configuration representation.
 // This representation can be queried with GetValue.
 func LoadConfigFile(fileName string, moreFiles ...string) (c *ConfigFile, err error) {
-	// Append files' name together.
+	// Append files' name tocortexer.
 	fileNames := make([]string, 1, len(moreFiles)+1)
 	fileNames[0] = fileName
 	if len(moreFiles) > 0 {

@@ -654,7 +654,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 		opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
 	} else {
 		opsRes, errRes = synapse.Engine().RemoteGasByModelHash(
-			modelInfoHash,
+			modelMeta.Hash.Hex(),
 			cvm.vmConfig.InferURI)
 	}
 

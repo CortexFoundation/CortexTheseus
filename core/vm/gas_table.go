@@ -44,7 +44,6 @@ func memoryGasCost(mem *Memory, newMemSize uint64) (uint64, error) {
 
 	newMemSizeWords := toWordSize(newMemSize)
 	newMemSize = newMemSizeWords * 32
-
 	if newMemSize > uint64(mem.Len()) {
 		square := newMemSizeWords * newMemSizeWords
 		linCoef := newMemSizeWords * params.MemoryGas
