@@ -942,9 +942,15 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
   void *_attr = args[2];
   auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
   auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
+  TShape tpadding = param.padding;
+  VERIFY(tpadding.ndim() == 1 || tpadding.ndim() == 2);
   int strides[2] = {(int)param.strides[0], (int)param.strides[1]};
   int pool_size[2] = {(int)param.pool_size[0], (int)param.pool_size[1]};
-  int padding[2] = {(int)param.padding[0], (int)param.padding[1]};
+  int padding[2] = {(int)param.padding[0], (int)param.padding[0]};
+  if(tpadding.ndim() == 2){
+    padding[1] = (int)param.padding[1];
+  }
+  //bool ceil_mode = param.ceil_mode;
 
   int stride_h = strides[0];
   int stride_w = strides[1];
@@ -965,7 +971,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
 #define GETX(n, c, h, w) x_data[(n) * in_channels * x_h * x_w + (c) * x_h * x_w + (h) * x_w + (w)]
 #define GETW(o, i, h, w) w_data[(o) * in_channels * filter_h * filter_w + (i) * filter_h * filter_w + (h) * filter_w + (w)]
 #define GETY(n, c, h, w) y_data[(n) * out_channels * o_h * o_w + (c) * o_h * o_w + (h) * o_w + (w)]
-    auto calc_func = [&](int n, int k, int p, int q) {
+  auto calc_func = [&](int n, int k, int p, int q) {
     int y_sum = int(1)<<31;
     for (int r = 0; r < filter_h; ++r) {
       for (int s = 0; s < filter_w; ++s) {
@@ -1008,7 +1014,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
   auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
   auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
   TShape axis = param.axis;
-  VERIFY(axis.ndim() <= 1);
   int64_t *axis_data = axis.begin();
   //bool keepdims = param.keepdims; //the reduce axis is always 1
   //bool exclude = param.exclude;
@@ -1663,12 +1668,21 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
     VERIFY(begin.ndim() == end.ndim());
     VERIFY(stride.ndim() == 0 || stride.ndim() == begin.ndim());
     for(uint32_t i = 0; i < begin.ndim();i++){
-        if(begin_data[i] < 0) begin_data[i] += x->shape[i];
-        if(end_data[i] < 0) end_data[i] += x->shape[i];
-        if(step_data[i] < 0) step_data[i] += x->shape[i];
-        VERIFY(begin_data[i] >= 0 && begin_data[i] < x->shape[i]);
-        VERIFY(end_data[i] > 0 && end_data[i] <= x->shape[i]);
-        VERIFY(step_data[i] >= 0);
+        if(begin_data[i] < 0) {
+          begin_data[i] += x->shape[i];
+          begin_data[i] = std::min(std::max(begin_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
+        }
+        if(end_data[i] < 0) {
+          end_data[i] += x->shape[i];
+          end_data[i] += std::min(std::max(end_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
+        }
+        if(stride.ndim() > 0){
+          if(step_data[i] > 0) {
+            VERIFY(begin_data[i] < end_data[i]);
+          }else{
+            VERIFY(begin_data[i] > end_data[i]);
+          }
+        }
     }
 
     for(uint64_t i = 0; i < getSize(y); i++){
@@ -1677,10 +1691,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
             int64_t tbegin = begin.ndim() > (uint32_t)j ? begin_data[j] : 0;
-            col += tbegin;//(tbegin < 0 ? tbegin + x->shape[j] : tbegin);
             int64_t tstep = stride.ndim() > (uint32_t)j ? step_data[j] : 1;
-            col *= tstep;
-            col %= x->shape[j];
+            col = tbegin + col * tstep;
             in_i += (j == ndim-1 ? col : col * shapeSize);
             shapeSize = (j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
         }
@@ -1812,9 +1824,11 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y){
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
+    uint64_t xs = getSize(x);
 
     for(uint64_t i = 0; i < getSize(y); i++){
-        y_data[i] = x_data[indices_data[i]];
+        uint64_t in_i = std::min((uint64_t)std::max(indices_data[i], 0), xs-1);
+        y_data[i] = x_data[in_i];
     }
 }
 

@@ -408,7 +408,7 @@ int main() {
 //    test_op("repeat", 1, 1, 4); //pass
 //    test_op("tile", 1, 1, 5); //pass
 //    test_op("transpose", 1, 1, 5);// 5th case failed
-//    test_op("strided_slice", 1, 1, 3);
+    test_op("strided_slice", 1, 1, 3);
 //    test_op("slice_like", 2, 1, 3); // pass
     return 0;
 }
