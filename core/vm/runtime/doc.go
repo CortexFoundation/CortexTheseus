@@ -14,5 +14,5 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package runtime provides a basic execution model for executing EVM code.
+// Package runtime provides a basic execution model for executing CVM code.
 package runtime

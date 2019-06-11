@@ -69,7 +69,7 @@ type StateTransition struct {
 	value      *big.Int
 	data       []byte
 	state      vm.StateDB
-	evm        *vm.EVM
+	evm        *vm.CVM
 	modelGas   map[common.Address]uint64
 }
 
@@ -126,7 +126,7 @@ func IntrinsicGas(data []byte, contractCreation, upload, homestead bool) (uint64
 }
 
 // NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool, qp *big.Int) *StateTransition {
+func NewStateTransition(evm *vm.CVM, msg Message, gp *GasPool, qp *big.Int) *StateTransition {
 	return &StateTransition{
 		gp:       gp,
 		qp:       qp,
@@ -142,11 +142,11 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool, qp *big.Int) *Sta
 // ApplyMessage computes the new state by applying the given message
 // against the old state within the environment.
 //
-// ApplyMessage returns the bytes returned by any EVM execution (if it took place),
+// ApplyMessage returns the bytes returned by any CVM execution (if it took place),
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool, qp *big.Int) ([]byte, uint64, *big.Int, bool, error) {
+func ApplyMessage(evm *vm.CVM, msg Message, gp *GasPool, qp *big.Int) ([]byte, uint64, *big.Int, bool, error) {
 	return NewStateTransition(evm, msg, gp, qp).TransitionDb()
 }
 

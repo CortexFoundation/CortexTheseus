@@ -53,10 +53,10 @@ cortex-nominer: clib
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 	mv ./build/bin/cortex ./build/bin/cortex-nominer
 
-evm:
-	build/env.sh go run build/ci.go install ./cmd/evm
+cvm:
+	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
+	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
 
 cuckoo-miner: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner

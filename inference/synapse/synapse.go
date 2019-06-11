@@ -41,6 +41,7 @@ type Config struct {
 	DeviceId      int       `toml:",omitempty"`
 	IsRemoteInfer bool      `toml:",omitempty"`
 	InferURI      string    `toml:",omitempty"`
+	Debug					bool			`toml:",omitempty"`
 }
 
 var DefaultConfig Config = Config{
@@ -50,6 +51,7 @@ var DefaultConfig Config = Config{
 	DeviceId      : 0,
 	IsRemoteInfer : false,
 	InferURI      : "",
+	Debug         : false,
 }
 
 type Synapse struct {

@@ -17,7 +17,7 @@
 /*
 Package vm implements the Cortex Virtual Machine.
 
-The vm package implements one EVM, a byte code VM. The BC (Byte Code) VM loops
+The vm package implements one CVM, a byte code VM. The BC (Byte Code) VM loops
 over a set of bytes and executes them according to the set of rules defined
 in the Cortex yellow paper.
 */

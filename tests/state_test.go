@@ -63,7 +63,7 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	}
 	t.Error(err)
 	if gasLimit > traceErrorLimit {
-		t.Log("gas limit too high for EVM trace")
+		t.Log("gas limit too high for CVM trace")
 		return
 	}
 	tracer := vm.NewStructLogger(nil)
@@ -74,10 +74,10 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	buf := new(bytes.Buffer)
 	vm.WriteTrace(buf, tracer.StructLogs())
 	if buf.Len() == 0 {
-		t.Log("no EVM operation logs generated")
+		t.Log("no CVM operation logs generated")
 	} else {
-		t.Log("EVM operation log:\n" + buf.String())
+		t.Log("CVM operation log:\n" + buf.String())
 	}
-	t.Logf("EVM output: 0x%x", tracer.Output())
-	t.Logf("EVM error: %v", tracer.Error())
+	t.Logf("CVM output: 0x%x", tracer.Output())
+	t.Logf("CVM error: %v", tracer.Error())
 }

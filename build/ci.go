@@ -98,11 +98,11 @@ var (
                 },
 		{
 			BinaryName:  "evm",
-			Description: "Developer utility version of the EVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+			Description: "Developer utility version of the CVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
 			BinaryName:  "cortex-remote",
-			Description: "Developer utility version of the EVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+			Description: "Developer utility version of the CVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
 			BinaryName:  "miner",

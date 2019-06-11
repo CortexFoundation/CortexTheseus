@@ -1,4 +1,5 @@
 {
+  "number": "0xff",
 	"config": {
 		"chainId": 42,
 		"homesteadBlock": 0,

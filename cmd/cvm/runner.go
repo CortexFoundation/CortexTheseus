@@ -28,7 +28,6 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/cmd/evm/internal/compiler"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core"
@@ -50,7 +49,7 @@ var runCommand = cli.Command{
 	Name:        "run",
 	Usage:       "run arbitrary evm binary",
 	ArgsUsage:   "<code>",
-	Description: `The run command runs arbitrary EVM code.`,
+	Description: `The run command runs arbitrary CVM code.`,
 }
 
 // readGenesis will read the given JSON format genesis file and return
@@ -91,7 +90,7 @@ func runCmd(ctx *cli.Context) error {
 		chainConfig *params.ChainConfig
 		sender      = common.BytesToAddress([]byte("sender"))
 		receiver    = common.BytesToAddress([]byte("receiver"))
-		blockNumber uint64
+		blockNumber uint64 = 0
 	)
 	if ctx.GlobalBool(MachineFlag.Name) {
 		tracer = NewJSONLogger(logconfig, os.Stdout)
@@ -101,13 +100,20 @@ func runCmd(ctx *cli.Context) error {
 	} else {
 		debugLogger = vm.NewStructLogger(logconfig)
 	}
+
+	if ctx.GlobalBool(MachineFlag.Name) {
+		blockNumber = uint64(ctx.GlobalInt(BlockNumber.Name))
+	}
+
 	if ctx.GlobalString(GenesisFlag.Name) != "" {
 		gen := readGenesis(ctx.GlobalString(GenesisFlag.Name))
 		db := ctxcdb.NewMemDatabase()
 		genesis := gen.ToBlock(db)
 		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db))
 		chainConfig = gen.Config
-		blockNumber = gen.Number
+		if blockNumber == 0 {
+			blockNumber = gen.Number
+		}
 	} else {
 		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ctxcdb.NewMemDatabase()))
 	}
@@ -115,12 +121,12 @@ func runCmd(ctx *cli.Context) error {
 		sender = common.HexToAddress(ctx.GlobalString(SenderFlag.Name))
 	}
 	statedb.CreateAccount(sender)
-	mh1, _ := hex.DecodeString("ca3d0286d5758697cdef653c1375960a868ac08a")
+	mh1, _ := hex.DecodeString("06b6eab749c658629759a92885c8da73f7fe29f3")
 	testModelMeta1, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh1),
 			RawSize:       10000,
-			InputShape:    []uint64{1, 28, 28},
+			InputShape:    []uint64{3, 224, 224},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
 			BlockNum:      *big.NewInt(10),
@@ -140,25 +146,30 @@ func runCmd(ctx *cli.Context) error {
 		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
-	ih, _ := hex.DecodeString("c35dde5292458e91c6533d671a9cfcf55fc46026")
+	ih, _ := hex.DecodeString("4c5e20b86f46943422e0ac09749aed9882b4bf35")
+	// ih, _ := hex.DecodeString("5af48a94dbcb42ac3f7342623a4c91068657657c")
 	testInputMeta, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
 			Hash:          common.BytesToAddress(ih),
 			RawSize:       10000,
-			Shape:         []uint64{1, 28, 28},
+			Shape:         []uint64{3, 224, 224},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
+			BlockNum: *big.NewInt(10),
 		})
 	fmt.Println("testModelMeta1", testModelMeta1)
 	fmt.Println("testModelMeta2", testModelMeta2)
 	fmt.Println("testInputMeta", testInputMeta)
-	statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"), append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
-	statedb.SetCode(common.HexToAddress("0x049d8385c81200339fca354f2696fd57ea96255e"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
+	statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"),
+								  append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
+	statedb.SetCode(common.HexToAddress("0x049d8385c81200339fca354f2696fd57ea96255e"),
+									append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
 	statedb.SetCode(common.HexToAddress("0x2001"), append([]byte{0x0, 0x2}, []byte(testInputMeta)...))
 	// simple address for the sake of debuging
 	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
 	statedb.SetCode(common.HexToAddress("0x1002"), append([]byte{0x0, 0x1}, []byte(testModelMeta2)...))
 	statedb.SetNum(common.HexToAddress("0x1001"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x1002"), big.NewInt(1))
+	statedb.SetNum(common.HexToAddress("0x2001"), big.NewInt(1))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {
 		receiver = common.HexToAddress(ctx.GlobalString(ReceiverFlag.Name))
 	}
@@ -190,17 +201,6 @@ func runCmd(ctx *cli.Context) error {
 
 	} else if ctx.GlobalString(CodeFlag.Name) != "" {
 		code = common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name))
-	} else if fn := ctx.Args().First(); len(fn) > 0 {
-		// EASM-file to compile
-		src, err := ioutil.ReadFile(fn)
-		if err != nil {
-			return err
-		}
-		bin, err := compiler.Compile(fn, src, false)
-		if err != nil {
-			return err
-		}
-		code = common.Hex2Bytes(bin)
 	}
 
 	storageDir := ""
@@ -216,10 +216,11 @@ func runCmd(ctx *cli.Context) error {
 		GasPrice:    utils.GlobalBig(ctx, PriceFlag.Name),
 		Value:       utils.GlobalBig(ctx, ValueFlag.Name),
 		BlockNumber: new(big.Int).SetUint64(blockNumber),
-		EVMConfig: vm.Config{
+		CVMConfig: vm.Config{
 			Tracer:   tracer,
 			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
 			StorageDir:  storageDir,
+			DebugInferVM: true,
 		},
 	}
 
@@ -245,8 +246,9 @@ func runCmd(ctx *cli.Context) error {
 	inferServer := infer.New(&infer.Config{
 		StorageDir: storageDir,
 		IsNotCache: false,
-			IsRemoteInfer: false,
-			DeviceType: "cpu",
+		IsRemoteInfer: false,
+		DeviceType: "cpu",
+		Debug: true,
 	})
 
 	if ctx.GlobalBool(CreateFlag.Name) {

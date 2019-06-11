@@ -6,9 +6,9 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"fmt"
 
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
-//	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 )
@@ -48,11 +48,13 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		return v.(uint64), nil
 	}
-	
+	if s.config.Debug {
+		fmt.Println("modelCfg =" , modelCfg, "modelBin = ", modelBin)
+	}
 	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
 		return 0, ErrModelFileNotExist
 	}
-	
+
 	if _, binErr := os.Stat(modelBin); os.IsNotExist(binErr) {
 		return 0, ErrModelFileNotExist
 	}
