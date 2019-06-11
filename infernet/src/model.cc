@@ -83,7 +83,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
         output_bytes_ = 2;
     if (output_precision > 16)
         output_bytes_ = 4;
-    std::cerr << " output_precision = " << output_precision << "\n";
+    // std::cerr << " output_precision = " << output_precision << "\n";
   }
 
   auto get_input_shape = module_.GetFunction("get_input_shape");
