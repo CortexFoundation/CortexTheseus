@@ -182,7 +182,6 @@ int64_t CvmRuntime::GetOps() {
       VERIFY_GE(rshape[nid].ndim(), 1);
       VERIFY(rshape[nid][0] != 0);
       int64_t osize = rshape[nid].Size();
-      osize /= rshape[nid][0];
       len += 32 - __builtin_clz((unsigned)osize);
       t *= osize;
       if (len > 40 || t > (1ll << 38)) {
