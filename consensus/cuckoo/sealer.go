@@ -280,7 +280,7 @@ func (cuckoo *Cuckoo) remote() {
 				for hash, block := range works {
 					if block.NumberU64()+staleThreshold <= currentWork.NumberU64() {
 						delete(works, hash)
-						log.Info("Stale work removed", "hash", hash, "number", block.NumberU64(), "current", currentWork.NumberU64())
+						log.Debug("Stale work removed", "hash", hash, "number", block.NumberU64(), "current", currentWork.NumberU64())
 					}
 				}
 			}
