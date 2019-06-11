@@ -20,12 +20,8 @@ import (
 func checkError(err error, func_name string) {
 	if err != nil {
 		log.Println(func_name, err.Error())
-		//		os.Exit(1)
 	}
 }
-
-//var stateCh = make(chan bool, 1)
-//var readableCh = make(chan bool, 1)
 
 func (cm *Cortex) read(msgCh chan map[string]interface{}) {
 	if cm.reader == nil {
@@ -35,10 +31,7 @@ func (cm *Cortex) read(msgCh chan map[string]interface{}) {
 	tmp, isPrefix, err := cm.reader.ReadLine()
 	if err == io.EOF {
 		log.Println("Tcp disconnect")
-		//cm.consta.lock.Lock()
 		cm.consta.state = false
-		//cm.consta.lock.Unlock()
-		//		stateCh <- false
 		for {
 			if cm.consta.state {
 				log.Println("Tcp reconnect successfully")
@@ -58,7 +51,6 @@ func (cm *Cortex) read(msgCh chan map[string]interface{}) {
 	var repObj map[string]interface{}
 	err = json.Unmarshal(tmp, &repObj)
 	if err != nil {
-		//msgCh <- nil
 		return
 	}
 	msgCh <- repObj
@@ -76,11 +68,8 @@ func (cm *Cortex) write(reqObj ReqObj) {
 	}
 }
 
-//	init cortex miner
 func (cm *Cortex) init(tcpCh chan bool) {
 	log.Println("Cortex connecting")
-	//cm.consta.lock.Lock()
-	//defer cm.consta.lock.Unlock()
 	tcpAddr, err := net.ResolveTCPAddr("tcp", cm.param.Server)
 	if err != nil {
 		tcpCh <- false
@@ -103,9 +92,7 @@ func (cm *Cortex) init(tcpCh chan bool) {
 	cm.conn.SetKeepAlive(true)
 	cm.conn.SetNoDelay(true)
 	cm.reader = bufio.NewReader(cm.conn)
-	//cm.consta.state = true
 	tcpCh <- true
-	//readableCh <- true
 	log.Println("Cortex connect successfully")
 }
 
@@ -204,9 +191,7 @@ func (cm *Cortex) Mining() {
 					if !suc {
 						continue
 					}
-					//cm.consta.lock.Lock()
 					cm.consta.state = true
-					//cm.consta.lock.Unlock()
 					if init {
 						init = false
 						start <- true
