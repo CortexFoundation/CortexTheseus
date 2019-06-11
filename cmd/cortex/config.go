@@ -28,7 +28,6 @@ import (
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
-	"github.com/CortexFoundation/CortexTheseus/dashboard"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -78,7 +77,7 @@ type cortexConfig struct {
 	Cortex       ctxc.Config
 	Node      node.Config
 	Cortexstats  ctxcstatsConfig
-	Dashboard dashboard.Config
+	// Dashboard dashboard.Config
 	TorrentFs torrentfs.Config
 }
 
@@ -112,7 +111,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	cfg := cortexConfig {
 		Cortex:    ctxc.DefaultConfig,
 		Node:      defaultNodeConfig(),
-		Dashboard: dashboard.DefaultConfig,
+		// Dashboard: dashboard.DefaultConfig,
 		TorrentFs: torrentfs.DefaultConfig,
 	}
 
@@ -135,7 +134,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// }
 
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
-	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
+	// utils.SetDashboardConfig(ctx, &cfg.Dashboard)
 	utils.SetTorrentFsConfig(ctx, &cfg.TorrentFs)
 
 	return stack, cfg
@@ -156,9 +155,9 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 
-	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
-		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
-	}
+	// if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
+	// 	utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
+	// }
 	// Whisper must be explicitly enabled by specifying at least 1 whisper flag or in dev mode
 	//shhEnabled := enableWhisper(ctx)
 	// shhAutoEnabled := !ctx.GlobalIsSet(utils.WhisperEnabledFlag.Name) && ctx.GlobalIsSet(utils.DeveloperFlag.Name)
