@@ -160,15 +160,17 @@ def test_transpose():
 
 def test_strided_slice():
     print("test strided slice")
-    shape = np.random.randint(low=3, high=5, size=(4))
+    shape = np.random.randint(low=3, high=4, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
+    print(a)
     np.save("/tmp/strided_slice/in0.npy", a.astype("int32"))
-    params = {"begin":[0,0], "end":[2,3], "step":[1,2]}
+    params = {"begin":[2,0], "end":[0,3], "step":[-1,2]}
     save_dict(params, "/tmp/strided_slice/attr0.txt")
     b = nd.slice(nd.array(a), **params)
     np.save("/tmp/strided_slice/out0.npy", b.asnumpy().astype("int32"))
     print(b.shape)
+    print(b)
 
     params = {"begin":[0,0], "end":[2,3]}
     save_dict(params, "/tmp/strided_slice/attr1.txt")
@@ -176,7 +178,7 @@ def test_strided_slice():
     np.save("/tmp/strided_slice/out1.npy", b.asnumpy().astype("int32"))
     print(b.shape)
 
-    params = {"begin":[0,0,1,1], "end":[1,2,3,4]}
+    params = {"begin":[0,0,1,1], "end":[1,2,3,3]}
     save_dict(params, "/tmp/strided_slice/attr2.txt")
     b = nd.slice(nd.array(a), **params)
     np.save("/tmp/strided_slice/out2.npy", b.asnumpy().astype("int32"))
@@ -215,7 +217,22 @@ def test_non_max_suppression():
     print("test non_max_suppression")
 
 def test_take():
-    print("test slice like")
+    print("test take")
+    shape = np.random.randint(low=2, high=10, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save("/tmp/take/in0.npy", a.astype("int32"))
+    indices = [0]
+    np.save("/tmp/take/in1.npy", np.array(indices).astype("int32"))
+    params = {}
+    save_dict(params, "/tmp/take/attr0.txt")
+    c = np.take(a, indices, **params)
+    print(c.shape)
+    print(c)
+
+def test_max_pool():
+    print("test max pool")
+
 
 def test_cvm_lut():
     print("test cvm_lut")
@@ -237,5 +254,6 @@ def test_negative():
 #test_repeat()
 #test_tile()
 #test_transpose()
-#test_strided_slice()
-test_slice_like()
+test_strided_slice()
+#test_slice_like()
+#test_take()

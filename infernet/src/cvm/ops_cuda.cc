@@ -414,9 +414,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.sum")
         VERIFY(args.num_args == 3);
 		DLTensor *x = args[0];
 		DLTensor *y = args[1];
-    //void *_attr = args[2];
-    //auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+    void *_attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
 		//int axis[2] = {param.axis[0], param.axis[1]};
 
 		int32_t *x_data = static_cast<int32_t*>(x->data);
@@ -756,12 +756,21 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.strided_slice")
     VERIFY(begin.ndim() == end.ndim());
     VERIFY(stride.ndim() == 0 || stride.ndim() == begin.ndim());
     for(uint32_t i = 0; i < begin.ndim();i++){
-        if(begin_data[i] < 0) begin_data[i] += x->shape[i];
-        if(end_data[i] < 0) end_data[i] += x->shape[i];
-        if(step_data[i] < 0) step_data[i] += x->shape[i];
-        VERIFY(begin_data[i] >= 0 && begin_data[i] < x->shape[i]);
-        VERIFY(end_data[i] > 0 && end_data[i] <= x->shape[i]);
-        VERIFY(step_data[i] >= 0);
+        if(begin_data[i] < 0) {
+          begin_data[i] += x->shape[i];
+          begin_data[i] = std::min(std::max(begin_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
+        }
+        if(end_data[i] < 0) {
+          end_data[i] += x->shape[i];
+          end_data[i] += std::min(std::max(end_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
+        }
+        if(stride.ndim() > 0){
+          if(step_data[i] > 0) {
+            VERIFY(begin_data[i] < end_data[i]);
+          }else{
+            VERIFY(begin_data[i] > end_data[i]);
+          }
+        }
     }
 
     const char *errorStr = cuda_stride_slice(x_data, y_data, begin_data, begin.ndim(), step_data,

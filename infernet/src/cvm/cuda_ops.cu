@@ -2184,10 +2184,8 @@ __global__ void kernel_stride_slice(const int32_t *x_data, int32_t *y_data, cons
       uint64_t col = o_i % yshape[j];
       o_i /= yshape[j];
       int64_t begin = begin_ndim > j ? begin_data[j] : 0;
-      col += begin;//(begin < 0 ? begin + xshape[j] : begin);
       int64_t step = step_ndim > j ? step_data[j] : 1;
-      col *= step;
-      col %= xshape[j];
+      col = begin + col * step;
       in_i += (j == y_ndim-1 ? col : col * shapeSize);
       shapeSize = (j == y_ndim-1 ? xshape[j] : shapeSize * xshape[j]);
     }
