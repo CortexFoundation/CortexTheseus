@@ -28,19 +28,27 @@ inline bool Pool2DInferShape(const cvm::NodeAttrs& attrs,
   TShape dshape = (*in_shape)[0];
   if (dshape.ndim() ==  0) return false;
 
-  VERIFY_GE(dshape.ndim(), 2U)
-    << "Pool2D only support input >= 2-D: input must have height and width";
+  VERIFY_EQ(dshape.ndim(), 4U)
+    << "Pool2D only support input = 4-D: NCHW";
+  // VERIFY_GE(dshape.ndim(), 2U)
+  //   << "Pool2D only support input >= 2-D: input must have height and width";
 
+  VERIFY_EQ(param.layout, "NCHW")
+    << "Pool2D only supported NCHW layout vs. " << param.layout;
   Layout layout(param.layout);
-  VERIFY(layout.contains('H') && layout.contains('W') &&
-        !layout.contains('h') && !layout.contains('w'))
-    << "Invalid layout " << layout
-    << ". Pool2D layout must have H and W, which cannot be split";
+  // VERIFY(layout.contains('H') && layout.contains('W') &&
+  //       !layout.contains('h') && !layout.contains('w'))
+  //   << "Invalid layout " << layout
+  //   << ". Pool2D layout must have H and W, which cannot be split";
 
   const auto hidx = layout.indexof('H');
   const auto widx = layout.indexof('W');
 
   dim_t pad_h, pad_w;
+  // TODO(kaihuo): padding dimension equals 1, 2 or 4.
+  VERIFY_LE(param.padding.ndim(), 2U)
+    << "Pool2D only supported 1-D or 2-D padding vs. "
+    << param.padding;
   if (param.padding.ndim() == 1) {
     pad_h = param.padding[0] * 2;
     pad_w = param.padding[0] * 2;
