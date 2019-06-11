@@ -22,7 +22,7 @@ import (
 	"testing"
 )
 
-// Tests disassembling the instructions for valid evm code
+// Tests disassembling the instructions for valid cvm code
 func TestInstructionIteratorValid(t *testing.T) {
 	cnt := 0
 	script, _ := hex.DecodeString("61000000")
@@ -40,7 +40,7 @@ func TestInstructionIteratorValid(t *testing.T) {
 	}
 }
 
-// Tests disassembling the instructions for invalid evm code
+// Tests disassembling the instructions for invalid cvm code
 func TestInstructionIteratorInvalid(t *testing.T) {
 	cnt := 0
 	script, _ := hex.DecodeString("6100")
@@ -55,7 +55,7 @@ func TestInstructionIteratorInvalid(t *testing.T) {
 	}
 }
 
-// Tests disassembling the instructions for empty evm code
+// Tests disassembling the instructions for empty cvm code
 func TestInstructionIteratorEmpty(t *testing.T) {
 	cnt := 0
 	script, _ := hex.DecodeString("")
