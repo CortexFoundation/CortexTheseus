@@ -74,7 +74,7 @@ var (
 		"COPYING",
 		executablePath("abigen"),
 		executablePath("bootnode"),
-		executablePath("evm"),
+		executablePath("cvm"),
 		executablePath("geth"),
 		executablePath("puppeth"),
 		executablePath("rlpdump"),
@@ -92,7 +92,7 @@ var (
 			Description: "Ethereum bootnode.",
 		},
 		{
-			BinaryName:  "evm",
+			BinaryName:  "cvm",
 			Description: "Developer utility version of the CVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{

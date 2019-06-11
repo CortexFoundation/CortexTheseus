@@ -47,7 +47,7 @@ import (
 var runCommand = cli.Command{
 	Action:      runCmd,
 	Name:        "run",
-	Usage:       "run arbitrary evm binary",
+	Usage:       "run arbitrary cvm binary",
 	ArgsUsage:   "<code>",
 	Description: `The run command runs arbitrary CVM code.`,
 }
@@ -242,7 +242,7 @@ func runCmd(ctx *cli.Context) error {
 	}
 	tstart := time.Now()
 	var leftOverGas uint64
-	fmt.Println("evm storageDir", storageDir)
+	fmt.Println("cvm storageDir", storageDir)
 	inferServer := infer.New(&infer.Config{
 		StorageDir: storageDir,
 		IsNotCache: false,
@@ -292,7 +292,7 @@ func runCmd(ctx *cli.Context) error {
 	if ctx.GlobalBool(StatDumpFlag.Name) {
 		var mem goruntime.MemStats
 		goruntime.ReadMemStats(&mem)
-		fmt.Fprintf(os.Stderr, `evm execution time: %v
+		fmt.Fprintf(os.Stderr, `cvm execution time: %v
 heap objects:       %d
 allocations:        %d
 total allocations:  %d

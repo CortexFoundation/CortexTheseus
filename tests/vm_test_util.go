@@ -115,9 +115,9 @@ func (t *VMTest) Run(vmconfig vm.Config) error {
 }
 
 func (t *VMTest) exec(statedb *state.StateDB, vmconfig vm.Config) ([]byte, uint64, map[common.Address]uint64, error) {
-	evm := t.newCVM(statedb, vmconfig)
+	cvm := t.newCVM(statedb, vmconfig)
 	e := t.json.Exec
-	return evm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.GasLimit, e.Value)
+	return cvm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.GasLimit, e.Value)
 }
 
 func (t *VMTest) newCVM(statedb *state.StateDB, vmconfig vm.Config) *vm.CVM {

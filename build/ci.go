@@ -75,7 +75,7 @@ var (
 		executablePath("abigen"),
 		executablePath("bootnode"),
 		executablePath("torrentfs"),
-		executablePath("evm"),
+		executablePath("cvm"),
 		executablePath("miner"),
 		executablePath("cortex"),
 		executablePath("rlpdump"),
@@ -97,7 +97,7 @@ var (
                         Description: "Cortex torrentfs.",
                 },
 		{
-			BinaryName:  "evm",
+			BinaryName:  "cvm",
 			Description: "Developer utility version of the CVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
