@@ -1921,14 +1921,15 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
     int32_t xndim = x->ndim;
     int32_t indices_ndim = indices->ndim;
     if (axis == 0 && xndim == 2 && yndim == 3) {
+      const int K = x->shape[1];
       // std::cerr << "axis == 0 && xndim == 2 && yndim == 3" << "\n";
       int wn = 1;
       for (int i = 0; i < indices_ndim; i++)
         wn *= indices->shape[i];
+      auto indices_data = static_cast<int32_t*>(indices->data);
       for (int row = 0; row < wn; row++) {
-        memcpy(y_data +  row * x->shape[1],
-            x_data + static_cast<int32_t*>(indices->data)[row] * x->shape[1],
-            x->shape[1] * sizeof(int32_t));
+        uint64_t x_indices_i = std::min(std::max(indices_data[row], 0), wn);
+        memcpy(y_data +  row * K, x_data + x_indices_i * K, K * sizeof(int32_t));
       }
     }
     else {
