@@ -87,6 +87,17 @@ int run_LIF(string model_root) {
     }
     std::cerr << "\n";
   }
+  if (model_root.find("std_out") != string::npos)
+  {
+    string data_file = model_root + "/data.npy";
+    std::vector<unsigned long> tshape;
+    npy::LoadArrayFromNumpy(data_file, tshape, input);
+    std::cerr << tshape.size() << "\n";
+    for (auto x : tshape) {
+      std::cerr << x << " ";
+    }
+    std::cerr << "\n";
+  }
   double start = omp_get_wtime();
   int n_run = 1;
   for (int i = 0; i < n_run; i++) {
@@ -201,20 +212,26 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-     "/data/model_storage/dcnet_mnist_v1/data",
-     "/data/model_storage/mobilenetv1.0_imagenet/data",
-     "/data/model_storage/resnet50_v1_imagenet/data",
-     "/data/model_storage/animal10/data",
+     // "/data/model_storage/dcnet_mnist_v1/data",
+     // "/data/model_storage/mobilenetv1.0_imagenet/data",
+     // "/data/model_storage/resnet50_v1_imagenet/data",
+     // "/data/model_storage/animal10/data",
      // "/data/model_storage/dcnet_v0_mnist/data",
-     "/data/model_storage/resnet50_v2/data",
-     "/data/model_storage/vgg16_gcv/data",
-     "/data/model_storage/sentiment_trec/data",
-     "/data/model_storage/vgg19_gcv/data",
-     "/data/model_storage/squeezenet_gcv1.1/data",
-     "/data/model_storage/squeezenet_gcv1.0/data",
-     "/data/model_storage/octconv_resnet26_0.250/data",
-     "/data/model_storage/yolo3_darknet53_b1/data"
+     // "/data/model_storage/resnet50_v2/data",
+     // "/data/model_storage/vgg16_gcv/data",
+     // "/data/model_storage/sentiment_trec/data",
+     // "/data/model_storage/vgg19_gcv/data",
+     // "/data/model_storage/squeezenet_gcv1.1/data",
+     // "/data/model_storage/squeezenet_gcv1.0/data",
+     // "/data/model_storage/octconv_resnet26_0.250/data",
+     // "/data/model_storage/yolo3_darknet53_b1/data"
      // "/tmp/yxnet",
+     "/data/std_out/resnet50_mxg",
+     "/data/std_out/inception_v3",
+     "/data/std_out/cvm_mnist",
+     "/data/std_out/mobilenet1_0",
+     "/data/std_out/squeezenet1.0",
+     "/data/std_out/trec",
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);

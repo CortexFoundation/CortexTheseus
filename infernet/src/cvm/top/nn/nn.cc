@@ -22,6 +22,13 @@ inline bool DenseInferPrecision(const NodeAttrs& attrs,
                                 std::vector<TShape>* shapes,
                                 std::vector<int>* iattr,
                                 std::vector<int> *oattr){
+  VERIFY_LE(iattr->at(0), 8)
+    << "Dense " << attrs.name
+    << " input must be INT8 vs. INT" << iattr->at(0);
+  VERIFY_LE(iattr->at(1), 8)
+    << "Dense " << attrs.name
+    << " weight must be INT8 vs. INT" << iattr->at(1);
+
   int64_t max_size = shapes->at(0)[1];
   int oprec = iattr->at(0) + iattr->at(1);
   oprec += GetBit(max_size);
