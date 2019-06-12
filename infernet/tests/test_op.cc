@@ -34,8 +34,8 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-int ctx = kDLCPU;
-//int ctx = kDLGPU;
+//int ctx = kDLCPU;
+int ctx = kDLGPU;
 
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
@@ -149,7 +149,7 @@ void test_depthwise_conv () {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
       args[i] = *dl;
     }
 
@@ -227,7 +227,7 @@ void test_transpose() {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
       args[i] = *dl;
     }
 
@@ -290,7 +290,7 @@ void test_take() {
     DLTensor* cpu_tensor;
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
       args[i] = *dl;
       if (i < params.num_inputs) {
         CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
@@ -352,10 +352,14 @@ void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     std::vector<std::vector<unsigned long>> tshape(args.size());
     std::vector<std::vector<int32_t>> tdata(args.size());
-    npy::LoadArrayFromNumpy("/tmp/"+op_name+"/in0.npy", tshape[0], tdata[0]);
+    for(int in_i = 0; in_i < num_inputs; in_i++){
+        string in_path = "/tmp/"+op_name+"/in" + std::to_string(i) + std::to_string(in_i) + ".npy";
+        cout << in_path << endl;
+        npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
+    }
     string out_path = "/tmp/"+op_name+"/out" + std::to_string(i) + ".npy";
     cout << out_path << endl;
-    npy::LoadArrayFromNumpy(out_path, tshape[1], tdata[1]);
+    npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
     vector<std::vector<int64_t>> shapes_(args.size());
     std::vector<int> dims_(args.size());
     for (auto idx = 0; idx < args.size(); idx++) {
@@ -371,7 +375,7 @@ void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
     DLTensor* cpu_tensor;
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 0, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
       args[i] = *dl;
       if (i < params.num_inputs) {
         CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
@@ -384,8 +388,8 @@ void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
     NodeAttrs attr;
     LoadOp(params.func_name, attr);
     LoadOpAttr(attr_str, attr);
-    auto op_slice = get_func(params, &attr, args, params.num_inputs);
-    op_slice();
+    auto op = get_func(params, &attr, args, params.num_inputs);
+    op();
 
     vector<int32_t> cpu_output_tensor(tdata[params.num_inputs].size());
     {
@@ -411,6 +415,7 @@ int main() {
 //    test_op("strided_slice", 1, 1, 3);
 //    test_op("slice_like", 2, 1, 3); // pass
 //    test_op("max", 1, 1, 7); // pass
-    test_op("sum", 1,1,7);
+//    test_op("sum", 1,1,7); // pass
+//    test_op("take", 2, 1, 2);
     return 0;
 }
