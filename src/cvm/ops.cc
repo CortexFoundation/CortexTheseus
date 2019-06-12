@@ -1060,7 +1060,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
     realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
 
     uint64_t axis_size = 1;
-    for(int i = 0; i < realAxis.size(); i++){
+    for(uint32_t i = 0; i < realAxis.size(); i++){
       axis_size *= x->shape[realAxis[i]];
     }
     std::vector<uint64_t> every_xdim_size(x->ndim, 1);
@@ -1394,7 +1394,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
           realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
 
           uint64_t axis_size = 1;
-          for(int i = 0; i < realAxis.size(); i++){
+          for(uint32_t i = 0; i < realAxis.size(); i++){
             axis_size *= dlx->shape[realAxis[i]];
           }
           std::vector<uint64_t> every_xdim_size(dlx->ndim, 1);

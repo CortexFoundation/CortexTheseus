@@ -27,38 +27,38 @@ namespace runtime {
 namespace cuda {
 
 inline uint64_t getSize(DLTensor *dlTensor){
-    uint64_t size = 1;
-    for(int i = 0; i < dlTensor->ndim; i++){
-        size *= dlTensor->shape[i];
-    }
-    return size;
+  uint64_t size = 1;
+  for(int i = 0; i < dlTensor->ndim; i++){
+    size *= dlTensor->shape[i];
+  }
+  return size;
 }
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_add")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-    VERIFY(args.num_args == 4);
-    DLTensor *a = args[0];
-    DLTensor *b = args[1];
-    DLTensor *c = args[2];
-    int32_t *a_data = static_cast<int32_t*>(a->data);
-    int32_t *b_data = static_cast<int32_t*>(b->data);
-    int32_t *c_data = static_cast<int32_t*>(c->data);
-    uint64_t n = getSize(a);
-    const char *errorStr = cuda_elemwise_add(a_data, b_data, c_data, n, DEBUG_OP);
-    VERIFY_EQ(errorStr == NULL, true) << errorStr;
+  VERIFY(args.num_args == 4);
+  DLTensor *a = args[0];
+  DLTensor *b = args[1];
+  DLTensor *c = args[2];
+  int32_t *a_data = static_cast<int32_t*>(a->data);
+  int32_t *b_data = static_cast<int32_t*>(b->data);
+  int32_t *c_data = static_cast<int32_t*>(c->data);
+  uint64_t n = getSize(a);
+  const char *errorStr = cuda_elemwise_add(a_data, b_data, c_data, n, DEBUG_OP);
+  VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_sub")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-    VERIFY(args.num_args == 4);
-    DLTensor *a = args[0];
-    DLTensor *b = args[1];
-    DLTensor *c = args[2];
-    int32_t *a_data = static_cast<int32_t*>(a->data);
-    int32_t *b_data = static_cast<int32_t*>(b->data);
-    int32_t *c_data = static_cast<int32_t*>(c->data);
-    uint64_t n = getSize(a);
-    const char *errorStr = cuda_elemwise_sub(a_data, b_data, c_data, n);
-    VERIFY_EQ(errorStr == NULL, true) << errorStr;
+.set_body([](CVMArgs args, CVMRetValue *ret){
+  VERIFY(args.num_args == 4);
+  DLTensor *a = args[0];
+  DLTensor *b = args[1];
+  DLTensor *c = args[2];
+  int32_t *a_data = static_cast<int32_t*>(a->data);
+  int32_t *b_data = static_cast<int32_t*>(b->data);
+  int32_t *c_data = static_cast<int32_t*>(c->data);
+  uint64_t n = getSize(a);
+  const char *errorStr = cuda_elemwise_sub(a_data, b_data, c_data, n);
+  VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
@@ -68,7 +68,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
     VERIFY(x->ndim == 4);
     DLTensor *w = args[1];
     VERIFY(w->ndim == 4);
-	DLTensor *b = nullptr;
+    DLTensor *b = nullptr;
     DLTensor *y = nullptr;
     void *_attr;
 
@@ -83,10 +83,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::Conv2DParam>(attr->parsed);
     int groups = param.groups;
-	int dilation[2] = {static_cast<int>(param.dilation[0]), static_cast<int>(param.dilation[1])};
-	//int kernel_size[2] = {static_cast<int>(param.kernel_size[0]), static_cast<int>(param.kernel_size[1])};
-	int padding[2] = {static_cast<int>(param.padding[0]), static_cast<int>(param.padding[1])};
-	int strides[2] = {static_cast<int>(param.strides[0]), static_cast<int>(param.strides[1])};
+    int dilation[2] = {static_cast<int>(param.dilation[0]), static_cast<int>(param.dilation[1])};
+    //int kernel_size[2] = {static_cast<int>(param.kernel_size[0]), static_cast<int>(param.kernel_size[1])};
+    int padding[2] = {static_cast<int>(param.padding[0]), static_cast<int>(param.padding[1])};
+    int strides[2] = {static_cast<int>(param.strides[0]), static_cast<int>(param.strides[1])};
 
     int stride_h = strides[0];
     int stride_w = strides[1];
@@ -96,7 +96,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
     int32_t* x_data = (int32_t*)x->data;
     int32_t* w_data = (int32_t*)w->data;
     int32_t* y_data = (int32_t*)y->data;
-	int32_t* b_data = b != nullptr ? (int32_t*)b->data : nullptr;
+    int32_t* b_data = b != nullptr ? (int32_t*)b->data : nullptr;
 
     int out_channels = static_cast<int>(w->shape[0]);
     int filter_c = static_cast<int>(w->shape[1]);
@@ -109,74 +109,75 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
     int in_channels = static_cast<int>(x->shape[1]);
     int x_h = static_cast<int>(x->shape[2]);
     int x_w = static_cast<int>(x->shape[3]);
-	int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
-	int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
+    int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
+    int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
     if(n_batch < 1 || in_channels < 1 || x_h < 1 || x_w < 1 || filter_c < 1 || filter_h < 1 || filter_w < 1 ||
-            padding[0] < 0 || padding[1] < 0 || stride_h < 1 || stride_w < 1 || dilation_h < 1 || dilation_w < 1 ||
-             out_channels < 1 || o_h < 1 || o_w < 1){
-        VERIFY(false) << "error args";
+        padding[0] < 0 || padding[1] < 0 || stride_h < 1 || stride_w < 1 || dilation_h < 1 || dilation_w < 1 ||
+        out_channels < 1 || o_h < 1 || o_w < 1){
+      VERIFY(false) << "error args";
     }
 
     if(groups == 1){
-        const char* errorStr = cuda_conv2d(
-                x_data, n_batch, in_channels, x_h, x_w,
-                w_data, out_channels, in_channels, filter_h, filter_w,
-                b_data,
-                padding[0], padding[1],
-                strides[0], strides[1],
-                dilation[0], dilation[1],
-                groups,
-                y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
+      const char* errorStr = cuda_conv2d(
+          x_data, n_batch, in_channels, x_h, x_w,
+          w_data, out_channels, in_channels, filter_h, filter_w,
+          b_data,
+          padding[0], padding[1],
+          strides[0], strides[1],
+          dilation[0], dilation[1],
+          groups,
+          y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
+      VERIFY_EQ(errorStr == NULL, true) << errorStr;
     }else{
-        const char* errorStr = cuda_depthwise_conv2d(
-                x_data, n_batch, in_channels, x_h, x_w,
-                w_data, out_channels, in_channels, filter_h, filter_w,
-                b_data,
-                padding[0], padding[1],
-                strides[0], strides[1],
-                dilation[0], dilation[1],
-                groups,
-                y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
+      const char* errorStr = cuda_depthwise_conv2d(
+          x_data, n_batch, in_channels, x_h, x_w,
+          w_data, out_channels, in_channels, filter_h, filter_w,
+          b_data,
+          padding[0], padding[1],
+          strides[0], strides[1],
+          dilation[0], dilation[1],
+          groups,
+          y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
+      VERIFY_EQ(errorStr == NULL, true) << errorStr;
 
     }
  });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.dense")
 .set_body([](CVMArgs args, CVMRetValue* rv) {
-        int ndim = args.num_args;
-        VERIFY(ndim == 5 || ndim == 4);
-        DLTensor *x = args[0];
-        DLTensor *w = args[1];
-        DLTensor *b = nullptr;
-        DLTensor *y = nullptr;
-        int32_t* db = nullptr;
-        if(ndim == 5){
-        b = args[2];
-        VERIFY(b->ndim == 1) << "dense requires 1-D bias";
-        y = args[3];
-        db = static_cast<int32_t*>(b->data);
-        } else{
-        y = args[2];
-        }
-        VERIFY(x->ndim == 2) << "dense requires 2-D data";
-        VERIFY(w->ndim == 2) << "dense reuqires 2-D weight";
+    int ndim = args.num_args;
+    VERIFY(ndim == 5 || ndim == 4);
+    DLTensor *x = args[0];
+    DLTensor *w = args[1];
+    DLTensor *b = nullptr;
+    DLTensor *y = nullptr;
+    int32_t* db = nullptr;
+    if(ndim == 5){
+      b = args[2];
+      VERIFY(b->ndim == 1) << "dense requires 1-D bias";
+      y = args[3];
+      db = static_cast<int32_t*>(b->data);
+    } else{
+      y = args[2];
+    }
+    VERIFY(x->ndim == 2) << "dense requires 2-D data";
+    VERIFY(w->ndim == 2) << "dense reuqires 2-D weight";
 
-        auto dx = static_cast<int32_t*>(x->data);
-        auto dy = static_cast<int32_t*>(y->data);
-        auto dw = static_cast<int32_t*>(w->data);
-        const char* errorStr = cuda_dense(
-                dx, dw, dy,
-                static_cast<int32_t>(x->shape[0]),
-                static_cast<int32_t>(x->shape[1]),
-                static_cast<int32_t>(y->shape[1]),
-                db,
-                DEBUG_OP);
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
+    auto dx = static_cast<int32_t*>(x->data);
+    auto dy = static_cast<int32_t*>(y->data);
+    auto dw = static_cast<int32_t*>(w->data);
+    const char* errorStr = cuda_dense(
+        dx, dw, dy,
+        static_cast<int32_t>(x->shape[0]),
+        static_cast<int32_t>(x->shape[1]),
+        static_cast<int32_t>(y->shape[1]),
+        db,
+        DEBUG_OP);
+    VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.clip").set_body([](CVMArgs args, CVMRetValue* rv) {
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.clip")
+.set_body([](CVMArgs args, CVMRetValue* rv) {
    VERIFY(args.num_args == 3);
    DLTensor *x = args[0];
    DLTensor *y = args[1];
@@ -194,7 +195,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.clip").set_body([](CVMArgs args, CVMRe
    VERIFY_EQ(errorStr == NULL, true) << errorStr;
  });
 
- CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.relu").set_body([](CVMArgs args, CVMRetValue* rv) {
+ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.relu")
+ .set_body([](CVMArgs args, CVMRetValue* rv) {
    VERIFY(args.num_args == 3);
    DLTensor *x = args[0];
    DLTensor *y = args[1];
@@ -205,8 +207,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.clip").set_body([](CVMArgs args, CVMRe
            DEBUG_OP);
     VERIFY_EQ(errorStr == NULL, true) << errorStr;
  });
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.flatten").set_body([]
-(CVMArgs args, CVMRetValue* rv){
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.flatten")
+.set_body([](CVMArgs args, CVMRetValue* rv){
      VERIFY(args.num_args == 3);
      DLTensor *x = args[0];
      DLTensor *y = args[1];
@@ -219,28 +221,28 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.flatten").set_body([]
      VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_add")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
-        DLTensor *args0 = args[0];
-        DLTensor *args1 = args[1];
-        DLTensor *args2 = args[2];
-        int32_t *a = static_cast<int32_t*>(args0->data);
-        int32_t *b = static_cast<int32_t*>(args1->data);
-        int32_t *c = static_cast<int32_t*>(args2->data);
-        int64_t *ashape = static_cast<int64_t*>(args0->shape);
-        int32_t adim = static_cast<int32_t>(args0->ndim);
-        int64_t *bshape = static_cast<int64_t*>(args1->shape);
-        int32_t bdim = static_cast<int32_t>(args1->ndim);
-        int64_t *cshape = static_cast<int64_t*>(args2->shape);
-        int32_t cdim = static_cast<int32_t>(args2->ndim);
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    VERIFY(args.num_args == 4);
+    DLTensor *args0 = args[0];
+    DLTensor *args1 = args[1];
+    DLTensor *args2 = args[2];
+    int32_t *a = static_cast<int32_t*>(args0->data);
+    int32_t *b = static_cast<int32_t*>(args1->data);
+    int32_t *c = static_cast<int32_t*>(args2->data);
+    int64_t *ashape = static_cast<int64_t*>(args0->shape);
+    int32_t adim = static_cast<int32_t>(args0->ndim);
+    int64_t *bshape = static_cast<int64_t*>(args1->shape);
+    int32_t bdim = static_cast<int32_t>(args1->ndim);
+    int64_t *cshape = static_cast<int64_t*>(args2->shape);
+    int32_t cdim = static_cast<int32_t>(args2->ndim);
 
 
-        const char* errorStr = cuda_broadcast_add(a, b, c, getSize(args0),
-		ashape, adim,
-		bshape, bdim,
-		cshape, cdim, DEBUG_OP);
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
-    });
+    const char* errorStr = cuda_broadcast_add(a, b, c, getSize(args0),
+        ashape, adim,
+        bshape, bdim,
+        cshape, cdim, DEBUG_OP);
+    VERIFY_EQ(errorStr == NULL, true) << errorStr;
+});
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_sub")
     .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -267,29 +269,29 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_sub")
         VERIFY_EQ(errorStr == NULL, true) << errorStr;
     });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_mul")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
-        DLTensor *args0 = args[0];
-        DLTensor *args1 = args[1];
-        DLTensor *args2 = args[2];
-        int32_t *a = static_cast<int32_t*>(args0->data);
-        int32_t *b = static_cast<int32_t*>(args1->data);
-        int32_t *c = static_cast<int32_t*>(args2->data);
-        int64_t *ashape = static_cast<int64_t*>(args0->shape);
-        int32_t adim = static_cast<int32_t>(args0->ndim);
-        int64_t *bshape = static_cast<int64_t*>(args1->shape);
-        int32_t bdim = static_cast<int32_t>(args1->ndim);
-        int64_t *cshape = static_cast<int64_t*>(args2->shape);
-        int32_t cdim = static_cast<int32_t>(args2->ndim);
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    VERIFY(args.num_args == 4);
+    DLTensor *args0 = args[0];
+    DLTensor *args1 = args[1];
+    DLTensor *args2 = args[2];
+    int32_t *a = static_cast<int32_t*>(args0->data);
+    int32_t *b = static_cast<int32_t*>(args1->data);
+    int32_t *c = static_cast<int32_t*>(args2->data);
+    int64_t *ashape = static_cast<int64_t*>(args0->shape);
+    int32_t adim = static_cast<int32_t>(args0->ndim);
+    int64_t *bshape = static_cast<int64_t*>(args1->shape);
+    int32_t bdim = static_cast<int32_t>(args1->ndim);
+    int64_t *cshape = static_cast<int64_t*>(args2->shape);
+    int32_t cdim = static_cast<int32_t>(args2->ndim);
 
 
-        const char* errorStr = cuda_broadcast_mul(a, b, c, getSize(args0),
-		ashape, adim,
-		bshape, bdim,
-		cshape, cdim, DEBUG_OP);
+    const char* errorStr = cuda_broadcast_mul(a, b, c, getSize(args0),
+        ashape, adim,
+        bshape, bdim,
+        cshape, cdim, DEBUG_OP);
 
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
-    });
+    VERIFY_EQ(errorStr == NULL, true) << errorStr;
+});
 //CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
 //    .set_body([](CVMArgs args, CVMRetValue *ret){
 //        VERIFY(args.num_args == 4);
@@ -368,42 +370,46 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_mul")
 * padding (1, 1)
 */
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max_pool2d")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-            VERIFY(args.num_args == 3);
-            DLTensor *x = args[0];
-            DLTensor *y = args[1];
-            void *_attr = args[2];
-            auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-            auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
-            int strides[2] = {static_cast<int>(param.strides[0]), static_cast<int>(param.strides[1])};
-            int pool_size[2] = {static_cast<int>(param.pool_size[0]), static_cast<int>(param.pool_size[1])};
-            int padding[2] = {static_cast<int>(param.padding[0]), static_cast<int>(param.padding[1])};
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    VERIFY(args.num_args == 3);
+    DLTensor *x = args[0];
+    DLTensor *y = args[1];
+    void *_attr = args[2];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
+    int strides[2] = {static_cast<int>(param.strides[0]), static_cast<int>(param.strides[1])};
+    int pool_size[2] = {static_cast<int>(param.pool_size[0]), static_cast<int>(param.pool_size[1])};
+    int padding[2] = {static_cast<int>(param.padding[0]), static_cast<int>(param.padding[0])};
+    if(param.padding.ndim() == 2){
+        padding[1] = static_cast<int>(param.padding[1]);
+    }
+   // bool ceil_mode = param.ceil_mode;
 
-            int stride_h = strides[0];
-            int stride_w = strides[1];
+    int stride_h = strides[0];
+    int stride_w = strides[1];
 
-            int32_t* x_data = (int32_t*)x->data;
-            int32_t* y_data = (int32_t*)y->data;
+    int32_t* x_data = (int32_t*)x->data;
+    int32_t* y_data = (int32_t*)y->data;
 
-            int filter_h = pool_size[0];
-            int filter_w = pool_size[1];
+    int filter_h = pool_size[0];
+    int filter_w = pool_size[1];
 
-            int n_batch = static_cast<int>(x->shape[0]);
-            int in_channels = static_cast<int>(x->shape[1]);
-            int out_channels = in_channels;
-            int x_h = static_cast<int>(x->shape[2]);
-            int x_w = static_cast<int>(x->shape[3]);
-            //  int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
-            //  int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
-            int o_h = static_cast<int>(y->shape[2]);
-            int o_w = static_cast<int>(y->shape[3]);
-            const char* errorStr = cuda_max_pool(
-                    x_data, n_batch, in_channels, x_h, x_w,
-                    filter_h, filter_w,
-                    padding[0], padding[1],
-                    stride_h, stride_w,
-                    y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
-            VERIFY_EQ(errorStr == NULL, true) << errorStr;
+    int n_batch = static_cast<int>(x->shape[0]);
+    int in_channels = static_cast<int>(x->shape[1]);
+    int out_channels = in_channels;
+    int x_h = static_cast<int>(x->shape[2]);
+    int x_w = static_cast<int>(x->shape[3]);
+    //  int o_h = (x_h + 2 * padding[0] - filter_h) / strides[0] + 1;
+    //  int o_w = (x_w + 2 * padding[1] - filter_w) / strides[1] + 1;
+    int o_h = static_cast<int>(y->shape[2]);
+    int o_w = static_cast<int>(y->shape[3]);
+    const char* errorStr = cuda_max_pool(
+        x_data, n_batch, in_channels, x_h, x_w,
+        filter_h, filter_w,
+        padding[0], padding[1],
+        stride_h, stride_w,
+        y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, DEBUG_OP);
+    VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
 
 /*
@@ -941,24 +947,24 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.upsampling")
         double start = omp_get_wtime();
 #endif
     VERIFY(args.num_args == 3);
-	DLTensor *x = args[0];
-	DLTensor *y = args[1];
+    DLTensor *x = args[0];
+    DLTensor *y = args[1];
 
     VERIFY_EQ(x->ndim,     4) << "dimension should be 4D, Got: " << x->ndim;
     VERIFY_EQ(x->ndim,     y->ndim) << "dimension should match " << x->ndim << "!=" << y->ndim;
     VERIFY_EQ(x->shape[0], y->shape[0]) << "batch size should match";
     VERIFY_EQ(x->shape[1], y->shape[1]) << "batch size should match";
 
-	void *_attr = args[2];
+    void *_attr = args[2];
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::UpSamplingParam>(attr->parsed);
     VERIFY_EQ(param.method, "NEAREST_NEIGHBOR") << "only accept method = NEAREST_NEIGHBOR ";
     VERIFY_EQ(param.layout, "NCHW") << "only accept NHWC, Got:" << param.layout;
 
-	int scale = {(int)param.scale};
-    int h = x->shape[2], w = x->shape[3];
-    int oh = y->shape[2], ow = y->shape[3];
-    int n_batch = x->shape[0], n_channels = x->shape[1];
+    uint32_t scale = {(uint32_t)param.scale};
+    uint32_t h = x->shape[2], w = x->shape[3];
+    uint32_t oh = y->shape[2], ow = y->shape[3];
+    uint32_t n_batch = x->shape[0], n_channels = x->shape[1];
 
     auto x_data = static_cast<int32_t*>(x->data);
     auto y_data = static_cast<int32_t*>(y->data);
@@ -1001,7 +1007,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_lut")
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
 //    take(indices, x, y);
-    const char* errorStr = cuda_take(indices_data, x_data, y_data, getSize(y));
+    const char* errorStr = cuda_take(indices_data, x_data, y_data, getSize(y), getSize(x));
     VERIFY(errorStr == NULL) << errorStr;
 });
 
