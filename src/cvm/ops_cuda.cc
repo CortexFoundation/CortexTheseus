@@ -290,76 +290,76 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_mul")
 
         VERIFY_EQ(errorStr == NULL, true) << errorStr;
     });
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
-        DLTensor *args0 = args[0];
-        DLTensor *args1 = args[1];
-        DLTensor *args2 = args[2];
-        int32_t *a = static_cast<int32_t*>(args0->data);
-        int32_t *b = static_cast<int32_t*>(args1->data);
-        int32_t *c = static_cast<int32_t*>(args2->data);
-        int64_t *ashape = static_cast<int64_t*>(args0->shape);
-        int32_t adim = static_cast<int32_t>(args0->ndim);
-        int64_t *bshape = static_cast<int64_t*>(args1->shape);
-        int32_t bdim = static_cast<int32_t>(args1->ndim);
-        int64_t *cshape = static_cast<int64_t*>(args2->shape);
-        int32_t cdim = static_cast<int32_t>(args2->ndim);
-
-
-        const char* errorStr = cuda_broadcast_div(a, b, c, getSize(args0),
-		ashape, adim,
-		bshape, bdim,
-		cshape, cdim, DEBUG_OP);
-
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
-    });
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_right_shift")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
-        DLTensor *args0 = args[0];
-        DLTensor *args1 = args[1];
-        DLTensor *args2 = args[2];
-        int32_t *a = static_cast<int32_t*>(args0->data);
-        int32_t *b = static_cast<int32_t*>(args1->data);
-        int32_t *c = static_cast<int32_t*>(args2->data);
-        int64_t *ashape = static_cast<int64_t*>(args0->shape);
-        int32_t adim = static_cast<int32_t>(args0->ndim);
-        int64_t *bshape = static_cast<int64_t*>(args1->shape);
-        int32_t bdim = static_cast<int32_t>(args1->ndim);
-        int64_t *cshape = static_cast<int64_t*>(args2->shape);
-        int32_t cdim = static_cast<int32_t>(args2->ndim);
-
-        const char* errorStr = cuda_broadcast_right_shift(a, b, c, getSize(args0),
-		ashape, adim,
-		bshape, bdim,
-		cshape, cdim, DEBUG_OP);
-
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
-    });
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_left_shift")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
-        DLTensor *args0 = args[0];
-        DLTensor *args1 = args[1];
-        DLTensor *args2 = args[2];
-        int32_t *a = static_cast<int32_t*>(args0->data);
-        int32_t *b = static_cast<int32_t*>(args1->data);
-        int32_t *c = static_cast<int32_t*>(args2->data);
-        int64_t *ashape = static_cast<int64_t*>(args0->shape);
-        int32_t adim = static_cast<int32_t>(args0->ndim);
-        int64_t *bshape = static_cast<int64_t*>(args1->shape);
-        int32_t bdim = static_cast<int32_t>(args1->ndim);
-        int64_t *cshape = static_cast<int64_t*>(args2->shape);
-        int32_t cdim = static_cast<int32_t>(args2->ndim);
-
-        const char* errorStr = cuda_broadcast_left_shift(a, b, c, getSize(args0),
-		ashape, adim,
-		bshape, bdim,
-		cshape, cdim, DEBUG_OP);
-
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
-    });
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
+//    .set_body([](CVMArgs args, CVMRetValue *ret){
+//        VERIFY(args.num_args == 4);
+//        DLTensor *args0 = args[0];
+//        DLTensor *args1 = args[1];
+//        DLTensor *args2 = args[2];
+//        int32_t *a = static_cast<int32_t*>(args0->data);
+//        int32_t *b = static_cast<int32_t*>(args1->data);
+//        int32_t *c = static_cast<int32_t*>(args2->data);
+//        int64_t *ashape = static_cast<int64_t*>(args0->shape);
+//        int32_t adim = static_cast<int32_t>(args0->ndim);
+//        int64_t *bshape = static_cast<int64_t*>(args1->shape);
+//        int32_t bdim = static_cast<int32_t>(args1->ndim);
+//        int64_t *cshape = static_cast<int64_t*>(args2->shape);
+//        int32_t cdim = static_cast<int32_t>(args2->ndim);
+//
+//
+//        const char* errorStr = cuda_broadcast_div(a, b, c, getSize(args0),
+//		ashape, adim,
+//		bshape, bdim,
+//		cshape, cdim, DEBUG_OP);
+//
+//        VERIFY_EQ(errorStr == NULL, true) << errorStr;
+//    });
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_right_shift")
+//    .set_body([](CVMArgs args, CVMRetValue *ret){
+//        VERIFY(args.num_args == 4);
+//        DLTensor *args0 = args[0];
+//        DLTensor *args1 = args[1];
+//        DLTensor *args2 = args[2];
+//        int32_t *a = static_cast<int32_t*>(args0->data);
+//        int32_t *b = static_cast<int32_t*>(args1->data);
+//        int32_t *c = static_cast<int32_t*>(args2->data);
+//        int64_t *ashape = static_cast<int64_t*>(args0->shape);
+//        int32_t adim = static_cast<int32_t>(args0->ndim);
+//        int64_t *bshape = static_cast<int64_t*>(args1->shape);
+//        int32_t bdim = static_cast<int32_t>(args1->ndim);
+//        int64_t *cshape = static_cast<int64_t*>(args2->shape);
+//        int32_t cdim = static_cast<int32_t>(args2->ndim);
+//
+//        const char* errorStr = cuda_broadcast_right_shift(a, b, c, getSize(args0),
+//		ashape, adim,
+//		bshape, bdim,
+//		cshape, cdim, DEBUG_OP);
+//
+//        VERIFY_EQ(errorStr == NULL, true) << errorStr;
+//    });
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_left_shift")
+//    .set_body([](CVMArgs args, CVMRetValue *ret){
+//        VERIFY(args.num_args == 4);
+//        DLTensor *args0 = args[0];
+//        DLTensor *args1 = args[1];
+//        DLTensor *args2 = args[2];
+//        int32_t *a = static_cast<int32_t*>(args0->data);
+//        int32_t *b = static_cast<int32_t*>(args1->data);
+//        int32_t *c = static_cast<int32_t*>(args2->data);
+//        int64_t *ashape = static_cast<int64_t*>(args0->shape);
+//        int32_t adim = static_cast<int32_t>(args0->ndim);
+//        int64_t *bshape = static_cast<int64_t*>(args1->shape);
+//        int32_t bdim = static_cast<int32_t>(args1->ndim);
+//        int64_t *cshape = static_cast<int64_t*>(args2->shape);
+//        int32_t cdim = static_cast<int32_t>(args2->ndim);
+//
+//        const char* errorStr = cuda_broadcast_left_shift(a, b, c, getSize(args0),
+//		ashape, adim,
+//		bshape, bdim,
+//		cshape, cdim, DEBUG_OP);
+//
+//        VERIFY_EQ(errorStr == NULL, true) << errorStr;
+//    });
 
 /*
 * strides (2, 2)
@@ -412,21 +412,52 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max_pool2d")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.sum")
     .set_body([](CVMArgs args, CVMRetValue *ret){
         VERIFY(args.num_args == 3);
-		DLTensor *x = args[0];
-		DLTensor *y = args[1];
-    //void *_attr = args[2];
-    //auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    //auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
-		//int axis[2] = {param.axis[0], param.axis[1]};
+        DLTensor *dlx = args[0];
+        DLTensor *y = args[1];
+        int32_t *y_data = static_cast<int32_t*>(y->data);
+        int32_t* x = static_cast<int32_t*>(dlx->data);
+        void* _attr = args[2];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+        TShape axis = param.axis;
+        int64_t *axis_data = axis.begin();
+        //bool keepdims = param.keepdims;
+        //bool exclude = param.exclude;
+        if(axis.ndim() == 0){
+          const char* errorStr = cuda_sum(x, y_data, getSize(dlx), getSize(y),
+              dlx->shape, y->shape, NULL, NULL,
+              NULL, 0, dlx->ndim, y->ndim, axis.ndim());
+          VERIFY(errorStr == NULL) << errorStr;
+        }else{
+          std::vector<int32_t> realAxis(axis.ndim());
+          //std::vector<bool> flag(dlx->ndim, false);
+          int32_t* flag = new int32_t[dlx->ndim];
+          std::memset(flag, 0, sizeof(int32_t)*dlx->ndim);
+          for(uint32_t i = 0; i < axis.ndim(); i++){
+            int32_t val = axis_data[i];
+            if(val < 0) val += dlx->ndim;
+            VERIFY(val < dlx->ndim && val >= 0);
+            realAxis[i] = val;
+            flag[val] = 1;
+          }
+          std::sort(realAxis.begin(), realAxis.end());
+          realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
 
-		int32_t *x_data = static_cast<int32_t*>(x->data);
-		int32_t *y_data = static_cast<int32_t*>(y->data);
-		int n_batch = static_cast<int>(x->shape[0]);
-		int channels = static_cast<int>(x->shape[1]);
-		int x_h = static_cast<int>(x->shape[2]);
-		int x_w = static_cast<int>(x->shape[3]);
-        const char* errorStr = cuda_sum(x_data, n_batch, channels, x_h, x_w, y_data, DEBUG_OP);
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
+          uint64_t axis_size = 1;
+          for(uint32_t i = 0; i < realAxis.size(); i++){
+            axis_size *= dlx->shape[realAxis[i]];
+          }
+          std::vector<uint64_t> every_xdim_size(dlx->ndim, 1);
+          for(int i = dlx->ndim-2; i >= 0; i--){
+            every_xdim_size[i] = dlx->shape[i+1] * every_xdim_size[i+1];
+          }
+
+          const char* errorStr = cuda_sum(x, y_data, getSize(dlx), getSize(y),
+              dlx->shape, y->shape, realAxis.data(), flag,
+              every_xdim_size.data(), axis_size, dlx->ndim, y->ndim, axis.ndim());
+          VERIFY(errorStr == NULL) << errorStr;
+          delete flag;
+        }
     });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.reshape")
@@ -552,40 +583,68 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
         auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
         TShape axis = param.axis;
-        VERIFY(axis.ndim() <= 1);
         int64_t *axis_data = axis.begin();
         //bool keepdims = param.keepdims;
         //bool exclude = param.exclude;
         if(axis.ndim() == 0){
-            axis_data = NULL;
+          const char* errorStr = cuda_max(x, y_data, getSize(dlx), getSize(y),
+              dlx->shape, y->shape, NULL, NULL,
+              NULL, 0, dlx->ndim, y->ndim, axis.ndim());
+          VERIFY(errorStr == NULL) << errorStr;
+        }else{
+          std::vector<int32_t> realAxis(axis.ndim());
+          //std::vector<bool> flag(dlx->ndim, false);
+          int32_t* flag = new int32_t[dlx->ndim];
+          std::memset(flag, 0, sizeof(int32_t)*dlx->ndim);
+          for(uint32_t i = 0; i < axis.ndim(); i++){
+            int32_t val = axis_data[i];
+            if(val < 0) val += dlx->ndim;
+            VERIFY(val < dlx->ndim && val >= 0);
+            realAxis[i] = val;
+            flag[val] = 1;
+          }
+          std::sort(realAxis.begin(), realAxis.end());
+          realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
+
+          uint64_t axis_size = 1;
+          for(uint32_t i = 0; i < realAxis.size(); i++){
+            axis_size *= dlx->shape[realAxis[i]];
+          }
+          std::vector<uint64_t> every_xdim_size(dlx->ndim, 1);
+          for(int i = dlx->ndim-2; i >= 0; i--){
+            every_xdim_size[i] = dlx->shape[i+1] * every_xdim_size[i+1];
+          }
+
+          const char* errorStr = cuda_max(x, y_data, getSize(dlx), getSize(y),
+              dlx->shape, y->shape, realAxis.data(), flag,
+              every_xdim_size.data(), axis_size, dlx->ndim, y->ndim, axis.ndim());
+          VERIFY(errorStr == NULL) << errorStr;
+          delete flag;
         }
-
-        const char* errorStr = cuda_max(x, y_data, getSize(y), axis_data, dlx->shape, y->shape, dlx->ndim, y->ndim);
-        VERIFY(errorStr == NULL) << errorStr;
     });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_max")
-    .set_body([](CVMArgs args, CVMRetValue *ret){
-        VERIFY(args.num_args == 4);
-        DLTensor *a = args[0];
-        DLTensor *b = args[1];
-        DLTensor *c = args[2];
-        int32_t *a_data = static_cast<int32_t*>(a->data);
-        int32_t* b_data = static_cast<int32_t*>(b->data);
-        int32_t* c_data = static_cast<int32_t*>(c->data);
-        int64_t *ashape = static_cast<int64_t*>(a->shape);
-        int32_t adim = static_cast<int32_t>(a->ndim);
-        int64_t *bshape = static_cast<int64_t*>(b->shape);
-        int32_t bdim = static_cast<int32_t>(b->ndim);
-        int64_t *cshape = static_cast<int64_t*>(c->shape);
-        int32_t cdim = static_cast<int32_t>(c->ndim);
-
-        const char* errorStr = cuda_broadcast_max(a_data, b_data, c_data, getSize(a),
-		ashape, adim,
-		bshape, bdim,
-		cshape, cdim, DEBUG_OP);
-        VERIFY(errorStr == NULL) << errorStr;
-    });
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_max")
+//    .set_body([](CVMArgs args, CVMRetValue *ret){
+//        VERIFY(args.num_args == 4);
+//        DLTensor *a = args[0];
+//        DLTensor *b = args[1];
+//        DLTensor *c = args[2];
+//        int32_t *a_data = static_cast<int32_t*>(a->data);
+//        int32_t* b_data = static_cast<int32_t*>(b->data);
+//        int32_t* c_data = static_cast<int32_t*>(c->data);
+//        int64_t *ashape = static_cast<int64_t*>(a->shape);
+//        int32_t adim = static_cast<int32_t>(a->ndim);
+//        int64_t *bshape = static_cast<int64_t*>(b->shape);
+//        int32_t bdim = static_cast<int32_t>(b->ndim);
+//        int64_t *cshape = static_cast<int64_t*>(c->shape);
+//        int32_t cdim = static_cast<int32_t>(c->ndim);
+//
+//        const char* errorStr = cuda_broadcast_max(a_data, b_data, c_data, getSize(a),
+//		ashape, adim,
+//		bshape, bdim,
+//		cshape, cdim, DEBUG_OP);
+//        VERIFY(errorStr == NULL) << errorStr;
+//    });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.concatenate")
 .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -674,13 +733,16 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.tile")
     int32_t xndim = x->ndim;
     TShape ts_reps = param.reps;
     int64_t *reps = ts_reps.begin();
-
-    int i = 0, j = 0;
-    for(i = yndim-1, j = xndim-1; i >= 0 && j >= 0; i--, j--){
-        VERIFY(x->shape[j] * reps[i] == y->shape[i]);
+    for(uint32_t i = 0; i < ts_reps.ndim(); i++){
+        VERIFY(reps[i] > 0);
     }
-    for(; i >= 0; i--){
-        VERIFY(reps[i] == y->shape[i]);
+
+    int i = 0, j = 0, k = 0;
+    for(i = yndim-1, j = xndim-1, k = ts_reps.ndim()-1; i >= 0 && j >= 0 && k >= 0; i--, j--, k--){
+        VERIFY(x->shape[j] * reps[k] == y->shape[i]);
+    }
+    for(; i >= 0 && k >= 0; i--, k--){
+        VERIFY(reps[k] == y->shape[i]);
     }
 
     const char* errorStr = cuda_tile(x_data, y_data, getSize(y), yndim, xndim, x->shape, y->shape);
@@ -696,7 +758,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.expand_dims")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
 
-    int32_t axis = param.axis; // TODO get from attr
+    int32_t axis = param.axis;
     axis = axis < 0 ? axis + ishape->ndim : axis;
     VERIFY(axis >= 0 && axis <= ishape->ndim);
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
@@ -716,8 +778,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.transpose")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::TransposeParam>(attr->parsed);
 
-    TShape axes = param.axes; // TODO get from attr
+    TShape axes = param.axes;
     int64_t *axes_data = axes.begin();
+    VERIFY(axes.ndim() == 0 || axes.ndim() == (uint32_t)x->ndim);
+    for(uint32_t i = 0; i < axes.ndim(); i++){
+        VERIFY(axes_data[i] >= 0);
+    }
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
@@ -738,33 +804,53 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.strided_slice")
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
-    //TODO get from attr
     TShape begin = param.begin;
-    //TShape end = param.end;
+    TShape end = param.end;
     TShape stride = param.stride;
     int64_t *begin_data = begin.begin();
-    //int64_t *end_data = end.begin();
+    int64_t *end_data = end.begin();
     int64_t *step_data = stride.begin();
+    VERIFY(begin.ndim() > 0);
+    VERIFY(begin.ndim() == end.ndim());
+    VERIFY(stride.ndim() == 0 || stride.ndim() == begin.ndim());
+    for(uint32_t i = 0; i < begin.ndim();i++){
+        if(begin_data[i] < 0) {
+          begin_data[i] += x->shape[i];
+          begin_data[i] = std::min(std::max(begin_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
+        }
+        if(end_data[i] < 0) {
+          end_data[i] += x->shape[i];
+          end_data[i] += std::min(std::max(end_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
+        }
+        if(stride.ndim() > 0){
+          if(step_data[i] > 0) {
+            VERIFY(begin_data[i] < end_data[i]);
+          }else{
+            VERIFY(begin_data[i] > end_data[i]);
+          }
+        }
+    }
 
-    const char *errorStr = cuda_stride_slice(x_data, y_data, begin_data, step_data,
+    const char *errorStr = cuda_stride_slice(x_data, y_data, begin_data, begin.ndim(), step_data,
             x->shape, y->shape, stride.ndim(), y->ndim, getSize(y), x->ndim);
     VERIFY(errorStr == NULL) << errorStr;
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.slice_like")
 .set_body([](CVMArgs args, CVMRetValue *ret){
+    VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
-    //DLTensor *shape = args[1];
+    DLTensor *shape = args[1];
     DLTensor *y = args[2];
-    //void* _attr = args[3];
-    //auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    //auto &param = cvm::get<cvm::top::SliceLikeParam>(attr->parsed);
-    //Tuple<int> axis = param.axis;
-    //int *axis_data = axis.begin();
+    void* _attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::SliceLikeParam>(attr->parsed);
+    Tuple<int> axis = param.axis;
+   // int *axis_data = axis.begin();
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
-    // TODO(kaihuo) check
     //  int32_t *shape_like = static_cast<int32_t*>(shape->data);
+    VERIFY(axis.ndim() < (uint32_t)x->ndim && axis.ndim() < (uint32_t)shape->ndim);
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int ndim = x->ndim;
 
@@ -782,12 +868,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.get_valid_counts")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::GetValidCountsParam>(attr->parsed);
 
-    int32_t score_threshold = param.score_threshold; //TODO get from attr
+    int32_t score_threshold = param.score_threshold;
 
     VERIFY(x->ndim == 3);
     int32_t batchs = x->shape[0];
     int32_t n = x->shape[1];
     int32_t k = x->shape[2];
+    VERIFY(k == 6);
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
@@ -815,7 +902,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.non_max_suppression")
     int32_t id_index = param.id_index;
     bool force_suppress = param.force_suppress;
     bool return_indices = param.return_indices;
-    bool invalid_to_bottom = param.invalid_to_bottom;
+    //bool invalid_to_bottom = param.invalid_to_bottom;
     CHECK(return_indices == false) << "no support return_indices and invalid_to_bottom";
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
@@ -832,21 +919,21 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.non_max_suppression")
     VERIFY(errorStr == NULL) << errorStr;
 });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.bias_add")
-.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-    DLTensor *x = args[0];
-    DLTensor *bias = args[1];
-    DLTensor *y = args[2];
-    int32_t axis = 1; //TODO get from attr
-    int32_t ndim = x->ndim;
-    VERIFY(axis > 0 && axis < ndim);
-
-    const int32_t *x_data = static_cast<int32_t*>(x->data);
-    const int32_t *bias_data = static_cast<int32_t*>(bias->data);
-    int32_t *y_data = static_cast<int32_t*>(y->data);
-    const char* errorStr = cuda_bias_add(x_data, bias_data, y_data, getSize(y), y->shape, ndim, axis);
-    VERIFY_EQ(errorStr == NULL, true) << errorStr;
-});
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.bias_add")
+//.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+//    DLTensor *x = args[0];
+//    DLTensor *bias = args[1];
+//    DLTensor *y = args[2];
+//    int32_t axis = 1; //TODO get from attr
+//    int32_t ndim = x->ndim;
+//    VERIFY(axis > 0 && axis < ndim);
+//
+//    const int32_t *x_data = static_cast<int32_t*>(x->data);
+//    const int32_t *bias_data = static_cast<int32_t*>(bias->data);
+//    int32_t *y_data = static_cast<int32_t*>(y->data);
+//    const char* errorStr = cuda_bias_add(x_data, bias_data, y_data, getSize(y), y->shape, ndim, axis);
+//    VERIFY_EQ(errorStr == NULL, true) << errorStr;
+//});
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.upsampling")
     .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -882,6 +969,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.upsampling")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    printf("cuda take \n");
     VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
@@ -890,7 +978,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
 
-    int32_t axis = param.axis.value();
+    int32_t axis = param.axis.has_value() ? param.axis.value() : 0;
+    printf("axis = %d\n", axis);
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
