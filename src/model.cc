@@ -96,8 +96,9 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     char postprocess_s[32];
     get_postprocess_method(postprocess_s);
     postprocess_method_ = std::string(postprocess_s);
+    // std::cerr << "postprocess_method_ = " << postprocess_method_ << "\n";
   }
-  
+
   auto get_input_shape = module_.GetFunction("get_input_shape");
 
   DLTensor* t = new DLTensor();
@@ -150,6 +151,10 @@ std::string CVMModel::GetPostprocessMethod() {
   return postprocess_method_;
 }
 
+bool CVMModel::SetPostprocessMethod(const string postprocess_method) {
+  postprocess_method_ = postprocess_method;
+  return true;
+}
 int64_t CVMModel::GetStorageSize() {
   int64_t ret;
   if (get_storage_size_(&ret)) return -1;
@@ -195,65 +200,87 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
 }
 
 void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
-  bool can_concat = true;
-  if (outputs.size() == 1) {
-    can_concat = false;
-  }
-  std::vector<uint64_t> xs(outputs.size());
-  std::vector<uint64_t> ys(outputs.size());
-  if (can_concat) {
-    for (size_t k = 0; k < outputs.size(); ++k) {
-      ys[k] = outputs[k]->shape[outputs[k]->ndim - 1];
-      xs[k] = out_size_[k] / ys[k];
-    }
-    for (size_t k = 1; k < outputs.size(); ++k) {
-      if (xs[k] != xs[0]) {
-        can_concat = false;
-        break;
-      }
-    }
-  }
-  if (can_concat) {
-    if (output_bytes_ == 4) {
-      int32_t* cp = static_cast<int32_t*>((void*)(mem));
-      int32_t nx = xs[0] / output_bytes_;  // truncate result
-      for (int xidx = 0; xidx < nx; xidx++) {
-        for (size_t k = 0; k < outputs.size(); ++k) {
-          auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
-          for (size_t i = 0; i < ys[k]; ++i) {
-            *cp = data[i];
-            ++cp;
+  if (postprocess_method_ == "argmax") {
+    // argmax by dimension -1
+    for (size_t k = 0 ; k < (size_t)out_num_; ++k) {
+      uint32_t last_dim = shapes_[ input_num_ +  k][dims_[k] - 1];
+      uint32_t out_size = out_size_[k];
+      uint32_t out_size_ap = out_size / last_dim;
+      auto data = static_cast<int*>(outputs[k]->data);
+      for (size_t i = 0; i < out_size_ap; i += last_dim) {
+        uint32_t max_id = 0;
+        for (size_t j = i; j < i + last_dim; j++) {
+          if (int8_t(data[j]) > int8_t(data[i + max_id])) {
+            // std::cerr << " max " << int(int8_t(data[j])) << " " << int(int8_t(data[i + max_id]))
+            //          << " j = " << j - i << "\n";
+            max_id = j - i;
           }
         }
+        //TODO(tian) consider label with dimension > 127, which cannot be placeed in int8
+        *mem++ = static_cast<int8_t>(max_id);
       }
-    } else if (output_bytes_ == 2){
-      int16_t* cp = static_cast<int16_t*>((void*)(mem));
-      int32_t nx = xs[0] / output_bytes_;  // truncate result
-      for (int xidx = 0; xidx < nx; xidx++) {
-        for (size_t k = 0; k < outputs.size(); ++k) {
-          auto data = static_cast<int16_t*>(outputs[k]->data) + xidx * ys[k];
-          for (size_t i = 0; i < ys[k]; ++i) {
-            *cp = data[i];
-            ++cp;
+    }
+  } else {
+    bool can_concat = true;
+    if (outputs.size() == 1) {
+      can_concat = false;
+    }
+    std::vector<uint64_t> xs(outputs.size());
+    std::vector<uint64_t> ys(outputs.size());
+    if (can_concat) {
+      for (size_t k = 0; k < outputs.size(); ++k) {
+        ys[k] = outputs[k]->shape[outputs[k]->ndim - 1];
+        xs[k] = out_size_[k] / ys[k];
+      }
+      for (size_t k = 1; k < outputs.size(); ++k) {
+        if (xs[k] != xs[0]) {
+          can_concat = false;
+          break;
+        }
+      }
+    }
+    if (can_concat) {
+      if (output_bytes_ == 4) {
+        int32_t* cp = static_cast<int32_t*>((void*)(mem));
+        int32_t nx = xs[0] / output_bytes_;  // truncate result
+        for (int xidx = 0; xidx < nx; xidx++) {
+          for (size_t k = 0; k < outputs.size(); ++k) {
+            auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
+            for (size_t i = 0; i < ys[k]; ++i) {
+              *cp = data[i];
+              ++cp;
+            }
+          }
+        }
+      } else if (output_bytes_ == 2){
+        int16_t* cp = static_cast<int16_t*>((void*)(mem));
+        int32_t nx = xs[0] / output_bytes_;  // truncate result
+        for (int xidx = 0; xidx < nx; xidx++) {
+          for (size_t k = 0; k < outputs.size(); ++k) {
+            auto data = static_cast<int16_t*>(outputs[k]->data) + xidx * ys[k];
+            for (size_t i = 0; i < ys[k]; ++i) {
+              *cp = data[i];
+              ++cp;
+            }
+          }
+        }
+      } else {
+        auto cp = mem;
+        for (size_t xidx = 0; xidx < xs[0]; xidx++) {
+          for (size_t k = 0; k < outputs.size(); ++k) {
+            auto data = static_cast<int*>(outputs[k]->data) + xidx * ys[k];
+            for (size_t i = 0; i < ys[k]; ++i) {
+              *cp++ = static_cast<int8_t>(data[i]);
+            }
           }
         }
       }
     } else {
-      auto cp = mem;
-      for (size_t xidx = 0; xidx < xs[0]; xidx++) {
-        for (size_t k = 0; k < outputs.size(); ++k) {
-          auto data = static_cast<int*>(outputs[k]->data) + xidx * ys[k];
-          for (size_t i = 0; i < ys[k]; ++i) {
-            *cp++ = static_cast<int8_t>(data[i]);
-          }
+      for (size_t k = 0; k < outputs.size(); ++k) {
+        auto data = static_cast<int*>(outputs[k]->data);
+        for (int i = 0; i < out_size_[k]; ++i) {
+          *mem++ = static_cast<int8_t>(data[i]);
         }
-      }
-    }
-  } else {
-    for (size_t k = 0; k < outputs.size(); ++k) {
-      auto data = static_cast<int*>(outputs[k]->data);
-      for (int i = 0; i < out_size_[k]; ++i) {
-        *mem++ = static_cast<int8_t>(data[i]);
       }
     }
   }
@@ -299,10 +326,26 @@ int CVMModel::GetInputLength() {
 }
 
 int CVMModel::GetOutputLength() {
-  int ret = 0;
-  for (int i = 0; i < out_num_; ++i)
-    ret += static_cast<int>(out_size_[i]) * output_bytes_;
-  return ret;
+  if (postprocess_method_ == "argmax") {
+    // argmax by dimension -1
+    int ret = 0;
+    for (size_t k = input_num_; k < (size_t)input_num_ + out_num_; ++k) {
+      uint32_t last_dim = shapes_[k][dims_[k] - 1];
+      uint32_t out_size = out_size_[k - input_num_];
+      uint32_t out_size_ap = out_size / last_dim;
+      // std::cerr << "output[" << k << "]" << "last_dim = " << last_dim << "out_size_[k] = " << out_size << "\n";
+      ret += out_size_ap;
+    }
+    ret *= output_bytes_;
+    return ret;
+  }
+  else {
+    int ret = 0;
+    for (int i = 0; i < out_num_; ++i)
+      ret += static_cast<int>(out_size_[i]);
+    ret *= output_bytes_;
+    return ret;
+  }
 }
 
 int CVMModel::GetSizeofOutput() {

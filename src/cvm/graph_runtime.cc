@@ -486,8 +486,10 @@ PackedFunc CvmRuntime::GetFunction(
   } else if (name == "get_postprocess_method") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
-        if (args[0].type_code() == kArrayHandle) {
-          void *placeholder = args[0];
+//        std::cerr << " postprocess_method() = " << this->postprocess_method()
+//                  << "args[0].type_code() = " << args[0].type_code() << "\n";
+        if (args[0].type_code() == kStr) {
+          char *placeholder = args[0].ptr<char>();
           VERIFY(placeholder != NULL);
           strcpy(static_cast<char*>(placeholder), this->postprocess_method().c_str());
         } else {
