@@ -113,7 +113,7 @@ var (
 
 const (
 	SeedingBlks = 6                   //for torrent seed spreading
-	MatureBlks  = 100                  //For the full node to synchronize the models
+	MatureBlks  = 100                 //For the full node to synchronize the models
 	ExpiredBlks = 1000000000000000000 //8409600
 
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024 //How many bytes per upload
@@ -122,7 +122,7 @@ const (
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024
 	MODEL_GAS_LIMIT        uint64 = 10000 //max gas limit for model invoke
 
-	CONFIRM_TIME = -60 // * time.Second block should be protected past this time
+	CONFIRM_TIME   = -60 // * time.Second block should be protected past this time
 	CONFIRM_BLOCKS = 12
 
 	BLOCK_QUOTA = 24576 //32768//65536     //one block includes 64k file quota, even empty block should make more sense
