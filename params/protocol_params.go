@@ -120,7 +120,7 @@ const (
 	DEFAULT_UPLOAD_BYTES   uint64 = 0              //default upload bytes
 	MODEL_MIN_UPLOAD_BYTES        = 0
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024
-	MODEL_GAS_LIMIT        uint64 = 10000 //max gas limit for model call
+	MODEL_GAS_LIMIT        uint64 = 10000 //max gas limit for model invoke
 
 	CONFIRM_TIME = -60 // * time.Second block should be protected past this time
 	CONFIRM_BLOCKS = 12
