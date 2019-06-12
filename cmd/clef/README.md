@@ -1,7 +1,7 @@
 Clef
 ----
-Clef can be used to sign transactions and data and is meant as a replacement for geth's account management.
-This allows DApps not to depend on geth's account management. When a DApp wants to sign data it can send the data to
+Clef can be used to sign transactions and data and is meant as a replacement for cortex's account management.
+This allows DApps not to depend on cortex's account management. When a DApp wants to sign data it can send the data to
 the signer, the signer will then provide the user with context and asks the user for permission to sign the data. If
 the users grants the signing request the signer will send the signature back to the DApp.
   
@@ -65,10 +65,10 @@ The security model of the signer is as follows:
 * The signer binary also communicates with whatever process that invoked the binary, via stdin/stdout.
   * This channel is considered 'trusted'. Over this channel, approvals and passwords are communicated.
 
-The general flow for signing a transaction using e.g. geth is as follows:
+The general flow for signing a transaction using e.g. cortex is as follows:
 ![image](sign_flow.png)
 
-In this case, `geth` would be started with `--externalsigner=http://localhost:8550` and would relay requests to `eth.sendTransaction`.
+In this case, `cortex` would be started with `--externalsigner=http://localhost:8550` and would relay requests to `eth.sendTransaction`.
 
 ## TODOs
 
@@ -104,7 +104,7 @@ invoking methods with the following info:
 * Ctxc todos
     - The signer should pass the `Origin` header as call-info to the UI. As of right now, the way that info about the request is
 put together is a bit of a hack into the http server. This could probably be greatly improved
-    - Relay: Ctxc should be started in `geth --external_signer localhost:8550`.
+    - Relay: Ctxc should be started in `cortex --external_signer localhost:8550`.
     - Currently, the Ctxc APIs use `common.Address` in the arguments to transaction submission (e.g `to` field). This
   type is 20 `bytes`, and is incapable of carrying checksum information. The signer uses `common.MixedcaseAddress`, which
   retains the original input.
@@ -116,7 +116,7 @@ put together is a bit of a hack into the http server. This could probably be gre
 
 * Another potential thing to introduce is pairing.
   * To prevent spurious requests which users just accept, implement a way to "pair" the caller with the signer (external API).
-  * Thus geth/mist/cpp would cryptographically handshake and afterwards the caller would be allowed to make signing requests.
+  * Thus cortex/mist/cpp would cryptographically handshake and afterwards the caller would be allowed to make signing requests.
   * This feature would make the addition of rules less dangerous.
 
 * Wallets / accounts. Add API methods for wallets.

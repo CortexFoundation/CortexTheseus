@@ -86,9 +86,9 @@ func New(config *Config) *Synapse {
 			log.Error("infer helper", "init cvm plugin error", err)
 			return nil
 		}
-	}
-	if (lib == nil) {
-		panic ("lib_path = " + PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX + " config.IsRemoteInfer = " + strconv.FormatBool(config.IsRemoteInfer))
+		if (lib == nil) {
+			panic ("lib_path = " + PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX + " config.IsRemoteInfer = " + strconv.FormatBool(config.IsRemoteInfer))
+		}
 	}
 	synapseInstance = &Synapse{
 		config: config,
