@@ -1060,7 +1060,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
     realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
 
     uint64_t axis_size = 1;
-    for(int i = 0; i < realAxis.size(); i++){
+    for(uint32_t i = 0; i < realAxis.size(); i++){
       axis_size *= x->shape[realAxis[i]];
     }
     std::vector<uint64_t> every_xdim_size(x->ndim, 1);
@@ -1394,7 +1394,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
           realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
 
           uint64_t axis_size = 1;
-          for(int i = 0; i < realAxis.size(); i++){
+          for(uint32_t i = 0; i < realAxis.size(); i++){
             axis_size *= dlx->shape[realAxis[i]];
           }
           std::vector<uint64_t> every_xdim_size(dlx->ndim, 1);
@@ -1928,7 +1928,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
         wn *= indices->shape[i];
       auto indices_data = static_cast<int32_t*>(indices->data);
       for (int row = 0; row < wn; row++) {
-        uint64_t x_indices_i = std::min(std::max(indices_data[row], 0), wn);
+        uint64_t x_indices_i = std::min(std::max(indices_data[row], 0), wn-1);
         memcpy(y_data +  row * K, x_data + x_indices_i * K, K * sizeof(int32_t));
       }
     }
@@ -1956,7 +1956,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
           x_shape_size = (j == yndim-1 ? x->shape[k] : x_shape_size * x->shape[k]);
         }
 
-        uint64_t x_indices_i = std::min(std::max(indices_data[indices_i], 0), (int32_t)x->shape[k]);
+        uint64_t x_indices_i = std::min(std::max(indices_data[indices_i], 0), (int32_t)x->shape[k]-1);
         x_i += (x_shape_size == 0 ? x_indices_i : x_indices_i * x_shape_size);
         x_shape_size = (x_shape_size == 0 ? x->shape[k] : x_shape_size * x->shape[k]);
         --k;
