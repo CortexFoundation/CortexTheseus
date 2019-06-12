@@ -856,7 +856,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.slice_like")
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     //  int32_t *shape_like = static_cast<int32_t*>(shape->data);
-    VERIFY(axis.ndim() < (uint32_t)x->ndim && axis.ndim() < (uint32_t)shape->ndim);
+    VERIFY(axis.ndim() < (uint32_t)x->ndim && axis.ndim() <= (uint32_t)shape->ndim);
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int ndim = x->ndim;
 

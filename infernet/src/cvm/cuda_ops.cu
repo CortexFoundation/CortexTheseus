@@ -2402,7 +2402,7 @@ const char* cuda_slice_like(const int32_t *x_data, int32_t *y_data, const int64_
     cudaFree(dev_yshape);
     return check_cuda_error(status);
   }
-  status = cudaMemcpy(dev_yshape, xshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
+  status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
     cudaFree(dev_xshape);
     cudaFree(dev_yshape);
