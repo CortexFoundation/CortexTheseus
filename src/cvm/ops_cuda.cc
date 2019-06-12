@@ -412,21 +412,52 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max_pool2d")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.sum")
     .set_body([](CVMArgs args, CVMRetValue *ret){
         VERIFY(args.num_args == 3);
-		DLTensor *x = args[0];
-		DLTensor *y = args[1];
-    void *_attr = args[2];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
-		//int axis[2] = {param.axis[0], param.axis[1]};
+        DLTensor *dlx = args[0];
+        DLTensor *y = args[1];
+        int32_t *y_data = static_cast<int32_t*>(y->data);
+        int32_t* x = static_cast<int32_t*>(dlx->data);
+        void* _attr = args[2];
+        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+        auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+        TShape axis = param.axis;
+        int64_t *axis_data = axis.begin();
+        //bool keepdims = param.keepdims;
+        //bool exclude = param.exclude;
+        if(axis.ndim() == 0){
+          const char* errorStr = cuda_sum(x, y_data, getSize(dlx), getSize(y),
+              dlx->shape, y->shape, NULL, NULL,
+              NULL, 0, dlx->ndim, y->ndim, axis.ndim());
+          VERIFY(errorStr == NULL) << errorStr;
+        }else{
+          std::vector<int32_t> realAxis(axis.ndim());
+          //std::vector<bool> flag(dlx->ndim, false);
+          int32_t* flag = new int32_t[dlx->ndim];
+          std::memset(flag, 0, sizeof(int32_t)*dlx->ndim);
+          for(uint32_t i = 0; i < axis.ndim(); i++){
+            int32_t val = axis_data[i];
+            if(val < 0) val += dlx->ndim;
+            VERIFY(val < dlx->ndim && val >= 0);
+            realAxis[i] = val;
+            flag[val] = 1;
+          }
+          std::sort(realAxis.begin(), realAxis.end());
+          realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
 
-		int32_t *x_data = static_cast<int32_t*>(x->data);
-		int32_t *y_data = static_cast<int32_t*>(y->data);
-		int n_batch = static_cast<int>(x->shape[0]);
-		int channels = static_cast<int>(x->shape[1]);
-		int x_h = static_cast<int>(x->shape[2]);
-		int x_w = static_cast<int>(x->shape[3]);
-        const char* errorStr = cuda_sum(x_data, n_batch, channels, x_h, x_w, y_data, DEBUG_OP);
-        VERIFY_EQ(errorStr == NULL, true) << errorStr;
+          uint64_t axis_size = 1;
+          for(uint32_t i = 0; i < realAxis.size(); i++){
+            axis_size *= dlx->shape[realAxis[i]];
+          }
+          std::vector<uint64_t> every_xdim_size(dlx->ndim, 1);
+          for(int i = dlx->ndim-2; i >= 0; i--){
+            every_xdim_size[i] = dlx->shape[i+1] * every_xdim_size[i+1];
+          }
+
+          const char* errorStr = cuda_sum(x, y_data, getSize(dlx), getSize(y),
+              dlx->shape, y->shape, realAxis.data(), flag,
+              every_xdim_size.data(), axis_size, dlx->ndim, y->ndim, axis.ndim());
+          VERIFY(errorStr == NULL) << errorStr;
+          delete flag;
+        }
     });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.reshape")
@@ -552,17 +583,44 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
         auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
         TShape axis = param.axis;
-        VERIFY(axis.ndim() <= 1);
         int64_t *axis_data = axis.begin();
         //bool keepdims = param.keepdims;
         //bool exclude = param.exclude;
         if(axis.ndim() == 0){
-            axis_data = NULL;
-        }
+          const char* errorStr = cuda_max(x, y_data, getSize(dlx), getSize(y),
+              dlx->shape, y->shape, NULL, NULL,
+              NULL, 0, dlx->ndim, y->ndim, axis.ndim());
+          VERIFY(errorStr == NULL) << errorStr;
+        }else{
+          std::vector<int32_t> realAxis(axis.ndim());
+          //std::vector<bool> flag(dlx->ndim, false);
+          int32_t* flag = new int32_t[dlx->ndim];
+          std::memset(flag, 0, sizeof(int32_t)*dlx->ndim);
+          for(uint32_t i = 0; i < axis.ndim(); i++){
+            int32_t val = axis_data[i];
+            if(val < 0) val += dlx->ndim;
+            VERIFY(val < dlx->ndim && val >= 0);
+            realAxis[i] = val;
+            flag[val] = 1;
+          }
+          std::sort(realAxis.begin(), realAxis.end());
+          realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
 
-        const char* errorStr = cuda_max(x, y_data, getSize(y), axis_data, dlx->shape,
-            y->shape, dlx->ndim, y->ndim);
-        VERIFY(errorStr == NULL) << errorStr;
+          uint64_t axis_size = 1;
+          for(uint32_t i = 0; i < realAxis.size(); i++){
+            axis_size *= dlx->shape[realAxis[i]];
+          }
+          std::vector<uint64_t> every_xdim_size(dlx->ndim, 1);
+          for(int i = dlx->ndim-2; i >= 0; i--){
+            every_xdim_size[i] = dlx->shape[i+1] * every_xdim_size[i+1];
+          }
+
+          const char* errorStr = cuda_max(x, y_data, getSize(dlx), getSize(y),
+              dlx->shape, y->shape, realAxis.data(), flag,
+              every_xdim_size.data(), axis_size, dlx->ndim, y->ndim, axis.ndim());
+          VERIFY(errorStr == NULL) << errorStr;
+          delete flag;
+        }
     });
 
 //CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_max")

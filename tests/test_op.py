@@ -249,11 +249,108 @@ def test_expand_dims():
 def test_negative():
     print("test negative")
 
+def test_max():
+    print("test max")
+    shape = np.random.randint(low=2, high=10, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save("/tmp/max/in0.npy", a.astype("int32"))
+    params = {'axis':[1,3]}
+    save_dict(params, "/tmp/max/attr0.txt")
+    b = nd.max(nd.array(a), **params)
+    np.save("/tmp/max/out0.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {}
+    save_dict(params, "/tmp/max/attr1.txt")
+    b = nd.max(nd.array(a), **params)
+    np.save("/tmp/max/out1.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[0]}
+    save_dict(params, "/tmp/max/attr2.txt")
+    b = nd.max(nd.array(a), **params)
+    np.save("/tmp/max/out2.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[2]}
+    save_dict(params, "/tmp/max/attr3.txt")
+    b = nd.max(nd.array(a), **params)
+    np.save("/tmp/max/out3.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[3]}
+    save_dict(params, "/tmp/max/attr4.txt")
+    b = nd.max(nd.array(a), **params)
+    np.save("/tmp/max/out4.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[1,2,3]}
+    save_dict(params, "/tmp/max/attr5.txt")
+    b = nd.max(nd.array(a), **params)
+    np.save("/tmp/max/out5.npy", b.asnumpy().astype("int32"))
+#   print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[0,1,2,3]}
+    save_dict(params, "/tmp/max/attr6.txt")
+    b = nd.max(nd.array(a), **params)
+    np.save("/tmp/max/out6.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+def test_sum():
+    print("test sum")
+    shape = np.random.randint(low=2, high=10, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save("/tmp/sum/in0.npy", a.astype("int32"))
+    params = {'axis':[1,3]}
+    save_dict(params, "/tmp/sum/attr0.txt")
+    b = nd.sum(nd.array(a), **params)
+    np.save("/tmp/sum/out0.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {}
+    save_dict(params, "/tmp/sum/attr1.txt")
+    b = nd.sum(nd.array(a), **params)
+    np.save("/tmp/sum/out1.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[0]}
+    save_dict(params, "/tmp/sum/attr2.txt")
+    b = nd.sum(nd.array(a), **params)
+    np.save("/tmp/sum/out2.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[2]}
+    save_dict(params, "/tmp/sum/attr3.txt")
+    b = nd.sum(nd.array(a), **params)
+    np.save("/tmp/sum/out3.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[3]}
+    save_dict(params, "/tmp/sum/attr4.txt")
+    b = nd.sum(nd.array(a), **params)
+    np.save("/tmp/sum/out4.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[1,2,3]}
+    save_dict(params, "/tmp/sum/attr5.txt")
+    b = nd.sum(nd.array(a), **params)
+    np.save("/tmp/sum/out5.npy", b.asnumpy().astype("int32"))
+#   print(b.asnumpy().astype("int32").flatten())
+
+    params = {'axis':[0,1,2,3]}
+    save_dict(params, "/tmp/sum/attr6.txt")
+    b = nd.sum(nd.array(a), **params)
+    np.save("/tmp/sum/out6.npy", b.asnumpy().astype("int32"))
+#    print(b.asnumpy().astype("int32").flatten())
 
 #test_concatenate()
 #test_repeat()
 #test_tile()
 #test_transpose()
-test_strided_slice()
+#test_strided_slice()
 #test_slice_like()
 #test_take()
+#test_max()
+test_sum()

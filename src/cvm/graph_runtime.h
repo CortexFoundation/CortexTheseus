@@ -72,6 +72,9 @@ class CvmRuntime : public ModuleNode {
   }
   void Run();
 
+  std::string version() const {
+    return version_.substr(0, 32);
+  }
   /*!
    * \brief Initialize the graph executor with graph and context.
    * \param graph_json The execution graph.
@@ -263,9 +266,9 @@ class CvmRuntime : public ModuleNode {
 
     void LoadOp() {
       if (op_type == "null") return;
-      attrs.name = GetOpName(param.func_name);
-      param.func_name = attrs.name;
-      attrs.op = cvm::Op::Get(attrs.name);
+      attrs.name = this->name;
+      param.func_name = GetOpName(param.func_name);
+      attrs.op = cvm::Op::Get(param.func_name);
     }
 
     void LoadOpAttr(std::string json_) {
@@ -386,6 +389,8 @@ class CvmRuntime : public ModuleNode {
       } else if (key == "attrs") {
         reader->Read(&attrs_);
         bitmask |= 16;
+      } else if (key == "version") {
+        reader->Read(&version_);
       } else if (key == "metadata") {
         break;
       } else {
@@ -394,10 +399,15 @@ class CvmRuntime : public ModuleNode {
     }
     VERIFY_EQ(bitmask, 1|2|4|8|16) << "invalid format";
     VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size());
-    for (auto i = 0ULL; i < nodes_.size(); ++i) {
+    for (auto i = 0U; i < nodes_.size(); ++i) {
       if (nodes_[i].op_type != "null") {
         nodes_[i].LoadOp();
         nodes_[i].LoadOpAttr(attrs_.op_attrs[i]);
+      }
+    }
+    for (auto i = 0U; i < nodes_.size(); ++i) {
+      for (auto e: nodes_[i].inputs) {
+        VERIFY_LT(entry_id(e), entry_id(i, 0)) << "the graph does not follow the topological order.";
       }
     }
   }
@@ -464,6 +474,8 @@ public:
   std::vector<std::function<void()> > op_execs_;
 
   std::string graph_json_;
+  
+  std::string version_{std::string("cvm_1.0.0")};
 };
 
 std::vector<CVMContext> CVMGetAllContext(const CVMArgs& args);

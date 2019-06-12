@@ -88,7 +88,7 @@ int run_LIF(string model_root) {
     std::cerr << "\n";
   }
   double start = omp_get_wtime();
-  int n_run = 10;
+  int n_run = 1;
   for (int i = 0; i < n_run; i++) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
@@ -153,7 +153,7 @@ int run_LIF(string model_root) {
   cout << "total chnconv2d1x1 time: " << (sum_time) << "/" << ellapsed_time
     << " " <<  sum_time / ellapsed_time <<"\n";
 
-  if (model_root.find("yolo") != string::npos) {
+  if (json_path.find("yolo") != string::npos) {
     uint64_t ns =  output.size() / 4 / 4;
     std::cout << "yolo output size = " << ns << "\n";
     int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
@@ -201,20 +201,20 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-   // "/home/kaihuo/model_storage/dcnet_mnist_v1/data",
-   // "/home/kaihuo/model_storage/mobilenetv1.0_imagenet/data",
-   // "/home/kaihuo/model_storage/resnet50_v1_imagenet/data",
-   // "/home/kaihuo/model_storage/animal10/data",
-   // "/home/kaihuo/model_storage/dcnet_v0_mnist/data",
-   // "/home/kaihuo/model_storage/resnet50_v2/data",
-   // "/home/kaihuo/model_storage/vgg16_gcv/data",
-   // "/home/kaihuo/model_storage/sentiment_trec/data",
-   // "/home/kaihuo/model_storage/vgg19_gcv/data",
-   // "/home/kaihuo/model_storage/squeezenet_gcv1.1/data",
-   // "/home/kaihuo/model_storage/squeezenet_gcv1.0/data",
-   // "/home/kaihuo/model_storage/octconv_resnet26_0.250/data",
-   // "/home/kaihuo/model_storage/yolo3_darknet53_b1/data",
-    "/data/std_out/resnet50_mxg"
+     "/data/model_storage/dcnet_mnist_v1/data",
+     "/data/model_storage/mobilenetv1.0_imagenet/data",
+     "/data/model_storage/resnet50_v1_imagenet/data",
+     "/data/model_storage/animal10/data",
+     // "/data/model_storage/dcnet_v0_mnist/data",
+     "/data/model_storage/resnet50_v2/data",
+     "/data/model_storage/vgg16_gcv/data",
+     "/data/model_storage/sentiment_trec/data",
+     "/data/model_storage/vgg19_gcv/data",
+     "/data/model_storage/squeezenet_gcv1.1/data",
+     "/data/model_storage/squeezenet_gcv1.0/data",
+     "/data/model_storage/octconv_resnet26_0.250/data",
+     "/data/model_storage/yolo3_darknet53_b1/data"
+     // "/tmp/yxnet",
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);

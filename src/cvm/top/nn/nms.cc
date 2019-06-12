@@ -30,6 +30,13 @@ bool NMSShape(const NodeAttrs& attrs,
     "(batch_size, num_anchors, 6).";
   VERIFY_EQ(dshape[0], vshape[0]) << "batch_size mismatch.";
   out_attrs->clear();
+
+  VERIFY_EQ(param.return_indices, false)
+    << "NonMaximumSuppressionParam only supported return_indices false vs. "
+    << param.return_indices;
+  VERIFY_EQ(param.invalid_to_bottom, true)
+    << "NonMaximumSuppressionParam only supported invalid_to_bottom false vs. "
+    << param.invalid_to_bottom;
   if (param.return_indices) {
     TShape oshape = TShape(2);
     oshape[0] = dshape[0];
@@ -78,7 +85,7 @@ CVM_REGISTER_OP(non_max_suppression)
 .set_attr<FInferShape>("FInferShape", NMSShape)
 .set_attr<FInferType>("FInferType", NMSInferType)
 .set_attr<FCorrectLayout>("FCorrectLayout", NMSInferLayout)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_support_level(4);
 
 
@@ -116,6 +123,19 @@ inline bool GetValidLayout(const NodeAttrs& attrs,
   return true;
 }
 
+inline bool GetValidInferPrecision(
+              const NodeAttrs& attrs,
+              std::vector<TShape> *shapes,
+              std::vector<int> *iattr,
+              std::vector<int> *oattr) {
+  const auto& shp = shapes->at(0);
+  int64_t inl = shp.Size() / shp[0];
+  auto oprec1 = GetBit(inl);
+  (*oattr)[0] = oprec1;
+  (*oattr)[1] = iattr->at(0);
+  return true;
+}
+
 CVM_REGISTER_OP(get_valid_counts)
 .describe(R"doc(Get valid count of bounding boxes given
 a score threshold. Also moves valid boxes to the top of
@@ -130,7 +150,7 @@ input data.
 .set_attr<FInferShape>("FInferShape", GetValidShape)
 .set_attr<FInferType>("FInferType", GetValidType)
 .set_attr<FCorrectLayout>("FCorrectLayout", GetValidLayout)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", GetValidInferPrecision)
 .set_support_level(4);
 
 
