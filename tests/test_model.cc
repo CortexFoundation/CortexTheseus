@@ -56,7 +56,7 @@ int run_LIF(string model_root) {
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 1, 0)
+      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
       );
   if (model == nullptr) {
     std::cerr << "model loaded failed\n";
@@ -201,20 +201,21 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-     "/data/model_storage/dcnet_mnist_v1/data",
-     "/data/model_storage/mobilenetv1.0_imagenet/data",
-     "/data/model_storage/resnet50_v1_imagenet/data",
-     "/data/model_storage/animal10/data",
-     // "/data/model_storage/dcnet_v0_mnist/data",
-     "/data/model_storage/resnet50_v2/data",
-     "/data/model_storage/vgg16_gcv/data",
-     "/data/model_storage/sentiment_trec/data",
-     "/data/model_storage/vgg19_gcv/data",
-     "/data/model_storage/squeezenet_gcv1.1/data",
-     "/data/model_storage/squeezenet_gcv1.0/data",
-     "/data/model_storage/octconv_resnet26_0.250/data",
-     "/data/model_storage/yolo3_darknet53_b1/data"
-     // "/tmp/yxnet",
+     "/data/std_out/trec",
+     // "/data/model_storage/dcnet_mnist_v1/data",
+     // "/data/model_storage/mobilenetv1.0_imagenet/data",
+     // "/data/model_storage/resnet50_v1_imagenet/data",
+     // "/data/model_storage/animal10/data",
+     // // "/data/model_storage/dcnet_v0_mnist/data",
+     // "/data/model_storage/resnet50_v2/data",
+     // "/data/model_storage/vgg16_gcv/data",
+     // "/data/model_storage/sentiment_trec/data",
+     // "/data/model_storage/vgg19_gcv/data",
+     // "/data/model_storage/squeezenet_gcv1.1/data",
+     // "/data/model_storage/squeezenet_gcv1.0/data",
+     // "/data/model_storage/octconv_resnet26_0.250/data",
+     // "/data/model_storage/yolo3_darknet53_b1/data"
+     // // "/tmp/yxnet",
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);
