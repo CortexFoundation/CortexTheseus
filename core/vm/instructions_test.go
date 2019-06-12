@@ -35,18 +35,18 @@ func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64
 		env            = NewCVM(Context{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
-		evmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
 	)
 
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
+	env.interpreter = cvmInterpreter
+	cvmInterpreter.intPool = poolOfIntPools.get()
 	for i, test := range tests {
 		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
 		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
 		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
 		stack.push(x)
 		stack.push(shift)
-		opFn(&pc, evmInterpreter, nil, nil, stack)
+		opFn(&pc, cvmInterpreter, nil, nil, stack)
 		actual := stack.pop()
 		if actual.Cmp(expected) != 0 {
 			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
@@ -54,13 +54,13 @@ func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64
 		// Check pool usage
 		// 1.pool is not allowed to contain anything on the stack
 		// 2.pool is not allowed to contain the same pointers twice
-		if evmInterpreter.intPool.pool.len() > 0 {
+		if cvmInterpreter.intPool.pool.len() > 0 {
 
 			poolvals := make(map[*big.Int]struct{})
 			poolvals[actual] = struct{}{}
 
-			for evmInterpreter.intPool.pool.len() > 0 {
-				key := evmInterpreter.intPool.get()
+			for cvmInterpreter.intPool.pool.len() > 0 {
+				key := cvmInterpreter.intPool.get()
 				if _, exist := poolvals[key]; exist {
 					t.Errorf("Testcase %d, pool contains double-entry", i)
 				}
@@ -68,18 +68,18 @@ func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64
 			}
 		}
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
+	poolOfIntPools.put(cvmInterpreter.intPool)
 }
 
 func TestByteOp(t *testing.T) {
 	var (
 		env            = NewCVM(Context{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
-		evmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
 	)
 
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
+	env.interpreter = cvmInterpreter
+	cvmInterpreter.intPool = poolOfIntPools.get()
 	tests := []struct {
 		v        string
 		th       uint64
@@ -100,13 +100,13 @@ func TestByteOp(t *testing.T) {
 		th := new(big.Int).SetUint64(test.th)
 		stack.push(val)
 		stack.push(th)
-		opByte(&pc, evmInterpreter, nil, nil, stack)
+		opByte(&pc, cvmInterpreter, nil, nil, stack)
 		actual := stack.pop()
 		if actual.Cmp(test.expected) != 0 {
 			t.Fatalf("Expected  [%v] %v:th byte to be %v, was %v.", test.v, test.th, test.expected, actual)
 		}
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
+	poolOfIntPools.put(cvmInterpreter.intPool)
 }
 
 func TestSHL(t *testing.T) {
@@ -210,11 +210,11 @@ func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *CVMInterpret
 	var (
 		env            = NewCVM(Context{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
-		evmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
 	)
 
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
+	env.interpreter = cvmInterpreter
+	cvmInterpreter.intPool = poolOfIntPools.get()
 	// convert args
 	byteArgs := make([][]byte, len(args))
 	for i, arg := range args {
@@ -227,10 +227,10 @@ func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *CVMInterpret
 			a := new(big.Int).SetBytes(arg)
 			stack.push(a)
 		}
-		op(&pc, evmInterpreter, nil, nil, stack)
+		op(&pc, cvmInterpreter, nil, nil, stack)
 		stack.pop()
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
+	poolOfIntPools.put(cvmInterpreter.intPool)
 }
 
 func BenchmarkOpAdd64(b *testing.B) {
@@ -446,25 +446,25 @@ func TestOpMstore(t *testing.T) {
 		env            = NewCVM(Context{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		evmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
 	)
 
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
+	env.interpreter = cvmInterpreter
+	cvmInterpreter.intPool = poolOfIntPools.get()
 	mem.Resize(64)
 	pc := uint64(0)
 	v := "abcdef00000000000000abba000000000deaf000000c0de00100000000133700"
 	stack.pushN(new(big.Int).SetBytes(common.Hex2Bytes(v)), big.NewInt(0))
-	opMstore(&pc, evmInterpreter, nil, mem, stack)
+	opMstore(&pc, cvmInterpreter, nil, mem, stack)
 	if got := common.Bytes2Hex(mem.Get(0, 32)); got != v {
 		t.Fatalf("Mstore fail, got %v, expected %v", got, v)
 	}
 	stack.pushN(big.NewInt(0x1), big.NewInt(0))
-	opMstore(&pc, evmInterpreter, nil, mem, stack)
+	opMstore(&pc, cvmInterpreter, nil, mem, stack)
 	if common.Bytes2Hex(mem.Get(0, 32)) != "0000000000000000000000000000000000000000000000000000000000000001" {
 		t.Fatalf("Mstore failed to overwrite previous value")
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
+	poolOfIntPools.put(cvmInterpreter.intPool)
 }
 
 func BenchmarkOpMstore(bench *testing.B) {
@@ -472,11 +472,11 @@ func BenchmarkOpMstore(bench *testing.B) {
 		env            = NewCVM(Context{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		evmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
 	)
 
-	env.interpreter = evmInterpreter
-	evmInterpreter.intPool = poolOfIntPools.get()
+	env.interpreter = cvmInterpreter
+	cvmInterpreter.intPool = poolOfIntPools.get()
 	mem.Resize(64)
 	pc := uint64(0)
 	memStart := big.NewInt(0)
@@ -485,7 +485,7 @@ func BenchmarkOpMstore(bench *testing.B) {
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
 		stack.pushN(value, memStart)
-		opMstore(&pc, evmInterpreter, nil, mem, stack)
+		opMstore(&pc, cvmInterpreter, nil, mem, stack)
 	}
-	poolOfIntPools.put(evmInterpreter.intPool)
+	poolOfIntPools.put(cvmInterpreter.intPool)
 }

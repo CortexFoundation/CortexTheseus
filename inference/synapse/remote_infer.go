@@ -75,7 +75,7 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 		SetBody(requestBody).
 		Post(uri)
 	if err != nil || resp.StatusCode() != 200 {
-		return nil, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "evm.Infer: External Call Error: ", requestBody, resp, uri, err))
+		return nil, errors.New(fmt.Sprintf("%s | %s | %s | %s | %v", "cvm.Infer: External Call Error: ", requestBody, resp, uri, err))
 	}
 
 	log.Debug("Remote Inference", "response", resp.String())

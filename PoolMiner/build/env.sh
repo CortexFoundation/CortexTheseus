@@ -9,13 +9,18 @@ fi
 
 # Create fake Go workspace if it doesn't exist yet.
 workspace="$PWD/build/_workspace"
-echo $workspace
 root="$PWD"
 ethdir="$workspace/src/github.com/CortexFoundation"
 if [ ! -L "$ethdir/PoolMiner" ]; then
     mkdir -p "$ethdir"
     cd "$ethdir"
     ln -s ../../../../../. PoolMiner
+    cd "$root"
+fi
+if [ ! -L "$ethdir/CortexTheseus" ]; then
+    mkdir -p "$ethdir"
+    cd "$ethdir"
+    ln -s ../../../../../../ CortexTheseus
     cd "$root"
 fi
 

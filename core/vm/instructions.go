@@ -35,16 +35,16 @@ import (
 var (
 	bigZero                  = new(big.Int)
 	tt255                    = math.BigPow(2, 255)
-	errWriteProtection       = errors.New("evm: write protection")
-	errReturnDataOutOfBounds = errors.New("evm: return data out of bounds")
-	errExecutionReverted     = errors.New("evm: execution reverted")
-	errMetaInfoBlockNum      = errors.New("evm: meta info blocknum <= 0")
-	ErrMetaInfoNotMature     = errors.New("evm: errMetaInfoNotMature")
-	errMetaShapeNotMatch     = errors.New("evm: model&input shape not matched")
-	errMetaInfoExpired       = errors.New("evm: errMetaInfoExpired")
-	errMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
+	errWriteProtection       = errors.New("cvm: write protection")
+	errReturnDataOutOfBounds = errors.New("cvm: return data out of bounds")
+	errExecutionReverted     = errors.New("cvm: execution reverted")
+	errMetaInfoBlockNum      = errors.New("cvm: meta info blocknum <= 0")
+	ErrMetaInfoNotMature     = errors.New("cvm: errMetaInfoNotMature")
+	errMetaShapeNotMatch     = errors.New("cvm: model&input shape not matched")
+	errMetaInfoExpired       = errors.New("cvm: errMetaInfoExpired")
+	errMaxCodeSizeExceeded   = errors.New("cvm: max code size exceeded")
 	errAiRuntime             = errors.New("ai runtime error")
-	errInvalidJump           = errors.New("evm: invalid jump destination")
+	errInvalidJump           = errors.New("cvm: invalid jump destination")
 
 	big0  = big.NewInt(0)
 	big31 = big.NewInt(31)
@@ -396,10 +396,10 @@ func opSha3(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory 
 	data := memory.Get(offset.Int64(), size.Int64())
 	hash := crypto.Keccak256(data)
 	// log.Trace(fmt.Sprintf("opsha3: %v, %v, %v, %v", offset.Int64(), size.Int64(), data, hash))
-	evm := interpreter.evm
+	cvm := interpreter.cvm
 
-	if evm.vmConfig.EnablePreimageRecording {
-		evm.StateDB.AddPreimage(common.BytesToHash(hash), data)
+	if cvm.vmConfig.EnablePreimageRecording {
+		cvm.StateDB.AddPreimage(common.BytesToHash(hash), data)
 	}
 	stack.push(interpreter.intPool.get().SetBytes(hash))
 
@@ -415,13 +415,13 @@ func opAddress(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memo
 
 func opBalance(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.Set(interpreter.evm.StateDB.GetBalance(common.BigToAddress(slot)))
+	slot.Set(interpreter.cvm.StateDB.GetBalance(common.BigToAddress(slot)))
 	return nil, nil
 }
 
 func opOrigin(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	//stack.push(interpreter.evm.Origin.Big())
-	stack.push(interpreter.evm.Origin.SetBig(interpreter.intPool.get()))
+	//stack.push(interpreter.cvm.Origin.Big())
+	stack.push(interpreter.cvm.Origin.SetBig(interpreter.intPool.get()))
 	return nil, nil
 }
 
@@ -484,7 +484,7 @@ func opReturnDataCopy(pc *uint64, interpreter *CVMInterpreter, contract *Contrac
 
 func opExtCodeSize(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.SetUint64(uint64(interpreter.evm.StateDB.GetCodeSize(common.BigToAddress(slot))))
+	slot.SetUint64(uint64(interpreter.cvm.StateDB.GetCodeSize(common.BigToAddress(slot))))
 
 	return nil, nil
 }
@@ -516,7 +516,7 @@ func opExtCodeCopy(pc *uint64, interpreter *CVMInterpreter, contract *Contract, 
 		codeOffset = stack.pop()
 		length     = stack.pop()
 	)
-	codeCopy := getDataBig(interpreter.evm.StateDB.GetCode(addr), codeOffset, length)
+	codeCopy := getDataBig(interpreter.cvm.StateDB.GetCode(addr), codeOffset, length)
 	memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
 
 	interpreter.intPool.put(memOffset, codeOffset, length)
@@ -551,21 +551,21 @@ func opExtCodeCopy(pc *uint64, interpreter *CVMInterpreter, contract *Contract, 
 // this account should be regarded as a non-existent account and zero should be returned.
 func opExtCodeHash(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.SetBytes(interpreter.evm.StateDB.GetCodeHash(common.BigToAddress(slot)).Bytes())
+	slot.SetBytes(interpreter.cvm.StateDB.GetCodeHash(common.BigToAddress(slot)).Bytes())
 	return nil, nil
 }
 
 func opGasprice(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(interpreter.intPool.get().Set(interpreter.evm.GasPrice))
+	stack.push(interpreter.intPool.get().Set(interpreter.cvm.GasPrice))
 	return nil, nil
 }
 
 func opBlockhash(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	num := stack.pop()
 
-	n := interpreter.intPool.get().Sub(interpreter.evm.BlockNumber, common.Big257)
-	if num.Cmp(n) > 0 && num.Cmp(interpreter.evm.BlockNumber) < 0 {
-		stack.push(interpreter.evm.GetHash(num.Uint64()).Big())
+	n := interpreter.intPool.get().Sub(interpreter.cvm.BlockNumber, common.Big257)
+	if num.Cmp(n) > 0 && num.Cmp(interpreter.cvm.BlockNumber) < 0 {
+		stack.push(interpreter.cvm.GetHash(num.Uint64()).Big())
 	} else {
 		stack.push(interpreter.intPool.getZero())
 	}
@@ -574,27 +574,27 @@ func opBlockhash(pc *uint64, interpreter *CVMInterpreter, contract *Contract, me
 }
 
 func opCoinbase(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(interpreter.evm.Coinbase.Big())
+	stack.push(interpreter.cvm.Coinbase.Big())
 	return nil, nil
 }
 
 func opTimestamp(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.evm.Time)))
+	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.cvm.Time)))
 	return nil, nil
 }
 
 func opNumber(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.evm.BlockNumber)))
+	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.cvm.BlockNumber)))
 	return nil, nil
 }
 
 func opDifficulty(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.evm.Difficulty)))
+	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.cvm.Difficulty)))
 	return nil, nil
 }
 
 func opGasLimit(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(math.U256(interpreter.intPool.get().SetUint64(interpreter.evm.GasLimit)))
+	stack.push(math.U256(interpreter.intPool.get().SetUint64(interpreter.cvm.GasLimit)))
 	return nil, nil
 }
 
@@ -630,7 +630,7 @@ func opMstore8(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memo
 
 func opSload(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	loc := stack.peek()
-	val := interpreter.evm.StateDB.GetState(contract.Address(), common.BigToHash(loc))
+	val := interpreter.cvm.StateDB.GetState(contract.Address(), common.BigToHash(loc))
 	loc.SetBytes(val.Bytes())
 	return nil, nil
 }
@@ -638,7 +638,7 @@ func opSload(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 func opSstore(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	loc := common.BigToHash(stack.pop())
 	val := stack.pop()
-	interpreter.evm.StateDB.SetState(contract.Address(), loc, common.BigToHash(val))
+	interpreter.cvm.StateDB.SetState(contract.Address(), loc, common.BigToHash(val))
 
 	interpreter.intPool.put(val)
 	return nil, nil
@@ -711,28 +711,28 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	}
 
 	var err error
-	if inputMeta, err = interpreter.evm.GetInputMeta(inputAddr); err != nil {
+	if inputMeta, err = interpreter.cvm.GetInputMeta(inputAddr); err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
 	// Input Meta is validation
-	if interpreter.evm.StateDB.Uploading(inputAddr) {
+	if interpreter.cvm.StateDB.Uploading(inputAddr) {
 		return nil, errors.New("INPUT IS NOT UPLOADED ERROR")
 	}
 
 	log.Debug(fmt.Sprintf("opInfer:modelMeta: %s", common.Car(modelMeta.EncodeJSON())))
 	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
 
-	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(big0) <= 0 {
+	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(big0) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
 
-	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
-		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", interpreter.evm.StateDB.GetNum(inputAddr), "Current", interpreter.evm.BlockNumber, "MB", params.MatureBlks)
+	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", interpreter.cvm.StateDB.GetNum(inputAddr), "Current", interpreter.cvm.BlockNumber, "MB", params.MatureBlks)
 		return nil, ErrMetaInfoNotMature
 	}
 
-	if interpreter.evm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
+	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
 
@@ -746,8 +746,8 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		}
 	}
 
-	/*if interpreter.evm.Context.Time.Cmp(big.NewInt(time.Now().Add(confirmTime).Unix())) <= 0 {
-		logs := interpreter.evm.StateDB.GetCurrentLogs()
+	/*if interpreter.cvm.Context.Time.Cmp(big.NewInt(time.Now().Add(confirmTime).Unix())) <= 0 {
+		logs := interpreter.cvm.StateDB.GetCurrentLogs()
 		if logs != nil && len(logs) > 0 {
 			for _, log := range logs {
 				topics := log.Topics
@@ -755,8 +755,8 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 				if topics != nil && len(topics) == 4 && topics[0].Big().Cmp(modelMeta.Hash.Big()) == 0 && topics[1].Big().Cmp(inputMeta.Hash.Big()) == 0 {
 					if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
 						//consensus
-						interpreter.evm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-						interpreter.evm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+						interpreter.cvm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+						interpreter.cvm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 						ret := topics[2].Big().Uint64()
 						stack.push(interpreter.intPool.get().SetUint64(ret))
 					} else {
@@ -773,8 +773,8 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	}*/
 
 	//todo model & input tfs validation
-	output, err := interpreter.evm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
-	if interpreter.evm.vmConfig.DebugInferVM {
+	output, err := interpreter.cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
+	if interpreter.cvm.vmConfig.DebugInferVM {
 		fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
 	}
 	if err != nil {
@@ -786,8 +786,8 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		return nil, err
 	}
 	//consensus
-	interpreter.evm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-	interpreter.evm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 	// interpreter.intPool.get().SetUint64(output)
 	stack.push(output)
 	//consensus
@@ -801,22 +801,22 @@ func checkModel(interpreter *CVMInterpreter, stack *Stack, modelAddr common.Addr
 		modelMeta *types.ModelMeta
 	)
 	var err error
-	if modelMeta, err = interpreter.evm.GetModelMeta(modelAddr); err != nil {
+	if modelMeta, err = interpreter.cvm.GetModelMeta(modelAddr); err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
 	// Model Meta is validation
-	if interpreter.evm.StateDB.Uploading(modelAddr) {
+	if interpreter.cvm.StateDB.Uploading(modelAddr) {
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
+	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
 		return nil, errExecutionReverted
 	}
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
 		return nil, ErrMetaInfoNotMature
 	}
 
-	if interpreter.evm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
+	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
 
@@ -829,7 +829,7 @@ func checkModel(interpreter *CVMInterpreter, stack *Stack, modelAddr common.Addr
 
 func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	_modelAddr, _inputHeaderOffset := stack.pop(), stack.pop()
-	inputBuff, inputError := interpreter.evm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
+	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
 	if inputError != nil {
 		return nil, inputError
 	}
@@ -851,7 +851,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 		return nil, errMetaShapeNotMatch
 	}
 
-	output, err := interpreter.evm.InferArray(
+	output, err := interpreter.cvm.InferArray(
 		modelMeta.Hash.Hex(),
 		inputBuff, modelMeta.RawSize)
 
@@ -860,7 +860,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 		return nil, err
 	}
 	//update model status
-	interpreter.evm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.evm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 	// interpreter.intPool.get().SetUint64
 	stack.push((output))
 
@@ -870,7 +870,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 // experimental feature
 func opNNForward(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	_modelAddr, _inputHeaderOffset, _outputOffset := stack.pop(), stack.pop(), stack.pop()
-	inputBuff, inputError := interpreter.evm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
+	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
 	if inputError != nil {
 		return nil, inputError
 	}
@@ -892,7 +892,7 @@ func opNNForward(pc *uint64, interpreter *CVMInterpreter, contract *Contract, me
 		return nil, errMetaShapeNotMatch
 	}
 
-	// label, err := interpreter.evm.InferArray(
+	// label, err := interpreter.cvm.InferArray(
 	// 	modelMeta.Hash.Hex(),
 	// 	contract.Address(),
 	// 	common.BigToHash(_inputHeaderOffset),
@@ -922,17 +922,17 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memor
 		input        = memory.Get(offset.Int64(), size.Int64())
 		gas          = contract.Gas
 	)
-	if interpreter.evm.ChainConfig().IsEIP150(interpreter.evm.BlockNumber) {
+	if interpreter.cvm.ChainConfig().IsEIP150(interpreter.cvm.BlockNumber) {
 		gas -= gas / 64
 	}
 
 	contract.UseGas(gas)
-	res, addr, returnGas, modelGas, suberr := interpreter.evm.Create(contract, input, gas, value)
+	res, addr, returnGas, modelGas, suberr := interpreter.cvm.Create(contract, input, gas, value)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
 	// ignore this error and pretend the operation was successful.
-	if interpreter.evm.ChainConfig().IsHomestead(interpreter.evm.BlockNumber) && suberr == ErrCodeStoreOutOfGas {
+	if interpreter.cvm.ChainConfig().IsHomestead(interpreter.cvm.BlockNumber) && suberr == ErrCodeStoreOutOfGas {
 		stack.push(interpreter.intPool.getZero())
 	} else if suberr != nil && suberr != ErrCodeStoreOutOfGas {
 		stack.push(interpreter.intPool.getZero())
@@ -963,8 +963,8 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memo
 	// Apply EIP150
 	gas -= gas / 64
 	contract.UseGas(gas)
-	res, addr, returnGas, modelGas, suberr := interpreter.evm.Create2(contract, input, gas, endowment, salt)
-	if interpreter.evm.ChainConfig().IsHomestead(interpreter.evm.BlockNumber) && suberr == ErrCodeStoreOutOfGas {
+	res, addr, returnGas, modelGas, suberr := interpreter.cvm.Create2(contract, input, gas, endowment, salt)
+	if interpreter.cvm.ChainConfig().IsHomestead(interpreter.cvm.BlockNumber) && suberr == ErrCodeStoreOutOfGas {
 		stack.push(interpreter.intPool.getZero())
 	} else if suberr != nil && suberr != ErrCodeStoreOutOfGas {
 		stack.push(interpreter.intPool.getZero())
@@ -992,9 +992,9 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memo
 }
 
 func opCall(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas in in interpreter.evm.callGasTemp.
+	// Pop gas. The actual gas in in interpreter.cvm.callGasTemp.
 	interpreter.intPool.put(stack.pop())
-	gas := interpreter.evm.callGasTemp
+	gas := interpreter.cvm.callGasTemp
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.BigToAddress(addr)
@@ -1005,7 +1005,7 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory 
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, modelGas, err := interpreter.evm.Call(contract, toAddr, args, gas, value)
+	ret, returnGas, modelGas, err := interpreter.cvm.Call(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -1025,9 +1025,9 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory 
 }
 
 func opCallCode(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas is in interpreter.evm.callGasTemp.
+	// Pop gas. The actual gas is in interpreter.cvm.callGasTemp.
 	interpreter.intPool.put(stack.pop())
-	gas := interpreter.evm.callGasTemp
+	gas := interpreter.cvm.callGasTemp
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.BigToAddress(addr)
@@ -1038,7 +1038,7 @@ func opCallCode(pc *uint64, interpreter *CVMInterpreter, contract *Contract, mem
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, modelGas, err := interpreter.evm.CallCode(contract, toAddr, args, gas, value)
+	ret, returnGas, modelGas, err := interpreter.cvm.CallCode(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -1057,16 +1057,16 @@ func opCallCode(pc *uint64, interpreter *CVMInterpreter, contract *Contract, mem
 }
 
 func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas is in interpreter.evm.callGasTemp.
+	// Pop gas. The actual gas is in interpreter.cvm.callGasTemp.
 	interpreter.intPool.put(stack.pop())
-	gas := interpreter.evm.callGasTemp
+	gas := interpreter.cvm.callGasTemp
 	// Pop other call parameters.
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.BigToAddress(addr)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, modelGas, err := interpreter.evm.DelegateCall(contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := interpreter.cvm.DelegateCall(contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -1085,16 +1085,16 @@ func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, contract *Contract,
 }
 
 func opStaticCall(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas is in interpreter.evm.callGasTemp.
+	// Pop gas. The actual gas is in interpreter.cvm.callGasTemp.
 	interpreter.intPool.put(stack.pop())
-	gas := interpreter.evm.callGasTemp
+	gas := interpreter.cvm.callGasTemp
 	// Pop other call parameters.
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.BigToAddress(addr)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, modelGas, err := interpreter.evm.StaticCall(contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := interpreter.cvm.StaticCall(contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -1133,10 +1133,10 @@ func opStop(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory 
 }
 
 func opSuicide(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	balance := interpreter.evm.StateDB.GetBalance(contract.Address())
-	interpreter.evm.StateDB.AddBalance(common.BigToAddress(stack.pop()), balance)
+	balance := interpreter.cvm.StateDB.GetBalance(contract.Address())
+	interpreter.cvm.StateDB.AddBalance(common.BigToAddress(stack.pop()), balance)
 
-	interpreter.evm.StateDB.Suicide(contract.Address())
+	interpreter.cvm.StateDB.Suicide(contract.Address())
 	return nil, nil
 }
 
@@ -1152,13 +1152,13 @@ func makeLog(size int) executionFunc {
 		}
 
 		d := memory.Get(mStart.Int64(), mSize.Int64())
-		interpreter.evm.StateDB.AddLog(&types.Log{
+		interpreter.cvm.StateDB.AddLog(&types.Log{
 			Address: contract.Address(),
 			Topics:  topics,
 			Data:    d,
 			// This is a non-consensus field, but assigned here because
 			// core/state doesn't know the current block number.
-			BlockNumber: interpreter.evm.BlockNumber.Uint64(),
+			BlockNumber: interpreter.cvm.BlockNumber.Uint64(),
 		})
 
 		interpreter.intPool.put(mStart, mSize)
@@ -1177,13 +1177,13 @@ func makeLog(size int) executionFunc {
 	} else {
 		topics[3] = common.BigToHash(big.NewInt(0))
 	}
-	interpreter.evm.StateDB.AddLog(&types.Log{
+	interpreter.cvm.StateDB.AddLog(&types.Log{
 		Address: contract.Address(),
 		Topics:  topics,
 		//Data:    nil,
 		// This is a non-consensus field, but assigned here because
 		// core/state doesn't know the current block number.
-		BlockNumber: interpreter.evm.BlockNumber.Uint64(),
+		BlockNumber: interpreter.cvm.BlockNumber.Uint64(),
 		Removed: false,
 	})
 	return nil, nil

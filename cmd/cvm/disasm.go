@@ -29,7 +29,7 @@ import (
 var disasmCommand = cli.Command{
 	Action:    disasmCmd,
 	Name:      "disasm",
-	Usage:     "disassembles evm binary",
+	Usage:     "disassembles cvm binary",
 	ArgsUsage: "<file>",
 }
 

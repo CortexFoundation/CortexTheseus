@@ -42,12 +42,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/dashboard"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/db"
-	"github.com/CortexFoundation/CortexTheseus/stats"
+	// "github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
@@ -200,25 +199,25 @@ var (
 	//	Value: torrentfs.DefaultConfig.DefaultTrackers,
 	//}
 	// Dashboard settings
-	DashboardEnabledFlag = cli.BoolFlag{
-		Name:  metrics.DashboardEnabledFlag,
-		Usage: "Enable the dashboard",
-	}
-	DashboardAddrFlag = cli.StringFlag{
-		Name:  "dashboard.addr",
-		Usage: "Dashboard listening interface",
-		Value: dashboard.DefaultConfig.Host,
-	}
-	DashboardPortFlag = cli.IntFlag{
-		Name:  "dashboard.host",
-		Usage: "Dashboard listening port",
-		Value: dashboard.DefaultConfig.Port,
-	}
-	DashboardRefreshFlag = cli.DurationFlag{
-		Name:  "dashboard.refresh",
-		Usage: "Dashboard metrics collection refresh rate",
-		Value: dashboard.DefaultConfig.Refresh,
-	}
+	// DashboardEnabledFlag = cli.BoolFlag{
+	// 	Name:  metrics.DashboardEnabledFlag,
+	// 	Usage: "Enable the dashboard",
+	// }
+	// DashboardAddrFlag = cli.StringFlag{
+	// 	Name:  "dashboard.addr",
+	// 	Usage: "Dashboard listening interface",
+	// 	Value: dashboard.DefaultConfig.Host,
+	// }
+	// DashboardPortFlag = cli.IntFlag{
+	// 	Name:  "dashboard.host",
+	// 	Usage: "Dashboard listening port",
+	// 	Value: dashboard.DefaultConfig.Port,
+	// }
+	// DashboardRefreshFlag = cli.DurationFlag{
+	// 	Name:  "dashboard.refresh",
+	// 	Usage: "Dashboard metrics collection refresh rate",
+	// 	Value: dashboard.DefaultConfig.Refresh,
+	// }
 		// Transaction pool settings
 	TxPoolLocalsFlag = cli.StringFlag{
 		Name:  "txpool.locals",
@@ -1168,11 +1167,11 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 }
 
 // SetDashboardConfig applies dashboard related command line flags to the config.
-func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
-	cfg.Host = ctx.GlobalString(DashboardAddrFlag.Name)
-	cfg.Port = ctx.GlobalInt(DashboardPortFlag.Name)
-	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
-}
+// func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
+//	cfg.Host = ctx.GlobalString(DashboardAddrFlag.Name)
+//	cfg.Port = ctx.GlobalInt(DashboardPortFlag.Name)
+//	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
+// }
 
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
 func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
@@ -1213,25 +1212,25 @@ func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit stri
 }
 
 // RegisterDashboardService adds a dashboard to the stack.
-func RegisterDashboardService(stack *node.Node, cfg *dashboard.Config, commit string) {
-	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return dashboard.New(cfg, commit, ctx.ResolvePath("logs")), nil
-	})
-}
+// func RegisterDashboardService(stack *node.Node, cfg *dashboard.Config, commit string) {
+// 	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+// 		return dashboard.New(cfg, commit, ctx.ResolvePath("logs")), nil
+// 	})
+// }
 
 // RegisterCortexStatsService configures the Cortex Stats daemon and adds it to
 // the given node.
-func RegisterCortexStatsService(stack *node.Node, url string) {
-	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		// Retrieve both ctxc and les services
-		var ctxcServ *ctxc.Cortex
-		ctx.Service(&ctxcServ)
-
-		return ctxcstats.New(url, ctxcServ)
-	}); err != nil {
-		Fatalf("Failed to register the Cortex Stats service: %v", err)
-	}
-}
+// func RegisterCortexStatsService(stack *node.Node, url string) {
+// 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+// 		// Retrieve both ctxc and les services
+// 		var ctxcServ *ctxc.Cortex
+// 		ctx.Service(&ctxcServ)
+// 
+// 		return ctxcstats.New(url, ctxcServ)
+// 	}); err != nil {
+// 		Fatalf("Failed to register the Cortex Stats service: %v", err)
+// 	}
+// }
 
 func SetupMetrics(ctx *cli.Context) {
 	if metrics.Enabled {
