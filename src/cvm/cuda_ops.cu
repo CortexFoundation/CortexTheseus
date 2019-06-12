@@ -2569,7 +2569,7 @@ __global__ void kernel_take(const int32_t *x_data, const int32_t *indices_data, 
       x_shape_size = (j == yndim-1 ? xshape[k] : x_shape_size * xshape[k]);
     }
 
-    uint64_t x_indices_i = min(max(indices_data[indices_i], 0), (int32_t)xshape[k]);
+    uint64_t x_indices_i = min(max(indices_data[indices_i], 0), (int32_t)xshape[k]-1);
     x_i += (x_shape_size == 0 ? x_indices_i : x_indices_i * x_shape_size);
     x_shape_size = (x_shape_size == 0 ? xshape[k] : x_shape_size * xshape[k]);
     --k;

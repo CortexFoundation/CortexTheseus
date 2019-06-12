@@ -2,6 +2,8 @@ import mxnet as mx
 from mxnet import ndarray as nd
 import numpy as np
 import json
+import os
+
 def save_dict(params, fn, change=False):
     with open(fn, 'w+') as fout:
         fout.write("{")
@@ -18,30 +20,36 @@ def save_dict(params, fn, change=False):
             fout.write("\"%s\": \"%s\"" % (k, v))
         fout.write("}\n")
 
+DIR = "/data/"
+
 def test_concatenate():
     print("test concatenate")
+    tmp_dir = DIR + "concatenate/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/concatenate/in00.npy", a.astype("int32"));
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"));
     b = np.random.randint(low=-127, high=127, size=shape)#np.array([[1,2],[3,4]])
-    np.save("/tmp/concatenate/in01.npy", b.astype("int32"));
+    np.save(tmp_dir + "0/in_1.npy", b.astype("int32"));
     params = {'axis': 0}
-    save_dict(params, "/tmp/concatenate/attr0.txt")
+    save_dict(params, tmp_dir + "0/attr.txt")
     c = np.concatenate((a,b), **params)
-    np.save("/tmp/concatenate/out0.npy", c.astype("int32"));
+    np.save(tmp_dir + "0/out_0.npy", c.astype("int32"));
     print(c.shape)
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/concatenate/in10.npy", a.astype("int32"));
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"));
     b = np.random.randint(low=-127, high=127, size=shape)#np.array([[1,2],[3,4]])
-    np.save("/tmp/concatenate/in11.npy", b.astype("int32"));
+    np.save(tmp_dir + "1/in_1.npy", b.astype("int32"));
     params = {'axis': 1}
     c = np.concatenate((a,b), **params)
-    save_dict(params, "/tmp/concatenate/attr1.txt")
-    np.save("/tmp/concatenate/out1.npy", c.astype("int32"));
+    save_dict(params, tmp_dir + "1/attr.txt")
+    np.save(tmp_dir + "1/out_0.npy", c.astype("int32"));
     print(c.shape)
 
     shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
@@ -575,14 +583,14 @@ def test_conv2d():
 
 
 test_concatenate()
-test_repeat()
-test_tile()
-test_transpose()
-test_strided_slice()
-#test_slice_like()
-test_take()
-test_max()
-test_sum()
-test_upsampling()
-test_elemwise_add()
-#test_conv2d()
+#test_repeat()
+#test_tile()
+#test_transpose()
+#test_strided_slice()
+##test_slice_like()
+#test_take()
+#test_max()
+#test_sum()
+#test_upsampling()
+#test_elemwise_add()
+##test_conv2d()
