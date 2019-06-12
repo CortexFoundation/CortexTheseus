@@ -52,28 +52,30 @@ def test_concatenate():
     np.save(tmp_dir + "1/out_0.npy", c.astype("int32"));
     print(c.shape)
 
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
     shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/concatenate/in20.npy", a.astype("int32"));
+    np.save(tmp_dir + "2/in_0.npy", a.astype("int32"));
     b = np.random.randint(low=-127, high=127, size=shape)#np.array([[1,2],[3,4]])
-    np.save("/tmp/concatenate/in21.npy", b.astype("int32"));
+    np.save(tmp_dir +"2/in_1.npy", b.astype("int32"));
     params = {'axis': 3}
     c = np.concatenate((a,b), **params)
-    save_dict(params, "/tmp/concatenate/attr2.txt")
-    np.save("/tmp/concatenate/out2.npy", c.astype("int32"));
+    save_dict(params, tmp_dir +"2/attr.txt")
+    np.save(tmp_dir +"2/out_0.npy", c.astype("int32"));
     print(c.shape)
 
+    os.makedirs(tmp_dir + "3/", exist_ok=True)
     shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/concatenate/in30.npy", a.astype("int32"));
+    np.save(tmp_dir + "3/in_0.npy", a.astype("int32"));
     b = np.random.randint(low=-127, high=127, size=shape)#np.array([[1,2],[3,4]])
-    np.save("/tmp/concatenate/in31.npy", b.astype("int32"));
+    np.save(tmp_dir + "3/in_1.npy", b.astype("int32"));
     params = {'axis': -1}
     c = np.concatenate((a,b), **params)
-    save_dict(params, "/tmp/concatenate/attr3.txt")
-    np.save("/tmp/concatenate/out3.npy", c.astype("int32"));
+    save_dict(params, tmp_dir + "3/attr.txt")
+    np.save(tmp_dir + "3/out_0.npy", c.astype("int32"));
     print(c.shape)
 
    # c = np.concatenate((a,b), axis=4)
@@ -82,98 +84,110 @@ def test_concatenate():
 
 def test_repeat():
     print("test repeat")
+    tmp_dir = DIR + "repeat/"
 
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/repeat/in00.npy", a.astype("int32"))
+    np.save(tmp_dir +"0/in_0.npy", a.astype("int32"))
     params = {'axis':0, 'repeats':2}
     b = np.repeat(a,**params)
-    save_dict(params, "/tmp/repeat/attr0.txt")
-    np.save("/tmp/repeat/out0.npy", b.astype("int32"))
+    save_dict(params, tmp_dir +"0/attr.txt")
+    np.save(tmp_dir +"0/out_0.npy", b.astype("int32"))
     print(b.shape)
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/repeat/in10.npy", a.astype("int32"))
+    np.save(tmp_dir +"1/in_0.npy", a.astype("int32"))
     params = {'axis':1, 'repeats':3}
     b = np.repeat(a,**params)
-    save_dict(params, "/tmp/repeat/attr1.txt")
-    np.save("/tmp/repeat/out1.npy", b.astype("int32"))
+    save_dict(params, tmp_dir +"1/attr.txt")
+    np.save(tmp_dir +"1/out_0.npy", b.astype("int32"))
     print(b.shape)
 
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
     shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/repeat/in20.npy", a.astype("int32"))
+    np.save(tmp_dir +"2/in_0.npy", a.astype("int32"))
     params = {'axis':3, 'repeats':2}
     b = np.repeat(a,**params)
-    save_dict(params, "/tmp/repeat/attr2.txt")
-    np.save("/tmp/repeat/out2.npy", b.astype("int32"))
+    save_dict(params,tmp_dir + "2/attr.txt")
+    np.save(tmp_dir +"2/out_0.npy", b.astype("int32"))
     print(b.shape)
 
+    os.makedirs(tmp_dir + "3/", exist_ok=True)
     shape = np.random.randint(low=2,high=5, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     print(a)
-    np.save("/tmp/repeat/in30.npy", a.astype("int32"))
+    np.save(tmp_dir +"3/in_0.npy", a.astype("int32"))
     params = {'axis':-1, 'repeats':3}
     b = np.repeat(a,**params)
-    save_dict(params, "/tmp/repeat/attr3.txt")
-    np.save("/tmp/repeat/out3.npy", b.astype("int32"))
+    save_dict(params, tmp_dir +"3/attr.txt")
+    np.save(tmp_dir +"3/out_0.npy", b.astype("int32"))
     print(b.shape)
 
 def test_tile():
     print("test tile")
+    tmp_dir = DIR + "tile/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/tile/in00.npy", a.astype("int32"))
+    np.save(tmp_dir +"0/in_0.npy", a.astype("int32"))
     params = {'reps':[2]}
-    save_dict(params, "/tmp/tile/attr0.txt")
+    save_dict(params, tmp_dir +"0/attr.txt")
     b = np.tile(a, **params)
-    np.save("/tmp/tile/out0.npy", b.astype("int32"))
+    np.save(tmp_dir +"0/out_0.npy", b.astype("int32"))
     print(b.shape)
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/tile/in10.npy", a.astype("int32"))
+    np.save(tmp_dir +"1/in_0.npy", a.astype("int32"))
     params = {'reps':[2, 3]}
-    save_dict(params, "/tmp/tile/attr1.txt")
+    save_dict(params, tmp_dir +"1/attr.txt")
     b = np.tile(a, **params)
-    np.save("/tmp/tile/out1.npy", b.astype("int32"))
+    np.save(tmp_dir +"1/out_0.npy", b.astype("int32"))
     print(b.shape)
 
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
     shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/tile/in20.npy", a.astype("int32"))
+    np.save(tmp_dir +"2/in_0.npy", a.astype("int32"))
     params = {'reps':[2, 3, 1]}
-    save_dict(params, "/tmp/tile/attr2.txt")
+    save_dict(params, tmp_dir +"2/attr.txt")
     b = np.tile(a, **params)
-    np.save("/tmp/tile/out2.npy", b.astype("int32"))
+    np.save(tmp_dir +"2/out_0.npy", b.astype("int32"))
     print(b.shape)
 
+    os.makedirs(tmp_dir + "3/", exist_ok=True)
     shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/tile/in30.npy", a.astype("int32"))
+    np.save(tmp_dir +"3/in_0.npy", a.astype("int32"))
     params = {'reps':[2, 3, 1, 4]}
-    save_dict(params, "/tmp/tile/attr3.txt")
+    save_dict(params,tmp_dir + "3/attr.txt")
     b = np.tile(a, **params)
-    np.save("/tmp/tile/out3.npy", b.astype("int32"))
+    np.save(tmp_dir +"3/out_0.npy", b.astype("int32"))
     print(b.shape)
 
+    os.makedirs(tmp_dir + "4/", exist_ok=True)
     shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/tile/in40.npy", a.astype("int32"))
+    np.save(tmp_dir +"4/in_0.npy", a.astype("int32"))
     params = {'reps':[2, 3, 1, 4, 5]}
-    save_dict(params, "/tmp/tile/attr4.txt")
+    save_dict(params,tmp_dir + "4/attr.txt")
     b = np.tile(a, **params)
-    np.save("/tmp/tile/out4.npy", b.astype("int32"))
+    np.save(tmp_dir +"4/out_0.npy", b.astype("int32"))
     print(b.shape)
 
 def test_transpose():
@@ -267,41 +281,45 @@ def test_strided_slice():
 
 def test_slice_like():
     print("test slice like")
+    tmp_dir = DIR + "slice_like/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=5, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/slice_like/in00.npy", a.astype("int32"))
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"))
     b = np.zeros((4,4,4))
-    np.save("/tmp/slice_like/in01.npy", b.astype("int32"))
+    np.save(tmp_dir + "0/in_1.npy", b.astype("int32"))
     params = {'axes': [2,1]}
-    save_dict(params, "/tmp/slice_like/attr0.txt", change=True)
+    save_dict(params, tmp_dir + "0/attr.txt", change=True)
     c = nd.slice_like(nd.array(a), nd.array(b), **params)
-    np.save("/tmp/slice_like/out0.npy", b.astype("int32"))
+    np.save(tmp_dir + "0/out_0.npy", c.asnumpy().astype("int32"))
     print(c.shape)
-    print(c)
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=5, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/slice_like/in10.npy", a.astype("int32"))
-    b = np.zeros((4,4,4))
-    np.save("/tmp/slice_like/in11.npy", b.astype("int32"))
-    params = {'axes': [0]}
-    save_dict(params, "/tmp/slice_like/attr1.txt", change=True)
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
+    b = np.zeros((1,2))
+    np.save(tmp_dir + "1/in_1.npy", b.astype("int32"))
+    params = {'axes': [0,1]}
+    save_dict(params, tmp_dir + "1/attr.txt", change=True)
     c = nd.slice_like(nd.array(a), nd.array(b), **params)
-    np.save("/tmp/slice_like/out1.npy", b.astype("int32"))
+    np.save(tmp_dir + "1/out_0.npy", c.asnumpy().astype("int32"))
     print(c.shape)
 
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
     shape = np.random.randint(low=5, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/slice_like/in20.npy", a.astype("int32"))
+    np.save(tmp_dir + "2/in_0.npy", a.astype("int32"))
     b = np.zeros((4,4,4))
-    np.save("/tmp/slice_like/in21.npy", b.astype("int32"))
+    np.save(tmp_dir + "2/in_1.npy", b.astype("int32"))
     params = {'axes': [1,2]}
-    save_dict(params, "/tmp/slice_like/attr2.txt", change=True)
+    save_dict(params, tmp_dir + "2/attr.txt", change=True)
     c = nd.slice_like(nd.array(a), nd.array(b), **params)
-    np.save("/tmp/slice_like/out2.npy", b.astype("int32"))
+    np.save(tmp_dir + "2/out_0.npy", c.asnumpy().astype("int32"))
     print(c.shape)
 
 def test_get_valid_counts():
@@ -583,11 +601,11 @@ def test_conv2d():
 
 
 test_concatenate()
-#test_repeat()
-#test_tile()
+test_repeat()
+test_tile()
 #test_transpose()
 #test_strided_slice()
-##test_slice_like()
+test_slice_like()
 #test_take()
 #test_max()
 #test_sum()

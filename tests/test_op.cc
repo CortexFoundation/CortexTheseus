@@ -466,11 +466,11 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
 }
 int main() {
     test_op("concatenate", 2, 1);//pass
-//    test_op("repeat", 1, 1, 4); //pass
-//    test_op("tile", 1, 1, 5); //pass
+    test_op("repeat", 1, 1); //pass
+    test_op("tile", 1, 1); //pass
 //    test_op("transpose", 1, 1, 4);// 5th case failed
 //    test_op("strided_slice", 1, 1, 3); //pass
-////  test_op("slice_like", 2, 1, 1); // pass
+		test_op("slice_like", 2, 1); // pass
 //    test_op("max", 1, 1, 7); // pass
 //    test_op("sum", 1,1,7); // pass
 //    test_op("take", 2, 1, 2);
