@@ -105,8 +105,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 }
 
 func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte)([]byte, error) {
-	var model *kernel.Model 
-	
+	var model *kernel.Model
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		s.caches[s.config.DeviceId] = lru.New(4000000)
 	}
@@ -118,11 +117,10 @@ func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte)([]byte, 
 	} else {
 		model = kernel.New(s.lib, s.config.DeviceId, modelCfg, modelBin)
 		if model == nil {
-			return nil, errors.New("create model error") 
+			return nil, errors.New("create model error")
 		}
 		s.caches[s.config.DeviceId].Add(modelCfg, model, model.Size() / 1000)
 	}
-	
 	return model.Predict(inputContent)
 }
 

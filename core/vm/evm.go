@@ -607,7 +607,6 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
 	}
-	
 	// ret := synapse.ArgMax(inferRes)
 	return inferRes, errRes
 }

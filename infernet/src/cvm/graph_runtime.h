@@ -397,13 +397,14 @@ class CvmRuntime : public ModuleNode {
         reader->Read(&version_);
       } else if (key == "postprocess") {
         reader->Read(&postprocess_method_);
+        bitmask |= 64;
       } else if (key == "metadata") {
         break;
       } else {
         LOG(FATAL) << "key " << key << " is not supported";
       }
     }
-    VERIFY_EQ(bitmask, 1|2|4|8|16) << "invalid format";
+    VERIFY_EQ(bitmask, 1|2|4|8|16|64) << "invalid format";
     VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size());
     for (auto i = 0U; i < nodes_.size(); ++i) {
       if (nodes_[i].op_type != "null") {
@@ -480,7 +481,7 @@ public:
   std::vector<std::function<void()> > op_execs_;
 
   std::string graph_json_;
-  
+
   std::string version_{std::string("cvm_1.0.0")};
 
   std::string postprocess_method_;

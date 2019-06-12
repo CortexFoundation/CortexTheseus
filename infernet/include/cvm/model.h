@@ -53,6 +53,7 @@ public:
 
   std::string GetVersion();
   std::string GetPostprocessMethod();
+  bool SetPostprocessMethod(const string postprocess_method);
 private:
   int SetInput_(string index, DLTensor* input);
   int Run_();
@@ -77,6 +78,7 @@ private:
   int dtype_code{kDLInt};
   int dtype_bits{32};
   int dtype_lanes{1};
+  int32_t input_num_{1};
 };
 
 }
