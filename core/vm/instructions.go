@@ -40,7 +40,7 @@ var (
 	errExecutionReverted     = errors.New("cvm: execution reverted")
 	errMetaInfoBlockNum      = errors.New("cvm: meta info blocknum <= 0")
 	ErrMetaInfoNotMature     = errors.New("cvm: errMetaInfoNotMature")
-	errMetaShapeNotMatch     = errors.New("cvm: model&input shape not matched")
+	errMetaShapeNotMatch     = errors.New("cvm: model and input shape not matched")
 	errMetaInfoExpired       = errors.New("cvm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("cvm: max code size exceeded")
 	errAiRuntime             = errors.New("ai runtime error")
@@ -828,7 +828,8 @@ func checkModel(interpreter *CVMInterpreter, stack *Stack, modelAddr common.Addr
 }
 
 func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	_modelAddr, _inputHeaderOffset := stack.pop(), stack.pop()
+	_modelAddr, _inputHeaderOffset, _outputOffset := stack.pop(), stack.pop(), stack.pop()
+	// fmt.Println(fmt.Sprintf("%d, %d, %d", _modelAddr, _inputHeaderOffset, _outputOffset))
 	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
 	if inputError != nil {
 		return nil, inputError
@@ -839,6 +840,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 
 	modelMeta, modelErr := checkModel(interpreter, stack, modelAddr)
 	if modelErr != nil {
+		stack.push(interpreter.intPool.getZero())
 		return nil, modelErr
 	}
 
@@ -847,23 +849,40 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	for _, modelShape := range modelMeta.InputShape {
 		dataSize *= modelShape
 	}
-	if dataSize != inputSize.Uint64() {
-		return nil, errMetaShapeNotMatch
+	if true {
+		if dataSize != inputSize.Uint64() {
+			stack.push(interpreter.intPool.getZero())
+			return nil, errMetaShapeNotMatch
+		}
 	}
-
-	output, err := interpreter.cvm.InferArray(
-		modelMeta.Hash.Hex(),
-		inputBuff, modelMeta.RawSize)
-
+	var output []byte
+	var err error
+	if false {
+		output, err = make([]byte, 10), nil
+		for idx := 0 ; idx < 10; idx++ {
+			output[idx] = byte(16 + idx)
+		}
+	} else {
+		output, err = interpreter.cvm.InferArray(
+			modelMeta.Hash.Hex(),
+			inputBuff, modelMeta.RawSize)
+		}
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
 	}
+	if interpreter.cvm.vmConfig.DebugInferVM {
+		fmt.Println("output", output)
+	}
+	if err := memory.WriteSolidityUint256Array(_outputOffset.Int64(), output); err != nil {
+		stack.push(interpreter.intPool.getZero())
+		return nil, err
+	}
+	// interpreter.intPool.get().SetUint64
+	stack.push(interpreter.intPool.get().SetUint64(1))
+
 	//update model status
 	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-	// interpreter.intPool.get().SetUint64
-	stack.push((output))
-
 	return nil, nil
 }
 
@@ -904,7 +923,7 @@ func opNNForward(pc *uint64, interpreter *CVMInterpreter, contract *Contract, me
 	}
 	// TODO(tian) flatten output
 	output_placehold_len, _ := memory.GetLengthOfSolidityBytes(_outputOffset.Int64())
-	fmt.Println("output_placehold_len = ", output_placehold_len)
+	// fmt.Println("output_placehold_len = ", output_placehold_len)
 	label := 1
 	output := make([]byte, output_placehold_len)
 	output[label] = 1

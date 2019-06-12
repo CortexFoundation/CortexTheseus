@@ -34,6 +34,7 @@ func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, 
 }
 
 func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+	fmt.Println("synpase: ", s)
 	var (
 	modelHash = strings.ToLower(modelInfoHash[2:])
 	modelDir  = s.config.StorageDir + "/" + modelHash
@@ -138,10 +139,10 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	// Input process
-	if procErr := ProcessImage(inputContent); procErr != nil {
-		errCh <- procErr
-		return
-	}
+	// if procErr := ProcessImage(inputContent); procErr != nil {
+	// 	errCh <- procErr
+	// 	return
+	// }
 
 	// Inference Cache
 	cacheKey := RLPHashString(modelHash + inputHash)

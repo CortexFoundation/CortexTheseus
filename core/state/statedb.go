@@ -311,7 +311,32 @@ func (self *StateDB) GetState(addr common.Address, bhash common.Hash) common.Has
 }
 
 // GetState returns a value in account storage.
+func (self *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]byte, error) {
+	length := self.GetState(addr, slot).Big().Uint64()
+	hash := crypto.Keccak256(slot.Bytes())
+	hashBig := new(big.Int).SetBytes(hash)
+	log.Trace(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, length, hash))
+	// fmt.Println(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, length, hash))
+
+	buffSize := length * 32
+
+	buff := make([]byte, buffSize)
+	var idx int64
+	for idx = 0; idx < int64(length); idx++ {
+		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
+		payload := self.GetState(addr, slotAddr).Bytes()
+		copy(buff[idx * 32:], payload[:])
+		log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
+		// fmt.Println(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
+	}
+	log.Trace2(fmt.Sprintf("data: %v", buff))
+	// fmt.Println(fmt.Sprintf("data: %v", buff))
+	return buff, nil
+}
+
+// GetState returns a value in account storage.
 func (self *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byte, error) {
+	return self.GetSolidityUint256(addr, slot)
 	pos := self.GetState(addr, slot).Big().Uint64()
 	cont := pos % 2
 	length := pos / 2

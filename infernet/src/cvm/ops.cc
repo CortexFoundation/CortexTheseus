@@ -1928,7 +1928,7 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
         wn *= indices->shape[i];
       auto indices_data = static_cast<int32_t*>(indices->data);
       for (int row = 0; row < wn; row++) {
-        uint64_t x_indices_i = std::min(std::max(indices_data[row], 0), wn);
+        uint64_t x_indices_i = std::min(std::max(indices_data[row], 0), wn - 1);
         memcpy(y_data +  row * K, x_data + x_indices_i * K, K * sizeof(int32_t));
       }
     }

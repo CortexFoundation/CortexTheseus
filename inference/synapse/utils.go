@@ -65,14 +65,15 @@ func ReadImage(inputFilePath string) ([]byte, error) {
 	return data, nil
 }
 
-func ProcessImage(data []byte) error {
-	// Infer data must between [0, 127)
-	for i, v := range data {
-		data[i] = uint8(v) / 2
-	}
-
-	return nil
-}
+// func ProcessImage(data []byte) error {
+// 	return nil
+// 	// Infer data must between [0, 127)
+// 	for i, v := range data {
+// 		data[i] = uint8(v) / 2
+// 	}
+// 
+// 	return nil
+// }
 
 func RLPHashString(x interface{}) string {
 	var h common.Hash

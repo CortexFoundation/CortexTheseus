@@ -5,6 +5,7 @@ import (
 	"strings"
 	"strconv"
 	"sync"
+	"fmt"
 	"plugin"
 //	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -76,6 +77,9 @@ func New(config *Config) *Synapse {
 
 	if synapseInstance != nil {
 		log.Warn("Synapse Engine has been initalized")
+		if (config.Debug) {
+			fmt.Println("Synapse Engine has been initalized")
+		}
 		return synapseInstance
 	}
 
@@ -84,6 +88,9 @@ func New(config *Config) *Synapse {
 		lib, err = plugin.Open(PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX)
 		if err != nil {
 			log.Error("infer helper", "init cvm plugin error", err)
+			if (config.Debug) {
+				fmt.Println("infer helper", "init cvm plugin error", err)
+			}
 			return nil
 		}
 		if (lib == nil) {
