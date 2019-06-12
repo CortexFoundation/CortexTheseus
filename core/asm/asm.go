@@ -1,20 +1,20 @@
-// Copyright 2017 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2017 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
-// Provides support for dealing with EVM assembly instructions (e.g., disassembling them).
+// Provides support for dealing with CVM assembly instructions (e.g., disassembling them).
 package asm
 
 import (
@@ -24,7 +24,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 )
 
-// Iterator for disassembled EVM instructions
+// Iterator for disassembled CVM instructions
 type instructionIterator struct {
 	code    []byte
 	pc      uint64
@@ -99,7 +99,7 @@ func (it *instructionIterator) Arg() []byte {
 	return it.arg
 }
 
-// Pretty-print all disassembled EVM instructions to stdout.
+// Pretty-print all disassembled CVM instructions to stdout.
 func PrintDisassembled(code string) error {
 	script, err := hex.DecodeString(code)
 	if err != nil {
@@ -117,7 +117,7 @@ func PrintDisassembled(code string) error {
 	return it.Error()
 }
 
-// Return all disassembled EVM instructions in human-readable format.
+// Return all disassembled CVM instructions in human-readable format.
 func Disassemble(script []byte) ([]string, error) {
 	instrs := make([]string, 0)
 

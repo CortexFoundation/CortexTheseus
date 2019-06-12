@@ -1,18 +1,18 @@
-// Copyright 2017 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2017 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package tracers
 
@@ -161,18 +161,18 @@ func TestCallTracer(t *testing.T) {
 			}
 			statedb := tests.MakePreState(ctxcdb.NewMemDatabase(), test.Genesis.Alloc)
 
-			// Create the tracer, the EVM environment and run it
+			// Create the tracer, the CVM environment and run it
 			tracer, err := New("callTracer")
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+			cvm := vm.NewCVM(context, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
 
 			msg, err := tx.AsMessage(signer)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
 			}
-			st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
+			st := core.NewStateTransition(cvm, msg, new(core.GasPool).AddGas(tx.Gas()))
 			if _, _, _, err = st.TransitionDb(); err != nil {
 				t.Fatalf("failed to execute transaction: %v", err)
 			}

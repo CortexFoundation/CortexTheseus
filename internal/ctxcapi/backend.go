@@ -1,18 +1,18 @@
-// Copyright 2015 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2015 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package ctxcapi implements the general Cortex API functions.
 package ctxcapi
@@ -53,7 +53,7 @@ type Backend interface {
 	GetBlock(ctx context.Context, blockHash common.Hash) (*types.Block, error)
 	GetReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error)
 	GetTd(blockHash common.Hash) *big.Int
-	GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error)
+	GetCVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.CVM, func() error, error)
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 	SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) event.Subscription

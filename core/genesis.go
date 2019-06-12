@@ -1,18 +1,18 @@
-// Copyright 2014 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2014 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -348,7 +348,7 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 		ExtraData:  hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   4700000,
 		Difficulty: big.NewInt(1),
-		Alloc:      decodePrealloc(rinkebyAllocData),
+		// Alloc:      decodePrealloc(rinkebyAllocData),
 	}
 }
 

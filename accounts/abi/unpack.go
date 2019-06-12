@@ -1,18 +1,18 @@
-// Copyright 2017 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2017 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package abi
 
@@ -56,7 +56,7 @@ func readInteger(typ byte, kind reflect.Kind, b []byte) interface{} {
 	default:
 		// the only case lefts for integer is int256/uint256.
 		// big.SetBytes can't tell if a number is negative, positive on itself.
-		// On EVM, if the returned number > max int256, it is negative.
+		// On CVM, if the returned number > max int256, it is negative.
 		ret := new(big.Int).SetBytes(b)
 		if typ == UintTy {
 			return ret

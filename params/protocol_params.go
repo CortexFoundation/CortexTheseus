@@ -1,18 +1,18 @@
-// Copyright 2015 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2015 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package params
 
@@ -94,7 +94,7 @@ const (
 
 var (
 	DifficultyBoundDivisor = big.NewInt(2) // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(512) // Difficulty of the Genesis block.
+	GenesisDifficulty      = big.NewInt(2) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(2) // The minimum that the difficulty may ever be.
 
 	MeanDifficultyBoundDivisor = big.NewInt(1024)

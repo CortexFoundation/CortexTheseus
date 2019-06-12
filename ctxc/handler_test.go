@@ -1,18 +1,18 @@
-// Copyright 2015 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2015 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package ctxc
 
@@ -466,7 +466,7 @@ func testDAOChallenge(t *testing.T, localForked, remoteForked bool, timeout bool
 	}
 	// Create a DAO aware protocol manager
 	var (
-		evmux         = new(event.TypeMux)
+		cvmux         = new(event.TypeMux)
 		pow           = cuckoo.NewFaker()
 		db            = ctxcdb.NewMemDatabase()
 		config        = &params.ChainConfig{DAOForkBlock: big.NewInt(1), DAOForkSupport: localForked}
@@ -474,7 +474,7 @@ func testDAOChallenge(t *testing.T, localForked, remoteForked bool, timeout bool
 		genesis       = gspec.MustCommit(db)
 		blockchain, _ = core.NewBlockChain(db, nil, config, pow, vm.Config{})
 	)
-	pm, err := NewProtocolManager(config, downloader.FullSync, DefaultConfig.NetworkId, evmux, new(testTxPool), pow, blockchain, db)
+	pm, err := NewProtocolManager(config, downloader.FullSync, DefaultConfig.NetworkId, cvmux, new(testTxPool), pow, blockchain, db)
 	if err != nil {
 		t.Fatalf("failed to start test protocol manager: %v", err)
 	}

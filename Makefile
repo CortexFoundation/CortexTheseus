@@ -2,7 +2,7 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-.PHONY: geth android ios geth-cross evm all test clean
+.PHONY: geth android ios geth-cross cvm all test clean
 .PHONY: geth-linux geth-linux-386 geth-linux-amd64 geth-linux-mips64 geth-linux-mips64le
 .PHONY: geth-linux-arm geth-linux-arm-5 geth-linux-arm-6 geth-linux-arm-7 geth-linux-arm64
 .PHONY: geth-darwin geth-darwin-386 geth-darwin-amd64
@@ -53,10 +53,10 @@ cortex-nominer: clib
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 	mv ./build/bin/cortex ./build/bin/cortex-nominer
 
-evm:
-	build/env.sh go run build/ci.go install ./cmd/evm
+cvm:
+	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/evm\" to launch cortex vm."
+	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
 
 cuckoo-miner: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner

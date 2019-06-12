@@ -1,18 +1,18 @@
-// Copyright 2015 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2015 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package tests
 
@@ -63,7 +63,7 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	}
 	t.Error(err)
 	if gasLimit > traceErrorLimit {
-		t.Log("gas limit too high for EVM trace")
+		t.Log("gas limit too high for CVM trace")
 		return
 	}
 	tracer := vm.NewStructLogger(nil)
@@ -74,10 +74,10 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	buf := new(bytes.Buffer)
 	vm.WriteTrace(buf, tracer.StructLogs())
 	if buf.Len() == 0 {
-		t.Log("no EVM operation logs generated")
+		t.Log("no CVM operation logs generated")
 	} else {
-		t.Log("EVM operation log:\n" + buf.String())
+		t.Log("CVM operation log:\n" + buf.String())
 	}
-	t.Logf("EVM output: 0x%x", tracer.Output())
-	t.Logf("EVM error: %v", tracer.Error())
+	t.Logf("CVM output: 0x%x", tracer.Output())
+	t.Logf("CVM error: %v", tracer.Error())
 }

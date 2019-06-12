@@ -3,6 +3,7 @@ package synapse
 import (
 	"os"
 	"strings"
+	"strconv"
 	"sync"
 	"plugin"
 //	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
@@ -40,6 +41,7 @@ type Config struct {
 	DeviceId      int       `toml:",omitempty"`
 	IsRemoteInfer bool      `toml:",omitempty"`
 	InferURI      string    `toml:",omitempty"`
+	Debug					bool			`toml:",omitempty"`
 }
 
 var DefaultConfig Config = Config{
@@ -49,6 +51,7 @@ var DefaultConfig Config = Config{
 	DeviceId      : 0,
 	IsRemoteInfer : false,
 	InferURI      : "",
+	Debug         : false,
 }
 
 type Synapse struct {
@@ -81,10 +84,12 @@ func New(config *Config) *Synapse {
 		lib, err = plugin.Open(PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX)
 		if err != nil {
 			log.Error("infer helper", "init cvm plugin error", err)
-			return nil         
-		}	
+			return nil
+		}
 	}
-
+	if (lib == nil) {
+		panic ("lib_path = " + PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX + " config.IsRemoteInfer = " + strconv.FormatBool(config.IsRemoteInfer))
+	}
 	synapseInstance = &Synapse{
 		config: config,
 		lib: lib,

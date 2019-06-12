@@ -1,18 +1,18 @@
-// Copyright 2015 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2015 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package tests
 
@@ -33,7 +33,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
-// VMTest checks EVM execution without block or transaction context.
+// VMTest checks CVM execution without block or transaction context.
 // See https://github.com/cortex/tests/wiki/VM-Tests for the test format specification.
 type VMTest struct {
 	json vmJSON
@@ -115,12 +115,12 @@ func (t *VMTest) Run(vmconfig vm.Config) error {
 }
 
 func (t *VMTest) exec(statedb *state.StateDB, vmconfig vm.Config) ([]byte, uint64, map[common.Address]uint64, error) {
-	evm := t.newEVM(statedb, vmconfig)
+	cvm := t.newCVM(statedb, vmconfig)
 	e := t.json.Exec
-	return evm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.GasLimit, e.Value)
+	return cvm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.GasLimit, e.Value)
 }
 
-func (t *VMTest) newEVM(statedb *state.StateDB, vmconfig vm.Config) *vm.EVM {
+func (t *VMTest) newCVM(statedb *state.StateDB, vmconfig vm.Config) *vm.CVM {
 	initialCall := true
 	canTransfer := func(db vm.StateDB, address common.Address, amount *big.Int) bool {
 		if initialCall {
@@ -143,7 +143,7 @@ func (t *VMTest) newEVM(statedb *state.StateDB, vmconfig vm.Config) *vm.EVM {
 		GasPrice:    t.json.Exec.GasPrice,
 	}
 	vmconfig.NoRecursion = true
-	return vm.NewEVM(context, statedb, params.MainnetChainConfig, vmconfig)
+	return vm.NewCVM(context, statedb, params.MainnetChainConfig, vmconfig)
 }
 
 func vmTestBlockHash(n uint64) common.Hash {

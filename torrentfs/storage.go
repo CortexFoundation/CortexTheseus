@@ -156,7 +156,7 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 	hash := strings.ToLower(string(md5.Hex()[2:]))
 	torrentDir := dataDir + "/" + hash
 	torrentFilePath := torrentDir + "/torrent"
-
+	log.Debug("tf", "torrentFilePath", torrentFilePath, "datadir", dataDir, "hash", hash)
 	if _, fsErr := os.Stat(torrentFilePath); os.IsNotExist(fsErr) {
 		log.Warn("Torrent dir not exist", "dir", dataDir, "md5", md5.Hex(), "rawSize", rawSize)
 		return false

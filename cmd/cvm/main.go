@@ -1,20 +1,20 @@
-// Copyright 2014 The go-cortex Authors
-// This file is part of go-cortex.
+// Copyright 2014 The CortexFoundation Authors
+// This file is part of CortexFoundation.
 //
-// go-cortex is free software: you can redistribute it and/or modify
+// CortexFoundation is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-cortex is distributed in the hope that it will be useful,
+// CortexFoundation is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexFoundation. If not, see <http://www.gnu.org/licenses/>.
 
-// evm executes EVM code snippets.
+// cvm executes CVM code snippets.
 package main
 
 import (
@@ -29,7 +29,7 @@ import (
 var gitCommit = "" // Git SHA1 commit hash of the release (set via linker flags)
 
 var (
-	app = utils.NewApp(gitCommit, "the evm command line interface")
+	app = utils.NewApp(gitCommit, "the cvm command line interface")
 
 	DebugFlag = cli.BoolFlag{
 		Name:  "debug",
@@ -49,25 +49,25 @@ var (
 	}
 	CodeFlag = cli.StringFlag{
 		Name:  "code",
-		Usage: "EVM code",
+		Usage: "CVM code",
 	}
 	CodeFileFlag = cli.StringFlag{
 		Name:  "codefile",
-		Usage: "File containing EVM code. If '-' is specified, code is read from stdin ",
+		Usage: "File containing CVM code. If '-' is specified, code is read from stdin ",
 	}
 	GasFlag = cli.Uint64Flag{
 		Name:  "gas",
-		Usage: "gas limit for the evm",
+		Usage: "gas limit for the cvm",
 		Value: 10000000000,
 	}
 	PriceFlag = utils.BigFlag{
 		Name:  "price",
-		Usage: "price set for the evm",
+		Usage: "price set for the cvm",
 		Value: new(big.Int),
 	}
 	ValueFlag = utils.BigFlag{
 		Name:  "value",
-		Usage: "value set for the evm",
+		Usage: "value set for the cvm",
 		Value: new(big.Int),
 	}
 	DumpFlag = cli.BoolFlag{
@@ -76,7 +76,7 @@ var (
 	}
 	InputFlag = cli.StringFlag{
 		Name:  "input",
-		Usage: "input for the EVM",
+		Usage: "input for the CVM",
 	}
 	VerbosityFlag = cli.IntFlag{
 		Name:  "verbosity",
@@ -127,6 +127,11 @@ var (
 		Name:  "storagedir",
 		Usage: "storage address for model and data",
 	}
+	BlockNumber = cli.IntFlag{
+		Name:  "blocknumber",
+		Usage: "current block number",
+		Value: 0,
+	}
 )
 
 func init() {
@@ -154,13 +159,13 @@ func init() {
 		ParseModelMetaFlag,
 		InferURI,
 		StorageDir,
+		BlockNumber,
 	}
 	app.Commands = []cli.Command{
-		compileCommand,
-		disasmCommand,
+		// disasmCommand,
 		runCommand,
-		extCommand,
-		stateTestCommand,
+		// extCommand,
+		// stateTestCommand,
 	}
 }
 

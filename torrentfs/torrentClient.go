@@ -77,11 +77,8 @@ func (t *Torrent) Paused() bool {
 // Run ...
 func (t *Torrent) Run() {
 	if t.status != torrentRunning {
-		go func() {
-			<-t.Torrent.GotInfo()
-			t.Torrent.DownloadAll()
-			t.status = torrentRunning
-		}()
+		t.Torrent.DownloadAll()
+		t.status = torrentRunning
 		//t.DownloadAll()
 		//t.status = torrentRunning
 	} else {
@@ -269,7 +266,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		}
 		//tm.mu.Unlock()
 		log.Debug("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
-		//<-t.GotInfo()
+		<-t.GotInfo()
 		tm.torrents[ih].Run()
 	}
 }
@@ -320,7 +317,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	log.Debug("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 
 	log.Debug("Torrent gotInfo finished", "InfoHash", ih.HexString())
-	//<-t.GotInfo()
+	<-t.GotInfo()
 	tm.torrents[ih].Run()
 
 	f, _ := os.Create(torrentPath)
@@ -469,7 +466,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.bytesMissing = t.BytesMissing()
 				if t.bytesMissing == 0 {
 					os.Symlink(
-						path.Join(tm.TmpDataDir, ih.HexString()),
+						path.Join(defaultTmpFilePath, ih.HexString()),
 						path.Join(tm.DataDir, ih.HexString()),
 					)
 					t.Seed()

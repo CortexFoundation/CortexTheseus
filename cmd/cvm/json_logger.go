@@ -1,18 +1,18 @@
-// Copyright 2017 The go-cortex Authors
-// This file is part of go-cortex.
+// Copyright 2017 The CortexFoundation Authors
+// This file is part of CortexFoundation.
 //
-// go-cortex is free software: you can redistribute it and/or modify
+// CortexFoundation is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-cortex is distributed in the hope that it will be useful,
+// CortexFoundation is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-cortex. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexFoundation. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -32,7 +32,7 @@ type JSONLogger struct {
 	cfg     *vm.LogConfig
 }
 
-// NewJSONLogger creates a new EVM tracer that prints execution steps as JSON objects
+// NewJSONLogger creates a new CVM tracer that prints execution steps as JSON objects
 // into the provided stream.
 func NewJSONLogger(cfg *vm.LogConfig, writer io.Writer) *JSONLogger {
 	return &JSONLogger{json.NewEncoder(writer), cfg}
@@ -43,7 +43,7 @@ func (l *JSONLogger) CaptureStart(from common.Address, to common.Address, create
 }
 
 // CaptureState outputs state information on the logger.
-func (l *JSONLogger) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, contract *vm.Contract, depth int, err error) error {
+func (l *JSONLogger) CaptureState(env *vm.CVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, contract *vm.Contract, depth int, err error) error {
 	log := vm.StructLog{
 		Pc:         pc,
 		Op:         op,
@@ -64,7 +64,7 @@ func (l *JSONLogger) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cos
 }
 
 // CaptureFault outputs state information on the logger.
-func (l *JSONLogger) CaptureFault(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, contract *vm.Contract, depth int, err error) error {
+func (l *JSONLogger) CaptureFault(env *vm.CVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, contract *vm.Contract, depth int, err error) error {
 	return nil
 }
 

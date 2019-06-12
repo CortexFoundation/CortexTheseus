@@ -1,18 +1,18 @@
-// Copyright 2016 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2016 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 // +build none
 
@@ -75,7 +75,7 @@ var (
 		executablePath("abigen"),
 		executablePath("bootnode"),
 		executablePath("torrentfs"),
-		executablePath("evm"),
+		executablePath("cvm"),
 		executablePath("miner"),
 		executablePath("cortex"),
 		executablePath("rlpdump"),
@@ -97,12 +97,12 @@ var (
                         Description: "Cortex torrentfs.",
                 },
 		{
-			BinaryName:  "evm",
-			Description: "Developer utility version of the EVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+			BinaryName:  "cvm",
+			Description: "Developer utility version of the CVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
 			BinaryName:  "cortex-remote",
-			Description: "Developer utility version of the EVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+			Description: "Developer utility version of the CVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
 			BinaryName:  "miner",
@@ -213,7 +213,7 @@ func doInstall(cmdline []string) {
 
 		if minor < 9 {
 			log.Println("You have Go version", runtime.Version())
-			log.Println("go-cortex requires at least Go version 1.9 and cannot")
+			log.Println("CortexFoundation requires at least Go version 1.9 and cannot")
 			log.Println("be compiled with an earlier version. Please upgrade your Go installation.")
 			os.Exit(1)
 		}
@@ -564,7 +564,7 @@ type debMetadata struct {
 
 	PackageName string
 
-	// go-cortex version being built. Note that this
+	// CortexFoundation version being built. Note that this
 	// is not the debian package version. The package version
 	// is constructed by VersionString.
 	Version string

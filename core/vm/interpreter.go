@@ -1,18 +1,18 @@
-// Copyright 2014 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2014 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
@@ -49,7 +49,7 @@ type Config struct {
 	NoRecursion bool
 	// Enable recording of SHA3/keccak preimages
 	EnablePreimageRecording bool
-	// JumpTable contains the EVM instruction table. This
+	// JumpTable contains the CVM instruction table. This
 	// may be left uninitialised and will be set to the default
 	// table.
 	JumpTable [256]operation
@@ -60,6 +60,7 @@ type Config struct {
 
 	// opCall flag
 	CallFakeVM bool
+	DebugInferVM bool
 	StorageDir string
 }
 
@@ -90,9 +91,9 @@ type Interpreter interface {
 	CanRun([]byte) bool
 }
 
-// EVMInterpreter represents an EVM interpreter
-type EVMInterpreter struct {
-	evm      *EVM
+// CVMInterpreter represents an CVM interpreter
+type CVMInterpreter struct {
+	cvm      *CVM
 	cfg      Config
 	gasTable params.GasTable
 	intPool  *intPool
@@ -101,33 +102,33 @@ type EVMInterpreter struct {
 	returnData []byte // Last CALL's return data for subsequent reuse
 }
 
-// NewEVMInterpreter returns a new instance of the Interpreter.
-func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
+// NewCVMInterpreter returns a new instance of the Interpreter.
+func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	// We use the STOP instruction whether to see
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
 	if !cfg.JumpTable[STOP].valid {
 		switch {
-		case evm.ChainConfig().IsConstantinople(evm.BlockNumber):
+		case cvm.ChainConfig().IsConstantinople(cvm.BlockNumber):
 			cfg.JumpTable = constantinopleInstructionSet
-		case evm.ChainConfig().IsByzantium(evm.BlockNumber):
+		case cvm.ChainConfig().IsByzantium(cvm.BlockNumber):
 			cfg.JumpTable = byzantiumInstructionSet
-		case evm.ChainConfig().IsHomestead(evm.BlockNumber):
+		case cvm.ChainConfig().IsHomestead(cvm.BlockNumber):
 			cfg.JumpTable = homesteadInstructionSet
 		default:
 			cfg.JumpTable = frontierInstructionSet
 		}
 	}
 
-	return &EVMInterpreter{
-		evm:      evm,
+	return &CVMInterpreter{
+		cvm:      cvm,
 		cfg:      cfg,
-		gasTable: evm.ChainConfig().GasTable(evm.BlockNumber),
+		gasTable: cvm.ChainConfig().GasTable(cvm.BlockNumber),
 	}
 }
 
-func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
-	if in.evm.chainRules.IsByzantium {
+func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
+	if in.cvm.chainRules.IsByzantium {
 		if in.readOnly {
 			// If the interpreter is operating in readonly mode, make sure no
 			// state-modifying operation is performed. The 3rd stack item
@@ -168,7 +169,7 @@ func IsInputMeta(code []byte) bool {
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
-func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	if in.intPool == nil {
 		in.intPool = poolOfIntPools.get()
 		defer func() {
@@ -178,8 +179,8 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	// Increment the call depth which is restricted to 1024
-	in.evm.depth++
-	defer func() { in.evm.depth-- }()
+	in.cvm.depth++
+	defer func() { in.cvm.depth-- }()
 
 	// Make sure the readOnly is only set if we aren't in readOnly yet.
 	// This makes also sure that the readOnly flag isn't removed for child calls.
@@ -198,7 +199,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	if IsModelMeta(contract.Code) {
-		if in.evm.vmConfig.RPC_GetInternalTransaction {
+		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
 		}
 
@@ -226,9 +227,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					//}
 
 					if modelMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
-						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+						//in.cvm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 					} else {
-						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
+						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 					}
 				} else {
 					return nil, ErrInvalidMetaRawSize
@@ -254,15 +255,15 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 				modelMeta.Hash = common.HexToAddress(spec.InfoHash.HexString())
 
-				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
-				modelMeta.SetBlockNum(*in.evm.BlockNumber)
+				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
+				modelMeta.SetBlockNum(*in.cvm.BlockNumber)
 				tmpCode, err := modelMeta.ToBytes()
 				if err != nil {
 					return nil, err
 				} else {
 					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
-				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "uri", modelMeta.URI, "number", in.evm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
+				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "uri", modelMeta.URI, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
 			} else {
 				//log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
 			}
@@ -272,7 +273,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	if IsInputMeta(contract.Code) {
-		if in.evm.vmConfig.RPC_GetInternalTransaction {
+		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
 		}
 
@@ -290,16 +291,16 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				//}
 				if inputMeta.RawSize > 0 { //&& inputMeta.RawSize <= params.MaxRawSize {
 					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
-						//in.evm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
+						//in.cvm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 					} else {
-						in.evm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
+						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 					}
 				} else {
 					return nil, ErrInvalidMetaRawSize
 				}
 
-				inputMeta.SetBlockNum(*in.evm.BlockNumber)
-				in.evm.StateDB.SetNum(contract.Address(), in.evm.BlockNumber)
+				inputMeta.SetBlockNum(*in.cvm.BlockNumber)
+				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
 				tmpCode, err := inputMeta.ToBytes()
 				if err != nil {
 					return nil, err
@@ -338,9 +339,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.evm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
+					in.cfg.Tracer.CaptureState(in.cvm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.cvm.depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.evm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
+					in.cfg.Tracer.CaptureFault(in.cvm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.cvm.depth, err)
 				}
 			}
 		}()
@@ -354,7 +355,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	res := make([]byte, 10)
-	for atomic.LoadInt32(&in.evm.abort) == 0 {
+	for atomic.LoadInt32(&in.cvm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
@@ -390,10 +391,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			}
 		}
 
-		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
+		if (in.cvm.vmConfig.DebugInferVM) {
+			fmt.Println("gasCost: ",  cost, err)
+		}
 		if op.IsInfer() {
 			var model_meta_err error
-			modelMeta, model_meta_err := in.evm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			modelMeta, model_meta_err := in.cvm.GetModelMeta(common.BigToAddress(stack.Back(0)))
 			if model_meta_err != nil {
 				return nil, model_meta_err
 			}
@@ -413,7 +417,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method can get the proper cost
-		//cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		//cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
 
 		//if err != nil || !contract.UseGas(cost) {
 		//	return nil, ErrOutOfGas
@@ -423,13 +427,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
+			in.cfg.Tracer.CaptureState(in.cvm, pc, op, gasCopy, cost, mem, stack, contract, in.cvm.depth, err)
 			logged = true
 		}
 
 		// execute the operation
 		ret, err = operation.execute(&pc, in, contract, mem, stack)
-		if in.evm.vmConfig.RPC_GetInternalTransaction {
+		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			if op == CALL {
 				res = append(res, ret...)
 			}
@@ -463,6 +467,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
-func (in *EVMInterpreter) CanRun(code []byte) bool {
+func (in *CVMInterpreter) CanRun(code []byte) bool {
 	return true
 }

@@ -1,22 +1,22 @@
-// Copyright 2016 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2016 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package bind generates Cortex contract Go bindings.
 //
-// Detailed usage document and tutorial available on the go-cortex Wiki page:
+// Detailed usage document and tutorial available on the CortexFoundation Wiki page:
 // https://github.com/CortexFoundation/CortexTheseus/wiki/Native-DApps:-Go-bindings-to-Cortex-contracts
 package bind
 
@@ -51,7 +51,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 
 	for i := 0; i < len(types); i++ {
 		// Parse the actual ABI to generate the binding for
-		evmABI, err := abi.JSON(strings.NewReader(abis[i]))
+		cvmABI, err := abi.JSON(strings.NewReader(abis[i]))
 		if err != nil {
 			return "", err
 		}
@@ -69,7 +69,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 			transacts = make(map[string]*tmplMethod)
 			events    = make(map[string]*tmplEvent)
 		)
-		for _, original := range evmABI.Methods {
+		for _, original := range cvmABI.Methods {
 			// Normalize the method for capital cases and non-anonymous inputs/outputs
 			normalized := original
 			normalized.Name = methodNormalizer[lang](original.Name)
@@ -95,7 +95,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 				transacts[original.Name] = &tmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
 			}
 		}
-		for _, original := range evmABI.Events {
+		for _, original := range cvmABI.Events {
 			// Skip anonymous events as they don't support explicit filtering
 			if original.Anonymous {
 				continue
@@ -121,7 +121,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 			Type:        capitalise(types[i]),
 			InputABI:    strings.Replace(strippedABI, "\"", "\\\"", -1),
 			InputBin:    strings.TrimSpace(bytecodes[i]),
-			Constructor: evmABI.Constructor,
+			Constructor: cvmABI.Constructor,
 			Calls:       calls,
 			Transacts:   transacts,
 			Events:      events,

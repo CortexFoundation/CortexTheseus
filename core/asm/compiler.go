@@ -1,18 +1,18 @@
-// Copyright 2017 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2017 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package asm
 
@@ -84,11 +84,11 @@ func (c *Compiler) Feed(ch <-chan token) {
 }
 
 // Compile compiles the current tokens and returns a
-// binary string that can be interpreted by the EVM
+// binary string that can be interpreted by the CVM
 // and an error if it failed.
 //
 // compile is the second stage in the compile phase
-// which compiles the tokens to EVM instructions.
+// which compiles the tokens to CVM instructions.
 func (c *Compiler) Compile() (string, []error) {
 	var errors []error
 	// continue looping over the tokens until

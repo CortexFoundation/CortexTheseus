@@ -1,18 +1,18 @@
-// Copyright 2016 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2016 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package cortex defines interfaces for interacting with Cortex.
 package cortex
@@ -123,7 +123,7 @@ type CallMsg struct {
 }
 
 // A ContractCaller provides contract calls, essentially transactions that are executed by
-// the EVM but not mined into the blockchain. ContractCall is a low-level method to
+// the CVM but not mined into the blockchain. ContractCall is a low-level method to
 // execute such calls. For applications which are structured around specific contracts,
 // the abigen tool provides a nicer, properly typed way to perform calls.
 type ContractCaller interface {

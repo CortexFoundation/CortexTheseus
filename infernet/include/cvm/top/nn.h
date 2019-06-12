@@ -265,38 +265,6 @@ struct MaxPool2DParam : public utils::Parameter<MaxPool2DParam> {
   }
 };
 
-/*
-struct AvgPool2DParam : public utils::Parameter<AvgPool2DParam> {
-  TShape pool_size;
-  TShape strides;
-  TShape padding;
-  std::string layout;
-  bool ceil_mode;
-  bool count_include_pad;
-
-  CVMUTIL_DECLARE_PARAMETER(AvgPool2DParam) {
-    CVMUTIL_DECLARE_FIELD(pool_size)
-      .describe("Size of the pooling windows..");
-    CVMUTIL_DECLARE_FIELD(strides).set_default(TShape({1, 1}))
-      .describe("Specifies the strides of the convolution.");
-    CVMUTIL_DECLARE_FIELD(padding).set_default(TShape({0, 0}))
-      .describe("If padding is non-zero, then the input is implicitly zero-padded"
-                "Padding support both symmetric and asymmetric as"
-                "one int : same padding used on all sides"
-                "two int : bottom, right will use same padding as top, left"
-                "four int : padding width in the order of (top, left, bottom, right)");
-    CVMUTIL_DECLARE_FIELD(layout).set_default("NCHW")
-      .describe("Dimension ordering of data and weight. Can be 'NCHW', 'NHWC', etc."
-                "'N', 'C', 'H', 'W' stands for batch, channel, height, and width"
-                "dimensions respectively. Convolution is applied on the 'H' and"
-                "'W' dimensions.");
-    CVMUTIL_DECLARE_FIELD(ceil_mode).set_default(false)
-      .describe("When true, will use ceil instead of floor to compute the output shape.");
-    CVMUTIL_DECLARE_FIELD(count_include_pad).set_default(false)
-      .describe("When true, will include padding to compute the average");
-  }
-};
-*/
 struct GlobalPool2DParam : public utils::Parameter<GlobalPool2DParam> {
   std::string layout;
 
@@ -356,9 +324,9 @@ struct NonMaximumSuppressionParam : public utils::Parameter<NonMaximumSuppressio
       .describe("Index of the scores/confidence of boxes.");
     CVMUTIL_DECLARE_FIELD(id_index).set_default(0)
       .describe("Axis index of id.");
-    CVMUTIL_DECLARE_FIELD(return_indices).set_default(true)
+    CVMUTIL_DECLARE_FIELD(return_indices).set_default(false)
       .describe("Whether to return box indices in input data.");
-    CVMUTIL_DECLARE_FIELD(invalid_to_bottom).set_default(false)
+    CVMUTIL_DECLARE_FIELD(invalid_to_bottom).set_default(true)
       .describe("Whether to move all invalid bounding boxes to the bottom.");
   }
 };

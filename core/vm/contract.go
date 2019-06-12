@@ -1,18 +1,18 @@
-// Copyright 2015 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2015 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
@@ -30,7 +30,7 @@ type ContractRef interface {
 
 // AccountRef implements ContractRef.
 //
-// Account references are used during EVM initialisation and
+// Account references are used during CVM initialisation and
 // it's primary use is to fetch addresses. Removing this object
 // proves difficult because of the cached jump destinations which
 // are fetched from the parent contract (i.e. the caller), which
@@ -73,7 +73,7 @@ type Contract struct {
 	ModelGas     map[common.Address]uint64
 }
 
-// NewContract returns a new contract environment for the execution of EVM.
+// NewContract returns a new contract environment for the execution of CVM.
 func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
 	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil, ModelGas: make(map[common.Address]uint64)}
 

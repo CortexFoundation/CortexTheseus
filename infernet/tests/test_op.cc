@@ -34,8 +34,8 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-//int ctx = kDLCPU;
-int ctx = kDLGPU;
+int ctx = kDLCPU;
+//int ctx = kDLGPU;
 
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
@@ -408,7 +408,9 @@ int main() {
 //    test_op("repeat", 1, 1, 4); //pass
 //    test_op("tile", 1, 1, 5); //pass
 //    test_op("transpose", 1, 1, 5);// 5th case failed
-    test_op("strided_slice", 1, 1, 3);
+//    test_op("strided_slice", 1, 1, 3);
 //    test_op("slice_like", 2, 1, 3); // pass
+//    test_op("max", 1, 1, 7); // pass
+    test_op("sum", 1,1,7);
     return 0;
 }

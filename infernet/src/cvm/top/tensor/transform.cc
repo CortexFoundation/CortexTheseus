@@ -64,7 +64,7 @@ CVM_REGISTER_OP(repeat)
 .set_attr<cvm::FInferShape>("FInferShape", RepeatShape)
 .set_attr<cvm::FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_support_level(1);
@@ -116,7 +116,7 @@ CVM_REGISTER_OP(tile)
 .set_attr<cvm::FInferShape>("FInferShape", TileShape)
 .set_attr<cvm::FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_support_level(1);
@@ -169,7 +169,7 @@ Example::
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
 .add_argument("data", "Tensor", "Input data.")
 .set_support_level(1)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision);
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
 
 // concatenate
 CVMUTIL_REGISTER_PARAMETER(ConcatenateParam);
@@ -181,7 +181,12 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
   TShape dshape;
   dim_t size = 0;
   bool has_zero = false;
-  int axis = param.axis >= 0 ? param.axis : in_shape->at(0).ndim() + param.axis;
+  int ndim = in_shape->at(0).ndim();
+  CHECK(-ndim - 1 <= param.axis && param.axis <= ndim)
+    << "repeat only accepts `axis` in [-data.ndim - 1, data.ndim]"
+    << ", but got axis = " << param.axis
+    << ", and data.ndim = " << ndim;
+  int axis = param.axis >= 0 ? param.axis : ndim + param.axis;
   for (size_t i = 0; i < in_shape->size(); ++i) {
     TShape tmp = (*in_shape)[i];
     if (tmp.ndim()) {
@@ -285,7 +290,7 @@ Example::
 .set_attr<FCorrectLayout>("FCorrectLayout", ConcatenateCorrectLayout)
 .set_num_outputs(1)
 .set_num_inputs(kVarg)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseMaxPrecision)
+.set_attr<FInferPrecision>("FInferPrecision", MaxInPrecision)
 .set_support_level(1);
 
 // expand_dims
@@ -332,177 +337,100 @@ will return a new array with shape ``(2,1,1,1,1,1,3,4)``.
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
 .set_num_inputs(1)
 .set_num_outputs(1)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_support_level(1);
-
-CVM_REGISTER_OP(expand_like)
-  .describe(R"code(Expand an input array with the shape of second array.
-This operation can be thought of as a composition of expand_dims and broadcast_to.
-If the dimensions are already expanded then it just broadcasts.
-Examples::
-  input = [ 12.  19.  27.]
-  input.shape = (3,)
-  new_shape_array = [[[1,2],[2,3],[1,3]],
-                     [[1,4],[4,3],[5,2]],
-                     [[7,1],[7,2],[7,3]]]
-  new_shape_array.shape = (3, 3, 2)
-  expand_like(input, [1,2], new_shape_array) =
-                    [[[12,12],[12,12],[12,12]],
-                     [[19,19],[19,19],[19,19]],
-                     [[27,27],[27,27],[27,27]]]
-)code" CVM_ADD_FILELINE)
-.add_argument("input", "Tensor", "Source input")
-.add_argument("shape_like", "Tensor", "Input with new shape")
-.add_arguments(IndicatorParam::__FIELDS__())
-.set_attr_parser(ParamParser<IndicatorParam>)
-.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<IndicatorParam>)
-.set_attr<cvm::FInferShape>("FInferShape", AssignOutputAttr<TShape, 1, 0>)
-.set_attr<cvm::FInferType>("FInferType", ElemwiseType<2, 1>)
-// never transform layout of the second input array.
-.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
-.set_num_inputs(2)
-.set_num_outputs(1)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-.set_support_level(4);
 
 // split
-CVMUTIL_REGISTER_PARAMETER(SplitParam);
-
-inline void SplitParamParser(cvm::NodeAttrs* attrs) {
-  SplitParam param;
-  param.Init(attrs->dict);
-  if (!std::isdigit(attrs->dict.at("indices_or_sections")[0])) {
-    param.equal_split = false;
-  } else {
-    VERIFY_EQ(param.indices_or_sections.ndim(), 1);
-    param.equal_split = true;
-  }
-  attrs->parsed = std::move(param);
-}
-
-inline bool SplitInferShape(const NodeAttrs& attrs,
-                            std::vector<TShape>* in_shape,
-                            std::vector<TShape>* out_shape) {
-  const SplitParam& param = cvm::get<SplitParam>(attrs.parsed);
-  const TShape& dshape = (*in_shape)[0];
-  if (dshape.ndim() == 0) return false;
-
-  auto axis = param.axis;
-  if (axis < 0) {
-    axis += dshape.ndim();
-  }
-  VERIFY_LT(axis, dshape.ndim())
-    << "axis should be within input dimension range but got " <<  axis;
-  VERIFY_GT(axis, -1)
-    << "axis should be within input dimension range but got " <<  axis;
-
-  if (param.equal_split) {
-    int num_outputs = param.indices_or_sections[0];
-    VERIFY_EQ(out_shape->size(), static_cast<size_t>(num_outputs));
-    TShape oshape = dshape;
-    VERIFY_EQ(oshape[axis] % num_outputs, 0)
-        << "indices_or_sections need to be able to divide input.shape[axis] got sections "
-        << num_outputs << " and dimension " << oshape[axis];
-    oshape[axis] /= num_outputs;
-
-    for (size_t i = 0; i < out_shape->size(); ++i) {
-      CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, i, oshape);
-    }
-  } else {
-    dim_t num_outputs = param.indices_or_sections.ndim() + 1;
-    VERIFY_EQ(out_shape->size(), static_cast<size_t>(num_outputs));
-    TShape oshape = dshape;
-    dim_t begin = 0;
-    for (dim_t i = 0; i < num_outputs - 1; ++i) {
-      VERIFY_GT(param.indices_or_sections[i], begin)
-          << "indices_or_sections need to be a sorted ascending list got "
-          << param.indices_or_sections;
-      oshape[axis] = param.indices_or_sections[i] - begin;
-      begin = param.indices_or_sections[i];
-      CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, i, oshape);
-    }
-    VERIFY_LT(begin, dshape[axis])
-        << "The sum of sections must match the input.shape[axis]";
-    oshape[axis] = dshape[axis] - begin;
-    CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, num_outputs - 1, oshape);
-  }
-  return true;
-}
-
-inline uint32_t SplitNumOutputs(const NodeAttrs& attrs) {
-  const SplitParam& param = cvm::get<SplitParam>(attrs.parsed);
-  if (param.equal_split) {
-    return static_cast<uint32_t>(param.indices_or_sections[0]);
-  } else {
-    return static_cast<uint32_t>(param.indices_or_sections.ndim()) + 1;
-  }
-}
-
-// Intentionally not add ParamGetAttrDict for indices_or_sections.
-CVM_REGISTER_OP(split)
-.describe(R"code(Splits an array along a particular axis into multiple sub-arrays.
-
-**Note** that `indices_or_sections` should evenly divide the length of the axis
-along which to split the array.
-
-)code" CVM_ADD_FILELINE)
-.add_argument("data", "Tensor", "Array to be splitted")
-.add_arguments(SplitParam::__FIELDS__())
-.set_attr_parser(SplitParamParser)
-.set_attr<FInferShape>("FInferShape", SplitInferShape)
-.set_attr<FInferType>("FInferType", ElemwiseType<1, -1>)
-.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, -1>)
-.set_num_inputs(1)
-.set_num_outputs(SplitNumOutputs)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-.set_support_level(3);
-
-// cast
-CVMUTIL_REGISTER_PARAMETER(CastParam);
-
-inline bool CastInferType(const NodeAttrs& attrs,
-                          std::vector<int>* in_attrs,
-                          std::vector<int>* out_attrs) {
-  const CastParam& param = cvm::get<CastParam>(attrs.parsed);
-  VERIFY_EQ(out_attrs->size(), 1U);
-  CVM_ASSIGN_OUTPUT_TYPE(attrs, *out_attrs, 0, param.dtype);
-  return true;
-}
-
-CVM_REGISTER_OP(cast)
-.describe(R"code(Cast the content of input to dtype.
-
-)code" CVM_ADD_FILELINE)
-.add_argument("data", "Tensor", "Input data array")
-.add_arguments(CastParam::__FIELDS__())
-.set_attr_parser(ParamParser<CastParam>)
-.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<CastParam>)
-.set_attr<FInferShape>("FInferShape", ElemwiseShape<1, 1>)
-.set_attr<FInferType>("FInferType", CastInferType)
-.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseArbitraryLayout<1, 1>)
-.set_num_inputs(1)
-.set_num_outputs(1)
-.set_attr<FInferPrecision>("FInferPrecision",
-  [](const NodeAttrs& attrs,
-   std::vector<TShape>* shapes,
-   std::vector<int>* iattr,
-   std::vector<int>* oattr) -> bool {
-  auto& param = cvm::get<CastParam>(attrs.parsed);
-  if (param.dtype == kUint8 || param.dtype == kInt8) {
-    (*oattr)[0] = std::max(iattr->at(0), 8);
-  } else if (param.dtype == kUint16 || param.dtype == kInt16) {
-    (*oattr)[0] = std::max(iattr->at(0), 16);
-  } else if (param.dtype == kUint32 || param.dtype == kInt32) {
-    (*oattr)[0] = std::max(iattr->at(0), 32);
-  } else if (param.dtype == kUint64 || param.dtype == kInt64) {
-    (*oattr)[0] = std::max(iattr->at(0), 64);
-  } else {
-    return false;
-  }
-  return true;
-})
-.set_support_level(1);
-
+// CVMUTIL_REGISTER_PARAMETER(SplitParam);
+// 
+// inline void SplitParamParser(cvm::NodeAttrs* attrs) {
+//   SplitParam param;
+//   param.Init(attrs->dict);
+//   if (!std::isdigit(attrs->dict.at("indices_or_sections")[0])) {
+//     param.equal_split = false;
+//   } else {
+//     VERIFY_EQ(param.indices_or_sections.ndim(), 1);
+//     param.equal_split = true;
+//   }
+//   attrs->parsed = std::move(param);
+// }
+// 
+// inline bool SplitInferShape(const NodeAttrs& attrs,
+//                             std::vector<TShape>* in_shape,
+//                             std::vector<TShape>* out_shape) {
+//   const SplitParam& param = cvm::get<SplitParam>(attrs.parsed);
+//   const TShape& dshape = (*in_shape)[0];
+//   if (dshape.ndim() == 0) return false;
+// 
+//   auto axis = param.axis;
+//   if (axis < 0) {
+//     axis += dshape.ndim();
+//   }
+//   VERIFY_LT(axis, dshape.ndim())
+//     << "axis should be within input dimension range but got " <<  axis;
+//   VERIFY_GT(axis, -1)
+//     << "axis should be within input dimension range but got " <<  axis;
+// 
+//   if (param.equal_split) {
+//     int num_outputs = param.indices_or_sections[0];
+//     VERIFY_EQ(out_shape->size(), static_cast<size_t>(num_outputs));
+//     TShape oshape = dshape;
+//     VERIFY_EQ(oshape[axis] % num_outputs, 0)
+//         << "indices_or_sections need to be able to divide input.shape[axis] got sections "
+//         << num_outputs << " and dimension " << oshape[axis];
+//     oshape[axis] /= num_outputs;
+// 
+//     for (size_t i = 0; i < out_shape->size(); ++i) {
+//       CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, i, oshape);
+//     }
+//   } else {
+//     dim_t num_outputs = param.indices_or_sections.ndim() + 1;
+//     VERIFY_EQ(out_shape->size(), static_cast<size_t>(num_outputs));
+//     TShape oshape = dshape;
+//     dim_t begin = 0;
+//     for (dim_t i = 0; i < num_outputs - 1; ++i) {
+//       VERIFY_GT(param.indices_or_sections[i], begin)
+//           << "indices_or_sections need to be a sorted ascending list got "
+//           << param.indices_or_sections;
+//       oshape[axis] = param.indices_or_sections[i] - begin;
+//       begin = param.indices_or_sections[i];
+//       CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, i, oshape);
+//     }
+//     VERIFY_LT(begin, dshape[axis])
+//         << "The sum of sections must match the input.shape[axis]";
+//     oshape[axis] = dshape[axis] - begin;
+//     CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, num_outputs - 1, oshape);
+//   }
+//   return true;
+// }
+// 
+// inline uint32_t SplitNumOutputs(const NodeAttrs& attrs) {
+//   const SplitParam& param = cvm::get<SplitParam>(attrs.parsed);
+//   if (param.equal_split) {
+//     return static_cast<uint32_t>(param.indices_or_sections[0]);
+//   } else {
+//     return static_cast<uint32_t>(param.indices_or_sections.ndim()) + 1;
+//   }
+// }
+// 
+// // Intentionally not add ParamGetAttrDict for indices_or_sections.
+// CVM_REGISTER_OP(split)
+// .describe(R"code(Splits an array along a particular axis into multiple sub-arrays.
+// 
+// **Note** that `indices_or_sections` should evenly divide the length of the axis
+// along which to split the array.
+// 
+// )code" CVM_ADD_FILELINE)
+// .add_argument("data", "Tensor", "Array to be splitted")
+// .add_arguments(SplitParam::__FIELDS__())
+// .set_attr_parser(SplitParamParser)
+// .set_attr<FInferShape>("FInferShape", SplitInferShape)
+// .set_attr<FInferType>("FInferType", ElemwiseType<1, -1>)
+// .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, -1>)
+// .set_num_inputs(1)
+// .set_num_outputs(SplitNumOutputs)
+// .set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+// .set_support_level(3);
 
 // reshape
 CVMUTIL_REGISTER_PARAMETER(ReshapeParam);
@@ -652,36 +580,10 @@ The significance of each is explained below:
 .set_attr<FInferShape>("FInferShape", ReshapeInferShape)
 .set_attr<FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_support_level(3);
-
-inline bool ReshapeLikeInferType(const NodeAttrs &attrs,
-                                 std::vector<int> *in_attrs,
-                                 std::vector<int> *out_attrs) {
-  VERIFY_EQ(in_attrs->size(), 2U);
-  VERIFY_EQ(out_attrs->size(), 1U);
-  CVM_ASSIGN_OUTPUT_TYPE(attrs, *out_attrs, 0, (*in_attrs)[0]);
-  return true;
-}
-
-CVM_REGISTER_OP(reshape_like)
-  .describe(R"code(Reshapes the input array by the size of another array.
-For an input array with shape ``(d1, d2, ..., dk)``, `reshape_like` operation reshapes
-the input array into an output array with the same shape as the second input array.
-.. note::
-    Sizes for both array should be compatible.
-)code" CVM_ADD_FILELINE)
-.add_argument("data", "Tensor", "Input data.")
-.add_argument("shape_like", "Tensor", "Input data.")
-.set_num_inputs(2)
-.set_num_outputs(1)
-.set_attr<FInferType>("FInferType", ReshapeLikeInferType)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-// never transform layout of the second input array.
-.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
-.set_support_level(4);
 
 // squeeze
 CVMUTIL_REGISTER_PARAMETER(SqueezeParam);
@@ -759,7 +661,7 @@ Examples::
 .set_attr<cvm::FInferShape>("FInferShape", SqueezeShape)
 .set_attr<cvm::FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_support_level(1);
@@ -861,7 +763,7 @@ Examples::
 .set_attr<cvm::FInferShape>("FInferShape", TransposeShape)
 .set_attr<cvm::FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<FCorrectLayout>("FCorrectLayout", TransposeCorrectLayout)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_support_level(4);
@@ -953,54 +855,10 @@ Examples::
 .set_attr<FInferShape>("FInferShape", StridedSliceInferShape)
 .set_attr<FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseArbitraryLayout<1, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_support_level(1);
-
-// Flip
-CVMUTIL_REGISTER_PARAMETER(FlipParam);
-
-CVM_REGISTER_OP(flip)
-.describe(R"code(Reverse the elements of an array.
-
-Examples::
-
-  x = [[ 1, 2],
-       [ 3, 4]]
-
-  flip(x) = [[ 3.,  4.],
-             [ 1.,  2.]]
-
-  x = [[[ 1.,  2.],
-        [ 3.,  4.]],
-
-       [[ 5.,  6.],
-        [ 7.,  8.]]]
-
-  flip(x) = [[[ 5.,  6.],
-              [ 7.,  8.]],
-
-             [[ 1.,  2.],
-              [ 3.,  4.]]]
-
-  flip(x, axis=1) = [[[ 3.,  4.],
-                      [ 1.,  2.]],
-
-                     [[ 7.,  8.],
-                      [ 5.,  6.]]]
-)code" CVM_ADD_FILELINE)
-.add_argument("data", "Tensor", "Source input")
-.add_arguments(FlipParam::__FIELDS__())
-.set_attr_parser(ParamParser<FlipParam>)
-.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<FlipParam>)
-.set_attr<cvm::FInferShape>("FInferShape", ElemwiseShape<1, 1>)
-.set_attr<cvm::FInferType>("FInferType", ElemwiseType<1, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-.set_num_inputs(1)
-.set_num_outputs(1)
-.set_support_level(4);
-
 
 // take
 CVMUTIL_REGISTER_PARAMETER(TakeParam);
@@ -1103,10 +961,81 @@ Examples::
 .set_attr<FInferShape>("FInferShape", TakeInferShape)
 .set_attr<FInferType>("FInferType", TakeInferType)
 .set_attr<FCorrectLayout>("FCorrectLayout", TakeCorrectLayout)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_num_inputs(2)
 .set_num_outputs(1)
 .set_support_level(3);
+
+// cvm_lut
+CVMUTIL_REGISTER_PARAMETER(CVMLUTParam);
+
+inline bool LUTInferShape(const NodeAttrs& attrs,
+						  std::vector<TShape>* in_shape,
+						  std::vector<TShape>* out_shape) {
+  VERIFY_EQ(in_shape->size(), 2U);
+  VERIFY_EQ(out_shape->size(), 1U);
+  const TShape& dshape = (*in_shape)[0];
+  const TShape& lutshape = (*in_shape)[1];
+  if (dshape.ndim() == 0) return false;
+  if (lutshape.ndim() == 0) return false;
+  TShape oshape(dshape.ndim());
+	for (size_t j = 0; j < dshape.ndim(); ++j) {
+	  oshape[j] = dshape[j];
+	}
+  CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, 0, oshape);
+	return true;
+}
+
+inline bool LUTInferType(const NodeAttrs& attrs,
+                          std::vector<int>* in_attrs,
+                          std::vector<int>* out_attrs) {
+  VERIFY_EQ(in_attrs->size(), 2U);
+  VERIFY_EQ(out_attrs->size(), 1U);
+  CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 0, (*in_attrs)[0]);
+  CVM_ASSIGN_INPUT_TYPE(attrs, *in_attrs, 1, (*in_attrs)[1]);
+  CVM_ASSIGN_OUTPUT_TYPE(attrs, *out_attrs, 0, (*in_attrs)[1]);
+  return true;
+}
+
+inline bool LUTCorrectLayout(const NodeAttrs& attrs,
+                              std::vector<Layout> *ilayouts,
+                              const std::vector<Layout> *last_ilayouts,
+                              std::vector<Layout> *olayouts) {
+  VERIFY_EQ(ilayouts->size(), last_ilayouts->size());
+  VERIFY_EQ(olayouts->size(), 1U);
+
+  for (size_t i = 0; i < ilayouts->size(); ++i) {
+    const Layout& input = last_ilayouts->at(i).defined() ?
+                          last_ilayouts->at(i) : ilayouts->at(i);
+    CVM_ASSIGN_LAYOUT(*ilayouts, i, input);
+  }
+
+  return true;
+}
+
+inline bool LUTInferPrecision(const NodeAttrs& attrs, 
+                                  std::vector<TShape>* shapes,
+                                  std::vector<int>* iattr,
+                                  std::vector<int>* oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
+  (*oattr)[0] = iattr->at(1);
+  return true;
+}
+
+CVM_REGISTER_OP(cvm_lut)
+.describe(R"doc(CVMLUT look up input with table.
+)doc" CVM_ADD_FILELINE)
+.set_num_inputs(2)
+.set_num_outputs(1)
+.set_attr_parser(ParamParser<CVMLUTParam>)
+.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<CVMLUTParam>)
+.set_attr<FInferShape>("FInferShape", LUTInferShape)
+.set_attr<FInferType>("FInferType", LUTInferType)
+.set_attr<FInferPrecision>("FInferPrecision", LUTInferPrecision)
+.add_argument("data", "Tensor", "input")
+.add_argument("table", "Tensor", "The table to lookup")
+.add_arguments(CVMLUTParam::__FIELDS__())
+.set_support_level(4);
 
 
 // SliceLike
@@ -1162,194 +1091,12 @@ CVM_REGISTER_OP(slice_like)
 .set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<SliceLikeParam>)
 .set_attr<FInferShape>("FInferShape", SliceLikeShape)
 .set_attr<FInferType>("FInferType", ElemwiseType<2, 1>)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseBinaryKeepLeftLayout)
 .set_attr<FListInputNames>("FListInputNames", [](const NodeAttrs& attrs) {
     return std::vector<std::string>{"data", "slice_like"};
 })
 .set_support_level(4);
-
-// where
-inline bool WhereShape(const cvm::NodeAttrs& attrs,
-                       std::vector<TShape>* in_attrs,
-                       std::vector<TShape>* out_attrs) {
-  VERIFY_EQ(in_attrs->size(), 3U);
-  VERIFY_EQ(out_attrs->size(), 1U);
-  const TShape& cond_shape = in_attrs->at(0);
-  const TShape& x_shape = in_attrs->at(1);
-  const TShape& y_shape = in_attrs->at(2);
-  VERIFY_EQ(x_shape, y_shape) << "x and y must have the same shape: "
-                             << x_shape << " vs " << y_shape;
-  if (cond_shape != x_shape) {
-    VERIFY_EQ(cond_shape.ndim(), 1)
-      << "Shape of condition " << cond_shape
-      << " must be either equal to x or has dimension of 1.";
-  }
-  CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_attrs, 0, x_shape);
-  return true;
-}
-
-inline bool WhereInferType(const NodeAttrs &attrs,
-                           std::vector<int> *in_attrs,
-                           std::vector<int> *out_attrs) {
-  DTYPE_ASSIGN(out_attrs->at(0), in_attrs->at(1));
-  return true;
-}
-
-inline bool WhereCorrectLayout(const NodeAttrs& attrs,
-                               std::vector<Layout> *ilayouts,
-                               const std::vector<Layout> *last_ilayouts,
-                               std::vector<Layout> *olayouts) {
-  VERIFY_EQ(ilayouts->size(), last_ilayouts->size());
-  VERIFY_EQ(olayouts->size(), 1U);
-
-  for (size_t i = 0; i < ilayouts->size(); ++i) {
-    const Layout& input = last_ilayouts->at(i).defined() ?
-                          last_ilayouts->at(i) : ilayouts->at(i);
-    CVM_ASSIGN_LAYOUT(*ilayouts, i, input);
-  }
-
-  return true;
-}
-
-CVM_REGISTER_OP(where)
-.describe(R"code(
-Return the elements, either from x or y, depending on the condition.
-
-Given three ndarrays, condition, x, and y, return an ndarray with the elements
-from x or y, depending on the elements from condition are true or false.
-x and y must have the same shape. If condition has the same shape as x,
-each element in the output array is from x if the corresponding element
-in the condition is true, and from y if false.
-
-If condition does not have the same shape as x, it must be a 1D array whose
-size is the same as x’s first dimension size. Each row of the output array
-is from x’s row if the corresponding element from condition is true, and
-from y’s row if false.
-
-Note that all non-zero values are interpreted as True in condition.
-
-Examples::
-
-  x = [[1, 2], [3, 4]]
-  y = [[5, 6], [7, 8]]
-  cond = [[0, 1], [-1, 0]]
-  where(cond, x, y) = [[5, 2], [3, 8]]
-
-
-  cond = [1, 0]
-  where(cond, x, y) = [[1, 2], [7, 8]]
-
-)code" CVM_ADD_FILELINE)
-.add_argument("condition", "Tensor", "Condition array")
-.add_argument("x", "Tensor", "First array to be selected")
-.add_argument("y", "Tensor", "Second array to be selected")
-.set_num_inputs(3)
-.set_num_outputs(1)
-.set_attr<FInferShape>("FInferShape", WhereShape)
-.set_attr<FInferType>("FInferType", WhereInferType)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-.set_attr<FCorrectLayout>("FCorrectLayout", WhereCorrectLayout)
-.set_attr<FListInputNames>("FListInputNames", [](const NodeAttrs& attrs) {
-  return std::vector<std::string>{"condition", "x", "y"};
-})
-.set_support_level(4);
-
-// gather_nd
-inline bool GatherNDInferShape(const cvm::NodeAttrs& attrs,
-                               std::vector<TShape>* in_attrs,
-                               std::vector<TShape>* out_attrs) {
-  VERIFY_EQ(in_attrs->size(), 2U);
-  VERIFY_EQ(out_attrs->size(), 1U);
-  const TShape& data_shape = in_attrs->at(0);
-  const TShape& indices_shape = in_attrs->at(1);
-  VERIFY_GT(indices_shape.ndim(), 1) << "indices must have at least 2 dimensions";
-  VERIFY_LE(indices_shape[0], data_shape.ndim()) <<
-      "dim 0 of indices must be no more than rank of data";
-  std::vector<dim_t> oshape;
-  for (size_t i = 1; i < indices_shape.ndim(); ++i) {
-    oshape.push_back(indices_shape[i]);
-  }
-  for (size_t i = indices_shape[0]; i < data_shape.ndim(); ++i) {
-    oshape.push_back(data_shape[i]);
-  }
-  if (oshape.size() == 0) {
-    oshape.push_back(1);
-  }
-  CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_attrs, 0,
-                           TShape(oshape.begin(), oshape.end()));
-  return true;
-}
-
-inline bool GatherNDInferType(const NodeAttrs &attrs,
-                              std::vector<int> *in_attrs,
-                              std::vector<int> *out_attrs) {
-  VERIFY_EQ(in_attrs->size(), 2U);
-  VERIFY_EQ(out_attrs->size(), 1U);
-  CVM_ASSIGN_OUTPUT_TYPE(attrs, *out_attrs, 0, (*in_attrs)[0]);
-  return true;
-}
-
-inline bool GatherNDCorrectLayout(const NodeAttrs& attrs,
-                                  std::vector<Layout> *ilayouts,
-                                  const std::vector<Layout> *last_ilayouts,
-                                  std::vector<Layout> *olayouts) {
-  VERIFY_EQ(ilayouts->size(), last_ilayouts->size());
-  VERIFY_EQ(olayouts->size(), 1U);
-
-  for (size_t i = 0; i < ilayouts->size(); ++i) {
-    const Layout& input = last_ilayouts->at(i).defined() ?
-                          last_ilayouts->at(i) : ilayouts->at(i);
-    CVM_ASSIGN_LAYOUT(*ilayouts, i, input);
-  }
-
-  return true;
-}
-
-CVM_REGISTER_OP(gather_nd)
-.describe(R"code(
-Gather elements or slices from ``data`` into a tensor specified by ``indices``.
-
-The shape of output tensor is inferred from ``indices``. Given ``data`` with
-shape ``(X0, X1, ..., X_{N-1})`` and ``indices`` with shape ``(Y_0, ...,
-Y_{M-1})``, the output will have shape ``(Y_1, ..., Y_{M-1}, X_{Y_0}, ...,
-X_{N-1})`` when ``Y_0 < N``, or ``(Y_1, ..., Y_{M-1})`` when ``Y_0 == N``. The
-operator is invalid when ``Y_0 > N``.
-
-The element in output is defined as follows::
-
-  output[y_1, ..., y_{M-1}, x_{Y_0}, ..., x_{N-1}] = data[indices[0, y_1, ..., y_{M-1}],
-                                                     ...,
-                                                     indices[Y_0-1, y_1, ..., y_{M-1}],
-                                                     x_{Y_0}, ..., x_{N-1}]
-
-Examples::
-
-  data = [[0, 1], [2, 3]]
-  indices = [[1], [0]]
-  gather_nd(data, indices) = [2]
-
-  data = [[0, 1], [2, 3]]
-  indices = [[1, 1, 0], [0, 1, 0]]
-  gather_nd(data, indices) = [2, 3, 0]
-
-  data = [[[1, 2], [3, 4]], [[5, 6], [7, 8]]]
-  indices = [[0, 1], [1, 0]]
-  gather_nd(data, indices) = [[3, 4], [5, 6]]
-
-)code" CVM_ADD_FILELINE)
-.add_argument("data", "Tensor", "Input data.")
-.add_argument("indices", "Tensor", "Indices of data")
-.set_num_inputs(2)
-.set_num_outputs(1)
-.set_attr<FInferShape>("FInferShape", GatherNDInferShape)
-.set_attr<FInferType>("FInferType", GatherNDInferType)
-.set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-.set_attr<FCorrectLayout>("FCorrectLayout", GatherNDCorrectLayout)
-.set_attr<FListInputNames>("FListInputNames", [](const NodeAttrs& attrs) {
-  return std::vector<std::string>{"data", "indices"};
-})
-.set_support_level(3);
 
 }  // namespace top
 }  // namespace cvm

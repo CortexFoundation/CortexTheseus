@@ -1,18 +1,18 @@
-// Copyright 2015 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2015 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 // This file contains some shares testing functionality, common to  multiple
 // different files and modules being tested.
@@ -51,7 +51,7 @@ var (
 // channels for different events.
 func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func(int, *core.BlockGen), newtx chan<- []*types.Transaction) (*ProtocolManager, *ctxcdb.MemDatabase, error) {
 	var (
-		evmux  = new(event.TypeMux)
+		cvmux  = new(event.TypeMux)
 		engine = cuckoo.NewFaker()
 		db     = ctxcdb.NewMemDatabase()
 		gspec  = &core.Genesis{
@@ -66,7 +66,7 @@ func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func
 		panic(err)
 	}
 
-	pm, err := NewProtocolManager(gspec.Config, mode, DefaultConfig.NetworkId, evmux, &testTxPool{added: newtx}, engine, blockchain, db)
+	pm, err := NewProtocolManager(gspec.Config, mode, DefaultConfig.NetworkId, cvmux, &testTxPool{added: newtx}, engine, blockchain, db)
 	if err != nil {
 		return nil, nil, err
 	}

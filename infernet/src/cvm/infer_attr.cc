@@ -27,8 +27,9 @@ std::vector<TShape> GetTShapeArray(const std::vector<std::vector<int64_t> > &sha
   std::vector<TShape> ret;
   for (auto shape : shapes) {
     VERIFY_LE(shape.size(), 6) << "shape size should not larger than 6";
-    for (int i = 0; i < shape.size(); ++i) {
-      VERIFY_LE(shape[i], 0x7fffffff) << "tensor size should not larger than the range of int32";
+    for (size_t i = 0; i < shape.size(); ++i) {
+      VERIFY_LE(shape[i], 0x7fffffff)
+        << "tensor size should not larger than the range of int32";
     }
     if (shape.size() == 1) {
       ret.push_back(TShape{shape[0]});
@@ -67,10 +68,14 @@ void CvmRuntime::SetupPrecision() {
   auto infer_prec = [&](uint32_t nid) {
     const auto& inode = idx[nid];
     if (inode.op_type == "null") {
-      if (precision[nid] == -1) {
-         precision[nid] = 8;
-      }
       // Variable node. No operator. Only one output entry.
+      const auto& eid = entry_id(nid, 0);
+      VERIFY_NE(precision[eid], -1)
+        << "variable node " << inode.name
+        << "'s precision has not been set";
+      VERIFY_LE(precision[eid], 32)
+        << "variable node " << inode.name
+        << "'s precision out of INT32";
     } else {
       const uint32_t num_inputs = inode.param.num_inputs;
       const uint32_t num_outputs = inode.param.num_outputs;
@@ -78,32 +83,28 @@ void CvmRuntime::SetupPrecision() {
       iprec.resize(num_inputs, -1);
       shapes.resize(num_inputs, TShape());
       for (uint32_t i = 0; i < iprec.size(); ++i) {
-        iprec[i] = precision[entry_id(inode.inputs[i])];
-        shapes[i] = rshape[entry_id(inode.inputs[i])];
+        const auto& eid = entry_id(inode.inputs[i]);
+        iprec[i] = precision[eid];
+        shapes[i] = rshape[eid];
       }
       VERIFY_GE(num_outputs, 1) << "an operator has at least 1 outputs";
       oprec.resize(num_outputs, -1);
       auto finfer = finfer_prec.get(inode.attrs.op, nullptr);
       // Call inference function of the operator.
       if (finfer == nullptr) {
-        finfer = cvm::top::ElemwiseSamePrecision;
+        VERIFY(false)
+          << "operator " << inode.attrs.op->name
+          << " has not registered FInferPrecision";
       }
       if (!finfer(inode.attrs, &shapes, &iprec, &oprec)) {
-        throw utils::Error(std::string("error with ") + inode.attrs.op->name);
+        VERIFY(false)
+          << "operator " << inode.attrs.name
+          << ": infer precision failed";
       }
       // Save to the result map.
-      for (uint32_t i = 0; i < num_inputs; ++i) {
-          VERIFY(iprec[i] <= 32)
-             << "Check precision failed, "
-             << "expected to be at most " << iprec[i]
-             << " but " << precision[entry_id(inode.inputs[i])]
-             << ", i =" << i << " " << entry_id(inode.inputs[i])
-             << " | nid = " << nid;
-          precision[entry_id(inode.inputs[i])] = iprec[i];
-      }
       for (uint32_t i = 0; i < num_outputs; ++i) {
         precision[entry_id(nid, i)] = oprec[i];
-        VERIFY(oprec[i] <= 32)
+        VERIFY_LE(oprec[i], 32)
             << " nid = " << nid << "i = " << i
             << " precison = " << oprec[i]
             << " name= " << inode.name
@@ -181,7 +182,6 @@ int64_t CvmRuntime::GetOps() {
       VERIFY_GE(rshape[nid].ndim(), 1);
       VERIFY(rshape[nid][0] != 0);
       int64_t osize = rshape[nid].Size();
-      osize /= rshape[nid][0];
       len += 32 - __builtin_clz((unsigned)osize);
       t *= osize;
       if (len > 40 || t > (1ll << 38)) {
@@ -294,9 +294,11 @@ void CvmRuntime::SetupType() {
   std::vector<int> rtype;
   std::vector<std::string> &dltype = attrs_.dltype;
   for (unsigned int i = 0; i < dltype.size(); ++i) {
-    VERIFY(dltype[i] == "uint32" || dltype[i] == "int32") << "type " << dltype[i] << " are not supported.";
-    int t = dltype[i] == "uint32" ? 9 : 4;
-    rtype.push_back(t);
+    VERIFY_EQ(dltype[i], "int32")
+      << "type " << dltype[i] << " are not supported.";
+    // VERIFY(dltype[i] == "uint32" || dltype[i] == "int32") << "type " << dltype[i] << " are not supported.";
+    // int t = dltype[i] == "uint32" ? 9 : 4;
+    rtype.push_back(4);
   }
 
   static auto& finfer_type =

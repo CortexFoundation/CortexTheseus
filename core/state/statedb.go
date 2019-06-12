@@ -1,18 +1,18 @@
-// Copyright 2014 The go-cortex Authors
-// This file is part of the go-cortex library.
+// Copyright 2014 The CortexFoundation Authors
+// This file is part of the CortexFoundation library.
 //
-// The go-cortex library is free software: you can redistribute it and/or modify
+// The CortexFoundation library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-cortex library is distributed in the hope that it will be useful,
+// The CortexFoundation library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-cortex library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package state provides a caching layer atop the Cortex state trie.
 package state
@@ -44,7 +44,7 @@ var (
 	//emptyState = crypto.Keccak256Hash(nil)
 	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 
-	// emptyCode is the known hash of the empty EVM bytecode.
+	// emptyCode is the known hash of the empty CVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
 )
 
@@ -588,7 +588,7 @@ func (self *StateDB) createObject(addr common.Address) (newobj, prev *stateObjec
 // CreateAccount explicitly creates a state object. If a state object with the address
 // already exists the balance is carried over to the new account.
 //
-// CreateAccount is called during the EVM CREATE operation. The situation might arise that
+// CreateAccount is called during the CVM CREATE operation. The situation might arise that
 // a contract does the following:
 //
 //   1. sends funds to sha(account ++ (nonce + 1))
@@ -749,7 +749,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
-// used when the EVM emits new state logs.
+// used when the CVM emits new state logs.
 func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
 	self.thash = thash
 	self.bhash = bhash
