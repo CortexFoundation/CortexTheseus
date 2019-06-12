@@ -85,7 +85,19 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
         output_bytes_ = 4;
     // std::cerr << " output_precision = " << output_precision << "\n";
   }
-
+  {
+    auto get_version = module_.GetFunction("get_version");
+    char version_s[32];
+    get_version(version_s);
+    version_ = std::string(version_s);
+  }
+  {
+    auto get_postprocess_method = module_.GetFunction("get_postprocess_method");
+    char postprocess_s[32];
+    get_postprocess_method(postprocess_s);
+    postprocess_method_ = std::string(postprocess_s);
+  }
+  
   auto get_input_shape = module_.GetFunction("get_input_shape");
 
   DLTensor* t = new DLTensor();
@@ -128,6 +140,14 @@ CVMModel::~CVMModel() {
   if (out_size_)
       delete out_size_;
 //  delete lck;
+}
+
+std::string CVMModel::GetVersion() {
+  return version_;
+}
+
+std::string CVMModel::GetPostprocessMethod() {
+  return postprocess_method_;
 }
 
 int64_t CVMModel::GetStorageSize() {
@@ -360,8 +380,16 @@ int CVMAPIGetOutputLength(void* model_) {
   return ret;
 }
 
-void CVMAPIGetVersion(void *model, char* version) {
-  strcpy(version, "cvm_1.0.0");
+void CVMAPIGetVersion(void *model_, char* version) {
+  CVMModel* model = (CVMModel*)model_;
+  if (model == nullptr) return;
+  strcpy(version, model->GetVersion().c_str());
+}
+
+void CVMAPIGetPreprocessMethod(void *model_, char* method) {
+  CVMModel* model = (CVMModel*)model_;
+  if (model == nullptr) return;
+  strcpy(method, model->GetPostprocessMethod().c_str());
 }
 
 long long CVMAPIGetGasFromModel(void *model_) {

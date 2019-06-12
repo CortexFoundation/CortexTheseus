@@ -50,6 +50,9 @@ public:
   DLTensor* PlanInput(void*);
   std::vector<DLTensor*> PlanOutput();
   void SaveTensor(std::vector<DLTensor*> outputs, char *data);
+
+  std::string GetVersion();
+  std::string GetPostprocessMethod();
 private:
   int SetInput_(string index, DLTensor* input);
   int Run_();
@@ -70,6 +73,7 @@ private:
   bool is_input_int32_;
   std::vector<int> dims_;
   std::vector<int64_t*> shapes_;
+  std::string version_, postprocess_method_;
   int dtype_code{kDLInt};
   int dtype_bits{32};
   int dtype_lanes{1};
