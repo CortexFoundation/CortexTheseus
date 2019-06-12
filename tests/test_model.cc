@@ -201,7 +201,7 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-     "/data/std_out/trec",
+     // "/data/std_out/trec",
      // "/data/model_storage/dcnet_mnist_v1/data",
      // "/data/model_storage/mobilenetv1.0_imagenet/data",
      // "/data/model_storage/resnet50_v1_imagenet/data",
@@ -214,7 +214,7 @@ void test_models() {
      // "/data/model_storage/squeezenet_gcv1.1/data",
      // "/data/model_storage/squeezenet_gcv1.0/data",
      // "/data/model_storage/octconv_resnet26_0.250/data",
-     // "/data/model_storage/yolo3_darknet53_b1/data"
+     "/data/model_storage/yolo3_darknet53_b1/data"
      // // "/tmp/yxnet",
   };
   for (auto model_root : model_roots) {
