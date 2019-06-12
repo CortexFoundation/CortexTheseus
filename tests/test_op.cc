@@ -14,6 +14,10 @@
 #include "npy.hpp"
 #include <string.h>
 #include <fstream>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -332,11 +336,63 @@ void test_take() {
     //std::cerr << "\n";
     //}
 }
+int findAllSubDir(std::vector<string> &filelist, const char *basePath)
+{
+    DIR *dir;
+    struct dirent *ptr;
+    char base[1000];
 
-void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
+    if ((dir=opendir(basePath)) == NULL)
+    {
+        perror("Open dir error...");
+        exit(1);
+    }
+
+    while ((ptr=readdir(dir)) != NULL)
+    {
+        if(strcmp(ptr->d_name,".")==0 || strcmp(ptr->d_name,"..")==0)    ///current dir OR parrent dir
+            continue;
+        else if(ptr->d_type == 8)    //file
+        {
+            // //printf("d_name:%s/%s\n",basePath,ptr->d_name);
+            // string temp = ptr->d_name;
+            // //cout  << temp << endl;
+            // string sub = temp.substr(temp.length() - 4, temp.length()-1);
+            // //cout  << sub << endl;
+            // if(sub == format)
+            // {
+            //     string path = basePath;
+            //     path += "/";
+            //     path += ptr->d_name;
+            //     filelist.push_back(path);
+            // }
+        }
+        else if(ptr->d_type == 10)    ///link file
+        {
+            //printf("d_name:%s/%s\n",basePath,ptr->d_name);
+        }
+        else if(ptr->d_type == 4)    ///dir
+        {
+            memset(base,'\0',sizeof(base));
+            strcpy(base,basePath);
+            strcat(base,"/");
+            strcat(base,ptr->d_name);
+            filelist.push_back(ptr->d_name);
+            findAllSubDir(filelist, base);
+        }
+    }
+    closedir(dir);
+    return 1;
+}
+void test_op(string op_name, int num_inputs, int num_outputs) {
   printf("\ntest %s\n", op_name.c_str());
-  for(int i = 0; i < num_test; i++){
-    string attr_path = "/tmp/" + op_name + "/attr" + std::to_string(i) + ".txt";
+	std::vector<string> case_list;
+	string case_dir = "/data/" + op_name + "/";
+	findAllSubDir(case_list, case_dir.c_str());
+
+  for(int ci = 0; ci < case_list.size(); ci++){
+		string case_path = case_dir + case_list[ci] + "/";
+    string attr_path = case_path + "attr" + ".txt";
     ifstream infile;
     infile.open(attr_path);
     string attr_str = "";
@@ -353,13 +409,15 @@ void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
     std::vector<std::vector<unsigned long>> tshape(args.size());
     std::vector<std::vector<int32_t>> tdata(args.size());
     for(int in_i = 0; in_i < num_inputs; in_i++){
-        string in_path = "/tmp/"+op_name+"/in" + std::to_string(i) + std::to_string(in_i) + ".npy";
+        string in_path = case_path + "in_" +  std::to_string(in_i) + ".npy";
         cout << in_path << endl;
         npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
     }
-    string out_path = "/tmp/"+op_name+"/out" + std::to_string(i) + ".npy";
-    cout << out_path << endl;
-    npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
+		for(int o_i = 0; o_i < num_outputs; o_i++){
+			string out_path = case_path + "out_" + std::to_string(o_i) + ".npy";
+			cout << out_path << endl;
+			npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
+		}
     vector<std::vector<int64_t>> shapes_(args.size());
     std::vector<int> dims_(args.size());
     for (auto idx = 0; idx < args.size(); idx++) {
@@ -407,15 +465,16 @@ void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
   }
 }
 int main() {
-//    test_take();
-//    test_op("concatenate", 2, 1, 4);//pass
-//    test_op("repeat", 1, 1, 4); //pass
-//    test_op("tile", 1, 1, 5); //pass
-//    test_op("transpose", 1, 1, 5);// 5th case failed
-//    test_op("strided_slice", 1, 1, 3);
-//    test_op("slice_like", 2, 1, 3); // pass
+    test_op("concatenate", 2, 1);//pass
+    test_op("repeat", 1, 1); //pass
+    test_op("tile", 1, 1); //pass
+//    test_op("transpose", 1, 1, 4);// 5th case failed
+//    test_op("strided_slice", 1, 1, 3); //pass
+		test_op("slice_like", 2, 1); // pass
 //    test_op("max", 1, 1, 7); // pass
 //    test_op("sum", 1,1,7); // pass
 //    test_op("take", 2, 1, 2);
+//    test_op("upsampling", 1, 1, 3);
+//    test_op("elemwise_add", 2, 1, 2);
     return 0;
 }
