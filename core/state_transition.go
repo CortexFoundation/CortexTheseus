@@ -207,7 +207,7 @@ func (st *StateTransition) preCheck() error {
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 		if st.qp.Cmp(cost) < 0 {
-			log.Info("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
+			log.Warn("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
 
@@ -348,6 +348,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	gu := st.gasUsed()
 	if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
 		for addr, mgas := range st.modelGas {
+			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_LIMIT {
+				continue
+			}
+
 			gu -= mgas
 			if gu < 0 { //should never happen
 				if mgas+gu > 0 {
