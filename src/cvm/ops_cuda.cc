@@ -758,7 +758,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.expand_dims")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
 
-    int32_t axis = param.axis; // TODO get from attr
+    int32_t axis = param.axis;
     axis = axis < 0 ? axis + ishape->ndim : axis;
     VERIFY(axis >= 0 && axis <= ishape->ndim);
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
@@ -969,6 +969,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.upsampling")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    printf("cuda take \n");
     VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
@@ -977,7 +978,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
 
-    int32_t axis = param.axis.value();
+    int32_t axis = param.axis.has_value() ? param.axis.value() : 0;
+    printf("axis = %d\n", axis);
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);

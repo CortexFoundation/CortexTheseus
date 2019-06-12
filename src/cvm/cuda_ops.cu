@@ -2062,7 +2062,6 @@ const char* cuda_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *x
 
   cudaFree(dev_xshape);
   cudaFree(dev_yshape);
-
   return check_cuda_error(cudaGetLastError());
 }
 
