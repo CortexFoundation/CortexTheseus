@@ -39,8 +39,8 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-int ctx = kDLCPU;
-// int ctx = kDLGPU;
+//int ctx = kDLCPU;
+int ctx = kDLGPU;
 
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
@@ -388,8 +388,19 @@ int findAllSubDir(std::vector<string> &filelist, const char *basePath)
 void read_one_line(string filename, string& str){
     ifstream infile;
     infile.open(filename);
+    if(!infile.is_open()){
+        str = "";
+        return;
+    }
     getline(infile, str);
     infile.close();
+}
+void print(vector<int32_t> &data){
+  for(int i = 0; i < data.size(); i++){
+    printf("%d ", data[i]);
+  }
+  printf("\n");
+
 }
 const string CASE_DIR = "/data/ops_generator";
 
@@ -454,25 +465,34 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
     LoadOp(params.func_name, attr);
     LoadOpAttr(attr_str, attr);
 
+    bool infer_shape_ret;
+    string err_path = case_path + "err.txt", err_str = "";
+    read_one_line(err_path, err_str);
     try {
-      bool infer_shape_ret = finfer(attr, &ishape, &oshape);
-      if(infer_shape_ret == false){
-        string err_path = case_path + "error.txt", err_str = "";
-        read_one_line(err_path, err_str);
-        assert(err_str == "");
+      infer_shape_ret = finfer(attr, &ishape, &oshape);
+      if(infer_shape_ret){
+        std::cout << "FInferShape ishape=[";
+        for (auto& shp : ishape) std::cout << shp << ", ";
+        std::cout << "] oshape=[";
+        for (auto& shp : oshape) std::cout << shp << ", ";
+        std::cout << "]\n";
       }
     } catch (const std::exception& e) {
       std::cerr << "FInferShape error with " << e.what() << std::endl;
-      string err_path = case_path + "error.txt", err_str = "";
-      read_one_line(err_path, err_str);
-      assert(err_str == "");
-      continue;
+      infer_shape_ret = false;
     }
-    std::cout << "FInferShape ishape=[";
-    for (auto& shp : ishape) std::cout << shp << ", ";
-    std::cout << "] oshape=[";
-    for (auto& shp : oshape) std::cout << shp << ", ";
-    std::cout << "]\n";
+    if(infer_shape_ret == false){
+      if(err_str == ""){
+        string out_path = case_path + "out_0.npy";
+        std::cout << out_path << std::endl;
+        npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
+        print(tdata[num_inputs]);
+        assert(false);
+      }else{
+        cout << endl;
+        continue;
+      }
+    }
 
     for(int i = 0; i < num_outputs; i++){
 			string out_path = case_path + "out_" + std::to_string(i) + ".npy";
@@ -500,7 +520,18 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
         tdata[params.num_inputs].data(),
         sizeof(int32_t) * tdata[params.num_inputs].size());
     printf("match %d | %d\n", ret == 0, ret);
+    if(ret != 0){
+      for(int i = 0; i < num_inputs; i++){
+        printf("input%d:", i);
+        print(tdata[i]);
+      }
+      printf("correct out:");
+      print(tdata[num_inputs]);
+      printf("     my out:");
+      print(cpu_output_tensor);
+    }
     assert(ret == 0);
+    printf("\n");
   }
 }
 int main() {
