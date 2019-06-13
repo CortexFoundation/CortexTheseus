@@ -305,6 +305,9 @@ inline bool ExpandDimsInferShape(const NodeAttrs& attrs,
   int ndim = static_cast<int>(dshape.ndim());
   VERIFY(param.axis >= -ndim - 1 && param.axis <= ndim)
     << "with axis = " << param.axis << " ndim = " << ndim;
+  VERIFY(param.num_newaxis >= 0)
+    << "expand_dims only accepts `num_newaxis >= 0`"
+    << ", but got num_newaxis = " << param.num_newaxis;
   int axis = param.axis < 0 ? ndim + param.axis + 1 : param.axis;
   std::vector<dim_t> oshape;
   for (int i = 0; i < axis; ++i) {
@@ -685,9 +688,22 @@ inline bool TransposeShape(const cvm::NodeAttrs& attrs,
     }
   } else {
     VERIFY_EQ(shp.ndim(), param.axes.ndim());
+    TShape axes(param.axes);
     for (size_t i = 0; i < shp.ndim(); ++i) {
-      VERIFY(param.axes[i] < shp.ndim());
-      ret[i] = shp[param.axes[i]];
+      int new_axis = axes[i];
+      if (new_axis < 0) {
+        new_axis += shp.ndim();
+        axes[i] = new_axis;
+      }
+      VERIFY((new_axis >= 0) && (new_axis < shp.ndim()))
+        << "axis=" << axes[i] << " is invalid for the "
+        << shp.ndim() << "-dimensional input tensor";
+      for (size_t j = 0; j < shp.ndim(); ++j) {
+        if (i != j) {
+          VERIFY(new_axis != axes[j]) << "repeated axis in transpose";
+        }
+      }
+      ret[i] = shp[new_axis];
     }
   }
   CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_attrs, 0, ret);
