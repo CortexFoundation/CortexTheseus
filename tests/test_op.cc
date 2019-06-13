@@ -39,8 +39,8 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-//int ctx = kDLCPU;
-int ctx = kDLGPU;
+int ctx = kDLCPU;
+// int ctx = kDLGPU;
 
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
@@ -391,12 +391,12 @@ void read_one_line(string filename, string& str){
     getline(infile, str);
     infile.close();
 }
-const string CASE_DIR = "/data/";
+const string CASE_DIR = "/data/ops_generator";
 
 void test_op(string op_name, int num_inputs, int num_outputs) {
   printf("\ntest %s\n", op_name.c_str());
 	std::vector<string> case_list;
-	string case_dir = CASE_DIR + op_name + "/";
+	string case_dir = CASE_DIR + "/" + op_name + "/";
 	findAllSubDir(case_list, case_dir.c_str());
 
   static auto& finfer_shape =
@@ -504,16 +504,16 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
   }
 }
 int main() {
-    test_op("concatenate", 2, 1);//pass
-    test_op("repeat", 1, 1); //pass
-    test_op("tile", 1, 1); //pass
-    // test_op("transpose", 1, 1);// 5th case failed
-    test_op("strided_slice", 1, 1); //pass
-		test_op("slice_like", 2, 1); // pass
-    test_op("max", 1, 1); // pass
-    test_op("sum", 1,1); // pass
     test_op("take", 2, 1);
-    test_op("upsampling", 1, 1);
-    test_op("elemwise_add", 2, 1);
+    // test_op("concatenate", 2, 1);//pass
+    // test_op("repeat", 1, 1); //pass
+    // test_op("tile", 1, 1); //pass
+    // test_op("strided_slice", 1, 1); //pass
+		// test_op("slice_like", 2, 1); // pass
+    // test_op("max", 1, 1); // pass
+    // test_op("sum", 1,1); // pass
+    // test_op("upsampling", 1, 1);
+    // test_op("elemwise_add", 2, 1);
+    // test_op("transpose", 1, 1);// 5th case failed
     return 0;
 }
