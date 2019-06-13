@@ -788,7 +788,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.transpose")
     int64_t *axes_data = axes.begin();
     VERIFY(axes.ndim() == 0 || axes.ndim() == (uint32_t)x->ndim);
     for(uint32_t i = 0; i < axes.ndim(); i++){
-        VERIFY(axes_data[i] >= 0);
+        if(axes_data[i] < 0) axes_data[i] += x->ndim;
+        VERIFY(axes_data[i] >= 0 && axes_data[i] < x->ndim);
     }
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
