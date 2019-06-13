@@ -504,7 +504,8 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
   }
 }
 int main() {
-    test_op("take", 2, 1);
+    test_op("transpose", 1, 1);// 5th case failed
+    // test_op("take", 2, 1);
     // test_op("concatenate", 2, 1);//pass
     // test_op("repeat", 1, 1); //pass
     // test_op("tile", 1, 1); //pass
@@ -514,6 +515,5 @@ int main() {
     // test_op("sum", 1,1); // pass
     // test_op("upsampling", 1, 1);
     // test_op("elemwise_add", 2, 1);
-    // test_op("transpose", 1, 1);// 5th case failed
     return 0;
 }
