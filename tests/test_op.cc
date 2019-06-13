@@ -391,6 +391,13 @@ void read_one_line(string filename, string& str){
     getline(infile, str);
     infile.close();
 }
+void print(vector<int32_t> &data){
+  for(int i = 0; i < data.size(); i++){
+    printf("%d ", data[i]);
+  }
+  printf("\n");
+
+}
 const string CASE_DIR = "/data/ops_generator";
 
 void test_op(string op_name, int num_inputs, int num_outputs) {
@@ -500,6 +507,16 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
         tdata[params.num_inputs].data(),
         sizeof(int32_t) * tdata[params.num_inputs].size());
     printf("match %d | %d\n", ret == 0, ret);
+    if(ret != 0){
+      for(int i = 0; i < num_inputs; i++){
+        printf("input%d:", i);
+        print(tdata[i]);
+      }
+      printf("correct out:");
+      print(tdata[num_inputs]);
+      printf("     my out:");
+      print(cpu_output_tensor);
+    }
     assert(ret == 0);
   }
 }
