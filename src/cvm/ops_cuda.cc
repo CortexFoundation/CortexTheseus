@@ -975,7 +975,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.upsampling")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-    printf("cuda take \n");
     VERIFY(args.num_args == 4);
     DLTensor *x = args[0];
     DLTensor *indices = args[1];
@@ -985,15 +984,22 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.take")
     auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
 
     int32_t axis = param.axis.has_value() ? param.axis.value() : 0;
-    printf("axis = %d\n", axis);
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *indices_data = static_cast<int32_t*>(indices->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
     // take(x, indices, y, axis);
     // std::cerr << "cuda take axis = " << axis << " ysize = " << getSize(y) <<  "\n";
-    const char* errorStr = cuda_take(x_data, indices_data, y_data, x->shape, y->shape,
-            indices->shape, y->ndim, x->ndim, indices->ndim, getSize(y), axis);
-    VERIFY(errorStr == NULL) << errorStr;
+    if(axis < 0){
+        axis += x->ndim;
+    }
+    if(axis > 0){
+      const char* errorStr = cuda_take(x_data, indices_data, y_data, x->shape, y->shape,
+              indices->shape, y->ndim, x->ndim, indices->ndim, getSize(y), axis);
+      VERIFY(errorStr == NULL) << errorStr;
+    }else{
+      const char* errorStr = cuda_take(x_data, indices_data, y_data, getSize(y), getSize(x));
+      VERIFY(errorStr == NULL) << errorStr;
+    }
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_lut")

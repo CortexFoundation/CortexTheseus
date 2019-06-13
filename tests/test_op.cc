@@ -412,11 +412,21 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
         string in_path = case_path + "in_" +  std::to_string(in_i) + ".npy";
         cout << in_path << endl;
         npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
+       // printf("input%d: ", in_i);
+       // for(int i = 0; i < tdata[in_i].size(); i++){
+       //     printf("%d ", tdata[in_i][i]);
+       // }
+       // printf("\n");
     }
 		for(int o_i = 0; o_i < num_outputs; o_i++){
 			string out_path = case_path + "out_" + std::to_string(o_i) + ".npy";
 			cout << out_path << endl;
-			npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
+			npy::LoadArrayFromNumpy(out_path, tshape[num_inputs+o_i], tdata[num_inputs+o_i]);
+       // printf("output%d: ", o_i);
+       // for(int i = 0; i < tdata[num_inputs+o_i].size(); i++){
+       //     printf("%d ", tdata[num_inputs+o_i][i]);
+       // }
+       // printf("\n");
 		}
     vector<std::vector<int64_t>> shapes_(args.size());
     std::vector<int> dims_(args.size());
@@ -468,13 +478,13 @@ int main() {
     test_op("concatenate", 2, 1);//pass
     test_op("repeat", 1, 1); //pass
     test_op("tile", 1, 1); //pass
-//    test_op("transpose", 1, 1, 4);// 5th case failed
-//    test_op("strided_slice", 1, 1, 3); //pass
+//  test_op("transpose", 1, 1);// 5th case failed
+    test_op("strided_slice", 1, 1); //pass
 		test_op("slice_like", 2, 1); // pass
-//    test_op("max", 1, 1, 7); // pass
-//    test_op("sum", 1,1,7); // pass
-//    test_op("take", 2, 1, 2);
-//    test_op("upsampling", 1, 1, 3);
-//    test_op("elemwise_add", 2, 1, 2);
+    test_op("max", 1, 1); // pass
+    test_op("sum", 1,1); // pass
+    test_op("take", 2, 1);
+    test_op("upsampling", 1, 1);
+    test_op("elemwise_add", 2, 1);
     return 0;
 }
