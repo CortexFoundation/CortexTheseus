@@ -49,14 +49,14 @@ const char* check_cuda_error(cudaError_t error){
   else return cudaGetErrorString(error);
 }
 
-__global__ void kernel_elemwise_add(int32_t *a, int32_t *b, int32_t *c, int32_t n){
+__global__ void kernel_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n){
   int tid = threadIdx.x + blockDim.x * blockIdx.x;
-  for(int i = tid; i < n; i += gridDim.x * blockDim.x){
+  for(uint64_t i = tid; i < n; i += gridDim.x * blockDim.x){
     c[i] = a[i] + b[i];
   }
 }
 
-const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, int32_t n, bool debug){
+const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n, bool debug){
   int32_t *dev_a = a, *dev_b = b, *dev_c = c;
   size_t size = sizeof(int32_t) * n;
   if(debug){
@@ -78,16 +78,16 @@ const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, int32_t n, boo
   }
   return check_cuda_error(cudaGetLastError());
 }
-__global__ void kernel_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, int32_t n){
+__global__ void kernel_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t n){
   int tid = threadIdx.x + blockDim.x * blockIdx.x;
-  for(int i = tid; i < n; i += gridDim.x*blockDim.x){
+  for(uint64_t i = tid; i < n; i += gridDim.x*blockDim.x){
     c[i] = a[i] - b[i];
   }
 }
 
-const char* cuda_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, int32_t n){
+const char* cuda_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t n){
   int blockSize = 256;
-  int gridSize = getGridSize(n, blockSize);//(n + blockSize - 1) / blockSize;
+  int gridSize = getGridSize(n, blockSize);
   kernel_elemwise_sub<<<gridSize, blockSize>>>(a, b, c, n);
   return check_cuda_error(cudaGetLastError());
 }
@@ -800,13 +800,13 @@ const char* cuda_dense(
 }
 
 __global__ void kernel_clip(const int32_t *x, int32_t *y,
-    const int32_t n, const int32_t maxV, const int32_t minV){
+    const uint64_t n, const int32_t maxV, const int32_t minV){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  for(int i = tid; i < n; i += gridDim.x*blockDim.x){
+  for(uint64_t i = tid; i < n; i += gridDim.x*blockDim.x){
     y[i] = max(min(x[i], maxV), minV);
   }
 }
-const char* cuda_clip(const int32_t *x, int32_t *y, const int32_t n, const int32_t max, const int32_t min, bool debug){
+const char* cuda_clip(const int32_t *x, int32_t *y, const uint64_t n, const int32_t max, const int32_t min, bool debug){
   const int32_t *dev_x = x;
   int32_t *tmp_x;
   int32_t *dev_y = y;
@@ -830,13 +830,13 @@ const char* cuda_clip(const int32_t *x, int32_t *y, const int32_t n, const int32
   return check_cuda_error(cudaGetLastError());
 }
 
-__global__ void kernel_relu(const int32_t *x, int32_t*y, const int32_t n){
+__global__ void kernel_relu(const int32_t *x, int32_t*y, const uint64_t n){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  for(int i = tid; i < n; i += gridDim.x * blockDim.x){
+  for(uint64_t i = tid; i < n; i += gridDim.x * blockDim.x){
     y[i] = max(x[i], 0);
   }
 }
-const char* cuda_relu(const int32_t *x, int32_t *y, const int32_t n, bool debug){
+const char* cuda_relu(const int32_t *x, int32_t *y, const uint64_t n, bool debug){
   const int32_t *dev_x = x;
   int32_t *tmp_x;
   int32_t *dev_y = y;
@@ -860,33 +860,9 @@ const char* cuda_relu(const int32_t *x, int32_t *y, const int32_t n, bool debug)
   return check_cuda_error(cudaGetLastError());
 }
 
-__global__ void kernel_flatten(const int32_t *x, int32_t*y, const int32_t n){
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  for(int i = tid; i < n; i += gridDim.x * blockDim.x){
-    y[i] = x[i];
-  }
-}
-const char* cuda_flatten(const int32_t *x, int32_t *y, const int32_t n, bool debug){
-  const int32_t *dev_x = x;
-  int32_t *tmp_x;
-  int32_t *dev_y = y;
-  if(debug) {
-    cudaMalloc((void**)&tmp_x, n*sizeof(int32_t));
-    dev_x = tmp_x;
-    cudaMalloc((void**)&dev_y, n*sizeof(int32_t));
-    cudaMemcpy(tmp_x, x, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-  }
-
-  int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
-  kernel_flatten<<<blockSize, threadSize>>>(dev_x, dev_y, n);
-  //cudaDeviceSynchronize();
-
-  if(debug){
-    cudaMemcpy(y, dev_y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_x);
-    cudaFree(dev_y);
-  }
+const char* cuda_flatten(const int32_t *x, int32_t *y, const uint64_t n, bool debug){
+  if(x == y) return NULL;
+  cudaMemcpy(y, x, n * sizeof(int32_t), cudaMemcpyDeviceToDevice);
   return check_cuda_error(cudaGetLastError());
 }
 

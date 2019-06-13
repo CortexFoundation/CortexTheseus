@@ -1985,14 +1985,14 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
 
-    int32_t axis = param.axis.has_value() ? param.axis.value() : 0;
-    if(axis < 0){
-        axis += x->ndim;
-    }
     // std::cerr << "axis = " << axis << " " << x->ndim << " " << y->ndim << "\n";
-    if(axis == 0){
+    if(!param.axis.has_value()){
       take(x, indices, y);
     }else{
+      int32_t axis = param.axis.value();
+      if(axis < 0){
+          axis += x->ndim;
+      }
       take(x, indices, y, axis);
     }
     print_to_file(y, "/tmp/zkh/take.txt");
