@@ -7,8 +7,8 @@
 
 #define DEBUG
 
-const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, int32_t n, bool debug);
-const char* cuda_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, int32_t n);
+const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n, bool debug);
+const char* cuda_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t n);
 const char* cuda_conv2d(
         int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
         int32_t *filter, int32_t f_n, int32_t f_c, int32_t f_h, int32_t f_w,
@@ -38,9 +38,9 @@ const char* cuda_dense(
         int32_t *b,
         int32_t *c,
         const int m, const int k, const int n, int32_t *bias, bool debug);
-const char* cuda_clip(const int32_t *x, int32_t *y, const int32_t n, const int32_t max, const int32_t min, bool debug);
-const char* cuda_relu(const int32_t *x, int32_t *y, const int32_t n, bool debug);
-const char* cuda_flatten(const int32_t *x, int32_t *y, const int32_t n, bool debug);
+const char* cuda_clip(const int32_t *x, int32_t *y, const uint64_t n, const int32_t max, const int32_t min, bool debug);
+const char* cuda_relu(const int32_t *x, int32_t *y, const uint64_t n, bool debug);
+const char* cuda_flatten(const int32_t *x, int32_t *y, const uint64_t n, bool debug);
 const char* cuda_broadcast_add(const int32_t *a, const int32_t *b, int32_t* c, const int32_t n,
         int64_t* ashape, int32_t adim,
         int64_t* bshape, int32_t bdim,

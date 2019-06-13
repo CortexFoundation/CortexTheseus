@@ -40,7 +40,7 @@ struct CVMOpParam {
 };
 
 int ctx = kDLCPU;
-// int ctx = kDLGPU;
+//int ctx = kDLGPU;
 
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
