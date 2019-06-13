@@ -710,7 +710,7 @@ def test_broadcast_add():
 #test_concatenate()
 #test_repeat()
 #test_tile()
-##test_transpose()
+#test_transpose()
 #test_strided_slice()
 #test_slice_like()
 #test_take()

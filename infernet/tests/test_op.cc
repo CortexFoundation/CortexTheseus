@@ -389,6 +389,7 @@ void read_one_line(string filename, string& str){
     ifstream infile;
     infile.open(filename);
     if(!infile.is_open()){
+      printf("file no exist\n");
         str = "";
         return;
     }
@@ -402,6 +403,33 @@ void print(vector<T> &data){
   }
   printf("\n");
 
+}
+void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_t>& data){
+    FILE *fp = fopen(filename, "r");
+    int32_t shape_dim = 0;
+    fscanf(fp, "%d ", &shape_dim);
+    printf("shape_dim = %d\n", shape_dim);
+    shape.resize(shape_dim);
+    uint64_t size = 1;
+    printf("shape: ");
+    for(int i = 0; i < shape_dim; i++){
+        int64_t value = 0;
+        fscanf(fp, "%d ", &value);
+        shape[i] = value;
+        printf("%d ", shape[i]);
+        size *= shape[i];
+    }
+    printf("\n");
+    //fscanf(fp, "\n");
+    printf("data: ");
+    data.resize(size);
+    for(int i = 0; i < size; i++){
+        int32_t value = 0;
+        fscanf(fp, "%d ", &value);
+        data[i] = value;
+        printf("%d ", data[i]);
+    }
+    printf("\n");
 }
 const string CASE_DIR = "/data/ops_generator";
 
@@ -438,9 +466,10 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
     std::vector<std::vector<int32_t>> tdata(args.size());
     std::vector<TShape> ishape(num_inputs), oshape(num_outputs);
     for(int in_i = 0; in_i < num_inputs; in_i++){
-        string in_path = case_path + "in_" +  std::to_string(in_i) + ".npy";
+        string in_path = case_path + "in_" +  std::to_string(in_i) + ".txt";
         cout << in_path << endl;
-        npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
+        //npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
+        read_data(in_path.c_str(), tshape[in_i], tdata[in_i]);
         TShape shp(tshape[in_i].size());
         for (size_t i = 0; i < shp.ndim(); ++i) {
           shp[i] = tshape[in_i][i];
@@ -483,22 +512,27 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
       infer_shape_ret = false;
     }
     if(infer_shape_ret == false){
+      std::cout << err_str << std::endl;
       if(err_str == ""){
-        string out_path = case_path + "out_0.npy";
+        string out_path = case_path + "out_0.txt";
         std::cout << out_path << std::endl;
-        npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
+        //npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
+        read_data(out_path.c_str(), tshape[num_inputs], tdata[num_inputs]);
         print(tdata[num_inputs]);
         assert(false);
       }else{
-        cout << endl;
+        cout << "match 1 " << endl;
         continue;
       }
     }
 
     for(int i = 0; i < num_outputs; i++){
-			string out_path = case_path + "out_" + std::to_string(i) + ".npy";
+			string out_path = case_path + "out_" + std::to_string(i) + ".txt";
 			cout << out_path << endl;
-			npy::LoadArrayFromNumpy(out_path, tshape[num_inputs+i], tdata[num_inputs+i]);
+			//npy::LoadArrayFromNumpy(out_path, tshape[num_inputs+i], tdata[num_inputs+i]);
+      read_data(out_path.c_str(), tshape[num_inputs+i], tdata[num_inputs+i]);
+      print(tshape[num_inputs+i]);
+      print(tdata[num_inputs+i]);
       int shape_cmp = memcmp(tshape[num_inputs+i].data(), oshape[i].data(), sizeof(int64_t) * tshape[num_inputs+i].size());
       if(shape_cmp != 0){
         print(tshape[num_inputs+i]);
@@ -541,7 +575,11 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
   }
 }
 int main() {
-//    test_op("take", 2, 1);
+//  vector<unsigned long> shape;
+//  vector<int32_t> data;
+//  read_data("data.txt", shape, data);
+    test_op("transpose", 1, 1);// 5th case failed
+    // test_op("take", 2, 1);
     // test_op("concatenate", 2, 1);//pass
     // test_op("repeat", 1, 1); //pass
     // test_op("tile", 1, 1); //pass
@@ -551,6 +589,5 @@ int main() {
     // test_op("sum", 1,1); // pass
     // test_op("upsampling", 1, 1);
     // test_op("elemwise_add", 2, 1);
-     test_op("transpose", 1, 1);// 5th case failed
     return 0;
 }
