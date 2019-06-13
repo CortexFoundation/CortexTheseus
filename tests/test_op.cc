@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <cvm/runtime/registry.h>
 #include <cvm/op.h>
+#include <cvm/op_attr_types.h>
 #include <cvm/runtime/ndarray.h>
 #include <cvm/runtime/packed_func.h>
 #include <cvm/runtime/registry.h>
@@ -38,8 +39,8 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-//int ctx = kDLCPU;
-int ctx = kDLGPU;
+int ctx = kDLCPU;
+// int ctx = kDLGPU;
 
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
@@ -390,6 +391,16 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
 	string case_dir = "/data/" + op_name + "/";
 	findAllSubDir(case_list, case_dir.c_str());
 
+  static auto& finfer_shape =
+      Op::GetAttr<cvm::FInferNodeEntryAttr<TShape> >("FInferShape");
+  const cvm::Op *op = cvm::Op::Get(op_name);
+  auto finfer = finfer_shape.get(op, nullptr);
+  if (finfer == nullptr) {
+    std::cout << "operator " << op_name
+      << "has not registered FInferShape";
+    return ;
+  }
+
   for(int ci = 0; ci < case_list.size(); ci++){
 		string case_path = case_dir + case_list[ci] + "/";
     string attr_path = case_path + "attr" + ".txt";
@@ -408,10 +419,18 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     std::vector<std::vector<unsigned long>> tshape(args.size());
     std::vector<std::vector<int32_t>> tdata(args.size());
+    std::vector<TShape> ishape(num_inputs), oshape(num_outputs);
     for(int in_i = 0; in_i < num_inputs; in_i++){
         string in_path = case_path + "in_" +  std::to_string(in_i) + ".npy";
         cout << in_path << endl;
         npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
+        TShape shp(tshape[in_i].size());
+        for (size_t i = 0; i < shp.ndim(); ++i) {
+          shp[i] = tshape[in_i][i];
+        }
+        ishape[in_i] = shp;
+        // ishape.emplace_back(shp);
+        std::cout << shp << std::endl;
     }
 		for(int o_i = 0; o_i < num_outputs; o_i++){
 			string out_path = case_path + "out_" + std::to_string(o_i) + ".npy";
@@ -446,9 +465,21 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
     NodeAttrs attr;
     LoadOp(params.func_name, attr);
     LoadOpAttr(attr_str, attr);
+
+    try {
+      finfer(attr, &ishape, &oshape);
+    } catch (const std::exception& e) {
+      std::cerr << "FInferShape error with " << e.what() << std::endl;
+      return ;
+    }
+    std::cout << "FInferShape ishape=[";
+    for (auto& shp : ishape) std::cout << shp << ", ";
+    std::cout << "] oshape=[";
+    for (auto& shp : oshape) std::cout << shp << ", ";
+    std::cout << "]\n";
+
     auto op = get_func(params, &attr, args, params.num_inputs);
     op();
-
     vector<int32_t> cpu_output_tensor(tdata[params.num_inputs].size());
     {
       int i = params.num_inputs; // first output
@@ -466,11 +497,11 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
 }
 int main() {
     test_op("concatenate", 2, 1);//pass
-    test_op("repeat", 1, 1); //pass
-    test_op("tile", 1, 1); //pass
+    // test_op("repeat", 1, 1); //pass
+    // test_op("tile", 1, 1); //pass
 //    test_op("transpose", 1, 1, 4);// 5th case failed
 //    test_op("strided_slice", 1, 1, 3); //pass
-		test_op("slice_like", 2, 1); // pass
+		// test_op("slice_like", 2, 1); // pass
 //    test_op("max", 1, 1, 7); // pass
 //    test_op("sum", 1,1,7); // pass
 //    test_op("take", 2, 1, 2);
