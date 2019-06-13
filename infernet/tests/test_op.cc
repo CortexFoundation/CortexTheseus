@@ -39,8 +39,8 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-int ctx = kDLCPU;
-//int ctx = kDLGPU;
+//int ctx = kDLCPU;
+int ctx = kDLGPU;
 
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
@@ -489,6 +489,7 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
         print(tdata[num_inputs]);
         assert(false);
       }else{
+        cout << endl;
         continue;
       }
     }
@@ -530,6 +531,7 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
       print(cpu_output_tensor);
     }
     assert(ret == 0);
+    printf("\n");
   }
 }
 int main() {
