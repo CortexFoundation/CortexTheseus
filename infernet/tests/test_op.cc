@@ -395,7 +395,8 @@ void read_one_line(string filename, string& str){
     getline(infile, str);
     infile.close();
 }
-void print(vector<int32_t> &data){
+template<typename T>
+void print(vector<T> &data){
   for(int i = 0; i < data.size(); i++){
     printf("%d ", data[i]);
   }
@@ -499,6 +500,11 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
 			cout << out_path << endl;
 			npy::LoadArrayFromNumpy(out_path, tshape[num_inputs+i], tdata[num_inputs+i]);
       int shape_cmp = memcmp(tshape[num_inputs+i].data(), oshape[i].data(), sizeof(int64_t) * tshape[num_inputs+i].size());
+      if(shape_cmp != 0){
+        print(tshape[num_inputs+i]);
+        //print(oshape[i]);
+        std::cout << oshape[i] << endl;
+      }
       assert(shape_cmp == 0);
       DLTensor* dl;
       CVMArrayAlloc((int64_t*)tshape[num_inputs+i].data(), tshape[num_inputs+i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
@@ -535,7 +541,7 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
   }
 }
 int main() {
-    test_op("take", 2, 1);
+//    test_op("take", 2, 1);
     // test_op("concatenate", 2, 1);//pass
     // test_op("repeat", 1, 1); //pass
     // test_op("tile", 1, 1); //pass
@@ -545,6 +551,6 @@ int main() {
     // test_op("sum", 1,1); // pass
     // test_op("upsampling", 1, 1);
     // test_op("elemwise_add", 2, 1);
-    // test_op("transpose", 1, 1);// 5th case failed
+     test_op("transpose", 1, 1);// 5th case failed
     return 0;
 }
