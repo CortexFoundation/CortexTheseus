@@ -352,7 +352,7 @@ __global__ void kernel_depthwise_conv2d(
     int32_t *bias,
     int32_t padding_h, int32_t padding_w,
     int32_t stride_h, int32_t stride_w,
-    int32_t dilation_h, int32_t dilation_w, // TODO dilation > 1
+    int32_t dilation_h, int32_t dilation_w, 
     int32_t groups,
     int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w)
 {
@@ -450,7 +450,7 @@ __global__ void kernel_depthwise_conv2d_no_shared(
     int32_t *bias,
     int32_t padding_h, int32_t padding_w,
     int32_t stride_h, int32_t stride_w,
-    int32_t dilation_h, int32_t dilation_w, // TODO dilation > 1
+    int32_t dilation_h, int32_t dilation_w, 
     int32_t groups,
     int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w){
   int32_t gy = threadIdx.y + blockIdx.y * blockDim.y;
@@ -552,7 +552,7 @@ const char* cuda_depthwise_conv2d(
 }
 
 __global__ void kernel_max_pool(
-    int32_t *input, int32_t i_n/*TODO i_n > 1*/, int32_t i_c, int32_t i_h, int32_t i_w,
+    int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
     int32_t f_h, int32_t f_w,
     int32_t padding_h, int32_t padding_w,
     int32_t stride_h, int32_t stride_w,
@@ -638,7 +638,7 @@ __global__ void kernel_max_pool(
 }
 
 __global__ void kernel_max_pool_no_shared(
-    int32_t *input, int32_t i_n/*TODO i_n > 1*/, int32_t i_c, int32_t i_h, int32_t i_w,
+    int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
     int32_t f_h, int32_t f_w,
     int32_t padding_h, int32_t padding_w,
     int32_t stride_h, int32_t stride_w,
@@ -665,7 +665,7 @@ __global__ void kernel_max_pool_no_shared(
   }
 }
 const char* cuda_max_pool(
-    int32_t *input, int32_t i_n/*TODO i_n > 1*/, int32_t i_c, int32_t i_h, int32_t i_w,
+    int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
     const int32_t f_h, const int32_t f_w,
     int32_t padding_h, int32_t padding_w,
     int32_t stride_h, int32_t stride_w,
@@ -2111,14 +2111,14 @@ __global__ void kernel_tile(const int32_t *x_data, int32_t *y_data, const int32_
     const int64_t *xshape, const int64_t *yshape){
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   for(uint64_t i = tid; i < ysize; i+=gridDim.x*blockDim.x){
-    uint64_t o_i = i, in_i = 0, shapeSize = 0;
+    uint64_t o_i = i, in_i = 0, shapeSize = 1;
     for(int j = xndim-1; j >= 0; j--){
       int yj = j + yndim - xndim;
       int col = o_i % yshape[yj];
       o_i /= yshape[yj];
       col = col % xshape[j];
-      in_i += (j == xndim-1 ? col : col * shapeSize);
-      shapeSize = (j == xndim-1 ? xshape[j] : shapeSize * xshape[j]);
+      in_i += col * shapeSize;
+      shapeSize = shapeSize * xshape[j];
     }
     y_data[i] = x_data[in_i];
   }
@@ -2373,12 +2373,12 @@ __global__ void kernel_slice_like(const int32_t *x_data, int32_t *y_data, const 
     const uint64_t ysize, const int32_t ndim){
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   for(uint64_t i = tid; i < ysize; i+=gridDim.x*blockDim.x){
-    uint64_t o_i = i, in_i = 0, shapeSize = 0;
+    uint64_t o_i = i, in_i = 0, shapeSize = 1;
     for(int j = ndim-1; j >= 0; j--){
       int col = o_i % yshape[j];
       o_i /= yshape[j];
-      in_i += (j == ndim-1 ? col : col * shapeSize);
-      shapeSize = (j == ndim-1 ? xshape[j] : shapeSize * xshape[j]);
+      in_i +=  col * shapeSize;
+      shapeSize = shapeSize * xshape[j];
     }
     y_data[i] = x_data[in_i];
   }

@@ -87,7 +87,7 @@ def test_repeat():
     tmp_dir = DIR + "repeat/"
 
     os.makedirs(tmp_dir + "0/", exist_ok=True)
-    shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
+    shape = np.random.randint(low=1,high=50, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir +"0/in_0.npy", a.astype("int32"))
@@ -98,7 +98,7 @@ def test_repeat():
     print(b.shape)
 
     os.makedirs(tmp_dir + "1/", exist_ok=True)
-    shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
+    shape = np.random.randint(low=1,high=50, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir +"1/in_0.npy", a.astype("int32"))
@@ -109,7 +109,7 @@ def test_repeat():
     print(b.shape)
 
     os.makedirs(tmp_dir + "2/", exist_ok=True)
-    shape = np.random.randint(low=1,high=100, size=(4)).astype("int32")
+    shape = np.random.randint(low=1,high=50, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir +"2/in_0.npy", a.astype("int32"))
@@ -123,7 +123,6 @@ def test_repeat():
     shape = np.random.randint(low=2,high=5, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    print(a)
     np.save(tmp_dir +"3/in_0.npy", a.astype("int32"))
     params = {'axis':-1, 'repeats':3}
     b = np.repeat(a,**params)
@@ -136,7 +135,7 @@ def test_tile():
     tmp_dir = DIR + "tile/"
 
     os.makedirs(tmp_dir + "0/", exist_ok=True)
-    shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
+    shape = np.random.randint(low=1, high=50, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir +"0/in_0.npy", a.astype("int32"))
@@ -147,7 +146,7 @@ def test_tile():
     print(b.shape)
 
     os.makedirs(tmp_dir + "1/", exist_ok=True)
-    shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
+    shape = np.random.randint(low=1, high=50, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir +"1/in_0.npy", a.astype("int32"))
@@ -158,7 +157,7 @@ def test_tile():
     print(b.shape)
 
     os.makedirs(tmp_dir + "2/", exist_ok=True)
-    shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
+    shape = np.random.randint(low=1, high=50, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir +"2/in_0.npy", a.astype("int32"))
@@ -169,7 +168,7 @@ def test_tile():
     print(b.shape)
 
     os.makedirs(tmp_dir + "3/", exist_ok=True)
-    shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
+    shape = np.random.randint(low=1, high=50, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir +"3/in_0.npy", a.astype("int32"))
@@ -180,7 +179,7 @@ def test_tile():
     print(b.shape)
 
     os.makedirs(tmp_dir + "4/", exist_ok=True)
-    shape = np.random.randint(low=1, high=100, size=(4)).astype("int32")
+    shape = np.random.randint(low=1, high=50, size=(4)).astype("int32")
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir +"4/in_0.npy", a.astype("int32"))
@@ -192,91 +191,111 @@ def test_tile():
 
 def test_transpose():
     print("test transpose")
+    tmp_dir = DIR + "transpose/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=1, high=5, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/transpose/in00.npy", a.astype("int32"))
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"))
     params = {'axes':[0,1,2,3]}
-    save_dict(params, "/tmp/transpose/attr0.txt");
+    save_dict(params, tmp_dir + "0/attr.txt");
     b = np.transpose(a, **params)
     print(b.shape)
-    np.save("/tmp/transpose/out0.npy", b.astype("int32"))
-
-    shape = np.random.randint(low=1, high=5, size=(4))
-    print(shape)
-    a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/transpose/in10.npy", a.astype("int32"))
-    params = {'axes':[1,0,2,3]}
-    save_dict(params, "/tmp/transpose/attr1.txt");
-    b = np.transpose(a, **params)
-    print(b.shape)
-    np.save("/tmp/transpose/out1.npy", b.astype("int32"))
-
-    shape = np.random.randint(low=1, high=5, size=(4))
-    print(shape)
-    a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/transpose/in20.npy", a.astype("int32"))
-    params = {'axes':[1,2,0,3]}
-    save_dict(params, "/tmp/transpose/attr2.txt");
-    b = np.transpose(a, **params)
-    print(b.shape)
-    np.save("/tmp/transpose/out2.npy", b.astype("int32"))
-
-    shape = np.random.randint(low=1, high=5, size=(4))
-    print(shape)
-    a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/transpose/in30.npy", a.astype("int32"))
-    params = {'axes':[3,1,2,0]}
-    save_dict(params, "/tmp/transpose/attr3.txt");
-    b = np.transpose(a, **params)
-    print(b.shape)
-    np.save("/tmp/transpose/out3.npy", b.astype("int32"))
-
-    shape = np.random.randint(low=1, high=5, size=(4))
-    print(shape)
-    a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/transpose/in40.npy", a.astype("int32"))
-    params = {}
-    save_dict(params, "/tmp/transpose/attr4.txt");
-    b = np.transpose(a, **params)
-    print(b.shape)
-    np.save("/tmp/transpose/out4.npy", b.astype("int32"))
+    np.save(tmp_dir + "0/out_0.npy", b.astype("int32"))
+    print(a.flatten())
     print(b.flatten())
+
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
+    shape = np.random.randint(low=1, high=5, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
+    params = {'axes':[1,0,2,3]}
+    save_dict(params, tmp_dir + "1/attr.txt");
+    b = np.transpose(a, **params)
+    print(b.shape)
+    np.save(tmp_dir + "1/out_0.npy", b.astype("int32"))
+    print(a.flatten())
+    print(b.flatten())
+
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
+    shape = np.random.randint(low=1, high=5, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save(tmp_dir + "2/in_0.npy", a.astype("int32"))
+    params = {'axes':[1,2,0,3]}
+    save_dict(params, tmp_dir + "2/attr.txt");
+    b = np.transpose(a, **params)
+    print(b.shape)
+    np.save(tmp_dir + "2/out_0.npy", b.astype("int32"))
+    print(a.flatten())
+    print(b.flatten())
+
+    os.makedirs(tmp_dir + "3/", exist_ok=True)
+    shape = np.random.randint(low=1, high=5, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save(tmp_dir + "3/in_0.npy", a.astype("int32"))
+    params = {'axes':[3,1,2,0]}
+    save_dict(params, tmp_dir + "3/attr.txt");
+    b = np.transpose(a, **params)
+    print(b.shape)
+    np.save(tmp_dir + "3/out_0.npy", b.astype("int32"))
+    print(a.flatten())
+    print(b.flatten())
+
+#    os.makedirs(tmp_dir + "4/", exist_ok=True)
+#    shape = np.random.randint(low=1, high=5, size=(4))
+#    print(shape)
+#    a = np.random.randint(low=-127, high=127, size=shape)
+#    np.save(tmp_dir + "4/in_0.npy", a.astype("int32"))
+#    params = {}
+#    save_dict(params, tmp_dir + "4/attr.txt");
+#    b = np.transpose(a, **params)
+#    print(b.shape)
+#    np.save(tmp_dir + "4/out_0.npy", b.astype("int32"))
+#    print(b.flatten())
 
 def test_strided_slice():
     print("test strided slice")
+    tmp_dir = DIR + "strided_slice/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=3, high=4, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     print(a)
-    np.save("/tmp/strided_slice/in00.npy", a.astype("int32"))
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"))
     params = {"begin":[2,0], "end":[0,3], "step":[-1,2]}
-    save_dict(params, "/tmp/strided_slice/attr0.txt")
+    save_dict(params, tmp_dir + "0/attr.txt")
     b = nd.slice(nd.array(a), **params)
-    np.save("/tmp/strided_slice/out0.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "0/out_0.npy", b.asnumpy().astype("int32"))
     print(b.shape)
     print(b)
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=3, high=4, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     print(a)
-    np.save("/tmp/strided_slice/in10.npy", a.astype("int32"))
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
     params = {"begin":[0,0], "end":[2,3]}
-    save_dict(params, "/tmp/strided_slice/attr1.txt")
+    save_dict(params, tmp_dir + "1/attr.txt")
     b = nd.slice(nd.array(a), **params)
-    np.save("/tmp/strided_slice/out1.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "1/out_0.npy", b.asnumpy().astype("int32"))
     print(b.shape)
 
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
     shape = np.random.randint(low=3, high=4, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     print(a)
-    np.save("/tmp/strided_slice/in20.npy", a.astype("int32"))
+    np.save(tmp_dir + "2/in_0.npy", a.astype("int32"))
     params = {"begin":[0,0,1,1], "end":[1,2,3,3]}
-    save_dict(params, "/tmp/strided_slice/attr2.txt")
+    save_dict(params, tmp_dir + "2/attr.txt")
     b = nd.slice(nd.array(a), **params)
-    np.save("/tmp/strided_slice/out2.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "2/out_0.npy", b.asnumpy().astype("int32"))
     print(b.shape)
 
 def test_slice_like():
@@ -330,28 +349,84 @@ def test_non_max_suppression():
 
 def test_take():
     print("test take")
+    tmp_dir = DIR + "take/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=4, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/take/in00.npy", a.astype("int32"))
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"))
     indices = [[0,1],[2,3]]
-    np.save("/tmp/take/in01.npy", np.array(indices).astype("int32"))
+    np.save(tmp_dir + "0/in_1.npy", np.array(indices).astype("int32"))
     params = {}
-    save_dict(params, "/tmp/take/attr0.txt")
+    save_dict(params, tmp_dir + "0/attr.txt")
     c = np.take(a, indices, **params)
-    np.save("/tmp/take/out0.npy", c.astype("int32"))
+    np.save(tmp_dir + "0/out_0.npy", c.astype("int32"))
     print(c.shape)
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=4, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/take/in10.npy", a.astype("int32"))
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
     indices = [0]
-    np.save("/tmp/take/in11.npy", np.array(indices).astype("int32"))
+    np.save(tmp_dir + "1/in_1.npy", np.array(indices).astype("int32"))
     params = {}
-    save_dict(params, "/tmp/take/attr1.txt")
+    save_dict(params, tmp_dir + "1/attr.txt")
     c = np.take(a, indices, **params)
-    np.save("/tmp/take/out1.npy", c.astype("int32"))
+    np.save(tmp_dir + "1/out_0.npy", c.astype("int32"))
+    print(c.shape)
+
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
+    shape = np.random.randint(low=2, high=4, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save(tmp_dir + "2/in_0.npy", a.astype("int32"))
+    indices = [[10,11],[13,15]]
+    np.save(tmp_dir + "2/in_1.npy", np.array(indices).astype("int32"))
+    params = {}
+    save_dict(params, tmp_dir + "2/attr.txt")
+    c = np.take(a, indices, **params)
+    np.save(tmp_dir + "2/out_0.npy", c.astype("int32"))
+    print(c.shape)
+
+    os.makedirs(tmp_dir + "3/", exist_ok=True)
+    shape = np.random.randint(low=10, high=11, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save(tmp_dir + "3/in_0.npy", a.astype("int32"))
+    indices = [[9,9],[9,9]]
+    np.save(tmp_dir + "3/in_1.npy", np.array(indices).astype("int32"))
+    params = {'axis':1}
+    save_dict(params, tmp_dir + "3/attr.txt")
+    c = np.take(a, indices, **params)
+    np.save(tmp_dir + "3/out_0.npy", c.astype("int32"))
+    print(c.shape)
+
+    os.makedirs(tmp_dir + "4/", exist_ok=True)
+    shape = np.random.randint(low=10, high=11, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save(tmp_dir + "4/in_0.npy", a.astype("int32"))
+    indices = [1,2,3,4]
+    np.save(tmp_dir + "4/in_1.npy", np.array(indices).astype("int32"))
+    params = {'axis':-1}
+    save_dict(params, tmp_dir + "4/attr.txt")
+    c = np.take(a, indices, **params)
+    np.save(tmp_dir + "4/out_0.npy", c.astype("int32"))
+    print(c.shape)
+
+    os.makedirs(tmp_dir + "5/", exist_ok=True)
+    shape = np.random.randint(low=10, high=11, size=(4))
+    print(shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    np.save(tmp_dir + "5/in_0.npy", a.astype("int32"))
+    indices = [1,2,3,4]
+    np.save(tmp_dir + "5/in_1.npy", np.array(indices).astype("int32"))
+    params = {'axis':-3}
+    save_dict(params, tmp_dir + "5/attr.txt")
+    c = np.take(a, indices, **params)
+    np.save(tmp_dir + "5/out_0.npy", c.astype("int32"))
     print(c.shape)
 
 def test_max_pool():
@@ -363,37 +438,42 @@ def test_cvm_lut():
 
 def test_upsampling():
     print("test upsampling")
+    tmp_dir = DIR + "upsampling/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=3, high=5, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/upsampling/in00.npy", a.astype("int32"))
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"))
     params = {'method':'NEAREST_NEIGHBOR', 'layout':'NCHW', 'scale': 1}
-    save_dict(params, "/tmp/upsampling/attr0.txt")
+    save_dict(params, tmp_dir + "0/attr.txt")
     params = {'scale':1, 'sample_type':'nearest'}
     b = nd.UpSampling(nd.array(a), **params)
-    np.save("/tmp/upsampling/out0.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "0/out_0.npy", b.asnumpy().astype("int32"))
     print (b.shape)
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=10, high=100, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/upsampling/in10.npy", a.astype("int32"))
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
     params = {'method':'NEAREST_NEIGHBOR', 'layout':'NCHW', 'scale': 2}
-    save_dict(params, "/tmp/upsampling/attr1.txt")
+    save_dict(params, tmp_dir + "1/attr.txt")
     params = {'scale':2, 'sample_type':'nearest'}
     b = nd.UpSampling(nd.array(a), **params)
-    np.save("/tmp/upsampling/out1.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "1/out_0.npy", b.asnumpy().astype("int32"))
     print (b.shape)
 
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
     shape = np.random.randint(low=10, high=100, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/upsampling/in20.npy", a.astype("int32"))
+    np.save(tmp_dir + "2/in_0.npy", a.astype("int32"))
     params = {'method':'NEAREST_NEIGHBOR', 'layout':'NCHW', 'scale': 3}
-    save_dict(params, "/tmp/upsampling/attr2.txt")
+    save_dict(params, tmp_dir + "2/attr.txt")
     params = {'scale':3, 'sample_type':'nearest'}
     b = nd.UpSampling(nd.array(a), **params)
-    np.save("/tmp/upsampling/out2.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "2/out_0.npy", b.asnumpy().astype("int32"))
     print (b.shape)
 
 def test_squeeze():
@@ -407,169 +487,190 @@ def test_negative():
 
 def test_max():
     print("test max")
+    tmp_dir = DIR + "max/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/max/in00.npy", a.astype("int32"))
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"))
     params = {'axis':[1,3]}
-    save_dict(params, "/tmp/max/attr0.txt")
+    save_dict(params, tmp_dir + "0/attr.txt")
     b = nd.max(nd.array(a), **params)
-    np.save("/tmp/max/out0.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "0/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/max/in10.npy", a.astype("int32"))
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
     params = {}
-    save_dict(params, "/tmp/max/attr1.txt")
+    save_dict(params, tmp_dir + "1/attr.txt")
     b = nd.max(nd.array(a), **params)
-    np.save("/tmp/max/out1.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "1/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/max/in20.npy", a.astype("int32"))
+    np.save(tmp_dir + "2/in_0.npy", a.astype("int32"))
     params = {'axis':[0]}
-    save_dict(params, "/tmp/max/attr2.txt")
+    save_dict(params, tmp_dir + "2/attr.txt")
     b = nd.max(nd.array(a), **params)
-    np.save("/tmp/max/out2.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "2/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "3/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/max/in30.npy", a.astype("int32"))
+    np.save(tmp_dir + "3/in_0.npy", a.astype("int32"))
     params = {'axis':[2]}
-    save_dict(params, "/tmp/max/attr3.txt")
+    save_dict(params, tmp_dir + "3/attr.txt")
     b = nd.max(nd.array(a), **params)
-    np.save("/tmp/max/out3.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "3/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "4/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/max/in40.npy", a.astype("int32"))
+    np.save(tmp_dir + "4/in_0.npy", a.astype("int32"))
     params = {'axis':[3]}
-    save_dict(params, "/tmp/max/attr4.txt")
+    save_dict(params, tmp_dir + "4/attr.txt")
     b = nd.max(nd.array(a), **params)
-    np.save("/tmp/max/out4.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "4/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "5/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/max/in50.npy", a.astype("int32"))
+    np.save(tmp_dir + "5/in_0.npy", a.astype("int32"))
     params = {'axis':[1,2,3]}
-    save_dict(params, "/tmp/max/attr5.txt")
+    save_dict(params, tmp_dir + "5/attr.txt")
     b = nd.max(nd.array(a), **params)
-    np.save("/tmp/max/out5.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "5/out_0.npy", b.asnumpy().astype("int32"))
 #   print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "6/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/max/in60.npy", a.astype("int32"))
+    np.save(tmp_dir + "6/in_0.npy", a.astype("int32"))
     params = {'axis':[0,1,2,3]}
-    save_dict(params, "/tmp/max/attr6.txt")
+    save_dict(params, tmp_dir + "6/attr.txt")
     b = nd.max(nd.array(a), **params)
-    np.save("/tmp/max/out6.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "6/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
 def test_sum():
     print("test sum")
+    tmp_dir = DIR + "sum/"
+
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/sum/in00.npy", a.astype("int32"))
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"))
     params = {'axis':[1,3]}
-    save_dict(params, "/tmp/sum/attr0.txt")
+    save_dict(params, tmp_dir + "0/attr.txt")
     b = nd.sum(nd.array(a), **params)
-    np.save("/tmp/sum/out0.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "0/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/sum/in10.npy", a.astype("int32"))
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
     params = {}
-    save_dict(params, "/tmp/sum/attr1.txt")
+    save_dict(params, tmp_dir + "1/attr.txt")
     b = nd.sum(nd.array(a), **params)
-    np.save("/tmp/sum/out1.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "1/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "2/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/sum/in20.npy", a.astype("int32"))
+    np.save(tmp_dir + "2/in_0.npy", a.astype("int32"))
     params = {'axis':[0]}
-    save_dict(params, "/tmp/sum/attr2.txt")
+    save_dict(params, tmp_dir + "2/attr.txt")
     b = nd.sum(nd.array(a), **params)
-    np.save("/tmp/sum/out2.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "2/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "3/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/sum/in30.npy", a.astype("int32"))
+    np.save(tmp_dir + "3/in_0.npy", a.astype("int32"))
     params = {'axis':[2]}
-    save_dict(params, "/tmp/sum/attr3.txt")
+    save_dict(params, tmp_dir + "3/attr.txt")
     b = nd.sum(nd.array(a), **params)
-    np.save("/tmp/sum/out3.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "3/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "4/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/sum/in40.npy", a.astype("int32"))
+    np.save(tmp_dir + "4/in_0.npy", a.astype("int32"))
     params = {'axis':[3]}
-    save_dict(params, "/tmp/sum/attr4.txt")
+    save_dict(params, tmp_dir + "4/attr.txt")
     b = nd.sum(nd.array(a), **params)
-    np.save("/tmp/sum/out4.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "4/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "5/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/sum/in50.npy", a.astype("int32"))
+    np.save(tmp_dir + "5/in_0.npy", a.astype("int32"))
     params = {'axis':[1,2,3]}
-    save_dict(params, "/tmp/sum/attr5.txt")
+    save_dict(params, tmp_dir + "5/attr.txt")
     b = nd.sum(nd.array(a), **params)
-    np.save("/tmp/sum/out5.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "5/out_0.npy", b.asnumpy().astype("int32"))
 #   print(b.asnumpy().astype("int32").flatten())
 
+    os.makedirs(tmp_dir + "6/", exist_ok=True)
     shape = np.random.randint(low=2, high=10, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/sum/in60.npy", a.astype("int32"))
+    np.save(tmp_dir + "6/in_0.npy", a.astype("int32"))
     params = {'axis':[0,1,2,3]}
-    save_dict(params, "/tmp/sum/attr6.txt")
+    save_dict(params, tmp_dir + "6/attr.txt")
     b = nd.sum(nd.array(a), **params)
-    np.save("/tmp/sum/out6.npy", b.asnumpy().astype("int32"))
+    np.save(tmp_dir + "6/out_0.npy", b.asnumpy().astype("int32"))
 #    print(b.asnumpy().astype("int32").flatten())
 
 def test_elemwise_add():
     print("test elemwise_add")
+    tmp_dir = DIR + "elemwise_add/"
+    os.makedirs(tmp_dir + "0/", exist_ok=True)
     shape = (1)
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/elemwise_add/in00.npy", a.astype("int32"))
+    np.save(tmp_dir + "0/in_0.npy", a.astype("int32"))
     b = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/elemwise_add/in01.npy", b.astype("int32"))
+    np.save(tmp_dir + "0/in_1.npy", b.astype("int32"))
     params = {}
-    save_dict(params, "/tmp/elemwise_add/attr0.txt")
+    save_dict(params, tmp_dir + "0/attr.txt")
     c = nd.elemwise_add(nd.array(a), nd.array(b))
-    np.save("/tmp/elemwise_add/out0.npy", c.asnumpy().astype("int32"))
+    np.save(tmp_dir + "0/out_0.npy", c.asnumpy().astype("int32"))
 
+    os.makedirs(tmp_dir + "1/", exist_ok=True)
     shape = np.random.randint(low=10, high=100, size=(4))
     a = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/elemwise_add/in10.npy", a.astype("int32"))
+    np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
     b = np.random.randint(low=-127, high=127, size=shape)
-    np.save("/tmp/elemwise_add/in11.npy", b.astype("int32"))
+    np.save(tmp_dir + "1/in_1.npy", b.astype("int32"))
     params = {}
-    save_dict(params, "/tmp/elemwise_add/attr1.txt")
+    save_dict(params, tmp_dir + "1/attr.txt")
     c = nd.elemwise_add(nd.array(a), nd.array(b))
-    np.save("/tmp/elemwise_add/out1.npy", c.asnumpy().astype("int32"))
+    np.save(tmp_dir + "1/out_0.npy", c.asnumpy().astype("int32"))
 
 def test_conv2d():
     print("test conv2d")
@@ -604,11 +705,11 @@ test_concatenate()
 test_repeat()
 test_tile()
 #test_transpose()
-#test_strided_slice()
+test_strided_slice()
 test_slice_like()
-#test_take()
-#test_max()
-#test_sum()
-#test_upsampling()
-#test_elemwise_add()
+test_take()
+test_max()
+test_sum()
+test_upsampling()
+test_elemwise_add()
 ##test_conv2d()
