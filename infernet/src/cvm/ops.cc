@@ -1794,7 +1794,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
 
         int32_t *x_data = static_cast<int32_t*>(x->data);
         //  int32_t *shape_like = static_cast<int32_t*>(shape->data);
-        VERIFY(axis.ndim() < (uint32_t)x->ndim && axis.ndim() < (uint32_t)shape->ndim);
+        VERIFY(axis.ndim() < (uint32_t)x->ndim && axis.ndim() <= (uint32_t)shape->ndim);
         int32_t *y_data = static_cast<int32_t*>(y->data);
         int ndim = x->ndim;
 
@@ -1986,8 +1986,15 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
     auto &param = cvm::get<cvm::top::TakeParam>(attr->parsed);
 
     int32_t axis = param.axis.has_value() ? param.axis.value() : 0;
+    if(axis < 0){
+        axis += x->ndim;
+    }
     // std::cerr << "axis = " << axis << " " << x->ndim << " " << y->ndim << "\n";
-    take(x, indices, y, axis);
+    if(axis == 0){
+      take(x, indices, y);
+    }else{
+      take(x, indices, y, axis);
+    }
     print_to_file(y, "/tmp/zkh/take.txt");
 });
 
