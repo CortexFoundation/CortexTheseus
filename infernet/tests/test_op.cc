@@ -388,6 +388,10 @@ int findAllSubDir(std::vector<string> &filelist, const char *basePath)
 void read_one_line(string filename, string& str){
     ifstream infile;
     infile.open(filename);
+    if(!infile.is_open()){
+        str = "";
+        return;
+    }
     getline(infile, str);
     infile.close();
 }
@@ -461,25 +465,33 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
     LoadOp(params.func_name, attr);
     LoadOpAttr(attr_str, attr);
 
+    bool infer_shape_ret;
+    string err_path = case_path + "err.txt", err_str = "";
+    read_one_line(err_path, err_str);
     try {
-      bool infer_shape_ret = finfer(attr, &ishape, &oshape);
-      if(infer_shape_ret == false){
-        string err_path = case_path + "error.txt", err_str = "";
-        read_one_line(err_path, err_str);
-        assert(err_str == "");
+      infer_shape_ret = finfer(attr, &ishape, &oshape);
+      if(infer_shape_ret){
+        std::cout << "FInferShape ishape=[";
+        for (auto& shp : ishape) std::cout << shp << ", ";
+        std::cout << "] oshape=[";
+        for (auto& shp : oshape) std::cout << shp << ", ";
+        std::cout << "]\n";
       }
     } catch (const std::exception& e) {
       std::cerr << "FInferShape error with " << e.what() << std::endl;
-      string err_path = case_path + "error.txt", err_str = "";
-      read_one_line(err_path, err_str);
-      assert(err_str == "");
-      continue;
+      infer_shape_ret = false;
     }
-    std::cout << "FInferShape ishape=[";
-    for (auto& shp : ishape) std::cout << shp << ", ";
-    std::cout << "] oshape=[";
-    for (auto& shp : oshape) std::cout << shp << ", ";
-    std::cout << "]\n";
+    if(infer_shape_ret == false){
+      if(err_str == ""){
+        string out_path = case_path + "out_0.npy";
+        std::cout << out_path << std::endl;
+        npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
+        print(tdata[num_inputs]);
+        assert(false);
+      }else{
+        continue;
+      }
+    }
 
     for(int i = 0; i < num_outputs; i++){
 			string out_path = case_path + "out_" + std::to_string(i) + ".npy";
