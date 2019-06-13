@@ -699,15 +699,13 @@ def test_conv2d():
     params = {'stride':stride, 'pad':padding, 'dilate':dilation, 'kernel': kernel_size,'num_filter':o_c}
     y = nd.Convolution(nd.array(x), nd.array(w), None, **params)
 
-
-shape = (1,2,3)
-a = np.random.randint(low=0,high=10,size=shape)
-print(a)
-indices=[0, 6, 5, 3, -1]
-params = {'axis': 0}
-c = np.take(a, indices, **params, mode='clip')
-print(c.shape)
-print(c)
+def test_broadcast_add():
+    print("test broadcast add")
+    shape = np.random.randint(low=2, high=127, size=(4))
+    print (shape)
+    a = np.random.randint(low=-127, high=127, size=shape)
+    b = np.random.randint(low=-127, high=127, size=shape)
+   # c = np.braodcast_add(a,b)
 
 #test_concatenate()
 #test_repeat()
@@ -721,3 +719,4 @@ print(c)
 #test_upsampling()
 #test_elemwise_add()
 ##test_conv2d()
+##test_broadcast_add()
