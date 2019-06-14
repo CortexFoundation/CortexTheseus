@@ -78,10 +78,9 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     auto get_input_precision = module_.GetFunction("get_input_precision");
     int input_precision = 0;
     get_input_precision(&input_precision);
+    std::cerr << "input_precision = " << input_precision << "\n";
     input_bytes_ = 1;
     if (input_precision > 8)
-      input_bytes_ = 2;
-    if (input_precision > 16)
       input_bytes_ = 4;
   }
   {
@@ -89,8 +88,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     int output_precision;
     get_output_precision(&output_precision);
     output_bytes_ = 1;
-    if (output_precision > 8)
-        output_bytes_ = 2;
     if (output_precision > 16)
         output_bytes_ = 4;
 
@@ -192,9 +189,6 @@ DLTensor* CVMModel::PlanInput(void *input) {
       for (int i = 0; i < in_size_; ++i) {
           data[i] = static_cast<int32_t*>(input)[i];
       }
-  } else if (input_bytes_ == 2){
-    VERIFY(false) << "not implmented for input_bytes_ " << input_bytes_;
-    return 0;
   } else {
       for (int i = 0; i < in_size_; ++i) {
           data[i] = static_cast<int8_t*>(input)[i];
@@ -269,19 +263,6 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
             }
           }
             // std::cerr << "\n";
-        }
-      } else if (output_bytes_ == 2){
-        //TODO(tian) test int16 yolo
-        int16_t* cp = static_cast<int16_t*>((void*)(mem));
-        int32_t nx = xs[0] / output_bytes_;  // truncate result
-        for (int xidx = 0; xidx < nx; xidx++) {
-          for (size_t k = 0; k < outputs.size(); ++k) {
-            auto data = static_cast<int16_t*>(outputs[k]->data) + xidx * ys[k];
-            for (size_t i = 0; i < ys[k]; ++i) {
-              *cp = data[i];
-              ++cp;
-            }
-          }
         }
       } else {
         auto cp = mem;
@@ -533,30 +514,34 @@ int CVMAPISizeOfInputType(void *model_) {
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
   int ret = 0;
-  if (input_data == nullptr) {
-    std::cerr << "input_data error" << std::endl;
-    ret = -1;
-  } else if (output_data == nullptr) {
-    std::cerr << "output error" << std::endl;
-    ret = -1;
-  } else {
-    CVMModel* model = (CVMModel*)model_;
-    DLTensor* input = nullptr;
-    input = model->PlanInput(input_data);
-    auto outputs = model->PlanOutput();
-    if (input == nullptr) {
-      std::cerr << "input == nullptr || output == nullptr" << std::endl;
+  try {
+    if (input_data == nullptr) {
+      std::cerr << "input_data error" << std::endl;
+      ret = -1;
+    } else if (output_data == nullptr) {
+      std::cerr << "output error" << std::endl;
       ret = -1;
     } else {
-      ret = model->Run(input, outputs);
-      if (ret == 0) {
-        model->SaveTensor(outputs, output_data);
-        if (input)
-          CVMArrayFree(input);
-        for (size_t i = 0; i < outputs.size(); ++i)
-          CVMArrayFree(outputs[i]);
+      CVMModel* model = (CVMModel*)model_;
+      DLTensor* input = nullptr;
+      input = model->PlanInput(input_data);
+      auto outputs = model->PlanOutput();
+      if (input == nullptr) {
+        std::cerr << "input == nullptr || output == nullptr" << std::endl;
+        ret = -1;
+      } else {
+        ret = model->Run(input, outputs);
+        if (ret == 0) {
+          model->SaveTensor(outputs, output_data);
+          if (input)
+            CVMArrayFree(input);
+          for (size_t i = 0; i < outputs.size(); ++i)
+            CVMArrayFree(outputs[i]);
+        }
       }
     }
+  } catch (std::exception &e) {
+    return -1;
   }
   return ret;
 }

@@ -185,6 +185,15 @@ func runCmd(ctx *cli.Context) error {
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
 		})
+	ih4, _ := hex.DecodeString("f9a64c69029360a820207bca588d44b80afc8f77")
+	testInputMeta4, _ := rlp.EncodeToBytes(
+		&types.InputMeta{
+			Hash:          common.BytesToAddress(ih4),
+			RawSize:       10000,
+			Shape:         []uint64{3, 416, 416},
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
+			BlockNum: *big.NewInt(10),
+		})
 	fmt.Println("testModelMeta1", testModelMeta1)
 	fmt.Println("testModelMeta2", testModelMeta2)
 	fmt.Println("testInputMeta1", testInputMeta1)
@@ -285,7 +294,7 @@ func runCmd(ctx *cli.Context) error {
 		StorageDir: storageDir,
 		IsNotCache: false,
 		IsRemoteInfer: false,
-		DeviceType: "cuda",
+		DeviceType: "cpu",
 		DeviceId: 0,
 		Debug: true,
 	})

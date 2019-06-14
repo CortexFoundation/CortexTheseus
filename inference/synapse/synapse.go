@@ -115,17 +115,6 @@ func (s *Synapse) Close() {
 	log.Info("Synapse Engine Closed")
 }
 
-func (s *Synapse) VerifyModel(modelInfoHash string) error {
-	return nil
-	// modelHash := strings.ToLower(string(modelInfoHash[2:]))
-	// modelDir := s.config.StorageDir + "/" + modelHash
-
-	// modelCfg := modelDir + "/data/symbol"
-	// modelBin := modelDir + "/data/params"
-
-	// return parser.CheckModel(modelCfg, modelBin)
-}
-
 func (s *Synapse) VerifyInput(inputInfoHash string) error {
 	inputHash := strings.ToLower(string(inputInfoHash[2:]))
 	inputDir := s.config.StorageDir + "/" + inputHash
