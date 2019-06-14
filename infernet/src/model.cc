@@ -253,16 +253,25 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
         int32_t* cp = static_cast<int32_t*>((void*)(mem));
         int32_t nx = xs[0];  // truncate result
         for (int xidx = 0; xidx < nx; xidx++) {
-            // std::cerr << "\n";
+          //   std::cerr << "int8 \n";
+          // for (size_t k = 0; k < outputs.size(); ++k) {
+          //   auto data = static_cast<uint8_t*>(outputs[k]->data) + xidx * ys[k] * 4;
+          //   for (size_t i = 0; i < ys[k] * 4; ++i) {
+          //     std::cerr << (int)((uint8_t)data[i]) << " " ;
+          //   }
+          // }
+          //   std::cerr << "\n";
+
+          // std::cerr << "int32 \n";
           for (size_t k = 0; k < outputs.size(); ++k) {
             auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
             for (size_t i = 0; i < ys[k]; ++i) {
               *cp = data[i];
-              // std::cerr << *cp << " " ;
+          //    std::cerr << *cp << " " ;
               ++cp;
             }
           }
-            // std::cerr << "\n";
+          //   std::cerr << "\n";
         }
       } else {
         auto cp = mem;
