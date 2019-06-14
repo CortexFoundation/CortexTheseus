@@ -21,8 +21,20 @@ import (
 //  "strings"
 //  "strconv"
   "github.com/CortexFoundation/CortexTheseus/log"
-  "github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
 )
+
+func SwitchEndian(data []byte, bytes int) ([]byte, error) {
+	if (len(data) % bytes != 0) {
+		return nil, errors.New(fmt.Sprintf("data is not aligned with %d", bytes))
+	}
+	ret := make([]byte, len(data))
+	for i := 0; i < len(data); i += bytes {
+		for j := 0; j < bytes; j++ {
+			ret[i + bytes - j - 1] = data[i + j]
+		}
+	}
+	return ret, nil
+}
 
 func LoadModel(modelCfg, modelBin string,  deviceId int) (unsafe.Pointer, error) {
   net := C.CVMAPILoadModel(
@@ -85,9 +97,9 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 	if (output_bytes > 1) {
 		fmt.Println("cpu_plugin", "output_bytes = ", output_bytes)
 		var err error
-		res, err = kernel.SwitchEndian(res, int(output_bytes))
+		res, err = SwitchEndian(res, int(output_bytes))
 		if err != nil {
-    return nil, err 
+			return nil, err
 		}
 	}
   log.Info("CPU Infernet", "flag", flag, "res", res)
