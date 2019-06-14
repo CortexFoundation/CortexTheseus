@@ -337,7 +337,10 @@ void test_take() {
     //std::cerr << "\n";
     //}
 }
-int findAllSubDir(std::vector<string> &filelist, const char *basePath)
+const int TYPE_FILE = 8;
+const int TYPE_LINK = 10;
+const int TYPE_DIR = 4;
+int findAllSubDir(std::vector<string> &filelist, const char *basePath, int type)
 {
     DIR *dir;
     struct dirent *ptr;
@@ -353,34 +356,38 @@ int findAllSubDir(std::vector<string> &filelist, const char *basePath)
     {
         if(strcmp(ptr->d_name,".")==0 || strcmp(ptr->d_name,"..")==0)    ///current dir OR parrent dir
             continue;
-        else if(ptr->d_type == 8)    //file
-        {
-            // //printf("d_name:%s/%s\n",basePath,ptr->d_name);
-            // string temp = ptr->d_name;
-            // //cout  << temp << endl;
-            // string sub = temp.substr(temp.length() - 4, temp.length()-1);
-            // //cout  << sub << endl;
-            // if(sub == format)
-            // {
-            //     string path = basePath;
-            //     path += "/";
-            //     path += ptr->d_name;
-            //     filelist.push_back(path);
-            // }
-        }
-        else if(ptr->d_type == 10)    ///link file
-        {
-            //printf("d_name:%s/%s\n",basePath,ptr->d_name);
-        }
-        else if(ptr->d_type == 4)    ///dir
-        {
-            memset(base,'\0',sizeof(base));
-            strcpy(base,basePath);
-            strcat(base,"/");
-            strcat(base,ptr->d_name);
+        if(ptr->d_type == type || ptr->d_type == TYPE_LINK){
             filelist.push_back(ptr->d_name);
-            findAllSubDir(filelist, base);
         }
+       // else if(ptr->d_type == TYPE_FILE && type == TYPE_FILE)    //file
+       // {
+       //   filelist.push_back(ptr->d_name);
+       //     //printf("d_name:%s/%s\n",basePath,ptr->d_name);
+       //    // string temp = ptr->d_name;
+       //     //cout  << temp << endl;
+       //    // string sub = temp.substr(temp.length() - 4, temp.length()-1);
+       //    // //cout  << sub << endl;
+       //    // if(sub == format)
+       //    // {
+       //    //     string path = basePath;
+       //    //     path += "/";
+       //    //     path += ptr->d_name;
+       //    //     filelist.push_back(path);
+       //    // }
+       // }
+       // else if(ptr->d_type == 10)    ///link file
+       // {
+       //     //printf("d_name:%s/%s\n",basePath,ptr->d_name);
+       // }
+       // else if(ptr->d_type == TYPE_DIR && type == TYPE_DIR)    ///dir
+       // {
+       //     memset(base,'\0',sizeof(base));
+       //     strcpy(base,basePath);
+       //     strcat(base,"/");
+       //     strcat(base,ptr->d_name);
+       //     filelist.push_back(ptr->d_name);
+       //     findAllSubDir(filelist, base);
+       // }
     }
     closedir(dir);
     return 1;
@@ -389,7 +396,7 @@ void read_one_line(string filename, string& str){
     ifstream infile;
     infile.open(filename);
     if(!infile.is_open()){
-      printf("file no exist\n");
+      printf("file no exist : %s\n", filename.c_str());
         str = "";
         return;
     }
@@ -406,38 +413,42 @@ void print(vector<T> &data){
 }
 void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_t>& data){
     FILE *fp = fopen(filename, "r");
+    if(fp == NULL){
+        return;
+    }
     int32_t shape_dim = 0;
     fscanf(fp, "%d ", &shape_dim);
     printf("shape_dim = %d\n", shape_dim);
     shape.resize(shape_dim);
     uint64_t size = 1;
-    printf("shape: ");
+//    printf("shape: ");
     for(int i = 0; i < shape_dim; i++){
         int64_t value = 0;
         fscanf(fp, "%d ", &value);
         shape[i] = value;
-        printf("%d ", shape[i]);
+//        printf("%d ", shape[i]);
         size *= shape[i];
     }
-    printf("\n");
+//    printf("\n");
     //fscanf(fp, "\n");
-    printf("data: ");
+//    printf("data: ");
     data.resize(size);
     for(int i = 0; i < size; i++){
         int32_t value = 0;
         fscanf(fp, "%d ", &value);
         data[i] = value;
-        printf("%d ", data[i]);
+//        printf("%d ", data[i]);
     }
-    printf("\n");
+//    printf("\n");
+    fclose(fp);
 }
 const string CASE_DIR = "/data/ops_generator";
 
-void test_op(string op_name, int num_inputs, int num_outputs) {
+void test_op(string op_name) {
   printf("\ntest %s\n", op_name.c_str());
 	std::vector<string> case_list;
 	string case_dir = CASE_DIR + "/" + op_name + "/";
-	findAllSubDir(case_list, case_dir.c_str());
+	findAllSubDir(case_list, case_dir.c_str(), TYPE_DIR);
 
   static auto& finfer_shape =
       Op::GetAttr<cvm::FInferNodeEntryAttr<TShape> >("FInferShape");
@@ -456,6 +467,21 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
     read_one_line(attr_path, attr_str);
     //string attr_str = " {\"axis\": \"" + std::to_string(i-1) + "\"} ";
     std::cout << attr_str << endl;
+    vector<string> file_list;
+    findAllSubDir(file_list, case_path.c_str(), TYPE_FILE);
+    int num_inputs = 0, num_outputs = 0;
+    printf("file list size = %d\n", file_list.size());
+    for(auto file_name : file_list){
+        if(file_name.find("in_") != string::npos){
+            num_inputs += 1;
+        }
+        if(file_name.find("out_") != string::npos){
+            num_outputs += 1;
+        }
+    }
+   // printf("num_inputs = %d, num_outputs = %d\n", num_inputs, num_outputs);
+    //if(num_inputs == 0 || num_outputs == 0) continue;
+
     CVMOpParam params;
     params.func_name = op_name;
     params.num_inputs = num_inputs;
@@ -575,15 +601,13 @@ void test_op(string op_name, int num_inputs, int num_outputs) {
   }
 }
 int main() {
-//  vector<unsigned long> shape;
-//  vector<int32_t> data;
-//  read_data("data.txt", shape, data);
-    test_op("transpose", 1, 1);// 5th case failed
-    // test_op("take", 2, 1);
-    // test_op("concatenate", 2, 1);//pass
+
+  test_op("strided_slice"); //pass
+ // test_op("concatenate");//pass
+ // test_op("transpose");// pass
+ // test_op("take");
     // test_op("repeat", 1, 1); //pass
     // test_op("tile", 1, 1); //pass
-    // test_op("strided_slice", 1, 1); //pass
 		// test_op("slice_like", 2, 1); // pass
     // test_op("max", 1, 1); // pass
     // test_op("sum", 1,1); // pass

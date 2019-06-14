@@ -655,7 +655,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.concatenate")
 .set_body([](CVMArgs args, CVMRetValue *ret){
         int len = args.num_args;
-        VERIFY(len >= 4);
+        VERIFY(len >= 3);
         DLTensor *input0 = args[0];
         void *_attr = args[--len];
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
@@ -665,7 +665,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.concatenate")
         int32_t ndim = static_cast<int32_t>(input0->ndim);
         VERIFY(-ndim <= axis && axis < ndim);
         if(axis < 0) axis += ndim;
-        VERIFY(axis < input0->ndim) << "axis out of bounds.";
+        VERIFY(axis < input0->ndim && axis >= 0);
 
         int32_t *out_data = static_cast<int32_t*>(output->data);
         int64_t preSize = 0;
@@ -704,6 +704,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.repeat")
     int32_t repeat = param.repeats;
     int ndim = x->ndim;
     if(axis < 0) axis = axis + ndim;
+    VERIFY(axis >= 0 && axis < ndim);
 
     const char* errorStr = cuda_repeat(
             x_data, y_data, x->shape, y->shape, getSize(y), x->ndim, y->ndim, axis, repeat);
@@ -814,13 +815,31 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.strided_slice")
     TShape begin = param.begin;
     TShape end = param.end;
     TShape stride = param.stride;
-    int64_t *begin_data = begin.begin();
-    int64_t *end_data = end.begin();
-    int64_t *step_data = stride.begin();
-    VERIFY(begin.ndim() > 0);
-    VERIFY(begin.ndim() == end.ndim());
-    VERIFY(stride.ndim() == 0 || stride.ndim() == begin.ndim());
-    for(uint32_t i = 0; i < begin.ndim();i++){
+
+    int32_t num_axis = x->ndim;
+    std::vector<int64_t> begin_vec;
+    std::copy(begin.begin(), begin.end(), std::back_inserter(begin_vec));
+    for (dim_t i = begin_vec.size(); i < num_axis; ++i) {
+      begin_vec.push_back(0);
+    }
+
+    std::vector<int64_t> end_vec;
+    std::copy(end.begin(), end.end(), std::back_inserter(end_vec));
+    for (dim_t i = end_vec.size(); i < num_axis; ++i) {
+      end_vec.push_back(x->shape[i]);
+    }
+
+    std::vector<int64_t> stride_vec;
+    std::copy(stride.begin(), stride.end(), std::back_inserter(stride_vec));
+    for (dim_t i = stride_vec.size(); i < num_axis; ++i) {
+      stride_vec.push_back(1);
+    }
+
+    int64_t *begin_data = begin_vec.data();//begin.begin();
+    int64_t *end_data = end_vec.data();//end.begin();
+    int64_t *step_data = stride_vec.data();//stride.begin();
+
+    for(uint32_t i = 0; i < num_axis; i++){
         if(begin_data[i] < 0) {
           begin_data[i] += x->shape[i];
           begin_data[i] = std::min(std::max(begin_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
@@ -829,12 +848,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.strided_slice")
           end_data[i] += x->shape[i];
           end_data[i] += std::min(std::max(end_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
         }
-        if(stride.ndim() > 0){
-          if(step_data[i] > 0) {
-            VERIFY(begin_data[i] < end_data[i]);
-          }else{
-            VERIFY(begin_data[i] > end_data[i]);
-          }
+        VERIFY(step_data[i] != 0);
+        if(step_data[i] > 0) {
+          VERIFY(begin_data[i] < end_data[i]);
+        }else{
+          VERIFY(begin_data[i] > end_data[i]);
         }
     }
 

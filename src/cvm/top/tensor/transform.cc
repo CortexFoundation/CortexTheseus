@@ -182,11 +182,15 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
   dim_t size = 0;
   bool has_zero = false;
   int ndim = in_shape->at(0).ndim();
-  CHECK(-ndim - 1 <= param.axis && param.axis <= ndim)
-    << "repeat only accepts `axis` in [-data.ndim - 1, data.ndim]"
+  VERIFY(-ndim <= param.axis && param.axis < ndim)
+    << "repeat only accepts `axis` in [-data.ndim, data.ndim)"
     << ", but got axis = " << param.axis
     << ", and data.ndim = " << ndim;
   int axis = param.axis >= 0 ? param.axis : ndim + param.axis;
+  VERIFY(axis >= 0 && axis < ndim);
+  for(size_t i = 0; i < in_shape->size(); ++i){
+    VERIFY(in_shape->at(i).ndim() == ndim);
+  }
   for (size_t i = 0; i < in_shape->size(); ++i) {
     TShape tmp = (*in_shape)[i];
     if (tmp.ndim()) {
@@ -345,7 +349,7 @@ will return a new array with shape ``(2,1,1,1,1,1,3,4)``.
 
 // split
 // CVMUTIL_REGISTER_PARAMETER(SplitParam);
-// 
+//
 // inline void SplitParamParser(cvm::NodeAttrs* attrs) {
 //   SplitParam param;
 //   param.Init(attrs->dict);
@@ -357,14 +361,14 @@ will return a new array with shape ``(2,1,1,1,1,1,3,4)``.
 //   }
 //   attrs->parsed = std::move(param);
 // }
-// 
+//
 // inline bool SplitInferShape(const NodeAttrs& attrs,
 //                             std::vector<TShape>* in_shape,
 //                             std::vector<TShape>* out_shape) {
 //   const SplitParam& param = cvm::get<SplitParam>(attrs.parsed);
 //   const TShape& dshape = (*in_shape)[0];
 //   if (dshape.ndim() == 0) return false;
-// 
+//
 //   auto axis = param.axis;
 //   if (axis < 0) {
 //     axis += dshape.ndim();
@@ -373,7 +377,7 @@ will return a new array with shape ``(2,1,1,1,1,1,3,4)``.
 //     << "axis should be within input dimension range but got " <<  axis;
 //   VERIFY_GT(axis, -1)
 //     << "axis should be within input dimension range but got " <<  axis;
-// 
+//
 //   if (param.equal_split) {
 //     int num_outputs = param.indices_or_sections[0];
 //     VERIFY_EQ(out_shape->size(), static_cast<size_t>(num_outputs));
@@ -382,7 +386,7 @@ will return a new array with shape ``(2,1,1,1,1,1,3,4)``.
 //         << "indices_or_sections need to be able to divide input.shape[axis] got sections "
 //         << num_outputs << " and dimension " << oshape[axis];
 //     oshape[axis] /= num_outputs;
-// 
+//
 //     for (size_t i = 0; i < out_shape->size(); ++i) {
 //       CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, i, oshape);
 //     }
@@ -406,7 +410,7 @@ will return a new array with shape ``(2,1,1,1,1,1,3,4)``.
 //   }
 //   return true;
 // }
-// 
+//
 // inline uint32_t SplitNumOutputs(const NodeAttrs& attrs) {
 //   const SplitParam& param = cvm::get<SplitParam>(attrs.parsed);
 //   if (param.equal_split) {
@@ -415,14 +419,14 @@ will return a new array with shape ``(2,1,1,1,1,1,3,4)``.
 //     return static_cast<uint32_t>(param.indices_or_sections.ndim()) + 1;
 //   }
 // }
-// 
+//
 // // Intentionally not add ParamGetAttrDict for indices_or_sections.
 // CVM_REGISTER_OP(split)
 // .describe(R"code(Splits an array along a particular axis into multiple sub-arrays.
-// 
+//
 // **Note** that `indices_or_sections` should evenly divide the length of the axis
 // along which to split the array.
-// 
+//
 // )code" CVM_ADD_FILELINE)
 // .add_argument("data", "Tensor", "Array to be splitted")
 // .add_arguments(SplitParam::__FIELDS__())
@@ -821,20 +825,21 @@ inline bool StridedSliceInferShape(const NodeAttrs& attrs,
   }
 
   for (dim_t i = 0; i < num_axis; ++i) {
-      int64_t begin_range = stride_vec[i] < 0 ? -1 : 0;
-      int64_t end_range = stride_vec[i] < 0 ? dshape[i] - 1 : dshape[i];
-      int64_t begin = begin_vec[i] < 0 ? dshape[i] + begin_vec[i] : begin_vec[i];
-      int64_t end = end_vec[i] < 0 ? dshape[i] + end_vec[i] : end_vec[i];
-      begin = std::min(std::max(begin, begin_range), end_range);
-      end = std::min(std::max(end, begin_range), end_range);
+    VERIFY(stride_vec[i] != 0);
+    int64_t begin_range = stride_vec[i] < 0 ? -1 : 0;
+    int64_t end_range = stride_vec[i] < 0 ? dshape[i] - 1 : dshape[i];
+    int64_t begin = begin_vec[i] < 0 ? dshape[i] + begin_vec[i] : begin_vec[i];
+    int64_t end = end_vec[i] < 0 ? dshape[i] + end_vec[i] : end_vec[i];
+    begin = std::min(std::max(begin, begin_range), end_range);
+    end = std::min(std::max(end, begin_range), end_range);
 
-      int interval = std::abs(end - begin);
-      int slice_size = static_cast<int>((interval
-                                       + std::abs(stride_vec[i]) - 1) / std::abs(stride_vec[i]));
-      VERIFY(stride_vec[i] < 0 ? (end < begin) : (begin < end))
-        << ": Input [Begin=" << begin_vec[i] << ", End=" << end_vec[i]
-        << "] is invalid for axis=" << i;
-      oshape[i] = slice_size;
+    int interval = std::abs(end - begin);
+    int slice_size = static_cast<int>((interval
+          + std::abs(stride_vec[i]) - 1) / std::abs(stride_vec[i]));
+    VERIFY(stride_vec[i] < 0 ? (end < begin) : (begin < end))
+      << ": Input [Begin=" << begin_vec[i] << ", End=" << end_vec[i]
+      << "] is invalid for axis=" << i;
+    oshape[i] = slice_size;
   }
   CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, 0, oshape);
   return true;
@@ -1029,7 +1034,7 @@ inline bool LUTCorrectLayout(const NodeAttrs& attrs,
   return true;
 }
 
-inline bool LUTInferPrecision(const NodeAttrs& attrs, 
+inline bool LUTInferPrecision(const NodeAttrs& attrs,
                                   std::vector<TShape>* shapes,
                                   std::vector<int>* iattr,
                                   std::vector<int>* oattr) {
