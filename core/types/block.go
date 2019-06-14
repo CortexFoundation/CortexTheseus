@@ -18,9 +18,7 @@
 package types
 
 import (
-	//	"bytes"
 	"encoding/binary"
-	//	"fmt"
 	"io"
 	"math/big"
 	"sort"

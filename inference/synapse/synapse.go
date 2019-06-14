@@ -73,8 +73,9 @@ func Engine() *Synapse {
 }
 
 func New(config *Config) *Synapse {
+	path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX;
 	var lib *plugin.Plugin = nil
-
+	// fmt.Println("config ", config, "synapseInstance ", synapseInstance)
 	if synapseInstance != nil {
 		log.Warn("Synapse Engine has been initalized")
 		if (config.Debug) {
@@ -85,7 +86,8 @@ func New(config *Config) *Synapse {
 
 	if !config.IsRemoteInfer {
 		var err error = nil
-		lib, err = plugin.Open(PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX)
+		// fmt.Println("path ", path)
+		lib, err = plugin.Open(path)
 		if err != nil {
 			log.Error("infer helper", "init cvm plugin error", err)
 			if (config.Debug) {

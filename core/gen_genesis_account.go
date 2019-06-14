@@ -5,6 +5,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -20,6 +21,7 @@ func (g GenesisAccount) MarshalJSON() ([]byte, error) {
 		Storage    map[storageJSON]storageJSON `json:"storage,omitempty"`
 		Balance    *math.HexOrDecimal256       `json:"balance" gencodec:"required"`
 		Nonce      math.HexOrDecimal64         `json:"nonce,omitempty"`
+		BlockNum   math.HexOrDecimal64         `json:"blocknum,omitempty"`
 		PrivateKey hexutil.Bytes               `json:"secretKey,omitempty"`
 	}
 	var enc GenesisAccount
@@ -33,6 +35,7 @@ func (g GenesisAccount) MarshalJSON() ([]byte, error) {
 	enc.Balance = (*math.HexOrDecimal256)(g.Balance)
 	enc.Nonce = math.HexOrDecimal64(g.Nonce)
 	enc.PrivateKey = g.PrivateKey
+	fmt.Println("enc = ", enc)
 	return json.Marshal(&enc)
 }
 
@@ -42,6 +45,7 @@ func (g *GenesisAccount) UnmarshalJSON(input []byte) error {
 		Storage    map[storageJSON]storageJSON `json:"storage,omitempty"`
 		Balance    *math.HexOrDecimal256       `json:"balance" gencodec:"required"`
 		Nonce      *math.HexOrDecimal64        `json:"nonce,omitempty"`
+		BlockNum   *math.HexOrDecimal64				 `json:"blocknum,omitempty"`
 		PrivateKey *hexutil.Bytes              `json:"secretKey,omitempty"`
 	}
 	var dec GenesisAccount
@@ -67,5 +71,9 @@ func (g *GenesisAccount) UnmarshalJSON(input []byte) error {
 	if dec.PrivateKey != nil {
 		g.PrivateKey = *dec.PrivateKey
 	}
+	if dec.BlockNum != nil {
+		g.BlockNum = big.NewInt(int64(*dec.BlockNum))
+	}
+	fmt.Println("dec: ", dec, *dec.BlockNum, "g.BlockNum = ", g.BlockNum)
 	return nil
 }

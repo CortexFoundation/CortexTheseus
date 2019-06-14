@@ -12,6 +12,19 @@ import (
 	"plugin"
 )
 
+func SwitchEndian(data []byte, bytes int) ([]byte, error) {
+	if (len(data) % bytes != 0) {
+		return nil, errors.New(fmt.Sprintf("data is not aligned with %d", bytes))
+	}
+	ret := make([]byte, len(data))
+	for i := 0; i < len(data); i += bytes {
+		for j := 0; j < bytes; j++ {
+			ret[i + bytes - j - 1] = data[i + j]
+		}
+	}
+	return ret, nil
+}
+
 type Model struct {
 	model unsafe.Pointer
 	lib *plugin.Plugin

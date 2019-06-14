@@ -43,9 +43,9 @@ public:
   int GetOutputLength();
   int64_t GetStorageSize();
   int64_t GetOps();
-  int GetSizeofOutput();
+  int GetSizeOfOutputType();
+  int GetSizeOfInputType();
   int Run(DLTensor* input, std::vector<DLTensor*> output);
-  bool loaded_{false};
   DLTensor* PlanInput();
   DLTensor* PlanInput(void*);
   std::vector<DLTensor*> PlanOutput();
@@ -54,6 +54,7 @@ public:
   std::string GetVersion();
   std::string GetPostprocessMethod();
   bool SetPostprocessMethod(const string postprocess_method);
+  bool IsReady() const;
 private:
   int SetInput_(string index, DLTensor* input);
   int Run_();
@@ -71,7 +72,7 @@ private:
   int32_t out_num_;
   int64_t model_id_;
   int8_t output_bytes_;
-  bool is_input_int32_;
+  int8_t input_bytes_;
   std::vector<int> dims_;
   std::vector<int64_t*> shapes_;
   std::string version_, postprocess_method_;
@@ -79,6 +80,7 @@ private:
   int dtype_bits{32};
   int dtype_lanes{1};
   int32_t input_num_{1};
+  bool loaded_{false};
 };
 
 }
