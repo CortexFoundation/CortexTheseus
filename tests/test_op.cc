@@ -442,6 +442,31 @@ void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_
 //    printf("\n");
     fclose(fp);
 }
+void load_input(int num_inputs, string case_path, vector<vector<uint64_t>>& tshape,
+    vector<vector<int32_t>>& tdata, vector<TShape>& ishape, vector<DLTensor>& args){
+    DLTensor* cpu_tensor;
+    for(int i = 0; i < num_inputs; i++){
+      string in_path = case_path + "in_" +  std::to_string(i) + ".txt";
+      cout << in_path << endl;
+      //npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
+      read_data(in_path.c_str(), tshape[i], tdata[i]);
+      TShape shp(tshape[i].size());
+      for (size_t ti = 0; ti < shp.ndim(); ++ti) {
+        shp[ti] = tshape[i][ti];
+      }
+      ishape[i] = shp;
+      // ishape.emplace_back(shp);
+      std::cout << shp << std::endl;
+      DLTensor* dl;
+      CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
+      args[i] = *dl;
+      //if (i < params.num_inputs) {
+      CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
+      memcpy(cpu_tensor->data, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
+      CVMArrayCopyFromTo(cpu_tensor, dl, nullptr);
+      CVMArrayFree(cpu_tensor);
+    }
+}
 const string CASE_DIR = "/data/ops_generator";
 
 void test_op(string op_name) {
@@ -470,7 +495,6 @@ void test_op(string op_name) {
     vector<string> file_list;
     findAllSubDir(file_list, case_path.c_str(), TYPE_FILE);
     int num_inputs = 0, num_outputs = 0;
-    printf("file list size = %d\n", file_list.size());
     for(auto file_name : file_list){
         if(file_name.find("in_") != string::npos){
             num_inputs += 1;
@@ -491,31 +515,7 @@ void test_op(string op_name) {
     std::vector<std::vector<unsigned long>> tshape(args.size());
     std::vector<std::vector<int32_t>> tdata(args.size());
     std::vector<TShape> ishape(num_inputs), oshape(num_outputs);
-    for(int in_i = 0; in_i < num_inputs; in_i++){
-        string in_path = case_path + "in_" +  std::to_string(in_i) + ".txt";
-        cout << in_path << endl;
-        //npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
-        read_data(in_path.c_str(), tshape[in_i], tdata[in_i]);
-        TShape shp(tshape[in_i].size());
-        for (size_t i = 0; i < shp.ndim(); ++i) {
-          shp[i] = tshape[in_i][i];
-        }
-        ishape[in_i] = shp;
-        // ishape.emplace_back(shp);
-        std::cout << shp << std::endl;
-    }
-    DLTensor* cpu_tensor;
-    for (uint32_t i = 0; i < num_inputs; i++) {
-      DLTensor* dl;
-      CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
-      args[i] = *dl;
-      //if (i < params.num_inputs) {
-        CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
-        memcpy(cpu_tensor->data, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
-        CVMArrayCopyFromTo(cpu_tensor, dl, nullptr);
-        CVMArrayFree(cpu_tensor);
-      //}
-    }
+    load_input(num_inputs, case_path, tshape, tdata, ishape, args);
 
     NodeAttrs attr;
     LoadOp(params.func_name, attr);
@@ -547,7 +547,7 @@ void test_op(string op_name) {
         print(tdata[num_inputs]);
         assert(false);
       }else{
-        cout << "match 1 " << endl;
+        cout << "match 1 | 0" << endl;
         continue;
       }
     }
@@ -557,8 +557,8 @@ void test_op(string op_name) {
 			cout << out_path << endl;
 			//npy::LoadArrayFromNumpy(out_path, tshape[num_inputs+i], tdata[num_inputs+i]);
       read_data(out_path.c_str(), tshape[num_inputs+i], tdata[num_inputs+i]);
-      print(tshape[num_inputs+i]);
-      print(tdata[num_inputs+i]);
+ //     print(tshape[num_inputs+i]);
+ //     print(tdata[num_inputs+i]);
       int shape_cmp = memcmp(tshape[num_inputs+i].data(), oshape[i].data(), sizeof(int64_t) * tshape[num_inputs+i].size());
       if(shape_cmp != 0){
         print(tshape[num_inputs+i]);
@@ -576,6 +576,7 @@ void test_op(string op_name) {
 
     vector<int32_t> cpu_output_tensor(tdata[params.num_inputs].size());
     {
+      DLTensor* cpu_tensor;
       int i = params.num_inputs; // first output
       CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
       CVMArrayCopyFromTo(&args[i], cpu_tensor, nullptr);
@@ -601,15 +602,17 @@ void test_op(string op_name) {
   }
 }
 int main() {
+     test_op("max"); // pass
+//  test_op("slice_like");
+//     test_op("tile"); //pass
+//    test_op("repeat"); //pass
+//  test_op("non_max_suppression");
+//  test_op("get_valid_counts");
 
-  test_op("strided_slice"); //pass
- // test_op("concatenate");//pass
- // test_op("transpose");// pass
- // test_op("take");
-    // test_op("repeat", 1, 1); //pass
-    // test_op("tile", 1, 1); //pass
-		// test_op("slice_like", 2, 1); // pass
-    // test_op("max", 1, 1); // pass
+//  test_op("strided_slice"); //pass
+//  test_op("concatenate");//pass
+//  test_op("transpose");// pass
+//  test_op("take");
     // test_op("sum", 1,1); // pass
     // test_op("upsampling", 1, 1);
     // test_op("elemwise_add", 2, 1);

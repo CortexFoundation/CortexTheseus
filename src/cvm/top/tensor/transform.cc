@@ -33,11 +33,12 @@ inline bool RepeatShape(const cvm::NodeAttrs& attrs,
   CHECK(repeats >= 1)
     << "repeat only accepts `repeats >= 1`"
     << ", but got repeats = " << repeats;
-  CHECK(-ndim - 1 <= axis && axis <= ndim)
-    << "repeat only accepts `axis` in [-data.ndim - 1, data.ndim]"
+  CHECK(-ndim <= axis && axis < ndim)
+    << "repeat only accepts `axis` in [-data.ndim, data.ndim]"
     << ", but got axis = " << axis
     << ", and data.ndim = " << ndim;
   const int pivot = axis < 0 ? ndim + axis : axis;
+  VERIFY(pivot >= 0 && pivot < ndim);
   std::vector<int64_t> oshape;
   for (int i = 0; i < pivot; ++i) {
     oshape.emplace_back(shp[i]);
@@ -1086,7 +1087,7 @@ inline bool SliceLikeShape(const cvm::NodeAttrs& attrs,
       if (i < 0) {
         i = src_shape.ndim() + i;
       }
-      VERIFY_LT(i, target_shape.ndim())
+      VERIFY(i>=0 && i < target_shape.ndim())
         << "Axis " << i << " exceeds dimension "
         << target_shape.ndim()<< " of target_shape.";
       end_idx[i] = target_shape[i];
