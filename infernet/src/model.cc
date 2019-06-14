@@ -188,6 +188,7 @@ DLTensor* CVMModel::PlanInput(void *input) {
   if (input_bytes_ == 4) {
       for (int i = 0; i < in_size_; ++i) {
           data[i] = static_cast<int32_t*>(input)[i];
+          // std::cerr << "data = " << i << " " << data[i] << "\n";
       }
   } else {
       for (int i = 0; i < in_size_; ++i) {

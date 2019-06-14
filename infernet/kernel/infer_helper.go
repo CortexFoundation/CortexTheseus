@@ -128,8 +128,8 @@ func (m *Model) Free() {
 
 func (m *Model) Predict(data []byte) ([]byte, error) {
 	expectedInputLength := m.GetInputLength()
-	if expectedInputLength != len(data) {
-		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",
+	if expectedInputLength > len(data) {
+		return nil, errors.New(fmt.Sprintf("input size not match, Expected at least %d, Got %d",
 																			 expectedInputLength, len(data)))
 	}
 
@@ -141,4 +141,3 @@ func (m *Model) Predict(data []byte) ([]byte, error) {
 	res, err := f.(func(unsafe.Pointer, []byte)([]byte, error))(m.model, data)
 	return res, err
 }
-

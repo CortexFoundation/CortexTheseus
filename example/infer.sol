@@ -8,6 +8,13 @@ contract AIContract {
     data[x] |= (uint256(value) << ((31 - y) * 8));
   }
 
+  function set32(uint256[] storage data, uint256 idx, uint32 value) private {
+    uint256 x = idx / 8;
+    uint256 y = idx % 8;
+    require(x < data.length);
+    data[x] |= (uint256(value) << ((7 - y) * 32));
+  }
+
   function get(uint256[] data, uint256 idx) private returns (uint8){
     uint256 x = idx / 32;
     uint256 y = idx % 32;
@@ -55,6 +62,36 @@ contract AIContract {
     address input =  0x0000000000000000000000000000000000002004;
     uint256[] memory output = new uint256[](uint256((1 * 6 + 31) >> 5));
     infer(model, input, output);
+    return output[0];
+  }
+
+  function make_predict_trec_inferarray() public returns(uint256) {
+    address model =  0x0000000000000000000000000000000000001004;
+    input_data = new uint256[]((38 * 1 + 7) >> 3);
+    uint32[38] memory org_data;
+    org_data[0] = 11;
+    org_data[1] = 17;
+    org_data[2] = 15;
+    org_data[3] = 5;
+    org_data[4] = 40;
+    org_data[5] = 245;
+    org_data[6] = 108;
+    org_data[7] = 16;
+    org_data[8] = 1257;
+    org_data[9] = 9;
+    org_data[10] = 57;
+    org_data[11] = 1203;
+    org_data[12] = 16;
+    org_data[13] = 84;
+    org_data[14] = 3716;
+    org_data[15] = 4;
+    for (uint256 i = 0; i < 38; i++) {
+      if (org_data[i] == 0)
+        break;
+      set32(input_data, i, org_data[i]);
+    }
+    uint256[] memory output = new uint256[](uint256((1 * 6 + 31) >> 5));
+    inferArray(model, input_data, output);
     return output[0];
   }
 

@@ -79,17 +79,25 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 		return nil, errors.New("Model result len is 0")
 	}
 
-	res := make([]byte, resLen)
-
-	input := (*C.char)(unsafe.Pointer(&data[0]))
-	output := (*C.char)(unsafe.Pointer(&res[0]))
 	input_bytes := C.CVMAPISizeOfInputType(net)
+	data_aligned := make([]byte, len(data))
+	if (input_bytes > 1) {
+		fmt.Println("gpu_plugin", "input_bytes = ", input_bytes)
+		tmp_res, input_conv_err := SwitchEndian(data_aligned, int(input_bytes))
+		if input_conv_err != nil {
+			return nil, input_conv_err
+		}
+		copy(data_aligned[:], tmp_res)
+	} else {
+		copy(data_aligned[:], data)
+	}
+	input := (*C.char)(unsafe.Pointer(&data_aligned[0]))
+
+	res := make([]byte, resLen)
+	output := (*C.char)(unsafe.Pointer(&res[0]))
 	output_bytes := C.CVMAPISizeOfOutputType(net)
 	// TODO(tian) check input endian
   flag := C.CVMAPIInfer(net, input, output)
-	if (input_bytes > 1) {
-		fmt.Println("gpu_plugin", "input_bytes = ", input_bytes)
-	}
 	if (output_bytes > 1) {
 		fmt.Println("gpu_plugin", "output_bytes = ", output_bytes)
 		var err error

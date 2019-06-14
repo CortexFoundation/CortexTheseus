@@ -741,11 +741,17 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	// Model&Input shape should match
 	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
 		stack.push(interpreter.intPool.getZero())
+		if interpreter.cvm.vmConfig.DebugInferVM {
+			fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
+		}
 		return nil, errMetaShapeNotMatch
 	}
 	for idx, modelShape := range modelMeta.InputShape {
 		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0 {
 			stack.push(interpreter.intPool.getZero())
+			if interpreter.cvm.vmConfig.DebugInferVM {
+				fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
+			}
 			return nil, errMetaShapeNotMatch
 		}
 	}
@@ -852,14 +858,19 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 		return nil, modelErr
 	}
 
-	//TODO(tian) Model&Input shape should match
-	var dataSize uint64 = 1
-	for _, modelShape := range modelMeta.InputShape {
-		dataSize *= modelShape
-	}
-	if dataSize != inputSize.Uint64() {
-		stack.push(interpreter.intPool.getZero())
-		return nil, errMetaShapeNotMatch
+	if false {
+		//TODO(tian) omit input shape for infer array
+		var dataSize uint64 = 1
+		for _, modelShape := range modelMeta.InputShape {
+			dataSize *= modelShape
+		}
+		if dataSize != inputSize.Uint64() {
+			stack.push(interpreter.intPool.getZero())
+			if interpreter.cvm.vmConfig.DebugInferVM {
+				fmt.Println("modelmeta: ", modelMeta.InputShape, "datasize: ", dataSize, "inputSize: ", inputSize)
+			}
+			return nil, errMetaShapeNotMatch
+		}
 	}
 	var output []byte
 	var err error
@@ -885,53 +896,6 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	return nil, nil
 }
 
-// // experimental feature
-// func opNNForward(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-// 	_modelAddr, _inputHeaderOffset, _outputOffset := stack.pop(), stack.pop(), stack.pop()
-// 	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
-// 	if inputError != nil {
-// 		return nil, inputError
-// 	}
-// 	inputSize := big.NewInt(int64(len(inputBuff)))
-// 	modelAddr := common.BigToAddress(_modelAddr)
-// 	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
-//
-// 	modelMeta, modelErr := checkModel(interpreter, stack, modelAddr)
-// 	if modelErr != nil {
-// 		return nil, modelErr
-// 	}
-//
-// 	//TODO(tian) Model&Input shape should match
-// 	var dataSize uint64 = 1
-// 	for _, modelShape := range modelMeta.InputShape {
-// 		dataSize *= modelShape
-// 	}
-// 	if dataSize != inputSize.Uint64() {
-// 		return nil, errMetaShapeNotMatch
-// 	}
-//
-// 	// label, err := interpreter.cvm.InferArray(
-// 	// 	modelMeta.Hash.Hex(),
-// 	// 	contract.Address(),
-// 	// 	common.BigToHash(_inputHeaderOffset),
-// 	// 	inputBuff)
-// 	var err error
-// 	if err != nil {
-// 		stack.push(interpreter.intPool.getZero())
-// 		return nil, err
-// 	}
-// 	// TODO(tian) flatten output
-// 	output_placehold_len, _ := memory.GetLengthOfSolidityBytes(_outputOffset.Int64())
-// 	// fmt.Println("output_placehold_len = ", output_placehold_len)
-// 	label := 1
-// 	output := make([]byte, output_placehold_len)
-// 	output[label] = 1
-// 	if err := memory.WriteSolidityBytes(_outputOffset.Int64(), output); err != nil {
-// 		return nil, err
-// 	}
-// 	stack.push(interpreter.intPool.get().SetUint64(1))
-// 	return nil, nil
-// }
 
 func opCreate(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (

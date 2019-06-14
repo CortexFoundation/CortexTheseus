@@ -74,26 +74,34 @@ func FreeModel(net unsafe.Pointer) {
 }
 
 func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
-  if net == nil {
-    return nil, errors.New("Internal error: network is null in InferProcess")
-  }
+	if net == nil {
+		return nil, errors.New("Internal error: network is null in InferProcess")
+	}
 
-  resLen := int(C.CVMAPIGetOutputLength(net))
-  fmt.Println("CPU Infernet", "resLen = ", resLen)
-  if resLen == 0 {
-    return nil, errors.New("Model result len is 0")
-  }
+	resLen := int(C.CVMAPIGetOutputLength(net))
+	if resLen == 0 {
+		return nil, errors.New("Model result len is 0")
+	}
 
-  res := make([]byte, resLen)
-	input := (*C.char)(unsafe.Pointer(&data[0]))
-	output := (*C.char)(unsafe.Pointer(&res[0]))
 	input_bytes := C.CVMAPISizeOfInputType(net)
-	output_bytes := C.CVMAPISizeOfOutputType(net)
-	// TODO(tian) check input endian
-  flag := C.CVMAPIInfer(net, input, output)
+	data_aligned := make([]byte, len(data))
 	if (input_bytes > 1) {
 		fmt.Println("cpu_plugin", "input_bytes = ", input_bytes)
+		tmp_res, input_conv_err := SwitchEndian(data, int(input_bytes))
+		if input_conv_err != nil {
+			return nil, input_conv_err
+		}
+		copy(data_aligned[:], tmp_res)
+	} else {
+		copy(data_aligned[:], data)
 	}
+
+	res := make([]byte, resLen)
+	input := (*C.char)(unsafe.Pointer(&data_aligned[0]))
+	output := (*C.char)(unsafe.Pointer(&res[0]))
+
+	output_bytes := C.CVMAPISizeOfOutputType(net)
+  flag := C.CVMAPIInfer(net, input, output)
 	if (output_bytes > 1) {
 		fmt.Println("cpu_plugin", "output_bytes = ", output_bytes)
 		var err error
@@ -102,11 +110,12 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
-  log.Info("CPU Infernet", "flag", flag, "res", res)
-  if flag != 0 {
-    return nil, errors.New("Predict Error")
-  }
-  return res, nil
+	log.Info("GPU Infernet", "flag", flag, "res", res)
+	if flag != 0 {
+		return nil, errors.New("Predict Error")
+	}
+
+	return res, nil
 }
 
 func GetStorageSize(net unsafe.Pointer)(int64, error) {
