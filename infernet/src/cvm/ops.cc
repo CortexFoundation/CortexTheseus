@@ -1458,7 +1458,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.concatenate")
         double start = omp_get_wtime();
 #endif
         int len = args.num_args;
-        VERIFY(len >= 4);
+        VERIFY(len >= 3);
         DLTensor *input0 = args[0];
         void *_attr = args[--len];
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
@@ -1468,7 +1468,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.concatenate")
         int32_t ndim = static_cast<int32_t>(input0->ndim);
         VERIFY(-ndim <= axis && axis < ndim);
         if(axis < 0) axis += ndim;
-        VERIFY(axis < input0->ndim) << "axis out of bounds.";
+        VERIFY(axis < input0->ndim && axis >= 0);
         //TODO(kaihuo) check shape of all inputs
         int n_batch = input0->shape[0];
         // std::cerr << "n_batch " << n_batch << "\n";
@@ -1541,6 +1541,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     // int repeat = std::atoi(str_repeat.c_str());
     {
       if(axis < 0) axis = axis + ndim;
+      VERIFY(axis >= 0 && axis < ndim);
 
       #pragma omp parallel for
       for(uint64_t i = 0; i < getSize(y); i++){
@@ -1642,7 +1643,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
 
-    int32_t axis = param.axis; // TODO get from attr
+    int32_t axis = param.axis;
     axis = axis < 0 ? axis + ishape->ndim : axis;
     VERIFY(axis >= 0 && axis <= ishape->ndim) << axis << " ishape->dim: " << ishape->ndim;
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
