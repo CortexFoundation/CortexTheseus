@@ -602,6 +602,7 @@ void test_op(string op_name) {
   }
 }
 int main() {
+    test_op("sum");
      test_op("max"); // pass
 //  test_op("slice_like");
 //     test_op("tile"); //pass
