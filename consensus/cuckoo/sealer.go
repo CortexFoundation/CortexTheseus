@@ -24,7 +24,7 @@ var (
 )
 
 const (
-	// staleThreshold is the maximum depth of the acceptable stale but valid ethash solution.
+	// staleThreshold is the maximum depth of the acceptable stale but valid solution.
 	staleThreshold = 7
 )
 
