@@ -34,14 +34,16 @@ func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, 
 }
 
 func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+	fmt.Println("synapse: ", s)
 	var (
-	modelHash = strings.ToLower(modelInfoHash[2:])
-	modelDir  = s.config.StorageDir + "/" + modelHash
+		modelHash = strings.ToLower(modelInfoHash[2:])
+		modelDir  = s.config.StorageDir + "/" + modelHash
 
-	// Model Path Check
-	modelCfg = modelDir + "/data/symbol"
-	modelBin = modelDir + "/data/params"
+		// Model Path Check
+		modelCfg = modelDir + "/data/symbol"
+		modelBin = modelDir + "/data/params"
 	)
+	// fmt.Println("modelCfg =" , modelCfg, "modelBin = ", modelBin)
 	// Inference Cache
 	cacheKey := RLPHashString("estimate_ops" + modelHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
@@ -104,8 +106,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 }
 
 func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte)([]byte, error) {
-	var model *kernel.Model 
-	
+	var model *kernel.Model
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		s.caches[s.config.DeviceId] = lru.New(4000000)
 	}
@@ -117,11 +118,11 @@ func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte)([]byte, 
 	} else {
 		model = kernel.New(s.lib, s.config.DeviceId, modelCfg, modelBin)
 		if model == nil {
-			return nil, errors.New("create model error") 
+			return nil, errors.New("create model error")
 		}
+		//TODO(tian) replace it with gas per KB
 		s.caches[s.config.DeviceId].Add(modelCfg, model, model.Size() / 1000)
 	}
-	
 	return model.Predict(inputContent)
 }
 
@@ -138,10 +139,10 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	// Input process
-	if procErr := ProcessImage(inputContent); procErr != nil {
-		errCh <- procErr
-		return
-	}
+	// if procErr := ProcessImage(inputContent); procErr != nil {
+	// 	errCh <- procErr
+	// 	return
+	// }
 
 	// Inference Cache
 	cacheKey := RLPHashString(modelHash + inputHash)
@@ -155,6 +156,9 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	modelCfg := modelDir + "/data/symbol"
 	modelBin := modelDir + "/data/params"
 	log.Debug("Inference Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "InputInfoHash", inputInfoHash)
+	if s.config.Debug {
+		fmt.Println("modelCfg =" , modelCfg, "modelBin = ", modelBin)
+	}
 	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
 		errCh <- ErrModelFileNotExist
 		return

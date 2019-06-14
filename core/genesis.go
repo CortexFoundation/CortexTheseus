@@ -84,6 +84,7 @@ type GenesisAccount struct {
 	Code       []byte                      `json:"code,omitempty"`
 	Storage    map[common.Hash]common.Hash `json:"storage,omitempty"`
 	Balance    *big.Int                    `json:"balance" gencodec:"required"`
+	BlockNum   *big.Int										 `json:"blocknum"`
 	Nonce      uint64                      `json:"nonce,omitempty"`
 	PrivateKey []byte                      `json:"secretKey,omitempty"` // for tests
 }
@@ -235,6 +236,7 @@ func (g *Genesis) ToBlock(db ctxcdb.Database) *types.Block {
 		for key, value := range account.Storage {
 			statedb.SetState(addr, key, value)
 		}
+		statedb.SetNum(addr, account.BlockNum)
 	}
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{

@@ -127,7 +127,7 @@ var (
 		Name:  "storagedir",
 		Usage: "storage address for model and data",
 	}
-	BlockNumber = cli.IntFlag{
+	BlockNumberFlag = cli.IntFlag{
 		Name:  "blocknumber",
 		Usage: "current block number",
 		Value: 0,
@@ -159,7 +159,7 @@ func init() {
 		ParseModelMetaFlag,
 		InferURI,
 		StorageDir,
-		BlockNumber,
+		BlockNumberFlag,
 	}
 	app.Commands = []cli.Command{
 		// disasmCommand,

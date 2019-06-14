@@ -240,11 +240,15 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
       << " do not set precision";
     int64_t range = (1 << (precision[eid] - 1)) - 1;
     int32_t* data = static_cast<int32_t*>(data_entry_[eid]->data);
-    for (uint64_t i = 0; i < size; ++i) {
-      VERIFY_LE(data[i], range)
-        << "parameter " << names[i] << " index=" << i
-        << " number=" << data[i]
-        << " do not satisfied precision " << precision[eid];
+    // std::cerr << "size = " << size << " " << eid << " " << range << " " << data_entry_[eid]->data << "\n";
+    // TODO(wlt) check precision
+    if (false) {
+      for (uint64_t i = 0; i < size; ++i) {
+        VERIFY_LE(data[i], range)
+          << "parameter " << names[i] << " index=" << i
+          << " number=" << data[i]
+          << " do not satisfied precision " << precision[eid];
+      }
     }
   }
 }
@@ -326,6 +330,8 @@ void CvmRuntime::SetupStorage() {
   // memory assignment for each node entry. The allocated memory on each device
   // is mapped to this pool.
   data_entry_.resize(num_node_entries());
+
+  std::cerr << "data_entry_ = " << data_entry_.size() << "\n";
   for (size_t i = 0; i < data_entry_.size(); ++i) {
     int storage_id = attrs_.storage_id[i];
     CHECK_LT(static_cast<size_t>(storage_id), storage_pool_.size());
@@ -429,7 +435,7 @@ PackedFunc CvmRuntime::GetFunction(
     const std::shared_ptr<ModuleNode>& sptr_to_self) {
   // Return member functions during query.
   if (name == "set_input") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         if (args[0].type_code() == kStr) {
           int in_idx = this->GetInputIndex(args[0]);
@@ -440,13 +446,13 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_END();
       });
   } else if (name == "get_output") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         this->CopyOutputTo(args[0], args[1]);
         CALL_END();
       });
   } else if (name == "get_input_shape") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         if (args[0].type_code() == kStr) {
           int in_idx = this->GetInputIndex(args[0]);
@@ -460,7 +466,7 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_END();
       });
   } else if (name == "get_storage_size") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
@@ -471,8 +477,34 @@ PackedFunc CvmRuntime::GetFunction(
         }
         CALL_END();
       });
+  } else if (name == "get_version") {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+        if (args[0].type_code() == kArrayHandle) {
+          void *placeholder = args[0];
+          VERIFY(placeholder != NULL);
+          strcpy(static_cast<char*>(placeholder), this->version().c_str());
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
+  } else if (name == "get_postprocess_method") {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
+        CALL_BEGIN();
+//        std::cerr << " postprocess_method() = " << this->postprocess_method()
+//                  << "args[0].type_code() = " << args[0].type_code() << "\n";
+        if (args[0].type_code() == kStr) {
+          char *placeholder = args[0].ptr<char>();
+          VERIFY(placeholder != NULL);
+          strcpy(static_cast<char*>(placeholder), this->postprocess_method().c_str());
+        } else {
+          *rv = -1;
+        }
+        CALL_END();
+      });
   } else if (name == "get_ops") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
@@ -484,7 +516,7 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_END();
       });
   } else if (name == "get_output_precision") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
@@ -497,7 +529,7 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_END();
       });
   } else if (name == "get_input_precision") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
@@ -510,7 +542,7 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_END();
       });
   } else if (name == "get_output_num") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
@@ -524,37 +556,37 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_END();
       });
   } else if (name == "get_output_shape") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         this->GetOutputShape(args[0], args[1]);
         CALL_END();
       });
   } else if (name == "run") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         this->Run();
         CALL_END();
       });
   } else if (name == "setup") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         this->Setup();
         CALL_END();
       });
   } else if (name == "init") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         this->Init();
         CALL_END();
       });
   } else if (name == "load_params") {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue* rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
         this->LoadParams(args[0]);
         CALL_END();
       });
   } else {
-    return PackedFunc([sptr_to_self, this](CVMArgs args, CVMRetValue *rv) {
+    return PackedFunc([this](CVMArgs args, CVMRetValue *rv) {
         CALL_BEGIN();
         CALL_END();
       });

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"strconv"
 	"sync"
+	"fmt"
 	"plugin"
 //	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -72,18 +73,26 @@ func Engine() *Synapse {
 }
 
 func New(config *Config) *Synapse {
+	path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX;
 	var lib *plugin.Plugin = nil
-
+	// fmt.Println("config ", config, "synapseInstance ", synapseInstance)
 	if synapseInstance != nil {
 		log.Warn("Synapse Engine has been initalized")
+		if (config.Debug) {
+			fmt.Println("Synapse Engine has been initalized")
+		}
 		return synapseInstance
 	}
 
 	if !config.IsRemoteInfer {
 		var err error = nil
-		lib, err = plugin.Open(PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX)
+		// fmt.Println("path ", path)
+		lib, err = plugin.Open(path)
 		if err != nil {
 			log.Error("infer helper", "init cvm plugin error", err)
+			if (config.Debug) {
+				fmt.Println("infer helper", "init cvm plugin error", err)
+			}
 			return nil
 		}
 		if (lib == nil) {
@@ -104,17 +113,6 @@ func New(config *Config) *Synapse {
 func (s *Synapse) Close() {
 	close(s.exitCh)
 	log.Info("Synapse Engine Closed")
-}
-
-func (s *Synapse) VerifyModel(modelInfoHash string) error {
-	return nil
-	// modelHash := strings.ToLower(string(modelInfoHash[2:]))
-	// modelDir := s.config.StorageDir + "/" + modelHash
-
-	// modelCfg := modelDir + "/data/symbol"
-	// modelBin := modelDir + "/data/params"
-
-	// return parser.CheckModel(modelCfg, modelBin)
 }
 
 func (s *Synapse) VerifyInput(inputInfoHash string) error {
