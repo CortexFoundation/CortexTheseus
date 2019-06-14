@@ -370,6 +370,11 @@ func (m *Monitor) startWork() error {
 
 func (m *Monitor) validateStorage(errCh chan error) error {
 	m.lastNumber = m.fs.LastListenBlockNumber
+	if m.lastNumber > 2000 {
+		m.lastNumber = m.lastNumber - 2000
+	} else {
+		m.lastNumber = 0
+	}
 	end := uint64(0)
 
 	if m.lastNumber > 4096 {

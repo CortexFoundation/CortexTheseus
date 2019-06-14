@@ -142,6 +142,10 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 	//if err != nil {
 	//	return false
 	//}
+	//TODO:lizhen, fix the whole torrent fs
+	if dataDir == "" {
+		dataDir = "data/storage/"
+	}
 	if availableCache.Contains(md5) {
 		log.Info("Available cache hit !!!", "md5", md5, "size", availableCache.Len(), "raw", rawSize, "limit", limit)
 		if length, ok := availableCache.Get(md5); ok {
