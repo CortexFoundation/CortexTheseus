@@ -56,13 +56,15 @@ int run_LIF(string model_root) {
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
+      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 1, 0)
       );
+  cerr << "model loaded\n";
   if (model == nullptr) {
     std::cerr << "model loaded failed\n";
     return -1;
   }
   cerr << "ops " << CVMAPIGetGasFromModel(model) / 1024 / 1024 << "\n";
+  // API only accepts byte array
   vector<char> input, output;
   int input_size = CVMAPIGetInputLength(model);
   int output_size = CVMAPIGetOutputLength(model);
@@ -154,18 +156,22 @@ int run_LIF(string model_root) {
     << " " <<  sum_time / ellapsed_time <<"\n";
 
   if (json_path.find("yolo") != string::npos) {
-    uint64_t ns =  output.size() / 4 / 4;
-    std::cout << "yolo output size = " << ns << "\n";
+    uint64_t n_bytes = 4;
+    uint64_t ns =  output.size() / n_bytes;
+    std::cout << "yolo output size = " << ns << " n_bytes = " << n_bytes << "\n";
     int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
     for (auto i = 0; i < std::min(60UL, ns); i++) {
       std::cout << (int32_t)int32_output[i] << " ";
       if ((i + 1) % 6 == 0)
         std::cout << "\n";
     }
-    for (auto i = (size_t)(std::max(0, ((int)(ns) - 60))); i < ns; i++) {
-      std::cout << (int32_t)int32_output[i] << " ";
-      if ((i + 1) % 6 == 0)
-        std::cout << "\n";
+    // last 60 rows of results
+    if (ns > 60) {
+      for (auto i = (size_t)(std::max(0, ((int)(ns) - 60))); i < ns; i++) {
+        std::cout << (int32_t)int32_output[i] << " ";
+        if ((i + 1) % 6 == 0)
+          std::cout << "\n";
+      }
     }
     std::cout << "\n";
   } else {
@@ -214,8 +220,10 @@ void test_models() {
      // "/data/model_storage/squeezenet_gcv1.1/data",
      // "/data/model_storage/squeezenet_gcv1.0/data",
      // "/data/model_storage/octconv_resnet26_0.250/data",
-     "/data/model_storage/yolo3_darknet53_b1/data"
+     //"/data/model_storage/yolo3_darknet53_b1/data"
      // // "/tmp/yxnet",
+     "/data/new_cvm/yolo3_darknet53_b1_top10/data",
+     "/data/new_cvm/yolo3_darknet53_b1_top10_yolo/data"
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);

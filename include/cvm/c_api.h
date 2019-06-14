@@ -44,7 +44,9 @@ int CVMAPIInfer(void* model, char *input_data, char *output_data);
 
 int CVMAPIInferInt32(void* model, char *input_data, char *output_data);
 
-int CVMAPISizeofOutput(void *model);
+int CVMAPISizeOfOutputType(void *model);
+
+int CVMAPISizeOfInputType(void *model);
 
 long long CVMAPIGetGasFromModel(void *model);
 

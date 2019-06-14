@@ -2269,11 +2269,11 @@ const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int3
 
   int32_t *hy = new int32_t[ysize];
   cudaMemcpy(hy, y_data, sizeof(int32_t)*ysize, cudaMemcpyDeviceToHost);
-  printf("cuda result: ");
-  for(int i = 0; i < ysize; i++){
-    printf("%d ", hy[i]);
-  }
-  printf("\n");
+  // printf("cuda result: ");
+  // for(int i = 0; i < ysize; i++){
+  //   printf("%d ", hy[i]);
+  // }
+  // printf("\n");
   print_to_file(y_data, ysize, "/tmp/zkh/cuda_transpose.txt");
   return check_cuda_error(cudaGetLastError());
 }

@@ -21,6 +21,7 @@ import (
 //  "strings"
 //  "strconv"
   "github.com/CortexFoundation/CortexTheseus/log"
+  "github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
 )
 
 func LoadModel(modelCfg, modelBin string,  deviceId int) (unsafe.Pointer, error) {
@@ -60,7 +61,7 @@ func FreeModel(net unsafe.Pointer) {
   C.CVMAPIFreeModel(net)
 }
 
-func Predict(net unsafe.Pointer, imageData []byte) ([]byte, error) {
+func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
   if net == nil {
     return nil, errors.New("Internal error: network is null in InferProcess")
   }
@@ -72,15 +73,27 @@ func Predict(net unsafe.Pointer, imageData []byte) ([]byte, error) {
   }
 
   res := make([]byte, resLen)
-
-  flag := C.CVMAPIInfer(net,
-                        (*C.char)(unsafe.Pointer(&imageData[0])),
-                        (*C.char)(unsafe.Pointer(&res[0])))
+	input := (*C.char)(unsafe.Pointer(&data[0]))
+	output := (*C.char)(unsafe.Pointer(&res[0]))
+	input_bytes := C.CVMAPISizeOfInputType(net)
+	output_bytes := C.CVMAPISizeOfOutputType(net)
+	// TODO(tian) check input endian
+  flag := C.CVMAPIInfer(net, input, output)
+	if (input_bytes > 1) {
+		fmt.Println("cpu_plugin", "input_bytes = ", input_bytes)
+	}
+	if (output_bytes > 1) {
+		fmt.Println("cpu_plugin", "output_bytes = ", output_bytes)
+		var err error
+		res, err = kernel.SwitchEndian(res, int(output_bytes))
+		if err != nil {
+    return nil, err 
+		}
+	}
   log.Info("CPU Infernet", "flag", flag, "res", res)
   if flag != 0 {
     return nil, errors.New("Predict Error")
   }
-
   return res, nil
 }
 

@@ -56,7 +56,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   if (storage_size > (1ll << 38) || storage_size == -1) {
     return;
   }
-
   auto setup = module_.GetFunction("setup");
   if (setup()) {
     return;
@@ -68,11 +67,22 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     return;
   }
   {
+    auto get_postprocess_method = module_.GetFunction("get_postprocess_method");
+    char postprocess_s[32];
+    get_postprocess_method(postprocess_s);
+    postprocess_method_ = std::string(postprocess_s);
+    // std::cerr << "postprocess_method_ = " << postprocess_method_ << "\n";
+  }
+
+  {
     auto get_input_precision = module_.GetFunction("get_input_precision");
-    int input_precision;
+    int input_precision = 0;
     get_input_precision(&input_precision);
-    // std::cerr << " input_precision = " << input_precision << "\n";
-    is_input_int32_ = input_precision > 8;
+    input_bytes_ = 1;
+    if (input_precision > 8)
+      input_bytes_ = 2;
+    if (input_precision > 16)
+      input_bytes_ = 4;
   }
   {
     auto get_output_precision = module_.GetFunction("get_output_precision");
@@ -83,7 +93,13 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
         output_bytes_ = 2;
     if (output_precision > 16)
         output_bytes_ = 4;
-    // std::cerr << " output_precision = " << output_precision << "\n";
+
+    if (postprocess_method_ == "argmax") {
+      output_bytes_ = 4;
+    } else if (postprocess_method_ == "detection") {
+      output_bytes_ = 4;
+    }
+    // std::cerr << " output_precision = " << output_precision << " output_bytes_ = " << (int)output_bytes_ << "\n";
   }
   {
     auto get_version = module_.GetFunction("get_version");
@@ -91,14 +107,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     get_version(version_s);
     version_ = std::string(version_s);
   }
-  {
-    auto get_postprocess_method = module_.GetFunction("get_postprocess_method");
-    char postprocess_s[32];
-    get_postprocess_method(postprocess_s);
-    postprocess_method_ = std::string(postprocess_s);
-    // std::cerr << "postprocess_method_ = " << postprocess_method_ << "\n";
-  }
-
   auto get_input_shape = module_.GetFunction("get_input_shape");
 
   DLTensor* t = new DLTensor();
@@ -107,7 +115,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   in_size_ = 1;
   for (int i = 0; i < t->ndim; ++i)
     in_size_ *= t->shape[i];
-
   dims_.push_back(t->ndim);
   int64_t *shape = new int64_t[t->ndim];
   memcpy(shape, t->shape, t->ndim * sizeof(int64_t));
@@ -141,6 +148,10 @@ CVMModel::~CVMModel() {
   if (out_size_)
       delete out_size_;
 //  delete lck;
+}
+
+bool CVMModel::IsReady() const {
+  return loaded_;
 }
 
 std::string CVMModel::GetVersion() {
@@ -177,10 +188,13 @@ DLTensor* CVMModel::PlanInput(void *input) {
   DLTensor* ret = nullptr;
   CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
   auto data = static_cast<int*>(ret->data);
-  if (is_input_int32_) {
+  if (input_bytes_ == 4) {
       for (int i = 0; i < in_size_; ++i) {
           data[i] = static_cast<int32_t*>(input)[i];
       }
+  } else if (input_bytes_ == 2){
+    VERIFY(false) << "not implmented for input_bytes_ " << input_bytes_;
+    return 0;
   } else {
       for (int i = 0; i < in_size_; ++i) {
           data[i] = static_cast<int8_t*>(input)[i];
@@ -201,6 +215,7 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
 
 void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
   if (postprocess_method_ == "argmax") {
+    int32_t* cp = static_cast<int32_t*>((void*)(mem));
     // argmax by dimension -1
     for (size_t k = 0 ; k < (size_t)out_num_; ++k) {
       uint32_t last_dim = shapes_[ input_num_ +  k][dims_[k] - 1];
@@ -216,11 +231,11 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
             max_id = j - i;
           }
         }
-        //TODO(tian) consider label with dimension > 127, which cannot be placeed in int8
-        *mem++ = static_cast<int8_t>(max_id);
+        *cp++ = static_cast<int32_t>(max_id);
       }
     }
-  } else {
+  } else if (postprocess_method_ == "detection" || outputs.size() > 1) {
+    //TODO(tian) FIXME || outputs.size() > 1 is a dirty hack for forward compatbility
     bool can_concat = true;
     if (outputs.size() == 1) {
       can_concat = false;
@@ -242,17 +257,21 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
     if (can_concat) {
       if (output_bytes_ == 4) {
         int32_t* cp = static_cast<int32_t*>((void*)(mem));
-        int32_t nx = xs[0] / output_bytes_;  // truncate result
+        int32_t nx = xs[0];  // truncate result
         for (int xidx = 0; xidx < nx; xidx++) {
+            // std::cerr << "\n";
           for (size_t k = 0; k < outputs.size(); ++k) {
             auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
             for (size_t i = 0; i < ys[k]; ++i) {
               *cp = data[i];
+              // std::cerr << *cp << " " ;
               ++cp;
             }
           }
+            // std::cerr << "\n";
         }
       } else if (output_bytes_ == 2){
+        //TODO(tian) test int16 yolo
         int16_t* cp = static_cast<int16_t*>((void*)(mem));
         int32_t nx = xs[0] / output_bytes_;  // truncate result
         for (int xidx = 0; xidx < nx; xidx++) {
@@ -276,13 +295,15 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
         }
       }
     } else {
+      std::cerr << "yolo post process failed\n";
+    }
+  } else {
       for (size_t k = 0; k < outputs.size(); ++k) {
         auto data = static_cast<int*>(outputs[k]->data);
         for (int i = 0; i < out_size_[k]; ++i) {
           *mem++ = static_cast<int8_t>(data[i]);
         }
       }
-    }
   }
 }
 
@@ -322,7 +343,7 @@ int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
 
 int CVMModel::GetInputLength() {
   // std::cerr << " GetInputLength = " << in_size_ << " " << is_input_int32_ << "\n";
-  return static_cast<int>(in_size_) * (is_input_int32_ ? 4 : 1);
+  return static_cast<int>(in_size_) * input_bytes_;
 }
 
 int CVMModel::GetOutputLength() {
@@ -337,9 +358,23 @@ int CVMModel::GetOutputLength() {
       ret += out_size_ap;
     }
     ret *= output_bytes_;
+    // std::cerr << "ret = " << ret << "\n";
     return ret;
   }
-  else {
+  else if (postprocess_method_ == "detection") {
+    int ret = 0;
+    int yolo_num_ret = dims_[input_num_] >= 2 ? shapes_[input_num_][dims_[input_num_] - 2]: 0;
+    std::cerr << "yolo_num_ret = " << yolo_num_ret << "\n";
+    for (size_t k = input_num_; k < (size_t)input_num_ + out_num_; ++k) {
+      uint32_t last_dim = shapes_[k][dims_[k] - 1];
+      std::cerr << "output[" << k << "] " << "last_dim = " << last_dim  << "\n";
+      ret += last_dim;
+    }
+    ret *= yolo_num_ret;
+    ret *= output_bytes_;
+    std::cerr << "output length = " << ret << "\n";
+    return ret;
+  } else {
     int ret = 0;
     for (int i = 0; i < out_num_; ++i)
       ret += static_cast<int>(out_size_[i]);
@@ -348,8 +383,12 @@ int CVMModel::GetOutputLength() {
   }
 }
 
-int CVMModel::GetSizeofOutput() {
+int CVMModel::GetSizeOfOutputType() {
   return output_bytes_;
+}
+
+int CVMModel::GetSizeOfInputType() {
+  return input_bytes_;
 }
 
 int CVMModel::LoadParamsFromFile(string filepath) {
@@ -378,8 +417,15 @@ string LoadFromBinary(string filepath) {
 
 using cvm::runtime::CVMModel;
 
-void* CVMAPILoadModel(const char *graph_fname, const char *model_fname,
-        int device_type, int device_id) {
+void* CVMAPILoadModel(const char *graph_fname,
+                      const char *model_fname,
+                      int device_type,
+                      int device_id)
+{
+  std::cerr << "graph_fname = " << graph_fname
+            << "\nmodel_fname = " << model_fname
+            << "\ndevice_type = " << device_type
+            << "\ndevice_id = " << device_id << "\n";
   string graph, params;
   try {
     graph = LoadFromFile(string(graph_fname));
@@ -397,7 +443,7 @@ void* CVMAPILoadModel(const char *graph_fname, const char *model_fname,
   } catch (std::exception &e) {
     return NULL;
   }
-  if (!model->loaded_ || model->LoadParams(params)) {
+  if (!model->IsReady() || model->LoadParams(params)) {
     delete model;
     return NULL;
   }
@@ -469,12 +515,20 @@ long long CVMAPIGetStorageSize(void *model_) {
   return ret;
 }
 
-int CVMAPISizeofOutput(void *model_) {
+int CVMAPISizeOfOutputType(void *model_) {
   CVMModel* model = (CVMModel*)model_;
   if (model != nullptr) {
-    return model->GetSizeofOutput();
+    return model->GetSizeOfOutputType();
   }
-  return -1;
+  return 0;
+}
+
+int CVMAPISizeOfInputType(void *model_) {
+  CVMModel* model = (CVMModel*)model_;
+  if (model != nullptr) {
+    return model->GetSizeOfInputType();
+  }
+  return 0;
 }
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
