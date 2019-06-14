@@ -160,6 +160,12 @@ inline bool Conv2DInferPrecision(const NodeAttrs& attrs,
 																 std::vector<int>* iattr,
 																 std::vector<int>* oattr) {
   IN_PREC_CHECK(iattr, attrs.name);
+  VERIFY_LE(iattr->at(0), 8)
+    << "Conv2D " << attrs.name
+    << " input must be INT8 vs. INT" << iattr->at(0);
+  VERIFY_LE(iattr->at(1), 8)
+    << "Conv2D " << attrs.name
+    << " weight must be INT8 vs. INT" << iattr->at(1);
   if (shapes->size() == 0 || shapes->at(0)[1] == 0)
       return false;
   const TShape& wshp = shapes->at(1);

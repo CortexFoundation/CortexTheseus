@@ -89,6 +89,17 @@ int run_LIF(string model_root) {
     }
     std::cerr << "\n";
   }
+  if (model_root.find("std_out") != string::npos)
+  {
+    string data_file = model_root + "/data.npy";
+    std::vector<unsigned long> tshape;
+    npy::LoadArrayFromNumpy(data_file, tshape, input);
+    std::cerr << tshape.size() << "\n";
+    for (auto x : tshape) {
+      std::cerr << x << " ";
+    }
+    std::cerr << "\n";
+  }
   double start = omp_get_wtime();
   int n_run = 1;
   for (int i = 0; i < n_run; i++) {

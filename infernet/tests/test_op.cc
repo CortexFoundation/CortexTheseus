@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <cvm/runtime/registry.h>
 #include <cvm/op.h>
+#include <cvm/op_attr_types.h>
 #include <cvm/runtime/ndarray.h>
 #include <cvm/runtime/packed_func.h>
 #include <cvm/runtime/registry.h>
@@ -14,6 +15,10 @@
 #include "npy.hpp"
 #include <string.h>
 #include <fstream>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -332,18 +337,175 @@ void test_take() {
     //std::cerr << "\n";
     //}
 }
+const int TYPE_FILE = 8;
+const int TYPE_LINK = 10;
+const int TYPE_DIR = 4;
+int findAllSubDir(std::vector<string> &filelist, const char *basePath, int type)
+{
+    DIR *dir;
+    struct dirent *ptr;
+    char base[1000];
 
-void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
-  printf("\ntest %s\n", op_name.c_str());
-  for(int i = 0; i < num_test; i++){
-    string attr_path = "/tmp/" + op_name + "/attr" + std::to_string(i) + ".txt";
+    if ((dir=opendir(basePath)) == NULL)
+    {
+        perror("Open dir error...");
+        exit(1);
+    }
+
+    while ((ptr=readdir(dir)) != NULL)
+    {
+        if(strcmp(ptr->d_name,".")==0 || strcmp(ptr->d_name,"..")==0)    ///current dir OR parrent dir
+            continue;
+        if(ptr->d_type == type || ptr->d_type == TYPE_LINK){
+            filelist.push_back(ptr->d_name);
+        }
+       // else if(ptr->d_type == TYPE_FILE && type == TYPE_FILE)    //file
+       // {
+       //   filelist.push_back(ptr->d_name);
+       //     //printf("d_name:%s/%s\n",basePath,ptr->d_name);
+       //    // string temp = ptr->d_name;
+       //     //cout  << temp << endl;
+       //    // string sub = temp.substr(temp.length() - 4, temp.length()-1);
+       //    // //cout  << sub << endl;
+       //    // if(sub == format)
+       //    // {
+       //    //     string path = basePath;
+       //    //     path += "/";
+       //    //     path += ptr->d_name;
+       //    //     filelist.push_back(path);
+       //    // }
+       // }
+       // else if(ptr->d_type == 10)    ///link file
+       // {
+       //     //printf("d_name:%s/%s\n",basePath,ptr->d_name);
+       // }
+       // else if(ptr->d_type == TYPE_DIR && type == TYPE_DIR)    ///dir
+       // {
+       //     memset(base,'\0',sizeof(base));
+       //     strcpy(base,basePath);
+       //     strcat(base,"/");
+       //     strcat(base,ptr->d_name);
+       //     filelist.push_back(ptr->d_name);
+       //     findAllSubDir(filelist, base);
+       // }
+    }
+    closedir(dir);
+    return 1;
+}
+void read_one_line(string filename, string& str){
     ifstream infile;
-    infile.open(attr_path);
-    string attr_str = "";
-    getline(infile, attr_str);
+    infile.open(filename);
+    if(!infile.is_open()){
+      printf("file no exist : %s\n", filename.c_str());
+        str = "";
+        return;
+    }
+    getline(infile, str);
     infile.close();
+}
+template<typename T>
+void print(vector<T> &data){
+  for(int i = 0; i < data.size(); i++){
+    printf("%d ", data[i]);
+  }
+  printf("\n");
+
+}
+void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_t>& data){
+    FILE *fp = fopen(filename, "r");
+    if(fp == NULL){
+        return;
+    }
+    int32_t shape_dim = 0;
+    fscanf(fp, "%d ", &shape_dim);
+    printf("shape_dim = %d\n", shape_dim);
+    shape.resize(shape_dim);
+    uint64_t size = 1;
+//    printf("shape: ");
+    for(int i = 0; i < shape_dim; i++){
+        int64_t value = 0;
+        fscanf(fp, "%d ", &value);
+        shape[i] = value;
+//        printf("%d ", shape[i]);
+        size *= shape[i];
+    }
+//    printf("\n");
+    //fscanf(fp, "\n");
+//    printf("data: ");
+    data.resize(size);
+    for(int i = 0; i < size; i++){
+        int32_t value = 0;
+        fscanf(fp, "%d ", &value);
+        data[i] = value;
+//        printf("%d ", data[i]);
+    }
+//    printf("\n");
+    fclose(fp);
+}
+void load_input(int num_inputs, string case_path, vector<vector<uint64_t>>& tshape,
+    vector<vector<int32_t>>& tdata, vector<TShape>& ishape, vector<DLTensor>& args){
+    DLTensor* cpu_tensor;
+    for(int i = 0; i < num_inputs; i++){
+      string in_path = case_path + "in_" +  std::to_string(i) + ".txt";
+      cout << in_path << endl;
+      //npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
+      read_data(in_path.c_str(), tshape[i], tdata[i]);
+      TShape shp(tshape[i].size());
+      for (size_t ti = 0; ti < shp.ndim(); ++ti) {
+        shp[ti] = tshape[i][ti];
+      }
+      ishape[i] = shp;
+      // ishape.emplace_back(shp);
+      std::cout << shp << std::endl;
+      DLTensor* dl;
+      CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
+      args[i] = *dl;
+      //if (i < params.num_inputs) {
+      CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
+      memcpy(cpu_tensor->data, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
+      CVMArrayCopyFromTo(cpu_tensor, dl, nullptr);
+      CVMArrayFree(cpu_tensor);
+    }
+}
+const string CASE_DIR = "/data/ops_generator";
+
+void test_op(string op_name) {
+  printf("\ntest %s\n", op_name.c_str());
+	std::vector<string> case_list;
+	string case_dir = CASE_DIR + "/" + op_name + "/";
+	findAllSubDir(case_list, case_dir.c_str(), TYPE_DIR);
+
+  static auto& finfer_shape =
+      Op::GetAttr<cvm::FInferNodeEntryAttr<TShape> >("FInferShape");
+  const cvm::Op *op = cvm::Op::Get(op_name);
+  auto finfer = finfer_shape.get(op, nullptr);
+  if (finfer == nullptr) {
+    std::cout << "operator " << op_name
+      << "has not registered FInferShape";
+    return ;
+  }
+
+  for(int ci = 0; ci < case_list.size(); ci++){
+		string case_path = case_dir + case_list[ci] + "/";
+    string attr_path = case_path + "attr.txt";
+    string attr_str = "";
+    read_one_line(attr_path, attr_str);
     //string attr_str = " {\"axis\": \"" + std::to_string(i-1) + "\"} ";
     std::cout << attr_str << endl;
+    vector<string> file_list;
+    findAllSubDir(file_list, case_path.c_str(), TYPE_FILE);
+    int num_inputs = 0, num_outputs = 0;
+    for(auto file_name : file_list){
+        if(file_name.find("in_") != string::npos){
+            num_inputs += 1;
+        }
+        if(file_name.find("out_") != string::npos){
+            num_outputs += 1;
+        }
+    }
+   // printf("num_inputs = %d, num_outputs = %d\n", num_inputs, num_outputs);
+    //if(num_inputs == 0 || num_outputs == 0) continue;
+
     CVMOpParam params;
     params.func_name = op_name;
     params.num_inputs = num_inputs;
@@ -352,49 +514,71 @@ void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     std::vector<std::vector<unsigned long>> tshape(args.size());
     std::vector<std::vector<int32_t>> tdata(args.size());
-    for(int in_i = 0; in_i < num_inputs; in_i++){
-        string in_path = "/tmp/"+op_name+"/in" + std::to_string(i) + std::to_string(in_i) + ".npy";
-        cout << in_path << endl;
-        npy::LoadArrayFromNumpy(in_path, tshape[in_i], tdata[in_i]);
-    }
-    string out_path = "/tmp/"+op_name+"/out" + std::to_string(i) + ".npy";
-    cout << out_path << endl;
-    npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
-    vector<std::vector<int64_t>> shapes_(args.size());
-    std::vector<int> dims_(args.size());
-    for (auto idx = 0; idx < args.size(); idx++) {
-      shapes_[idx].resize(tshape[idx].size());
-      dims_[idx] = (tshape[idx].size());
-      std::cout << "tshape[idx].size() = " << tshape[idx].size() << "\n";
-      for (auto j = 0; j < shapes_[idx].size(); j++) {
-        shapes_[idx][j] = tshape[idx][j];
-        std::cout << tshape[idx][j] << " ";
-      }
-      std::cout << "\n";
-    }
-    DLTensor* cpu_tensor;
-    for (uint32_t i = 0; i < args.size(); i++) {
-      DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
-      args[i] = *dl;
-      if (i < params.num_inputs) {
-        CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
-        memcpy(cpu_tensor->data, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
-        CVMArrayCopyFromTo(cpu_tensor, dl, nullptr);
-        CVMArrayFree(cpu_tensor);
-      }
-    }
+    std::vector<TShape> ishape(num_inputs), oshape(num_outputs);
+    load_input(num_inputs, case_path, tshape, tdata, ishape, args);
 
     NodeAttrs attr;
     LoadOp(params.func_name, attr);
     LoadOpAttr(attr_str, attr);
+
+    bool infer_shape_ret;
+    string err_path = case_path + "err.txt", err_str = "";
+    read_one_line(err_path, err_str);
+    try {
+      infer_shape_ret = finfer(attr, &ishape, &oshape);
+      if(infer_shape_ret){
+        std::cout << "FInferShape ishape=[";
+        for (auto& shp : ishape) std::cout << shp << ", ";
+        std::cout << "] oshape=[";
+        for (auto& shp : oshape) std::cout << shp << ", ";
+        std::cout << "]\n";
+      }
+    } catch (const std::exception& e) {
+      std::cerr << "FInferShape error with " << e.what() << std::endl;
+      infer_shape_ret = false;
+    }
+    if(infer_shape_ret == false){
+      std::cout << err_str << std::endl;
+      if(err_str == ""){
+        string out_path = case_path + "out_0.txt";
+        std::cout << out_path << std::endl;
+        //npy::LoadArrayFromNumpy(out_path, tshape[num_inputs], tdata[num_inputs]);
+        read_data(out_path.c_str(), tshape[num_inputs], tdata[num_inputs]);
+        print(tdata[num_inputs]);
+        assert(false);
+      }else{
+        cout << "match 1 | 0" << endl;
+        continue;
+      }
+    }
+
+    for(int i = 0; i < num_outputs; i++){
+			string out_path = case_path + "out_" + std::to_string(i) + ".txt";
+			cout << out_path << endl;
+			//npy::LoadArrayFromNumpy(out_path, tshape[num_inputs+i], tdata[num_inputs+i]);
+      read_data(out_path.c_str(), tshape[num_inputs+i], tdata[num_inputs+i]);
+ //     print(tshape[num_inputs+i]);
+ //     print(tdata[num_inputs+i]);
+      int shape_cmp = memcmp(tshape[num_inputs+i].data(), oshape[i].data(), sizeof(int64_t) * tshape[num_inputs+i].size());
+      if(shape_cmp != 0){
+        print(tshape[num_inputs+i]);
+        //print(oshape[i]);
+        std::cout << oshape[i] << endl;
+      }
+      assert(shape_cmp == 0);
+      DLTensor* dl;
+      CVMArrayAlloc((int64_t*)tshape[num_inputs+i].data(), tshape[num_inputs+i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
+      args[num_inputs + i] = *dl;
+    }
+
     auto op = get_func(params, &attr, args, params.num_inputs);
     op();
 
     vector<int32_t> cpu_output_tensor(tdata[params.num_inputs].size());
     {
+      DLTensor* cpu_tensor;
       int i = params.num_inputs; // first output
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
+      CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
       CVMArrayCopyFromTo(&args[i], cpu_tensor, nullptr);
       memcpy(cpu_output_tensor.data(), cpu_tensor->data, sizeof(int32_t) * tdata[i].size());
       CVMArrayFree(cpu_tensor);
@@ -403,19 +587,35 @@ void test_op(string op_name, int num_inputs, int num_outputs, int num_test) {
         tdata[params.num_inputs].data(),
         sizeof(int32_t) * tdata[params.num_inputs].size());
     printf("match %d | %d\n", ret == 0, ret);
+    if(ret != 0){
+      for(int i = 0; i < num_inputs; i++){
+        printf("input%d:", i);
+        print(tdata[i]);
+      }
+      printf("correct out:");
+      print(tdata[num_inputs]);
+      printf("     my out:");
+      print(cpu_output_tensor);
+    }
     assert(ret == 0);
+    printf("\n");
   }
 }
 int main() {
-//    test_take();
-//    test_op("concatenate", 2, 1, 4);//pass
-//    test_op("repeat", 1, 1, 4); //pass
-//    test_op("tile", 1, 1, 5); //pass
-//    test_op("transpose", 1, 1, 5);// 5th case failed
-//    test_op("strided_slice", 1, 1, 3);
-//    test_op("slice_like", 2, 1, 3); // pass
-//    test_op("max", 1, 1, 7); // pass
-//    test_op("sum", 1,1,7); // pass
-//    test_op("take", 2, 1, 2);
+    test_op("sum");
+     test_op("max"); // pass
+//  test_op("slice_like");
+//     test_op("tile"); //pass
+//    test_op("repeat"); //pass
+//  test_op("non_max_suppression");
+//  test_op("get_valid_counts");
+
+//  test_op("strided_slice"); //pass
+//  test_op("concatenate");//pass
+//  test_op("transpose");// pass
+//  test_op("take");
+    // test_op("sum", 1,1); // pass
+    // test_op("upsampling", 1, 1);
+    // test_op("elemwise_add", 2, 1);
     return 0;
 }
