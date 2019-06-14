@@ -74,7 +74,7 @@ int run_LIF(string model_root) {
   {
     vector<int32_t> input_int32_t;
     std::vector<unsigned long> tshape;
-    npy::LoadArrayFromNumpy("/tmp/trec/out/data.npy", tshape, input_int32_t);
+    npy::LoadArrayFromNumpy("/data/std_out/trec/data.npy", tshape, input_int32_t);
     std::cerr << "Loading a int32 data and cast to byte array: "
               << input.size() << " " << input_int32_t.size() << "\n";
     memcpy(input.data(), input_int32_t.data(), input.size());
@@ -190,10 +190,13 @@ int run_LIF(string model_root) {
     for (auto i = 0; i < std::min(6UL * 10, output.size()); i++) {
       std::cout << (int32_t)output[i] << " ";
     }
-    for (auto i = (size_t)(std::max(0, ((int)(output.size()) - 6 * 10))); i < output.size(); i++) {
-      std::cout << (int32_t)output[i] << " ";
-    }
     std::cout << "\n";
+    if (output.size() > 60) {
+      for (auto i = (size_t)(std::max(0, ((int)(output.size()) - 6 * 10))); i < output.size(); i++) {
+        std::cout << (int32_t)output[i] << " ";
+      }
+      std::cout << "\n";
+    }
   }
   return 0;
 }
@@ -218,14 +221,14 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-    "/data/new_cvm/yolo3_darknet53_voc/data",
+    // "/data/new_cvm/yolo3_darknet53_voc/data",
     // "/data/lz_model_storage/dcnet_mnist_v1/data",
     // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
     // "/data/lz_model_storage/resnet50_v1_imagenet/data",
     // "/data/lz_model_storage/animal10/data",
     // "/data/lz_model_storage/resnet50_v2/data",
     // "/data/lz_model_storage/vgg16_gcv/data",
-    // "/data/lz_model_storage/sentiment_trec/data",
+    "/data/lz_model_storage/sentiment_trec/data",
     // "/data/lz_model_storage/vgg19_gcv/data",
     // "/data/lz_model_storage/squeezenet_gcv1.1/data",
     // "/data/lz_model_storage/squeezenet_gcv1.0/data",
