@@ -1020,20 +1020,20 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
   int32_t *x_data = static_cast<int32_t*>(x->data);
   int32_t *y_data = static_cast<int32_t*>(y->data);
 
-  for(int i = 0; i < axis.ndim(); i++){
+  for(size_t i = 0; i < axis.ndim(); i++){
     if(axis_data[i] < 0) axis_data[i] += x->ndim;
       VERIFY(axis_data[i] >= 0 && axis_data[i] < x->ndim);
   }
   std::vector<int64_t> raxis;
   if(!exclude){
-    for(int i = 0; i < axis.ndim(); i++){
+    for(size_t i = 0; i < axis.ndim(); i++){
       raxis.push_back(axis[i]);
     }
   }else{
     raxis.resize(x->ndim - axis.ndim());
     for(int i = 0, k = 0; i < x->ndim; i++){
       bool flag = false;
-      for(int j = 0; j < axis.ndim(); j++){
+      for(size_t j = 0; j < axis.ndim(); j++){
         if(axis_data[j] == i) {
           flag = true;
           break;
@@ -1391,20 +1391,20 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int32_t* x_data = static_cast<int32_t*>(x->data);
 
-    for(int i = 0; i < axis.ndim(); i++){
+    for(size_t i = 0; i < axis.ndim(); i++){
     if(axis_data[i] < 0) axis_data[i] += x->ndim;
       VERIFY(axis_data[i] >= 0 && axis_data[i] < x->ndim);
     }
     std::vector<int64_t> raxis;
     if(!exclude){
-      for(int i = 0; i < axis.ndim(); i++){
+      for(size_t i = 0; i < axis.ndim(); i++){
         raxis.push_back(axis[i]);
       }
     }else{
       raxis.resize(x->ndim - axis.ndim());
       for(int i = 0, k = 0; i < x->ndim; i++){
         bool flag = false;
-        for(int j = 0; j < axis.ndim(); j++){
+        for(size_t j = 0; j < axis.ndim(); j++){
           if(axis_data[j] == i) {
             flag = true;
             break;
@@ -1880,7 +1880,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
     .set_body([](CVMArgs args, CVMRetValue *ret){
         VERIFY(args.num_args == 4);
         DLTensor *x = args[0];
-        DLTensor *shape = args[1];
+        //DLTensor *shape = args[1];
         DLTensor *y = args[2];
         void* _attr = args[3];
         auto *attr = static_cast<cvm::NodeAttrs*>(_attr);

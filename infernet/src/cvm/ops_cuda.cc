@@ -36,29 +36,29 @@ inline uint64_t getSize(DLTensor *dlTensor){
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_add")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-  VERIFY(args.num_args == 4);
-  DLTensor *a = args[0];
-  DLTensor *b = args[1];
-  DLTensor *c = args[2];
-  int32_t *a_data = static_cast<int32_t*>(a->data);
-  int32_t *b_data = static_cast<int32_t*>(b->data);
-  int32_t *c_data = static_cast<int32_t*>(c->data);
-  uint64_t n = getSize(a);
-  const char *errorStr = cuda_elemwise_add(a_data, b_data, c_data, n, DEBUG_OP);
-  VERIFY_EQ(errorStr == NULL, true) << errorStr;
+    VERIFY(args.num_args == 4);
+    DLTensor *a = args[0];
+    DLTensor *b = args[1];
+    DLTensor *c = args[2];
+    int32_t *a_data = static_cast<int32_t*>(a->data);
+    int32_t *b_data = static_cast<int32_t*>(b->data);
+    int32_t *c_data = static_cast<int32_t*>(c->data);
+    uint64_t n = getSize(a);
+    const char *errorStr = cuda_elemwise_add(a_data, b_data, c_data, n, DEBUG_OP);
+    VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.elemwise_sub")
 .set_body([](CVMArgs args, CVMRetValue *ret){
-  VERIFY(args.num_args == 4);
-  DLTensor *a = args[0];
-  DLTensor *b = args[1];
-  DLTensor *c = args[2];
-  int32_t *a_data = static_cast<int32_t*>(a->data);
-  int32_t *b_data = static_cast<int32_t*>(b->data);
-  int32_t *c_data = static_cast<int32_t*>(c->data);
-  uint64_t n = getSize(a);
-  const char *errorStr = cuda_elemwise_sub(a_data, b_data, c_data, n);
-  VERIFY_EQ(errorStr == NULL, true) << errorStr;
+    VERIFY(args.num_args == 4);
+    DLTensor *a = args[0];
+    DLTensor *b = args[1];
+    DLTensor *c = args[2];
+    int32_t *a_data = static_cast<int32_t*>(a->data);
+    int32_t *b_data = static_cast<int32_t*>(b->data);
+    int32_t *c_data = static_cast<int32_t*>(c->data);
+    uint64_t n = getSize(a);
+    const char *errorStr = cuda_elemwise_sub(a_data, b_data, c_data, n);
+    VERIFY_EQ(errorStr == NULL, true) << errorStr;
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
