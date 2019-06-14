@@ -13,6 +13,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 )
 
+
 func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
 	var (
 		resCh = make(chan []byte)

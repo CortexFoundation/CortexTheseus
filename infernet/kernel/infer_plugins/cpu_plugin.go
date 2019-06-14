@@ -21,20 +21,9 @@ import (
 //  "strings"
 //  "strconv"
   "github.com/CortexFoundation/CortexTheseus/log"
+	kernel "github.com/CortexFoundation/CortexTheseus/inference/synapse"
 )
 
-func SwitchEndian(data []byte, bytes int) ([]byte, error) {
-	if (len(data) % bytes != 0) {
-		return nil, errors.New(fmt.Sprintf("data is not aligned with %d", bytes))
-	}
-	ret := make([]byte, len(data))
-	for i := 0; i < len(data); i += bytes {
-		for j := 0; j < bytes; j++ {
-			ret[i + bytes - j - 1] = data[i + j]
-		}
-	}
-	return ret, nil
-}
 
 func LoadModel(modelCfg, modelBin string,  deviceId int) (unsafe.Pointer, error) {
   net := C.CVMAPILoadModel(
@@ -84,16 +73,9 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 	}
 
 	input_bytes := C.CVMAPISizeOfInputType(net)
-	data_aligned := make([]byte, len(data))
-	if (input_bytes > 1) {
-		fmt.Println("cpu_plugin", "input_bytes = ", input_bytes)
-		tmp_res, input_conv_err := SwitchEndian(data, int(input_bytes))
-		if input_conv_err != nil {
-			return nil, input_conv_err
-		}
-		copy(data_aligned[:], tmp_res)
-	} else {
-		copy(data_aligned[:], data)
+	data_aligned, data_aligned_err := kernel.ToAlignedData(data, int(input_bytes))
+	if data_aligned_err != nil {
+		return nil, data_aligned_err
 	}
 
 	res := make([]byte, resLen)
@@ -105,7 +87,7 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 	if (output_bytes > 1) {
 		fmt.Println("cpu_plugin", "output_bytes = ", output_bytes)
 		var err error
-		res, err = SwitchEndian(res, int(output_bytes))
+		res, err = kernel.SwitchEndian(res, int(output_bytes))
 		if err != nil {
 			return nil, err
 		}
