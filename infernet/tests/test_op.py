@@ -707,6 +707,15 @@ def test_broadcast_add():
     b = np.random.randint(low=-127, high=127, size=shape)
    # c = np.braodcast_add(a,b)
 
+def test_nms():
+    batch = np.random.randint(low=1, high=10)
+    n = np.random.randint(low=1, high=10)
+    k = 6
+    print(batch, n, k)
+    data = np.random.randint(low=0, high=100, size=(batch, n, k))
+    params = {'overlap_thresh':10, 'coord_start':2, 'score_index':1, 'id_index':0, 'force_suppress':True, 'in_format':'corner', 'out_type':'corner'}
+    y = nd.contrib.box_nms(data, **params)
+    print(y.shape)
 #test_concatenate()
 #test_repeat()
 #test_tile()
@@ -720,3 +729,4 @@ def test_broadcast_add():
 #test_elemwise_add()
 ##test_conv2d()
 ##test_broadcast_add()
+test_nms()

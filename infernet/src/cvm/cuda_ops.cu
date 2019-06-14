@@ -1548,7 +1548,6 @@ __global__ void kernel_sum_with_axis(const int32_t *x, int32_t *y, const int32_t
     y[i] = sum;
   }
 }
-//TODO axis
 const char* cuda_sum(const int32_t *x, int32_t *y, const uint64_t xsize, const uint64_t ysize,
     const int64_t *xshape, const int64_t *yshape, const int32_t* realAxis, const int32_t* flag,
     const uint64_t *every_xdim_size, const int64_t axis_size,
@@ -2243,14 +2242,6 @@ const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int3
   if(axes_ndim > 0){
     cudaFree(dev_axes);
   }
-
-  int32_t *hy = new int32_t[ysize];
-  cudaMemcpy(hy, y_data, sizeof(int32_t)*ysize, cudaMemcpyDeviceToHost);
-  printf("cuda result: ");
-  for(int i = 0; i < ysize; i++){
-    printf("%d ", hy[i]);
-  }
-  printf("\n");
   print_to_file(y_data, ysize, "/tmp/zkh/cuda_transpose.txt");
   return check_cuda_error(cudaGetLastError());
 }
@@ -2333,7 +2324,7 @@ const char* cuda_stride_slice(const int32_t *x_data, int32_t *y_data, const int6
   }
 
   int threadSize = 256;
-  int blockSize = getGridSize(ysize, threadSize);//(ysize + threadSize - 1) / threadSize;
+  int blockSize = getGridSize(ysize, threadSize);
   kernel_stride_slice<<<blockSize, threadSize>>>(x_data,  y_data, dev_begin, begin_ndim, dev_step, 
       dev_xshape, dev_yshape, step_ndim, y_ndim, ysize);
   cudaFree(dev_xshape);
