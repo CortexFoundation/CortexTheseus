@@ -252,7 +252,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 		start := mclock.Now()
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				log.Info("Try to create a file", "meta", meta, "number", b.Number)
+				log.Info("Try to create a file", "meta", meta, "number", b.Number, "infohash", meta.InfoHash())
 				if err := m.parseFileMeta(&tx, meta); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return err
@@ -385,6 +385,11 @@ func (m *Monitor) startWork() error {
 
 func (m *Monitor) validateStorage(errCh chan error) error {
 	m.lastNumber = m.fs.LastListenBlockNumber
+	if m.lastNumber > 2000 {
+		m.lastNumber = m.lastNumber - 2000
+	} else {
+		m.lastNumber = 0
+	}
 	end := uint64(0)
 
 	if m.lastNumber > 4096 {

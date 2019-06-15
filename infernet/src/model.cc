@@ -432,6 +432,7 @@ void* CVMAPILoadModel(const char *graph_fname,
   try {
     params = LoadFromBinary(string(model_fname));
   } catch (std::exception &e) {
+    delete model;
     return NULL;
   }
   if (!model->IsReady() || model->LoadParams(params)) {
