@@ -538,28 +538,10 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (*big.Int, error) {
+func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
 	// fmt.Println("infer", modelInfoHash, inputInfoHash)
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
-	//modelErrCh := make(chan error)
-	//inputErrCh := make(chan error)
-
-	//go cvm.DataSync(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, modelErrCh)
-	//go cvm.DataSync(common.HexToAddress(inputInfoHash), cvm.Config().StorageDir, inputErrCh)
-
-	//for i := 0; i < 2; i++ {
-	//	select {
-	//	case err := <-modelErrCh:
-	//		if err != nil {
-	//			return 0, err
-	//		}
-	//	case err := <-inputErrCh:
-	//		if err != nil {
-	//			return 0, err
-	//		}
-	//	}
-	//}
 	if (!cvm.vmConfig.DebugInferVM) {
 		if !torrentfs.Available(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, int64(modelRawSize)) {
 			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
@@ -588,27 +570,20 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
 	}
-	ret := synapse.ArgMax(inferRes)
+	// ret := synapse.ArgMax(inferRes)
 	if cvm.vmConfig.DebugInferVM {
-		fmt.Println("infer result: ", inferRes, ret)
+		fmt.Println("infer result: ", inferRes, errRes)
 	}
-	return ret, errRes
+	return inferRes, errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) (*big.Int, error) {
+func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) ([]byte, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
 	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
-
-	/*modelErrCh := make(chan error)
-	go cvm.DataSync(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, modelErrCh)
-
-	select {
-	case err := <-modelErrCh:
-		if err != nil {
-			return 0, err
-		}
-	}*/
+	if cvm.vmConfig.DebugInferVM {
+		fmt.Println( "Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
+	}
 
 	if !torrentfs.Available(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, int64(modelRawSize)) {
 		return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
@@ -632,9 +607,8 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
 	}
-
-	ret := synapse.ArgMax(inferRes)
-	return ret, errRes
+	// ret := synapse.ArgMax(inferRes)
+	return inferRes, errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output

@@ -53,7 +53,7 @@ cortex-nominer: clib
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 	mv ./build/bin/cortex ./build/bin/cortex-nominer
 
-cvm:
+cvm: plugins/cuda_cvm.so plugins/cpu_cvm.so
 	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
@@ -82,12 +82,12 @@ plugins/cpu_helper_for_node.so: PoolMiner/miner/libcuckoo/libcpuminer.a
 plugins/opencl_helper_for_node.so:  PoolMiner/miner/libcuckoo/libopenclminer.a
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/opencl_helper_for_node.go
 
-plugins/cuda_cvm.so:
+plugins/cuda_cvm.so: infernet/kernel/infer_plugins/cuda_plugin.go
 	cmake -S infernet/ -B infernet/build/gpu -DUSE_CUDA=ON
 	make -C ${INFER_NET_DIR} -j8
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cuda_plugin.go
 
-plugins/cpu_cvm.so:
+plugins/cpu_cvm.so: infernet/kernel/infer_plugins/cpu_plugin.go
 	cmake -S infernet/ -B infernet/build/cpu -DUSE_CUDA=OFF
 	make -C ${INFER_NET_DIR} -j8
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
