@@ -13,6 +13,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 )
 
+
 func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
 	var (
 		resCh = make(chan []byte)
@@ -96,9 +97,9 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 		return
 	}
 
-	inputContent, imageErr := ReadImage(inputFilePath)
-	if imageErr != nil {
-		errCh <- imageErr
+	inputContent, dataErr := ReadData(inputFilePath)
+	if dataErr != nil {
+		errCh <- dataErr
 		return
 	}
 
