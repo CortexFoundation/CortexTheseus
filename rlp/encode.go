@@ -1,18 +1,18 @@
-// Copyright 2014 The CortexFoundation Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rlp
 
@@ -73,10 +73,12 @@ type Encoder interface {
 // An unsigned integer value is encoded as an RLP string. Zero always
 // encodes as an empty RLP string. Encode also supports *big.Int.
 //
+// Boolean values are encoded as unsigned integers zero (false) and one (true).
+//
 // An interface value encodes as the value contained in the interface.
 //
-// Boolean values are not supported, nor are signed integers, floating
-// point numbers, maps, channels and functions.
+// Signed integers are not supported, nor are floating point numbers, maps,
+// channels and functions.
 func Encode(w io.Writer, val interface{}) error {
 	if outer, ok := w.(*encbuf); ok {
 		// Encode was called by some type's EncodeRLP.
@@ -180,11 +182,11 @@ func (w *encbuf) Write(b []byte) (int, error) {
 
 func (w *encbuf) encode(val interface{}) error {
 	rval := reflect.ValueOf(val)
-	ti, err := cachedTypeInfo(rval.Type(), tags{})
+	writer, err := cachedWriter(rval.Type())
 	if err != nil {
 		return err
 	}
-	return ti.writer(rval, w)
+	return writer(rval, w)
 }
 
 func (w *encbuf) encodeStringHeader(size int) {
@@ -497,17 +499,17 @@ func writeInterface(val reflect.Value, w *encbuf) error {
 		return nil
 	}
 	eval := val.Elem()
-	ti, err := cachedTypeInfo(eval.Type(), tags{})
+	writer, err := cachedWriter(eval.Type())
 	if err != nil {
 		return err
 	}
-	return ti.writer(eval, w)
+	return writer(eval, w)
 }
 
 func makeSliceWriter(typ reflect.Type, ts tags) (writer, error) {
-	etypeinfo, err := cachedTypeInfo1(typ.Elem(), tags{})
-	if err != nil {
-		return nil, err
+	etypeinfo := cachedTypeInfo1(typ.Elem(), tags{})
+	if etypeinfo.writerErr != nil {
+		return nil, etypeinfo.writerErr
 	}
 	writer := func(val reflect.Value, w *encbuf) error {
 		if !ts.tail {
@@ -543,9 +545,9 @@ func makeStructWriter(typ reflect.Type) (writer, error) {
 }
 
 func makePtrWriter(typ reflect.Type) (writer, error) {
-	etypeinfo, err := cachedTypeInfo1(typ.Elem(), tags{})
-	if err != nil {
-		return nil, err
+	etypeinfo := cachedTypeInfo1(typ.Elem(), tags{})
+	if etypeinfo.writerErr != nil {
+		return nil, etypeinfo.writerErr
 	}
 
 	// determine nil pointer handler
@@ -577,7 +579,7 @@ func makePtrWriter(typ reflect.Type) (writer, error) {
 		}
 		return etypeinfo.writer(val.Elem(), w)
 	}
-	return writer, err
+	return writer, nil
 }
 
 // putint writes i to the beginning of b in big endian byte

@@ -1,18 +1,18 @@
-// Copyright 2014 The CortexFoundation Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rlp
 
@@ -347,6 +347,12 @@ type tailUint struct {
 	Tail []uint `rlp:"tail"`
 }
 
+type tailPrivateFields struct {
+	A    uint
+	Tail []uint `rlp:"tail"`
+	x, y bool
+}
+
 var (
 	veryBigInt = big.NewInt(0).Add(
 		big.NewInt(0).Lsh(big.NewInt(0xFFFFFFFFFFFFFF), 16),
@@ -509,6 +515,11 @@ var decodeTests = []decodeTest{
 		input: "C101",
 		ptr:   new(tailRaw),
 		value: tailRaw{A: 1, Tail: []RawValue{}},
+	},
+	{
+		input: "C3010203",
+		ptr:   new(tailPrivateFields),
+		value: tailPrivateFields{A: 1, Tail: []uint{2, 3}},
 	},
 
 	// struct tag "-"
@@ -689,6 +700,27 @@ func TestDecoderInByteSlice(t *testing.T) {
 	} else if !array[0].called() {
 		t.Errorf("DecodeRLP not called for array element")
 	}
+}
+
+type unencodableDecoder func()
+
+func (f *unencodableDecoder) DecodeRLP(s *Stream) error {
+	if _, err := s.List(); err != nil {
+		return err
+	}
+	if err := s.ListEnd(); err != nil {
+		return err
+	}
+	*f = func() {}
+	return nil
+}
+
+func TestDecoderFunc(t *testing.T) {
+	var x func()
+	if err := DecodeBytes([]byte{0xC0}, (*unencodableDecoder)(&x)); err != nil {
+		t.Fatal(err)
+	}
+	x()
 }
 
 func ExampleDecode() {

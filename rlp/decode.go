@@ -1,18 +1,18 @@
-// Copyright 2014 The CortexFoundation Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rlp
 
@@ -115,15 +115,17 @@ type Decoder interface {
 // type, Decode will return an error. Decode also supports *big.Int.
 // There is no size limit for big integers.
 //
+// To decode into a boolean, the input must contain an unsigned integer
+// of value zero (false) or one (true).
+//
 // To decode into an interface value, Decode stores one of these
 // in the value:
 //
 //	  []interface{}, for RLP lists
 //	  []byte, for RLP strings
 //
-// Non-empty interface types are not supported, nor are booleans,
-// signed integers, floating point numbers, maps, channels and
-// functions.
+// Non-empty interface types are not supported, nor are signed integers,
+// floating point numbers, maps, channels and functions.
 //
 // Note that Decode does not set an input limit for all readers
 // and may be vulnerable to panics cause by huge value sizes. If
@@ -131,7 +133,6 @@ type Decoder interface {
 //
 //     NewStream(r, limit).Decode(val)
 func Decode(r io.Reader, val interface{}) error {
-	//return NewStream(r, 0).Decode(val)
 	stream := streamPool.Get().(*Stream)
 	defer streamPool.Put(stream)
 
@@ -144,7 +145,7 @@ func Decode(r io.Reader, val interface{}) error {
 // The input must contain exactly one value and no trailing data.
 func DecodeBytes(b []byte, val interface{}) error {
 	r := bytes.NewReader(b)
-	//if err := NewStream(r, uint64(len(b))).Decode(val); err != nil {
+
 	stream := streamPool.Get().(*Stream)
 	defer streamPool.Put(stream)
 
@@ -307,9 +308,9 @@ func makeListDecoder(typ reflect.Type, tag tags) (decoder, error) {
 		}
 		return decodeByteSlice, nil
 	}
-	etypeinfo, err := cachedTypeInfo1(etype, tags{})
-	if err != nil {
-		return nil, err
+	etypeinfo := cachedTypeInfo1(etype, tags{})
+	if etypeinfo.decoderErr != nil {
+		return nil, etypeinfo.decoderErr
 	}
 	var dec decoder
 	switch {
@@ -468,9 +469,9 @@ func makeStructDecoder(typ reflect.Type) (decoder, error) {
 // the pointer's element type.
 func makePtrDecoder(typ reflect.Type) (decoder, error) {
 	etype := typ.Elem()
-	etypeinfo, err := cachedTypeInfo1(etype, tags{})
-	if err != nil {
-		return nil, err
+	etypeinfo := cachedTypeInfo1(etype, tags{})
+	if etypeinfo.decoderErr != nil {
+		return nil, etypeinfo.decoderErr
 	}
 	dec := func(s *Stream, val reflect.Value) (err error) {
 		newval := val
@@ -492,9 +493,9 @@ func makePtrDecoder(typ reflect.Type) (decoder, error) {
 // This decoder is used for pointer-typed struct fields with struct tag "nil".
 func makeOptionalPtrDecoder(typ reflect.Type) (decoder, error) {
 	etype := typ.Elem()
-	etypeinfo, err := cachedTypeInfo1(etype, tags{})
-	if err != nil {
-		return nil, err
+	etypeinfo := cachedTypeInfo1(etype, tags{})
+	if etypeinfo.decoderErr != nil {
+		return nil, etypeinfo.decoderErr
 	}
 	dec := func(s *Stream, val reflect.Value) (err error) {
 		kind, size, err := s.Kind()
@@ -815,12 +816,12 @@ func (s *Stream) Decode(val interface{}) error {
 	if rval.IsNil() {
 		return errDecodeIntoNil
 	}
-	info, err := cachedTypeInfo(rtyp.Elem(), tags{})
+	decoder, err := cachedDecoder(rtyp.Elem())
 	if err != nil {
 		return err
 	}
 
-	err = info.decoder(s, rval.Elem())
+	err = decoder(s, rval.Elem())
 	if decErr, ok := err.(*decodeError); ok && len(decErr.ctx) > 0 {
 		// add decode target type to error so context has more meaning
 		decErr.ctx = append(decErr.ctx, fmt.Sprint("(", rtyp.Elem(), ")"))

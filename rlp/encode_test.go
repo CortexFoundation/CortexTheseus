@@ -1,18 +1,18 @@
-// Copyright 2014 The CortexFoundation Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rlp
 
@@ -47,6 +47,13 @@ type byteEncoder byte
 func (e byteEncoder) EncodeRLP(w io.Writer) error {
 	w.Write(EmptyList)
 	return nil
+}
+
+type undecodableEncoder func()
+
+func (f undecodableEncoder) EncodeRLP(w io.Writer) error {
+	_, err := w.Write(EmptyList)
+	return err
 }
 
 type encodableReader struct {
@@ -239,6 +246,8 @@ var encTests = []encTest{
 	{val: (*testEncoder)(nil), output: "00000000"},
 	{val: &testEncoder{}, output: "00010001000100010001"},
 	{val: &testEncoder{errors.New("test error")}, error: "test error"},
+	// verify that the Encoder interface works for unsupported types like func().
+	{val: undecodableEncoder(func() {}), output: "C0"},
 	// verify that pointer method testEncoder.EncodeRLP is called for
 	// addressable non-pointer values.
 	{val: &struct{ TE testEncoder }{testEncoder{}}, output: "CA00010001000100010001"},
