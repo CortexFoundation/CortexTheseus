@@ -38,6 +38,9 @@ inline TShape GetReduceAxes(const uint32_t indim,
     VERIFY_LT(i, indim) << "axis out of bounds in reduce operator";
   }
   std::sort(in_axis.begin(), in_axis.end());
+  for(size_t i = 0; i < in_axis.ndim()-1; i++){
+    VERIFY(in_axis[i] != in_axis[i+1]);
+  }
   if (!exclude) return in_axis;
   TShape r_axis(indim - in_axis.ndim());
   for (unsigned i = 0, j = 0, k = 0; i < indim; ++i) {
@@ -89,10 +92,10 @@ inline bool ReduceShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(out_attrs->size(), 1U);
   if ((*in_attrs)[0].ndim() == 0) return false;
   const ReduceParam& param = cvm::get<ReduceParam>(attrs.parsed);
-  VERIFY_EQ(param.exclude, false)
-    << "operator " << attrs.op->name
-    << " only supported attribute exclude false vs. "
-    << param.exclude;
+  //VERIFY_EQ(param.exclude, false)
+  //  << "operator " << attrs.op->name
+  //  << " only supported attribute exclude false vs. "
+  //  << param.exclude;
   CVM_ASSIGN_OUTPUT_SHAPE(
       attrs, *out_attrs, 0,
       ReduceShapeImpl((*in_attrs)[0], param.axis,
@@ -171,7 +174,7 @@ CVM_REGISTER_REDUCE_OP(max)
 
 // CVM_REGISTER_REDUCE_OP(min)
 // .describe(R"code(Computes the min of array elements over given axes.
-// 
+//
 // )code" CVM_ADD_FILELINE)
 // .set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
 
