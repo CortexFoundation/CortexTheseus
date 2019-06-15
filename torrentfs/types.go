@@ -91,8 +91,10 @@ func (t *Transaction) Parse() *FileMeta {
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
+		var InfoHash = metainfo.HashBytes(meta.Hash.Bytes())
 		return &FileMeta{
 			&AuthorAddress,
+			&InfoHash,
 			meta.URI,
 			meta.RawSize,
 			meta.BlockNum.Uint64(),
@@ -104,8 +106,10 @@ func (t *Transaction) Parse() *FileMeta {
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
+		var InfoHash = metainfo.HashBytes(meta.Hash.Bytes())
 		return &FileMeta{
 			&AuthorAddress,
+			&InfoHash,
 			meta.URI,
 			meta.RawSize,
 			meta.BlockNum.Uint64(),
@@ -150,6 +154,7 @@ type TxReceipt struct {
 type FileMeta struct {
 	// Author Address
 	AuthorAddr *common.Address
+	infoHash *metainfo.Hash
 	// Download InfoHash, should be in magnetURI format
 	URI string
 	// The raw size of the file counted in bytes
@@ -159,11 +164,7 @@ type FileMeta struct {
 
 // InfoHash ...
 func (m *FileMeta) InfoHash() *metainfo.Hash {
-	h, err := getInfohashFromURI(m.URI)
-	if err != nil {
-		return nil
-	}
-	return h
+  return m.infoHash
 }
 
 // DisplayName ...
