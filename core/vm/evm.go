@@ -538,7 +538,7 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 }
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) (*big.Int, error) {
+func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
 	// fmt.Println("infer", modelInfoHash, inputInfoHash)
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
@@ -570,11 +570,11 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
 	}
-	ret := synapse.ArgMax(inferRes)
+	// ret := synapse.ArgMax(inferRes)
 	if cvm.vmConfig.DebugInferVM {
-		fmt.Println("infer result: ", inferRes, ret)
+		fmt.Println("infer result: ", inferRes, errRes)
 	}
-	return ret, errRes
+	return inferRes, errRes
 }
 
 // infer function that returns an int64 as output, can be used a categorical output

@@ -21,7 +21,9 @@ import (
 //  "strings"
 //  "strconv"
   "github.com/CortexFoundation/CortexTheseus/log"
+	kernel "github.com/CortexFoundation/CortexTheseus/inference/synapse"
 )
+
 
 func LoadModel(modelCfg, modelBin string,  deviceId int) (unsafe.Pointer, error) {
   net := C.CVMAPILoadModel(
@@ -60,28 +62,42 @@ func FreeModel(net unsafe.Pointer) {
   C.CVMAPIFreeModel(net)
 }
 
-func Predict(net unsafe.Pointer, imageData []byte) ([]byte, error) {
-  if net == nil {
-    return nil, errors.New("Internal error: network is null in InferProcess")
-  }
+func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
+	if net == nil {
+		return nil, errors.New("Internal error: network is null in InferProcess")
+	}
 
-  resLen := int(C.CVMAPIGetOutputLength(net))
-  fmt.Println("CPU Infernet", "resLen = ", resLen)
-  if resLen == 0 {
-    return nil, errors.New("Model result len is 0")
-  }
+	resLen := int(C.CVMAPIGetOutputLength(net))
+	if resLen == 0 {
+		return nil, errors.New("Model result len is 0")
+	}
 
-  res := make([]byte, resLen)
+	input_bytes := C.CVMAPISizeOfInputType(net)
+	data_aligned, data_aligned_err := kernel.ToAlignedData(data, int(input_bytes))
+	if data_aligned_err != nil {
+		return nil, data_aligned_err
+	}
 
-  flag := C.CVMAPIInfer(net,
-                        (*C.char)(unsafe.Pointer(&imageData[0])),
-                        (*C.char)(unsafe.Pointer(&res[0])))
-  log.Info("CPU Infernet", "flag", flag, "res", res)
-  if flag != 0 {
-    return nil, errors.New("Predict Error")
-  }
+	res := make([]byte, resLen)
+	input := (*C.char)(unsafe.Pointer(&data_aligned[0]))
+	output := (*C.char)(unsafe.Pointer(&res[0]))
 
-  return res, nil
+	output_bytes := C.CVMAPISizeOfOutputType(net)
+  flag := C.CVMAPIInfer(net, input, output)
+	if (output_bytes > 1) {
+		fmt.Println("cpu_plugin", "output_bytes = ", output_bytes)
+		var err error
+		res, err = kernel.SwitchEndian(res, int(output_bytes))
+		if err != nil {
+			return nil, err
+		}
+	}
+	log.Info("GPU Infernet", "flag", flag, "res", res)
+	if flag != 0 {
+		return nil, errors.New("Predict Error")
+	}
+
+	return res, nil
 }
 
 func GetStorageSize(net unsafe.Pointer)(int64, error) {

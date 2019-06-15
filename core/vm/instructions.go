@@ -25,7 +25,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"github.com/CortexFoundation/CortexTheseus/core"
@@ -698,7 +697,7 @@ var (
 )
 
 func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	_modelAddr, _inputAddr := stack.pop(), stack.pop()
+	_modelAddr, _inputAddr, _outputOffset := stack.pop(), stack.pop(), stack.pop()
 	modelAddr := common.BigToAddress(_modelAddr)
 	inputAddr := common.BigToAddress(_inputAddr)
 	var (
@@ -717,6 +716,7 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	}
 	// Input Meta is validation
 	if interpreter.cvm.StateDB.Uploading(inputAddr) {
+		stack.push(interpreter.intPool.getZero())
 		return nil, errors.New("INPUT IS NOT UPLOADED ERROR")
 	}
 
@@ -724,24 +724,34 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
 
 	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(big0) <= 0 {
+		stack.push(interpreter.intPool.getZero())
 		return nil, errMetaInfoBlockNum
 	}
-
 	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
 		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", interpreter.cvm.StateDB.GetNum(inputAddr), "Current", interpreter.cvm.BlockNumber, "MB", params.MatureBlks)
+		stack.push(interpreter.intPool.getZero())
 		return nil, ErrMetaInfoNotMature
 	}
 
 	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
+		stack.push(interpreter.intPool.getZero())
 		return nil, errMetaInfoExpired
 	}
 
 	// Model&Input shape should match
 	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
+		stack.push(interpreter.intPool.getZero())
+		if interpreter.cvm.vmConfig.DebugInferVM {
+			fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
+		}
 		return nil, errMetaShapeNotMatch
 	}
 	for idx, modelShape := range modelMeta.InputShape {
 		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0 {
+			stack.push(interpreter.intPool.getZero())
+			if interpreter.cvm.vmConfig.DebugInferVM {
+				fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
+			}
 			return nil, errMetaShapeNotMatch
 		}
 	}
@@ -779,17 +789,21 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	}
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
-		if !synapse.CheckBuiltInTorrentFsError(err) {
-			//consensus
-			//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
-		}
+		// if !synapse.CheckBuiltInTorrentFsError(err) {
+		//consensus
+		//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), 0, err, interpreter, contract)
+		//}
 		return nil, err
 	}
 	//consensus
 	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 	interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
 	// interpreter.intPool.get().SetUint64(output)
-	stack.push(output)
+	if err := memory.WriteSolidityUint256Array(_outputOffset.Int64(), output); err != nil {
+		stack.push(interpreter.intPool.getZero())
+		return nil, err
+	}
+	stack.push(interpreter.intPool.get().SetUint64(1))
 	//consensus
 	//makeAiLog(common.BigToHash(modelMeta.Hash.Big()), common.BigToHash(inputMeta.Hash.Big()), output, nil, interpreter, contract)
 
@@ -810,7 +824,7 @@ func checkModel(interpreter *CVMInterpreter, stack *Stack, modelAddr common.Addr
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
-		return nil, errExecutionReverted
+		return nil, errMetaInfoBlockNum
 	}
 	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
 		return nil, ErrMetaInfoNotMature
@@ -844,29 +858,25 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 		return nil, modelErr
 	}
 
-	//TODO(tian) Model&Input shape should match
-	var dataSize uint64 = 1
-	for _, modelShape := range modelMeta.InputShape {
-		dataSize *= modelShape
-	}
-	if true {
+	if false {
+		//TODO(tian) omit input shape for infer array
+		var dataSize uint64 = 1
+		for _, modelShape := range modelMeta.InputShape {
+			dataSize *= modelShape
+		}
 		if dataSize != inputSize.Uint64() {
 			stack.push(interpreter.intPool.getZero())
+			if interpreter.cvm.vmConfig.DebugInferVM {
+				fmt.Println("modelmeta: ", modelMeta.InputShape, "datasize: ", dataSize, "inputSize: ", inputSize)
+			}
 			return nil, errMetaShapeNotMatch
 		}
 	}
 	var output []byte
 	var err error
-	if false {
-		output, err = make([]byte, 10), nil
-		for idx := 0 ; idx < 10; idx++ {
-			output[idx] = byte(16 + idx)
-		}
-	} else {
-		output, err = interpreter.cvm.InferArray(
-			modelMeta.Hash.Hex(),
-			inputBuff, modelMeta.RawSize)
-		}
+	output, err = interpreter.cvm.InferArray(modelMeta.Hash.Hex(),
+											 inputBuff, modelMeta.RawSize)
+	// output = big.NewInt(2147483647).Bytes()
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, err
@@ -886,53 +896,6 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	return nil, nil
 }
 
-// experimental feature
-func opNNForward(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	_modelAddr, _inputHeaderOffset, _outputOffset := stack.pop(), stack.pop(), stack.pop()
-	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(contract.Address(), common.BigToHash(_inputHeaderOffset))
-	if inputError != nil {
-		return nil, inputError
-	}
-	inputSize := big.NewInt(int64(len(inputBuff)))
-	modelAddr := common.BigToAddress(_modelAddr)
-	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
-
-	modelMeta, modelErr := checkModel(interpreter, stack, modelAddr)
-	if modelErr != nil {
-		return nil, modelErr
-	}
-
-	//TODO(tian) Model&Input shape should match
-	var dataSize uint64 = 1
-	for _, modelShape := range modelMeta.InputShape {
-		dataSize *= modelShape
-	}
-	if dataSize != inputSize.Uint64() {
-		return nil, errMetaShapeNotMatch
-	}
-
-	// label, err := interpreter.cvm.InferArray(
-	// 	modelMeta.Hash.Hex(),
-	// 	contract.Address(),
-	// 	common.BigToHash(_inputHeaderOffset),
-	// 	inputBuff)
-	var err error
-	if err != nil {
-		stack.push(interpreter.intPool.getZero())
-		return nil, err
-	}
-	// TODO(tian) flatten output
-	output_placehold_len, _ := memory.GetLengthOfSolidityBytes(_outputOffset.Int64())
-	// fmt.Println("output_placehold_len = ", output_placehold_len)
-	label := 1
-	output := make([]byte, output_placehold_len)
-	output[label] = 1
-	if err := memory.WriteSolidityBytes(_outputOffset.Int64(), output); err != nil {
-		return nil, err
-	}
-	stack.push(interpreter.intPool.get().SetUint64(1))
-	return nil, nil
-}
 
 func opCreate(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (

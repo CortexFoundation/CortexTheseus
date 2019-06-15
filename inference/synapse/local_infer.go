@@ -13,6 +13,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 )
 
+
 func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
 	var (
 		resCh = make(chan []byte)
@@ -34,15 +35,16 @@ func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, 
 }
 
 func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
-	fmt.Println("synpase: ", s)
+	fmt.Println("synapse: ", s)
 	var (
-	modelHash = strings.ToLower(modelInfoHash[2:])
-	modelDir  = s.config.StorageDir + "/" + modelHash
+		modelHash = strings.ToLower(modelInfoHash[2:])
+		modelDir  = s.config.StorageDir + "/" + modelHash
 
-	// Model Path Check
-	modelCfg = modelDir + "/data/symbol"
-	modelBin = modelDir + "/data/params"
+		// Model Path Check
+		modelCfg = modelDir + "/data/symbol"
+		modelBin = modelDir + "/data/params"
 	)
+	// fmt.Println("modelCfg =" , modelCfg, "modelBin = ", modelBin)
 	// Inference Cache
 	cacheKey := RLPHashString("estimate_ops" + modelHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
@@ -95,9 +97,9 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 		return
 	}
 
-	inputContent, imageErr := ReadImage(inputFilePath)
-	if imageErr != nil {
-		errCh <- imageErr
+	inputContent, dataErr := ReadData(inputFilePath)
+	if dataErr != nil {
+		errCh <- dataErr
 		return
 	}
 
@@ -119,6 +121,7 @@ func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte)([]byte, 
 		if model == nil {
 			return nil, errors.New("create model error")
 		}
+		//TODO(tian) replace it with gas per KB
 		s.caches[s.config.DeviceId].Add(modelCfg, model, model.Size() / 1000)
 	}
 	return model.Predict(inputContent)
@@ -154,6 +157,9 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	modelCfg := modelDir + "/data/symbol"
 	modelBin := modelDir + "/data/params"
 	log.Debug("Inference Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "InputInfoHash", inputInfoHash)
+	if s.config.Debug {
+		fmt.Println("modelCfg =" , modelCfg, "modelBin = ", modelBin)
+	}
 	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
 		errCh <- ErrModelFileNotExist
 		return

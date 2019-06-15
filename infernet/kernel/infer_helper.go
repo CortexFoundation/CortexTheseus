@@ -12,6 +12,7 @@ import (
 	"plugin"
 )
 
+
 type Model struct {
 	model unsafe.Pointer
 	lib *plugin.Plugin
@@ -125,11 +126,11 @@ func (m *Model) Free() {
 	f.(func(unsafe.Pointer)())(m.model)
 }
 
-func (m *Model) Predict(imageData []byte) ([]byte, error) {
+func (m *Model) Predict(data []byte) ([]byte, error) {
 	expectedInputLength := m.GetInputLength()
-	if expectedInputLength != len(imageData) {
-		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",
-																			 expectedInputLength, len(imageData)))
+	if expectedInputLength > len(data) {
+		return nil, errors.New(fmt.Sprintf("input size not match, Expected at least %d, Got %d",
+																			 expectedInputLength, len(data)))
 	}
 
 	f, err := m.lib.Lookup("Predict")
@@ -137,7 +138,6 @@ func (m *Model) Predict(imageData []byte) ([]byte, error) {
 		log.Error("infer helper", "Predict", "error", err)
 		return nil, err
 	}
-	res, err := f.(func(unsafe.Pointer, []byte)([]byte, error))(m.model, imageData)
+	res, err := f.(func(unsafe.Pointer, []byte)([]byte, error))(m.model, data)
 	return res, err
 }
-

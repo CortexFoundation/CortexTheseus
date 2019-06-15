@@ -22,6 +22,10 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
     int32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
     int64_t overlap_area = static_cast<int64_t>(h)*w;
+    int64_t tmp = (sum_area - overlap_area) / 100;
+    if(tmp <= 0){
+        return 100;
+    }
     int64_t ret = (overlap_area / ((sum_area - overlap_area)/100));
     return ret;
 }
@@ -69,7 +73,8 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
         }
 
         std::vector<bool> removed(n, false);
-        for(int i = (topk < vc ? topk : vc); i < n; i++){
+        int start_i = ((topk >= 0 && topk < vc) ? topk : vc);
+        for(int i = start_i; i < n; i++){
             removed[i] = true;
         }
 

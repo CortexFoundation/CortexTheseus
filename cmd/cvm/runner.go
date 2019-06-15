@@ -101,9 +101,10 @@ func runCmd(ctx *cli.Context) error {
 		debugLogger = vm.NewStructLogger(logconfig)
 	}
 
-	if ctx.GlobalBool(MachineFlag.Name) {
-		blockNumber = uint64(ctx.GlobalInt(BlockNumber.Name))
+	if ctx.GlobalInt(BlockNumberFlag.Name) > 0 {
+		blockNumber = uint64(ctx.GlobalInt(BlockNumberFlag.Name))
 	}
+	fmt.Println("Current blockNumber: ", blockNumber)
 
 	if ctx.GlobalString(GenesisFlag.Name) != "" {
 		gen := readGenesis(ctx.GlobalString(GenesisFlag.Name))
@@ -144,6 +145,28 @@ func runCmd(ctx *cli.Context) error {
 			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
+	mh3, _ := hex.DecodeString("a511f0fe2d45f5b968c4ab0d04092c9e611aced4")
+	testModelMeta3, _ := rlp.EncodeToBytes(
+		&types.ModelMeta{
+			Hash:          common.BytesToAddress(mh3),
+			RawSize:       10000,
+			InputShape:    []uint64{3, 416, 416},
+			OutputShape:   []uint64{1},
+			Gas:           1000,
+			BlockNum:      *big.NewInt(10),
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
+		})
+	mh4, _ := hex.DecodeString("2d343a00ca1c533eeea6bd2ed5cd2182e62c9f0c")
+	testModelMeta4, _ := rlp.EncodeToBytes(
+		&types.ModelMeta{
+			Hash:          common.BytesToAddress(mh4),
+			RawSize:       10000,
+			InputShape:    []uint64{1, 38, 1},
+			OutputShape:   []uint64{1},
+			Gas:           1000,
+			BlockNum:      *big.NewInt(10),
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
+		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
 	ih1, _ := hex.DecodeString("4c5e20b86f46943422e0ac09749aed9882b4bf35")
@@ -164,6 +187,24 @@ func runCmd(ctx *cli.Context) error {
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
 		})
+	ih3, _ := hex.DecodeString("8e14bbd1c395b7fdcc36fbd3e5f3b6cb7931cc67")
+	testInputMeta3, _ := rlp.EncodeToBytes(
+		&types.InputMeta{
+			Hash:          common.BytesToAddress(ih3),
+			RawSize:       10000,
+			Shape:         []uint64{3, 416, 416},
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
+			BlockNum: *big.NewInt(10),
+		})
+	ih4, _ := hex.DecodeString("0fa499fb0966faf927d0c7a4c5f561a37ef8c3e3")
+	testInputMeta4, _ := rlp.EncodeToBytes(
+		&types.InputMeta{
+			Hash:          common.BytesToAddress(ih4),
+			RawSize:       10000,
+			Shape:         []uint64{1, 38, 1},
+			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
+			BlockNum: *big.NewInt(10),
+		})
 	fmt.Println("testModelMeta1", testModelMeta1)
 	fmt.Println("testModelMeta2", testModelMeta2)
 	fmt.Println("testInputMeta1", testInputMeta1)
@@ -176,13 +217,21 @@ func runCmd(ctx *cli.Context) error {
 	}
 	statedb.SetCode(common.HexToAddress("0x2001"), append([]byte{0x0, 0x2}, []byte(testInputMeta1)...))
 	statedb.SetCode(common.HexToAddress("0x2002"), append([]byte{0x0, 0x2}, []byte(testInputMeta2)...))
+	statedb.SetCode(common.HexToAddress("0x2003"), append([]byte{0x0, 0x2}, []byte(testInputMeta3)...))
+	statedb.SetCode(common.HexToAddress("0x2004"), append([]byte{0x0, 0x2}, []byte(testInputMeta4)...))
 	// simple address for the sake of debuging
 	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
 	statedb.SetCode(common.HexToAddress("0x1002"), append([]byte{0x0, 0x1}, []byte(testModelMeta2)...))
+	statedb.SetCode(common.HexToAddress("0x1003"), append([]byte{0x0, 0x1}, []byte(testModelMeta3)...))
+	statedb.SetCode(common.HexToAddress("0x1004"), append([]byte{0x0, 0x1}, []byte(testModelMeta4)...))
 	statedb.SetNum(common.HexToAddress("0x1001"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x1002"), big.NewInt(1))
+	statedb.SetNum(common.HexToAddress("0x1003"), big.NewInt(1))
+	statedb.SetNum(common.HexToAddress("0x1004"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x2001"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x2002"), big.NewInt(1))
+	statedb.SetNum(common.HexToAddress("0x2003"), big.NewInt(1))
+	statedb.SetNum(common.HexToAddress("0x2004"), big.NewInt(1))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {
 		receiver = common.HexToAddress(ctx.GlobalString(ReceiverFlag.Name))
 	}
@@ -261,6 +310,7 @@ func runCmd(ctx *cli.Context) error {
 		IsNotCache: false,
 		IsRemoteInfer: false,
 		DeviceType: "cpu",
+		DeviceId: 0,
 		Debug: true,
 	})
 
@@ -276,6 +326,7 @@ func runCmd(ctx *cli.Context) error {
 	execTime := time.Since(tstart)
 
 	if ctx.GlobalBool(DumpFlag.Name) {
+		statedb.Commit(true)
 		statedb.IntermediateRoot(true)
 		fmt.Println(string(statedb.Dump()))
 	}
