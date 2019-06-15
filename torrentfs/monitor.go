@@ -3,6 +3,7 @@ package torrentfs
 import (
 	"errors"
 	"os"
+	"fmt"
 	"runtime"
 	"strconv"
 	"sync"
@@ -180,6 +181,7 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 }*/
 
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
+	log.Debug("Monitor", "FileMeta", meta)
 	m.dl.NewTorrent(meta.URI)
 
 	var receipt TxReceipt
@@ -208,11 +210,15 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
 		return err
 	}
-
+	log.Debug("Monitor", "NewFileInfo", meta)
 	info := NewFileInfo(meta)
 	info.TxHash = tx.Hash
 
-	remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+	remainingSize, err_remainingSize := strconv.ParseUint(_remainingSize[2:], 16, 64)
+	log.Debug("Monitor", "remainingSize", remainingSize, "err", err_remainingSize)
+	if err_remainingSize != nil {
+		return err_remainingSize
+	}
 
 	info.LeftSize = remainingSize
 	info.ContractAddr = receipt.ContractAddr
@@ -228,9 +234,13 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 
 		bytesRequested = meta.RawSize - remainingSize
 	}
-
+	log.Debug("Monitor", "meta", meta, "meta info", meta.InfoHash())
+	metaInfoHash := meta.InfoHash()
+	if metaInfoHash == nil {
+		return nil
+	}
 	m.dl.UpdateTorrent(FlowControlMeta{
-		InfoHash:       *meta.InfoHash(),
+		InfoHash:       *metaInfoHash,
 		BytesRequested: bytesRequested,
 	})
 	log.Info("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
@@ -268,8 +278,13 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 					bytesRequested = file.Meta.RawSize - file.LeftSize
 				}
 				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
+				fileInfoHash := file.Meta.InfoHash()
+
+				if fileInfoHash == nil {
+					return errors.New(fmt.Sprintf("fileInfoHash is nil, file.Meta = %x", file.Meta))
+				}
 				m.dl.UpdateTorrent(FlowControlMeta{
-					InfoHash:       *file.Meta.InfoHash(),
+					InfoHash:       *fileInfoHash,
 					BytesRequested: bytesRequested,
 				})
 			}

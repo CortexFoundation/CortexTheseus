@@ -823,6 +823,8 @@ func checkModel(interpreter *CVMInterpreter, stack *Stack, modelAddr common.Addr
 	if interpreter.cvm.StateDB.Uploading(modelAddr) {
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
+
+	log.Debug("checkModel", "modelAddr blocknum", interpreter.cvm.StateDB.GetNum(modelAddr), "modelMeta", modelMeta)
 	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}

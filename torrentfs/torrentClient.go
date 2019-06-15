@@ -187,6 +187,13 @@ func verifyTorrent(info *metainfo.Info, root string) error {
 }
 
 func (tm *TorrentManager) AddTorrent(filePath string) {
+	log.Debug("AddTorrent", "filePath", filePath)
+	var file_path_err error 
+	if _, file_path_err = os.Stat(filePath); file_path_err!= nil {
+		log.Error("AddTorrent", "Error", file_path_err)
+		return
+	}
+	log.Debug("AddTorrent", "filePath err", file_path_err)
 	mi, err := metainfo.LoadFromFile(filePath)
 	if err != nil {
 		log.Error("Error while adding torrent", "Err", err)
@@ -280,6 +287,7 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 	dataPath := path.Join(tm.TmpDataDir, ih.HexString())
 	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
+	log.Debug("TorrentManager", "torrentPath", torrentPath, "seedTorrentPath", seedTorrentPath)
 	if _, err := os.Stat(torrentPath); err == nil {
 		tm.AddTorrent(torrentPath)
 		return
@@ -418,6 +426,7 @@ func (tm *TorrentManager) mainLoop() {
 	for {
 		select {
 		case torrent := <-tm.newTorrent:
+			log.Debug("TorrentManager", "newTorrent", torrent)
 			if isMagnetURI(torrent) {
 				go tm.AddMagnet(torrent)
 			} else {
