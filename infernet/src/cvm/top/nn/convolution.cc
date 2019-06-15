@@ -67,7 +67,8 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
       << "input channels must divide group size";
   VERIFY_EQ(param.channels % param.groups, 0U)
       << "output channels must divide group size";
-  bool check_groups = ((dshape[1] == param.groups) || (param.groups == 1));
+  TShape outshape = out_shape->at(0);
+  bool check_groups = ((dshape[1] == param.groups && outshape[1] == param.groups) || (param.groups == 1));
   if (not check_groups) {
     VERIFY(false)
       << "Conv2D only supported groups (1 or in_channels " << param.channels

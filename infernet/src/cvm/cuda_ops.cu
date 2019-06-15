@@ -301,7 +301,6 @@ const char* cuda_conv2d(
     int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
     dim3 gDim(g_w, g_h, 1);
-    //TODO dilation and filter size is variable, should check shared memory size
     kernel_conv2d<<<gDim, bDim, share_size>>>(
         dev_i, i_n, i_c, i_h, i_w,
         dev_f, f_n, f_c, f_h, f_w,
