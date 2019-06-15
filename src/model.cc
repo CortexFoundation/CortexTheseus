@@ -78,7 +78,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     auto get_input_precision = module_.GetFunction("get_input_precision");
     int input_precision = 0;
     get_input_precision(&input_precision);
-    std::cerr << "input_precision = " << input_precision << "\n";
+    // std::cerr << "input_precision = " << input_precision << "\n";
     input_bytes_ = 1;
     if (input_precision > 8)
       input_bytes_ = 4;
@@ -88,7 +88,7 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     int output_precision;
     get_output_precision(&output_precision);
     output_bytes_ = 1;
-    if (output_precision > 16)
+    if (output_precision > 8)
         output_bytes_ = 4;
 
     if (postprocess_method_ == "argmax") {
@@ -188,6 +188,7 @@ DLTensor* CVMModel::PlanInput(void *input) {
   if (input_bytes_ == 4) {
       for (int i = 0; i < in_size_; ++i) {
           data[i] = static_cast<int32_t*>(input)[i];
+          // std::cerr << "data = " << i << " " << data[i] << "\n";
       }
   } else {
       for (int i = 0; i < in_size_; ++i) {
@@ -253,16 +254,25 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
         int32_t* cp = static_cast<int32_t*>((void*)(mem));
         int32_t nx = xs[0];  // truncate result
         for (int xidx = 0; xidx < nx; xidx++) {
-            // std::cerr << "\n";
+          //   std::cerr << "int8 \n";
+          // for (size_t k = 0; k < outputs.size(); ++k) {
+          //   auto data = static_cast<uint8_t*>(outputs[k]->data) + xidx * ys[k] * 4;
+          //   for (size_t i = 0; i < ys[k] * 4; ++i) {
+          //     std::cerr << (int)((uint8_t)data[i]) << " " ;
+          //   }
+          // }
+          //   std::cerr << "\n";
+
+          // std::cerr << "int32 \n";
           for (size_t k = 0; k < outputs.size(); ++k) {
             auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
             for (size_t i = 0; i < ys[k]; ++i) {
               *cp = data[i];
-              // std::cerr << *cp << " " ;
+          //    std::cerr << *cp << " " ;
               ++cp;
             }
           }
-            // std::cerr << "\n";
+          //   std::cerr << "\n";
         }
       } else {
         auto cp = mem;
@@ -323,7 +333,7 @@ int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
 }
 
 int CVMModel::GetInputLength() {
-  // std::cerr << " GetInputLength = " << in_size_ << " " << is_input_int32_ << "\n";
+  // std::cerr << " GetInputLength = " << (int)in_size_ << " " << (int)input_bytes_ << "\n";
   return static_cast<int>(in_size_) * input_bytes_;
 }
 
@@ -345,15 +355,15 @@ int CVMModel::GetOutputLength() {
   else if (postprocess_method_ == "detection") {
     int ret = 0;
     int yolo_num_ret = dims_[input_num_] >= 2 ? shapes_[input_num_][dims_[input_num_] - 2]: 0;
-    std::cerr << "yolo_num_ret = " << yolo_num_ret << "\n";
+    // std::cerr << "yolo_num_ret = " << yolo_num_ret << "\n";
     for (size_t k = input_num_; k < (size_t)input_num_ + out_num_; ++k) {
       uint32_t last_dim = shapes_[k][dims_[k] - 1];
-      std::cerr << "output[" << k << "] " << "last_dim = " << last_dim  << "\n";
+      // std::cerr << "output[" << k << "] " << "last_dim = " << last_dim  << "\n";
       ret += last_dim;
     }
     ret *= yolo_num_ret;
     ret *= output_bytes_;
-    std::cerr << "output length = " << ret << "\n";
+    // std::cerr << "output length = " << ret << "\n";
     return ret;
   } else {
     int ret = 0;
@@ -403,10 +413,10 @@ void* CVMAPILoadModel(const char *graph_fname,
                       int device_type,
                       int device_id)
 {
-  std::cerr << "graph_fname = " << graph_fname
-            << "\nmodel_fname = " << model_fname
-            << "\ndevice_type = " << device_type
-            << "\ndevice_id = " << device_id << "\n";
+  // std::cerr << "graph_fname = " << graph_fname
+  //           << "\nmodel_fname = " << model_fname
+  //           << "\ndevice_type = " << device_type
+  //           << "\ndevice_id = " << device_id << "\n";
   string graph, params;
   try {
     graph = LoadFromFile(string(graph_fname));

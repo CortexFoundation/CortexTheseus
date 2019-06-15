@@ -17,20 +17,9 @@ import (
 	"unsafe"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	kernel "github.com/CortexFoundation/CortexTheseus/inference/synapse"
 )
 
-func SwitchEndian(data []byte, bytes int) ([]byte, error) {
-	if (len(data) % bytes != 0) {
-		return nil, errors.New(fmt.Sprintf("data is not aligned with %d", bytes))
-	}
-	ret := make([]byte, len(data))
-	for i := 0; i < len(data); i += bytes {
-		for j := 0; j < bytes; j++ {
-			ret[i + bytes - j - 1] = data[i + j]
-		}
-	}
-	return ret, nil
-}
 
 func LoadModel(modelCfg, modelBin string, deviceId int) (unsafe.Pointer, error) {
 	fmt.Println("LoadModel\tisGPU:", 1, "DeviceId: ", deviceId)
@@ -78,22 +67,22 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 	if resLen == 0 {
 		return nil, errors.New("Model result len is 0")
 	}
+	input_bytes := C.CVMAPISizeOfInputType(net)
+	data_aligned, data_aligned_err := kernel.ToAlignedData(data, int(input_bytes))
+	if data_aligned_err != nil {
+		return nil, data_aligned_err
+	}
+	input := (*C.char)(unsafe.Pointer(&data_aligned[0]))
 
 	res := make([]byte, resLen)
-
-	input := (*C.char)(unsafe.Pointer(&data[0]))
 	output := (*C.char)(unsafe.Pointer(&res[0]))
-	input_bytes := C.CVMAPISizeOfInputType(net)
 	output_bytes := C.CVMAPISizeOfOutputType(net)
 	// TODO(tian) check input endian
   flag := C.CVMAPIInfer(net, input, output)
-	if (input_bytes > 1) {
-		fmt.Println("gpu_plugin", "input_bytes = ", input_bytes)
-	}
 	if (output_bytes > 1) {
 		fmt.Println("gpu_plugin", "output_bytes = ", output_bytes)
 		var err error
-		res, err = SwitchEndian(res, int(output_bytes))
+		res, err = kernel.SwitchEndian(res, int(output_bytes))
 		if err != nil {
 			return nil, err
 		}
