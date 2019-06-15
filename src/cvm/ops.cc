@@ -1182,7 +1182,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.reshape")
   VERIFY(args.num_args == 3);
   DLTensor *x = args[0];
   DLTensor *y = args[1];
-  // TODO(kaihuo) CHECK
   // void *_attr = args[2];
   // auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
   // auto &param = cvm::get<cvm::top::ReshapeParam>(attr->parsed);

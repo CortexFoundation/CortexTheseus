@@ -59,6 +59,7 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
 
   VERIFY_EQ(dshape.ndim(), 4U) << "Input data should be 4D";
   VERIFY_EQ(param.kernel_size.ndim(), 2U);
+  VERIFY_EQ(param.padding.ndim(), 2U);
   VERIFY_EQ(param.strides.ndim(), 2U)
       << "incorrect stride size: " << param.strides;
   VERIFY_EQ(param.dilation.ndim(), 2U)
