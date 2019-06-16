@@ -13,7 +13,7 @@ CFLAGS ?= -Wall -Wno-format -fomit-frame-pointer $(OPT)
 GCC ?= gcc $(GCC_ARCH_FLAGS) -std=gnu11 $(CFLAGS)
 
 PROOFSIZE=42
-EDGEBITS=28
+EDGEBITS=30
 
 all: cuda opencl cpu
 
