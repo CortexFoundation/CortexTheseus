@@ -25,7 +25,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/anacrolix/torrent"
 	"sync/atomic"
 )
 
@@ -247,13 +246,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				} else if int64(modelMeta.Gas) < 0 {
 					modelMeta.SetGas(0)
 				}
-				spec, err := torrent.TorrentSpecFromMagnetURI(modelMeta.URI)
-				if err != nil {
-					log.Error("Error uri must be magnet", "Err", err)
-				}
-
-				modelMeta.Hash = common.HexToAddress(spec.InfoHash.HexString())
-
+								
 				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
 				modelMeta.SetBlockNum(*in.cvm.BlockNumber)
 				tmpCode, err := modelMeta.ToBytes()
@@ -262,9 +255,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				} else {
 					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
-				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "uri", modelMeta.URI, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
+				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
 			} else {
-				//log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas, "URI", modelMeta.URI)
+				//log.Warn("Illegal invoke for model meta", "number", modelMeta.BlockNum, "size", modelMeta.RawSize, "author", modelMeta.AuthorAddress, "Gas", modelMeta.Gas)
 			}
 
 			return contract.Code, nil
@@ -306,9 +299,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				} else {
 					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
-				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
 			} else {
-				//			log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
+				//			log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
 			}
 
 			return contract.Code, nil
