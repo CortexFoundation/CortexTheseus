@@ -16,6 +16,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	lru "github.com/hashicorp/golang-lru"
+  "github.com/anacrolix/torrent/metainfo"
 )
 
 //------------------------------------------------------------------------------
@@ -45,8 +46,8 @@ const (
 type TorrentManagerAPI interface {
 	Start() error
 	Close() error
-	NewTorrent(string) error
-	RemoveTorrent(string) error
+	NewTorrent(metainfo.Hash) error
+	RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
 }
 
@@ -180,7 +181,7 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 }*/
 
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
-	m.dl.NewTorrent(meta.URI)
+	log.Debug("Monitor", "FileMeta", meta)
 
 	var receipt TxReceipt
 	if err := m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx.Hash.String()); err != nil {
@@ -203,16 +204,21 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return nil
 	}
 
+	m.dl.NewTorrent(meta.InfoHash())
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
 		return err
 	}
-
+	log.Debug("Monitor", "NewFileInfo", meta)
 	info := NewFileInfo(meta)
 	info.TxHash = tx.Hash
 
-	remainingSize, _ := strconv.ParseUint(_remainingSize[2:], 16, 64)
+	remainingSize, err_remainingSize := strconv.ParseUint(_remainingSize[2:], 16, 64)
+	log.Debug("Monitor", "remainingSize", remainingSize, "err", err_remainingSize)
+	if err_remainingSize != nil {
+		return err_remainingSize
+	}
 
 	info.LeftSize = remainingSize
 	info.ContractAddr = receipt.ContractAddr
@@ -228,9 +234,9 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 
 		bytesRequested = meta.RawSize - remainingSize
 	}
-
+	log.Debug("Monitor", "meta", meta, "meta info", meta.InfoHash())
 	m.dl.UpdateTorrent(FlowControlMeta{
-		InfoHash:       *meta.InfoHash(),
+		InfoHash:       meta.InfoHash(),
 		BytesRequested: bytesRequested,
 	})
 	log.Info("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
@@ -269,7 +275,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				}
 				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
 				m.dl.UpdateTorrent(FlowControlMeta{
-					InfoHash:       *file.Meta.InfoHash(),
+					InfoHash:       file.Meta.InfoHash(),
 					BytesRequested: bytesRequested,
 				})
 			}

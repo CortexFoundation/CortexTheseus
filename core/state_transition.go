@@ -239,7 +239,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), st.cvm.Context.Time)
 		cost := big.NewInt(0)
 		for i := 0; i < 3600 && duration.Cmp(cost) > 0; i++ {
-			if !torrentfs.ExistTorrent(meta, dir) {
+			if !torrentfs.ExistTorrent(meta.Hex()) {
 				log.Warn("Torrent synchronizing ... ...", "tvm", st.cvm.Context.Time, "duration", duration, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", st.cvm.BlockNumber, "cost", cost, "peek", st.cvm.PeekNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
 				time.Sleep(time.Second * interv)
@@ -253,7 +253,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 
 		log.Error("Torrent synchronized timeout", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
 	} else {
-		if !torrentfs.ExistTorrent(meta, dir) {
+		if !torrentfs.ExistTorrent(meta.Hex()) {
 			log.Warn("Torrent not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "meta", meta, "storage", dir)
 			errCh <- ErrUnhandleTx
 			return
@@ -263,7 +263,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		}
 	}
 
-	if !torrentfs.ExistTorrent(meta, dir) {
+	if !torrentfs.ExistTorrent(meta.Hex()) {
 		log.Error("Torrent synchronized failed", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "meta", meta, "storage", dir, "street", street)
 		errCh <- ErrUnhandleTx
 		return

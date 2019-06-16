@@ -719,9 +719,9 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		stack.push(interpreter.intPool.getZero())
 		return nil, errors.New("INPUT IS NOT UPLOADED ERROR")
 	}
+	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
 
 	log.Debug(fmt.Sprintf("opInfer:modelMeta: %s", common.Car(modelMeta.EncodeJSON())))
-	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
 
 	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(big0) <= 0 {
 		stack.push(interpreter.intPool.getZero())
@@ -823,10 +823,13 @@ func checkModel(interpreter *CVMInterpreter, stack *Stack, modelAddr common.Addr
 	if interpreter.cvm.StateDB.Uploading(modelAddr) {
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
+
+	log.Debug("checkModel", "modelAddr blocknum", interpreter.cvm.StateDB.GetNum(modelAddr), "modelMeta", modelMeta)
 	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
 	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+		log.Debug("instructions", "modelAddr", modelAddr, "modelAddrBlkNum", interpreter.cvm.StateDB.GetNum(modelAddr), "Current", interpreter.cvm.BlockNumber, "MB", params.MatureBlks)
 		return nil, ErrMetaInfoNotMature
 	}
 

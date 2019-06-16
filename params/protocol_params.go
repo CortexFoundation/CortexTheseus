@@ -125,5 +125,5 @@ const (
 	CONFIRM_TIME   = -60 // * time.Second block should be protected past this time
 	CONFIRM_BLOCKS = 12
 
-	BLOCK_QUOTA = 24576000 //32768//65536     //one block includes 64k file quota, even empty block should make more sense
+	BLOCK_QUOTA = 2457600 //32768//65536     //one block includes 64k file quota, even empty block should make more sense
 )

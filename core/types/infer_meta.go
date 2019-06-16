@@ -7,7 +7,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-  "github.com/anacrolix/torrent/metainfo"
+	"github.com/anacrolix/torrent/metainfo"
 )
 
 var (
@@ -64,16 +64,19 @@ type InputMeta struct {
 }
 
 func (mm *ModelMeta) InfoHash() metainfo.Hash {
-  return metainfo.HashBytes(mm.Hash.Bytes())
+	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+	return ih
 }
 
 func (mm *InputMeta) InfoHash() metainfo.Hash {
-  return metainfo.HashBytes(mm.Hash.Bytes())
+	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+	return ih
 }
 
 
 func (mm *Meta) InfoHash() metainfo.Hash {
-  return metainfo.HashBytes(mm.Hash.Bytes())
+	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+	return ih
 }
 
 func (mm *ModelMeta) SetBlockNum(num big.Int) error {
