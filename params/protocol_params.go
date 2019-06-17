@@ -40,7 +40,7 @@ const (
 	LogDataGas            uint64 = 8       // Per byte in a LOG* operation's data.
 	CallStipend           uint64 = 2300    // Free gas given at beginning of call.
 	CallInferGas          uint64 = 1000000 // Base gas for call infer
-	InferOpsPerGas        uint64 = 10000    // 1 gas infer 1500 ops
+	InferOpsPerGas        uint64 = 20000    // 1 gas infer 10000 ops
 
 	Sha3Gas         uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas     uint64 = 6     // Once per word of the SHA3 operation's data.
@@ -94,7 +94,7 @@ const (
 
 var (
 	DifficultyBoundDivisor = big.NewInt(2) // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(512) // Difficulty of the Genesis block.
+	GenesisDifficulty      = big.NewInt(2) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(2) // The minimum that the difficulty may ever be.
 
 	MeanDifficultyBoundDivisor = big.NewInt(1024)

@@ -374,10 +374,16 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
+
+		// gasCost will check model's metainfo before checking available gas
+		if (err == ErrMetaInfoNotMature) {
+			return nil, err
+		}
 		if (in.cvm.vmConfig.DebugInferVM) {
 			cgas += cost
 			fmt.Println("gasCost: ",  cost, "err: ", err, " op: ", op, "cgas: ", cgas)
 		}
+
 		if op.IsInfer() {
 			var model_meta_err error
 			modelMeta, model_meta_err := in.cvm.GetModelMeta(common.BigToAddress(stack.Back(0)))
