@@ -92,7 +92,7 @@ plugins/cpu_cvm.so: infernet/kernel/infer_plugins/cpu_plugin.go
 	make -C ${INFER_NET_DIR} -j8
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
 
-clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/opencl_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
+clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
 	make -C ${LIB_CUCKOO_DIR}
 	#make -C ${INFER_NET_DIR}
 

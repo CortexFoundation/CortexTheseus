@@ -22,7 +22,7 @@ import (
 )
 
 func CuckooInit(threads uint32) {
-	CuckooInitialize(0, "", "cuckoo")
+	CuckooInitialize(0, "", "cuckaroo")
 }
 
 func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error {

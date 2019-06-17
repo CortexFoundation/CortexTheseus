@@ -221,14 +221,14 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-    // "/data/new_cvm/yolo3_darknet53_voc/data",
+     "/data/new_cvm/yolo3_darknet53_voc/data",
     // "/data/lz_model_storage/dcnet_mnist_v1/data",
     // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
     // "/data/lz_model_storage/resnet50_v1_imagenet/data",
     // "/data/lz_model_storage/animal10/data",
     // "/data/lz_model_storage/resnet50_v2/data",
     // "/data/lz_model_storage/vgg16_gcv/data",
-    "/data/lz_model_storage/sentiment_trec/data",
+    //"/data/lz_model_storage/sentiment_trec/data",
     // "/data/lz_model_storage/vgg19_gcv/data",
     // "/data/lz_model_storage/squeezenet_gcv1.1/data",
     // "/data/lz_model_storage/squeezenet_gcv1.0/data",
