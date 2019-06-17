@@ -364,6 +364,7 @@ func (m *Monitor) startWork() error {
 		TorrentAPIAvailable.Unlock()
 		return err
 	}
+	TorrentAPIAvailable.Unlock()
 	
 	log.Info("Torrent fs validation passed")
 	m.wg.Add(1)
