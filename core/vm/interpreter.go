@@ -280,7 +280,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			if inputMeta.BlockNum.Sign() == 0 {
 				//if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
 				//return nil, ErrInvalidMetaRawSize
 				//}
@@ -303,9 +302,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
 				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
-			} else {
-				//			log.Warn("Illegal invoke for input meta", "number", inputMeta.BlockNum, "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
-			}
 
 			return contract.Code, nil
 		}
@@ -348,7 +344,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	if IsCode(contract.Code) {
 		contract.Code = contract.Code[2:]
 	}
-
+	cgas := uint64(0)
 	res := make([]byte, 10)
 	for atomic.LoadInt32(&in.cvm.abort) == 0 {
 		if in.cfg.Debug {
@@ -388,7 +384,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 		cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
 		if (in.cvm.vmConfig.DebugInferVM) {
-			fmt.Println("gasCost: ",  cost, err, " op: ", op)
+			cgas += cost
+			fmt.Println("gasCost: ",  cost, "err: ", err, " op: ", op, "cgas: ", cgas)
 		}
 		if op.IsInfer() {
 			var model_meta_err error

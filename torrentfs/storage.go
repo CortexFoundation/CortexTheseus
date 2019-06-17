@@ -149,6 +149,7 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 	if availableCache.Contains(md5) {
 		log.Info("Available cache hit !!!", "md5", md5, "size", availableCache.Len(), "raw", rawSize, "limit", limit)
 		if length, ok := availableCache.Get(md5); ok {
+			log.Debug("Available", "length", length, "md5", md5)
 			return length.(int64) <= rawSize
 		} else {
 			//return false
@@ -178,7 +179,7 @@ func Available(md5 common.Address, dataDir string, rawSize int64) bool {
 		return false
 	}
 
-	log.Info("Torrent metainfo", "hash", md5.Hex(), "length", info.Length)
+	log.Info("Torrent metainfo", "hash", md5.Hex(), "length", info.Length, "rawSize", rawSize)
 
 	if info.Length > rawSize {
 		log.Info("Torrent metainfo use a invalid metafile", "hash", md5.Hex(), "rawSize", rawSize, "length", info.Length)

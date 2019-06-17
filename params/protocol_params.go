@@ -40,7 +40,7 @@ const (
 	LogDataGas            uint64 = 8       // Per byte in a LOG* operation's data.
 	CallStipend           uint64 = 2300    // Free gas given at beginning of call.
 	CallInferGas          uint64 = 1000000 // Base gas for call infer
-	InferOpsPerGas        uint64 = 1500    // 1 gas infer 1500 ops
+	InferOpsPerGas        uint64 = 10000    // 1 gas infer 1500 ops
 
 	Sha3Gas         uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas     uint64 = 6     // Once per word of the SHA3 operation's data.
