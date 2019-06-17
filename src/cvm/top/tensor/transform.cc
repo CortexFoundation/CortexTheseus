@@ -190,7 +190,7 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
   int axis = param.axis >= 0 ? param.axis : ndim + param.axis;
   VERIFY(axis >= 0 && axis < ndim);
   for(size_t i = 0; i < in_shape->size(); ++i){
-    VERIFY(in_shape->at(i).ndim() == ndim);
+    VERIFY_EQ(in_shape->at(i).ndim(), ndim);
   }
   for (size_t i = 0; i < in_shape->size(); ++i) {
     TShape tmp = (*in_shape)[i];
@@ -700,7 +700,7 @@ inline bool TransposeShape(const cvm::NodeAttrs& attrs,
         new_axis += shp.ndim();
         axes[i] = new_axis;
       }
-      VERIFY((new_axis >= 0) && (new_axis < shp.ndim()))
+      VERIFY((new_axis >= 0) && ((uint32_t)new_axis < shp.ndim()))
         << "axis=" << axes[i] << " is invalid for the "
         << shp.ndim() << "-dimensional input tensor";
       for (size_t j = 0; j < shp.ndim(); ++j) {
@@ -1087,7 +1087,7 @@ inline bool SliceLikeShape(const cvm::NodeAttrs& attrs,
       if (i < 0) {
         i = src_shape.ndim() + i;
       }
-      VERIFY(i>=0 && i < target_shape.ndim())
+      VERIFY(i>=0 && (uint32_t)i < target_shape.ndim())
         << "Axis " << i << " exceeds dimension "
         << target_shape.ndim()<< " of target_shape.";
       end_idx[i] = target_shape[i];

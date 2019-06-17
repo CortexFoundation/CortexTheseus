@@ -46,7 +46,7 @@ inline bool Pool2DInferShape(const cvm::NodeAttrs& attrs,
 
   dim_t pad_h, pad_w;
   // TODO(kaihuo): padding dimension equals 1, 2 or 4.
-  VERIFY_LE(param.padding.ndim(), 2U)
+  VERIFY(param.padding.ndim() <= 2U && param.padding.ndim() > 0)
     << "Pool2D only supported 1-D or 2-D padding vs. "
     << param.padding;
   if (param.padding.ndim() == 1) {
@@ -65,6 +65,9 @@ inline bool Pool2DInferShape(const cvm::NodeAttrs& attrs,
   }
 
   TShape oshape = dshape;
+  VERIFY(param.pool_size.ndim() == 2);
+  VERIFY(param.strides.ndim() == 2);
+
   VERIFY(param.pool_size[0] <= dshape[hidx] + pad_h)
       << "pool size (" << param.pool_size[0] << ") exceeds input (" << dshape[hidx]
       << " padded to " << (dshape[hidx] + pad_h) << ")";
@@ -72,6 +75,7 @@ inline bool Pool2DInferShape(const cvm::NodeAttrs& attrs,
       << "pool size (" << param.pool_size[1] << ") exceeds input (" << dshape[widx]
       << " padded to " << (dshape[widx] + pad_w) << ")";
 
+  VERIFY(param.ceil_mode == false);
   if (!param.ceil_mode) {
     oshape[hidx] = ((dshape[hidx] + pad_h - param.pool_size[0]) /
                     param.strides[0]) + 1;

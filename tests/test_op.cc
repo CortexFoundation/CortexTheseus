@@ -41,7 +41,15 @@ struct CVMOpParam {
 
 //int ctx = kDLCPU;
 int ctx = kDLGPU;
+/*
+30 52 -68 75
+40 110 123 -100
+9 -13 31 13
 
+45 91 -93 -97
+80 114 55 -68
+68 -100 30 -82
+*/
 void LoadOp(string op_type, NodeAttrs& attrs) {
   if (op_type == "null") return;
   attrs.name = op_type;
@@ -486,6 +494,7 @@ void test_op(string op_name) {
   }
 
   for(int ci = 0; ci < case_list.size(); ci++){
+    if(case_list[ci] == "ffd9ad6afc62dd7541778a81d6529c9a2735fc0a") continue;
 		string case_path = case_dir + case_list[ci] + "/";
     string attr_path = case_path + "attr.txt";
     string attr_str = "";
@@ -546,6 +555,7 @@ void test_op(string op_name) {
         read_data(out_path.c_str(), tshape[num_inputs], tdata[num_inputs]);
         print(tdata[num_inputs]);
         assert(false);
+        continue;
       }else{
         cout << "match 1 | 0" << endl;
         continue;
@@ -589,7 +599,7 @@ void test_op(string op_name) {
     printf("match %d | %d\n", ret == 0, ret);
     if(ret != 0){
       for(int i = 0; i < num_inputs; i++){
-        printf("input%d:", i);
+        printf("input%d:\n", i);
         print(tdata[i]);
       }
       printf("correct out:");
@@ -602,20 +612,25 @@ void test_op(string op_name) {
   }
 }
 int main() {
-    test_op("sum");
-     test_op("max"); // pass
+  test_op("broadcast_add");
+  test_op("broadcast_sub");
+  test_op("broadcast_mul");
+//  test_op("max_pool2d");
+//   test_op("upsampling");
+//  test_op("dense");
+//  test_op("conv2d");
+//  test_op("sum");
+//  test_op("max"); // pass
 //  test_op("slice_like");
-//     test_op("tile"); //pass
-//    test_op("repeat"); //pass
-//  test_op("non_max_suppression");
+//  test_op("tile"); //pass
+//  test_op("repeat"); //pass
 //  test_op("get_valid_counts");
-
+//
 //  test_op("strided_slice"); //pass
 //  test_op("concatenate");//pass
 //  test_op("transpose");// pass
 //  test_op("take");
-    // test_op("sum", 1,1); // pass
-    // test_op("upsampling", 1, 1);
-    // test_op("elemwise_add", 2, 1);
+  // test_op("elemwise_add", 2, 1);
+  //test_op("non_max_suppression");
     return 0;
 }
