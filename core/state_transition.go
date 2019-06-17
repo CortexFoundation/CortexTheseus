@@ -285,6 +285,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	homestead := st.cvm.ChainConfig().IsHomestead(st.cvm.BlockNumber)
+	matureBlockNumber := st.cvm.ChainConfig().GetMatureBlock()
 	contractCreation := msg.To() == nil
 
 	/*if st.uploading() {
@@ -376,7 +377,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.cvm.BlockNumber)
-			log.Info("Upload OK", "address", st.to().Hex(), "waiting", params.MatureBlks)
+			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber)
 			//todo vote for model
 		} else {
 			log.Info("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex())

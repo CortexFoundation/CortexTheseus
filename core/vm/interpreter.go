@@ -237,7 +237,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 			//todo Hash check
 
-		if modelMeta.Gas == uint64(0) {
+			if modelMeta.Gas == uint64(0) {
 				//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 				modelMeta.SetGas(0)
 			} else if modelMeta.Gas > params.MODEL_GAS_LIMIT {
@@ -251,9 +251,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			tmpCode, err := modelMeta.ToBytes()
 			if err != nil {
 				return nil, err
-			} else {
-				contract.Code = append([]byte{0, 1}, tmpCode...)
 			}
+
+			contract.Code = append([]byte{0, 1}, tmpCode...)
 			log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
 
 			return contract.Code, nil
@@ -294,8 +294,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			}
 			contract.Code = append([]byte{0, 2}, tmpCode...)
 			//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
+			return contract.Code, nil
 		}
-		return contract.Code, nil
 	}
 
 	var (
@@ -374,14 +374,15 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
+		cgas += cost
+
+		if (in.cvm.vmConfig.DebugInferVM) {
+			fmt.Println("gasCost: ",  cost, "err: ", err, " op: ", op, "cgas: ", cgas)
+		}
 
 		// gasCost will check model's metainfo before checking available gas
 		if (err == ErrMetaInfoNotMature) {
 			return nil, err
-		}
-		if (in.cvm.vmConfig.DebugInferVM) {
-			cgas += cost
-			fmt.Println("gasCost: ",  cost, "err: ", err, " op: ", op, "cgas: ", cgas)
 		}
 
 		if op.IsInfer() {
@@ -402,6 +403,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if err != nil || !contract.UseGas(cost) {
+			log.Debug("interpreter", "cost", cost, "err", err, "cgas", cgas)
 			return nil, ErrOutOfGas
 		}
 		// consume the gas and return an error if not enough gas is available.

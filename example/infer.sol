@@ -38,14 +38,23 @@ contract AIContract {
     return max_id;
   }
 
-  function post_process_yolo() public returns (uint256) {
-    // yolo model with shape 3 * 32 * 32
-    address model =  0x0000000000000000000000000000000000001003;
+  function call_yolo(address model) public returns (uint256) {
     input_data = new uint256[]((1 * 3 * 416 * 416 + 31) >> 5);
-    uint256[] memory output = new uint256[](uint256((1 * 28 + 31) >> 5));
+    uint256[] memory output = new uint256[](uint256((1 * 60 + 7) >> 3));
     inferArray(model, input_data, output);
-    // uint256 label = argmax_int8(output);
     return output[0];
+  }
+
+  function call_cifar10(address model) public returns (uint256) {
+    input_data = new uint256[]((1 * 3 * 32 * 32 + 31) >> 5);
+    uint256[] memory output = new uint256[](uint256((1 * 10 + 7) >> 3));
+    inferArray(model, input_data, output);
+    return output[0];
+  }
+
+  function call(address model, address input) public returns(uint256) {
+    uint256[] memory output = new uint256[](uint256((1 * 60 + 7) >> 3));
+    infer(model, input, output);
   }
 
   function make_detection() public returns(uint256) {

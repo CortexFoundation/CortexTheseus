@@ -583,11 +583,11 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	if cvm.vmConfig.DebugInferVM {
 		fmt.Println( "Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
-
-	if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
-		return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
+	if (!cvm.vmConfig.DebugInferVM) {
+		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
+			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
+		}
 	}
-
 	var (
 		inferRes []byte
 		errRes   error

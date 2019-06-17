@@ -711,11 +711,12 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	}
 
 	inputMeta, inputErr := checkInputMeta(interpreter.cvm, stack, inputAddr)
-	if inputMeta != nil {
+	if inputErr != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, inputErr
 	}
 
+	log.Debug("interpreter check shape 1", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	// Model&Input shape should match
 	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
 		stack.push(interpreter.intPool.getZero())
@@ -724,6 +725,7 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		}
 		return nil, errMetaShapeNotMatch
 	}
+	log.Debug("interpreter check shape 2", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	for idx, modelShape := range modelMeta.InputShape {
 		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0 {
 			stack.push(interpreter.intPool.getZero())
@@ -760,11 +762,13 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	// } else {
 	// }*/
 
+	log.Debug("interpreter infer<", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	//todo model & input tfs validation
 	output, err := interpreter.cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
 	if interpreter.cvm.vmConfig.DebugInferVM {
 		fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
 	}
+	log.Debug("interpreter infer>", "modelMeta", modelMeta, "inputMeta", inputMeta, "output", output)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		// if !synapse.CheckBuiltInTorrentFsError(err) {
@@ -774,8 +778,9 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		return nil, err
 	}
 	//consensus
-	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-	interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
+	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
+	interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	// interpreter.intPool.get().SetUint64(output)
 	if err := memory.WriteSolidityUint256Array(_outputOffset.Int64(), output); err != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -801,12 +806,13 @@ func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*types.ModelM
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 
+	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
 	log.Debug("checkModel", "modelAddr blocknum", cvm.StateDB.GetNum(modelAddr), "modelMeta", modelMeta)
 	if cvm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
-	if cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
-		log.Debug("instructions", "modelAddr", modelAddr, "modelAddrBlkNum", cvm.StateDB.GetNum(modelAddr), "Current", cvm.BlockNumber, "MB", params.MatureBlks)
+	if cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(matureBlockNumber))) > 0 {
+		log.Debug("instructions", "modelAddr", modelAddr, "modelAddrBlkNum", cvm.StateDB.GetNum(modelAddr), "Current", cvm.BlockNumber, "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 
@@ -834,12 +840,14 @@ func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*types.In
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 
-	log.Debug("checkModel", "modelAddr blocknum", cvm.StateDB.GetNum(inputAddr), "inputMeta", inputMeta)
+	log.Debug("checkInput", "modelAddr blocknum", cvm.StateDB.GetNum(inputAddr), "inputMeta", inputMeta)
 	if cvm.StateDB.GetNum(inputAddr).Cmp(big0) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
-	if cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
-		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.BlockNumber, "MB", params.MatureBlks)
+
+	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
+	if cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(matureBlockNumber))) > 0 {
+		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.BlockNumber, "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 
@@ -900,8 +908,9 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	// interpreter.intPool.get().SetUint64
 	stack.push(interpreter.intPool.get().SetUint64(1))
 
+	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
 	//update model status
-	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	return nil, nil
 }
 
