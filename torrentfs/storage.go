@@ -154,7 +154,7 @@ func Available(infohash string, rawSize int64) bool {
 	if torrent := tm.GetTorrent(ih); torrent == nil {
 		return false
 	} else {
-		return torrent.IsAvailable()
+		return torrent.IsAvailable() && torrent.BytesCompleted() <= rawSize
 	}
 }
 
