@@ -127,7 +127,7 @@ func (t *Torrent) Pending() bool {
 type TorrentManager struct {
 	client        *torrent.Client
 	torrents      map[metainfo.Hash]*Torrent
-	trackers      []string
+	trackers      [][]string
 	DataDir       string
 	TmpDataDir    string
 	closeAll      chan struct{}
@@ -168,9 +168,7 @@ func GetMagnetURI(infohash metainfo.Hash) string {
 }
 
 func (tm *TorrentManager) SetTrackers(trackers []string) {
-	for _, tracker := range trackers {
-		tm.trackers = append(tm.trackers, tracker)
-	}
+	tm.trackers = append(tm.trackers, trackers)
 }
 
 func mmapFile(name string) (mm mmap.MMap, err error) {
@@ -259,11 +257,8 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 	if useExistDir {
 		spec.Storage = storage.NewFile(ExistDir)
 
-		if len(spec.Trackers) == 0 {
-			spec.Trackers = append(spec.Trackers, []string{})
-		}
 		for _, tracker := range tm.trackers {
-			spec.Trackers[0] = append(spec.Trackers[0], tracker)
+			spec.Trackers = append(spec.Trackers, tracker)
 		}
 		t, _, _ := tm.client.AddTorrentSpec(spec)
 		var ss []string
@@ -284,11 +279,8 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
 
-		if len(spec.Trackers) == 0 {
-			spec.Trackers = append(spec.Trackers, []string{})
-		}
 		for _, tracker := range tm.trackers {
-			spec.Trackers[0] = append(spec.Trackers[0], tracker)
+			spec.Trackers = append(spec.Trackers, tracker)
 		}
 		t, _, _ := tm.client.AddTorrentSpec(spec)
 		var ss []string
@@ -332,12 +324,16 @@ func (tm *TorrentManager) AddMagnet(ih metainfo.Hash) {
 	}
   
 	spec := &torrent.TorrentSpec{
-		Trackers: [][]string{tm.trackers},
+		Trackers: [][]string{},
 		DisplayName: ih.String(),
 		InfoHash: ih,
 		Storage: storage.NewFile(dataPath),
 	}
-	
+
+	for _, tracker := range tm.trackers {
+		spec.Trackers = append(spec.Trackers, tracker)
+	}
+
 	t, _, _ := tm.client.AddTorrentSpec(spec)
 	tm.torrents[ih] = &Torrent{
 		t,
