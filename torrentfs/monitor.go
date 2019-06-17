@@ -339,7 +339,7 @@ func (m *Monitor) Start() error {
 func (m *Monitor) startWork() error {
 	// Wait for ipc start...
 	time.Sleep(time.Second)
-
+	defer TorrentAPIAvailable.Unlock()
 	// Rpc Client
 	var clientURI string
 	if runtime.GOOS != "windows" && m.config.IpcPath != "" {
@@ -361,10 +361,8 @@ func (m *Monitor) startWork() error {
 
 	if err := m.validateStorage(); err != nil {
 		log.Error("Starting torrent fs ... ...", "error", err)
-		TorrentAPIAvailable.Unlock()
 		return err
 	}
-	TorrentAPIAvailable.Unlock()
 	
 	log.Info("Torrent fs validation passed")
 	m.wg.Add(1)
@@ -433,6 +431,12 @@ func (m *Monitor) validateStorage() error {
 		})
 
 		m.fs.AddCachedFile(file)
+	}
+
+	if m.lastNumber > 256 {
+		m.lastNumber = m.lastNumber - 256
+	} else {
+		m.lastNumber = 0
 	}
 
 	return nil
