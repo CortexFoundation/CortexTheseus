@@ -433,6 +433,12 @@ func (m *Monitor) validateStorage() error {
 		m.fs.AddCachedFile(file)
 	}
 
+	if m.lastNumber > 256 {
+		m.lastNumber = m.lastNumber - 256
+	} else {
+		m.lastNumber = 0
+	}
+
 	return nil
 }
 

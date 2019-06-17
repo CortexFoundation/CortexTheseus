@@ -289,7 +289,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 			torrentPath,
 		}
 		tm.SetTorrent(ih, torrent)
-		torrent.Run()
+		torrent.Seed()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
 
@@ -311,13 +311,11 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 			torrentPath,
 		}
 		tm.SetTorrent(ih, torrent)
-		//tm.mu.Unlock()
 		torrent.Run()
 	}
 }
 
 func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
-	
 	if tm.GetTorrent(ih) != nil {
 		tm.UpdateInfoHash(ih, BytesRequested)
 		return
