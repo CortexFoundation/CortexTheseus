@@ -231,24 +231,25 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
     NDArray temp;
     temp.Load(strm);
     data_entry_[eid].CopyFrom(temp);
+
+    // Check parameter's precision
+    int ndim = temp->ndim;
+    std::vector<int64_t> shape(ndim);
     uint64_t size = 1;
-    for (cvm_index_t i = 0; i < data_entry_[eid]->ndim; ++i) {
-      size *= static_cast<uint64_t>(data_entry_[eid]->shape[i]);
+    for (int i = 0; i < ndim; ++i) {
+      shape[i] = temp->shape[i];
+      size *= static_cast<uint64_t>(shape[i]);
     }
+    int32_t *data = static_cast<int32_t*>(temp->data);
     VERIFY_NE(precision[eid], -1)
       << "parameter " << names[i]
       << " do not set precision";
     int64_t range = (1 << (precision[eid] - 1)) - 1;
-    int32_t* data = static_cast<int32_t*>(data_entry_[eid]->data);
-    // std::cerr << "size = " << size << " " << eid << " " << range << " " << data_entry_[eid]->data << "\n";
-    // TODO(wlt) check precision
-    if (false) {
-      for (uint64_t i = 0; i < size; ++i) {
-        VERIFY_LE(data[i], range)
-          << "parameter " << names[i] << " index=" << i
-          << " number=" << data[i]
-          << " do not satisfied precision " << precision[eid];
-      }
+    for (uint64_t i = 0; i < size; ++i) {
+      VERIFY_LE(data[i], range)
+        << "parameter " << names[i] << " index=" << i
+        << " number=" << data[i]
+        << " do not satisfied precision " << precision[eid];
     }
   }
 }

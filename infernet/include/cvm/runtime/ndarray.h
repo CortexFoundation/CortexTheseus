@@ -468,6 +468,14 @@ inline bool NDArray::Load(utils::Stream* strm) {
     utils::ByteSwap(ret->data, elem_bytes, num_elems);
   }
 
+  VERIFY((dtype.code == kDLInt) && 
+      (dtype.bits == 8 || dtype.bits == 32) &&
+      (dtype.lanes == 1))
+    << "cvm runtime only supported INT8 or INT32 NDArray vs. ("
+    << dtype.code << ", " << dtype.bits << ", " << dtype.lanes << ")";
+  VERIFY(ctx.device_type == kDLCPU)
+    << "cvm runtime load NDArray only supported cpu device vs. "
+    << ctx.device_type;
   if(dtype.bits == 8){
       DLDataType dtype32 = dtype;
       dtype32.bits = 32;
