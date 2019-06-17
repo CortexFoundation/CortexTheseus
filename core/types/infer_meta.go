@@ -7,6 +7,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/anacrolix/torrent/metainfo"
 )
 
 var (
@@ -26,10 +27,12 @@ type InferMeta interface {
 	RawSize() uint64
 	// Gas() uint64
 	AuthorAddress() common.Address
+  InfoHash() metainfo.Hash
+	Comment() string
 }
 
 type Meta struct {
-	URI      string         `json:"URI"`
+	Comment  string         `json:"Comment"`
 	Hash     common.Address `json:"Hash"`
 	RawSize  uint64         `json:"RawSize"`
 	Shape    []uint64       `json:"Shape"`
@@ -37,7 +40,7 @@ type Meta struct {
 }
 
 type ModelMeta struct {
-	URI           string         `json:"URI"`
+	Comment       string         `json:"Comment"`
 	Hash          common.Address `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	InputShape    []uint64       `json:"InputShape"`
@@ -50,7 +53,7 @@ type ModelMeta struct {
 }
 
 type InputMeta struct {
-	URI           string         `json:"URI"`
+	Comment       string         `json:"Comment"`
 	Hash          common.Address `json:"Hash"`
 	RawSize       uint64         `json:"RawSize"`
 	Shape         []uint64       `json:"Shape"`
@@ -58,6 +61,22 @@ type InputMeta struct {
 	BlockNum      big.Int        `json:"BlockNum"`
 
 	//RawBytes []byte `json:"RawBytes"`
+}
+
+func (mm *ModelMeta) InfoHash() metainfo.Hash {
+	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+	return ih
+}
+
+func (mm *InputMeta) InfoHash() metainfo.Hash {
+	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+	return ih
+}
+
+
+func (mm *Meta) InfoHash() metainfo.Hash {
+	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+	return ih
 }
 
 func (mm *ModelMeta) SetBlockNum(num big.Int) error {

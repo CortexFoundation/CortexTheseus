@@ -237,7 +237,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 			//todo Hash check
 
-			if modelMeta.Gas == uint64(0) {
+		if modelMeta.Gas == uint64(0) {
 				//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 				modelMeta.SetGas(0)
 			} else if modelMeta.Gas > params.MODEL_GAS_LIMIT {
@@ -245,13 +245,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			} else if int64(modelMeta.Gas) < 0 {
 				modelMeta.SetGas(0)
 			}
-
-			// spec, err := torrent.TorrentSpecFromMagnetURI(modelMeta.URI)
-			// if err != nil {
-			// 	log.Error("Error uri must be magnet", "Err", err)
-			// }
-
-			// modelMeta.Hash = common.HexToAddress(modelMeta.Hash.HexString())
 
 			in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
 			modelMeta.SetBlockNum(*in.cvm.BlockNumber)
@@ -261,7 +254,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			} else {
 				contract.Code = append([]byte{0, 1}, tmpCode...)
 			}
-			log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "uri", modelMeta.URI, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
+			log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
 
 			return contract.Code, nil
 		}
@@ -280,31 +273,29 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-				//if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
-				//return nil, ErrInvalidMetaRawSize
-				//}
-				if inputMeta.RawSize > 0 { //&& inputMeta.RawSize <= params.MaxRawSize {
-					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
-						//in.cvm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
-					} else {
-						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
-					}
+			//if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
+			//return nil, ErrInvalidMetaRawSize
+			//}
+			if inputMeta.RawSize > 0 {
+				if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
+					//in.cvm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
 				} else {
-					return nil, ErrInvalidMetaRawSize
+					in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 				}
+			} else {
+				return nil, ErrInvalidMetaRawSize
+			}
 
-				inputMeta.SetBlockNum(*in.cvm.BlockNumber)
-				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
-				tmpCode, err := inputMeta.ToBytes()
-				if err != nil {
-					return nil, err
-				} else {
-					contract.Code = append([]byte{0, 2}, tmpCode...)
-				}
-				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress, "URI", inputMeta.URI)
-
-			return contract.Code, nil
+			inputMeta.SetBlockNum(*in.cvm.BlockNumber)
+			in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
+			tmpCode, err := inputMeta.ToBytes()
+			if err != nil {
+				return nil, err
+			}
+			contract.Code = append([]byte{0, 2}, tmpCode...)
+			//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
 		}
+		return contract.Code, nil
 	}
 
 	var (

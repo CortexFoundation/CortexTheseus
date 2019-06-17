@@ -21,7 +21,6 @@ import (
 	"math/big"
 	"sync/atomic"
 	"time"
-	"strings"
 
 	"errors"
 	"fmt"
@@ -501,7 +500,7 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 		cost := big.NewInt(0)
 		duration := big.NewInt(0).Sub(big.NewInt(time.Now().Unix()), cvm.Context.Time)
 		for i := 0; i < 3600 && duration.Cmp(cost) > 0; i++ {
-			if !torrentfs.ExistTorrent(meta, dir) {
+			if !torrentfs.ExistTorrent(meta.String()) {
 				log.Warn("Inference synchronizing ... ...", "point", point, "tvm", cvm.Context.Time, "ago", common.PrettyDuration(time.Duration(duration.Uint64()*1000000000)), "level", i, "number", cvm.BlockNumber, "street", street)
 				cost.Add(cost, big.NewInt(interv))
 				time.Sleep(time.Second * interv)
@@ -513,7 +512,7 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 		}
 		log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", cvm.BlockNumber, "meta", meta, "storage", dir, "street", street, "duration", duration, "cost", cost)
 	} else {
-		if !torrentfs.Exist(meta, dir) {
+		if !torrentfs.Exist(meta.String()) {
 			log.Warn("Data not exist", "address", meta.Hex(), "number", cvm.BlockNumber, "current", cvm.BlockNumber, "meta", meta, "storage", dir)
 			errCh <- synapse.ErrModelFileNotExist
 			return
@@ -523,7 +522,7 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 		}
 	}
 
-	if !torrentfs.Exist(meta, dir) {
+	if !torrentfs.Exist(meta.String()) {
 		log.Warn("Data not exist", "address", meta.Hex(), "number", cvm.BlockNumber, "current", cvm.BlockNumber, "meta", meta, "storage", dir)
 		errCh <- synapse.ErrModelFileNotExist
 		return
@@ -543,11 +542,11 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
 	if (!cvm.vmConfig.DebugInferVM) {
-		if !torrentfs.Available(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, int64(modelRawSize)) {
+		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
 			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 		}
 
-		if !torrentfs.Available(common.HexToAddress(inputInfoHash), cvm.Config().StorageDir, int64(inputRawSize)) {
+		if !torrentfs.Available(inputInfoHash, int64(inputRawSize)) {
 			return nil, errors.New("Torrent file input not available, blockchain and torrent not match")
 		}
 	}
@@ -585,7 +584,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		fmt.Println( "Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
 
-	if !torrentfs.Available(common.HexToAddress(modelInfoHash), cvm.Config().StorageDir, int64(modelRawSize)) {
+	if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
 		return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 	}
 
@@ -618,10 +617,9 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	if err != nil {
 		return 0, err
 	}
-	modelInfoHash := strings.ToLower(string(modelMeta.Hash.Hex()[2:]))
 	modelRawSize := modelMeta.RawSize
-	if !cvm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash, cvm.Config().StorageDir, int64(modelRawSize)) {
-		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelInfoHash)
+	if !cvm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash.Hex(), int64(modelRawSize)) {
+		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelMeta.Hash.Hex())
 	}
 
 	if cvm.vmConfig.InferURI == "" {

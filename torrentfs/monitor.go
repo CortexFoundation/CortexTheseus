@@ -3,7 +3,6 @@ package torrentfs
 import (
 	"errors"
 	"os"
-	"fmt"
 	"runtime"
 	"strconv"
 	"sync"
@@ -17,6 +16,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	lru "github.com/hashicorp/golang-lru"
+  "github.com/anacrolix/torrent/metainfo"
 )
 
 //------------------------------------------------------------------------------
@@ -46,8 +46,8 @@ const (
 type TorrentManagerAPI interface {
 	Start() error
 	Close() error
-	NewTorrent(string) error
-	RemoveTorrent(string) error
+	NewTorrent(metainfo.Hash) error
+	RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
 }
 
@@ -182,7 +182,6 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	log.Debug("Monitor", "FileMeta", meta)
-	m.dl.NewTorrent(meta.URI)
 
 	var receipt TxReceipt
 	if err := m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx.Hash.String()); err != nil {
@@ -205,6 +204,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return nil
 	}
 
+	m.dl.NewTorrent(meta.InfoHash())
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
@@ -235,12 +235,8 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		bytesRequested = meta.RawSize - remainingSize
 	}
 	log.Debug("Monitor", "meta", meta, "meta info", meta.InfoHash())
-	metaInfoHash := meta.InfoHash()
-	if metaInfoHash == nil {
-		return nil
-	}
 	m.dl.UpdateTorrent(FlowControlMeta{
-		InfoHash:       *metaInfoHash,
+		InfoHash:       meta.InfoHash(),
 		BytesRequested: bytesRequested,
 	})
 	log.Info("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
@@ -278,13 +274,8 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 					bytesRequested = file.Meta.RawSize - file.LeftSize
 				}
 				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
-				fileInfoHash := file.Meta.InfoHash()
-
-				if fileInfoHash == nil {
-					return errors.New(fmt.Sprintf("fileInfoHash is nil, file.Meta = %x", file.Meta))
-				}
 				m.dl.UpdateTorrent(FlowControlMeta{
-					InfoHash:       *fileInfoHash,
+					InfoHash:       file.Meta.InfoHash(),
 					BytesRequested: bytesRequested,
 				})
 			}
