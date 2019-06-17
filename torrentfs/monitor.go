@@ -46,7 +46,7 @@ const (
 type TorrentManagerAPI interface {
 	Start() error
 	Close() error
-	NewTorrent(metainfo.Hash) error
+	NewTorrent(interface{}) error
 	RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
 }
@@ -204,14 +204,17 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return nil
 	}
 
-	m.dl.NewTorrent(meta.InfoHash())
+	m.dl.NewTorrent(FlowControlMeta{
+		InfoHash:       meta.InfoHash,
+		BytesRequested: 0,
+	})
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
 		return err
 	}
 	log.Debug("Monitor", "NewFileInfo", meta)
-	info := NewFileInfo(meta)
+	info := m.fs.NewFileInfo(meta)
 	info.TxHash = tx.Hash
 
 	remainingSize, err_remainingSize := strconv.ParseUint(_remainingSize[2:], 16, 64)
@@ -234,9 +237,9 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 
 		bytesRequested = meta.RawSize - remainingSize
 	}
-	log.Debug("Monitor", "meta", meta, "meta info", meta.InfoHash())
+	log.Debug("Monitor", "meta", meta, "meta info", meta.InfoHash)
 	m.dl.UpdateTorrent(FlowControlMeta{
-		InfoHash:       meta.InfoHash(),
+		InfoHash:       meta.InfoHash,
 		BytesRequested: bytesRequested,
 	})
 	log.Info("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
@@ -248,7 +251,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 		start := mclock.Now()
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				log.Info("Try to create a file", "meta", meta, "number", b.Number, "infohash", meta.InfoHash())
+				log.Info("Try to create a file", "meta", meta, "number", b.Number, "infohash", meta.InfoHash)
 				if err := m.parseFileMeta(&tx, meta); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return err
@@ -256,12 +259,13 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			} else if flowCtrl && tx.IsFlowControl() {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
-				log.Info("Try to upload a file", "addr", addr, "tx", tx.Hash.Hex(), "number", b.Number)
 				if file == nil {
 					log.Warn("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit, "number", b.Number)
 					continue
 				}
 
+				log.Debug("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number)
+				
 				var remainingSize hexutil.Uint64
 				if err := m.cl.Call(&remainingSize, "ctxc_getUpload", addr.String(), "latest"); err != nil {
 					log.Warn("Failed call get upload", "addr", addr.String(), "tx", tx.Hash.Hex(), "number", b.Number)
@@ -270,12 +274,13 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 
 				var bytesRequested uint64
 				file.LeftSize = uint64(remainingSize)
+				m.fs.WriteFile(file)
 				if file.Meta.RawSize > file.LeftSize {
 					bytesRequested = file.Meta.RawSize - file.LeftSize
 				}
-				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
+				log.Debug("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
 				m.dl.UpdateTorrent(FlowControlMeta{
-					InfoHash:       file.Meta.InfoHash(),
+					InfoHash:       file.Meta.InfoHash,
 					BytesRequested: bytesRequested,
 				})
 			}
@@ -354,38 +359,22 @@ func (m *Monitor) startWork() error {
 	}
 	m.cl = rpcClient
 
-	errCh := make(chan error)
-
-	go m.validateStorage(errCh)
-
-	select {
-	case err := <-errCh:
-		if err != nil {
-			log.Error("Starting torrent fs ... ...", "error", err)
-			return err
-		} else {
-			log.Info("Torrent fs validation passed")
-			m.wg.Add(1)
-			go m.listenLatestBlock()
-			return nil
-		}
+	if err := m.validateStorage(); err != nil {
+		log.Error("Starting torrent fs ... ...", "error", err)
+		TorrentAPIAvailable.Unlock()
+		return err
 	}
+	
+	log.Info("Torrent fs validation passed")
+	m.wg.Add(1)
+	go m.listenLatestBlock()
 
 	return nil
 }
 
-func (m *Monitor) validateStorage(errCh chan error) error {
-	m.lastNumber = m.fs.LastListenBlockNumber
-	if m.lastNumber > 2000 {
-		m.lastNumber = m.lastNumber - 2000
-	} else {
-		m.lastNumber = 0
-	}
+func (m *Monitor) validateStorage() error {
+	m.lastNumber = m.fs.LastListenBlockNumber	
 	end := uint64(0)
-
-	if m.lastNumber > 4096 {
-		end = m.lastNumber - 4096
-	}
 
 	log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
 
@@ -393,7 +382,6 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
 		if rpcErr != nil {
 			log.Warn("RPC ERROR", "error", rpcErr)
-			errCh <- rpcErr
 			return rpcErr
 		}
 
@@ -409,31 +397,43 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		stBlock := m.fs.GetBlockByNumber(uint64(i))
 		if stBlock == nil {
 			log.Warn("Vaidate Torrent FS Storage state failed, rescan", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent", "dirty", m.fs.LastListenBlockNumber)
-			m.lastNumber = uint64(0)
-			errCh <- nil
-			return nil
+			m.lastNumber = uint64(i)
+			m.dirty = true
+			continue
 		}
 
 		if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
 			//log.Warn("Validate TFS continue", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
-			continue
+			break
 		}
 
 		// block in storage invalid
 		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash, "latest", m.fs.LastListenBlockNumber)
-		m.lastNumber = uint64(0)
-		errCh <- nil
-		return nil
+		m.lastNumber = uint64(i)
 	}
 
 	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
-
 	if m.dirty {
 		log.Warn("Torrent fs status", "dirty", m.dirty)
-		m.lastNumber = uint64(0)
+	}
+	
+	for i := uint64(0); i < m.fs.LastFileIndex; i++ {
+	  file := m.fs.GetFileByNumber(i)
+
+		var bytesRequested uint64
+		if file.Meta.RawSize > file.LeftSize {
+			bytesRequested = file.Meta.RawSize - file.LeftSize
+		}
+		log.Debug("Data recovery", "request", bytesRequested, "raw", file.Meta.RawSize)
+
+		m.dl.NewTorrent(FlowControlMeta{
+			InfoHash:       file.Meta.InfoHash,
+			BytesRequested: bytesRequested,
+		})
+
+		m.fs.AddCachedFile(file)
 	}
 
-	errCh <- nil
 	return nil
 }
 

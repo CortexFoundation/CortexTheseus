@@ -70,14 +70,11 @@ func (t *Transaction) IsFlowControl() bool {
 func (t *Transaction) Parse() *FileMeta {
 	if t.Op() == opCreateInput {
 		var meta types.InputMeta
-		var AuthorAddress common.Address
-		//AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
 		var InfoHash = meta.InfoHash()
 		return &FileMeta{
-			AuthorAddress,
 			InfoHash,
 			meta.Comment,
 			meta.RawSize,
@@ -85,14 +82,11 @@ func (t *Transaction) Parse() *FileMeta {
 		}
 	} else if t.Op() == opCreateModel {
 		var meta types.ModelMeta
-		var AuthorAddress common.Address
-		AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
 		var InfoHash = meta.InfoHash()
 		return &FileMeta{
-			AuthorAddress,
 			InfoHash,
 			meta.Comment,
 			meta.RawSize,
@@ -136,21 +130,14 @@ type TxReceipt struct {
 
 // FileMeta ...
 type FileMeta struct {
-	// Author Address
-	AuthorAddr common.Address
-	infoHash metainfo.Hash
-	name string
+	InfoHash metainfo.Hash            `json:"InfoHash"         gencodec:"required"`
+	Name  string                      `json:"Name"             gencodec:"required"`
 	// The raw size of the file counted in bytes
-	RawSize  uint64
-	BlockNum uint64
-}
-
-// InfoHash ...
-func (m *FileMeta) InfoHash() metainfo.Hash {
-  return m.infoHash
+	RawSize  uint64                   `json:"RawSize"          gencodec:"required"`
+	BlockNum uint64                   `json:"BlockNum"         gencodec:"required"`
 }
 
 // DisplayName ...
 func (m *FileMeta) DisplayName() string {
-	return m.name
+	return m.Name
 }
