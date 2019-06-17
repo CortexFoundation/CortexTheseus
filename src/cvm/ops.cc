@@ -969,7 +969,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
   int o_h = static_cast<int>(y->shape[2]);
   int o_w = static_cast<int>(y->shape[3]);
 #define GETX(n, c, h, w) x_data[(n) * in_channels * x_h * x_w + (c) * x_h * x_w + (h) * x_w + (w)]
-#define GETW(o, i, h, w) w_data[(o) * in_channels * filter_h * filter_w + (i) * filter_h * filter_w + (h) * filter_w + (w)]
 #define GETY(n, c, h, w) y_data[(n) * out_channels * o_h * o_w + (c) * o_h * o_w + (h) * o_w + (w)]
   auto calc_func = [&](int n, int k, int p, int q) {
     int y_sum = int(1)<<31;
