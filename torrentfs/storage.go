@@ -27,12 +27,9 @@ type FileInfo struct {
 	// Transaction hash
 	TxHash *common.Hash
 	// Contract Address
-	ContractAddr *common.Address
+  ContractAddr *common.Address
 	LeftSize     uint64
-}
-
-func NewFileInfo(Meta *FileMeta) *FileInfo {
-	return &FileInfo{Meta, nil, nil, Meta.RawSize}
+	Index        uint64
 }
 
 type MutexCounter int32
@@ -51,9 +48,11 @@ func (mc *MutexCounter) IsZero() bool {
 
 type FileStorage struct {
 	filesContractAddr map[common.Address]*FileInfo
+  files             []*FileInfo
 	db                *bolt.DB
 
 	LastListenBlockNumber uint64
+  LastFileIndex         uint64
 
 	lock      sync.RWMutex
 	bnLock    sync.Mutex
@@ -95,9 +94,22 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir:           config.DataDir,
 	}
 	fs.readBlockNumber()
+  fs.readLastFileIndex()
 	//tmpCache, _ := lru.New(120)
 
 	return fs, nil
+}
+
+func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
+	ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
+  return ret
+}
+
+func (fs *FileStorage) AddCachedFile(x *FileInfo) error {
+	addr := *x.ContractAddr
+	fs.filesContractAddr[addr] = x
+  fs.files = append(fs.files, x)
+	return nil
 }
 
 func (fs *FileStorage) AddFile(x *FileInfo) error {
@@ -105,7 +117,12 @@ func (fs *FileStorage) AddFile(x *FileInfo) error {
 	if _, ok := fs.filesContractAddr[addr]; ok {
 		return errors.New("file already existed")
 	}
+  x.Index = fs.LastFileIndex
+  fs.LastFileIndex += 1
 	fs.filesContractAddr[addr] = x
+  fs.files = append(fs.files, x)
+  fs.WriteFile(x)
+	log.Info("Write fileinfo to database", "info", *x, "meta", x.Meta)
 	return nil
 }
 
@@ -155,6 +172,7 @@ func (fs *FileStorage) Close() error {
 		if fs.opCounter.IsZero() {
 			// persist storage block number
 			fs.writeBlockNumber()
+      fs.writeLastFileIndex()
 			return fs.db.Close()
 		}
 
@@ -166,6 +184,43 @@ func (fs *FileStorage) Close() error {
 var (
 	ErrReadDataFromBoltDB = errors.New("Bolt DB Read Error")
 )
+
+func (fs *FileStorage) GetFileByNumber(index uint64) *FileInfo {
+	var info FileInfo
+
+	fs.opCounter.Increase()
+	defer fs.opCounter.Decrease()
+
+	cb := func(tx *bolt.Tx) error {
+		buk := tx.Bucket([]byte("files"))
+		if buk == nil {
+			return ErrReadDataFromBoltDB
+		}
+		k, err := json.Marshal(index)
+		if err != nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		fs.lock.RLock()
+		v := buk.Get(k)
+		fs.lock.RUnlock()
+
+		if v == nil {
+			return ErrReadDataFromBoltDB
+		}
+		if err := json.Unmarshal(v, &info); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := fs.db.View(cb); err != nil {
+		return nil
+	}
+	log.Info("Read fileinfo from database", "info", info, "meta", info.Meta)
+	return &info
+}
 
 func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
@@ -203,6 +258,41 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	return &block
 }
 
+func (fs *FileStorage) WriteFile(f *FileInfo) error {
+	fs.opCounter.Increase()
+	defer fs.opCounter.Decrease()
+
+	err := fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("files"))
+		if err != nil {
+			return err
+		}
+		v, err := json.Marshal(f)
+		if err != nil {
+			return err
+		}
+		k, err := json.Marshal(f.Index)
+		if err != nil {
+			return err
+		}
+
+		fs.lock.Lock()
+		e := buk.Put(k, v)
+		fs.lock.Unlock()
+
+		return e
+	})
+
+	//if err == nil && b.Number > fs.LastListenBlockNumber {
+	if err == nil {
+		fs.bnLock.Lock()
+		fs.writeLastFileIndex()
+		fs.bnLock.Unlock()
+	}
+
+	return err
+}
+
 func (fs *FileStorage) WriteBlock(b *Block) error {
 	fs.opCounter.Increase()
 	defer fs.opCounter.Decrease()
@@ -238,6 +328,44 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 
 	return err
 }
+
+func (fs *FileStorage) readLastFileIndex() error {
+	return fs.db.View(func(tx *bolt.Tx) error {
+		buk := tx.Bucket([]byte("lastFileIndex"))
+		if buk == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		v := buk.Get([]byte("key"))
+
+		if v == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		number, err := strconv.ParseUint(string(v), 16, 64)
+		if err != nil {
+			return err
+		}
+
+		fs.LastFileIndex = number
+
+		return nil
+	})
+}
+
+func (fs *FileStorage) writeLastFileIndex() error {
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("lastFileIndex"))
+		if err != nil {
+			return err
+		}
+
+		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastFileIndex, 16)))
+
+		return e
+	})
+}
+
 
 func (fs *FileStorage) readBlockNumber() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
