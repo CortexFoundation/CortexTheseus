@@ -118,13 +118,13 @@ func TestShit(t *testing.T) {
 		Hash:          ih,
 		RawSize:       10000,
 		Shape:         []uint64{1},
-		AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
+		//AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 	}
 	s := `
 	{"info": "{\"Hash\": \"0x5c4d1f84063be8e25e83da6452b1821926548b3c2a2a903a0724e14d5c917b00\", \"AuthorAddress\": \"0x0553b0185a35cd5bb6386747517ef7e53b15e287\", \"RawSize\": 45401702, \"InputShape\": [3, 224, 224], \"OutputShape\": [1], \"Gas\": 45401702}", "msg": "ok"}
 	`
 	s1 := `
-	{"info": "{\"Hash\": \"0xc0a1f3c82e11e314822679e4834e3bc575bd017d12d888acda4a851a62d261dc\", \"AuthorAddress\": \"0x0553b0185a35cd5bb6386747517ef7e53b15e287\", \"RawSize\": 150656, \"Shape\": [3, 224, 224]}", "msg": "ok"}
+	{"info": "{\"Hash\": \"0xc0a1f3c82e11e314822679e4834e3bc575bd017d12d888acda4a851a62d261dc\", \"RawSize\": 150656, \"Shape\": [3, 224, 224]}", "msg": "ok"}
 `
 	js, _ := simplejson.NewJson([]byte(s))
 	js1, _ := simplejson.NewJson([]byte(s1))
@@ -136,5 +136,5 @@ func TestShit(t *testing.T) {
 	t.Errorf(s)
 	testInputMeta.DecodeJSON(ss1)
 	t.Errorf(testInputMeta.EncodeJSON())
-	t.Errorf(string(testInputMeta.AuthorAddress[:]))
+	//t.Errorf(string(testInputMeta.AuthorAddress[:]))
 }

@@ -21,10 +21,10 @@ import "math/big"
 const (
 	//all configs should not be changed
 	GasLimitBoundDivisor uint64 = 1024        // The bound divisor of the gas limit, used in update calculations.
-	MinGasLimit          uint64 = 160000000    // Minimum the gas limit may ever be.
+	MinGasLimit          uint64 = 8000000    // Minimum the gas limit may ever be.
 	GenesisGasLimit      uint64 = MinGasLimit // Gas limit of the Genesis block.
 	MinerGasFloor        uint64 = MinGasLimit
-	MinerGasCeil         uint64 = 320000000
+	MinerGasCeil         uint64 = 16000000
 
 	MaximumExtraDataSize  uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas            uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
@@ -33,14 +33,14 @@ const (
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
 	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
-	UploadGas             uint64 = 555555
+	UploadGas             uint64 = 277777//555555
 	TxDataZeroGas         uint64 = 4       // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512     // Divisor for the quadratic particle of the memory cost equation.
 	SstoreSetGas          uint64 = 20000   // Once per SLOAD operation.
 	LogDataGas            uint64 = 8       // Per byte in a LOG* operation's data.
 	CallStipend           uint64 = 2300    // Free gas given at beginning of call.
 	CallInferGas          uint64 = 1000000 // Base gas for call infer
-	InferOpsPerGas        uint64 = 1500    // 1 gas infer 1500 ops
+	InferOpsPerGas        uint64 = 20000    // 1 gas infer 10000 ops
 
 	Sha3Gas         uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas     uint64 = 6     // Once per word of the SHA3 operation's data.
@@ -94,14 +94,14 @@ const (
 
 var (
 	DifficultyBoundDivisor = big.NewInt(2) // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(2) // Difficulty of the Genesis block.
+	GenesisDifficulty      = big.NewInt(512) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(2) // The minimum that the difficulty may ever be.
 
 	MeanDifficultyBoundDivisor = big.NewInt(1024)
 
 	HighDifficultyBoundDivisor = big.NewInt(2048) // The bound divisor of the difficulty, used in the update calculations.
 
-	DurationLimit = big.NewInt(5) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DurationLimit = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
 	//CTXC_TOP = big.NewInt(0).Mul(big.NewInt(15000), big.NewInt(1000000000000000000))
 	//CTXC_INIT = big.NewInt(0).Mul(big.NewInt(0), big.NewInt(1000000000000000000))
@@ -113,7 +113,8 @@ var (
 
 const (
 	SeedingBlks = 6                   //for torrent seed spreading
-	MatureBlks  = 100                 //For the full node to synchronize the models
+	MatureBlks  = 100                  //For the full node to synchronize the models 
+	CerebroMatureBlks  = 10           //For the full node to synchronize the models, in cerebro testnet
 	ExpiredBlks = 1000000000000000000 //8409600
 
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024 //How many bytes per upload
@@ -125,5 +126,5 @@ const (
 	CONFIRM_TIME   = -60 // * time.Second block should be protected past this time
 	CONFIRM_BLOCKS = 12
 
-	BLOCK_QUOTA = 2457600 //32768//65536     //one block includes 64k file quota, even empty block should make more sense
+	BLOCK_QUOTA = 65536//24576 //32768//65536     //one block includes 64k file quota, even empty block should make more sense
 )

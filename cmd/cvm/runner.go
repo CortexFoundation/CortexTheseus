@@ -145,7 +145,7 @@ func runCmd(ctx *cli.Context) error {
 			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
-	mh3, _ := hex.DecodeString("a511f0fe2d45f5b968c4ab0d04092c9e611aced4")
+	mh3, _ := hex.DecodeString("b31ef546c987293cfebbe43e79dd9e228055763b")
 	testModelMeta3, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh3),
@@ -178,11 +178,11 @@ func runCmd(ctx *cli.Context) error {
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
 		})
-	ih2, _ := hex.DecodeString("00edb16f56df755b6da4b9a8713452346cb3b83c")
+	ih2, _ := hex.DecodeString("aea5584d0cd3865e90c80eace3bfcb062473d966")
 	testInputMeta2, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
 			Hash:          common.BytesToAddress(ih2),
-			RawSize:       10000,
+			RawSize:       3152,
 			Shape:         []uint64{3, 32, 32},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
@@ -191,7 +191,7 @@ func runCmd(ctx *cli.Context) error {
 	testInputMeta3, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
 			Hash:          common.BytesToAddress(ih3),
-			RawSize:       10000,
+			RawSize:       519296,
 			Shape:         []uint64{3, 416, 416},
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
@@ -205,10 +205,6 @@ func runCmd(ctx *cli.Context) error {
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
 		})
-	fmt.Println("testModelMeta1", testModelMeta1)
-	fmt.Println("testModelMeta2", testModelMeta2)
-	fmt.Println("testInputMeta1", testInputMeta1)
-	fmt.Println("testInputMeta2", testInputMeta2)
 	if false {
 		// statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"),
 		// append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
@@ -224,14 +220,27 @@ func runCmd(ctx *cli.Context) error {
 	statedb.SetCode(common.HexToAddress("0x1002"), append([]byte{0x0, 0x1}, []byte(testModelMeta2)...))
 	statedb.SetCode(common.HexToAddress("0x1003"), append([]byte{0x0, 0x1}, []byte(testModelMeta3)...))
 	statedb.SetCode(common.HexToAddress("0x1004"), append([]byte{0x0, 0x1}, []byte(testModelMeta4)...))
+
 	statedb.SetNum(common.HexToAddress("0x1001"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x1002"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x1003"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x1004"), big.NewInt(1))
+
 	statedb.SetNum(common.HexToAddress("0x2001"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x2002"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x2003"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x2004"), big.NewInt(1))
+
+	fmt.Println("model meta")
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x1001"))))
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x1002"))))
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x1003"))))
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x1004"))))
+	fmt.Println("input meta")
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x2001"))))
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x2002"))))
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x2003"))))
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x2004"))))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {
 		receiver = common.HexToAddress(ctx.GlobalString(ReceiverFlag.Name))
 	}

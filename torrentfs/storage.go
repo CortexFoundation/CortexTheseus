@@ -62,6 +62,7 @@ type FileStorage struct {
 }
 
 var initConfig *Config = nil
+var TorrentAPIAvailable sync.Mutex
 
 func InitConfig() *Config {
 	return initConfig
@@ -122,7 +123,7 @@ func (fs *FileStorage) AddFile(x *FileInfo) error {
 	fs.filesContractAddr[addr] = x
   fs.files = append(fs.files, x)
   fs.WriteFile(x)
-	log.Info("Write fileinfo to database", "info", *x, "meta", x.Meta)
+//	log.Info("Write fileinfo to database", "info", *x, "meta", x.Meta)
 	return nil
 }
 
@@ -134,34 +135,40 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 }
 
 func Exist(infohash string) bool {
+	TorrentAPIAvailable.Lock()
+	defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
 	tm := CurrentTorrentManager
-	torrent, ok := tm.torrents[ih]
-	if !ok {
+	if torrent := tm.GetTorrent(ih); torrent == nil {
 		return false
+	} else {
+		return torrent.IsAvailable()
 	}
-	return torrent.IsAvailable()
 }
 
 func Available(infohash string, rawSize int64) bool {
+	TorrentAPIAvailable.Lock()
+	defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
 	tm := CurrentTorrentManager
-	torrent, ok := tm.torrents[ih]
-	if !ok {
+	if torrent := tm.GetTorrent(ih); torrent == nil {
 		return false
+	} else {
+		return torrent.IsAvailable()
 	}
-	return torrent.IsAvailable()
 }
 
 
 func ExistTorrent(infohash string) bool {
+  TorrentAPIAvailable.Lock()
+	defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
 	tm := CurrentTorrentManager
-	torrent, ok := tm.torrents[ih]
-	if !ok {
+	if torrent := tm.GetTorrent(ih); torrent == nil {
 		return false
+	} else {
+		return torrent.HasTorrent()
 	}
-	return torrent.HasTorrent()
 }
 
 func (fs *FileStorage) Close() error {
@@ -218,7 +225,7 @@ func (fs *FileStorage) GetFileByNumber(index uint64) *FileInfo {
 	if err := fs.db.View(cb); err != nil {
 		return nil
 	}
-	log.Info("Read fileinfo from database", "info", info, "meta", info.Meta)
+	log.Debug("Read fileinfo from database", "info", info, "meta", info.Meta)
 	return &info
 }
 

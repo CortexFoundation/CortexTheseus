@@ -183,9 +183,9 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MinerRecommitIntervalFlag,
 			utils.MinerNoVerfiyFlag,
 			utils.MinerCudaFlag,
-			utils.MinerOpenCLFlag,
+			//utils.MinerOpenCLFlag,
 			utils.MinerDevicesFlag,
-			utils.MinerAlgorithmFlag,
+			//utils.MinerAlgorithmFlag,
 		},
 	},
 	{

@@ -182,7 +182,7 @@ func (cuckoo *Cuckoo) InitOnce() error {
 				log.Debug("InitOnce", "Setting Device", cuckoo.config.StrDeviceIds)	
 				cuckoo.config.StrDeviceIds = "0"  //default gpu device 0
 			}
-			errc = m.(func(int, string, string)(error))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
+			errc = m.(func(int, string, string)(error))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, "cuckaroo")
 			err = errc
 		}
 	})

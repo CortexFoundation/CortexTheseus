@@ -136,6 +136,23 @@ type TorrentManager struct {
 	updateTorrent chan interface{}
 	halt          bool
 	mu            sync.Mutex
+	lock          sync.RWMutex
+}
+
+func (tm *TorrentManager) GetTorrent(ih metainfo.Hash) *Torrent {
+	tm.lock.RLock()
+	defer tm.lock.RUnlock()
+	torrent, ok := tm.torrents[ih]
+	if !ok {
+		return nil
+	}
+	return torrent
+}
+
+func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	tm.torrents[ih] = torrent
 }
 
 func (tm *TorrentManager) Close() error {
@@ -228,11 +245,8 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 	ih := spec.InfoHash
 	log.Debug("Get torrent from local file", "InfoHash", ih.HexString())
 
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-	if _, ok := tm.torrents[ih]; ok {
+	if tm.GetTorrent(ih) != nil {
 		log.Debug("Torrent was already existed. Skip", "InfoHash", ih.HexString())
-		//tm.mu.Unlock()
 		return
 	}
 	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
@@ -264,7 +278,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
-		tm.torrents[ih] = &Torrent{
+		torrent := &Torrent{
 			t,
 			BytesRequested,
 			int64(float64(BytesRequested) * expansionFactor),
@@ -274,8 +288,8 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 			ih.String(),
 			torrentPath,
 		}
-		//tm.mu.Unlock()
-		tm.torrents[ih].Run()
+		tm.SetTorrent(ih, torrent)
+		torrent.Run()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
 
@@ -286,7 +300,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
-		tm.torrents[ih] = &Torrent{
+		torrent := &Torrent{
 			t,
 			BytesRequested,
 			int64(float64(BytesRequested) * expansionFactor),
@@ -296,14 +310,15 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 			ih.String(),
 			torrentPath,
 		}
+		tm.SetTorrent(ih, torrent)
 		//tm.mu.Unlock()
-		tm.torrents[ih].Run()
+		torrent.Run()
 	}
 }
 
 func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	
-	if _, ok := tm.torrents[ih]; ok {
+	if tm.GetTorrent(ih) != nil {
 		tm.UpdateInfoHash(ih, BytesRequested)
 		return
 	}
@@ -311,7 +326,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	dataPath := path.Join(tm.TmpDataDir, ih.HexString())
 	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
-  log.Info("Torrent file path verify", "torrent", torrentPath, "seed torrent", seedTorrentPath)
+  log.Debug("Torrent file path verify", "torrent", torrentPath, "seed torrent", seedTorrentPath)
 	
 	if _, err := os.Stat(seedTorrentPath); err == nil {
 		tm.AddTorrent(seedTorrentPath, BytesRequested)
@@ -322,9 +337,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	}
 	log.Debug("Get torrent from infohash", "InfoHash", ih.HexString())
 
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-	if _, ok := tm.torrents[ih]; ok {
+	if tm.GetTorrent(ih) != nil {
 		log.Warn("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		//tm.mu.Unlock()
 		return
@@ -342,7 +355,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	}
 
 	t, _, _ := tm.client.AddTorrentSpec(spec)
-	tm.torrents[ih] = &Torrent{
+	torrent := &Torrent{
 		t,
 		BytesRequested,
 		int64(float64(BytesRequested) * expansionFactor),
@@ -352,18 +365,17 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 		ih.String(),
 		torrentPath,
 	}
+	tm.SetTorrent(ih, torrent)
 	//tm.mu.Unlock()
 	log.Debug("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
   
-	go tm.torrents[ih].GetTorrent()
+	go torrent.GetTorrent()
 }
 
 // UpdateInfoHash ...
 func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	log.Debug("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-	if t, ok := tm.torrents[ih]; ok {
+	if t := tm.GetTorrent(ih); t != nil {
 		if BytesRequested < t.bytesRequested {
 			return
 		}
@@ -377,9 +389,11 @@ func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64)
 
 // DropMagnet ...
 func (tm *TorrentManager) DropMagnet(ih metainfo.Hash) bool {
-	if t, ok := tm.torrents[ih]; ok {
+	if t := tm.GetTorrent(ih); t != nil {
 		t.Torrent.Drop()
+		tm.lock.Lock()
 		delete(tm.torrents, ih)
+		tm.lock.Unlock()
 		return true
 	}
 	return false

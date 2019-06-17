@@ -301,7 +301,6 @@ const char* cuda_conv2d(
     int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
     dim3 gDim(g_w, g_h, 1);
-    //TODO dilation and filter size is variable, should check shared memory size
     kernel_conv2d<<<gDim, bDim, share_size>>>(
         dev_i, i_n, i_c, i_h, i_w,
         dev_f, f_n, f_c, f_h, f_w,
@@ -347,9 +346,9 @@ const char* cuda_conv2d(
   return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_depthwise_conv2d(
-    int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
-    int32_t *filter, int32_t f_n, int32_t f_c, int32_t f_h, int32_t f_w,
-    int32_t *bias,
+    const int32_t * __restrict__ input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
+    const int32_t * __restrict__ filter, int32_t f_n, int32_t f_c, int32_t f_h, int32_t f_w,
+    const int32_t * __restrict__ bias,
     int32_t padding_h, int32_t padding_w,
     int32_t stride_h, int32_t stride_w,
     int32_t dilation_h, int32_t dilation_w, 

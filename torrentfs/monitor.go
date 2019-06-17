@@ -259,12 +259,13 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			} else if flowCtrl && tx.IsFlowControl() {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
-				log.Info("Try to upload a file", "addr", addr, "tx", tx.Hash.Hex(), "number", b.Number)
 				if file == nil {
 					log.Warn("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit, "number", b.Number)
 					continue
 				}
 
+				log.Debug("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number)
+				
 				var remainingSize hexutil.Uint64
 				if err := m.cl.Call(&remainingSize, "ctxc_getUpload", addr.String(), "latest"); err != nil {
 					log.Warn("Failed call get upload", "addr", addr.String(), "tx", tx.Hash.Hex(), "number", b.Number)
@@ -273,6 +274,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 
 				var bytesRequested uint64
 				file.LeftSize = uint64(remainingSize)
+				m.fs.WriteFile(file)
 				if file.Meta.RawSize > file.LeftSize {
 					bytesRequested = file.Meta.RawSize - file.LeftSize
 				}
@@ -357,27 +359,20 @@ func (m *Monitor) startWork() error {
 	}
 	m.cl = rpcClient
 
-	errCh := make(chan error)
-
-	go m.validateStorage(errCh)
-
-	select {
-	case err := <-errCh:
-		if err != nil {
-			log.Error("Starting torrent fs ... ...", "error", err)
-			return err
-		} else {
-			log.Info("Torrent fs validation passed")
-			m.wg.Add(1)
-			go m.listenLatestBlock()
-			return nil
-		}
+	if err := m.validateStorage(); err != nil {
+		log.Error("Starting torrent fs ... ...", "error", err)
+		TorrentAPIAvailable.Unlock()
+		return err
 	}
+	
+	log.Info("Torrent fs validation passed")
+	m.wg.Add(1)
+	go m.listenLatestBlock()
 
 	return nil
 }
 
-func (m *Monitor) validateStorage(errCh chan error) error {
+func (m *Monitor) validateStorage() error {
 	m.lastNumber = m.fs.LastListenBlockNumber	
 	end := uint64(0)
 
@@ -387,7 +382,6 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
 		if rpcErr != nil {
 			log.Warn("RPC ERROR", "error", rpcErr)
-			errCh <- rpcErr
 			return rpcErr
 		}
 
@@ -431,6 +425,7 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
 		log.Debug("Data recovery", "request", bytesRequested, "raw", file.Meta.RawSize)
+
 		m.dl.NewTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
@@ -439,7 +434,6 @@ func (m *Monitor) validateStorage(errCh chan error) error {
 		m.fs.AddCachedFile(file)
 	}
 
-	errCh <- nil
 	return nil
 }
 
