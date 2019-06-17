@@ -87,7 +87,7 @@ func (t *Transaction) Parse() *FileMeta {
 	if t.Op() == opCreateInput {
 		var meta types.InputMeta
 		var AuthorAddress common.Address
-		AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
+		//AuthorAddress.SetBytes(meta.AuthorAddress.Bytes())
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
