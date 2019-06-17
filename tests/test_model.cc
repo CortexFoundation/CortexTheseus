@@ -56,13 +56,15 @@ int run_LIF(string model_root) {
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 0, 0)
-      );
+      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 1, 0)
+    );
+  cerr << "model loaded\n";
   if (model == nullptr) {
     std::cerr << "model loaded failed\n";
     return -1;
   }
   cerr << "ops " << CVMAPIGetGasFromModel(model) / 1024 / 1024 << "\n";
+  // API only accepts byte array
   vector<char> input, output;
   int input_size = CVMAPIGetInputLength(model);
   int output_size = CVMAPIGetOutputLength(model);
@@ -72,7 +74,7 @@ int run_LIF(string model_root) {
   {
     vector<int32_t> input_int32_t;
     std::vector<unsigned long> tshape;
-    npy::LoadArrayFromNumpy("/tmp/trec/out/data.npy", tshape, input_int32_t);
+    npy::LoadArrayFromNumpy("/data/std_out/trec/data.npy", tshape, input_int32_t);
     std::cerr << "Loading a int32 data and cast to byte array: "
               << input.size() << " " << input_int32_t.size() << "\n";
     memcpy(input.data(), input_int32_t.data(), input.size());
@@ -165,18 +167,22 @@ int run_LIF(string model_root) {
     << " " <<  sum_time / ellapsed_time <<"\n";
 
   if (json_path.find("yolo") != string::npos) {
-    uint64_t ns =  output.size() / 4 / 4;
-    std::cout << "yolo output size = " << ns << "\n";
+    uint64_t n_bytes = 4;
+    uint64_t ns =  output.size() / n_bytes;
+    std::cout << "yolo output size = " << ns << " n_bytes = " << n_bytes << "\n";
     int32_t* int32_output = static_cast<int32_t*>((void*)output.data());
     for (auto i = 0; i < std::min(60UL, ns); i++) {
       std::cout << (int32_t)int32_output[i] << " ";
       if ((i + 1) % 6 == 0)
         std::cout << "\n";
     }
-    for (auto i = (size_t)(std::max(0, ((int)(ns) - 60))); i < ns; i++) {
-      std::cout << (int32_t)int32_output[i] << " ";
-      if ((i + 1) % 6 == 0)
-        std::cout << "\n";
+    // last 60 rows of results
+    if (ns > 60) {
+      for (auto i = (size_t)(std::max(0, ((int)(ns) - 60))); i < ns; i++) {
+        std::cout << (int32_t)int32_output[i] << " ";
+        if ((i + 1) % 6 == 0)
+          std::cout << "\n";
+      }
     }
     std::cout << "\n";
   } else {
@@ -184,10 +190,13 @@ int run_LIF(string model_root) {
     for (auto i = 0; i < std::min(6UL * 10, output.size()); i++) {
       std::cout << (int32_t)output[i] << " ";
     }
-    for (auto i = (size_t)(std::max(0, ((int)(output.size()) - 6 * 10))); i < output.size(); i++) {
-      std::cout << (int32_t)output[i] << " ";
-    }
     std::cout << "\n";
+    if (output.size() > 60) {
+      for (auto i = (size_t)(std::max(0, ((int)(output.size()) - 6 * 10))); i < output.size(); i++) {
+        std::cout << (int32_t)output[i] << " ";
+      }
+      std::cout << "\n";
+    }
   }
   return 0;
 }
@@ -212,26 +221,18 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-     // "/data/model_storage/dcnet_mnist_v1/data",
-     // "/data/model_storage/mobilenetv1.0_imagenet/data",
-     // "/data/model_storage/resnet50_v1_imagenet/data",
-     // "/data/model_storage/animal10/data",
-     // "/data/model_storage/dcnet_v0_mnist/data",
-     // "/data/model_storage/resnet50_v2/data",
-     // "/data/model_storage/vgg16_gcv/data",
-     // "/data/model_storage/sentiment_trec/data",
-     // "/data/model_storage/vgg19_gcv/data",
-     // "/data/model_storage/squeezenet_gcv1.1/data",
-     // "/data/model_storage/squeezenet_gcv1.0/data",
-     // "/data/model_storage/octconv_resnet26_0.250/data",
-     // "/data/model_storage/yolo3_darknet53_b1/data"
-     // "/tmp/yxnet",
-     // "/data/std_out/resnet50_mxg",
-     // "/data/std_out/inception_v3",
-     // "/data/std_out/cvm_mnist",
-     // "/data/std_out/mobilenet1_0",
-     // "/data/std_out/squeezenet1.0",
-     "/data/std_out/trec",
+    // "/data/new_cvm/yolo3_darknet53_voc/data",
+    // "/data/lz_model_storage/dcnet_mnist_v1/data",
+    // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
+    // "/data/lz_model_storage/resnet50_v1_imagenet/data",
+    // "/data/lz_model_storage/animal10/data",
+    // "/data/lz_model_storage/resnet50_v2/data",
+    // "/data/lz_model_storage/vgg16_gcv/data",
+    "/data/lz_model_storage/sentiment_trec/data",
+    // "/data/lz_model_storage/vgg19_gcv/data",
+    // "/data/lz_model_storage/squeezenet_gcv1.1/data",
+    // "/data/lz_model_storage/squeezenet_gcv1.0/data",
+    // "/data/lz_model_storage/octconv_resnet26_0.250/data",
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);

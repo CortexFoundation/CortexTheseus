@@ -31,6 +31,10 @@ bool NMSShape(const NodeAttrs& attrs,
   VERIFY_EQ(dshape[0], vshape[0]) << "batch_size mismatch.";
   out_attrs->clear();
 
+  VERIFY(param.coord_start <= 2 && param.coord_start >= 0);
+  VERIFY(param.score_index >= 0 && param.score_index < 6);
+  VERIFY(param.id_index >= 0 && param.id_index < 6);
+
   VERIFY_EQ(param.return_indices, false)
     << "NonMaximumSuppressionParam only supported return_indices false vs. "
     << param.return_indices;
@@ -97,6 +101,8 @@ bool GetValidShape(const NodeAttrs& attrs,
   TShape shp = in_attrs->at(0);
   CHECK_EQ(in_attrs->size(), 1U);
   CHECK_EQ(out_attrs->size(), 2U);
+  VERIFY(shp.ndim() == 3);
+  VERIFY(shp[2] >= 2);
   TShape count_shape{shp[0]};
   TShape oshape(shp);
   CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_attrs, 0, count_shape);
