@@ -44,11 +44,11 @@ import (
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward       *big.Int = big.NewInt(25e+17) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward      *big.Int = big.NewInt(25e+17) // Block reward in wei for successfully mining a block upward from Byzantium
-	ConstantinopleBlockReward          = big.NewInt(25e+17)
+	FrontierBlockReward       *big.Int = big.NewInt(75e+17) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward      *big.Int = big.NewInt(75e+17) // Block reward in wei for successfully mining a block upward from Byzantium
+	ConstantinopleBlockReward          = big.NewInt(75e+17)
 	maxUncles                          = 2               // Maximum number of uncles allowed in a single block
-	allowedFutureBlockTime             = 5 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
+	allowedFutureBlockTime             = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
 	// It returns the difficulty that a new block should have when created at time given the
@@ -373,7 +373,7 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 
 	// (2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9
 	x.Sub(bigTime, bigParentTime)
-	x.Div(x, big3)
+	x.Div(x, big9)
 	if parent.UncleHash == types.EmptyUncleHash {
 		x.Sub(big1, x)
 	} else {
@@ -727,17 +727,21 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 	}
 
 	if blockReward.Cmp(big0) > 0 {
-		surplus := new(big.Int).Sub(params.CTXC_TOP, header.Supply)
+		remain := new(big.Int).Sub(params.CTXC_TOP, header.Supply)
 		header.Supply.Add(header.Supply, blockReward)
 		if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
-			blockReward.Set(surplus)
+			blockReward.Set(remain)
 			header.Supply.Set(params.CTXC_TOP)
+			log.Warn("Congratulations!!! We have mined all cortex", "number", header.Number, "last reward", toCoin(remain))
 		}
 
-		//log.Info(fmt.Sprintf("parent: %v, current: %v, +%v, number: %v", parent.Supply, header.Supply, blockReward, header.Number))
+		if blockReward.Cmp(big0) <= 0 {
+			//should never happend
+			return
+		}
+
 		log.Debug("Block mining reward", "parent", toCoin(parent.Supply), "current", toCoin(header.Supply), "number", header.Number, "reward", toCoin(blockReward))
 		// Accumulate the rewards for the miner and any included uncles
-		//if blockReward.Cmp(big0) > 0 {
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
 		for _, uncle := range uncles {
@@ -748,7 +752,6 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 
 			header.Supply.Add(header.Supply, r)
 			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
-				//header.Supply = params.CTXC_TOP
 				header.Supply.Sub(header.Supply, r)
 				r.Set(big0)
 				break
@@ -761,7 +764,6 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
 				header.Supply.Sub(header.Supply, r)
 				r.Set(big0)
-				//header.Supply = params.CTXC_TOP
 				break
 			}
 
@@ -792,7 +794,7 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 		err := cuckoo.InitOnce()
 		if err != nil {
 			log.Error("cuckoo", "init error.", "error:", err)
-			return false;
+			return false
 		}
 	}
 	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")

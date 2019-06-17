@@ -12,6 +12,7 @@ import (
 	"plugin"
 )
 
+
 type Model struct {
 	model unsafe.Pointer
 	lib *plugin.Plugin
@@ -20,7 +21,6 @@ type Model struct {
 }
 
 func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin string) *Model {
-    
 	var model unsafe.Pointer
 	var size int64
 	var ops int64
@@ -46,7 +46,6 @@ func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin string) *Model {
 		}
 		size = ret
 	}
-    
 	if m, err := lib.Lookup("GetModelOpsFromModel"); err != nil {
 		log.Error("infer helper", "GetModelOpsFromModel", "error", err)
 		return nil
@@ -58,7 +57,6 @@ func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin string) *Model {
 		}
 		ops = ret
 	}
-	
 	return &Model{
 		model: model,
 		lib: lib,
@@ -83,7 +81,6 @@ func (m *Model) GetInputLength() int {
 		return -1
 	}
 	ret, err := f.(func(unsafe.Pointer)(int, error))(m.model)
-	
 	if ret < 0 {
 		return -1
 	} else {
@@ -99,7 +96,6 @@ func (m *Model) GetOutputLength() int {
 		return -1
 	}
 	ret, err := f.(func(unsafe.Pointer)(int, error))(m.model)
-	
 	if ret < 0 {
 		return -1
 	} else {
@@ -130,11 +126,11 @@ func (m *Model) Free() {
 	f.(func(unsafe.Pointer)())(m.model)
 }
 
-func (m *Model) Predict(imageData []byte) ([]byte, error) {
-    expectedInputLength := m.GetInputLength()
-	if expectedInputLength != len(imageData) {
-		return nil, errors.New(fmt.Sprintf("input size not match, Expected: %d, Have %d",
-																			 expectedInputLength, len(imageData)))
+func (m *Model) Predict(data []byte) ([]byte, error) {
+	expectedInputLength := m.GetInputLength()
+	if expectedInputLength > len(data) {
+		return nil, errors.New(fmt.Sprintf("input size not match, Expected at least %d, Got %d",
+																			 expectedInputLength, len(data)))
 	}
 
 	f, err := m.lib.Lookup("Predict")
@@ -142,7 +138,6 @@ func (m *Model) Predict(imageData []byte) ([]byte, error) {
 		log.Error("infer helper", "Predict", "error", err)
 		return nil, err
 	}
-	res, err := f.(func(unsafe.Pointer, []byte)([]byte, error))(m.model, imageData)
+	res, err := f.(func(unsafe.Pointer, []byte)([]byte, error))(m.model, data)
 	return res, err
 }
-

@@ -392,7 +392,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 		cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
 		if (in.cvm.vmConfig.DebugInferVM) {
-			fmt.Println("gasCost: ",  cost, err)
+			fmt.Println("gasCost: ",  cost, err, " op: ", op)
 		}
 		if op.IsInfer() {
 			var model_meta_err error

@@ -18,6 +18,7 @@ package state
 
 import (
 	"encoding/json"
+	"strconv"
 	"fmt"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -27,7 +28,8 @@ import (
 
 type DumpAccount struct {
 	Balance  string            `json:"balance"`
-	Nonce    uint64            `json:"nonce"`
+	BlockNum string            `json:"blocknum"`
+	Nonce    string						  `json:"nonce"`
 	Root     string            `json:"root"`
 	CodeHash string            `json:"codeHash"`
 	Code     string            `json:"code"`
@@ -52,14 +54,14 @@ func (self *StateDB) RawDump() Dump {
 		if err := rlp.DecodeBytes(it.Value, &data); err != nil {
 			panic(err)
 		}
-
 		obj := newObject(nil, common.BytesToAddress(addr), data)
 		account := DumpAccount{
 			Balance:  data.Balance.String(),
-			Nonce:    data.Nonce,
-			Root:     common.Bytes2Hex(data.Root[:]),
-			CodeHash: common.Bytes2Hex(data.CodeHash),
-			Code:     common.Bytes2Hex(obj.Code(self.db)),
+			Nonce:    "0x" + strconv.FormatInt(int64(data.Nonce), 16),
+			BlockNum: "0x" + strconv.FormatInt(int64(data.Num.Uint64()), 16),
+			Root:     "0x" + common.Bytes2Hex(data.Root[:]),
+			CodeHash: "0x" + common.Bytes2Hex(data.CodeHash),
+			Code:     "0x" + common.Bytes2Hex(obj.Code(self.db)),
 			Storage:  make(map[string]string),
 		}
 		storageIt := trie.NewIterator(obj.getTrie(self.db).NodeIterator(nil))

@@ -451,9 +451,10 @@ def test_upsampling():
     b = nd.UpSampling(nd.array(a), **params)
     np.save(tmp_dir + "0/out_0.npy", b.asnumpy().astype("int32"))
     print (b.shape)
+    print(b)
 
     os.makedirs(tmp_dir + "1/", exist_ok=True)
-    shape = np.random.randint(low=10, high=100, size=(4))
+    shape = np.random.randint(low=3, high=4, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir + "1/in_0.npy", a.astype("int32"))
@@ -465,7 +466,7 @@ def test_upsampling():
     print (b.shape)
 
     os.makedirs(tmp_dir + "2/", exist_ok=True)
-    shape = np.random.randint(low=10, high=100, size=(4))
+    shape = np.random.randint(low=2, high=4, size=(4))
     print(shape)
     a = np.random.randint(low=-127, high=127, size=shape)
     np.save(tmp_dir + "2/in_0.npy", a.astype("int32"))
@@ -475,6 +476,7 @@ def test_upsampling():
     b = nd.UpSampling(nd.array(a), **params)
     np.save(tmp_dir + "2/out_0.npy", b.asnumpy().astype("int32"))
     print (b.shape)
+    print(b)
 
 def test_squeeze():
     print("test squeeze")
@@ -707,16 +709,26 @@ def test_broadcast_add():
     b = np.random.randint(low=-127, high=127, size=shape)
    # c = np.braodcast_add(a,b)
 
+def test_nms():
+    batch = np.random.randint(low=1, high=10)
+    n = np.random.randint(low=1, high=10)
+    k = 6
+    print(batch, n, k)
+    data = np.random.randint(low=0, high=100, size=(batch, n, k))
+    params = {'overlap_thresh':10, 'coord_start':2, 'score_index':1, 'id_index':0, 'force_suppress':True, 'in_format':'corner', 'out_type':'corner'}
+    y = nd.contrib.box_nms(data, **params)
+    print(y.shape)
 #test_concatenate()
 #test_repeat()
 #test_tile()
-##test_transpose()
+#test_transpose()
 #test_strided_slice()
 #test_slice_like()
 #test_take()
 #test_max()
 #test_sum()
-#test_upsampling()
+test_upsampling()
 #test_elemwise_add()
 ##test_conv2d()
 ##test_broadcast_add()
+#test_nms()
