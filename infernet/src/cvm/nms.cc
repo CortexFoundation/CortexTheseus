@@ -16,7 +16,7 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t x2_max = format == FORMAT_CORNER ? rect2[2] : x2_min + rect2[2];
     int32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
 
-    int64_t sum_area = static_cast<int64_t>((x1_max-x1_min)) * (y1_max-y1_min) + static_cast<int64_t>((x2_max-x2_min)) * (y2_max-y2_min);
+    int64_t sum_area = static_cast<int64_t>(std::abs(x1_max-x1_min)) * std::abs(y1_max-y1_min) + static_cast<int64_t>(std::abs(x2_max-x2_min)) * std::abs(y2_max-y2_min);
 
     if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
     int32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
@@ -61,6 +61,9 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
 
         for (int i = 0; i < n; i++) {
             rows[i] = x_batch + i * k;
+        }
+        for(int i = vc; i < n; i++){
+            memset(rows[i], -1, k * sizeof(int32_t));
         }
         auto score_idx_local = score_index;
         std::sort(rows.begin(), rows.end(), [&score_idx_local](const int32_t* a, const int32_t* b){

@@ -20,16 +20,13 @@ import (
 )
 
 func CuckooInit(threads uint32) {
-	CuckooInitialize(0, "", "cuckoo")
+	CuckooInitialize(0, "", "cuckaroo")
 }
 
 func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error {
 //	var deviceNum int = 1
 	var devices []uint32
-	var selected int = 0
-	if algorithm == "cuckaroo"{
-		selected = 1
-	}
+	var selected int = 1
 	devices = append(devices, 0)
 	C.CuckooInitialize((*C.uint32_t)(unsafe.Pointer(&devices[0])), C.uint32_t(threads), C.int(selected), 0)
 	return nil

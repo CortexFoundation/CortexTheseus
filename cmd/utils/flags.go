@@ -372,18 +372,18 @@ var (
 		Name:  "miner.cuda",
 		Usage: "use cuda miner plugin",
 	}
-	MinerOpenCLFlag = cli.BoolFlag{
-		Name:  "miner.opencl",
-		Usage: "use opencl miner plugin",
-	}
+//	MinerOpenCLFlag = cli.BoolFlag{
+//		Name:  "miner.opencl",
+//		Usage: "use opencl miner plugin",
+//	}
 	MinerDevicesFlag = cli.StringFlag{
 		Name:  "miner.devices",
 		Usage: "the devices used mining, use --miner.devices=0,1",
 	}
-	MinerAlgorithmFlag = cli.StringFlag{
-		Name:  "miner.algorithm",
-		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
-	}
+//	MinerAlgorithmFlag = cli.StringFlag{
+//		Name:  "miner.algorithm",
+//		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
+//	}
 	InferDeviceTypeFlag = cli.StringFlag{
 		Name: "infer.devicetype",
 		Usage: "infer device type : cpu or gpu",
@@ -1102,15 +1102,15 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
 		cfg.Cuckoo.UseCuda = cfg.MinerCuda
 	}
-	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
-		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
-		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
-	}
+//	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
+//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
+//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
+//	}
 
 	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
 	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
-	cfg.Cuckoo.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
+	//cfg.Cuckoo.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
