@@ -704,40 +704,19 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		modelMeta *types.ModelMeta
 		inputMeta *types.InputMeta
 	)
-	modelMeta, modelErr := checkModel(interpreter, stack, modelAddr)
+	modelMeta, modelErr := checkModel(interpreter.cvm, stack, modelAddr)
 	if modelErr != nil {
+		stack.push(interpreter.intPool.getZero())
 		return nil, modelErr
 	}
 
-	var err error
-	if inputMeta, err = interpreter.cvm.GetInputMeta(inputAddr); err != nil {
+	inputMeta, inputErr := checkInputMeta(interpreter.cvm, stack, inputAddr)
+	if inputErr != nil {
 		stack.push(interpreter.intPool.getZero())
-		return nil, err
-	}
-	// Input Meta is validation
-	if interpreter.cvm.StateDB.Uploading(inputAddr) {
-		stack.push(interpreter.intPool.getZero())
-		return nil, errors.New("INPUT IS NOT UPLOADED ERROR")
+		return nil, inputErr
 	}
 
-	log.Debug(fmt.Sprintf("opInfer:modelMeta: %s", common.Car(modelMeta.EncodeJSON())))
-	log.Debug(fmt.Sprintf("opInfer:inputMeta: %v", common.Car(inputMeta.EncodeJSON())))
-
-	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(big0) <= 0 {
-		stack.push(interpreter.intPool.getZero())
-		return nil, errMetaInfoBlockNum
-	}
-	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
-		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", interpreter.cvm.StateDB.GetNum(inputAddr), "Current", interpreter.cvm.BlockNumber, "MB", params.MatureBlks)
-		stack.push(interpreter.intPool.getZero())
-		return nil, ErrMetaInfoNotMature
-	}
-
-	if interpreter.cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
-		stack.push(interpreter.intPool.getZero())
-		return nil, errMetaInfoExpired
-	}
-
+	log.Debug("interpreter check shape 1", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	// Model&Input shape should match
 	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
 		stack.push(interpreter.intPool.getZero())
@@ -746,6 +725,7 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		}
 		return nil, errMetaShapeNotMatch
 	}
+	log.Debug("interpreter check shape 2", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	for idx, modelShape := range modelMeta.InputShape {
 		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0 {
 			stack.push(interpreter.intPool.getZero())
@@ -756,37 +736,39 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		}
 	}
 
-	/*if interpreter.cvm.Context.Time.Cmp(big.NewInt(time.Now().Add(confirmTime).Unix())) <= 0 {
-		logs := interpreter.cvm.StateDB.GetCurrentLogs()
-		if logs != nil && len(logs) > 0 {
-			for _, log := range logs {
-				topics := log.Topics
-				//todo
-				if topics != nil && len(topics) == 4 && topics[0].Big().Cmp(modelMeta.Hash.Big()) == 0 && topics[1].Big().Cmp(inputMeta.Hash.Big()) == 0 {
-					if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
-						//consensus
-						interpreter.cvm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-						interpreter.cvm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-						ret := topics[2].Big().Uint64()
-						stack.push(interpreter.intPool.get().SetUint64(ret))
-					} else {
-						stack.push(interpreter.intPool.getZero())
-						return nil, errAiRuntime
-					}
-					return nil, nil
-				} else {
-				}
-			}
-		} else {
-		}
-	} else {
-	}*/
+	// /*if interpreter.cvm.Context.Time.Cmp(big.NewInt(time.Now().Add(confirmTime).Unix())) <= 0 {
+	// 	logs := interpreter.cvm.StateDB.GetCurrentLogs()
+	// 	if logs != nil && len(logs) > 0 {
+	// 		for _, log := range logs {
+	// 			topics := log.Topics
+	// 			//todo
+	// 			if topics != nil && len(topics) == 4 && topics[0].Big().Cmp(modelMeta.Hash.Big()) == 0 && topics[1].Big().Cmp(inputMeta.Hash.Big()) == 0 {
+	// 				if topics[3].Big().Cmp(big.NewInt(0)) == 0 {
+	// 					//consensus
+	// 					interpreter.cvm.StateDB.SetNum(modelAddr, big.NewInt(0).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	// 					interpreter.cvm.StateDB.SetNum(inputAddr, big.NewInt(0).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	// 					ret := topics[2].Big().Uint64()
+	// 					stack.push(interpreter.intPool.get().SetUint64(ret))
+	// 				} else {
+	// 					stack.push(interpreter.intPool.getZero())
+	// 					return nil, errAiRuntime
+	// 				}
+	// 				return nil, nil
+	// 			} else {
+	// 			}
+	// 		}
+	// 	} else {
+	// 	}
+	// } else {
+	// }*/
 
+	log.Debug("interpreter infer<", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	//todo model & input tfs validation
 	output, err := interpreter.cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
 	if interpreter.cvm.vmConfig.DebugInferVM {
 		fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
 	}
+	log.Debug("interpreter infer>", "modelMeta", modelMeta, "inputMeta", inputMeta, "output", output)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		// if !synapse.CheckBuiltInTorrentFsError(err) {
@@ -796,8 +778,9 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		return nil, err
 	}
 	//consensus
-	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
-	interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
+	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
+	interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	// interpreter.intPool.get().SetUint64(output)
 	if err := memory.WriteSolidityUint256Array(_outputOffset.Int64(), output); err != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -810,27 +793,30 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	return nil, nil
 }
 
-func checkModel(interpreter *CVMInterpreter, stack *Stack, modelAddr common.Address) (*types.ModelMeta, error) {
+func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*types.ModelMeta, error) {
 	var (
 		modelMeta *types.ModelMeta
 	)
 	var err error
-	if modelMeta, err = interpreter.cvm.GetModelMeta(modelAddr); err != nil {
-		stack.push(interpreter.intPool.getZero())
+	if modelMeta, err = cvm.GetModelMeta(modelAddr); err != nil {
 		return nil, err
 	}
 	// Model Meta is validation
-	if interpreter.cvm.StateDB.Uploading(modelAddr) {
+	if cvm.StateDB.Uploading(modelAddr) {
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
-	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
+
+	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
+	log.Debug("checkModel", "modelAddr blocknum", cvm.StateDB.GetNum(modelAddr), "modelMeta", modelMeta)
+	if cvm.StateDB.GetNum(modelAddr).Cmp(big0) <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
-	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks))) > 0 {
+	if cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(matureBlockNumber))) > 0 {
+		log.Debug("instructions", "modelAddr", modelAddr, "modelAddrBlkNum", cvm.StateDB.GetNum(modelAddr), "Current", cvm.BlockNumber, "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 
-	if interpreter.cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
+	if cvm.StateDB.GetNum(modelAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
 		return nil, errMetaInfoExpired
 	}
 
@@ -839,6 +825,37 @@ func checkModel(interpreter *CVMInterpreter, stack *Stack, modelAddr common.Addr
 		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
 	}
 	return modelMeta, nil
+}
+
+func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*types.InputMeta, error) {
+	var (
+		inputMeta *types.InputMeta
+		err error
+	)
+	if inputMeta, err = cvm.GetInputMeta(inputAddr); err != nil {
+		return nil, err
+	}
+	// Model Meta is validation
+	if cvm.StateDB.Uploading(inputAddr) {
+		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
+	}
+
+	log.Debug("checkInput", "modelAddr blocknum", cvm.StateDB.GetNum(inputAddr), "inputMeta", inputMeta)
+	if cvm.StateDB.GetNum(inputAddr).Cmp(big0) <= 0 {
+		return nil, errMetaInfoBlockNum
+	}
+
+	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
+	if cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(matureBlockNumber))) > 0 {
+		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.BlockNumber, "MB", matureBlockNumber)
+		return nil, ErrMetaInfoNotMature
+	}
+
+	if cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(params.ExpiredBlks))) < 0 {
+		return nil, errMetaInfoExpired
+	}
+
+	return inputMeta, nil
 }
 
 func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -852,7 +869,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	modelAddr := common.BigToAddress(_modelAddr)
 	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
-	modelMeta, modelErr := checkModel(interpreter, stack, modelAddr)
+	modelMeta, modelErr := checkModel(interpreter.cvm, stack, modelAddr)
 	if modelErr != nil {
 		stack.push(interpreter.intPool.getZero())
 		return nil, modelErr
@@ -891,8 +908,9 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	// interpreter.intPool.get().SetUint64
 	stack.push(interpreter.intPool.get().SetUint64(1))
 
+	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
 	//update model status
-	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(params.MatureBlks+1)))
+	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	return nil, nil
 }
 

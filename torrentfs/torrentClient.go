@@ -49,6 +49,36 @@ type Torrent struct {
 	bytesCompleted  int64
 	bytesMissing    int64
 	status          int64
+	infohash        string
+  torrentPath     string
+}
+
+func (t *Torrent) IsAvailable() bool {
+	if (t.status == torrentPending) {
+		return false
+	}
+	return t.bytesMissing == 0
+}
+
+func (t *Torrent) HasTorrent() bool {
+	return t.status != torrentPending
+}
+
+func (t *Torrent) GetTorrent() {
+	<-t.GotInfo()
+	if t.status != torrentPending {
+		return
+	}
+
+	log.Debug("Torrent gotInfo finished")
+	f, _ := os.Create(t.torrentPath)
+	log.Debug("Write torrent file", "path", t.torrentPath)
+	if err := t.Metainfo().Write(f); err != nil {
+		log.Error("Error while write torrent file", "error", err)
+	}
+
+	defer f.Close()
+	t.status = torrentPaused
 }
 
 func (t *Torrent) Seed() {
@@ -76,14 +106,11 @@ func (t *Torrent) Paused() bool {
 
 // Run ...
 func (t *Torrent) Run() {
-	if t.status != torrentRunning {
-		t.Torrent.DownloadAll()
-		t.status = torrentRunning
-		//t.DownloadAll()
-		//t.status = torrentRunning
-	} else {
-		//log.Info("Torrent is still running", "t", t.Torrent.InfoHash)
+	if t.status == torrentRunning {
+		return
 	}
+	t.Torrent.DownloadAll()
+	t.status = torrentRunning
 }
 
 // Running ...
@@ -104,8 +131,8 @@ type TorrentManager struct {
 	DataDir       string
 	TmpDataDir    string
 	closeAll      chan struct{}
-	newTorrent    chan string
-	removeTorrent chan string
+	newTorrent    chan metainfo.Hash
+	removeTorrent chan metainfo.Hash
 	updateTorrent chan interface{}
 	halt          bool
 	mu            sync.Mutex
@@ -117,12 +144,12 @@ func (tm *TorrentManager) Close() error {
 	return nil
 }
 
-func (tm *TorrentManager) NewTorrent(input string) error {
+func (tm *TorrentManager) NewTorrent(input metainfo.Hash) error {
 	tm.newTorrent <- input
 	return nil
 }
 
-func (tm *TorrentManager) RemoveTorrent(input string) error {
+func (tm *TorrentManager) RemoveTorrent(input metainfo.Hash) error {
 	tm.removeTorrent <- input
 	return nil
 }
@@ -134,6 +161,10 @@ func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
 
 func isMagnetURI(uri string) bool {
 	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
+}
+
+func GetMagnetURI(infohash metainfo.Hash) string {
+	return "magnet:?xt=urn:btih:" + infohash.String()
 }
 
 func (tm *TorrentManager) SetTrackers(trackers []string) {
@@ -187,6 +218,9 @@ func verifyTorrent(info *metainfo.Info, root string) error {
 }
 
 func (tm *TorrentManager) AddTorrent(filePath string) {
+	if _, err := os.Stat(filePath); err != nil {
+		return
+	}
 	mi, err := metainfo.LoadFromFile(filePath)
 	if err != nil {
 		log.Error("Error while adding torrent", "Err", err)
@@ -208,7 +242,7 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 
 	useExistDir := false
 	if _, err := os.Stat(ExistDir); err == nil {
-		log.Info("Seeding from existing file.", "InfoHash", ih.HexString())
+		log.Debug("Seeding from existing file.", "InfoHash", ih.HexString())
 		info, err := mi.UnmarshalInfo()
 		if err != nil {
 			log.Error("error unmarshalling info: ", "info", err)
@@ -220,6 +254,8 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 		}
 	}
 
+	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
+	
 	if useExistDir {
 		spec.Storage = storage.NewFile(ExistDir)
 
@@ -240,9 +276,11 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 			0,
 			0,
 			torrentPending,
+			ih.String(),
+			torrentPath,
 		}
 		//tm.mu.Unlock()
-		tm.torrents[ih].Seed()
+		tm.torrents[ih].Run()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
 
@@ -263,31 +301,27 @@ func (tm *TorrentManager) AddTorrent(filePath string) {
 			0,
 			0,
 			torrentPending,
+			ih.String(),
+			torrentPath,
 		}
 		//tm.mu.Unlock()
-		log.Debug("Existing torrent is waiting for gotInfo", "InfoHash", ih.HexString())
-		<-t.GotInfo()
 		tm.torrents[ih].Run()
 	}
 }
 
-func (tm *TorrentManager) AddMagnet(uri string) {
-	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
-	if err != nil {
-		log.Error("Error while adding magnet uri", "Err", err)
-	}
-	ih := spec.InfoHash
+func (tm *TorrentManager) AddMagnet(ih metainfo.Hash) {
 	dataPath := path.Join(tm.TmpDataDir, ih.HexString())
 	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
-	if _, err := os.Stat(torrentPath); err == nil {
-		tm.AddTorrent(torrentPath)
-		return
-	} else if _, err := os.Stat(seedTorrentPath); err == nil {
+  log.Info("Torrent file path verify", "torrent", torrentPath, "seed torrent", seedTorrentPath)
+	if _, err := os.Stat(seedTorrentPath); err == nil {
 		tm.AddTorrent(seedTorrentPath)
 		return
+	} else if _, err := os.Stat(torrentPath); err == nil {
+		tm.AddTorrent(torrentPath)
+		return
 	}
-	log.Debug("Get torrent from magnet uri", "InfoHash", ih.HexString())
+	log.Debug("Get torrent from infohash", "InfoHash", ih.HexString())
 
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
@@ -296,15 +330,15 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 		//tm.mu.Unlock()
 		return
 	}
-
-	spec.Storage = storage.NewFile(dataPath)
-	if len(spec.Trackers) == 0 {
-		spec.Trackers = append(spec.Trackers, []string{})
+  
+	spec := &torrent.TorrentSpec{
+		Trackers: [][]string{tm.trackers},
+		DisplayName: ih.String(),
+		InfoHash: ih,
+		Storage: storage.NewFile(dataPath),
 	}
-	for _, tracker := range tm.trackers {
-		spec.Trackers[0] = append(spec.Trackers[0], tracker)
-	}
-	t, _, err := tm.client.AddTorrentSpec(spec)
+	
+	t, _, _ := tm.client.AddTorrentSpec(spec)
 	tm.torrents[ih] = &Torrent{
 		t,
 		defaultBytesLimitation,
@@ -312,20 +346,13 @@ func (tm *TorrentManager) AddMagnet(uri string) {
 		0,
 		0,
 		torrentPending,
+		ih.String(),
+		torrentPath,
 	}
 	//tm.mu.Unlock()
 	log.Debug("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
-
-	log.Debug("Torrent gotInfo finished", "InfoHash", ih.HexString())
-	<-t.GotInfo()
-	tm.torrents[ih].Run()
-
-	f, _ := os.Create(torrentPath)
-	log.Debug("Write torrent file", "InfoHash", ih.HexString(), "path", torrentPath)
-	if err := t.Metainfo().Write(f); err != nil {
-		log.Error("Error while write torrent file", "error", err)
-	}
-	defer f.Close()
+  
+	go tm.torrents[ih].GetTorrent()
 }
 
 // UpdateMagnet ...
@@ -343,12 +370,7 @@ func (tm *TorrentManager) UpdateMagnet(ih metainfo.Hash, BytesRequested int64) {
 }
 
 // DropMagnet ...
-func (tm *TorrentManager) DropMagnet(uri string) bool {
-	spec, err := torrent.TorrentSpecFromMagnetURI(uri)
-	if err != nil {
-		log.Warn("error while removing magnet", "error", err)
-	}
-	ih := spec.InfoHash
+func (tm *TorrentManager) DropMagnet(ih metainfo.Hash) bool {
 	if t, ok := tm.torrents[ih]; ok {
 		t.Torrent.Drop()
 		delete(tm.torrents, ih)
@@ -357,6 +379,7 @@ func (tm *TorrentManager) DropMagnet(uri string) bool {
 	return false
 }
 
+var CurrentTorrentManager *TorrentManager = nil
 // NewTorrentManager ...
 func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
@@ -391,8 +414,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		DataDir:       config.DataDir,
 		TmpDataDir:    tmpFilePath,
 		closeAll:      make(chan struct{}),
-		newTorrent:    make(chan string, newTorrentChanBuffer),
-		removeTorrent: make(chan string, removeTorrentChanBuffer),
+		newTorrent:    make(chan metainfo.Hash, newTorrentChanBuffer),
+		removeTorrent: make(chan metainfo.Hash, removeTorrentChanBuffer),
 		updateTorrent: make(chan interface{}, updateTorrentChanBuffer),
 	}
 
@@ -400,9 +423,11 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		//TorrentManager.SetTrackers(strings.Split(config.DefaultTrackers, ","))
 		log.Info("Tracker list", "trackers", config.DefaultTrackers)
 		TorrentManager.SetTrackers(config.DefaultTrackers)
+		TorrentManager.SetTrackers(params.MainnetTrackers)
 	}
 	log.Info("Torrent client initialized")
 
+	CurrentTorrentManager = TorrentManager
 	return TorrentManager
 }
 
@@ -418,16 +443,11 @@ func (tm *TorrentManager) mainLoop() {
 	for {
 		select {
 		case torrent := <-tm.newTorrent:
-			if isMagnetURI(torrent) {
-				go tm.AddMagnet(torrent)
-			} else {
-				go tm.AddTorrent(torrent)
-			}
+			log.Debug("TorrentManager", "newTorrent", torrent)
+			go tm.AddMagnet(torrent)
+				// go tm.AddTorrent(torrent)
 		case torrent := <-tm.removeTorrent:
-			if isMagnetURI(torrent) {
-				go tm.DropMagnet(torrent)
-			} else {
-			}
+			go tm.DropMagnet(torrent)
 		case msg := <-tm.updateTorrent:
 			meta := msg.(FlowControlMeta)
 			go tm.UpdateMagnet(meta.InfoHash, int64(meta.BytesRequested))
@@ -449,6 +469,9 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		if tm.halt {
 			return
 		}
+		var seeding_n int = 0
+		var pending_n int = 0
+		var progress_n int = 0
 		for ih, t := range tm.torrents {
 			if t.Seeding() {
 				t.bytesCompleted = t.BytesCompleted()
@@ -460,6 +483,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						"total", t.bytesCompleted+t.bytesMissing,
 						"seeding", t.Torrent.Seeding(),
 					)
+					seeding_n += 1
 				}
 			} else if !t.Pending() {
 				t.bytesCompleted = t.BytesCompleted()
@@ -476,25 +500,29 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					t.Run()
 				}
 				if counter >= loops {
-					log.Info("Torrent progress",
+					log.Debug("Torrent progress",
 						"InfoHash", ih.HexString(),
 						"completed", t.bytesCompleted,
 						"requested", t.bytesLimitation,
 						"total", t.bytesCompleted+t.bytesMissing,
 						"status", t.status)
+					progress_n += 1
 				}
 			} else {
+				go t.GetTorrent()
 				if counter >= loops {
-					log.Info("Torrent pending",
+					log.Debug("Torrent pending",
 						"InfoHash", ih.HexString(),
 						"completed", t.bytesCompleted,
 						"requested", t.bytesLimitation,
 						"total", t.bytesCompleted+t.bytesMissing,
 						"status", t.status)
+					pending_n += 1
 				}
 			}
 		}
 		if counter >= loops {
+			log.Info("Torrent tasks working status", "progress", progress_n, "pending", pending_n, "seeding", seeding_n)
 			counter = 0
 		}
 		time.Sleep(time.Second * queryTimeInterval)

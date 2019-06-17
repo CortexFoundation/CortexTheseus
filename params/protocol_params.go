@@ -40,7 +40,7 @@ const (
 	LogDataGas            uint64 = 8       // Per byte in a LOG* operation's data.
 	CallStipend           uint64 = 2300    // Free gas given at beginning of call.
 	CallInferGas          uint64 = 1000000 // Base gas for call infer
-	InferOpsPerGas        uint64 = 1500    // 1 gas infer 1500 ops
+	InferOpsPerGas        uint64 = 20000    // 1 gas infer 10000 ops
 
 	Sha3Gas         uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas     uint64 = 6     // Once per word of the SHA3 operation's data.
@@ -113,7 +113,8 @@ var (
 
 const (
 	SeedingBlks = 6                   //for torrent seed spreading
-	MatureBlks  = 100                 //For the full node to synchronize the models
+	MatureBlks  = 100                  //For the full node to synchronize the models 
+	CerebroMatureBlks  = 10           //For the full node to synchronize the models, in cerebro testnet
 	ExpiredBlks = 1000000000000000000 //8409600
 
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024 //How many bytes per upload
