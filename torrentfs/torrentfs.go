@@ -25,6 +25,7 @@ type TorrentFS struct {
 // New creates a new dashboard instance with the given configuration.
 func New(config *Config, commit string) (*TorrentFS, error) {
 	versionMeta := ""
+	TorrentAPIAvailable.Lock()
 	if len(params.VersionMeta) > 0 {
 		versionMeta = fmt.Sprintf(" (%s)", params.VersionMeta)
 	}

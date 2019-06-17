@@ -153,6 +153,11 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
+	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || ctx.GlobalString(utils.ModelCallInterfaceFlag.Name) == ""
+	if storageEnabled {
+		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
+	}
+	
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 
 	// if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
@@ -179,11 +184,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	// 	utils.RegisterCortexStatsService(stack, cfg.Cortexstats.URL)
 	// }
 	//storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) && ctx.GlobalString(utils.SyncModeFlag.Name) == "full"
-	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || ctx.GlobalString(utils.ModelCallInterfaceFlag.Name) == ""
-	if storageEnabled {
-		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
-	}
-	return stack
+  return stack
 }
 
 // dumpConfig is the dumpconfig command.
