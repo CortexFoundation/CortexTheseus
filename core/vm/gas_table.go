@@ -22,6 +22,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	// "github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
 // memoryGasCosts calculates the quadratic gas for memory expansion. It does so
@@ -505,11 +507,23 @@ func gasDelegateCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *St
 }
 
 func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	modelAddr := common.BigToAddress(stack.Back(0))
+	inputAddr := common.BigToAddress(stack.Back(1))
+	_, modelErr := checkModel(cvm, stack, modelAddr)
+	log.Trace("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "ModelErr", modelErr)
+	if modelErr != nil {
+		return 0, modelErr
+	}
+	_, inputErr := checkInputMeta(cvm, stack, inputAddr)
+	log.Trace("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "InputErr", inputErr)
+	if inputErr != nil {
+		return 0, inputErr
+	}
+
 	gas, err := memoryGasCost(mem, 0)
 	if err != nil {
 		return 0, err
 	}
-	
 	modelOps, errOps := cvm.OpsInfer(common.BigToAddress(stack.Back(0)))
 	if errOps != nil {
 		return 0, errOps
@@ -523,11 +537,16 @@ func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, me
 }
 
 func gasInferArray(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	modelAddr := common.BigToAddress(stack.Back(0))
+	_, modelErr := checkModel(cvm, stack, modelAddr)
+	log.Trace("gasInfer", "modelAddr", modelAddr, "ModelErr", modelErr)
+	if modelErr != nil {
+		return 0, modelErr
+	}
 	gas, err := memoryGasCost(mem, 0)
 	if err != nil {
 		return 0, err
 	}
-	
 	modelOps, errOps := cvm.OpsInfer(common.BigToAddress(stack.Back(0)))
 	if errOps != nil {
 		return 0, errOps

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -64,9 +62,20 @@ type FileStorage struct {
 	//tmpCache  *lru.Cache
 }
 
+var initConfig *Config = nil
+
+func InitConfig() *Config {
+	return initConfig
+}
+
 func NewFileStorage(config *Config) (*FileStorage, error) {
+
 	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
 		return nil, err
+	}
+
+	if initConfig == nil {
+		initConfig = config
 	}
 
 	db, dbErr := bolt.Open(filepath.Join(config.DataDir,
@@ -107,103 +116,35 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 	return nil
 }
 
-const (
-	limit = 120
-)
-
-var (
-	torrentCache, _   = lru.New(limit)
-	dataCache, _      = lru.New(limit)
-	availableCache, _ = lru.New(limit)
-)
-
-func Exist(md5 common.Address, dataDir string) bool {
-
-	if dataCache.Contains(md5) {
-		log.Info("Data cache hit !!!", "md5", md5, "size", dataCache.Len(), "limit", limit)
-		return true //dataCache.Get(md5)
-	}
-
-	hash := strings.ToLower(string(md5.Hex()[2:]))
-	inputDir := dataDir + "/" + hash
-	inputFilePath := inputDir + "/data"
-	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
+func Exist(infohash string) bool {
+	ih := metainfo.NewHashFromHex(infohash[2:])
+	tm := CurrentTorrentManager
+	torrent, ok := tm.torrents[ih]
+	if !ok {
 		return false
 	}
-
-	dataCache.Add(md5, true)
-
-	return true
+	return torrent.IsAvailable()
 }
 
-func Available(md5 common.Address, dataDir string, rawSize int64) bool {
-	//cfg := torrent.NewDefaultClientConfig()
-	//cl, err := torrent.NewClient(cfg)
-	//if err != nil {
-	//	return false
-	//}
-	if availableCache.Contains(md5) {
-		log.Info("Available cache hit !!!", "md5", md5, "size", availableCache.Len(), "raw", rawSize, "limit", limit)
-		if length, ok := availableCache.Get(md5); ok {
-			return length.(int64) <= rawSize
-		} else {
-			//return false
-			log.Warn("Available cache purge", "md5", md5, "raw", rawSize)
-			availableCache.Purge()
-		}
-	}
-
-	hash := strings.ToLower(string(md5.Hex()[2:]))
-	torrentDir := dataDir + "/" + hash
-	torrentFilePath := torrentDir + "/torrent"
-	log.Debug("tf", "torrentFilePath", torrentFilePath, "datadir", dataDir, "hash", hash)
-	if _, fsErr := os.Stat(torrentFilePath); os.IsNotExist(fsErr) {
-		log.Warn("Torrent dir not exist", "dir", dataDir, "md5", md5.Hex(), "rawSize", rawSize)
+func Available(infohash string, rawSize int64) bool {
+	ih := metainfo.NewHashFromHex(infohash[2:])
+	tm := CurrentTorrentManager
+	torrent, ok := tm.torrents[ih]
+	if !ok {
 		return false
 	}
-
-	metaInfo, err := metainfo.LoadFromFile(torrentFilePath)
-	if err != nil || metaInfo == nil {
-		log.Warn("Torrent read meta info failed", "dir", dataDir, "md5", md5.Hex(), "rawSize", rawSize, "metaInfo", metaInfo)
-		return false
-	}
-
-	info, err := metaInfo.UnmarshalInfo()
-	if err != nil {
-		log.Warn("Torrent read meta info failed", "dir", dataDir, "md5", md5.Hex(), "rawSize", rawSize, "info", info)
-		return false
-	}
-
-	log.Info("Torrent metainfo", "hash", md5.Hex(), "length", info.Length)
-
-	if info.Length > rawSize {
-		log.Info("Torrent metainfo use a invalid metafile", "hash", md5.Hex(), "rawSize", rawSize, "length", info.Length)
-		availableCache.Add(md5, info.Length)
-		return false
-	}
-
-	availableCache.Add(md5, info.Length)
-
-	return true
+	return torrent.IsAvailable()
 }
 
-func ExistTorrent(md5 common.Address, dataDir string) bool {
 
-	if torrentCache.Contains(md5) {
-		log.Info("Torrent cache hit !!!", "md5", md5, "size", torrentCache.Len(), "limit", limit)
-		return true //torrentCache.Get(md5)
-	}
-
-	hash := strings.ToLower(string(md5.Hex()[2:]))
-	inputDir := dataDir + "/.tmp/" + hash
-	inputFilePath := inputDir + "/torrent"
-	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
+func ExistTorrent(infohash string) bool {
+	ih := metainfo.NewHashFromHex(infohash[2:])
+	tm := CurrentTorrentManager
+	torrent, ok := tm.torrents[ih]
+	if !ok {
 		return false
 	}
-
-	torrentCache.Add(md5, true)
-
-	return true
+	return torrent.HasTorrent()
 }
 
 func (fs *FileStorage) Close() error {

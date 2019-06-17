@@ -67,22 +67,6 @@ func (t *Transaction) IsFlowControl() bool {
 	return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas // && t.Receipt.GasLimit >= params.UploadGas
 }
 
-func getInfohashFromURI(uri string) (*metainfo.Hash, error) {
-	m, err := metainfo.ParseMagnetURI(uri)
-	if err != nil {
-		return nil, err
-	}
-	return &m.InfoHash, err
-}
-
-func getDisplayNameFromURI(uri string) (string, error) {
-	m, err := metainfo.ParseMagnetURI(uri)
-	if err != nil {
-		return "", err
-	}
-	return m.DisplayName, nil
-}
-
 func (t *Transaction) Parse() *FileMeta {
 	if t.Op() == opCreateInput {
 		var meta types.InputMeta
@@ -91,9 +75,11 @@ func (t *Transaction) Parse() *FileMeta {
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
+		var InfoHash = meta.InfoHash()
 		return &FileMeta{
-			&AuthorAddress,
-			meta.URI,
+			AuthorAddress,
+			InfoHash,
+			meta.Comment,
 			meta.RawSize,
 			meta.BlockNum.Uint64(),
 		}
@@ -104,9 +90,11 @@ func (t *Transaction) Parse() *FileMeta {
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
+		var InfoHash = meta.InfoHash()
 		return &FileMeta{
-			&AuthorAddress,
-			meta.URI,
+			AuthorAddress,
+			InfoHash,
+			meta.Comment,
 			meta.RawSize,
 			meta.BlockNum.Uint64(),
 		}
@@ -149,28 +137,20 @@ type TxReceipt struct {
 // FileMeta ...
 type FileMeta struct {
 	// Author Address
-	AuthorAddr *common.Address
-	// Download InfoHash, should be in magnetURI format
-	URI string
+	AuthorAddr common.Address
+	infoHash metainfo.Hash
+	name string
 	// The raw size of the file counted in bytes
 	RawSize  uint64
 	BlockNum uint64
 }
 
 // InfoHash ...
-func (m *FileMeta) InfoHash() *metainfo.Hash {
-	h, err := getInfohashFromURI(m.URI)
-	if err != nil {
-		return nil
-	}
-	return h
+func (m *FileMeta) InfoHash() metainfo.Hash {
+  return m.infoHash
 }
 
 // DisplayName ...
 func (m *FileMeta) DisplayName() string {
-	dn, err := getDisplayNameFromURI(m.URI)
-	if err != nil {
-		return ""
-	}
-	return dn
+	return m.name
 }
