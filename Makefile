@@ -79,8 +79,8 @@ plugins/cuda_helper_for_node.so: PoolMiner/miner/libcuckoo/libcudaminer.a
 plugins/cpu_helper_for_node.so: PoolMiner/miner/libcuckoo/libcpuminer.a
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
-plugins/opencl_helper_for_node.so:  PoolMiner/miner/libcuckoo/libopenclminer.a
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/opencl_helper_for_node.go
+#plugins/opencl_helper_for_node.so:  PoolMiner/miner/libcuckoo/libopenclminer.a
+#	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/opencl_helper_for_node.go
 
 plugins/cuda_cvm.so: infernet/kernel/infer_plugins/cuda_plugin.go
 	cmake -S infernet/ -B infernet/build/gpu -DUSE_CUDA=ON
