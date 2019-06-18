@@ -138,7 +138,7 @@ func runCmd(ctx *cli.Context) error {
 	testModelMeta2, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh2),
-			RawSize:       10000,
+			RawSize:       1000000,
 			InputShape:    []uint64{3, 32, 32},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
@@ -149,7 +149,7 @@ func runCmd(ctx *cli.Context) error {
 	testModelMeta3, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh3),
-			RawSize:       10000,
+			RawSize:       1000000,
 			InputShape:    []uint64{3, 416, 416},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
@@ -160,7 +160,7 @@ func runCmd(ctx *cli.Context) error {
 	testModelMeta4, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh4),
-			RawSize:       10000,
+			RawSize:       100000,
 			InputShape:    []uint64{1, 38, 1},
 			OutputShape:   []uint64{1},
 			Gas:           1000,

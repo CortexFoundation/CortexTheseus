@@ -133,7 +133,7 @@ var (
 		Value: ctxc.DefaultConfig.NetworkId,
 	}
 	BernardFlag = cli.BoolFlag{
-		Name:  "cerebro",
+		Name:  "bernard",
 		Usage: "Bernard network: pre-configured cortex test network",
 	}
 	TestnetFlag = cli.BoolFlag{
