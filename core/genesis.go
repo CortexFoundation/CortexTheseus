@@ -215,8 +215,8 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return g.Config
 	case ghash == params.MainnetGenesisHash:
 		return params.MainnetChainConfig
-	case ghash == params.CerebroGenesisHash:
-		return params.CerebroChainConfig
+	case ghash == params.BernardGenesisHash:
+		return params.BernardChainConfig
 	default:
 		return params.AllCuckooProtocolChanges
 	}
@@ -322,9 +322,9 @@ func DefaultGenesisBlock() *Genesis {
 }
 
 // DefaultTestnetGenesisBlock returns the Ropsten network genesis block.
-func DefaultCerebroGenesisBlock() *Genesis {
+func DefaultBernardGenesisBlock() *Genesis {
 	return &Genesis{
-		Config:     params.CerebroChainConfig,
+		Config:     params.BernardChainConfig,
 		Nonce:      0x0000000000000042,
 		GasLimit:   params.GenesisGasLimit,
 		Difficulty: big.NewInt(2),

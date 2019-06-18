@@ -51,7 +51,7 @@ var MainnetTrackers = []string{
 */
 }
 
-var CerebroTrackers = []string{}
+var BernardTrackers = []string{}
 
 var TestnetTrackers = []string{}
 
