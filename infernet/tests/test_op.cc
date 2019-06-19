@@ -475,7 +475,8 @@ void load_input(int num_inputs, string case_path, vector<vector<uint64_t>>& tsha
       CVMArrayFree(cpu_tensor);
     }
 }
-const string CASE_DIR = "/data/ops_generator";
+//const string CASE_DIR = "/data/ops_generator";
+const string CASE_DIR = "/data/zkh";
 
 void test_op(string op_name) {
   printf("\ntest %s\n", op_name.c_str());
@@ -615,7 +616,7 @@ int main() {
 //  test_op("max_pool2d");
 //   test_op("upsampling");
 //  test_op("dense");
-  test_op("conv2d");
+//  test_op("conv2d");
 //  test_op("sum");
 //  test_op("max"); // pass
 //  test_op("slice_like");
@@ -628,6 +629,6 @@ int main() {
 //  test_op("transpose");// pass
 //  test_op("take");
   // test_op("elemwise_add", 2, 1);
-//  test_op("non_max_suppression");
+  test_op("non_max_suppression");
     return 0;
 }

@@ -151,7 +151,6 @@ const PLUGIN_PATH string = "plugins/"
 const	PLUGIN_POST_FIX string = "_helper_for_node.so"
 
 func (cuckoo *Cuckoo) InitPlugin() error {
-		log.Info("cuckoo", "InitPlugin++++++++++")
 		var minerName string = "cpu"
 		if cuckoo.config.UseCuda == true {
 			minerName = "cuda"
@@ -168,7 +167,6 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 }
 
 func (cuckoo *Cuckoo) InitOnce() error {
-		log.Info("cuckoo", "InitOnce-----------------")
 	var err error
 	cuckoo.once.Do(func() {
 		log.Debug("InitOnce", "start", "")	
