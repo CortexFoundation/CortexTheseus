@@ -211,7 +211,7 @@ func (st *StateTransition) preCheck() error {
 			return ErrQuotaLimitReached
 		}
 
-		meta, err := st.cvm.GetMetaHash(st.to())
+	/*	meta, err := st.cvm.GetMetaHash(st.to())
 		if err != nil {
 			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
 			return ErrUnhandleTx
@@ -224,7 +224,7 @@ func (st *StateTransition) preCheck() error {
 			if err != nil {
 				return err
 			}
-		}
+		}*/
 	}
 
 	return st.buyGas()
