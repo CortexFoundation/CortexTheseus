@@ -159,10 +159,13 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 		minerName = "opencl"
 		cuckoo.threads = 1
 	}
-	log.Info("cuckoo InitPlugin", "name", minerName, "threads", cuckoo.threads)
+	if cuckoo.config.StrDeviceIds == "" {
+		cuckoo.config.StrDeviceIds = "0" //default gpu device 0
+	}
 	var errc error
 	so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
-	log.Debug("InitOnce", "library path", so_path)
+	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
+		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
 	cuckoo.minerPlugin, errc = plugin.Open(so_path)
 	return errc
 }
@@ -170,23 +173,19 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 func (cuckoo *Cuckoo) InitOnce() error {
 	var err error
 	cuckoo.once.Do(func() {
-		log.Debug("InitOnce", "start", "")
 		errc := cuckoo.InitPlugin()
 		if errc != nil {
-			log.Error("InitOnce", "Error", errc)
+			log.Error("Cuckoo Init Plugin", "error", errc)
 			err = errc
 			return
 		} else {
 			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
 			if err != nil {
-				log.Error("InitOnce", "Error", errc)
+				log.Error("Cuckoo Init Plugin", "error", errc)
 				err = errc
 				return
 			}
-			if cuckoo.config.StrDeviceIds == "" {
-				log.Debug("InitOnce", "Setting Device", cuckoo.config.StrDeviceIds)
-				cuckoo.config.StrDeviceIds = "0" //default gpu device 0
-			}
+			// miner algorithm use cuckaroo by default.
 			errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, "cuckaroo")
 			err = errc
 		}
