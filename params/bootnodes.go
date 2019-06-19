@@ -30,8 +30,8 @@ var MainnetBootnodes = []string{
 }
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Cerebro test network.
-var CerebroBootnodes = []string{
+// Bernard test network.
+var BernardBootnodes = []string{
 	// cortex-jp
 	//"enode://5091a81e18f722e6aa8fa7fd887836a4e030b6117ec0d11a7024871a4b9c5bfde35ee60063145f0b3bb2ec5def3fae941423fa7dc6d57f3fe23920242ea8d184@47.74.15.143:37566",
 	// cortex-de

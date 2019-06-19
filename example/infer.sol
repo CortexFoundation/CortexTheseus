@@ -45,9 +45,12 @@ contract AIContract {
     return output[0];
   }
 
-  function call_cifar10(address model) public returns (uint256) {
+  function init_cifar() public returns (uint256) {
     input_data = new uint256[]((1 * 3 * 32 * 32 + 31) >> 5);
-    uint256[] memory output = new uint256[](uint256((1 * 10 + 7) >> 3));
+  }
+
+  function call_cifar(address model) public returns (uint256) {
+    uint256[] memory output = new uint256[](uint256((1 * 10 + 31) >> 3));
     inferArray(model, input_data, output);
     return output[0];
   }

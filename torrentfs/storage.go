@@ -151,9 +151,12 @@ func Available(infohash string, rawSize int64) bool {
 	defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
 	tm := CurrentTorrentManager
+	log.Debug("storage", "ih", ih)
 	if torrent := tm.GetTorrent(ih); torrent == nil {
+		log.Debug("storage", "ih", ih, "torrent", torrent)
 		return false
 	} else {
+		log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
 		return torrent.IsAvailable() && torrent.BytesCompleted() <= rawSize
 	}
 }

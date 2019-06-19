@@ -122,12 +122,8 @@ func remoteConsole(ctx *cli.Context) error {
 			path = ctx.GlobalString(utils.DataDirFlag.Name)
 		}
 		if path != "" {
-			if ctx.GlobalBool(utils.CerebroFlag.Name) {
+			if ctx.GlobalBool(utils.BernardFlag.Name) {
 				path = filepath.Join(path, "cerebro")
-			} else if ctx.GlobalBool(utils.LazynetFlag.Name) {
-				path = filepath.Join(path, "lazynet")
-			} else if ctx.GlobalBool(utils.TestnetFlag.Name) {
-				path = filepath.Join(path, "testnet")
 			}
 		}
 		endpoint = fmt.Sprintf("%s/cortex.ipc", path)

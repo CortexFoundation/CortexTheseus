@@ -114,7 +114,7 @@ var (
 const (
 	SeedingBlks = 6                   //for torrent seed spreading
 	MatureBlks  = 100                  //For the full node to synchronize the models 
-	CerebroMatureBlks  = 10           //For the full node to synchronize the models, in cerebro testnet
+	BernardMatureBlks  = 10           //For the full node to synchronize the models, in cerebro testnet
 	ExpiredBlks = 1000000000000000000 //8409600
 
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024 //How many bytes per upload

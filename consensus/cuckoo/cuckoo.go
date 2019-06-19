@@ -168,7 +168,7 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 }
 
 func (cuckoo *Cuckoo) InitOnce() error {
-		log.Info("cuckoo", "InitOnce-----------------")
+		log.Debug("cuckoo", "InitOnce-----------------")
 	var err error
 	cuckoo.once.Do(func() {
 		log.Debug("InitOnce", "start", "")	
