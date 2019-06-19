@@ -847,7 +847,7 @@ func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*types.In
 
 	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
 	if cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(matureBlockNumber))) > 0 {
-		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.BlockNumber, "MB", matureBlockNumber)
+		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.BlockNumber, "Uploading", cvm.StateDB.Uploading(inputAddr), "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 

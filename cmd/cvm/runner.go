@@ -145,11 +145,11 @@ func runCmd(ctx *cli.Context) error {
 			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
-	mh3, _ := hex.DecodeString("b31ef546c987293cfebbe43e79dd9e228055763b")
+	mh3, _ := hex.DecodeString("d31d1b0f588069aa6f36de5a7025a8d73a9a49f6")
 	testModelMeta3, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh3),
-			RawSize:       1000000,
+			RawSize:       100000000,
 			InputShape:    []uint64{3, 416, 416},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
@@ -201,6 +201,14 @@ func runCmd(ctx *cli.Context) error {
 			Shape:         []uint64{1, 38, 1},
 			BlockNum: *big.NewInt(10),
 		})
+	ih5, _ := hex.DecodeString("91122004e230af0addc1f084fe0c7bbc6cf6c7fb")
+	testInputMeta5, _ := rlp.EncodeToBytes(
+		&types.InputMeta{
+			Hash:          common.BytesToAddress(ih5),
+			RawSize:       519296,
+			Shape:         []uint64{3, 416, 416},
+			BlockNum: *big.NewInt(10),
+		})
 	if false {
 		// statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"),
 		// append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
@@ -211,6 +219,7 @@ func runCmd(ctx *cli.Context) error {
 	statedb.SetCode(common.HexToAddress("0x2002"), append([]byte{0x0, 0x2}, []byte(testInputMeta2)...))
 	statedb.SetCode(common.HexToAddress("0x2003"), append([]byte{0x0, 0x2}, []byte(testInputMeta3)...))
 	statedb.SetCode(common.HexToAddress("0x2004"), append([]byte{0x0, 0x2}, []byte(testInputMeta4)...))
+	statedb.SetCode(common.HexToAddress("0x2005"), append([]byte{0x0, 0x2}, []byte(testInputMeta5)...))
 	// simple address for the sake of debuging
 	statedb.SetCode(common.HexToAddress("0x1001"), append([]byte{0x0, 0x1}, []byte(testModelMeta1)...))
 	statedb.SetCode(common.HexToAddress("0x1002"), append([]byte{0x0, 0x1}, []byte(testModelMeta2)...))
@@ -226,6 +235,7 @@ func runCmd(ctx *cli.Context) error {
 	statedb.SetNum(common.HexToAddress("0x2002"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x2003"), big.NewInt(1))
 	statedb.SetNum(common.HexToAddress("0x2004"), big.NewInt(1))
+	statedb.SetNum(common.HexToAddress("0x2005"), big.NewInt(1))
 
 	fmt.Println("model meta")
 	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x1001"))))
@@ -237,6 +247,7 @@ func runCmd(ctx *cli.Context) error {
 	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x2002"))))
 	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x2003"))))
 	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x2004"))))
+	fmt.Println(common.ToHex(statedb.GetCode(common.HexToAddress("0x2005"))))
 	if ctx.GlobalString(ReceiverFlag.Name) != "" {
 		receiver = common.HexToAddress(ctx.GlobalString(ReceiverFlag.Name))
 	}
