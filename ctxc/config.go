@@ -36,7 +36,7 @@ var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
 	Cuckoo:   cuckoo.Config{
 	},
-	NetworkId:     42,
+	NetworkId:     21,
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,

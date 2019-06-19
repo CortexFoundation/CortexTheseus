@@ -619,6 +619,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	}
 	modelRawSize := modelMeta.RawSize
 	if !cvm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash.Hex(), int64(modelRawSize)) {
+		log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize)
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelMeta.Hash.Hex())
 	}
 

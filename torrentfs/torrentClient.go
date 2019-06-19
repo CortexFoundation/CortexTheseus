@@ -70,9 +70,9 @@ func (t *Torrent) GetTorrent() {
 		return
 	}
 
-	log.Debug("Torrent gotInfo finished")
+	// log.Debug("Torrent gotInfo finished")
 	f, _ := os.Create(t.torrentPath)
-	log.Debug("Write torrent file", "path", t.torrentPath)
+	// log.Debug("Write torrent file", "path", t.torrentPath)
 	if err := t.Metainfo().Write(f); err != nil {
 		log.Error("Error while write torrent file", "error", err)
 	}

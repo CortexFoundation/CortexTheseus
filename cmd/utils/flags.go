@@ -129,12 +129,12 @@ var (
 	// }
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
-		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
+		Usage: "Network identifier (integer, 21=Mainnet, 42=Bernard)",
 		Value: ctxc.DefaultConfig.NetworkId,
 	}
-	CerebroFlag = cli.BoolFlag{
-		Name:  "cerebro",
-		Usage: "Cerebro network: pre-configured cortex test network",
+	BernardFlag = cli.BoolFlag{
+		Name:  "bernard",
+		Usage: "Bernard network: pre-configured cortex test network",
 	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
@@ -623,7 +623,7 @@ func MakeDataDir(ctx *cli.Context) string {
 	switch {
 	case ctx.GlobalIsSet(DataDirFlag.Name):
 		return ctx.GlobalString(DataDirFlag.Name)
-	case ctx.GlobalBool(CerebroFlag.Name):
+	case ctx.GlobalBool(BernardFlag.Name):
 		return filepath.Join(node.DefaultDataDir(), "cerebro")
 	case ctx.GlobalBool(TestnetFlag.Name):
 		return filepath.Join(node.DefaultDataDir(), "testnet")
@@ -640,7 +640,7 @@ func MakeStorageDir(ctx *cli.Context) string {
 	switch {
 	case ctx.GlobalIsSet(StorageDirFlag.Name):
 		return ctx.GlobalString(StorageDirFlag.Name)
-	case ctx.GlobalBool(CerebroFlag.Name):
+	case ctx.GlobalBool(BernardFlag.Name):
 		return filepath.Join(node.DefaultStorageDir(""), "cerebro")
 	case ctx.GlobalBool(TestnetFlag.Name):
 		return filepath.Join(node.DefaultStorageDir(""), "testnet")
@@ -695,8 +695,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
-	case ctx.GlobalBool(CerebroFlag.Name):
-		urls = params.CerebroBootnodes
+	case ctx.GlobalBool(BernardFlag.Name):
+		urls = params.BernardBootnodes
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
 	case ctx.GlobalBool(LazynetFlag.Name):
@@ -924,7 +924,7 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	// switch {
 	// case ctx.GlobalIsSet(DataDirFlag.Name):
 	// 	cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	// case ctx.GlobalBool(CerebroFlag.Name):
+	// case ctx.GlobalBool(BernardFlag.Name):
 	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "cerebro")
 	// case ctx.GlobalBool(LazynetFlag.Name):
 	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
@@ -1040,7 +1040,7 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 // SetCortexConfig applies ctxc-related command line flags to the config.
 func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
-	// checkExclusive(ctx, DeveloperFlag, CerebroFlag, LazynetFlag)
+	// checkExclusive(ctx, DeveloperFlag, BernardFlag, LazynetFlag)
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setCoinbase(ctx, ks, cfg)
@@ -1118,15 +1118,18 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
+	if (cfg.InferDeviceType == "gpu") {
+		cfg.InferDeviceType = "cuda";
+	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
 
 	// Override any default configs for hard coded networks.
 	switch {
-	case ctx.GlobalBool(CerebroFlag.Name):
+	case ctx.GlobalBool(BernardFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 42
 		}
-		cfg.Genesis = core.DefaultCerebroGenesisBlock()
+		cfg.Genesis = core.DefaultBernardGenesisBlock()
 	//case ctx.GlobalBool(TestnetFlag.Name):
 	//	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 	//		cfg.NetworkId = 28
@@ -1276,8 +1279,8 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ctxcdb.Database {
 func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
-	case ctx.GlobalBool(CerebroFlag.Name):
-		genesis = core.DefaultCerebroGenesisBlock()
+	case ctx.GlobalBool(BernardFlag.Name):
+		genesis = core.DefaultBernardGenesisBlock()
 	// case ctx.GlobalBool(TestnetFlag.Name):
 	// 	genesis = core.DefaultTestnetGenesisBlock()
 	// case ctx.GlobalBool(LazynetFlag.Name):

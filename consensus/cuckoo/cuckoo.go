@@ -150,10 +150,8 @@ func NewShared() *Cuckoo {
 const PLUGIN_PATH string = "plugins/"
 const	PLUGIN_POST_FIX string = "_helper_for_node.so"
 
-func (cuckoo *Cuckoo) InitOnce() error {
-	var err error
-	cuckoo.once.Do(func() {
-		log.Debug("InitOnce", "start", "")	
+func (cuckoo *Cuckoo) InitPlugin() error {
+		log.Info("cuckoo", "InitPlugin++++++++++")
 		var minerName string = "cpu"
 		if cuckoo.config.UseCuda == true {
 			minerName = "cuda"
@@ -166,12 +164,20 @@ func (cuckoo *Cuckoo) InitOnce() error {
 		so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
 		log.Debug("InitOnce", "so path", so_path)	
 		cuckoo.minerPlugin, errc = plugin.Open(so_path)
+		return errc
+}
+
+func (cuckoo *Cuckoo) InitOnce() error {
+		log.Debug("cuckoo", "InitOnce-----------------")
+	var err error
+	cuckoo.once.Do(func() {
+		log.Debug("InitOnce", "start", "")	
+		errc := cuckoo.InitPlugin()
 		if errc != nil {
 			log.Error("InitOnce", "Error", errc)	
 			err = errc
 			return
 		}else{
-			log.Debug("InitOnce", "Lookup", so_path + "CuckooInitialize")	
 			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
 			if err != nil {
 				log.Error("InitOnce", "Error", errc)	

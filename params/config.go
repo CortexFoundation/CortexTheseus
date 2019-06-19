@@ -26,14 +26,14 @@ import (
 // Genesis hashes to enforce below configs on.
 var (
 	MainnetGenesisHash = common.HexToHash("")
-	CerebroGenesisHash = common.HexToHash("")
+	BernardGenesisHash = common.HexToHash("")
 	RinkebyGenesisHash = common.HexToHash("")
 )
 
 //It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	//MainnetGenesisHash: MainnetTrustedCheckpoint,
-	//CerebroGenesisHash: CerebroTrustedCheckpoint,
+	//BernardGenesisHash: BernardTrustedCheckpoint,
 	//TestnetGenesisHash: TestnetTrustedCheckpoint,
 	//RinkebyGenesisHash: RinkebyTrustedCheckpoint,
 }
@@ -47,7 +47,7 @@ type TrustedCheckpoint struct {
 var (
 	CortexBlockRewardPeriod = big.NewInt(8409600)
 	//CortexBlockRewardPeriod = big.NewInt(25228800)
-	CerebroBlockRewardPeriod = big.NewInt(1000000)
+	BernardBlockRewardPeriod = big.NewInt(1000000)
 
 )
 
@@ -75,7 +75,7 @@ var (
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
-	CerebroChainConfig = &ChainConfig{
+	BernardChainConfig = &ChainConfig{
 		ChainID: big.NewInt(42),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
@@ -392,7 +392,7 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 // Get Mature Block
 func (c *ChainConfig) GetMatureBlock() int64 {
 	if c.ChainID.Uint64() == 42 {
-		return CerebroMatureBlks
+		return BernardMatureBlks
 	}
 	return MatureBlks;
 }
