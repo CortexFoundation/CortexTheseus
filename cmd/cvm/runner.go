@@ -138,7 +138,7 @@ func runCmd(ctx *cli.Context) error {
 	testModelMeta2, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh2),
-			RawSize:       10000,
+			RawSize:       1000000,
 			InputShape:    []uint64{3, 32, 32},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
@@ -149,7 +149,7 @@ func runCmd(ctx *cli.Context) error {
 	testModelMeta3, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh3),
-			RawSize:       10000,
+			RawSize:       1000000,
 			InputShape:    []uint64{3, 416, 416},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
@@ -160,7 +160,7 @@ func runCmd(ctx *cli.Context) error {
 	testModelMeta4, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh4),
-			RawSize:       10000,
+			RawSize:       6219271,
 			InputShape:    []uint64{1, 38, 1},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
@@ -175,7 +175,6 @@ func runCmd(ctx *cli.Context) error {
 			Hash:          common.BytesToAddress(ih1),
 			RawSize:       10000,
 			Shape:         []uint64{3, 224, 224},
-			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
 		})
 	ih2, _ := hex.DecodeString("aea5584d0cd3865e90c80eace3bfcb062473d966")
@@ -184,7 +183,6 @@ func runCmd(ctx *cli.Context) error {
 			Hash:          common.BytesToAddress(ih2),
 			RawSize:       3152,
 			Shape:         []uint64{3, 32, 32},
-			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
 		})
 	ih3, _ := hex.DecodeString("8e14bbd1c395b7fdcc36fbd3e5f3b6cb7931cc67")
@@ -193,7 +191,6 @@ func runCmd(ctx *cli.Context) error {
 			Hash:          common.BytesToAddress(ih3),
 			RawSize:       519296,
 			Shape:         []uint64{3, 416, 416},
-			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
 		})
 	ih4, _ := hex.DecodeString("0fa499fb0966faf927d0c7a4c5f561a37ef8c3e3")
@@ -202,7 +199,6 @@ func runCmd(ctx *cli.Context) error {
 			Hash:          common.BytesToAddress(ih4),
 			RawSize:       10000,
 			Shape:         []uint64{1, 38, 1},
-			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 			BlockNum: *big.NewInt(10),
 		})
 	if false {

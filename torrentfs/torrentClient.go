@@ -50,7 +50,7 @@ type Torrent struct {
 	bytesMissing    int64
 	status          int64
 	infohash        string
-  torrentPath     string
+	torrentPath     string
 }
 
 func (t *Torrent) IsAvailable() bool {
@@ -70,9 +70,9 @@ func (t *Torrent) GetTorrent() {
 		return
 	}
 
-	log.Debug("Torrent gotInfo finished")
+	// log.Debug("Torrent gotInfo finished")
 	f, _ := os.Create(t.torrentPath)
-	log.Debug("Write torrent file", "path", t.torrentPath)
+	// log.Debug("Write torrent file", "path", t.torrentPath)
 	if err := t.Metainfo().Write(f); err != nil {
 		log.Error("Error while write torrent file", "error", err)
 	}
@@ -284,11 +284,12 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 			int64(float64(BytesRequested) * expansionFactor),
 			0,
 			0,
-			torrentPending,
+			torrentPaused,
 			ih.String(),
 			torrentPath,
 		}
 		tm.SetTorrent(ih, torrent)
+		<-t.GotInfo()
 		torrent.Seed()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
@@ -306,11 +307,12 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 			int64(float64(BytesRequested) * expansionFactor),
 			0,
 			0,
-			torrentPending,
+			torrentPaused,
 			ih.String(),
 			torrentPath,
 		}
 		tm.SetTorrent(ih, torrent)
+		<-t.GotInfo()
 		torrent.Run()
 	}
 }
@@ -324,7 +326,6 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	dataPath := path.Join(tm.TmpDataDir, ih.HexString())
 	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
-  log.Debug("Torrent file path verify", "torrent", torrentPath, "seed torrent", seedTorrentPath)
 	
 	if _, err := os.Stat(seedTorrentPath); err == nil {
 		tm.AddTorrent(seedTorrentPath, BytesRequested)
@@ -351,6 +352,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	for _, tracker := range tm.trackers {
 		spec.Trackers = append(spec.Trackers, tracker)
 	}
+	log.Debug("Torrent specific info", "spec", spec)
 
 	t, _, _ := tm.client.AddTorrentSpec(spec)
 	torrent := &Torrent{
@@ -401,8 +403,7 @@ var CurrentTorrentManager *TorrentManager = nil
 // NewTorrentManager ...
 func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
-	// (TODO) some network device may not support utp protocol, which results in burst of latency
-	cfg.DisableUTP = false
+	cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = false
 	cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs
 	cfg.DataDir = config.DataDir
@@ -410,7 +411,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
 	listenAddr := &net.TCPAddr{}
 	log.Info("Torrent client listening on", "addr", listenAddr)
-	cfg.SetListenAddr(listenAddr.String())
+	//cfg.SetListenAddr(listenAddr.String())
+	cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
 	//cfg.EstablishedConnsPerTorrent = 5
 	//cfg.HalfOpenConnsPerTorrent = 3
@@ -438,7 +440,6 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	}
 
 	if len(config.DefaultTrackers) > 0 {
-		//TorrentManager.SetTrackers(strings.Split(config.DefaultTrackers, ","))
 		log.Info("Tracker list", "trackers", config.DefaultTrackers)
 		TorrentManager.SetTrackers(config.DefaultTrackers)
 		TorrentManager.SetTrackers(params.MainnetTrackers)
@@ -490,6 +491,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		var seeding_n int = 0
 		var pending_n int = 0
 		var progress_n int = 0
+		var pause_n int = 0
 		for ih, t := range tm.torrents {
 			if t.Seeding() {
 				t.bytesCompleted = t.BytesCompleted()
@@ -501,7 +503,9 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						"total", t.bytesCompleted+t.bytesMissing,
 						"seeding", t.Torrent.Seeding(),
 					)
-					seeding_n += 1
+					if t.Torrent.Seeding() {
+						seeding_n += 1
+					}
 				}
 			} else if !t.Pending() {
 				t.bytesCompleted = t.BytesCompleted()
@@ -524,10 +528,15 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						"requested", t.bytesLimitation,
 						"total", t.bytesCompleted+t.bytesMissing,
 						"status", t.status)
-					progress_n += 1
+					if t.bytesCompleted != 0 {
+						if t.bytesCompleted >= t.bytesLimitation {
+							pause_n += 1
+						} else {
+							progress_n += 1
+						}
+					}
 				}
 			} else {
-				go t.GetTorrent()
 				if counter >= loops {
 					log.Debug("Torrent pending",
 						"InfoHash", ih.HexString(),
@@ -540,7 +549,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			}
 		}
 		if counter >= loops {
-			log.Info("Torrent tasks working status", "progress", progress_n, "pending", pending_n, "seeding", seeding_n)
+			log.Info("Torrent tasks working status", "pause", pause_n, "progress", progress_n, "pending", pending_n, "seeding", seeding_n)
 			counter = 0
 		}
 		time.Sleep(time.Second * queryTimeInterval)

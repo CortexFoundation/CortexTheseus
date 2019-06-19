@@ -4,15 +4,14 @@ package synapse
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
-	"fmt"
 
+	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/common/lru"
 )
-
 
 func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
 	var (
@@ -52,7 +51,7 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		return v.(uint64), nil
 	}
 	if s.config.Debug {
-		fmt.Println("modelCfg =" , modelCfg, "modelBin = ", modelBin)
+		fmt.Println("modelCfg =", modelCfg, "modelBin = ", modelBin)
 	}
 	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
 		return 0, ErrModelFileNotExist
@@ -72,7 +71,6 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	}
 	return gas, err
 }
-
 
 func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh chan []byte, errCh chan error) {
 	var (
@@ -106,7 +104,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 	s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
 }
 
-func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte)([]byte, error) {
+func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte) ([]byte, error) {
 	var model *kernel.Model
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		s.caches[s.config.DeviceId] = lru.New(4000000)
@@ -122,7 +120,7 @@ func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte)([]byte, 
 			return nil, errors.New("create model error")
 		}
 		//TODO(tian) replace it with gas per KB
-		s.caches[s.config.DeviceId].Add(modelCfg, model, model.Size() / 1000)
+		s.caches[s.config.DeviceId].Add(modelCfg, model, model.Size()/1000)
 	}
 	return model.Predict(inputContent)
 }
@@ -158,7 +156,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	modelBin := modelDir + "/data/params"
 	log.Debug("Inference Core", "Model Config File", modelCfg, "Model Binary File", modelBin, "InputInfoHash", inputInfoHash)
 	if s.config.Debug {
-		fmt.Println("modelCfg =" , modelCfg, "modelBin = ", modelBin)
+		fmt.Println("modelCfg =", modelCfg, "modelBin = ", modelBin)
 	}
 	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
 		errCh <- ErrModelFileNotExist
