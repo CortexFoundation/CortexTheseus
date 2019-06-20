@@ -189,12 +189,12 @@ var (
 		Usage: "P2P storage listening interface (remote mode)",
 		Value: torrentfs.DefaultConfig.Host,
 	}
+	*/
 	StoragePortFlag = cli.IntFlag{
 		Name:  "storage.host",
-		Usage: "P2P storage listening port (remote mode)",
+		Usage: "p2p storage listening port",
 		Value: torrentfs.DefaultConfig.Port,
 	}
-	*/
 	StorageEnableUTPFlag = cli.BoolFlag{
 		Name:  "storage.utp",
 		Usage: "Enable utp in p2p storage",
@@ -1185,7 +1185,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
 func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 //	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
-//	cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+  cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""

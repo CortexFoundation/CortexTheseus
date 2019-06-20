@@ -10,6 +10,7 @@ import (
 	//	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 )
 
 var synapseInstance *Synapse = nil
@@ -17,23 +18,6 @@ var synapseInstance *Synapse = nil
 const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_cvm.so"
 
-/*
-// Config ...
-type Config struct {
-	DataDir string
-	RpcURI  string `toml:",omitempty"`
-	IpcPath string `toml:",omitempty"`
-	// Host is the host interface on which to start the storage server. If this
-	// field is empty, no storage will be started.
-	Host string `toml:",omitempty"`
-	// Port is the TCP port number on which to start the storage server. The
-	// default zero value is/ valid and will pick a port number randomly.
-	Port            int    `toml:",omitempty"`
-	DefaultTrackers string `toml:",omitempty"`
-	SyncMode        string `toml:",omitempty"`
-	TestMode        bool   `toml:",omitempty"`
-}
-*/
 
 type Config struct {
 	StorageDir    string `toml:",omitempty"`
@@ -43,6 +27,7 @@ type Config struct {
 	IsRemoteInfer bool   `toml:",omitempty"`
 	InferURI      string `toml:",omitempty"`
 	Debug         bool   `toml:",omitempty"`
+	Storagefs torrentfs.CVMStorage
 }
 
 var DefaultConfig Config = Config{

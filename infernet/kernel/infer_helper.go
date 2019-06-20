@@ -2,12 +2,8 @@ package kernel
 
 import (
 	"fmt"
-//	"os"
-//	"time"
 	"errors"
 	"unsafe"
-//	"strings"
-//	"strconv"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"plugin"
 )
@@ -20,7 +16,7 @@ type Model struct {
 	size int64
 }
 
-func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin string) *Model {
+func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin []byte) *Model {
 	var model unsafe.Pointer
 	var size int64
 	var ops int64
@@ -29,7 +25,7 @@ func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin string) *Model {
 		log.Error("infer helper", "LoadModel", "error", err)
 		return nil
 	} else {
-		model, err = m.(func(string, string, int)(unsafe.Pointer, error))(modelCfg, modelBin, deviceId)
+		model, err = m.(func([]byte, []byte, int)(unsafe.Pointer, error))(modelCfg, modelBin, deviceId)
 		if model == nil || err != nil {
 			log.Error("infer helper", "LoadModel", "error", err)
 			return nil
@@ -103,13 +99,13 @@ func (m *Model) GetOutputLength() int {
 	}
 }
 
-func GetModelOps(lib *plugin.Plugin, filepath string) (uint64, error) {
+func GetModelOps(lib *plugin.Plugin, file []byte) (uint64, error) {
 	m, err := lib.Lookup("GetModelOps")
 	if err != nil{
 		log.Error("infer helper", "GetModelOps", "error", err)
 		return 0, err
 	}
-	ret, err := m.(func(string)(uint64, error))(filepath)
+	ret, err := m.(func([]byte)(uint64, error))(file)
 	if ret < 0 {
 		return 0, errors.New("Gas Error")
 	} else {
