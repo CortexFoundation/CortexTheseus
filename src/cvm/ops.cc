@@ -1964,9 +1964,10 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
     int32_t n = x->shape[1];
     int32_t k = x->shape[2];
 
-    non_max_suppression(
+    int ret = non_max_suppression(
             x_data, valid_count_data, y_data, batchs, n, k,
             max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
+    VERIFY(ret >= 0);
 });
 
 //CVM_REGISTER_GLOBAL("cvm.runtime.cvm.bias_add")
