@@ -41,6 +41,11 @@ torrent:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 
+torrent-test:
+	build/env.sh go run build/ci.go install ./cmd/torrent-test
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
+
 cortex-remote: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
 	@echo "Done building."
