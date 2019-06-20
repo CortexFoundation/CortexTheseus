@@ -38,6 +38,8 @@ func GetInstance() *TorrentFS {
 func GetConfig() *Config {
 	if torrentInstance != nil {
 		return torrentInstance.Config()
+	} else {
+		return &DefaultConfig
 	}
 	return nil
 }
