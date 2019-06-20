@@ -123,9 +123,19 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
           num_valid_boxes = y_index;
         }
         if(max_output_size > 0){
-            if(max_output_size < num_valid_boxes){
-                memset(&y_batch[max_output_size * k], -1, (num_valid_boxes - max_output_size) * k * sizeof(int32_t));
+          int j = 0;
+          for(int i = 0; i < vc; i++){
+            if(y_batch[i*k] >= 0){
+              if(j == max_output_size){
+                memset(y_batch + i * k, -1, k * sizeof(int32_t));
+              }else{
+                j += 1;
+              }
             }
+          }
+         //   if(max_output_size < num_valid_boxes){
+         //       memset(&y_batch[max_output_size * k], -1, (num_valid_boxes - max_output_size) * k * sizeof(int32_t));
+         //   }
         }
     }
 }
