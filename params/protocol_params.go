@@ -130,8 +130,8 @@ const (
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 // Maximum size of a model
 	MODEL_GAS_LIMIT        uint64 = 20000          // Max gas limit for a model inference's reward to the author
 
-	CONFIRM_TIME   = -60                 // TESTING:* time.Second block should be protected past this time
-	CONFIRM_BLOCKS = 12                  // TESTING
+	//CONFIRM_TIME   = -60                 // TESTING:* time.Second block should be protected past this time
+	//CONFIRM_BLOCKS = 12                  // TESTING
 
 	BLOCK_QUOTA = 65536                  // Upon the generation of a new valid block, 64kB file quota is added to the network. Empty blocks also count.
 )

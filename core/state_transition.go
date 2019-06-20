@@ -30,7 +30,7 @@ import (
 	//"github.com/CortexFoundation/CortexTheseus/core/asm"
 	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	//"github.com/CortexFoundation/CortexTheseus/torrentfs"
-	"time"
+	//"time"
 )
 
 var (
@@ -182,7 +182,7 @@ func (st *StateTransition) buyGas() error {
 	return nil
 }
 
-var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
+//var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
