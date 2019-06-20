@@ -17,12 +17,17 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
 
     //int64_t sum_area = static_cast<int64_t>(std::abs(x1_max-x1_min)) * std::abs(y1_max-y1_min) + static_cast<int64_t>(std::abs(x2_max-x2_min)) * std::abs(y2_max-y2_min);
+    //x1,x2,y1,y2 precision <= 30
+    //sum_arrea precision<=63
     int64_t sum_area = static_cast<int64_t>(x1_max-x1_min) * (y1_max-y1_min) + static_cast<int64_t>(x2_max-x2_min) * (y2_max-y2_min);
 
 //    if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
+    //w,h precision <= 31
     int32_t w = std::max(0, std::min(x1_max, x2_max) - std::max(x1_min, x2_min));
     int32_t h = std::max(0, std::min(y1_max, y2_max) - std::max(y1_min, y2_min));
+    //overlap_area precision <= 62
     int64_t overlap_area = static_cast<int64_t>(h)*w;
+    //tmp precision <= 64
     int64_t tmp = (sum_area - overlap_area);
     if(tmp <= 0){
         return 0;
