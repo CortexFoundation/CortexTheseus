@@ -16,6 +16,19 @@ namespace top {
 
 CVMUTIL_REGISTER_PARAMETER(NonMaximumSuppressionParam);
 
+inline bool NMSInferPrecision(
+              const NodeAttrs& attrs,
+              std::vector<TShape> *shapes,
+              std::vector<int> *iattr,
+              std::vector<int> *oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
+
+  VERIFY(iattr->at(0) <= 30)
+    << "nms only supported input data precision less than 30 vs. "
+    << iattr->at(0);
+  (*oattr)[0] = iattr->at(0);
+  return true;
+}
 bool NMSShape(const NodeAttrs& attrs,
               std::vector<TShape> *in_attrs,
               std::vector<TShape> *out_attrs) {
@@ -134,6 +147,7 @@ inline bool GetValidInferPrecision(
               std::vector<TShape> *shapes,
               std::vector<int> *iattr,
               std::vector<int> *oattr) {
+  IN_PREC_CHECK(iattr, attrs.name);
   const auto& shp = shapes->at(0);
   int64_t inl = shp.Size() / shp[0];
   auto oprec1 = GetBit(inl);
