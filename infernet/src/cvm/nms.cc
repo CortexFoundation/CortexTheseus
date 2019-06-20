@@ -16,17 +16,32 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t x2_max = format == FORMAT_CORNER ? rect2[2] : x2_min + rect2[2];
     int32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
 
-    int64_t sum_area = static_cast<int64_t>(std::abs(x1_max-x1_min)) * std::abs(y1_max-y1_min) + static_cast<int64_t>(std::abs(x2_max-x2_min)) * std::abs(y2_max-y2_min);
-
-    if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
-    int32_t w = std::min(x1_max, x2_max) - std::max(x1_min, x2_min);
-    int32_t h = std::min(y1_max, y2_max) - std::max(y1_min, y2_min);
-    int64_t overlap_area = static_cast<int64_t>(h)*w;
-    int64_t tmp = (sum_area - overlap_area) / 100;
-    if(tmp <= 0){
-        return 100;
+    //int64_t sum_area = static_cast<int64_t>(std::abs(x1_max-x1_min)) * std::abs(y1_max-y1_min) + static_cast<int64_t>(std::abs(x2_max-x2_min)) * std::abs(y2_max-y2_min);
+    //x1,x2,y1,y2 precision <= 30
+    //sum_arrea precision<=63
+    int64_t sum_area = static_cast<int64_t>(x1_max-x1_min) * (y1_max-y1_min) + static_cast<int64_t>(x2_max-x2_min) * (y2_max-y2_min);
+    if(sum_area <= 0){
+        return 0;
     }
-    int64_t ret = (overlap_area / ((sum_area - overlap_area)/100));
+
+//    if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
+    //w,h precision <= 31
+    int32_t w = std::max(0, std::min(x1_max, x2_max) - std::max(x1_min, x2_min));
+    int32_t h = std::max(0, std::min(y1_max, y2_max) - std::max(y1_min, y2_min));
+    //overlap_area precision <= 62
+    int64_t overlap_area = static_cast<int64_t>(h)*w;
+    //tmp precision <= 63
+    int64_t tmp = (sum_area - overlap_area);
+    if(tmp <= 0){
+        return 0;
+    }
+    int64_t max64 = ((int64_t)1 << 63) - 1;
+    if(max64 / 100 < overlap_area){
+        tmp /= 100;
+    }else{
+        overlap_area *= 100;
+    }
+    int64_t ret = (overlap_area / tmp);//((sum_area - overlap_area)/100));
     return ret;
 }
 
@@ -55,56 +70,69 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
         const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress){
     for(int32_t b = 0; b < batchs; b++){
         int32_t vc = valid_count_data[b];
-        std::vector<int32_t*> rows(n);
         int32_t *x_batch = x_data + b * n * k;
         int32_t *y_batch = y_data + b * n * k;
 
-        for (int i = 0; i < n; i++) {
+        if(iou_threshold <= 0){
+            memcpy(y_batch, x_batch, vc * k * sizeof(int32_t));
+            memset(y_batch + vc * n * k, -1, (n-vc)*k * sizeof(int32_t));
+        }else{
+          std::vector<int32_t*> rows(vc);
+          for (int i = 0; i < vc; i++) {
             rows[i] = x_batch + i * k;
-        }
-        for(int i = vc; i < n; i++){
-            memset(rows[i], -1, k * sizeof(int32_t));
-        }
-        auto score_idx_local = score_index;
-        std::sort(rows.begin(), rows.end(), [&score_idx_local](const int32_t* a, const int32_t* b){
-                return a[score_idx_local] > b[score_idx_local];
-        });
-        if(topk > 0 && topk < vc){
+          }
+          auto score_idx_local = score_index;
+          std::sort(rows.begin(), rows.end(), [&score_idx_local](const int32_t* a, const int32_t* b){
+              return a[score_idx_local] > b[score_idx_local];
+              });
+          if(topk > 0 && topk < vc){
             for(int i = 0; i < vc - topk; i++){
-                memset(rows[i+topk], -1, k * sizeof(int32_t));
+              memset(rows[i+topk], -1, k * sizeof(int32_t));
             }
-        }
+          }
 
-        std::vector<bool> removed(n, false);
-        int start_i = ((topk >= 0 && topk < vc) ? topk : vc);
-        for(int i = start_i; i < n; i++){
+          std::vector<bool> removed(n, false);
+          int need_keep = ((topk >= 0 && topk < vc) ? topk : vc);
+          for(int i = need_keep; i < vc; i++){
             removed[i] = true;
-        }
+          }
 
-        int32_t y_index = 0;
-        for(int i = 0; i < vc; i++){
+          int32_t y_index = 0;
+          for(int i = 0; i < need_keep; i++){
             int32_t *row1 = rows[i];
 
             if(removed[i] == false){
-                memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
-                y_index += 1;
+              memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
+              y_index += 1;
             }
-            for(int j = i+1; j < n && !removed[i] && iou_threshold > 0; j++){
-                int32_t* row2 = rows[j];
-                if(force_suppress || (id_index < 0 || row1[id_index] == row2[id_index])){
-                    if(iou(row1+coord_start, row2+coord_start, FORMAT_CORNER) > iou_threshold){
-                        removed[j] = true;
-                    }
+            for(int j = i+1; j < need_keep && !removed[i] && rows[j][0] >= 0; j++){
+              int32_t* row2 = rows[j];
+              if(force_suppress || (id_index < 0 || row1[id_index] == row2[id_index])){
+                int64_t iou_ret = iou(row1+coord_start, row2+coord_start, FORMAT_CORNER);
+                if(iou_ret >= iou_threshold){
+                  removed[j] = true;
                 }
+              }
             }
-        }
-        if(y_index < n){
+          }
+          if(y_index < n){
             memset(&y_batch[y_index*k], -1, (n - y_index) * k * sizeof(int32_t));
+          }
         }
         if(max_output_size > 0){
-            if(max_output_size < y_index){
-                memset(&y_batch[max_output_size * k], -1, (y_index - max_output_size) * k * sizeof(int32_t));
+          int j = 0;
+          for(int i = 0; i < vc; i++){
+            if(y_batch[i*k] >= 0){
+              if(j == max_output_size){
+                memset(y_batch + i * k, -1, k * sizeof(int32_t));
+              }else{
+                j += 1;
+              }
             }
+          }
+         //   if(max_output_size < num_valid_boxes){
+         //       memset(&y_batch[max_output_size * k], -1, (num_valid_boxes - max_output_size) * k * sizeof(int32_t));
+         //   }
         }
     }
 }

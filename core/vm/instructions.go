@@ -28,7 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"github.com/CortexFoundation/CortexTheseus/core"
-	"time"
+	//"time"
 )
 
 var (
@@ -693,7 +693,7 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *
 }
 
 var (
-	confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
+	//confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 )
 
 func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {

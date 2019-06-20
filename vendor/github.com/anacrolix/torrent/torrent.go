@@ -1427,7 +1427,7 @@ func (t *Torrent) dhtAnnouncer(s *dht.Server) {
 			if err == nil {
 				t.numDHTAnnounces++
 			} else {
-				log.Printf("error announcing %q to DHT: %s", t, err)
+				// log.Printf("error announcing %q to DHT: %s", t, err)
 			}
 		}()
 		select {

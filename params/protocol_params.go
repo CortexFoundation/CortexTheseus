@@ -103,28 +103,35 @@ var (
 
 	DurationLimit = big.NewInt(13) // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
+	// For Internal Test
 	//CTXC_TOP = big.NewInt(0).Mul(big.NewInt(15000), big.NewInt(1000000000000000000))
 	//CTXC_INIT = big.NewInt(0).Mul(big.NewInt(0), big.NewInt(1000000000000000000))
 	//CTXC_MINING = big.NewInt(0).Mul(big.NewInt(15000), big.NewInt(1000000000000000000))
+
+	// For Mainnet
+	// |CTXC_TOP|:    Total Amount of Cortex Coin(CTXC) is lightspeed in vacuum: 299792458 m/s
 	CTXC_TOP    = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
+	// |CTXC_INIT|:   For Pre-Allocated CTXCs before Mainnet launch
 	CTXC_INIT   = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
+	// |CTXC_MINING|: For mining
 	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
 )
 
 const (
-	SeedingBlks = 6                   //for torrent seed spreading
-	MatureBlks  = 100                  //For the full node to synchronize the models 
-	BernardMatureBlks  = 10           //For the full node to synchronize the models, in cerebro testnet
-	ExpiredBlks = 1000000000000000000 //8409600
+	// SeedingBlks = 6                   // TESTING: for torrent seed spreading
+	MatureBlks  = 100                    // Blocks between model uploading tx and model ready for use.
+	                                     // For the full node to synchronize the models 
+        BernardMatureBlks  = 10              // TESTING: For the full node to synchronize the models, in cerebro testnet
+	ExpiredBlks = 1000000000000000000    // TESTING: Model expire blocks. Not effective. 8409600
 
-	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024 //How many bytes per upload
-	DEFAULT_UPLOAD_BYTES   uint64 = 0              //default upload bytes
-	MODEL_MIN_UPLOAD_BYTES        = 0
-	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024
-	MODEL_GAS_LIMIT        uint64 = 10000 //max gas limit for model invoke
+	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024 // Step of each progress update about how many bytes per upload tx
+	DEFAULT_UPLOAD_BYTES   uint64 = 0              // Default upload bytes
+	MODEL_MIN_UPLOAD_BYTES        = 0	       // Minimum size of a model
+	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 // Maximum size of a model
+	MODEL_GAS_LIMIT        uint64 = 20000          // Max gas limit for a model inference's reward to the author
 
-	CONFIRM_TIME   = -60 // * time.Second block should be protected past this time
-	CONFIRM_BLOCKS = 12
+	//CONFIRM_TIME   = -60                 // TESTING:* time.Second block should be protected past this time
+	//CONFIRM_BLOCKS = 12                  // TESTING
 
-	BLOCK_QUOTA = 65536//24576 //32768//65536     //one block includes 64k file quota, even empty block should make more sense
+	BLOCK_QUOTA = 65536                  // Upon the generation of a new valid block, 64kB file quota is added to the network. Empty blocks also count.
 )

@@ -488,7 +488,7 @@ func (m *Monitor) syncLastBlock() {
 	//}
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
-	if uint64(currentNumber) > params.SeedingBlks/2 {
+	if uint64(currentNumber) > 3 {
 		//maxNumber = uint64(currentNumber) - 2
 		maxNumber = uint64(currentNumber)
 	}
