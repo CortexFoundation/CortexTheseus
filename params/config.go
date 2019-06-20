@@ -45,9 +45,8 @@ type TrustedCheckpoint struct {
 }
 
 var (
-	CortexBlockRewardPeriod = big.NewInt(8409600)
-	//CortexBlockRewardPeriod = big.NewInt(25228800)
-	BernardBlockRewardPeriod = big.NewInt(1000000)
+	CortexBlockRewardPeriod = big.NewInt(8409600)       // Halving every four years: 365 days*24 hours*60 minutes*4 blocks*4 years=8409600
+	BernardBlockRewardPeriod = big.NewInt(1000000)      // TESTING: for testnet Bernard
 
 )
 
@@ -59,7 +58,7 @@ var (
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:        big.NewInt(21),
+		ChainID:        big.NewInt(21),             // If all gold available to men is melted into a cube, it's approx. 21mx21mx21m
 		HomesteadBlock: big.NewInt(0),
 		DAOForkBlock:   big.NewInt(0),
 		DAOForkSupport: false,

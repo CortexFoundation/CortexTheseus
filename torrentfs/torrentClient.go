@@ -479,7 +479,7 @@ func (tm *TorrentManager) mainLoop() {
 }
 
 const (
-	loops = 20
+	loops = 5
 )
 
 func (tm *TorrentManager) listenTorrentProgress() {
@@ -522,7 +522,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					t.Run()
 				}
 				if counter >= loops {
-					log.Debug("Torrent progress",
+					log.Trace("Torrent progress",
 						"InfoHash", ih.HexString(),
 						"completed", t.bytesCompleted,
 						"requested", t.bytesLimitation,

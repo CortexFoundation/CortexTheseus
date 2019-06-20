@@ -43,6 +43,11 @@ torrent:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 
+torrent-test:
+	build/env.sh go run build/ci.go install ./cmd/torrent-test
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
+
 cortex-nominer: clib
 	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
 	@echo "Done building."
