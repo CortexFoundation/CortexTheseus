@@ -44,9 +44,9 @@ bool NMSShape(const NodeAttrs& attrs,
   VERIFY_EQ(dshape[0], vshape[0]) << "batch_size mismatch.";
   out_attrs->clear();
 
-  VERIFY(param.coord_start <= 2 && param.coord_start >= 0);
-  VERIFY(param.score_index >= 0 && param.score_index < 6);
-  VERIFY(param.id_index >= 0 && param.id_index < 6);
+  VERIFY(param.coord_start == 2);
+  VERIFY(param.score_index == 1);
+  VERIFY(param.id_index == 0);
   VERIFY(param.iou_threshold > 0);
 
   VERIFY_EQ(param.return_indices, false)
