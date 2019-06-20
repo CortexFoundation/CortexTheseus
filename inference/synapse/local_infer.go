@@ -34,6 +34,29 @@ func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, 
 	}
 }
 
+func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
+	var (
+		resCh = make(chan []byte)
+		errCh = make(chan error)
+	)
+
+	inputInfoHash := RLPHashString(inputContent)
+
+	go func() {
+		s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
+	}()
+
+	select {
+	case result := <-resCh:
+		return result, nil
+	case err := <-errCh:
+		return nil, err
+	case <-s.exitCh:
+		return nil, errors.New("Synapse Engine is closed")
+	}
+	return nil, nil
+}
+
 func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
 	fmt.Println("synapse: ", s)
 	var (
@@ -105,7 +128,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 	s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
 }
 
-func (s *Synapse) infer(modelCfg, modelBin string, inputContent []byte) ([]byte, error) {
+func (s *Synapse) infer(modelCfg, modelBin []byte, inputContent []byte) ([]byte, error) {
 	var model *kernel.Model
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		s.caches[s.config.DeviceId] = lru.New(4000000)
@@ -190,25 +213,3 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 
 }
 
-func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
-	var (
-		resCh = make(chan []byte)
-		errCh = make(chan error)
-	)
-
-	inputInfoHash := RLPHashString(inputContent)
-
-	go func() {
-		s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
-	}()
-
-	select {
-	case result := <-resCh:
-		return result, nil
-	case err := <-errCh:
-		return nil, err
-	case <-s.exitCh:
-		return nil, errors.New("Synapse Engine is closed")
-	}
-	return nil, nil
-}

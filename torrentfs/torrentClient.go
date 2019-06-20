@@ -2,7 +2,9 @@ package torrentfs
 
 import (
 	"bytes"
+	"errors"
 	"crypto/sha1"
+	"io/ioutil"
 	"fmt"
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
@@ -52,6 +54,19 @@ type Torrent struct {
 	infohash        string
 	torrentPath     string
 }
+
+func (t *Torrent) GetFile(path string) ([]byte, error) {
+	if !t.IsAvailable() {
+		return nil,  errors.New(fmt.Sprintf("File %s not Available", t.infohash))
+	}
+	modelCfg := t.torrentPath + "/../data/symbol"
+	if _, cfgErr := os.Stat(modelCfg); os.IsNotExist(cfgErr) {
+		return nil, errors.New(fmt.Sprintf("File %s not Available", modelCfg))
+	}
+	data, data_err := ioutil.ReadFile(path)
+	return data, data_err
+}
+
 
 func (t *Torrent) IsAvailable() bool {
 	if (t.status == torrentPending) {

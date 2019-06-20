@@ -161,8 +161,18 @@ func Available(infohash string, rawSize int64) bool {
 	}
 }
 
-func GetModel(InfoHash string) {
-	
+func GetFile(infohash string, path string) ([]byte, error){
+	TorrentAPIAvailable.Lock()
+	defer TorrentAPIAvailable.Unlock()
+	ih := metainfo.NewHashFromHex(infohash[2:])
+	tm := CurrentTorrentManager
+	var torrent Torrent
+	if torrent := tm.GetTorrent(ih); torrent == nil {
+		log.Debug("storage", "ih", ih, "torrent", torrent)
+		return nil, errors.New("Torrent not Available: " + infohash)
+	}
+	data, err := torrent.GetFile(path)
+	return data, err
 }
 
 func ExistTorrent(infohash string) bool {

@@ -19,7 +19,6 @@ using std::string;
 namespace cvm {
 namespace runtime {
 
-// std::mutex CVMModel::mtx;
 
 CVMModel::CVMModel(const string& graph, DLContext _ctx):
   out_size_(NULL)
@@ -381,13 +380,14 @@ int CVMModel::GetSizeOfOutputType() {
 int CVMModel::GetSizeOfInputType() {
   return input_bytes_;
 }
-
+/*
 int CVMModel::LoadParamsFromFile(string filepath) {
   std::ifstream input_stream(filepath, std::ios::binary);
   std::string params = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
   input_stream.close();
   return LoadParams(params);
 }
+*/
 
 }
 }
@@ -408,32 +408,22 @@ string LoadFromBinary(string filepath) {
 
 using cvm::runtime::CVMModel;
 
-void* CVMAPICreateModel(const char *graph_fname,
-                      const char *model_fname,
-                      int device_type,
-                      int device_id)
+void* CVMAPICreateModel(
+  const char *graph_payload,
+  const char *model_payload,
+  int device_type,
+  int device_id)
 {
+  CVMModel* model = nullptr;
   // std::cerr << "graph_fname = " << graph_fname
   //           << "\nmodel_fname = " << model_fname
   //           << "\ndevice_type = " << device_type
   //           << "\ndevice_id = " << device_id << "\n";
-  string graph, params;
-  try {
-    graph = LoadFromFile(string(graph_fname));
-  } catch (std::exception &e) {
-    return NULL;
-  }
-  CVMModel* model = nullptr;
+  string graph(graph_payload), params(model_payload);
   if (device_type == 0) {
     model = new CVMModel(graph, DLContext{kDLCPU, 0});
   } else {
     model = new CVMModel(graph, DLContext{kDLGPU, device_id});
-  }
-  try {
-    params = LoadFromBinary(string(model_fname));
-  } catch (std::exception &e) {
-    delete model;
-    return NULL;
   }
   if (!model->IsReady() || model->LoadParams(params)) {
     delete model;
