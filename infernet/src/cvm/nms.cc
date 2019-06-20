@@ -17,7 +17,7 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
 
     //int64_t sum_area = static_cast<int64_t>(std::abs(x1_max-x1_min)) * std::abs(y1_max-y1_min) + static_cast<int64_t>(std::abs(x2_max-x2_min)) * std::abs(y2_max-y2_min);
-    int64_t sum_area = static_cast<int64_t>(x1_max-x1_min) * y1_max-y1_min + static_cast<int64_t>(x2_max-x2_min) * y2_max-y2_min;
+    int64_t sum_area = static_cast<int64_t>(x1_max-x1_min) * (y1_max-y1_min) + static_cast<int64_t>(x2_max-x2_min) * (y2_max-y2_min);
 
 //    if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
     int32_t w = std::max(0, std::min(x1_max, x2_max) - std::max(x1_min, x2_min));
