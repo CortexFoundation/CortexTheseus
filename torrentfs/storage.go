@@ -161,6 +161,9 @@ func Available(infohash string, rawSize int64) bool {
 	}
 }
 
+func GetModel(InfoHash string) {
+	
+}
 
 func ExistTorrent(infohash string) bool {
   TorrentAPIAvailable.Lock()
@@ -418,3 +421,6 @@ type FlowControlMeta struct {
 	InfoHash       metainfo.Hash
 	BytesRequested uint64
 }
+
+
+
