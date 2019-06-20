@@ -26,7 +26,9 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-cortex: clib
+all: cortex
+
+cortex: clib 
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
@@ -46,12 +48,6 @@ torrent-test:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
 
-cortex-remote: clib
-	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-	mv ./build/bin/cortex ./build/bin/cortex-remote
-
 cortex-nominer: clib
 	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
 	@echo "Done building."
@@ -66,9 +62,6 @@ cvm: plugins/cuda_cvm.so plugins/cpu_cvm.so
 cuckoo-miner: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner
 	@echo "Done building."
-
-all: cortex-remote cortex nodekey cuckoo-cuda-miner
-	# build/env.sh go run build/ci.go install
 
 nodekey:
 	build/env.sh go run build/ci.go install ./cmd/nodekey
@@ -99,7 +92,7 @@ plugins/cpu_cvm.so: infernet/kernel/infer_plugins/cpu_plugin.go
 
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
 	make -C ${LIB_CUCKOO_DIR}
-	#make -C ${INFER_NET_DIR}
+	make -C ${INFER_NET_DIR}
 
 inferServer: clib
 	build/env.sh go run build/ci.go install ./cmd/infer_server

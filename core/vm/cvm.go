@@ -491,7 +491,7 @@ func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (cvm *CVM) ChainConfig() *params.ChainConfig { return cvm.chainConfig }
 
-const interv = 5
+/*const interv = 5
 
 func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	street := big.NewInt(0).Sub(cvm.PeekNumber, cvm.BlockNumber)
@@ -534,7 +534,7 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	//log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", cvm.BlockNumber, "meta", meta, "storage", dir, "street", street)
 	//errCh <- synapse.ErrModelFileNotExist
 	//return
-}
+}*/
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
