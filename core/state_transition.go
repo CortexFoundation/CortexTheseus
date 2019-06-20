@@ -29,7 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"github.com/CortexFoundation/CortexTheseus/core/asm"
 	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	//"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"time"
 )
 
@@ -230,7 +230,7 @@ func (st *StateTransition) preCheck() error {
 	return st.buyGas()
 }
 
-const interv = 5
+/*const interv = 5
 
 func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
 	street := big.NewInt(0).Sub(st.cvm.PeekNumber, st.cvm.BlockNumber)
@@ -271,7 +271,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		errCh <- nil
 		return
 	}
-}
+}*/
 
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
