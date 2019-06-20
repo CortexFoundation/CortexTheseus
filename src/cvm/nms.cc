@@ -72,6 +72,10 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
         int32_t vc = valid_count_data[b];
         int32_t *x_batch = x_data + b * n * k;
         int32_t *y_batch = y_data + b * n * k;
+        if(vc <= 0 || vc > n){
+            memset(y_batch, -1, n * k * sizeof(int32_t));
+            return;
+        }
 
         if(iou_threshold <= 0){
             memcpy(y_batch, x_batch, vc * k * sizeof(int32_t));
@@ -101,7 +105,7 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
           for(int i = 0; i < need_keep; i++){
             int32_t *row1 = rows[i];
 
-            if(removed[i] == false){
+            if(removed[i] == false && row1[0] >= 0){
               memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
               y_index += 1;
             }
