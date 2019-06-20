@@ -29,7 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"github.com/CortexFoundation/CortexTheseus/core/asm"
 	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	//"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"time"
 )
 
@@ -200,10 +200,10 @@ func (st *StateTransition) preCheck() error {
 			return ErrUnhandleTx
 		}
 
-		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.cvm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
-			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "seeding", params.SeedingBlks)
-			return ErrUnhandleTx
-		}
+		//if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.cvm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
+		//	log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "seeding", params.SeedingBlks)
+		//	return ErrUnhandleTx
+		//}
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 		if st.qp.Cmp(cost) < 0 {
@@ -211,6 +211,7 @@ func (st *StateTransition) preCheck() error {
 			return ErrQuotaLimitReached
 		}
 
+<<<<<<< HEAD
 	/*	meta, err := st.cvm.GetMetaHash(st.to())
 		if err != nil {
 			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
@@ -225,12 +226,28 @@ func (st *StateTransition) preCheck() error {
 				return err
 			}
 		}*/
+=======
+		//meta, err := st.cvm.GetMetaHash(st.to())
+		//if err != nil {
+		//	log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
+		//	return ErrUnhandleTx
+		//}
+
+		//errCh := make(chan error)
+		//go st.TorrentSync(meta, st.cvm.Config().StorageDir, errCh)
+		//select {
+		//case err := <-errCh:
+		//	if err != nil {
+		//		return err
+		//	}
+		//}
+>>>>>>> a7ad94e816332187fbfc3d055b9baf28b211b7b6
 	}
 
 	return st.buyGas()
 }
 
-const interv = 5
+/*const interv = 5
 
 func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
 	street := big.NewInt(0).Sub(st.cvm.PeekNumber, st.cvm.BlockNumber)
@@ -271,7 +288,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		errCh <- nil
 		return
 	}
-}
+}*/
 
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
@@ -407,7 +424,7 @@ func Max(x, y *big.Int) *big.Int {
 
 //vote to model
 func (st *StateTransition) uploading() bool {
-	log.Debug("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
+	log.Trace("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
 	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 

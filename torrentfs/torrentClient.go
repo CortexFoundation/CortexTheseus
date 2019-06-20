@@ -522,7 +522,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					t.Run()
 				}
 				if counter >= loops {
-					log.Debug("Torrent progress",
+					log.Trace("Torrent progress",
 						"InfoHash", ih.HexString(),
 						"completed", t.bytesCompleted,
 						"requested", t.bytesLimitation,
