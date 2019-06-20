@@ -195,6 +195,7 @@ func (st *StateTransition) preCheck() error {
 	}
 
 	if st.uploading() {
+		log.Debug("state_transition", "uploading", st.uploading(), "st.state.GetNum(st.to())", st.state.GetNum(st.to()))
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
 			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
 			return ErrUnhandleTx
@@ -204,8 +205,10 @@ func (st *StateTransition) preCheck() error {
 		//	log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "seeding", params.SeedingBlks)
 		//	return ErrUnhandleTx
 		//}
-
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		log.Debug("state_transition",
+						  "new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)", new(big.Int).SetUint64(params.PER_UPLOAD_BYTES),
+							"st.state.Upload(st.to())", st.state.Upload(st.to()), "cost", cost, "st.qp", st.qp)
 		if st.qp.Cmp(cost) < 0 {
 			log.Warn("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
 			return ErrQuotaLimitReached

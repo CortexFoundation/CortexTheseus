@@ -22,8 +22,8 @@ func CreateStorage(storage_type string, config Config) CVMStorage {
 			DataDir: config.DataDir,
 		}
 	} else if storage_type == "torrent" {
-		return &InfoHashFileSystem{
-			DataDir: config.DataDir,
+		return &TorrentFS{
+			config: &config,
 		}
 	}
 	return nil
