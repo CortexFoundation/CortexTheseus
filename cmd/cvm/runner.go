@@ -287,7 +287,9 @@ func runCmd(ctx *cli.Context) error {
 		storageDir = ctx.GlobalString(StorageDir.Name)
 	}
 
-	storagefs := torrentfs.CreateStorage("simple", storageDir)
+	storagefs := torrentfs.CreateStorage("simple", torrentfs.Config{
+		DataDir: storageDir,
+	})
 
 	initialGas := ctx.GlobalUint64(GasFlag.Name)
 	runtimeConfig := runtime.Config{

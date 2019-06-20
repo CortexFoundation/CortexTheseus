@@ -49,6 +49,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 )
 
 // Cortex implements the Cortex full node service.
@@ -153,6 +154,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			InferURI:                config.InferURI,
 			StorageDir:              config.StorageDir,
+			Storagefs:				 torrentfs.Torrentfs_handle,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)

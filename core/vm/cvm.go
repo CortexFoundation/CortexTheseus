@@ -140,21 +140,6 @@ type CVM struct {
 // NewCVM returns a new CVM. The returned CVM is not thread safe and should
 // only ever be used *once*.
 func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *CVM {
-	/*cfg := torrentfs.Config{
-		DataDir:         torrentfs.DefaultConfig.DataDir,
-		Host:            torrentfs.DefaultConfig.Host,
-		Port:            torrentfs.DefaultConfig.Port,
-		DefaultTrackers: torrentfs.DefaultConfig.DefaultTrackers,
-		SyncMode:        torrentfs.DefaultConfig.SyncMode,
-		TestMode:        torrentfs.DefaultConfig.TestMode,
-	}
-	cfg.DataDir = vmConfig.StorageDir
-	fileFs, fsErr := torrentfs.NewFileStorage(&cfg)
-	if fsErr != nil {
-		return nil
-	}
-
-	log.Info("File storage in vm", "fs", fileFs)*/
 
 	cvm := &CVM{
 		Context:      ctx,
