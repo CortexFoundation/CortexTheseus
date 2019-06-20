@@ -20,6 +20,9 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     //x1,x2,y1,y2 precision <= 30
     //sum_arrea precision<=63
     int64_t sum_area = static_cast<int64_t>(x1_max-x1_min) * (y1_max-y1_min) + static_cast<int64_t>(x2_max-x2_min) * (y2_max-y2_min);
+    if(sum_area <= 0){
+        return 0;
+    }
 
 //    if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
     //w,h precision <= 31
@@ -27,15 +30,16 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t h = std::max(0, std::min(y1_max, y2_max) - std::max(y1_min, y2_min));
     //overlap_area precision <= 62
     int64_t overlap_area = static_cast<int64_t>(h)*w;
-    //tmp precision <= 64
+    //tmp precision <= 63
     int64_t tmp = (sum_area - overlap_area);
     if(tmp <= 0){
         return 0;
     }
-    if(tmp / 100 == 0){
-        overlap_area *= 100;
-    }else{
+    int64_t max64 = ((int64_t)1 << 63) - 1;
+    if(max64 / 100 < overlap_area){
         tmp /= 100;
+    }else{
+        overlap_area *= 100;
     }
     int64_t ret = (overlap_area / tmp);//((sum_area - overlap_area)/100));
     return ret;
@@ -120,14 +124,3 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
         }
     }
 }
-
-/*
- *
-71 63 12 52 48 80
-5 53 44 99 90 78
-0 47 14 4 39 98
-90 41 94 79 64 83
-86 38 7 75 49 8
-22 17 99 62 39 43
- *
- * */
