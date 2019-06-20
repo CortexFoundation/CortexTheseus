@@ -72,12 +72,10 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
         int32_t vc = valid_count_data[b];
         int32_t *x_batch = x_data + b * n * k;
         int32_t *y_batch = y_data + b * n * k;
-        int32_t num_valid_boxes = 0;
 
-        if(iou_threshold <= 0 || iou_threshold > 100){
-            memcpy(y_batch, x_batch, vc * n * k * sizeof(int32_t));
+        if(iou_threshold <= 0){
+            memcpy(y_batch, x_batch, vc * k * sizeof(int32_t));
             memset(y_batch + vc * n * k, -1, (n-vc)*k * sizeof(int32_t));
-            num_valid_boxes = vc;
         }else{
           std::vector<int32_t*> rows(vc);
           for (int i = 0; i < vc; i++) {
@@ -120,7 +118,6 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
           if(y_index < n){
             memset(&y_batch[y_index*k], -1, (n - y_index) * k * sizeof(int32_t));
           }
-          num_valid_boxes = y_index;
         }
         if(max_output_size > 0){
           int j = 0;
