@@ -70,56 +70,61 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
         const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress){
     for(int32_t b = 0; b < batchs; b++){
         int32_t vc = valid_count_data[b];
-        std::vector<int32_t*> rows(vc);
         int32_t *x_batch = x_data + b * n * k;
         int32_t *y_batch = y_data + b * n * k;
+        int32_t num_valid_boxes = 0;
 
-        for (int i = 0; i < vc; i++) {
+        if(iou_threshold <= 0 || iou_threshold > 100){
+            memcpy(y_batch, x_batch, vc * n * k * sizeof(int32_t));
+            memset(y_batch + vc * n * k, -1, (n-vc)*k * sizeof(int32_t));
+            num_valid_boxes = vc;
+        }else{
+          std::vector<int32_t*> rows(vc);
+          for (int i = 0; i < vc; i++) {
             rows[i] = x_batch + i * k;
-        }
-       // for(int i = vc; i < n; i++){
-       //     memset(rows[i], -1, k * sizeof(int32_t));
-       // }
-        auto score_idx_local = score_index;
-        std::sort(rows.begin(), rows.end(), [&score_idx_local](const int32_t* a, const int32_t* b){
-                return a[score_idx_local] > b[score_idx_local];
-        });
-        if(topk > 0 && topk < vc){
+          }
+          auto score_idx_local = score_index;
+          std::sort(rows.begin(), rows.end(), [&score_idx_local](const int32_t* a, const int32_t* b){
+              return a[score_idx_local] > b[score_idx_local];
+              });
+          if(topk > 0 && topk < vc){
             for(int i = 0; i < vc - topk; i++){
-                memset(rows[i+topk], -1, k * sizeof(int32_t));
+              memset(rows[i+topk], -1, k * sizeof(int32_t));
             }
-        }
+          }
 
-        std::vector<bool> removed(n, false);
-        int start_i = ((topk >= 0 && topk < vc) ? topk : vc);
-        for(int i = start_i; i < vc; i++){
+          std::vector<bool> removed(n, false);
+          int need_keep = ((topk >= 0 && topk < vc) ? topk : vc);
+          for(int i = need_keep; i < vc; i++){
             removed[i] = true;
-        }
+          }
 
-        int32_t y_index = 0;
-        for(int i = 0; i < start_i; i++){
+          int32_t y_index = 0;
+          for(int i = 0; i < need_keep; i++){
             int32_t *row1 = rows[i];
 
             if(removed[i] == false){
-                memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
-                y_index += 1;
+              memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
+              y_index += 1;
             }
-            for(int j = i+1; j < start_i && !removed[i] && iou_threshold > 0 && rows[j][0] > 0; j++){
-                int32_t* row2 = rows[j];
-                if(force_suppress || (id_index < 0 || row1[id_index] == row2[id_index])){
-                  int64_t iou_ret = iou(row1+coord_start, row2+coord_start, FORMAT_CORNER);
-                    if(iou_ret >= iou_threshold){
-                        removed[j] = true;
-                    }
+            for(int j = i+1; j < need_keep && !removed[i] && rows[j][0] >= 0; j++){
+              int32_t* row2 = rows[j];
+              if(force_suppress || (id_index < 0 || row1[id_index] == row2[id_index])){
+                int64_t iou_ret = iou(row1+coord_start, row2+coord_start, FORMAT_CORNER);
+                if(iou_ret >= iou_threshold){
+                  removed[j] = true;
                 }
+              }
             }
-        }
-        if(y_index < n){
+          }
+          if(y_index < n){
             memset(&y_batch[y_index*k], -1, (n - y_index) * k * sizeof(int32_t));
+          }
+          num_valid_boxes = y_index;
         }
         if(max_output_size > 0){
-            if(max_output_size < y_index){
-                memset(&y_batch[max_output_size * k], -1, (y_index - max_output_size) * k * sizeof(int32_t));
+            if(max_output_size < num_valid_boxes){
+                memset(&y_batch[max_output_size * k], -1, (num_valid_boxes - max_output_size) * k * sizeof(int32_t));
             }
         }
     }
