@@ -1,9 +1,9 @@
 package torrentfs
 
 import (
-	"fmt"
 	"io/ioutil"
-
+	"fmt"
+	"path"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -32,22 +32,22 @@ func (t *TorrentFS) Monitor() *Monitor {
 
 var torrentInstance *TorrentFS = nil
 
-func GetInstance() *TorrentFS {
+func GetTorrentInstance() *TorrentFS {
+	if torrentInstance == nil {
+		torrentInstance, _ = New(&DefaultConfig, "")
+	}
 	return torrentInstance
+}
+
+func GetStorage() CVMStorage {
+	return GetTorrentInstance()
 }
 
 func GetConfig() *Config {
 	if torrentInstance != nil {
-		return torrentInstance.Config()
+		return GetTorrentInstance().Config()
 	} else {
 		return &DefaultConfig
-	}
-	return nil
-}
-
-func GetMonitor() *Monitor {
-	if torrentInstance != nil {
-		return torrentInstance.Monitor()
 	}
 	return nil
 }
@@ -83,7 +83,6 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 		history: msg,
 		monitor: monitor,
 	}
-
 	Torrentfs_handle = *torrentInstance
 
 	return torrentInstance, nil
@@ -121,17 +120,9 @@ func (fs TorrentFS) Available(infohash string, rawSize int64) bool {
 	return Available(infohash, rawSize)
 }
 
-func (fs TorrentFS) Exist(infohash string) bool {
-	return Exist(infohash)
-}
-
-func (fs TorrentFS) GetFile(infohash string, path string) ([]byte, error) {
-	fn := fs.config.DataDir + "/" + infohash  + "/" + path
+func (fs TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
+	fn := path.Join(fs.config.DataDir, infohash, subpath)
 	data, err := ioutil.ReadFile(fn)
-	fmt.Println("InfoHashFileSystem", "GetFile", fn)
 	return data, err
+}
 
-}
-func (fs TorrentFS) ExistTorrent(infohash string) bool {
-	return ExistTorrent(infohash)
-}
