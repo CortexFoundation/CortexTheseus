@@ -2,6 +2,7 @@ package torrentfs
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
@@ -52,6 +53,9 @@ func GetMonitor() *Monitor {
 }
 
 // New creates a new dashboard instance with the given configuration.
+var Torrentfs_handle CVMStorage
+
+// New creates a new torrentfs instance with the given configuration.
 func New(config *Config, commit string) (*TorrentFS, error) {
 	if torrentInstance != nil {
 		return torrentInstance, nil
@@ -79,6 +83,9 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 		history: msg,
 		monitor: monitor,
 	}
+
+	Torrentfs_handle = *torrentInstance
+
 	return torrentInstance, nil
 }
 
@@ -105,4 +112,26 @@ func (tfs *TorrentFS) Stop() error {
 	// Wait until every goroutine terminates.
 	tfs.monitor.Stop()
 	return nil
+}
+
+
+func (fs TorrentFS) Available(infohash string, rawSize int64) bool {
+	// modelDir := fs.DataDir + "/" + infoHash
+	// if (os.Stat)
+	return Available(infohash, rawSize)
+}
+
+func (fs TorrentFS) Exist(infohash string) bool {
+	return Exist(infohash)
+}
+
+func (fs TorrentFS) GetFile(infohash string, path string) ([]byte, error) {
+	fn := fs.config.DataDir + "/" + infohash  + "/" + path
+	data, err := ioutil.ReadFile(fn)
+	fmt.Println("InfoHashFileSystem", "GetFile", fn)
+	return data, err
+
+}
+func (fs TorrentFS) ExistTorrent(infohash string) bool {
+	return ExistTorrent(infohash)
 }
