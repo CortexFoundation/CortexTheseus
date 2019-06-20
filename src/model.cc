@@ -408,9 +408,11 @@ string LoadFromBinary(string filepath) {
 
 using cvm::runtime::CVMModel;
 
-void* CVMAPICreateModel(
+void* CVMAPILoadModel(
   const char *graph_payload,
+  int json_len,
   const char *model_payload,
+  int model_len,
   int device_type,
   int device_id)
 {
@@ -419,7 +421,8 @@ void* CVMAPICreateModel(
   //           << "\nmodel_fname = " << model_fname
   //           << "\ndevice_type = " << device_type
   //           << "\ndevice_id = " << device_id << "\n";
-  string graph(graph_payload), params(model_payload);
+  string graph(graph_payload, graph_payload + json_len), params(model_payload, model_len);
+  std::cerr << "model size: " << params.size() << "\n";
   if (device_type == 0) {
     model = new CVMModel(graph, DLContext{kDLCPU, 0});
   } else {
@@ -432,39 +435,6 @@ void* CVMAPICreateModel(
   return (void*)model;
 }
 
-void* CVMAPILoadModel(const char *graph_fname,
-                      const char *model_fname,
-                      int device_type,
-                      int device_id)
-{
-  // std::cerr << "graph_fname = " << graph_fname
-  //           << "\nmodel_fname = " << model_fname
-  //           << "\ndevice_type = " << device_type
-  //           << "\ndevice_id = " << device_id << "\n";
-  string graph, params;
-  try {
-    graph = LoadFromFile(string(graph_fname));
-  } catch (std::exception &e) {
-    return NULL;
-  }
-  CVMModel* model = nullptr;
-  if (device_type == 0) {
-    model = new CVMModel(graph, DLContext{kDLCPU, 0});
-  } else {
-    model = new CVMModel(graph, DLContext{kDLGPU, device_id});
-  }
-  try {
-    params = LoadFromBinary(string(model_fname));
-  } catch (std::exception &e) {
-    delete model;
-    return NULL;
-  }
-  if (!model->IsReady() || model->LoadParams(params)) {
-    delete model;
-    return NULL;
-  }
-  return (void*)model;
-}
 
 void CVMAPIFreeModel(void* model_) {
   CVMModel* model = static_cast<CVMModel*>(model_);
@@ -506,15 +476,15 @@ long long CVMAPIGetGasFromModel(void *model_) {
   return ret;
 }
 
-long long CVMAPIGetGasFromGraphFile(char *graph_fname) {
-  string json_data;
-  try {
-    std::ifstream json_in(string(graph_fname), std::ios::in);
-    json_data = string((std::istreambuf_iterator<char>(json_in)), std::istreambuf_iterator<char>());
-    json_in.close();
-  } catch (std::exception &e) {
-    return -1;
-  }
+long long CVMAPIGetGasFromGraphFile(char *graph_json) {
+  string json_data(graph_json);
+  // try {
+  //   std::ifstream json_in(string(graph_json), std::ios::in);
+  //   json_data = string((std::istreambuf_iterator<char>(json_in)), std::istreambuf_iterator<char>());
+  //   json_in.close();
+  // } catch (std::exception &e) {
+  //   return -1;
+  // }
   auto f = cvm::runtime::Registry::Get("cvm.runtime.estimate_ops");
   if (f == nullptr) return -1;
   int64_t ret;
