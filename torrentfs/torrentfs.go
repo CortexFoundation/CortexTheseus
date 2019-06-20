@@ -18,12 +18,43 @@ type GeneralMessage struct {
 type TorrentFS struct {
 	config  *Config
 	history *GeneralMessage
-
 	monitor *Monitor
+}
+
+func (t *TorrentFS) Config() *Config {
+	return t.config
+}
+
+func (t *TorrentFS) Monitor() *Monitor {
+	return t.monitor
+}
+
+var torrentInstance *TorrentFS = nil
+
+func GetInstance() *TorrentFS {
+	return torrentInstance
+}
+
+func GetConfig() *Config {
+	if torrentInstance != nil {
+		return torrentInstance.Config()
+	}
+	return nil
+}
+
+func GetMonitor() *Monitor {
+	if torrentInstance != nil {
+		return torrentInstance.Monitor()
+	}
+	return nil
 }
 
 // New creates a new dashboard instance with the given configuration.
 func New(config *Config, commit string) (*TorrentFS, error) {
+	if torrentInstance != nil {
+		return torrentInstance, nil
+	}
+
 	versionMeta := ""
 	TorrentAPIAvailable.Lock()
 	if len(params.VersionMeta) > 0 {
@@ -41,11 +72,12 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 		return nil, moErr
 	}
 
-	return &TorrentFS{
+	torrentInstance = &TorrentFS{
 		config:  config,
 		history: msg,
 		monitor: monitor,
-	}, nil
+	}
+	return torrentInstance, nil
 }
 
 // Protocols implements the node.Service interface.
