@@ -479,7 +479,7 @@ func (tm *TorrentManager) mainLoop() {
 }
 
 const (
-	loops = 20
+	loops = 5
 )
 
 func (tm *TorrentManager) listenTorrentProgress() {
