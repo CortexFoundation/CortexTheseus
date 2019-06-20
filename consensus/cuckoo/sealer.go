@@ -10,10 +10,6 @@ import (
 	"sync"
 	"time"
 
-<<<<<<< HEAD
-=======
-	//"fmt"
->>>>>>> a7ad94e816332187fbfc3d055b9baf28b211b7b6
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus"

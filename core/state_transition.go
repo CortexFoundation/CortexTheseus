@@ -211,22 +211,6 @@ func (st *StateTransition) preCheck() error {
 			return ErrQuotaLimitReached
 		}
 
-<<<<<<< HEAD
-	/*	meta, err := st.cvm.GetMetaHash(st.to())
-		if err != nil {
-			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
-			return ErrUnhandleTx
-		}
-
-		errCh := make(chan error)
-		go st.TorrentSync(meta, st.cvm.Config().StorageDir, errCh)
-		select {
-		case err := <-errCh:
-			if err != nil {
-				return err
-			}
-		}*/
-=======
 		//meta, err := st.cvm.GetMetaHash(st.to())
 		//if err != nil {
 		//	log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
@@ -241,7 +225,6 @@ func (st *StateTransition) preCheck() error {
 		//		return err
 		//	}
 		//}
->>>>>>> a7ad94e816332187fbfc3d055b9baf28b211b7b6
 	}
 
 	return st.buyGas()
