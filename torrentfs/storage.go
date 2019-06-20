@@ -2,9 +2,11 @@ package torrentfs
 
 import (
 	"encoding/json"
+	"fmt"
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -162,13 +164,15 @@ func Available(infohash string, rawSize int64) bool {
 }
 
 func GetFile(infohash string, path string) ([]byte, error){
+	infohash = strings.ToLower(infohash[2:])
 	TorrentAPIAvailable.Lock()
 	defer TorrentAPIAvailable.Unlock()
-	ih := metainfo.NewHashFromHex(infohash[2:])
+	ih := metainfo.NewHashFromHex(infohash)
 	tm := CurrentTorrentManager
 	var torrent Torrent
 	if torrent := tm.GetTorrent(ih); torrent == nil {
 		log.Debug("storage", "ih", ih, "torrent", torrent)
+		fmt.Println("torrent", torrent)
 		return nil, errors.New("Torrent not Available: " + infohash)
 	}
 	data, err := torrent.GetFile(path)

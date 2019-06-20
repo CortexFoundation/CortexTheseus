@@ -41,6 +41,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -286,6 +287,8 @@ func runCmd(ctx *cli.Context) error {
 		storageDir = ctx.GlobalString(StorageDir.Name)
 	}
 
+	storagefs := torrentfs.CreateStorage("simple", storageDir)
+
 	initialGas := ctx.GlobalUint64(GasFlag.Name)
 	runtimeConfig := runtime.Config{
 		Origin:      sender,
@@ -299,6 +302,7 @@ func runCmd(ctx *cli.Context) error {
 			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
 			StorageDir:  storageDir,
 			DebugInferVM: true,
+			Storagefs: storagefs,
 		},
 	}
 
@@ -328,6 +332,7 @@ func runCmd(ctx *cli.Context) error {
 		DeviceType: "cpu",
 		DeviceId: 0,
 		Debug: true,
+		Storagefs: storagefs,
 	})
 
 	if ctx.GlobalBool(CreateFlag.Name) {

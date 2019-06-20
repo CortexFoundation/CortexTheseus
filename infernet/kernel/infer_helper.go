@@ -99,13 +99,13 @@ func (m *Model) GetOutputLength() int {
 	}
 }
 
-func GetModelOps(lib *plugin.Plugin, filepath string) (uint64, error) {
+func GetModelOps(lib *plugin.Plugin, file []byte) (uint64, error) {
 	m, err := lib.Lookup("GetModelOps")
 	if err != nil{
 		log.Error("infer helper", "GetModelOps", "error", err)
 		return 0, err
 	}
-	ret, err := m.(func(string)(uint64, error))(filepath)
+	ret, err := m.(func([]byte)(uint64, error))(file)
 	if ret < 0 {
 		return 0, errors.New("Gas Error")
 	} else {

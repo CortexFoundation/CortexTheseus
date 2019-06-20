@@ -22,7 +22,7 @@ type TorrentFS struct {
 	monitor *Monitor
 }
 
-// New creates a new dashboard instance with the given configuration.
+// New creates a new torrentfs instance with the given configuration.
 func New(config *Config, commit string) (*TorrentFS, error) {
 	versionMeta := ""
 	TorrentAPIAvailable.Lock()
