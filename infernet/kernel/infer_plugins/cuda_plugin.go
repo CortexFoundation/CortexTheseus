@@ -21,14 +21,13 @@ import (
 )
 
 
-func LoadModel(modelCfg, modelBin string, deviceId int) (unsafe.Pointer, error) {
+func LoadModel(modelCfg, modelBin []byte, deviceId int) (unsafe.Pointer, error) {
 	fmt.Println("LoadModel\tisGPU:", 1, "DeviceId: ", deviceId)
-	net := C.CVMAPILoadModel(
-		C.CString(modelCfg),
-		C.CString(modelBin),
-		1,
-		C.int(deviceId),
-	)
+	jptr := (*C.char)(unsafe.Pointer(&(modelCfg[0])))
+	pptr := (*C.char)(unsafe.Pointer(&(modelBin[0])))
+	j_len := C.int(len(modelCfg))
+	p_len := C.int(len(modelBin))
+	net := C.CVMAPILoadModel(jptr, j_len, pptr, p_len, 1, C.int(deviceId))
 
 	if net == nil {
 		return nil, errors.New("Model load error")
@@ -45,8 +44,8 @@ func GetModelOpsFromModel(net unsafe.Pointer) (int64, error) {
 	}
 }
 
-func GetModelOps(filepath string) (uint64, error) {
-	ret := int64(C.CVMAPIGetGasFromGraphFile(C.CString(filepath)))
+func GetModelOps(file []byte) (uint64, error) {
+  ret := int64(C.CVMAPIGetGasFromGraphFile((*C.char)(unsafe.Pointer(&(file[0])))))
 	if ret < 0 {
 		return 0, errors.New("Gas Error")
 	} else {

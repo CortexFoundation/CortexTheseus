@@ -76,7 +76,7 @@ var (
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolLifetimeFlag,
 		utils.StorageDirFlag,
-//		utils.StoragePortFlag,
+		utils.StoragePortFlag,
 //		utils.StorageAddrFlag,
 		utils.StorageEnabledFlag,
 		utils.StorageTrackerFlag,

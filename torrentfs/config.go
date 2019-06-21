@@ -6,6 +6,7 @@ import (
 
 // Config ...
 type Config struct {
+	Port int `toml:",omitempty"`
 	DataDir string `toml:",omitempty"`
 	RpcURI  string `toml:",omitempty"`
 	IpcPath string `toml:",omitempty"`
@@ -18,6 +19,7 @@ type Config struct {
 
 // DefaultConfig contains default settings for the storage.
 var DefaultConfig = Config{
+	Port: 30090,
 	DefaultTrackers: params.MainnetTrackers, //"http://torrent.cortexlabs.ai:5008/announce",
 	//DefaultTrackers: "http://47.52.39.170:5008/announce",
 	SyncMode: "full",
