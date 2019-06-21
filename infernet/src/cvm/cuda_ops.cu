@@ -2480,6 +2480,7 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
   x_data = (int32_t*)malloc(sizeof(int32_t) * batchs*n*k);//new int32_t[batchs * n * k];
   valid_count_data = (int32_t*)malloc(sizeof(int32_t)*batchs);//new int32_t[batchs];
   y_data = (int32_t*)malloc(sizeof(int32_t) *batchs*n*k);//new int32_t[batchs * n * k];
+  int ret = 0;
   if(x_data == NULL || valid_count_data == NULL || y_data == NULL){
     goto end;
   }
@@ -2493,7 +2494,7 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
     goto end;
   }
 
-  non_max_suppression(
+  ret = non_max_suppression(
       x_data, valid_count_data, y_data, batchs, n, k,
       max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
 
@@ -2505,6 +2506,9 @@ end:
     free(valid_count_data);
   if(y_data != NULL)
     free(y_data);
+  if(ret < 0){
+    return "the valid count must less than the number of box";
+  }
   return check_cuda_error(cudaGetLastError());
 }
 
