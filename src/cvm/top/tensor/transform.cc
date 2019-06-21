@@ -907,7 +907,7 @@ inline bool TakeInferShape(const NodeAttrs& attrs,
       axis += dshape.ndim();
     }
     //VERIFY_LT(axis, dshape.ndim());
-    VERIFY(axis >= 0 && axis < dshape.ndim());
+    VERIFY(axis >= 0 && (unsigned int)axis < dshape.ndim());
 
     size_t posi = 0;
     for (size_t i = 0; i < dshape.ndim(); ++i) {
