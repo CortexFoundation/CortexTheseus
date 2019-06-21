@@ -28,6 +28,11 @@ endif
 
 all: cortex
 
+cortex_cpu: clib_cpu 
+	build/env.sh go run build/ci.go install ./cmd/cortex
+	echo "build cortex_cpu ..."
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
 cortex: clib 
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
@@ -68,31 +73,25 @@ nodekey:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
-PoolMiner/miner/libcuckoo/%.a: PoolMiner
-	make -C PoolMiner
-	
-plugins/cuda_helper_for_node.so: PoolMiner/miner/libcuckoo/libcudaminer.a
+plugins/cuda_helper_for_node.so: 
+	make -C PoolMiner cuda-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
 
-plugins/cpu_helper_for_node.so: PoolMiner/miner/libcuckoo/libcpuminer.a
+plugins/cpu_helper_for_node.so:
+	make -C PoolMiner cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
-#plugins/opencl_helper_for_node.so:  PoolMiner/miner/libcuckoo/libopenclminer.a
-#	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/opencl_helper_for_node.go
-
 plugins/cuda_cvm.so: infernet/kernel/infer_plugins/cuda_plugin.go
-	cmake -S infernet/ -B infernet/build/gpu -DUSE_CUDA=ON
-	make -C ${INFER_NET_DIR} -j8
+	make -C ${INFER_NET_DIR} -j8 gpu
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cuda_plugin.go
 
 plugins/cpu_cvm.so: infernet/kernel/infer_plugins/cpu_plugin.go
-	cmake -S infernet/ -B infernet/build/cpu -DUSE_CUDA=OFF
-	make -C ${INFER_NET_DIR} -j8
+	make -C ${INFER_NET_DIR} -j8 cpu
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
 
+clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
+
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
-	make -C ${LIB_CUCKOO_DIR}
-	make -C ${INFER_NET_DIR}
 
 inferServer: clib
 	build/env.sh go run build/ci.go install ./cmd/infer_server
