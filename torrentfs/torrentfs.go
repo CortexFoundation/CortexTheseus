@@ -1,9 +1,9 @@
 package torrentfs
 
 import (
-	"fmt"
 	"io/ioutil"
-
+	"fmt"
+	"path"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -19,14 +19,48 @@ type GeneralMessage struct {
 type TorrentFS struct {
 	config  *Config
 	history *GeneralMessage
-
 	monitor *Monitor
 }
 
+func (t *TorrentFS) Config() *Config {
+	return t.config
+}
+
+func (t *TorrentFS) Monitor() *Monitor {
+	return t.monitor
+}
+
+var torrentInstance *TorrentFS = nil
+
+func GetTorrentInstance() *TorrentFS {
+	if torrentInstance == nil {
+		torrentInstance, _ = New(&DefaultConfig, "")
+	}
+	return torrentInstance
+}
+
+func GetStorage() CVMStorage {
+	return GetTorrentInstance()
+}
+
+func GetConfig() *Config {
+	if torrentInstance != nil {
+		return GetTorrentInstance().Config()
+	} else {
+		return &DefaultConfig
+	}
+	return nil
+}
+
+// New creates a new dashboard instance with the given configuration.
 var Torrentfs_handle CVMStorage
 
 // New creates a new torrentfs instance with the given configuration.
 func New(config *Config, commit string) (*TorrentFS, error) {
+	if torrentInstance != nil {
+		return torrentInstance, nil
+	}
+
 	versionMeta := ""
 	TorrentAPIAvailable.Lock()
 	if len(params.VersionMeta) > 0 {
@@ -43,15 +77,15 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 		log.Error("Failed create monitor")
 		return nil, moErr
 	}
-	tmp := &TorrentFS{
+
+	torrentInstance = &TorrentFS{
 		config:  config,
 		history: msg,
 		monitor: monitor,
 	}
+	Torrentfs_handle = *torrentInstance
 
-	Torrentfs_handle = *tmp
-
-	return tmp, nil
+	return torrentInstance, nil
 }
 
 // Protocols implements the node.Service interface.
@@ -86,17 +120,9 @@ func (fs TorrentFS) Available(infohash string, rawSize int64) bool {
 	return Available(infohash, rawSize)
 }
 
-func (fs TorrentFS) Exist(infohash string) bool {
-	return Exist(infohash)
-}
-
-func (fs TorrentFS) GetFile(infohash string, path string) ([]byte, error) {
-	fn := fs.config.DataDir + "/" + infohash  + "/" + path
+func (fs TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
+	fn := path.Join(fs.config.DataDir, infohash, subpath)
 	data, err := ioutil.ReadFile(fn)
-	fmt.Println("InfoHashFileSystem", "GetFile", fn)
 	return data, err
+}
 
-}
-func (fs TorrentFS) ExistTorrent(infohash string) bool {
-	return ExistTorrent(infohash)
-}

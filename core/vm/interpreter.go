@@ -106,6 +106,7 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	// We use the STOP instruction whether to see
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
+	// log.Debug("NewCVMInterpreter", "cvm.ChainConfig().IsByzantium(cvm.BlockNumber)", cvm.ChainConfig().IsByzantium(cvm.BlockNumber), "cvm.ChainConfig().IsConstantinople(cvm.BlockNumber)", cvm.ChainConfig().IsConstantinople(cvm.BlockNumber))
 	if !cfg.JumpTable[STOP].valid {
 		switch {
 		case cvm.ChainConfig().IsConstantinople(cvm.BlockNumber):
@@ -197,6 +198,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
+
 	if IsModelMeta(contract.Code) {
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
@@ -212,11 +214,14 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			log.Info("Model meta", 
+			log.Debug("Model meta",
 							 "meta", modelMeta,
 							 "modelMeta.RawSize",  modelMeta.RawSize,
 							 "Upload",  in.cvm.StateDB.Upload(contract.Address()),
 							 "params.MODEL_MIN_UPLOAD_BYTES", params.MODEL_MIN_UPLOAD_BYTES)
+			if modelMeta.BlockNum.Sign()  == 0 {
+				return contract.Code, nil
+			}
 			if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
 
 				//must in rawbytes if it is too small
@@ -279,6 +284,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
+			if inputMeta.BlockNum.Sign()  == 0 {
+				return contract.Code, nil
+			}
 			//if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
 			//return nil, ErrInvalidMetaRawSize
 			//}
