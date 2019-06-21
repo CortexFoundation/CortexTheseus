@@ -65,13 +65,20 @@ void get_valid_count(const int32_t *x_data, int32_t *y_data, int32_t *valid_coun
     }
 }
 
-void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32_t *y_data, const int32_t batchs, const int32_t n, const int32_t k,
+int non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32_t *y_data, const int32_t batchs, const int32_t n, const int32_t k,
         const int32_t max_output_size, const int32_t iou_threshold, const int32_t topk,
         const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress){
     for(int32_t b = 0; b < batchs; b++){
         int32_t vc = valid_count_data[b];
         int32_t *x_batch = x_data + b * n * k;
         int32_t *y_batch = y_data + b * n * k;
+        if(vc > n){
+            return -1;
+        }
+        if(vc <= 0){
+            memset(y_batch, -1, n * k * sizeof(int32_t));
+            return 0;
+        }
 
         if(iou_threshold <= 0){
             memcpy(y_batch, x_batch, vc * k * sizeof(int32_t));
@@ -101,7 +108,7 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
           for(int i = 0; i < need_keep; i++){
             int32_t *row1 = rows[i];
 
-            if(removed[i] == false){
+            if(removed[i] == false && row1[0] >= 0){
               memcpy(&y_batch[y_index*k], row1, k*sizeof(int32_t));
               y_index += 1;
             }
@@ -135,4 +142,5 @@ void non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32
          //   }
         }
     }
+    return 0;
 }

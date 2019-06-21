@@ -475,8 +475,8 @@ void load_input(int num_inputs, string case_path, vector<vector<uint64_t>>& tsha
       CVMArrayFree(cpu_tensor);
     }
 }
-//const string CASE_DIR = "/data/ops_generator";
-const string CASE_DIR = "/data/zkh";
+const string CASE_DIR = "/data/ops_generator";
+//const string CASE_DIR = "/data/zkh";
 
 void test_op(string op_name) {
   printf("\ntest %s\n", op_name.c_str());
