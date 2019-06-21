@@ -82,12 +82,10 @@ plugins/cpu_helper_for_node.so:
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so: infernet/kernel/infer_plugins/cuda_plugin.go
-	cmake -S infernet/ -B infernet/build/gpu -DUSE_CUDA=ON
 	make -C ${INFER_NET_DIR} -j8 gpu
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cuda_plugin.go
 
 plugins/cpu_cvm.so: infernet/kernel/infer_plugins/cpu_plugin.go
-	cmake -S infernet/ -B infernet/build/cpu -DUSE_CUDA=OFF
 	make -C ${INFER_NET_DIR} -j8 cpu
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
 
