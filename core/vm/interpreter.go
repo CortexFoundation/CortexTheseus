@@ -212,7 +212,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
-			log.Info("Model meta", "meta", modelMeta)
+			log.Info("Model meta", 
+							 "meta", modelMeta,
+							 "modelMeta.RawSize",  modelMeta.RawSize,
+							 "Upload",  in.cvm.StateDB.Upload(contract.Address()),
+							 "params.MODEL_MIN_UPLOAD_BYTES", params.MODEL_MIN_UPLOAD_BYTES)
 			if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
 
 				//must in rawbytes if it is too small

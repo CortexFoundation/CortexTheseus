@@ -69,7 +69,7 @@ nodekey:
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 PoolMiner/miner/libcuckoo/%.a: PoolMiner
-	build/env.sh make -C PoolMiner
+	make -C PoolMiner
 	
 plugins/cuda_helper_for_node.so: PoolMiner/miner/libcuckoo/libcudaminer.a
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
