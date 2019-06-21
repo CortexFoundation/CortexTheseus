@@ -106,7 +106,6 @@ type txPool interface {
 	// SubscribeNewTxsEvent should return an event subscription of
 	// NewTxsEvent and send events to the given channel.
 	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
-	Config() core.TxPoolConfig
 }
 
 // statusData is the network packet for the status message.
