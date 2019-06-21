@@ -473,7 +473,9 @@ func (s *Cortex) Stop() error {
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
-	s.synapse.Close()
+	if s.synapse != nil {
+		s.synapse.Close()
+	}
 	s.protocolManager.Stop()
 	s.txPool.Stop()
 	s.miner.Stop()
