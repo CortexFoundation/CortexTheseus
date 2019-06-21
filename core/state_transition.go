@@ -200,10 +200,10 @@ func (st *StateTransition) preCheck() error {
 			return ErrUnhandleTx
 		}
 
-		//if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.cvm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
-		//	log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "seeding", params.SeedingBlks)
-		//	return ErrUnhandleTx
-		//}
+		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.cvm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
+			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "seeding", params.SeedingBlks)
+			return ErrUnhandleTx
+		}
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 		if st.qp.Cmp(cost) < 0 {

@@ -693,7 +693,7 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *
 }
 
 var (
-	//confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
+//confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 )
 
 func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -779,8 +779,8 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	}
 	//consensus
 	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
-	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
-	interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
+	//interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
+	//interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	// interpreter.intPool.get().SetUint64(output)
 	if err := memory.WriteSolidityUint256Array(_outputOffset.Int64(), output); err != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -830,7 +830,7 @@ func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*types.ModelM
 func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*types.InputMeta, error) {
 	var (
 		inputMeta *types.InputMeta
-		err error
+		err       error
 	)
 	if inputMeta, err = cvm.GetInputMeta(inputAddr); err != nil {
 		return nil, err
@@ -892,7 +892,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	var output []byte
 	var err error
 	output, err = interpreter.cvm.InferArray(modelMeta.Hash.Hex(),
-											 inputBuff, modelMeta.RawSize)
+		inputBuff, modelMeta.RawSize)
 	// output = big.NewInt(2147483647).Bytes()
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -910,10 +910,9 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 
 	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
 	//update model status
-	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
+	//interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	return nil, nil
 }
-
 
 func opCreate(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (
