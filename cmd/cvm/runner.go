@@ -177,7 +177,7 @@ func runCmd(ctx *cli.Context) error {
 	testInputMeta2, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
 			Hash:          common.BytesToAddress(ih2),
-			RawSize:       3152,
+			RawSize:       3200,
 			Shape:         []uint64{3, 32, 32},
 		})
 	ih3, _ := hex.DecodeString("8e14bbd1c395b7fdcc36fbd3e5f3b6cb7931cc67")

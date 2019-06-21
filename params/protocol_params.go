@@ -121,7 +121,7 @@ const (
 	SeedingBlks = 6   // TESTING: for torrent seed spreading
 	MatureBlks  = 100 // Blocks between model uploading tx and model ready for use.
 	// For the full node to synchronize the models
-	BernardMatureBlks = 10                  // TESTING: For the full node to synchronize the models, in cerebro testnet
+	BernardMatureBlks = 1                  // TESTING: For the full node to synchronize the models, in cerebro testnet
 	ExpiredBlks       = 1000000000000000000 // TESTING: Model expire blocks. Not effective. 8409600
 
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024     // Step of each progress update about how many bytes per upload tx
