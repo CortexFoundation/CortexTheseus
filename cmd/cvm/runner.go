@@ -127,11 +127,10 @@ func runCmd(ctx *cli.Context) error {
 	testModelMeta1, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh1),
-			RawSize:       10000,
+			RawSize:       25637671,
 			InputShape:    []uint64{3, 224, 224},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
-			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 
@@ -143,7 +142,6 @@ func runCmd(ctx *cli.Context) error {
 			InputShape:    []uint64{3, 32, 32},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
-			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 	mh3, _ := hex.DecodeString("d31d1b0f588069aa6f36de5a7025a8d73a9a49f6")
@@ -154,7 +152,6 @@ func runCmd(ctx *cli.Context) error {
 			InputShape:    []uint64{3, 416, 416},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
-			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 	mh4, _ := hex.DecodeString("2d343a00ca1c533eeea6bd2ed5cd2182e62c9f0c")
@@ -165,18 +162,16 @@ func runCmd(ctx *cli.Context) error {
 			InputShape:    []uint64{1, 38, 1},
 			OutputShape:   []uint64{1},
 			Gas:           1000,
-			BlockNum:      *big.NewInt(10),
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
 		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
-	ih1, _ := hex.DecodeString("4c5e20b86f46943422e0ac09749aed9882b4bf35")
+	ih1, _ := hex.DecodeString("0d17f28b3b343c7a9e514a9fbec0eaf0dd005dec")
 	testInputMeta1, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
 			Hash:          common.BytesToAddress(ih1),
-			RawSize:       10000,
+			RawSize:       150656,
 			Shape:         []uint64{3, 224, 224},
-			BlockNum: *big.NewInt(10),
 		})
 	ih2, _ := hex.DecodeString("aea5584d0cd3865e90c80eace3bfcb062473d966")
 	testInputMeta2, _ := rlp.EncodeToBytes(
@@ -184,7 +179,6 @@ func runCmd(ctx *cli.Context) error {
 			Hash:          common.BytesToAddress(ih2),
 			RawSize:       3152,
 			Shape:         []uint64{3, 32, 32},
-			BlockNum: *big.NewInt(10),
 		})
 	ih3, _ := hex.DecodeString("8e14bbd1c395b7fdcc36fbd3e5f3b6cb7931cc67")
 	testInputMeta3, _ := rlp.EncodeToBytes(
@@ -192,7 +186,6 @@ func runCmd(ctx *cli.Context) error {
 			Hash:          common.BytesToAddress(ih3),
 			RawSize:       519296,
 			Shape:         []uint64{3, 416, 416},
-			BlockNum: *big.NewInt(10),
 		})
 	ih4, _ := hex.DecodeString("0fa499fb0966faf927d0c7a4c5f561a37ef8c3e3")
 	testInputMeta4, _ := rlp.EncodeToBytes(
@@ -200,7 +193,6 @@ func runCmd(ctx *cli.Context) error {
 			Hash:          common.BytesToAddress(ih4),
 			RawSize:       10000,
 			Shape:         []uint64{1, 38, 1},
-			BlockNum: *big.NewInt(10),
 		})
 	ih5, _ := hex.DecodeString("91122004e230af0addc1f084fe0c7bbc6cf6c7fb")
 	testInputMeta5, _ := rlp.EncodeToBytes(
@@ -208,7 +200,6 @@ func runCmd(ctx *cli.Context) error {
 			Hash:          common.BytesToAddress(ih5),
 			RawSize:       519296,
 			Shape:         []uint64{3, 416, 416},
-			BlockNum: *big.NewInt(10),
 		})
 	if false {
 		// statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"),
