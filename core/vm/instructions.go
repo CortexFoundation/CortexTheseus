@@ -778,7 +778,7 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		return nil, err
 	}
 	//consensus
-	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
+	//matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
 	//interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	//interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	// interpreter.intPool.get().SetUint64(output)
@@ -908,7 +908,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	// interpreter.intPool.get().SetUint64
 	stack.push(interpreter.intPool.get().SetUint64(1))
 
-	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
+	//matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
 	//update model status
 	//interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	return nil, nil
