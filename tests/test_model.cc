@@ -55,8 +55,19 @@ int run_LIF(string model_root) {
   string params_path = model_root + "/params";
   cerr << "load " << json_path << "\n";
   cerr << "load " << params_path << "\n";
+  std::string params, json;
+  {
+    std::ifstream input_stream(json_path, std::ios::binary);
+    json = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
+    input_stream.close();
+  }
+  {
+    std::ifstream input_stream(params_path, std::ios::binary);
+    params  = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
+    input_stream.close();
+  }
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json_path.c_str(), params_path.c_str(), 1, 0)
+      CVMAPILoadModel(json.c_str(), json.size(), params.c_str(), params.size(), 1, 0)
     );
   cerr << "model loaded\n";
   if (model == nullptr) {
