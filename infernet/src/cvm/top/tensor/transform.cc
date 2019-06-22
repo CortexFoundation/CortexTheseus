@@ -310,7 +310,7 @@ inline bool ExpandDimsInferShape(const NodeAttrs& attrs,
   int ndim = static_cast<int>(dshape.ndim());
   VERIFY(param.axis >= -ndim - 1 && param.axis <= ndim)
     << "with axis = " << param.axis << " ndim = " << ndim;
-  VERIFY(param.num_newaxis >= 0)
+  VERIFY(param.num_newaxis >= 0 && param.num_newaxis <= 1024)
     << "expand_dims only accepts `num_newaxis >= 0`"
     << ", but got num_newaxis = " << param.num_newaxis;
   int axis = param.axis < 0 ? ndim + param.axis + 1 : param.axis;
