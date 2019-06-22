@@ -183,7 +183,6 @@ var (
 		Usage: "P2P storage directory",
 		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
-/*
 	StorageAddrFlag = cli.StringFlag{
 		Name:  "storage.addr",
 		Usage: "P2P storage listening interface (remote mode)",
@@ -196,6 +195,7 @@ var (
 		Usage: "p2p storage listening port",
 		Value: torrentfs.DefaultConfig.Port,
 	}
+<<<<<<< HEAD
 	*/
 	StorageMaxSeedingFlag = cli.IntFlag{
 		Name:  "storage.max_seeding",
@@ -207,6 +207,8 @@ var (
 		Usage: "The maximum number of active tasks in the same time",
 		Value: torrentfs.DefaultConfig.MaxActiveNum,
 	}
+=======
+>>>>>>> parent of 5579c49... stash
 	StorageEnableUTPFlag = cli.BoolFlag{
 		Name:  "storage.utp",
 		Usage: "Enable utp in p2p storage",
@@ -1201,8 +1203,13 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
 func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
+<<<<<<< HEAD
 //	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
 //  cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+=======
+	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
+	cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+>>>>>>> parent of 5579c49... stash
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""

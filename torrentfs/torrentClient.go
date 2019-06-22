@@ -510,7 +510,7 @@ func (tm *TorrentManager) mainLoop() {
 }
 
 const (
-	loops = 5
+	loops = 20
 )
 
 type ActiveTorrentList []*Torrent
