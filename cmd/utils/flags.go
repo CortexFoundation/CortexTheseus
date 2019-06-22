@@ -211,10 +211,10 @@ var (
 		Name:  "storage.utp",
 		Usage: "Enable utp in p2p storage",
 	}
-	StorageBoostNodesFlag = cli.IntFlag{
+	StorageBoostNodesFlag = cli.StringFlag{
 		Name:  "storage.boostnodes",
 		Usage: "p2p storage boostnodes",
-		Value: torrentfs.DefaultConfig.BoostNodes,
+		Value: strings.Join(torrentfs.DefaultConfig.BoostNodes, ","),
 	}
 	StorageTrackerFlag = cli.StringFlag{
 		Name:  "storage.tracker",
@@ -1202,7 +1202,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
 func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 //	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
-  cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+//  cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""
