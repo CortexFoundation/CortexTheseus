@@ -134,4 +134,5 @@ const (
 	//CONFIRM_BLOCKS = 12                  // TESTING
 
 	BLOCK_QUOTA = 65536 // Upon the generation of a new valid block, 64kB file quota is added to the network. Empty blocks also count.
+	Bernard_BLOCK_QUOTA = 65536 * 128 // for bernard
 )
