@@ -190,14 +190,31 @@ var (
 		Value: torrentfs.DefaultConfig.Host,
 	}
 	*/
+	/*
 	StoragePortFlag = cli.IntFlag{
-		Name:  "storage.host",
+		Name:  "storage.port",
 		Usage: "p2p storage listening port",
 		Value: torrentfs.DefaultConfig.Port,
+	}
+	*/
+	StorageMaxSeedingFlag = cli.IntFlag{
+		Name:  "storage.max_seeding",
+		Usage: "The maximum number of seeding tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxSeedingNum,
+	}
+	StorageMaxActiveFlag = cli.IntFlag{
+		Name:  "storage.max_active",
+		Usage: "The maximum number of active tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxActiveNum,
 	}
 	StorageEnableUTPFlag = cli.BoolFlag{
 		Name:  "storage.utp",
 		Usage: "Enable utp in p2p storage",
+	}
+	StorageBoostNodesFlag = cli.IntFlag{
+		Name:  "storage.boostnodes",
+		Usage: "p2p storage boostnodes",
+		Value: torrentfs.DefaultConfig.BoostNodes,
 	}
 	StorageTrackerFlag = cli.StringFlag{
 		Name:  "storage.tracker",
