@@ -348,7 +348,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 	cgas := uint64(0)
 	res := make([]byte, 10)
-	for atomic.LoadInt32(&in.cvm.abort) != 0 {
+	for atomic.LoadInt32(&in.cvm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas

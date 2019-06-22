@@ -5,7 +5,6 @@ package synapse
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
@@ -107,21 +106,21 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 	}
 
 	// Image Path Check
-	inputDir := s.config.StorageDir + "/" + inputHash
-	inputFilePath := inputDir + "/data"
-	log.Debug("Inference Core", "Input Data File", inputFilePath)
-	if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
-		errCh <- ErrInputFileNotExist
-		return
-	}
+	// inputDir := s.config.StorageDir + "/" + inputHash
+	// inputFilePath := inputDir + "/data"
+	// log.Debug("Inference Core", "Input Data File", inputFilePath)
+	// if _, fsErr := os.Stat(inputFilePath); os.IsNotExist(fsErr) {
+	// 	errCh <- ErrInputFileNotExist
+	// 	return
+	// }
 
-	inputContent, dataErr := ReadData(inputFilePath)
+	inputBytes, dataErr := s.config.Storagefs.GetFile(inputHash, "/data")
 	if dataErr != nil {
 		errCh <- dataErr
 		return
 	}
 
-	s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, resCh, errCh)
+	s.inferByInputContent(modelInfoHash, inputInfoHash, inputBytes, resCh, errCh)
 }
 
 func (s *Synapse) infer(modelCfg, modelBin []byte, inputContent []byte) ([]byte, error) {
