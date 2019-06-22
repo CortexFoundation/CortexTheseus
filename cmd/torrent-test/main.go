@@ -11,12 +11,15 @@ import (
 	"os/signal"
 	"syscall"
 	"strings"
+	"time"
 )
 
 type Config struct {
 	Dir        string
 	TaskList   string
 	LogLevel   int
+	NSeed      int
+	NActive    int
 	Utp        bool
 }
 
@@ -33,7 +36,19 @@ func main() {
 			Usage:       "verbose level",
 			Destination: &conf.LogLevel,
 		},
-  	cli.StringFlag{
+ 		cli.IntFlag{
+			Name:        "nseed",
+			Value:       120,
+			Usage:       "seed num",
+			Destination: &conf.NSeed,
+		},
+		cli.IntFlag{
+			Name:        "nactive",
+			Value:       120,
+			Usage:       "active num",
+			Destination: &conf.NActive,
+		}, 	
+		cli.StringFlag{
 			Name:        "dir",
 			Value:       "data",
 			Usage:       "datadir",
@@ -74,6 +89,8 @@ func mainExitCode(conf *Config) int {
 		DefaultTrackers: torrentfs.DefaultConfig.DefaultTrackers,
 		SyncMode:        torrentfs.DefaultConfig.SyncMode,
 		DisableUTP:      torrentfs.DefaultConfig.DisableUTP,
+		MaxSeedingNum:   conf.NSeed,
+		MaxActiveNum:    conf.NActive,
 	}
 
 	cfg.DataDir = conf.Dir
@@ -93,6 +110,7 @@ func mainExitCode(conf *Config) int {
 				InfoHash: metainfo.NewHashFromHex(task),
 				BytesRequested: 10000000,
 			})
+			time.Sleep(10 * time.Millisecond)
 		}	
 	}
 

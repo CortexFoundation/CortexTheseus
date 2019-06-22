@@ -102,7 +102,7 @@ func (t *Torrent) GetTorrent() {
 
 	// log.Debug("Torrent gotInfo finished")
 	f, _ := os.Create(path.Join(t.filepath, "torrent"))
-	log.Trace("Write torrent file", "path", t.filepath)
+	log.Debug("Write torrent file", "path", t.filepath)
 	if err := t.Metainfo().Write(f); err != nil {
 		log.Error("Error while write torrent file", "error", err)
 	}
@@ -121,6 +121,7 @@ func (t *Torrent) SeedInQueue() {
 func (t *Torrent) Seed() {
 	if t.status != torrentSeeding {
 		t.status = torrentSeeding
+		t.Torrent.VerifyData()
 		t.Torrent.DownloadAll()
 	}
 }
@@ -439,8 +440,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	cfg.EstablishedConnsPerTorrent = 15
-	cfg.HalfOpenConnsPerTorrent = 10
+//	cfg.EstablishedConnsPerTorrent = 15
+//	cfg.HalfOpenConnsPerTorrent = 10
 	log.Info("Torrent client configuration", "config", cfg)
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
@@ -459,8 +460,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		pendingTorrents:  make(map[metainfo.Hash]*Torrent),
 		seedingTorrents:  make(map[metainfo.Hash]*Torrent),
 		activeTorrents:   make(map[metainfo.Hash]*Torrent),
-		maxSeedTask:      128,
-		maxActiveTask:    128,
+		maxSeedTask:      config.MaxSeedingNum,
+		maxActiveTask:    config.MaxActiveNum,
 		DataDir:          config.DataDir,
 		TmpDataDir:       tmpFilePath,
 		closeAll:         make(chan struct{}),
