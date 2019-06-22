@@ -24,7 +24,7 @@ const (
 	MinGasLimit          uint64 = 8000000     // Minimum the gas limit may ever be.
 	GenesisGasLimit      uint64 = MinGasLimit // Gas limit of the Genesis block.
 	MinerGasFloor        uint64 = MinGasLimit
-	MinerGasCeil         uint64 = 16000000
+	MinerGasCeil         uint64 = 160000000
 
 	MaximumExtraDataSize  uint64 = 32      // Maximum size extra data may be after Genesis.
 	ExpByteGas            uint64 = 10      // Times ceil(log256(exponent)) for the EXP instruction.
@@ -121,7 +121,7 @@ const (
 	SeedingBlks = 6   // TESTING: for torrent seed spreading
 	MatureBlks  = 100 // Blocks between model uploading tx and model ready for use.
 	// For the full node to synchronize the models
-	BernardMatureBlks = 10                  // TESTING: For the full node to synchronize the models, in cerebro testnet
+	BernardMatureBlks = 1                  // TESTING: For the full node to synchronize the models, in bernard testnet
 	ExpiredBlks       = 1000000000000000000 // TESTING: Model expire blocks. Not effective. 8409600
 
 	PER_UPLOAD_BYTES       uint64 = 1 * 512 * 1024     // Step of each progress update about how many bytes per upload tx
@@ -134,4 +134,5 @@ const (
 	//CONFIRM_BLOCKS = 12                  // TESTING
 
 	BLOCK_QUOTA = 65536 // Upon the generation of a new valid block, 64kB file quota is added to the network. Empty blocks also count.
+	Bernard_BLOCK_QUOTA = 65536 * 128 // for bernard
 )

@@ -528,11 +528,11 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 
 	if (!cvm.vmConfig.DebugInferVM) {
 		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
-			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
+			return nil, errors.New("Torrent file model not available, blockchain and torrent not match, modelInfoHash: " + modelInfoHash)
 		}
 
 		if !torrentfs.Available(inputInfoHash, int64(inputRawSize)) {
-			return nil, errors.New("Torrent file input not available, blockchain and torrent not match")
+			return nil, errors.New("Torrent file input not available, blockchain and torrent not match, inputInfoHash: " + inputInfoHash)
 		}
 	}
 

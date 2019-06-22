@@ -1239,7 +1239,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, pErr
 		}
 		//block quota init by parent consensus
-		block.Header().Quota.Add(parent.Quota(), new(big.Int).SetUint64(params.BLOCK_QUOTA))
+		block.Header().Quota.Add(parent.Quota(), new(big.Int).SetUint64(bc.chainConfig.GeteBlockQuota(block.Number())))
 		block.Header().QuotaUsed.Set(parent.QuotaUsed())
 
 		receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
