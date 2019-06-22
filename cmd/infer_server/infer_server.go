@@ -13,6 +13,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 )
 
 var (
@@ -39,7 +40,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    log.Trace("Handler Info", "request", r)
+	log.Trace("Handler Info", "request", r)
 
 	switch inference.RetriveType(body) {
 	case inference.INFER_BY_IH:
@@ -81,6 +82,10 @@ func main() {
 
 	log.Info("Inference Server", "Help Command", "./infer_server -h")
 
+	storagefs := torrentfs.CreateStorage("simple", torrentfs.Config{
+		DataDir:  *storageDir,
+	})
+
 	inferServer := synapse.New(&synapse.Config{
 		StorageDir: *storageDir,
 		IsNotCache: *IsNotCache,
@@ -88,6 +93,7 @@ func main() {
 		DeviceId: *DeviceId,
 		IsRemoteInfer: false,
 		InferURI: "",
+		Storagefs:				 storagefs,
 	})
 	log.Info("Initilized inference server with synapse engine")
 
