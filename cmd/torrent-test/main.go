@@ -99,6 +99,7 @@ func mainExitCode(conf *Config) int {
 	tm := torrentfs.NewTorrentManager(&cfg)
 	tm.Start()
 
+	log.Info("Torrent fs start with config", "config", cfg)
 	if contents, err := ioutil.ReadFile(conf.TaskList); err == nil {
 		tasks := strings.Split(string(contents), "\n")
 		for _, task := range tasks {

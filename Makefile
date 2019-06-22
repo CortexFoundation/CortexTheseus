@@ -48,18 +48,10 @@ torrent:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 
-<<<<<<< HEAD
 torrent-test:
 	build/env.sh go run build/ci.go install ./cmd/torrent-test
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
-=======
-cortex-remote: clib
-	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-	mv ./build/bin/cortex ./build/bin/cortex-remote
->>>>>>> parent of 5579c49... stash
 
 cortex-nominer: clib
 	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex

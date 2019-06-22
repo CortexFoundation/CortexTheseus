@@ -94,12 +94,7 @@ func (t *Torrent) HasTorrent() bool {
 	return t.status != torrentPending
 }
 
-func (t *Torrent) GetTorrent() {
-	<-t.GotInfo()
-	if t.status != torrentPending {
-		return
-	}
-
+func (t *Torrent) WriteTorrent() {
 	// log.Debug("Torrent gotInfo finished")
 	f, _ := os.Create(path.Join(t.filepath, "torrent"))
 	log.Debug("Write torrent file", "path", t.filepath)
@@ -112,18 +107,13 @@ func (t *Torrent) GetTorrent() {
 }
 
 func (t *Torrent) SeedInQueue() {	
-	if t.status != torrentSeedingInQueue {
-		t.status = torrentSeedingInQueue
-		t.Torrent.Drop()
-	}
+	t.status = torrentSeedingInQueue
+	t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 }
 
 func (t *Torrent) Seed() {
-	if t.status != torrentSeeding {
-		t.status = torrentSeeding
-		t.Torrent.VerifyData()
-		t.Torrent.DownloadAll()
-	}
+	t.status = torrentSeeding
+	t.Torrent.DownloadAll()
 }
 
 func (t *Torrent) Seeding() bool {
@@ -135,7 +125,7 @@ func (t *Torrent) Seeding() bool {
 func (t *Torrent) Pause() {
 	if t.status != torrentPaused {
 		t.status = torrentPaused
-		t.Torrent.Drop()
+		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 	}
 }
 
@@ -144,11 +134,24 @@ func (t *Torrent) Paused() bool {
 	return t.status == torrentPaused
 }
 
+func (t *Torrent) Length() int64 {
+	return t.bytesCompleted + t.bytesMissing
+}
+
+func (t *Torrent) NumPieces() int {
+	return t.Torrent.NumPieces()
+}
+
 // Run ...
 func (t *Torrent) Run() {
-	if t.status != torrentRunning {
-		t.status = torrentRunning
-		t.Torrent.DownloadAll()
+	loop := int((t.bytesRequested * int64(t.NumPieces()) + t.Length() - 1) / t.Length())
+	if loop > t.NumPieces() {
+		loop = t.NumPieces()
+	}
+	t.status = torrentRunning
+	if loop > t.loop {
+		t.loop = loop
+		t.Torrent.DownloadPieces(0, loop)
 	}
 }
 
@@ -303,10 +306,10 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	ih := spec.InfoHash
-	log.Debug("Get torrent from local file", "InfoHash", ih.HexString())
+	log.Trace("Get torrent from local file", "InfoHash", ih.HexString())
 
 	if tm.GetTorrent(ih) != nil {
-		log.Debug("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		log.Trace("Torrent was already existed. Skip", "InfoHash", ih.HexString())
 		return
 	}
 	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
@@ -327,6 +330,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 	}
 
 	if useExistDir {
+		log.Trace("existing dir", "dir", ExistDir)
 		spec.Storage = storage.NewFile(ExistDir)
 		for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
@@ -335,12 +339,12 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
+		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 		<-t.GotInfo()
-		tm.CreateTorrent(t, BytesRequested, torrentSeedingInQueue, ih)
-		t.Drop()
+		t.VerifyData()
+	  torrent.status = torrentSeedingInQueue
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
-
 		for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
 		}
@@ -348,9 +352,9 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
+		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 		<-t.GotInfo()
-		tm.CreateTorrent(t, BytesRequested, torrentPaused, ih)
-		t.Drop()
+		torrent.Pause()
 	}
 }
 
@@ -389,13 +393,12 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	for _, tracker := range tm.trackers {
 		spec.Trackers = append(spec.Trackers, tracker)
 	}
-	log.Debug("Torrent specific info", "spec", spec)
+	log.Trace("Torrent specific info", "spec", spec)
 
 	t, _, _ := tm.client.AddTorrentSpec(spec)
-	torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+	tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 	//tm.mu.Unlock()
-	log.Debug("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
-	go torrent.GetTorrent()
+	log.Trace("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 }
 
 // UpdateInfoHash ...
@@ -440,8 +443,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-//	cfg.EstablishedConnsPerTorrent = 15
-//	cfg.HalfOpenConnsPerTorrent = 10
+	cfg.EstablishedConnsPerTorrent = 10
+	cfg.HalfOpenConnsPerTorrent = 5
 	log.Info("Torrent client configuration", "config", cfg)
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
@@ -473,7 +476,6 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	if len(config.DefaultTrackers) > 0 {
 		log.Info("Tracker list", "trackers", config.DefaultTrackers)
 		TorrentManager.SetTrackers(config.DefaultTrackers)
-		TorrentManager.SetTrackers(params.MainnetTrackers)
 	}
 	log.Info("Torrent client initialized")
 
@@ -510,7 +512,7 @@ func (tm *TorrentManager) mainLoop() {
 }
 
 const (
-	loops = 20
+	loops = 2
 )
 
 type ActiveTorrentList []*Torrent
@@ -545,12 +547,17 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		}
 
 		for ih, t := range tm.pendingTorrents {
+			t.loop += 1
 			if t.Seeding() {
 				delete(tm.pendingTorrents, ih)
 				tm.seedingTorrents[ih] = t
+				t.loop = 0
 			} else if !t.Pending() {
 				delete(tm.pendingTorrents, ih)
 				tm.activeTorrents[ih] = t
+				t.loop = 0
+			} else if t.Torrent.Info() != nil {
+				t.WriteTorrent()
 			}
 		}
 		
@@ -568,7 +575,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.loop = defaultSeedInterval / queryTimeInterval
 				continue
 			}
-
+		
 			if t.bytesCompleted >= t.bytesLimitation {
 				t.Pause()
 			} else if t.bytesCompleted < t.bytesRequested {
