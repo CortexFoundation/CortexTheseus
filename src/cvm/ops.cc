@@ -43,7 +43,7 @@ double cvm_op_depthwise_conv_cnt = 0;
 double cvm_op_depthwise_conv1x1_cnt = 0;
 
 #define CVM_PROFILING
-//#define CVM_PRINT_OP_RESULT
+#define CVM_PRINT_OP_RESULT
 
 inline uint64_t getSize(DLTensor *dlTensor){
   uint64_t size = 1;
@@ -64,7 +64,7 @@ void print_to_file(DLTensor *y, std::string filename){
       max = max < y_data[i] ? y_data[i] : max;
   }
   fprintf(fp, "%d %d\n", min, max);
-  for(uint64_t i = 0; i < 1000 && i < getSize(y); i++){
+  for(uint64_t i = 0; i < 20 && i < getSize(y); i++){
       fprintf(fp, "%d ", y_data[i]);
   }
   fprintf(fp, "\n");
@@ -679,7 +679,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
 #ifdef CVM_PROFILING
         double start = omp_get_wtime();
 #endif
-    depthwise_conv2d_single(
+    depthwise_conv2d(
         x_data, n_batch, in_channels, x_h, x_w,
         w_data, filter_c, filter_h, filter_w,
         y_data, out_channels, o_h, o_w,

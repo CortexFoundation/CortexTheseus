@@ -103,17 +103,17 @@ int run_LIF(string model_root) {
     }
     std::cerr << "\n";
   }
-//  if (model_root.find("std_out") != string::npos)
-//  {
-//    string data_file = model_root + "/data.npy";
-//    std::vector<unsigned long> tshape;
-//    npy::LoadArrayFromNumpy(data_file, tshape, input);
-//    std::cerr << tshape.size() << "\n";
-//    for (auto x : tshape) {
-//      std::cerr << x << " ";
-//    }
-//    std::cerr << "\n";
-//  }
+  if (model_root.find("std_out") != string::npos)
+  {
+    string data_file = model_root + "/data.npy";
+    std::vector<unsigned long> tshape;
+    npy::LoadArrayFromNumpy(data_file, tshape, input);
+    std::cerr << tshape.size() << "\n";
+    for (auto x : tshape) {
+      std::cerr << x << " ";
+    }
+    std::cerr << "\n";
+  }
   double start = omp_get_wtime();
   int n_run = 1;
   for (int i = 0; i < n_run; i++) {
@@ -250,7 +250,8 @@ void test_models() {
    //  "/data/lz_model_storage/octconv_resnet26_0.250/data",
    //  "/data/std_out/resnet50_mxg/",
    //  "/data/std_out/resnet50_v2"
-     "/data/std_out/trec"
+   //  "/data/std_out/trec"
+     "/data/std_out/qd10_resnet20_v2"
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);
