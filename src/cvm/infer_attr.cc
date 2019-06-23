@@ -32,21 +32,6 @@ std::vector<TShape> GetTShapeArray(const std::vector<std::vector<int64_t> > &sha
         << "tensor size should not larger than the range of int32";
     }
     ret.emplace_back(shape);
-    // if (shape.size() == 1) {
-    //   ret.push_back(TShape{shape[0]});
-    // } else if (shape.size() == 2) {
-    //   ret.push_back(TShape{shape[0], shape[1]});
-    // } else if (shape.size() == 3) {
-    //   ret.push_back(TShape{shape[0], shape[1], shape[2]});
-    // } else if (shape.size() == 4) {
-    //   ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3]});
-    // } else if (shape.size() == 5) {
-    //   ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3], shape[4]});
-    // } else if (shape.size() == 6) {
-    //   ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]});
-    // } else {
-    //   ret.push_back(TShape());
-    // }
   }
   return ret;
 }
@@ -194,10 +179,10 @@ int64_t CvmRuntime::GetOps() {
     mem_cost += mem_size * 5;
   }
   int64_t ret = mem_cost + ops;
-  std::cout << "GetOps: memory cost=" << mem_cost
-    << " percentage=" << 1.f * mem_cost / ret
-    << " ops=" << ops
-    << " percentage=" << 1.f * ops / ret << std::endl;
+  std::cout << "GetOps: memory cost=" << int(mem_cost / 1000000)
+    << "M percentage=" << 1.f * mem_cost / ret
+    << " ops=" << int(ops / 1000000)
+    << "M percentage=" << 1.f * ops / ret << std::endl;
   return mem_cost + ops;
 }
 
