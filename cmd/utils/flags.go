@@ -184,20 +184,26 @@ var (
 		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
 /*
-	StorageAddrFlag = cli.StringFlag{
-		Name:  "storage.addr",
-		Usage: "P2P storage listening interface (remote mode)",
-		Value: torrentfs.DefaultConfig.Host,
-	}
-	*/
 	StoragePortFlag = cli.IntFlag{
-		Name:  "storage.host",
+		Name:  "storage.port",
 		Usage: "p2p storage listening port",
 		Value: torrentfs.DefaultConfig.Port,
 	}
-	StorageEnableUTPFlag = cli.BoolFlag{
-		Name:  "storage.utp",
-		Usage: "Enable utp in p2p storage",
+	*/
+	StorageMaxSeedingFlag = cli.IntFlag{
+		Name:  "storage.max_seeding",
+		Usage: "The maximum number of seeding tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxSeedingNum,
+	}
+	StorageMaxActiveFlag = cli.IntFlag{
+		Name:  "storage.max_active",
+		Usage: "The maximum number of active tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxActiveNum,
+	}
+	StorageBoostNodesFlag = cli.StringFlag{
+		Name:  "storage.boostnodes",
+		Usage: "p2p storage boostnodes",
+		Value: strings.Join(torrentfs.DefaultConfig.BoostNodes, ","),
 	}
 	StorageTrackerFlag = cli.StringFlag{
 		Name:  "storage.tracker",
@@ -1185,7 +1191,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
 func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 //	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
-  cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+//  cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""
@@ -1196,7 +1202,6 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		cfg.IpcPath = filepath.Join(path, IPCPath)
 		log.Info("IPCPath", "path", cfg.IpcPath)
 	}
-	cfg.DisableUTP = !ctx.GlobalBool(StorageEnableUTPFlag.Name)
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	cfg.DefaultTrackers = strings.Split(trackers, ",")
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
