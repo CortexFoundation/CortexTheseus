@@ -208,7 +208,7 @@ var (
 	StorageTrackerFlag = cli.StringFlag{
 		Name:  "storage.tracker",
 		Usage: "P2P storage tracker list",
-		Value: "",
+		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
 	}
 	// Dashboard settings
 	// DashboardEnabledFlag = cli.BoolFlag{
