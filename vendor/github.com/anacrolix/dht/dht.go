@@ -4,7 +4,7 @@ import (
 	"crypto"
 	crand "crypto/rand"
 	_ "crypto/sha1"
-//	"errors"
+	"errors"
 	"log"
 	"math/rand"
 	"net"
@@ -112,7 +112,7 @@ func GlobalBootstrapAddrs() (addrs []Addr, err error) {
 		}
 	}
 	if len(addrs) == 0 {
-//		err = errors.New("nothing resolved")
+		err = errors.New("nothing resolved")
 	}
 	return
 }

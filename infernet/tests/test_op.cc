@@ -613,22 +613,22 @@ void test_op(string op_name) {
   }
 }
 int main() {
-  test_op("max_pool2d");
-   test_op("upsampling");
-  test_op("dense");
+//  test_op("max_pool2d");
+//   test_op("upsampling");
+//  test_op("dense");
   test_op("conv2d");
-  test_op("sum");
-  test_op("max"); // pass
-  test_op("slice_like");
-  test_op("tile"); //pass
-  test_op("repeat"); //pass
-  test_op("get_valid_counts");
-
-  test_op("strided_slice"); //pass
-  test_op("concatenate");//pass
-  test_op("transpose");// pass
-  test_op("take");
-  // test_op("elemwise_add", 2, 1);
-  test_op("non_max_suppression");
+//  test_op("sum");
+//  test_op("max"); // pass
+//  test_op("slice_like");
+//  test_op("tile"); //pass
+//  test_op("repeat"); //pass
+//  test_op("get_valid_counts");
+//
+//  test_op("strided_slice"); //pass
+//  test_op("concatenate");//pass
+//  test_op("transpose");// pass
+//  test_op("take");
+//  // test_op("elemwise_add", 2, 1);
+//  test_op("non_max_suppression");
     return 0;
 }
