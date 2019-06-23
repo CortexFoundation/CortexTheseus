@@ -127,7 +127,7 @@ func runCmd(ctx *cli.Context) error {
 	testModelMeta1, _ := rlp.EncodeToBytes(
 		&types.ModelMeta{
 			Hash:          common.BytesToAddress(mh1),
-			RawSize:       10000,
+			RawSize:       26047799,
 			InputShape:    []uint64{3, 224, 224},
 			OutputShape:   []uint64{1},
 			Gas:           1000,

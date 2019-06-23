@@ -397,3 +397,11 @@ func (c *ChainConfig) GetMatureBlock() int64 {
 	}
 	return MatureBlks;
 }
+
+// Get Block uploading quota
+func (c *ChainConfig) GeteBlockQuota(num *big.Int) uint64 {
+	if c.ChainID.Uint64() == 42 && num.Cmp(big.NewInt(570)) >=0  {
+		return Bernard_BLOCK_QUOTA
+	}
+	return BLOCK_QUOTA;
+}

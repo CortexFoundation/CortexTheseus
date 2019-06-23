@@ -630,7 +630,7 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
 	header.Supply = new(big.Int).Set(parent.Supply)
-	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(params.BLOCK_QUOTA))
+	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GeteBlockQuota(header.Number)))
 	header.QuotaUsed = new(big.Int).Set(parent.QuotaUsed)
 	return nil
 }

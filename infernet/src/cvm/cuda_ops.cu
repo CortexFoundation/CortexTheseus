@@ -25,6 +25,16 @@ inline int32_t getShareMemorySize(const int32_t device_id, int&error_code){
   }
   return sharedMemPerBlock;
 }
+inline int32_t getFreeMemorySize(const int32_t device_id, int&error_code){
+  size_t freeSize = 0, totalSize = 0;
+  cudaError_t status = cudaMemGetInfo(&freeSize, &totalSize);
+  if(status != cudaSuccess){
+    error_code = ERROR_GET_PROPERTIES;
+    return -1;
+  }
+  return freeSize;
+}
+
 const char* check_cuda_error(cudaError_t error){
   if(error == cudaSuccess) return NULL;
   else return cudaGetErrorString(error);
@@ -223,6 +233,105 @@ __global__ void kernel_conv2d_no_shared(
     output[gy * o_w + gx] = sum + (bias != NULL ? bias[l_o_c] : 0);
   }
 }
+__global__ void kernel_int32_to_int8(const int32_t *in_data, int8_t *out_data, const int n){
+    int tid = threadIdx.x + blockDim.x * blockIdx.x;
+    for(int64_t i = tid; i < n; i+= gridDim.x * blockDim.x){
+        out_data[i] = static_cast<int8_t>(in_data[i]);
+    }
+}
+
+__global__ void im2col_gpu_kernel(const int n, const int32_t* data_im,
+        const int height, const int width, const int kernel_h, const int kernel_w,
+        const int pad_h, const int pad_w,
+        const int stride_h, const int stride_w,
+        const int dilation_h, const int dilation_w,
+        const int height_col, const int width_col,
+        int8_t* data_col) {
+//    CUDA_KERNEL_LOOP(index, n) {
+  int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  for(int64_t index = tid; index < n; index += gridDim.x*blockDim.x){
+        const int h_index = index / width_col;
+        const int h_col = h_index % height_col;
+        const int w_col = index % width_col;
+        const int c_im = h_index / height_col;
+        const int c_col = c_im * kernel_h * kernel_w;
+        const int h_offset = h_col * stride_h - pad_h;
+        const int w_offset = w_col * stride_w - pad_w;
+        int8_t* data_col_ptr = data_col;
+        data_col_ptr += (c_col * height_col + h_col) * width_col + w_col;
+        const int32_t* data_im_ptr = data_im;
+        data_im_ptr += (c_im * height + h_offset) * width + w_offset;
+        for (int i = 0; i < kernel_h; ++i) {
+            for (int j = 0; j < kernel_w; ++j) {
+                int h_im = h_offset + i * dilation_h;
+                int w_im = w_offset + j * dilation_w;
+                *data_col_ptr =
+                    (h_im >= 0 && w_im >= 0 && h_im < height && w_im < width) ?
+                    static_cast<int8_t>(data_im_ptr[i * dilation_h * width + j * dilation_w]) : 0;
+                data_col_ptr += height_col * width_col;
+            }
+        }
+    }
+}
+
+#define TILE_WIDTH 16
+__global__ void kernel_matrix_mul(
+    int8_t *a, // m*k 
+    int8_t *b, // k*n
+    int32_t *c, // m*n
+    int32_t m, int32_t k, int32_t n, int32_t *bias){
+  __shared__ int8_t sharedm[TILE_WIDTH][TILE_WIDTH];
+  __shared__ int8_t sharedn[TILE_WIDTH][TILE_WIDTH];
+  int bx = blockIdx.x;
+  int by = blockIdx.y;
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int row = by*TILE_WIDTH + ty;
+  int col = bx*TILE_WIDTH + tx;
+  int sum = 0;
+
+  for (int i = 0; i < (int)(ceil((float)k/TILE_WIDTH)); i++)
+  {
+    if (i*TILE_WIDTH + tx < k && row < m)//m*k
+      sharedm[ty][tx] = a[row*k + i*TILE_WIDTH + tx];
+    else
+      sharedm[ty][tx] = 0;
+
+    if(i*TILE_WIDTH + ty < k && col < n)//k*n
+      sharedn[ty][tx] =b[(i*TILE_WIDTH + ty) * n + col] ;//b[col * k + i * TILE_WIDTH + ty];
+    else
+      sharedn[ty][tx] = 0;
+    __syncthreads();
+
+    for(int j = 0; j < TILE_WIDTH; j++)
+      sum += static_cast<int32_t>(sharedm[ty][j]) * sharedn[j][tx];
+    __syncthreads();
+  }
+  if (row < m && col < n){
+    if(bias != NULL) sum += bias[row];
+    c[row*n + col] = sum;
+  }
+}
+inline void im2col_gpu(const int32_t* data_im, const int channels,
+        const int height, const int width, const int kernel_h, const int kernel_w,
+        const int pad_h, const int pad_w,
+        const int stride_h, const int stride_w,
+        const int dilation_h, const int dilation_w,
+        int8_t* data_col) {
+    // We are going to launch channels * height_col * width_col kernels, each
+    // kernel responsible for copying a single-channel grid.
+    int height_col = (height + 2 * pad_h -
+            (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
+    int width_col = (width + 2 * pad_w -
+            (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
+    int num_kernels = channels * height_col * width_col;
+    int threads = 256;
+    int blocks = (num_kernels + threads - 1) / threads;
+    im2col_gpu_kernel<<<blocks, threads>>>(
+                num_kernels, data_im, height, width, kernel_h, kernel_w, pad_h,
+                pad_w, stride_h, stride_w, dilation_h, dilation_w, height_col,
+                width_col, data_col);
+}
 const char* cuda_conv2d(
     int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
     int32_t *filter, int32_t f_n, int32_t f_c, const int32_t f_h, const int32_t f_w,
@@ -252,21 +361,61 @@ const char* cuda_conv2d(
   }
   size_t share_size = ((BS + tmp_f_h - 1) * (BS + tmp_f_w - 1) + f_h * f_w * FS + FS) * sizeof(int32_t);
   if(share_size < totalShareMemSize){
-    int b_h = BS;
-    int b_w = BS;
-    int32_t g_h = o_n * ((o_c + FS - 1) / FS) * ((tmp_o_h + b_h - 1) / b_h);
-    int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
-    dim3 bDim(b_w, b_h, 1);
-    dim3 gDim(g_w, g_h, 1);
-    kernel_conv2d<<<gDim, bDim, share_size>>>(
-        dev_i, i_n, i_c, i_h, i_w,
-        dev_f, f_n, f_c, f_h, f_w,
-        dev_b, 
-        padding_h, padding_w,
-        stride_h, stride_w,
-        dilation_h, dilation_w,
-        groups,
-        dev_o, o_n, o_c, o_h, o_w);
+    size_t freeSize = getFreeMemorySize(device_id, error_code);
+    size_t tmp_filter_size = o_c * i_c * f_h * f_w * sizeof(int8_t);
+    size_t tmp_input_size = i_c * f_h * f_w * o_h * o_w * sizeof(int8_t);
+    if(tmp_filter_size + tmp_input_size >= freeSize){
+      int b_h = BS;
+      int b_w = BS;
+      int32_t g_h = o_n * ((o_c + FS - 1) / FS) * ((tmp_o_h + b_h - 1) / b_h);
+      int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
+      dim3 bDim(b_w, b_h, 1);
+      dim3 gDim(g_w, g_h, 1);
+      kernel_conv2d<<<gDim, bDim, share_size>>>(
+          dev_i, i_n, i_c, i_h, i_w,
+          dev_f, f_n, f_c, f_h, f_w,
+          dev_b, 
+          padding_h, padding_w,
+          stride_h, stride_w,
+          dilation_h, dilation_w,
+          groups,
+          dev_o, o_n, o_c, o_h, o_w);
+    }else{
+      int32_t fn = o_c * i_c * f_h * f_w;
+      const int M = o_c;
+      const int K = i_c * f_h * f_w;
+      const int N = o_h * o_w;
+      dim3 bDim(TILE_WIDTH, TILE_WIDTH, 1);
+      int gh = (M + TILE_WIDTH - 1) / TILE_WIDTH;
+      int gw = (N + TILE_WIDTH - 1) / TILE_WIDTH;
+      dim3 gDim(gw, gh, 1);
+
+      int8_t *d_f, *d_col;
+      cudaError_t status = cudaMalloc((void**)&d_f, fn * sizeof(int8_t));
+      if(status != cudaSuccess){
+        error_code = ERROR_MALLOC;
+        return check_cuda_error(status);
+      }
+      int blockSize = 256;
+      int gridSize = getGridSize(fn, blockSize);
+      kernel_int32_to_int8<<<gridSize, blockSize>>>(dev_f, d_f, fn);
+
+      status = cudaMalloc((void**)&d_col, sizeof(int8_t) * i_c * f_h * f_w * o_h * o_w);
+      if(status != cudaSuccess){
+        cudaFree(d_f);
+        error_code = ERROR_MALLOC;
+        return check_cuda_error(status);
+      }
+      
+      for(int i = 0; i < o_n; i++){
+        im2col_gpu(dev_i + i * i_c * i_h * i_w,
+            i_c, i_h, i_w, f_h, f_w, padding_h, padding_w, stride_h, stride_w, 
+            dilation_h, dilation_w, d_col);
+        kernel_matrix_mul<<<gDim, bDim>>>(d_f, d_col, dev_o + i * o_c * o_h * o_w, M, K, N, dev_b);
+      }
+      cudaFree(d_f);
+      cudaFree(d_col);
+    }
   }else{
     int b_h = BS;
     int b_w = BS;
@@ -634,7 +783,7 @@ const char* cuda_max_pool(
   return check_cuda_error(error);
 }
 
-#define TILE_WIDTH 16
+//#define TILE_WIDTH 16
 __global__ void kernel_dense(
     int32_t *A, // m*k 
     int32_t *B, // was transposed, n*k
