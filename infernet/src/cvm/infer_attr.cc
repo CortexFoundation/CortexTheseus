@@ -110,7 +110,10 @@ int64_t CvmRuntime::GetOps() {
   int64_t ops = 0, mem_cost = 0;
   for (uint32_t nid = 0; nid < idx.size(); ++nid) {
     auto inode = idx[nid];
-    if (inode.op_type != "null") {
+    if (inode.op_type == "null") {
+      int64_t mem_size = rshape[entry_id(nid, 0)].Size();
+      mem_cost += mem_size * 5;
+    } else {
       uint32_t out_eid = entry_id(nid, 0);
       int64_t t = 1;
       int len = 0;
@@ -168,15 +171,15 @@ int64_t CvmRuntime::GetOps() {
         return -1;
       }
       ops += t;
-    }
 
-    // Calculate internal symbol's memory cost with output shape,
-    // which multiply scale 5 by default.
-    uint64_t mem_size = 0;
-    for (int i = 0; i < inode.param.num_outputs; ++i) {
-      mem_size += rshape[entry_id(nid, i)].Size();
+      // Calculate internal symbol's memory cost with output shape,
+      // which multiply scale 5 by default.
+      int64_t mem_size = 0;
+      for (int i = 0; i < inode.param.num_outputs; ++i) {
+        mem_size += rshape[entry_id(nid, i)].Size();
+      }
+      mem_cost += mem_size * 5;
     }
-    mem_cost += mem_size * 5;
   }
   int64_t ret = mem_cost + ops;
   std::cout << "GetOps: memory cost=" << int(mem_cost / 1000000)
