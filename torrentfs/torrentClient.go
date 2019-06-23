@@ -450,6 +450,17 @@ func (tm *TorrentManager) DropMagnet(ih metainfo.Hash) bool {
 var CurrentTorrentManager *TorrentManager = nil
 // NewTorrentManager ...
 func NewTorrentManager(config *Config) *TorrentManager {
+//  	log.Info("config",
+//  		"port", config.Port,
+//  		"datadir", config.DataDir,
+//  		"rpcuri", config.RpcURI,
+//  		"ipcuri", config.IpcPath,
+//  		"boostnodes", config.BoostNodes,
+//  		"trackers", config.DefaultTrackers,
+//  		"syncmode", config.SyncMode,
+//  		"max_seedingnum", config.MaxSeedingNum,
+//  		"max_activenum", config.MaxActiveNum,
+//  	)
   cfg := torrent.NewDefaultClientConfig()
   cfg.DisableUTP = config.DisableUTP
   cfg.NoDHT = false
@@ -483,9 +494,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
     pendingTorrents:      make(map[metainfo.Hash]*Torrent),
     seedingTorrents:      make(map[metainfo.Hash]*Torrent),
     activeTorrents:       make(map[metainfo.Hash]*Torrent),
-    maxSeedTask:           config.MaxSeedingNum,
-    maxActiveTask:         config.MaxActiveNum,
-    maxEstablishedConns:   cfg.EstablishedConnsPerTorrent,
+    maxSeedTask:          config.MaxSeedingNum,
+    maxActiveTask:        config.MaxActiveNum,
+    maxEstablishedConns:  cfg.EstablishedConnsPerTorrent,
     DataDir:              config.DataDir,
     TmpDataDir:           tmpFilePath,
     closeAll:             make(chan struct{}),
