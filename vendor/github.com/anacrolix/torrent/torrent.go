@@ -1516,7 +1516,7 @@ func (t *Torrent) addConnection(c *connection) (err error) {
 		if c.PeerID != c0.PeerID {
 			continue
 		}
-		if !t.cl.config.dropDuplicatePeerIds {
+		if !t.cl.config.DropDuplicatePeerIds {
 			continue
 		}
 		if left, ok := c.hasPreferredNetworkOver(c0); ok && left {
