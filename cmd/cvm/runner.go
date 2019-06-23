@@ -166,11 +166,11 @@ func runCmd(ctx *cli.Context) error {
 		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
-	ih1, _ := hex.DecodeString("0d17f28b3b343c7a9e514a9fbec0eaf0dd005dec")
+	ih1, _ := hex.DecodeString("4c5e20b86f46943422e0ac09749aed9882b4bf35")
 	testInputMeta1, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
 			Hash:          common.BytesToAddress(ih1),
-			RawSize:       150656,
+			RawSize:       10000,
 			Shape:         []uint64{3, 224, 224},
 		})
 	ih2, _ := hex.DecodeString("aea5584d0cd3865e90c80eace3bfcb062473d966")

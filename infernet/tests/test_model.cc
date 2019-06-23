@@ -10,6 +10,9 @@ using namespace std;
 
 using cvm::runtime::PackedFunc;
 using cvm::runtime::Registry;
+
+int use_gpu = 0;
+
 struct OpArgs {
   std::vector<DLTensor> args;
   std::vector<CVMValue> arg_values;
@@ -35,7 +38,7 @@ void test_op_take() {
 
 }
 
-int run_LIF(string model_root) {
+int run_LIF(string model_root, int device_type = 0) {
   cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
   cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
   cvm::runtime::im2col_cnt = 0;
@@ -67,7 +70,7 @@ int run_LIF(string model_root) {
     input_stream.close();
   }
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json.c_str(), json.size(), params.c_str(), params.size(), 1, 0)
+      CVMAPILoadModel(json.c_str(), json.size(), params.c_str(), params.size(), device_type, 0)
     );
   cerr << "model loaded\n";
   if (model == nullptr) {
@@ -120,6 +123,7 @@ int run_LIF(string model_root) {
   }
   CVMAPIFreeModel(model);
   double ellapsed_time = (omp_get_wtime() - start) / n_run;
+  cout << "total time : " << ellapsed_time / n_run << "\n";
   cout << "total gemm.trans time: " << cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run << "\n";
   cout << "total  gemm.gemm time: " << cvm::runtime::transpose_int8_avx256_gemm_cnt / n_run << "\n";
   cout << "total     im2col time: " << cvm::runtime::im2col_cnt / n_run<< "\n";
@@ -230,7 +234,7 @@ void test_thread() {
   }
 }
 
-void test_models() {
+int test_models(int device_type = 0) {
   auto model_roots = {
      // "/data/std_out/null",
      // "/data/std_out/resnet50_mxg",
@@ -249,12 +253,21 @@ void test_models() {
      "/data/lz_model_storage/squeezenet_gcv1.1/data",
      "/data/lz_model_storage/squeezenet_gcv1.0/data",
      "/data/lz_model_storage/octconv_resnet26_0.250/data",
+      "/data/std_out/resnet50_mxg/",
+      "/data/std_out/resnet50_v2",
+     "/data/std_out/qd10_resnet20_v2"
   };
   for (auto model_root : model_roots) {
-    run_LIF(model_root);
+    if (run_LIF(model_root, device_type) != 0) {
+      return -1;
+    }
   }
+  return 0;
 }
 int main() {
-  test_models();
+ // if (test_models(0) != 0)
+ //   return -1;
+  if (test_models(1) != 0)
+    return -1;
   return 0;
 }

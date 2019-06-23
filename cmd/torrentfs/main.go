@@ -31,13 +31,31 @@ func main() {
 			Usage:       "verbose level",
 			Destination: &conf.LogLevel,
 		},
-  	cli.StringFlag{
+		cli.StringFlag{
+			Name:        "host",
+			Value:       "localhost",
+			Usage:       "hostname",
+			Destination: &conf.Host,
+		},
+		cli.IntFlag{
+			Name:        "port",
+			Value:       8085,
+			Usage:       "port",
+			Destination: &conf.LogLevel,
+		},
+		cli.StringFlag{
 			Name:        "dir",
 			Value:       "/data",
 			Usage:       "datadir",
 			Destination: &conf.Dir,
 		},
-  }
+		cli.StringFlag{
+			Name:        "tracker-uri",
+			Value:       "http://torrent.cortexlabs.ai:5008/announce",
+			Usage:       "tracker uri",
+			Destination: &conf.TrackerURI,
+		},
+	}
 
 	app.Action = func(c *cli.Context) error {
 		mainExitCode(&conf)
@@ -55,11 +73,15 @@ func mainExitCode(conf *Config) int {
 
 	cfg := torrentfs.Config{
 		DataDir:         torrentfs.DefaultConfig.DataDir,
+		Host:            torrentfs.DefaultConfig.Host,
+		Port:            torrentfs.DefaultConfig.Port,
 		DefaultTrackers: torrentfs.DefaultConfig.DefaultTrackers,
 		SyncMode:        torrentfs.DefaultConfig.SyncMode,
 		TestMode:        torrentfs.DefaultConfig.TestMode,
 	}
 
+	cfg.Host = conf.Host
+	cfg.Port = conf.Port
 	cfg.DataDir = conf.Dir
 
 	tfs, _ := torrentfs.New(&cfg, "")

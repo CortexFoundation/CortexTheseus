@@ -8,6 +8,29 @@
 #include <string>
 #include "nms.h"
 
+// #define CVM_PRINT_CUDA_RESULT
+
+void print_to_file(const int32_t *y, int32_t n, std::string filename){
+#ifdef CVM_PRINT_CUDA_RESULT
+  int32_t *y_data = new int32_t[n];
+  cudaMemcpy(y_data, y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
+
+  FILE *fp = fopen(filename.c_str(), "a+");
+
+  int32_t min = y_data[0], max= y_data[0];
+  for(uint64_t i = 0; i < n; i++){
+    min = min > y_data[i] ? y_data[i] : min;
+    max = max < y_data[i] ? y_data[i] : max;
+  }
+  fprintf(fp, "%d %d\n", min, max);
+  for(uint64_t i = 0; i < 1000 && i < n; i++){
+    fprintf(fp, "%d ", y_data[i]);
+  }
+  fprintf(fp, "\n");
+  fclose(fp);
+  delete y_data;
+#endif
+}
 inline int32_t getGridSize(const int64_t n, const int32_t blockSize){
   int64_t tg = (n + blockSize - 1) / blockSize;
   return tg > 4096 ? 4096 : tg;
@@ -56,6 +79,7 @@ const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n, in
   if(error != cudaSuccess){
     error_code = ERROR_KERNEL;
   }
+  print_to_file(dev_c, n, "/tmp/zkh/trec/gpu/elemwise_add.txt");
   return check_cuda_error(error);
 }
 __global__ void kernel_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t n){
@@ -437,6 +461,8 @@ const char* cuda_conv2d(
   if(cudaSuccess != error){
     error_code = ERROR_KERNEL;
   }
+
+  print_to_file(dev_o, o_n * o_c * o_h * o_w, "/tmp/zkh/trec/gpu/conv2d.txt");
   return check_cuda_error(error);
 }
 __global__ void kernel_depthwise_conv2d(
@@ -459,6 +485,7 @@ __global__ void kernel_depthwise_conv2d(
   int perBlockOneImageY = (tmp_o_h+BS-1) / BS;
   int perBlockOneImageX = (tmp_o_w+BS-1) / BS;
   int l_o_c = blockIdx.y / perBlockOneImageY;
+  int l_f_c = l_o_c % o_c;
   int l_o_hi = blockIdx.y % perBlockOneImageY;
   int l_o_wi = blockIdx.x % perBlockOneImageX;
   int l_o_h = l_o_hi * BS + l_y;
@@ -519,7 +546,7 @@ __global__ void kernel_depthwise_conv2d(
   if(l_y < F_H && l_x < F_W){
     for(int i = l_y; i < F_H; i+= min_s_y)
       for(int j = l_x; j < F_W; j+=min_s_x)
-        shared_f[i*F_W + j] = filter[l_o_c * F_H * F_W + i * F_W + j];
+        shared_f[i*F_W + j] = filter[l_f_c * F_H * F_W + i * F_W + j];
   }
   __syncthreads();
 
@@ -555,12 +582,13 @@ __global__ void kernel_depthwise_conv2d_no_shared(
     for(int fy = 0; fy < f_h; ++fy){
       for(int fx = 0; fx < f_w; ++fx){
         int32_t l_i_h = l_o_h * stride_h + fy * dilation_h - padding_h;
-        int32_t l_i_w = gx * stride_w + fx * dilation_h - padding_w;
+        int32_t l_i_w = gx * stride_w + fx * dilation_w - padding_w;
         int32_t x;
         if(l_i_h < 0 || l_i_w < 0 || l_i_h >= i_h || l_i_w >= i_w)
-          x = 0;
-        else x = input[l_o_n * i_c * i_h * i_w + l_o_c * i_h * i_w + l_i_h * i_w + l_i_w];
-        sum += x * filter[l_o_n * i_c * f_h * f_w + l_o_c * f_h * f_w + fy * f_w + fx];
+          //x = 0;
+          continue;
+        x = input[l_o_n * i_c * i_h * i_w + l_o_c * i_h * i_w + l_i_h * i_w + l_i_w];
+        sum += x * filter[l_o_c * f_h * f_w + fy * f_w + fx];
       }
     }
     output[gy * o_w + gx] = sum + (bias != NULL ? bias[l_o_c] : 0);
@@ -588,7 +616,7 @@ const char* cuda_depthwise_conv2d(
     return check_cuda_error(cudaGetLastError());
   }
   size_t share_size = (BS + tmp_f_h - 1) * (BS + tmp_f_w - 1) * sizeof(int32_t) + f_h * f_w * sizeof(int32_t);
-  if(share_size < totalShareMemSize){
+  if(false){//(share_size < totalShareMemSize){
     int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h);
     int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
@@ -603,8 +631,8 @@ const char* cuda_depthwise_conv2d(
         groups,
         dev_o, o_n, o_c, o_h, o_w);
   }else{
-    int32_t g_h = o_n * o_c * ((o_h + b_h - 1) / b_h); 
-    int32_t g_w = (o_w + b_w - 1) / b_w;
+    int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h); 
+    int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
     dim3 gDim(g_w, g_h, 1);
     kernel_depthwise_conv2d_no_shared<<<gDim, bDim>>>(
@@ -753,7 +781,7 @@ const char* cuda_max_pool(
   int b_w = BS;
   int tmp_o_h = i_h + 2 * padding_h - f_h + 1; //for stride > 1
   int tmp_o_w = i_w + 2 * padding_w - f_w + 1;
-  if(share_size < totalShareMemSize){
+  if(false){//(share_size < totalShareMemSize){
     int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h);
     int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
@@ -840,6 +868,7 @@ const char* cuda_dense(
   if(cudaSuccess != error){
     error_code = ERROR_KERNEL;
   }
+  print_to_file(dev_c, m*n, "/tmp/zkh/trec/gpu/dense.txt");
   return check_cuda_error(error);
 }
 
@@ -1105,6 +1134,7 @@ const char* cuda_broadcast_mul(const int32_t *a, const int32_t *b, int32_t* c, c
   if(cudaGetLastError() != cudaSuccess){
     error_code = ERROR_KERNEL;
   }
+  print_to_file(dev_c, n, "/tmp/zkh/trec/gpu/broadcast_mul.txt");
 end:
   if(dev_ashape != NULL) cudaFree(dev_ashape);
   if(dev_bshape != NULL) cudaFree(dev_bshape);
@@ -1519,6 +1549,7 @@ const char* cuda_sum(const int32_t *x, int32_t *y, const uint64_t xsize, const u
         error_code = ERROR_KERNEL;
     }
   }
+  print_to_file(y, ysize, "/tmp/zkh/trec/gpu/sum.txt");
 
 end:
   if(dev_xshape != NULL) cudaFree(dev_xshape);
@@ -1740,6 +1771,7 @@ const char* cuda_cvm_clip(const int32_t* x, const int32_t precision, int32_t *y,
   if(cudaSuccess != error){
     error_code = ERROR_KERNEL;
   }
+  print_to_file(dev_y, n, "/tmp/zkh/trec/gpu/cvm_clip.txt");
   return check_cuda_error(error);
 }
 
@@ -1767,6 +1799,7 @@ const char* cuda_cvm_right_shift(const int32_t *a, const int32_t b, const int32_
   if(cudaSuccess != error){
     error_code = ERROR_KERNEL;
   }
+  print_to_file(dev_c, n, "/tmp/zkh/trec/gpu/cvm_right_shift.txt");
   return check_cuda_error(error);
 }
 
@@ -2529,6 +2562,8 @@ const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_
   if(cudaSuccess != cudaGetLastError()){
     error_code = ERROR_KERNEL;
   }
+  print_to_file(x_data, ysize, "/tmp/zkh/trec/gpu/take_x.txt");
+  print_to_file(y_data, ysize, "/tmp/zkh/trec/gpu/take.txt");
 end:
   if(dev_xshape != NULL) cudaFree(dev_xshape);
   if(dev_yshape != NULL) cudaFree(dev_yshape);
