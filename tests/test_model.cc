@@ -10,6 +10,9 @@ using namespace std;
 
 using cvm::runtime::PackedFunc;
 using cvm::runtime::Registry;
+
+int use_gpu = 0;
+
 struct OpArgs {
   std::vector<DLTensor> args;
   std::vector<CVMValue> arg_values;
@@ -67,7 +70,7 @@ int run_LIF(string model_root) {
     input_stream.close();
   }
   cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json.c_str(), json.size(), params.c_str(), params.size(), 1, 0)
+      CVMAPILoadModel(json.c_str(), json.size(), params.c_str(), params.size(), use_gpu, 0)
     );
   cerr << "model loaded\n";
   if (model == nullptr) {
@@ -100,17 +103,17 @@ int run_LIF(string model_root) {
     }
     std::cerr << "\n";
   }
-  if (model_root.find("std_out") != string::npos)
-  {
-    string data_file = model_root + "/data.npy";
-    std::vector<unsigned long> tshape;
-    npy::LoadArrayFromNumpy(data_file, tshape, input);
-    std::cerr << tshape.size() << "\n";
-    for (auto x : tshape) {
-      std::cerr << x << " ";
-    }
-    std::cerr << "\n";
-  }
+//  if (model_root.find("std_out") != string::npos)
+//  {
+//    string data_file = model_root + "/data.npy";
+//    std::vector<unsigned long> tshape;
+//    npy::LoadArrayFromNumpy(data_file, tshape, input);
+//    std::cerr << tshape.size() << "\n";
+//    for (auto x : tshape) {
+//      std::cerr << x << " ";
+//    }
+//    std::cerr << "\n";
+//  }
   double start = omp_get_wtime();
   int n_run = 1;
   for (int i = 0; i < n_run; i++) {
@@ -120,6 +123,7 @@ int run_LIF(string model_root) {
   }
   CVMAPIFreeModel(model);
   double ellapsed_time = (omp_get_wtime() - start) / n_run;
+  cout << "total time : " << ellapsed_time / n_run << "\n";
   cout << "total gemm.trans time: " << cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run << "\n";
   cout << "total  gemm.gemm time: " << cvm::runtime::transpose_int8_avx256_gemm_cnt / n_run << "\n";
   cout << "total     im2col time: " << cvm::runtime::im2col_cnt / n_run<< "\n";
@@ -232,18 +236,21 @@ void test_thread() {
 
 void test_models() {
   auto model_roots = {
-     "/data/new_cvm/yolo3_darknet53_voc/data",
-     "/data/lz_model_storage/dcnet_mnist_v1/data",
-     "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
-     "/data/lz_model_storage/resnet50_v1_imagenet/data",
-     "/data/lz_model_storage/animal10/data",
-     "/data/lz_model_storage/resnet50_v2/data",
-     "/data/lz_model_storage/vgg16_gcv/data",
-    "/data/lz_model_storage/sentiment_trec/data",
-     "/data/lz_model_storage/vgg19_gcv/data",
-     "/data/lz_model_storage/squeezenet_gcv1.1/data",
-     "/data/lz_model_storage/squeezenet_gcv1.0/data",
-     "/data/lz_model_storage/octconv_resnet26_0.250/data",
+   //  "/data/new_cvm/yolo3_darknet53_voc/data",
+   //  "/data/lz_model_storage/dcnet_mnist_v1/data",
+   //  "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
+   //  "/data/lz_model_storage/resnet50_v1_imagenet/data",
+   //  "/data/lz_model_storage/animal10/data",
+   //  "/data/lz_model_storage/resnet50_v2/data",
+   //  "/data/lz_model_storage/vgg16_gcv/data",
+   //  "/data/lz_model_storage/sentiment_trec/data",
+   //  "/data/lz_model_storage/vgg19_gcv/data",
+   //  "/data/lz_model_storage/squeezenet_gcv1.1/data",
+   //  "/data/lz_model_storage/squeezenet_gcv1.0/data",
+   //  "/data/lz_model_storage/octconv_resnet26_0.250/data",
+   //  "/data/std_out/resnet50_mxg/",
+   //  "/data/std_out/resnet50_v2"
+     "/data/std_out/trec"
   };
   for (auto model_root : model_roots) {
     run_LIF(model_root);
