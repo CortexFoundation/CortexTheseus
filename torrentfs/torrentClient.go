@@ -462,7 +462,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
   //cfg.SetListenAddr(listenAddr.String())
   cfg.HTTPUserAgent = "Cortex"
   cfg.Seed = true
-  cfg.EstablishedConnsPerTorrent = 6
+  cfg.EstablishedConnsPerTorrent = 10
   cfg.HalfOpenConnsPerTorrent = 5
   cfg.DropDuplicatePeerIds = true
   log.Info("Torrent client configuration", "config", cfg)
