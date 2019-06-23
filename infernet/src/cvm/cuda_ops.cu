@@ -485,6 +485,7 @@ __global__ void kernel_depthwise_conv2d(
   int perBlockOneImageY = (tmp_o_h+BS-1) / BS;
   int perBlockOneImageX = (tmp_o_w+BS-1) / BS;
   int l_o_c = blockIdx.y / perBlockOneImageY;
+  int l_f_c = l_o_c % o_c;
   int l_o_hi = blockIdx.y % perBlockOneImageY;
   int l_o_wi = blockIdx.x % perBlockOneImageX;
   int l_o_h = l_o_hi * BS + l_y;
@@ -545,7 +546,7 @@ __global__ void kernel_depthwise_conv2d(
   if(l_y < F_H && l_x < F_W){
     for(int i = l_y; i < F_H; i+= min_s_y)
       for(int j = l_x; j < F_W; j+=min_s_x)
-        shared_f[i*F_W + j] = filter[l_o_c * F_H * F_W + i * F_W + j];
+        shared_f[i*F_W + j] = filter[l_f_c * F_H * F_W + i * F_W + j];
   }
   __syncthreads();
 
@@ -581,12 +582,13 @@ __global__ void kernel_depthwise_conv2d_no_shared(
     for(int fy = 0; fy < f_h; ++fy){
       for(int fx = 0; fx < f_w; ++fx){
         int32_t l_i_h = l_o_h * stride_h + fy * dilation_h - padding_h;
-        int32_t l_i_w = gx * stride_w + fx * dilation_h - padding_w;
+        int32_t l_i_w = gx * stride_w + fx * dilation_w - padding_w;
         int32_t x;
         if(l_i_h < 0 || l_i_w < 0 || l_i_h >= i_h || l_i_w >= i_w)
-          x = 0;
-        else x = input[l_o_n * i_c * i_h * i_w + l_o_c * i_h * i_w + l_i_h * i_w + l_i_w];
-        sum += x * filter[l_o_n * i_c * f_h * f_w + l_o_c * f_h * f_w + fy * f_w + fx];
+          //x = 0;
+          continue;
+        x = input[l_o_n * i_c * i_h * i_w + l_o_c * i_h * i_w + l_i_h * i_w + l_i_w];
+        sum += x * filter[l_o_c * f_h * f_w + fy * f_w + fx];
       }
     }
     output[gy * o_w + gx] = sum + (bias != NULL ? bias[l_o_c] : 0);
@@ -614,7 +616,7 @@ const char* cuda_depthwise_conv2d(
     return check_cuda_error(cudaGetLastError());
   }
   size_t share_size = (BS + tmp_f_h - 1) * (BS + tmp_f_w - 1) * sizeof(int32_t) + f_h * f_w * sizeof(int32_t);
-  if(share_size < totalShareMemSize){
+  if(false){//(share_size < totalShareMemSize){
     int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h);
     int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
@@ -629,8 +631,8 @@ const char* cuda_depthwise_conv2d(
         groups,
         dev_o, o_n, o_c, o_h, o_w);
   }else{
-    int32_t g_h = o_n * o_c * ((o_h + b_h - 1) / b_h); 
-    int32_t g_w = (o_w + b_w - 1) / b_w;
+    int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h); 
+    int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
     dim3 gDim(g_w, g_h, 1);
     kernel_depthwise_conv2d_no_shared<<<gDim, bDim>>>(

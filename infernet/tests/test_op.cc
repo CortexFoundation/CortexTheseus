@@ -39,8 +39,8 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-int ctx = kDLCPU;
-//int ctx = kDLGPU;
+//int ctx = kDLCPU;
+int ctx = kDLGPU;
 /*
 30 52 -68 75
 40 110 123 -100
@@ -616,7 +616,7 @@ int main() {
 //  test_op("max_pool2d");
 //   test_op("upsampling");
 //  test_op("dense");
-////  test_op("conv2d");
+  test_op("conv2d");
 //  test_op("sum");
 //  test_op("max"); // pass
 //  test_op("slice_like");
@@ -627,7 +627,7 @@ int main() {
 //  test_op("strided_slice"); //pass
 //  test_op("concatenate");//pass
 //  test_op("transpose");// pass
-  test_op("take");
+//  test_op("take");
   // test_op("elemwise_add", 2, 1);
 //  test_op("non_max_suppression");
     return 0;
