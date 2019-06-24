@@ -120,12 +120,6 @@ int run_LIF(string model_root, int device_type = 0) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
     CVMAPIInfer(model, input.data(), output.data());
-    string data_file = model_root + "/result_0.npy";
-    vector<unsigned long> tshape;
-    vector<int32_t> tout;
-    npy::LoadArrayFromNumpy(data_file, tshape, tout);
-    int ret = memcmp(output.data(), tout.data(), sizeof(int32_t) * tout.size());
-    cout << (ret == 0 ? "success" : "failed" ) << endl;
   }
   CVMAPIFreeModel(model);
   double ellapsed_time = (omp_get_wtime() - start) / n_run;
@@ -218,6 +212,16 @@ int run_LIF(string model_root, int device_type = 0) {
       }
       std::cout << "\n";
     }
+    string data_file = model_root + "/result_0.npy";
+    vector<unsigned long> tshape;
+    vector<int32_t> tout;
+    npy::LoadArrayFromNumpy(data_file, tshape, tout);
+    for(int i = 0; i < tout.size(); i++){
+        if((int32_t)output[i] != tout[i]){
+           cout << "failed!!!!! : " << i << " " << output[i] << " " << tout[i] << endl;
+        }
+        assert((int32_t)output[i] == tout[i]);
+    }
   }
   return 0;
 }
@@ -262,7 +266,16 @@ int test_models(int device_type = 0) {
     // "/data/std_out/resnet50_mxg/",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2"
-     "/data/std_out/random_1_0/"
+     "/data/std_out/random_2_0/",
+     "/data/std_out/random_2_1/",
+     "/data/std_out/random_2_2/",
+     "/data/std_out/random_2_3/",
+     "/data/std_out/random_2_4/",
+     "/data/std_out/random_2_5/",
+     "/data/std_out/random_2_6/",
+     "/data/std_out/random_2_7/",
+     "/data/std_out/random_2_8/",
+     "/data/std_out/random_2_9/"
   };
   for (auto model_root : model_roots) {
     if (run_LIF(model_root, device_type) != 0) {
