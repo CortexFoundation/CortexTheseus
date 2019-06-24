@@ -221,9 +221,11 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
       << "Invalid parameters file format";
 
   std::vector<int> &precision = attrs_.precision;
+  std::vector<bool> set_flag(input_nodes_.size(), false);
   for (size_t i = 0; i < size; ++i) {
     int in_idx = GetInputIndex(names[i]);
     VERIFY_GE(in_idx, 0) << "Found param for non-existent input: " << names[i];
+    set_flag[in_idx] = true;
     uint32_t eid = this->entry_id(input_nodes_[in_idx], 0);
     VERIFY_LT(eid, data_entry_.size());
 
@@ -251,6 +253,13 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
         << " number=" << data[i]
         << " do not satisfied precision " << precision[eid];
     }
+  }
+
+  for (size_t i = 0; i < set_flag.size(); ++i) {
+    uint32_t nid = input_nodes_[i];
+    VERIFY((set_flag[i] || (nodes_[nid].name == "data")))
+      << "parameter nid=" << nid
+      << " name=" << nodes_[nid].name << " has not been loaded";
   }
 }
 

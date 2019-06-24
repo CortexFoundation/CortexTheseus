@@ -136,14 +136,6 @@ var (
 		Name:  "bernard",
 		Usage: "Bernard network: pre-configured cortex test network",
 	}
-	TestnetFlag = cli.BoolFlag{
-		Name:  "testnet",
-		Usage: "Cortex testnet: pre-configured cortex test network",
-	}
-	LazynetFlag = cli.BoolFlag{
-		Name:  "lazynet",
-		Usage: "Lazy network: pre-configured easy test network",
-	}
 	// DeveloperFlag = cli.BoolFlag{
 	// 	Name:  "dev",
 	// 	Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
@@ -208,7 +200,7 @@ var (
 	StorageTrackerFlag = cli.StringFlag{
 		Name:  "storage.tracker",
 		Usage: "P2P storage tracker list",
-		Value: "",
+		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
 	}
 	// Dashboard settings
 	// DashboardEnabledFlag = cli.BoolFlag{
@@ -632,11 +624,7 @@ func MakeDataDir(ctx *cli.Context) string {
 	case ctx.GlobalIsSet(DataDirFlag.Name):
 		return ctx.GlobalString(DataDirFlag.Name)
 	case ctx.GlobalBool(BernardFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "cerebro")
-	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "lazynet")
+		return filepath.Join(node.DefaultDataDir(), "bernard")
 	}
 
 	return node.DefaultDataDir()
@@ -648,15 +636,9 @@ func MakeStorageDir(ctx *cli.Context) string {
 	switch {
 	case ctx.GlobalIsSet(StorageDirFlag.Name):
 		return ctx.GlobalString(StorageDirFlag.Name)
-	case ctx.GlobalBool(BernardFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "cerebro")
-	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "testnet")
-	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "lazynet")
 	}
 
-	return node.DefaultStorageDir(MakeDataDir(ctx))
+	return filepath.Join(MakeDataDir(ctx), "storage")
 }
 
 // setNodeKey creates a node key from set command line flags, either loading it
@@ -705,10 +687,6 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		}
 	case ctx.GlobalBool(BernardFlag.Name):
 		urls = params.BernardBootnodes
-	case ctx.GlobalBool(TestnetFlag.Name):
-		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(LazynetFlag.Name):
-		urls = params.RinkebyBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}

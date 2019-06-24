@@ -31,21 +31,7 @@ std::vector<TShape> GetTShapeArray(const std::vector<std::vector<int64_t> > &sha
       VERIFY_LE(shape[i], 0x7fffffff)
         << "tensor size should not larger than the range of int32";
     }
-    if (shape.size() == 1) {
-      ret.push_back(TShape{shape[0]});
-    } else if (shape.size() == 2) {
-      ret.push_back(TShape{shape[0], shape[1]});
-    } else if (shape.size() == 3) {
-      ret.push_back(TShape{shape[0], shape[1], shape[2]});
-    } else if (shape.size() == 4) {
-      ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3]});
-    } else if (shape.size() == 5) {
-      ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3], shape[4]});
-    } else if (shape.size() == 6) {
-      ret.push_back(TShape{shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]});
-    } else {
-      ret.push_back(TShape());
-    }
+    ret.emplace_back(shape);
   }
   return ret;
 }
@@ -121,26 +107,19 @@ void CvmRuntime::SetupPrecision() {
 int64_t CvmRuntime::GetOps() {
   auto &idx = nodes_;
   const auto rshape = GetTShapeArray(attrs_.shape);
-  // inference step function for nid
-  int64_t ret = 0;
-  // std::vector<std::string> ops;
-  // std::unordered_map<std::string, int64_t> opcount;
+  int64_t ops = 0, mem_cost = 0;
   for (uint32_t nid = 0; nid < idx.size(); ++nid) {
     auto inode = idx[nid];
-    int64_t t = 0;
-    int len = 0;
     if (inode.op_type == "null") {
-      t = 1;
+      int64_t mem_size = rshape[entry_id(nid, 0)].Size();
+      mem_cost += mem_size * 5;
     } else {
+      uint32_t out_eid = entry_id(nid, 0);
+      int64_t t = 1;
+      int len = 0;
       auto op = idx[nid].attrs.op->name;
-      /*
-        if (opcount.find(op) == opcount.end()) {
-          opcount[op] = 0;
-          ops.push_back(op);
-      }
-      */
       if (op == "dense") {
-        auto shape1 = rshape[inode.inputs[1].node_id];
+        auto shape1 = rshape[entry_id(inode.inputs[1])];
         VERIFY_GE(shape1.ndim(), 2);
         t = static_cast<int64_t>(shape1[1]) * 3;
         auto& param = cvm::get<cvm::top::DenseParam>(inode.attrs.parsed);
@@ -149,13 +128,13 @@ int64_t CvmRuntime::GetOps() {
         }
         len += 32 - __builtin_clz(unsigned(t));
       } else if (op == "non_max_suppression") {
-        auto shape1 = rshape[inode.inputs[0].node_id];
+        auto shape1 = rshape[entry_id(inode.inputs[0])];
         VERIFY_GE(shape1.ndim(), 1);
         t = static_cast<int64_t>(shape1[0]) * 20;
         len += 32 - __builtin_clz(unsigned(t));
       } else if (op == "conv2d") {
-        auto shape1 = rshape[inode.inputs[0].node_id];
-        auto shape2 = rshape[inode.inputs[1].node_id];
+        auto shape1 = rshape[entry_id(inode.inputs[0])];
+        auto shape2 = rshape[entry_id(inode.inputs[1])];
         VERIFY_GE(shape1.ndim(), 4);
         VERIFY_GE(shape2.ndim(), 4);
         t = (static_cast<int64_t>(shape2[1]) * shape2[2] * shape2[3] * 3);
@@ -170,40 +149,54 @@ int64_t CvmRuntime::GetOps() {
         t = param.pool_size.Size();
         len += 32 - __builtin_clz((unsigned)t);
       } else if (op == "sum") {
-        auto shape1 = rshape[inode.inputs[0].node_id];
-        VERIFY(rshape[nid].Size() != 0);
-        int64_t d = shape1.Size() / rshape[nid].Size();
+        auto shape1 = rshape[entry_id(inode.inputs[0])];
+        VERIFY(rshape[out_eid].Size() != 0);
+        int64_t d = shape1.Size() / rshape[out_eid].Size();
         t = static_cast<int>(d);
         len += 32 - __builtin_clz((unsigned)t);
+      } else if (op == "get_valid_count") {
+        // operator output is `valid_count` and `output array`,
+        // so use the index 1 as the main output entry id.
+        out_eid = entry_id(nid, 1);
       } else {
         t = 1;
       }
 
-      VERIFY_GE(rshape[nid].ndim(), 1);
-      VERIFY(rshape[nid][0] != 0);
-      int64_t osize = rshape[nid].Size();
+      VERIFY_GE(rshape[out_eid].ndim(), 1);
+      VERIFY(rshape[out_eid][0] != 0);
+      int64_t osize = rshape[out_eid].Size();
       len += 32 - __builtin_clz((unsigned)osize);
       t *= osize;
       if (len > 40 || t > (1ll << 38)) {
         return -1;
       }
-/*
-      std::cout << op << "    ";
-      for (int i = op.length(); i < 20; ++i) std::cout << ' ';
-      for (auto n : inode.inputs) {
-        std::cout << rshape[n.node_id] << "    ";
+      ops += t;
+
+      // Calculate internal symbol's memory cost with output shape,
+      // which multiply scale 5 by default.
+      int64_t mem_size = 0;
+      for (int i = 0; i < inode.param.num_outputs; ++i) {
+        mem_size += rshape[entry_id(nid, i)].Size();
       }
-      std::cout << rshape[nid] << ' ' << t << std::endl;
-      opcount[op] += t;
-*/
-      ret += t;
+      mem_cost += mem_size * 5;
     }
   }
-  return ret;
+  int64_t ret = mem_cost + ops;
+  std::cout << "GetOps: memory cost=" << int(mem_cost / 1000000)
+    << "M percentage=" << 1.f * mem_cost / (ret + 1e-5)
+    << " ops=" << int(ops / 1000000)
+    << "M percentage=" << 1.f * ops / (ret + 1e-5) << std::endl;
+  return mem_cost + ops;
 }
 
 void CvmRuntime::SetupShape() {
   auto &idx = nodes_;
+  for (auto shape : attrs_.shape) {
+    for (auto x: shape) {
+      VERIFY_LE(x, (1 << 20))
+        << "single dimension should not greater than " << (1 << 20);
+    }
+  }
   const auto rshape = GetTShapeArray(attrs_.shape);
   static auto& finfer_shape =
       Op::GetAttr<cvm::FInferNodeEntryAttr<TShape> >("FInferShape");
