@@ -322,7 +322,17 @@ func DefaultGenesisBlock() *Genesis {
 func DefaultBernardGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.BernardChainConfig,
-		Nonce:      0x0000000000000042,
+		Nonce:      0x0,
+		GasLimit:   params.GenesisGasLimit,
+		Difficulty: big.NewInt(2),
+	}
+}
+
+// DefaultTestnetGenesisBlock returns the Ropsten network genesis block.
+func DefaultDoloresGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.DoloresChainConfig,
+		Nonce:      0x0000000000000043,
 		GasLimit:   params.GenesisGasLimit,
 		Difficulty: big.NewInt(2),
 	}
