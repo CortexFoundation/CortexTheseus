@@ -981,16 +981,16 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.strided_slice")
           begin_data[i] += x->shape[i];
           begin_data[i] = std::min(std::max(begin_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
         }
-        if(end_data[i] < 0) {
-          end_data[i] += x->shape[i];
-          end_data[i] += std::min(std::max(end_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
-        }
-        VERIFY(step_data[i] != 0);
-        if(step_data[i] > 0) {
-          VERIFY(begin_data[i] < end_data[i]);
-        }else{
-          VERIFY(begin_data[i] > end_data[i]);
-        }
+       // if(end_data[i] < 0) {
+       //   end_data[i] += x->shape[i];
+       //   end_data[i] += std::min(std::max(end_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
+       // }
+       // VERIFY(step_data[i] != 0);
+       // if(step_data[i] > 0) {
+       //   VERIFY(begin_data[i] < end_data[i]);
+       // }else{
+       //   VERIFY(begin_data[i] > end_data[i]);
+       // }
     }
 
     int error_code = NON_ERROR;
