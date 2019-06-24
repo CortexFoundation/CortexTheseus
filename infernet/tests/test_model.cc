@@ -120,6 +120,12 @@ int run_LIF(string model_root, int device_type = 0) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
     CVMAPIInfer(model, input.data(), output.data());
+    string data_file = model_root + "/result_0.npy";
+    vector<unsigned long> tshape;
+    vector<int32_t> tout;
+    npy::LoadArrayFromNumpy(data_file, tshape, tout);
+    int ret = memcmp(output.data(), tout.data(), sizeof(int32_t) * tout.size());
+    cout << (ret == 0 ? "success" : "failed" ) << endl;
   }
   CVMAPIFreeModel(model);
   double ellapsed_time = (omp_get_wtime() - start) / n_run;
@@ -241,21 +247,22 @@ int test_models(int device_type = 0) {
      // "/data/std_out/resnet50_v2",
      // "/data/std_out/qd10_resnet20_v2",
      // "/data/std_out/trec",
-     "/data/new_cvm/yolo3_darknet53_voc/data",
-     "/data/lz_model_storage/dcnet_mnist_v1/data",
-     "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
-     "/data/lz_model_storage/resnet50_v1_imagenet/data",
-     "/data/lz_model_storage/animal10/data",
-     "/data/lz_model_storage/resnet50_v2/data",
-     "/data/lz_model_storage/vgg16_gcv/data",
-     "/data/lz_model_storage/sentiment_trec/data",
-     "/data/lz_model_storage/vgg19_gcv/data",
-     "/data/lz_model_storage/squeezenet_gcv1.1/data",
-     "/data/lz_model_storage/squeezenet_gcv1.0/data",
-     "/data/lz_model_storage/octconv_resnet26_0.250/data",
-     "/data/std_out/resnet50_mxg/",
-     "/data/std_out/resnet50_v2",
-     "/data/std_out/qd10_resnet20_v2"
+    // "/data/new_cvm/yolo3_darknet53_voc/data",
+    // "/data/lz_model_storage/dcnet_mnist_v1/data",
+    // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
+    // "/data/lz_model_storage/resnet50_v1_imagenet/data",
+    // "/data/lz_model_storage/animal10/data",
+    // "/data/lz_model_storage/resnet50_v2/data",
+    // "/data/lz_model_storage/vgg16_gcv/data",
+    // "/data/lz_model_storage/sentiment_trec/data",
+    // "/data/lz_model_storage/vgg19_gcv/data",
+    // "/data/lz_model_storage/squeezenet_gcv1.1/data",
+    // "/data/lz_model_storage/squeezenet_gcv1.0/data",
+    // "/data/lz_model_storage/octconv_resnet26_0.250/data",
+    // "/data/std_out/resnet50_mxg/",
+    // "/data/std_out/resnet50_v2",
+    // "/data/std_out/qd10_resnet20_v2"
+     "/data/std_out/random_1_0/"
   };
   for (auto model_root : model_roots) {
     if (run_LIF(model_root, device_type) != 0) {
