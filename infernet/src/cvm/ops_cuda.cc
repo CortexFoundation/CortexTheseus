@@ -896,8 +896,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.expand_dims")
     auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
 
     int32_t axis = param.axis;
-    axis = axis < 0 ? axis + ishape->ndim : axis;
-    VERIFY(axis >= 0 && axis <= ishape->ndim);
+   // axis = axis < 0 ? axis + ishape->ndim : axis;
+   // VERIFY(axis >= 0 && axis <= ishape->ndim);
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
     int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
 

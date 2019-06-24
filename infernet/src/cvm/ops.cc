@@ -1721,9 +1721,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
 
-    int32_t axis = param.axis;
-    axis = axis < 0 ? axis + ishape->ndim : axis;
-    VERIFY(axis >= 0 && axis <= ishape->ndim) << axis << " ishape->dim: " << ishape->ndim;
+   // int32_t axis = param.axis;
+   // axis = axis < 0 ? axis + ishape->ndim : axis;
+   // VERIFY(axis >= 0 && axis <= ishape->ndim) << axis << " ishape->dim: " << ishape->ndim;
     int32_t *ishape_data = static_cast<int32_t*>(ishape->data);
     int32_t *oshape_data = static_cast<int32_t*>(oshape->data);
     if(ishape_data == oshape_data){
@@ -1844,7 +1844,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
     }
 
     int64_t *begin_data = begin_vec.data();//begin.begin();
-    int64_t *end_data = end_vec.data();//end.begin();
+    //int64_t *end_data = end_vec.data();//end.begin();
     int64_t *step_data = stride_vec.data();//stride.begin();
     for(uint32_t i = 0; i < begin.ndim();i++){
         if(begin_data[i] < 0) {
