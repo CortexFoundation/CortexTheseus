@@ -212,6 +212,16 @@ int run_LIF(string model_root, int device_type = 0) {
       }
       std::cout << "\n";
     }
+    string data_file = model_root + "/result_0.npy";
+    vector<unsigned long> tshape;
+    vector<int32_t> tout;
+    npy::LoadArrayFromNumpy(data_file, tshape, tout);
+    for(int i = 0; i < tout.size(); i++){
+        if((int32_t)output[i] != tout[i]){
+           cout << "failed!!!!! : " << i << " " << output[i] << " " << tout[i] << endl;
+        }
+        assert((int32_t)output[i] == tout[i]);
+    }
   }
   return 0;
 }
@@ -241,21 +251,31 @@ int test_models(int device_type = 0) {
      // "/data/std_out/resnet50_v2",
      // "/data/std_out/qd10_resnet20_v2",
      // "/data/std_out/trec",
-     "/data/new_cvm/yolo3_darknet53_voc/data",
-     "/data/lz_model_storage/dcnet_mnist_v1/data",
-     "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
-     "/data/lz_model_storage/resnet50_v1_imagenet/data",
-     "/data/lz_model_storage/animal10/data",
-     "/data/lz_model_storage/resnet50_v2/data",
-     "/data/lz_model_storage/vgg16_gcv/data",
-     "/data/lz_model_storage/sentiment_trec/data",
-     "/data/lz_model_storage/vgg19_gcv/data",
-     "/data/lz_model_storage/squeezenet_gcv1.1/data",
-     "/data/lz_model_storage/squeezenet_gcv1.0/data",
-     "/data/lz_model_storage/octconv_resnet26_0.250/data",
-     "/data/std_out/resnet50_mxg/",
-     "/data/std_out/resnet50_v2",
-     "/data/std_out/qd10_resnet20_v2"
+    // "/data/new_cvm/yolo3_darknet53_voc/data",
+    // "/data/lz_model_storage/dcnet_mnist_v1/data",
+    // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
+    // "/data/lz_model_storage/resnet50_v1_imagenet/data",
+    // "/data/lz_model_storage/animal10/data",
+    // "/data/lz_model_storage/resnet50_v2/data",
+    // "/data/lz_model_storage/vgg16_gcv/data",
+    // "/data/lz_model_storage/sentiment_trec/data",
+    // "/data/lz_model_storage/vgg19_gcv/data",
+    // "/data/lz_model_storage/squeezenet_gcv1.1/data",
+    // "/data/lz_model_storage/squeezenet_gcv1.0/data",
+    // "/data/lz_model_storage/octconv_resnet26_0.250/data",
+    // "/data/std_out/resnet50_mxg/",
+    // "/data/std_out/resnet50_v2",
+    // "/data/std_out/qd10_resnet20_v2"
+     "/data/std_out/random_2_0/",
+     "/data/std_out/random_2_1/",
+     "/data/std_out/random_2_2/",
+     "/data/std_out/random_2_3/",
+     "/data/std_out/random_2_4/",
+     "/data/std_out/random_2_5/",
+     "/data/std_out/random_2_6/",
+     "/data/std_out/random_2_7/",
+     "/data/std_out/random_2_8/",
+     "/data/std_out/random_2_9/"
   };
   for (auto model_root : model_roots) {
     if (run_LIF(model_root, device_type) != 0) {
