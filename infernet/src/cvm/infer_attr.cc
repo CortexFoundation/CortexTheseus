@@ -183,9 +183,9 @@ int64_t CvmRuntime::GetOps() {
   }
   int64_t ret = mem_cost + ops;
   std::cout << "GetOps: memory cost=" << int(mem_cost / 1000000)
-    << "M percentage=" << 1.f * mem_cost / ret
+    << "M percentage=" << 1.f * mem_cost / (ret + 1e-5)
     << " ops=" << int(ops / 1000000)
-    << "M percentage=" << 1.f * ops / ret << std::endl;
+    << "M percentage=" << 1.f * ops / (ret + 1e-5) << std::endl;
   return mem_cost + ops;
 }
 
