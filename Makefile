@@ -48,6 +48,11 @@ torrent:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 
+seeding:
+	build/env.sh go run build/ci.go install ./cmd/seeding
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
+
 torrent-test:
 	build/env.sh go run build/ci.go install ./cmd/torrent-test
 	@echo "Done building."

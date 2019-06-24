@@ -463,7 +463,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 //  	)
   cfg := torrent.NewDefaultClientConfig()
   cfg.DisableUTP = config.DisableUTP
-  cfg.NoDHT = false
+  cfg.NoDHT = config.DisableDHT
   cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs
   cfg.DataDir = config.DataDir
   cfg.DisableEncryption = true

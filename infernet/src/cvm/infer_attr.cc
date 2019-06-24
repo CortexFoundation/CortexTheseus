@@ -192,9 +192,15 @@ int64_t CvmRuntime::GetOps() {
 void CvmRuntime::SetupShape() {
   auto &idx = nodes_;
   for (auto shape : attrs_.shape) {
+    long long sx = 1;
     for (auto x: shape) {
-      VERIFY_LE(x, (1 << 20))
-        << "single dimension should not greater than " << (1 << 20);
+      sx *= x;
+      VERIFY_GT(x, 0)
+        << "single dimension must greater than 0";
+      VERIFY_LE(x, (1 << 24))
+        << "single dimension should not greater than " << (1 << 24);
+      VERIFY_LE(sx, (1 << 30))
+        << "shape size shoule not greater than" << (1 << 30);
     }
   }
   const auto rshape = GetTShapeArray(attrs_.shape);
