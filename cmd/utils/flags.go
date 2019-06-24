@@ -129,20 +129,16 @@ var (
 	// }
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
-		Usage: "Network identifier (integer, 21=Mainnet, 42=Bernard)",
+		Usage: "Network identifier (integer, 21=Mainnet, 42=Bernard, 43=Dolores)",
 		Value: ctxc.DefaultConfig.NetworkId,
 	}
 	BernardFlag = cli.BoolFlag{
 		Name:  "bernard",
 		Usage: "Bernard network: pre-configured cortex test network",
 	}
-	TestnetFlag = cli.BoolFlag{
-		Name:  "testnet",
-		Usage: "Cortex testnet: pre-configured cortex test network",
-	}
-	LazynetFlag = cli.BoolFlag{
-		Name:  "lazynet",
-		Usage: "Lazy network: pre-configured easy test network",
+	DoloresFlag = cli.BoolFlag{
+		Name:  "dolores",
+		Usage: "Dolores network: pre-configured cortex test network",
 	}
 	// DeveloperFlag = cli.BoolFlag{
 	// 	Name:  "dev",
@@ -632,11 +628,9 @@ func MakeDataDir(ctx *cli.Context) string {
 	case ctx.GlobalIsSet(DataDirFlag.Name):
 		return ctx.GlobalString(DataDirFlag.Name)
 	case ctx.GlobalBool(BernardFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "cerebro")
-	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "lazynet")
+		return filepath.Join(node.DefaultDataDir(), "bernard")
+	case ctx.GlobalBool(DoloresFlag.Name):
+		return filepath.Join(node.DefaultDataDir(), "dolores")
 	}
 
 	return node.DefaultDataDir()
@@ -648,15 +642,9 @@ func MakeStorageDir(ctx *cli.Context) string {
 	switch {
 	case ctx.GlobalIsSet(StorageDirFlag.Name):
 		return ctx.GlobalString(StorageDirFlag.Name)
-	case ctx.GlobalBool(BernardFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "cerebro")
-	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "testnet")
-	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "lazynet")
 	}
 
-	return node.DefaultStorageDir(MakeDataDir(ctx))
+	return filepath.Join(MakeDataDir(ctx), "storage")
 }
 
 // setNodeKey creates a node key from set command line flags, either loading it
@@ -705,10 +693,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		}
 	case ctx.GlobalBool(BernardFlag.Name):
 		urls = params.BernardBootnodes
-	case ctx.GlobalBool(TestnetFlag.Name):
-		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(LazynetFlag.Name):
-		urls = params.RinkebyBootnodes
+	case ctx.GlobalBool(DoloresFlag.Name):
+		urls = params.BernardBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -1138,6 +1124,11 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 			cfg.NetworkId = 42
 		}
 		cfg.Genesis = core.DefaultBernardGenesisBlock()
+	case ctx.GlobalBool(DoloresFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 43
+		}
+		cfg.Genesis = core.DefaultDoloresGenesisBlock()
 		//case ctx.GlobalBool(TestnetFlag.Name):
 		//	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		//		cfg.NetworkId = 28

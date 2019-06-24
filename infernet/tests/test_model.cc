@@ -236,6 +236,11 @@ void test_thread() {
 
 int test_models(int device_type = 0) {
   auto model_roots = {
+     // "/data/std_out/null",
+     // "/data/std_out/resnet50_mxg",
+     // "/data/std_out/resnet50_v2",
+     // "/data/std_out/qd10_resnet20_v2",
+     // "/data/std_out/trec",
      "/data/new_cvm/yolo3_darknet53_voc/data",
      "/data/lz_model_storage/dcnet_mnist_v1/data",
      "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
@@ -248,8 +253,8 @@ int test_models(int device_type = 0) {
      "/data/lz_model_storage/squeezenet_gcv1.1/data",
      "/data/lz_model_storage/squeezenet_gcv1.0/data",
      "/data/lz_model_storage/octconv_resnet26_0.250/data",
-      "/data/std_out/resnet50_mxg/",
-      "/data/std_out/resnet50_v2",
+     "/data/std_out/resnet50_mxg/",
+     "/data/std_out/resnet50_v2",
      "/data/std_out/qd10_resnet20_v2"
   };
   for (auto model_root : model_roots) {

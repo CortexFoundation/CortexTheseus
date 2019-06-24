@@ -25,8 +25,8 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("")
-	BernardGenesisHash = common.HexToHash("")
+	MainnetGenesisHash = common.HexToHash("0x1112eb8c5e9c5cee210d7d4aac7e5c066b88848b2b26d8b200e493a6feb5ddf9")
+	BernardGenesisHash = common.HexToHash("0x17fd92cd9065acc1098ef8b9333fad250f68ceabfd418bee81eb3fb91fa1625a")
 	RinkebyGenesisHash = common.HexToHash("")
 )
 
@@ -47,7 +47,7 @@ type TrustedCheckpoint struct {
 var (
 	CortexBlockRewardPeriod = big.NewInt(8409600)       // Halving every four years: 365 days*24 hours*60 minutes*4 blocks*4 years=8409600
 	BernardBlockRewardPeriod = big.NewInt(1000000)      // TESTING: for testnet Bernard
-
+	DoloresBlockRewardPeriod = big.NewInt(1000000)      // TESTING: for testnet Dolores
 )
 
 var (
@@ -73,9 +73,25 @@ var (
 		Cuckoo:              new(CuckooConfig),
 	}
 
-	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
+	// TestnetChainConfig contains the chain parameters to run a node on the Bernard test network.
 	BernardChainConfig = &ChainConfig{
 		ChainID: big.NewInt(42),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
+		DAOForkSupport: false,
+		EIP150Block:    big.NewInt(0),
+		EIP150Hash:     common.HexToHash("0x"),
+		EIP155Block:    big.NewInt(0),
+		EIP158Block:    big.NewInt(0),
+		ByzantiumBlock: big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		Cuckoo:              new(CuckooConfig),
+	}
+
+	// TestnetChainConfig contains the chain parameters to run a node on the Dolores test network.
+	DoloresChainConfig = &ChainConfig{
+		ChainID: big.NewInt(43),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
 		DAOForkSupport: false,
@@ -395,13 +411,19 @@ func (c *ChainConfig) GetMatureBlock() int64 {
 	if c.ChainID.Uint64() == 42 {
 		return BernardMatureBlks
 	}
+	if c.ChainID.Uint64() == 43 {
+		return DoloresMatureBlks
+	}
 	return MatureBlks;
 }
 
 // Get Block uploading quota
 func (c *ChainConfig) GeteBlockQuota(num *big.Int) uint64 {
-	if c.ChainID.Uint64() == 42 && num.Cmp(big.NewInt(570)) >=0  {
+	if c.ChainID.Uint64() == 42 {
 		return Bernard_BLOCK_QUOTA
+	}
+	if c.ChainID.Uint64() == 43 {
+		return Dolores_BLOCK_QUOTA
 	}
 	return BLOCK_QUOTA;
 }
