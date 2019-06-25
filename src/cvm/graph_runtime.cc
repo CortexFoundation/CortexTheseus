@@ -341,7 +341,7 @@ void CvmRuntime::SetupStorage() {
   // is mapped to this pool.
   data_entry_.resize(num_node_entries());
 
-  std::cerr << "data_entry_ = " << data_entry_.size() << "\n";
+  // std::cerr << "data_entry_ = " << data_entry_.size() << "\n";
   for (size_t i = 0; i < data_entry_.size(); ++i) {
     int storage_id = attrs_.storage_id[i];
     CHECK_LT(static_cast<size_t>(storage_id), storage_pool_.size());
