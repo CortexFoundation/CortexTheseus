@@ -143,6 +143,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	ctxc.synapse = synapse.New(&synapse.Config{
 		DeviceType    : config.InferDeviceType,
 		DeviceId      : config.InferDeviceId,
+		MaxMemoryUsage: config.InferMemoryUsage,
 		IsRemoteInfer : config.InferURI != "",
 		InferURI      : config.InferURI,
 		IsNotCache    : false,

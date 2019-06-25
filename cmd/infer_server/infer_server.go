@@ -91,6 +91,7 @@ func main() {
 		IsNotCache: *IsNotCache,
 		DeviceType: *DeviceType,
 		DeviceId: *DeviceId,
+		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
 		IsRemoteInfer: false,
 		InferURI: "",
 		Storagefs:				 storagefs,

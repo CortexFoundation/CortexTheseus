@@ -15,6 +15,8 @@ var synapseInstance *Synapse = nil
 const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_cvm.so"
 
+const MinMemoryUsage int64 = 2 * 1024 * 1024 * 1024
+const ReservedMemoryUsage int64 = 512 * 1024 * 1024
 
 type Config struct {
 	// StorageDir    string `toml:",omitempty"`

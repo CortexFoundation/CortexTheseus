@@ -56,6 +56,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -398,9 +399,14 @@ var (
 		Value: "cpu",
 	}
 	InferDeviceIdFlag = cli.IntFlag{
-		Name:  "infer.devices",
-		Usage: "the device used infering, use --infer.devices=2, not available on cpu",
+		Name:  "infer.device",
+		Usage: "the device used infering, use --infer.device=2, not available on cpu",
 		Value: 0,
+	}
+	InferMemoryFlag = cli.IntFlag{
+		Name: "infer.memory",
+		Usage: "the maximum memory usage of infer engine, use --infer.memory=4096. shoule at least be 2048 (MiB)",
+		Value: int(synapse.DefaultConfig.MaxMemoryUsage >> 20),
 	}
 
 	// Account settings
@@ -1116,7 +1122,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.InferDeviceType = "cuda"
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
-
+	cfg.InferMemoryUsage = int64(ctx.GlobalInt(InferMemoryFlag.Name))
+	cfg.InferMemoryUsage = cfg.InferMemoryUsage << 20
 	// Override any default configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(BernardFlag.Name):
