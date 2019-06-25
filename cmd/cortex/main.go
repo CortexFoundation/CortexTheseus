@@ -134,7 +134,7 @@ var (
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
 		configFileFlag,
-		utils.ModelCallInterfaceFlag,
+		// utils.ModelCallInterfaceFlag,
 	}
 
 	rpcFlags = []cli.Flag{
