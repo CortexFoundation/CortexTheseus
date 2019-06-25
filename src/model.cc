@@ -433,7 +433,7 @@ void* CVMAPILoadModel(
   //           << "\ndevice_id = " << device_id << "\n";
   string graph(graph_payload, json_len);
   string params(model_payload, model_len);
-  std::cerr << "model size: " << params.size() << "\n";
+  // std::cerr << "model size: " << params.size() << "\n";
   if (device_type == 0) {
     model = new CVMModel(graph, DLContext{kDLCPU, 0});
   } else {
