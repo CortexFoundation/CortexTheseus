@@ -153,7 +153,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
-			InferURI:                config.InferURI,
+			// InferURI:                config.InferURI,
 			StorageDir:              config.StorageDir,
 			Storagefs:				 torrentfs.Torrentfs_handle,
 		}
@@ -259,7 +259,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 // APIs return the collection of RPC services the cortex package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *Cortex) APIs() []rpc.API {
-	apis := ctxcapi.GetAPIs(s.APIBackend, vm.Config{InferURI: s.config.InferURI})
+	apis := ctxcapi.GetAPIs(s.APIBackend, vm.Config{})
 
 	// Append any APIs exposed explicitly by the consensus engine
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
