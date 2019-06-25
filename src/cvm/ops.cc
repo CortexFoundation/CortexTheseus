@@ -775,7 +775,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_add")
                 c[i] = a[i] + b[0];
             }
         }else{
-//#pragma omp parallel for
+#pragma omp parallel for
             for(uint64_t i = 0; i < getSize(args2); ++i){
                 uint64_t o_index = i;//broadcast_o_index(args2->shape, args2->ndim, o_index);
                 int64_t a_index = broadcast_i_index(args2->shape, o_index, args0->shape, args0->ndim, args2->ndim);
@@ -802,13 +802,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_sub")
         int32_t *a = static_cast<int32_t*>(args0->data);
         int32_t *b = static_cast<int32_t*>(args1->data);
         int32_t *c = static_cast<int32_t*>(args2->data);
-        printf("broadcast_sub : ndim0=%d, ndim1=%d\n", args0->ndim, args1->ndim);
         if(getSize(args1) == 1){
             for(uint64_t i = 0; i < getSize(args2); ++i){
                 c[i] = a[i] - b[0];
             }
         }else{
-//#pragma omp parallel for
+#pragma omp parallel for
             for(uint64_t i = 0; i < getSize(args2); ++i){
                 uint64_t o_index = i;//broadcast_o_index(args2->shape, args2->ndim, o_index);
                 uint64_t a_index = broadcast_i_index(args2->shape, o_index, args0->shape, args0->ndim, args2->ndim);
@@ -1677,12 +1676,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
     int32_t xndim = x->ndim;
     TShape ts_reps = param.reps;
     int64_t *reps = ts_reps.begin();
-    printf("tile : %d %d %d\n", xndim, ts_reps.ndim(), yndim);
     for(uint32_t i = 0; i < ts_reps.ndim(); i++){
         VERIFY(reps[i] > 0);
-        printf("%d ", reps[i]);
     }
-    printf("\n");
 
     int i = 0, j = 0, k = 0;
     for(i = yndim-1, j = xndim-1, k = ts_reps.ndim()-1; i >= 0 && j >= 0 && k >= 0; i--, j--, k--){
@@ -1726,9 +1722,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
     VERIFY(args.num_args == 3);
     DLTensor *ishape = args[0];
     DLTensor *oshape = args[1];
-    void *_attr = args[2];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
+    //void *_attr = args[2];
+    //auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    //auto &param = cvm::get<cvm::top::ExpandDimsParam>(attr->parsed);
 
    // int32_t axis = param.axis;
    // axis = axis < 0 ? axis + ishape->ndim : axis;
@@ -1775,9 +1771,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     for(uint32_t i = 0; i < axes.ndim(); i++){
         if(axes_data[i] < 0) axes_data[i] += x->ndim;
         VERIFY(axes_data[i] >= 0 && axes_data[i] < x->ndim);
-        printf("%d ", axes_data[i]);
     }
-    printf("\n");
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
@@ -2100,7 +2094,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 
     // std::cerr << "axis = " << axis << " " << x->ndim << " " << y->ndim << "\n";
     if(!param.axis.has_value()){
-      printf("use take no axis........\n");
       take(x, indices, y);
     }else{
       int32_t axis = param.axis.value();
