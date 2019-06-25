@@ -32,3 +32,13 @@ var DefaultConfig = Config{
 	MaxSeedingNum: 640,
 	MaxActiveNum: 400,
 }
+
+const (
+	queryTimeInterval               = 3
+  expansionFactor         float64 = 1.2
+  defaultSeedInterval             = 600
+  torrentWaitingTime              = 300
+  downloadWaitingTime             = 600
+  defaultBytesLimitation          = 512 * 1024
+  defaultTmpFilePath              = ".tmp"
+)

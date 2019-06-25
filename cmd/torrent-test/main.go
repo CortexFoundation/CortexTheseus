@@ -87,6 +87,7 @@ func mainExitCode(conf *Config) int {
 	cfg := torrentfs.Config{
 		RpcURI:          "",
 		DefaultTrackers: torrentfs.DefaultConfig.DefaultTrackers,
+		BoostNodes:      torrentfs.DefaultConfig.BoostNodes,
 		SyncMode:        torrentfs.DefaultConfig.SyncMode,
 		DisableUTP:      torrentfs.DefaultConfig.DisableUTP,
 		MaxSeedingNum:   conf.NSeed,
