@@ -216,9 +216,14 @@ int run_LIF(string model_root, int device_type = 0) {
     vector<unsigned long> tshape;
     vector<int32_t> tout;
     npy::LoadArrayFromNumpy(data_file, tshape, tout);
+    cout << tout.size() << " " << output.size() << endl;
+    for(int i = 0; i < tout.size() && i < 60; i++){
+      cout << tout[i] << " ";
+    }
+    cout << endl;
     for(int i = 0; i < tout.size(); i++){
         if((int32_t)output[i] != tout[i]){
-           cout << "failed!!!!! : " << i << " " << output[i] << " " << tout[i] << endl;
+           cout << "failed!!!!! : " << i << " " << (int32_t)output[i] << " " << (int32_t)tout[i] << endl;
         }
         assert((int32_t)output[i] == tout[i]);
     }
@@ -266,16 +271,12 @@ int test_models(int device_type = 0) {
     // "/data/std_out/resnet50_mxg/",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2"
-     "/data/std_out/random_2_0/",
-     "/data/std_out/random_2_1/",
-     "/data/std_out/random_2_2/",
-     "/data/std_out/random_2_3/",
-     "/data/std_out/random_2_4/",
-     "/data/std_out/random_2_5/",
-     "/data/std_out/random_2_6/",
-     "/data/std_out/random_2_7/",
-     "/data/std_out/random_2_8/",
-     "/data/std_out/random_2_9/"
+     "/data/std_out/random_3_0/",
+     "/data/std_out/random_3_1/",
+     "/data/std_out/random_3_2/",
+     "/data/std_out/random_3_3/",
+     "/data/std_out/random_3_4/",
+     "/data/std_out/random_3_5/",
   };
   for (auto model_root : model_roots) {
     if (run_LIF(model_root, device_type) != 0) {
@@ -285,9 +286,9 @@ int test_models(int device_type = 0) {
   return 0;
 }
 int main() {
- // if (test_models(0) != 0)
- //   return -1;
-  if (test_models(1) != 0)
-    return -1;
+  //if (test_models(0) != 0)
+  //  return -1;
+ if (test_models(1) != 0)
+   return -1;
   return 0;
 }

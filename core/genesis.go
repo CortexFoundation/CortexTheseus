@@ -325,6 +325,7 @@ func DefaultBernardGenesisBlock() *Genesis {
 		Nonce:      0x0,
 		GasLimit:   params.GenesisGasLimit,
 		Difficulty: big.NewInt(2),
+		ExtraData:  hexutil.MustDecode("0xea11755ae41d889ceec39a63e6ff75a02bc1c00d"),
 	}
 }
 
