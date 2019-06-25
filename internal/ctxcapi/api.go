@@ -742,6 +742,12 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	if err := vmError(); err != nil {
 		return nil, 0, false, err
 	}
+
+	// If the timer caused an abort, return an appropriate error message
+	if cvm.Cancelled() {
+		return nil, 0, false, fmt.Errorf("execution aborted (timeout = %v)", timeout)
+	}
+
 	return res, gas, failed, err
 }
 
