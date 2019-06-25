@@ -201,7 +201,7 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
   std::vector<DLTensor*> ret;
   for (int i = 0; i < out_num_; ++i) {
     DLTensor *t;
-    CVMArrayAlloc(shapes_[i + 1], dims_[i + 1], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &t);
+    CVMArrayAlloc(shapes_[i + input_num_], dims_[i + input_num_], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &t);
     ret.push_back(t);
   }
   return ret;
@@ -209,13 +209,22 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
 
 void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
   if (postprocess_method_ == "argmax") {
+    // std::cerr << "argmax\n";
     int32_t* cp = static_cast<int32_t*>((void*)(mem));
     // argmax by dimension -1
     for (size_t k = 0 ; k < (size_t)out_num_; ++k) {
-      uint32_t last_dim = shapes_[ input_num_ +  k][dims_[k] - 1];
+      uint32_t last_dim = shapes_[ input_num_ +  k][dims_[input_num_ + k] - 1];
       uint32_t out_size = out_size_[k];
       uint32_t out_size_ap = out_size / last_dim;
+      // std::cerr << " last_dim = " << last_dim
+      //           << " out_size = " << out_size
+      //           << " out_size_ap = " << out_size_ap
+      //           << "\n";
       auto data = static_cast<int*>(outputs[k]->data);
+      // for (size_t i = 0; i < out_size_ap; i += last_dim) {
+      //   std::cerr << int(int8_t(data[i])) << " ";
+      // }
+      // std::cerr << "\n";
       for (size_t i = 0; i < out_size_ap; i += last_dim) {
         uint32_t max_id = 0;
         for (size_t j = i; j < i + last_dim; j++) {
@@ -348,7 +357,7 @@ int CVMModel::GetOutputLength() {
       ret += out_size_ap;
     }
     ret *= output_bytes_;
-    // std::cerr << "ret = " << ret << "\n";
+    std::cerr << "ret = " << ret << "\n";
     return ret;
   }
   else if (postprocess_method_ == "detection") {

@@ -541,15 +541,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		errRes   error
 	)
 
-	// fmt.Println("==infer", modelInfoHash, inputInfoHash)
-	if cvm.vmConfig.InferURI == "" {
-		inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
-	} else {
-		inferRes, errRes = synapse.Engine().RemoteInferByInfoHash(
-			modelInfoHash,
-			inputInfoHash,
-			cvm.vmConfig.InferURI)
-	}
+	inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
 
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
@@ -564,7 +556,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) ([]byte, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
-	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
+	log.Trace("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 	if cvm.vmConfig.DebugInferVM {
 		fmt.Println( "Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
@@ -578,15 +570,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		errRes   error
 	)
 
-	if cvm.vmConfig.InferURI == "" {
-		inferRes, errRes = synapse.Engine().InferByInputContent(modelInfoHash, inputArray)
-	} else {
-		inferRes, errRes = synapse.Engine().RemoteInferByInputContent(
-			modelInfoHash,
-			cvm.vmConfig.InferURI,
-			inputArray,
-		)
-	}
+	inferRes, errRes = synapse.Engine().InferByInputContent(modelInfoHash, inputArray)
 
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
@@ -608,13 +592,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelMeta.Hash.Hex())
 	}
 
-	if cvm.vmConfig.InferURI == "" {
-		opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
-	} else {
-		opsRes, errRes = synapse.Engine().RemoteGasByModelHash(
-			modelMeta.Hash.Hex(),
-			cvm.vmConfig.InferURI)
-	}
+	opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
 
 	return opsRes, errRes
 }

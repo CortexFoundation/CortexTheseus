@@ -119,6 +119,7 @@ var (
 		// utils.DeveloperFlag,
 		// utils.DeveloperPeriodFlag,
 		utils.BernardFlag,
+		utils.DoloresFlag,
 		// utils.TestnetFlag,
 		// utils.LazynetFlag,
 		// utils.VMEnableDebugFlag,

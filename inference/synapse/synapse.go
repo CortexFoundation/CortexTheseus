@@ -2,12 +2,9 @@ package synapse
 
 import (
 	"fmt"
-	"os"
 	"plugin"
 	"strconv"
-	"strings"
 	"sync"
-	//	"github.com/CortexFoundation/CortexTheseus/inference/synapse/parser"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
@@ -20,24 +17,26 @@ const PLUGIN_POST_FIX string = "_cvm.so"
 
 
 type Config struct {
-	StorageDir    string `toml:",omitempty"`
+	// StorageDir    string `toml:",omitempty"`
 	IsNotCache    bool   `toml:",omitempty"`
 	DeviceType    string `toml:",omitempty"`
 	DeviceId      int    `toml:",omitempty"`
 	IsRemoteInfer bool   `toml:",omitempty"`
 	InferURI      string `toml:",omitempty"`
 	Debug         bool   `toml:",omitempty"`
+	MaxMemoryUsage int64
 	Storagefs torrentfs.CVMStorage
 }
 
 var DefaultConfig Config = Config{
-	StorageDir:    "",
+	// StorageDir:    "",
 	IsNotCache:    false,
 	DeviceType:    "cpu",
 	DeviceId:      0,
 	IsRemoteInfer: false,
 	InferURI:      "",
 	Debug:         false,
+	MaxMemoryUsage: 4 * 1024 * 1024 * 1024,
 }
 
 type Synapse struct {
@@ -91,7 +90,7 @@ func New(config *Config) *Synapse {
 		caches: make(map[int]*lru.Cache),
 	}
 
-	log.Info("Initialising Synapse Engine", "Storage Dir", config.StorageDir, "Cache Disabled", config.IsNotCache)
+	log.Info("Initialising Synapse Engine",  "Cache Disabled", config.IsNotCache)
 	return synapseInstance
 }
 
@@ -100,12 +99,3 @@ func (s *Synapse) Close() {
 	log.Info("Synapse Engine Closed")
 }
 
-func (s *Synapse) VerifyInput(inputInfoHash string) error {
-	inputHash := strings.ToLower(string(inputInfoHash[2:]))
-	inputDir := s.config.StorageDir + "/" + inputHash
-
-	image := inputDir + "/data"
-	_, imageErr := os.Stat(image)
-
-	return imageErr
-}
