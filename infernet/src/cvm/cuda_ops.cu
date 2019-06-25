@@ -924,19 +924,17 @@ const char* cuda_flatten(const int32_t *x, int32_t *y, const uint64_t n, int& er
   return check_cuda_error(error);
 }
 
-inline __device__ int32_t broadcast_i_index(int64_t* oshape, int o_index, int64_t* ishape, int idim){
+inline __device__ int32_t broadcast_i_index(int64_t* oshape, int o_index, int64_t* ishape, int idim, int odim){
   int index = 0;
-  int allIndex = 0;
+  int allIndex = 1;
   for(int i = 0; i < idim; i++){
     int idx = idim - 1 - i;
-    int ovar = o_index % oshape[idx];
+    int ovar = o_index % oshape[idx + odim-idim];
     if(ovar < ishape[idx]){
-      index += i == 0 ? ovar : allIndex * ovar;
-    }else if(ishape[idx] == 1){
-    }else{
+      index += allIndex * ovar;
     }
-    allIndex = (i == 0 ? ishape[idim-1] : allIndex * ishape[idx]);
-    o_index /= oshape[idx];
+    allIndex = allIndex * ishape[idx];
+    o_index /= oshape[idx + odim-idim];
   }
   return index;
 }
@@ -948,8 +946,8 @@ __global__ void kernel_broadcast_add(const int32_t *a, const int32_t *b, int32_t
     int64_t *cshape, int32_t cdim){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(uint64_t i = tid; i < n; i += gridDim.x * blockDim.x){
-    int ai = broadcast_i_index(cshape, i, ashape, adim);
-    int bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] + b[bi];
   }
 }
@@ -1017,8 +1015,8 @@ __global__ void kernel_broadcast_sub(const int32_t *a, const int32_t *b, int32_t
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x*blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] - b[bi];
   }
 }
@@ -1082,8 +1080,8 @@ __global__ void kernel_broadcast_mul(const int32_t *a, const int32_t *b, int32_t
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x*blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] * b[bi];
   }
 }
@@ -1148,8 +1146,8 @@ __global__ void kernel_broadcast_div(const int32_t *a, const int32_t *b, int32_t
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x*blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] / b[bi];
   }
 }
@@ -1239,8 +1237,8 @@ __global__ void kernel_broadcast_right_shift(const int32_t *a, const int32_t *b,
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x * blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] >> b[bi];
   }
 }
@@ -1302,8 +1300,8 @@ __global__ void kernel_broadcast_left_shift(const int32_t *a, const int32_t *b, 
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x * blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] << b[bi];
   }
 }
@@ -1368,8 +1366,8 @@ __global__ void kernel_broadcast_max(const int32_t *a, const int32_t *b, int32_t
     ){
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   for(int i = tid; i < n; i += gridDim.x*blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] > b[bi] ? a[ai] : b[bi];
   }
 }
