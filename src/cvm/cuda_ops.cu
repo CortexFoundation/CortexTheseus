@@ -31,6 +31,9 @@ void print_to_file(const int32_t *y, int32_t n, std::string filename){
   delete y_data;
 #endif
 }
+
+#define MEMORY_LIMIT (512*1024*1024)
+
 inline int32_t getGridSize(const int64_t n, const int32_t blockSize){
   int64_t tg = (n + blockSize - 1) / blockSize;
   return tg > 4096 ? 4096 : tg;
@@ -388,7 +391,7 @@ const char* cuda_conv2d(
     size_t freeSize = getFreeMemorySize(device_id, error_code);
     size_t tmp_filter_size = o_c * i_c * f_h * f_w * sizeof(int8_t);
     size_t tmp_input_size = i_c * f_h * f_w * o_h * o_w * sizeof(int8_t);
-    if(tmp_filter_size + tmp_input_size >= freeSize){
+    if(tmp_filter_size + tmp_input_size >= freeSize || tmp_filter_size > MEMORY_LIMIT || tmp_input_size > MEMORY_LIMIT){
       int b_h = BS;
       int b_w = BS;
       int32_t g_h = o_n * ((o_c + FS - 1) / FS) * ((tmp_o_h + b_h - 1) / b_h);
