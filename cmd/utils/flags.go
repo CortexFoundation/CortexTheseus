@@ -397,7 +397,7 @@ var (
 	InferDeviceTypeFlag = cli.StringFlag{
 		Name:  "infer.devicetype",
 		Usage: "infer device type : cpu or gpu",
-		Value: "cpu",
+		Value: "gpu",
 	}
 	InferDeviceIdFlag = cli.IntFlag{
 		Name:  "infer.device",
@@ -1121,13 +1121,14 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
 	if cfg.InferDeviceType == "gpu" {
 		cfg.InferDeviceType = "cuda"
-	} else {
+	}
+	if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
 		u, err := url.Parse(cfg.InferDeviceType)
-		if err == nil && u.Scheme == "remote" {
+		if err == nil && u.Scheme == "remote" && len(u.Hostname()) > 0 && len(u.Port()) > 0 {
 			cfg.InferURI = "http://" + u.Hostname() + ":" + u.Port();
 			log.Info("Cortex", "inferUri", cfg.InferURI)
 		} else {
-			log.Warn("Cortex", "fallback device", cfg.InferDeviceType)
+			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
