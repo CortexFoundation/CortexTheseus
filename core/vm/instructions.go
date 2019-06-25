@@ -762,13 +762,13 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	// } else {
 	// }*/
 
-	log.Debug("interpreter infer<", "modelMeta", modelMeta, "inputMeta", inputMeta)
+	// log.Debug("interpreter infer<", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	//todo model & input tfs validation
 	output, err := interpreter.cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
 	if interpreter.cvm.vmConfig.DebugInferVM {
 		fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
 	}
-	log.Debug("interpreter infer>", "modelMeta", modelMeta, "inputMeta", inputMeta, "output", output)
+	// log.Debug("interpreter infer>", "modelMeta", modelMeta, "inputMeta", inputMeta, "output", output)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		// if !synapse.CheckBuiltInTorrentFsError(err) {
