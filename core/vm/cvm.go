@@ -179,6 +179,10 @@ func (cvm *CVM) Cancel() {
 	atomic.StoreInt32(&cvm.abort, 1)
 }
 
+func (cvm *CVM) Cancelled() bool {
+	return atomic.LoadInt32(&cvm.abort) == 1
+}
+
 // Interpreter returns the current interpreter
 func (cvm *CVM) Interpreter() Interpreter {
 	return cvm.interpreter
@@ -526,7 +530,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	// fmt.Println("infer", modelInfoHash, inputInfoHash)
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
-	if (!cvm.vmConfig.DebugInferVM) {
+	if !cvm.vmConfig.DebugInferVM {
 		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
 			return nil, errors.New("Torrent file model not available, blockchain and torrent not match, modelInfoHash: " + modelInfoHash)
 		}
@@ -558,9 +562,9 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
 	log.Trace("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 	if cvm.vmConfig.DebugInferVM {
-		fmt.Println( "Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
+		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
-	if (!cvm.vmConfig.DebugInferVM) {
+	if !cvm.vmConfig.DebugInferVM {
 		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
 			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 		}
@@ -596,7 +600,6 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 
 	return opsRes, errRes
 }
-
 
 func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
 	metaRaw := cvm.StateDB.GetCode(addr)
