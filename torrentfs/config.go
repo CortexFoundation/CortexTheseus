@@ -13,6 +13,7 @@ type Config struct {
 	RpcURI              string    `toml:",omitempty"`
 	IpcPath             string    `toml:",omitempty"`
 	DisableUTP          bool      `toml:",omitempty"`
+	DisableDHT          bool      `toml:",omitempty"`
 	DefaultTrackers     []string  `toml:",omitempty"`
 	BoostNodes          []string  `toml:",omitempty"`
 	SyncMode            string    `toml:",omitempty"`
@@ -27,6 +28,7 @@ var DefaultConfig = Config{
 	BoostNodes: params.TorrentBoostNodes,
   SyncMode: "full",
 	DisableUTP: true,
+	DisableDHT: false,
 	MaxSeedingNum: 640,
-	MaxActiveNum: 128,
+	MaxActiveNum: 400,
 }

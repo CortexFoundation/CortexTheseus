@@ -22,13 +22,13 @@ import (
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/fs"
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 var (
 	args = struct {
 		DataDir string `help:"torrent files in this location describe the contents of download files"`
 
-		DisableTrackers bool
 		ReadaheadBytes  tagflag.Bytes
 		ListenAddr      *net.TCPAddr
 	}{
@@ -78,7 +78,7 @@ func (i *Instance) handleEvents() {
 	defer close(i.Events)
 	for e := range i.w.Events {
 		if e.Op == fsnotify.Create || e.Op == fsnotify.Remove {
-			log.Printf("event: %s", e)
+//			log.Printf("event: %s", e)
 			go func(){
 				time.Sleep(time.Second * 1)
 				i.refresh()
@@ -226,9 +226,12 @@ func mainExitCode() int {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DataDir = args.DataDir
-	cfg.DisableTrackers = args.DisableTrackers
 	cfg.SetListenAddr(args.ListenAddr.String())
 	cfg.Seed = true
+	cfg.EstablishedConnsPerTorrent = 10
+	cfg.HalfOpenConnsPerTorrent = 5
+	cfg.DisableUTP = true
+	cfg.NoDHT = true
 	client, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Print(err)
@@ -240,6 +243,12 @@ func mainExitCode() int {
 		return 1
 	}
 	go func() {
+		/*
+		entities := scanDir(args.DataDir)
+		for _, x := range entities {
+			log.Print(x.String())
+		}
+		*/
 		for ev := range dw.Events {
 			switch ev.Change {
 			case Added:
@@ -254,7 +263,7 @@ func mainExitCode() int {
 						}
 						spec := torrent.TorrentSpecFromMetaInfo(mi)
 						ih := spec.InfoHash
-						log.Println("Torrent", ih, "is seeding.")
+						spec.Trackers = append(spec.Trackers, params.MainnetTrackers)
 
 						spec.Storage = storage.NewFile(filePath)
 						t, _, err := client.AddTorrentSpec(spec)
@@ -267,7 +276,9 @@ func mainExitCode() int {
 						t.DownloadAll()
 						go func(){
 							time.Sleep(time.Second * 5)
-							log.Println(ih, t.Seeding())
+							if t.Seeding() {
+								log.Println(ih, "is seeding")
+							}
 						}()
 					}
 					if err != nil {
@@ -275,23 +286,9 @@ func mainExitCode() int {
 					}
 				}
 			case Removed:
-				if ev.FilePath != "" {
-					filePath := ev.FilePath
-					torrentPath := path.Join(filePath, "torrent")
-					if _, err := os.Stat(torrentPath); err == nil {
-						mi, err := metainfo.LoadFromFile(torrentPath)
-						if err != nil {
-							log.Printf("error adding torrent to client: %s", err)
-							continue
-						}
-						spec := torrent.TorrentSpecFromMetaInfo(mi)
-						ih := spec.InfoHash
-						T, ok := client.Torrent(ih)
-						if !ok {
-							break
-						}
-						T.Drop()
-					}
+				if t, ok := client.Torrent(ev.InfoHash); ok {
+					t.Drop()
+					log.Printf("Torrent %s has been removed", ev.InfoHash.String())
 				}
 			}
 		}

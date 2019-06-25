@@ -20,7 +20,7 @@ type Config struct {
 	LogLevel   int
 	NSeed      int
 	NActive    int
-	Utp        bool
+	Dht        bool
 }
 
 var gitCommit = "" // Git SHA1 commit hash of the release (set via linker flags)
@@ -61,9 +61,9 @@ func main() {
 			Destination: &conf.TaskList,
 		},
   	cli.BoolFlag{
-			Name:        "utp",
-			Usage:       "utp",
-			Destination: &conf.Utp,
+			Name:        "dht",
+			Usage:       "dht",
+			Destination: &conf.Dht,
 		},
 	}
 
@@ -94,7 +94,8 @@ func mainExitCode(conf *Config) int {
 	}
 
 	cfg.DataDir = conf.Dir
-	cfg.DisableUTP = conf.Utp
+	cfg.DisableDHT = !conf.Dht
+	cfg.DisableUTP = true
 
 	tm := torrentfs.NewTorrentManager(&cfg)
 	tm.Start()

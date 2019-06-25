@@ -129,12 +129,16 @@ var (
 	// }
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
-		Usage: "Network identifier (integer, 21=Mainnet, 42=Bernard)",
+		Usage: "Network identifier (integer, 21=Mainnet, 42=Bernard, 43=Dolores)",
 		Value: ctxc.DefaultConfig.NetworkId,
 	}
 	BernardFlag = cli.BoolFlag{
 		Name:  "bernard",
 		Usage: "Bernard network: pre-configured cortex test network",
+	}
+	DoloresFlag = cli.BoolFlag{
+		Name:  "dolores",
+		Usage: "Dolores network: pre-configured cortex test network",
 	}
 	// DeveloperFlag = cli.BoolFlag{
 	// 	Name:  "dev",
@@ -625,6 +629,8 @@ func MakeDataDir(ctx *cli.Context) string {
 		return ctx.GlobalString(DataDirFlag.Name)
 	case ctx.GlobalBool(BernardFlag.Name):
 		return filepath.Join(node.DefaultDataDir(), "bernard")
+	case ctx.GlobalBool(DoloresFlag.Name):
+		return filepath.Join(node.DefaultDataDir(), "dolores")
 	}
 
 	return node.DefaultDataDir()
@@ -686,6 +692,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
 	case ctx.GlobalBool(BernardFlag.Name):
+		urls = params.BernardBootnodes
+	case ctx.GlobalBool(DoloresFlag.Name):
 		urls = params.BernardBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
@@ -1116,6 +1124,11 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 			cfg.NetworkId = 42
 		}
 		cfg.Genesis = core.DefaultBernardGenesisBlock()
+	case ctx.GlobalBool(DoloresFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 43
+		}
+		cfg.Genesis = core.DefaultDoloresGenesisBlock()
 		//case ctx.GlobalBool(TestnetFlag.Name):
 		//	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		//		cfg.NetworkId = 28
