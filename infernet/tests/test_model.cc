@@ -271,12 +271,12 @@ int test_models(int device_type = 0) {
     // "/data/std_out/resnet50_mxg/",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2"
-     "/data/std_out/random_3_0/",
-     "/data/std_out/random_3_1/",
-     "/data/std_out/random_3_2/",
-     "/data/std_out/random_3_3/",
-     "/data/std_out/random_3_4/",
-     "/data/std_out/random_3_5/",
+     // "/data/std_out/random_4_0/",
+     // "/data/std_out/random_4_1/",
+     // "/data/std_out/random_4_2/",
+     "/data/std_out/random_4_3/",
+     // "/data/std_out/random_4_4/",
+     // "/data/std_out/random_4_5/",
   };
   for (auto model_root : model_roots) {
     if (run_LIF(model_root, device_type) != 0) {

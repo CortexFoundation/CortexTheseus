@@ -5,6 +5,7 @@ package synapse
 import (
 	"errors"
 	"strings"
+	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
@@ -80,13 +81,13 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	}
 
 	var (
-		modelHash = strings.ToLower(modelInfoHash[2:])
-		modelJson []byte
+		modelHash     = strings.ToLower(modelInfoHash[2:])
+		modelJson     []byte
 		modelJson_err error
 	)
 	modelJson, modelJson_err = s.config.Storagefs.GetFile(modelHash, "/data/symbol")
-	if modelJson_err != nil || modelJson == nil{
-		return 0,  modelJson_err
+	if modelJson_err != nil || modelJson == nil {
+		return 0, modelJson_err
 	}
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
@@ -153,19 +154,22 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		memoryUsage -= ReservedMemoryUsage
 		s.caches[s.config.DeviceId] = lru.New(memoryUsage)
 		s.caches[s.config.DeviceId].OnEvicted = func(key lru.Key, value interface{}) {
-			value.(*kernel.Model).Free()												                
+			value.(*kernel.Model).Free()
 		}
 	}
 
 	var (
 		inferErr error
-		result []byte
-		model *kernel.Model
+		result   []byte
+		model    *kernel.Model
 	)
 
-	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
+	v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
+	v.(sync.Mutex).Lock()
+	defer v.(sync.Mutex).Unlock()
 
-	if !has_model{
+	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
+	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFile(modelHash, "/data/symbol")
 		if modelJson_err != nil || modelJson == nil {
 			errCh <- modelJson_err
