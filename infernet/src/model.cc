@@ -207,7 +207,7 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
   return ret;
 }
 
-void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
+int CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
   if (postprocess_method_ == "argmax") {
     // std::cerr << "argmax\n";
     int32_t* cp = static_cast<int32_t*>((void*)(mem));
@@ -295,7 +295,7 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
       }
     } else {
       std::cerr << "yolo post process failed\n";
-      VERIFY(false) << "yolo post process failed\n";
+      return -1;
     }
   } else {
       for (size_t k = 0; k < outputs.size(); ++k) {
@@ -305,6 +305,7 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
         }
       }
   }
+  return 0;
 }
 
 int CVMModel::LoadParams(const string &params) {
@@ -529,8 +530,8 @@ int CVMAPISizeOfInputType(void *model_) {
 }
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
-  int ret = 0;
   try {
+    int ret = 0;
     if (input_data == nullptr) {
       std::cerr << "input_data error" << std::endl;
       ret = -1;
@@ -548,7 +549,9 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
       } else {
         ret = model->Run(input, outputs);
         if (ret == 0) {
-          model->SaveTensor(outputs, output_data);
+          int save_ok = model->SaveTensor(outputs, output_data);
+          if (save_ok != 0)
+            ret = -1;
           if (input)
             CVMArrayFree(input);
           for (size_t i = 0; i < outputs.size(); ++i)
@@ -559,6 +562,6 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
   } catch (std::exception &e) {
     return -1;
   }
-  return ret;
+  return 0;
 }
 
