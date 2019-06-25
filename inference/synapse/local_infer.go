@@ -165,8 +165,9 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	)
 
 	v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
-	v.(sync.Mutex).Lock()
-	defer v.(sync.Mutex).Unlock()
+	mutex := v.(sync.Mutex)
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
