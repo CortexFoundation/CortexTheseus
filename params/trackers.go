@@ -60,5 +60,5 @@ var TestnetTrackers = []string{}
 var RinkebyTrackerss = []string{}
 
 var TorrentBoostNodes = []string{
-	"http://39.106.107.163:7881/files",
+	"http://storage.cortexlabs.ai:7881",
 }
