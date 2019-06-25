@@ -53,9 +53,10 @@ inline uint64_t getSize(DLTensor *dlTensor){
   return size;
 }
 
+const std::string DIR = "/tmp/zkh/random_3_1/";
 void print_to_file(DLTensor *y, std::string filename){
 #if defined(CVM_PRINT_OP_RESULT)
-  FILE *fp = fopen(filename.c_str(), "a+");
+  FILE *fp = fopen((DIR + filename).c_str(), "a+");
   int32_t *y_data = static_cast<int32_t*>(y->data);
 
   int32_t min = y_data[0], max= y_data[0];
@@ -117,7 +118,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.relu").set_body([](CVMArgs args, CVMRetValu
 #ifdef CVM_PROFILING
     cvm_op_elemwise_cnt += omp_get_wtime() - start;
 #endif
-  print_to_file(y, "/tmp/zkh/trec/cpu/relu.txt");
+  print_to_file(y, "relu.txt");
 });
 
 /*
@@ -167,7 +168,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
           dy[di * y->shape[1] + oi] = sum;
       }
   }
-  print_to_file(y, "/tmp/zkh/trec/cpu/dense.txt");
+  print_to_file(y, "dense.txt");
 
   }  else {
   auto N = y->shape[1], K = x->shape[1];
@@ -260,7 +261,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
     cvm_op_elemwise_cnt += omp_get_wtime() - start;
 #endif
 
-  print_to_file(y, "/tmp/zkh/trec/cpu/flatten.txt");
+  print_to_file(y, "flatten.txt");
 });
 
 bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias,
@@ -737,21 +738,21 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
         }
 #endif
     }
-  print_to_file(y, "/tmp/zkh/trec/cpu/conv2d.txt");
+  print_to_file(y, "conv2d.txt");
 });
 
-inline int32_t broadcast_i_index(int64_t* oshape, uint64_t o_index, int64_t* ishape, int idim){
+inline int32_t broadcast_i_index(int64_t* oshape, uint64_t o_index, int64_t* ishape, int idim, int odim){
     if(idim == 1 && ishape[0] == 1) return 0;
     uint64_t index = 0;
-    uint64_t allIndex = 0;
+    uint64_t allIndex = 1;
     for(int i = 0; i < idim; i++){
         int idx = idim - 1 - i;
-        int ovar = o_index % oshape[idx];
+        int ovar = o_index % oshape[idx+odim-idim];
         if(ovar < ishape[idx]){
-            index += i == 0 ? ovar : allIndex * ovar;
+            index += allIndex * ovar;
         }
-        allIndex = (i == 0 ? ishape[idim-1] : allIndex * ishape[idx]);
-        o_index /= oshape[idx];
+        allIndex =  allIndex * ishape[idx];
+        o_index /= oshape[idx + odim-idim];
     }
     return index;
 }
@@ -769,22 +770,23 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_add")
         int32_t *b = static_cast<int32_t*>(args1->data);
         int32_t *c = static_cast<int32_t*>(args2->data);
 
-        if(args1->ndim == 1){
-            for(uint64_t i = 0; i < getSize(args0); ++i){
+        if(getSize(args1) == 1){
+            for(uint64_t i = 0; i < getSize(args2); ++i){
                 c[i] = a[i] + b[0];
             }
         }else{
-#pragma omp parallel for
-            for(uint64_t i = 0; i < getSize(args0); ++i){
+//#pragma omp parallel for
+            for(uint64_t i = 0; i < getSize(args2); ++i){
                 uint64_t o_index = i;//broadcast_o_index(args2->shape, args2->ndim, o_index);
-                int64_t a_index = broadcast_i_index(args2->shape, o_index, args0->shape, args0->ndim);
-                int64_t b_index = broadcast_i_index(args2->shape, o_index, args1->shape, args1->ndim);
+                int64_t a_index = broadcast_i_index(args2->shape, o_index, args0->shape, args0->ndim, args2->ndim);
+                int64_t b_index = broadcast_i_index(args2->shape, o_index, args1->shape, args1->ndim, args2->ndim);
                 c[i] = a[a_index] + b[b_index];
             }
         }
 #ifdef CVM_PROFILING
         cvm_op_broadcast_cnt += omp_get_wtime() - start;
 #endif
+        print_to_file(args2, "broadcast_add.txt");
     });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_sub")
@@ -800,22 +802,24 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_sub")
         int32_t *a = static_cast<int32_t*>(args0->data);
         int32_t *b = static_cast<int32_t*>(args1->data);
         int32_t *c = static_cast<int32_t*>(args2->data);
-        if(args1->ndim == 1){
-            for(uint64_t i = 0; i < getSize(args0); ++i){
+        printf("broadcast_sub : ndim0=%d, ndim1=%d\n", args0->ndim, args1->ndim);
+        if(getSize(args1) == 1){
+            for(uint64_t i = 0; i < getSize(args2); ++i){
                 c[i] = a[i] - b[0];
             }
         }else{
-#pragma omp parallel for
-            for(uint64_t i = 0; i < getSize(args0); ++i){
+//#pragma omp parallel for
+            for(uint64_t i = 0; i < getSize(args2); ++i){
                 uint64_t o_index = i;//broadcast_o_index(args2->shape, args2->ndim, o_index);
-                uint64_t a_index = broadcast_i_index(args2->shape, o_index, args0->shape, args0->ndim);
-                uint64_t b_index = broadcast_i_index(args2->shape, o_index, args1->shape, args1->ndim);
+                uint64_t a_index = broadcast_i_index(args2->shape, o_index, args0->shape, args0->ndim, args2->ndim);
+                uint64_t b_index = broadcast_i_index(args2->shape, o_index, args1->shape, args1->ndim, args2->ndim);
                 c[i] = a[a_index] - b[b_index];
             }
         }
 #ifdef CVM_PROFILING
         cvm_op_broadcast_cnt += omp_get_wtime() - start;
 #endif
+        print_to_file(args2, "broadcast_sub.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_mul")
@@ -830,17 +834,17 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_mul")
         int32_t *a = static_cast<int32_t*>(args0->data);
         int32_t *b = static_cast<int32_t*>(args1->data);
         int32_t *c = static_cast<int32_t*>(args2->data);
-        if(args1->ndim == 1){
+        if(getSize(args1) == 1){
 #pragma omp parallel for
-            for(uint64_t i = 0; i < getSize(args0); ++i){
+            for(uint64_t i = 0; i < getSize(args2); ++i){
                 c[i] = a[i] * b[0];
             }
         }else{
 #pragma omp parallel for
-            for(uint64_t i = 0; i < getSize(args0); ++i){
+            for(uint64_t i = 0; i < getSize(args2); ++i){
                 uint64_t o_index = i;//broadcast_o_index(args2->shape, args2->ndim, o_index);
-                uint64_t a_index = broadcast_i_index(args2->shape, o_index, args0->shape, args0->ndim);
-                uint64_t b_index = broadcast_i_index(args2->shape, o_index, args1->shape, args1->ndim);
+                uint64_t a_index = broadcast_i_index(args2->shape, o_index, args0->shape, args0->ndim, args2->ndim);
+                uint64_t b_index = broadcast_i_index(args2->shape, o_index, args1->shape, args1->ndim, args2->ndim);
                 c[i] = a[a_index] * b[b_index];
             }
         }
@@ -848,7 +852,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_mul")
 #ifdef CVM_PROFILING
         cvm_op_broadcast_cnt += omp_get_wtime() - start;
 #endif
-    print_to_file(args2, "/tmp/zkh/trec/cpu/broadcast_mul.txt");
+    print_to_file(args2, "broadcast_mul.txt");
 });
 
 //CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_div")
@@ -1153,7 +1157,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
         CHECK(false) << e.what();
     }
   }
-  print_to_file(y, "/tmp/zkh/trec/cpu/sum.txt");
+  print_to_file(y, "sum.txt");
 });
 
 
@@ -1179,7 +1183,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_add")
 #ifdef CVM_PROFILING
   cvm_op_elemwise_cnt += omp_get_wtime() - start;
 #endif
-  print_to_file(args2, "/tmp/zkh/trec/cpu/elemwise_add.txt");
+  print_to_file(args2, "elemwise_add.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_sub")
@@ -1210,6 +1214,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.reshape")
   // auto &param = cvm::get<cvm::top::ReshapeParam>(attr->parsed);
   if(x->data == y->data) return;
   std::memcpy(y->data, x->data, getSize(x) * sizeof(int32_t));
+  print_to_file(y, "reshape.txt");
 });
 
 /*\brief:
@@ -1249,7 +1254,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_clip")
 #ifdef CVM_PROFILING
   cvm_op_clip_cnt += omp_get_wtime() - start;
 #endif
-  print_to_file(y, "/tmp/zkh/trec/cpu/clip.txt");
+  print_to_file(y, "clip.txt");
 }
 );
 
@@ -1317,7 +1322,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_right_shift")
 #ifdef CVM_PROFILING
     cvm_op_cvm_shift_cnt += omp_get_wtime() - start;
 #endif
-  print_to_file(c, "/tmp/zkh/trec/cpu/cvm_right_shift.txt");
+  print_to_file(c, "cvm_right_shift.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_left_shift")
@@ -1515,17 +1520,17 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_max")
     int32_t *a_data = static_cast<int32_t*>(a->data);
     int32_t* b_data = static_cast<int32_t*>(b->data);
     int32_t* c_data = static_cast<int32_t*>(c->data);
-    if(b->ndim == 1){
+    if(getSize(b) == 1){
 #pragma omp parallel for
-      for(uint64_t i = 0; i < getSize(a); i++){
+      for(uint64_t i = 0; i < getSize(c); i++){
         c_data[i] = a_data[i] > b_data[0] ? a_data[i] : b_data[0];
       }
     }else{
 #pragma omp parallel for
-      for(uint64_t i = 0; i < getSize(a); i++){
+      for(uint64_t i = 0; i < getSize(c); i++){
         uint64_t o_index = i;//broadcast_o_index(c->shape, c->ndim, o_index);
-        uint64_t a_index = broadcast_i_index(c->shape, o_index, a->shape, a->ndim);
-        uint64_t b_index = broadcast_i_index(c->shape, o_index, b->shape, b->ndim);
+        uint64_t a_index = broadcast_i_index(c->shape, o_index, a->shape, a->ndim, c->ndim);
+        uint64_t b_index = broadcast_i_index(c->shape, o_index, b->shape, b->ndim, c->ndim);
         //c_data[i] = (a_data[i] > b_data[i] ? a_data[i] : b_data[i]);
         c_data[i] = a_data[a_index] > b_data[b_index] ? a_data[a_index] : b_data[b_index];
       }
@@ -1599,7 +1604,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.concatenate")
 #ifdef CVM_PROFILING
     cvm_op_concat_cnt += omp_get_wtime() - start;
 #endif
-  print_to_file(out, "/tmp/zkh/trec/cpu/concatenate.txt");
+  print_to_file(out, "concatenate.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
@@ -1618,7 +1623,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.repeat")
     int32_t axis = param.axis;
     int32_t repeat = param.repeats;
     int32_t ndim = x->ndim;
-    // int repeat = std::atoi(str_repeat.c_str());
+    //printf("axis = %d, repeat = %d\n", axis, repeat);
     {
       if(axis < 0) axis = axis + ndim;
       VERIFY(axis >= 0 && axis < ndim);
@@ -1672,9 +1677,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
     int32_t xndim = x->ndim;
     TShape ts_reps = param.reps;
     int64_t *reps = ts_reps.begin();
+    printf("tile : %d %d %d\n", xndim, ts_reps.ndim(), yndim);
     for(uint32_t i = 0; i < ts_reps.ndim(); i++){
         VERIFY(reps[i] > 0);
+        printf("%d ", reps[i]);
     }
+    printf("\n");
 
     int i = 0, j = 0, k = 0;
     for(i = yndim-1, j = xndim-1, k = ts_reps.ndim()-1; i >= 0 && j >= 0 && k >= 0; i--, j--, k--){
@@ -1709,6 +1717,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
     for(size_t i = 1; i < othery; i++){
         memcpy(y_data + i*tmp_y_size, y_data, tmp_y_size * sizeof(int32_t));
     }
+    print_to_file(y, "tile.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.expand_dims")
@@ -1766,16 +1775,18 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     for(uint32_t i = 0; i < axes.ndim(); i++){
         if(axes_data[i] < 0) axes_data[i] += x->ndim;
         VERIFY(axes_data[i] >= 0 && axes_data[i] < x->ndim);
+        printf("%d ", axes_data[i]);
     }
+    printf("\n");
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
     int ndim = y->ndim;
-    int mul_xj[8];
-    mul_xj[ndim] = 1;
-    for(int i = ndim - 1; i > 0; i--){
-        mul_xj[i] = mul_xj[i + 1] * x->shape[i];
-    }
+   // int mul_xj[8];
+   // mul_xj[ndim] = 1;
+   // for(int i = ndim - 1; i > 0; i--){
+   //     mul_xj[i] = mul_xj[i + 1] * x->shape[i];
+   // }
     if (axes.ndim() == 3 && axes[0] == 1 && axes[1] == 2 && axes[2] == 0) {
       int step = x->shape[1] * x->shape[2];
       for (int i = 0; i < step; i++) {
@@ -1796,13 +1807,18 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
           } else {
             xj = ndim - 1 - j;
           }
-          in_i += col * mul_xj[xj + 1];
+          int xi = 1;
+          for(int tx = ndim-1; tx > xj; tx--){
+            xi *= x->shape[tx];
+          }
+          in_i += col * xi;
+          //in_i += col * mul_xj[xj + 1];
         }
         y_data[i] = x_data[in_i];
       }
     }
-    print_to_file(x, "/tmp/zkh/trec/cpu/transpose_x.txt");
-    print_to_file(y, "/tmp/zkh/trec/cpu/transpose.txt");
+    print_to_file(x, "transpose_x.txt");
+    print_to_file(y, "transpose.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
@@ -2084,6 +2100,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 
     // std::cerr << "axis = " << axis << " " << x->ndim << " " << y->ndim << "\n";
     if(!param.axis.has_value()){
+      printf("use take no axis........\n");
       take(x, indices, y);
     }else{
       int32_t axis = param.axis.value();
@@ -2092,8 +2109,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
       }
       take(x, indices, y, axis);
     }
-    print_to_file(x, "/tmp/zkh/trec/cpu/take_x.txt");
-    print_to_file(y, "/tmp/zkh/trec/cpu/take.txt");
+    print_to_file(x, "take_x.txt");
+    print_to_file(y, "take.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
