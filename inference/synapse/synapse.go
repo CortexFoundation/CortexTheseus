@@ -2,12 +2,12 @@ package synapse
 
 import (
 	"fmt"
-	"plugin"
-	"strconv"
-	"sync"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"plugin"
+	"strconv"
+	"sync"
 )
 
 var synapseInstance *Synapse = nil
@@ -20,30 +20,31 @@ const ReservedMemoryUsage int64 = 512 * 1024 * 1024
 
 type Config struct {
 	// StorageDir    string `toml:",omitempty"`
-	IsNotCache    bool   `toml:",omitempty"`
-	DeviceType    string `toml:",omitempty"`
-	DeviceId      int    `toml:",omitempty"`
-	IsRemoteInfer bool   `toml:",omitempty"`
-	InferURI      string `toml:",omitempty"`
-	Debug         bool   `toml:",omitempty"`
+	IsNotCache     bool   `toml:",omitempty"`
+	DeviceType     string `toml:",omitempty"`
+	DeviceId       int    `toml:",omitempty"`
+	IsRemoteInfer  bool   `toml:",omitempty"`
+	InferURI       string `toml:",omitempty"`
+	Debug          bool   `toml:",omitempty"`
 	MaxMemoryUsage int64
-	Storagefs torrentfs.CVMStorage
+	Storagefs      torrentfs.CVMStorage
 }
 
 var DefaultConfig Config = Config{
 	// StorageDir:    "",
-	IsNotCache:    false,
-	DeviceType:    "cpu",
-	DeviceId:      0,
-	IsRemoteInfer: false,
-	InferURI:      "",
-	Debug:         false,
+	IsNotCache:     false,
+	DeviceType:     "cpu",
+	DeviceId:       0,
+	IsRemoteInfer:  false,
+	InferURI:       "",
+	Debug:          false,
 	MaxMemoryUsage: 4 * 1024 * 1024 * 1024,
 }
 
 type Synapse struct {
 	config      *Config
 	simpleCache sync.Map
+	modelLock   sync.Map
 	lib         *plugin.Plugin
 	caches      map[int]*lru.Cache
 	exitCh      chan struct{}
@@ -92,7 +93,7 @@ func New(config *Config) *Synapse {
 		caches: make(map[int]*lru.Cache),
 	}
 
-	log.Info("Initialising Synapse Engine",  "Cache Disabled", config.IsNotCache)
+	log.Info("Initialising Synapse Engine", "Cache Disabled", config.IsNotCache)
 	return synapseInstance
 }
 
@@ -100,4 +101,3 @@ func (s *Synapse) Close() {
 	close(s.exitCh)
 	log.Info("Synapse Engine Closed")
 }
-
