@@ -87,10 +87,11 @@ func main() {
 	})
 
 	inferServer := synapse.New(&synapse.Config{
-		StorageDir: *storageDir,
+		// StorageDir: *storageDir,
 		IsNotCache: *IsNotCache,
 		DeviceType: *DeviceType,
 		DeviceId: *DeviceId,
+		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
 		IsRemoteInfer: false,
 		InferURI: "",
 		Storagefs:				 storagefs,
