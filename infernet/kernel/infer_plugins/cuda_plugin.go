@@ -79,7 +79,7 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 	// TODO(tian) check input endian
   flag := C.CVMAPIInfer(net, input, output)
 	if (output_bytes > 1) {
-		fmt.Println("gpu_plugin", "output_bytes = ", output_bytes)
+//		fmt.Println("gpu_plugin", "output_bytes = ", output_bytes)
 		var err error
 		res, err = kernel.SwitchEndian(res, int(output_bytes))
 		if err != nil {

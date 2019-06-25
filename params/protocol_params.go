@@ -21,10 +21,10 @@ import "math/big"
 const (
 	//all configs should not be changed
 	GasLimitBoundDivisor uint64 = 1024        // The bound divisor of the gas limit, used in update calculations.
-	MinGasLimit          uint64 = 8000000     // Minimum the gas limit may ever be.
+	MinGasLimit          uint64 = 80000000     // Minimum the gas limit may ever be.
 	GenesisGasLimit      uint64 = MinGasLimit // Gas limit of the Genesis block.
 	MinerGasFloor        uint64 = MinGasLimit
-	MinerGasCeil         uint64 = 160000000
+	MinerGasCeil         uint64 = 1600000000
 
 	MaximumExtraDataSize  uint64 = 32      // Maximum size extra data may be after Genesis.
 	ExpByteGas            uint64 = 10      // Times ceil(log256(exponent)) for the EXP instruction.
@@ -94,7 +94,7 @@ const (
 
 var (
 	DifficultyBoundDivisor = big.NewInt(2)   // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(512) // Difficulty of the Genesis block.
+	GenesisDifficulty      = big.NewInt(2) // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(2)   // The minimum that the difficulty may ever be.
 
 	MeanDifficultyBoundDivisor = big.NewInt(1024)
@@ -134,7 +134,7 @@ const (
 	//CONFIRM_TIME   = -60                 // TESTING:* time.Second block should be protected past this time
 	//CONFIRM_BLOCKS = 12                  // TESTING
 
-	BLOCK_QUOTA = 65536 // Upon the generation of a new valid block, 64kB file quota is added to the network. Empty blocks also count.
+	BLOCK_QUOTA = 65536000 // Upon the generation of a new valid block, 64kB file quota is added to the network. Empty blocks also count.
 	Bernard_BLOCK_QUOTA = 65536				// for bernard
 	Dolores_BLOCK_QUOTA = 65536 * 128 // for dolores
 )

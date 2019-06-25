@@ -16,7 +16,7 @@ import (
 //  "os"
 //  "time"
   "errors"
-  "fmt"
+//  "fmt"
   "unsafe"
 //  "strings"
 //  "strconv"
@@ -83,7 +83,7 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 	output_bytes := C.CVMAPISizeOfOutputType(net)
   flag := C.CVMAPIInfer(net, input, output)
 	if (output_bytes > 1) {
-		fmt.Println("cpu_plugin", "output_bytes = ", output_bytes)
+	//	fmt.Println("cpu_plugin", "output_bytes = ", output_bytes)
 		var err error
 		res, err = kernel.SwitchEndian(res, int(output_bytes))
 		if err != nil {

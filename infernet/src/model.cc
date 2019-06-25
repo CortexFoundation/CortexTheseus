@@ -357,7 +357,7 @@ int CVMModel::GetOutputLength() {
       ret += out_size_ap;
     }
     ret *= output_bytes_;
-    std::cerr << "ret = " << ret << "\n";
+//    std::cerr << "ret = " << ret << "\n";
     return ret;
   }
   else if (postprocess_method_ == "detection") {

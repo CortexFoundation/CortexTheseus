@@ -147,6 +147,9 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	// lazy initialization of model cache
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		s.caches[s.config.DeviceId] = lru.New(s.config.MaxMemoryUsage)
+		s.caches[s.config.DeviceId].OnEvicted = func(key lru.Key, value interface{}) {
+			value.(*kernel.Model).Free()												                
+		}
 	}
 
 	var (
@@ -155,7 +158,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		model *kernel.Model
 	)
 
-	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelInfoHash)
+	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 
 	if !has_model{
 		modelJson, modelJson_err := s.config.Storagefs.GetFile(modelHash, "/data/symbol")
