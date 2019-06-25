@@ -271,12 +271,16 @@ int test_models(int device_type = 0) {
     // "/data/std_out/resnet50_mxg/",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2"
-     "/data/std_out/random_3_0/",
-     "/data/std_out/random_3_1/",
-     "/data/std_out/random_3_2/",
-     "/data/std_out/random_3_3/",
-     "/data/std_out/random_3_4/",
-     "/data/std_out/random_3_5/",
+     "/data/std_out/random_4_0/",
+     //"/data/std_out/random_4_1/",
+     //"/data/std_out/random_4_2/",
+     //"/data/std_out/random_4_3/",
+     //"/data/std_out/random_4_4/",
+     "/data/std_out/random_4_5/",
+     "/data/std_out/random_4_6/",
+     "/data/std_out/random_4_7/",
+     "/data/std_out/random_4_8/",
+     "/data/std_out/random_4_9/"
   };
   for (auto model_root : model_roots) {
     if (run_LIF(model_root, device_type) != 0) {
@@ -286,9 +290,9 @@ int test_models(int device_type = 0) {
   return 0;
 }
 int main() {
-  //if (test_models(0) != 0)
-  //  return -1;
- if (test_models(1) != 0)
-   return -1;
+  if (test_models(0) != 0)
+    return -1;
+ //if (test_models(1) != 0)
+ //  return -1;
   return 0;
 }
