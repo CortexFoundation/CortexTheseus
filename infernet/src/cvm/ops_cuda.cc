@@ -257,7 +257,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_add")
     int32_t cdim = static_cast<int32_t>(args2->ndim);
 
     int error_code = NON_ERROR;
-    const char* errorStr = cuda_broadcast_add(a, b, c, getSize(args0),
+    const char* errorStr = cuda_broadcast_add(a, b, c, getSize(args2),
         ashape, adim,
         bshape, bdim,
         cshape, cdim, error_code);
@@ -281,7 +281,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_sub")
     int32_t cdim = static_cast<int32_t>(args2->ndim);
 
     int error_code = NON_ERROR;
-    const char* errorStr = cuda_broadcast_sub(a, b, c, getSize(args0),
+    const char* errorStr = cuda_broadcast_sub(a, b, c, getSize(args2),
         ashape, adim,
         bshape, bdim,
         cshape, cdim, error_code);
@@ -304,7 +304,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_mul")
     int32_t cdim = static_cast<int32_t>(args2->ndim);
 
     int error_code = NON_ERROR;
-    const char* errorStr = cuda_broadcast_mul(a, b, c, getSize(args0),
+    const char* errorStr = cuda_broadcast_mul(a, b, c, getSize(args2),
         ashape, adim,
         bshape, bdim,
         cshape, cdim, error_code);
@@ -754,28 +754,29 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.max")
     }
 });
 
-//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_max")
-//    .set_body([](CVMArgs args, CVMRetValue *ret){
-//        VERIFY(args.num_args == 4);
-//        DLTensor *a = args[0];
-//        DLTensor *b = args[1];
-//        DLTensor *c = args[2];
-//        int32_t *a_data = static_cast<int32_t*>(a->data);
-//        int32_t* b_data = static_cast<int32_t*>(b->data);
-//        int32_t* c_data = static_cast<int32_t*>(c->data);
-//        int64_t *ashape = static_cast<int64_t*>(a->shape);
-//        int32_t adim = static_cast<int32_t>(a->ndim);
-//        int64_t *bshape = static_cast<int64_t*>(b->shape);
-//        int32_t bdim = static_cast<int32_t>(b->ndim);
-//        int64_t *cshape = static_cast<int64_t*>(c->shape);
-//        int32_t cdim = static_cast<int32_t>(c->ndim);
-//
-//        const char* errorStr = cuda_broadcast_max(a_data, b_data, c_data, getSize(a),
-//		ashape, adim,
-//		bshape, bdim,
-//		cshape, cdim, DEBUG_OP);
-//        VERIFY(errorStr == NULL) << errorStr;
-//    });
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_max")
+    .set_body([](CVMArgs args, CVMRetValue *ret){
+        VERIFY(args.num_args == 4);
+        DLTensor *a = args[0];
+        DLTensor *b = args[1];
+        DLTensor *c = args[2];
+        int32_t *a_data = static_cast<int32_t*>(a->data);
+        int32_t* b_data = static_cast<int32_t*>(b->data);
+        int32_t* c_data = static_cast<int32_t*>(c->data);
+        int64_t *ashape = static_cast<int64_t*>(a->shape);
+        int32_t adim = static_cast<int32_t>(a->ndim);
+        int64_t *bshape = static_cast<int64_t*>(b->shape);
+        int32_t bdim = static_cast<int32_t>(b->ndim);
+        int64_t *cshape = static_cast<int64_t*>(c->shape);
+        int32_t cdim = static_cast<int32_t>(c->ndim);
+
+        int error_code = NON_ERROR;
+        const char* errorStr = cuda_broadcast_max(a_data, b_data, c_data, getSize(c),
+            ashape, adim,
+            bshape, bdim,
+            cshape, cdim, error_code);
+        deal_error(error_code, errorStr);
+    });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.concatenate")
 .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -973,7 +974,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.strided_slice")
     }
 
     int64_t *begin_data = begin_vec.data();//begin.begin();
-    int64_t *end_data = end_vec.data();//end.begin();
+    //int64_t *end_data = end_vec.data();//end.begin();
     int64_t *step_data = stride_vec.data();//stride.begin();
 
     for(int32_t i = 0; i < num_axis; i++){
