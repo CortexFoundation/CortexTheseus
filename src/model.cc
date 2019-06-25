@@ -295,6 +295,7 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
       }
     } else {
       std::cerr << "yolo post process failed\n";
+      VERIFY(false) << "yolo post process failed\n";
     }
   } else {
       for (size_t k = 0; k < outputs.size(); ++k) {
