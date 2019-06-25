@@ -49,7 +49,7 @@ public:
   DLTensor* PlanInput();
   DLTensor* PlanInput(void*);
   std::vector<DLTensor*> PlanOutput();
-  void SaveTensor(std::vector<DLTensor*> outputs, char *data);
+  int SaveTensor(std::vector<DLTensor*> outputs, char *data);
 
   std::string GetVersion();
   std::string GetPostprocessMethod();
