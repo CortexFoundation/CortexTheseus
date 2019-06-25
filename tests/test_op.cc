@@ -413,7 +413,7 @@ void read_one_line(string filename, string& str){
 }
 template<typename T>
 void print(vector<T> &data){
-  for(int i = 0; i < data.size(); i++){
+  for(int i = 0; i < data.size() && i < 100; i++){
     printf("%d ", data[i]);
   }
   printf("\n");
@@ -599,14 +599,14 @@ void test_op(string op_name) {
         sizeof(int32_t) * tdata[params.num_inputs].size());
     printf("match %d | %d\n", ret == 0, ret);
     if(ret != 0){
-//      for(int i = 0; i < num_inputs; i++){
-//        printf("input%d:\n", i);
-//        print(tdata[i]);
-//      }
-//      printf("correct out:");
-//      print(tdata[num_inputs]);
-//      printf("     my out:");
-//      print(cpu_output_tensor);
+      for(int i = 0; i < num_inputs; i++){
+        printf("input%d:\n", i);
+        print(tdata[i]);
+      }
+      printf("correct out:");
+      print(tdata[num_inputs]);
+      printf("     my out:");
+      print(cpu_output_tensor);
     }
     assert(ret == 0);
     printf("\n");
@@ -616,7 +616,7 @@ int main() {
 //  test_op("max_pool2d");
 //   test_op("upsampling");
 //  test_op("dense");
-  test_op("conv2d");
+//  test_op("conv2d");
 //  test_op("sum");
 //  test_op("max"); // pass
 //  test_op("slice_like");
@@ -628,7 +628,9 @@ int main() {
 //  test_op("concatenate");//pass
 //  test_op("transpose");// pass
 //  test_op("take");
-  // test_op("elemwise_add", 2, 1);
+//   test_op("elemwise_add");
 //  test_op("non_max_suppression");
+    test_op("broadcast_sub");
+    test_op("broadcast_add");
     return 0;
 }
