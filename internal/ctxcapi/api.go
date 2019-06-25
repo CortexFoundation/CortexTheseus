@@ -486,7 +486,7 @@ type PublicBlockChainAPI struct {
 
 // NewPublicBlockChainAPI creates a new Cortex blockchain API.
 func NewPublicBlockChainAPI(b Backend, vmConfig vm.Config) *PublicBlockChainAPI {
-	return &PublicBlockChainAPI{b, vm.ConfigAux{InferURI: vmConfig.InferURI}}
+	return &PublicBlockChainAPI{b, vm.ConfigAux{}}
 }
 
 // BlockNumber returns the block number of the chain head.
@@ -754,13 +754,13 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 // Call executes the given transaction on the state for the given block number.
 // It doesn't make and changes in the state/blockchain and is useful to execute and retrieve values.
 func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
-	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI}, 5*time.Second)
+	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{}, 5*time.Second)
 	return (hexutil.Bytes)(result), err
 }
 
 // same as Call, except for RPC_GetInternalTransaction flag with overwritten returns.
 func (s *PublicBlockChainAPI) GetInternalTransaction(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (string, error) {
-	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{InferURI: s.vmConfig.InferURI, RPC_GetInternalTransaction: true}, 5*time.Second)
+	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{RPC_GetInternalTransaction: true}, 5*time.Second)
 	return (string)(result), err
 }
 
@@ -789,7 +789,7 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (h
 	executable := func(gas uint64) bool {
 		args.Gas = hexutil.Uint64(gas)
 
-		_, _, failed, err := s.doCall(ctx, args, rpc.PendingBlockNumber, vm.Config{InferURI: s.vmConfig.InferURI}, 0)
+		_, _, failed, err := s.doCall(ctx, args, rpc.PendingBlockNumber, vm.Config{}, 0)
 		if err != nil || failed {
 			return false
 		}

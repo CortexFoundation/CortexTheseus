@@ -58,6 +58,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"net/url"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -580,11 +581,11 @@ var (
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: ctxc.DefaultConfig.GPO.Percentile,
 	}
-	ModelCallInterfaceFlag = cli.StringFlag{
-		Name:  "cvm.inferuri",
-		Usage: "URI for delegated inference (experimental)",
-		Value: "",
-	}
+	// ModelCallInterfaceFlag = cli.StringFlag{
+	// 	Name:  "cvm.inferuri",
+	// 	Usage: "URI for delegated inference (experimental)",
+	// 	Value: "",
+	// }
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
@@ -1115,11 +1116,19 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	//cfg.Cuckoo.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
-	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
+	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
 	if cfg.InferDeviceType == "gpu" {
 		cfg.InferDeviceType = "cuda"
+	} else {
+		u, err := url.Parse(cfg.InferDeviceType)
+		if err == nil && u.Scheme == "remote" {
+			cfg.InferURI = "http://" + u.Hostname() + ":" + u.Port();
+			log.Info("Cortex", "inferUri", cfg.InferURI)
+		} else {
+			log.Warn("Cortex", "fallback device", cfg.InferDeviceType)
+		}
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
 	cfg.InferMemoryUsage = int64(ctx.GlobalInt(InferMemoryFlag.Name))
@@ -1327,7 +1336,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	vmcfg := vm.Config{
 		// EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
-		InferURI: ctx.GlobalString(ModelCallInterfaceFlag.Name),
+		// InferURI: ctx.GlobalString(ModelCallInterfaceFlag.Name),
 	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
 	if err != nil {

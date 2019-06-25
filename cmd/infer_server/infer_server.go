@@ -86,10 +86,16 @@ func main() {
 		DataDir:  *storageDir,
 	})
 
+	DeviceName := "cpu"
+
+	if *DeviceType == "gpu" {
+		DeviceName = "cuda"
+	}
+
 	inferServer := synapse.New(&synapse.Config{
 		// StorageDir: *storageDir,
 		IsNotCache: *IsNotCache,
-		DeviceType: *DeviceType,
+		DeviceType:  DeviceName,
 		DeviceId: *DeviceId,
 		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
 		IsRemoteInfer: false,

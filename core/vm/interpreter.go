@@ -52,7 +52,7 @@ type Config struct {
 	// table.
 	JumpTable [256]operation
 	// uri for remote infer service
-	InferURI string
+	// InferURI string
 	// rpc getInternalTransaction flag
 	RPC_GetInternalTransaction bool
 
