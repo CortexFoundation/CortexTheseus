@@ -117,6 +117,26 @@ void CvmRuntime::SetInput(int index, DLTensor* data_in) {
   VERIFY_LT(static_cast<size_t>(index), input_nodes_.size());
   uint32_t eid = this->entry_id(input_nodes_[index], 0);
   data_entry_[eid].CopyFrom(data_in);
+
+  // Check input data's precision
+  int ndim = data_in->ndim;
+  std::vector<int64_t> shape(ndim);
+  uint64_t size = 1;
+  for (int i = 0; i < ndim; ++i) {
+    shape[i] = data_in->shape[i];
+    size *= static_cast<uint64_t>(shape[i]);
+  }
+  int32_t *data = static_cast<int32_t*>(data_in->data);
+  auto& prec = this->attrs_.precision[eid];
+  VERIFY_NE(prec, -1)
+    << "input data do not set precision";
+  int64_t range = (1 << (prec - 1)) - 1;
+  for (uint64_t i = 0; i < size; ++i) {
+    VERIFY((-range <= data[i]) && (data[i] <= range))
+      << "input data index=" << i
+      << " number=" << data[i]
+      << " do not satisfied precision " << prec;
+  }
 }
 /*!
  * \brief Get the number of outputs
