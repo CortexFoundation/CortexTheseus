@@ -114,6 +114,17 @@ int run_LIF(string model_root, int device_type = 0) {
     }
     std::cerr << "\n";
   }
+  if (model_root.find("3145ad19228c1cd2d051314e72f26c1ce77b7f02") != string::npos) {
+    string data_file = "./data.npy";
+    std::vector<unsigned long> tshape;
+    std::cout << data_file << std::endl;
+    npy::LoadArrayFromNumpy(data_file, tshape, input);
+    std::cerr << "data shape: " << tshape.size() << "\n(";
+    for (auto x : tshape) {
+      std::cerr << x << ", ";
+    }
+    std::cerr << ")\n";
+  }
   double start = omp_get_wtime();
   int n_run = 1;
   for (int i = 0; i < n_run; i++) {
@@ -212,21 +223,21 @@ int run_LIF(string model_root, int device_type = 0) {
       }
       std::cout << "\n";
     }
-    string data_file = model_root + "/result_0.npy";
-    vector<unsigned long> tshape;
-    vector<int32_t> tout;
-    npy::LoadArrayFromNumpy(data_file, tshape, tout);
-    cout << tout.size() << " " << output.size() << endl;
-    for(int i = 0; i < tout.size() && i < 60; i++){
-      cout << tout[i] << " ";
-    }
-    cout << endl;
-    for(int i = 0; i < tout.size(); i++){
-        if((int32_t)output[i] != tout[i]){
-           cout << "failed!!!!! : " << i << " " << (int32_t)output[i] << " " << (int32_t)tout[i] << endl;
-        }
-        assert((int32_t)output[i] == tout[i]);
-    }
+    // string data_file = model_root + "/result_0.npy";
+    // vector<unsigned long> tshape;
+    // vector<int32_t> tout;
+    // npy::LoadArrayFromNumpy(data_file, tshape, tout);
+    // cout << tout.size() << " " << output.size() << endl;
+    // for(int i = 0; i < tout.size() && i < 60; i++){
+    //   cout << tout[i] << " ";
+    // }
+    // cout << endl;
+    // for(int i = 0; i < tout.size(); i++){
+    //     if((int32_t)output[i] != tout[i]){
+    //        cout << "failed!!!!! : " << i << " " << (int32_t)output[i] << " " << (int32_t)tout[i] << endl;
+    //     }
+    //     assert((int32_t)output[i] == tout[i]);
+    // }
   }
   return 0;
 }
@@ -256,6 +267,7 @@ int test_models(int device_type = 0) {
      // "/data/std_out/resnet50_v2",
      // "/data/std_out/qd10_resnet20_v2",
      // "/data/std_out/trec",
+     "/home/serving/ctxc_data/cpu/3145ad19228c1cd2d051314e72f26c1ce77b7f02/data",
     // "/data/new_cvm/yolo3_darknet53_voc/data",
     // "/data/lz_model_storage/dcnet_mnist_v1/data",
     // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
@@ -271,22 +283,22 @@ int test_models(int device_type = 0) {
     // "/data/std_out/resnet50_mxg/",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2"
-     "/data/std_out/random_3_0/",
-     "/data/std_out/random_3_1/",
-     "/data/std_out/random_3_2/",
-     "/data/std_out/random_3_3/",
-     "/data/std_out/random_3_4/",
-     "/data/std_out/random_3_5/",
-     "/data/std_out/random_4_0/",
+     // "/data/std_out/random_3_0/",
+     // "/data/std_out/random_3_1/",
+     // "/data/std_out/random_3_2/",
+     // "/data/std_out/random_3_3/",
+     // "/data/std_out/random_3_4/",
+     // "/data/std_out/random_3_5/",
+     // "/data/std_out/random_4_0/",
      //"/data/std_out/random_4_1/",
      //"/data/std_out/random_4_2/",
      //"/data/std_out/random_4_3/",
      //"/data/std_out/random_4_4/",
-     "/data/std_out/random_4_5/",
-     "/data/std_out/random_4_6/",
-     "/data/std_out/random_4_7/",
-     "/data/std_out/random_4_8/",
-     "/data/std_out/random_4_9/"
+     // "/data/std_out/random_4_5/",
+     // "/data/std_out/random_4_6/",
+     // "/data/std_out/random_4_7/",
+     // "/data/std_out/random_4_8/",
+     // "/data/std_out/random_4_9/"
   };
   for (auto model_root : model_roots) {
     if (run_LIF(model_root, device_type) != 0) {
@@ -296,8 +308,8 @@ int test_models(int device_type = 0) {
   return 0;
 }
 int main() {
-  //if (test_models(0) != 0)
-  //  return -1;
+  // if (test_models(0) != 0)
+   // return -1;
  if (test_models(1) != 0)
    return -1;
   return 0;
