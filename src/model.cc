@@ -558,6 +558,7 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
             CVMArrayFree(outputs[i]);
         }
       }
+      return ret;
     }
   } catch (std::exception &e) {
     return -1;

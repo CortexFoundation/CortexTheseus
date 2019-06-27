@@ -130,12 +130,10 @@ void CvmRuntime::SetInput(int index, DLTensor* data_in) {
   auto& prec = this->attrs_.precision[eid];
   VERIFY_NE(prec, -1)
     << "input data do not set precision";
-  int64_t range = (1 << (prec - 1)) - 1;
+  int32_t range = (1 << (prec - 1)) - 1;
   for (uint64_t i = 0; i < size; ++i) {
-    VERIFY((-range <= data[i]) && (data[i] <= range))
-      << "input data index=" << i
-      << " number=" << data[i]
-      << " do not satisfied precision " << prec;
+    data[i] = std::max(-range, data[i]);
+    data[i] = std::min(range, data[i]);
   }
 }
 /*!
