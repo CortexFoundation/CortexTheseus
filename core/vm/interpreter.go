@@ -57,10 +57,10 @@ type Config struct {
 	RPC_GetInternalTransaction bool
 
 	// opCall flag
-	CallFakeVM bool
+	CallFakeVM   bool
 	DebugInferVM bool
-	StorageDir string
-	Storagefs torrentfs.CVMStorage
+	StorageDir   string
+	Storagefs    torrentfs.CVMStorage
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -198,7 +198,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
-
 	if IsModelMeta(contract.Code) {
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
@@ -215,11 +214,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			log.Debug("Model meta",
-							 "meta", modelMeta,
-							 "modelMeta.RawSize",  modelMeta.RawSize,
-							 "Upload",  in.cvm.StateDB.Upload(contract.Address()),
-							 "params.MODEL_MIN_UPLOAD_BYTES", params.MODEL_MIN_UPLOAD_BYTES)
-			if modelMeta.BlockNum.Sign()  == 0 {
+				"meta", modelMeta,
+				"modelMeta.RawSize", modelMeta.RawSize,
+				"Upload", in.cvm.StateDB.Upload(contract.Address()),
+				"params.MODEL_MIN_UPLOAD_BYTES", params.MODEL_MIN_UPLOAD_BYTES)
+			if modelMeta.BlockNum.Sign() == 0 {
 				if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
 
 					//must in rawbytes if it is too small
@@ -249,7 +248,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				if modelMeta.Gas == uint64(0) {
 					//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 					modelMeta.SetGas(0)
-				} else if modelMeta.Gas > params.MODEL_GAS_LIMIT {
+				} else if modelMeta.Gas > params.MODEL_GAS_UP_LIMIT {
+					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
+				} else if modelMeta.Gas < params.MODEL_GAS_LIMIT {
 					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 				} else if int64(modelMeta.Gas) < 0 {
 					modelMeta.SetGas(0)
@@ -387,12 +388,12 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
 		cgas += cost
 
-		if (in.cvm.vmConfig.DebugInferVM) {
-			fmt.Println("gasCost: ",  cost, "err: ", err, " op: ", op, "cgas: ", cgas)
+		if in.cvm.vmConfig.DebugInferVM {
+			fmt.Println("gasCost: ", cost, "err: ", err, " op: ", op, "cgas: ", cgas)
 		}
 
 		// gasCost will check model's metainfo before checking available gas
-		if (err == ErrMetaInfoNotMature) {
+		if err == ErrMetaInfoNotMature {
 			return nil, err
 		}
 

@@ -130,6 +130,7 @@ const (
 	MODEL_MIN_UPLOAD_BYTES        = 0                  // Minimum size of a model
 	MODEL_MAX_UPLOAD_BYTES uint64 = 1024 * 1024 * 1024 // Maximum size of a model
 	MODEL_GAS_LIMIT        uint64 = 20000              // Max gas limit for a model inference's reward to the author
+	MODEL_GAS_UP_LIMIT uint64 = 400000
 
 	//CONFIRM_TIME   = -60                 // TESTING:* time.Second block should be protected past this time
 	//CONFIRM_BLOCKS = 12                  // TESTING
