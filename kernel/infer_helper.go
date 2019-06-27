@@ -105,7 +105,7 @@ func GetModelOps(lib *plugin.Plugin, file []byte) (uint64, error) {
 		return 0, err
 	}
 	ret, err := m.(func([]byte) (uint64, error))(file)
-	if ret < 0 {
+	if err != nil {
 		return 0, errors.New("Gas Error")
 	} else {
 		return uint64(ret), nil
