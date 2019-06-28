@@ -716,7 +716,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
           const int M = out_channels;
           const int K = in_channels * filter_h * filter_w;
           const int N = o_h * o_w;
-          if(has_negetive) {
+          //TODO(tian)
+          if(true || has_negetive) {
               matrix_mul(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
                   M, K, N);
           }else{
