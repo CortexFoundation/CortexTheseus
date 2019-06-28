@@ -26,7 +26,14 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-cortex: clib
+all: cortex
+
+cortex_cpu: clib_cpu 
+	build/env.sh go run build/ci.go install ./cmd/cortex
+	echo "build cortex_cpu ..."
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+cortex: clib 
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
@@ -41,11 +48,15 @@ torrent:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 
-cortex-remote: clib
-	build/env.sh go run build/ci.go install -remote_infer ./cmd/cortex
+seeding:
+	build/env.sh go run build/ci.go install ./cmd/seeding
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-	mv ./build/bin/cortex ./build/bin/cortex-remote
+	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
+
+torrent-test:
+	build/env.sh go run build/ci.go install ./cmd/torrent-test
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
 
 cortex-nominer: clib
 	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
@@ -62,39 +73,30 @@ cuckoo-miner: clib
 	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner
 	@echo "Done building."
 
-all: cortex-remote cortex nodekey cuckoo-cuda-miner
-	# build/env.sh go run build/ci.go install
-
 nodekey:
 	build/env.sh go run build/ci.go install ./cmd/nodekey
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
-PoolMiner/miner/libcuckoo/%.a: PoolMiner
-	build/env.sh make -C PoolMiner
-	
-plugins/cuda_helper_for_node.so: PoolMiner/miner/libcuckoo/libcudaminer.a
+plugins/cuda_helper_for_node.so: 
+	make -C PoolMiner cuda-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
 
-plugins/cpu_helper_for_node.so: PoolMiner/miner/libcuckoo/libcpuminer.a
+plugins/cpu_helper_for_node.so:
+	make -C PoolMiner cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
-#plugins/opencl_helper_for_node.so:  PoolMiner/miner/libcuckoo/libopenclminer.a
-#	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/opencl_helper_for_node.go
-
 plugins/cuda_cvm.so: infernet/kernel/infer_plugins/cuda_plugin.go
-	cmake -S infernet/ -B infernet/build/gpu -DUSE_CUDA=ON
-	make -C ${INFER_NET_DIR} -j8
+	make -C ${INFER_NET_DIR} -j8 gpu
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cuda_plugin.go
 
 plugins/cpu_cvm.so: infernet/kernel/infer_plugins/cpu_plugin.go
-	cmake -S infernet/ -B infernet/build/cpu -DUSE_CUDA=OFF
-	make -C ${INFER_NET_DIR} -j8
+	make -C ${INFER_NET_DIR} -j8 cpu
 	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
 
+clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
+
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
-	make -C ${LIB_CUCKOO_DIR}
-	#make -C ${INFER_NET_DIR}
 
 inferServer: clib
 	build/env.sh go run build/ci.go install ./cmd/infer_server

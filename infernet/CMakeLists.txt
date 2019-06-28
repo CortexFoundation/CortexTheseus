@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(cvm C CXX CUDA)
+project(cvm C CXX)
 
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 # Utility functions
@@ -85,6 +85,7 @@ message(STATUS "Build with CVM runtime support...")
 file(GLOB RUNTIME_CVM_SRCS src/cvm/*.cc)
 if(${USE_CUDA} STREQUAL "ON")
     message("use cuda")
+    project(cvm CUDA)
     set (EXECUTE_NAME cvm_runtime_cuda)
     add_definitions(-DCVM_RUNTIME_CUDA)
     file(GLOB RUNTIME_CVM_CUDA_SRCS src/cuda/*.cc)

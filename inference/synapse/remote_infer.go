@@ -1,10 +1,10 @@
 package synapse
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"encoding/binary"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -12,7 +12,7 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-func (s *Synapse) RemoteGasByModelHash(modelInfoHash, uri string) (uint64, error) {
+func (s *Synapse) remoteGasByModelHash(modelInfoHash, uri string) (uint64, error) {
 	inferWork := &inference.GasWork{
 		Type:  inference.GAS_BY_H,
 		Model: modelInfoHash,
@@ -31,7 +31,7 @@ func (s *Synapse) RemoteGasByModelHash(modelInfoHash, uri string) (uint64, error
 	return binary.BigEndian.Uint64(retArray), nil
 }
 
-func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) ([]byte, error) {
+func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string) ([]byte, error) {
 	inferWork := &inference.IHWork{
 		Type:  inference.INFER_BY_IH,
 		Model: modelInfoHash,
@@ -47,7 +47,7 @@ func (s *Synapse) RemoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string
 	return s.sendRequest(string(requestBody), uri)
 }
 
-func (s *Synapse) RemoteInferByInputContent(modelInfoHash, uri string, inputContent []byte) ([]byte, error) {
+func (s *Synapse) remoteInferByInputContent(modelInfoHash, uri string, inputContent []byte) ([]byte, error) {
 	inferWork := &inference.ICWork{
 		Type:  inference.INFER_BY_IC,
 		Model: modelInfoHash,

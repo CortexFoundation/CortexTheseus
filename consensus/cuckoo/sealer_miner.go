@@ -8,9 +8,9 @@ import (
 	"math/big"
 )
 
-func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error){
+func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error) {
 	err = cuckoo.InitOnce()
-	if err != nil{
+	if err != nil {
 		log.Error("cuckoo", "init error", "error:", err)
 		return err
 	}
@@ -20,7 +20,7 @@ func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan s
 		hash   = cuckoo.SealHash(header).Bytes()
 		target = new(big.Int).Div(maxUint256, header.Difficulty)
 
-		result     types.BlockSolution
+		result types.BlockSolution
 	)
 	var (
 		attempts = int32(0)
@@ -52,7 +52,7 @@ search:
 			if err != nil {
 				return err
 			}
-			r, res := m.(func([]byte, uint64)(uint32, [][]uint32))(hash, nonce)
+			r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
 			if r == 0 {
 				nonce++
 				continue
@@ -63,7 +63,7 @@ search:
 			if err != nil {
 				return err
 			}
-			ret := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int)(bool))(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
+			ret := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
 			if ret {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)

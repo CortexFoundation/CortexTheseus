@@ -25,11 +25,6 @@
 #define CVM_WEAK __attribute__((weak))
 #endif
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-#define CVM_DLL EMSCRIPTEN_KEEPALIVE
-#endif
-
 #ifndef CVM_DLL
 #ifdef _WIN32
 #ifdef CVM_EXPORTS
@@ -58,13 +53,6 @@ extern "C" {
 /*! \brief type of array index. */
 typedef int64_t cvm_index_t;
 
-/*! \brief Extension device types in CVM */
-typedef enum {
-  kDLAOCL = 5,
-  kDLSDAccel = 6,
-  kOpenGL = 11,
-  // AddExtraCVMType which is not in DLPack here
-} CVMDeviceExtType;
 
 /*!
  * \brief The type code in CVMType

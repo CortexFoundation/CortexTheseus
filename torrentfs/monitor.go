@@ -15,8 +15,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
-  "github.com/anacrolix/torrent/metainfo"
 )
 
 //------------------------------------------------------------------------------
@@ -265,7 +265,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				}
 
 				log.Debug("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number)
-				
+
 				var remainingSize hexutil.Uint64
 				if err := m.cl.Call(&remainingSize, "ctxc_getUpload", addr.String(), "latest"); err != nil {
 					log.Warn("Failed call get upload", "addr", addr.String(), "tx", tx.Hash.Hex(), "number", b.Number)
@@ -363,8 +363,7 @@ func (m *Monitor) startWork() error {
 		log.Error("Starting torrent fs ... ...", "error", err)
 		return err
 	}
-	TorrentAPIAvailable.Unlock()
-	
+
 	log.Info("Torrent fs validation passed")
 	m.wg.Add(1)
 	go m.listenLatestBlock()
@@ -373,7 +372,7 @@ func (m *Monitor) startWork() error {
 }
 
 func (m *Monitor) validateStorage() error {
-	m.lastNumber = m.fs.LastListenBlockNumber	
+	m.lastNumber = m.fs.LastListenBlockNumber
 	end := uint64(0)
 
 	log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
@@ -416,9 +415,9 @@ func (m *Monitor) validateStorage() error {
 	if m.dirty {
 		log.Warn("Torrent fs status", "dirty", m.dirty)
 	}
-	
+
 	for i := uint64(0); i < m.fs.LastFileIndex; i++ {
-	  file := m.fs.GetFileByNumber(i)
+		file := m.fs.GetFileByNumber(i)
 
 		var bytesRequested uint64
 		if file.Meta.RawSize > file.LeftSize {
@@ -432,6 +431,12 @@ func (m *Monitor) validateStorage() error {
 		})
 
 		m.fs.AddCachedFile(file)
+	}
+
+	if m.lastNumber > 256 {
+		m.lastNumber = m.lastNumber - 256
+	} else {
+		m.lastNumber = 0
 	}
 
 	return nil
@@ -483,7 +488,7 @@ func (m *Monitor) syncLastBlock() {
 	//}
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
-	if uint64(currentNumber) > params.SeedingBlks/2 {
+	if uint64(currentNumber) > 3 {
 		//maxNumber = uint64(currentNumber) - 2
 		maxNumber = uint64(currentNumber)
 	}

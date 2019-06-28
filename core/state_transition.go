@@ -29,8 +29,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"github.com/CortexFoundation/CortexTheseus/core/asm"
 	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
-	"time"
+	//"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	//"time"
 )
 
 var (
@@ -182,7 +182,7 @@ func (st *StateTransition) buyGas() error {
 	return nil
 }
 
-var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
+//var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
@@ -195,6 +195,7 @@ func (st *StateTransition) preCheck() error {
 	}
 
 	if st.uploading() {
+		// log.Debug("state_transition", "uploading", st.uploading(), "st.state.GetNum(st.to())", st.state.GetNum(st.to()))
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
 			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
 			return ErrUnhandleTx
@@ -206,31 +207,34 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		// log.Debug("state_transition",
+		// 				  "new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)", new(big.Int).SetUint64(params.PER_UPLOAD_BYTES),
+		// 					"st.state.Upload(st.to())", st.state.Upload(st.to()), "cost", cost, "st.qp", st.qp)
 		if st.qp.Cmp(cost) < 0 {
 			log.Warn("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
 
-		meta, err := st.cvm.GetMetaHash(st.to())
-		if err != nil {
-			log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
-			return ErrUnhandleTx
-		}
+		//meta, err := st.cvm.GetMetaHash(st.to())
+		//if err != nil {
+		//	log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
+		//	return ErrUnhandleTx
+		//}
 
-		errCh := make(chan error)
-		go st.TorrentSync(meta, st.cvm.Config().StorageDir, errCh)
-		select {
-		case err := <-errCh:
-			if err != nil {
-				return err
-			}
-		}
+		//errCh := make(chan error)
+		//go st.TorrentSync(meta, st.cvm.Config().StorageDir, errCh)
+		//select {
+		//case err := <-errCh:
+		//	if err != nil {
+		//		return err
+		//	}
+		//}
 	}
 
 	return st.buyGas()
 }
 
-const interv = 5
+/*const interv = 5
 
 func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
 	street := big.NewInt(0).Sub(st.cvm.PeekNumber, st.cvm.BlockNumber)
@@ -271,7 +275,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		errCh <- nil
 		return
 	}
-}
+}*/
 
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
@@ -349,7 +353,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	gu := st.gasUsed()
 	if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
 		for addr, mgas := range st.modelGas {
-			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_LIMIT {
+			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_UP_LIMIT {
 				continue
 			}
 

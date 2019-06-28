@@ -10,12 +10,6 @@
 #include <cvm/runtime/module.h>
 #include <cvm/runtime/registry.h>
 #include <cvm/runtime/device_api.h>
-#ifdef _LIBCPP_SGX_CONFIG
-#include "sgx/trusted/runtime.h"
-#endif
-#ifndef _LIBCPP_SGX_NO_IOSTREAMS
-#include <sstream>
-#endif
 #include <array>
 #include <algorithm>
 #include <string>

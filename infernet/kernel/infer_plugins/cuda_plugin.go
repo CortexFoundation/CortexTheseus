@@ -14,21 +14,19 @@ package main
 import "C"
 import (
 	"errors"
-	"unsafe"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	kernel "github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"unsafe"
 )
 
-
-func LoadModel(modelCfg, modelBin string, deviceId int) (unsafe.Pointer, error) {
+func LoadModel(modelCfg, modelBin []byte, deviceId int) (unsafe.Pointer, error) {
 	fmt.Println("LoadModel\tisGPU:", 1, "DeviceId: ", deviceId)
-	net := C.CVMAPILoadModel(
-		C.CString(modelCfg),
-		C.CString(modelBin),
-		1,
-		C.int(deviceId),
-	)
+	jptr := (*C.char)(unsafe.Pointer(&(modelCfg[0])))
+	pptr := (*C.char)(unsafe.Pointer(&(modelBin[0])))
+	j_len := C.int(len(modelCfg))
+	p_len := C.int(len(modelBin))
+	net := C.CVMAPILoadModel(jptr, j_len, pptr, p_len, 1, C.int(deviceId))
 
 	if net == nil {
 		return nil, errors.New("Model load error")
@@ -45,8 +43,8 @@ func GetModelOpsFromModel(net unsafe.Pointer) (int64, error) {
 	}
 }
 
-func GetModelOps(filepath string) (uint64, error) {
-	ret := int64(C.CVMAPIGetGasFromGraphFile(C.CString(filepath)))
+func GetModelOps(file []byte) (uint64, error) {
+	ret := int64(C.CVMAPIGetGasFromGraphFile((*C.char)(unsafe.Pointer(&(file[0])))))
 	if ret < 0 {
 		return 0, errors.New("Gas Error")
 	} else {
@@ -78,9 +76,9 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 	output := (*C.char)(unsafe.Pointer(&res[0]))
 	output_bytes := C.CVMAPISizeOfOutputType(net)
 	// TODO(tian) check input endian
-  flag := C.CVMAPIInfer(net, input, output)
-	if (output_bytes > 1) {
-		fmt.Println("gpu_plugin", "output_bytes = ", output_bytes)
+	flag := C.CVMAPIInfer(net, input, output)
+	if output_bytes > 1 {
+		//		fmt.Println("gpu_plugin", "output_bytes = ", output_bytes)
 		var err error
 		res, err = kernel.SwitchEndian(res, int(output_bytes))
 		if err != nil {

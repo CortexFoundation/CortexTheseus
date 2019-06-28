@@ -34,8 +34,8 @@ import (
 func TestPrintGenesisBlockHash(t *testing.T) {
 	block := DefaultGenesisBlock().ToBlock(nil)
 	t.Log(fmt.Sprintf("DefaultGenesisBlock.Hash() = %x", block.Hash()))
-	block = DefaultCerebroGenesisBlock().ToBlock(nil)
-	t.Log(fmt.Sprintf("DefaultCerebroGenesisBlock.Hash() = %x", block.Hash()))
+	block = DefaultBernardGenesisBlock().ToBlock(nil)
+	t.Log(fmt.Sprintf("DefaultBernardGenesisBlock.Hash() = %x", block.Hash()))
 }
 
 func TestDefaultGenesisBlock(t *testing.T) {
@@ -43,9 +43,9 @@ func TestDefaultGenesisBlock(t *testing.T) {
 	if block.Hash() != params.MainnetGenesisHash {
 		t.Errorf("wrong mainnet genesis hash, got %v, want %v", block.Hash(), params.MainnetGenesisHash)
 	}
-	block = DefaultCerebroGenesisBlock().ToBlock(nil)
-	if block.Hash() != params.CerebroGenesisHash {
-		t.Errorf("wrong testnet genesis hash, got %v, want %v", block.Hash(), params.CerebroGenesisHash)
+	block = DefaultBernardGenesisBlock().ToBlock(nil)
+	if block.Hash() != params.BernardGenesisHash {
+		t.Errorf("wrong testnet genesis hash, got %v, want %v", block.Hash(), params.BernardGenesisHash)
 	}
 }
 
@@ -106,11 +106,11 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == testnet",
 			fn: func(db ctxcdb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return SetupGenesisBlock(db, DefaultCerebroGenesisBlock())
+				return SetupGenesisBlock(db, DefaultBernardGenesisBlock())
 			},
-			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.CerebroGenesisHash},
-			wantHash:   params.CerebroGenesisHash,
-			wantConfig: params.CerebroChainConfig,
+			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.BernardGenesisHash},
+			wantHash:   params.BernardGenesisHash,
+			wantConfig: params.BernardChainConfig,
 		},
 		{
 			name: "compatible config in DB",

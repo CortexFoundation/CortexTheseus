@@ -10,9 +10,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"plugin"
 )
 
@@ -37,10 +37,10 @@ const (
 
 // mineResult wraps the pow solution parameters for the specified block.
 type mineResult struct {
-	nonce     types.BlockNonce
+	nonce types.BlockNonce
 	//mixDigest common.Hash
-	hash      common.Hash
-	solution  types.BlockSolution
+	hash     common.Hash
+	solution types.BlockSolution
 
 	errc chan error
 }
@@ -72,11 +72,11 @@ type Config struct {
 
 	PowMode Mode
 
-	UseCuda bool
-	UseOpenCL bool
+	UseCuda      bool
+	UseOpenCL    bool
 	StrDeviceIds string
-	Threads int
-	Algorithm string
+	Threads      int
+	Algorithm    string
 }
 
 type Cuckoo struct {
@@ -101,11 +101,11 @@ type Cuckoo struct {
 	fakeFail  uint64        // Block number which fails PoW check even in fake mode
 	fakeDelay time.Duration // Time delay to sleep for before returning from verify
 
-	lock      sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
-	once      sync.Once       // Ensures cuckoo-cycle algorithm initialize once
-	closeOnce sync.Once       // Ensures exit channel will not be closed twice.
-	exitCh    chan chan error // Notification channel to exiting backend threads
-	cMutex    sync.Mutex
+	lock        sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
+	once        sync.Once       // Ensures cuckoo-cycle algorithm initialize once
+	closeOnce   sync.Once       // Ensures exit channel will not be closed twice.
+	exitCh      chan chan error // Notification channel to exiting backend threads
+	cMutex      sync.Mutex
 	minerPlugin *plugin.Plugin
 }
 
@@ -139,7 +139,7 @@ func NewTester() *Cuckoo {
 func DeleteTester() {
 	// C.CuckooRelease()
 
-//	CuckooFinalize()
+	//	CuckooFinalize()
 }
 
 // NewShared() func in tests/block_tests_util.go
@@ -148,41 +148,45 @@ func NewShared() *Cuckoo {
 }
 
 const PLUGIN_PATH string = "plugins/"
-const	PLUGIN_POST_FIX string = "_helper_for_node.so"
+const PLUGIN_POST_FIX string = "_helper_for_node.so"
+
+func (cuckoo *Cuckoo) InitPlugin() error {
+	var minerName string = "cpu"
+	if cuckoo.config.UseCuda == true {
+		minerName = "cuda"
+		cuckoo.threads = 1
+	} else if cuckoo.config.UseOpenCL == true {
+		minerName = "opencl"
+		cuckoo.threads = 1
+	}
+	if cuckoo.config.StrDeviceIds == "" {
+		cuckoo.config.StrDeviceIds = "0" //default gpu device 0
+	}
+	var errc error
+	so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
+	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
+		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
+	cuckoo.minerPlugin, errc = plugin.Open(so_path)
+	return errc
+}
 
 func (cuckoo *Cuckoo) InitOnce() error {
 	var err error
 	cuckoo.once.Do(func() {
-		log.Debug("InitOnce", "start", "")	
-		var minerName string = "cpu"
-		if cuckoo.config.UseCuda == true {
-			minerName = "cuda"
-			cuckoo.threads = 1
-		}else if cuckoo.config.UseOpenCL == true{
-			minerName = "opencl"
-			cuckoo.threads = 1
-		}
-		var errc error
-		so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
-		log.Debug("InitOnce", "so path", so_path)	
-		cuckoo.minerPlugin, errc = plugin.Open(so_path)
+		errc := cuckoo.InitPlugin()
 		if errc != nil {
-			log.Error("InitOnce", "Error", errc)	
+			log.Error("Cuckoo Init Plugin", "error", errc)
 			err = errc
 			return
-		}else{
-			log.Debug("InitOnce", "Lookup", so_path + "CuckooInitialize")	
+		} else {
 			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
 			if err != nil {
-				log.Error("InitOnce", "Error", errc)	
+				log.Error("Cuckoo Init Plugin", "error", errc)
 				err = errc
 				return
 			}
-			if cuckoo.config.StrDeviceIds == "" {
-				log.Debug("InitOnce", "Setting Device", cuckoo.config.StrDeviceIds)	
-				cuckoo.config.StrDeviceIds = "0"  //default gpu device 0
-			}
-			errc = m.(func(int, string, string)(error))(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, "cuckaroo")
+			// miner algorithm use cuckaroo by default.
+			errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, "cuckaroo")
 			err = errc
 		}
 	})
@@ -202,11 +206,11 @@ func (cuckoo *Cuckoo) Close() error {
 		err = <-errc
 		close(cuckoo.exitCh)
 
-		if cuckoo.minerPlugin == nil{
+		if cuckoo.minerPlugin == nil {
 			return
 		}
 		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-		if e != nil{
+		if e != nil {
 			err = e
 			return
 		}

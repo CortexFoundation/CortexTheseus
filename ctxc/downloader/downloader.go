@@ -726,8 +726,9 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 					break
 				}
 				header := d.blockchain.GetHeaderByHash(headers[0].Hash()) // Independent of sync mode, header surely exists
-				if header.Number.Uint64() != check {
-					p.log.Debug("Received non requested header", "number", header.Number, "hash", header.Hash(), "request", check)
+
+				if header == nil || header.Number.Uint64() != check {
+					//p.log.Debug("Received non requested header", "number", header.Number, "hash", header.Hash(), "request", check)
 					return 0, errBadPeer
 				}
 				start = check

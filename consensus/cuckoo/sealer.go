@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
@@ -129,7 +128,7 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 	targetDiff := new(big.Int).Div(maxUint256, shareDiff)
 	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), targetDiff)
 	if !ok {
-		fmt.Println("invalid solution")
+		//fmt.Println("invalid solution")
 		return false, false, 0
 	}
 	sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))

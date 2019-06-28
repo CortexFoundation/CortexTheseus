@@ -1,8 +1,9 @@
 package torrentfs
 
 import (
+	"io/ioutil"
 	"fmt"
-
+	"path"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -18,12 +19,48 @@ type GeneralMessage struct {
 type TorrentFS struct {
 	config  *Config
 	history *GeneralMessage
-
 	monitor *Monitor
 }
 
+func (t *TorrentFS) Config() *Config {
+	return t.config
+}
+
+func (t *TorrentFS) Monitor() *Monitor {
+	return t.monitor
+}
+
+var torrentInstance *TorrentFS = nil
+
+func GetTorrentInstance() *TorrentFS {
+	if torrentInstance == nil {
+		torrentInstance, _ = New(&DefaultConfig, "")
+	}
+	return torrentInstance
+}
+
+func GetStorage() CVMStorage {
+	return GetTorrentInstance()
+}
+
+func GetConfig() *Config {
+	if torrentInstance != nil {
+		return GetTorrentInstance().Config()
+	} else {
+		return &DefaultConfig
+	}
+	return nil
+}
+
 // New creates a new dashboard instance with the given configuration.
+var Torrentfs_handle CVMStorage
+
+// New creates a new torrentfs instance with the given configuration.
 func New(config *Config, commit string) (*TorrentFS, error) {
+	if torrentInstance != nil {
+		return torrentInstance, nil
+	}
+
 	versionMeta := ""
 	TorrentAPIAvailable.Lock()
 	if len(params.VersionMeta) > 0 {
@@ -41,11 +78,14 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 		return nil, moErr
 	}
 
-	return &TorrentFS{
+	torrentInstance = &TorrentFS{
 		config:  config,
 		history: msg,
 		monitor: monitor,
-	}, nil
+	}
+	Torrentfs_handle = *torrentInstance
+
+	return torrentInstance, nil
 }
 
 // Protocols implements the node.Service interface.
@@ -72,3 +112,17 @@ func (tfs *TorrentFS) Stop() error {
 	tfs.monitor.Stop()
 	return nil
 }
+
+
+func (fs TorrentFS) Available(infohash string, rawSize int64) bool {
+	// modelDir := fs.DataDir + "/" + infoHash
+	// if (os.Stat)
+	return Available(infohash, rawSize)
+}
+
+func (fs TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
+	fn := path.Join(fs.config.DataDir, infohash, subpath)
+	data, err := ioutil.ReadFile(fn)
+	return data, err
+}
+

@@ -3,6 +3,7 @@ package inference
 import (
 	"encoding/binary"
 	"fmt"
+	"bytes"
 	"io"
 	"os"
 	"regexp"
@@ -50,6 +51,9 @@ func NewFileReader(f string) (*NpyReader, error) {
 	return r, err
 }
 
+func NewBytesReader(buff []byte) (*NpyReader, error) {
+	return NewReader(bytes.NewReader(buff))
+}
 // Parse the shape string in the file header.
 func parseShape(header []byte) ([]int, int, error) {
 

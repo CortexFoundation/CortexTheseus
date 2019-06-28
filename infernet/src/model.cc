@@ -19,7 +19,6 @@ using std::string;
 namespace cvm {
 namespace runtime {
 
-// std::mutex CVMModel::mtx;
 
 CVMModel::CVMModel(const string& graph, DLContext _ctx):
   out_size_(NULL)
@@ -202,21 +201,30 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
   std::vector<DLTensor*> ret;
   for (int i = 0; i < out_num_; ++i) {
     DLTensor *t;
-    CVMArrayAlloc(shapes_[i + 1], dims_[i + 1], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &t);
+    CVMArrayAlloc(shapes_[i + input_num_], dims_[i + input_num_], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &t);
     ret.push_back(t);
   }
   return ret;
 }
 
-void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
+int CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
   if (postprocess_method_ == "argmax") {
+    // std::cerr << "argmax\n";
     int32_t* cp = static_cast<int32_t*>((void*)(mem));
     // argmax by dimension -1
     for (size_t k = 0 ; k < (size_t)out_num_; ++k) {
-      uint32_t last_dim = shapes_[ input_num_ +  k][dims_[k] - 1];
+      uint32_t last_dim = shapes_[ input_num_ +  k][dims_[input_num_ + k] - 1];
       uint32_t out_size = out_size_[k];
       uint32_t out_size_ap = out_size / last_dim;
+      // std::cerr << " last_dim = " << last_dim
+      //           << " out_size = " << out_size
+      //           << " out_size_ap = " << out_size_ap
+      //           << "\n";
       auto data = static_cast<int*>(outputs[k]->data);
+      // for (size_t i = 0; i < out_size_ap; i += last_dim) {
+      //   std::cerr << int(int8_t(data[i])) << " ";
+      // }
+      // std::cerr << "\n";
       for (size_t i = 0; i < out_size_ap; i += last_dim) {
         uint32_t max_id = 0;
         for (size_t j = i; j < i + last_dim; j++) {
@@ -287,6 +295,7 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
       }
     } else {
       std::cerr << "yolo post process failed\n";
+      return -1;
     }
   } else {
       for (size_t k = 0; k < outputs.size(); ++k) {
@@ -296,6 +305,7 @@ void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
         }
       }
   }
+  return 0;
 }
 
 int CVMModel::LoadParams(const string &params) {
@@ -349,7 +359,7 @@ int CVMModel::GetOutputLength() {
       ret += out_size_ap;
     }
     ret *= output_bytes_;
-    // std::cerr << "ret = " << ret << "\n";
+//    std::cerr << "ret = " << ret << "\n";
     return ret;
   }
   else if (postprocess_method_ == "detection") {
@@ -381,13 +391,14 @@ int CVMModel::GetSizeOfOutputType() {
 int CVMModel::GetSizeOfInputType() {
   return input_bytes_;
 }
-
+/*
 int CVMModel::LoadParamsFromFile(string filepath) {
   std::ifstream input_stream(filepath, std::ios::binary);
   std::string params = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
   input_stream.close();
   return LoadParams(params);
 }
+*/
 
 }
 }
@@ -408,32 +419,26 @@ string LoadFromBinary(string filepath) {
 
 using cvm::runtime::CVMModel;
 
-void* CVMAPILoadModel(const char *graph_fname,
-                      const char *model_fname,
-                      int device_type,
-                      int device_id)
+void* CVMAPILoadModel(
+  const char *graph_payload,
+  int json_len,
+  const char *model_payload,
+  int model_len,
+  int device_type,
+  int device_id)
 {
+  CVMModel* model = nullptr;
   // std::cerr << "graph_fname = " << graph_fname
   //           << "\nmodel_fname = " << model_fname
   //           << "\ndevice_type = " << device_type
   //           << "\ndevice_id = " << device_id << "\n";
-  string graph, params;
-  try {
-    graph = LoadFromFile(string(graph_fname));
-  } catch (std::exception &e) {
-    return NULL;
-  }
-  CVMModel* model = nullptr;
+  string graph(graph_payload, json_len);
+  string params(model_payload, model_len);
+  // std::cerr << "model size: " << params.size() << "\n";
   if (device_type == 0) {
     model = new CVMModel(graph, DLContext{kDLCPU, 0});
   } else {
     model = new CVMModel(graph, DLContext{kDLGPU, device_id});
-  }
-  try {
-    params = LoadFromBinary(string(model_fname));
-  } catch (std::exception &e) {
-    delete model;
-    return NULL;
   }
   if (!model->IsReady() || model->LoadParams(params)) {
     delete model;
@@ -441,6 +446,7 @@ void* CVMAPILoadModel(const char *graph_fname,
   }
   return (void*)model;
 }
+
 
 void CVMAPIFreeModel(void* model_) {
   CVMModel* model = static_cast<CVMModel*>(model_);
@@ -482,15 +488,15 @@ long long CVMAPIGetGasFromModel(void *model_) {
   return ret;
 }
 
-long long CVMAPIGetGasFromGraphFile(char *graph_fname) {
-  string json_data;
-  try {
-    std::ifstream json_in(string(graph_fname), std::ios::in);
-    json_data = string((std::istreambuf_iterator<char>(json_in)), std::istreambuf_iterator<char>());
-    json_in.close();
-  } catch (std::exception &e) {
-    return -1;
-  }
+long long CVMAPIGetGasFromGraphFile(char *graph_json) {
+  string json_data(graph_json);
+  // try {
+  //   std::ifstream json_in(string(graph_json), std::ios::in);
+  //   json_data = string((std::istreambuf_iterator<char>(json_in)), std::istreambuf_iterator<char>());
+  //   json_in.close();
+  // } catch (std::exception &e) {
+  //   return -1;
+  // }
   auto f = cvm::runtime::Registry::Get("cvm.runtime.estimate_ops");
   if (f == nullptr) return -1;
   int64_t ret;
@@ -524,8 +530,8 @@ int CVMAPISizeOfInputType(void *model_) {
 }
 
 int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
-  int ret = 0;
   try {
+    int ret = 0;
     if (input_data == nullptr) {
       std::cerr << "input_data error" << std::endl;
       ret = -1;
@@ -543,17 +549,20 @@ int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
       } else {
         ret = model->Run(input, outputs);
         if (ret == 0) {
-          model->SaveTensor(outputs, output_data);
+          int save_ok = model->SaveTensor(outputs, output_data);
+          if (save_ok != 0)
+            ret = -1;
           if (input)
             CVMArrayFree(input);
           for (size_t i = 0; i < outputs.size(); ++i)
             CVMArrayFree(outputs[i]);
         }
       }
+      return ret;
     }
   } catch (std::exception &e) {
     return -1;
   }
-  return ret;
+  return 0;
 }
 

@@ -1427,7 +1427,7 @@ func (t *Torrent) dhtAnnouncer(s *dht.Server) {
 			if err == nil {
 				t.numDHTAnnounces++
 			} else {
-				log.Printf("error announcing %q to DHT: %s", t, err)
+				// log.Printf("error announcing %q to DHT: %s", t, err)
 			}
 		}()
 		select {
@@ -1516,7 +1516,7 @@ func (t *Torrent) addConnection(c *connection) (err error) {
 		if c.PeerID != c0.PeerID {
 			continue
 		}
-		if !t.cl.config.dropDuplicatePeerIds {
+		if !t.cl.config.DropDuplicatePeerIds {
 			continue
 		}
 		if left, ok := c.hasPreferredNetworkOver(c0); ok && left {

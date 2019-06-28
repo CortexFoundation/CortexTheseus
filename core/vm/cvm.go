@@ -140,21 +140,6 @@ type CVM struct {
 // NewCVM returns a new CVM. The returned CVM is not thread safe and should
 // only ever be used *once*.
 func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *CVM {
-	/*cfg := torrentfs.Config{
-		DataDir:         torrentfs.DefaultConfig.DataDir,
-		Host:            torrentfs.DefaultConfig.Host,
-		Port:            torrentfs.DefaultConfig.Port,
-		DefaultTrackers: torrentfs.DefaultConfig.DefaultTrackers,
-		SyncMode:        torrentfs.DefaultConfig.SyncMode,
-		TestMode:        torrentfs.DefaultConfig.TestMode,
-	}
-	cfg.DataDir = vmConfig.StorageDir
-	fileFs, fsErr := torrentfs.NewFileStorage(&cfg)
-	if fsErr != nil {
-		return nil
-	}
-
-	log.Info("File storage in vm", "fs", fileFs)*/
 
 	cvm := &CVM{
 		Context:      ctx,
@@ -192,6 +177,10 @@ func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 // it's safe to be called multiple times.
 func (cvm *CVM) Cancel() {
 	atomic.StoreInt32(&cvm.abort, 1)
+}
+
+func (cvm *CVM) Cancelled() bool {
+	return atomic.LoadInt32(&cvm.abort) == 1
 }
 
 // Interpreter returns the current interpreter
@@ -491,7 +480,7 @@ func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 // ChainConfig returns the environment's chain configuration
 func (cvm *CVM) ChainConfig() *params.ChainConfig { return cvm.chainConfig }
 
-const interv = 5
+/*const interv = 5
 
 func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	street := big.NewInt(0).Sub(cvm.PeekNumber, cvm.BlockNumber)
@@ -534,20 +523,20 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 	//log.Error("Torrent synchronized timeout", "address", meta.Hex(), "number", cvm.BlockNumber, "meta", meta, "storage", dir, "street", street)
 	//errCh <- synapse.ErrModelFileNotExist
 	//return
-}
+}*/
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
 	// fmt.Println("infer", modelInfoHash, inputInfoHash)
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
-	if (!cvm.vmConfig.DebugInferVM) {
+	if !cvm.vmConfig.DebugInferVM {
 		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
-			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
+			return nil, errors.New("Torrent file model not available, blockchain and torrent not match, modelInfoHash: " + modelInfoHash)
 		}
 
 		if !torrentfs.Available(inputInfoHash, int64(inputRawSize)) {
-			return nil, errors.New("Torrent file input not available, blockchain and torrent not match")
+			return nil, errors.New("Torrent file input not available, blockchain and torrent not match, inputInfoHash: " + inputInfoHash)
 		}
 	}
 
@@ -556,15 +545,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		errRes   error
 	)
 
-	// fmt.Println("==infer", modelInfoHash, inputInfoHash)
-	if cvm.vmConfig.InferURI == "" {
-		inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
-	} else {
-		inferRes, errRes = synapse.Engine().RemoteInferByInfoHash(
-			modelInfoHash,
-			inputInfoHash,
-			cvm.vmConfig.InferURI)
-	}
+	inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
 
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
@@ -579,11 +560,11 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) ([]byte, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
-	log.Debug("Infer Detail", "Input Content", hexutil.Encode(inputArray))
+	log.Trace("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 	if cvm.vmConfig.DebugInferVM {
-		fmt.Println( "Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
+		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
-	if (!cvm.vmConfig.DebugInferVM) {
+	if !cvm.vmConfig.DebugInferVM {
 		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
 			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 		}
@@ -593,15 +574,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		errRes   error
 	)
 
-	if cvm.vmConfig.InferURI == "" {
-		inferRes, errRes = synapse.Engine().InferByInputContent(modelInfoHash, inputArray)
-	} else {
-		inferRes, errRes = synapse.Engine().RemoteInferByInputContent(
-			modelInfoHash,
-			cvm.vmConfig.InferURI,
-			inputArray,
-		)
-	}
+	inferRes, errRes = synapse.Engine().InferByInputContent(modelInfoHash, inputArray)
 
 	if errRes == nil {
 		log.Info("Inference Succeed", "label", inferRes)
@@ -619,20 +592,14 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	}
 	modelRawSize := modelMeta.RawSize
 	if !cvm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash.Hex(), int64(modelRawSize)) {
+		log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize)
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelMeta.Hash.Hex())
 	}
 
-	if cvm.vmConfig.InferURI == "" {
-		opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
-	} else {
-		opsRes, errRes = synapse.Engine().RemoteGasByModelHash(
-			modelMeta.Hash.Hex(),
-			cvm.vmConfig.InferURI)
-	}
+	opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
 
 	return opsRes, errRes
 }
-
 
 func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
 	metaRaw := cvm.StateDB.GetCode(addr)

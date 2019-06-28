@@ -44,9 +44,9 @@ import (
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward       *big.Int = big.NewInt(75e+17) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward      *big.Int = big.NewInt(75e+17) // Block reward in wei for successfully mining a block upward from Byzantium
-	ConstantinopleBlockReward          = big.NewInt(75e+17)
+	FrontierBlockReward       *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward      *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	ConstantinopleBlockReward          = big.NewInt(7e+18)
 	maxUncles                          = 2               // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime             = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
@@ -630,7 +630,7 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
 	header.Supply = new(big.Int).Set(parent.Supply)
-	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(params.BLOCK_QUOTA))
+	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GeteBlockQuota(header.Number)))
 	header.QuotaUsed = new(big.Int).Set(parent.QuotaUsed)
 	return nil
 }
@@ -791,7 +791,7 @@ func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 
 func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) (ok bool) {
 	if cuckoo.minerPlugin == nil {
-		err := cuckoo.InitOnce()
+		err := cuckoo.InitPlugin()
 		if err != nil {
 			log.Error("cuckoo", "init error.", "error:", err)
 			return false

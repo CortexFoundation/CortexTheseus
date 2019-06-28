@@ -28,7 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"github.com/CortexFoundation/CortexTheseus/core"
-	"time"
+	//"time"
 )
 
 var (
@@ -693,7 +693,7 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *
 }
 
 var (
-	confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
+//confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 )
 
 func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -762,13 +762,13 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 	// } else {
 	// }*/
 
-	log.Debug("interpreter infer<", "modelMeta", modelMeta, "inputMeta", inputMeta)
+	// log.Debug("interpreter infer<", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	//todo model & input tfs validation
 	output, err := interpreter.cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
 	if interpreter.cvm.vmConfig.DebugInferVM {
 		fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
 	}
-	log.Debug("interpreter infer>", "modelMeta", modelMeta, "inputMeta", inputMeta, "output", output)
+	// log.Debug("interpreter infer>", "modelMeta", modelMeta, "inputMeta", inputMeta, "output", output)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 		// if !synapse.CheckBuiltInTorrentFsError(err) {
@@ -778,9 +778,9 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory
 		return nil, err
 	}
 	//consensus
-	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
-	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
-	interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
+	//matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
+	//interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
+	//interpreter.cvm.StateDB.SetNum(inputAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	// interpreter.intPool.get().SetUint64(output)
 	if err := memory.WriteSolidityUint256Array(_outputOffset.Int64(), output); err != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -830,7 +830,7 @@ func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*types.ModelM
 func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*types.InputMeta, error) {
 	var (
 		inputMeta *types.InputMeta
-		err error
+		err       error
 	)
 	if inputMeta, err = cvm.GetInputMeta(inputAddr); err != nil {
 		return nil, err
@@ -847,7 +847,7 @@ func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*types.In
 
 	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
 	if cvm.StateDB.GetNum(inputAddr).Cmp(new(big.Int).Sub(cvm.BlockNumber, big.NewInt(matureBlockNumber))) > 0 {
-		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.BlockNumber, "MB", matureBlockNumber)
+		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.BlockNumber, "Uploading", cvm.StateDB.Uploading(inputAddr), "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 
@@ -892,7 +892,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	var output []byte
 	var err error
 	output, err = interpreter.cvm.InferArray(modelMeta.Hash.Hex(),
-											 inputBuff, modelMeta.RawSize)
+		inputBuff, modelMeta.RawSize)
 	// output = big.NewInt(2147483647).Bytes()
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -908,12 +908,11 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	// interpreter.intPool.get().SetUint64
 	stack.push(interpreter.intPool.get().SetUint64(1))
 
-	matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
+	//matureBlockNumber := interpreter.cvm.ChainConfig().GetMatureBlock()
 	//update model status
-	interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
+	//interpreter.cvm.StateDB.SetNum(modelAddr, new(big.Int).Sub(interpreter.cvm.BlockNumber, big.NewInt(matureBlockNumber+1)))
 	return nil, nil
 }
-
 
 func opCreate(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (

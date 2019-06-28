@@ -78,7 +78,6 @@ func extCmd(ctx *cli.Context) error {
 				Hash:          common.HexToAddress(data_tmp.Hash),
 				RawSize:       data_tmp.RawSize,
 				Shape:         data_tmp.Shape,
-				AuthorAddress: common.BytesToAddress([]byte(data_tmp.AuthorAddress)),
 			}
 			out, _ := rlp.EncodeToBytes(data)
 			fmt.Printf("payload: %v\n", hex.EncodeToString(append([]byte{0, 2}, out...)))

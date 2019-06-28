@@ -56,7 +56,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"net/url"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -129,20 +131,16 @@ var (
 	// }
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
-		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
+		Usage: "Network identifier (integer, 21=Mainnet, 42=Bernard, 43=Dolores)",
 		Value: ctxc.DefaultConfig.NetworkId,
 	}
-	CerebroFlag = cli.BoolFlag{
-		Name:  "cerebro",
-		Usage: "Cerebro network: pre-configured cortex test network",
+	BernardFlag = cli.BoolFlag{
+		Name:  "bernard",
+		Usage: "Bernard network: pre-configured cortex test network",
 	}
-	TestnetFlag = cli.BoolFlag{
-		Name:  "testnet",
-		Usage: "Cortex testnet: pre-configured cortex test network",
-	}
-	LazynetFlag = cli.BoolFlag{
-		Name:  "lazynet",
-		Usage: "Lazy network: pre-configured easy test network",
+	DoloresFlag = cli.BoolFlag{
+		Name:  "dolores",
+		Usage: "Dolores network: pre-configured cortex test network",
 	}
 	// DeveloperFlag = cli.BoolFlag{
 	// 	Name:  "dev",
@@ -183,21 +181,33 @@ var (
 		Usage: "P2P storage directory",
 		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
-	StorageAddrFlag = cli.StringFlag{
-		Name:  "storage.addr",
-		Usage: "P2P storage listening interface (remote mode)",
-		Value: torrentfs.DefaultConfig.Host,
-	}
+/*
 	StoragePortFlag = cli.IntFlag{
-		Name:  "storage.host",
-		Usage: "P2P storage listening port (remote mode)",
+		Name:  "storage.port",
+		Usage: "p2p storage listening port",
 		Value: torrentfs.DefaultConfig.Port,
 	}
-	//StorageTrackerFlag = cli.StringFlag{
-	//	Name:  "storage.tracker",
-	//	Usage: "P2P storage tracker list",
-	//	Value: torrentfs.DefaultConfig.DefaultTrackers,
-	//}
+	*/
+	StorageMaxSeedingFlag = cli.IntFlag{
+		Name:  "storage.max_seeding",
+		Usage: "The maximum number of seeding tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxSeedingNum,
+	}
+	StorageMaxActiveFlag = cli.IntFlag{
+		Name:  "storage.max_active",
+		Usage: "The maximum number of active tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxActiveNum,
+	}
+	StorageBoostNodesFlag = cli.StringFlag{
+		Name:  "storage.boostnodes",
+		Usage: "p2p storage boostnodes",
+		Value: strings.Join(torrentfs.DefaultConfig.BoostNodes, ","),
+	}
+	StorageTrackerFlag = cli.StringFlag{
+		Name:  "storage.tracker",
+		Usage: "P2P storage tracker list",
+		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
+	}
 	// Dashboard settings
 	// DashboardEnabledFlag = cli.BoolFlag{
 	// 	Name:  metrics.DashboardEnabledFlag,
@@ -218,7 +228,7 @@ var (
 	// 	Usage: "Dashboard metrics collection refresh rate",
 	// 	Value: dashboard.DefaultConfig.Refresh,
 	// }
-		// Transaction pool settings
+	// Transaction pool settings
 	TxPoolLocalsFlag = cli.StringFlag{
 		Name:  "txpool.locals",
 		Usage: "Comma separated accounts to treat as locals (no flush, priority inclusion)",
@@ -372,27 +382,32 @@ var (
 		Name:  "miner.cuda",
 		Usage: "use cuda miner plugin",
 	}
-//	MinerOpenCLFlag = cli.BoolFlag{
-//		Name:  "miner.opencl",
-//		Usage: "use opencl miner plugin",
-//	}
+	//	MinerOpenCLFlag = cli.BoolFlag{
+	//		Name:  "miner.opencl",
+	//		Usage: "use opencl miner plugin",
+	//	}
 	MinerDevicesFlag = cli.StringFlag{
 		Name:  "miner.devices",
 		Usage: "the devices used mining, use --miner.devices=0,1",
 	}
-//	MinerAlgorithmFlag = cli.StringFlag{
-//		Name:  "miner.algorithm",
-//		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
-//	}
+	//	MinerAlgorithmFlag = cli.StringFlag{
+	//		Name:  "miner.algorithm",
+	//		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
+	//	}
 	InferDeviceTypeFlag = cli.StringFlag{
-		Name: "infer.devicetype",
+		Name:  "infer.devicetype",
 		Usage: "infer device type : cpu or gpu",
-		Value: "cpu",
+		Value: "gpu",
 	}
 	InferDeviceIdFlag = cli.IntFlag{
-		Name: "infer.devices",
-		Usage: "the device used infering, use --infer.devices=2, not available on cpu",
+		Name:  "infer.device",
+		Usage: "the device used infering, use --infer.device=2, not available on cpu",
 		Value: 0,
+	}
+	InferMemoryFlag = cli.IntFlag{
+		Name: "infer.memory",
+		Usage: "the maximum memory usage of infer engine, use --infer.memory=4096. shoule at least be 2048 (MiB)",
+		Value: int(synapse.DefaultConfig.MaxMemoryUsage >> 20),
 	}
 
 	// Account settings
@@ -566,11 +581,11 @@ var (
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: ctxc.DefaultConfig.GPO.Percentile,
 	}
-	ModelCallInterfaceFlag = cli.StringFlag{
-		Name:  "cvm.inferuri",
-		Usage: "URI for delegated inference (experimental)",
-		Value: "",
-	}
+	// ModelCallInterfaceFlag = cli.StringFlag{
+	// 	Name:  "cvm.inferuri",
+	// 	Usage: "URI for delegated inference (experimental)",
+	// 	Value: "",
+	// }
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
@@ -619,12 +634,10 @@ func MakeDataDir(ctx *cli.Context) string {
 	switch {
 	case ctx.GlobalIsSet(DataDirFlag.Name):
 		return ctx.GlobalString(DataDirFlag.Name)
-	case ctx.GlobalBool(CerebroFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "cerebro")
-	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "lazynet")
+	case ctx.GlobalBool(BernardFlag.Name):
+		return filepath.Join(node.DefaultDataDir(), "bernard")
+	case ctx.GlobalBool(DoloresFlag.Name):
+		return filepath.Join(node.DefaultDataDir(), "dolores")
 	}
 
 	return node.DefaultDataDir()
@@ -636,15 +649,9 @@ func MakeStorageDir(ctx *cli.Context) string {
 	switch {
 	case ctx.GlobalIsSet(StorageDirFlag.Name):
 		return ctx.GlobalString(StorageDirFlag.Name)
-	case ctx.GlobalBool(CerebroFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "cerebro")
-	case ctx.GlobalBool(TestnetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "testnet")
-	case ctx.GlobalBool(LazynetFlag.Name):
-		return filepath.Join(node.DefaultStorageDir(""), "lazynet")
 	}
 
-	return node.DefaultStorageDir(MakeDataDir(ctx))
+	return filepath.Join(MakeDataDir(ctx), "storage")
 }
 
 // setNodeKey creates a node key from set command line flags, either loading it
@@ -691,12 +698,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
-	case ctx.GlobalBool(CerebroFlag.Name):
-		urls = params.CerebroBootnodes
-	case ctx.GlobalBool(TestnetFlag.Name):
-		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(LazynetFlag.Name):
-		urls = params.RinkebyBootnodes
+	case ctx.GlobalBool(BernardFlag.Name):
+		urls = params.BernardBootnodes
+	case ctx.GlobalBool(DoloresFlag.Name):
+		urls = params.BernardBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -894,7 +899,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	if ctx.GlobalIsSet(MaxPendingPeersFlag.Name) {
 		cfg.MaxPendingPeers = ctx.GlobalInt(MaxPendingPeersFlag.Name)
 	}
-	if ctx.GlobalIsSet(NoDiscoverFlag.Name){
+	if ctx.GlobalIsSet(NoDiscoverFlag.Name) {
 		cfg.NoDiscovery = true
 	}
 
@@ -920,7 +925,7 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	// switch {
 	// case ctx.GlobalIsSet(DataDirFlag.Name):
 	// 	cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	// case ctx.GlobalBool(CerebroFlag.Name):
+	// case ctx.GlobalBool(BernardFlag.Name):
 	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "cerebro")
 	// case ctx.GlobalBool(LazynetFlag.Name):
 	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
@@ -1036,7 +1041,7 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 // SetCortexConfig applies ctxc-related command line flags to the config.
 func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
-	// checkExclusive(ctx, DeveloperFlag, CerebroFlag, LazynetFlag)
+	// checkExclusive(ctx, DeveloperFlag, BernardFlag, LazynetFlag)
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setCoinbase(ctx, ks, cfg)
@@ -1102,37 +1107,55 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
 		cfg.Cuckoo.UseCuda = cfg.MinerCuda
 	}
-//	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
-//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
-//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
-//	}
+	//	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
+	//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
+	//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
+	//	}
 
 	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
 	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	//cfg.Cuckoo.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
-	cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
+	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
+	if cfg.InferDeviceType == "gpu" {
+		cfg.InferDeviceType = "cuda"
+	}
+	if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
+		u, err := url.Parse(cfg.InferDeviceType)
+		if err == nil && u.Scheme == "remote" && len(u.Hostname()) > 0 && len(u.Port()) > 0 {
+			cfg.InferURI = "http://" + u.Hostname() + ":" + u.Port();
+			log.Info("Cortex", "inferUri", cfg.InferURI)
+		} else {
+			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
+		}
+	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
-
+	cfg.InferMemoryUsage = int64(ctx.GlobalInt(InferMemoryFlag.Name))
+	cfg.InferMemoryUsage = cfg.InferMemoryUsage << 20
 	// Override any default configs for hard coded networks.
 	switch {
-	case ctx.GlobalBool(CerebroFlag.Name):
+	case ctx.GlobalBool(BernardFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 42
 		}
-		cfg.Genesis = core.DefaultCerebroGenesisBlock()
-	//case ctx.GlobalBool(TestnetFlag.Name):
-	//	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-	//		cfg.NetworkId = 28
-	//	}
-	//	cfg.Genesis = core.DefaultTestnetGenesisBlock()
-	//case ctx.GlobalBool(LazynetFlag.Name):
-	//	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-	//		cfg.NetworkId = 4
-	//	}
-	//	cfg.Genesis = core.DefaultRinkebyGenesisBlock()
+		cfg.Genesis = core.DefaultBernardGenesisBlock()
+	case ctx.GlobalBool(DoloresFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 43
+		}
+		cfg.Genesis = core.DefaultDoloresGenesisBlock()
+		//case ctx.GlobalBool(TestnetFlag.Name):
+		//	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+		//		cfg.NetworkId = 28
+		//	}
+		//	cfg.Genesis = core.DefaultTestnetGenesisBlock()
+		//case ctx.GlobalBool(LazynetFlag.Name):
+		//	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+		//		cfg.NetworkId = 4
+		//	}
+		//	cfg.Genesis = core.DefaultRinkebyGenesisBlock()
 		// case ctx.GlobalBool(DeveloperFlag.Name):
 		// 	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		// 		cfg.NetworkId = 1337
@@ -1175,8 +1198,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
 func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
-	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
-	cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+//	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
+//  cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""
@@ -1187,7 +1210,12 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		cfg.IpcPath = filepath.Join(path, IPCPath)
 		log.Info("IPCPath", "path", cfg.IpcPath)
 	}
-	//cfg.DefaultTrackers = ctx.GlobalString(StorageTrackerFlag.Name)
+	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
+	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
+	cfg.DefaultTrackers = strings.Split(trackers, ",")
+	cfg.BoostNodes = strings.Split(boostnodes, ",")
+	cfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
+	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
 }
@@ -1195,10 +1223,10 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 // RegisterCortexService adds an Cortex client to the stack.
 func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 	var err error
-		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			fullNode, err := ctxc.New(ctx, cfg)
-			return fullNode, err
-		})
+	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+		fullNode, err := ctxc.New(ctx, cfg)
+		return fullNode, err
+	})
 	if err != nil {
 		Fatalf("Failed to register the Cortex service: %v", err)
 	}
@@ -1225,7 +1253,7 @@ func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit stri
 // 		// Retrieve both ctxc and les services
 // 		var ctxcServ *ctxc.Cortex
 // 		ctx.Service(&ctxcServ)
-// 
+//
 // 		return ctxcstats.New(url, ctxcServ)
 // 	}); err != nil {
 // 		Fatalf("Failed to register the Cortex Stats service: %v", err)
@@ -1270,12 +1298,12 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ctxcdb.Database {
 func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
-	case ctx.GlobalBool(CerebroFlag.Name):
-		genesis = core.DefaultCerebroGenesisBlock()
-	// case ctx.GlobalBool(TestnetFlag.Name):
-	// 	genesis = core.DefaultTestnetGenesisBlock()
-	// case ctx.GlobalBool(LazynetFlag.Name):
-	// 	genesis = core.DefaultRinkebyGenesisBlock()
+	case ctx.GlobalBool(BernardFlag.Name):
+		genesis = core.DefaultBernardGenesisBlock()
+		// case ctx.GlobalBool(TestnetFlag.Name):
+		// 	genesis = core.DefaultTestnetGenesisBlock()
+		// case ctx.GlobalBool(LazynetFlag.Name):
+		// 	genesis = core.DefaultRinkebyGenesisBlock()
 		// case ctx.GlobalBool(DeveloperFlag.Name):
 		//	Fatalf("Developer chains are ephemeral")
 	}
@@ -1313,7 +1341,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	vmcfg := vm.Config{
 		// EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
-		InferURI: ctx.GlobalString(ModelCallInterfaceFlag.Name),
+		// InferURI: ctx.GlobalString(ModelCallInterfaceFlag.Name),
 	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
 	if err != nil {

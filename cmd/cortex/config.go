@@ -24,6 +24,7 @@ import (
 	"os"
 	"reflect"
 	"unicode"
+	"strings"
 
 	cli "gopkg.in/urfave/cli.v1"
 
@@ -153,7 +154,7 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
-	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || ctx.GlobalString(utils.ModelCallInterfaceFlag.Name) == ""
+	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
 	if storageEnabled {
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}

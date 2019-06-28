@@ -1,4 +1,4 @@
-// +build cuda_miner 
+// +build cuda_miner
 
 package main
 
@@ -13,12 +13,12 @@ import (
 	"fmt"
 	"log"
 	//	"time"
-	"unsafe"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"math/big"
 	"strconv"
 	"strings"
-	"math/big"
+	"unsafe"
 )
 
 func CuckooInit(threads uint32) {
@@ -44,7 +44,6 @@ func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error 
 func CuckooFinalize() {
 	C.CuckooFinalize()
 }
-
 
 func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][]uint32) {
 	var (
@@ -84,7 +83,7 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
 
-	if sha3hash.Big().Cmp(diff) <= 0{
+	if sha3hash.Big().Cmp(diff) <= 0 {
 		r := C.CuckooVerifyProof(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
@@ -96,12 +95,12 @@ func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_s
 
 func CuckooVerify_cuckaroo(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
-	if sha3hash.Big().Cmp(diff) <= 0{
+	if sha3hash.Big().Cmp(diff) <= 0 {
 		r := C.CuckooVerifyProof_cuckaroo(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
 			C.uint64_t(nonce),
 			(*C.result_t)(unsafe.Pointer(&result[0])))
-		return (r==1)
+		return (r == 1)
 	}
 	return false
 }
