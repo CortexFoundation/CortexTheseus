@@ -263,19 +263,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
 
   print_to_file(y, "flatten.txt");
 });
-
 bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias,
-        int32_t *c, const int M, const int K, const int N)
-{
-#ifdef CVM_PROFILING
-  double start = omp_get_wtime();
-#endif
+        int32_t *c, const int M, const int K, const int N){
     int8_t *tr_b = (int8_t*)malloc(sizeof(int8_t) * K*N);
-    if (tr_b == NULL) {
-      return false;
-    }
+    if (tr_b == NULL) return false;
 
-    int i = 0, j = 0;
+     int i = 0, j = 0;
     const int32_t tK = K / 32 * 32;
     const int32_t tN = N / 32 * 32;
     for(i = 0; i < tK; i+=32){
@@ -303,86 +296,156 @@ bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias
             tr_b[j * K + i] = b[i * N + j];
         }
     }
-#ifdef CVM_PROFILING
-    transpose_int8_avx256_transpose_cnt += omp_get_wtime() - start;
-    start = omp_get_wtime();
-#endif
     int16_t int16[16];
     for(int i = 0; i < 16; i++) int16[i] = 1;
     __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
-    int8_t ap [32], bp[32];
-    memset(ap, 0, sizeof(ap));
-    memset(bp, 0, sizeof(bp));
 
-    int blocks = K / 32 * 32;
-    if (K % 32 == 0) {
-      #pragma omp parallel for
-      for(int i = 0; i < M; i++){
+     int blocks = K / 32 * 32;
+    for(int i = 0; i < M; i++){
         int32_t bV = bias != NULL ? bias[i] : 0;
         for(int j = 0; j < N; j++){
-          __m256i vc = _mm256_setzero_si256();
-          int k = 0;
-          auto ap_inner = a + i * K;
-          auto bp_inner = tr_b + j * K;
-          for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
-            __m256i va = _mm256_loadu_si256((__m256i*)(ap_inner));
-            __m256i vb = _mm256_loadu_si256((__m256i*)bp_inner);
-            __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
-            __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
-            vc = _mm256_add_epi32(vresult2, vc);
-          }
-          int sum = 0;
-          for(int ti = 0; ti < 8; ti++){
-            sum += ((int32_t*)&vc)[ti];
-          }
-          c[i*N+j] = sum + bV;
-        }
-      }
-    } else {
-      for(int i = 0; i < M; i++){
-        int32_t bV = bias != NULL ? bias[i] : 0;
-        for(int j = 0; j < N; j++){
-          __m256i vc = _mm256_setzero_si256();
-          int k = 0;
-          auto ap_inner = a + i * K;
-          auto bp_inner = tr_b + j * K;
-          for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
-            __m256i va = _mm256_loadu_si256((__m256i*)(ap_inner));
-            __m256i vb = _mm256_loadu_si256((__m256i*)bp_inner);
-            __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
-            __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
-            vc = _mm256_add_epi32(vresult2, vc);
-
-          }
-          if (K % 32 != 0) {
-            memcpy(ap, ap_inner, sizeof(int8_t) * (K - k));
-            memcpy(bp, bp_inner, sizeof(int8_t) * (K - k));
-            {
-              __m256i va = _mm256_loadu_si256((__m256i*)ap);
-              __m256i vb = _mm256_loadu_si256((__m256i*)bp);
-              __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
-              __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
-              vc = _mm256_add_epi32(vresult2, vc);
+            __m256i vc = _mm256_setzero_si256();
+            int k = 0;
+            for(k = 0; k < blocks; k+=32){
+                __m256i va = _mm256_loadu_si256((__m256i*)&a[i*K+k]);
+                __m256i vb = _mm256_loadu_si256((__m256i*)&tr_b[j*K+k]);
+                __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+                __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+                vc = _mm256_add_epi32(vresult2, vc);
             }
-            k = K;
-          }
-          int sum = 0;
-          for(int ti = 0; ti < 8; ti++){
-            sum += ((int32_t*)&vc)[ti];
-          }
-          c[i*N+j] = sum + bV;
+            int32_t sum = 0;
+            for(int ti = 0; ti < 8; ti++){
+                sum += ((int32_t*)&vc)[ti];
+            }
+            for(; k < K; k++){
+                sum += a[i * K + k] * tr_b[j * K + k];
+            }
+            c[i*N+j] = sum + bV;
         }
-      }
-
     }
 
-    free(tr_b);
-#ifdef CVM_PROFILING
-    double et = omp_get_wtime() - start;
-    transpose_int8_avx256_gemm_cnt += et;
-#endif
-    return true;
+     free(tr_b);
+return true;
 }
+//bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias,
+//        int32_t *c, const int M, const int K, const int N)
+//{
+//#ifdef CVM_PROFILING
+//  double start = omp_get_wtime();
+//#endif
+//    int8_t *tr_b = (int8_t*)malloc(sizeof(int8_t) * K*N);
+//    if (tr_b == NULL) {
+//      return false;
+//    }
+//
+//    int i = 0, j = 0;
+//    const int32_t tK = K / 32 * 32;
+//    const int32_t tN = N / 32 * 32;
+//    for(i = 0; i < tK; i+=32){
+//        for(j = 0; j < tN; j+=32){
+//            int8_t tile[32][32];
+//            for(int ti = 0; ti < 32; ti++){
+//                for(int tj = 0; tj < 32; tj++){
+//                    tile[tj][ti] = b[(i+ti)*N + j+tj];
+//                }
+//            }
+//            for(int ti = 0; ti < 32; ti++){
+//                for(int tj = 0; tj < 32; tj++){
+//                    tr_b[(j+ti) * K + i + tj] = tile[ti][tj];
+//                }
+//            }
+//        }
+//        for(int ti = 0; ti < 32; ti++){
+//            for(int tj = j; tj < N; tj++){
+//                tr_b[tj * K + i+ti] = b[(i+ti) * N + tj];
+//            }
+//        }
+//    }
+//    for(; i < K; i++){
+//        for(j = 0; j < N; j++){
+//            tr_b[j * K + i] = b[i * N + j];
+//        }
+//    }
+//#ifdef CVM_PROFILING
+//    transpose_int8_avx256_transpose_cnt += omp_get_wtime() - start;
+//    start = omp_get_wtime();
+//#endif
+//    int16_t int16[16];
+//    for(int i = 0; i < 16; i++) int16[i] = 1;
+//    __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
+//    int8_t ap [32], bp[32];
+//    memset(ap, 0, sizeof(ap));
+//    memset(bp, 0, sizeof(bp));
+//
+//    int blocks = K / 32 * 32;
+//    if (K % 32 == 0) {
+//      #pragma omp parallel for
+//      for(int i = 0; i < M; i++){
+//        int32_t bV = bias != NULL ? bias[i] : 0;
+//        for(int j = 0; j < N; j++){
+//          __m256i vc = _mm256_setzero_si256();
+//          int k = 0;
+//          auto ap_inner = a + i * K;
+//          auto bp_inner = tr_b + j * K;
+//          for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
+//            __m256i va = _mm256_loadu_si256((__m256i*)(ap_inner));
+//            __m256i vb = _mm256_loadu_si256((__m256i*)bp_inner);
+//            __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+//            __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+//            vc = _mm256_add_epi32(vresult2, vc);
+//          }
+//          int sum = 0;
+//          for(int ti = 0; ti < 8; ti++){
+//            sum += ((int32_t*)&vc)[ti];
+//          }
+//          c[i*N+j] = sum + bV;
+//        }
+//      }
+//    } else {
+//      for(int i = 0; i < M; i++){
+//        int32_t bV = bias != NULL ? bias[i] : 0;
+//        for(int j = 0; j < N; j++){
+//          __m256i vc = _mm256_setzero_si256();
+//          int k = 0;
+//          auto ap_inner = a + i * K;
+//          auto bp_inner = tr_b + j * K;
+//          for(k = 0; k < blocks; k+=32, ap_inner+=32, bp_inner+=32){
+//            __m256i va = _mm256_loadu_si256((__m256i*)(ap_inner));
+//            __m256i vb = _mm256_loadu_si256((__m256i*)bp_inner);
+//            __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+//            __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+//            vc = _mm256_add_epi32(vresult2, vc);
+//
+//          }
+//          if (K % 32 != 0) {
+//            memcpy(ap, ap_inner, sizeof(int8_t) * (K - k));
+//            memcpy(bp, bp_inner, sizeof(int8_t) * (K - k));
+//            {
+//              __m256i va = _mm256_loadu_si256((__m256i*)ap);
+//              __m256i vb = _mm256_loadu_si256((__m256i*)bp);
+//              __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+//              __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+//              vc = _mm256_add_epi32(vresult2, vc);
+//            }
+//            k = K;
+//          }
+//          int sum = 0;
+//          for(int ti = 0; ti < 8; ti++){
+//            sum += ((int32_t*)&vc)[ti];
+//          }
+//          c[i*N+j] = sum + bV;
+//        }
+//      }
+//
+//    }
+//
+//    free(tr_b);
+//#ifdef CVM_PROFILING
+//    double et = omp_get_wtime() - start;
+//    transpose_int8_avx256_gemm_cnt += et;
+//#endif
+//    return true;
+//}
 
 void transpose(const int8_t *A, int8_t *B, int K, int N) {
     for(int i = 0; i < N; i++) {
@@ -716,8 +779,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
           const int M = out_channels;
           const int K = in_channels * filter_h * filter_w;
           const int N = o_h * o_w;
-          //TODO(tian)
-          if(true || has_negetive) {
+          if(has_negetive) {
               matrix_mul(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
                   M, K, N);
           }else{
