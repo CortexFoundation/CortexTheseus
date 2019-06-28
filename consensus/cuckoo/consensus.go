@@ -691,6 +691,7 @@ var (
 // reward. The total reward consists of the static block reward and rewards for
 // included uncles. The coinbase of each uncle block is also rewarded.
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header, parent *types.Header, uncles []*types.Header) {
+	headerInitialHash := header.Hash()
 	// Select the correct block reward based on chain progression
 	blockReward := FrontierBlockReward
 
@@ -744,6 +745,11 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		// Accumulate the rewards for the miner and any included uncles
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
+
+		if core.FixSupplyHash == headerInitialHash {
+			header.Supply.Add(header.Supply, big.NewInt(6343750000000000000))
+		}
+
 		for _, uncle := range uncles {
 			r.Add(uncle.Number, big8)
 			r.Sub(r, header.Number)
