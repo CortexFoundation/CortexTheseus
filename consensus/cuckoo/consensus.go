@@ -47,7 +47,7 @@ var (
 	FrontierBlockReward       *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward      *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block upward from Byzantium
 	ConstantinopleBlockReward          = big.NewInt(7e+18)
-	maxUncles                          = 2               // Maximum number of uncles allowed in a single block
+	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime             = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
@@ -670,6 +670,9 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 		header.GasUsed,
 		header.Time,
 		header.Extra,
+		header.Quota,
+		header.QuotaUsed,
+		header.Supply,
 	})
 	hasher.Sum(hash[:0])
 	return hash
@@ -685,7 +688,7 @@ var (
 	big64   = big.NewInt(64)
 	big128  = big.NewInt(128)
 	big4096 = big.NewInt(4096)
-	bigFix = big.NewInt(6343750000000000000)
+	bigFix  = big.NewInt(6343750000000000000)
 )
 
 // AccumulateRewards credits the coinbase of the given block with the mining
@@ -747,45 +750,40 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
 
-		/*if core.FixSupplyHash == headerInitialHash {
-			header.Supply.Add(header.Supply, bigFix)
-		}
-
-		if core.FixSupplyHash1 == headerInitialHash {
-                        header.Supply.Add(header.Supply, bigFix)
-                }*/
-
 		for hash := range core.FixHashes {
 			if hash == headerInitialHash {
-				 header.Supply.Add(header.Supply, bigFix)
+				header.Supply.Add(header.Supply, bigFix)
 			}
 		}
 
-		for _, uncle := range uncles {
-			r.Add(uncle.Number, big8)
-			r.Sub(r, header.Number)
-			r.Mul(r, blockReward)
-			r.Div(r, big8)
+		if uncles != nil && len(uncles) > 0 {
 
-			header.Supply.Add(header.Supply, r)
-			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
-				header.Supply.Sub(header.Supply, r)
-				r.Set(big0)
-				break
+			for _, uncle := range uncles {
+				r.Add(uncle.Number, big8)
+				r.Sub(r, header.Number)
+				r.Mul(r, blockReward)
+				r.Div(r, big8)
+
+				header.Supply.Add(header.Supply, r)
+				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+					header.Supply.Sub(header.Supply, r)
+					r.Set(big0)
+					break
+				}
+				state.AddBalance(uncle.Coinbase, r)
+				log.Debug("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
+
+				r.Div(blockReward, big32)
+				header.Supply.Add(header.Supply, r)
+				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+					header.Supply.Sub(header.Supply, r)
+					r.Set(big0)
+					break
+				}
+
+				log.Debug("Nephew mining reward", "reward", toCoin(r), "total", toCoin(header.Supply))
+				reward.Add(reward, r)
 			}
-			state.AddBalance(uncle.Coinbase, r)
-			log.Debug("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
-
-			r.Div(blockReward, big32)
-			header.Supply.Add(header.Supply, r)
-			if header.Supply.Cmp(params.CTXC_TOP) > 0 {
-				header.Supply.Sub(header.Supply, r)
-				r.Set(big0)
-				break
-			}
-
-			log.Debug("Nephew mining reward", "reward", toCoin(r), "total", toCoin(header.Supply))
-			reward.Add(reward, r)
 		}
 
 		state.AddBalance(header.Coinbase, reward)
