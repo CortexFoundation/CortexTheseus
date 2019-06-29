@@ -629,8 +629,8 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 
 // commitUncle adds the given block to uncle block set, returns error if failed to add.
 func (w *worker) commitUncle(env *environment, uncle *types.Header) error {
-	w.mu.Lock()
-        defer w.mu.Unlock()
+	//w.mu.Lock()
+        //defer w.mu.Unlock()
 	hash := uncle.Hash()
 	if env.uncles.Contains(hash) {
 		return errors.New("uncle not unique")
