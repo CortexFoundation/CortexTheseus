@@ -59,7 +59,7 @@ const (
 
 	// minRecommitInterval is the minimal time interval to recreate the mining block with
 	// any newly arrived transactions.
-	minRecommitInterval = 1 * time.Second
+	minRecommitInterval = 3 * time.Second
 
 	// maxRecommitInterval is the maximum time interval to recreate the mining block with
 	// any newly arrived transactions.
@@ -412,7 +412,7 @@ func (w *worker) mainLoop() {
 			w.possibleUncles[ev.Block.Hash()] = ev.Block
 			// If our mining block contains less than 2 uncle blocks,
 			// add the new uncle block if valid and regenerate a mining block.
-			if w.isRunning() && w.current != nil && w.current.uncles.Cardinality() < 2 {
+			if w.isRunning() && w.current != nil && w.current.uncles.Cardinality() < 1 {
 				start := time.Now()
 				if err := w.commitUncle(w.current, ev.Block.Header()); err == nil {
 					var uncles []*types.Header
@@ -622,6 +622,8 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 
 // commitUncle adds the given block to uncle block set, returns error if failed to add.
 func (w *worker) commitUncle(env *environment, uncle *types.Header) error {
+	w.mu.Lock()
+        defer w.mu.Unlock()
 	hash := uncle.Hash()
 	if env.uncles.Contains(hash) {
 		return errors.New("uncle not unique")
