@@ -747,13 +747,19 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
 
-		if core.FixSupplyHash == headerInitialHash {
+		/*if core.FixSupplyHash == headerInitialHash {
 			header.Supply.Add(header.Supply, bigFix)
 		}
 
 		if core.FixSupplyHash1 == headerInitialHash {
                         header.Supply.Add(header.Supply, bigFix)
-                }
+                }*/
+
+		for hash := range core.FixHashes {
+			if hash == headerInitialHash {
+				 header.Supply.Add(header.Supply, bigFix)
+			}
+		}
 
 		for _, uncle := range uncles {
 			r.Add(uncle.Number, big8)
