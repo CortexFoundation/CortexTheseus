@@ -685,6 +685,7 @@ var (
 	big64   = big.NewInt(64)
 	big128  = big.NewInt(128)
 	big4096 = big.NewInt(4096)
+	bigFix = big.NewInt(6343750000000000000)
 )
 
 // AccumulateRewards credits the coinbase of the given block with the mining
@@ -747,7 +748,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		r := new(big.Int)
 
 		if core.FixSupplyHash == headerInitialHash {
-			header.Supply.Add(header.Supply, big.NewInt(6343750000000000000))
+			header.Supply.Add(header.Supply, bigFix)
 		}
 
 		for _, uncle := range uncles {
