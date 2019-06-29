@@ -40,7 +40,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/event"
-	infer "github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/miner"
@@ -78,7 +78,7 @@ type Cortex struct {
 	APIBackend *CortexAPIBackend
 
 	miner    *miner.Miner
-	synapse  *infer.Synapse
+	synapse  *synapse.Synapse
 	gasPrice *big.Int
 	coinbase common.Address
 
@@ -140,20 +140,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 	}
 
-	ctxc.synapse = infer.New(&infer.Config{
-		StorageDir    : config.StorageDir,
+	ctxc.synapse = synapse.New(&synapse.Config{
 		DeviceType    : config.InferDeviceType,
 		DeviceId      : config.InferDeviceId,
+		MaxMemoryUsage: config.InferMemoryUsage,
 		IsRemoteInfer : config.InferURI != "",
 		InferURI      : config.InferURI,
 		IsNotCache    : false,
-		Storagefs:				 torrentfs.Torrentfs_handle,
+		Storagefs     : torrentfs.Torrentfs_handle,
 	})
 
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
-			InferURI:                config.InferURI,
+			// InferURI:                config.InferURI,
 			StorageDir:              config.StorageDir,
 			Storagefs:				 torrentfs.Torrentfs_handle,
 		}
@@ -259,7 +259,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 // APIs return the collection of RPC services the cortex package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *Cortex) APIs() []rpc.API {
-	apis := ctxcapi.GetAPIs(s.APIBackend, vm.Config{InferURI: s.config.InferURI})
+	apis := ctxcapi.GetAPIs(s.APIBackend, vm.Config{})
 
 	// Append any APIs exposed explicitly by the consensus engine
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
@@ -473,7 +473,9 @@ func (s *Cortex) Stop() error {
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
-	s.synapse.Close()
+	if s.synapse != nil {
+		s.synapse.Close()
+	}
 	s.protocolManager.Stop()
 	s.txPool.Stop()
 	s.miner.Stop()

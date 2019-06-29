@@ -117,6 +117,24 @@ void CvmRuntime::SetInput(int index, DLTensor* data_in) {
   VERIFY_LT(static_cast<size_t>(index), input_nodes_.size());
   uint32_t eid = this->entry_id(input_nodes_[index], 0);
   data_entry_[eid].CopyFrom(data_in);
+
+  // Check input data's precision
+  int ndim = data_in->ndim;
+  std::vector<int64_t> shape(ndim);
+  uint64_t size = 1;
+  for (int i = 0; i < ndim; ++i) {
+    shape[i] = data_in->shape[i];
+    size *= static_cast<uint64_t>(shape[i]);
+  }
+  int32_t *data = static_cast<int32_t*>(data_in->data);
+  auto& prec = this->attrs_.precision[eid];
+  VERIFY_NE(prec, -1)
+    << "input data do not set precision";
+  int32_t range = (1 << (prec - 1)) - 1;
+  for (uint64_t i = 0; i < size; ++i) {
+    data[i] = std::max(-range, data[i]);
+    data[i] = std::min(range, data[i]);
+  }
 }
 /*!
  * \brief Get the number of outputs
@@ -221,9 +239,11 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
       << "Invalid parameters file format";
 
   std::vector<int> &precision = attrs_.precision;
+  std::vector<bool> set_flag(input_nodes_.size(), false);
   for (size_t i = 0; i < size; ++i) {
     int in_idx = GetInputIndex(names[i]);
     VERIFY_GE(in_idx, 0) << "Found param for non-existent input: " << names[i];
+    set_flag[in_idx] = true;
     uint32_t eid = this->entry_id(input_nodes_[in_idx], 0);
     VERIFY_LT(eid, data_entry_.size());
 
@@ -251,6 +271,13 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
         << " number=" << data[i]
         << " do not satisfied precision " << precision[eid];
     }
+  }
+
+  for (size_t i = 0; i < set_flag.size(); ++i) {
+    uint32_t nid = input_nodes_[i];
+    VERIFY((set_flag[i] || (nodes_[nid].name == "data")))
+      << "parameter nid=" << nid
+      << " name=" << nodes_[nid].name << " has not been loaded";
   }
 }
 
@@ -332,7 +359,7 @@ void CvmRuntime::SetupStorage() {
   // is mapped to this pool.
   data_entry_.resize(num_node_entries());
 
-  std::cerr << "data_entry_ = " << data_entry_.size() << "\n";
+  // std::cerr << "data_entry_ = " << data_entry_.size() << "\n";
   for (size_t i = 0; i < data_entry_.size(); ++i) {
     int storage_id = attrs_.storage_id[i];
     CHECK_LT(static_cast<size_t>(storage_id), storage_pool_.size());

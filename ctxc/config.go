@@ -96,6 +96,7 @@ type Config struct {
 	MinerDevices   string
 	InferDeviceType string
 	InferDeviceId int
+	InferMemoryUsage int64
 
 	Cuckoo cuckoo.Config
 

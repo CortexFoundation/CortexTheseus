@@ -195,6 +195,7 @@ func (st *StateTransition) preCheck() error {
 	}
 
 	if st.uploading() {
+		// log.Debug("state_transition", "uploading", st.uploading(), "st.state.GetNum(st.to())", st.state.GetNum(st.to()))
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
 			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
 			return ErrUnhandleTx
@@ -206,6 +207,9 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		// log.Debug("state_transition",
+		// 				  "new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)", new(big.Int).SetUint64(params.PER_UPLOAD_BYTES),
+		// 					"st.state.Upload(st.to())", st.state.Upload(st.to()), "cost", cost, "st.qp", st.qp)
 		if st.qp.Cmp(cost) < 0 {
 			log.Warn("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
 			return ErrQuotaLimitReached
@@ -349,7 +353,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	gu := st.gasUsed()
 	if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
 		for addr, mgas := range st.modelGas {
-			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_LIMIT {
+			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_UP_LIMIT {
 				continue
 			}
 
@@ -407,7 +411,7 @@ func Max(x, y *big.Int) *big.Int {
 
 //vote to model
 func (st *StateTransition) uploading() bool {
-	log.Trace("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
+	log.Debug("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
 	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 

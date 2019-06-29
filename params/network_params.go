@@ -28,25 +28,25 @@ const (
 	// considered probably final and its rotated bits are calculated.
 	BloomConfirms = 256
 
-	CHTFrequency = 65536
-	/*Check point:1 65535
-	Check point:2 131071
-	Check point:3 196607
-	Check point:4 262143
-	Check point:5 327679
-	Check point:6 393215
-	Check point:7 458751
-	Check point:8 524287
-	Check point:9 589823
-	Check point:10 655359
-	Check point:11 720895
-	Check point:12 786431
-	Check point:13 851967
-	Check point:14 917503
-	Check point:15 983039
-	Check point:16 1048575
-	Check point:17 1114111
-	Check point:18 1179647
-	Check point:19 1245183
-	Check point:20 1310719*/
+	CHTFrequency = 32768
+	/*Check point:1 32767
+	Check point:2 65535
+	Check point:3 98303
+	Check point:4 131071
+	Check point:5 163839
+	Check point:6 196607
+	Check point:7 229375
+	Check point:8 262143
+	Check point:9 294911
+	Check point:10 327679
+	Check point:11 360447
+	Check point:12 393215
+	Check point:13 425983
+	Check point:14 458751
+	Check point:15 491519
+	Check point:16 524287
+	Check point:17 557055
+	Check point:18 589823
+	Check point:19 622591
+	Check point:20 655359*/
 )
