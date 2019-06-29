@@ -35,7 +35,7 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 		select {
 		case results <- block.WithSeal(header):
 		default:
-			log.Warn("Sealing result is not read by miner", "mode", "fake", "sealhash", cuckoo.SealHash(block.Header()))
+			//log.Warn("Sealing result is not read by miner", "mode", "fake", "sealhash", cuckoo.SealHash(block.Header()))
 		}
 		return nil
 	}
@@ -185,6 +185,10 @@ func (cuckoo *Cuckoo) remote() {
 	// any other error, like no pending work or stale mining result).
 	// submitWork := func(nonce types.BlockNonce, mixDigest common.Hash, hash common.Hash, sol types.BlockSolution) bool {
 	submitWork := func(nonce types.BlockNonce, hash common.Hash, sol types.BlockSolution) bool {
+		if currentWork == nil {
+			//log.Error("Pending work without block", "sealhash", sealhash)
+			return false
+		}
 		// Make sure the work submitted is present
 		block := works[hash]
 		if block == nil {
@@ -209,14 +213,20 @@ func (cuckoo *Cuckoo) remote() {
 		}
 
 		// Solutions seems to be valid, return to the miner and notify acceptance.
-		select {
-		case cuckoo.resultCh <- block.WithSeal(header):
-			//delete(works, hash)
-			return true
-		default:
-			log.Info("Work submitted is stale", "hash", hash)
-			return false
+		solution := block.WithSeal(header)
+		if solution.NumberU64()+staleThreshold > currentWork.NumberU64() {
+			// Solutions seems to be valid, return to the miner and notify acceptance.
+			select {
+			case cuckoo.resultCh <- solution:
+				//delete(works, hash)
+				return true
+			default:
+				log.Info("Work submitted is stale", "hash", hash)
+				return false
+			}
 		}
+		//log.Warn("Work submitted is too old", "number", solution.NumberU64(), "sealhash", sealhash, "hash", solution.Hash())
+		return false
 	}
 
 	ticker := time.NewTicker(5 * time.Second)
