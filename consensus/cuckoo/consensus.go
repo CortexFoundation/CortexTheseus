@@ -670,9 +670,9 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 		header.GasUsed,
 		header.Time,
 		header.Extra,
-		header.Quota,
-		header.QuotaUsed,
-		header.Supply,
+		//header.Quota,
+		//header.QuotaUsed,
+		//header.Supply,
 	})
 	hasher.Sum(hash[:0])
 	return hash
