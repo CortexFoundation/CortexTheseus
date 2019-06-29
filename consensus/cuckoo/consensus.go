@@ -751,6 +751,10 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			header.Supply.Add(header.Supply, bigFix)
 		}
 
+		if core.FixSupplyHash1 == headerInitialHash {
+                        header.Supply.Add(header.Supply, bigFix)
+                }
+
 		for _, uncle := range uncles {
 			r.Add(uncle.Number, big8)
 			r.Sub(r, header.Number)
