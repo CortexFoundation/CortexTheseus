@@ -59,7 +59,7 @@ const (
 
 	// minRecommitInterval is the minimal time interval to recreate the mining block with
 	// any newly arrived transactions.
-	minRecommitInterval = 1 * time.Second
+	minRecommitInterval = 3 * time.Second
 
 	// maxRecommitInterval is the maximum time interval to recreate the mining block with
 	// any newly arrived transactions.
@@ -439,6 +439,9 @@ func (w *worker) mainLoop() {
 			// already included in the current mining block. These transactions will
 			// be automatically eliminated.
 			if !w.isRunning() && w.current != nil {
+				if gp := w.current.gasPool; gp != nil && gp.Gas() < params.TxGas {
+					continue
+				}
 				w.mu.RLock()
 				coinbase := w.coinbase
 				w.mu.RUnlock()
@@ -449,8 +452,12 @@ func (w *worker) mainLoop() {
 					txs[acc] = append(txs[acc], tx)
 				}
 				txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
+				tcount := w.current.tcount
 				w.commitTransactions(txset, coinbase, nil)
-				w.updateSnapshot()
+				if tcount != w.current.tcount {
+					w.updateSnapshot()
+				}
+				//w.updateSnapshot()
 			} else {
 				// If we're mining, but nothing is being processed, wake on new transactions
 				if w.config.Clique != nil && w.config.Clique.Period == 0 {
@@ -622,6 +629,8 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 
 // commitUncle adds the given block to uncle block set, returns error if failed to add.
 func (w *worker) commitUncle(env *environment, uncle *types.Header) error {
+	//w.mu.Lock()
+        //defer w.mu.Unlock()
 	hash := uncle.Hash()
 	if env.uncles.Contains(hash) {
 		return errors.New("uncle not unique")
