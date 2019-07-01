@@ -18,7 +18,7 @@ import (
 // and commits new work if consensus engine is running.
 func (w *worker) commit(uncles []*types.Header, interval func(), update bool, start time.Time) error {
 	//w.mu.Lock()
-        //defer w.mu.Unlock()
+	//defer w.mu.Unlock()
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
@@ -26,7 +26,9 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		*receipts[i] = *l
 	}
 	s := w.current.state.Copy()
-	h := w.current.header
+
+	h := new(types.Header)
+	*h = *w.current.header
 	block, err := w.engine.Finalize(w.chain, h, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
 		return err
