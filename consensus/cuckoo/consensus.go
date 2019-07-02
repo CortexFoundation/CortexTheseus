@@ -750,11 +750,11 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
 
-		for hash := range core.FixHashes {
-			if hash == headerInitialHash {
-				header.Supply.Add(header.Supply, bigFix)
-			}
-		}
+		//for hash := range core.FixHashes {
+		//	if hash == headerInitialHash {
+		//		header.Supply.Add(header.Supply, bigFix)
+		//	}
+		//}
 
 		if uncles != nil && len(uncles) > 0 {
 
@@ -783,6 +783,12 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 
 				log.Debug("Nephew mining reward", "reward", toCoin(r), "total", toCoin(header.Supply))
 				reward.Add(reward, r)
+			}
+		} else {
+			for hash := range core.FixHashes {
+				if hash == headerInitialHash {
+					header.Supply.Add(header.Supply, bigFix)
+				}
 			}
 		}
 
