@@ -342,7 +342,6 @@ func (b *Block) Quota() *big.Int          { return new(big.Int).Set(b.header.Quo
 func (b *Block) QuotaUsed() *big.Int      { return new(big.Int).Set(b.header.QuotaUsed) }
 func (b *Block) Supply() *big.Int         { return new(big.Int).Set(b.header.Supply) }
 func (b *Block) Header() *Header          { return CopyHeader(b.header) }
-func (b *Block) QuotaPool() *big.Int      { return new(big.Int).Sub(b.header.Quota, b.header.QuotaUsed) }
 
 // Body returns the non-header content of the block.
 func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles} }
