@@ -262,6 +262,16 @@ func CopyHeader(h *Header) *Header {
 		cpy.Extra = make([]byte, len(h.Extra))
 		copy(cpy.Extra, h.Extra)
 	}
+	if cpy.Quota = new(big.Int); h.Quota != nil {
+		cpy.Quota.Set(h.Quota)
+	}
+	if cpy.QuotaUsed = new(big.Int); h.QuotaUsed != nil {
+                cpy.QuotaUsed.Set(h.QuotaUsed)
+        }
+
+	if cpy.Supply = new(big.Int); h.Supply != nil {
+                cpy.Supply.Set(h.Supply)
+        }
 	return &cpy
 }
 
