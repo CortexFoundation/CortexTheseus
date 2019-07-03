@@ -268,7 +268,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	if header.Quota.Cmp(new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))) != 0 {
 		return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
 	}
-
+	//todo reward cut off 4 years later
 	if header.UncleHash == types.EmptyUncleHash {
 		if _, ok := core.FixHashes[header.Hash()]; ok {
 		} else {
