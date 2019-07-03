@@ -161,7 +161,7 @@ class CvmRuntime : public ModuleNode {
   }
 
   std::string GetNodeName(uint32_t nid) const {
-    return nodes_[nid].name;
+    return nodes_[nid].name();
   }
 
 
@@ -196,8 +196,6 @@ class CvmRuntime : public ModuleNode {
   struct Node {
     // operator type in string
     std::string op_type;
-    // name of the op
-    std::string name;
     // parameters
     CVMOpParam param;
     // precision
@@ -218,18 +216,23 @@ class CvmRuntime : public ModuleNode {
         if (key == "func_name") {
           param->func_name = value;
           bitmask |= 1;
+        // Ignore `num_inputs` and `num_outputs` attributes, for 
+        // Op has been registered in CVM.
         } else if (key == "num_inputs") {
-          param->num_inputs = strtoul(value.c_str(), nullptr, 10);
-          bitmask |= 2;
+          // param->num_inputs = strtoul(value.c_str(), nullptr, 10);
+          // bitmask |= 2;
         } else if (key == "num_outputs") {
-          param->num_outputs = strtoul(value.c_str(), nullptr, 10);
-          bitmask |= 4;
+          // param->num_outputs = strtoul(value.c_str(), nullptr, 10);
+          // bitmask |= 4;
+        } else if (key == "op_attrs") {
         } else if (key == "flatten_data") {
           param->flatten_data = strtoul(value.c_str(), nullptr, 10);
           bitmask |= 8;
+        } else {
+          LOG(FATAL) << "node attributes do not support key " << key;
         }
       }
-      VERIFY_EQ(bitmask, 1|2|4|8) << "invalid format";
+      VERIFY_EQ(bitmask, 1|8) << "invalid format";
     }
     // JSON Loader
     void Load(utils::JSONReader *reader) {
@@ -239,9 +242,11 @@ class CvmRuntime : public ModuleNode {
       while (reader->NextObjectItem(&key)) {
         if (key == "op") {
           reader->Read(&op_type);
+          VERIFY((op_type == "cvm_op") || (op_type == "null"))
+            << "CVM executor only supported cvm_op or parameter vs. " << op_type; 
           bitmask |= 1;
         } else if (key == "name") {
-          reader->Read(&name);
+          reader->Read(&attrs.name);
           bitmask |= 2;
         } else if (key == "inputs") {
           reader->Read(&inputs);
@@ -253,7 +258,7 @@ class CvmRuntime : public ModuleNode {
         } else if (key == "precision") {
           reader->Read(&precision);
         } else {
-          LOG(FATAL) << "do not support key " << key;
+          LOG(FATAL) << "node do not support key " << key;
         }
       }
       VERIFY_EQ(bitmask, 1|2|4) << "invalid format";
@@ -268,25 +273,50 @@ class CvmRuntime : public ModuleNode {
       return ret;
     }
 
-    void LoadOp() {
-      if (op_type == "null") return;
-      attrs.name = this->name;
-      param.func_name = GetOpName(param.func_name);
-      attrs.op = cvm::Op::Get(param.func_name);
+    inline const Op* op() const { return this->attrs.op; }
+    inline std::string name() const { return this->attrs.name; }
+    inline bool is_variable() const { return this->op_type == "null"; }
+    inline uint32_t num_inputs() const {
+      if (is_variable()) return 1;
+      if (this->op()->get_num_inputs == nullptr) {
+        auto num = this->op()->num_inputs;
+        if (num == cvm::kVarg) num = inputs.size();
+        return num;
+      } else {
+        return this->op()->get_num_inputs(this->attrs);
+      }
+    }
+    inline uint32_t num_outputs() const {
+      if (is_variable()) return 1;
+      if (this->op()->get_num_outputs == nullptr) {
+        return this->op()->num_outputs;
+      } else {
+        return this->op()->get_num_outputs(this->attrs);
+      }
     }
 
-    void LoadOpAttr(std::string json_) {
+    void LoadOpAndAttrs(std::string json_) {
+      VERIFY(!is_variable())
+        << "parameter " << this->name() << " is not operator";
+      param.func_name = GetOpName(param.func_name);
+      attrs.op = cvm::Op::Get(param.func_name);
+
       std::istringstream is(json_);
       utils::JSONReader reader(&is);
       reader.Read(&attrs.dict);
       if (attrs.op->attr_parser) {
         attrs.op->attr_parser(&attrs);
       }
+
+      param.num_inputs = this->num_inputs();
+      param.num_outputs = this->num_outputs();
+      VERIFY_EQ(param.num_inputs, inputs.size())
+        << "operator " << param.func_name << " name=" << attrs.name
+        << "'s inputs length invaild " << inputs.size() << " vs. " << param.num_inputs;
     }
 
   };
   struct GraphAttr {
-    size_t storage_num_not_alloctaed{0};
     std::vector<int> storage_id;
     std::vector<int> device_index;
     std::vector<std::string> dltype;
@@ -351,7 +381,7 @@ class CvmRuntime : public ModuleNode {
           reader->Read(&op_attrs);
           VERIFY(!reader->NextArrayItem());
           bitmask |= 8;
-        } else {
+        } else if (key == "dtype") {
           reader->BeginArray();
           VERIFY(reader->NextArrayItem());
           reader->Read(&type);
@@ -367,6 +397,8 @@ class CvmRuntime : public ModuleNode {
               LOG(FATAL) << "cannot skip graph attr " << key;
           }
           VERIFY(!reader->NextArrayItem());
+        } else {
+          LOG(FATAL) << "graph attribute " << key << " not supported";
         }
       }
       VERIFY_EQ(bitmask, 1|2|4|8) << "invalid format";
@@ -383,10 +415,8 @@ class CvmRuntime : public ModuleNode {
         bitmask |= 1;
       } else if (key == "arg_nodes") {
         reader->Read(&input_nodes_);
-        bitmask |= 2;
       } else if (key == "node_row_ptr") {
         reader->Read(&node_row_ptr_);
-        bitmask |= 4;
       } else if (key == "heads") {
         reader->Read(&outputs_);
         bitmask |= 8;
@@ -397,26 +427,15 @@ class CvmRuntime : public ModuleNode {
         reader->Read(&version_);
       } else if (key == "postprocess") {
         reader->Read(&postprocess_method_);
-      } else if (key == "metadata") {
-        break;
       } else {
-        LOG(FATAL) << "key " << key << " is not supported";
+        LOG(FATAL) << "key " << key << " in json is not supported";
       }
     }
-    VERIFY_EQ(bitmask, 1|2|4|8|16) << "invalid format";
-    VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size());
-    for (auto i = 0U; i < nodes_.size(); ++i) {
-      if (nodes_[i].op_type != "null") {
-        nodes_[i].LoadOp();
-        nodes_[i].LoadOpAttr(attrs_.op_attrs[i]);
-      }
-    }
-    for (auto i = 0U; i < nodes_.size(); ++i) {
-      for (auto e: nodes_[i].inputs) {
-        VERIFY_LT(entry_id(e), entry_id(i, 0)) << "the graph does not follow the topological order.";
-      }
-    }
+    VERIFY_EQ(bitmask, 1|8|16) << "invalid format";
+
   }
+
+  void PrepareGraphWithVersion();
   int GetOutputNum();
   int GetOutputPrecision();
   int GetInputPrecision();
@@ -454,10 +473,12 @@ public:
   }
   // Number of node entries.
   uint32_t num_node_entries() const {
-    return node_row_ptr_.back();
+    return this->num_node_entries_;
+    // return node_row_ptr_.back();
   }
   /*! \brief The graph nodes. */
   std::vector<Node> nodes_;
+  uint32_t num_node_entries_;
   /*! \brief The argument nodes. */
   std::vector<uint32_t> input_nodes_;
   /*! \brief Used for quick entry indexing. */

@@ -40,11 +40,6 @@ void CvmRuntime::SetupPrecision() {
   std::vector<Node> &idx = nodes_;
   std::vector<int> &precision = attrs_.precision;
   const auto rshape = GetTShapeArray(attrs_.shape);
-  if (precision.size() == 0) {
-    precision.resize(nodes_.size(), -1);
-  }
-  VERIFY_GE(precision.size(), nodes_.size()) << "nodes should have the corresponding precision.";
-  // Temp space for shape inference.
   std::vector<int> iprec, oprec;
   std::vector<TShape> shapes;
   static auto& finfer_prec =
@@ -57,10 +52,10 @@ void CvmRuntime::SetupPrecision() {
       // Variable node. No operator. Only one output entry.
       const auto& eid = entry_id(nid, 0);
       VERIFY_NE(precision[eid], -1)
-        << "variable node " << inode.name
+        << "variable node " << inode.name()
         << "'s precision has not been set";
       VERIFY_LE(precision[eid], 32)
-        << "variable node " << inode.name
+        << "variable node " << inode.name()
         << "'s precision out of INT32";
     } else {
       const uint32_t num_inputs = inode.param.num_inputs;
@@ -78,13 +73,12 @@ void CvmRuntime::SetupPrecision() {
       auto finfer = finfer_prec.get(inode.attrs.op, nullptr);
       // Call inference function of the operator.
       if (finfer == nullptr) {
-        VERIFY(false)
-          << "operator " << inode.attrs.op->name
+        LOG(FATAL) << "operator " << inode.op()->name
           << " has not registered FInferPrecision";
       }
       if (!finfer(inode.attrs, &shapes, &iprec, &oprec)) {
-        VERIFY(false)
-          << "operator " << inode.attrs.name
+        LOG(FATAL) << "operator " << inode.op()->name
+          << " name=" << inode.name()
           << ": infer precision failed";
       }
       // Save to the result map.
@@ -93,7 +87,7 @@ void CvmRuntime::SetupPrecision() {
         VERIFY_LE(oprec[i], 32)
             << " nid = " << nid << "i = " << i
             << " precison = " << oprec[i]
-            << " name= " << inode.name
+            << " name= " << inode.name()
             << " inode.attrs = " << attrs_.op_attrs[nid];
       }
     }
@@ -175,7 +169,7 @@ int64_t CvmRuntime::GetOps() {
       // Calculate internal symbol's memory cost with output shape,
       // which multiply scale 5 by default.
       int64_t mem_size = 0;
-      for (int i = 0; i < inode.param.num_outputs; ++i) {
+      for (uint32_t i = 0; i < inode.param.num_outputs; ++i) {
         mem_size += rshape[entry_id(nid, i)].Size();
       }
       mem_cost += mem_size * 5;
@@ -191,18 +185,6 @@ int64_t CvmRuntime::GetOps() {
 
 void CvmRuntime::SetupShape() {
   auto &idx = nodes_;
-  for (auto shape : attrs_.shape) {
-    long long sx = 1;
-    for (auto x: shape) {
-      sx *= x;
-      VERIFY_GT(x, 0)
-        << "single dimension must greater than 0";
-      VERIFY_LE(x, (1 << 24))
-        << "single dimension should not greater than " << (1 << 24);
-      VERIFY_LE(sx, (1 << 30))
-        << "shape size shoule not greater than" << (1 << 30);
-    }
-  }
   const auto rshape = GetTShapeArray(attrs_.shape);
   static auto& finfer_shape =
       Op::GetAttr<cvm::FInferNodeEntryAttr<TShape> >("FInferShape");
@@ -213,9 +195,9 @@ void CvmRuntime::SetupShape() {
   // inference step function for nid
   auto infer_shape = [&](uint32_t nid) {
     const auto& inode = idx[nid];
-    if (inode.op_type == "null") {
+    if (inode.is_variable()) {
       // Variable node. No operator. Only one output entry.
-      VERIFY(rshape[nid].ndim()) << "Invalid variable shape";
+      VERIFY(rshape[entry_id(nid, 0)].ndim()) << "Invalid variable shape";
     } else {
       const uint32_t num_inputs = inode.param.num_inputs;
       const uint32_t num_outputs = inode.param.num_outputs;
@@ -229,16 +211,15 @@ void CvmRuntime::SetupShape() {
         oshape[i] = TShape();
       }
       // which raise an error if the op has not been registered.
-      auto finfer = finfer_shape.get(inode.attrs.op, nullptr);
-      if (finfer != nullptr) {
-        // Call inference function of the operator.
-        try {
-          finfer(inode.attrs, &ishape, &oshape);
-        } catch (const std::exception& e) {
-          throw utils::Error(e.what() + std::string(" with ") + inode.attrs.op->name);
-        }
-      } else {
-        throw utils::Error(std::string("check shape method is undefined with") + inode.attrs.op->name);
+      auto finfer = finfer_shape.get(inode.op(), nullptr);
+      if (finfer == nullptr) {
+        LOG(FATAL) << "operator " << inode.op()->name
+          << " has not registered FInferShape";
+      }
+
+      if (!finfer(inode.attrs, &ishape, &oshape)) {
+        LOG(FATAL) << "operator " << inode.op()->name
+          << " name=" << inode.name() << ": infer shape failed";
       }
       // Save to the result map.
       for (uint32_t i = 0; i < num_inputs; ++i) {
@@ -295,8 +276,6 @@ void CvmRuntime::SetupType() {
   for (unsigned int i = 0; i < dltype.size(); ++i) {
     VERIFY_EQ(dltype[i], "int32")
       << "type " << dltype[i] << " are not supported.";
-    // VERIFY(dltype[i] == "uint32" || dltype[i] == "int32") << "type " << dltype[i] << " are not supported.";
-    // int t = dltype[i] == "uint32" ? 9 : 4;
     rtype.push_back(4);
   }
 
@@ -323,19 +302,17 @@ void CvmRuntime::SetupType() {
       for (uint32_t i = 0; i < num_outputs; ++i) {
         otype[i] = -1;
       }
-      // which raise an error if the op has bit been registered.
+
       auto finfer = finfer_type.get(inode.attrs.op, SameType);
-      if (finfer != nullptr) {
-        try {
-          cvm::NodeAttrs attrs;
-          finfer(inode.attrs, &itype, &otype);
-        } catch (const std::exception& e) {
-          throw utils::Error(e.what() + std::string(" with ") + inode.attrs.op->name);
-        }
-      } else {
-        throw utils::Error(std::string("check type method is undefined with") + inode.attrs.op->name);
+      if (finfer == nullptr) {
+        LOG(FATAL) << "operator " << inode.op()->name
+          << " has not registered FInferType";
       }
-      // Save to the result map.
+      if (!finfer(inode.attrs, &itype, &otype)) {
+        LOG(FATAL) << "operator " << inode.op()->name
+          << " name=" << inode.name() << ": infer type failed";
+      }
+
       for (uint32_t i = 0; i < num_inputs; ++i) {
         VERIFY_EQ(itype[i], rtype[entry_id(inode.inputs[i])])
           << "Check type failed, "
