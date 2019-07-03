@@ -850,11 +850,13 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	// Update the head fast sync block if better
 	bc.mu.Lock()
 	head := blockChain[len(blockChain)-1]
-	if td := bc.GetTd(head.Hash(), head.NumberU64()); td != nil { // Rewind may have occurred, skip in that case
-		currentFastBlock := bc.CurrentFastBlock()
-		if bc.GetTd(currentFastBlock.Hash(), currentFastBlock.NumberU64()).Cmp(td) < 0 {
-			rawdb.WriteHeadFastBlockHash(bc.db, head.Hash())
-			bc.currentFastBlock.Store(head)
+	if bc.CurrentHeader().Number.Cmp(head.Number()) >= 0 {
+		if td := bc.GetTd(head.Hash(), head.NumberU64()); td != nil { // Rewind may have occurred, skip in that case
+			currentFastBlock := bc.CurrentFastBlock()
+			if bc.GetTd(currentFastBlock.Hash(), currentFastBlock.NumberU64()).Cmp(td) < 0 {
+				rawdb.WriteHeadFastBlockHash(bc.db, head.Hash())
+				bc.currentFastBlock.Store(head)
+			}
 		}
 	}
 	bc.mu.Unlock()
@@ -1231,7 +1233,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			receipts types.Receipts
 			logs     []*types.Log
 			usedGas  uint64
-			pErr error
+			pErr     error
 		)
 
 		dbState, pErr = state.New(parent.Root(), bc.stateCache)
@@ -1358,7 +1360,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		oldChain    types.Blocks
 		commonBlock *types.Block
 
-		deletedTxs  types.Transactions
+		deletedTxs types.Transactions
 		addedTxs   types.Transactions
 
 		deletedLogs []*types.Log

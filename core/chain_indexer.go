@@ -412,7 +412,7 @@ func (c *ChainIndexer) processSection(section uint64, lastHead common.Hash) (com
 }
 
 func (c *ChainIndexer) verifyLastHead() {
-	for c.storedSections > 0 {
+	for c.storedSections > 0 && c.storedSections > c.checkpointSections {
 		if c.SectionHead(c.storedSections-1) == rawdb.ReadCanonicalHash(c.chainDb, c.storedSections*c.sectionSize-1) {
 			return
 		}
