@@ -306,7 +306,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
                 return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
         }
 
-        bigInitReward := getRewardByNumber(header.Number)
+        bigInitReward := calculateRewardByNumber(header.Number)
 
         uncleMaxReward := big.NewInt(0).Div(big.NewInt(0).Mul(bigInitReward, big7), big8)
         nephewReward := big.NewInt(0).Div(bigInitReward, big32)
@@ -709,7 +709,6 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 // Some weird constants to avoid constant memory allocs for them.
 var (
 	big0 = big.NewInt(0)
-	//big2   = big.NewInt(2)
 	big4    = big.NewInt(4)
 	big7    = big.NewInt(7)
 	big8    = big.NewInt(8)
@@ -723,15 +722,8 @@ var (
 	//bigMaxReward  = big.NewInt(0).Mul(big.NewInt(19687500000), big.NewInt(1000000000))
 )
 
-func getRewardByNumber(num *big.Int) *big.Int {
+func calculateRewardByNumber(num *big.Int) *big.Int {
 	blockReward := big.NewInt(0).Set(FrontierBlockReward)
-	//if config.IsByzantium(num) {
-	//        blockReward = ByzantiumBlockReward
-	//}
-
-	//if config.IsConstantinople(num) {
-	//        blockReward = ConstantinopleBlockReward
-	//}
 
 	if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
 		d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
@@ -746,29 +738,15 @@ func getRewardByNumber(num *big.Int) *big.Int {
 // reward. The total reward consists of the static block reward and rewards for
 // included uncles. The coinbase of each uncle block is also rewarded.
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header, parent *types.Header, uncles []*types.Header) {
-	headerInitialHash := header.Hash()
-	// Select the correct block reward based on chain progression
-	//blockReward := FrontierBlockReward
-
-	//if config.IsByzantium(header.Number) {
-	//	blockReward = ByzantiumBlockReward
-	//}
-
-	//if config.IsConstantinople(header.Number) {
-	//	blockReward = ConstantinopleBlockReward
-	//}
-
-	//if header.Number.Cmp(params.CortexBlockRewardPeriod) >= 0 {
-	//	d := new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod)
-	//	e := new(big.Int).Exp(big2, d, nil)
-	//	blockReward = new(big.Int).Div(blockReward, e)
-	//}
-
-	blockReward := getRewardByNumber(header.Number)
 
 	if parent == nil {
-		return
-	}
+                return
+        }
+
+	headerInitialHash := header.Hash()
+
+	blockReward := calculateRewardByNumber(header.Number)
+
 	log.Debug("Parent status", "number", parent.Number, "hash", parent.Hash(), "supply", toCoin(parent.Supply))
 	if header.Supply == nil {
 		header.Supply = new(big.Int)
