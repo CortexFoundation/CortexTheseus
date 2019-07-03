@@ -268,27 +268,32 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	if header.Quota.Cmp(new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))) != 0 {
 		return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
 	}
-	bigInitReward:= getRewardByNumber(header.Number)
-	uncleMaxReward:= big.NewInt(0).Div(big.NewInt(0).Mul(bigInitReward,big.NewInt(7)), big.NewInt(8))
-	nephewReward:= big.NewInt(0).Div(bigInitReward, big.NewInt(32))
-	bigMinReward := big.NewInt(0).Add(big.NewInt(0).Add(uncleMaxReward, nephewReward), bigInitReward)
-	bigMaxReward := big.NewInt(0).Add(big.NewInt(0).Mul(big.NewInt(2), big.NewInt(0).Add(uncleMaxReward, nephewReward)), bigInitReward)
+
+	bigInitReward := getRewardByNumber(header.Number)
+
+	uncleMaxReward := big.NewInt(0).Div(big.NewInt(0).Mul(bigInitReward, big7), big8)
+	//uncleMinReward := big.NewInt(0).Div(bigInitReward, big8)
+	nephewReward := big.NewInt(0).Div(bigInitReward, big32)
+
+	//final with uncle
+	//bigMinReward := big.NewInt(0).Add(big.NewInt(0).Add(uncleMinReward, nephewReward), bigInitReward)
+	bigMaxReward := big.NewInt(0).Add(big.NewInt(0).Mul(big2, big.NewInt(0).Add(uncleMaxReward, nephewReward)), bigInitReward)
 
 	if header.UncleHash == types.EmptyUncleHash {
 		if _, ok := core.FixHashes[header.Hash()]; ok {
 		} else {
-			if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) == 0 {
-				return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number)
+			if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) > 0 {
+				return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number, bigInitReward)
 			}
 		}
 	} else {
 		if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMaxReward)) > 0 {
-			return fmt.Errorf("invalid supply with uncle of max reward %v, %v", header.Supply, parent.Supply)
+			return fmt.Errorf("invalid supply with uncle of max reward %v, %v, %v", header.Supply, parent.Supply, bigMaxReward)
 		}
 
-		if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMinReward)) < 0 {
-                        return fmt.Errorf("invalid supply with uncle of min reward %v, %v", header.Supply, parent.Supply)
-                }
+		//if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMinReward)) < 0 {
+		//	return fmt.Errorf("invalid supply with uncle of min reward %v, %v, %v", header.Supply, parent.Supply, bigMinReward)
+		//}
 	}
 	// Verify the block's difficulty based in it's timestamp and parent's difficulty
 	expected := cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
@@ -712,33 +717,34 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 var (
 	big0 = big.NewInt(0)
 	//big2   = big.NewInt(2)
-	big4          = big.NewInt(4)
-	big8          = big.NewInt(8)
-	big32         = big.NewInt(32)
-	big64         = big.NewInt(64)
-	big128        = big.NewInt(128)
-	big4096       = big.NewInt(4096)
-	bigInitReward = big.NewInt(7000000000000000000)
-	bigFix        = big.NewInt(6343750000000000000)
-	bigMidReward  = big.NewInt(0).Mul(big.NewInt(13343750000), big.NewInt(1000000000))
-	bigMaxReward  = big.NewInt(0).Mul(big.NewInt(19687500000), big.NewInt(1000000000))
+	big4    = big.NewInt(4)
+	big7    = big.NewInt(7)
+	big8    = big.NewInt(8)
+	big32   = big.NewInt(32)
+	big64   = big.NewInt(64)
+	big128  = big.NewInt(128)
+	big4096 = big.NewInt(4096)
+	//bigInitReward = big.NewInt(7000000000000000000)
+	bigFix = big.NewInt(6343750000000000000)
+	//bigMidReward  = big.NewInt(0).Mul(big.NewInt(13343750000), big.NewInt(1000000000))
+	//bigMaxReward  = big.NewInt(0).Mul(big.NewInt(19687500000), big.NewInt(1000000000))
 )
 
 func getRewardByNumber(num *big.Int) *big.Int {
-	blockReward := FrontierBlockReward
+	blockReward := big.NewInt(0).Set(FrontierBlockReward)
 	//if config.IsByzantium(num) {
-        //        blockReward = ByzantiumBlockReward
-        //}
+	//        blockReward = ByzantiumBlockReward
+	//}
 
-        //if config.IsConstantinople(num) {
-        //        blockReward = ConstantinopleBlockReward
-        //}
+	//if config.IsConstantinople(num) {
+	//        blockReward = ConstantinopleBlockReward
+	//}
 
-        if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
-                d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
-                e := new(big.Int).Exp(big2, d, nil)
-                blockReward = new(big.Int).Div(blockReward, e)
-        }
+	if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
+		d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
+		e := new(big.Int).Exp(big2, d, nil)
+		blockReward = new(big.Int).Div(blockReward, e)
+	}
 
 	return blockReward
 }

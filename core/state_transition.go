@@ -384,7 +384,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber)
 			//todo vote for model
 		} else {
-			log.Info("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex())
+			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex())
 		}
 	}
 
