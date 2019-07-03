@@ -809,10 +809,9 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				reward.Add(reward, r)
 			}
 		} else {
-			for hash := range core.FixHashes {
-				if hash == headerInitialHash {
-					header.Supply.Add(header.Supply, bigFix)
-				}
+
+			if _, ok := core.FixHashes[headerInitialHash]; ok {
+				header.Supply.Add(header.Supply, bigFix)
 			}
 		}
 
