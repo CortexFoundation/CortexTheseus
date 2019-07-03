@@ -268,18 +268,27 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	if header.Quota.Cmp(new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))) != 0 {
 		return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
 	}
+	bigInitReward:= getRewardByNumber(header.Number)
+	uncleMaxReward:= big.NewInt(0).Div(big.NewInt(0).Mul(bigInitReward,big.NewInt(7)), big.NewInt(8))
+	nephewReward:= big.NewInt(0).Div(bigInitReward, big.NewInt(32))
+	bigMinReward := big.NewInt(0).Add(big.NewInt(0).Add(uncleMaxReward, nephewReward), bigInitReward)
+	bigMaxReward := big.NewInt(0).Add(big.NewInt(0).Mul(big.NewInt(2), big.NewInt(0).Add(uncleMaxReward, nephewReward)), bigInitReward)
 
 	if header.UncleHash == types.EmptyUncleHash {
 		if _, ok := core.FixHashes[header.Hash()]; ok {
 		} else {
-			if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) > 0 {
+			if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) == 0 {
 				return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number)
 			}
 		}
 	} else {
 		if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMaxReward)) > 0 {
-			return fmt.Errorf("invalid supply with uncle %v, %v", header.Supply, parent.Supply)
+			return fmt.Errorf("invalid supply with uncle of max reward %v, %v", header.Supply, parent.Supply)
 		}
+
+		if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMinReward)) < 0 {
+                        return fmt.Errorf("invalid supply with uncle of min reward %v, %v", header.Supply, parent.Supply)
+                }
 	}
 	// Verify the block's difficulty based in it's timestamp and parent's difficulty
 	expected := cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
@@ -715,27 +724,48 @@ var (
 	bigMaxReward  = big.NewInt(0).Mul(big.NewInt(19687500000), big.NewInt(1000000000))
 )
 
+func getRewardByNumber(num *big.Int) *big.Int {
+	blockReward := FrontierBlockReward
+	//if config.IsByzantium(num) {
+        //        blockReward = ByzantiumBlockReward
+        //}
+
+        //if config.IsConstantinople(num) {
+        //        blockReward = ConstantinopleBlockReward
+        //}
+
+        if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
+                d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
+                e := new(big.Int).Exp(big2, d, nil)
+                blockReward = new(big.Int).Div(blockReward, e)
+        }
+
+	return blockReward
+}
+
 // AccumulateRewards credits the coinbase of the given block with the mining
 // reward. The total reward consists of the static block reward and rewards for
 // included uncles. The coinbase of each uncle block is also rewarded.
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header, parent *types.Header, uncles []*types.Header) {
 	headerInitialHash := header.Hash()
 	// Select the correct block reward based on chain progression
-	blockReward := FrontierBlockReward
+	//blockReward := FrontierBlockReward
 
-	if config.IsByzantium(header.Number) {
-		blockReward = ByzantiumBlockReward
-	}
+	//if config.IsByzantium(header.Number) {
+	//	blockReward = ByzantiumBlockReward
+	//}
 
-	if config.IsConstantinople(header.Number) {
-		blockReward = ConstantinopleBlockReward
-	}
+	//if config.IsConstantinople(header.Number) {
+	//	blockReward = ConstantinopleBlockReward
+	//}
 
-	if header.Number.Cmp(params.CortexBlockRewardPeriod) >= 0 {
-		d := new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod)
-		e := new(big.Int).Exp(big2, d, nil)
-		blockReward = new(big.Int).Div(blockReward, e)
-	}
+	//if header.Number.Cmp(params.CortexBlockRewardPeriod) >= 0 {
+	//	d := new(big.Int).Div(header.Number, params.CortexBlockRewardPeriod)
+	//	e := new(big.Int).Exp(big2, d, nil)
+	//	blockReward = new(big.Int).Div(blockReward, e)
+	//}
+
+	blockReward := getRewardByNumber(header.Number)
 
 	if parent == nil {
 		return
