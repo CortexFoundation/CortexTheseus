@@ -264,37 +264,6 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	if header.Time.Cmp(parent.Time) <= 0 {
 		return errZeroBlockTime
 	}
-
-	if header.Quota.Cmp(new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))) != 0 {
-		return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
-	}
-
-	bigInitReward := getRewardByNumber(header.Number)
-
-	uncleMaxReward := big.NewInt(0).Div(big.NewInt(0).Mul(bigInitReward, big7), big8)
-	//uncleMinReward := big.NewInt(0).Div(bigInitReward, big8)
-	nephewReward := big.NewInt(0).Div(bigInitReward, big32)
-
-	//final with uncle
-	//bigMinReward := big.NewInt(0).Add(big.NewInt(0).Add(uncleMinReward, nephewReward), bigInitReward)
-	bigMaxReward := big.NewInt(0).Add(big.NewInt(0).Mul(big2, big.NewInt(0).Add(uncleMaxReward, nephewReward)), bigInitReward)
-
-	if header.UncleHash == types.EmptyUncleHash {
-		if _, ok := core.FixHashes[header.Hash()]; ok {
-		} else {
-			if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) > 0 {
-				return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number, bigInitReward)
-			}
-		}
-	} else {
-		if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMaxReward)) > 0 {
-			return fmt.Errorf("invalid supply with uncle of max reward %v, %v, %v", header.Supply, parent.Supply, bigMaxReward)
-		}
-
-		//if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMinReward)) < 0 {
-		//	return fmt.Errorf("invalid supply with uncle of min reward %v, %v, %v", header.Supply, parent.Supply, bigMinReward)
-		//}
-	}
 	// Verify the block's difficulty based in it's timestamp and parent's difficulty
 	expected := cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
 
@@ -332,6 +301,23 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	if diff := new(big.Int).Sub(header.Number, parent.Number); diff.Cmp(big.NewInt(1)) != 0 {
 		return consensus.ErrInvalidNumber
 	}
+
+	if header.Quota.Cmp(new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))) != 0 {
+                return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
+        }
+        //todo reward cut off 4 years later
+        if header.UncleHash == types.EmptyUncleHash {
+                if _, ok := core.FixHashes[header.Hash()]; ok {
+                } else {
+                        if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) > 0 {
+                                return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number)
+                        }
+                }
+        } else {
+                if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMaxReward)) > 0 {
+                        return fmt.Errorf("invalid supply with uncle %v, %v", header.Supply, parent.Supply)
+                }
+        }
 
 	// Verify the engine specific seal securing the block
 	if seal {
