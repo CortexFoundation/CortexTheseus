@@ -418,7 +418,7 @@ func (c *ChainConfig) GetMatureBlock() int64 {
 }
 
 // Get Block uploading quota
-func (c *ChainConfig) GeteBlockQuota(num *big.Int) uint64 {
+func (c *ChainConfig) GetBlockQuota(num *big.Int) uint64 {
 	if c.ChainID.Uint64() == 42 {
 		return Bernard_BLOCK_QUOTA
 	}
