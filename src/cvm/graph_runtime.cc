@@ -59,8 +59,90 @@ void CvmRuntime::Init() {
   std::istringstream is(graph_json_);
   utils::JSONReader reader(&is);
   this->Load(&reader);
+  this->PrepareGraphWithVersion();
   this->CheckAttr();
   this->PlanStorage();
+}
+
+void CvmRuntime::PrepareGraphWithVersion() {
+  // CVM executor load operators
+  VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size())
+    << "graph attribute op_attrs size: " << attrs_.op_attrs.size()
+    << ", Expected " << nodes_.size();
+  for (auto i = 0U; i < nodes_.size(); ++i) {
+    if (!nodes_[i].is_variable()) {
+      nodes_[i].LoadOpAndAttrs(attrs_.op_attrs[i]);
+    }
+  }
+
+  num_node_entries_ = 0;
+  std::vector<uint32_t> node_row_ptr;
+  std::vector<uint32_t> input_nodes;
+  for (uint32_t i = 0; i < nodes_.size(); ++i) {
+    if (nodes_[i].is_variable()) input_nodes.push_back(i);
+    node_row_ptr.push_back(this->num_node_entries_);
+    num_node_entries_ += nodes_[i].num_outputs();
+  }
+  node_row_ptr.push_back(num_node_entries_);
+
+  VERIFY_EQ(num_node_entries_, attrs_.storage_id.size())
+    << "graph attribute storage_id size: " << attrs_.storage_id.size()
+    << ", Expected " << num_node_entries_;
+  VERIFY_EQ(num_node_entries_, attrs_.dltype.size())
+    << "graph attribute dltype size: " << attrs_.dltype.size()
+    << ", Expected " << num_node_entries_;
+
+  // Verify shape
+  VERIFY_EQ(num_node_entries_, attrs_.shape.size())
+    << "graph attribute shape size: " << attrs_.shape.size()
+    << ", Expected " << num_node_entries_;
+  for (auto shape: attrs_.shape) {
+    uint64_t sx = 1;
+    for (auto x : shape) {
+      sx *= x;
+      VERIFY_GT(x, 0) << "single dimension must greater than 0";
+      VERIFY_LE(x, (1 << 24))
+        << "single dimension should not greater than " << (1 << 24);
+      VERIFY_LE(sx, (1 << 30))
+        << "shape size shoule not greater than" << (1 << 30);
+    }
+  }
+  VERIFY_EQ(num_node_entries_, attrs_.precision.size())
+    << "graph attribute precision size: " << attrs_.precision.size()
+    << ", Expected " << num_node_entries_;
+  if (!attrs_.device_index.empty()) {
+    VERIFY_EQ(num_node_entries_, attrs_.device_index.size())
+      << "graph attribute device_index size: " << attrs_.device_index.size()
+      << ", Expected " << num_node_entries_;
+  }
+
+  std::string& version = this->version_;
+  if (version == "cvm_1.0.0") {
+    VERIFY_EQ(node_row_ptr_.size(), node_row_ptr.size())
+      << "node_row_ptr's size: " << (node_row_ptr_.size())
+      << ", Expected " << node_row_ptr.size();
+    for (auto i = 0; i < node_row_ptr.size(); ++i) {
+      VERIFY_EQ(node_row_ptr[i], node_row_ptr_[i])
+        << "node_row_ptr is invalid at index " << i
+        << " with value " << node_row_ptr_[i] << ", Expected "
+        << node_row_ptr[i];
+    }
+    
+    VERIFY_EQ(input_nodes_.size(), input_nodes.size())
+      << "arg_nodes' size: " << input_nodes_.size()
+      << ", Expected " << input_nodes.size();
+    for (auto i = 0; i < input_nodes.size(); ++i) {
+      VERIFY_EQ(input_nodes[i], input_nodes_[i])
+        << "arg_nodes is invalid at index " << i
+        << " with value " << input_nodes_[i]
+        << ", Expected " << input_nodes[i];
+    }
+  } else if (version == "cvm_1.1.0") {
+    node_row_ptr_ = node_row_ptr;
+    input_nodes_ = input_nodes;
+  } else {
+    LOG(FATAL) << "graph version " << version << " not supported";
+  }
 }
 
 void CvmRuntime::Setup() {
@@ -101,7 +183,7 @@ void CvmRuntime::GetOutputShape(int index, DLTensor* t) {
 int CvmRuntime::GetInputIndex(const std::string& name) {
   for (size_t i = 0; i< input_nodes_.size(); ++i) {
     uint32_t nid = input_nodes_[i];
-    if (nodes_[nid].name == name) {
+    if (nodes_[nid].name() == name) {
       return static_cast<int>(i);
     }
   }
@@ -181,8 +263,7 @@ int CvmRuntime::GetInputPrecision() {
   int ret = 0;
   for (unsigned int eid = 0; eid < nodes_.size(); ++eid) {
     int precision = attrs_.precision[eid];
-    // std::cerr << nodes_[eid].name << " " << precision << "\n";
-    if (nodes_[eid].name == "data")
+    if (nodes_[eid].name() == "data")
       ret = std::max(ret, precision);
   }
   return ret;
@@ -275,9 +356,9 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
 
   for (size_t i = 0; i < set_flag.size(); ++i) {
     uint32_t nid = input_nodes_[i];
-    VERIFY((set_flag[i] || (nodes_[nid].name == "data")))
+    VERIFY((set_flag[i] || (nodes_[nid].name() == "data")))
       << "parameter nid=" << nid
-      << " name=" << nodes_[nid].name << " has not been loaded";
+      << " name=" << nodes_[nid].name() << " has not been loaded";
   }
 }
 
@@ -374,7 +455,7 @@ void CvmRuntime::SetupOpExecs() {
   // setup the array and requirements.
   for (uint32_t nid = 0; nid < this->GetNumOfNodes(); ++nid) {
     auto& inode = nodes_[nid];
-    if (inode.op_type == "null") continue;
+    if (inode.is_variable()) continue;
     std::vector<DLTensor> args;
     for (const auto& e : inode.inputs) {
       args.push_back(*(data_entry_[this->entry_id(e)].operator->()));
@@ -383,8 +464,6 @@ void CvmRuntime::SetupOpExecs() {
       uint32_t eid = this->entry_id(nid, index);
       args.push_back(*(data_entry_[eid].operator->()));
     }
-    VERIFY(inode.op_type == "cvm_op") << "Can only take cvm_op as op";
-    // std::cerr << inode.name << "\n";
     op_execs_[nid] = CreateCVMOp(inode.param, &inode.attrs, args, inode.inputs.size());
   }
 }
@@ -445,7 +524,7 @@ std::function<void()> CvmRuntime::CreateCVMOp(
   module_name += ".";
   auto func = cvm::runtime::Registry::Get(module_name + op);
   VERIFY(func != nullptr) << "function undefined " << module_name + op;
-  return [arg_ptr, op, func, device_type](){
+  return [arg_ptr, op, func](){
     CVMRetValue rv;
     CVMArgs targs(
       arg_ptr->arg_values.data(),
@@ -576,7 +655,6 @@ PackedFunc CvmRuntime::GetFunction(
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
           auto num_output = this->GetOutputNum();
-          // std::cerr << " #output" << num_output << "\n";
           *static_cast<int32_t*>(placeholder) = num_output;
         } else {
           *rv = -1;
@@ -614,7 +692,7 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_END();
       });
   } else {
-    return PackedFunc([this](CVMArgs args, CVMRetValue *rv) {
+    return PackedFunc([](CVMArgs args, CVMRetValue *rv) {
         CALL_BEGIN();
         CALL_END();
       });
