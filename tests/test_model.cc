@@ -289,11 +289,11 @@ void test_thread() {
 int test_models(int device_type = 0) {
   auto model_roots = {
     // "/data/std_out/null",
-    // "/data/std_out/resnet50_mxg",
+    "/data/std_out/resnet50_mxg",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2",
     // "/data/std_out/trec",
-    "/data/new_cvm/yolo3_darknet53_voc/data",
+    // "/data/new_cvm/yolo3_darknet53_voc/data",
     // "/data/lz_model_storage/dcnet_mnist_v1/data",
     // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
     // "/data/lz_model_storage/resnet50_v1_imagenet/data",
