@@ -61,15 +61,23 @@ void CvmRuntime::Init() {
   this->Load(&reader);
   this->PrepareGraphWithVersion();
   this->CheckAttr();
-  this->PlanStorage();
 }
 
 void CvmRuntime::PrepareGraphWithVersion() {
+  // Check topological order
+  for (size_t i = 0; i < nodes_.size(); ++i) {
+    auto eid = entry_id(i, 0);
+    for (auto e: nodes_[i].inputs) {
+      VERIFY_LT(entry_id(e), eid)
+        << "the graph does not follow the topological order.";
+    }
+  }
+
   // CVM executor load operators
   VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size())
     << "graph attribute op_attrs size: " << attrs_.op_attrs.size()
     << ", Expected " << nodes_.size();
-  for (auto i = 0U; i < nodes_.size(); ++i) {
+  for (size_t i = 0; i < nodes_.size(); ++i) {
     if (!nodes_[i].is_variable()) {
       nodes_[i].LoadOpAndAttrs(attrs_.op_attrs[i]);
     }
@@ -88,9 +96,9 @@ void CvmRuntime::PrepareGraphWithVersion() {
   VERIFY_EQ(num_node_entries_, attrs_.storage_id.size())
     << "graph attribute storage_id size: " << attrs_.storage_id.size()
     << ", Expected " << num_node_entries_;
-  VERIFY_EQ(num_node_entries_, attrs_.dltype.size())
-    << "graph attribute dltype size: " << attrs_.dltype.size()
-    << ", Expected " << num_node_entries_;
+  for (auto sid : attrs_.storage_id) {
+    VERIFY_GE(sid, 0) << "storage id should not less than 0, but " << sid;
+  }
 
   // Verify shape
   VERIFY_EQ(num_node_entries_, attrs_.shape.size())
@@ -98,30 +106,49 @@ void CvmRuntime::PrepareGraphWithVersion() {
     << ", Expected " << num_node_entries_;
   for (auto shape: attrs_.shape) {
     uint64_t sx = 1;
+    VERIFY((0 < shape.size()) && (shape.size() <= 6))
+      << "shape ndim should between (0, 6], but " << shape.size();
     for (auto x : shape) {
       sx *= x;
-      VERIFY_GT(x, 0) << "single dimension must greater than 0";
-      VERIFY_LE(x, (1 << 24))
-        << "single dimension should not greater than " << (1 << 24);
-      VERIFY_LE(sx, (1 << 30))
-        << "shape size shoule not greater than" << (1 << 30);
+      VERIFY((0 < x) && (x <= (1<<24)))
+        << "single dimension should between (0, " << (1<<24)
+        << "], but " << x;
+      VERIFY_LE(sx, (1<<30))
+        << "shape size shoule not greater than" << (1<<30)
+        << ", but " << sx;
     }
   }
+
+  // Verify precision
   VERIFY_EQ(num_node_entries_, attrs_.precision.size())
     << "graph attribute precision size: " << attrs_.precision.size()
     << ", Expected " << num_node_entries_;
+  for (auto prec : attrs_.precision) {
+    VERIFY((prec == -1) || (0 < prec && prec <= 32))
+      << "precision should be -1 or between (0, 32], but " << prec;
+  }
+
+  // Verify device_index if set in graph
   if (!attrs_.device_index.empty()) {
     VERIFY_EQ(num_node_entries_, attrs_.device_index.size())
       << "graph attribute device_index size: " << attrs_.device_index.size()
       << ", Expected " << num_node_entries_;
   }
 
+  // Verify node_row_ptr and input_nodes with cvm version
   std::string& version = this->version_;
   if (version == "cvm_1.0.0") {
+    VERIFY_EQ(num_node_entries_, attrs_.dltype.size())
+      << "graph attribute dltype size: " << attrs_.dltype.size()
+      << ", Expected " << num_node_entries_;
+    for (auto dtype : attrs_.dltype) {
+      VERIFY_EQ(dtype, "int32") << "type " << dtype << " are not supported";
+    }
+
     VERIFY_EQ(node_row_ptr_.size(), node_row_ptr.size())
       << "node_row_ptr's size: " << (node_row_ptr_.size())
       << ", Expected " << node_row_ptr.size();
-    for (auto i = 0; i < node_row_ptr.size(); ++i) {
+    for (size_t i = 0; i < node_row_ptr.size(); ++i) {
       VERIFY_EQ(node_row_ptr[i], node_row_ptr_[i])
         << "node_row_ptr is invalid at index " << i
         << " with value " << node_row_ptr_[i] << ", Expected "
@@ -131,7 +158,7 @@ void CvmRuntime::PrepareGraphWithVersion() {
     VERIFY_EQ(input_nodes_.size(), input_nodes.size())
       << "arg_nodes' size: " << input_nodes_.size()
       << ", Expected " << input_nodes.size();
-    for (auto i = 0; i < input_nodes.size(); ++i) {
+    for (size_t i = 0; i < input_nodes.size(); ++i) {
       VERIFY_EQ(input_nodes[i], input_nodes_[i])
         << "arg_nodes is invalid at index " << i
         << " with value " << input_nodes_[i]
@@ -146,16 +173,9 @@ void CvmRuntime::PrepareGraphWithVersion() {
 }
 
 void CvmRuntime::Setup() {
+  this->PlanStorage();
   this->SetupStorage();
   this->SetupOpExecs();
-}
-
-int64_t CvmRuntime::GetOps(const std::string& graph_json) {
-  std::istringstream is(graph_json);
-  utils::JSONReader reader(&is);
-  this->Load(&reader);
-  this->CheckAttr();
-  return this->GetOps();
 }
 
 void CvmRuntime::GetShape(int index, DLTensor* t) {
@@ -197,6 +217,9 @@ int CvmRuntime::GetInputIndex(const std::string& name) {
  */
 void CvmRuntime::SetInput(int index, DLTensor* data_in) {
   VERIFY_LT(static_cast<size_t>(index), input_nodes_.size());
+  auto nid = input_nodes_[index];
+  auto name = nodes_[nid].name();
+  VERIFY_EQ(name, "data") << "input name must be data, but " << name;
   uint32_t eid = this->entry_id(input_nodes_[index], 0);
   data_entry_[eid].CopyFrom(data_in);
 
@@ -210,8 +233,6 @@ void CvmRuntime::SetInput(int index, DLTensor* data_in) {
   }
   int32_t *data = static_cast<int32_t*>(data_in->data);
   auto& prec = this->attrs_.precision[eid];
-  VERIFY_NE(prec, -1)
-    << "input data do not set precision";
   int32_t range = (1 << (prec - 1)) - 1;
   for (uint64_t i = 0; i < size; ++i) {
     data[i] = std::max(-range, data[i]);
@@ -364,34 +385,23 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
 
 void CvmRuntime::PlanStorage() {
   // Grab saved optimization plan from graph.
-  std::vector<CVMType> vtype;
-  for (const std::string& s_type : attrs_.dltype) {
-    vtype.push_back(cvm::runtime::String2CVMType(s_type));
-  }
+  std::vector<CVMType> vtype(this->num_node_entries_,
+          cvm::runtime::String2CVMType("int32"));
 
   // Find the maximum space size.
   for (size_t i = 0; i < attrs_.shape.size(); ++i) {
-    int storage_id = attrs_.storage_id[i];
     // Use the fallback device if no device index is available.
     int device_type = static_cast<int>(ctxs_[0].device_type);
     if (!attrs_.device_index.empty()) {
       device_type = attrs_.device_index[i];
     }
-    size_t size = 1;
-    int len = 0;
-    for (int64_t sz : attrs_.shape[i]) {
-      VERIFY_LE(sz, 0x7fffffffll);
-      len += 32 - __builtin_clz(static_cast<unsigned>(sz));
-      size *= static_cast<size_t>(sz);
-    }
-    VERIFY_LE(len, 48);
-    VERIFY_GE(storage_id, 0) << "Do not support runtime shape op";
+    auto size = TShape(attrs_.shape[i]).Size();
     DLDataType t = vtype[i];
     size_t bits = t.bits * t.lanes;
     VERIFY(bits % 8U ==  0U || bits ==1U);
     size_t bytes = ((bits + 7U) / 8U) * size;
 
-    uint32_t sid = static_cast<uint32_t>(storage_id);
+    uint32_t sid = static_cast<uint32_t>(attrs_.storage_id[i]);
     if (sid >= pool_entry.size()) {
       pool_entry.resize(sid + 1, {0, -1});
     } else {
@@ -406,19 +416,19 @@ void CvmRuntime::PlanStorage() {
 
 int64_t CvmRuntime::GetStorageSize() {
   int64_t ret = 0;
+  int64_t MAX_STORAGE = (int64_t)1<<32;
   for (const auto& pit : pool_entry) {
     ret += (static_cast<int64_t>(pit.size + 3) / 4) * 4;
-    VERIFY_LE(ret, 0x0000ffffffffffffull);
+    VERIFY_LE(ret, MAX_STORAGE)
+      << "storage size exceed MAX_STORAGE " << MAX_STORAGE;
   }
   return ret;
 }
 
 void CvmRuntime::SetupStorage() {
   // Grab saved optimization plan from graph.
-  std::vector<CVMType> vtype;
-  for (const std::string& s_type : attrs_.dltype) {
-    vtype.push_back(cvm::runtime::String2CVMType(s_type));
-  }
+  std::vector<CVMType> vtype(this->num_node_entries_,
+      cvm::runtime::String2CVMType("int32"));
 
   // Allocate the space.
   for (const auto& pit : pool_entry) {
@@ -440,7 +450,6 @@ void CvmRuntime::SetupStorage() {
   // is mapped to this pool.
   data_entry_.resize(num_node_entries());
 
-  // std::cerr << "data_entry_ = " << data_entry_.size() << "\n";
   for (size_t i = 0; i < data_entry_.size(); ++i) {
     int storage_id = attrs_.storage_id[i];
     CHECK_LT(static_cast<size_t>(storage_id), storage_pool_.size());
@@ -481,21 +490,21 @@ std::function<void()> CvmRuntime::CreateCVMOp(
   std::shared_ptr<OpArgs> arg_ptr = std::make_shared<OpArgs>();
   // setup address.
   arg_ptr->args = std::move(args);
-  if (param.flatten_data) {
-    arg_ptr->shape_data.resize(arg_ptr->args.size());
-  }
+  // if (param.flatten_data) {
+  //   arg_ptr->shape_data.resize(arg_ptr->args.size());
+  // }
   for (size_t i = 0; i < arg_ptr->args.size(); ++i) {
     CVMValue v;
     DLTensor* t = &(arg_ptr->args[i]);
     v.v_handle = t;
     arg_ptr->arg_values.push_back(v);
     arg_ptr->arg_tcodes.push_back(kArrayHandle);
-    if (param.flatten_data) {
-      arg_ptr->shape_data[i] = std::accumulate(
-          t->shape, t->shape + t->ndim, 1, std::multiplies<int64_t>());
-      t->ndim = 1;
-      t->shape = &(arg_ptr->shape_data[i]);
-    }
+    // if (param.flatten_data) {
+    //   arg_ptr->shape_data[i] = std::accumulate(
+    //       t->shape, t->shape + t->ndim, 1, std::multiplies<int64_t>());
+    //   t->ndim = 1;
+    //   t->shape = &(arg_ptr->shape_data[i]);
+    // }
   }
   CVMValue t_attr;
   t_attr.v_handle = (void*)attr;
@@ -599,8 +608,6 @@ PackedFunc CvmRuntime::GetFunction(
   } else if (name == "get_postprocess_method") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
         CALL_BEGIN();
-//        std::cerr << " postprocess_method() = " << this->postprocess_method()
-//                  << "args[0].type_code() = " << args[0].type_code() << "\n";
         if (args[0].type_code() == kStr) {
           char *placeholder = args[0].ptr<char>();
           VERIFY(placeholder != NULL);

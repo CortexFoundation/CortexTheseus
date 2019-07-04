@@ -92,12 +92,12 @@ class CvmRuntime : public ModuleNode {
   void SetContext(const std::vector<CVMContext>& ctxs);
 
   int64_t GetOps();
-  int64_t GetOps(const std::string& sym_json);
 
   static int64_t EstimateOps(const std::string& sym_json) {
     CvmRuntime rt;
-    auto ret = rt.GetOps(sym_json);
-    return ret;
+    rt.SetGraph(sym_json);
+    rt.Init();
+    return rt.GetOps();
   }
   /*!
    * \brief Get the input index given the name of input.
@@ -204,8 +204,6 @@ class CvmRuntime : public ModuleNode {
     std::vector<NodeEntry> inputs;
     // op attr
     NodeAttrs attrs;
-    // control deps
-    std::vector<uint32_t> control_deps;
     // JSON Loader
     void LoadAttrs(utils::JSONReader *reader, CVMOpParam* param) {
       int bitmask = 0;
@@ -216,23 +214,15 @@ class CvmRuntime : public ModuleNode {
         if (key == "func_name") {
           param->func_name = value;
           bitmask |= 1;
-        // Ignore `num_inputs` and `num_outputs` attributes, for 
-        // Op has been registered in CVM.
-        } else if (key == "num_inputs") {
-          // param->num_inputs = strtoul(value.c_str(), nullptr, 10);
-          // bitmask |= 2;
-        } else if (key == "num_outputs") {
-          // param->num_outputs = strtoul(value.c_str(), nullptr, 10);
-          // bitmask |= 4;
-        } else if (key == "op_attrs") {
-        } else if (key == "flatten_data") {
-          param->flatten_data = strtoul(value.c_str(), nullptr, 10);
-          bitmask |= 8;
+        } else if ((key == "num_inputs") ||
+                   (key == "num_outputs") ||
+                   (key == "op_attrs") ||
+                   (key == "flatten_data")) {
         } else {
           LOG(FATAL) << "node attributes do not support key " << key;
         }
       }
-      VERIFY_EQ(bitmask, 1|8) << "invalid format";
+      VERIFY_EQ(bitmask, 1) << "invalid format";
     }
     // JSON Loader
     void Load(utils::JSONReader *reader) {
@@ -251,10 +241,8 @@ class CvmRuntime : public ModuleNode {
         } else if (key == "inputs") {
           reader->Read(&inputs);
           bitmask |= 4;
-        } else if (key == "attr" || key == "attrs") {
+        } else if (key == "attrs") {
           this->LoadAttrs(reader, &param);
-        } else if (key == "control_deps") {
-          reader->Read(&control_deps);
         } else if (key == "precision") {
           reader->Read(&precision);
         } else {
@@ -337,7 +325,6 @@ class CvmRuntime : public ModuleNode {
           VERIFY(reader->NextArrayItem());
           reader->Read(&dltype);
           VERIFY(!reader->NextArrayItem());
-          bitmask |= 1;
         } else if (key == "storage_id") {
           reader->BeginArray();
           VERIFY(reader->NextArrayItem());
@@ -381,7 +368,7 @@ class CvmRuntime : public ModuleNode {
           reader->Read(&op_attrs);
           VERIFY(!reader->NextArrayItem());
           bitmask |= 8;
-        } else if (key == "dtype") {
+        } else if ((key == "dtype") || (key == "dltype")) {
           reader->BeginArray();
           VERIFY(reader->NextArrayItem());
           reader->Read(&type);
@@ -389,7 +376,7 @@ class CvmRuntime : public ModuleNode {
             VERIFY(reader->NextArrayItem());
             std::vector<int> temp;
             reader->Read(&temp);
-          } else if (type == "size_t") {
+          } else if (type == "list_str") {
             VERIFY(reader->NextArrayItem());
             size_t temp;
             reader->Read(&temp);
@@ -401,7 +388,7 @@ class CvmRuntime : public ModuleNode {
           LOG(FATAL) << "graph attribute " << key << " not supported";
         }
       }
-      VERIFY_EQ(bitmask, 1|2|4|8) << "invalid format";
+      VERIFY_EQ(bitmask, 2|4|8) << "invalid format";
     }
   };
   // The graph attribute fields.
