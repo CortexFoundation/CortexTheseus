@@ -940,8 +940,9 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 	s := w.current.state.Copy()
 
-	h := new(types.Header)
-	*h = *w.current.header
+	///h := new(types.Header)
+	//*h = *w.current.header
+	h := types.CopyHeader(w.current.header)
 	block, err := w.engine.Finalize(w.chain, h, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
 		return err

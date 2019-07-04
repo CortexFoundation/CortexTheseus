@@ -152,7 +152,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	if checkpoint, ok := params.TrustedCheckpoints[blockchain.Genesis().Hash()]; ok {
 		manager.checkpointNumber = (checkpoint.SectionIndex+1)*params.CHTFrequency - 1
 		manager.checkpointHash = checkpoint.SectionHead
-		log.Warn("Check point", "number", manager.checkpointNumber, "hash", manager.checkpointHash, "genesis", blockchain.Genesis().Hash(), "check", checkpoint, "ok", ok)
+		log.Warn("Check point", "number", manager.checkpointNumber, "hash", manager.checkpointHash, "genesis", blockchain.Genesis().Hash(), "check", checkpoint.SectionHead, "ok", ok)
 	} else {
 		log.Warn("No check point found", "genesis", blockchain.Genesis().Hash())
 	}
