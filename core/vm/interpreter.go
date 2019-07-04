@@ -25,7 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	// "github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"sync/atomic"
 )
 
@@ -60,7 +60,7 @@ type Config struct {
 	CallFakeVM   bool
 	DebugInferVM bool
 	StorageDir   string
-	Storagefs    torrentfs.CVMStorage
+	// Storagefs    torrentfs.CVMStorage
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI

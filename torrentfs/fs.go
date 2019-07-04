@@ -37,7 +37,7 @@ func (fs InfoHashFileSystem) Available(infohash string, rawSize int64) bool {
 func (fs InfoHashFileSystem) GetFile(infohash string, subpath string) ([]byte, error) {
 	fn := path.Join(fs.DataDir, infohash, subpath)
 	data, err := ioutil.ReadFile(fn)
-	fmt.Println("InfoHashFileSystem", "GetFile", fn)
+	fmt.Println("InfoHashFileSystem", "GetFile", fn, "err", err)
 	return data, err
 }
 

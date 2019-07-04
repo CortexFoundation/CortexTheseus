@@ -197,6 +197,7 @@ func init() {
 		// makecacheCommand,
 		// makedagCommand,
 		versionCommand,
+		cvmCommand,
 		// bugCommand,
 		// licenseCommand,
 		// See config.go
@@ -210,6 +211,7 @@ func init() {
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
+	app.Flags = append(app.Flags, cvmFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

@@ -31,7 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	// "github.com/CortexFoundation/CortexTheseus/torrentfs"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -531,11 +531,11 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 
 	if !cvm.vmConfig.DebugInferVM {
-		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
+		if !synapse.Engine().Available(modelInfoHash, int64(modelRawSize)) {
 			return nil, errors.New("Torrent file model not available, blockchain and torrent not match, modelInfoHash: " + modelInfoHash)
 		}
 
-		if !torrentfs.Available(inputInfoHash, int64(inputRawSize)) {
+		if !synapse.Engine().Available(inputInfoHash, int64(inputRawSize)) {
 			return nil, errors.New("Torrent file input not available, blockchain and torrent not match, inputInfoHash: " + inputInfoHash)
 		}
 	}
@@ -565,7 +565,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
 	if !cvm.vmConfig.DebugInferVM {
-		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
+		if !synapse.Engine().Available(modelInfoHash, int64(modelRawSize)) {
 			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
 		}
 	}
@@ -591,7 +591,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 		return 0, err
 	}
 	modelRawSize := modelMeta.RawSize
-	if !cvm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash.Hex(), int64(modelRawSize)) {
+	if !cvm.vmConfig.DebugInferVM && !synapse.Engine().Available(modelMeta.Hash.Hex(), int64(modelRawSize)) {
 		log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize)
 		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelMeta.Hash.Hex())
 	}

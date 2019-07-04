@@ -1121,8 +1121,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
 	if cfg.InferDeviceType == "gpu" {
 		cfg.InferDeviceType = "cuda"
-	}
-	if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
+	} else if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
 		u, err := url.Parse(cfg.InferDeviceType)
 		if err == nil && u.Scheme == "remote" && len(u.Hostname()) > 0 && len(u.Port()) > 0 {
 			cfg.InferURI = "http://" + u.Hostname() + ":" + u.Port();
@@ -1130,6 +1129,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
+	} else if (IsCVMIPC(cfg.InferDeviceType)) {
+		cfg.InferURI = "http://127.0.0.1:4321";
+	} else {
+			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
 	cfg.InferMemoryUsage = int64(ctx.GlobalInt(InferMemoryFlag.Name))
@@ -1388,4 +1391,12 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 		}
 		return action(ctx)
 	}
+}
+
+func IsCVMIPC(deviceType string) bool {
+	u, err := url.Parse(deviceType)
+	if err == nil && u.Scheme == "ipc" && len(u.Hostname()) > 0 && len(u.Port()) == 0 {
+		return true;
+	}
+	return false;
 }

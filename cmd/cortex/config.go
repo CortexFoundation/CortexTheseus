@@ -18,13 +18,15 @@ package main
 
 import (
 	"bufio"
+	"time"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"reflect"
 	"unicode"
-	"strings"
+	// "strings"
 
 	cli "gopkg.in/urfave/cli.v1"
 
@@ -33,6 +35,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/naoina/toml"
 )
 
@@ -154,11 +157,20 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
-	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
-	if storageEnabled {
-		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
+	// storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
+	// if storageEnabled {
+	// 	utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
+	// }
+	if (utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name))) {
+		go func() {
+			cmd := os.Args[0]
+			log.Info("RegisterCVMService", "cmd", cmd)
+			prg := exec.Command(cmd, "cvm", "--cvm.port", "4321")
+			prg.Start()
+			prg.Wait()
+		}()
+		time.Sleep(1000 * time.Millisecond)
 	}
-	
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 
 	// if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
