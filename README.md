@@ -1,4 +1,4 @@
-# Cortex Readme
+# Cortex
 
 ## System Requirements
 ### ubuntu
