@@ -26,7 +26,7 @@ import (
 	"os/exec"
 	"reflect"
 	"unicode"
-	// "strings"
+	"strings"
 
 	cli "gopkg.in/urfave/cli.v1"
 
@@ -157,15 +157,19 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
-	// storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
-	// if storageEnabled {
-	// 	utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
-	// }
+	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
+	if utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)) {
+		storageEnabled = false
+	}
+	if storageEnabled {
+		log.Info("makeFullNode", "storageEnabled", storageEnabled)
+		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
+	}
 	if (utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name))) {
 		go func() {
 			cmd := os.Args[0]
 			log.Info("RegisterCVMService", "cmd", cmd)
-			prg := exec.Command(cmd, "cvm", "--cvm.port", "4321")
+			prg := exec.Command(cmd, "cvm", "--cvm.port", "4321", "--cvm.dir", utils.MakeStorageDir(ctx))
 			prg.Start()
 			prg.Wait()
 		}()

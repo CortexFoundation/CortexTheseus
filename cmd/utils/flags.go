@@ -1119,7 +1119,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
-	if cfg.InferDeviceType == "gpu" {
+	if cfg.InferDeviceType == "cpu" {
+	} else if cfg.InferDeviceType == "gpu" {
 		cfg.InferDeviceType = "cuda"
 	} else if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
 		u, err := url.Parse(cfg.InferDeviceType)

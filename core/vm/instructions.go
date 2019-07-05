@@ -867,10 +867,11 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	}
 	inputSize := big.NewInt(int64(len(inputBuff)))
 	modelAddr := common.BigToAddress(_modelAddr)
-	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
+	// log.Debug(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
 	modelMeta, modelErr := checkModel(interpreter.cvm, stack, modelAddr)
 	if modelErr != nil {
+		// log.Error("opInferArray", "modelErr", modelErr)
 		stack.push(interpreter.intPool.getZero())
 		return nil, modelErr
 	}

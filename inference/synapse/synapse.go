@@ -102,6 +102,3 @@ func (s *Synapse) Close() {
 	log.Info("Synapse Engine Closed")
 }
 
-func (s* Synapse) Available(infohash string, rawSize int64) bool {
-	return s.config.Storagefs.Available(infohash, rawSize)
-}
