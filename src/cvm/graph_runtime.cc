@@ -73,6 +73,16 @@ void CvmRuntime::PrepareGraphWithVersion() {
     }
   }
 
+  // Check input node names unique
+  std::unordered_set<std::string> name_set;
+  for (auto nid : input_nodes_) {
+    auto name = nodes_[nid].name();
+    auto ret = name_set.emplace(name);
+    if (!ret.second) {
+      LOG(FATAL) << "node name " << name << " duplicated in graph";
+    }
+  }
+
   // CVM executor load operators
   VERIFY_EQ(nodes_.size(), attrs_.op_attrs.size())
     << "graph attribute op_attrs size: " << attrs_.op_attrs.size()
@@ -207,8 +217,19 @@ int CvmRuntime::GetInputIndex(const std::string& name) {
       return static_cast<int>(i);
     }
   }
-  LOG(WARNING) << "Warning: cannot find \"" << name << "\" among input";
+  LOG(FATAL) << "cannot find `" << name << "` among input";
   return -1;
+}
+
+void CvmRuntime::SetData(int index, DLTensor* data_in) {
+  VERIFY((0 <= index && 
+        static_cast<size_t>(index) < input_nodes_.size()))
+    << "input index out of range [0, "
+    << input_nodes_.size() << "), but " << index;
+  VERIFY(nodes_[input_nodes_[index]].is_data())
+    << "set input must named `data`";
+  
+  this->SetInput(index, data_in);
 }
 /*!
  * \brief set index-th input to the graph.
@@ -216,28 +237,59 @@ int CvmRuntime::GetInputIndex(const std::string& name) {
  * \param data_in The input data.
  */
 void CvmRuntime::SetInput(int index, DLTensor* data_in) {
-  VERIFY_LT(static_cast<size_t>(index), input_nodes_.size());
-  auto nid = input_nodes_[index];
-  auto name = nodes_[nid].name();
-  VERIFY_EQ(name, "data") << "input name must be data, but " << name;
+  VERIFY((0 <= index &&
+        static_cast<size_t>(index) < input_nodes_.size()))
+    << "input index out of range [0, "
+    << input_nodes_.size() << "), but " << index;
+  uint32_t nid = input_nodes_[index];
   uint32_t eid = this->entry_id(input_nodes_[index], 0);
-  data_entry_[eid].CopyFrom(data_in);
 
-  // Check input data's precision
+  auto dtype = data_in->dtype;
+  VERIFY((dtype.code == kDLInt) &&
+         (dtype.bits == 32) &&
+         (dtype.lanes == 1))
+    << "cvm runtime only supported INT32 NDArray, but ("
+    << dtype.code << ", " << dtype.bits << ", " << dtype.lanes << ")";
+  auto ctx = data_in->ctx;
+  VERIFY_EQ(ctx.device_type, kDLCPU)
+    << "cvm runtime only supported input with `cpu` device"
+    << ", but " << ctx.device_type;
+
+  // Load input data with check
   int ndim = data_in->ndim;
-  std::vector<int64_t> shape(ndim);
+  auto dshp = data_in->shape;
+  auto expected = attrs_.shape[eid];
   uint64_t size = 1;
+  VERIFY_EQ(ndim, expected.size())
+    << "Loaded data shape ndim " << ndim
+    << " not matched " << expected.size();
   for (int i = 0; i < ndim; ++i) {
-    shape[i] = data_in->shape[i];
-    size *= static_cast<uint64_t>(shape[i]);
+    VERIFY_EQ(dshp[i], expected[i])
+      << "Loaded data shape at index " << i
+      << " with value " << dshp[i]
+      << ", Expected " << expected[i];
+    size *= dshp[i];
   }
+
+  // Precision check
   int32_t *data = static_cast<int32_t*>(data_in->data);
   auto& prec = this->attrs_.precision[eid];
   int32_t range = (1 << (prec - 1)) - 1;
-  for (uint64_t i = 0; i < size; ++i) {
-    data[i] = std::max(-range, data[i]);
-    data[i] = std::min(range, data[i]);
+  if (nodes_[nid].is_data()) {
+    for (uint64_t i = 0; i < size; ++i) {
+      if (data[i] > range) data[i] = range;
+      else if (data[i] < -range) data[i] = -range;
+    }
+  } else {
+    for (uint64_t i = 0; i < size; ++i) {
+      VERIFY(((-range <= data[i]) && (data[i] <= range)))
+        << "parameter " << nodes_[nid].name()
+        << " at index " << i << " value:" << data[i]
+        << " exceed of precision " << prec;
+    }
   }
+
+  data_entry_[eid].CopyFrom(data_in);
 }
 /*!
  * \brief Get the number of outputs
@@ -281,13 +333,13 @@ int CvmRuntime::GetOutputPrecision() {
 }
 
 int CvmRuntime::GetInputPrecision() {
-  int ret = 0;
-  for (unsigned int eid = 0; eid < nodes_.size(); ++eid) {
-    int precision = attrs_.precision[eid];
-    if (nodes_[eid].name() == "data")
-      ret = std::max(ret, precision);
+  for (size_t i = 0; i < nodes_.size(); ++i) {
+    if (nodes_[i].is_data()) {
+      return attrs_.precision[entry_id(i, 0)];
+    }
   }
-  return ret;
+  LOG(FATAL) << "can not find input `data`";
+  return -1;
 }
 
 int CvmRuntime::GetOutputNum() {
@@ -340,44 +392,20 @@ void CvmRuntime::LoadParams(utils::Stream* strm) {
   VERIFY(size == names.size())
       << "Invalid parameters file format";
 
-  std::vector<int> &precision = attrs_.precision;
   std::vector<bool> set_flag(input_nodes_.size(), false);
   for (size_t i = 0; i < size; ++i) {
     int in_idx = GetInputIndex(names[i]);
-    VERIFY_GE(in_idx, 0) << "Found param for non-existent input: " << names[i];
     set_flag[in_idx] = true;
-    uint32_t eid = this->entry_id(input_nodes_[in_idx], 0);
-    VERIFY_LT(eid, data_entry_.size());
 
     // The data_entry is allocated on device, NDArray.load always load the array into CPU.
     NDArray temp;
     temp.Load(strm);
-    data_entry_[eid].CopyFrom(temp);
-
-    // Check parameter's precision
-    int ndim = temp->ndim;
-    std::vector<int64_t> shape(ndim);
-    uint64_t size = 1;
-    for (int i = 0; i < ndim; ++i) {
-      shape[i] = temp->shape[i];
-      size *= static_cast<uint64_t>(shape[i]);
-    }
-    int32_t *data = static_cast<int32_t*>(temp->data);
-    VERIFY_NE(precision[eid], -1)
-      << "parameter " << names[i]
-      << " do not set precision";
-    int64_t range = (1 << (precision[eid] - 1)) - 1;
-    for (uint64_t i = 0; i < size; ++i) {
-      VERIFY_LE(data[i], range)
-        << "parameter " << names[i] << " index=" << i
-        << " number=" << data[i]
-        << " do not satisfied precision " << precision[eid];
-    }
+    this->SetInput(in_idx, const_cast<DLTensor*>(temp.operator->()));
   }
 
   for (size_t i = 0; i < set_flag.size(); ++i) {
     uint32_t nid = input_nodes_[i];
-    VERIFY((set_flag[i] || (nodes_[nid].name() == "data")))
+    VERIFY((set_flag[i] || (nodes_[nid].is_data())))
       << "parameter nid=" << nid
       << " name=" << nodes_[nid].name() << " has not been loaded";
   }
@@ -555,9 +583,9 @@ PackedFunc CvmRuntime::GetFunction(
         CALL_BEGIN();
         if (args[0].type_code() == kStr) {
           int in_idx = this->GetInputIndex(args[0]);
-          if (in_idx >= 0) this->SetInput(in_idx, args[1]);
+          this->SetData(in_idx, args[1]);
         } else {
-          this->SetInput(args[0], args[1]);
+          this->SetData(args[0], args[1]);
         }
         CALL_END();
       });
