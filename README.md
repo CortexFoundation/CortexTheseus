@@ -56,5 +56,5 @@ And then, run any command to start full node `cortex`:
 ```Bash
 1. cd cortex
 2. export LD_LIBRARY_PATH=./:$LD_LIBRARY_PATH
-3. ./cortex —syncmode fast
+3. ./cortex —syncmode fast --infer.devicetype=cpu/gpu
 ```
