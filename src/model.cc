@@ -179,11 +179,10 @@ DLTensor* CVMModel::PlanInput() {
 DLTensor* CVMModel::PlanInput(void *input) {
   DLTensor* ret = nullptr;
   CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
-  auto data = static_cast<int*>(ret->data);
+  auto data = static_cast<int32_t*>(ret->data);
   if (input_bytes_ == 4) {
       for (int i = 0; i < in_size_; ++i) {
           data[i] = static_cast<int32_t*>(input)[i];
-          // std::cerr << "data = " << i << " " << data[i] << "\n";
       }
   } else {
       for (int i = 0; i < in_size_; ++i) {
@@ -339,7 +338,6 @@ int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
 }
 
 int CVMModel::GetInputLength() {
-  // std::cerr << " GetInputLength = " << (int)in_size_ << " " << (int)input_bytes_ << "\n";
   return static_cast<int>(in_size_) * input_bytes_;
 }
 

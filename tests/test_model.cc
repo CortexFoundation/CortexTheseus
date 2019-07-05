@@ -117,7 +117,7 @@ int run_LIF(string model_root, int device_type = 0) {
               << input.size() << " " << input_int32_t.size() << "\n";
     memcpy(input.data(), input_int32_t.data(), input.size());
   }
-  if (model_root.find("yolo") != string::npos)
+  else if (model_root.find("yolo") != string::npos)
   {
     std::vector<unsigned long> tshape;
     npy::LoadArrayFromNumpy("/tmp/yolo/out/data.npy", tshape, input);
@@ -127,7 +127,7 @@ int run_LIF(string model_root, int device_type = 0) {
     }
     std::cerr << "\n";
   }
-  if (model_root.find("std_out") != string::npos)
+  else if (model_root.find("std_out") != string::npos)
   {
     string data_file = model_root + "/data.npy";
     std::vector<unsigned long> tshape;
@@ -138,7 +138,7 @@ int run_LIF(string model_root, int device_type = 0) {
     }
     std::cerr << "\n";
   }
-  if (model_root.find("3145ad19228c1cd2d051314e72f26c1ce77b7f02") != string::npos)
+  else if (model_root.find("3145ad19228c1cd2d051314e72f26c1ce77b7f02") != string::npos)
   {
     string data_file =  model_root + "/cpu.txt";
     std::vector<unsigned long> tshape;
@@ -150,6 +150,12 @@ int run_LIF(string model_root, int device_type = 0) {
       input[i]= (int8_t)data[i];
     }
   }
+
+  std::cout << "data: ";
+  for (int i = 0; i < input.size() && i < 10; ++i) {
+    std::cout << int(input[i]) << " ";
+  }
+  std::cout << std::endl;
 
   double start = omp_get_wtime();
   int n_run = 1;
@@ -289,7 +295,7 @@ void test_thread() {
 int test_models(int device_type = 0) {
   auto model_roots = {
     // "/data/std_out/null",
-    "/data/std_out/resnet50_mxg",
+    // "/data/std_out/resnet50_mxg",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2",
     // "/data/std_out/trec",
@@ -307,7 +313,7 @@ int test_models(int device_type = 0) {
     // "/data/lz_model_storage/octconv_resnet26_0.250/data",
     // "/data/std_out/resnet50_mxg/",
     // "/data/std_out/resnet50_v2",
-    // "/data/std_out/qd10_resnet20_v2"
+    // "/data/std_out/qd10_resnet20_v2",
     // "/data/std_out/random_3_0/",
     // "/data/std_out/random_3_1/",
     // "/data/std_out/random_3_2/",
@@ -315,20 +321,21 @@ int test_models(int device_type = 0) {
     // "/data/std_out/random_3_4/",
     // "/data/std_out/random_3_5/",
     // "/data/std_out/random_4_0/",
-    // //"/data/std_out/random_4_1/",
-    // //"/data/std_out/random_4_2/",
-    // //"/data/std_out/random_4_3/",
-    // //"/data/std_out/random_4_4/",
+    // "/data/std_out/random_4_1/",
+    // "/data/std_out/random_4_2/",
+    // "/data/std_out/random_4_3/",
+    // "/data/std_out/random_4_4/",
     // "/data/std_out/random_4_5/",
     // "/data/std_out/random_4_6/",
     // "/data/std_out/random_4_7/",
     // "/data/std_out/random_4_8/",
-    // "/data/std_out/random_4_9/"
-    "/data/std_out/log2",
-    // "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/"
+    // "/data/std_out/random_4_9/",
+    // "/data/std_out/log2",
+    "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
   };
   for (auto model_root : model_roots) {
-    run_LIF(model_root, device_type);
+    auto ret = run_LIF(model_root, device_type);
+    if (ret == -1) return -1;
   }
   return 0;
 }

@@ -111,6 +111,12 @@ class CvmRuntime : public ModuleNode {
   int GetInputIndex(const std::string& name);
 
   /*!
+   * \brief set named data input to the graph.
+   * \param index The input index.
+   * \param data_in The input data.
+   */
+  void SetData(int index, DLTensor* data_in);
+  /*!
    * \brief set index-th input to the graph.
    * \param index The input index.
    * \param data_in The input data.
@@ -263,6 +269,7 @@ class CvmRuntime : public ModuleNode {
 
     inline const Op* op() const { return this->attrs.op; }
     inline std::string name() const { return this->attrs.name; }
+    inline bool is_data() const { return this->name() == "data"; }
     inline bool is_variable() const { return this->op_type == "null"; }
     inline uint32_t num_inputs() const {
       if (is_variable()) return 1;
