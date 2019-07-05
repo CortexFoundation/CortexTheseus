@@ -61,7 +61,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
   }
   auto get_output_num = module_.GetFunction("get_output_num");
   get_output_num(&out_num_);
-  // std::cerr << "get_output_num = " << out_num_ << "\n";
   if (out_num_< 1) {
     return;
   }
@@ -70,14 +69,12 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     char postprocess_s[32];
     get_postprocess_method(postprocess_s);
     postprocess_method_ = std::string(postprocess_s);
-    // std::cerr << "postprocess_method_ = " << postprocess_method_ << "\n";
   }
 
   {
     auto get_input_precision = module_.GetFunction("get_input_precision");
     int input_precision = 0;
     get_input_precision(&input_precision);
-    // std::cerr << "input_precision = " << input_precision << "\n";
     input_bytes_ = 1;
     if (input_precision > 8)
       input_bytes_ = 4;
@@ -95,7 +92,6 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
     } else if (postprocess_method_ == "detection") {
       output_bytes_ = 4;
     }
-    // std::cerr << " output_precision = " << output_precision << " output_bytes_ = " << (int)output_bytes_ << "\n";
   }
   {
     auto get_version = module_.GetFunction("get_version");
@@ -183,11 +179,10 @@ DLTensor* CVMModel::PlanInput() {
 DLTensor* CVMModel::PlanInput(void *input) {
   DLTensor* ret = nullptr;
   CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
-  auto data = static_cast<int*>(ret->data);
+  auto data = static_cast<int32_t*>(ret->data);
   if (input_bytes_ == 4) {
       for (int i = 0; i < in_size_; ++i) {
           data[i] = static_cast<int32_t*>(input)[i];
-          // std::cerr << "data = " << i << " " << data[i] << "\n";
       }
   } else {
       for (int i = 0; i < in_size_; ++i) {
@@ -343,7 +338,6 @@ int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
 }
 
 int CVMModel::GetInputLength() {
-  // std::cerr << " GetInputLength = " << (int)in_size_ << " " << (int)input_bytes_ << "\n";
   return static_cast<int>(in_size_) * input_bytes_;
 }
 
