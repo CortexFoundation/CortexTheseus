@@ -17,6 +17,27 @@ namespace cuckoogpu
 #define DUCK_B_EDGES (EDGES_B)
 #define DUCK_B_EDGES_NX (DUCK_B_EDGES * NX)
 
+
+    __device__ u32 endpoint (const siphash_keys & sipkeys, u32 nonce, int uorv)
+    {
+        return dipnode (sipkeys, nonce, uorv);
+    }
+
+
+    __device__ uint2 make_Edge (const u32 nonce, const uint2 dummy, const u32 node0, const u32 node1)
+    {
+        return make_uint2 (node0, node1);
+    }
+
+    __device__ uint2 make_Edge (const uint2 edge, const uint2 dummy, const u32 node0, const u32 node1)
+    {
+        return edge;
+    }
+
+    __device__ u32 make_Edge (const u32 nonce, const u32 dummy, const u32 node0, const u32 node1)
+    {
+        return nonce;
+    }
     __device__ ulonglong4 Pack4edges (const uint2 e1, const uint2 e2, const uint2 e3, const uint2 e4)
     {
         u64 r1 = (((u64) e1.y << 32) | ((u64) e1.x));
@@ -586,27 +607,6 @@ __global__ void Round2(const int round, const int part, const siphash_keys &sipk
         __syncthreads ();
         if(lid < myEdges)
             destination[destIdx + lid] = source[group * maxIn + lid];
-    }
-
-    __device__ u32 endpoint (const siphash_keys & sipkeys, u32 nonce, int uorv)
-    {
-        return dipnode (sipkeys, nonce, uorv);
-    }
-
-
-    __device__ uint2 make_Edge (const u32 nonce, const uint2 dummy, const u32 node0, const u32 node1)
-    {
-        return make_uint2 (node0, node1);
-    }
-
-    __device__ uint2 make_Edge (const uint2 edge, const uint2 dummy, const u32 node0, const u32 node1)
-    {
-        return edge;
-    }
-
-    __device__ u32 make_Edge (const u32 nonce, const u32 dummy, const u32 node0, const u32 node1)
-    {
-        return nonce;
     }
 
     edgetrimmer::edgetrimmer (const trimparams _tp, u32 _deviceId, int _selected)
