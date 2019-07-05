@@ -291,8 +291,7 @@ class CvmRuntime : public ModuleNode {
     }
 
     void LoadOpAndAttrs(std::string json_) {
-      VERIFY(!is_variable())
-        << "parameter " << this->name() << " is not operator";
+      if (is_variable()) return ;
       param.func_name = GetOpName(param.func_name);
       attrs.op = cvm::Op::Get(param.func_name);
 
@@ -301,6 +300,11 @@ class CvmRuntime : public ModuleNode {
       reader.Read(&attrs.dict);
       if (attrs.op->attr_parser) {
         attrs.op->attr_parser(&attrs);
+      } else {
+        VERIFY_EQ(attrs.dict.size(), 0)
+          << "operator " << this->op()->name
+          << " name=" << this->name() << " should not have attributes"
+          << ", but " << json_;
       }
 
       param.num_inputs = this->num_inputs();
