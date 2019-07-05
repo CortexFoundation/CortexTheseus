@@ -173,7 +173,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			prg.Start()
 			prg.Wait()
 		}()
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 

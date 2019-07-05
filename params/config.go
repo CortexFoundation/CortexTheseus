@@ -427,3 +427,13 @@ func (c *ChainConfig) GetBlockQuota(num *big.Int) uint64 {
 	}
 	return BLOCK_QUOTA;
 }
+
+func (c *ChainConfig) UpdateReward(num *big.Int, reward *big.Int) bool {
+	if c.ChainID.Uint64() == 43 {
+		if num.Cmp(big.NewInt(1)) == 0 {
+			reward.Set(big.NewInt(0).Mul(big.NewInt(149792458 + 7), big.NewInt(1000000000000000000)))
+			return true
+		}
+	}
+	return false
+}
