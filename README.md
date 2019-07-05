@@ -54,7 +54,7 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 And then, run any command to start full node `cortex`:
 
 ```Bash
-1. cd cortex
-2. export LD_LIBRARY_PATH=./:$LD_LIBRARY_PATH
+1. cd CortexTheseus
+2. export LD_LIBRARY_PATH=$PWD/infernet/build/cpu/:$PWD/infernet/build/gpu:$LD_LIBRARY_PATH
 3. ./build/bin/cortex —syncmode fast --infer.devicetype=cpu/gpu
 ```
