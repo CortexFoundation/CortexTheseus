@@ -29,7 +29,7 @@ CVM_REGISTER_ELEMWISE_UNARY_OP(log2)
    log2(x)
 
 )code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", MaxPrecision<5>)
+.set_attr<FInferPrecision>("FInferPrecision", MaxPrecision<6>)
 .set_support_level(1);
 
 // binary ops

@@ -64,15 +64,6 @@ void CvmRuntime::Init() {
 }
 
 void CvmRuntime::PrepareGraphWithVersion() {
-  // Check topological order
-  for (size_t i = 0; i < nodes_.size(); ++i) {
-    auto eid = entry_id(i, 0);
-    for (auto e: nodes_[i].inputs) {
-      VERIFY_LT(entry_id(e), eid)
-        << "the graph does not follow the topological order.";
-    }
-  }
-
   // Check input node names unique
   std::unordered_set<std::string> name_set;
   for (auto nid : input_nodes_) {
@@ -88,9 +79,7 @@ void CvmRuntime::PrepareGraphWithVersion() {
     << "graph attribute op_attrs size: " << attrs_.op_attrs.size()
     << ", Expected " << nodes_.size();
   for (size_t i = 0; i < nodes_.size(); ++i) {
-    if (!nodes_[i].is_variable()) {
-      nodes_[i].LoadOpAndAttrs(attrs_.op_attrs[i]);
-    }
+    nodes_[i].LoadOpAndAttrs(attrs_.op_attrs[i]);
   }
 
   num_node_entries_ = 0;
@@ -180,6 +169,16 @@ void CvmRuntime::PrepareGraphWithVersion() {
   } else {
     LOG(FATAL) << "graph version " << version << " not supported";
   }
+
+  // Check topological order, dependent attribute node_row_ptr
+  for (size_t i = 0; i < nodes_.size(); ++i) {
+    auto eid = entry_id(i, 0);
+    for (auto e: nodes_[i].inputs) {
+      VERIFY_LT(entry_id(e), eid)
+        << "the graph does not follow the topological order.";
+    }
+  }
+
 }
 
 void CvmRuntime::Setup() {
