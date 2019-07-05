@@ -52,7 +52,7 @@
     v3 = XOR(v3,v0); v7 = XOR(v7,v4); \
     v2 = ROT32(v2);  v6 = ROT32(v6); \
   } while(0)
- 
+
 #define SIPROUNDX4N \
   do { \
     v0 = ADD(v0,v1); v4 = ADD(v4,v5);  v8 = ADD(v8,v9); vC = ADD(vC,vD); \
@@ -145,15 +145,15 @@ void siphash24x2(const siphash_keys *keys, const u64 *indices, u64 *hashes) {
   v2 = _mm_set1_epi64x(keys->k2);
   v3 = _mm_set1_epi64x(keys->k3);
   mi = _mm_load_si128((__m128i *)indices);
-	
+
   v3 = XOR (v3, mi);
   SIPROUNDXN; SIPROUNDXN;
   v0 = XOR (v0, mi);
-  
+
   v2 = XOR (v2, _mm_set1_epi64x(0xffLL));
   SIPROUNDXN; SIPROUNDXN; SIPROUNDXN; SIPROUNDXN;
   mi = XOR(XOR(v0,v1),XOR(v2,v3));
-  
+
   _mm_store_si128((__m128i *)hashes, mi);
 }
 
@@ -179,7 +179,7 @@ void siphash24x4(const siphash_keys *keys, const u64 *indices, u64 *hashes) {
   SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N; SIPROUNDX2N;
   mi = XOR(XOR(v0,v1),XOR(v2,v3));
   m2 = XOR(XOR(v4,v5),XOR(v6,v7));
-  
+
   _mm_store_si128((__m128i *)hashes,		mi);
   _mm_store_si128((__m128i *)(hashes + 2),m2);
 }
@@ -196,8 +196,8 @@ void siphash24x4(const siphash_keys *keys, const u64 *indices, u64 *hashes) {
 void siphash24xN(const siphash_keys *keys, const u64 *indices, u64 * hashes) {
 #if NSIPHASH == 1
   *hashes = siphash24(keys, *indices);
-#elif NSIPHASH == 2  
-  siphash24x2(keys, indices, hashes); 
+#elif NSIPHASH == 2
+  siphash24x2(keys, indices, hashes);
 #elif NSIPHASH == 4
   siphash24x4(keys, indices, hashes);
 #elif NSIPHASH == 8

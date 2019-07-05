@@ -17,6 +17,27 @@ namespace cuckoogpu
 #define DUCK_B_EDGES (EDGES_B)
 #define DUCK_B_EDGES_NX (DUCK_B_EDGES * NX)
 
+
+    __device__ u32 endpoint (const siphash_keys & sipkeys, u32 nonce, int uorv)
+    {
+        return dipnode (sipkeys, nonce, uorv);
+    }
+
+
+    __device__ uint2 make_Edge (const u32 nonce, const uint2 dummy, const u32 node0, const u32 node1)
+    {
+        return make_uint2 (node0, node1);
+    }
+
+    __device__ uint2 make_Edge (const uint2 edge, const uint2 dummy, const u32 node0, const u32 node1)
+    {
+        return edge;
+    }
+
+    __device__ u32 make_Edge (const u32 nonce, const u32 dummy, const u32 node0, const u32 node1)
+    {
+        return nonce;
+    }
     __device__ ulonglong4 Pack4edges (const uint2 e1, const uint2 e2, const uint2 e3, const uint2 e4)
     {
         u64 r1 = (((u64) e1.y << 32) | ((u64) e1.x));
@@ -193,7 +214,7 @@ namespace cuckoogpu
             counters[row] = 0;
         __syncthreads ();
 
-        const int col = group & (NX - 1);
+        const int col = group & YMASK;
         const int loops = NEDGES / nthreads;	// assuming THREADS_HAVE_EDGES checked
         for (int blk = 0; blk < loops; blk += EDGE_BLOCK_SIZE)
         {
@@ -228,7 +249,7 @@ namespace cuckoogpu
                     int localIdx = min (FLUSHA2, counters[row]);
                     int newCount = localIdx % FLUSHA;
                     int nflush = localIdx - newCount;
-                    u32 grp = row * NX + col;
+                    u32 grp = row * NY + col;
                     int cnt = min ((int) atomicAdd (indexes + grp, nflush), (int) (maxOut - nflush));
 #pragma unroll
                     for(int i = 0; i < FLUSHA; i += TMPPERLL4){
@@ -244,17 +265,6 @@ namespace cuckoogpu
                     }
                     counters[row] = newCount;
                 }
-
-                /*
-                   if(lid < NX){
-                   int grp = lid * NX + col;
-                   int lc = min(FLUSHA2, counters[lid]);
-                   int cnt = min((int)atomicAdd(indexes + grp, lc), (int)maxOut - lc);
-                   for(int i = 0; i < lc; i++){
-                   buffer[grp*maxOut + cnt + i] = tmp[lid][i];
-                   }
-                   counters[lid] = 0;
-                   }*/
                 __syncthreads ();
             }
         }
@@ -262,7 +272,7 @@ namespace cuckoogpu
         for (int row = lid; row < NX; row += dim)
         {
             int localIdx = min (FLUSHA2, counters[row]);
-            u32 grp = row * NX + col;
+            u32 grp = row * NY + col;
             for (int j = localIdx; j % TMPPERLL4; j++)
                 tmp[row][j] = zero;
 
@@ -355,15 +365,15 @@ namespace cuckoogpu
             const int lid = threadIdx.x;
             const int FLUSHB2 = 2 * FLUSHB;
 
-            __shared__ EdgeOut tmp[NX][FLUSHB2];
+            __shared__ EdgeOut tmp[NY][FLUSHB2];
             const int TMPPERLL4 = sizeof (ulonglong4) / sizeof (EdgeOut);
-            __shared__ int counters[NX];
+            __shared__ int counters[NY];
 
             // if (group>=0&&lid==0) printf("group  %d  -\n", group);
-            for (int col = lid; col < NX; col += dim)
+            for (int col = lid; col < NY; col += dim)
                 counters[col] = 0;
             __syncthreads ();
-            const int row = group / NX;
+            const int row = group / NY;
             const int bucketEdges = min ((int) sourceIndexes[group], (int) maxOut);
             const int loops = (bucketEdges + dim - 1) / dim;
             for (int loop = 0; loop < loops; loop++)
@@ -378,7 +388,7 @@ namespace cuckoogpu
                     if (!null (edge))
                     {
                         u32 node1 = endpoint (sipkeys, edge, 0);
-                        col = (node1 >> ZBITS) & XMASK;
+                        col = (node1 >> ZBITS) & YMASK;
                         counter = min ((int) atomicAdd (counters + col, 1), (int) (FLUSHB2 - 1));
                         tmp[col][counter] = edge;
                     }
@@ -389,7 +399,7 @@ namespace cuckoogpu
                     int localIdx = min (FLUSHB2, counters[col]);
                     int newCount = localIdx % FLUSHB;
                     int nflush = localIdx - newCount;
-                    u32 grp = row * NX + col;
+                    u32 grp = row * NY + col;
                     int cnt = min ((int) atomicAdd (destinationIndexes + grp, nflush), (int) (maxOut - nflush));
 #pragma unroll
                     for(int i = 0; i < FLUSHB; i+= TMPPERLL4){
@@ -406,10 +416,10 @@ namespace cuckoogpu
                 __syncthreads ();
             }
             EdgeOut zero = make_Edge (0, tmp[0][0], 0, 0);
-            for (int col = lid; col < NX; col += dim)
+            for (int col = lid; col < NY; col += dim)
             {
                 int localIdx = min (FLUSHB2, counters[col]);
-                u32 grp = row * NX + col;
+                u32 grp = row * NY + col;
                 for (int j = localIdx; j % TMPPERLL4; j++)
                     tmp[col][j] = zero;
 
@@ -588,27 +598,6 @@ __global__ void Round2(const int round, const int part, const siphash_keys &sipk
             destination[destIdx + lid] = source[group * maxIn + lid];
     }
 
-    __device__ u32 endpoint (const siphash_keys & sipkeys, u32 nonce, int uorv)
-    {
-        return dipnode (sipkeys, nonce, uorv);
-    }
-
-
-    __device__ uint2 make_Edge (const u32 nonce, const uint2 dummy, const u32 node0, const u32 node1)
-    {
-        return make_uint2 (node0, node1);
-    }
-
-    __device__ uint2 make_Edge (const uint2 edge, const uint2 dummy, const u32 node0, const u32 node1)
-    {
-        return edge;
-    }
-
-    __device__ u32 make_Edge (const u32 nonce, const u32 dummy, const u32 node0, const u32 node1)
-    {
-        return nonce;
-    }
-
     edgetrimmer::edgetrimmer (const trimparams _tp, u32 _deviceId, int _selected)
     {
         selected = _selected;
@@ -762,7 +751,7 @@ __global__ void Round2(const int round, const int part, const siphash_keys &sipk
     cudaMemset(indexesE[2], 0, indexesSize);
 
     qA = sizeA * NRB2 / NX;
-    qE = NX * NRB2;
+    qE = NY * NRB2;
     for (u32 part = 0; part <= PART_MASK; part++) {
         Round<EDGES_A, EDGES_B*NRB1/NX><<<tp.trim.blocks*NRB1/NX, tp.trim.tpb, BITMAPBYTES>>>(0, part, *dipkeys, (uint2*)(bufferA+qA), (uint2*)(bufferA+sizeA), indexesE[0]+qE, indexesE[2]); // to .632
     }
