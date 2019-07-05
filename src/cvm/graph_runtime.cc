@@ -242,7 +242,7 @@ void CvmRuntime::SetInput(int index, DLTensor* data_in) {
     << "input index out of range [0, "
     << input_nodes_.size() << "), but " << index;
   uint32_t nid = input_nodes_[index];
-  uint32_t eid = this->entry_id(input_nodes_[index], 0);
+  uint32_t eid = this->entry_id(nid, 0);
 
   auto dtype = data_in->dtype;
   VERIFY((dtype.code == kDLInt) &&
