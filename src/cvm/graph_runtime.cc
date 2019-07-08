@@ -128,7 +128,7 @@ void CvmRuntime::PrepareGraphWithVersion() {
   }
 
   // Verify device_index to be empty
-  VERIFY_EQ(attrs_.device_index.size(), 0)
+  VERIFY(attrs_.device_index.empty())
     << "attribute device_index must be set empty";
   // if (!attrs_.device_index.empty()) {
   //   VERIFY_EQ(num_node_entries_, attrs_.device_index.size())
