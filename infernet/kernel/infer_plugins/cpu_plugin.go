@@ -2,7 +2,7 @@ package main
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS: -L../../build/cpu -lcvm_runtime_cpu
+#cgo LDFLAGS: -L../../build/cpu -lcvm_runtime_cpu -ldl
 #cgo LDFLAGS: -lstdc++ 
 
 #cgo CFLAGS: -I../include -O2
