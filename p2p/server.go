@@ -906,8 +906,10 @@ func (srv *Server) runPeer(p *Peer) {
 
 	// broadcast peer add
 	srv.peerFeed.Send(&PeerEvent{
-		Type: PeerEventTypeAdd,
-		Peer: p.ID(),
+		Type:          PeerEventTypeAdd,
+		Peer:          p.ID(),
+		RemoteAddress: p.RemoteAddr().String(),
+		LocalAddress:  p.LocalAddr().String(),
 	})
 
 	// run the protocol
@@ -915,9 +917,11 @@ func (srv *Server) runPeer(p *Peer) {
 
 	// broadcast peer drop
 	srv.peerFeed.Send(&PeerEvent{
-		Type:  PeerEventTypeDrop,
-		Peer:  p.ID(),
-		Error: err.Error(),
+		Type:          PeerEventTypeDrop,
+		Peer:          p.ID(),
+		Error:         err.Error(),
+		RemoteAddress: p.RemoteAddr().String(),
+		LocalAddress:  p.LocalAddr().String(),
 	})
 
 	// Note: run waits for existing peers to be sent on srv.delpeer
