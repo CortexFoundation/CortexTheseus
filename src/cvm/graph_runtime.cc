@@ -127,12 +127,14 @@ void CvmRuntime::PrepareGraphWithVersion() {
       << "precision should be -1 or between (0, 32], but " << prec;
   }
 
-  // Verify device_index if set in graph
-  if (!attrs_.device_index.empty()) {
-    VERIFY_EQ(num_node_entries_, attrs_.device_index.size())
-      << "graph attribute device_index size: " << attrs_.device_index.size()
-      << ", Expected " << num_node_entries_;
-  }
+  // Verify device_index to be empty
+  VERIFY_EQ(attrs_.device_index.size(), 0)
+    << "attribute device_index must be set empty";
+  // if (!attrs_.device_index.empty()) {
+  //   VERIFY_EQ(num_node_entries_, attrs_.device_index.size())
+  //     << "graph attribute device_index size: " << attrs_.device_index.size()
+  //     << ", Expected " << num_node_entries_;
+  // }
 
   // Verify node_row_ptr and input_nodes with cvm version
   std::string& version = this->version_;
@@ -170,7 +172,7 @@ void CvmRuntime::PrepareGraphWithVersion() {
     LOG(FATAL) << "graph version " << version << " not supported";
   }
 
-  // Check topological order, dependent attribute node_row_ptr
+  // Check topological order, depending on attribute `node_row_ptr`
   for (size_t i = 0; i < nodes_.size(); ++i) {
     auto eid = entry_id(i, 0);
     for (auto e: nodes_[i].inputs) {
