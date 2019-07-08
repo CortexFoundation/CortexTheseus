@@ -334,8 +334,13 @@ func DefaultDoloresGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.DoloresChainConfig,
 		Nonce:      0x0000000000000043,
+		ExtraData:  hexutil.MustDecode("0x313732323a206e756d65726f20706f6e64657265206574206d656e737572612e"),
 		GasLimit:   params.GenesisGasLimit,
 		Difficulty: big.NewInt(2),
+		Alloc: map[common.Address]GenesisAccount{
+			common.HexToAddress("0xb84041d064397bd8a1037220d996c16410c20f11"): {Balance: params.CTXC_INIT},
+		},
+		Supply: params.CTXC_INIT,
 	}
 }
 
