@@ -38,6 +38,8 @@ cortex: clib
 	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+	ln -sf infernet/build/cpu/libcvm_runtime_cpu.so .
+	ln -sf infernet/build/gpu/libcvm_runtime_cuda.so .
 bootnode:
 	build/env.sh go run build/ci.go install ./cmd/bootnode
 	@echo "Done building."
@@ -122,6 +124,7 @@ clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
 	rm -rf infernet/build/*
+	rm -rf plugin/*
 	rm -f PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
 
 clean-clib:
