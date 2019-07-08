@@ -27,7 +27,7 @@ import (
 var (
 	MainnetGenesisHash = common.HexToHash("0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1")
 	BernardGenesisHash = common.HexToHash("0x89df382cf5508d366755f5f00c16666759a3267c1c244a6524bada1901237cd3")
-	RinkebyGenesisHash = common.HexToHash("")
+	DoloresGenesisHash = common.HexToHash("")
 )
 
 //It should be empty for first time
@@ -35,7 +35,6 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
 	//BernardGenesisHash: BernardTrustedCheckpoint,
 	//TestnetGenesisHash: TestnetTrustedCheckpoint,
-	//RinkebyGenesisHash: RinkebyTrustedCheckpoint,
 }
 
 type TrustedCheckpoint struct {
