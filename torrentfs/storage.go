@@ -149,6 +149,7 @@ func Exist(infohash string) bool {
 }
 
 func Available(infohash string, rawSize int64) bool {
+	log.Debug("Available", "infohash", infohash, "RawSize", rawSize)
 	TorrentAPIAvailable.Lock()
 	defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])

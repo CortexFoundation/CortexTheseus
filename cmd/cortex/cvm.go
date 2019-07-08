@@ -17,7 +17,7 @@
 package main
 
 import (
-	// "os"
+	"os"
 	"fmt"
 
 	"net/http"
@@ -29,11 +29,11 @@ import (
 )
 
 var (
-	StorageDirFlag = utils.DirectoryFlag{
-		Name:  "cvm.dir",
-		Usage: "P2P storage directory",
-		Value: utils.DirectoryString{"~/.cortex/storage/"},
-	}
+	// StorageDirFlag = utils.DirectoryFlag{
+	// 	Name:  "cvm.dir",
+	// 	Usage: "P2P storage directory",
+	// 	Value: utils.DirectoryString{"~/.cortex/storage/"},
+	// }
 
 	CVMPortFlag = cli.IntFlag{
 		Name:  "cvm.port",
@@ -52,18 +52,33 @@ var (
 		Usage: "gpu id",
 		Value: 0,
 	}
+
+	CVMVerbosity = cli.IntFlag{
+		Name:  "cvm.verbosity",
+		Usage: "verbose level",
+		Value: 3,
+	}
+
+	CVMCortexIPC= cli.StringFlag{
+		Name:  "cvm.cortexipc",
+		Usage: "cortex ipc",
+		Value: "~/.cortex/cortex.ipc",
+	}
+
 	cvmFlags = []cli.Flag{
-		StorageDirFlag,
+		// StorageDirFlag,
 		CVMPortFlag,
 		CVMDeviceType,
 		CVMDeviceId,
+		CVMVerbosity,
+		CVMCortexIPC,
 	}
 
 	cvmCommand = cli.Command{
 		Action:   utils.MigrateFlags(cvmServer),
 		Name:     "cvm",
 		Usage:    "CVM",
-		Flags:    cvmFlags,
+		Flags:    append(cvmFlags, storageFlags...),
 		Category: "CVMSERVER COMMANDS",
 		Description: ``,
 	}
@@ -76,14 +91,19 @@ func cvmServer(ctx *cli.Context) error {
 	// flag.Parse()
 
 	// Set log
-	// log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*logLevel), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
 	log.Info("Inference Server", "Help Command", "./infer_server -h")
-	// torrentfs.New()
-	storagefs := torrentfs.CreateStorage("simple", torrentfs.Config{
-		DataDir:  ctx.GlobalString(StorageDirFlag.Name),
-	})
-
+	fsCfg := torrentfs.Config{}
+	utils.SetTorrentFsConfig(ctx, &fsCfg)
+	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
+	fsCfg.IpcPath = ctx.GlobalString(CVMCortexIPC.Name)
+	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name))
+	storagefs, fs_err := torrentfs.New(&fsCfg, "")
+	storagefs.Start(nil)
+	if fs_err != nil {
+		panic (fs_err)
+	}
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(CVMDeviceType.Name)
 	DeviceId := ctx.GlobalInt(CVMDeviceId.Name)
@@ -95,7 +115,6 @@ func cvmServer(ctx *cli.Context) error {
 	}
 
 	inferServer := synapse.New(&synapse.Config{
-		// StorageDir: *storageDir,
 		IsNotCache: false,
 		DeviceType:  DeviceName,
 		DeviceId: DeviceId,

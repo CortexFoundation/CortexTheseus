@@ -576,16 +576,12 @@ var (
 		Usage: "Number of recent blocks to check for gas prices",
 		Value: ctxc.DefaultConfig.GPO.Blocks,
 	}
+
 	GpoPercentileFlag = cli.IntFlag{
 		Name:  "gpopercentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: ctxc.DefaultConfig.GPO.Percentile,
 	}
-	// ModelCallInterfaceFlag = cli.StringFlag{
-	// 	Name:  "cvm.inferuri",
-	// 	Usage: "URI for delegated inference (experimental)",
-	// 	Value: "",
-	// }
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{

@@ -17,6 +17,7 @@
 package main
 
 import (
+	"path/filepath"
 	"bufio"
 	"time"
 	"errors"
@@ -169,7 +170,10 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 		go func() {
 			cmd := os.Args[0]
 			log.Info("RegisterCVMService", "cmd", cmd)
-			prg := exec.Command(cmd, "cvm", "--cvm.port", "4321", "--cvm.dir", utils.MakeStorageDir(ctx))
+			prg := exec.Command(cmd, "cvm",
+					"--cvm.port", "4321",
+					"--storage.dir", utils.MakeStorageDir(ctx),
+					"--cvm.cortexipc", filepath.Join(utils.MakeDataDir(ctx), ctx.GlobalString(utils.IPCPathFlag.Name)))
 			prg.Start()
 			prg.Wait()
 		}()
