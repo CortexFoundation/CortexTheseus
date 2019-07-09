@@ -75,16 +75,7 @@ var (
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolLifetimeFlag,
-		utils.StorageDirFlag,
-		utils.StorageEnabledFlag,
-		utils.StorageMaxSeedingFlag,
-		utils.StorageMaxActiveFlag,
-		utils.StorageBoostNodesFlag,
-		utils.StorageTrackerFlag,
 		utils.SyncModeFlag,
-		utils.InferDeviceTypeFlag,
-		utils.InferDeviceIdFlag,
-		utils.InferMemoryFlag,
 		utils.GCModeFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
@@ -135,6 +126,21 @@ var (
 		utils.GpoPercentileFlag,
 		configFileFlag,
 		// utils.ModelCallInterfaceFlag,
+	}
+
+	inferFlags = []cli.Flag {
+		utils.InferDeviceTypeFlag,
+		utils.InferDeviceIdFlag,
+		utils.InferMemoryFlag,
+	}
+
+	storageFlags = []cli.Flag {
+		utils.StorageDirFlag,
+		utils.StorageEnabledFlag,
+		utils.StorageMaxSeedingFlag,
+		utils.StorageMaxActiveFlag,
+		utils.StorageBoostNodesFlag,
+		utils.StorageTrackerFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -212,6 +218,8 @@ func init() {
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 	app.Flags = append(app.Flags, cvmFlags...)
+	app.Flags = append(app.Flags, storageFlags...)
+	app.Flags = append(app.Flags, inferFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

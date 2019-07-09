@@ -307,9 +307,6 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
         }
 
         bigInitReward := calculateRewardByNumber(header.Number)
-				
-				// only for dolores testnet
-				chain.Config().UpdateReward(header.Number, bigInitReward)
 
         uncleMaxReward := big.NewInt(0).Div(big.NewInt(0).Mul(bigInitReward, big7), big8)
         nephewReward := big.NewInt(0).Div(bigInitReward, big32)

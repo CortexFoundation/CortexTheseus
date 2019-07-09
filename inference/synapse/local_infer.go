@@ -226,6 +226,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 }
 
 func (s* Synapse) Available(infoHash string, rawSize int64) bool {
+	log.Info("Available", "infoHash", infoHash, "rawSize", rawSize)
 	if s.config.IsRemoteInfer {
 		inferRes, errRes := s.remoteAvailable(
 			infoHash,

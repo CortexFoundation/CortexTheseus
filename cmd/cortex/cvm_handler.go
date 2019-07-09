@@ -19,7 +19,7 @@ func Uint64ToBytes(i uint64) []byte {
 }
 
 func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork) {
-	log.Info("Gas Task", "Model Hash", inferWork.InfoHash)
+	log.Info("Available", "Model Hash", inferWork.InfoHash, "rawSize", inferWork.RawSize)
 	if inferWork.InfoHash == "" {
 		RespErrorText(w, ErrModelEmpty)
 		return
