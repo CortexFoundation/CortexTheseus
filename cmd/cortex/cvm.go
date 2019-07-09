@@ -93,7 +93,6 @@ func cvmServer(ctx *cli.Context) error {
 	// Set log
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
-	log.Info("Inference Server", "Help Command", "./infer_server -h")
 	fsCfg := torrentfs.Config{}
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)

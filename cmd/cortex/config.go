@@ -203,11 +203,11 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			if err := prg.Wait(); err != nil {
 				log.Error("RegisterCVMService", "err", err)
 			}
-			log.Debug("makeFullNode", "deviceType", deviceType, "Exited", run_result)
-			outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
-			fmt.Printf("\nout:\n%s\nerr:\n%s\n", outStr, errStr)
+			log.Debug("RegisterCVMService", "deviceType", deviceType, "Exited", run_result)
+			// outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
+			// log.Debug("RegisterCVMService", "out", outStr, "err", errStr)
 		}()
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(10000 * time.Millisecond)
 	}
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 
