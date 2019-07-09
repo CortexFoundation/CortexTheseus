@@ -28,6 +28,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 
 	//"github.com/CortexFoundation/CortexTheseus/consensus/misc"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -776,7 +777,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			log.Trace("Skipping account with hight nonce", "sender", from, "nonce", tx.Nonce())
 			txs.Pop()
 
-		case core.ErrBuiltInTorrentFS:
+		case vm.ErrBuiltInTorrentFS:
 			log.Trace("Skipping account with torrent fs error", "sender", from)
 			txs.Pop()
 

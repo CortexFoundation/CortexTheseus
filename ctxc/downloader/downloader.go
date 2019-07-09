@@ -27,7 +27,7 @@ import (
 
 	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/db"
@@ -322,7 +322,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 		} else {
 			d.dropPeer(id)
 		}
-	case core.ErrBuiltInTorrentFS:
+	case vm.ErrBuiltInTorrentFS:
 		log.Warn("Synchronisation failed with built-in torrent fs error", "peer", id)
 	default:
 		log.Warn("Synchronisation failed, retrying", "err", err)
@@ -1401,7 +1401,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 			log.Debug("Downloaded item processing failed on sidechain import", "index", index, "err", err)
 		}
 		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
-		if err == core.ErrBuiltInTorrentFS {
+		if err == vm.ErrBuiltInTorrentFS {
 			return err
 		}
 		return errInvalidChain

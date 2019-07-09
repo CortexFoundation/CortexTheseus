@@ -24,7 +24,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	// "github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"github.com/CortexFoundation/CortexTheseus/core/asm"
@@ -272,7 +272,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		errCh <- ErrUnhandleTx
 		return
 	} else {
-		errCh <- nil
+		errCr <- nil
 		return
 	}
 }*/
@@ -330,8 +330,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 		// Inference error caused by torrent fs syncing is returned directly.
 		// This is called Built-In Torrent Fs Error
-		if synapse.CheckBuiltInTorrentFsError(vmerr) {
-			return nil, 0, big0, false, ErrBuiltInTorrentFS
+		if vmerr == vm.ErrBuiltInTorrentFS {
+			return nil, 0, big0, false, vmerr
 		}
 
 		// The only possible consensus-error would be if there wasn't

@@ -44,6 +44,7 @@ var (
 	errMaxCodeSizeExceeded   = errors.New("cvm: max code size exceeded")
 	errAiRuntime             = errors.New("ai runtime error")
 	errInvalidJump           = errors.New("cvm: invalid jump destination")
+	ErrBuiltInTorrentFS      = errors.New("built-in torrent fs file wait")
 
 	big0  = big.NewInt(0)
 	big31 = big.NewInt(31)

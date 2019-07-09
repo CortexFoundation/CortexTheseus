@@ -36,7 +36,6 @@ var (
 	ErrNonceTooHigh = errors.New("nonce too high")
 
 	// ErrBuiltInTorrentFs is returned if torrent fs havn't sync done torrent.
-	ErrBuiltInTorrentFS = errors.New("built-in torrent fs file wait")
 
 	//ErrMetaInfoNotMature     = errors.New("cvm: errMetaInfoNotMature")
 )
