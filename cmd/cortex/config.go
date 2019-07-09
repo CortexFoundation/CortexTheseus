@@ -17,6 +17,8 @@
 package main
 
 import (
+	"sync"
+	"bytes"
 	"path/filepath"
 	"bufio"
 	"time"
@@ -159,25 +161,53 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
 	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
-	if utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)) {
+	if utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)) != ""{
 		storageEnabled = false
 	}
 	if storageEnabled {
 		log.Info("makeFullNode", "storageEnabled", storageEnabled)
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}
-	if (utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name))) {
+	if deviceType := utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)); deviceType != "" {
 		go func() {
 			cmd := os.Args[0]
 			log.Info("RegisterCVMService", "cmd", cmd)
-			prg := exec.Command(cmd, "cvm",
+			args := []string{"cvm",
 					"--cvm.port", "4321",
 					"--storage.dir", utils.MakeStorageDir(ctx),
-					"--cvm.cortexipc", filepath.Join(utils.MakeDataDir(ctx), ctx.GlobalString(utils.IPCPathFlag.Name)))
-			prg.Start()
-			prg.Wait()
+					"--cvm.cortexipc", filepath.Join(utils.MakeDataDir(ctx), ctx.GlobalString(utils.IPCPathFlag.Name)),
+					"--infer.devicetype", deviceType}
+			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
+			prg := exec.Command(cmd, args...)
+			var stdoutBuf, stderrBuf bytes.Buffer
+			stdoutIn, _ := prg.StdoutPipe()
+			stderrIn, _ := prg.StderrPipe()
+			stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
+			stderr := io.MultiWriter(os.Stderr, &stderrBuf)
+			if err := prg.Start(); err != nil {
+				panic (err)
+			}
+			run_result := prg.Start()
+			var wg sync.WaitGroup
+			wg.Add(2)
+			go func() {
+				_, _ = io.Copy(stdout, stdoutIn)
+				wg.Done()
+			}()
+			go func() {
+				_, _ = io.Copy(stderr, stderrIn)
+				wg.Done()
+			}()
+			wg.Wait()
+
+			if err := prg.Wait(); err != nil {
+				log.Error("RegisterCVMService", "err", err)
+			}
+			log.Debug("makeFullNode", "deviceType", deviceType, "Exited", run_result)
+			outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
+			fmt.Printf("\nout:\n%s\nerr:\n%s\n", outStr, errStr)
 		}()
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 	}
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 

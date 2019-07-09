@@ -78,7 +78,7 @@ var (
 		Action:   utils.MigrateFlags(cvmServer),
 		Name:     "cvm",
 		Usage:    "CVM",
-		Flags:    append(cvmFlags, storageFlags...),
+		Flags:    append(append(cvmFlags, storageFlags...), inferFlags...),
 		Category: "CVMSERVER COMMANDS",
 		Description: ``,
 	}
@@ -113,8 +113,7 @@ func cvmServer(ctx *cli.Context) error {
 	if DeviceType == "gpu" {
 		DeviceName = "cuda"
 	}
-
-	inferServer := synapse.New(&synapse.Config{
+	synpapseConfig := synapse.Config{
 		IsNotCache: false,
 		DeviceType:  DeviceName,
 		DeviceId: DeviceId,
@@ -122,8 +121,9 @@ func cvmServer(ctx *cli.Context) error {
 		IsRemoteInfer: false,
 		InferURI: "",
 		Storagefs:				 storagefs,
-	})
-	log.Info("Initilized inference server with synapse engine")
+	}
+	inferServer := synapse.New(&synpapseConfig)
+	log.Info("Initilized inference server with synapse engine", "config", synpapseConfig)
 
 	http.HandleFunc("/", handler)
 

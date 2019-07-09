@@ -1126,7 +1126,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
-	} else if (IsCVMIPC(cfg.InferDeviceType)) {
+	} else if (IsCVMIPC(cfg.InferDeviceType) != "") {
 		cfg.InferURI = "http://127.0.0.1:4321";
 	} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
@@ -1208,7 +1208,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		path := MakeDataDir(ctx)
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
-		log.Info("IPCPath", "path", cfg.IpcPath)
+		log.Debug("SetTorrentFsConfig", "IPCPath", cfg.IpcPath)
 	}
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
@@ -1390,10 +1390,10 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 	}
 }
 
-func IsCVMIPC(deviceType string) bool {
+func IsCVMIPC(deviceType string) string {
 	u, err := url.Parse(deviceType)
 	if err == nil && u.Scheme == "ipc" && len(u.Hostname()) > 0 && len(u.Port()) == 0 {
-		return true;
+		return u.Hostname()
 	}
-	return false;
+	return "";
 }
