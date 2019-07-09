@@ -334,10 +334,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			return nil, 0, big0, false, vmerr
 		}
 
-		if vmerr == ErrUnhandleTx {
-			return nil, 0, big0, false, vmerr
-		}
-
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
