@@ -2,7 +2,7 @@ package main
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS:  -L../../build/gpu -lcvm_runtime_cuda -lcudart -lcuda
+#cgo LDFLAGS:  -L../../build/gpu -lcvm_runtime_cuda -lcudart -lcuda -ldl
 #cgo LDFLAGS: -lstdc++
 
 #cgo CFLAGS: -I../include -I/usr/local/cuda/include/ -O2
