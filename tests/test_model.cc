@@ -15,6 +15,12 @@ using cvm::runtime::Registry;
 #define USE_GPU  0
 #endif
 
+#define CHECK_STATUS(x, msg) \
+  if (x != SUCCEED) { \
+    cerr << "STATUS ERROR: " << x << " " << msg << "\n"; \
+    return -1; \
+  }
+
 void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_t>& data){
     FILE *fp = fopen(filename, "r");
     if(fp == NULL){
@@ -27,7 +33,7 @@ void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_
     uint64_t size = 1;
     for(int i = 0; i < shape_dim; i++){
         int64_t value = 0;
-        fscanf(fp, "%d ", &value);
+        fscanf(fp, "%ld ", &value);
         shape[i] = value;
         size *= shape[i];
     }
@@ -45,24 +51,6 @@ struct OpArgs {
   std::vector<int> arg_tcodes;
   std::vector<int64_t> shape_data;
 };
-
-void test_op_take() {
-  CVMValue t_attr;
-  const PackedFunc* op = Registry::Get("cvm.runtime.cvm.take");
-  cvm::NodeAttrs* attr;
-  std::shared_ptr<OpArgs> arg_ptr = std::make_shared<OpArgs>();
-  t_attr.v_handle = (void*)attr;
-  arg_ptr->arg_values.push_back(t_attr);
-  arg_ptr->arg_tcodes.push_back(kHandle);
-  cvm::runtime::CVMRetValue rv;
-  cvm::runtime::CVMArgs targs(
-      arg_ptr->arg_values.data(),
-      arg_ptr->arg_tcodes.data(),
-      static_cast<int>(arg_ptr->arg_values.size())
-      );
-  // (*op)(ta);
-
-}
 
 int run_LIF(string model_root, int device_type = 0) {
 #if(USE_GPU==0)
@@ -97,19 +85,23 @@ int run_LIF(string model_root, int device_type = 0) {
     params  = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
     input_stream.close();
   }
-  cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json.c_str(), json.size(), params.c_str(), params.size(), device_type, 0)
-    );
+  ModelHandler net;
+  auto status = CVMAPILoadModel(json.c_str(), json.size(),
+                                params.c_str(), params.size(),
+                                &net,
+                                device_type, 0);
   cerr << "model loaded\n";
-  if (model == nullptr) {
-    std::cerr << "model loaded failed\n";
-    return -1;
-  }
-  cerr << "ops " << CVMAPIGetGasFromModel(model) / 1024 / 1024 << "\n";
+  CHECK_STATUS(status, "model loaded failed");
+
+  long long gas = 0;
+  status = CVMAPIGetGasFromModel(net, static_cast<IntHandler>(&gas));
+  CHECK_STATUS(status, "gas invalid");
+  cerr << "ops " << gas / 1024 / 1024 << "\n";
   // API only accepts byte array
   vector<char> input, output;
-  int input_size = CVMAPIGetInputLength(model);
-  int output_size = CVMAPIGetOutputLength(model);
+  long long input_size, output_size;
+  CVMAPIGetInputLength(net, &input_size);
+  CVMAPIGetOutputLength(net, &output_size);
   input.resize(input_size, 0); // 1 * 1 * 28 * 28);
   output.resize(output_size, 0); //1 * 10);
   if (model_root.find("trec") != string::npos)
@@ -164,9 +156,11 @@ int run_LIF(string model_root, int device_type = 0) {
   for (int i = 0; i < n_run; i++) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
-    CVMAPIInfer(model, input.data(), output.data());
+    status = CVMAPIInference(net, input.data(), output.data());
+    CHECK_STATUS(status, "inference failed");
   }
-  CVMAPIFreeModel(model);
+  status = CVMAPIFreeModel(net);
+  CHECK_STATUS(status, "free model failed");
 #if(USE_GPU == 0)
   double ellapsed_time = (omp_get_wtime() - start) / n_run;
   cout << "total time : " << ellapsed_time / n_run << "\n";

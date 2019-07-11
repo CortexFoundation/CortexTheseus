@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <iterator>
+#include <exception>
 #include <algorithm>
 #include <stdio.h>
 #include <math.h>
@@ -19,46 +20,35 @@ using std::string;
 namespace cvm {
 namespace runtime {
 
+#define API_BEGIN() try {
+// TODO(wlt): all returned runtime_error
+#define API_END() } \
+  catch (const std::runtime_error &e) { return ERROR_RUNTIME; }  \
+  catch (const std::logic_error &e)   { return ERROR_RUNTIME; }  \
+  catch (const std::exception &e) { return ERROR_RUNTIME; } \
+  return SUCCEED;
+
+#define CHECK_NOT_NULL(x) CHECK(x != nullptr)
+#define CHECK_2_NOT_NULL(x, y) CHECK_NOT_NULL(x); CHECK_NOT_NULL(y);
+#define CHECK_3_NOT_NULL(x, y, z) CHECK_2_NOT_NULL(x, y); CHECK_NOT_NULL(z);
 
 CVMModel::CVMModel(const string& graph, DLContext _ctx):
-  out_size_(NULL)
+  out_size_(nullptr), loaded_(false)
 {
-  model_id_ = rand();
-  loaded_ = false;
   ctx_ = _ctx;
   const PackedFunc* module_creator = Registry::Get("cvm.runtime.create");
-  if (module_creator != nullptr) {
-    try {
-      module_ = (*module_creator)(
-        graph,
-        static_cast<int>(ctx_.device_type),
-        static_cast<int>(ctx_.device_id)
-      );
-    } catch (std::exception &e) {
-      return;
-    }
-    auto init = module_.GetFunction("init");
-    if (init()) {
-      return;
-    }
-  } else {
-    return;
-  }
+  module_ = (*module_creator)(graph,
+                              static_cast<int>(ctx_.device_type),
+                              static_cast<int>(ctx_.device_id));
+
   set_input_ = module_.GetFunction("set_input");
   get_output_ = module_.GetFunction("get_output");
   load_params_ = module_.GetFunction("load_params");
   run_ = module_.GetFunction("run");
   get_ops_ = module_.GetFunction("get_ops");
   get_storage_size_ = module_.GetFunction("get_storage_size");
-  auto storage_size = GetStorageSize();
+  GetStorageSize();
 
-  if (storage_size > (1ll << 38) || storage_size == -1) {
-    return;
-  }
-  auto setup = module_.GetFunction("setup");
-  if (setup()) {
-    return;
-  }
   auto get_output_num = module_.GetFunction("get_output_num");
   get_output_num(&out_num_);
   if (out_num_< 1) {
@@ -160,13 +150,13 @@ bool CVMModel::SetPostprocessMethod(const string postprocess_method) {
 }
 int64_t CVMModel::GetStorageSize() {
   int64_t ret;
-  if (get_storage_size_(&ret)) return -1;
+  get_storage_size_(&ret);
   return ret;
 }
 
 int64_t CVMModel::GetOps() {
   int64_t ret;
-  if (get_ops_(&ret)) return -1;
+  get_ops_(&ret);
   return ret;
 }
 
@@ -202,30 +192,19 @@ std::vector<DLTensor*> CVMModel::PlanOutput() {
   return ret;
 }
 
-int CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
+void CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
   if (postprocess_method_ == "argmax") {
-    // std::cerr << "argmax\n";
     int32_t* cp = static_cast<int32_t*>((void*)(mem));
     // argmax by dimension -1
     for (size_t k = 0 ; k < (size_t)out_num_; ++k) {
       uint32_t last_dim = shapes_[ input_num_ +  k][dims_[input_num_ + k] - 1];
       uint32_t out_size = out_size_[k];
       uint32_t out_size_ap = out_size / last_dim;
-      // std::cerr << " last_dim = " << last_dim
-      //           << " out_size = " << out_size
-      //           << " out_size_ap = " << out_size_ap
-      //           << "\n";
       auto data = static_cast<int*>(outputs[k]->data);
-      // for (size_t i = 0; i < out_size_ap; i += last_dim) {
-      //   std::cerr << int(int8_t(data[i])) << " ";
-      // }
-      // std::cerr << "\n";
       for (size_t i = 0; i < out_size_ap; i += last_dim) {
         uint32_t max_id = 0;
         for (size_t j = i; j < i + last_dim; j++) {
           if (int8_t(data[j]) > int8_t(data[i + max_id])) {
-            // std::cerr << " max " << int(int8_t(data[j])) << " " << int(int8_t(data[i + max_id]))
-            //          << " j = " << j - i << "\n";
             max_id = j - i;
           }
         }
@@ -257,25 +236,13 @@ int CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
         int32_t* cp = static_cast<int32_t*>((void*)(mem));
         int32_t nx = xs[0];  // truncate result
         for (int xidx = 0; xidx < nx; xidx++) {
-          //   std::cerr << "int8 \n";
-          // for (size_t k = 0; k < outputs.size(); ++k) {
-          //   auto data = static_cast<uint8_t*>(outputs[k]->data) + xidx * ys[k] * 4;
-          //   for (size_t i = 0; i < ys[k] * 4; ++i) {
-          //     std::cerr << (int)((uint8_t)data[i]) << " " ;
-          //   }
-          // }
-          //   std::cerr << "\n";
-
-          // std::cerr << "int32 \n";
           for (size_t k = 0; k < outputs.size(); ++k) {
             auto data = static_cast<int32_t*>(outputs[k]->data) + xidx * ys[k];
             for (size_t i = 0; i < ys[k]; ++i) {
               *cp = data[i];
-          //    std::cerr << *cp << " " ;
               ++cp;
             }
           }
-          //   std::cerr << "\n";
         }
       } else {
         auto cp = mem;
@@ -289,8 +256,8 @@ int CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
         }
       }
     } else {
-      std::cerr << "yolo post process failed\n";
-      return -1;
+      // TODO(wentao): verify in model load.
+      VERIFY(false) << "detection model output cannot concat";
     }
   } else {
       for (size_t k = 0; k < outputs.size(); ++k) {
@@ -300,41 +267,34 @@ int CVMModel::SaveTensor(std::vector<DLTensor*> outputs, char* mem) {
         }
       }
   }
-  return 0;
 }
 
 int CVMModel::LoadParams(const string &params) {
-  if (params.size() == 0) return -1;
+  VERIFY_NE(params.size(), 0);
   CVMByteArray arr;
   arr.data = params.c_str();
   arr.size = params.length();
-  return load_params_(arr);
+  load_params_(arr);
+  return SUCCEED;
 }
 
-int CVMModel::SetInput_(string index, DLTensor* input) {
-  return input == nullptr ? -1 : set_input_(index, input);
+void CVMModel::SetInput_(string index, DLTensor* input) {
+  CHECK_NOT_NULL(input);
+  set_input_(index, input);
 }
 
-int CVMModel::GetOutput_(int index, DLTensor* output) {
-  return output == nullptr ? -1 : get_output_(index, output);
+void CVMModel::GetOutput_(int index, DLTensor* output) {
+  CHECK_NOT_NULL(output);
+  get_output_(index, output);
 }
 
-int CVMModel::Run_() {
-  return run_();
-}
-
-int CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
-  int ret = SetInput_("data", input) || Run_();
-  if (ret) return ret;
+void CVMModel::Run(DLTensor* input, std::vector<DLTensor*> outputs) {
+  SetInput_("data", input);
+  run_();
 
   for (size_t i = 0; i < outputs.size(); ++i) {
-    ret = GetOutput_(i, outputs[i]);
-    if (ret) {
-      return ret;
-    }
+    GetOutput_(i, outputs[i]);
   }
-
-  return 0;
 }
 
 int CVMModel::GetInputLength() {
@@ -349,25 +309,20 @@ int CVMModel::GetOutputLength() {
       uint32_t last_dim = shapes_[k][dims_[k] - 1];
       uint32_t out_size = out_size_[k - input_num_];
       uint32_t out_size_ap = out_size / last_dim;
-      // std::cerr << "output[" << k << "]" << "last_dim = " << last_dim << "out_size_[k] = " << out_size << "\n";
       ret += out_size_ap;
     }
     ret *= output_bytes_;
-//    std::cerr << "ret = " << ret << "\n";
     return ret;
   }
   else if (postprocess_method_ == "detection") {
     int ret = 0;
     int yolo_num_ret = dims_[input_num_] >= 2 ? shapes_[input_num_][dims_[input_num_] - 2]: 0;
-    // std::cerr << "yolo_num_ret = " << yolo_num_ret << "\n";
     for (size_t k = input_num_; k < (size_t)input_num_ + out_num_; ++k) {
       uint32_t last_dim = shapes_[k][dims_[k] - 1];
-      // std::cerr << "output[" << k << "] " << "last_dim = " << last_dim  << "\n";
       ret += last_dim;
     }
     ret *= yolo_num_ret;
     ret *= output_bytes_;
-    // std::cerr << "output length = " << ret << "\n";
     return ret;
   } else {
     int ret = 0;
@@ -385,178 +340,127 @@ int CVMModel::GetSizeOfOutputType() {
 int CVMModel::GetSizeOfInputType() {
   return input_bytes_;
 }
-/*
-int CVMModel::LoadParamsFromFile(string filepath) {
-  std::ifstream input_stream(filepath, std::ios::binary);
-  std::string params = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
-  input_stream.close();
-  return LoadParams(params);
-}
-*/
 
 }
-}
-
-string LoadFromFile(string filepath) {
-  std::ifstream input_stream(filepath, std::ios::in);
-  string str = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
-  input_stream.close();
-  return str;
-}
-
-string LoadFromBinary(string filepath) {
-  std::ifstream input_stream(filepath, std::ios::binary);
-  string str = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
-  input_stream.close();
-  return str;
 }
 
 using cvm::runtime::CVMModel;
 
-void* CVMAPILoadModel(
-  const char *graph_payload,
-  int json_len,
-  const char *model_payload,
-  int model_len,
-  int device_type,
-  int device_id)
-{
-  CVMModel* model = nullptr;
-  // std::cerr << "graph_fname = " << graph_fname
-  //           << "\nmodel_fname = " << model_fname
-  //           << "\ndevice_type = " << device_type
-  //           << "\ndevice_id = " << device_id << "\n";
-  string graph(graph_payload, json_len);
-  string params(model_payload, model_len);
-  // std::cerr << "model size: " << params.size() << "\n";
-  if (device_type == 0) {
-    model = new CVMModel(graph, DLContext{kDLCPU, 0});
-  } else {
-    model = new CVMModel(graph, DLContext{kDLGPU, device_id});
-  }
+CVMStatus CVMAPILoadModel(const char *graph_json, int graph_strlen,
+                          const char *param_bytes, int param_strlen,
+                          ModelHandler *net,
+                          int device_type, int device_id) {
+  API_BEGIN();
+  string graph(graph_json, graph_strlen);
+  string params(param_bytes, param_strlen);
+  DLContext ctx;
+  ctx.device_type = (device_type == 0) ? kDLCPU : kDLGPU;
+  ctx.device_id = (device_type == 0) ? 0 : device_id;
+  CVMModel *model = new CVMModel(graph, ctx);
   if (!model->IsReady() || model->LoadParams(params)) {
     delete model;
-    return NULL;
+    return ERROR_LOGIC;
   }
-  return (void*)model;
+  *net = (ModelHandler)model;
+  API_END();
 }
 
 
-void CVMAPIFreeModel(void* model_) {
-  CVMModel* model = static_cast<CVMModel*>(model_);
-  if (model_) delete model;
+CVMStatus CVMAPIFreeModel(ModelHandler net) {
+  API_BEGIN();
+  CVMModel* model = static_cast<CVMModel*>(net);
+  if (net) delete model;
+  API_END();
 }
 
-int CVMAPIGetInputLength(void* model_) {
-  CVMModel* model = (CVMModel*)model_;
-  int ret = model->GetInputLength();
-  return ret;
+CVMStatus CVMAPIInference(ModelHandler net,
+                          char *input_data,
+                          StringHandler output_data) {
+  API_BEGIN();
+  CHECK_3_NOT_NULL(net, input_data, output_data);
+
+  CVMModel* model = static_cast<CVMModel*>(net);
+  DLTensor *input = model->PlanInput(input_data);
+  auto outputs = model->PlanOutput();
+  model->Run(input, outputs);
+  model->SaveTensor(outputs, output_data);
+  if (input) CVMArrayFree(input);
+  for (auto &output : outputs) CVMArrayFree(output);
+  API_END();
 }
 
-int CVMAPIGetOutputLength(void* model_) {
-  CVMModel* model = (CVMModel*)model_;
-  if (model == nullptr)
-      return 0;
-  int ret = model->GetOutputLength();
-  return ret;
-}
+CVMStatus CVMAPIGetVersion(ModelHandler net, StringHandler version) {
+  API_BEGIN();
+  CHECK_2_NOT_NULL(net, version);
 
-void CVMAPIGetVersion(void *model_, char* version) {
-  CVMModel* model = (CVMModel*)model_;
-  if (model == nullptr) return;
+  CVMModel* model = static_cast<CVMModel*>(net);
   strcpy(version, model->GetVersion().c_str());
+  API_END();
 }
 
-void CVMAPIGetPreprocessMethod(void *model_, char* method) {
-  CVMModel* model = (CVMModel*)model_;
-  if (model == nullptr) return;
+CVMStatus CVMAPIGetPreprocessMethod(ModelHandler net, StringHandler method) {
+  API_BEGIN();
+  CHECK_2_NOT_NULL(net, method);
+
+  CVMModel* model = static_cast<CVMModel*>(net);
   strcpy(method, model->GetPostprocessMethod().c_str());
+  API_END();
 }
 
-long long CVMAPIGetGasFromModel(void *model_) {
-  CVMModel* model = (CVMModel*)model_;
-  long long ret = -1;
-  if (model != nullptr) {
-    ret = static_cast<long long>(model->GetOps());
-  }
-  return ret;
+CVMStatus CVMAPIGetInputLength(ModelHandler net, IntHandler size) {
+  API_BEGIN();
+  CHECK_2_NOT_NULL(net, size);
+  CVMModel* model = static_cast<CVMModel*>(net);
+  *size = model->GetInputLength();
+  API_END();
 }
 
-long long CVMAPIGetGasFromGraphFile(char *graph_json) {
+CVMStatus CVMAPIGetOutputLength(ModelHandler net, IntHandler size) {
+  API_BEGIN();
+  CHECK_2_NOT_NULL(net, size);
+  CVMModel* model = static_cast<CVMModel*>(net);
+  *size = model->GetOutputLength();
+  API_END();
+}
+
+CVMStatus CVMAPIGetOutputTypeSize(ModelHandler net, IntHandler size) {
+  API_BEGIN();
+  CHECK_2_NOT_NULL(net, size);
+  CVMModel* model = static_cast<CVMModel*>(net);
+  *size = model->GetSizeOfOutputType();
+  API_END();
+}
+
+CVMStatus CVMAPIGetInputTypeSize(ModelHandler net, IntHandler size) {
+  API_BEGIN();
+  CHECK_2_NOT_NULL(net, size);
+  CVMModel* model = static_cast<CVMModel*>(net);
+  *size = model->GetSizeOfInputType();
+  API_END();
+}
+
+CVMStatus CVMAPIGetStorageSize(ModelHandler net, IntHandler gas) {
+  API_BEGIN();
+  CHECK_2_NOT_NULL(net, gas);
+  CVMModel* model = static_cast<CVMModel*>(net);
+  *gas = model->GetStorageSize();
+  API_END();
+}
+
+CVMStatus CVMAPIGetGasFromModel(ModelHandler net, IntHandler gas) {
+  API_BEGIN();
+  CHECK_2_NOT_NULL(net, gas);
+  CVMModel* model = static_cast<CVMModel*>(net);
+  *gas = model->GetOps();
+  API_END();
+}
+
+CVMStatus CVMAPIGetGasFromGraphFile(const char *graph_json, IntHandler gas) {
+  API_BEGIN();
   string json_data(graph_json);
-  // try {
-  //   std::ifstream json_in(string(graph_json), std::ios::in);
-  //   json_data = string((std::istreambuf_iterator<char>(json_in)), std::istreambuf_iterator<char>());
-  //   json_in.close();
-  // } catch (std::exception &e) {
-  //   return -1;
-  // }
   auto f = cvm::runtime::Registry::Get("cvm.runtime.estimate_ops");
-  if (f == nullptr) return -1;
-  int64_t ret;
-  ret = (*f)(json_data);
-  return static_cast<long long>(ret);
-}
-
-long long CVMAPIGetStorageSize(void *model_) {
-  CVMModel* model = (CVMModel*)model_;
-  long long ret = -1;
-  if (model != nullptr) {
-    ret = static_cast<long long>(model->GetStorageSize());
-  }
-  return ret;
-}
-
-int CVMAPISizeOfOutputType(void *model_) {
-  CVMModel* model = (CVMModel*)model_;
-  if (model != nullptr) {
-    return model->GetSizeOfOutputType();
-  }
-  return 0;
-}
-
-int CVMAPISizeOfInputType(void *model_) {
-  CVMModel* model = (CVMModel*)model_;
-  if (model != nullptr) {
-    return model->GetSizeOfInputType();
-  }
-  return 0;
-}
-
-int CVMAPIInfer(void* model_, char *input_data, char *output_data) {
-  try {
-    int ret = 0;
-    if (input_data == nullptr) {
-      std::cerr << "input_data error" << std::endl;
-      ret = -1;
-    } else if (output_data == nullptr) {
-      std::cerr << "output error" << std::endl;
-      ret = -1;
-    } else {
-      CVMModel* model = (CVMModel*)model_;
-      DLTensor* input = nullptr;
-      input = model->PlanInput(input_data);
-      auto outputs = model->PlanOutput();
-      if (input == nullptr) {
-        std::cerr << "input == nullptr || output == nullptr" << std::endl;
-        ret = -1;
-      } else {
-        ret = model->Run(input, outputs);
-        if (ret == 0) {
-          int save_ok = model->SaveTensor(outputs, output_data);
-          if (save_ok != 0)
-            ret = -1;
-          if (input)
-            CVMArrayFree(input);
-          for (size_t i = 0; i < outputs.size(); ++i)
-            CVMArrayFree(outputs[i]);
-        }
-      }
-      return ret;
-    }
-  } catch (std::exception &e) {
-    return -1;
-  }
-  return 0;
+  int64_t ret = (*f)(json_data);
+  *gas = static_cast<long long>(ret);
+  API_END();
 }
 

@@ -61,6 +61,7 @@ else(MSVC)
   else()
     set(CMAKE_C_FLAGS "-mavx2 -O3 -Wall -fPIC ${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "-mavx2 -O3 -Wall -fPIC -std=c++11 ${CMAKE_CXX_FLAGS}")
+    # set(CMAKE_CXX_FLAGS "-mavx2 -O2 -fno-strict-aliasing -Wall -fPIC -std=c++11 ${CMAKE_CXX_FLAGS}")}"
   endif ()
   if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND
       CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)

@@ -45,20 +45,19 @@ public:
   int64_t GetOps();
   int GetSizeOfOutputType();
   int GetSizeOfInputType();
-  int Run(DLTensor* input, std::vector<DLTensor*> output);
+  void Run(DLTensor* input, std::vector<DLTensor*> output);
   DLTensor* PlanInput();
   DLTensor* PlanInput(void*);
   std::vector<DLTensor*> PlanOutput();
-  int SaveTensor(std::vector<DLTensor*> outputs, char *data);
+  void SaveTensor(std::vector<DLTensor*> outputs, char *data);
 
   std::string GetVersion();
   std::string GetPostprocessMethod();
   bool SetPostprocessMethod(const string postprocess_method);
   bool IsReady() const;
 private:
-  int SetInput_(string index, DLTensor* input);
-  int Run_();
-  int GetOutput_(int index, DLTensor* output);
+  void SetInput_(string index, DLTensor* input);
+  void GetOutput_(int index, DLTensor* output);
   DLContext ctx_;
   PackedFunc set_input_;
   PackedFunc get_output_;
@@ -70,7 +69,6 @@ private:
   int64_t in_size_;
   int64_t *out_size_;
   int32_t out_num_;
-  int64_t model_id_;
   int8_t output_bytes_;
   int8_t input_bytes_;
   std::vector<int> dims_;
