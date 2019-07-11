@@ -17,8 +17,8 @@
 #include "omp.h"
 #include <immintrin.h>
 
-#include "graph_runtime.h"
-#include "nms.h"
+#include "../../graph_runtime.h"
+#include "../nms.h"
 
 #define CVM_PROFILING
 

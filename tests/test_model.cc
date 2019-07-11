@@ -11,7 +11,9 @@ using namespace std;
 using cvm::runtime::PackedFunc;
 using cvm::runtime::Registry;
 
-int use_gpu = 0;
+#ifndef USE_GPU
+#define USE_GPU  0
+#endif
 
 void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_t>& data){
     FILE *fp = fopen(filename, "r");
@@ -63,6 +65,7 @@ void test_op_take() {
 }
 
 int run_LIF(string model_root, int device_type = 0) {
+#if(USE_GPU==0)
   cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
   cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
   cvm::runtime::im2col_cnt = 0;
@@ -77,6 +80,7 @@ int run_LIF(string model_root, int device_type = 0) {
   cvm::runtime::cvm_op_chnwise_conv_cnt = 0;
   cvm::runtime::cvm_op_depthwise_conv_cnt = 0;
   cvm::runtime::cvm_op_chnwise_conv1x1_cnt = 0;
+#endif
 
   string json_path = model_root + "/symbol";
   string params_path = model_root + "/params";
@@ -163,6 +167,7 @@ int run_LIF(string model_root, int device_type = 0) {
     CVMAPIInfer(model, input.data(), output.data());
   }
   CVMAPIFreeModel(model);
+#if(USE_GPU == 0)
   double ellapsed_time = (omp_get_wtime() - start) / n_run;
   cout << "total time : " << ellapsed_time / n_run << "\n";
   cout << "total gemm.trans time: " << cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run << "\n";
@@ -221,6 +226,7 @@ int run_LIF(string model_root, int device_type = 0) {
   sum_time =  cvm::runtime::cvm_op_chnwise_conv1x1_cnt / n_run;
   cout << "total chnconv2d1x1 time: " << (sum_time) << "/" << ellapsed_time
     << " " <<  sum_time / ellapsed_time <<"\n";
+#endif
 
   if (json_path.find("yolo") != string::npos) {
     uint64_t n_bytes = 4;
@@ -339,9 +345,7 @@ int test_models(int device_type = 0) {
   return 0;
 }
 int main() {
-  //if (test_models(0) != 0)
-  //  return -1;
- if (test_models(1) != 0)
+ if (test_models(USE_GPU) != 0)
    return -1;
   return 0;
 }

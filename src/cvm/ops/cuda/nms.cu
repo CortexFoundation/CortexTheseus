@@ -1,7 +1,7 @@
 #include <cuda.h>
 #include <thrust/sort.h>
 #include "cuda_ops.h"
-#include "nms.h"
+#include "../nms.h"
 
 __global__ void kernel_get_valid_count(const int32_t *input, bool *saved, const int32_t n, const int32_t k, const int32_t score_threshold){
   int tid = threadIdx.x + blockIdx.x * blockDim.x;

@@ -132,27 +132,6 @@ std::function<void()> get_func(
 
   return [](){};
 }
-namespace cvm {
-namespace runtime {
-extern void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
-        int32_t *c, const int M, const int K, const int N, int algo);
-}
-}
-void test_matrix_mul() {
-    int M = 7, K = 2, N = 3;
-    vector<int8_t> a(M * K), b(K * N);
-    vector<int32_t> c(M * N);
-    vector<int32_t> bias(M);
-    // std::generate(v.begin(), v.end(), [n = 0] () mutable { return n++; });
-    std::generate(a.begin(), a.end(), [n = 0] () mutable { return n++; });
-    std::generate(b.begin(), b.end(), [n = 0] () mutable { return n++; });
-    std::generate(bias.begin(), bias.end(), [n = 0] () mutable { return n++; });
-    matrix_mul(a.data(), b.data(), bias.data(), c.data(), M, K, N, 0);
-    for (auto x : c) {
-        std::cout << x << " ";
-    }
-    std::cout << "\n";
-}
 void test_depthwise_conv () {
     string attr_str = " {\"layout\": \"NCHW\", \"kernel_layout\": \"OIHW\", \"kernel_size\": \"[3, 3]\", \"padding\": \"(1, 1)\", \"use_bias\": \"True\", \"strides\": \"(1, 1)\", \"channels\": \"10\", \"dilation\": \"(1, 1)\", \"groups\": \"1024\"} ";
     std::vector<int> dims_ = {4, 4, 4};
