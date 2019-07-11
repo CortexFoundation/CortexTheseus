@@ -2,18 +2,18 @@ package main
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo gpu LDFLAGS:  -L../../build/gpu -lcvm_runtime_cuda -lcudart -lcuda
-#cgo !gpu LDFLAGS: -L../../build/cpu -lcvm_runtime_cpu
+#cgo gpu LDFLAGS:  -L../../infernet/build/gpu -lcvm_runtime_cuda -lcudart -lcuda
+#cgo !gpu LDFLAGS: -L../../infernet/build/cpu -lcvm_runtime_cpu
 #cgo LDFLAGS: -ldl -lstdc++
 
-#cgo CFLAGS: -I../include -O2
+#cgo CFLAGS: -I../../infernet/include -O2
 #cgo CFLAGS: -Wall -Wno-unused-result -Wno-unknown-pragmas -Wno-unused-variable
 
 #include <cvm/c_api.h>
 */
 import "C"
 import (
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/CortexTheseus/infernet/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"unsafe"
 )
@@ -23,13 +23,13 @@ func StatusCheck(status C.enum_CVMStatus) error {
 	case int(C.SUCCEED):
 		return nil
 	case int(C.ERROR_LOGIC):
-		return synapse.ErrLogic
+		return kernel.ErrLogic
 	case int(C.ERROR_RUNTIME):
-		return synapse.ErrRuntime
+		return kernel.ErrRuntime
 	}
 
 	// status should not go here.
-	return synapse.ErrRuntime
+	return kernel.ErrRuntime
 }
 
 func LoadModel(modelCfg, modelBin []byte, deviceId int) (unsafe.Pointer, error) {
@@ -93,9 +93,9 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	data_aligned, data_aligned_err := synapse.ToAlignedData(data, int(input_bytes))
+	data_aligned, data_aligned_err := kernel.ToAlignedData(data, int(input_bytes))
 	if data_aligned_err != nil {
-		return nil, synapse.ErrLogic
+		return nil, kernel.ErrLogic
 	}
 
 	res := make([]byte, uint64(resLen))
@@ -109,9 +109,9 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 
 	if uint64(output_bytes) > 1 {
 		var err error
-		res, err = synapse.SwitchEndian(res, int(output_bytes))
+		res, err = kernel.SwitchEndian(res, int(output_bytes))
 		if err != nil {
-			return nil, synapse.ErrLogic
+			return nil, kernel.ErrLogic
 		}
 	}
 	log.Info("CPU Inference succeed", "res", res)
