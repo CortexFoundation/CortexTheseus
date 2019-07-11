@@ -18,14 +18,6 @@
 #include <thread>
 #include <utility>
 
-#define CALL_BEGIN() *rv = 0;                        \
-                      try {
-#define CALL_END() } \
-                catch (const std::runtime_error &e) { *rv = -2; }  \
-                catch (const std::logic_error &e)   { *rv = -1; }  \
-              return; \
-
-
 namespace cvm {
 namespace runtime {
 
@@ -581,24 +573,19 @@ PackedFunc CvmRuntime::GetFunction(
   // Return member functions during query.
   if (name == "set_input") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         if (args[0].type_code() == kStr) {
           int in_idx = this->GetInputIndex(args[0]);
           this->SetData(in_idx, args[1]);
         } else {
           this->SetData(args[0], args[1]);
         }
-        CALL_END();
       });
   } else if (name == "get_output") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         this->CopyOutputTo(args[0], args[1]);
-        CALL_END();
       });
   } else if (name == "get_input_shape") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         if (args[0].type_code() == kStr) {
           int in_idx = this->GetInputIndex(args[0]);
           if (in_idx >= 0)
@@ -608,23 +595,15 @@ PackedFunc CvmRuntime::GetFunction(
         } else {
           this->GetShape(args[0], args[1]);
         }
-        CALL_END();
       });
   } else if (name == "get_storage_size") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
-        if (args[0].type_code() == kHandle) {
-          void *placeholder = args[0];
-          VERIFY(placeholder != NULL);
-          *static_cast<int64_t*>(placeholder) = this->GetStorageSize();
-        } else {
-          *rv = -1;
-        }
-        CALL_END();
-      });
+        void *size = args[0].operator void *();
+        CHECK(size != nullptr);
+        *static_cast<int64_t*>(size) = this->GetStorageSize();
+    });
   } else if (name == "get_version") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         if (args[0].type_code() == kArrayHandle) {
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
@@ -632,11 +611,9 @@ PackedFunc CvmRuntime::GetFunction(
         } else {
           *rv = -1;
         }
-        CALL_END();
       });
   } else if (name == "get_postprocess_method") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         if (args[0].type_code() == kStr) {
           char *placeholder = args[0].ptr<char>();
           VERIFY(placeholder != NULL);
@@ -644,23 +621,15 @@ PackedFunc CvmRuntime::GetFunction(
         } else {
           *rv = -1;
         }
-        CALL_END();
       });
   } else if (name == "get_ops") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
-        if (args[0].type_code() == kHandle) {
-          void *placeholder = args[0];
-          VERIFY(placeholder != NULL);
-          *static_cast<int64_t*>(placeholder) = this->GetOps();
-        } else {
-          *rv = -1;
-        }
-        CALL_END();
+        void *size = args[0].operator void *();
+        CHECK(size != nullptr);
+        *static_cast<int64_t*>(size) = this->GetOps();
       });
   } else if (name == "get_output_precision") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
@@ -669,11 +638,9 @@ PackedFunc CvmRuntime::GetFunction(
         } else {
           *rv = -1;
         }
-        CALL_END();
       });
   } else if (name == "get_input_precision") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         if (args[0].type_code() == kHandle) {
           void *placeholder = args[0];
           VERIFY(placeholder != NULL);
@@ -682,55 +649,28 @@ PackedFunc CvmRuntime::GetFunction(
         } else {
           *rv = -1;
         }
-        CALL_END();
       });
   } else if (name == "get_output_num") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
-        if (args[0].type_code() == kHandle) {
-          void *placeholder = args[0];
-          VERIFY(placeholder != NULL);
-          auto num_output = this->GetOutputNum();
-          *static_cast<int32_t*>(placeholder) = num_output;
-        } else {
-          *rv = -1;
-        }
-        CALL_END();
+        void *out_num = args[0].operator void *();
+        CHECK(out_num != nullptr);
+        auto num_output = this->GetOutputNum();
+        *static_cast<int32_t*>(out_num) = num_output;
       });
   } else if (name == "get_output_shape") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         this->GetOutputShape(args[0], args[1]);
-        CALL_END();
       });
   } else if (name == "run") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         this->Run();
-        CALL_END();
-      });
-  } else if (name == "setup") {
-    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
-        this->Setup();
-        CALL_END();
-      });
-  } else if (name == "init") {
-    return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
-        this->Init();
-        CALL_END();
       });
   } else if (name == "load_params") {
     return PackedFunc([this](CVMArgs args, CVMRetValue* rv) {
-        CALL_BEGIN();
         this->LoadParams(args[0]);
-        CALL_END();
       });
   } else {
     return PackedFunc([](CVMArgs args, CVMRetValue *rv) {
-        CALL_BEGIN();
-        CALL_END();
       });
   }
 }
@@ -739,6 +679,8 @@ Module CvmRuntimeCreate(const std::string& sym_json, const std::vector<CVMContex
   std::shared_ptr<CvmRuntime> exec = std::make_shared<CvmRuntime>();
   exec->SetGraph(sym_json);
   exec->SetContext(ctxs);
+  exec->Init();
+  exec->Setup();
   return Module(exec);
 }
 
@@ -770,17 +712,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.create")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.estimate_ops")
   .set_body([](CVMArgs args, CVMRetValue* rv) {
-    try {
       VERIFY_GE(args.num_args, 1) << "The expected number of arguments for "
                                     "graph_runtime.estimate_ops is "
                                     "at least 1, but it has "
                                 << args.num_args;
       *rv = CvmRuntime::EstimateOps(args[0]);
-    } catch (std::runtime_error &e) {
-      *rv = -1;
-    } catch (std::logic_error &e) {
-      *rv = -2;
-    }
   });
 }  // namespace runtime
 }  // namespace cvm
