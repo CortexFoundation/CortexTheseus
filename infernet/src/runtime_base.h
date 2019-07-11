@@ -14,15 +14,16 @@
 /*! \brief every function starts with API_BEGIN();
      and finishes with API_END() or API_END_HANDLE_ERROR */
 #define API_END() } \
-  catch(std::runtime_error &_except_) { return CVMAPIHandleException(_except_); } \
-  catch(std::logic_error &_except_) { return CVMAPIHandleLogicException(_except_); \
-  } return 0;  // NOLINT(*)
+  catch(std::exception &e) { throw e; } \
+  return 0;  // NOLINT(*)
 /*!
  * \brief every function starts with API_BEGIN();
  *   and finishes with API_END() or API_END_HANDLE_ERROR
  *   The finally clause contains procedure to cleanup states when an error happens.
  */
-#define API_END_HANDLE_ERROR(Finalize) } catch(std::runtime_error &_except_) { Finalize; return CVMAPIHandleException(_except_); } return 0; // NOLINT(*)
+#define API_END_HANDLE_ERROR(Finalize) } \
+  catch(std::exception &e) { Finalize; throw e; } \
+  return 0; // NOLINT(*)
 
 /*!
  * \brief handle exception throwed out
