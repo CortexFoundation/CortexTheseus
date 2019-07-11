@@ -88,13 +88,13 @@ plugins/cpu_helper_for_node.so:
 	make -C PoolMiner cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
-plugins/cuda_cvm.so: infernet/kernel/infer_plugins/cuda_plugin.go
+plugins/cuda_cvm.so: cmd/plugins/c_wrapper.go
 	make -C ${INFER_NET_DIR} -j8 gpu
-	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cuda_plugin.go
+	build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
-plugins/cpu_cvm.so: infernet/kernel/infer_plugins/cpu_plugin.go
+plugins/cpu_cvm.so: cmd/plugins/c_wrapper.go
 	make -C ${INFER_NET_DIR} -j8 cpu
-	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
+	build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
 

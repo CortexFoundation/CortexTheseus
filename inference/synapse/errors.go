@@ -14,9 +14,6 @@ var (
 	ErrModelFileNotExist = errors.New(ErrModelFileNotExistFlag)
 
 	ErrFatal = errors.New("fatal")
-
-	ErrLogic   = errors.New("CVM executor logic error")
-	ErrRuntime = errors.New("CVM executor runtime error")
 )
 
 // If infered by local, check struct error is enough.

@@ -2,11 +2,11 @@ package main
 
 /*
 #cgo LDFLAGS: -lm -pthread
-#cgo LDFLAGS: -L../../build/cpu -lcvm_runtime_cpu -ldl
-#cgo LDFLAGS: -lstdc++
+#cgo gpu LDFLAGS:  -L../../build/gpu -lcvm_runtime_cuda -lcudart -lcuda
+#cgo !gpu LDFLAGS: -L../../build/cpu -lcvm_runtime_cpu
+#cgo LDFLAGS: -ldl -lstdc++
 
 #cgo CFLAGS: -I../include -O2
-
 #cgo CFLAGS: -Wall -Wno-unused-result -Wno-unknown-pragmas -Wno-unused-variable
 
 #include <cvm/c_api.h>

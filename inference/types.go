@@ -32,8 +32,8 @@ type ICWork struct {
 
 // Infer by input content
 type GasWork struct {
-	Type  InferType     `json:"type"`
-	Model string        `json:"model"`
+	Type  InferType `json:"type"`
+	Model string    `json:"model"`
 }
 
 func RetriveType(input []byte) InferType {
