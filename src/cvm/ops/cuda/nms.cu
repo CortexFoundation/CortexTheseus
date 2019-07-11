@@ -1,5 +1,6 @@
 #include <cuda.h>
 #include <thrust/sort.h>
+#include <thrust/execution_policy.h>
 #include "cuda_ops.h"
 #include "../nms.h"
 
@@ -101,7 +102,7 @@ __global__ void kernel_get_values_and_keys(
     }
 }
 
-__device__ int64_t dev_iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
+inline __device__ int64_t dev_iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t x1_min = format == FORMAT_CORNER ? rect1[0] : rect1[0] - rect1[2]/2;
     int32_t y1_min = format == FORMAT_CORNER ? rect1[1] : rect1[1] - rect1[3]/2;
     int32_t x1_max = format == FORMAT_CORNER ? rect1[2] : x1_min + rect1[2];
@@ -233,7 +234,7 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
       const int blockSize = 256;
       const int gridSize = (vc + blockSize - 1) / blockSize;
       kernel_get_values_and_keys<<<gridSize, blockSize>>>(x_batch, vc, k, score_index, rows, keys);
-      thrust::sort_by_key(thrust::device, keys, keys+vc, rows);
+      thrust::sort_by_key(thrust::device, keys, keys+vc, rows, thrust::greater<int32_t>());
 
       if(topk > 0 && topk < vc){
         for(int i = 0; i < vc - topk; i++){

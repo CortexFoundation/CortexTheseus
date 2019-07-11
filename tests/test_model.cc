@@ -294,15 +294,15 @@ int test_models(int device_type = 0) {
   auto model_roots = {
     // "/data/std_out/null",
     // "/data/std_out/resnet50_mxg",
-     "/data/std_out/resnet50_v2",
+    // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2",
     // "/data/std_out/trec",
-    // "/data/new_cvm/yolo3_darknet53_voc/data",
+     "/data/new_cvm/yolo3_darknet53_voc/data",
     // "/data/lz_model_storage/dcnet_mnist_v1/data",
     // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
     // "/data/lz_model_storage/resnet50_v1_imagenet/data",
     // "/data/lz_model_storage/animal10/data",
-     "/data/lz_model_storage/resnet50_v2/data",
+    // "/data/lz_model_storage/resnet50_v2/data",
     // "/data/lz_model_storage/vgg16_gcv/data",
     // "/data/lz_model_storage/sentiment_trec/data",
     // "/data/lz_model_storage/vgg19_gcv/data",
@@ -329,8 +329,8 @@ int test_models(int device_type = 0) {
     // "/data/std_out/random_4_7/",
     // "/data/std_out/random_4_8/",
     // "/data/std_out/random_4_9/",
-    "/data/std_out/log2",
-    "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
+    // "/data/std_out/log2",
+    // "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
   };
   for (auto model_root : model_roots) {
     auto ret = run_LIF(model_root, device_type);
