@@ -1,8 +1,6 @@
 package kernel
 
 import (
-	"errors"
-	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"plugin"
 	"unsafe"
@@ -11,128 +9,102 @@ import (
 type Model struct {
 	model unsafe.Pointer
 	lib   *plugin.Plugin
-	ops   int64
-	size  int64
+	ops   uint64
+	size  uint64
 }
 
-func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin []byte) *Model {
-	var model unsafe.Pointer
-	var size int64
-	var ops int64
+// Exactly copy from c_api.h:
+//	status code of cvm executor
+var (
+	SUCCEED       = 0
+	ERROR_LOGIC   = 1
+	ERROR_RUNTIME = 2
+)
+
+func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin []byte) (*Model, int) {
+	var (
+		model  unsafe.Pointer
+		status int
+		size   uint64
+		ops    uint64
+	)
 
 	if m, err := lib.Lookup("LoadModel"); err != nil {
 		log.Error("infer helper", "LoadModel", "error", err)
-		return nil
+		return nil, ERROR_RUNTIME
 	} else {
-		model, err = m.(func([]byte, []byte, int) (unsafe.Pointer, error))(modelCfg, modelBin, deviceId)
-		if model == nil || err != nil {
-			log.Error("infer helper", "LoadModel", "error", err)
-			return nil
+		model, status = m.(func([]byte, []byte, int) (unsafe.Pointer, int))(modelCfg, modelBin, deviceId)
+		if status != SUCCEED {
+			return nil, status
 		}
 	}
 
 	if m, err := lib.Lookup("GetStorageSize"); err != nil {
 		log.Error("Error while get model size")
-		return nil
+		return nil, ERROR_RUNTIME
 	} else {
-		ret, err := m.(func(unsafe.Pointer) (int64, error))(model)
-		if err != nil {
-			return nil
+		size, status = m.(func(unsafe.Pointer) (uint64, int))(model)
+		if status != SUCCEED {
+			return nil, status
 		}
-		size = ret
 	}
 	if m, err := lib.Lookup("GetModelOpsFromModel"); err != nil {
 		log.Error("infer helper", "GetModelOpsFromModel", "error", err)
-		return nil
+		return nil, ERROR_RUNTIME
 	} else {
-		ret, err := m.(func(unsafe.Pointer) (int64, error))(model)
-		if err != nil || ret < 0 {
-			log.Error("infer helper", "GetModelOpsFromModel", "error", err)
-			return nil
+		ops, status = m.(func(unsafe.Pointer) (uint64, int))(model)
+		if status != SUCCEED {
+			return nil, status
 		}
-		ops = ret
 	}
 	return &Model{
 		model: model,
 		lib:   lib,
 		ops:   ops,
 		size:  size,
-	}
+	}, SUCCEED
 }
 
-func (m *Model) Ops() int64 {
+func (m *Model) Ops() uint64 {
 	return m.ops
 }
 
-func (m *Model) Size() int64 {
+func (m *Model) Size() uint64 {
 	return m.size
 }
 
-func (m *Model) GetInputLength() int {
+func (m *Model) GetInputLength() (uint64, int) {
 	f, err := m.lib.Lookup("GetInputLength")
-
 	if err != nil {
 		log.Error("infer helper", "GetInputLength", "error", err)
-		return -1
+		return 0, ERROR_RUNTIME
 	}
-	ret, err := f.(func(unsafe.Pointer) (int, error))(m.model)
-	if ret < 0 {
-		return -1
-	} else {
-		return int(ret)
-	}
+	return f.(func(unsafe.Pointer) (uint64, int))(m.model)
 }
 
-func (m *Model) GetOutputLength() int {
-	f, err := m.lib.Lookup("GetOutputLength")
-
-	if err != nil {
-		log.Error("infer helper", "GetOutputLength", "error", err)
-		return -1
-	}
-	ret, err := f.(func(unsafe.Pointer) (int, error))(m.model)
-	if ret < 0 {
-		return -1
-	} else {
-		return int(ret)
-	}
-}
-
-func GetModelOps(lib *plugin.Plugin, file []byte) (uint64, error) {
+func GetModelOps(lib *plugin.Plugin, file []byte) (uint64, int) {
 	m, err := lib.Lookup("GetModelOps")
 	if err != nil {
 		log.Error("infer helper", "GetModelOps", "error", err)
-		return 0, err
+		return 0, ERROR_RUNTIME
 	}
-	ret, err := m.(func([]byte) (uint64, error))(file)
-	if err != nil {
-		return 0, errors.New("Gas Error")
-	} else {
-		return uint64(ret), nil
-	}
+	return m.(func([]byte) (uint64, int))(file)
 }
 
-func (m *Model) Free() {
+func (m *Model) Free() int {
 	f, err := m.lib.Lookup("FreeModel")
 	if err != nil {
 		log.Error("infer helper", "FreeModel", "error", err)
-		return
+		return ERROR_RUNTIME
 	}
-	f.(func(unsafe.Pointer))(m.model)
+	return f.(func(unsafe.Pointer) int)(m.model)
 }
 
-func (m *Model) Predict(data []byte) ([]byte, error) {
-	expectedInputLength := m.GetInputLength()
-	if expectedInputLength > len(data) {
-		return nil, errors.New(fmt.Sprintf("input size not match, Expected at least %d, Got %d",
-			expectedInputLength, len(data)))
-	}
-
+func (m *Model) Predict(data []byte) ([]byte, int) {
 	f, err := m.lib.Lookup("Predict")
 	if err != nil {
 		log.Error("infer helper", "Predict", "error", err)
-		return nil, err
+		return nil, ERROR_RUNTIME
 	}
-	res, err := f.(func(unsafe.Pointer, []byte) ([]byte, error))(m.model, data)
-	return res, err
+	return f.(func(unsafe.Pointer, []byte) ([]byte, int))(m.model, data)
 }

@@ -33,9 +33,9 @@ extern "C" {
  */
 enum CVMStatus {
   SUCCEED = 0,
-  ERROR_LOGIC,
-  ERROR_RUNTIME,
-  ERROR_UNKNOWN
+  ERROR_LOGIC = 1,
+  ERROR_RUNTIME = 2,
+  ERROR_UNKNOWN = 3
 } ;
 
 typedef void* ModelHandler;
@@ -47,7 +47,9 @@ enum CVMStatus CVMAPILoadModel(const char *graph_json, int graph_strlen,
                           ModelHandler *net, // pass reference of network
                           int device_type, int device_id);
 enum CVMStatus CVMAPIFreeModel(ModelHandler net);
-enum CVMStatus CVMAPIInference(ModelHandler net, char *input_data, StringHandler output_data);
+enum CVMStatus CVMAPIInference(ModelHandler net,
+                          char *input_data, int input_len,
+                          StringHandler output_data);
 
 enum CVMStatus CVMAPIGetVersion(ModelHandler net, StringHandler version);
 enum CVMStatus CVMAPIGetPreprocessMethod(ModelHandler net, StringHandler method);

@@ -18,61 +18,35 @@ import (
 	"unsafe"
 )
 
-func StatusCheck(status C.enum_CVMStatus) error {
-	switch int(status) {
-	case int(C.SUCCEED):
-		return nil
-	case int(C.ERROR_LOGIC):
-		return kernel.ErrLogic
-	case int(C.ERROR_RUNTIME):
-		return kernel.ErrRuntime
-	}
-
-	// status should not go here.
-	return kernel.ErrRuntime
-}
-
-func LoadModel(modelCfg, modelBin []byte, deviceId int) (unsafe.Pointer, error) {
+func LoadModel(modelCfg, modelBin []byte, deviceId int) (unsafe.Pointer, int) {
 	jptr := (*C.char)(unsafe.Pointer(&(modelCfg[0])))
 	pptr := (*C.char)(unsafe.Pointer(&(modelBin[0])))
 	j_len := C.int(len(modelCfg))
 	p_len := C.int(len(modelBin))
-	var net C.ModelHandler
+	var net C.ModelHandler = nil
 	status := C.CVMAPILoadModel(jptr, j_len, pptr, p_len, &net, 0, C.int(deviceId))
-	if err := StatusCheck(status); err != nil {
-		return nil, err
-	}
-	return unsafe.Pointer(net), nil
+	return unsafe.Pointer(net), int(status)
 }
 
-func GetModelOpsFromModel(net unsafe.Pointer) (uint64, error) {
+func GetModelOpsFromModel(net unsafe.Pointer) (uint64, int) {
 	var gas C.ulonglong
 	status := C.CVMAPIGetGasFromModel(C.ModelHandler(net), &gas)
-	if err := StatusCheck(status); err != nil {
-		return 0, err
-	}
-	return uint64(gas), nil
+	return uint64(gas), int(status)
 }
 
-func GetModelOps(file []byte) (uint64, error) {
+func GetModelOps(file []byte) (uint64, int) {
 	var gas C.ulonglong
 	fptr := (*C.char)(unsafe.Pointer(&file[0]))
 	status := C.CVMAPIGetGasFromGraphFile(fptr, &gas)
-	if err := StatusCheck(status); err != nil {
-		return 0, err
-	}
-	return uint64(gas), nil
+	return uint64(gas), int(status)
 }
 
-func FreeModel(net unsafe.Pointer) error {
+func FreeModel(net unsafe.Pointer) int {
 	status := C.CVMAPIFreeModel(C.ModelHandler(net))
-	if err := StatusCheck(status); err != nil {
-		return err
-	}
-	return nil
+	return int(status)
 }
 
-func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
+func Predict(net unsafe.Pointer, data []byte) ([]byte, int) {
 	var (
 		resLen       C.ulonglong
 		input_bytes  C.ulonglong
@@ -81,57 +55,52 @@ func Predict(net unsafe.Pointer, data []byte) ([]byte, error) {
 	)
 
 	status = C.CVMAPIGetOutputLength(C.ModelHandler(net), &resLen)
-	if err := StatusCheck(status); err != nil {
-		return nil, err
+	if status != C.SUCCEED {
+		return nil, int(status)
 	}
 	status = C.CVMAPIGetInputTypeSize(C.ModelHandler(net), &input_bytes)
-	if err := StatusCheck(status); err != nil {
-		return nil, err
+	if status != C.SUCCEED {
+		return nil, int(status)
 	}
 	status = C.CVMAPIGetOutputTypeSize(C.ModelHandler(net), &output_bytes)
-	if err := StatusCheck(status); err != nil {
-		return nil, err
+	if status != C.SUCCEED {
+		return nil, int(status)
 	}
 
 	data_aligned, data_aligned_err := kernel.ToAlignedData(data, int(input_bytes))
 	if data_aligned_err != nil {
-		return nil, kernel.ErrLogic
+		return nil, int(C.ERROR_LOGIC)
 	}
 
 	res := make([]byte, uint64(resLen))
 	input := (*C.char)(unsafe.Pointer(&data_aligned[0]))
 	output := (*C.char)(unsafe.Pointer(&res[0]))
 
-	status = C.CVMAPIInference(C.ModelHandler(net), input, output)
-	if err := StatusCheck(status); err != nil {
-		return nil, err
+	status = C.CVMAPIInference(C.ModelHandler(net),
+		input, C.int(len(data_aligned)), output)
+	if status != C.SUCCEED {
+		return nil, int(status)
 	}
 
 	if uint64(output_bytes) > 1 {
 		var err error
 		res, err = kernel.SwitchEndian(res, int(output_bytes))
 		if err != nil {
-			return nil, kernel.ErrLogic
+			return nil, int(C.ERROR_LOGIC)
 		}
 	}
 	log.Info("CPU Inference succeed", "res", res)
-	return res, nil
+	return res, int(C.SUCCEED)
 }
 
-func GetStorageSize(net unsafe.Pointer) (uint64, error) {
+func GetStorageSize(net unsafe.Pointer) (uint64, int) {
 	var size C.ulonglong
 	status := C.CVMAPIGetStorageSize(C.ModelHandler(net), &size)
-	if err := StatusCheck(status); err != nil {
-		return 0, err
-	}
-	return uint64(size), nil
+	return uint64(size), int(status)
 }
 
-func GetInputLength(net unsafe.Pointer) (uint64, error) {
+func GetInputLength(net unsafe.Pointer) (uint64, int) {
 	var size C.ulonglong
 	status := C.CVMAPIGetInputLength(C.ModelHandler(net), &size)
-	if err := StatusCheck(status); err != nil {
-		return 0, err
-	}
-	return uint64(size), nil
+	return uint64(size), int(status)
 }

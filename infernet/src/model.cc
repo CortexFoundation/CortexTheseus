@@ -159,24 +159,19 @@ int64_t CVMModel::GetOps() {
   return ret;
 }
 
-DLTensor* CVMModel::PlanInput() {
-  DLTensor* ret;
-  CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
-  return ret;
-}
-
-DLTensor* CVMModel::PlanInput(void *input) {
+DLTensor* CVMModel::PlanInput(void *input, int size) {
+  VERIFY_EQ(this->GetInputLength(), size);
   DLTensor* ret = nullptr;
   CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
   auto data = static_cast<int32_t*>(ret->data);
   if (input_bytes_ == 4) {
-      for (int i = 0; i < in_size_; ++i) {
-          data[i] = static_cast<int32_t*>(input)[i];
-      }
+    for (int i = 0; i < in_size_; ++i) {
+      data[i] = static_cast<int32_t*>(input)[i];
+    }
   } else {
-      for (int i = 0; i < in_size_; ++i) {
-          data[i] = static_cast<int8_t*>(input)[i];
-      }
+    for (int i = 0; i < in_size_; ++i) {
+      data[i] = static_cast<int8_t*>(input)[i];
+    }
   }
   return ret;
 }
@@ -373,13 +368,13 @@ enum CVMStatus CVMAPIFreeModel(ModelHandler net) {
 }
 
 enum CVMStatus CVMAPIInference(ModelHandler net,
-                          char *input_data,
+                          char *input_data, int input_len,
                           StringHandler output_data) {
   API_BEGIN();
   CHECK_3_NOT_NULL(net, input_data, output_data);
 
   CVMModel* model = static_cast<CVMModel*>(net);
-  DLTensor *input = model->PlanInput(input_data);
+  DLTensor *input = model->PlanInput(input_data, input_len);
   auto outputs = model->PlanOutput();
   model->Run(input, outputs);
   model->SaveTensor(outputs, output_data);
