@@ -258,7 +258,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
 //         int32_t *c, const int M, const int K, const int N){
 //     int8_t *tr_b = (int8_t*)malloc(sizeof(int8_t) * K*N);
 //     if (tr_b == NULL) return false;
-// 
+//
 //      int i = 0, j = 0;
 //     const int32_t tK = K / 32 * 32;
 //     const int32_t tN = N / 32 * 32;
@@ -290,7 +290,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
 //     int16_t int16[16];
 //     for(int i = 0; i < 16; i++) int16[i] = 1;
 //     __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
-// 
+//
 //      int blocks = K / 32 * 32;
 //     for(int i = 0; i < M; i++){
 //         int32_t bV = bias != NULL ? bias[i] : 0;
@@ -314,7 +314,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
 //             c[i*N+j] = sum + bV;
 //         }
 //     }
-// 
+//
 //      free(tr_b);
 // return true;
 // }
@@ -895,7 +895,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
   auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
   auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
   TShape tpadding = param.padding;
-  VERIFY(tpadding.ndim() == 1 || tpadding.ndim() == 2);
   int strides[2] = {(int)param.strides[0], (int)param.strides[1]};
   int pool_size[2] = {(int)param.pool_size[0], (int)param.pool_size[1]};
   int padding[2] = {(int)param.padding[0], (int)param.padding[0]};
@@ -1076,7 +1075,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_add")
 #ifdef CVM_PROFILING
   double start = omp_get_wtime();
 #endif
-  VERIFY(args.num_args == 4);
   DLTensor *args0 = args[0];
   DLTensor *args1 = args[1];
   DLTensor *args2 = args[2];
@@ -1098,7 +1096,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_add")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_sub")
     .set_body([](CVMArgs args, CVMRetValue *ret)
 {
-  VERIFY(args.num_args == 4);
   DLTensor *args0 = args[0];
   DLTensor *args1 = args[1];
   DLTensor *args2 = args[2];
@@ -1115,7 +1112,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_sub")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.reshape")
     .set_body([](CVMArgs args, CVMRetValue *ret)
 {
-  VERIFY(args.num_args == 3);
   DLTensor *x = args[0];
   DLTensor *y = args[1];
   // void *_attr = args[2];
@@ -1134,7 +1130,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.reshape")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_clip")
     .set_body([](CVMArgs args, CVMRetValue *ret)
 {
-  VERIFY(args.num_args == 3);
 #ifdef CVM_PROFILING
   double start = omp_get_wtime();
 #endif
@@ -1147,18 +1142,17 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_clip")
   auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
   auto &param = cvm::get<cvm::top::CVMClipParam>(attr->parsed);
   int32_t precision = param.precision;
-  VERIFY(precision > 0) << "precision must greater zero";
   int32_t min = -((1 << (precision-1))-1);
   int32_t max = -min;
 
 #pragma omp parallel for
   for(uint64_t i = 0; i < getSize(x); i++){
-  int& tmp = x_data[i];
-  if (tmp > max)
-    tmp = max;
-  if (tmp < min)
-    tmp = min;
-  y_data[i] = tmp;
+    int32_t& tmp = x_data[i];
+    if (tmp > max)
+      tmp = max;
+    if (tmp < min)
+      tmp = min;
+    y_data[i] = tmp;
   }
 #ifdef CVM_PROFILING
   cvm_op_clip_cnt += omp_get_wtime() - start;
@@ -1175,7 +1169,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_clip")
  * */
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_right_shift")
 .set_body([](CVMArgs args, CVMRetValue *ret){
-    VERIFY(args.num_args == 3);
     DLTensor *a = args[0];
     DLTensor *c = args[1];
 
@@ -1189,7 +1182,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_right_shift")
     int32_t b = param.shift_bit;
     int32_t* a_data = static_cast<int32_t*>(a->data);
     int32_t* c_data = static_cast<int32_t*>(c->data);
-    VERIFY_GT(precision, 0) << "precision must greater zero";
     int32_t min = -((1 << (precision-1)) - 1);
     int32_t max = -min;
     auto size = getSize(a);
@@ -1249,56 +1241,39 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_left_shift")
     int32_t b = param.shift_bit;std::string str_precision = args[2];
     int32_t* a_data = static_cast<int32_t*>(a->data);
     int32_t* c_data = static_cast<int32_t*>(c->data);
-    VERIFY_GT(precision, 0) << "precision must greater zero";
     int32_t min = -((1 << (precision-1)) - 1);
     int32_t max = -min;
 
     for(uint64_t i = 0; i < getSize(a); i++){
-    int32_t shift_a = a_data[i];
-    if(b == 0) c_data[i] = shift_a;
-    else {
-      shift_a = a_data[i] << b;
-      c_data[i] = std::max(std::min(shift_a, max), min);
-    }
+      int32_t shift_a = a_data[i];
+      if(b == 0) c_data[i] = shift_a;
+      else {
+        shift_a = a_data[i] << b;
+        c_data[i] = std::max(std::min(shift_a, max), min);
+      }
     }
 #ifdef CVM_PROFILING
     // cvm_op_requant_cnt += omp_get_wtime() - start;
 #endif
 });
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.log2")
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_precision")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     VERIFY(args.num_args == 3);
-    //        std::string x_str = args[0];
     DLTensor *dlx = args[0];
     DLTensor *y = args[1];
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int32_t *x = static_cast<int32_t*>(dlx->data);
-    VERIFY(x[0] > 0);
     for(int i = 0; i < 64; i++){
       int64_t tmp = (int64_t)1 << i;
-      if(x[0] < tmp){
+      if(std::abs(x[0]) < tmp){
         y_data[0] = i;
         return;
       }
     }
     y_data[0] = 64;
 });
-//CVM_REGISTER_GLOBAL("cvm.runtime.cvm.__div_scalar__")
-//    .set_body([](CVMArgs args, CVMRetValue *ret){
-//        VERIFY(args.num_args == 3);
-//        DLTensor *dlx = args[0];
-//        DLTensor *y = args[1];
-//        void *_attr = args[2];
-//        auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-//        auto &param = cvm::get<cvm::top::ScalarParam>(attr->parsed);
-//        int32_t *y_data = static_cast<int32_t*>(y->data);
-//        int32_t scalar = param.scalar;
-//        VERIFY(scalar != 0);
-//        int32_t* x = static_cast<int32_t*>(dlx->data);
-//        for(uint64_t i = 0; i < getSize(dlx); i++){
-//            y_data[i] = x[i] / scalar;
-//        }
-//    });
+
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.abs")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     VERIFY(args.num_args == 3);
@@ -1310,6 +1285,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.abs")
       y_data[i] = std::abs(x[i]);
     }
 });
+
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     VERIFY(args.num_args == 3);
@@ -1327,8 +1303,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
     int32_t* x_data = static_cast<int32_t*>(x->data);
 
     for(size_t i = 0; i < axis.ndim(); i++){
-    if(axis_data[i] < 0) axis_data[i] += x->ndim;
-    VERIFY(axis_data[i] >= 0 && axis_data[i] < x->ndim);
+      if(axis_data[i] < 0) axis_data[i] += x->ndim;
+        VERIFY(axis_data[i] >= 0 && axis_data[i] < x->ndim);
     }
     std::vector<int64_t> raxis;
     try{
@@ -2089,5 +2065,5 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
 }
 }
 
-  
+
 
