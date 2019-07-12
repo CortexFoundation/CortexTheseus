@@ -60,7 +60,7 @@ inline void Reduce(DLTensor *x, DLTensor *y, TShape& axis, bool exclude, F const
         flag[val] = true;
       }
       std::sort(realAxis.begin(), realAxis.end());
-      realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
+      //realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
 
       uint64_t axis_size = 1;
       for(uint32_t i = 0; i < realAxis.size(); i++){
@@ -120,7 +120,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
   //bool keepdims = param.keepdims; //the reduce axis is always 1
   bool exclude = param.exclude;
 
-  auto f = [&](int32_t& tmp, int32_t value)->void {
+  auto f = [](int32_t& tmp, int32_t value)->void {
     tmp += value;
   };
 
@@ -139,7 +139,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
   //bool keepdims = param.keepdims; //the reduce axis is always 1
   bool exclude = param.exclude;
 
-  auto f = [&](int32_t& tmp, int32_t value)->void {
+  auto f = [](int32_t& tmp, int32_t value)->void {
     if(tmp < value) tmp = value;
   };
 
