@@ -128,13 +128,15 @@ type BlockChain struct {
 	validator Validator // block and state validator interface
 	vmConfig  vm.Config
 
+	shouldPreserve  func(*types.Block) bool
+
 	badBlocks *lru.Cache // Bad block cache
 }
 
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Cortex Validator and
 // Processor.
-func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config) (*BlockChain, error) {
+func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config,  shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
 			TrieNodeLimit: 256 * 1024 * 1024,
@@ -850,11 +852,13 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	// Update the head fast sync block if better
 	bc.mu.Lock()
 	head := blockChain[len(blockChain)-1]
-	if td := bc.GetTd(head.Hash(), head.NumberU64()); td != nil { // Rewind may have occurred, skip in that case
-		currentFastBlock := bc.CurrentFastBlock()
-		if bc.GetTd(currentFastBlock.Hash(), currentFastBlock.NumberU64()).Cmp(td) < 0 {
-			rawdb.WriteHeadFastBlockHash(bc.db, head.Hash())
-			bc.currentFastBlock.Store(head)
+	if bc.CurrentHeader().Number.Cmp(head.Number()) >= 0 {
+		if td := bc.GetTd(head.Hash(), head.NumberU64()); td != nil { // Rewind may have occurred, skip in that case
+			currentFastBlock := bc.CurrentFastBlock()
+			if bc.GetTd(currentFastBlock.Hash(), currentFastBlock.NumberU64()).Cmp(td) < 0 {
+				rawdb.WriteHeadFastBlockHash(bc.db, head.Hash())
+				bc.currentFastBlock.Store(head)
+			}
 		}
 	}
 	bc.mu.Unlock()
@@ -1007,19 +1011,15 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	reorg := externTd.Cmp(localTd) > 0
 	currentBlock = bc.CurrentBlock()
 	if !reorg && externTd.Cmp(localTd) == 0 {
-		// Split same-difficulty blocks by number, then at random
-		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
-		//whether should choose the smaller hash
-		sum_gas := currentBlock.GasUsed() + block.GasUsed()
-		weight := 0.5
-		if sum_gas > 0 {
-			weight = float64(block.GasUsed()) / float64(sum_gas)
-		}
-
-		if weight <= 0 {
-			weight = 0.5
-		}
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < weight)
+		if block.NumberU64() < currentBlock.NumberU64() {
+                        reorg = true
+                } else if block.NumberU64() == currentBlock.NumberU64() {
+                        var currentPreserve, blockPreserve bool
+                        if bc.shouldPreserve != nil {
+                                currentPreserve, blockPreserve = bc.shouldPreserve(currentBlock), bc.shouldPreserve(block)
+                        }
+                        reorg = !currentPreserve && (blockPreserve || mrand.Float64() < 0.5)
+                }
 	}
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
@@ -1231,7 +1231,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			receipts types.Receipts
 			logs     []*types.Log
 			usedGas  uint64
-			pErr error
+			pErr     error
 		)
 
 		dbState, pErr = state.New(parent.Root(), bc.stateCache)
@@ -1239,7 +1239,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, pErr
 		}
 		//block quota init by parent consensus
-		block.Header().Quota.Add(parent.Quota(), new(big.Int).SetUint64(params.BLOCK_QUOTA))
+		block.Header().Quota.Add(parent.Quota(), new(big.Int).SetUint64(bc.chainConfig.GetBlockQuota(block.Number())))
 		block.Header().QuotaUsed.Set(parent.QuotaUsed())
 
 		receipts, logs, usedGas, pErr = bc.processor.Process(block, dbState, bc.vmConfig)
@@ -1357,12 +1357,16 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		newChain    types.Blocks
 		oldChain    types.Blocks
 		commonBlock *types.Block
-		deletedTxs  types.Transactions
+
+		deletedTxs types.Transactions
+		addedTxs   types.Transactions
+
 		deletedLogs []*types.Log
+		rebirthLogs []*types.Log
 		// collectLogs collects the logs that were generated during the
 		// processing of the block that corresponds with the given hash.
 		// These logs are later announced as deleted.
-		collectLogs = func(hash common.Hash) {
+		collectLogs = func(hash common.Hash, removed bool) {
 			// Coalesce logs and set 'Removed'.
 			number := bc.hc.GetBlockNumber(hash)
 			if number == nil {
@@ -1371,9 +1375,16 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 			receipts := rawdb.ReadReceipts(bc.db, hash, *number)
 			for _, receipt := range receipts {
 				for _, log := range receipt.Logs {
-					del := *log
-					del.Removed = true
-					deletedLogs = append(deletedLogs, &del)
+					//del := *log
+					//del.Removed = true
+					//deletedLogs = append(deletedLogs, &del)
+					l := *log
+					if removed {
+						l.Removed = true
+						deletedLogs = append(deletedLogs, &l)
+					} else {
+						rebirthLogs = append(rebirthLogs, &l)
+					}
 				}
 			}
 		}
@@ -1386,7 +1397,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 			oldChain = append(oldChain, oldBlock)
 			deletedTxs = append(deletedTxs, oldBlock.Transactions()...)
 
-			collectLogs(oldBlock.Hash())
+			collectLogs(oldBlock.Hash(), true)
 		}
 	} else {
 		// reduce new chain and append new chain blocks for inserting later on
@@ -1408,16 +1419,26 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		}
 
 		oldChain = append(oldChain, oldBlock)
-		newChain = append(newChain, newBlock)
+		//newChain = append(newChain, newBlock)
 		deletedTxs = append(deletedTxs, oldBlock.Transactions()...)
-		collectLogs(oldBlock.Hash())
+		collectLogs(oldBlock.Hash(), true)
 
-		oldBlock, newBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1), bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1)
+		newChain = append(newChain, newBlock)
+
+		//oldBlock, newBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1), bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1)
+		//if oldBlock == nil {
+		//	return fmt.Errorf("Invalid old chain")
+		//}
+		//if newBlock == nil {
+		//	return fmt.Errorf("Invalid new chain")
+		//}
+		oldBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1)
 		if oldBlock == nil {
-			return fmt.Errorf("Invalid old chain")
+			return fmt.Errorf("invalid old chain")
 		}
+		newBlock = bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1)
 		if newBlock == nil {
-			return fmt.Errorf("Invalid new chain")
+			return fmt.Errorf("invalid new chain")
 		}
 	}
 	// Ensure the user sees large reorgs
@@ -1432,7 +1453,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		log.Error("Impossible reorg, please file an issue", "oldnum", oldBlock.Number(), "oldhash", oldBlock.Hash(), "newnum", newBlock.Number(), "newhash", newBlock.Hash())
 	}
 	// Insert the new chain, taking care of the proper incremental order
-	var addedTxs types.Transactions
+	/*var addedTxs types.Transactions
 	for i := len(newChain) - 1; i >= 0; i-- {
 		// insert the block in the canonical way, re-writing history
 		bc.insert(newChain[i])
@@ -1456,11 +1477,36 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 			break
 		}
 		rawdb.DeleteCanonicalHash(batch, i)
+	}*/
+	for i := len(newChain) - 1; i >= 1; i-- {
+		// Insert the block in the canonical way, re-writing history
+		bc.insert(newChain[i])
+
+		// Collect reborn logs due to chain reorg
+		collectLogs(newChain[i].Hash(), false)
+
+		// Write lookup entries for hash based transaction/receipt searches
+		rawdb.WriteTxLookupEntries(bc.db, newChain[i])
+		addedTxs = append(addedTxs, newChain[i].Transactions()...)
+	}
+
+	batch := bc.db.NewBatch()
+	for _, tx := range types.TxDifference(deletedTxs, addedTxs) {
+		rawdb.DeleteTxLookupEntry(batch, tx.Hash())
+	}
+	// Delete any canonical number assignments above the new head
+	number := bc.CurrentBlock().NumberU64()
+	for i := number + 1; ; i++ {
+		hash := rawdb.ReadCanonicalHash(bc.db, i)
+		if hash == (common.Hash{}) {
+			break
+		}
+		rawdb.DeleteCanonicalHash(batch, i)
 	}
 
 	batch.Write()
 
-	if len(deletedLogs) > 0 {
+	/*if len(deletedLogs) > 0 {
 		go bc.rmLogsFeed.Send(RemovedLogsEvent{deletedLogs})
 	}
 	if len(oldChain) > 0 {
@@ -1469,7 +1515,21 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 				bc.chainSideFeed.Send(ChainSideEvent{Block: block})
 			}
 		}()
-	}
+	}*/
+
+	go func() {
+		if len(deletedLogs) > 0 {
+			bc.rmLogsFeed.Send(RemovedLogsEvent{deletedLogs})
+		}
+		if len(rebirthLogs) > 0 {
+			bc.logsFeed.Send(rebirthLogs)
+		}
+		if len(oldChain) > 0 {
+			for _, block := range oldChain {
+				bc.chainSideFeed.Send(ChainSideEvent{Block: block})
+			}
+		}
+	}()
 
 	return nil
 }

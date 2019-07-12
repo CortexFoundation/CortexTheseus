@@ -11,13 +11,16 @@ import (
 	"os/signal"
 	"syscall"
 	"strings"
+	"time"
 )
 
 type Config struct {
 	Dir        string
 	TaskList   string
 	LogLevel   int
-	Utp        bool
+	NSeed      int
+	NActive    int
+	Dht        bool
 }
 
 var gitCommit = "" // Git SHA1 commit hash of the release (set via linker flags)
@@ -33,7 +36,19 @@ func main() {
 			Usage:       "verbose level",
 			Destination: &conf.LogLevel,
 		},
-  	cli.StringFlag{
+ 		cli.IntFlag{
+			Name:        "nseed",
+			Value:       120,
+			Usage:       "seed num",
+			Destination: &conf.NSeed,
+		},
+		cli.IntFlag{
+			Name:        "nactive",
+			Value:       120,
+			Usage:       "active num",
+			Destination: &conf.NActive,
+		}, 	
+		cli.StringFlag{
 			Name:        "dir",
 			Value:       "data",
 			Usage:       "datadir",
@@ -46,9 +61,9 @@ func main() {
 			Destination: &conf.TaskList,
 		},
   	cli.BoolFlag{
-			Name:        "utp",
-			Usage:       "utp",
-			Destination: &conf.Utp,
+			Name:        "dht",
+			Usage:       "dht",
+			Destination: &conf.Dht,
 		},
 	}
 
@@ -72,16 +87,21 @@ func mainExitCode(conf *Config) int {
 	cfg := torrentfs.Config{
 		RpcURI:          "",
 		DefaultTrackers: torrentfs.DefaultConfig.DefaultTrackers,
+		BoostNodes:      torrentfs.DefaultConfig.BoostNodes,
 		SyncMode:        torrentfs.DefaultConfig.SyncMode,
 		DisableUTP:      torrentfs.DefaultConfig.DisableUTP,
+		MaxSeedingNum:   conf.NSeed,
+		MaxActiveNum:    conf.NActive,
 	}
 
 	cfg.DataDir = conf.Dir
-	cfg.DisableUTP = conf.Utp
+	cfg.DisableDHT = !conf.Dht
+	cfg.DisableUTP = true
 
 	tm := torrentfs.NewTorrentManager(&cfg)
 	tm.Start()
 
+	log.Info("Torrent fs start with config", "config", cfg)
 	if contents, err := ioutil.ReadFile(conf.TaskList); err == nil {
 		tasks := strings.Split(string(contents), "\n")
 		for _, task := range tasks {
@@ -93,6 +113,7 @@ func mainExitCode(conf *Config) int {
 				InfoHash: metainfo.NewHashFromHex(task),
 				BytesRequested: 10000000,
 			})
+			time.Sleep(10 * time.Millisecond)
 		}	
 	}
 

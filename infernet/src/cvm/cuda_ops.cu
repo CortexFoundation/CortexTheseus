@@ -31,19 +31,36 @@ void print_to_file(const int32_t *y, int32_t n, std::string filename){
   delete y_data;
 #endif
 }
+
+#define MEMORY_LIMIT (512*1024*1024)
+
 inline int32_t getGridSize(const int64_t n, const int32_t blockSize){
   int64_t tg = (n + blockSize - 1) / blockSize;
   return tg > 4096 ? 4096 : tg;
 }
-inline int32_t getShareMemorySize(const int32_t device_id){
+inline int32_t getShareMemorySize(const int32_t device_id, int&error_code){
   static int32_t sharedMemPerBlock = 0;
   if(sharedMemPerBlock == 0){
     cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, device_id);
+    cudaError_t status = cudaGetDeviceProperties(&prop, device_id);
+    if(status != cudaSuccess){
+        error_code = ERROR_GET_PROPERTIES;
+        return -1;
+    }
     sharedMemPerBlock = prop.sharedMemPerBlock;
   }
   return sharedMemPerBlock;
 }
+inline int32_t getFreeMemorySize(const int32_t device_id, int&error_code){
+  size_t freeSize = 0, totalSize = 0;
+  cudaError_t status = cudaMemGetInfo(&freeSize, &totalSize);
+  if(status != cudaSuccess){
+    error_code = ERROR_GET_PROPERTIES;
+    return -1;
+  }
+  return freeSize;
+}
+
 const char* check_cuda_error(cudaError_t error){
   if(error == cudaSuccess) return NULL;
   else return cudaGetErrorString(error);
@@ -56,27 +73,17 @@ __global__ void kernel_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t
   }
 }
 
-const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n, bool debug){
+const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n, int& error_code){
   int32_t *dev_a = a, *dev_b = b, *dev_c = c;
-  size_t size = sizeof(int32_t) * n;
-  if(debug){
-    check_cuda_error(cudaMalloc((void**)&dev_a, size));
-    cudaMalloc((void**)&dev_b, size);
-    cudaMalloc((void**)&dev_c, size);
-    cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice);
-  }
   int blockSize = 256;
-  int gridSize = getGridSize(n, blockSize);//(n + blockSize - 1) / blockSize;
+  int gridSize = getGridSize(n, blockSize);
   kernel_elemwise_add<<<gridSize, blockSize>>>(dev_a, dev_b, dev_c, n);
-  //    cudaDeviceSynchronize();
-  if(debug){
-    cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost);
-    cudaFree(dev_a);
-    cudaFree(dev_b);
-    cudaFree(dev_c);
+  cudaError_t error = cudaGetLastError();
+  if(error != cudaSuccess){
+    error_code = ERROR_KERNEL;
   }
-  return check_cuda_error(cudaGetLastError());
+  print_to_file(dev_c, n, "/tmp/zkh/trec/gpu/elemwise_add.txt");
+  return check_cuda_error(error);
 }
 __global__ void kernel_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t n){
   int tid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -85,16 +92,19 @@ __global__ void kernel_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t
   }
 }
 
-const char* cuda_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t n){
+const char* cuda_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t n, int& error_code){
   int blockSize = 256;
   int gridSize = getGridSize(n, blockSize);
   kernel_elemwise_sub<<<gridSize, blockSize>>>(a, b, c, n);
-  return check_cuda_error(cudaGetLastError());
+  cudaError_t error = cudaGetLastError();
+  if(error != cudaSuccess){
+    error_code = ERROR_KERNEL;
+  }
+  return check_cuda_error(error);
 }
 
 #define BS 16
 #define FS 8
-//template<int F_H, int F_W, int STRIDE>
 __global__ void kernel_conv2d(
     const int32_t * __restrict__ input, const int32_t i_n, const int32_t i_c, const int32_t i_h, const int32_t i_w,
     const int32_t * __restrict__ filter, const int32_t f_n, const int32_t f_c, const int32_t f_h, const int32_t f_w,
@@ -104,7 +114,6 @@ __global__ void kernel_conv2d(
     const int32_t dilation_h, const int32_t dilation_w,
     const int32_t groups,
     int32_t *output, const int32_t o_n, const int32_t o_c, const int32_t o_h, const int32_t o_w){
-  //    int g_y = blockDim.y * blockIdx.y + threadIdx.y;
   int g_x = blockDim.x * blockIdx.x + threadIdx.x;
   int l_y = threadIdx.y; 
   int l_x = threadIdx.x;
@@ -251,6 +260,105 @@ __global__ void kernel_conv2d_no_shared(
     output[gy * o_w + gx] = sum + (bias != NULL ? bias[l_o_c] : 0);
   }
 }
+__global__ void kernel_int32_to_int8(const int32_t *in_data, int8_t *out_data, const int n){
+    int tid = threadIdx.x + blockDim.x * blockIdx.x;
+    for(int64_t i = tid; i < n; i+= gridDim.x * blockDim.x){
+        out_data[i] = static_cast<int8_t>(in_data[i]);
+    }
+}
+
+__global__ void im2col_gpu_kernel(const int n, const int32_t* data_im,
+        const int height, const int width, const int kernel_h, const int kernel_w,
+        const int pad_h, const int pad_w,
+        const int stride_h, const int stride_w,
+        const int dilation_h, const int dilation_w,
+        const int height_col, const int width_col,
+        int8_t* data_col) {
+//    CUDA_KERNEL_LOOP(index, n) {
+  int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  for(int64_t index = tid; index < n; index += gridDim.x*blockDim.x){
+        const int h_index = index / width_col;
+        const int h_col = h_index % height_col;
+        const int w_col = index % width_col;
+        const int c_im = h_index / height_col;
+        const int c_col = c_im * kernel_h * kernel_w;
+        const int h_offset = h_col * stride_h - pad_h;
+        const int w_offset = w_col * stride_w - pad_w;
+        int8_t* data_col_ptr = data_col;
+        data_col_ptr += (c_col * height_col + h_col) * width_col + w_col;
+        const int32_t* data_im_ptr = data_im;
+        data_im_ptr += (c_im * height + h_offset) * width + w_offset;
+        for (int i = 0; i < kernel_h; ++i) {
+            for (int j = 0; j < kernel_w; ++j) {
+                int h_im = h_offset + i * dilation_h;
+                int w_im = w_offset + j * dilation_w;
+                *data_col_ptr =
+                    (h_im >= 0 && w_im >= 0 && h_im < height && w_im < width) ?
+                    static_cast<int8_t>(data_im_ptr[i * dilation_h * width + j * dilation_w]) : 0;
+                data_col_ptr += height_col * width_col;
+            }
+        }
+    }
+}
+
+#define TILE_WIDTH 16
+__global__ void kernel_matrix_mul(
+    int8_t *a, // m*k 
+    int8_t *b, // k*n
+    int32_t *c, // m*n
+    int32_t m, int32_t k, int32_t n, int32_t *bias){
+  __shared__ int8_t sharedm[TILE_WIDTH][TILE_WIDTH];
+  __shared__ int8_t sharedn[TILE_WIDTH][TILE_WIDTH];
+  int bx = blockIdx.x;
+  int by = blockIdx.y;
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int row = by*TILE_WIDTH + ty;
+  int col = bx*TILE_WIDTH + tx;
+  int sum = 0;
+
+  for (int i = 0; i < (int)(ceil((float)k/TILE_WIDTH)); i++)
+  {
+    if (i*TILE_WIDTH + tx < k && row < m)//m*k
+      sharedm[ty][tx] = a[row*k + i*TILE_WIDTH + tx];
+    else
+      sharedm[ty][tx] = 0;
+
+    if(i*TILE_WIDTH + ty < k && col < n)//k*n
+      sharedn[ty][tx] =b[(i*TILE_WIDTH + ty) * n + col] ;//b[col * k + i * TILE_WIDTH + ty];
+    else
+      sharedn[ty][tx] = 0;
+    __syncthreads();
+
+    for(int j = 0; j < TILE_WIDTH; j++)
+      sum += static_cast<int32_t>(sharedm[ty][j]) * sharedn[j][tx];
+    __syncthreads();
+  }
+  if (row < m && col < n){
+    if(bias != NULL) sum += bias[row];
+    c[row*n + col] = sum;
+  }
+}
+inline void im2col_gpu(const int32_t* data_im, const int channels,
+        const int height, const int width, const int kernel_h, const int kernel_w,
+        const int pad_h, const int pad_w,
+        const int stride_h, const int stride_w,
+        const int dilation_h, const int dilation_w,
+        int8_t* data_col) {
+    // We are going to launch channels * height_col * width_col kernels, each
+    // kernel responsible for copying a single-channel grid.
+    int height_col = (height + 2 * pad_h -
+            (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
+    int width_col = (width + 2 * pad_w -
+            (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
+    int num_kernels = channels * height_col * width_col;
+    int threads = 256;
+    int blocks = (num_kernels + threads - 1) / threads;
+    im2col_gpu_kernel<<<blocks, threads>>>(
+                num_kernels, data_im, height, width, kernel_h, kernel_w, pad_h,
+                pad_w, stride_h, stride_w, dilation_h, dilation_w, height_col,
+                width_col, data_col);
+}
 const char* cuda_conv2d(
     int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
     int32_t *filter, int32_t f_n, int32_t f_c, const int32_t f_h, const int32_t f_w,
@@ -261,55 +369,80 @@ const char* cuda_conv2d(
     int32_t groups,
     int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w, 
     int32_t device_id,
-    bool debug){
+    int& error_code){
   if(i_n < 1 || i_c < 1 || i_h < 1 || i_w < 1 || f_n < 1 || f_c < 1 || f_h < 1 || f_w < 1 || 
       padding_h < 0 || padding_w < 0 || stride_h < 1 || stride_w < 1 || dilation_h < 1 || dilation_w < 1 ||
       o_n < 1 || o_c < 1 || o_h < 1 || o_w < 1){
+    error_code = ERROR_PARAMS;
     return "error args";
   }
   int32_t *dev_i = input, *dev_f = filter, *dev_o = output, *dev_b = bias;
-  size_t s_i = i_n * i_c * i_h * i_w * sizeof(int32_t);
-  size_t s_f = f_n * f_c * f_h * f_w * sizeof(int32_t);
-  size_t s_b = o_c * sizeof(int32_t); 
-  size_t s_o = o_n * o_c * o_h * o_w * sizeof(int32_t);
-  cudaEvent_t start, stop;
-  if(debug){
-    cudaMalloc((void**)&dev_i, s_i);
-    cudaMalloc((void**)&dev_f, s_f);
-    cudaMalloc((void**)&dev_o, s_o);
-    cudaMemcpy(dev_i, input, s_i, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_f, filter, s_f, cudaMemcpyHostToDevice);
-    if(bias != NULL){
-      cudaMalloc((void**)&dev_b, s_b);
-      cudaMemcpy(dev_b, bias, s_b, cudaMemcpyHostToDevice);
-    }
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start);
-  }
 
   int tmp_f_h = (f_h - 1) * dilation_h + 1; // for dilation, to be optimized
   int tmp_f_w = (f_w - 1) * dilation_w + 1;
   int tmp_o_h = i_h + 2 * padding_h - tmp_f_h + 1; //for stride > 1 , TODO to be optimized
   int tmp_o_w = i_w + 2 * padding_w - tmp_f_w + 1;
-  int32_t totalShareMemSize = getShareMemorySize(device_id);
+  int32_t totalShareMemSize = getShareMemorySize(device_id, error_code);
+  if(error_code != NON_ERROR){
+    return check_cuda_error(cudaGetLastError());
+  }
   size_t share_size = ((BS + tmp_f_h - 1) * (BS + tmp_f_w - 1) + f_h * f_w * FS + FS) * sizeof(int32_t);
   if(share_size < totalShareMemSize){
-    int b_h = BS;
-    int b_w = BS;
-    int32_t g_h = o_n * ((o_c + FS - 1) / FS) * ((tmp_o_h + b_h - 1) / b_h);
-    int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
-    dim3 bDim(b_w, b_h, 1);
-    dim3 gDim(g_w, g_h, 1);
-    kernel_conv2d<<<gDim, bDim, share_size>>>(
-        dev_i, i_n, i_c, i_h, i_w,
-        dev_f, f_n, f_c, f_h, f_w,
-        dev_b, 
-        padding_h, padding_w,
-        stride_h, stride_w,
-        dilation_h, dilation_w,
-        groups,
-        dev_o, o_n, o_c, o_h, o_w);
+    size_t freeSize = getFreeMemorySize(device_id, error_code);
+    size_t tmp_filter_size = o_c * i_c * f_h * f_w * sizeof(int8_t);
+    size_t tmp_input_size = i_c * f_h * f_w * o_h * o_w * sizeof(int8_t);
+    if(tmp_filter_size + tmp_input_size >= freeSize || tmp_filter_size > MEMORY_LIMIT || tmp_input_size > MEMORY_LIMIT){
+      int b_h = BS;
+      int b_w = BS;
+      int32_t g_h = o_n * ((o_c + FS - 1) / FS) * ((tmp_o_h + b_h - 1) / b_h);
+      int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
+      dim3 bDim(b_w, b_h, 1);
+      dim3 gDim(g_w, g_h, 1);
+      kernel_conv2d<<<gDim, bDim, share_size>>>(
+          dev_i, i_n, i_c, i_h, i_w,
+          dev_f, f_n, f_c, f_h, f_w,
+          dev_b, 
+          padding_h, padding_w,
+          stride_h, stride_w,
+          dilation_h, dilation_w,
+          groups,
+          dev_o, o_n, o_c, o_h, o_w);
+    }else{
+      int32_t fn = o_c * i_c * f_h * f_w;
+      const int M = o_c;
+      const int K = i_c * f_h * f_w;
+      const int N = o_h * o_w;
+      dim3 bDim(TILE_WIDTH, TILE_WIDTH, 1);
+      int gh = (M + TILE_WIDTH - 1) / TILE_WIDTH;
+      int gw = (N + TILE_WIDTH - 1) / TILE_WIDTH;
+      dim3 gDim(gw, gh, 1);
+
+      int8_t *d_f, *d_col;
+      cudaError_t status = cudaMalloc((void**)&d_f, fn * sizeof(int8_t));
+      if(status != cudaSuccess){
+        error_code = ERROR_MALLOC;
+        return check_cuda_error(status);
+      }
+      int blockSize = 256;
+      int gridSize = getGridSize(fn, blockSize);
+      kernel_int32_to_int8<<<gridSize, blockSize>>>(dev_f, d_f, fn);
+
+      status = cudaMalloc((void**)&d_col, sizeof(int8_t) * i_c * f_h * f_w * o_h * o_w);
+      if(status != cudaSuccess){
+        cudaFree(d_f);
+        error_code = ERROR_MALLOC;
+        return check_cuda_error(status);
+      }
+      
+      for(int i = 0; i < o_n; i++){
+        im2col_gpu(dev_i + i * i_c * i_h * i_w,
+            i_c, i_h, i_w, f_h, f_w, padding_h, padding_w, stride_h, stride_w, 
+            dilation_h, dilation_w, d_col);
+        kernel_matrix_mul<<<gDim, bDim>>>(d_f, d_col, dev_o + i * o_c * o_h * o_w, M, K, N, dev_b);
+      }
+      cudaFree(d_f);
+      cudaFree(d_col);
+    }
   }else{
     int b_h = BS;
     int b_w = BS;
@@ -327,23 +460,13 @@ const char* cuda_conv2d(
         groups,
         dev_o, o_n, o_c, o_h, o_w);
   }
-  //    cudaDeviceSynchronize();
-  if(debug){
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    double ops = (double)((double)1.0*i_n * o_c * o_h * o_w * f_h * f_w * f_c * 3.0);
-    printf("gpu cal time:%.4f, %f, %.4f\n", milliseconds, ops, ops / (milliseconds / 1000.0) / 1024.0/1024.0/1024.0);
-    cudaMemcpy(output, dev_o, s_o, cudaMemcpyDeviceToHost);
-    cudaFree(dev_i);
-    cudaFree(dev_f);
-    cudaFree(dev_o);
-    if(bias != NULL)
-      cudaFree(dev_b);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  print_to_file(output, o_c * o_h * o_w, "/tmp/zkh/cuda_conv2d.txt");
-  return check_cuda_error(cudaGetLastError());
+
+  print_to_file(dev_o, o_n * o_c * o_h * o_w, "/tmp/zkh/trec/gpu/conv2d.txt");
+  return check_cuda_error(error);
 }
 __global__ void kernel_depthwise_conv2d(
     const int32_t * __restrict__ input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
@@ -355,7 +478,6 @@ __global__ void kernel_depthwise_conv2d(
     int32_t groups,
     int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w)
 {
-  //    int g_y = blockDim.y * blockIdx.y + threadIdx.y;
   int g_x = blockDim.x * blockIdx.x + threadIdx.x;
   int l_y = threadIdx.y; 
   int l_x = threadIdx.x;
@@ -366,6 +488,7 @@ __global__ void kernel_depthwise_conv2d(
   int perBlockOneImageY = (tmp_o_h+BS-1) / BS;
   int perBlockOneImageX = (tmp_o_w+BS-1) / BS;
   int l_o_c = blockIdx.y / perBlockOneImageY;
+  int l_f_c = l_o_c % o_c;
   int l_o_hi = blockIdx.y % perBlockOneImageY;
   int l_o_wi = blockIdx.x % perBlockOneImageX;
   int l_o_h = l_o_hi * BS + l_y;
@@ -426,7 +549,7 @@ __global__ void kernel_depthwise_conv2d(
   if(l_y < F_H && l_x < F_W){
     for(int i = l_y; i < F_H; i+= min_s_y)
       for(int j = l_x; j < F_W; j+=min_s_x)
-        shared_f[i*F_W + j] = filter[l_o_c * F_H * F_W + i * F_W + j];
+        shared_f[i*F_W + j] = filter[l_f_c * F_H * F_W + i * F_W + j];
   }
   __syncthreads();
 
@@ -462,12 +585,13 @@ __global__ void kernel_depthwise_conv2d_no_shared(
     for(int fy = 0; fy < f_h; ++fy){
       for(int fx = 0; fx < f_w; ++fx){
         int32_t l_i_h = l_o_h * stride_h + fy * dilation_h - padding_h;
-        int32_t l_i_w = gx * stride_w + fx * dilation_h - padding_w;
+        int32_t l_i_w = gx * stride_w + fx * dilation_w - padding_w;
         int32_t x;
         if(l_i_h < 0 || l_i_w < 0 || l_i_h >= i_h || l_i_w >= i_w)
-          x = 0;
-        else x = input[l_o_n * i_c * i_h * i_w + l_o_c * i_h * i_w + l_i_h * i_w + l_i_w];
-        sum += x * filter[l_o_n * i_c * f_h * f_w + l_o_c * f_h * f_w + fy * f_w + fx];
+          //x = 0;
+          continue;
+        x = input[l_o_n * i_c * i_h * i_w + l_o_c * i_h * i_w + l_i_h * i_w + l_i_w];
+        sum += x * filter[l_o_c * f_h * f_w + fy * f_w + fx];
       }
     }
     output[gy * o_w + gx] = sum + (bias != NULL ? bias[l_o_c] : 0);
@@ -481,33 +605,21 @@ const char* cuda_depthwise_conv2d(
     int32_t stride_h, int32_t stride_w,
     int32_t dilation_h, int32_t dilation_w,
     int32_t groups,
-    int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w, int32_t device_id, bool debug){
+    int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w, int32_t device_id, int& error_code){
   int32_t *dev_i = input, *dev_f = filter, *dev_o = output, *dev_b = bias;
-  size_t s_i = i_n * i_c * i_h * i_w * sizeof(int32_t);
-  size_t s_f = f_n * f_c * f_h * f_w * sizeof(int32_t);
-  size_t s_b = o_c * sizeof(int32_t); 
-  size_t s_o = o_n * o_c * o_h * o_w * sizeof(int32_t);
-  if(debug){
-    cudaMalloc((void**)&dev_i, s_i);
-    cudaMalloc((void**)&dev_f, s_f);
-    cudaMalloc((void**)&dev_o, s_o);
-    cudaMemcpy(dev_i, input, s_i, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_f, filter, s_f, cudaMemcpyHostToDevice);
-    if(bias != NULL){
-      cudaMalloc((void**)&dev_b, s_b);
-      cudaMemcpy(dev_b, bias, s_b, cudaMemcpyHostToDevice);
-    }
-  }
-  //    clock_t start = clock();
+
   int b_h = BS;
   int b_w = BS;
   int tmp_f_h = (f_h - 1) * dilation_h + 1; // for dilation, to be optimized
   int tmp_f_w = (f_w - 1) * dilation_w + 1;
   int tmp_o_h = i_h + 2 * padding_h - tmp_f_h + 1; //for stride > 1
   int tmp_o_w = i_w + 2 * padding_w - tmp_f_w + 1;
-  const int32_t totalShareMemSize = getShareMemorySize(device_id);
+  const int32_t totalShareMemSize = getShareMemorySize(device_id, error_code);
+  if(error_code != NON_ERROR){
+    return check_cuda_error(cudaGetLastError());
+  }
   size_t share_size = (BS + tmp_f_h - 1) * (BS + tmp_f_w - 1) * sizeof(int32_t) + f_h * f_w * sizeof(int32_t);
-  if(share_size < totalShareMemSize){
+  if(false){//(share_size < totalShareMemSize){
     int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h);
     int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
@@ -522,8 +634,8 @@ const char* cuda_depthwise_conv2d(
         groups,
         dev_o, o_n, o_c, o_h, o_w);
   }else{
-    int32_t g_h = o_n * o_c * ((o_h + b_h - 1) / b_h); 
-    int32_t g_w = (o_w + b_w - 1) / b_w;
+    int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h); 
+    int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
     dim3 gDim(g_w, g_h, 1);
     kernel_depthwise_conv2d_no_shared<<<gDim, bDim>>>(
@@ -536,18 +648,11 @@ const char* cuda_depthwise_conv2d(
         groups,
         dev_o, o_n, o_c, o_h, o_w);
   }
-  //cudaDeviceSynchronize();
-  //    clock_t end = clock();
-  //    printf("gpu cal time: %d\n", end-start);
-  if(debug){
-    cudaMemcpy(output, dev_o, s_o, cudaMemcpyDeviceToHost);
-    cudaFree(dev_i);
-    cudaFree(dev_f);
-    cudaFree(dev_o);
-    if(bias != NULL)
-      cudaFree(dev_b);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  return check_cuda_error(cudaGetLastError());
+  return check_cuda_error(error);
 }
 
 __global__ void kernel_max_pool(
@@ -556,7 +661,6 @@ __global__ void kernel_max_pool(
     int32_t padding_h, int32_t padding_w,
     int32_t stride_h, int32_t stride_w,
     int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w){
-  //    int g_y = blockDim.y * blockIdx.y + threadIdx.y;
   int g_x = blockDim.x * blockIdx.x + threadIdx.x;
   int l_y = threadIdx.y; 
   int l_x = threadIdx.x;
@@ -668,24 +772,19 @@ const char* cuda_max_pool(
     const int32_t f_h, const int32_t f_w,
     int32_t padding_h, int32_t padding_w,
     int32_t stride_h, int32_t stride_w,
-    int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w, int32_t device_id, bool debug){
+    int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w, int32_t device_id, int& error_code){
   int32_t *dev_i = input, *dev_o = output;
-  size_t s_i = i_n * i_c * i_h * i_w * sizeof(int32_t);
-  size_t s_o = o_n * o_c * o_h * o_w * sizeof(int32_t);
-  if(debug){
-    cudaMalloc((void**)&dev_i, s_i);
-    cudaMalloc((void**)&dev_o, s_o);
-    cudaMemcpy(dev_i, input, s_i, cudaMemcpyHostToDevice);
-  }
 
-  //    clock_t start = clock();
-  const int32_t totalShareMemSize = getShareMemorySize(device_id);
+  const int32_t totalShareMemSize = getShareMemorySize(device_id, error_code);
+  if(error_code != NON_ERROR){
+    return check_cuda_error(cudaGetLastError());
+  }
   size_t share_size = (BS + f_h - 1) * (BS + f_w - 1) * sizeof(int32_t);
   int b_h = BS;
   int b_w = BS;
   int tmp_o_h = i_h + 2 * padding_h - f_h + 1; //for stride > 1
   int tmp_o_w = i_w + 2 * padding_w - f_w + 1;
-  if(share_size < totalShareMemSize){
+  if(false){//(share_size < totalShareMemSize){
     int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h);
     int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
     dim3 bDim(b_w, b_h, 1);
@@ -708,18 +807,14 @@ const char* cuda_max_pool(
         stride_h, stride_w,
         dev_o, o_n, o_c, o_h, o_w);
   }
-  //cudaDeviceSynchronize();
-  //    clock_t end = clock();
-  //    printf("gpu cal time: %ld\n", end-start);
-  if(debug){
-    cudaMemcpy(output, dev_o, s_o, cudaMemcpyDeviceToHost);
-    cudaFree(dev_i);
-    cudaFree(dev_o);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  return check_cuda_error(cudaGetLastError());
+  return check_cuda_error(error);
 }
 
-#define TILE_WIDTH 16
+//#define TILE_WIDTH 16
 __global__ void kernel_dense(
     int32_t *A, // m*k 
     int32_t *B, // was transposed, n*k
@@ -762,24 +857,8 @@ const char* cuda_dense(
     int32_t *a,
     int32_t *b,
     int32_t *c,
-    const int m, const int k, const int n, int32_t* bias, bool debug){
+    const int m, const int k, const int n, int32_t* bias, int& error_code){
   int32_t *dev_a = a, *dev_b = b, *dev_c = c, *dev_bias = bias, useBias = 0;
-  size_t s_a = sizeof(int32_t) * m * k;
-  size_t s_b = sizeof(int32_t) * k * n;
-  size_t s_c = sizeof(int32_t) * m * n;
-  size_t s_bias = sizeof(int32_t) * n;
-  if(debug){
-    cudaMalloc((void**)&dev_a, s_a);
-    cudaMalloc((void**)&dev_b, s_b);
-    cudaMalloc((void**)&dev_c, s_c);
-    if(bias != NULL){
-      cudaMalloc((void**)&dev_bias, s_bias);
-      cudaMemcpy(dev_bias, bias, s_bias, cudaMemcpyHostToDevice);
-      useBias = 1;
-    }
-    cudaMemcpy(dev_a, a, s_a, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_b, b, s_b, cudaMemcpyHostToDevice);
-  }
   if(bias != NULL) useBias = 1;
 
   dim3 bDim(TILE_WIDTH, TILE_WIDTH, 1);
@@ -787,15 +866,13 @@ const char* cuda_dense(
   int gw = (n + TILE_WIDTH - 1) / TILE_WIDTH;
   dim3 gDim(gw, gh, 1);
   kernel_dense<<<gDim, bDim>>>(dev_a, dev_b, dev_c, m, k, n, dev_bias, useBias);
-  //cudaDeviceSynchronize();
-  if(debug){
-    cudaMemcpy(c, dev_c, s_c, cudaMemcpyDeviceToHost);
-    cudaFree(dev_a);
-    cudaFree(dev_b);
-    cudaFree(dev_c);
-    cudaFree(dev_bias);
+
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  return check_cuda_error(cudaGetLastError());
+  print_to_file(dev_c, m*n, "/tmp/zkh/trec/gpu/dense.txt");
+  return check_cuda_error(error);
 }
 
 __global__ void kernel_clip(const int32_t *x, int32_t *y,
@@ -805,28 +882,18 @@ __global__ void kernel_clip(const int32_t *x, int32_t *y,
     y[i] = max(min(x[i], maxV), minV);
   }
 }
-const char* cuda_clip(const int32_t *x, int32_t *y, const uint64_t n, const int32_t max, const int32_t min, bool debug){
+const char* cuda_clip(const int32_t *x, int32_t *y, const uint64_t n, const int32_t max, const int32_t min, int& error_code){
   const int32_t *dev_x = x;
-  int32_t *tmp_x;
   int32_t *dev_y = y;
-  if(debug) {
-    cudaMalloc((void**)&tmp_x, n*sizeof(int32_t));
-    dev_x = tmp_x;
-    cudaMalloc((void**)&dev_y, n*sizeof(int32_t));
-    cudaMemcpy(tmp_x, x, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-  }
 
   int threadSize = 256;
   int blockSize = getGridSize(n, threadSize); //(n + threadSize - 1) / threadSize;
   kernel_clip<<<blockSize, threadSize>>>(dev_x, dev_y, n, max, min);
-  // cudaDeviceSynchronize();
-
-  if(debug){
-    cudaMemcpy(y, dev_y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_x);
-    cudaFree(dev_y);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  return check_cuda_error(cudaGetLastError());
+  return check_cuda_error(error);
 }
 
 __global__ void kernel_relu(const int32_t *x, int32_t*y, const uint64_t n){
@@ -835,49 +902,42 @@ __global__ void kernel_relu(const int32_t *x, int32_t*y, const uint64_t n){
     y[i] = max(x[i], 0);
   }
 }
-const char* cuda_relu(const int32_t *x, int32_t *y, const uint64_t n, bool debug){
+const char* cuda_relu(const int32_t *x, int32_t *y, const uint64_t n, int& error_code){
   const int32_t *dev_x = x;
-  int32_t *tmp_x;
   int32_t *dev_y = y;
-  if(debug) {
-    cudaMalloc((void**)&tmp_x, n*sizeof(int32_t));
-    dev_x = tmp_x;
-    cudaMalloc((void**)&dev_y, n*sizeof(int32_t));
-    cudaMemcpy(tmp_x, x, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-  }
 
   int threadSize = 256;
   int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
   kernel_relu<<<blockSize, threadSize>>>(dev_x, dev_y, n);
-  //cudaDeviceSynchronize();
 
-  if(debug){
-    cudaMemcpy(y, dev_y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_x);
-    cudaFree(dev_y);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  return check_cuda_error(cudaGetLastError());
+  return check_cuda_error(error);
 }
 
-const char* cuda_flatten(const int32_t *x, int32_t *y, const uint64_t n, bool debug){
+const char* cuda_flatten(const int32_t *x, int32_t *y, const uint64_t n, int& error_code){
   if(x == y) return NULL;
   cudaMemcpy(y, x, n * sizeof(int32_t), cudaMemcpyDeviceToDevice);
-  return check_cuda_error(cudaGetLastError());
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_MEMCPY;
+  }
+  return check_cuda_error(error);
 }
 
-inline __device__ int32_t broadcast_i_index(int64_t* oshape, int o_index, int64_t* ishape, int idim){
+inline __device__ int32_t broadcast_i_index(int64_t* oshape, int o_index, int64_t* ishape, int idim, int odim){
   int index = 0;
-  int allIndex = 0;
+  int allIndex = 1;
   for(int i = 0; i < idim; i++){
     int idx = idim - 1 - i;
-    int ovar = o_index % oshape[idx];
+    int ovar = o_index % oshape[idx + odim-idim];
     if(ovar < ishape[idx]){
-      index += i == 0 ? ovar : allIndex * ovar;
-    }else if(ishape[idx] == 1){
-    }else{
+      index += allIndex * ovar;
     }
-    allIndex = (i == 0 ? ishape[idim-1] : allIndex * ishape[idx]);
-    o_index /= oshape[idx];
+    allIndex = allIndex * ishape[idx];
+    o_index /= oshape[idx + odim-idim];
   }
   return index;
 }
@@ -889,8 +949,8 @@ __global__ void kernel_broadcast_add(const int32_t *a, const int32_t *b, int32_t
     int64_t *cshape, int32_t cdim){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(uint64_t i = tid; i < n; i += gridDim.x * blockDim.x){
-    int ai = broadcast_i_index(cshape, i, ashape, adim);
-    int bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] + b[bi];
   }
 }
@@ -899,73 +959,56 @@ const char* cuda_broadcast_add(const int32_t *a, const int32_t *b, int32_t* c,
     int64_t *ashape, int32_t adim,
     int64_t *bshape, int32_t bdim,
     int64_t *cshape, int32_t cdim,
-    bool debug)
+    int& error_code)
 {
   const int32_t *dev_a = a, *dev_b = b;
-  int32_t *tmp_a, *tmp_b;
   int32_t *dev_c = c;
-  if(debug) {
-    cudaMalloc((void**)&tmp_a, n*sizeof(int32_t));
-    dev_a = tmp_a;
-    cudaMalloc((void**)&tmp_b, sizeof(int32_t));
-    dev_b = tmp_b;
-    cudaMalloc((void**)&dev_c, n*sizeof(int32_t));
-    cudaMemcpy(tmp_a, a, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(tmp_b, b, sizeof(int32_t), cudaMemcpyHostToDevice);
-  }
+  int threadSize = 256;
+  int blockSize = getGridSize(n, threadSize);
 
-  int64_t *dev_ashape, *dev_bshape, *dev_cshape;
+  int64_t *dev_ashape = NULL, *dev_bshape = NULL, *dev_cshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_ashape, sizeof(int64_t) * adim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_bshape, sizeof(int64_t) * bdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_cshape, sizeof(int64_t) * cdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_ashape, ashape, sizeof(int64_t) * adim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_bshape, bshape, sizeof(int64_t) * bdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_cshape, cshape, sizeof(int64_t) * cdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
-  int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
   kernel_broadcast_add<<<blockSize, threadSize>>>(dev_a, dev_b, dev_c, n, dev_ashape, adim, dev_bshape, bdim, dev_cshape, cdim);
   //cudaDeviceSynchronize();
 
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_a);
-    cudaFree(dev_c);
-    cudaFree(tmp_b);
+  status = cudaGetLastError();
+  if(cudaSuccess != status){
+    error_code = ERROR_KERNEL;
   }
-  cudaFree(dev_ashape);
-  cudaFree(dev_bshape);
-  cudaFree(dev_cshape);
+end:
+  if(dev_ashape != NULL) cudaFree(dev_ashape);
+  if(dev_bshape != NULL) cudaFree(dev_bshape);
+  if(dev_cshape != NULL) cudaFree(dev_cshape);
   return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_broadcast_sub(const int32_t *a, const int32_t *b, int32_t*c, const uint64_t n,
@@ -975,8 +1018,8 @@ __global__ void kernel_broadcast_sub(const int32_t *a, const int32_t *b, int32_t
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x*blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] - b[bi];
   }
 }
@@ -984,73 +1027,53 @@ const char* cuda_broadcast_sub(const int32_t *a, const int32_t *b, int32_t* c, c
     int64_t *ashape, int32_t adim,
     int64_t *bshape, int32_t bdim,
     int64_t *cshape, int32_t cdim,
-    bool debug){
+    int& error_code){
   const int32_t *dev_a = a, *dev_b = b;
-  int32_t *tmp_a, *tmp_b;
   int32_t *dev_c = c;
-  if(debug) {
-    cudaMalloc((void**)&tmp_a, n*sizeof(int32_t));
-    dev_a = tmp_a;
-    cudaMalloc((void**)&tmp_b, sizeof(int32_t));
-    dev_b = tmp_b;
-    cudaMalloc((void**)&dev_c, n*sizeof(int32_t));
-    cudaMemcpy(tmp_a, a, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(tmp_b, b, sizeof(int32_t), cudaMemcpyHostToDevice);
-  }
 
-  int64_t *dev_ashape, *dev_bshape, *dev_cshape;
+  int threadSize = 256;
+  int blockSize = getGridSize(n, threadSize);
+  int64_t *dev_ashape = NULL, *dev_bshape = NULL, *dev_cshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_ashape, sizeof(int64_t) * adim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_bshape, sizeof(int64_t) * bdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_cshape, sizeof(int64_t) * cdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_ashape, ashape, sizeof(int64_t) * adim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_bshape, bshape, sizeof(int64_t) * bdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_cshape, cshape, sizeof(int64_t) * cdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
-  int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
   kernel_broadcast_sub<<<blockSize, threadSize>>>(dev_a, dev_b, dev_c, n, dev_ashape, adim, dev_bshape, bdim, dev_cshape, cdim);
   //cudaDeviceSynchronize();
-
-  cudaFree(dev_ashape);
-  cudaFree(dev_bshape);
-  cudaFree(dev_cshape);
-
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_a);
-    cudaFree(dev_c);
-    cudaFree(tmp_b);
+  if(cudaGetLastError() != cudaSuccess){
+    error_code = ERROR_KERNEL;
   }
+end:
+  if(dev_ashape != NULL) cudaFree(dev_ashape);
+  if(dev_bshape != NULL) cudaFree(dev_bshape);
+  if(dev_cshape != NULL) cudaFree(dev_cshape);
   return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_broadcast_mul(const int32_t *a, const int32_t *b, int32_t*c, const uint64_t n,
@@ -1060,8 +1083,8 @@ __global__ void kernel_broadcast_mul(const int32_t *a, const int32_t *b, int32_t
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x*blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] * b[bi];
   }
 }
@@ -1069,73 +1092,54 @@ const char* cuda_broadcast_mul(const int32_t *a, const int32_t *b, int32_t* c, c
     int64_t *ashape, int32_t adim,
     int64_t *bshape, int32_t bdim,
     int64_t *cshape, int32_t cdim,
-    bool debug){
+    int& error_code){
   const int32_t *dev_a = a, *dev_b = b;
-  int32_t *tmp_a, *tmp_b;
   int32_t *dev_c = c;
-  if(debug) {
-    cudaMalloc((void**)&tmp_a, n*sizeof(int32_t));
-    dev_a = tmp_a;
-    cudaMalloc((void**)&tmp_b, sizeof(int32_t));
-    dev_b = tmp_b;
-    cudaMalloc((void**)&dev_c, n*sizeof(int32_t));
-    cudaMemcpy(tmp_a, a, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(tmp_b, b, sizeof(int32_t), cudaMemcpyHostToDevice);
-  }
 
-  int64_t *dev_ashape, *dev_bshape, *dev_cshape;
+  int threadSize = 256;
+  int blockSize = getGridSize(n, threadSize);
+  int64_t *dev_ashape = NULL, *dev_bshape = NULL, *dev_cshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_ashape, sizeof(int64_t) * adim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_bshape, sizeof(int64_t) * bdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_cshape, sizeof(int64_t) * cdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_ashape, ashape, sizeof(int64_t) * adim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_bshape, bshape, sizeof(int64_t) * bdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_cshape, cshape, sizeof(int64_t) * cdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
-  int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
   kernel_broadcast_mul<<<blockSize, threadSize>>>(dev_a, dev_b, dev_c, n, dev_ashape, adim, dev_bshape, bdim, dev_cshape, cdim);
   //cudaDeviceSynchronize();
-
-  cudaFree(dev_ashape);
-  cudaFree(dev_bshape);
-  cudaFree(dev_cshape);
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_a);
-    cudaFree(dev_c);
-    cudaFree(tmp_b);
+  if(cudaGetLastError() != cudaSuccess){
+    error_code = ERROR_KERNEL;
   }
-  print_to_file(dev_c, n, "/tmp/zkh/cuda_mul.txt");
+  print_to_file(dev_c, n, "/tmp/zkh/trec/gpu/broadcast_mul.txt");
+end:
+  if(dev_ashape != NULL) cudaFree(dev_ashape);
+  if(dev_bshape != NULL) cudaFree(dev_bshape);
+  if(dev_cshape != NULL) cudaFree(dev_cshape);
   return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_broadcast_div(const int32_t *a, const int32_t *b, int32_t*c, const uint64_t n,
@@ -1145,8 +1149,8 @@ __global__ void kernel_broadcast_div(const int32_t *a, const int32_t *b, int32_t
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x*blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] / b[bi];
   }
 }
@@ -1154,94 +1158,79 @@ const char* cuda_broadcast_div(const int32_t *a, const int32_t *b, int32_t* c, c
     int64_t *ashape, int32_t adim,
     int64_t *bshape, int32_t bdim,
     int64_t *cshape, int32_t cdim,
-    bool debug){
+    int& error_code){
   const int32_t *dev_a = a, *dev_b = b;
-  int32_t *tmp_a, *tmp_b;
   int32_t *dev_c = c;
-  if(debug) {
-    cudaMalloc((void**)&tmp_a, n*sizeof(int32_t));
-    dev_a = tmp_a;
-    cudaMalloc((void**)&tmp_b, sizeof(int32_t));
-    dev_b = tmp_b;
-    cudaMalloc((void**)&dev_c, n*sizeof(int32_t));
-    cudaMemcpy(tmp_a, a, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(tmp_b, b, sizeof(int32_t), cudaMemcpyHostToDevice);
-  }
 
   cudaError_t status;
   int64_t bsize = 1;
   for(int i = 0; i < bdim; i++){
     bsize *= bshape[i];
   }
-  int32_t* h_b = new int32_t[bsize];
+  //int32_t* h_b = new int32_t[bsize];
+  int32_t *h_b = (int32_t*)malloc(sizeof(int32_t) * bsize);
+  if(h_b == NULL){
+    error_code = ERROR_MALLOC;
+    return "malloc failed";
+  }
   status = cudaMemcpy(h_b, dev_b, sizeof(int32_t) * bsize, cudaMemcpyDeviceToHost);
   if(status != cudaSuccess){
+    error_code = ERROR_MALLOC;
     return check_cuda_error(status);
   }
   for(int i = 0; i < bsize; i++){
-    if(h_b == 0){
-      delete h_b;
+    if(h_b[i] == 0){
+      free(h_b);
+      error_code = ERROR_DIV_0;
       return "error: divide by zero";
     }
   }
 
-  int64_t *dev_ashape, *dev_bshape, *dev_cshape;
+  int threadSize = 256;
+  int blockSize = getGridSize(n, threadSize);
+  int64_t *dev_ashape = NULL, *dev_bshape = NULL, *dev_cshape = NULL;
   status = cudaMalloc((void**)&dev_ashape, sizeof(int64_t) * adim);
   if(status != cudaSuccess){
-    delete h_b;
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_bshape, sizeof(int64_t) * bdim);
   if(status != cudaSuccess){
-    delete h_b;
-    cudaFree(dev_ashape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_cshape, sizeof(int64_t) * cdim);
   if(status != cudaSuccess){
-    delete h_b;
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_ashape, ashape, sizeof(int64_t) * adim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    delete h_b;
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_bshape, bshape, sizeof(int64_t) * bdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    delete h_b;
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_cshape, cshape, sizeof(int64_t) * cdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    delete h_b;
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
-  int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
   kernel_broadcast_div<<<blockSize, threadSize>>>(dev_a, dev_b, dev_c, n, dev_ashape, adim, dev_bshape, bdim, dev_cshape, cdim);
   //cudaDeviceSynchronize();
-  cudaFree(dev_ashape);
-  cudaFree(dev_bshape);
-  cudaFree(dev_cshape);
-
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_a);
-    cudaFree(dev_c);
-    cudaFree(tmp_b);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
   }
+
+end:
+  if(dev_ashape != NULL) cudaFree(dev_ashape);
+  if(dev_bshape != NULL) cudaFree(dev_bshape);
+  if(dev_cshape != NULL) cudaFree(dev_cshape);
+  if(h_b != NULL) free(h_b);
+
   return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_broadcast_right_shift(const int32_t *a, const int32_t *b, int32_t*c, const uint64_t n,
@@ -1251,8 +1240,8 @@ __global__ void kernel_broadcast_right_shift(const int32_t *a, const int32_t *b,
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x * blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] >> b[bi];
   }
 }
@@ -1260,73 +1249,51 @@ const char* cuda_broadcast_right_shift(const int32_t *a, const int32_t* b, int32
     int64_t *ashape, int32_t adim,
     int64_t *bshape, int32_t bdim,
     int64_t *cshape, int32_t cdim,
-    bool debug){
+    int& error_code){
   const int32_t *dev_a = a;
   const int32_t *dev_b = b;
-  int32_t *tmp_a, *tmp_b;
   int32_t *dev_c = c;
-  if(debug) {
-    cudaMalloc((void**)&tmp_a, n*sizeof(int32_t));
-    dev_a = tmp_a;
-    cudaMalloc((void**)&tmp_b, sizeof(int32_t));
-    dev_b = tmp_b;
-    cudaMalloc((void**)&dev_c, n*sizeof(int32_t));
-    cudaMemcpy(tmp_a, a, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(tmp_b, b, sizeof(int32_t), cudaMemcpyHostToDevice);
-  }
 
-  int64_t *dev_ashape, *dev_bshape, *dev_cshape;
+  int threadSize = 256;
+  int blockSize = getGridSize(n, threadSize);
+  int64_t *dev_ashape = NULL, *dev_bshape = NULL, *dev_cshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_ashape, sizeof(int64_t) * adim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_bshape, sizeof(int64_t) * bdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_cshape, sizeof(int64_t) * cdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_ashape, ashape, sizeof(int64_t) * adim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_bshape, bshape, sizeof(int64_t) * bdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_cshape, cshape, sizeof(int64_t) * cdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
-  int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
   kernel_broadcast_right_shift<<<blockSize, threadSize>>>(dev_a, dev_b, dev_c, n, dev_ashape, adim, dev_bshape, bdim, dev_cshape, cdim);
   //cudaDeviceSynchronize();
-  cudaFree(dev_ashape);
-  cudaFree(dev_bshape);
-  cudaFree(dev_cshape);
-
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_a);
-    cudaFree(dev_c);
-    cudaFree(tmp_b);
-  }
+end:
+  if(dev_ashape != NULL) cudaFree(dev_ashape);
+  if(dev_bshape != NULL) cudaFree(dev_bshape);
+  if(dev_cshape != NULL) cudaFree(dev_cshape);
   return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_broadcast_left_shift(const int32_t *a, const int32_t *b, int32_t*c, const uint64_t n,
@@ -1336,8 +1303,8 @@ __global__ void kernel_broadcast_left_shift(const int32_t *a, const int32_t *b, 
     ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for(int i = tid; i < n; i += gridDim.x * blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] << b[bi];
   }
 }
@@ -1345,72 +1312,54 @@ const char* cuda_broadcast_left_shift(const int32_t *a, const int32_t *b, int32_
     int64_t *ashape, int32_t adim,
     int64_t *bshape, int32_t bdim,
     int64_t *cshape, int32_t cdim,
-    bool debug){
+    int& error_code){
   const int32_t *dev_a = a, *dev_b = b;
-  int32_t *tmp_a, *tmp_b;
   int32_t *dev_c = c;
-  if(debug) {
-    cudaMalloc((void**)&tmp_a, n*sizeof(int32_t));
-    dev_a = tmp_a;
-    cudaMalloc((void**)&tmp_b, sizeof(int32_t));
-    dev_b = tmp_b;
-    cudaMalloc((void**)&dev_c, n*sizeof(int32_t));
-    cudaMemcpy(tmp_a, a, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(tmp_b, b, sizeof(int32_t), cudaMemcpyHostToDevice);
-  }
 
-  int64_t *dev_ashape, *dev_bshape, *dev_cshape;
+  int threadSize = 256;
+  int blockSize = getGridSize(n, threadSize);
+  int64_t *dev_ashape = NULL, *dev_bshape = NULL, *dev_cshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_ashape, sizeof(int64_t) * adim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_bshape, sizeof(int64_t) * bdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_cshape, sizeof(int64_t) * cdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_ashape, ashape, sizeof(int64_t) * adim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_bshape, bshape, sizeof(int64_t) * bdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_cshape, cshape, sizeof(int64_t) * cdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
-  int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
   kernel_broadcast_left_shift<<<blockSize, threadSize>>>(dev_a, dev_b, dev_c, n, dev_ashape, adim, dev_bshape, bdim, dev_cshape, cdim);
   //cudaDeviceSynchronize();
-  cudaFree(dev_ashape);
-  cudaFree(dev_bshape);
-  cudaFree(dev_cshape);
-
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_a);
-    cudaFree(dev_c);
-    cudaFree(tmp_b);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
   }
+end:
+  if(dev_ashape != NULL) cudaFree(dev_ashape);
+  if(dev_bshape != NULL) cudaFree(dev_bshape);
+  if(dev_cshape != NULL) cudaFree(dev_cshape);
+
   return check_cuda_error(cudaGetLastError());
 }
 __global__ void kernel_broadcast_max(const int32_t *a, const int32_t *b, int32_t *c, const uint64_t n,
@@ -1420,8 +1369,8 @@ __global__ void kernel_broadcast_max(const int32_t *a, const int32_t *b, int32_t
     ){
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   for(int i = tid; i < n; i += gridDim.x*blockDim.x){
-    int32_t ai = broadcast_i_index(cshape, i, ashape, adim);
-    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim);
+    int32_t ai = broadcast_i_index(cshape, i, ashape, adim, cdim);
+    int32_t bi = broadcast_i_index(cshape, i, bshape, bdim, cdim);
     c[i] = a[ai] > b[bi] ? a[ai] : b[bi];
   }
 }
@@ -1429,72 +1378,54 @@ const char* cuda_broadcast_max(const int32_t *a, const int32_t *b, int32_t* c, c
     int64_t *ashape, int32_t adim,
     int64_t *bshape, int32_t bdim,
     int64_t *cshape, int32_t cdim,
-    bool debug){
+    int& error_code){
   const int32_t *dev_a = a, *dev_b = b;
-  int32_t *tmp_a, *tmp_b;
   int32_t *dev_c = c;
-  if(debug) {
-    cudaMalloc((void**)&tmp_a, n*sizeof(int32_t));
-    dev_a = tmp_a;
-    cudaMalloc((void**)&tmp_b, sizeof(int32_t));
-    dev_b = tmp_b;
-    cudaMalloc((void**)&dev_c, n*sizeof(int32_t));
-    cudaMemcpy(tmp_a, a, sizeof(int32_t)*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(tmp_b, b, sizeof(int32_t), cudaMemcpyHostToDevice);
-  }
 
-  int64_t *dev_ashape, *dev_bshape, *dev_cshape;
+  int threadSize = 256;
+  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
+  int64_t *dev_ashape = NULL, *dev_bshape = NULL, *dev_cshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_ashape, sizeof(int64_t) * adim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_bshape, sizeof(int64_t) * bdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_cshape, sizeof(int64_t) * cdim);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_ashape, ashape, sizeof(int64_t) * adim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_bshape, bshape, sizeof(int64_t) * bdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_cshape, cshape, sizeof(int64_t) * cdim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ashape);
-    cudaFree(dev_bshape);
-    cudaFree(dev_cshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
-  int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
   kernel_broadcast_max<<<blockSize, threadSize>>>(dev_a, dev_b, dev_c, n, dev_ashape, adim, dev_bshape, bdim, dev_cshape, cdim);
   //cudaDeviceSynchronize();
-  cudaFree(dev_ashape);
-  cudaFree(dev_bshape);
-  cudaFree(dev_cshape);
-
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_a);
-    cudaFree(dev_c);
-    cudaFree(tmp_b);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
   }
+end:
+  if(dev_ashape != NULL) cudaFree(dev_ashape);
+  if(dev_bshape != NULL) cudaFree(dev_bshape);
+  if(dev_cshape != NULL) cudaFree(dev_cshape);
+
   return check_cuda_error(cudaGetLastError());
 }
 
@@ -1532,7 +1463,6 @@ __global__ void kernel_sum_with_axis(const int32_t *x, int32_t *y, const int32_t
       while(xj >= 0 && flag[xj--] == 1);
       in_i += col * every_xdim_size[xj+1];
     }
-    //int32_t max = x[in_i];
     int32_t sum = 0;
     for(uint64_t xi = 0; xi < axis_size; xi++){
       uint64_t o_i = xi, tmp_in_i = 0;
@@ -1541,7 +1471,6 @@ __global__ void kernel_sum_with_axis(const int32_t *x, int32_t *y, const int32_t
         o_i /= xshape[realAxis[j]];
         tmp_in_i += col * every_xdim_size[realAxis[j]];
       }
-      //if(max < x[in_i+tmp_in_i]) max = x[in_i+tmp_in_i];
       sum += x[in_i + tmp_in_i];
     }
     y[i] = sum;
@@ -1550,62 +1479,79 @@ __global__ void kernel_sum_with_axis(const int32_t *x, int32_t *y, const int32_t
 const char* cuda_sum(const int32_t *x, int32_t *y, const uint64_t xsize, const uint64_t ysize,
     const int64_t *xshape, const int64_t *yshape, const int32_t* realAxis, const int32_t* flag,
     const uint64_t *every_xdim_size, const int64_t axis_size,
-    const int32_t xndim, const int32_t yndim, const int32_t axis_ndim){
+    const int32_t xndim, const int32_t yndim, const int32_t axis_ndim, int& error_code){
   int64_t *dev_xshape = NULL, *dev_yshape = NULL;
   uint64_t *dev_every_xdim_size = NULL;
   int32_t *dev_flag = NULL, *dev_axis = NULL;
   if(axis_ndim == 0){
     kernel_sum<<<1, 256>>>(x, y, xsize);
+    int error = cudaGetLastError();
+    if(error != cudaSuccess){
+        error_code = ERROR_KERNEL;
+    }
   }else{
+    int bSize = 256;
+    int gSize = getGridSize(ysize, bSize);//(ysize + bSize - 1) / bSize;
     cudaError_t status;
     status = cudaMalloc((void**)&dev_xshape, sizeof(int64_t)*xndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMalloc((void**)&dev_yshape, sizeof(int64_t)*yndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMalloc((void**)&dev_axis, sizeof(int32_t) * axis_ndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMalloc((void**)&dev_every_xdim_size, sizeof(uint64_t) * xndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMalloc((void**)&dev_flag, sizeof(int32_t)*xndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMemcpy(dev_xshape, xshape, sizeof(int64_t)*xndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
     status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t)*yndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
     status = cudaMemcpy(dev_axis, realAxis, sizeof(int32_t)*axis_ndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
     status = cudaMemcpy(dev_every_xdim_size, every_xdim_size, sizeof(uint64_t) * xndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
     status = cudaMemcpy(dev_flag, flag, sizeof(int32_t)*xndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
 
-    int bSize = 256;
-    int gSize = getGridSize(ysize, bSize);//(ysize + bSize - 1) / bSize;
     kernel_sum_with_axis<<<gSize, bSize>>>(x, y, dev_axis, dev_xshape, dev_yshape, axis_ndim, 
         dev_every_xdim_size, xndim, yndim, ysize, dev_flag, axis_size);
-    goto end;
+    if(cudaSuccess != cudaGetLastError()){
+        error_code = ERROR_KERNEL;
+    }
   }
-  print_to_file(y, ysize, "/tmp/zkh/cuda_max.txt");
+  print_to_file(y, ysize, "/tmp/zkh/trec/gpu/sum.txt");
+
 end:
   if(dev_xshape != NULL) cudaFree(dev_xshape);
   if(dev_yshape != NULL) cudaFree(dev_yshape);
@@ -1615,13 +1561,14 @@ end:
   return check_cuda_error(cudaGetLastError());
 }
 
-const char* cuda_reshape(const int32_t *x, int32_t *y, uint64_t n, bool debug){
+const char* cuda_reshape(const int32_t *x, int32_t *y, uint64_t n, int& error_code){
   if(x == y) return NULL;
-  if(debug)
-    memcpy(y, x, n * sizeof(int32_t));
-  else
-    cudaMemcpy(y, x, n*sizeof(int32_t), cudaMemcpyDeviceToDevice);
-  return check_cuda_error(cudaGetLastError());
+  cudaMemcpy(y, x, n*sizeof(int32_t), cudaMemcpyDeviceToDevice);
+  cudaError_t error = cudaGetLastError();
+  if(error != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+  }
+  return check_cuda_error(error);
 }
 
 __global__ void kernel_log(const int32_t *x, int32_t *y){
@@ -1634,28 +1581,28 @@ __global__ void kernel_log(const int32_t *x, int32_t *y){
   }
   y[0] = 64;
 }
-const char* cuda_log(const int32_t *x, int32_t *y, const bool debug){
+const char* cuda_log(const int32_t *x, int32_t *y, int& error_code){
   const int32_t *dev_x = x;
-  int32_t *tmp_x, *dev_y = y;
-  if(debug){
-    cudaMalloc((void**)&tmp_x, sizeof(int32_t));
-    dev_x = tmp_x;
-    cudaMemcpy(tmp_x, x, sizeof(int32_t), cudaMemcpyHostToDevice);
-  }
+  int32_t *dev_y = y;
 
   int h_x;
-  cudaMemcpy(&h_x, dev_x, sizeof(int32_t), cudaMemcpyDeviceToHost);
-  if(h_x <= 0) return "error: log2 a no positive value";
+  cudaError_t status = cudaMemcpy(&h_x, dev_x, sizeof(int32_t), cudaMemcpyDeviceToHost);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+    return check_cuda_error(cudaGetLastError());
+  }
+  if(h_x <= 0){
+    error_code = ERROR_LOG_0;
+    return "error: log2 a no positive value";
+  }
 
   kernel_log<<<1,1>>>(dev_x, dev_y);
 
-  if(debug){
-    cudaMemcpy(y, dev_y, sizeof(int32_t), cudaMemcpyDeviceToHost);
-    cudaFree(tmp_x);
-    cudaFree(dev_y);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-
-  return check_cuda_error(cudaGetLastError());
+  return check_cuda_error(error);
 }
 __global__ void kernel_abs(const int32_t *x, int32_t *y, const uint64_t n){
   int tid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -1663,24 +1610,17 @@ __global__ void kernel_abs(const int32_t *x, int32_t *y, const uint64_t n){
     y[i] = abs(x[i]);
   }
 }
-const char* cuda_abs(const int32_t *x, int32_t *y, const uint64_t n, bool debug){
+const char* cuda_abs(const int32_t *x, int32_t *y, const uint64_t n, int& error_code){
   const int32_t *dev_x = x;
-  int32_t *tmp_x, *dev_y = y;
-  if(debug){
-    cudaMalloc((void**)&tmp_x, sizeof(int32_t) * n);
-    dev_x = tmp_x;
-    cudaMalloc((void**)&dev_y, sizeof(int32_t) * n);
-    cudaMemcpy(tmp_x, x, sizeof(int32_t) * n, cudaMemcpyHostToDevice);
-  }
+  int32_t *dev_y = y;
   int bSize = 256;
   int gSize = getGridSize(n, bSize);//(n + bSize - 1) / bSize;
   kernel_abs<<<gSize, bSize>>>(dev_x, dev_y, n);
-  if(debug){
-    cudaMemcpy(y, dev_y, sizeof(int32_t) * n, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_x);
-    cudaFree(dev_y);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  return check_cuda_error(cudaGetLastError());
+  return check_cuda_error(error);
 }
 
 __global__ void kernel_max(const int32_t *x, int32_t *y, int64_t n){
@@ -1734,62 +1674,77 @@ __global__ void kernel_max_with_axis(const int32_t *x, int32_t *y, const int32_t
 const char* cuda_max(const int32_t *x, int32_t *y, const uint64_t xsize, const uint64_t ysize,
     const int64_t *xshape, const int64_t *yshape, const int32_t* realAxis, const int32_t* flag, 
     const uint64_t *every_xdim_size, const int64_t axis_size,
-    const int32_t xndim, const int32_t yndim, const int32_t axis_ndim){
+    const int32_t xndim, const int32_t yndim, const int32_t axis_ndim, int& error_code){
   int64_t *dev_xshape = NULL, *dev_yshape = NULL;
   uint64_t *dev_every_xdim_size = NULL;
   int32_t *dev_flag = NULL, *dev_axis = NULL;
   if(axis_ndim == 0){
     kernel_max<<<1, 256>>>(x, y, xsize);
+    int error = cudaGetLastError();
+    if(cudaSuccess != error){
+      error_code = ERROR_KERNEL;
+    }
   }else{
+    int bSize = 256;
+    int gSize = getGridSize(ysize, bSize);//(ysize + bSize - 1) / bSize;
     cudaError_t status;
     status = cudaMalloc((void**)&dev_xshape, sizeof(int64_t)*xndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMalloc((void**)&dev_yshape, sizeof(int64_t)*yndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMalloc((void**)&dev_axis, sizeof(int32_t) * axis_ndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMalloc((void**)&dev_every_xdim_size, sizeof(uint64_t) * xndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMalloc((void**)&dev_flag, sizeof(int32_t)*xndim);
     if(status != cudaSuccess){
+      error_code = ERROR_MALLOC;
       goto end;
     }
     status = cudaMemcpy(dev_xshape, xshape, sizeof(int64_t)*xndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
     status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t)*yndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
     status = cudaMemcpy(dev_axis, realAxis, sizeof(int32_t)*axis_ndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
     status = cudaMemcpy(dev_every_xdim_size, every_xdim_size, sizeof(uint64_t) * xndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
     status = cudaMemcpy(dev_flag, flag, sizeof(int32_t)*xndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
+      error_code = ERROR_MEMCPY;
       goto end;
     }
 
-    int bSize = 256;
-    int gSize = getGridSize(ysize, bSize);//(ysize + bSize - 1) / bSize;
     kernel_max_with_axis<<<gSize, bSize>>>(x, y, dev_axis, dev_xshape, dev_yshape, axis_ndim, 
         dev_every_xdim_size, xndim, yndim, ysize, dev_flag, axis_size);
-    goto end;
+    if(cudaSuccess != cudaGetLastError()){
+        error_code = ERROR_KERNEL;
+    }
   }
-  print_to_file(y, ysize, "/tmp/zkh/cuda_max.txt");
 end:
   if(dev_xshape != NULL) cudaFree(dev_xshape);
   if(dev_yshape != NULL) cudaFree(dev_yshape);
@@ -1807,26 +1762,18 @@ __global__ void kernel_cvm_clip(const int32_t *x, const int32_t precision, int32
     y[i] = max(min(x[i], maxV), minV);
   }
 }
-const char* cuda_cvm_clip(const int32_t* x, const int32_t precision, int32_t *y, const uint64_t n, bool debug){
+const char* cuda_cvm_clip(const int32_t* x, const int32_t precision, int32_t *y, const uint64_t n, int& error_code){
   const int32_t *dev_x = x;
-  int32_t *tmp_x, *dev_y = y;
-  if(debug){
-    cudaMalloc((void**)&tmp_x, sizeof(int32_t) * n);
-    cudaMalloc((void**)&dev_y, sizeof(int32_t) * n);
-    cudaMemcpy(tmp_x, x, sizeof(int32_t) * n, cudaMemcpyHostToDevice);
-    dev_x = tmp_x;
-  }
+  int32_t *dev_y = y;
   int bSize = 256;
   int gSize = getGridSize(n, bSize); //(n + bSize - 1) / bSize;
   kernel_cvm_clip<<<gSize, bSize>>>(dev_x, precision, dev_y, n);
-  if(debug){
-    cudaMemcpy(y, dev_y, sizeof(int32_t) * n, cudaMemcpyDeviceToHost);
-    cudaFree(dev_y);
-    cudaFree(tmp_x);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-
-  print_to_file(y, n, "/tmp/zkh/cuda_cvm_clip.txt");
-  return check_cuda_error(cudaGetLastError());
+  print_to_file(dev_y, n, "/tmp/zkh/trec/gpu/cvm_clip.txt");
+  return check_cuda_error(error);
 }
 
 __global__ void kernel_cvm_right_shift(const int32_t *a, const int32_t b, const int32_t precision, int32_t *c, const uint64_t n){
@@ -1842,26 +1789,19 @@ __global__ void kernel_cvm_right_shift(const int32_t *a, const int32_t b, const 
     } 
   }
 }
-const char* cuda_cvm_right_shift(const int32_t *a, const int32_t b, const int32_t precision, int32_t *c, const uint64_t n, bool debug){
+const char* cuda_cvm_right_shift(const int32_t *a, const int32_t b, const int32_t precision, int32_t *c, const uint64_t n, int& error_code){
   const int32_t *dev_a = a;
-  int32_t *tmp_a, *dev_c = c;
-  if(debug){
-    cudaMalloc((void**)&tmp_a, sizeof(int32_t) * n);
-    cudaMalloc((void**)&dev_c, sizeof(int32_t) * n);
-    cudaMemcpy(tmp_a, a, sizeof(int32_t) * n, cudaMemcpyHostToDevice);
-    dev_a = tmp_a;
-  }
+  int32_t *dev_c = c;
 
   int bSize = 256;
   int gSize = getGridSize(n, bSize); //(n + bSize - 1) / bSize;
   kernel_cvm_right_shift<<<gSize, bSize>>>(dev_a, b, precision, dev_c, n);
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t) * n, cudaMemcpyDeviceToHost);
-    cudaFree(dev_c);
-    cudaFree(tmp_a);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  print_to_file(dev_c, n, "/tmp/zkh/cuda_cvm_right_shft.txt");
-  return check_cuda_error(cudaGetLastError());
+  print_to_file(dev_c, n, "/tmp/zkh/trec/gpu/cvm_right_shift.txt");
+  return check_cuda_error(error);
 }
 
 __global__ void kernel_cvm_left_shift(const int32_t *a, const int32_t b, const int32_t precision, int32_t *c, const uint64_t n){
@@ -1877,25 +1817,18 @@ __global__ void kernel_cvm_left_shift(const int32_t *a, const int32_t b, const i
     } 
   }
 }
-const char* cuda_cvm_left_shift(const int32_t *a, const int32_t b, const int32_t precision, int32_t *c, const uint64_t n, bool debug){
+const char* cuda_cvm_left_shift(const int32_t *a, const int32_t b, const int32_t precision, int32_t *c, const uint64_t n, int& error_code){
   const int32_t *dev_a = a;
-  int32_t *tmp_a, *dev_c = c;
-  if(debug){
-    cudaMalloc((void**)&tmp_a, sizeof(int32_t) * n);
-    cudaMalloc((void**)&dev_c, sizeof(int32_t) * n);
-    cudaMemcpy(tmp_a, a, sizeof(int32_t) * n, cudaMemcpyHostToDevice);
-    dev_a = tmp_a;
-  }
+  int32_t *dev_c = c;
 
   int bSize = 256;
   int gSize = getGridSize(n, bSize);//(n + bSize - 1) / bSize;
   kernel_cvm_left_shift<<<gSize, bSize>>>(dev_a, b, precision, dev_c, n);
-  if(debug){
-    cudaMemcpy(c, dev_c, sizeof(int32_t) * n, cudaMemcpyDeviceToHost);
-    cudaFree(dev_c);
-    cudaFree(tmp_a);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
   }
-  return check_cuda_error(cudaGetLastError());
+  return check_cuda_error(error);
 }
 
 __global__ void kernel_concatenate(const int32_t *input, const int64_t *ishape, int32_t *output, 
@@ -1926,53 +1859,43 @@ __global__ void kernel_concatenate(const int32_t *input, const int64_t *ishape, 
 }
 const char* cuda_concatenate(const int32_t *input, const int64_t *ishape, const int32_t idim, const uint64_t in, 
     int32_t *output, int64_t* oshape, const int32_t odim, const uint64_t on,  
-    const int64_t preShapeSize, const int64_t curShapeSize, const int32_t axis, bool debug){
+    const int64_t preShapeSize, const int64_t curShapeSize, const int32_t axis, int& error_code){
   const int32_t *dev_input = input;
-  int32_t *tmp_input, *dev_output = output;
-  if(debug){
-    cudaMalloc((void**)&tmp_input, sizeof(int32_t) * in);
-    cudaMalloc((void**)&dev_output, sizeof(int32_t) * on);
-    cudaMemcpy(tmp_input, input, sizeof(int32_t) * in, cudaMemcpyHostToDevice);
-    dev_input = tmp_input;
-  }
+  int32_t *dev_output = output;
+  int bSize = 256;
+  int gSize = getGridSize(on, bSize);//(on + bSize - 1) / bSize;
 
-  int64_t* dev_ishape, *dev_oshape;
+  int64_t* dev_ishape = NULL, *dev_oshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_ishape, sizeof(int64_t) * idim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_oshape, sizeof(int64_t) * odim);
   if(status != cudaSuccess){
-    cudaFree(dev_ishape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_ishape, ishape, sizeof(int64_t)*idim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ishape);
-    cudaFree(dev_oshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_oshape, oshape, sizeof(int64_t)*odim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_ishape);
-    cudaFree(dev_oshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
-  int bSize = 256;
-  int gSize = getGridSize(on, bSize);//(on + bSize - 1) / bSize;
   kernel_concatenate<<<gSize, bSize>>>(dev_input, dev_ishape, dev_output, dev_oshape, odim, on,
       preShapeSize, curShapeSize, axis);
-  cudaDeviceSynchronize();
 
-  cudaFree(dev_ishape);
-  cudaFree(dev_oshape);
-
-  if(debug){
-    cudaMemcpy(output, dev_output, sizeof(int32_t) * on, cudaMemcpyDeviceToHost);
-    cudaFree(tmp_input);
-    cudaFree(dev_output);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
   }
+end:
+  if(dev_ishape != NULL) cudaFree(dev_ishape);
+  if(dev_oshape != NULL) cudaFree(dev_oshape);
   return check_cuda_error(cudaGetLastError());
 }
 
@@ -1991,7 +1914,7 @@ __global__ void kernel_bias_add(const int32_t *x_data, const int32_t * bias_data
   }
 }
 const char* cuda_bias_add(const int32_t *x_data, const int32_t * bias_data, int32_t *y_data, 
-    int64_t ysize, const int64_t *yshape, const int32_t ndim, const int32_t axis){
+    int64_t ysize, const int64_t *yshape, const int32_t ndim, const int32_t axis, int& error_code){
   int64_t *dev_yshape;
   cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * ndim);
   cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
@@ -2022,20 +1945,40 @@ __global__ void kernel_repeat(const int32_t *x_data, int32_t *y_data, const int6
 }
 const char* cuda_repeat(const int32_t *x_data, int32_t *y_data, const int64_t *xshape,
     const int64_t *yshape, const uint64_t ysize, const int32_t xndim, const int32_t yndim, 
-    const int32_t axis, const int32_t repeat){
-  int64_t *dev_xshape, *dev_yshape;
-  cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
-  cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
-  cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * xndim, cudaMemcpyHostToDevice);
-  cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * xndim, cudaMemcpyHostToDevice);
-  cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * yndim, cudaMemcpyHostToDevice);
-
+    const int32_t axis, const int32_t repeat, int& error_code){
   int bSize = 256;
   int gSize = getGridSize(ysize, bSize);//(ysize + bSize - 1) / bSize;
+  int64_t *dev_xshape = NULL, *dev_yshape = NULL;
+  cudaError_t status;
+  status = cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
+  if(status != cudaSuccess){
+    error_code = ERROR_MALLOC;
+    goto end;
+  }
+  status = cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
+  if(status != cudaSuccess){
+    error_code = ERROR_MALLOC;
+    goto end;
+  }
+  status = cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * xndim, cudaMemcpyHostToDevice);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+    goto end;
+  }
+  status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * yndim, cudaMemcpyHostToDevice);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+    goto end;
+  }
+
   kernel_repeat<<<gSize, bSize>>>(x_data, y_data, dev_xshape, dev_yshape, ysize, yndim, axis, repeat);
 
-  cudaFree(dev_xshape);
-  cudaFree(dev_yshape);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
+  }
+end:
+  if(dev_xshape != NULL) cudaFree(dev_xshape);
+  if(dev_yshape != NULL) cudaFree(dev_yshape);
   return check_cuda_error(cudaGetLastError());
 }
 
@@ -2054,7 +1997,7 @@ __global__ void kernel_upsampling_nearest(const int32_t *x_data, int32_t *y_data
 }
 
 const char* cuda_upsampling_nearest(const int32_t *x_data, int32_t *y_data, const uint32_t scale, const int32_t ih, const int32_t iw, 
-    const uint32_t oh, const uint32_t ow, const uint32_t batch, const uint32_t channel){
+    const uint32_t oh, const uint32_t ow, const uint32_t batch, const uint32_t channel, int& error_code){
   dim3 block(1, 32, 32);
   int grid = channel > 4096 ? 4096 : channel;
 
@@ -2062,8 +2005,11 @@ const char* cuda_upsampling_nearest(const int32_t *x_data, int32_t *y_data, cons
     kernel_upsampling_nearest<<<grid, block>>>(x_data + i*channel*ih*iw, 
         y_data + i*channel*oh*ow, 
         scale, ih, iw, oh, ow, channel);
+    if(cudaSuccess != cudaGetLastError()){
+        error_code = ERROR_KERNEL;
+        return check_cuda_error(cudaGetLastError());
+    }
   }
-  print_to_file(y_data, batch * channel * oh * ow, "/tmp/zkh/cuda_upsampliing.txt");
   return check_cuda_error(cudaGetLastError());
 }
 
@@ -2073,11 +2019,15 @@ __global__ void kernel_negative(const int32_t *x_data, int32_t *y_data, uint64_t
     y_data[i] = -x_data[i];
   }
 }
-const char* cuda_negative(const int32_t *x_data, int32_t *y_data, uint64_t n){
+const char* cuda_negative(const int32_t *x_data, int32_t *y_data, uint64_t n, int& error_code){
   int threadSize = 256;
-  int blockSize = getGridSize(n, threadSize);//(n + threadSize - 1) / threadSize;
+  int blockSize = getGridSize(n, threadSize);
   kernel_negative<<<blockSize, threadSize>>>(x_data, y_data, n);
-  return check_cuda_error(cudaGetLastError());
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
+  }
+  return check_cuda_error(error);
 }
 
 
@@ -2098,73 +2048,81 @@ __global__ void kernel_tile(const int32_t *x_data, int32_t *y_data, const uint64
   }
 }
 const char* cuda_tile(const int32_t *x_data, int32_t *y_data, const uint64_t ysize, const int32_t yndim, const int32_t xndim,
-    const int64_t *xshape, const int64_t *yshape){
+    const int64_t *xshape, const int64_t *yshape, int& error_code){
   uint64_t tmp_y_size = 1;
   for(int i = 0; i < xndim; i++){
     tmp_y_size *= yshape[i + yndim - xndim];
   }
 
-  int64_t *dev_xshape, *dev_yshape;
+  int threadSize = 256;
+  int blockSize = getGridSize(tmp_y_size, threadSize);//(tmp_y_size + threadSize - 1) / threadSize;
+  uint64_t othery = 1;
+  int64_t *dev_xshape = NULL, *dev_yshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * xndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * yndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
 
-  int threadSize = 256;
-  int blockSize = getGridSize(tmp_y_size, threadSize);//(tmp_y_size + threadSize - 1) / threadSize;
   kernel_tile<<<blockSize, threadSize>>>(x_data, y_data, tmp_y_size, yndim, xndim, dev_xshape, dev_yshape);
 
-  uint64_t othery = 1;
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
+    goto end;
+  }
   for(int i = 0; i < yndim-xndim; i++){
     othery *= yshape[i];
   }
   for(size_t i = 1; i < othery; i++){
     status = cudaMemcpy(y_data + i*tmp_y_size, y_data, tmp_y_size * sizeof(int32_t), cudaMemcpyDeviceToDevice);
     if(status != cudaSuccess){
-      cudaFree(dev_xshape);
-      cudaFree(dev_yshape);
-      return check_cuda_error(status);
+      error_code = ERROR_MEMCPY;
+      goto end;
     }
   }
-  cudaFree(dev_xshape);
-  cudaFree(dev_yshape);
+
+end:
+  if(dev_xshape != NULL) cudaFree(dev_xshape);
+  if(dev_yshape != NULL) cudaFree(dev_yshape);
   return check_cuda_error(cudaGetLastError());
 }
 
-const char *cuda_expand_dims(const int32_t *ishape_data, int32_t *oshape_data, const int32_t axis, const uint64_t n){
+const char *cuda_expand_dims(const int32_t *ishape_data, int32_t *oshape_data, const int32_t axis, const uint64_t n, int& error_code){
   if(oshape_data == ishape_data){
     return NULL;
   }
-  cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
-  print_to_file(oshape_data, n, "/tmp/zkh/cuda_expand_dims.txt");
-  return check_cuda_error(cudaGetLastError());
+  cudaError_t status = cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+  }
+  return check_cuda_error(status);
 }
 
-const char *cuda_squeeze(const int32_t *ishape_data, int32_t *oshape_data, const uint64_t n){
+const char *cuda_squeeze(const int32_t *ishape_data, int32_t *oshape_data, const uint64_t n, int& error_code){
   if(oshape_data == ishape_data){
     return NULL;
   }
-  cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
-  print_to_file(oshape_data, n, "/tmp/zkh/cuda_squeeze.txt");
-  return check_cuda_error(cudaGetLastError());
+  cudaError_t status = cudaMemcpy(oshape_data, ishape_data, sizeof(int32_t) * n, cudaMemcpyDeviceToDevice);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+  }
+  return check_cuda_error(status);
 }
 
 __global__ void kernel_transpose(const int32_t *x_data, const int64_t *axes_data, int32_t *y_data, 
@@ -2193,55 +2151,55 @@ __global__ void kernel_transpose(const int32_t *x_data, const int64_t *axes_data
 }
 const char* cuda_transpose(const int32_t *x_data, const int64_t *axes_data, int32_t *y_data, 
     const int64_t *xshape, const int64_t *yshape, const int32_t ndim, const uint64_t ysize,
-    const int32_t axes_ndim){
-  int64_t *dev_xshape, *dev_yshape, *dev_axes;
+    const int32_t axes_ndim, int& error_code){
+  int threadSize = 256;
+  int blockSize = getGridSize(ysize, threadSize);//(ysize + threadSize - 1) / threadSize;
+  int64_t *dev_xshape = NULL, *dev_yshape = NULL, *dev_axes = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * ndim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * ndim);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   if(axes_ndim > 0){
     status = cudaMalloc((void**)&dev_axes, sizeof(int64_t) * axes_ndim);
     if(status != cudaSuccess){
-      cudaFree(dev_xshape);
-      cudaFree(dev_yshape);
-      return check_cuda_error(status);
+      error_code = ERROR_MALLOC;
+      goto end;
     }
     status = cudaMemcpy(dev_axes, axes_data, sizeof(int64_t) * axes_ndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
-      cudaFree(dev_xshape);
-      cudaFree(dev_yshape);
-      cudaFree(dev_axes);
-      return check_cuda_error(status);
+      error_code = ERROR_MEMCPY;
+      goto end;
     }
   }
 
-  int threadSize = 256;
-  int blockSize = getGridSize(ysize, threadSize);//(ysize + threadSize - 1) / threadSize;
   kernel_transpose<<<blockSize, threadSize>>>(x_data, dev_axes, y_data, dev_xshape, dev_yshape, ndim, ysize, axes_ndim);
-  cudaFree(dev_xshape);
-  cudaFree(dev_yshape);
-  if(axes_ndim > 0){
-    cudaFree(dev_axes);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
   }
-  print_to_file(y_data, ysize, "/tmp/zkh/cuda_transpose.txt");
+
+end:
+  if(dev_xshape != NULL) cudaFree(dev_xshape);
+  if(dev_yshape != NULL) cudaFree(dev_yshape);
+  if(axes_ndim > 0){
+    if(dev_axes != NULL) cudaFree(dev_axes);
+  }
   return check_cuda_error(cudaGetLastError());
 }
 
@@ -2265,72 +2223,66 @@ __global__ void kernel_stride_slice(const int32_t *x_data, int32_t *y_data, cons
 }
 const char* cuda_stride_slice(const int32_t *x_data, int32_t *y_data, const int64_t *begin_data,
     const int32_t begin_ndim, const int64_t *step_data, const int64_t *xshape, const int64_t *yshape, 
-    const int32_t step_ndim, const int32_t y_ndim, const uint64_t ysize, const int32_t x_ndim){
-  int64_t *dev_xshape, *dev_yshape, *dev_begin, *dev_step;
+    const int32_t step_ndim, const int32_t y_ndim, const uint64_t ysize, const int32_t x_ndim, int& error_code){
+  int threadSize = 256;
+  int blockSize = getGridSize(ysize, threadSize);
+  int64_t *dev_xshape = NULL, *dev_yshape = NULL, *dev_begin = NULL, *dev_step = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * x_ndim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * y_ndim);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_begin, sizeof(int64_t) * begin_ndim);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * x_ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    cudaFree(dev_begin);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * y_ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    cudaFree(dev_begin);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_begin, begin_data, sizeof(int64_t) * begin_ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    cudaFree(dev_begin);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   if(step_ndim > 0){
     status = cudaMalloc((void**)&dev_step, sizeof(int64_t) * step_ndim);
     if(status != cudaSuccess){
-      cudaFree(dev_xshape);
-      cudaFree(dev_yshape);
-      cudaFree(dev_begin);
-      return check_cuda_error(status);
+      error_code = ERROR_MALLOC;
+      goto end;
     }
     status = cudaMemcpy(dev_step, step_data, sizeof(int64_t) * step_ndim, cudaMemcpyHostToDevice);
     if(status != cudaSuccess){
-      cudaFree(dev_xshape);
-      cudaFree(dev_yshape);
-      cudaFree(dev_begin);
-      cudaFree(dev_step);
-      return check_cuda_error(status);
+      error_code = ERROR_MEMCPY;
+      goto end;
     }
   }
 
-  int threadSize = 256;
-  int blockSize = getGridSize(ysize, threadSize);
   kernel_stride_slice<<<blockSize, threadSize>>>(x_data,  y_data, dev_begin, begin_ndim, dev_step, 
       dev_xshape, dev_yshape, step_ndim, y_ndim, ysize);
-  cudaFree(dev_xshape);
-  cudaFree(dev_yshape);
-  cudaFree(dev_begin);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
+  }
+
+end:
+  if(dev_xshape != NULL) cudaFree(dev_xshape);
+  if(dev_yshape != NULL) cudaFree(dev_yshape);
+  if(dev_begin != NULL) cudaFree(dev_begin);
   if(step_ndim > 0){
-    cudaFree(dev_step);
+    if(dev_step != NULL) cudaFree(dev_step);
   }
   return check_cuda_error(cudaGetLastError());
 }
@@ -2350,37 +2302,39 @@ __global__ void kernel_slice_like(const int32_t *x_data, int32_t *y_data, const 
   }
 }
 const char* cuda_slice_like(const int32_t *x_data, int32_t *y_data, const int64_t *xshape, const int64_t *yshape,
-    const uint64_t ysize, const int32_t ndim){
-  int64_t *dev_xshape, *dev_yshape;
+    const uint64_t ysize, const int32_t ndim, int& error_code){
+  int threadSize = 256;
+  int blockSize = getGridSize(ysize, threadSize);//(ysize + threadSize - 1) / threadSize;
+  int64_t *dev_xshape = NULL, *dev_yshape = NULL;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * ndim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * ndim);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_xshape, xshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t) * ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
 
-  int threadSize = 256;
-  int blockSize = getGridSize(ysize, threadSize);//(ysize + threadSize - 1) / threadSize;
   kernel_slice_like<<<blockSize, threadSize>>>(x_data, y_data, dev_xshape, dev_yshape, ysize, ndim);
-
-  cudaFree(dev_xshape);
-  cudaFree(dev_yshape);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
+  }
+end:
+  if(dev_xshape != NULL) cudaFree(dev_xshape);
+  if(dev_yshape != NULL) cudaFree(dev_yshape);
   return check_cuda_error(cudaGetLastError());
 }
 
@@ -2393,23 +2347,24 @@ __global__ void kernel_get_valid_count(const int32_t *input, bool *saved, const 
 }
 const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_t *valid_count_data,
     const int32_t n, const int32_t k,
-    const int32_t score_threshold, const int32_t batchs){
+    const int32_t score_threshold, const int32_t batchs, int& error_code){
 
   int32_t *host_count = (int32_t*)malloc(sizeof(int32_t) * batchs);//new int32_t[batchs];
   if(host_count == NULL){
+    error_code = ERROR_MALLOC;
     return "malloc error";
   }
+  bool *dev_saved = NULL;
   bool* saved = (bool*)malloc(sizeof(bool) * n);
   if(saved == NULL){
-    free(host_count);
-    return "malloc error";
+    error_code = ERROR_MALLOC;
+    goto end;
   }
-  bool *dev_saved;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_saved, sizeof(bool)*n);
   if(status != cudaSuccess){
-    free(saved);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
 
   for(int32_t i = 0; i < batchs; i++){
@@ -2422,10 +2377,8 @@ const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_
     kernel_get_valid_count<<<blockSize, threadSize>>>(input, dev_saved, n, k, score_threshold);
     status = cudaMemcpy(saved, dev_saved, sizeof(bool) * n, cudaMemcpyDeviceToHost);
     if(status != cudaSuccess){
-      free(host_count);
-      free(saved);
-      cudaFree(dev_saved);
-      return check_cuda_error(status);
+      error_code = ERROR_MEMCPY;
+      goto end;
     }
 
     for(int32_t j = 0; j < n; j++){
@@ -2433,10 +2386,8 @@ const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_
       if(saved[j]){
         status = cudaMemcpy(&output[y_index * k], row, k * sizeof(int32_t), cudaMemcpyDeviceToDevice);
         if(status != cudaSuccess){
-          free(host_count);
-          free(saved);
-          cudaFree(dev_saved);
-          return check_cuda_error(status);
+          error_code = ERROR_MEMCPY;
+          goto end;
         }
         y_index += 1;
       }
@@ -2446,17 +2397,20 @@ const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_
     if(y_index < n){
       status = cudaMemset(&output[y_index * k], -1, (n-y_index) * k * sizeof(int32_t));
       if(status != cudaSuccess){
-        free(host_count);
-        free(saved);
-        cudaFree(dev_saved);
-        return check_cuda_error(status);
+        error_code = ERROR_MEMCPY;
+        goto end;
       }
     }
   }
-  cudaMemcpy(valid_count_data, host_count, sizeof(int32_t) * batchs, cudaMemcpyHostToDevice);
-  cudaFree(dev_saved);
-  free(saved);
-  free(host_count);
+
+  status = cudaMemcpy(valid_count_data, host_count, sizeof(int32_t) * batchs, cudaMemcpyHostToDevice);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+  }
+end:
+  if(dev_saved != NULL) cudaFree(dev_saved);
+  if(saved != NULL) free(saved);
+  if(host_count != NULL) free(host_count);
 
   /*
      int32_t *h_x = new int32_t[batchs * n * k];
@@ -2475,22 +2429,25 @@ const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_
 
 const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_count_data, int32_t *d_y_data, const int32_t batchs, const int32_t n, const int32_t k,
     const int32_t max_output_size, const int32_t iou_threshold, const int32_t topk, 
-    const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress){
+    const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress, int& error_code){
   int32_t *x_data = NULL, *valid_count_data = NULL, *y_data = NULL;
   x_data = (int32_t*)malloc(sizeof(int32_t) * batchs*n*k);//new int32_t[batchs * n * k];
   valid_count_data = (int32_t*)malloc(sizeof(int32_t)*batchs);//new int32_t[batchs];
   y_data = (int32_t*)malloc(sizeof(int32_t) *batchs*n*k);//new int32_t[batchs * n * k];
   int ret = 0;
   if(x_data == NULL || valid_count_data == NULL || y_data == NULL){
+    error_code = ERROR_MALLOC;
     goto end;
   }
   cudaError_t status;
   status = cudaMemcpy(x_data, d_x_data, batchs*n*k*sizeof(int32_t), cudaMemcpyDeviceToHost);
   if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
     goto end;
   }
   status = cudaMemcpy(valid_count_data, d_valid_count_data, batchs*sizeof(int32_t), cudaMemcpyDeviceToHost);
   if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
     goto end;
   }
 
@@ -2498,7 +2455,11 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
       x_data, valid_count_data, y_data, batchs, n, k,
       max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
 
-  cudaMemcpy(d_y_data, y_data, batchs * n * k * sizeof(int32_t), cudaMemcpyHostToDevice);
+  status = cudaMemcpy(d_y_data, y_data, batchs * n * k * sizeof(int32_t), cudaMemcpyHostToDevice);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+  }
+
 end:
   if(x_data != NULL)
     free(x_data);
@@ -2559,55 +2520,55 @@ __global__ void kernel_take(const int32_t *x_data, const int32_t *indices_data, 
 }
 const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, 
     const int64_t *xshape, const int64_t *yshape, const int64_t *indices_shape, const int32_t yndim,
-    const int32_t xndim, const int32_t indices_ndim, const uint64_t ysize, const int32_t axis){
+    const int32_t xndim, const int32_t indices_ndim, const uint64_t ysize, const int32_t axis, int& error_code){
+  int threadSize = 256;
+  int blockSize = getGridSize(ysize, threadSize);//(ysize + threadSize - 1) / threadSize;
   int64_t *dev_xshape, *dev_yshape, *dev_indices_shape;
   cudaError_t status;
   status = cudaMalloc((void**)&dev_xshape, sizeof(int64_t) * xndim);
   if(status != cudaSuccess){
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_yshape, sizeof(int64_t) * yndim);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMalloc((void**)&dev_indices_shape, sizeof(int64_t) * indices_ndim);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    return check_cuda_error(status);
+    error_code = ERROR_MALLOC;
+    goto end;
   }
   status = cudaMemcpy(dev_xshape, xshape, sizeof(int64_t)*xndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    cudaFree(dev_indices_shape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
 
   status = cudaMemcpy(dev_yshape, yshape, sizeof(int64_t)*yndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    cudaFree(dev_indices_shape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
   status = cudaMemcpy(dev_indices_shape, indices_shape, sizeof(int64_t)*indices_ndim, cudaMemcpyHostToDevice);
   if(status != cudaSuccess){
-    cudaFree(dev_xshape);
-    cudaFree(dev_yshape);
-    cudaFree(dev_indices_shape);
-    return check_cuda_error(status);
+    error_code = ERROR_MEMCPY;
+    goto end;
   }
 
-  int threadSize = 256;
-  int blockSize = getGridSize(ysize, threadSize);//(ysize + threadSize - 1) / threadSize;
   kernel_take<<<blockSize, threadSize>>>(x_data, indices_data, y_data, dev_xshape, dev_yshape, dev_indices_shape,
       yndim, xndim, indices_ndim, ysize, axis);
 
-  cudaFree(dev_xshape);
-  cudaFree(dev_yshape);
-  cudaFree(dev_indices_shape);
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
+  }
+  print_to_file(x_data, ysize, "/tmp/zkh/trec/gpu/take_x.txt");
+  print_to_file(y_data, ysize, "/tmp/zkh/trec/gpu/take.txt");
+end:
+  if(dev_xshape != NULL) cudaFree(dev_xshape);
+  if(dev_yshape != NULL) cudaFree(dev_yshape);
+  if(dev_indices_shape != NULL) cudaFree(dev_indices_shape);
   return check_cuda_error(cudaGetLastError());
 }
 
@@ -2618,10 +2579,12 @@ __global__ void kernel_take_noaxis(const int32_t *x_data, const int32_t *indices
     y_data[i] = x_data[in_i];
   }
 }
-const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const uint64_t ysize, const uint64_t xsize){
+const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const uint64_t ysize, const uint64_t xsize, int& error_code){
   int threadSize = 256;
   int blockSize = getGridSize(ysize, threadSize);//(ysize + threadSize - 1) / threadSize;
   kernel_take_noaxis<<<blockSize, threadSize>>>(x_data, indices_data, y_data, ysize, xsize);
-  print_to_file(y_data, ysize, "/tmp/cu_take.log");
+  if(cudaSuccess != cudaGetLastError()){
+    error_code = ERROR_KERNEL;
+  }
   return check_cuda_error(cudaGetLastError());
 }

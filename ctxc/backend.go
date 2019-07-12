@@ -40,7 +40,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/event"
-	infer "github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/miner"
@@ -78,7 +78,7 @@ type Cortex struct {
 	APIBackend *CortexAPIBackend
 
 	miner    *miner.Miner
-	synapse  *infer.Synapse
+	synapse  *synapse.Synapse
 	gasPrice *big.Int
 	coinbase common.Address
 
@@ -140,26 +140,26 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 	}
 
-	ctxc.synapse = infer.New(&infer.Config{
-		StorageDir    : config.StorageDir,
+	ctxc.synapse = synapse.New(&synapse.Config{
 		DeviceType    : config.InferDeviceType,
 		DeviceId      : config.InferDeviceId,
+		MaxMemoryUsage: config.InferMemoryUsage,
 		IsRemoteInfer : config.InferURI != "",
 		InferURI      : config.InferURI,
 		IsNotCache    : false,
-		Storagefs:				 torrentfs.Torrentfs_handle,
+		Storagefs     : torrentfs.Torrentfs_handle,
 	})
 
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
-			InferURI:                config.InferURI,
+			// InferURI:                config.InferURI,
 			StorageDir:              config.StorageDir,
 			Storagefs:				 torrentfs.Torrentfs_handle,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
-	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig)
+	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 // APIs return the collection of RPC services the cortex package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *Cortex) APIs() []rpc.API {
-	apis := ctxcapi.GetAPIs(s.APIBackend, vm.Config{InferURI: s.config.InferURI})
+	apis := ctxcapi.GetAPIs(s.APIBackend, vm.Config{})
 
 	// Append any APIs exposed explicitly by the consensus engine
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
@@ -360,6 +360,55 @@ func (s *Cortex) Coinbase() (eb common.Address, err error) {
 		}
 	}
 	return common.Address{}, fmt.Errorf("coinbase must be explicitly specified")
+}
+
+func (s *Cortex) isLocalBlock(block *types.Block) bool {
+        author, err := s.engine.Author(block.Header())
+        if err != nil {
+                log.Warn("Failed to retrieve block author", "number", block.NumberU64(), "hash", block.Hash(), "err", err)
+                return false
+        }
+        // Check whether the given address is etherbase.
+        s.lock.RLock()
+        coinbase := s.coinbase
+        s.lock.RUnlock()
+        if author == coinbase {
+                return true
+        }
+        // Check whether the given address is specified by `txpool.local`
+        // CLI flag.
+        for _, account := range s.config.TxPool.Locals {
+                if account == author {
+                        return true
+                }
+        }
+        return false
+}
+
+// shouldPreserve checks whether we should preserve the given block
+// during the chain reorg depending on whether the author of block
+// is a local account.
+func (s *Cortex) shouldPreserve(block *types.Block) bool {
+        // The reason we need to disable the self-reorg preserving for clique
+        // is it can be probable to introduce a deadlock.
+        //
+        // e.g. If there are 7 available signers
+        //
+        // r1   A
+        // r2     B
+        // r3       C
+        // r4         D
+        // r5   A      [X] F G
+        // r6    [X]
+        //
+        // In the round5, the inturn signer E is offline, so the worst case
+        // is A, F and G sign the block of round5 and reject the block of opponents
+        // and in the round6, the last available signer B is offline, the whole
+        // network is stuck.
+        if _, ok := s.engine.(*clique.Clique); ok {
+                return false
+        }
+        return s.isLocalBlock(block)
 }
 
 // SetCoinbase sets the mining reward address.

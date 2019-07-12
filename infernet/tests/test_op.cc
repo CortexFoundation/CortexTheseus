@@ -1,6 +1,7 @@
 #include <cvm/c_api.h>
 #include <cvm/model.h>
 #include <iostream>
+#include <numeric>
 #include <thread>
 #include <omp.h>
 #include <cvm/runtime/registry.h>
@@ -39,8 +40,9 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-//int ctx = kDLCPU;
-int ctx = kDLGPU;
+int ctx = kDLCPU;
+//int ctx = kDLGPU;
+int device_id = 0;
 /*
 30 52 -68 75
 40 110 123 -100
@@ -162,7 +164,7 @@ void test_depthwise_conv () {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, device_id, &dl);
       args[i] = *dl;
     }
 
@@ -240,7 +242,7 @@ void test_transpose() {
     std::vector<DLTensor> args(params.num_inputs + params.num_outputs);
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, device_id, &dl);
       args[i] = *dl;
     }
 
@@ -303,7 +305,7 @@ void test_take() {
     DLTensor* cpu_tensor;
     for (uint32_t i = 0; i < args.size(); i++) {
       DLTensor* dl;
-      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
+      CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, ctx, device_id, &dl);
       args[i] = *dl;
       if (i < params.num_inputs) {
         CVMArrayAlloc(shapes_[i].data(), dims_[i], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
@@ -413,7 +415,7 @@ void read_one_line(string filename, string& str){
 }
 template<typename T>
 void print(vector<T> &data){
-  for(int i = 0; i < data.size(); i++){
+  for(int i = 0; i < data.size() && i < 100; i++){
     printf("%d ", data[i]);
   }
   printf("\n");
@@ -466,12 +468,13 @@ void load_input(int num_inputs, string case_path, vector<vector<uint64_t>>& tsha
       // ishape.emplace_back(shp);
       std::cout << shp << std::endl;
       DLTensor* dl;
-      CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
+      CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, device_id, &dl);
       args[i] = *dl;
       //if (i < params.num_inputs) {
       CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
       memcpy(cpu_tensor->data, tdata[i].data(), sizeof(int32_t) * tdata[i].size());
       CVMArrayCopyFromTo(cpu_tensor, dl, nullptr);
+      printf("call CVMArrayFree by manual.....\n");
       CVMArrayFree(cpu_tensor);
     }
 }
@@ -495,7 +498,6 @@ void test_op(string op_name) {
   }
 
   for(int ci = 0; ci < case_list.size(); ci++){
-    if(case_list[ci] == "ffd9ad6afc62dd7541778a81d6529c9a2735fc0a") continue;
 		string case_path = case_dir + case_list[ci] + "/";
     string attr_path = case_path + "attr.txt";
     string attr_str = "";
@@ -578,7 +580,7 @@ void test_op(string op_name) {
       }
       assert(shape_cmp == 0);
       DLTensor* dl;
-      CVMArrayAlloc((int64_t*)tshape[num_inputs+i].data(), tshape[num_inputs+i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, 1, &dl);
+      CVMArrayAlloc((int64_t*)tshape[num_inputs+i].data(), tshape[num_inputs+i].size(), dtype_code, dtype_bits, dtype_lanes, ctx, device_id, &dl);
       args[num_inputs + i] = *dl;
     }
 
@@ -592,7 +594,9 @@ void test_op(string op_name) {
       CVMArrayAlloc((int64_t*)tshape[i].data(), tshape[i].size(), dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &cpu_tensor);
       CVMArrayCopyFromTo(&args[i], cpu_tensor, nullptr);
       memcpy(cpu_output_tensor.data(), cpu_tensor->data, sizeof(int32_t) * tdata[i].size());
+      printf("call CVMArrayFree by manual.....\n");
       CVMArrayFree(cpu_tensor);
+  //    CVMArrayFree(&args[i]);
     }
     int ret =  memcmp(cpu_output_tensor.data(),
         tdata[params.num_inputs].data(),
@@ -610,13 +614,16 @@ void test_op(string op_name) {
     }
     assert(ret == 0);
     printf("\n");
+   // for(int i = 0; i < args.size(); i++){
+   //     CVMArrayFree(&args[i]);
+   // }
   }
 }
 int main() {
 //  test_op("max_pool2d");
-//   test_op("upsampling");
+//  test_op("upsampling");
 //  test_op("dense");
-//  test_op("conv2d");
+  test_op("conv2d");
 //  test_op("sum");
 //  test_op("max"); // pass
 //  test_op("slice_like");
@@ -628,7 +635,11 @@ int main() {
 //  test_op("concatenate");//pass
 //  test_op("transpose");// pass
 //  test_op("take");
-  // test_op("elemwise_add", 2, 1);
-  test_op("non_max_suppression");
-    return 0;
+//  test_op("elemwise_add");
+//  test_op("non_max_suppression");
+//  test_op("broadcast_sub");
+//  test_op("broadcast_add");
+//  test_op("broadcast_mul");
+//  test_op("broadcast_max");
+  return 0;
 }

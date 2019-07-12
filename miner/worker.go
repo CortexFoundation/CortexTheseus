@@ -23,9 +23,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
+	mapset "github.com/deckarep/golang-set"
 
 	//"github.com/CortexFoundation/CortexTheseus/consensus/misc"
 	"github.com/CortexFoundation/CortexTheseus/core"
@@ -59,7 +59,7 @@ const (
 
 	// minRecommitInterval is the minimal time interval to recreate the mining block with
 	// any newly arrived transactions.
-	minRecommitInterval = 1 * time.Second
+	minRecommitInterval = 3 * time.Second
 
 	// maxRecommitInterval is the maximum time interval to recreate the mining block with
 	// any newly arrived transactions.
@@ -125,7 +125,7 @@ type intervalAdjust struct {
 type worker struct {
 	config *params.ChainConfig
 	engine consensus.Engine
-	ctxc    Backend
+	ctxc   Backend
 	chain  *core.BlockChain
 
 	gasFloor uint64
@@ -179,7 +179,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, ctxc Backend
 	worker := &worker{
 		config:             config,
 		engine:             engine,
-		ctxc:                ctxc,
+		ctxc:               ctxc,
 		mux:                mux,
 		chain:              ctxc.BlockChain(),
 		gasFloor:           gasFloor,
@@ -439,6 +439,9 @@ func (w *worker) mainLoop() {
 			// already included in the current mining block. These transactions will
 			// be automatically eliminated.
 			if !w.isRunning() && w.current != nil {
+				if gp := w.current.gasPool; gp != nil && gp.Gas() < params.TxGas {
+					continue
+				}
 				w.mu.RLock()
 				coinbase := w.coinbase
 				w.mu.RUnlock()
@@ -449,12 +452,15 @@ func (w *worker) mainLoop() {
 					txs[acc] = append(txs[acc], tx)
 				}
 				txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
+				tcount := w.current.tcount
 				w.commitTransactions(txset, coinbase, nil)
-				w.updateSnapshot()
+				if tcount != w.current.tcount {
+					w.updateSnapshot()
+				}
 			} else {
 				// If we're mining, but nothing is being processed, wake on new transactions
 				if w.config.Clique != nil && w.config.Clique.Period == 0 {
-					w.commitNewWork(nil, false, time.Now().Unix())
+					w.commitNewWork(nil, true, time.Now().Unix())
 				}
 			}
 			atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
@@ -550,6 +556,7 @@ func (w *worker) resultLoop() {
 				logs     []*types.Log
 			)
 			for i, receipt := range task.receipts {
+
 				receipts[i] = new(types.Receipt)
 				*receipts[i] = *receipt
 				// Update the block hash in all logs since it is now available and not when the
@@ -622,6 +629,8 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 
 // commitUncle adds the given block to uncle block set, returns error if failed to add.
 func (w *worker) commitUncle(env *environment, uncle *types.Header) error {
+	//w.mu.Lock()
+	//defer w.mu.Unlock()
 	hash := uncle.Hash()
 	if env.uncles.Contains(hash) {
 		return errors.New("uncle not unique")
@@ -808,7 +817,6 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	return false
 }
 
-// commitNewWork generates several new sealing tasks based on the parent block.
 func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -918,3 +926,54 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
+
+// commit runs any post-transaction state modifications, assembles the final block
+// and commits new work if consensus engine is running.
+func (w *worker) commit(uncles []*types.Header, interval func(), update bool, start time.Time) error {
+	//w.mu.Lock()
+	//defer w.mu.Unlock()
+	// Deep copy receipts here to avoid interaction between different tasks.
+	receipts := make([]*types.Receipt, len(w.current.receipts))
+	for i, l := range w.current.receipts {
+		receipts[i] = new(types.Receipt)
+		*receipts[i] = *l
+	}
+	s := w.current.state.Copy()
+
+	///h := new(types.Header)
+	//*h = *w.current.header
+	h := types.CopyHeader(w.current.header)
+	block, err := w.engine.Finalize(w.chain, h, s, w.current.txs, uncles, w.current.receipts)
+	if err != nil {
+		return err
+	}
+	if w.isRunning() {
+		if interval != nil {
+			interval()
+		}
+		select {
+		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
+			w.unconfirmed.Shift(block.NumberU64() - 1)
+
+			feesWei := new(big.Int)
+			for i, tx := range block.Transactions() {
+				feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
+			}
+			feesCortex := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Cortex)))
+			mined := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Sub(block.Supply(), params.CTXC_INIT)), new(big.Float).SetInt(big.NewInt(params.Cortex)))
+			peace := new(big.Float).Quo(new(big.Float).SetInt(block.Supply()), new(big.Float).SetInt(params.CTXC_TOP))
+			capacity := new(big.Float).Quo(new(big.Float).SetInt(block.QuotaUsed()), new(big.Float).SetInt(block.Quota()))
+
+			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
+				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined, "peace", peace, "quota", block.Quota(), "used", block.QuotaUsed(), "capacity", capacity)
+
+		case <-w.exitCh:
+			log.Info("Worker has exited")
+		}
+	}
+	if update {
+		w.updateSnapshot()
+	}
+	return nil
+}
+

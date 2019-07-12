@@ -25,6 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 	"unsafe"
+	"fmt"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -134,6 +135,21 @@ func (h *Header) Hash() common.Hash {
 // to approximate and limit the memory consumption of various caches.
 func (h *Header) Size() common.StorageSize {
 	return common.StorageSize(unsafe.Sizeof(*h)) + common.StorageSize(len(h.Extra)+(h.Difficulty.BitLen()+h.Number.BitLen()+h.Time.BitLen())/8)
+}
+
+func (h *Header) SanityCheck() error {
+	if h.Number != nil && !h.Number.IsUint64() {
+		return fmt.Errorf("too large block number: bitlen %d", h.Number.BitLen())
+	}
+	if h.Difficulty != nil {
+		if diffLen := h.Difficulty.BitLen(); diffLen > 80 {
+			return fmt.Errorf("too large block difficulty: bitlen %d", diffLen)
+		}
+	}
+	if eLen := len(h.Extra); eLen > 100*1024 {
+		return fmt.Errorf("too large block extradata: size %d", eLen)
+	}
+	return nil
 }
 
 func rlpHash(x interface{}) (h common.Hash) {
@@ -262,6 +278,16 @@ func CopyHeader(h *Header) *Header {
 		cpy.Extra = make([]byte, len(h.Extra))
 		copy(cpy.Extra, h.Extra)
 	}
+	if cpy.Quota = new(big.Int); h.Quota != nil {
+		cpy.Quota.Set(h.Quota)
+	}
+	if cpy.QuotaUsed = new(big.Int); h.QuotaUsed != nil {
+                cpy.QuotaUsed.Set(h.QuotaUsed)
+        }
+
+	if cpy.Supply = new(big.Int); h.Supply != nil {
+                cpy.Supply.Set(h.Supply)
+        }
 	return &cpy
 }
 
@@ -332,7 +358,6 @@ func (b *Block) Quota() *big.Int          { return new(big.Int).Set(b.header.Quo
 func (b *Block) QuotaUsed() *big.Int      { return new(big.Int).Set(b.header.QuotaUsed) }
 func (b *Block) Supply() *big.Int         { return new(big.Int).Set(b.header.Supply) }
 func (b *Block) Header() *Header          { return CopyHeader(b.header) }
-func (b *Block) QuotaPool() *big.Int      { return new(big.Int).Sub(b.header.Quota, b.header.QuotaUsed) }
 
 // Body returns the non-header content of the block.
 func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles} }
@@ -347,6 +372,10 @@ func (b *Block) Size() common.StorageSize {
 	rlp.Encode(&c, b)
 	b.size.Store(common.StorageSize(c))
 	return common.StorageSize(c)
+}
+
+func (b *Block) SanityCheck() error {
+	return b.header.SanityCheck()
 }
 
 type writeCounter common.StorageSize

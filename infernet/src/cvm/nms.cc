@@ -35,7 +35,7 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     if(tmp <= 0){
         return 0;
     }
-    int64_t max64 = ((int64_t)1 << 63) - 1;
+    int64_t max64 = ((uint64_t)1 << 63) - 1;
     if(max64 / 100 < overlap_area){
         tmp /= 100;
     }else{

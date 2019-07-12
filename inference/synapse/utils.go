@@ -8,18 +8,16 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"encoding/binary"
 )
 
-func ReadData(inputFilePath string) ([]byte, error) {
-	r, rerr := inference.NewFileReader(inputFilePath)
-	if rerr != nil {
-		return nil, rerr
-	}
+func ReadData(r *inference.NpyReader) ([]byte, error) {
 	var (
 		data []byte
 		derr error
 	)
+	log.Debug("ReadData", "r.Dtype", r.Dtype)
 	if (r.Dtype == "i1") {
 		data, derr = r.GetBytes()
 	} else if (r.Dtype == "i4") {

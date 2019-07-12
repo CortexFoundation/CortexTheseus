@@ -118,17 +118,41 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		quitSync:    make(chan struct{}),
 	}
 	// Figure out whether to allow fast sync or not
-	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() == 0 {
-		manager.fastSync = uint32(1)
-	} else {
-		mode = downloader.FullSync
-	}
+	//if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() == 0 {
+	//	manager.fastSync = uint32(1)
+	//} else {
+	//	mode = downloader.FullSync
+	//}
+
+	if mode == downloader.FullSync {
+                // The database seems empty as the current block is the genesis. Yet the fast
+                // block is ahead, so fast sync was enabled for this node at a certain point.
+                // The scenarios where this can happen is
+                // * if the user manually (or via a bad block) rolled back a fast sync node
+                //   below the sync point.
+                // * the last fast sync is not finished while user specifies a full sync this
+                //   time. But we don't have any recent state for full sync.
+                // In these cases however it's safe to reenable fast sync.
+                fullBlock, fastBlock := blockchain.CurrentBlock(), blockchain.CurrentFastBlock()
+                if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
+                        manager.fastSync = uint32(1)
+                        log.Warn("Switch sync mode from full sync to fast sync")
+                }
+        } else {
+                if blockchain.CurrentBlock().NumberU64() > 0 {
+                        // Print warning log if database is not empty to run fast sync.
+                        log.Warn("Switch sync mode from fast sync to full sync")
+                } else {
+                        // If fast sync was requested and our database is empty, grant it
+                        manager.fastSync = uint32(1)
+                }
+        }
 
 	// If we have trusted checkpoints, enforce them on the chain
 	if checkpoint, ok := params.TrustedCheckpoints[blockchain.Genesis().Hash()]; ok {
 		manager.checkpointNumber = (checkpoint.SectionIndex+1)*params.CHTFrequency - 1
 		manager.checkpointHash = checkpoint.SectionHead
-		log.Warn("Check point", "number", manager.checkpointNumber, "hash", manager.checkpointHash, "genesis", blockchain.Genesis().Hash(), "check", checkpoint, "ok", ok)
+		log.Warn("Check point", "number", manager.checkpointNumber, "hash", manager.checkpointHash, "genesis", blockchain.Genesis().Hash(), "check", checkpoint.SectionHead, "ok", ok)
 	} else {
 		log.Warn("No check point found", "genesis", blockchain.Genesis().Hash())
 	}
@@ -654,6 +678,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+
+		if err := request.sanityCheck(); err != nil {
+			return err
+		}
+
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 

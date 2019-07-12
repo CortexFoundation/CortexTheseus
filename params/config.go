@@ -25,17 +25,16 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("")
-	BernardGenesisHash = common.HexToHash("")
-	RinkebyGenesisHash = common.HexToHash("")
+	MainnetGenesisHash = common.HexToHash("0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1")
+	BernardGenesisHash = common.HexToHash("0x89df382cf5508d366755f5f00c16666759a3267c1c244a6524bada1901237cd3")
+	DoloresGenesisHash = common.HexToHash("0xe39f1aace1c91078c97e743bd6b7a692ac215e6f9124599cdcabf0a8c7dfeae5")
 )
 
 //It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
-	//MainnetGenesisHash: MainnetTrustedCheckpoint,
+	MainnetGenesisHash: MainnetTrustedCheckpoint,
 	//BernardGenesisHash: BernardTrustedCheckpoint,
 	//TestnetGenesisHash: TestnetTrustedCheckpoint,
-	//RinkebyGenesisHash: RinkebyTrustedCheckpoint,
 }
 
 type TrustedCheckpoint struct {
@@ -46,15 +45,15 @@ type TrustedCheckpoint struct {
 
 var (
 	CortexBlockRewardPeriod = big.NewInt(8409600)       // Halving every four years: 365 days*24 hours*60 minutes*4 blocks*4 years=8409600
-	BernardBlockRewardPeriod = big.NewInt(1000000)      // TESTING: for testnet Bernard
-
+	BernardBlockRewardPeriod = big.NewInt(8409600)      // TESTING: for testnet Bernard
+	DoloresBlockRewardPeriod = big.NewInt(8409600)      // TESTING: for testnet Dolores
 )
 
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
 		SectionIndex: 0,
-		SectionHead:  common.HexToHash(""),
+		SectionHead:  common.HexToHash("0x5170fa9e15073116270b2672bdf057209e42441c36e66305c962d6b5f1936424"),
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
@@ -73,9 +72,25 @@ var (
 		Cuckoo:              new(CuckooConfig),
 	}
 
-	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
+	// TestnetChainConfig contains the chain parameters to run a node on the Bernard test network.
 	BernardChainConfig = &ChainConfig{
 		ChainID: big.NewInt(42),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
+		DAOForkSupport: false,
+		EIP150Block:    big.NewInt(0),
+		EIP150Hash:     common.HexToHash("0x"),
+		EIP155Block:    big.NewInt(0),
+		EIP158Block:    big.NewInt(0),
+		ByzantiumBlock: big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		Cuckoo:              new(CuckooConfig),
+	}
+
+	// TestnetChainConfig contains the chain parameters to run a node on the Dolores test network.
+	DoloresChainConfig = &ChainConfig{
+		ChainID: big.NewInt(43),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
 		DAOForkSupport: false,
@@ -395,5 +410,19 @@ func (c *ChainConfig) GetMatureBlock() int64 {
 	if c.ChainID.Uint64() == 42 {
 		return BernardMatureBlks
 	}
+	if c.ChainID.Uint64() == 43 {
+		return DoloresMatureBlks
+	}
 	return MatureBlks;
+}
+
+// Get Block uploading quota
+func (c *ChainConfig) GetBlockQuota(num *big.Int) uint64 {
+	if c.ChainID.Uint64() == 42 {
+		return Bernard_BLOCK_QUOTA
+	}
+	if c.ChainID.Uint64() == 43 {
+		return Dolores_BLOCK_QUOTA
+	}
+	return BLOCK_QUOTA;
 }

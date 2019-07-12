@@ -193,16 +193,17 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.InferDeviceTypeFlag,
 			utils.InferDeviceIdFlag,
+			utils.InferMemoryFlag,
 		},
 	},
 	{
 		Name: "STORAGE",
 		Flags: []cli.Flag{
 			utils.StorageEnabledFlag,
-//			utils.StorageAddrFlag,
-			utils.StoragePortFlag,
 			utils.StorageDirFlag,
-			utils.StorageEnableUTPFlag,
+			utils.StorageMaxSeedingFlag,
+			utils.StorageMaxActiveFlag,
+			utils.StorageBoostNodesFlag,
 			utils.StorageTrackerFlag,
 		},
 	},
@@ -216,7 +217,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
-			utils.ModelCallInterfaceFlag,
+			// utils.ModelCallInterfaceFlag,
 			//		utils.VMEnableDebugFlag,
 		},
 	},
