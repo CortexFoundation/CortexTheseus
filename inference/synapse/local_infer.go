@@ -225,7 +225,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	return
 }
 
-func (s* Synapse) Available(infoHash string, rawSize int64) bool {
+func (s* Synapse) Available(infoHash string, rawSize int64) (bool, error) {
 	log.Info("Available", "infoHash", infoHash, "rawSize", rawSize)
 	if s.config.IsRemoteInfer {
 		inferRes, errRes := s.remoteAvailable(
@@ -233,12 +233,12 @@ func (s* Synapse) Available(infoHash string, rawSize int64) bool {
 			rawSize,
 			s.config.InferURI)
 		if errRes != nil {
-			return false
+			return false, errRes
 		}
 		if inferRes == 0 {
-			return false
+			return false, nil
 		}
-		return true
+		return true, nil
 	}
 	return s.config.Storagefs.Available(infoHash, rawSize)
 }
