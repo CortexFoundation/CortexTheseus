@@ -72,7 +72,7 @@ void CvmRuntime::SetupPrecision() {
       // Save to the result map.
       for (uint32_t i = 0; i < num_outputs; ++i) {
         precision[entry_id(nid, i)] = oprec[i];
-        VERIFY_LE(oprec[i], 32)
+        VERIFY((0 < oprec[i]) && (oprec[i] <= 32))
             << " nid = " << nid << "i = " << i
             << " precison = " << oprec[i]
             << " name= " << inode.name()

@@ -21,12 +21,14 @@ CVM_REGISTER_ELEMWISE_UNARY_OP(abs)
 .set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_support_level(3);
 
-// log2
-CVM_REGISTER_ELEMWISE_UNARY_OP(log2)
-.describe(R"code(Returns the log input array, computed element-wise.
+// precision
+CVM_REGISTER_ELEMWISE_UNARY_OP(precision)
+.describe(R"code(Returns the precision of input array, computed element-wise.
 
 .. math::
-   log2(x)
+   precision(x) = ceil(log2(x+1)) x > 0;
+   precision(x) = 1 x = 1;
+   precision(x) = precision(abs(x)) x < 0;
 
 )code" CVM_ADD_FILELINE)
 .set_attr<FInferPrecision>("FInferPrecision", MaxPrecision<6>)
