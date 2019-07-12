@@ -13,8 +13,6 @@ package main
 */
 import "C"
 import (
-	"github.com/CortexFoundation/CortexTheseus/infernet/kernel"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"unsafe"
 )
 
@@ -23,84 +21,79 @@ func LoadModel(modelCfg, modelBin []byte, deviceId int) (unsafe.Pointer, int) {
 	pptr := (*C.char)(unsafe.Pointer(&(modelBin[0])))
 	j_len := C.int(len(modelCfg))
 	p_len := C.int(len(modelBin))
-	var net C.ModelHandler = nil
-	status := C.CVMAPILoadModel(jptr, j_len, pptr, p_len, &net, 0, C.int(deviceId))
-	return unsafe.Pointer(net), int(status)
+	var net unsafe.Pointer
+	status := int(C.CVMAPILoadModel(jptr, j_len, pptr, p_len, &net, 0, C.int(deviceId)))
+	return net, status
 }
-
-func GetModelOpsFromModel(net unsafe.Pointer) (uint64, int) {
-	var gas C.ulonglong
-	status := C.CVMAPIGetGasFromModel(C.ModelHandler(net), &gas)
-	return uint64(gas), int(status)
-}
-
-func GetModelOps(file []byte) (uint64, int) {
-	var gas C.ulonglong
-	fptr := (*C.char)(unsafe.Pointer(&file[0]))
-	status := C.CVMAPIGetGasFromGraphFile(fptr, &gas)
-	return uint64(gas), int(status)
-}
-
 func FreeModel(net unsafe.Pointer) int {
-	status := C.CVMAPIFreeModel(C.ModelHandler(net))
-	return int(status)
+	return int(C.CVMAPIFreeModel(net))
+}
+func Inference(net unsafe.Pointer, input []byte) ([]byte, int) {
+	out_size, status := GetOutputLength(net)
+	if status != int(C.SUCCEED) {
+		return nil, status
+	}
+
+	in_size := C.int(len(input))
+	data := (*C.char)(unsafe.Pointer(&input[0]))
+	tmp := make([]byte, out_size)
+	output := (*C.char)(unsafe.Pointer(&tmp[0]))
+
+	status = int(C.CVMAPIInference(net, data, in_size, output))
+	if status != int(C.SUCCEED) {
+		return nil, status
+	}
+	return tmp, status
 }
 
-func Predict(net unsafe.Pointer, data []byte) ([]byte, int) {
-	var (
-		resLen       C.ulonglong
-		input_bytes  C.ulonglong
-		output_bytes C.ulonglong
-		status       C.enum_CVMStatus
-	)
-
-	status = C.CVMAPIGetOutputLength(C.ModelHandler(net), &resLen)
-	if status != C.SUCCEED {
-		return nil, int(status)
-	}
-	status = C.CVMAPIGetInputTypeSize(C.ModelHandler(net), &input_bytes)
-	if status != C.SUCCEED {
-		return nil, int(status)
-	}
-	status = C.CVMAPIGetOutputTypeSize(C.ModelHandler(net), &output_bytes)
-	if status != C.SUCCEED {
-		return nil, int(status)
-	}
-
-	data_aligned, data_aligned_err := kernel.ToAlignedData(data, int(input_bytes))
-	if data_aligned_err != nil {
-		return nil, int(C.ERROR_LOGIC)
-	}
-
-	res := make([]byte, uint64(resLen))
-	input := (*C.char)(unsafe.Pointer(&data_aligned[0]))
-	output := (*C.char)(unsafe.Pointer(&res[0]))
-
-	status = C.CVMAPIInference(C.ModelHandler(net),
-		input, C.int(len(data_aligned)), output)
-	if status != C.SUCCEED {
-		return nil, int(status)
-	}
-
-	if uint64(output_bytes) > 1 {
-		var err error
-		res, err = kernel.SwitchEndian(res, int(output_bytes))
-		if err != nil {
-			return nil, int(C.ERROR_LOGIC)
-		}
-	}
-	log.Info("CPU Inference succeed", "res", res)
-	return res, int(C.SUCCEED)
+// version and method string length not greater than 32
+func GetVersion(net unsafe.Pointer) ([34]byte, int) {
+	var version [34]byte
+	sptr := (*C.char)(unsafe.Pointer(&version[0]))
+	status := int(C.CVMAPIGetVersion(net, sptr))
+	return version, status
 }
-
-func GetStorageSize(net unsafe.Pointer) (uint64, int) {
-	var size C.ulonglong
-	status := C.CVMAPIGetStorageSize(C.ModelHandler(net), &size)
-	return uint64(size), int(status)
+func GetPreprocessMethod(net unsafe.Pointer) ([34]byte, int) {
+	var method [34]byte
+	sptr := (*C.char)(unsafe.Pointer(&method[0]))
+	status := int(C.CVMAPIGetPreprocessMethod(net, sptr))
+	return method, status
 }
 
 func GetInputLength(net unsafe.Pointer) (uint64, int) {
-	var size C.ulonglong
-	status := C.CVMAPIGetInputLength(C.ModelHandler(net), &size)
-	return uint64(size), int(status)
+	var tmp C.ulonglong
+	status := int(C.CVMAPIGetInputLength(net, &tmp))
+	return uint64(tmp), status
+}
+func GetOutputLength(net unsafe.Pointer) (uint64, int) {
+	var tmp C.ulonglong
+	status := int(C.CVMAPIGetOutputLength(net, &tmp))
+	return uint64(tmp), status
+}
+func GetInputTypeSize(net unsafe.Pointer) (uint64, int) {
+	var tmp C.ulonglong
+	status := int(C.CVMAPIGetInputTypeSize(net, &tmp))
+	return uint64(tmp), status
+}
+func GetOutputTypeSize(net unsafe.Pointer) (uint64, int) {
+	var tmp C.ulonglong
+	status := int(C.CVMAPIGetOutputTypeSize(net, &tmp))
+	return uint64(tmp), status
+}
+
+func GetStorageSize(net unsafe.Pointer) (uint64, int) {
+	var tmp C.ulonglong
+	status := int(C.CVMAPIGetStorageSize(net, &tmp))
+	return uint64(tmp), status
+}
+func GetGasFromModel(net unsafe.Pointer) (uint64, int) {
+	var tmp C.ulonglong
+	status := int(C.CVMAPIGetGasFromModel(net, &tmp))
+	return uint64(tmp), status
+}
+func GetGasFromGraphFile(json []byte) (uint64, int) {
+	jptr := (*C.char)(unsafe.Pointer(&json[0]))
+	var tmp C.ulonglong
+	status := int(C.CVMAPIGetGasFromGraphFile(jptr, &tmp))
+	return uint64(tmp), status
 }

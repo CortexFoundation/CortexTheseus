@@ -6,13 +6,6 @@ import (
 	"unsafe"
 )
 
-type Model struct {
-	model unsafe.Pointer
-	lib   *plugin.Plugin
-	ops   uint64
-	size  uint64
-}
-
 // Exactly copy from c_api.h:
 //	status code of cvm executor
 var (
@@ -21,48 +14,82 @@ var (
 	ERROR_RUNTIME = 2
 )
 
+type func_LoadModel func([]byte, []byte, int) (unsafe.Pointer, int)
+type func_FreeModel func(unsafe.Pointer) int
+type func_Inference func(unsafe.Pointer, []byte) ([]byte, int)
+type func_GetVersion func(unsafe.Pointer) ([34]byte, int)
+type func_GetPreprocessMethod func(unsafe.Pointer) ([34]byte, int)
+type func_GetInputLength func(unsafe.Pointer) (uint64, int)
+type func_GetOutputLength func(unsafe.Pointer) (uint64, int)
+type func_GetInputTypeSize func(unsafe.Pointer) (uint64, int)
+type func_GetOutputTypeSize func(unsafe.Pointer) (uint64, int)
+type func_GetStorageSize func(unsafe.Pointer) (uint64, int)
+type func_GetGasFromModel func(unsafe.Pointer) (uint64, int)
+type func_GetGasFromGraphFile func([]byte) (uint64, int)
+
+type Model struct {
+	model unsafe.Pointer
+	lib   *plugin.Plugin
+	ops   uint64
+	size  uint64
+
+	input_size uint64
+	input_byte uint64
+
+	output_byte uint64
+}
+
+func lookUp(lib *plugin.Plugin, func_name string) interface{} {
+	if f, err := lib.Lookup(func_name); err != nil {
+		log.Error("lib cannot find function ", "name", func_name, "error", err)
+		return nil
+	} else {
+		return f
+	}
+}
+
 func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin []byte) (*Model, int) {
 	var (
-		model  unsafe.Pointer
+		model  *Model = &Model{lib: lib}
 		status int
-		size   uint64
-		ops    uint64
 	)
-
-	if m, err := lib.Lookup("LoadModel"); err != nil {
-		log.Error("infer helper", "LoadModel", "error", err)
+	if func_ptr := lookUp(lib, "LoadModel"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else {
-		model, status = m.(func([]byte, []byte, int) (unsafe.Pointer, int))(modelCfg, modelBin, deviceId)
-		if status != SUCCEED {
-			return nil, status
-		}
+	} else if model.model, status = func_ptr.(func_LoadModel)(modelCfg, modelBin, deviceId); status != SUCCEED {
+		return nil, status
 	}
 
-	if m, err := lib.Lookup("GetStorageSize"); err != nil {
-		log.Error("Error while get model size")
+	if func_ptr := lookUp(lib, "GetStorageSize"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else {
-		size, status = m.(func(unsafe.Pointer) (uint64, int))(model)
-		if status != SUCCEED {
-			return nil, status
-		}
+	} else if model.size, status = func_ptr.(func_GetStorageSize)(model.model); status != SUCCEED {
+		return nil, status
 	}
-	if m, err := lib.Lookup("GetModelOpsFromModel"); err != nil {
-		log.Error("infer helper", "GetModelOpsFromModel", "error", err)
+
+	if func_ptr := lookUp(lib, "GetGasFromModel"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else {
-		ops, status = m.(func(unsafe.Pointer) (uint64, int))(model)
-		if status != SUCCEED {
-			return nil, status
-		}
+	} else if model.ops, status = func_ptr.(func_GetGasFromModel)(model.model); status != SUCCEED {
+		return nil, status
 	}
-	return &Model{
-		model: model,
-		lib:   lib,
-		ops:   ops,
-		size:  size,
-	}, SUCCEED
+
+	if func_ptr := lookUp(lib, "GetInputLength"); func_ptr == nil {
+		return nil, ERROR_RUNTIME
+	} else if model.input_size, status = func_ptr.(func_GetInputLength)(model.model); status != SUCCEED {
+		return nil, status
+	}
+
+	if func_ptr := lookUp(lib, "GetInputTypeSize"); func_ptr == nil {
+		return nil, ERROR_RUNTIME
+	} else if model.input_byte, status = func_ptr.(func_GetInputTypeSize)(model.model); status != SUCCEED {
+		return nil, status
+	}
+
+	if func_ptr := lookUp(lib, "GetOutputTypeSize"); func_ptr == nil {
+		return nil, ERROR_RUNTIME
+	} else if model.output_byte, status = func_ptr.(func_GetOutputTypeSize)(model.model); status != SUCCEED {
+		return nil, status
+	}
+
+	return model, status
 }
 
 func (m *Model) Ops() uint64 {
@@ -73,38 +100,50 @@ func (m *Model) Size() uint64 {
 	return m.size
 }
 
-func (m *Model) GetInputLength() (uint64, int) {
-	f, err := m.lib.Lookup("GetInputLength")
-	if err != nil {
-		log.Error("infer helper", "GetInputLength", "error", err)
-		return 0, ERROR_RUNTIME
-	}
-	return f.(func(unsafe.Pointer) (uint64, int))(m.model)
+func (m *Model) GetInputLength() uint64 {
+	return m.input_size
 }
 
-func GetModelOps(lib *plugin.Plugin, file []byte) (uint64, int) {
-	m, err := lib.Lookup("GetModelOps")
-	if err != nil {
-		log.Error("infer helper", "GetModelOps", "error", err)
+func GetModelGasFromGraphFile(lib *plugin.Plugin, file []byte) (gas uint64, status int) {
+	if func_ptr := lookUp(lib, "GetModelGasFromGraphFile"); func_ptr == nil {
 		return 0, ERROR_RUNTIME
+	} else {
+		return func_ptr.(func_GetGasFromGraphFile)(file)
 	}
-	return m.(func([]byte) (uint64, int))(file)
 }
 
 func (m *Model) Free() int {
-	f, err := m.lib.Lookup("FreeModel")
-	if err != nil {
-		log.Error("infer helper", "FreeModel", "error", err)
+	if func_ptr := lookUp(m.lib, "FreeModel"); func_ptr == nil {
 		return ERROR_RUNTIME
+	} else {
+		return func_ptr.(func_FreeModel)(m.model)
 	}
-	return f.(func(unsafe.Pointer) int)(m.model)
 }
 
 func (m *Model) Predict(data []byte) ([]byte, int) {
-	f, err := m.lib.Lookup("Predict")
-	if err != nil {
-		log.Error("infer helper", "Predict", "error", err)
+	var (
+		output   []byte
+		status   int
+		func_ptr interface{}
+		err      error
+	)
+	if func_ptr = lookUp(m.lib, "Inference"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
 	}
-	return f.(func(unsafe.Pointer, []byte) ([]byte, int))(m.model, data)
+	if len(data) != int(m.input_size) {
+		log.Debug("input length not matched")
+		return nil, ERROR_LOGIC
+	}
+	if data, err = ToAlignedData(data, int(m.input_byte)); err != nil {
+		return nil, ERROR_LOGIC
+	}
+	if output, status = func_ptr.(func_Inference)(m.model, data); status != SUCCEED {
+		return nil, status
+	}
+	if m.output_byte > 1 {
+		if output, err = SwitchEndian(output, int(m.output_byte)); err != nil {
+			return nil, ERROR_LOGIC
+		}
+	}
+	return output, status
 }
