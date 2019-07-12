@@ -301,7 +301,6 @@ inline std::string StackTrace(const size_t stack_size = 0) {
 class ValueVerifyFatal {
  public:
   ValueVerifyFatal(const char* file, int line) {
-    std::cout << file << " and " << line << std::endl;
     log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
                 << line << ": ";
     log_stream_ << "\n\n";

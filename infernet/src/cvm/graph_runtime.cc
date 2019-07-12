@@ -147,7 +147,7 @@ void CvmRuntime::PrepareGraphWithVersion() {
         << " with value " << node_row_ptr_[i] << ", Expected "
         << node_row_ptr[i];
     }
-    
+
     VERIFY_EQ(input_nodes_.size(), input_nodes.size())
       << "arg_nodes' size: " << input_nodes_.size()
       << ", Expected " << input_nodes.size();
@@ -215,13 +215,13 @@ int CvmRuntime::GetInputIndex(const std::string& name) {
 }
 
 void CvmRuntime::SetData(int index, DLTensor* data_in) {
-  VERIFY((0 <= index && 
+  VERIFY((0 <= index &&
         static_cast<size_t>(index) < input_nodes_.size()))
     << "input index out of range [0, "
     << input_nodes_.size() << "), but " << index;
   VERIFY(nodes_[input_nodes_[index]].is_data())
     << "set input must named `data`";
-  
+
   this->SetInput(index, data_in);
 }
 /*!

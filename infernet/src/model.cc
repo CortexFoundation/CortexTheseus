@@ -25,6 +25,7 @@ namespace runtime {
 #define API_END() } \
   catch (const std::runtime_error &e) { return ERROR_RUNTIME; }  \
   catch (const std::logic_error &e)   { return ERROR_RUNTIME; }  \
+  catch (const std::exception &e) { return ERROR_RUNTIME; } \
   return SUCCEED;
 
 #define CHECK_NOT_NULL(x) CHECK(x != nullptr)
