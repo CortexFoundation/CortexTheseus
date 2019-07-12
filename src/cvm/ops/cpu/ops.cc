@@ -14,6 +14,8 @@
 #include <memory>
 #include <utility>
 
+#include "ops.h"
+
 #include "omp.h"
 #include <immintrin.h>
 
@@ -41,37 +43,6 @@ double cvm_op_chnwise_conv_cnt = 0;
 double cvm_op_chnwise_conv1x1_cnt = 0;
 double cvm_op_depthwise_conv_cnt = 0;
 double cvm_op_depthwise_conv1x1_cnt = 0;
-
-// #define CVM_PROFILING
-// #define CVM_PRINT_OP_RESULT
-
-inline uint64_t getSize(DLTensor *dlTensor){
-  uint64_t size = 1;
-  for(int i = 0; i < dlTensor->ndim; i++){
-      size *= dlTensor->shape[i];
-  }
-  return size;
-}
-
-const std::string DIR = "/tmp/zkh/random_3_1/";
-void print_to_file(DLTensor *y, std::string filename){
-#if defined(CVM_PRINT_OP_RESULT)
-  FILE *fp = fopen((DIR + filename).c_str(), "a+");
-  int32_t *y_data = static_cast<int32_t*>(y->data);
-
-  int32_t min = y_data[0], max= y_data[0];
-  for(uint64_t i = 0; i < getSize(y); i++){
-      min = min > y_data[i] ? y_data[i] : min;
-      max = max < y_data[i] ? y_data[i] : max;
-  }
-  fprintf(fp, "%d %d\n", min, max);
-  for(uint64_t i = 0; i < 20 && i < getSize(y); i++){
-      fprintf(fp, "%d ", y_data[i]);
-  }
-  fprintf(fp, "\n");
-  fclose(fp);
-#endif
-}
 
 /**
 * x
@@ -954,119 +925,119 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
 /*
 * axis (2, 3)
 */
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
-    .set_body([](CVMArgs args, CVMRetValue *ret)
-{
-  DLTensor *x = args[0];
-  DLTensor *y = args[1];
-  void *_attr = args[2];
-  auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-  auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
-  TShape axis = param.axis;
-  int64_t *axis_data = axis.begin();
-  //bool keepdims = param.keepdims; //the reduce axis is always 1
-  bool exclude = param.exclude;
-  int32_t *x_data = static_cast<int32_t*>(x->data);
-  int32_t *y_data = static_cast<int32_t*>(y->data);
-
-  for(size_t i = 0; i < axis.ndim(); i++){
-    if(axis_data[i] < 0) axis_data[i] += x->ndim;
-  }
-  std::vector<int64_t> raxis;
-  try{
-    if(!exclude){
-      for(size_t i = 0; i < axis.ndim(); i++){
-        raxis.push_back(axis[i]);
-      }
-    }else{
-      raxis.resize(x->ndim - axis.ndim());
-      for(int i = 0, k = 0; i < x->ndim; i++){
-        bool flag = false;
-        for(size_t j = 0; j < axis.ndim(); j++){
-          if(axis_data[j] == i) {
-            flag = true;
-            break;
-          }
-        }
-        if(!flag){
-          raxis[k++] = i;
-        }
-      }
-    }
-  }catch(const std::bad_alloc& e){
-    CHECK(false) << e.what();
-  }
-
-  if(exclude && raxis.size() == 0){
-    if(NULL == memcpy(y_data, x_data, getSize(x) * sizeof(int32_t))){
-        CHECK(false);
-    }
-  }
-  else if(raxis.size() == 0){
-    int32_t sum = 0;
-    for(uint64_t i = 0; i < getSize(x); i++){
-      sum += x_data[i];
-    }
-    y_data[0] = sum;
-  }else{
-    try{
-      std::vector<int32_t> realAxis(raxis.size());
-      std::vector<bool> flag(x->ndim, false);
-      for(uint32_t i = 0; i < raxis.size(); i++){
-        int32_t val = raxis[i];
-        realAxis[i] = val;
-        flag[val] = true;
-      }
-      std::sort(realAxis.begin(), realAxis.end());
-  //    realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
-
-      uint64_t axis_size = 1;
-      for(uint32_t i = 0; i < realAxis.size(); i++){
-        axis_size *= x->shape[realAxis[i]];
-      }
-      std::vector<uint64_t> every_xdim_size(x->ndim, 1);
-      for(int i = x->ndim-2; i >= 0; i--){
-        every_xdim_size[i] = x->shape[i+1] * every_xdim_size[i+1];
-      }
-
-      int32_t yndim = y->ndim;
-      std::vector<int64_t> yshape(y->ndim);
-      for(int i = 0; i < y->ndim; i++){
-        yshape[i] = y->shape[i];
-      }
-      for(int i = 0, j = 0; i < y->ndim; i++){
-        if(y->shape[i] == 1) {
-          yndim -= 1;
-        }else{
-          yshape[j++] = y->shape[i];
-        }
-      }
-      for(uint64_t i = 0; i < getSize(y); i++){
-        uint64_t in_i = 0, o_i = i;
-        for(int j = yndim-1, xj = x->ndim-1; j>=0; j--){
-          uint64_t col = o_i % yshape[j];
-          o_i /= yshape[j];
-          while(xj >= 0 && flag[xj--]);
-          in_i += col * every_xdim_size[xj+1];
-        }
-        int32_t sum = 0;
-        for(uint64_t xi = 0; xi < axis_size; xi++){
-          uint64_t o_i = xi, tmp_in_i = 0;
-          for(int j = realAxis.size() - 1; j>=0; j--){
-            uint64_t col = o_i % x->shape[realAxis[j]];
-            o_i /= x->shape[realAxis[j]];
-            tmp_in_i += col * every_xdim_size[realAxis[j]];
-          }
-          sum += x_data[in_i + tmp_in_i];
-        }
-        y_data[i] = sum;
-      }
-    }catch(const std::bad_alloc& e){
-        CHECK(false) << e.what();
-    }
-  }
-  print_to_file(y, "sum.txt");
-});
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
+//    .set_body([](CVMArgs args, CVMRetValue *ret)
+//{
+//  DLTensor *x = args[0];
+//  DLTensor *y = args[1];
+//  void *_attr = args[2];
+//  auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+//  auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+//  TShape axis = param.axis;
+//  int64_t *axis_data = axis.begin();
+//  //bool keepdims = param.keepdims; //the reduce axis is always 1
+//  bool exclude = param.exclude;
+//  int32_t *x_data = static_cast<int32_t*>(x->data);
+//  int32_t *y_data = static_cast<int32_t*>(y->data);
+//
+//  for(size_t i = 0; i < axis.ndim(); i++){
+//    if(axis_data[i] < 0) axis_data[i] += x->ndim;
+//  }
+//  std::vector<int64_t> raxis;
+//  try{
+//    if(!exclude){
+//      for(size_t i = 0; i < axis.ndim(); i++){
+//        raxis.push_back(axis[i]);
+//      }
+//    }else{
+//      raxis.resize(x->ndim - axis.ndim());
+//      for(int i = 0, k = 0; i < x->ndim; i++){
+//        bool flag = false;
+//        for(size_t j = 0; j < axis.ndim(); j++){
+//          if(axis_data[j] == i) {
+//            flag = true;
+//            break;
+//          }
+//        }
+//        if(!flag){
+//          raxis[k++] = i;
+//        }
+//      }
+//    }
+//  }catch(const std::bad_alloc& e){
+//    CHECK(false) << e.what();
+//  }
+//
+//  if(exclude && raxis.size() == 0){
+//    if(NULL == memcpy(y_data, x_data, getSize(x) * sizeof(int32_t))){
+//        CHECK(false);
+//    }
+//  }
+//  else if(raxis.size() == 0){
+//    int32_t sum = 0;
+//    for(uint64_t i = 0; i < getSize(x); i++){
+//      sum += x_data[i];
+//    }
+//    y_data[0] = sum;
+//  }else{
+//    try{
+//      std::vector<int32_t> realAxis(raxis.size());
+//      std::vector<bool> flag(x->ndim, false);
+//      for(uint32_t i = 0; i < raxis.size(); i++){
+//        int32_t val = raxis[i];
+//        realAxis[i] = val;
+//        flag[val] = true;
+//      }
+//      std::sort(realAxis.begin(), realAxis.end());
+//  //    realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
+//
+//      uint64_t axis_size = 1;
+//      for(uint32_t i = 0; i < realAxis.size(); i++){
+//        axis_size *= x->shape[realAxis[i]];
+//      }
+//      std::vector<uint64_t> every_xdim_size(x->ndim, 1);
+//      for(int i = x->ndim-2; i >= 0; i--){
+//        every_xdim_size[i] = x->shape[i+1] * every_xdim_size[i+1];
+//      }
+//
+//      int32_t yndim = y->ndim;
+//      std::vector<int64_t> yshape(y->ndim);
+//      for(int i = 0; i < y->ndim; i++){
+//        yshape[i] = y->shape[i];
+//      }
+//      for(int i = 0, j = 0; i < y->ndim; i++){
+//        if(y->shape[i] == 1) {
+//          yndim -= 1;
+//        }else{
+//          yshape[j++] = y->shape[i];
+//        }
+//      }
+//      for(uint64_t i = 0; i < getSize(y); i++){
+//        uint64_t in_i = 0, o_i = i;
+//        for(int j = yndim-1, xj = x->ndim-1; j>=0; j--){
+//          uint64_t col = o_i % yshape[j];
+//          o_i /= yshape[j];
+//          while(xj >= 0 && flag[xj--]);
+//          in_i += col * every_xdim_size[xj+1];
+//        }
+//        int32_t sum = 0;
+//        for(uint64_t xi = 0; xi < axis_size; xi++){
+//          uint64_t o_i = xi, tmp_in_i = 0;
+//          for(int j = realAxis.size() - 1; j>=0; j--){
+//            uint64_t col = o_i % x->shape[realAxis[j]];
+//            o_i /= x->shape[realAxis[j]];
+//            tmp_in_i += col * every_xdim_size[realAxis[j]];
+//          }
+//          sum += x_data[in_i + tmp_in_i];
+//        }
+//        y_data[i] = sum;
+//      }
+//    }catch(const std::bad_alloc& e){
+//        CHECK(false) << e.what();
+//    }
+//  }
+//  print_to_file(y, "sum.txt");
+//});
 
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.elemwise_add")
@@ -1286,116 +1257,116 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.abs")
     }
 });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
-.set_body([](CVMArgs args, CVMRetValue *ret){
-    VERIFY(args.num_args == 3);
-    DLTensor *x = args[0];
-    DLTensor *y = args[1];
-    void* _attr = args[2];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
-    TShape axis = param.axis;
-    int64_t *axis_data = axis.begin();
-    //bool keepdims = param.keepdims;
-    bool exclude = param.exclude;
-
-    int32_t *y_data = static_cast<int32_t*>(y->data);
-    int32_t* x_data = static_cast<int32_t*>(x->data);
-
-    for(size_t i = 0; i < axis.ndim(); i++){
-      if(axis_data[i] < 0) axis_data[i] += x->ndim;
-        VERIFY(axis_data[i] >= 0 && axis_data[i] < x->ndim);
-    }
-    std::vector<int64_t> raxis;
-    try{
-      if(!exclude){
-        for(size_t i = 0; i < axis.ndim(); i++){
-          raxis.push_back(axis[i]);
-        }
-      }else{
-        raxis.resize(x->ndim - axis.ndim());
-        for(int i = 0, k = 0; i < x->ndim; i++){
-          bool flag = false;
-          for(size_t j = 0; j < axis.ndim(); j++){
-            if(axis_data[j] == i) {
-              flag = true;
-              break;
-            }
-          }
-          if(!flag){
-            raxis[k++] = i;
-          }
-        }
-      }
-    }catch(const std::bad_alloc& e){
-      CHECK(false) << e.what();
-    }
-    if(exclude && raxis.size() == 0){
-      memcpy(y_data, x_data, getSize(x) * sizeof(int32_t));
-    }
-    else if(raxis.size() == 0){
-      int32_t max = x_data[0];
-      for(uint64_t i = 1; i < getSize(x); i++){
-        if(max < x_data[i]) max = x_data[i];
-      }
-      y_data[0] = max;
-    }else{
-      try{
-        std::vector<int32_t> realAxis(raxis.size());
-        std::vector<bool> flag(x->ndim, false);
-        for(uint32_t i = 0; i < raxis.size(); i++){
-          int32_t val = raxis[i];
-          realAxis[i] = val;
-          flag[val] = true;
-        }
-        std::sort(realAxis.begin(), realAxis.end());
-        realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
-
-        uint64_t axis_size = 1;
-        for(uint32_t i = 0; i < realAxis.size(); i++){
-          axis_size *= x->shape[realAxis[i]];
-        }
-        std::vector<uint64_t> every_xdim_size(x->ndim, 1);
-        for(int i = x->ndim-2; i >= 0; i--){
-          every_xdim_size[i] = x->shape[i+1] * every_xdim_size[i+1];
-        }
-        int32_t yndim = y->ndim;
-        std::vector<int64_t> yshape(y->ndim);
-        for(int i = 0; i < y->ndim; i++){
-          yshape[i] = y->shape[i];
-        }
-        for(int i = 0, j = 0; i < y->ndim; i++){
-          if(y->shape[i] == 1) {
-            yndim -= 1;
-          }else{
-            yshape[j++] = y->shape[i];
-          }
-        }
-        for(uint64_t i = 0; i < getSize(y); i++){
-          uint64_t in_i = 0, o_i = i;
-          for(int j = yndim-1, xj = x->ndim-1; j>=0; j--){
-            uint64_t col = o_i % yshape[j];
-            o_i /= yshape[j];
-            while(xj >= 0 && flag[xj--]);
-            in_i += col * every_xdim_size[xj+1];
-          }
-          int32_t max = x_data[in_i];//(int32_t)1<<31;
-          for(uint64_t xi = 0; xi < axis_size; xi++){
-            uint64_t o_i = xi, tmp_in_i = 0;
-            for(int j = realAxis.size() - 1; j>=0; j--){
-              uint64_t col = o_i % x->shape[realAxis[j]];
-              o_i /= x->shape[realAxis[j]];
-              tmp_in_i += col * every_xdim_size[realAxis[j]];
-            }
-            if(max < x_data[in_i+tmp_in_i]) max = x_data[in_i+tmp_in_i];
-          }
-          y_data[i] = max;
-        }
-      }catch(const std::bad_alloc& e){
-        CHECK(false) << e.what();
-      }
-    }
-});
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
+//.set_body([](CVMArgs args, CVMRetValue *ret){
+//    VERIFY(args.num_args == 3);
+//    DLTensor *x = args[0];
+//    DLTensor *y = args[1];
+//    void* _attr = args[2];
+//    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+//    auto &param = cvm::get<cvm::top::ReduceParam>(attr->parsed);
+//    TShape axis = param.axis;
+//    int64_t *axis_data = axis.begin();
+//    //bool keepdims = param.keepdims;
+//    bool exclude = param.exclude;
+//
+//    int32_t *y_data = static_cast<int32_t*>(y->data);
+//    int32_t* x_data = static_cast<int32_t*>(x->data);
+//
+//    for(size_t i = 0; i < axis.ndim(); i++){
+//      if(axis_data[i] < 0) axis_data[i] += x->ndim;
+//        VERIFY(axis_data[i] >= 0 && axis_data[i] < x->ndim);
+//    }
+//    std::vector<int64_t> raxis;
+//    try{
+//      if(!exclude){
+//        for(size_t i = 0; i < axis.ndim(); i++){
+//          raxis.push_back(axis[i]);
+//        }
+//      }else{
+//        raxis.resize(x->ndim - axis.ndim());
+//        for(int i = 0, k = 0; i < x->ndim; i++){
+//          bool flag = false;
+//          for(size_t j = 0; j < axis.ndim(); j++){
+//            if(axis_data[j] == i) {
+//              flag = true;
+//              break;
+//            }
+//          }
+//          if(!flag){
+//            raxis[k++] = i;
+//          }
+//        }
+//      }
+//    }catch(const std::bad_alloc& e){
+//      CHECK(false) << e.what();
+//    }
+//    if(exclude && raxis.size() == 0){
+//      memcpy(y_data, x_data, getSize(x) * sizeof(int32_t));
+//    }
+//    else if(raxis.size() == 0){
+//      int32_t max = x_data[0];
+//      for(uint64_t i = 1; i < getSize(x); i++){
+//        if(max < x_data[i]) max = x_data[i];
+//      }
+//      y_data[0] = max;
+//    }else{
+//      try{
+//        std::vector<int32_t> realAxis(raxis.size());
+//        std::vector<bool> flag(x->ndim, false);
+//        for(uint32_t i = 0; i < raxis.size(); i++){
+//          int32_t val = raxis[i];
+//          realAxis[i] = val;
+//          flag[val] = true;
+//        }
+//        std::sort(realAxis.begin(), realAxis.end());
+//        realAxis.resize(std::unique(realAxis.begin(), realAxis.end()) - realAxis.begin());
+//
+//        uint64_t axis_size = 1;
+//        for(uint32_t i = 0; i < realAxis.size(); i++){
+//          axis_size *= x->shape[realAxis[i]];
+//        }
+//        std::vector<uint64_t> every_xdim_size(x->ndim, 1);
+//        for(int i = x->ndim-2; i >= 0; i--){
+//          every_xdim_size[i] = x->shape[i+1] * every_xdim_size[i+1];
+//        }
+//        int32_t yndim = y->ndim;
+//        std::vector<int64_t> yshape(y->ndim);
+//        for(int i = 0; i < y->ndim; i++){
+//          yshape[i] = y->shape[i];
+//        }
+//        for(int i = 0, j = 0; i < y->ndim; i++){
+//          if(y->shape[i] == 1) {
+//            yndim -= 1;
+//          }else{
+//            yshape[j++] = y->shape[i];
+//          }
+//        }
+//        for(uint64_t i = 0; i < getSize(y); i++){
+//          uint64_t in_i = 0, o_i = i;
+//          for(int j = yndim-1, xj = x->ndim-1; j>=0; j--){
+//            uint64_t col = o_i % yshape[j];
+//            o_i /= yshape[j];
+//            while(xj >= 0 && flag[xj--]);
+//            in_i += col * every_xdim_size[xj+1];
+//          }
+//          int32_t max = x_data[in_i];//(int32_t)1<<31;
+//          for(uint64_t xi = 0; xi < axis_size; xi++){
+//            uint64_t o_i = xi, tmp_in_i = 0;
+//            for(int j = realAxis.size() - 1; j>=0; j--){
+//              uint64_t col = o_i % x->shape[realAxis[j]];
+//              o_i /= x->shape[realAxis[j]];
+//              tmp_in_i += col * every_xdim_size[realAxis[j]];
+//            }
+//            if(max < x_data[in_i+tmp_in_i]) max = x_data[in_i+tmp_in_i];
+//          }
+//          y_data[i] = max;
+//        }
+//      }catch(const std::bad_alloc& e){
+//        CHECK(false) << e.what();
+//      }
+//    }
+//});
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_max")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     VERIFY(args.num_args == 4);
