@@ -160,24 +160,19 @@ int64_t CVMModel::GetOps() {
   return ret;
 }
 
-DLTensor* CVMModel::PlanInput() {
-  DLTensor* ret;
-  CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
-  return ret;
-}
-
-DLTensor* CVMModel::PlanInput(void *input) {
+DLTensor* CVMModel::PlanInput(void *input, int size) {
+  VERIFY_EQ(this->GetInputLength(), size);
   DLTensor* ret = nullptr;
   CVMArrayAlloc(shapes_[0], dims_[0], dtype_code, dtype_bits, dtype_lanes, kDLCPU, 0, &ret);
   auto data = static_cast<int32_t*>(ret->data);
   if (input_bytes_ == 4) {
-      for (int i = 0; i < in_size_; ++i) {
-          data[i] = static_cast<int32_t*>(input)[i];
-      }
+    for (int i = 0; i < in_size_; ++i) {
+      data[i] = static_cast<int32_t*>(input)[i];
+    }
   } else {
-      for (int i = 0; i < in_size_; ++i) {
-          data[i] = static_cast<int8_t*>(input)[i];
-      }
+    for (int i = 0; i < in_size_; ++i) {
+      data[i] = static_cast<int8_t*>(input)[i];
+    }
   }
   return ret;
 }
@@ -346,7 +341,7 @@ int CVMModel::GetSizeOfInputType() {
 
 using cvm::runtime::CVMModel;
 
-CVMStatus CVMAPILoadModel(const char *graph_json, int graph_strlen,
+enum CVMStatus CVMAPILoadModel(const char *graph_json, int graph_strlen,
                           const char *param_bytes, int param_strlen,
                           ModelHandler *net,
                           int device_type, int device_id) {
@@ -366,21 +361,21 @@ CVMStatus CVMAPILoadModel(const char *graph_json, int graph_strlen,
 }
 
 
-CVMStatus CVMAPIFreeModel(ModelHandler net) {
+enum CVMStatus CVMAPIFreeModel(ModelHandler net) {
   API_BEGIN();
   CVMModel* model = static_cast<CVMModel*>(net);
   if (net) delete model;
   API_END();
 }
 
-CVMStatus CVMAPIInference(ModelHandler net,
-                          char *input_data,
+enum CVMStatus CVMAPIInference(ModelHandler net,
+                          char *input_data, int input_len,
                           StringHandler output_data) {
   API_BEGIN();
   CHECK_3_NOT_NULL(net, input_data, output_data);
 
   CVMModel* model = static_cast<CVMModel*>(net);
-  DLTensor *input = model->PlanInput(input_data);
+  DLTensor *input = model->PlanInput(input_data, input_len);
   auto outputs = model->PlanOutput();
   model->Run(input, outputs);
   model->SaveTensor(outputs, output_data);
@@ -389,7 +384,7 @@ CVMStatus CVMAPIInference(ModelHandler net,
   API_END();
 }
 
-CVMStatus CVMAPIGetVersion(ModelHandler net, StringHandler version) {
+enum CVMStatus CVMAPIGetVersion(ModelHandler net, StringHandler version) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, version);
 
@@ -398,7 +393,7 @@ CVMStatus CVMAPIGetVersion(ModelHandler net, StringHandler version) {
   API_END();
 }
 
-CVMStatus CVMAPIGetPreprocessMethod(ModelHandler net, StringHandler method) {
+enum CVMStatus CVMAPIGetPreprocessMethod(ModelHandler net, StringHandler method) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, method);
 
@@ -407,60 +402,60 @@ CVMStatus CVMAPIGetPreprocessMethod(ModelHandler net, StringHandler method) {
   API_END();
 }
 
-CVMStatus CVMAPIGetInputLength(ModelHandler net, IntHandler size) {
+enum CVMStatus CVMAPIGetInputLength(ModelHandler net, IntHandler size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
-  *size = model->GetInputLength();
+  *size = static_cast<unsigned long long>(model->GetInputLength());
   API_END();
 }
 
-CVMStatus CVMAPIGetOutputLength(ModelHandler net, IntHandler size) {
+enum CVMStatus CVMAPIGetOutputLength(ModelHandler net, IntHandler size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
-  *size = model->GetOutputLength();
+  *size = static_cast<unsigned long long>(model->GetOutputLength());
   API_END();
 }
 
-CVMStatus CVMAPIGetOutputTypeSize(ModelHandler net, IntHandler size) {
+enum CVMStatus CVMAPIGetOutputTypeSize(ModelHandler net, IntHandler size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
-  *size = model->GetSizeOfOutputType();
+  *size = static_cast<unsigned long long>(model->GetSizeOfOutputType());
   API_END();
 }
 
-CVMStatus CVMAPIGetInputTypeSize(ModelHandler net, IntHandler size) {
+enum CVMStatus CVMAPIGetInputTypeSize(ModelHandler net, IntHandler size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
-  *size = model->GetSizeOfInputType();
+  *size = static_cast<unsigned long long>(model->GetSizeOfInputType());
   API_END();
 }
 
-CVMStatus CVMAPIGetStorageSize(ModelHandler net, IntHandler gas) {
+enum CVMStatus CVMAPIGetStorageSize(ModelHandler net, IntHandler gas) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, gas);
   CVMModel* model = static_cast<CVMModel*>(net);
-  *gas = model->GetStorageSize();
+  *gas = static_cast<unsigned long long>(model->GetStorageSize());
   API_END();
 }
 
-CVMStatus CVMAPIGetGasFromModel(ModelHandler net, IntHandler gas) {
+enum CVMStatus CVMAPIGetGasFromModel(ModelHandler net, IntHandler gas) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, gas);
   CVMModel* model = static_cast<CVMModel*>(net);
-  *gas = model->GetOps();
+  *gas = static_cast<unsigned long long>(model->GetOps());
   API_END();
 }
 
-CVMStatus CVMAPIGetGasFromGraphFile(const char *graph_json, IntHandler gas) {
+enum CVMStatus CVMAPIGetGasFromGraphFile(const char *graph_json, IntHandler gas) {
   API_BEGIN();
   string json_data(graph_json);
   auto f = cvm::runtime::Registry::Get("cvm.runtime.estimate_ops");
   int64_t ret = (*f)(json_data);
-  *gas = static_cast<long long>(ret);
+  *gas = static_cast<unsigned long long>(ret);
   API_END();
 }
 
