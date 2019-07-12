@@ -630,7 +630,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_left_shift")
         error_code);
     deal_error(error_code, errorStr);
 });
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.log2")
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.cvm_precision")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     //        std::string x_str = args[0];
     VERIFY(args.num_args == 3);
