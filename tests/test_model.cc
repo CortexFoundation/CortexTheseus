@@ -93,13 +93,13 @@ int run_LIF(string model_root, int device_type = 0) {
   cerr << "model loaded\n";
   CHECK_STATUS(status, "model loaded failed");
 
-  long long gas = 0;
-  status = CVMAPIGetGasFromModel(net, static_cast<IntHandler>(&gas));
+  unsigned long long gas = 0;
+  status = CVMAPIGetGasFromModel(net, &gas);
   CHECK_STATUS(status, "gas invalid");
   cerr << "ops " << gas / 1024 / 1024 << "\n";
   // API only accepts byte array
   vector<char> input, output;
-  long long input_size, output_size;
+  unsigned long long input_size, output_size;
   CVMAPIGetInputLength(net, &input_size);
   CVMAPIGetOutputLength(net, &output_size);
   input.resize(input_size, 0); // 1 * 1 * 28 * 28);
@@ -156,7 +156,7 @@ int run_LIF(string model_root, int device_type = 0) {
   for (int i = 0; i < n_run; i++) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
-    status = CVMAPIInference(net, input.data(), output.data());
+    status = CVMAPIInference(net, input.data(), input.size(), output.data());
     CHECK_STATUS(status, "inference failed");
   }
   status = CVMAPIFreeModel(net);
@@ -297,7 +297,7 @@ int test_models(int device_type = 0) {
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2",
     // "/data/std_out/trec",
-     "/data/new_cvm/yolo3_darknet53_voc/data",
+    // "/data/new_cvm/yolo3_darknet53_voc/data",
     // "/data/lz_model_storage/dcnet_mnist_v1/data",
     // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
     // "/data/lz_model_storage/resnet50_v1_imagenet/data",
@@ -329,8 +329,8 @@ int test_models(int device_type = 0) {
     // "/data/std_out/random_4_7/",
     // "/data/std_out/random_4_8/",
     // "/data/std_out/random_4_9/",
-    // "/data/std_out/log2",
-    // "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
+    "/data/std_out/log2",
+    "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
   };
   for (auto model_root : model_roots) {
     auto ret = run_LIF(model_root, device_type);

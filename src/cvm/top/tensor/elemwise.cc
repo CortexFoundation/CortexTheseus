@@ -21,8 +21,8 @@ CVM_REGISTER_ELEMWISE_UNARY_OP(abs)
 .set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_support_level(3);
 
-// precision
-CVM_REGISTER_ELEMWISE_UNARY_OP(precision)
+// cvm_precision
+CVM_REGISTER_ELEMWISE_UNARY_OP(cvm_precision)
 .describe(R"code(Returns the precision of input array, computed element-wise.
 
 .. math::
