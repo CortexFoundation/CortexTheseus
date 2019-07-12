@@ -14,7 +14,7 @@ var (
 	ERROR_RUNTIME = 2
 )
 
-type func_LoadModel func([]byte, []byte, int) (unsafe.Pointer, int)
+type func_LoadModel func([]byte, []byte, int, int) (unsafe.Pointer, int)
 type func_FreeModel func(unsafe.Pointer) int
 type func_Inference func(unsafe.Pointer, []byte) ([]byte, int)
 type func_GetVersion func(unsafe.Pointer) ([34]byte, int)
@@ -48,14 +48,15 @@ func lookUp(lib *plugin.Plugin, func_name string) interface{} {
 	}
 }
 
-func New(lib *plugin.Plugin, deviceId int, modelCfg, modelBin []byte) (*Model, int) {
+func New(lib *plugin.Plugin, device_type, deviceId int, modelCfg, modelBin []byte) (*Model, int) {
 	var (
 		model  *Model = &Model{lib: lib}
 		status int
 	)
 	if func_ptr := lookUp(lib, "LoadModel"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else if model.model, status = func_ptr.(func_LoadModel)(modelCfg, modelBin, deviceId); status != SUCCEED {
+	} else if model.model, status = func_ptr.(func_LoadModel)(
+		modelCfg, modelBin, device_type, deviceId); status != SUCCEED {
 		return nil, status
 	}
 
@@ -104,7 +105,7 @@ func (m *Model) GetInputLength() uint64 {
 	return m.input_size
 }
 
-func GetModelGasFromGraphFile(lib *plugin.Plugin, file []byte) (gas uint64, status int) {
+func GetModelGasFromGraphFile(lib *plugin.Plugin, file []byte) (uint64, int) {
 	if func_ptr := lookUp(lib, "GetModelGasFromGraphFile"); func_ptr == nil {
 		return 0, ERROR_RUNTIME
 	} else {

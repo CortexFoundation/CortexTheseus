@@ -23,45 +23,29 @@
 extern "C" {
 #endif
 
-/*
- * CVMAPIInterface
- * parameters : input, output or attributes
- * returns    : API execute status
- *            0 stands for succeed;
- *            -1 stands for logic error;
- *            -2 stands for runtime error;
- */
-enum CVMStatus {
-  SUCCEED = 0,
-  ERROR_LOGIC = 1,
-  ERROR_RUNTIME = 2,
-  ERROR_UNKNOWN = 3
-} ;
-
-typedef void* ModelHandler;
 typedef unsigned long long* IntHandler;
 typedef char* StringHandler;
 
-enum CVMStatus CVMAPILoadModel(const char *graph_json, int graph_strlen,
+int CVMAPILoadModel(const char *graph_json, int graph_strlen,
                           const char *param_bytes, int param_strlen,
                           void **net, // pass reference of network
                           int device_type, int device_id);
-enum CVMStatus CVMAPIFreeModel(void *net);
-enum CVMStatus CVMAPIInference(void *net,
+int CVMAPIFreeModel(void *net);
+int CVMAPIInference(void *net,
                           char *input_data, int input_len,
                           StringHandler output_data);
 
-enum CVMStatus CVMAPIGetVersion(void *net, StringHandler version);
-enum CVMStatus CVMAPIGetPreprocessMethod(void *net, StringHandler method);
+int CVMAPIGetVersion(void *net, StringHandler version);
+int CVMAPIGetPreprocessMethod(void *net, StringHandler method);
 
-enum CVMStatus CVMAPIGetInputLength(void *net, IntHandler size);
-enum CVMStatus CVMAPIGetOutputLength(void *net, IntHandler size);
-enum CVMStatus CVMAPIGetInputTypeSize(void *net, IntHandler size);
-enum CVMStatus CVMAPIGetOutputTypeSize(void *net, IntHandler size);
+int CVMAPIGetInputLength(void *net, IntHandler size);
+int CVMAPIGetOutputLength(void *net, IntHandler size);
+int CVMAPIGetInputTypeSize(void *net, IntHandler size);
+int CVMAPIGetOutputTypeSize(void *net, IntHandler size);
 
-enum CVMStatus CVMAPIGetStorageSize(void *net, IntHandler gas);
-enum CVMStatus CVMAPIGetGasFromModel(void *net, IntHandler gas);
-enum CVMStatus CVMAPIGetGasFromGraphFile(const char *graph_json, IntHandler gas);
+int CVMAPIGetStorageSize(void *net, IntHandler gas);
+int CVMAPIGetGasFromModel(void *net, IntHandler gas);
+int CVMAPIGetGasFromGraphFile(const char *graph_json, IntHandler gas);
 
 #ifdef __cplusplus
 } /* end extern "C" */

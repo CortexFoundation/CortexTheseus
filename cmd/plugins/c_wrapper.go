@@ -13,16 +13,20 @@ package main
 */
 import "C"
 import (
+	"github.com/CortexFoundation/CortexTheseus/infernet/kernel"
 	"unsafe"
 )
 
-func LoadModel(modelCfg, modelBin []byte, deviceId int) (unsafe.Pointer, int) {
+func LoadModel(modelCfg, modelBin []byte, device_type, deviceId int) (unsafe.Pointer, int) {
 	jptr := (*C.char)(unsafe.Pointer(&(modelCfg[0])))
 	pptr := (*C.char)(unsafe.Pointer(&(modelBin[0])))
 	j_len := C.int(len(modelCfg))
 	p_len := C.int(len(modelBin))
 	var net unsafe.Pointer
-	status := int(C.CVMAPILoadModel(jptr, j_len, pptr, p_len, &net, 0, C.int(deviceId)))
+	status := int(C.CVMAPILoadModel(jptr, j_len,
+		pptr, p_len,
+		&net,
+		C.int(device_type), C.int(deviceId)))
 	return net, status
 }
 func FreeModel(net unsafe.Pointer) int {
@@ -30,7 +34,7 @@ func FreeModel(net unsafe.Pointer) int {
 }
 func Inference(net unsafe.Pointer, input []byte) ([]byte, int) {
 	out_size, status := GetOutputLength(net)
-	if status != int(C.SUCCEED) {
+	if status != kernel.SUCCEED {
 		return nil, status
 	}
 
@@ -40,7 +44,7 @@ func Inference(net unsafe.Pointer, input []byte) ([]byte, int) {
 	output := (*C.char)(unsafe.Pointer(&tmp[0]))
 
 	status = int(C.CVMAPIInference(net, data, in_size, output))
-	if status != int(C.SUCCEED) {
+	if status != kernel.SUCCEED {
 		return nil, status
 	}
 	return tmp, status
