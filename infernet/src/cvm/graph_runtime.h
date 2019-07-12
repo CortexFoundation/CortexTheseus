@@ -269,8 +269,8 @@ class CvmRuntime : public ModuleNode {
 
     inline const Op* op() const { return this->attrs.op; }
     inline std::string name() const { return this->attrs.name; }
-    inline bool is_data() const { return this->name() == "data"; }
     inline bool is_variable() const { return this->op_type == "null"; }
+    inline bool is_data() const { return this->is_variable() && (this->name()=="data"); }
     inline uint32_t num_inputs() const {
       if (is_variable()) return 1;
       if (this->op()->get_num_inputs == nullptr) {
