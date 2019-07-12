@@ -128,13 +128,15 @@ type BlockChain struct {
 	validator Validator // block and state validator interface
 	vmConfig  vm.Config
 
+	shouldPreserve  func(*types.Block) bool
+
 	badBlocks *lru.Cache // Bad block cache
 }
 
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Cortex Validator and
 // Processor.
-func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config) (*BlockChain, error) {
+func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config,  shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
 			TrieNodeLimit: 256 * 1024 * 1024,
@@ -1009,19 +1011,15 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	reorg := externTd.Cmp(localTd) > 0
 	currentBlock = bc.CurrentBlock()
 	if !reorg && externTd.Cmp(localTd) == 0 {
-		// Split same-difficulty blocks by number, then at random
-		//reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
-		//whether should choose the smaller hash
-		sum_gas := currentBlock.GasUsed() + block.GasUsed()
-		weight := 0.5
-		if sum_gas > 0 {
-			weight = float64(block.GasUsed()) / float64(sum_gas)
-		}
-
-		if weight <= 0 {
-			weight = 0.5
-		}
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < weight)
+		if block.NumberU64() < currentBlock.NumberU64() {
+                        reorg = true
+                } else if block.NumberU64() == currentBlock.NumberU64() {
+                        var currentPreserve, blockPreserve bool
+                        if bc.shouldPreserve != nil {
+                                currentPreserve, blockPreserve = bc.shouldPreserve(currentBlock), bc.shouldPreserve(block)
+                        }
+                        reorg = !currentPreserve && (blockPreserve || mrand.Float64() < 0.5)
+                }
 	}
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
