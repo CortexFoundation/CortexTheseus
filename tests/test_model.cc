@@ -11,7 +11,9 @@ using namespace std;
 using cvm::runtime::PackedFunc;
 using cvm::runtime::Registry;
 
-int use_gpu = 0;
+#ifndef USE_GPU
+#define USE_GPU  0
+#endif
 
 #define CHECK_STATUS(x, msg) \
   if (x != SUCCEED) { \
@@ -51,6 +53,7 @@ struct OpArgs {
 };
 
 int run_LIF(string model_root, int device_type = 0) {
+#if(USE_GPU==0)
   cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
   cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
   cvm::runtime::im2col_cnt = 0;
@@ -65,6 +68,7 @@ int run_LIF(string model_root, int device_type = 0) {
   cvm::runtime::cvm_op_chnwise_conv_cnt = 0;
   cvm::runtime::cvm_op_depthwise_conv_cnt = 0;
   cvm::runtime::cvm_op_chnwise_conv1x1_cnt = 0;
+#endif
 
   string json_path = model_root + "/symbol";
   string params_path = model_root + "/params";
@@ -140,7 +144,11 @@ int run_LIF(string model_root, int device_type = 0) {
     std::cerr << tshape.size() << "\n";
     for (int i = 0; i < data.size(); i++) {
       input[i]= (int8_t)data[i];
+      if(i < 10){
+        printf("%d ", input[i]);
+      }
     }
+    printf("\n");
   }
 
   double start = omp_get_wtime();
@@ -153,6 +161,7 @@ int run_LIF(string model_root, int device_type = 0) {
   }
   status = CVMAPIFreeModel(net);
   CHECK_STATUS(status, "free model failed");
+#if(USE_GPU == 0)
   double ellapsed_time = (omp_get_wtime() - start) / n_run;
   cout << "total time : " << ellapsed_time / n_run << "\n";
   cout << "total gemm.trans time: " << cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run << "\n";
@@ -211,6 +220,7 @@ int run_LIF(string model_root, int device_type = 0) {
   sum_time =  cvm::runtime::cvm_op_chnwise_conv1x1_cnt / n_run;
   cout << "total chnconv2d1x1 time: " << (sum_time) << "/" << ellapsed_time
     << " " <<  sum_time / ellapsed_time <<"\n";
+#endif
 
   if (json_path.find("yolo") != string::npos) {
     uint64_t n_bytes = 4;
@@ -287,7 +297,7 @@ int test_models(int device_type = 0) {
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2",
     // "/data/std_out/trec",
-    // "/data/new_cvm/yolo3_darknet53_voc/data",
+     "/data/new_cvm/yolo3_darknet53_voc/data",
     // "/data/lz_model_storage/dcnet_mnist_v1/data",
     // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
     // "/data/lz_model_storage/resnet50_v1_imagenet/data",
@@ -299,7 +309,7 @@ int test_models(int device_type = 0) {
     // "/data/lz_model_storage/squeezenet_gcv1.1/data",
     // "/data/lz_model_storage/squeezenet_gcv1.0/data",
     // // invalid has strange attribute in operator elemwise_add.
-    // // "/data/lz_model_storage/octconv_resnet26_0.250/data", 
+    // // "/data/lz_model_storage/octconv_resnet26_0.250/data",
     // "/data/std_out/resnet50_mxg/",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2",
@@ -319,8 +329,8 @@ int test_models(int device_type = 0) {
     // "/data/std_out/random_4_7/",
     // "/data/std_out/random_4_8/",
     // "/data/std_out/random_4_9/",
-    "/data/std_out/log2",
-    "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
+    // "/data/std_out/log2",
+    // "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
   };
   for (auto model_root : model_roots) {
     auto ret = run_LIF(model_root, device_type);
@@ -329,9 +339,7 @@ int test_models(int device_type = 0) {
   return 0;
 }
 int main() {
-  //if (test_models(0) != 0)
-  //  return -1;
- if (test_models(0) != 0)
+ if (test_models(USE_GPU) != 0)
    return -1;
   return 0;
 }

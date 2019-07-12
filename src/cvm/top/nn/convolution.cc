@@ -60,10 +60,16 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(dshape.ndim(), 4U) << "Input data should be 4D";
   VERIFY_EQ(param.kernel_size.ndim(), 2U);
   VERIFY_EQ(param.padding.ndim(), 2U);
+  VERIFY_GE(param.padding[0], 0);
+  VERIFY_GE(param.padding[1], 0);
   VERIFY_EQ(param.strides.ndim(), 2U)
       << "incorrect stride size: " << param.strides;
+  VERIFY_GE(param.strides[0], 1);
+  VERIFY_GE(param.strides[1], 1);
   VERIFY_EQ(param.dilation.ndim(), 2U)
       << "incorrect dilate size: " << param.dilation;
+  VERIFY_GE(param.dilation[0], 1);
+  VERIFY_GE(param.dilation[1], 1);
   VERIFY_EQ(dshape[1] % param.groups, 0U)
       << "input channels must divide group size";
   VERIFY_EQ(param.channels % param.groups, 0U)
@@ -166,8 +172,6 @@ inline bool Conv2DInferPrecision(const NodeAttrs& attrs,
   VERIFY_LE(iattr->at(1), 8)
     << "Conv2D " << attrs.name
     << " weight must be INT8 vs. INT" << iattr->at(1);
-  if (shapes->size() == 0 || shapes->at(0)[1] == 0)
-      return false;
   const TShape& wshp = shapes->at(1);
   VERIFY_EQ(wshp.ndim(), 4);
   int64_t max_size = wshp.Size() / wshp[0];
