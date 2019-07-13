@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
+	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/inference"
 )
 
 func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
@@ -121,7 +121,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 		v := []byte{19, 52, 238, 252, 208, 237, 223, 227, 243, 91}
 		resCh <- v
 		return
-	} else if (cacheKey == "0xe0c42bc0779d627e14fba7c4e6f355644aa2535dfe9786d64684fb05f1de615c") {
+	} else if cacheKey == "0xe0c42bc0779d627e14fba7c4e6f355644aa2535dfe9786d64684fb05f1de615c" {
 		resCh <- []byte{6, 252, 4, 59, 242, 0, 247, 30, 224, 217}
 		return
 	}
@@ -141,13 +141,11 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, resCh cha
 		errCh <- reader_err
 		return
 	}
-	data, read_data_err:= ReadData(reader)
+	data, read_data_err := ReadData(reader)
 	if read_data_err != nil {
 		errCh <- read_data_err
 		return
 	}
-
-
 
 	s.inferByInputContent(modelInfoHash, inputInfoHash, data, resCh, errCh)
 }
