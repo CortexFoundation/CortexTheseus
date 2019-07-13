@@ -4,6 +4,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"plugin"
 	"unsafe"
+	"errors"
 )
 
 // Exactly copy from c_api.h:
@@ -12,7 +13,10 @@ var (
 	SUCCEED       = 0
 	ERROR_LOGIC   = 1
 	ERROR_RUNTIME = 2
+	KERNEL_RUNTIME_ERROR error = errors.New("Kernel runtime error")
+	KERNEL_LOGIC_ERROR error = errors.New("Kernel logic error")
 )
+
 
 type func_LoadModel func([]byte, []byte, int, int) (unsafe.Pointer, int)
 type func_FreeModel func(unsafe.Pointer) int
