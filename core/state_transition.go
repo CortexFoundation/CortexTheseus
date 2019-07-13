@@ -341,9 +341,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			return nil, 0, big0, false, vmerr
 		}
 
-		if vmerr == vm.ErrMetaInfoNotMature {
-			return nil, 0, big0, false, vmerr
-		}
+		//if vmerr == vm.ErrMetaInfoNotMature {
+		//	return nil, 0, big0, false, vmerr
+		//}
 	}
 
 	//gas cost below this line
@@ -351,23 +351,25 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	st.refundGas()
 	//model gas
 	gu := st.gasUsed()
-	if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
-		for addr, mgas := range st.modelGas {
-			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_UP_LIMIT {
-				continue
-			}
-
-			gu -= mgas
-			if gu < 0 { //should never happen
-				if mgas+gu > 0 {
-					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
+	if err == nil {
+		if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
+			for addr, mgas := range st.modelGas {
+				if int64(mgas) <= 0 || mgas > params.MODEL_GAS_UP_LIMIT {
+					continue
 				}
 
-				return nil, 0, big0, false, vm.ErrInsufficientBalance
+				gu -= mgas
+				if gu < 0 { //should never happen
+					//if mgas+gu > 0 {
+					//	st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
+					//}
+
+					return nil, 0, big0, false, vm.ErrInsufficientBalance
+				}
+				reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
+				log.Info("Model author reward", "author", addr.Hex(), "reward", reward)
+				st.state.AddBalance(addr, reward)
 			}
-			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
-			log.Info("Model author reward", "author", addr.Hex(), "reward", reward)
-			st.state.AddBalance(addr, reward)
 		}
 	}
 

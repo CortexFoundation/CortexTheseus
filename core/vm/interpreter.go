@@ -248,7 +248,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				if modelMeta.Gas == uint64(0) {
 					//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 					modelMeta.SetGas(0)
-				} else if modelMeta.Gas > params.MODEL_GAS_UP_LIMIT{
+				} else if modelMeta.Gas > params.MODEL_GAS_UP_LIMIT {
 					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 				} else if int64(modelMeta.Gas) < 0 {
 					modelMeta.SetGas(0)
@@ -391,9 +391,14 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		// gasCost will check model's metainfo before checking available gas
-		if err == ErrBuiltInTorrentFS || err == ErrMetaInfoNotMature {
+		if err == ErrBuiltInTorrentFS { //|| err == ErrMetaInfoNotMature {
 			return nil, err
 		}
+
+		//if err != nil || !contract.UseGas(cost) {
+		//      log.Warn("interpreter", "cost", cost, "err", err, "cgas", cgas)
+		//    return nil, ErrOutOfGas
+		//}
 
 		if op.IsInfer() {
 			var model_meta_err error
@@ -408,12 +413,13 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			}
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
+				log.Warn("overflow", "cost", cost, "gas", modelMeta.Gas)
 				return nil, errGasUintOverflow
 			}
 		}
 
 		if err != nil || !contract.UseGas(cost) {
-			log.Debug("interpreter", "cost", cost, "err", err, "cgas", cgas)
+			log.Warn("interpreter", "cost", cost, "err", err, "cgas", cgas)
 			return nil, ErrOutOfGas
 		}
 		// consume the gas and return an error if not enough gas is available.

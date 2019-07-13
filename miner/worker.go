@@ -758,12 +758,12 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			// Pop the current out-of-gas transaction without shifting in the next from the account
 			log.Trace("Gas limit exceeded for current block", "sender", from)
 			txs.Pop()
-	//	case core.ErrQuotaLimitReached:
-	//		log.Trace("Quota limit exceeded for current block", "sender", from)
-	//		txs.Pop()
-	//	case core.ErrUnhandleTx:
-	//		log.Trace("Consensus forbiden error", "sender", from)
-	//		txs.Pop()
+			//	case core.ErrQuotaLimitReached:
+			//		log.Trace("Quota limit exceeded for current block", "sender", from)
+			//		txs.Pop()
+			//	case core.ErrUnhandleTx:
+			//		log.Trace("Consensus forbiden error", "sender", from)
+			//		txs.Pop()
 		//case vm.errMetaInfoNotMature:
 		//       log.Trace("Caused by immature meta", "sender", from)
 		//      txs.Pop()
@@ -777,9 +777,9 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			log.Trace("Skipping account with hight nonce", "sender", from, "nonce", tx.Nonce())
 			txs.Pop()
 
-	//	case vm.ErrBuiltInTorrentFS:
-	//		log.Trace("Skipping account with torrent fs error", "sender", from)
-	//		txs.Pop()
+		//case vm.ErrBuiltInTorrentFS:
+		//	log.Trace("Skipping account with torrent fs error", "sender", from)
+		//	txs.Pop()
 
 		case nil:
 			// Everything ok, collect the logs and shift in the next transaction from the same account
@@ -977,4 +977,3 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 	return nil
 }
-
