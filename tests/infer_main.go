@@ -37,11 +37,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	_ "io/ioutil"
+	"os"
 	_ "reflect"
 	_ "runtime"
 	"unsafe"
 
 	"github.com/CortexFoundation/CortexTheseus/infernet/kernel"
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 func test() {
@@ -65,12 +67,16 @@ func test() {
 }
 
 func main() {
+	// Set log
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(5), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
+
 	var (
-		lib    *kernel.Library
-		net    unsafe.Pointer
+		lib    *kernel.LibCVM
+		net    *kernel.Model
+		res    []byte
 		status int
 	)
-	lib, status = kernel.LibOpen("./libcvm_runtime_cpu.so")
+	lib, status = kernel.LibOpen("./libcvm_runtime_cuda.so")
 	if status != kernel.SUCCEED {
 		fmt.Printf("open library error: %d\n", status)
 		return
@@ -89,10 +95,35 @@ func main() {
 	}
 	// modelCfg := []byte("{}")
 	// modelBin := []byte("dkjflsiejflsdkj")
-	net, status = lib.LoadModel(modelCfg, modelBin, 0)
+	net, status = kernel.New(lib, modelCfg, modelBin, 0, 0)
 	if status != kernel.SUCCEED {
 		fmt.Printf("CVMAPILoadModel failed: %d\n", status)
 		return
 	}
-	fmt.Printf("CVMAPILoadModel succeed: %p\n", &net)
+	input_size := net.GetInputLength()
+	fmt.Printf("CVMAPILoadModel succeed: %p ops=%s size=%s input_size=%s\n",
+		&net, net.Ops(), net.Size(), input_size)
+
+	var data []byte = make([]byte, input_size)
+	res, status = net.Predict(data)
+	if status != kernel.SUCCEED {
+		fmt.Printf("Predict failed: %d\n", status)
+		return
+	}
+	fmt.Printf("Predict succeed: %v\n", res[:100])
+
+	status = net.Free()
+	if status != kernel.SUCCEED {
+		fmt.Printf("Free model failed: %d\n", status)
+		return
+	}
+	fmt.Printf("Free model succeed\n")
+
+	var gas uint64
+	gas, status = kernel.GetModelGasFromGraphFile(lib, modelCfg)
+	if status != kernel.SUCCEED {
+		fmt.Printf("Get model gas from file failed: %s\n", status)
+		return
+	}
+	fmt.Printf("Get model gas from file succeed: %s\n", int(gas))
 }

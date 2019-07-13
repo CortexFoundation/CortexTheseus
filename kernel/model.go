@@ -58,10 +58,9 @@ func (m *Model) GetInputLength() uint64 {
 
 func (m *Model) Predict(data []byte) ([]byte, int) {
 	var (
-		output   []byte
-		status   int
-		func_ptr interface{}
-		err      error
+		output []byte
+		status int
+		err    error
 	)
 	if len(data) != int(m.input_size) {
 		log.Warn("input length not matched",
@@ -88,6 +87,6 @@ func (m *Model) Free() int {
 	return m.lib.FreeModel(m.model)
 }
 
-func GetModelGasFromGraphFile(lib *LibCVM, file []byte) (gas uint64, status int) {
-	return lib.GetGasFromGraphFile(file)
+func GetModelGasFromGraphFile(lib *LibCVM, json []byte) (gas uint64, status int) {
+	return lib.GetGasFromGraphFile(json)
 }
