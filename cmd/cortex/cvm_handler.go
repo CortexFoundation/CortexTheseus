@@ -26,13 +26,14 @@ func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork)
 		return
 	}
 
-	isAvailable := synapse.Engine().Available(inferWork.InfoHash, inferWork.RawSize)
-	var ret uint64 = 1
-	if !isAvailable {
-		RespErrorText(w, errors.New(inferWork.InfoHash + " Not Available"))
+	if isAvailable, err := synapse.Engine().Available(inferWork.InfoHash, inferWork.RawSize); err != nil {
+		RespErrorText(w, errors.New(inferWork.InfoHash + " not ready for checking availablity"))
 	} else {
-		ret_arr := Uint64ToBytes(ret)
-		log.Info("Get Operators Succeed", "result", ret)
+		ret_arr := Uint64ToBytes(0)
+		if isAvailable {
+			ret_arr = Uint64ToBytes(1)
+		}
+		log.Info("Get Operators Succeed", "result", ret_arr)
 		RespInfoText(w, ret_arr)
 	}
 }

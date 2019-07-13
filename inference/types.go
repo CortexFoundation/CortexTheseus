@@ -33,8 +33,8 @@ type ICWork struct {
 
 // Infer gas 
 type GasWork struct {
-	Type  InferType     `json:"type"`
-	Model string        `json:"model"`
+	Type  InferType `json:"type"`
+	Model string    `json:"model"`
 }
 
 // check Available 

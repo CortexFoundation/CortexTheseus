@@ -50,14 +50,19 @@ void CvmRuntime::SetupPrecision() {
       const uint32_t num_inputs = inode.param.num_inputs;
       const uint32_t num_outputs = inode.param.num_outputs;
       // Forward operator inference.
+      shapes.resize(num_inputs+num_outputs, TShape());
       iprec.resize(num_inputs, -1);
-      shapes.resize(num_inputs, TShape());
-      for (uint32_t i = 0; i < iprec.size(); ++i) {
+      oprec.resize(num_outputs, -1);
+      for (uint32_t i = 0; i < num_inputs; ++i) {
         const auto& eid = entry_id(inode.inputs[i]);
         iprec[i] = precision[eid];
         shapes[i] = rshape[eid];
       }
-      oprec.resize(num_outputs, -1);
+      for (uint32_t i = 0; i < num_outputs; ++i) {
+        const auto& eid = entry_id(nid, i);
+        oprec[i] = precision[eid];
+        shapes[num_inputs+i] = rshape[eid];
+      }
       auto finfer = finfer_prec.get(inode.attrs.op, nullptr);
       // Call inference function of the operator.
       if (finfer == nullptr) {
@@ -72,7 +77,7 @@ void CvmRuntime::SetupPrecision() {
       // Save to the result map.
       for (uint32_t i = 0; i < num_outputs; ++i) {
         precision[entry_id(nid, i)] = oprec[i];
-        VERIFY_LE(oprec[i], 32)
+        VERIFY((0 < oprec[i]) && (oprec[i] <= 32))
             << " nid = " << nid << "i = " << i
             << " precison = " << oprec[i]
             << " name= " << inode.name()
@@ -131,7 +136,7 @@ int64_t CvmRuntime::GetOps() {
         << ", but " << base_ops;
 
       int64_t osize = rshape[out_eid].Size(); // output size < 1G
-      base_ops *= osize; // MAX 1G * 1G < (1 << 60); 
+      base_ops *= osize; // MAX 1G * 1G < (1 << 60);
       ops += base_ops; // MAX (1 << 40) + (1 << 60) < int64_t
       VERIFY_LE(ops, MAX_OPS) << "graph ops exceed MAX_OPS " << MAX_OPS;
 
