@@ -351,7 +351,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	st.refundGas()
 	//model gas
 	gu := st.gasUsed()
-	if err == nil && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
+	if (vmerr == nil || vmerr == vm.ErrOutOfGas) && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
 		for addr, mgas := range st.modelGas {
 			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_UP_LIMIT {
 				continue
@@ -375,7 +375,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	st.state.AddBalance(st.cvm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 
 	quota := big.NewInt(0) //default used 4 k quota every tx for testing
-	if st.uploading() {
+	if vmerr == nil && st.uploading() {
 		quota = Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
