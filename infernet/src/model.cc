@@ -17,16 +17,13 @@
 
 using std::string;
 
-const int SUCCEED = 0;
-const int ERROR_LOGIC = 1;
-const int ERROR_RUNTIME = 2;
-
+#define PRINT(e) // printf("ERROR: %s\n", e);
 #define API_BEGIN() try {
 // TODO(wlt): all returned runtime_error
 #define API_END() } \
-  catch (const std::runtime_error &e) { return ERROR_RUNTIME; }  \
-  catch (const std::logic_error &e)   { return ERROR_RUNTIME; }  \
-  catch (const std::exception &e) { return ERROR_RUNTIME; } \
+  catch (const std::runtime_error &e) { PRINT(e.what()); return ERROR_RUNTIME; }  \
+  catch (const std::logic_error &e)   { PRINT(e.what()); return ERROR_RUNTIME; }  \
+  catch (const std::exception &e) { PRINT(e.what()); return ERROR_RUNTIME; } \
   return SUCCEED;
 
 #define CHECK_NOT_NULL(x) CHECK(x != nullptr)
@@ -346,9 +343,9 @@ int CVMModel::GetSizeOfInputType() {
 using cvm::runtime::CVMModel;
 
 int CVMAPILoadModel(const char *graph_json, int graph_strlen,
-                          const char *param_bytes, int param_strlen,
-                          void **net,
-                          int device_type, int device_id) {
+                    const char *param_bytes, int param_strlen,
+                    void **net,
+                    int device_type, int device_id) {
   API_BEGIN();
   string graph(graph_json, graph_strlen);
   string params(param_bytes, param_strlen);
@@ -356,6 +353,7 @@ int CVMAPILoadModel(const char *graph_json, int graph_strlen,
   ctx.device_type = (device_type == 0) ? kDLCPU : kDLGPU;
   ctx.device_id = (device_type == 0) ? 0 : device_id;
   CVMModel *model = new CVMModel(graph, ctx);
+  std::cout << "LoadModel" << std::endl;
   if (!model->IsReady() || model->LoadParams(params)) {
     delete model;
     return ERROR_LOGIC;
@@ -374,7 +372,7 @@ int CVMAPIFreeModel(void *net) {
 
 int CVMAPIInference(void *net,
                     char *input_data, int input_len,
-                    StringHandler output_data) {
+                    char *output_data) {
   API_BEGIN();
   CHECK_3_NOT_NULL(net, input_data, output_data);
 
@@ -388,7 +386,7 @@ int CVMAPIInference(void *net,
   API_END();
 }
 
-int CVMAPIGetVersion(void *net, StringHandler version) {
+int CVMAPIGetVersion(void *net, char *version) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, version);
 
@@ -397,7 +395,7 @@ int CVMAPIGetVersion(void *net, StringHandler version) {
   API_END();
 }
 
-int CVMAPIGetPreprocessMethod(void *net, StringHandler method) {
+int CVMAPIGetPreprocessMethod(void *net, char *method) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, method);
 
@@ -406,7 +404,7 @@ int CVMAPIGetPreprocessMethod(void *net, StringHandler method) {
   API_END();
 }
 
-int CVMAPIGetInputLength(void *net, IntHandler size) {
+int CVMAPIGetInputLength(void *net, unsigned long long *size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
@@ -414,7 +412,7 @@ int CVMAPIGetInputLength(void *net, IntHandler size) {
   API_END();
 }
 
-int CVMAPIGetOutputLength(void *net, IntHandler size) {
+int CVMAPIGetOutputLength(void *net, unsigned long long *size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
@@ -422,7 +420,7 @@ int CVMAPIGetOutputLength(void *net, IntHandler size) {
   API_END();
 }
 
-int CVMAPIGetOutputTypeSize(void *net, IntHandler size) {
+int CVMAPIGetOutputTypeSize(void *net, unsigned long long *size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
@@ -430,7 +428,7 @@ int CVMAPIGetOutputTypeSize(void *net, IntHandler size) {
   API_END();
 }
 
-int CVMAPIGetInputTypeSize(void *net, IntHandler size) {
+int CVMAPIGetInputTypeSize(void *net, unsigned long long *size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
@@ -438,7 +436,7 @@ int CVMAPIGetInputTypeSize(void *net, IntHandler size) {
   API_END();
 }
 
-int CVMAPIGetStorageSize(void *net, IntHandler gas) {
+int CVMAPIGetStorageSize(void *net, unsigned long long *gas) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, gas);
   CVMModel* model = static_cast<CVMModel*>(net);
@@ -446,7 +444,7 @@ int CVMAPIGetStorageSize(void *net, IntHandler gas) {
   API_END();
 }
 
-int CVMAPIGetGasFromModel(void *net, IntHandler gas) {
+int CVMAPIGetGasFromModel(void *net, unsigned long long *gas) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, gas);
   CVMModel* model = static_cast<CVMModel*>(net);
@@ -454,7 +452,7 @@ int CVMAPIGetGasFromModel(void *net, IntHandler gas) {
   API_END();
 }
 
-int CVMAPIGetGasFromGraphFile(const char *graph_json, IntHandler gas) {
+int CVMAPIGetGasFromGraphFile(const char *graph_json, unsigned long long *gas) {
   API_BEGIN();
   string json_data(graph_json);
   auto f = cvm::runtime::Registry::Get("cvm.runtime.estimate_ops");

@@ -68,10 +68,10 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	var status int
 	gas, status = kernel.GetModelGasFromGraphFile(s.lib, modelJson)
 	if status == kernel.ERROR_RUNTIME {
-		return 0, kernel.KERNEL_RUNTIME_ERROR
+		return 0, KERNEL_RUNTIME_ERROR
 	}
 	if status == kernel.ERROR_LOGIC {
-		return 0, kernel.KERNEL_LOGIC_ERROR
+		return 0, KERNEL_LOGIC_ERROR
 	}
 
 	if !s.config.IsNotCache {
@@ -162,13 +162,13 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 			return nil, ErrModelFileNotExist
 		}
 		var deviceType = 0
-		if (s.config.DeviceType == "gpu") {
+		if (s.config.DeviceType == "cuda") {
 			deviceType = 1
 		}
 		var status int
-		model, status = kernel.New(s.lib, deviceType, s.config.DeviceId, modelJson, modelParams)
+		model, status = kernel.New(s.lib, modelJson, modelParams, deviceType, s.config.DeviceId)
 		if status == kernel.ERROR_RUNTIME || model == nil {
-			return nil, kernel.KERNEL_RUNTIME_ERROR
+			return nil, KERNEL_RUNTIME_ERROR
 		}
 		s.caches[s.config.DeviceId].Add(modelHash, model, int64(model.Size()))
 
@@ -178,9 +178,9 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	var status = 0
 	result, status = model.Predict(inputContent)
 	if status == kernel.ERROR_RUNTIME {
-		return nil, kernel.KERNEL_RUNTIME_ERROR
+		return nil, KERNEL_RUNTIME_ERROR
 	} else if status == kernel.ERROR_LOGIC {
-		return nil, kernel.KERNEL_LOGIC_ERROR
+		return nil, KERNEL_LOGIC_ERROR
 	}
 
 	if !s.config.IsNotCache {

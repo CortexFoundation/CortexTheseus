@@ -23,8 +23,9 @@
 extern "C" {
 #endif
 
-typedef unsigned long long* IntHandler;
-typedef char* StringHandler;
+const int SUCCEED = 0;
+const int ERROR_LOGIC = 1;
+const int ERROR_RUNTIME = 2;
 
 int CVMAPILoadModel(const char *graph_json, int graph_strlen,
                           const char *param_bytes, int param_strlen,
@@ -33,19 +34,19 @@ int CVMAPILoadModel(const char *graph_json, int graph_strlen,
 int CVMAPIFreeModel(void *net);
 int CVMAPIInference(void *net,
                           char *input_data, int input_len,
-                          StringHandler output_data);
+                          char *output_data);
 
-int CVMAPIGetVersion(void *net, StringHandler version);
-int CVMAPIGetPreprocessMethod(void *net, StringHandler method);
+int CVMAPIGetVersion(void *net, char *version);
+int CVMAPIGetPreprocessMethod(void *net, char *method);
 
-int CVMAPIGetInputLength(void *net, IntHandler size);
-int CVMAPIGetOutputLength(void *net, IntHandler size);
-int CVMAPIGetInputTypeSize(void *net, IntHandler size);
-int CVMAPIGetOutputTypeSize(void *net, IntHandler size);
+int CVMAPIGetInputLength(void *net, unsigned long long *size);
+int CVMAPIGetOutputLength(void *net, unsigned long long *size);
+int CVMAPIGetInputTypeSize(void *net, unsigned long long *size);
+int CVMAPIGetOutputTypeSize(void *net, unsigned long long *size);
 
-int CVMAPIGetStorageSize(void *net, IntHandler gas);
-int CVMAPIGetGasFromModel(void *net, IntHandler gas);
-int CVMAPIGetGasFromGraphFile(const char *graph_json, IntHandler gas);
+int CVMAPIGetStorageSize(void *net, unsigned long long *gas);
+int CVMAPIGetGasFromModel(void *net, unsigned long long *gas);
+int CVMAPIGetGasFromGraphFile(const char *graph_json, unsigned long long *gas);
 
 #ifdef __cplusplus
 } /* end extern "C" */

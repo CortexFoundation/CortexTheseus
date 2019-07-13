@@ -14,6 +14,9 @@ var (
 	ErrModelFileNotExist = errors.New(ErrModelFileNotExistFlag)
 
 	ErrFatal = errors.New("fatal")
+
+	KERNEL_RUNTIME_ERROR = errors.New("Kernel runtime error")
+	KERNEL_LOGIC_ERROR = errors.New("Kernel logic error")
 )
 
 // If infered by local, check struct error is enough.
