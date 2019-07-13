@@ -96,10 +96,13 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		return v.(uint64), nil
 	}
-
-	gas, err = kernel.GetModelOps(s.lib, modelJson)
-	if err != nil {
-		return 0, err
+	var status int
+	gas, status = kernel.GetModelGasFromGraphFile(s.lib, modelJson)
+	if status == kernel.ERROR_RUNTIME {
+		return 0, kernel.KERNEL_RUNTIME_ERROR
+	}
+	if status == kernel.ERROR_LOGIC {
+		return 0, kernel.KERNEL_LOGIC_ERROR
 	}
 
 	if !s.config.IsNotCache {
@@ -178,7 +181,6 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	var (
-		inferErr error
 		result   []byte
 		model    *kernel.Model
 	)
@@ -198,20 +200,28 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		if modelParams_err != nil || modelParams == nil {
 			errCh <- ErrModelFileNotExist
 		}
-		model = kernel.New(s.lib, s.config.DeviceId, modelJson, modelParams)
-		if model == nil {
-			errCh <- errors.New("create model error " + modelHash)
+		var deviceType = 0
+		if (s.config.DeviceType == "gpu") {
+			deviceType = 1
+		}
+		var status int
+		model, status = kernel.New(s.lib, deviceType, s.config.DeviceId, modelJson, modelParams)
+		if status == kernel.ERROR_RUNTIME || model == nil {
+			errCh <- kernel.KERNEL_RUNTIME_ERROR
 			return
 		}
-		s.caches[s.config.DeviceId].Add(modelHash, model, model.Size())
+		s.caches[s.config.DeviceId].Add(modelHash, model, int64(model.Size()))
 
 	} else {
 		model = model_tmp.(*kernel.Model)
 	}
-
-	result, inferErr = model.Predict(inputContent)
-	if inferErr != nil {
-		errCh <- inferErr
+	var status = 0
+	result, status = model.Predict(inputContent)
+	if status == kernel.ERROR_RUNTIME {
+		errCh <- kernel.KERNEL_RUNTIME_ERROR
+		return
+	} else if status == kernel.ERROR_LOGIC {
+		errCh <- kernel.KERNEL_LOGIC_ERROR
 		return
 	}
 
