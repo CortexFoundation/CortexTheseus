@@ -532,11 +532,13 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 
 	if !cvm.vmConfig.DebugInferVM {
 		if !synapse.Engine().Available(modelInfoHash, int64(modelRawSize)) {
-			return nil, errors.New("Torrent file model not available, blockchain and torrent not match, modelInfoHash: " + modelInfoHash)
+			log.Warn("Infer", "Torrent file model not available, blockchain and torrent not match, modelInfoHash", modelInfoHash)
+			return nil, ErrBuiltInTorrentFS
 		}
 
 		if !synapse.Engine().Available(inputInfoHash, int64(inputRawSize)) {
-			return nil, errors.New("Torrent file input not available, blockchain and torrent not match, inputInfoHash: " + inputInfoHash)
+			log.Warn("Infer", "Torrent file input not available, blockchain and torrent not match, inputInfoHash:", inputInfoHash)
+			return nil, ErrBuiltInTorrentFS
 		}
 	}
 
@@ -566,7 +568,8 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	}
 	if !cvm.vmConfig.DebugInferVM {
 		if !synapse.Engine().Available(modelInfoHash, int64(modelRawSize)) {
-			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
+			log.Warn("InferArray", "modelInfoHash", modelInfoHash, "not Available", "")
+			return nil, ErrBuiltInTorrentFS
 		}
 	}
 	var (
@@ -593,7 +596,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	modelRawSize := modelMeta.RawSize
 	if !cvm.vmConfig.DebugInferVM && !synapse.Engine().Available(modelMeta.Hash.Hex(), int64(modelRawSize)) {
 		log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize)
-		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelMeta.Hash.Hex())
+		return 0, ErrBuiltInTorrentFS
 	}
 
 	opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())

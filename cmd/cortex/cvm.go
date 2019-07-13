@@ -41,18 +41,6 @@ var (
 		Value: 4321,
 	}
 
-	CVMDeviceType = cli.StringFlag{
-		Name:  "cvm.devicetype",
-		Usage: "gpu or cpu",
-		Value: "gpu",
-	}
-
-	CVMDeviceId = cli.IntFlag{
-		Name:  "cvm.deviceid",
-		Usage: "gpu id",
-		Value: 0,
-	}
-
 	CVMVerbosity = cli.IntFlag{
 		Name:  "cvm.verbosity",
 		Usage: "verbose level",
@@ -68,8 +56,8 @@ var (
 	cvmFlags = []cli.Flag{
 		// StorageDirFlag,
 		CVMPortFlag,
-		CVMDeviceType,
-		CVMDeviceId,
+		// CVMDeviceType,
+		// CVMDeviceId,
 		CVMVerbosity,
 		CVMCortexIPC,
 	}
@@ -104,11 +92,10 @@ func cvmServer(ctx *cli.Context) error {
 		panic (fs_err)
 	}
 	port := ctx.GlobalInt(CVMPortFlag.Name)
-	DeviceType := ctx.GlobalString(CVMDeviceType.Name)
-	DeviceId := ctx.GlobalInt(CVMDeviceId.Name)
+	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
+	DeviceId := ctx.GlobalInt(utils.InferDeviceIdFlag.Name)
 
 	DeviceName := "cpu"
-
 	if DeviceType == "gpu" {
 		DeviceName = "cuda"
 	}

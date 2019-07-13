@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"encoding/binary"
@@ -28,12 +29,12 @@ func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork)
 	isAvailable := synapse.Engine().Available(inferWork.InfoHash, inferWork.RawSize)
 	var ret uint64 = 1
 	if !isAvailable {
-		ret = 0;
+		RespErrorText(w, errors.New(inferWork.InfoHash + " Not Available"))
+	} else {
+		ret_arr := Uint64ToBytes(ret)
+		log.Info("Get Operators Succeed", "result", ret)
+		RespInfoText(w, ret_arr)
 	}
-	ret_arr := Uint64ToBytes(ret)
-
-	log.Info("Get Operators Succeed", "result", ret)
-	RespInfoText(w, ret_arr)
 }
 
 func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
