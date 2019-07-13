@@ -19,7 +19,7 @@ void* plugin_open(const char* path, char** err) {
 #define TYPE(name) name##_t
 #define FUNC_BEGIN(name, params...) \
   typedef int (*TYPE(name)) (params); \
-  int name(void *lib, params) { \
+  int dl_##name(void *lib, params) { \
     void *func_ptr = dlsym(lib, #name); \
     if (func_ptr == NULL) { \
       printf("cannot find symbol from library: %s\n", #name); \
@@ -48,20 +48,20 @@ FUNC_END(net, version);
 FUNC_BEGIN(CVMAPIGetPreprocessMethod, void *net, char *method);
 FUNC_END(net, method);
  
-FUNC_BEGIN(CVMAPIGetInputLength, void *net, int *size);
+FUNC_BEGIN(CVMAPIGetInputLength, void *net, unsigned long long *size);
 FUNC_END(net, size);
-FUNC_BEGIN(CVMAPIGetOutputLength, void *net, int *size);
+FUNC_BEGIN(CVMAPIGetOutputLength, void *net, unsigned long long *size);
 FUNC_END(net, size);
-FUNC_BEGIN(CVMAPIGetInputTypeSize, void *net, int *size);
+FUNC_BEGIN(CVMAPIGetInputTypeSize, void *net, unsigned long long *size);
 FUNC_END(net, size);
-FUNC_BEGIN(CVMAPIGetOutputTypeSize, void *net, int *size);
+FUNC_BEGIN(CVMAPIGetOutputTypeSize, void *net, unsigned long long *size);
 FUNC_END(net, size);
 
-FUNC_BEGIN(CVMAPIGetStorageSize, void *net, int *gas);
+FUNC_BEGIN(CVMAPIGetStorageSize, void *net, unsigned long long *gas);
 FUNC_END(net, gas);
-FUNC_BEGIN(CVMAPIGetGasFromModel, void *net, int *gas);
+FUNC_BEGIN(CVMAPIGetGasFromModel, void *net, unsigned long long *gas);
 FUNC_END(net, gas);
-FUNC_BEGIN(CVMAPIGetGasFromGraphFile, char *graph_json, int *gas);
+FUNC_BEGIN(CVMAPIGetGasFromGraphFile, char *graph_json, unsigned long long *gas);
 FUNC_END(graph_json, gas);
 
 #endif // CVM_DLOPEN_H
