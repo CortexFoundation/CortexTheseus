@@ -59,38 +59,38 @@ func New(lib *plugin.Plugin, device_type, deviceId int, modelCfg, modelBin []byt
 	)
 	if func_ptr := lookUp(lib, "LoadModel"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else if model.model, status = func_ptr.(func_LoadModel)(
+	} else if model.model, status = func_ptr.(func([]byte, []byte, int, int) (unsafe.Pointer, int))(
 		modelCfg, modelBin, device_type, deviceId); status != SUCCEED {
 		return nil, status
 	}
 
 	if func_ptr := lookUp(lib, "GetStorageSize"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else if model.size, status = func_ptr.(func_GetStorageSize)(model.model); status != SUCCEED {
+	} else if model.size, status = func_ptr.(func(unsafe.Pointer) (uint64, int))(model.model); status != SUCCEED {
 		return nil, status
 	}
 
 	if func_ptr := lookUp(lib, "GetGasFromModel"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else if model.ops, status = func_ptr.(func_GetGasFromModel)(model.model); status != SUCCEED {
+	} else if model.ops, status = func_ptr.(func(unsafe.Pointer) (uint64, int))(model.model); status != SUCCEED {
 		return nil, status
 	}
 
 	if func_ptr := lookUp(lib, "GetInputLength"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else if model.input_size, status = func_ptr.(func_GetInputLength)(model.model); status != SUCCEED {
+	} else if model.input_size, status = func_ptr.(func(unsafe.Pointer) (uint64, int))(model.model); status != SUCCEED {
 		return nil, status
 	}
 
 	if func_ptr := lookUp(lib, "GetInputTypeSize"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else if model.input_byte, status = func_ptr.(func_GetInputTypeSize)(model.model); status != SUCCEED {
+	} else if model.input_byte, status = func_ptr.(func(unsafe.Pointer) (uint64, int))(model.model); status != SUCCEED {
 		return nil, status
 	}
 
 	if func_ptr := lookUp(lib, "GetOutputTypeSize"); func_ptr == nil {
 		return nil, ERROR_RUNTIME
-	} else if model.output_byte, status = func_ptr.(func_GetOutputTypeSize)(model.model); status != SUCCEED {
+	} else if model.output_byte, status = func_ptr.(func(unsafe.Pointer) (uint64, int))(model.model); status != SUCCEED {
 		return nil, status
 	}
 
@@ -110,10 +110,10 @@ func (m *Model) GetInputLength() uint64 {
 }
 
 func GetModelGasFromGraphFile(lib *plugin.Plugin, file []byte) (uint64, int) {
-	if func_ptr := lookUp(lib, "GetModelGasFromGraphFile"); func_ptr == nil {
+	if func_ptr := lookUp(lib, "GetGasFromGraphFile"); func_ptr == nil {
 		return 0, ERROR_RUNTIME
 	} else {
-		return func_ptr.(func_GetGasFromGraphFile)(file)
+		return func_ptr.(func([]byte)(uint64, int))(file)
 	}
 }
 
@@ -121,7 +121,7 @@ func (m *Model) Free() int {
 	if func_ptr := lookUp(m.lib, "FreeModel"); func_ptr == nil {
 		return ERROR_RUNTIME
 	} else {
-		return func_ptr.(func_FreeModel)(m.model)
+		return func_ptr.(func(unsafe.Pointer) int)(m.model)
 	}
 }
 
@@ -142,7 +142,7 @@ func (m *Model) Predict(data []byte) ([]byte, int) {
 	if data, err = ToAlignedData(data, int(m.input_byte)); err != nil {
 		return nil, ERROR_LOGIC
 	}
-	if output, status = func_ptr.(func_Inference)(m.model, data); status != SUCCEED {
+	if output, status = func_ptr.(func(unsafe.Pointer, []byte) ([]byte, int))(m.model, data); status != SUCCEED {
 		return nil, status
 	}
 	if m.output_byte > 1 {
