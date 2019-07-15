@@ -22,7 +22,27 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash, uri string) (uint64, error
 	if errMarshal != nil {
 		return 0, errMarshal
 	}
-	log.Debug("Remote Inference", "request", string(requestBody))
+	log.Debug("remoteGasByModelHash", "request", string(requestBody))
+
+	retArray, err := s.sendRequest(string(requestBody), uri)
+	if err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint64(retArray), nil
+}
+
+func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) (uint64, error) {
+	inferWork := &inference.AvailableWork{
+		Type:  inference.AVAILABLE_BY_H,
+		InfoHash: infoHash,
+		RawSize: rawSize,
+	}
+
+	requestBody, errMarshal := json.Marshal(inferWork)
+	if errMarshal != nil {
+		return 0, errMarshal
+	}
+	log.Debug("remoteAvailable", "request", string(requestBody))
 
 	retArray, err := s.sendRequest(string(requestBody), uri)
 	if err != nil {
@@ -42,7 +62,7 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash, uri string
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("Remote Inference", "request", string(requestBody))
+	log.Debug("remoteInferByInfoHash", "request", string(requestBody))
 
 	return s.sendRequest(string(requestBody), uri)
 }
@@ -58,7 +78,7 @@ func (s *Synapse) remoteInferByInputContent(modelInfoHash, uri string, inputCont
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("Remote Inference", "request", string(requestBody))
+	log.Debug("remoteInferByInputContent", "request", string(requestBody)[:20])
 
 	return s.sendRequest(string(requestBody), uri)
 }

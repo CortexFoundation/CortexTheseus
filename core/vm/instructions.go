@@ -44,6 +44,7 @@ var (
 	errMaxCodeSizeExceeded   = errors.New("cvm: max code size exceeded")
 	errAiRuntime             = errors.New("ai runtime error")
 	errInvalidJump           = errors.New("cvm: invalid jump destination")
+	ErrBuiltInTorrentFS      = errors.New("built-in torrent fs file wait")
 
 	big0  = big.NewInt(0)
 	big31 = big.NewInt(31)
@@ -867,10 +868,11 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	}
 	inputSize := big.NewInt(int64(len(inputBuff)))
 	modelAddr := common.BigToAddress(_modelAddr)
-	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
+	// log.Debug(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
 	modelMeta, modelErr := checkModel(interpreter.cvm, stack, modelAddr)
 	if modelErr != nil {
+		// log.Error("opInferArray", "modelErr", modelErr)
 		stack.push(interpreter.intPool.getZero())
 		return nil, modelErr
 	}

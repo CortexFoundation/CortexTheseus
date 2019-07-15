@@ -404,7 +404,7 @@ int CVMAPIGetPreprocessMethod(void *net, char *method) {
   API_END();
 }
 
-int CVMAPIGetInputLength(void *net, int *size) {
+int CVMAPIGetInputLength(void *net, unsigned long long *size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);

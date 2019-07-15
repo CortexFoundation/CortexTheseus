@@ -136,19 +136,20 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 	return nil
 }
 
-func Exist(infohash string) bool {
-	TorrentAPIAvailable.Lock()
-	defer TorrentAPIAvailable.Unlock()
-	ih := metainfo.NewHashFromHex(infohash[2:])
-	tm := CurrentTorrentManager
-	if torrent := tm.GetTorrent(ih); torrent == nil {
-		return false
-	} else {
-		return torrent.IsAvailable()
-	}
-}
+// func Exist(infohash string) bool {
+// 	TorrentAPIAvailable.Lock()
+// 	defer TorrentAPIAvailable.Unlock()
+// 	ih := metainfo.NewHashFromHex(infohash[2:])
+// 	tm := CurrentTorrentManager
+// 	if torrent := tm.GetTorrent(ih); torrent == nil {
+// 		return false
+// 	} else {
+// 		return torrent.IsAvailable()
+// 	}
+// }
 
-func Available(infohash string, rawSize int64) bool {
+func Available(infohash string, rawSize int64) (bool, error) {
+	log.Debug("Available", "infohash", infohash, "RawSize", rawSize)
 	TorrentAPIAvailable.Lock()
 	defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
@@ -156,10 +157,13 @@ func Available(infohash string, rawSize int64) bool {
 	log.Debug("storage", "ih", ih)
 	if torrent := tm.GetTorrent(ih); torrent == nil {
 		log.Debug("storage", "ih", ih, "torrent", torrent)
-		return false
+		return false, errors.New("download not completed")
 	} else {
+		if (!torrent.IsAvailable()) {
+			return false, errors.New(fmt.Sprintf("download not completed: %d %d", torrent.BytesCompleted(), rawSize))
+		}
 		log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
-		return torrent.IsAvailable() && torrent.BytesCompleted() <= rawSize
+		return torrent.BytesCompleted() <= rawSize, nil
 	}
 }
 

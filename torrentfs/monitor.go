@@ -242,7 +242,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		InfoHash:       meta.InfoHash,
 		BytesRequested: bytesRequested,
 	})
-	log.Info("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
+	log.Debug("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
 	return nil
 }
 

@@ -114,6 +114,7 @@ type Config struct {
 
 	// Miscellaneous options
 	DocRoot string `toml:"-"`
+	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
 }
 
 type configMarshaling struct {

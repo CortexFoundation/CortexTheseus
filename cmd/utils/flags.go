@@ -404,6 +404,11 @@ var (
 		Usage: "the device used infering, use --infer.device=2, not available on cpu",
 		Value: 0,
 	}
+	InferPortFlag = cli.IntFlag{
+		Name:  "infer.port",
+		Usage: "local infer port",
+		Value: 4321,
+	}
 	InferMemoryFlag = cli.IntFlag{
 		Name: "infer.memory",
 		Usage: "the maximum memory usage of infer engine, use --infer.memory=4096. shoule at least be 2048 (MiB)",
@@ -576,16 +581,12 @@ var (
 		Usage: "Number of recent blocks to check for gas prices",
 		Value: ctxc.DefaultConfig.GPO.Blocks,
 	}
+
 	GpoPercentileFlag = cli.IntFlag{
 		Name:  "gpopercentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: ctxc.DefaultConfig.GPO.Percentile,
 	}
-	// ModelCallInterfaceFlag = cli.StringFlag{
-	// 	Name:  "cvm.inferuri",
-	// 	Usage: "URI for delegated inference (experimental)",
-	// 	Value: "",
-	// }
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
@@ -1119,10 +1120,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
-	if cfg.InferDeviceType == "gpu" {
+	if cfg.InferDeviceType == "cpu" {
+	} else if cfg.InferDeviceType == "gpu" {
 		cfg.InferDeviceType = "cuda"
-	}
-	if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
+	} else if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
 		u, err := url.Parse(cfg.InferDeviceType)
 		if err == nil && u.Scheme == "remote" && len(u.Hostname()) > 0 && len(u.Port()) > 0 {
 			cfg.InferURI = "http://" + u.Hostname() + ":" + u.Port();
@@ -1130,6 +1131,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
+	} else if (IsCVMIPC(cfg.InferDeviceType) != "") {
+		cfg.InferURI = "http://127.0.0.1:" + strconv.Itoa(ctx.GlobalInt(InferPortFlag.Name));
+	} else {
+			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
 	cfg.InferMemoryUsage = int64(ctx.GlobalInt(InferMemoryFlag.Name))
@@ -1208,7 +1213,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		path := MakeDataDir(ctx)
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
-		log.Info("IPCPath", "path", cfg.IpcPath)
+		log.Debug("SetTorrentFsConfig", "IPCPath", cfg.IpcPath)
 	}
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
@@ -1388,4 +1393,12 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 		}
 		return action(ctx)
 	}
+}
+
+func IsCVMIPC(deviceType string) string {
+	u, err := url.Parse(deviceType)
+	if err == nil && u.Scheme == "ipc" && len(u.Hostname()) > 0 && len(u.Port()) == 0 {
+		return u.Hostname()
+	}
+	return "";
 }
