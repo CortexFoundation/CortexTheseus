@@ -354,7 +354,7 @@ func (m *Monitor) startWork() error {
 
 	rpcClient, rpcErr := SetConnection(clientURI)
 	if rpcErr != nil {
-		log.Error("Torrent rpc client is wrong", "uri", clientURI, "error", rpcErr)
+		log.Error("Torrent rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
 		return rpcErr
 	}
 	m.cl = rpcClient

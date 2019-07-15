@@ -47,10 +47,12 @@ var (
 		Value: 3,
 	}
 
-	CVMCortexIPC= cli.StringFlag{
+	//value,_ := utils.DirectoryString("~/.cortex/cortex.ipc")
+	CVMCortexIPC= utils.DirectoryFlag{
 		Name:  "cvm.cortexipc",
 		Usage: "cortex ipc",
-		Value: "~/.cortex/cortex.ipc",
+		//Value: utils.DirectoryString("~/.cortex/" + "cortex.ipc"),
+		Value: utils.DirectoryString{"~/.cortex/cortex.ipc"},
 	}
 
 	cvmFlags = []cli.Flag{
@@ -84,8 +86,8 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg := torrentfs.Config{}
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
-	fsCfg.IpcPath = ctx.GlobalString(CVMCortexIPC.Name)
-	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name))
+	//fsCfg.IpcPath = ctx.GlobalString(utils.IPCPathFlag.Name)
+	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", ctx.GlobalString(utils.IPCPathFlag.Name))
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
 	storagefs.Start(nil)
 	if fs_err != nil {
