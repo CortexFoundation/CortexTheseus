@@ -18,7 +18,9 @@ package main
 
 import (
 	"os"
+	"os/user"
 	"fmt"
+	"path/filepath"
 
 	"net/http"
 	"gopkg.in/urfave/cli.v1"
@@ -28,6 +30,15 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 )
 
+func homeDir() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	if usr, err := user.Current(); err == nil {
+		return usr.HomeDir
+	}
+	return ""
+}
 var (
 	// StorageDirFlag = utils.DirectoryFlag{
 	// 	Name:  "cvm.dir",
@@ -48,11 +59,11 @@ var (
 	}
 
 	//value,_ := utils.DirectoryString("~/.cortex/cortex.ipc")
-	CVMCortexIPC= utils.DirectoryFlag{
-		Name:  "cvm.cortexipc",
-		Usage: "cortex ipc",
+	CVMCortexDir = utils.DirectoryFlag{
+		Name:  "cvm.datadir",
+		Usage: "cortex fulllnode dir",
 		//Value: utils.DirectoryString("~/.cortex/" + "cortex.ipc"),
-		Value: utils.DirectoryString{"~/.cortex/cortex.ipc"},
+		Value: utils.DirectoryString{homeDir() + "/.cortex/"},
 	}
 
 	cvmFlags = []cli.Flag{
@@ -61,7 +72,7 @@ var (
 		// CVMDeviceType,
 		// CVMDeviceId,
 		CVMVerbosity,
-		CVMCortexIPC,
+		CVMCortexDir,
 	}
 
 	cvmCommand = cli.Command{
@@ -86,7 +97,7 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg := torrentfs.Config{}
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
-	fsCfg.IpcPath = ctx.GlobalString(CVMCortexIPC.Name)
+	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
 	storagefs.Start(nil)
