@@ -76,13 +76,21 @@ func main() {
 		res    []byte
 		status int
 	)
-	lib, status = kernel.LibOpen("./libcvm_runtime_cuda.so")
+
+	device := "cpu"
+	deviceType := 0
+	if device == "cuda" {
+		deviceType = 1
+	}
+	lib, status = kernel.LibOpen("./libcvm_runtime_" + device + ".so")
+	// lib, status = kernel.LibOpen("./libcvm_runtime_cpu.so")
 	if status != kernel.SUCCEED {
 		fmt.Printf("open library error: %d\n", status)
 		return
 	}
 
-	root := "/data/std_out/log2"
+	// root := "/data/std_out/log2"
+	root := "/home/serving/ctxc_data/cpu/3145ad19228c1cd2d051314e72f26c1ce77b7f02/data"
 	modelCfg, sErr := ioutil.ReadFile(root + "/symbol")
 	if sErr != nil {
 		fmt.Println(sErr)
@@ -95,7 +103,7 @@ func main() {
 	}
 	// modelCfg := []byte("{}")
 	// modelBin := []byte("dkjflsiejflsdkj")
-	net, status = kernel.New(lib, modelCfg, modelBin, 0, 0)
+	net, status = kernel.New(lib, modelCfg, modelBin, deviceType, 0)
 	if status != kernel.SUCCEED {
 		fmt.Printf("CVMAPILoadModel failed: %d\n", status)
 		return
@@ -110,7 +118,7 @@ func main() {
 		fmt.Printf("Predict failed: %d\n", status)
 		return
 	}
-	fmt.Printf("Predict succeed: %v\n", res[:100])
+	fmt.Printf("Predict succeed: %v\n", res)
 
 	status = net.Free()
 	if status != kernel.SUCCEED {

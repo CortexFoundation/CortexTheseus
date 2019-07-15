@@ -40,7 +40,7 @@ func New(lib *LibCVM, modelCfg, modelBin []byte, deviceType, deviceId int) (*Mod
 	if model.input_byte, status = lib.GetInputTypeSize(model.model); status != SUCCEED {
 		return nil, status
 	}
-	if model.output_byte, status = lib.GetOutputLength(model.model); status != SUCCEED {
+	if model.output_byte, status = lib.GetOutputTypeSize(model.model); status != SUCCEED {
 		return nil, status
 	}
 	return model, status
