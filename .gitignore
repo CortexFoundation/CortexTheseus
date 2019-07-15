@@ -79,3 +79,4 @@ node_modules/
 plugins/
 *.log
 *.rdb
+password
