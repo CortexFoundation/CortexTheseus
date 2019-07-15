@@ -108,6 +108,7 @@ func NewMonitor(flag *Config) (*Monitor, error) {
 // SetConnection method builds connection to remote or local communicator.
 func SetConnection(clientURI string) (*rpc.Client, error) {
 	for i := 0; i < connTryTimes; i++ {
+		time.Sleep(time.Second * connTryInterval)
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
 			log.Warn("Building internal-rpc connection failed", "URI", clientURI, "times", i, "error", err)
@@ -115,8 +116,6 @@ func SetConnection(clientURI string) (*rpc.Client, error) {
 			log.Debug("Internal-IPC connection established", "URI", clientURI)
 			return cl, nil
 		}
-
-		time.Sleep(time.Second * connTryInterval)
 	}
 
 	return nil, errors.New("Building Internal-IPC Connection Failed")
