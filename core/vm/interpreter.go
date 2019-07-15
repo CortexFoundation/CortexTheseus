@@ -395,16 +395,10 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		}
 
-		//if err != nil || !contract.UseGas(cost) {
-		//      log.Warn("interpreter", "cost", cost, "err", err, "cgas", cgas)
-		//    return nil, ErrOutOfGas
-		//}
-
 		if op.IsInfer() {
-			var model_meta_err error
-			modelMeta, model_meta_err := in.cvm.GetModelMeta(common.BigToAddress(stack.Back(0)))
-			if model_meta_err != nil {
-				return nil, model_meta_err
+			modelMeta, err := in.cvm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			if err != nil {
+				return nil, err
 			}
 			//todo model validation
 			if modelMeta.AuthorAddress != common.EmptyAddress {
@@ -422,13 +416,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			log.Warn("interpreter", "cost", cost, "err", err, "cgas", cgas)
 			return nil, ErrOutOfGas
 		}
-		// consume the gas and return an error if not enough gas is available.
-		// cost is explicitly set so that the capture state defer method can get the proper cost
-		//cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
 
-		//if err != nil || !contract.UseGas(cost) {
-		//	return nil, ErrOutOfGas
-		//}
 		if memorySize > 0 {
 			mem.Resize(memorySize)
 		}
