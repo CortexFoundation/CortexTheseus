@@ -34,7 +34,7 @@ var (
 const (
 	defaultTimerInterval  = 2
 	connTryTimes          = 300
-	connTryInterval       = 10
+	connTryInterval       = 2
 	fetchBlockTryTimes    = 5
 	fetchBlockTryInterval = 3
 	fetchBlockLogStep     = 10000
@@ -111,7 +111,7 @@ func SetConnection(clientURI string) (*rpc.Client, error) {
 		time.Sleep(time.Second * connTryInterval)
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
-			log.Warn("Building internal-rpc connection failed", "URI", clientURI, "times", i, "error", err)
+			log.Warn("Building internal-ipc connection ... ", "URI", clientURI, "times", i, "error", err)
 		} else {
 			log.Debug("Internal-IPC connection established", "URI", clientURI)
 			return cl, nil
