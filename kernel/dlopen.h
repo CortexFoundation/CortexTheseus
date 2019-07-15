@@ -44,15 +44,15 @@ void* plugin_open(const char* path, char** err) {
 #define ARG_V(args...) CONCAT(ARG_, ARGS_COUNT(args))(V, ##args)
 #define ARG_TV(args...) CONCAT(ARG_, ARGS_COUNT(args))(TV, ##args)
 
-#define MAKE_FUNC(name, params...) \
-  typedef int (*TYPE(name)) (ARG_T(params)); \
-  int dl_##name(void *lib, ARG_TV(params)) { \
-    void *func_ptr = dlsym(lib, #name); \
+#define MAKE_FUNC(fname, params...) \
+  typedef int (*TYPE(fname)) (ARG_T(params)); \
+  int dl_##fname(void *lib, ARG_TV(params)) { \
+    void *func_ptr = dlsym(lib, #fname); \
     if (func_ptr == NULL) { \
-      printf("cannot find symbol from library: %s\n", #name); \
+      printf("cannot find symbol from library: %s\n", #fname); \
       return ERROR_RUNTIME; \
     } \
-    TYPE(name) func = (TYPE(name))func_ptr; \
+    TYPE(fname) func = (TYPE(fname))func_ptr; \
     return func(ARG_V(params)); \
   }
 
