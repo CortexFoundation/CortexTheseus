@@ -2,17 +2,17 @@ package kernel
 
 /*
 #cgo LDFLAGS: -ldl -lstdc++
-
-#cgo CFLAGS: -I../include -O2
+#cgo CFLAGS: -I../../../infernet/include -O2
 #cgo CFLAGS: -Wall -Wno-unused-result -Wno-unknown-pragmas -Wno-unused-variable
 
-#include <dlopen.h>
+#include "dlopen.h"
 */
 import "C"
 import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"unsafe"
+	"path/filepath"
 )
 
 var (
@@ -33,12 +33,10 @@ func LibOpen(libpath string) (*LibCVM, int) {
 		return nil, ERROR_RUNTIME
 	}
 	cPath := make([]byte, C.PATH_MAX+1)
-	cRelName := make([]byte, len(libpath)+1)
-	copy(cRelName, libpath)
-	if C.realpath(
-		(*C.char)(unsafe.Pointer(&cRelName[0])),
-		(*C.char)(unsafe.Pointer(&cPath[0]))) == nil {
-		log.Error("cannot find real library path", "path", libpath)
+	if fullpath, err := filepath.Abs(libpath); err == nil {
+		copy(cPath, fullpath)
+	} else {
+		log.Error("LibOpen", "libpath", libpath)
 		return nil, ERROR_RUNTIME
 	}
 
