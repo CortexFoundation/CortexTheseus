@@ -76,8 +76,14 @@ func main() {
 		res    []byte
 		status int
 	)
-	// lib, status = kernel.LibOpen("./libcvm_runtime_cuda.so")
-	lib, status = kernel.LibOpen("./libcvm_runtime_cpu.so")
+
+	device := "cpu"
+	deviceType := 0
+	if device == "cuda" {
+		deviceType = 1
+	}
+	lib, status = kernel.LibOpen("./libcvm_runtime_" + device + ".so")
+	// lib, status = kernel.LibOpen("./libcvm_runtime_cpu.so")
 	if status != kernel.SUCCEED {
 		fmt.Printf("open library error: %d\n", status)
 		return
@@ -96,7 +102,7 @@ func main() {
 	}
 	// modelCfg := []byte("{}")
 	// modelBin := []byte("dkjflsiejflsdkj")
-	net, status = kernel.New(lib, modelCfg, modelBin, 0, 0)
+	net, status = kernel.New(lib, modelCfg, modelBin, deviceType, 0)
 	if status != kernel.SUCCEED {
 		fmt.Printf("CVMAPILoadModel failed: %d\n", status)
 		return
