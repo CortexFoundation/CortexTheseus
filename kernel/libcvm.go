@@ -11,8 +11,8 @@ import "C"
 import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"unsafe"
 	"path/filepath"
+	"unsafe"
 )
 
 var (
@@ -24,7 +24,6 @@ var (
 type LibCVM struct {
 	path string
 	lib  unsafe.Pointer
-	syms map[string]interface{}
 }
 
 func LibOpen(libpath string) (*LibCVM, int) {
@@ -50,7 +49,6 @@ func LibOpen(libpath string) (*LibCVM, int) {
 	return &LibCVM{
 		path: string(cPath),
 		lib:  lib,
-		syms: map[string]interface{}{},
 	}, SUCCEED
 }
 

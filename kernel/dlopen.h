@@ -17,51 +17,64 @@ void* plugin_open(const char* path, char** err) {
 }
 
 #define TYPE(name) name##_t
-#define FUNC_BEGIN(name, params...) \
-  typedef int (*TYPE(name)) (params); \
-  int dl_##name(void *lib, params) { \
+
+#define ARGS_COUNT(args...) ARGS_COUNT_(0, ##args, \
+    16, 15, 14, 13, 12, 11, 10, \
+    9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define ARGS_COUNT_( \
+    _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, \
+    _10, _11, _12, _13, _14, _15, _16, N, ...) N
+
+#define ARG_0(f)
+#define ARG_2(f, t, v) f(t, v)
+#define ARG_4(f, t, v, args...) f(t, v), ARG_2(f, args)
+#define ARG_6(f, t, v, args...) f(t, v), ARG_4(f, args)
+#define ARG_8(f, t, v, args...) f(t, v), ARG_6(f, args)
+#define ARG_10(f, t, v, args...) f(t, v), ARG_8(f, args)
+#define ARG_12(f, t, v, args...) f(t, v), ARG_10(f, args)
+#define ARG_14(f, t, v, args...) f(t, v), ARG_12(f, args)
+
+#define CONCAT_(a, b) a ## b
+#define CONCAT(a, b) CONCAT_(a, b)
+
+#define T(t, v) t
+#define V(t, v) v
+#define TV(t, v) t v
+#define ARG_T(args...) CONCAT(ARG_, ARGS_COUNT(args))(T, ##args)
+#define ARG_V(args...) CONCAT(ARG_, ARGS_COUNT(args))(V, ##args)
+#define ARG_TV(args...) CONCAT(ARG_, ARGS_COUNT(args))(TV, ##args)
+
+#define MAKE_FUNC(name, params...) \
+  typedef int (*TYPE(name)) (ARG_T(params)); \
+  int dl_##name(void *lib, ARG_TV(params)) { \
     void *func_ptr = dlsym(lib, #name); \
     if (func_ptr == NULL) { \
       printf("cannot find symbol from library: %s\n", #name); \
       return ERROR_RUNTIME; \
     } \
-    TYPE(name) func = (TYPE(name))func_ptr; 
-#define FUNC_END(params_name...) return func(params_name); }
+    TYPE(name) func = (TYPE(name))func_ptr; \
+    return func(ARG_V(params)); \
+  }
 
-FUNC_BEGIN(CVMAPILoadModel, const char* json, int json_strlen,
-                            const char *param_bytes, int param_strlen,
-                            void **net,
-                            int device_type, int device_id);
-FUNC_END(json, json_strlen, param_bytes, param_strlen,
-         net, device_type, device_id);
+MAKE_FUNC(CVMAPILoadModel, const char*, json, int, json_strlen,
+                           const char*, param_bytes, int, param_strlen,
+                           void**, net,
+                           int, device_type, int, device_id);
+MAKE_FUNC(CVMAPIFreeModel, void*, net);
+MAKE_FUNC(CVMAPIInference, void*, net,
+                           char*, input_data, int, input_len,
+                           char*, output_data);
 
-FUNC_BEGIN(CVMAPIFreeModel, void *net);
-FUNC_END(net);
+MAKE_FUNC(CVMAPIGetVersion, void*, net, char*, version);
+MAKE_FUNC(CVMAPIGetPreprocessMethod, void*, net, char*, method);
 
-FUNC_BEGIN(CVMAPIInference, void *net,
-                          char *input_data, int input_len,
-                          char *output_data);
-FUNC_END(net, input_data, input_len, output_data);
- 
-FUNC_BEGIN(CVMAPIGetVersion, void *net, char *version);
-FUNC_END(net, version);
-FUNC_BEGIN(CVMAPIGetPreprocessMethod, void *net, char *method);
-FUNC_END(net, method);
- 
-FUNC_BEGIN(CVMAPIGetInputLength, void *net, unsigned long long *size);
-FUNC_END(net, size);
-FUNC_BEGIN(CVMAPIGetOutputLength, void *net, unsigned long long *size);
-FUNC_END(net, size);
-FUNC_BEGIN(CVMAPIGetInputTypeSize, void *net, unsigned long long *size);
-FUNC_END(net, size);
-FUNC_BEGIN(CVMAPIGetOutputTypeSize, void *net, unsigned long long *size);
-FUNC_END(net, size);
+MAKE_FUNC(CVMAPIGetInputLength, void*, net, unsigned long long*, size);
+MAKE_FUNC(CVMAPIGetOutputLength, void*, net, unsigned long long*, size);
+MAKE_FUNC(CVMAPIGetInputTypeSize, void*, net, unsigned long long*, size);
+MAKE_FUNC(CVMAPIGetOutputTypeSize, void*, net, unsigned long long*, size);
 
-FUNC_BEGIN(CVMAPIGetStorageSize, void *net, unsigned long long *gas);
-FUNC_END(net, gas);
-FUNC_BEGIN(CVMAPIGetGasFromModel, void *net, unsigned long long *gas);
-FUNC_END(net, gas);
-FUNC_BEGIN(CVMAPIGetGasFromGraphFile, char *graph_json, unsigned long long *gas);
-FUNC_END(graph_json, gas);
+MAKE_FUNC(CVMAPIGetStorageSize, void*, net, unsigned long long*, gas);
+MAKE_FUNC(CVMAPIGetGasFromModel, void*, net, unsigned long long*, gas);
+MAKE_FUNC(CVMAPIGetGasFromGraphFile, const char*, graph_json, unsigned long long*, gas);
 
 #endif // CVM_DLOPEN_H
