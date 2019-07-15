@@ -175,7 +175,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			args := []string{"cvm",
 					"--cvm.port", strconv.Itoa(ctx.GlobalInt(utils.InferPortFlag.Name)),
 					"--storage.dir", utils.MakeStorageDir(ctx),
-					"--cvm.cortexipc", cfg.TorrentFs.IpcPath,
+					"--cvm.datadir", utils.MakeDataDir(ctx),
 					"--infer.devicetype", deviceType}
 			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
 			prg := exec.Command(cmd, args...)
