@@ -404,6 +404,11 @@ var (
 		Usage: "the device used infering, use --infer.device=2, not available on cpu",
 		Value: 0,
 	}
+	InferPortFlag = cli.IntFlag{
+		Name:  "infer.port",
+		Usage: "local infer port",
+		Value: 4321,
+	}
 	InferMemoryFlag = cli.IntFlag{
 		Name: "infer.memory",
 		Usage: "the maximum memory usage of infer engine, use --infer.memory=4096. shoule at least be 2048 (MiB)",
@@ -1127,7 +1132,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
 	} else if (IsCVMIPC(cfg.InferDeviceType) != "") {
-		cfg.InferURI = "http://127.0.0.1:4321";
+		cfg.InferURI = "http://127.0.0.1:" + strconv.Itoa(ctx.GlobalInt(InferPortFlag.Name));
 	} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}

@@ -639,7 +639,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
     for _, t := range pendingTorrents {
 			ih := t.Torrent.InfoHash()
       t.loop += 1
-			log.Info("pending status", "ih", t.infohash, "loop", t.loop)
+			log.Trace("pending status", "ih", t.infohash, "loop", t.loop)
       if t.Seeding() {
         delete(tm.pendingTorrents, ih)
         tm.seedingTorrents[ih] = t

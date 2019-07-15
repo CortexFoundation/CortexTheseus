@@ -30,6 +30,7 @@ import (
 	"reflect"
 	"unicode"
 	"strings"
+	"strconv"
 
 	cli "gopkg.in/urfave/cli.v1"
 
@@ -173,7 +174,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			cmd := os.Args[0]
 			log.Info("RegisterCVMService", "cmd", cmd)
 			args := []string{"cvm",
-					"--cvm.port", "4321",
+					"--cvm.port", strconv.Itoa(ctx.GlobalInt(utils.InferPortFlag.Name)),
 					"--storage.dir", utils.MakeStorageDir(ctx),
 					"--cvm.cortexipc", filepath.Join(utils.MakeDataDir(ctx), ctx.GlobalString(utils.IPCPathFlag.Name)),
 					"--infer.devicetype", deviceType}
