@@ -89,7 +89,8 @@ func main() {
 		return
 	}
 
-	root := "/data/std_out/log2"
+	// root := "/data/std_out/log2"
+	root := "/home/serving/ctxc_data/cpu/3145ad19228c1cd2d051314e72f26c1ce77b7f02/data"
 	modelCfg, sErr := ioutil.ReadFile(root + "/symbol")
 	if sErr != nil {
 		fmt.Println(sErr)
@@ -117,7 +118,7 @@ func main() {
 		fmt.Printf("Predict failed: %d\n", status)
 		return
 	}
-	fmt.Printf("Predict succeed: %v\n", res[:100])
+	fmt.Printf("Predict succeed: %v\n", res)
 
 	status = net.Free()
 	if status != kernel.SUCCEED {
