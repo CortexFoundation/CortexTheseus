@@ -131,6 +131,7 @@ var (
 	inferFlags = []cli.Flag {
 		utils.InferDeviceTypeFlag,
 		utils.InferDeviceIdFlag,
+		utils.InferPortFlag,
 		utils.InferMemoryFlag,
 	}
 
