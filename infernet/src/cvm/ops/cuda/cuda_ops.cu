@@ -1580,16 +1580,16 @@ const char* cuda_log(const int32_t *x, int32_t *y, int& error_code){
   const int32_t *dev_x = x;
   int32_t *dev_y = y;
 
-  int h_x;
-  cudaError_t status = cudaMemcpy(&h_x, dev_x, sizeof(int32_t), cudaMemcpyDeviceToHost);
-  if(status != cudaSuccess){
-    error_code = ERROR_MEMCPY;
-    return check_cuda_error(cudaGetLastError());
-  }
-  if(h_x <= 0){
-    error_code = ERROR_LOG_0;
-    return "error: log2 a no positive value";
-  }
+//  int h_x;
+//  cudaError_t status = cudaMemcpy(&h_x, dev_x, sizeof(int32_t), cudaMemcpyDeviceToHost);
+//  if(status != cudaSuccess){
+//    error_code = ERROR_MEMCPY;
+//    return check_cuda_error(cudaGetLastError());
+//  }
+//  if(h_x <= 0){
+//    error_code = ERROR_LOG_0;
+//    return "error: log2 a no positive value";
+//  }
 
   kernel_log<<<1,1>>>(dev_x, dev_y);
 
