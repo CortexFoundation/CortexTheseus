@@ -76,7 +76,8 @@ func main() {
 		res    []byte
 		status int
 	)
-	lib, status = kernel.LibOpen("./libcvm_runtime_cuda.so")
+	// lib, status = kernel.LibOpen("./libcvm_runtime_cuda.so")
+	lib, status = kernel.LibOpen("./libcvm_runtime_cpu.so")
 	if status != kernel.SUCCEED {
 		fmt.Printf("open library error: %d\n", status)
 		return
