@@ -5,11 +5,6 @@ import (
 	"fmt"
 )
 
-var (
-	ErrLogic   = errors.New("CVM executor logic error")
-	ErrRuntime = errors.New("CVM executor runtime error")
-)
-
 func SwitchEndian(data []byte, bytes int) ([]byte, error) {
 	if len(data)%bytes != 0 {
 		return nil, errors.New(fmt.Sprintf("data is not aligned with %d", bytes))
