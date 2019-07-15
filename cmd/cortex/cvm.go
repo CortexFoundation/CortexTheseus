@@ -86,8 +86,8 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg := torrentfs.Config{}
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
-	//fsCfg.IpcPath = ctx.GlobalString(utils.IPCPathFlag.Name)
-	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", ctx.GlobalString(utils.IPCPathFlag.Name))
+	fsCfg.IpcPath = ctx.GlobalString(CVMCortexIPC.Name)
+	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
 	storagefs.Start(nil)
 	if fs_err != nil {
