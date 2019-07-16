@@ -1243,7 +1243,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.squeeze")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
 .set_body([](CVMArgs args, CVMRetValue *ret){
-    int num_args = args.num_args;
     DLTensor *x = args[0];
     DLTensor *y = args[1];
     void *_attr = args[2];
