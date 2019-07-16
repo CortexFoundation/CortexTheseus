@@ -10,9 +10,10 @@ package kernel
 import "C"
 import (
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"path/filepath"
 	"unsafe"
+
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 var (
@@ -27,15 +28,17 @@ type LibCVM struct {
 }
 
 func LibOpen(libpath string) (*LibCVM, int) {
-	if len(libpath) >= C.PATH_MAX {
-		log.Error("library path exceed MAX_PATH_LEN", "path", libpath, "max_len", C.PATH_MAX)
-		return nil, ERROR_RUNTIME
-	}
 	cPath := make([]byte, C.PATH_MAX+1)
 	if fullpath, err := filepath.Abs(libpath); err == nil {
+		if len(fullpath) >= C.PATH_MAX {
+			log.Error("library path exceed MAX_PATH_LEN",
+				"path", libpath, "real path", fullpath, "max_len", C.PATH_MAX)
+			return nil, ERROR_RUNTIME
+		}
 		copy(cPath, fullpath)
 	} else {
-		log.Error("LibOpen", "libpath", libpath)
+		log.Error("library path extend to absolute path failed",
+			"libpath", libpath, "error", err)
 		return nil, ERROR_RUNTIME
 	}
 
@@ -59,13 +62,11 @@ func (l *LibCVM) LoadModel(modelCfg, modelBin []byte,
 	j_len := C.int(len(modelCfg))
 	p_len := C.int(len(modelBin))
 	var net unsafe.Pointer
-	fmt.Println(deviceId, jptr, j_len, pptr, p_len)
 	status := int(C.dl_CVMAPILoadModel(l.lib,
 		jptr, j_len,
 		pptr, p_len,
 		&net,
 		C.int(deviceType), C.int(deviceId)))
-	fmt.Println(net == nil, status)
 	return net, status
 }
 func (l *LibCVM) FreeModel(net unsafe.Pointer) int {
