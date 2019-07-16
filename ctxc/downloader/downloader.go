@@ -322,8 +322,8 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 		} else {
 			d.dropPeer(id)
 		}
-	case vm.ErrBuiltInTorrentFS:
-		log.Warn("Synchronisation failed with built-in torrent fs error", "peer", id)
+	//case vm.ErrBuiltInTorrentFS:
+	//	log.Warn("Synchronisation failed with built-in torrent fs error", "peer", id)
 	default:
 		log.Warn("Synchronisation failed, retrying", "err", err)
 	}
