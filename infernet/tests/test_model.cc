@@ -85,7 +85,7 @@ int run_LIF(string model_root, int device_type = 0) {
     params  = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
     input_stream.close();
   }
-  ModelHandler net;
+  void *net;
   auto status = CVMAPILoadModel(json.c_str(), json.size(),
                                 params.c_str(), params.size(),
                                 &net,

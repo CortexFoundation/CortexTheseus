@@ -83,14 +83,13 @@ func main() {
 		deviceType = 1
 	}
 	lib, status = kernel.LibOpen("./libcvm_runtime_" + device + ".so")
-	// lib, status = kernel.LibOpen("./libcvm_runtime_cpu.so")
 	if status != kernel.SUCCEED {
 		fmt.Printf("open library error: %d\n", status)
 		return
 	}
 
-	// root := "/data/std_out/log2"
-	root := "/home/serving/ctxc_data/cpu/3145ad19228c1cd2d051314e72f26c1ce77b7f02/data"
+	root := "/data/std_out/log2"
+	// root := "/home/serving/ctxc_data/cpu/3145ad19228c1cd2d051314e72f26c1ce77b7f02/data"
 	modelCfg, sErr := ioutil.ReadFile(root + "/symbol")
 	if sErr != nil {
 		fmt.Println(sErr)
@@ -105,33 +104,33 @@ func main() {
 	// modelBin := []byte("dkjflsiejflsdkj")
 	net, status = kernel.New(lib, modelCfg, modelBin, deviceType, 0)
 	if status != kernel.SUCCEED {
-		fmt.Printf("CVMAPILoadModel failed: %d\n", status)
+		fmt.Printf("Failed LoadModel: %d\n", status)
 		return
 	}
 	input_size := net.GetInputLength()
-	fmt.Printf("CVMAPILoadModel succeed: %p ops=%s size=%s input_size=%s\n",
+	fmt.Printf("Succeed LoadModel: %p ops=%s size=%s input_size=%s\n",
 		&net, net.Ops(), net.Size(), input_size)
 
 	var data []byte = make([]byte, input_size)
 	res, status = net.Predict(data)
 	if status != kernel.SUCCEED {
-		fmt.Printf("Predict failed: %d\n", status)
+		fmt.Printf("Failed Predict: %d\n", status)
 		return
 	}
-	fmt.Printf("Predict succeed: %v\n", res)
+	fmt.Printf("Succeed Predict: %v\n", res)
 
 	status = net.Free()
 	if status != kernel.SUCCEED {
-		fmt.Printf("Free model failed: %d\n", status)
+		fmt.Printf("Failed Free model: %d\n", status)
 		return
 	}
-	fmt.Printf("Free model succeed\n")
+	fmt.Printf("Succeed Free model\n")
 
 	var gas uint64
 	gas, status = kernel.GetModelGasFromGraphFile(lib, modelCfg)
 	if status != kernel.SUCCEED {
-		fmt.Printf("Get model gas from file failed: %s\n", status)
+		fmt.Printf("Failed get model gas from file: %s\n", status)
 		return
 	}
-	fmt.Printf("Get model gas from file succeed: %s\n", int(gas))
+	fmt.Printf("Succeed get model gas from file: %s\n", int(gas))
 }
