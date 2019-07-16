@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
@@ -180,14 +180,14 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		// Fast sync was explicitly requested, and explicitly granted
 		mode = downloader.FastSync
-	//} else if currentBlock.NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
+		//} else if currentBlock.NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
 		// The database seems empty as the current block is the genesis. Yet the fast
 		// block is ahead, so fast sync was enabled for this node at a certain point.
 		// The only scenario where this can happen is if the user manually (or via a
 		// bad block) rolled back a fast sync node below the sync point. In this case
 		// however it's safe to reenable fast sync.
-	//	atomic.StoreUint32(&pm.fastSync, 1)
-	//	mode = downloader.FastSync
+		//	atomic.StoreUint32(&pm.fastSync, 1)
+		//	mode = downloader.FastSync
 	}
 
 	if mode == downloader.FastSync {
@@ -198,7 +198,12 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	}
 
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil && err != vm.ErrBuiltInTorrentFS {
+	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
+		if err != vm.ErrBuiltInTorrentFS {
+			log.Warn("Failed synchronize blocks", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
+		} else {
+			log.Warn("Waiting for off chain file downloading", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
+		}
 		return
 	}
 
