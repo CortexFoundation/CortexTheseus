@@ -353,12 +353,10 @@ int CVMAPILoadModel(const char *graph_json, int graph_strlen,
   ctx.device_type = (device_type == 0) ? kDLCPU : kDLGPU;
   ctx.device_id = (device_type == 0) ? 0 : device_id;
   CVMModel *model = new CVMModel(graph, ctx);
-  std::cout << "LoadModel" << std::endl;
   if (!model->IsReady() || model->LoadParams(params)) {
     delete model;
     return ERROR_LOGIC;
   }
-  std::cout << "LoadModel" << std::endl;
   *net = (void *)model;
   API_END();
 }
@@ -405,7 +403,7 @@ int CVMAPIGetPreprocessMethod(void *net, char *method) {
   API_END();
 }
 
-int CVMAPIGetInputLength(void *net, int *size) {
+int CVMAPIGetInputLength(void *net, unsigned long long *size) {
   API_BEGIN();
   CHECK_2_NOT_NULL(net, size);
   CVMModel* model = static_cast<CVMModel*>(net);
