@@ -9,10 +9,13 @@ package kernel
 */
 import "C"
 import (
-	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/log"
-	"path/filepath"
+	"os"
+	"os/user"
+	"path"
+	"strings"
 	"unsafe"
+
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 var (
@@ -26,28 +29,45 @@ type LibCVM struct {
 	lib  unsafe.Pointer
 }
 
+func homeDir() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	if usr, err := user.Current(); err == nil {
+		return usr.HomeDir
+	}
+	return ""
+}
+
+func expandPath(p string) string {
+	if strings.HasPrefix(p, "~/") || strings.HasPrefix(p, "~\\") {
+		if home := homeDir(); home != "" {
+			p = home + p[1:]
+		}
+	}
+	return path.Clean(os.ExpandEnv(p))
+}
+
 func LibOpen(libpath string) (*LibCVM, int) {
-	if len(libpath) >= C.PATH_MAX {
-		log.Error("library path exceed MAX_PATH_LEN", "path", libpath, "max_len", C.PATH_MAX)
+	fullpath := expandPath(libpath)
+	if len(fullpath) >= C.PATH_MAX {
+		log.Error("library path exceed MAX_PATH_LEN",
+			"fullpath", fullpath, "max_len", C.PATH_MAX)
 		return nil, ERROR_RUNTIME
 	}
+
 	cPath := make([]byte, C.PATH_MAX+1)
-	if fullpath, err := filepath.Abs(libpath); err == nil {
-		copy(cPath, fullpath)
-	} else {
-		log.Error("LibOpen", "libpath", libpath)
-		return nil, ERROR_RUNTIME
-	}
+	copy(cPath, fullpath)
 
 	var cErr *C.char
 	lib := C.plugin_open((*C.char)(unsafe.Pointer(&cPath[0])), &cErr)
 	if lib == nil {
-		log.Error("library open failed", "path", libpath, "error", C.GoString(cErr))
+		log.Error("library open failed", "path", fullpath, "error", C.GoString(cErr))
 		return nil, ERROR_RUNTIME
 	}
 
 	return &LibCVM{
-		path: string(cPath),
+		path: fullpath,
 		lib:  lib,
 	}, SUCCEED
 }
@@ -59,13 +79,11 @@ func (l *LibCVM) LoadModel(modelCfg, modelBin []byte,
 	j_len := C.int(len(modelCfg))
 	p_len := C.int(len(modelBin))
 	var net unsafe.Pointer
-	fmt.Println(deviceId, jptr, j_len, pptr, p_len)
 	status := int(C.dl_CVMAPILoadModel(l.lib,
 		jptr, j_len,
 		pptr, p_len,
 		&net,
 		C.int(deviceType), C.int(deviceId)))
-	fmt.Println(net == nil, status)
 	return net, status
 }
 func (l *LibCVM) FreeModel(net unsafe.Pointer) int {
