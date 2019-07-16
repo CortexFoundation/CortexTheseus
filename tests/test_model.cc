@@ -11,7 +11,15 @@ using namespace std;
 using cvm::runtime::PackedFunc;
 using cvm::runtime::Registry;
 
-int use_gpu = 0;
+#ifndef USE_GPU
+#define USE_GPU  0
+#endif
+
+#define CHECK_STATUS(x, msg) \
+  if (x != SUCCEED) { \
+    cerr << "STATUS ERROR: " << x << " " << msg << "\n"; \
+    return -1; \
+  }
 
 void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_t>& data){
     FILE *fp = fopen(filename, "r");
@@ -25,7 +33,7 @@ void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_
     uint64_t size = 1;
     for(int i = 0; i < shape_dim; i++){
         int64_t value = 0;
-        fscanf(fp, "%d ", &value);
+        fscanf(fp, "%ld ", &value);
         shape[i] = value;
         size *= shape[i];
     }
@@ -44,25 +52,8 @@ struct OpArgs {
   std::vector<int64_t> shape_data;
 };
 
-void test_op_take() {
-  CVMValue t_attr;
-  const PackedFunc* op = Registry::Get("cvm.runtime.cvm.take");
-  cvm::NodeAttrs* attr;
-  std::shared_ptr<OpArgs> arg_ptr = std::make_shared<OpArgs>();
-  t_attr.v_handle = (void*)attr;
-  arg_ptr->arg_values.push_back(t_attr);
-  arg_ptr->arg_tcodes.push_back(kHandle);
-  cvm::runtime::CVMRetValue rv;
-  cvm::runtime::CVMArgs targs(
-      arg_ptr->arg_values.data(),
-      arg_ptr->arg_tcodes.data(),
-      static_cast<int>(arg_ptr->arg_values.size())
-      );
-  // (*op)(ta);
-
-}
-
 int run_LIF(string model_root, int device_type = 0) {
+#if(USE_GPU==0)
   cvm::runtime::transpose_int8_avx256_transpose_cnt = 0;
   cvm::runtime::transpose_int8_avx256_gemm_cnt = 0;
   cvm::runtime::im2col_cnt = 0;
@@ -77,6 +68,7 @@ int run_LIF(string model_root, int device_type = 0) {
   cvm::runtime::cvm_op_chnwise_conv_cnt = 0;
   cvm::runtime::cvm_op_depthwise_conv_cnt = 0;
   cvm::runtime::cvm_op_chnwise_conv1x1_cnt = 0;
+#endif
 
   string json_path = model_root + "/symbol";
   string params_path = model_root + "/params";
@@ -93,19 +85,23 @@ int run_LIF(string model_root, int device_type = 0) {
     params  = string((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
     input_stream.close();
   }
-  cvm::runtime::CVMModel* model = static_cast<cvm::runtime::CVMModel*>(
-      CVMAPILoadModel(json.c_str(), json.size(), params.c_str(), params.size(), device_type, 0)
-    );
+  void *net;
+  auto status = CVMAPILoadModel(json.c_str(), json.size(),
+                                params.c_str(), params.size(),
+                                &net,
+                                device_type, 0);
   cerr << "model loaded\n";
-  if (model == nullptr) {
-    std::cerr << "model loaded failed\n";
-    return -1;
-  }
-  cerr << "ops " << CVMAPIGetGasFromModel(model) / 1024 / 1024 << "\n";
+  CHECK_STATUS(status, "model loaded failed");
+
+  unsigned long long gas = 0;
+  status = CVMAPIGetGasFromModel(net, &gas);
+  CHECK_STATUS(status, "gas invalid");
+  cerr << "ops " << gas / 1024 / 1024 << "\n";
   // API only accepts byte array
   vector<char> input, output;
-  int input_size = CVMAPIGetInputLength(model);
-  int output_size = CVMAPIGetOutputLength(model);
+  unsigned long long input_size, output_size;
+  CVMAPIGetInputLength(net, &input_size);
+  CVMAPIGetOutputLength(net, &output_size);
   input.resize(input_size, 0); // 1 * 1 * 28 * 28);
   output.resize(output_size, 0); //1 * 10);
   if (model_root.find("trec") != string::npos)
@@ -148,7 +144,11 @@ int run_LIF(string model_root, int device_type = 0) {
     std::cerr << tshape.size() << "\n";
     for (int i = 0; i < data.size(); i++) {
       input[i]= (int8_t)data[i];
+      if(i < 10){
+        printf("%d ", input[i]);
+      }
     }
+    printf("\n");
   }
 
   double start = omp_get_wtime();
@@ -156,9 +156,12 @@ int run_LIF(string model_root, int device_type = 0) {
   for (int i = 0; i < n_run; i++) {
     if (i % 10 == 0)
       cerr << "i = " << i << "\n";
-    CVMAPIInfer(model, input.data(), output.data());
+    status = CVMAPIInference(net, input.data(), input.size(), output.data());
+    CHECK_STATUS(status, "inference failed");
   }
-  CVMAPIFreeModel(model);
+  status = CVMAPIFreeModel(net);
+  CHECK_STATUS(status, "free model failed");
+#if(USE_GPU == 0)
   double ellapsed_time = (omp_get_wtime() - start) / n_run;
   cout << "total time : " << ellapsed_time / n_run << "\n";
   cout << "total gemm.trans time: " << cvm::runtime::transpose_int8_avx256_transpose_cnt / n_run << "\n";
@@ -217,6 +220,7 @@ int run_LIF(string model_root, int device_type = 0) {
   sum_time =  cvm::runtime::cvm_op_chnwise_conv1x1_cnt / n_run;
   cout << "total chnconv2d1x1 time: " << (sum_time) << "/" << ellapsed_time
     << " " <<  sum_time / ellapsed_time <<"\n";
+#endif
 
   if (json_path.find("yolo") != string::npos) {
     uint64_t n_bytes = 4;
@@ -290,22 +294,22 @@ int test_models(int device_type = 0) {
   auto model_roots = {
     // "/data/std_out/null",
     // "/data/std_out/resnet50_mxg",
-    // "/data/std_out/resnet50_v2",
-    // "/data/std_out/qd10_resnet20_v2",
-    // "/data/std_out/trec",
-    // "/data/new_cvm/yolo3_darknet53_voc/data",
-    // "/data/lz_model_storage/dcnet_mnist_v1/data",
-    // "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
-    // "/data/lz_model_storage/resnet50_v1_imagenet/data",
-    // "/data/lz_model_storage/animal10/data",
-    // "/data/lz_model_storage/resnet50_v2/data",
-    // "/data/lz_model_storage/vgg16_gcv/data",
-    // "/data/lz_model_storage/sentiment_trec/data",
-    // "/data/lz_model_storage/vgg19_gcv/data",
-    // "/data/lz_model_storage/squeezenet_gcv1.1/data",
-    // "/data/lz_model_storage/squeezenet_gcv1.0/data",
+     "/data/std_out/resnet50_v2",
+     "/data/std_out/qd10_resnet20_v2",
+     "/data/std_out/trec",
+     "/data/new_cvm/yolo3_darknet53_voc/data",
+     "/data/lz_model_storage/dcnet_mnist_v1/data",
+     "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
+     "/data/lz_model_storage/resnet50_v1_imagenet/data",
+     "/data/lz_model_storage/animal10/data",
+     "/data/lz_model_storage/resnet50_v2/data",
+     "/data/lz_model_storage/vgg16_gcv/data",
+     "/data/lz_model_storage/sentiment_trec/data",
+     "/data/lz_model_storage/vgg19_gcv/data",
+     "/data/lz_model_storage/squeezenet_gcv1.1/data",
+     "/data/lz_model_storage/squeezenet_gcv1.0/data",
     // // invalid has strange attribute in operator elemwise_add.
-    // // "/data/lz_model_storage/octconv_resnet26_0.250/data", 
+    // // "/data/lz_model_storage/octconv_resnet26_0.250/data",
     // "/data/std_out/resnet50_mxg/",
     // "/data/std_out/resnet50_v2",
     // "/data/std_out/qd10_resnet20_v2",
@@ -335,9 +339,7 @@ int test_models(int device_type = 0) {
   return 0;
 }
 int main() {
-  //if (test_models(0) != 0)
-  //  return -1;
- if (test_models(0) != 0)
+ if (test_models(USE_GPU) != 0)
    return -1;
   return 0;
 }

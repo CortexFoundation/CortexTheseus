@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <exception>
 #include <memory>
 #include "./base.h"
 
@@ -32,6 +33,7 @@ struct Error : public std::runtime_error {
    */
   explicit Error(const std::string &s) : std::runtime_error(s) {}
 };
+
 }  // namespace utils
 
 #if CVMUTIL_USE_GLOG
@@ -162,9 +164,9 @@ DEFINE_CHECK_FUNC(_NE, !=)
 #define DCHECK_NE(x, y) \
   while (false) CHECK((x) != (y))
 
-#define LOG_INFO utils::LogMessage(__FILE__, __LINE__)
-#define LOG_ERROR LOG_INFO
+#define LOG_INFO utils::LogMessage()
 #define LOG_WARNING LOG_INFO
+#define LOG_ERROR LOG_INFO
 #define LOG_FATAL utils::LogMessageFatal(__FILE__, __LINE__)
 #define LOG_QFATAL LOG_FATAL
 
@@ -219,54 +221,27 @@ class DateLogger {
 
 class LogMessage {
  public:
-  LogMessage(const char* file, int line)
+  LogMessage()
       :
 #ifdef __ANDROID__
         log_stream_(std::cout)
 #else
         log_stream_(std::cerr)
 #endif
-  {
-    log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
-                << line << ": ";
-  }
-  ~LogMessage() {  log_stream_ << '\n';
-  }
+  { }
+  ~LogMessage() {  log_stream_ << '\n'; }
   std::ostream& stream() { return log_stream_; }
 
  protected:
   std::ostream& log_stream_;
 
  private:
-  DateLogger pretty_date_;
   LogMessage(const LogMessage&);
   void operator=(const LogMessage&);
 };
 
-// customized logger that can allow user to define where to log the message.
-class CustomLogMessage {
- public:
-  CustomLogMessage(const char* file, int line) {
-    log_stream_ << "[" << DateLogger().HumanDate() << "] " << file << ":"
-                << line << ": ";
-  }
-  ~CustomLogMessage() {
-    Log(log_stream_.str());
-  }
-  std::ostream& stream() { return log_stream_; }
-  /*!
-   * \brief customized logging of the message.
-   * This function won't be implemented by libutils
-   * \param msg The message to be logged.
-   */
-  static void Log(const std::string& msg);
-
- private:
-  std::ostringstream log_stream_;
-};
-
 #if CVMUTIL_LOG_STACK_TRACE
-inline std::string Demangle(char const *msg_str) {
+inline std::string Demangle(void *trace, char const *msg_str) {
   using std::string;
   string msg(msg_str);
   size_t symbol_start = string::npos;
@@ -301,7 +276,7 @@ inline std::string StackTrace(
   char **msgs = backtrace_symbols(stack.data(), nframes);
   if (msgs != nullptr) {
     for (int frameno = 0; frameno < nframes; ++frameno) {
-      string msg = utils::Demangle(msgs[frameno]);
+      string msg = utils::Demangle(stack[frameno], msgs[frameno]);
       stacktrace_os << "[bt] (" << frameno << ") " << msg << "\n";
     }
   }

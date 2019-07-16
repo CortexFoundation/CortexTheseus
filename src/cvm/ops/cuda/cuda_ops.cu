@@ -6,7 +6,7 @@
 #include <string.h>
 #include <iostream>
 #include <string>
-#include "nms.h"
+#include "../nms.h"
 
 // #define CVM_PRINT_CUDA_RESULT
 
@@ -59,11 +59,6 @@ inline int32_t getFreeMemorySize(const int32_t device_id, int&error_code){
     return -1;
   }
   return freeSize;
-}
-
-const char* check_cuda_error(cudaError_t error){
-  if(error == cudaSuccess) return NULL;
-  else return cudaGetErrorString(error);
 }
 
 __global__ void kernel_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n){
@@ -1585,16 +1580,16 @@ const char* cuda_log(const int32_t *x, int32_t *y, int& error_code){
   const int32_t *dev_x = x;
   int32_t *dev_y = y;
 
-  int h_x;
-  cudaError_t status = cudaMemcpy(&h_x, dev_x, sizeof(int32_t), cudaMemcpyDeviceToHost);
-  if(status != cudaSuccess){
-    error_code = ERROR_MEMCPY;
-    return check_cuda_error(cudaGetLastError());
-  }
-  if(h_x <= 0){
-    error_code = ERROR_LOG_0;
-    return "error: log2 a no positive value";
-  }
+//  int h_x;
+//  cudaError_t status = cudaMemcpy(&h_x, dev_x, sizeof(int32_t), cudaMemcpyDeviceToHost);
+//  if(status != cudaSuccess){
+//    error_code = ERROR_MEMCPY;
+//    return check_cuda_error(cudaGetLastError());
+//  }
+//  if(h_x <= 0){
+//    error_code = ERROR_LOG_0;
+//    return "error: log2 a no positive value";
+//  }
 
   kernel_log<<<1,1>>>(dev_x, dev_y);
 
@@ -2337,142 +2332,6 @@ end:
   if(dev_yshape != NULL) cudaFree(dev_yshape);
   return check_cuda_error(cudaGetLastError());
 }
-
-__global__ void kernel_get_valid_count(const int32_t *input, bool *saved, const int32_t n, const int32_t k, const int32_t score_threshold){
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  for(uint64_t j = tid; j < n; j+=gridDim.x*blockDim.x){
-    const int32_t *row = input + j * k;
-    saved[j] = row[1] > score_threshold ? 1 : 0;
-  }
-}
-const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_t *valid_count_data,
-    const int32_t n, const int32_t k,
-    const int32_t score_threshold, const int32_t batchs, int& error_code){
-
-  int32_t *host_count = (int32_t*)malloc(sizeof(int32_t) * batchs);//new int32_t[batchs];
-  if(host_count == NULL){
-    error_code = ERROR_MALLOC;
-    return "malloc error";
-  }
-  bool *dev_saved = NULL;
-  bool* saved = (bool*)malloc(sizeof(bool) * n);
-  if(saved == NULL){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-  cudaError_t status;
-  status = cudaMalloc((void**)&dev_saved, sizeof(bool)*n);
-  if(status != cudaSuccess){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-
-  for(int32_t i = 0; i < batchs; i++){
-    int32_t y_index = 0;
-    const int32_t *input = x_data + i * n * k;
-    int32_t *output = y_data + i * n * k;
-
-    int threadSize = 256;
-    int blockSize = (n + threadSize - 1) / threadSize;
-    kernel_get_valid_count<<<blockSize, threadSize>>>(input, dev_saved, n, k, score_threshold);
-    status = cudaMemcpy(saved, dev_saved, sizeof(bool) * n, cudaMemcpyDeviceToHost);
-    if(status != cudaSuccess){
-      error_code = ERROR_MEMCPY;
-      goto end;
-    }
-
-    for(int32_t j = 0; j < n; j++){
-      const int32_t *row = input + j * k;
-      if(saved[j]){
-        status = cudaMemcpy(&output[y_index * k], row, k * sizeof(int32_t), cudaMemcpyDeviceToDevice);
-        if(status != cudaSuccess){
-          error_code = ERROR_MEMCPY;
-          goto end;
-        }
-        y_index += 1;
-      }
-    }
-    host_count[i] = y_index;
-    //valid_count_data[i] = y_index;
-    if(y_index < n){
-      status = cudaMemset(&output[y_index * k], -1, (n-y_index) * k * sizeof(int32_t));
-      if(status != cudaSuccess){
-        error_code = ERROR_MEMCPY;
-        goto end;
-      }
-    }
-  }
-
-  status = cudaMemcpy(valid_count_data, host_count, sizeof(int32_t) * batchs, cudaMemcpyHostToDevice);
-  if(status != cudaSuccess){
-    error_code = ERROR_MEMCPY;
-  }
-end:
-  if(dev_saved != NULL) cudaFree(dev_saved);
-  if(saved != NULL) free(saved);
-  if(host_count != NULL) free(host_count);
-
-  /*
-     int32_t *h_x = new int32_t[batchs * n * k];
-     int32_t *h_vc = new int32_t[batchs];
-     int32_t *h_y = new int32_t[batchs * n * k];
-     cudaMemcpy(h_x, x_data, batchs*n*k*sizeof(int32_t), cudaMemcpyDeviceToHost);
-     get_valid_count(h_x, h_y, h_vc, batchs, n, k, score_threshold);
-     cudaMemcpy(y_data, h_y, batchs*n*k*sizeof(int32_t), cudaMemcpyHostToDevice);
-     cudaMemcpy(valid_count_data, h_vc, batchs*sizeof(int32_t), cudaMemcpyHostToDevice);
-     delete h_x;
-     delete h_vc;
-     delete h_y;
-   */
-  return check_cuda_error(cudaGetLastError());
-}
-
-const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_count_data, int32_t *d_y_data, const int32_t batchs, const int32_t n, const int32_t k,
-    const int32_t max_output_size, const int32_t iou_threshold, const int32_t topk, 
-    const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress, int& error_code){
-  int32_t *x_data = NULL, *valid_count_data = NULL, *y_data = NULL;
-  x_data = (int32_t*)malloc(sizeof(int32_t) * batchs*n*k);//new int32_t[batchs * n * k];
-  valid_count_data = (int32_t*)malloc(sizeof(int32_t)*batchs);//new int32_t[batchs];
-  y_data = (int32_t*)malloc(sizeof(int32_t) *batchs*n*k);//new int32_t[batchs * n * k];
-  int ret = 0;
-  if(x_data == NULL || valid_count_data == NULL || y_data == NULL){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-  cudaError_t status;
-  status = cudaMemcpy(x_data, d_x_data, batchs*n*k*sizeof(int32_t), cudaMemcpyDeviceToHost);
-  if(status != cudaSuccess){
-    error_code = ERROR_MEMCPY;
-    goto end;
-  }
-  status = cudaMemcpy(valid_count_data, d_valid_count_data, batchs*sizeof(int32_t), cudaMemcpyDeviceToHost);
-  if(status != cudaSuccess){
-    error_code = ERROR_MEMCPY;
-    goto end;
-  }
-
-  ret = non_max_suppression(
-      x_data, valid_count_data, y_data, batchs, n, k,
-      max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
-
-  status = cudaMemcpy(d_y_data, y_data, batchs * n * k * sizeof(int32_t), cudaMemcpyHostToDevice);
-  if(status != cudaSuccess){
-    error_code = ERROR_MEMCPY;
-  }
-
-end:
-  if(x_data != NULL)
-    free(x_data);
-  if(valid_count_data != NULL)
-    free(valid_count_data);
-  if(y_data != NULL)
-    free(y_data);
-  if(ret < 0){
-    return "the valid count must less than the number of box";
-  }
-  return check_cuda_error(cudaGetLastError());
-}
-
 
 __global__ void kernel_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, 
     const int64_t *xshape, const int64_t *yshape, const int64_t *indices_shape, const int32_t yndim,
