@@ -9,7 +9,6 @@ package kernel
 */
 import "C"
 import (
-	"fmt"
 	"path/filepath"
 	"unsafe"
 
