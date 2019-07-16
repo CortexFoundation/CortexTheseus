@@ -89,8 +89,8 @@ func main() {
 		return
 	}
 
-	// root := "/data/std_out/log2"
-	root := "/home/serving/ctxc_data/cpu/3145ad19228c1cd2d051314e72f26c1ce77b7f02/data"
+	root := "/data/std_out/log2"
+	// root := "/home/serving/ctxc_data/cpu/3145ad19228c1cd2d051314e72f26c1ce77b7f02/data"
 	modelCfg, sErr := ioutil.ReadFile(root + "/symbol")
 	if sErr != nil {
 		fmt.Println(sErr)
