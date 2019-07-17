@@ -7,6 +7,7 @@
 *.pyc
 old/
 mnist/
+build/
 data/
 infer_data/
 test_interface
