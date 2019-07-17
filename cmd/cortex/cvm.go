@@ -94,7 +94,7 @@ func cvmServer(ctx *cli.Context) error {
 	// Set log
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
-	fsCfg := torrentfs.Config{}
+	fsCfg := torrentfs.DefaultConfig
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
