@@ -128,7 +128,7 @@ type BlockChain struct {
 	validator Validator // block and state validator interface
 	vmConfig  vm.Config
 
-	shouldPreserve  func(*types.Block) bool
+	shouldPreserve func(*types.Block) bool
 
 	badBlocks *lru.Cache // Bad block cache
 }
@@ -136,7 +136,7 @@ type BlockChain struct {
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Cortex Validator and
 // Processor.
-func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config,  shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
+func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
 			TrieNodeLimit: 256 * 1024 * 1024,
@@ -1012,14 +1012,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	currentBlock = bc.CurrentBlock()
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		if block.NumberU64() < currentBlock.NumberU64() {
-                        reorg = true
-                } else if block.NumberU64() == currentBlock.NumberU64() {
-                        var currentPreserve, blockPreserve bool
-                        if bc.shouldPreserve != nil {
-                                currentPreserve, blockPreserve = bc.shouldPreserve(currentBlock), bc.shouldPreserve(block)
-                        }
-                        reorg = !currentPreserve && (blockPreserve || mrand.Float64() < 0.5)
-                }
+			reorg = true
+		} else if block.NumberU64() == currentBlock.NumberU64() {
+			var currentPreserve, blockPreserve bool
+			if bc.shouldPreserve != nil {
+				currentPreserve, blockPreserve = bc.shouldPreserve(currentBlock), bc.shouldPreserve(block)
+			}
+			reorg = !currentPreserve && (blockPreserve || mrand.Float64() < 0.5)
+		}
 	}
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
@@ -1588,6 +1588,10 @@ func (bc *BlockChain) addBadBlock(block *types.Block) {
 
 // reportBlock logs a bad block error.
 func (bc *BlockChain) reportBlock(block *types.Block, receipts types.Receipts, err error) {
+	if err == vm.ErrBuiltInTorrentFS {
+		log.Warn("Downloading ... ...", "Number", block.Number(), "hash", block.Hash())
+		return
+	}
 	bc.addBadBlock(block)
 
 	var receiptString string
