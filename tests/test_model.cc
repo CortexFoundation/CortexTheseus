@@ -45,6 +45,40 @@ void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_
     }
     fclose(fp);
 }
+
+void write_result(const char *filename, vector<char>& data){
+    FILE* fp = fopen(filename, "w");
+    if(fp == NULL){
+        printf("open file %s failed\n", filename);
+        return;
+    }
+    fprintf(fp, "%d\n", data.size());
+    for(int i = 0; i < data.size(); i++){
+        fprintf(fp, "%d ", data[i]);
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
+}
+
+void compare_result(const char *filename, vector<char>& data){
+    FILE* fp = fopen(filename, "r");
+    if(fp == NULL){
+        printf("open file %s failed\n", filename);
+        return;
+    }
+    int n = 0;
+    fscanf(fp, "%d", &n);
+    assert(n == data.size());
+
+    for(int i = 0; i < data.size(); i++){
+      int value;
+      fscanf(fp, "%d ", &value);
+      assert((int)data[i] == value);
+    }
+    fclose(fp);
+    printf("compare reuslt : success\n\n");
+}
+
 struct OpArgs {
   std::vector<DLTensor> args;
   std::vector<CVMValue> arg_values;
@@ -253,6 +287,10 @@ int run_LIF(string model_root, int device_type = 0) {
       }
       std::cout << "\n";
     }
+
+    string out_file = model_root + "/result_0.txt";
+   // write_result(out_file.c_str(), output);
+   compare_result(out_file.c_str(), output);
    // string data_file = model_root + "/result_0.npy";
    // vector<unsigned long> tshape;
    // vector<int32_t> tout;
@@ -292,8 +330,8 @@ void test_thread() {
 
 int test_models(int device_type = 0) {
   auto model_roots = {
-    // "/data/std_out/null",
-    // "/data/std_out/resnet50_mxg",
+     "/data/std_out/null",
+     "/data/std_out/resnet50_mxg",
      "/data/std_out/resnet50_v2",
      "/data/std_out/qd10_resnet20_v2",
      "/data/std_out/trec",
@@ -309,10 +347,10 @@ int test_models(int device_type = 0) {
      "/data/lz_model_storage/squeezenet_gcv1.1/data",
      "/data/lz_model_storage/squeezenet_gcv1.0/data",
     // // invalid has strange attribute in operator elemwise_add.
-    // // "/data/lz_model_storage/octconv_resnet26_0.250/data",
-    // "/data/std_out/resnet50_mxg/",
-    // "/data/std_out/resnet50_v2",
-    // "/data/std_out/qd10_resnet20_v2",
+     //"/data/lz_model_storage/octconv_resnet26_0.250/data",
+     "/data/std_out/resnet50_mxg/",
+     "/data/std_out/resnet50_v2",
+     "/data/std_out/qd10_resnet20_v2",
     // "/data/std_out/random_3_0/",
     // "/data/std_out/random_3_1/",
     // "/data/std_out/random_3_2/",
