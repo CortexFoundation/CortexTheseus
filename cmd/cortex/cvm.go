@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"os/user"
 	"path/filepath"
 
@@ -66,7 +67,27 @@ var (
 		//Value: utils.DirectoryString("~/.cortex/" + "cortex.ipc"),
 		Value: utils.DirectoryString{homeDir() + "/.cortex/"},
 	}
-
+	StorageMaxSeedingFlag = cli.IntFlag{
+		Name:  "cvm.max_seeding",
+		Usage: "The maximum number of seeding tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxSeedingNum,
+	}
+	StorageMaxActiveFlag = cli.IntFlag{
+		Name:  "cvm.max_active",
+		Usage: "The maximum number of active tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxActiveNum,
+	}
+	StorageBoostNodesFlag = cli.StringFlag{
+		Name:  "cvm.boostnodes",
+		Usage: "p2p storage boostnodes",
+		Value: strings.Join(torrentfs.DefaultConfig.BoostNodes, ","),
+	}
+	StorageTrackerFlag = cli.StringFlag{
+		Name:  "cvm.tracker",
+		Usage: "P2P storage tracker list",
+		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
+	}
+	
 	cvmFlags = []cli.Flag{
 		// StorageDirFlag,
 		CVMPortFlag,
@@ -74,6 +95,10 @@ var (
 		// CVMDeviceId,
 		CVMVerbosity,
 		CVMCortexDir,
+		StorageMaxSeedingFlag,
+		StorageMaxActiveFlag,
+		StorageBoostNodesFlag,
+		StorageTrackerFlag,
 	}
 
 	cvmCommand = cli.Command{
@@ -96,6 +121,12 @@ func cvmServer(ctx *cli.Context) error {
 
 	fsCfg := torrentfs.DefaultConfig
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
+  trackers := ctx.GlobalString(StorageTrackerFlag.Name)
+	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
+	fsCfg.DefaultTrackers = strings.Split(trackers, ",")
+	fsCfg.BoostNodes = strings.Split(boostnodes, ",")
+	fsCfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
+	fsCfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
