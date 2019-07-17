@@ -391,7 +391,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		// gasCost will check model's metainfo before checking available gas
-		if err == ErrBuiltInTorrentFS { //|| err == ErrMetaInfoNotMature {
+		if err == ErrCvmRuntime { //|| err == ErrMetaInfoNotMature {
 			return nil, err
 		}
 

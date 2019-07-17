@@ -198,7 +198,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	}
 
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil && err != vm.ErrBuiltInTorrentFS {
+	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil && err != vm.ErrCvmRuntime {
 		return
 	}
 
