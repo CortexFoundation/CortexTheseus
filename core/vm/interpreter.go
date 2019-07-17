@@ -403,7 +403,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			//todo model validation
 			if modelMeta.AuthorAddress != common.EmptyAddress {
 				contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
-				log.Info("Model gas earn", "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas)
+				log.Debug("Model gas earn", "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas)
 			}
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
@@ -413,7 +413,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if err != nil || !contract.UseGas(cost) {
-			log.Warn("interpreter", "cost", cost, "err", err, "cgas", cgas)
+			log.Debug("Interpreter", "cost", cost, "err", err, "cgas", cgas)
 			return nil, ErrOutOfGas
 		}
 
