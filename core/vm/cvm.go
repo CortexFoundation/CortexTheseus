@@ -533,14 +533,14 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	if !cvm.vmConfig.DebugInferVM {
 		if ok, err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
 			log.Warn("Infer", "Torrent file model not available, blockchain and torrent not match, modelInfoHash", modelInfoHash)
-			return nil, ErrBuiltInTorrentFS
+			return nil, ErrCvmRuntime
 		} else if (!ok) {
 			return nil, nil
 		}
 
 		if ok, err := synapse.Engine().Available(inputInfoHash, int64(inputRawSize)); err != nil {
 			log.Warn("Infer", "Torrent file input not available, blockchain and torrent not match, inputInfoHash:", inputInfoHash)
-			return nil, ErrBuiltInTorrentFS
+			return nil, ErrCvmRuntime
 		} else if (!ok) {
 			return nil, nil
 		}
@@ -573,7 +573,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	if !cvm.vmConfig.DebugInferVM {
 		if ok, err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
 			log.Warn("InferArray", "modelInfoHash", modelInfoHash, "not Available", "")
-			return nil, ErrBuiltInTorrentFS
+			return nil, ErrCvmRuntime
 		} else if (!ok) {
 			return nil, nil
 		}
@@ -603,7 +603,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	if !cvm.vmConfig.DebugInferVM {
 		if ok, err := synapse.Engine().Available(modelMeta.Hash.Hex(), int64(modelRawSize)); err != nil {
 			log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize)
-			return 0, ErrBuiltInTorrentFS
+			return 0, ErrCvmRuntime
 		} else if (!ok) {
 			return 0, nil
 		}
