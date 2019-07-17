@@ -1588,7 +1588,7 @@ func (bc *BlockChain) addBadBlock(block *types.Block) {
 
 // reportBlock logs a bad block error.
 func (bc *BlockChain) reportBlock(block *types.Block, receipts types.Receipts, err error) {
-	if err == vm.ErrCvmRuntime {
+	if err == vm.ErrRuntime {
 		log.Warn("Downloading ... ...", "Number", block.Number(), "hash", block.Hash())
 		return
 	}

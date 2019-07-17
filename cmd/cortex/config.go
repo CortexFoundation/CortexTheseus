@@ -176,7 +176,12 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 					"--cvm.port", strconv.Itoa(ctx.GlobalInt(utils.InferPortFlag.Name)),
 					"--storage.dir", utils.MakeStorageDir(ctx),
 					"--cvm.datadir", utils.MakeDataDir(ctx),
-					"--infer.devicetype", deviceType}
+					"--infer.devicetype", deviceType,
+					"--cvm.max_seeding", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxSeedingFlag.Name)),
+					"--cvm.max_active", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxActiveFlag.Name)),
+					"--cvm.boostnodes", ctx.GlobalString(utils.StorageBoostNodesFlag.Name),
+					"--cvm.tracker", ctx.GlobalString(utils.StorageTrackerFlag.Name),
+				}
 			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
 			prg := exec.Command(cmd, args...)
 			var stdoutBuf, stderrBuf bytes.Buffer

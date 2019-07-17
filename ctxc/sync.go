@@ -199,10 +199,10 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
-		if err != vm.ErrCvmRuntime {
-			//log.Warn("Failed synchronize blocks", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
+		if err == vm.ErrRuntime {
+			//log.Warn("Waiting for off chain file downloading", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
 		} else {
-			log.Warn("Waiting for off chain file downloading", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
+			//log.Warn("Failed synchronize blocks", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
 		}
 		return
 	}

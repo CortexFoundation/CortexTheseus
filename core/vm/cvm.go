@@ -529,20 +529,15 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
 	// fmt.Println("infer", modelInfoHash, inputInfoHash)
 	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
-
 	if !cvm.vmConfig.DebugInferVM {
-		if ok, err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
+		if err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
 			log.Warn("Infer", "Torrent file model not available, blockchain and torrent not match, modelInfoHash", modelInfoHash)
-			return nil, ErrCvmRuntime
-		} else if (!ok) {
-			return nil, nil
+			return nil, err
 		}
 
-		if ok, err := synapse.Engine().Available(inputInfoHash, int64(inputRawSize)); err != nil {
-			log.Warn("Infer", "Torrent file input not available, blockchain and torrent not match, inputInfoHash:", inputInfoHash)
-			return nil, ErrCvmRuntime
-		} else if (!ok) {
-			return nil, nil
+		if err := synapse.Engine().Available(inputInfoHash, int64(inputRawSize)); err != nil {
+			log.Warn("File non available", "inputInfoHash:", inputInfoHash)
+			return nil, err
 		}
 	}
 
@@ -567,17 +562,17 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) ([]byte, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
 	log.Trace("Infer Detail", "Input Content", hexutil.Encode(inputArray))
+
 	if cvm.vmConfig.DebugInferVM {
 		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
 	if !cvm.vmConfig.DebugInferVM {
-		if ok, err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
+		if err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
 			log.Warn("InferArray", "modelInfoHash", modelInfoHash, "not Available", "")
-			return nil, ErrCvmRuntime
-		} else if (!ok) {
-			return nil, nil
+			return nil, err
 		}
 	}
+
 	var (
 		inferRes []byte
 		errRes   error
@@ -600,12 +595,11 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 		return 0, err
 	}
 	modelRawSize := modelMeta.RawSize
+
 	if !cvm.vmConfig.DebugInferVM {
-		if ok, err := synapse.Engine().Available(modelMeta.Hash.Hex(), int64(modelRawSize)); err != nil {
+		if err := synapse.Engine().Available(modelMeta.Hash.Hex(), int64(modelRawSize)); err != nil {
 			log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize)
-			return 0, ErrCvmRuntime
-		} else if (!ok) {
-			return 0, nil
+			return 0, err
 		}
 	}
 

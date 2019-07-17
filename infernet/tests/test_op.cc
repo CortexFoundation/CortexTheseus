@@ -40,8 +40,12 @@ struct CVMOpParam {
   std::string attrs;
 };
 
-//int ctx = kDLCPU;
+#ifdef USE_GPU 
 int ctx = kDLGPU;
+#else
+int ctx = kDLCPU;
+#endif
+
 int device_id = 0;
 /*
 30 52 -68 75
@@ -599,10 +603,10 @@ void test_op(string op_name) {
   }
 }
 int main() {
-//  test_op("max_pool2d");
+  test_op("max_pool2d");
   test_op("upsampling");
   test_op("dense");
-//  test_op("conv2d");
+  test_op("conv2d");
   test_op("sum");
   test_op("max"); // pass
   test_op("slice_like");

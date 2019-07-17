@@ -36,12 +36,12 @@ var (
 func RespErrorText(w http.ResponseWriter, ctx ...interface{}) {
 	var info = ""
 	if len(ctx)%2 != 0 {
-		info = fmt.Sprintf("%v | ", ctx[0])
+		info = fmt.Sprintf("%v", ctx[0])
 		ctx = ctx[1:]
 	}
 
 	for i := 0; i+1 < len(ctx); i += 2 {
-		info += "%v=%v, "
+		info += " %v=%v,"
 		info = fmt.Sprintf(info, ctx[i], ctx[i+1])
 	}
 

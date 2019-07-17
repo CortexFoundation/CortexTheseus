@@ -777,7 +777,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			log.Trace("Skipping account with hight nonce", "sender", from, "nonce", tx.Nonce())
 			txs.Pop()
 
-		//case vm.ErrCvmRuntime:
+		//case vm.ErrRuntime:
 		//	log.Trace("Skipping account with torrent fs error", "sender", from)
 		//	txs.Pop()
 
