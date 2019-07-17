@@ -328,7 +328,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if vmerr != nil {
 		// Inference error caused by torrent fs syncing is returned directly.
 		// This is called Built-In Torrent Fs Error
-		if vmerr == vm.ErrCvmRuntime {
+		if vmerr == vm.ErrRuntime {
 			return nil, 0, big0, false, vmerr
 		}
 

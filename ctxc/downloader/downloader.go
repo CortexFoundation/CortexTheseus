@@ -1399,7 +1399,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 			log.Debug("Downloaded item processing failed on sidechain import", "index", index, "err", err)
 		}
 		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
-		if err == vm.ErrCvmRuntime {
+		if err == vm.ErrRuntime {
 			return err
 		}
 		return errInvalidChain
