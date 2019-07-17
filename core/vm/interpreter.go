@@ -262,7 +262,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				}
 
 				contract.Code = append([]byte{0, 1}, tmpCode...)
-				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
+				log.Info("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 			}
 			return contract.Code, nil
 		}
