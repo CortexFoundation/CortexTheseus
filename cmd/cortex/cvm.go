@@ -17,17 +17,17 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/user"
-	"fmt"
 	"path/filepath"
 
-	"net/http"
-	"gopkg.in/urfave/cli.v1"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"gopkg.in/urfave/cli.v1"
+	"net/http"
 )
 
 func homeDir() string {
@@ -39,6 +39,7 @@ func homeDir() string {
 	}
 	return ""
 }
+
 var (
 	// StorageDirFlag = utils.DirectoryFlag{
 	// 	Name:  "cvm.dir",
@@ -76,14 +77,13 @@ var (
 	}
 
 	cvmCommand = cli.Command{
-		Action:   utils.MigrateFlags(cvmServer),
-		Name:     "cvm",
-		Usage:    "CVM",
-		Flags:    append(append(cvmFlags, storageFlags...), inferFlags...),
-		Category: "CVMSERVER COMMANDS",
+		Action:      utils.MigrateFlags(cvmServer),
+		Name:        "cvm",
+		Usage:       "CVM",
+		Flags:       append(append(cvmFlags, storageFlags...), inferFlags...),
+		Category:    "CVMSERVER COMMANDS",
 		Description: ``,
 	}
-
 )
 
 // localConsole starts a new cortex node, attaching a JavaScript console to it at the
@@ -102,7 +102,7 @@ func cvmServer(ctx *cli.Context) error {
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
 	storagefs.Start(nil)
 	if fs_err != nil {
-		panic (fs_err)
+		panic(fs_err)
 	}
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
@@ -113,13 +113,13 @@ func cvmServer(ctx *cli.Context) error {
 		DeviceName = "cuda"
 	}
 	synpapseConfig := synapse.Config{
-		IsNotCache: false,
-		DeviceType:  DeviceName,
-		DeviceId: DeviceId,
+		IsNotCache:     false,
+		DeviceType:     DeviceName,
+		DeviceId:       DeviceId,
 		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
-		IsRemoteInfer: false,
-		InferURI: "",
-		Storagefs:				 storagefs,
+		IsRemoteInfer:  false,
+		InferURI:       "",
+		Storagefs:      storagefs,
 	}
 	inferServer := synapse.New(&synpapseConfig)
 	log.Info("Initilized inference server with synapse engine", "config", synpapseConfig)
@@ -134,4 +134,3 @@ func cvmServer(ctx *cli.Context) error {
 
 	return nil
 }
-
