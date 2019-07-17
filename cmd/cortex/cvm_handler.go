@@ -1,10 +1,9 @@
 package main
 
 import (
-	"errors"
+	"encoding/binary"
 	"fmt"
 	"net/http"
-	"encoding/binary"
 
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
@@ -22,18 +21,16 @@ func Uint64ToBytes(i uint64) []byte {
 func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork) {
 	log.Info("Available", "Model Hash", inferWork.InfoHash, "rawSize", inferWork.RawSize)
 	if inferWork.InfoHash == "" {
-		RespErrorText(w, ErrModelEmpty)
+		log.Warn("info hash is empty")
+		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
 
-	if isAvailable, err := synapse.Engine().Available(inferWork.InfoHash, inferWork.RawSize); err != nil {
-		RespErrorText(w, errors.New(inferWork.InfoHash + " not ready for checking availablity"))
+	if err := synapse.Engine().Available(inferWork.InfoHash, inferWork.RawSize); err != nil {
+		RespErrorText(w, err)
 	} else {
-		ret_arr := Uint64ToBytes(0)
-		if isAvailable {
-			ret_arr = Uint64ToBytes(1)
-		}
-		log.Info("Get Operators Succeed", "result", ret_arr)
+		ret_arr := Uint64ToBytes(1)
+		log.Info("File avaiable", "hash", inferWork.InfoHash)
 		RespInfoText(w, ret_arr)
 	}
 }
@@ -41,48 +38,49 @@ func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork)
 func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 	log.Info("Gas Task", "Model Hash", inferWork.Model)
 	if inferWork.Model == "" {
-		RespErrorText(w, ErrModelEmpty)
+		log.Warn("model info hash is empty")
+		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
 
 	ret, err := synapse.Engine().GetGasByInfoHash(inferWork.Model)
-	ret_arr := Uint64ToBytes(ret)
-
-	if err == nil {
-		log.Info("Get Operators Succeed", "result", ret)
-		RespInfoText(w, ret_arr)
-	} else {
-		log.Warn("Get Operators Failed", "error", err)
+	if err != nil {
+		log.Warn("Gas calculate Failed", "error", err)
 		RespErrorText(w, err)
+		return
 	}
-}
 
+	log.Info("Gas calculate Succeed", "result", ret)
+	ret_arr := Uint64ToBytes(ret)
+	RespInfoText(w, ret_arr)
+}
 
 func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 	if inferWork.Model == "" {
-		RespErrorText(w, ErrModelEmpty)
+		log.Warn("model info hash is empty")
+		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
 	if inferWork.Input == "" {
-		RespErrorText(w, ErrInputEmpty)
+		log.Warn("input info hash is empty")
+		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
 
 	log.Debug("Infer Task", "Model Hash", inferWork.Model, "Input Hash", inferWork.Input)
 	label, err := synapse.Engine().InferByInfoHash(inferWork.Model, inferWork.Input)
 
-	if err == nil {
-	//	log.Info("Infer Succeed", "result", label)
-		RespInfoText(w, label)
-	} else {
-		log.Warn("Infer Failed", "error", err)
+	if err != nil {
 		RespErrorText(w, err)
+		return
 	}
+	RespInfoText(w, label)
 }
 
 func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	if inferWork.Model == "" {
-		RespErrorText(w, ErrModelEmpty)
+		log.Warn("model info hash is empty")
+		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
 
@@ -91,27 +89,25 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	log.Info("Infer Work", "Model Hash", model)
 	var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
 	if v, ok := simpleCache.Load(cacheKey); ok && !(IsNotCache) {
-	//	log.Info("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
+		log.Info("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
 		RespInfoText(w, v.([]byte))
 		return
 	}
 
 	// Fixed bugs, ctx_getSolidityBytes returns 0x which stands for state invalid
-	if len(input) == 0 {
-		log.Warn("Input content state invalid", "error", "bytes length is zero")
-		RespErrorText(w, "input bytes length is zero")
-		return
-	}
+	// if len(input) == 0 {
+	// 	log.Warn("Input content state invalid", "error", "bytes length is zero")
+	// 	RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
+	// 	return
+	// }
 
 	label, err := synapse.Engine().InferByInputContent(model, input)
-
 	if err != nil {
 		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, err)
 		return
 	}
 
-	// log.Info("Infer Succeed", "result", label)
 	if !(IsNotCache) {
 		simpleCache.Store(cacheKey, label)
 	}

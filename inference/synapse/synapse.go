@@ -3,8 +3,8 @@ package synapse
 import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"strconv"
 	"sync"
@@ -61,7 +61,6 @@ func Engine() *Synapse {
 
 func New(config *Config) *Synapse {
 	path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX
-	// fmt.Println("config ", config, "synapseInstance ", synapseInstance)
 	if synapseInstance != nil {
 		log.Warn("Synapse Engine has been initalized")
 		if config.Debug {
@@ -69,10 +68,9 @@ func New(config *Config) *Synapse {
 		}
 		return synapseInstance
 	}
-	var lib    *kernel.LibCVM
+	var lib *kernel.LibCVM
 	var status int
 	if !config.IsRemoteInfer {
-		// fmt.Println("path ", path)
 		lib, status = kernel.LibOpen(path)
 		if status != kernel.SUCCEED {
 			log.Error("infer helper", "init cvm plugin error", "")
@@ -101,3 +99,24 @@ func (s *Synapse) Close() {
 	log.Info("Synapse Engine Closed")
 }
 
+func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
+	if s.config.IsRemoteInfer {
+		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash)
+	}
+	return s.inferByInfoHash(modelInfoHash, inputInfoHash)
+}
+
+func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
+	if s.config.IsRemoteInfer {
+		return s.remoteInferByInputContent(modelInfoHash, inputContent)
+	}
+	inputInfoHash := RLPHashString(inputContent)
+	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
+}
+
+func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+	if s.config.IsRemoteInfer {
+		return s.remoteGasByModelHash(modelInfoHash)
+	}
+	return s.getGasByInfoHash(modelInfoHash)
+}

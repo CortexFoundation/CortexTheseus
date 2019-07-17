@@ -2,20 +2,20 @@ package torrentfs
 
 import (
 	"encoding/json"
-	"fmt"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/boltdb/bolt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/anacrolix/torrent/metainfo"
+	"github.com/boltdb/bolt"
 )
 
 const (
@@ -29,7 +29,7 @@ type FileInfo struct {
 	// Transaction hash
 	TxHash *common.Hash
 	// Contract Address
-  ContractAddr *common.Address
+	ContractAddr *common.Address
 	LeftSize     uint64
 	Index        uint64
 }
@@ -50,11 +50,11 @@ func (mc *MutexCounter) IsZero() bool {
 
 type FileStorage struct {
 	filesContractAddr map[common.Address]*FileInfo
-  files             []*FileInfo
+	files             []*FileInfo
 	db                *bolt.DB
 
 	LastListenBlockNumber uint64
-  LastFileIndex         uint64
+	LastFileIndex         uint64
 
 	lock      sync.RWMutex
 	bnLock    sync.Mutex
@@ -97,7 +97,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir:           config.DataDir,
 	}
 	fs.readBlockNumber()
-  fs.readLastFileIndex()
+	fs.readLastFileIndex()
 	//tmpCache, _ := lru.New(120)
 
 	return fs, nil
@@ -105,13 +105,13 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 
 func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
-  return ret
+	return ret
 }
 
 func (fs *FileStorage) AddCachedFile(x *FileInfo) error {
 	addr := *x.ContractAddr
 	fs.filesContractAddr[addr] = x
-  fs.files = append(fs.files, x)
+	fs.files = append(fs.files, x)
 	return nil
 }
 
@@ -120,12 +120,12 @@ func (fs *FileStorage) AddFile(x *FileInfo) error {
 	if _, ok := fs.filesContractAddr[addr]; ok {
 		return errors.New("file already existed")
 	}
-  x.Index = fs.LastFileIndex
-  fs.LastFileIndex += 1
+	x.Index = fs.LastFileIndex
+	fs.LastFileIndex += 1
 	fs.filesContractAddr[addr] = x
-  fs.files = append(fs.files, x)
-  fs.WriteFile(x)
-//	log.Info("Write fileinfo to database", "info", *x, "meta", x.Meta)
+	fs.files = append(fs.files, x)
+	fs.WriteFile(x)
+	//	log.Info("Write fileinfo to database", "info", *x, "meta", x.Meta)
 	return nil
 }
 
@@ -159,7 +159,7 @@ func Available(infohash string, rawSize int64) (bool, error) {
 		log.Debug("storage", "ih", ih, "torrent", torrent)
 		return false, errors.New("download not completed")
 	} else {
-		if (!torrent.IsAvailable()) {
+		if !torrent.IsAvailable() {
 			return false, errors.New(fmt.Sprintf("download not completed: %d %d", torrent.BytesCompleted(), rawSize))
 		}
 		log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
@@ -167,7 +167,7 @@ func Available(infohash string, rawSize int64) (bool, error) {
 	}
 }
 
-func GetFile(infohash string, path string) ([]byte, error){
+func GetFile(infohash string, path string) ([]byte, error) {
 	infohash = strings.ToLower(infohash[2:])
 	TorrentAPIAvailable.Lock()
 	defer TorrentAPIAvailable.Unlock()
@@ -184,7 +184,7 @@ func GetFile(infohash string, path string) ([]byte, error){
 }
 
 func ExistTorrent(infohash string) bool {
-  TorrentAPIAvailable.Lock()
+	TorrentAPIAvailable.Lock()
 	defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
 	tm := CurrentTorrentManager
@@ -203,7 +203,7 @@ func (fs *FileStorage) Close() error {
 		if fs.opCounter.IsZero() {
 			// persist storage block number
 			fs.writeBlockNumber()
-      fs.writeLastFileIndex()
+			fs.writeLastFileIndex()
 			return fs.db.Close()
 		}
 
@@ -397,7 +397,6 @@ func (fs *FileStorage) writeLastFileIndex() error {
 	})
 }
 
-
 func (fs *FileStorage) readBlockNumber() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("currentBlockNumber"))
@@ -439,6 +438,3 @@ type FlowControlMeta struct {
 	InfoHash       metainfo.Hash
 	BytesRequested uint64
 }
-
-
-
