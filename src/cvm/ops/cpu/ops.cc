@@ -122,20 +122,15 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense").set_body([](CVMArgs args, CVMRetVal
     auto N = y->shape[1], K = x->shape[1];
     int blocks = K / 32 * 32;
     int32_t weight_size = w->shape[0] * w->shape[1];
-    std::unique_ptr<int8_t> int8_filter(new int8_t[sizeof(int8_t) * weight_size]);
-    if(!int8_filter) {
-      CHECK(false) << "create buffer int8_filter failed";
-    }
+    std::shared_ptr<int8_t> int8_filter(new int8_t[weight_size]);
 
     for(int32_t i = 0; i < weight_size; i++){
       int8_filter.get()[i] = static_cast<int8_t>(w_data[i]);
     }
 
     int32_t x_size = x->shape[0] * x->shape[1];
-    std::unique_ptr<int8_t> int8_x(new int8_t[sizeof(int8_t) * x_size]);
-    if(!int8_x) {
-      CHECK(false) << "create buffer int8_x failed";
-    }
+    std::shared_ptr<int8_t> int8_x(new int8_t[x_size]);
+
     bool all_positive = true;
     for(int32_t i = 0; i < x_size; i++){
       int8_x.get()[i] = static_cast<int8_t>(x_data[i]);
@@ -208,70 +203,67 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.flatten")
 
   print_to_file(y, "flatten.txt");
 });
- bool transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias,
-         int32_t *c, const int M, const int K, const int N){
-     int8_t *tr_b = (int8_t*)malloc(sizeof(int8_t) * K*N);
-     if (tr_b == NULL) return false;
 
-      int i = 0, j = 0;
-     const int32_t tK = K / 32 * 32;
-     const int32_t tN = N / 32 * 32;
-     for(i = 0; i < tK; i+=32){
-         for(j = 0; j < tN; j+=32){
-             int8_t tile[32][32];
-             for(int ti = 0; ti < 32; ti++){
-                 for(int tj = 0; tj < 32; tj++){
-                     tile[tj][ti] = b[(i+ti)*N + j+tj];
-                 }
-             }
-             for(int ti = 0; ti < 32; ti++){
-                 for(int tj = 0; tj < 32; tj++){
-                     tr_b[(j+ti) * K + i + tj] = tile[ti][tj];
-                 }
-             }
-         }
-         for(int ti = 0; ti < 32; ti++){
-             for(int tj = j; tj < N; tj++){
-                 tr_b[tj * K + i+ti] = b[(i+ti) * N + tj];
-             }
-         }
-     }
-     for(; i < K; i++){
-         for(j = 0; j < N; j++){
-             tr_b[j * K + i] = b[i * N + j];
-         }
-     }
-     int16_t int16[16];
-     for(int i = 0; i < 16; i++) int16[i] = 1;
-     __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
+void transpose_int8_avx256(const int8_t *a, const int8_t *b, const int32_t *bias,
+    int32_t *c, const int M, const int K, const int N){
+  std::shared_ptr<int8_t> tr_b(new int8_t[K*N]);
 
-      int blocks = K / 32 * 32;
-     for(int i = 0; i < M; i++){
-         int32_t bV = bias != NULL ? bias[i] : 0;
-         for(int j = 0; j < N; j++){
-             __m256i vc = _mm256_setzero_si256();
-             int k = 0;
-             for(k = 0; k < blocks; k+=32){
-                 __m256i va = _mm256_loadu_si256((__m256i*)&a[i*K+k]);
-                 __m256i vb = _mm256_loadu_si256((__m256i*)&tr_b[j*K+k]);
-                 __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
-                 __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
-                 vc = _mm256_add_epi32(vresult2, vc);
-             }
-             int32_t sum = 0;
-             for(int ti = 0; ti < 8; ti++){
-                 sum += ((int32_t*)&vc)[ti];
-             }
-             for(; k < K; k++){
-                 sum += a[i * K + k] * tr_b[j * K + k];
-             }
-             c[i*N+j] = sum + bV;
-         }
-     }
+  int i = 0, j = 0;
+  const int32_t tK = K / 32 * 32;
+  const int32_t tN = N / 32 * 32;
+  for(i = 0; i < tK; i+=32){
+    for(j = 0; j < tN; j+=32){
+      int8_t tile[32][32];
+      for(int ti = 0; ti < 32; ti++){
+        for(int tj = 0; tj < 32; tj++){
+          tile[tj][ti] = b[(i+ti)*N + j+tj];
+        }
+      }
+      for(int ti = 0; ti < 32; ti++){
+        for(int tj = 0; tj < 32; tj++){
+          tr_b.get()[(j+ti) * K + i + tj] = tile[ti][tj];
+        }
+      }
+    }
+    for(int ti = 0; ti < 32; ti++){
+      for(int tj = j; tj < N; tj++){
+        tr_b.get()[tj * K + i+ti] = b[(i+ti) * N + tj];
+      }
+    }
+  }
+  for(; i < K; i++){
+    for(j = 0; j < N; j++){
+      tr_b.get()[j * K + i] = b[i * N + j];
+    }
+  }
+  int16_t int16[16];
+  for(int i = 0; i < 16; i++) int16[i] = 1;
+  __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
 
-      free(tr_b);
- return true;
- }
+  int blocks = K / 32 * 32;
+  for(int i = 0; i < M; i++){
+    int32_t bV = bias != NULL ? bias[i] : 0;
+    for(int j = 0; j < N; j++){
+      __m256i vc = _mm256_setzero_si256();
+      int k = 0;
+      for(k = 0; k < blocks; k+=32){
+        __m256i va = _mm256_loadu_si256((__m256i*)&a[i*K+k]);
+        __m256i vb = _mm256_loadu_si256((__m256i*)&tr_b.get()[j*K+k]);
+        __m256i vresult1 = _mm256_maddubs_epi16(vb, va);
+        __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
+        vc = _mm256_add_epi32(vresult2, vc);
+      }
+      int32_t sum = 0;
+      for(int ti = 0; ti < 8; ti++){
+        sum += ((int32_t*)&vc)[ti];
+      }
+      for(; k < K; k++){
+        sum += a[i * K + k] * tr_b.get()[j * K + k];
+      }
+      c[i*N+j] = sum + bV;
+    }
+  }
+}
 
 void transpose(const int8_t *A, int8_t *B, int K, int N) {
     for(int i = 0; i < N; i++) {
@@ -288,7 +280,7 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
     double start = omp_get_wtime();
 #endif
     if(std::memset(c, 0, sizeof(int32_t) * M * N) == NULL){
-        CHECK(false);
+      CHECK(false);
     }
 
     if (N > M ) {
@@ -306,7 +298,7 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
       try{
         tr_b.resize(N*K);
       }catch(const std::bad_alloc& e){
-        CHECK(false) << e.what();
+        CHECK(false);
       }
 
       transpose(b, tr_b.data(), K, N);
@@ -436,22 +428,15 @@ void depthwise_conv2d_single(
 {
   // std::cerr << "depth wise imcol\n";
   int32_t fn = out_channels * filter_h * filter_w;
-  int8_t *int8_filter = (int8_t*)malloc(sizeof(int8_t) * fn);
-  if(int8_filter == NULL){
-    CHECK(false);
-  }
+  std::shared_ptr<int8_t> int8_filter(new int8_t[fn]);
   for(int32_t i = 0; i < fn; i++){
-    int8_filter[i] = static_cast<int8_t>(w_data[i]);
+    int8_filter.get()[i] = static_cast<int8_t>(w_data[i]);
   }
   const int M = 1;
   const int K = filter_h * filter_w;
   const int N = o_h * o_w;
 
-  int8_t *data_col = (int8_t*)malloc(sizeof(int8_t) * in_channels * filter_h * filter_w * o_h * o_w);
-  if(data_col == NULL){
-    delete int8_filter;
-    CHECK(false) << "malloc failed when alloc " << data_col;
-  }
+  std::shared_ptr<int8_t> data_col(new int8_t[in_channels * filter_h * filter_w * o_h * o_w]);
   bool has_negetive = false;
   im2col_cpu(
     x_data + 0* in_channels * x_h * x_w, //+ channel * x_h * x_w,
@@ -460,7 +445,7 @@ void depthwise_conv2d_single(
     padding[0], padding[1],
     stride_h, stride_w,
     dilation_h, dilation_w,
-    data_col, has_negetive
+    data_col.get(), has_negetive
   );
   if(std::memset(y_data, 0, sizeof(int32_t) * in_channels * M * N) == NULL){
     CHECK(false);
@@ -470,8 +455,8 @@ void depthwise_conv2d_single(
     #pragma omp parallel for
     for (int channel = 0; channel < out_channels; channel++) {
       auto c = y_data_batch + channel * N;
-      auto a = int8_filter + channel * K;
-      auto b = data_col + channel * K * N;
+      auto a = int8_filter.get() + channel * K;
+      auto b = data_col.get() + channel * K * N;
       for(int k = 0; k < K; k++){
         int32_t aV = static_cast<int32_t>(a[k]);
         for(int j = 0; j < N; j++){
@@ -485,8 +470,6 @@ void depthwise_conv2d_single(
       }
     }
   }
-  free(data_col);
-  free(int8_filter);
 }
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
@@ -557,42 +540,28 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
       double start = omp_get_wtime();
       //double start_1x1 = omp_get_wtime();
 #endif
-      int8_t *data_col = (int8_t*)malloc(sizeof(int8_t) * in_channels * filter_h * filter_w * o_h * o_w);
-      if(data_col == NULL){
-          CHECK(false) << "malloc failed.";
-      }
+      std::shared_ptr<int8_t> data_col(new int8_t[in_channels * filter_h * filter_w * o_h * o_w]);
       int32_t fn = out_channels * in_channels * filter_h * filter_w;
-      int8_t *int8_filter = (int8_t*)malloc(sizeof(int8_t) * fn);
-      if(int8_filter == NULL){
-          free(data_col);
-          CHECK(false);
-      }
+      std::shared_ptr<int8_t> int8_filter(new int8_t[fn]);
 
       for(int32_t i = 0; i < fn; i++){
-          int8_filter[i] = static_cast<int8_t>(w_data[i]);
+          int8_filter.get()[i] = static_cast<int8_t>(w_data[i]);
       }
       for(int32_t i = 0; i < n_batch; i++){
           bool has_negetive = false;
           im2col_cpu(x_data + i * in_channels * x_h * x_w, in_channels, x_h, x_w, filter_h, filter_w, padding[0], padding[1],
-                  stride_h, stride_w, dilation_h, dilation_w, data_col, has_negetive);
+                  stride_h, stride_w, dilation_h, dilation_w, data_col.get(), has_negetive);
           const int32_t M = out_channels;
           const int32_t K = in_channels * filter_h * filter_w;
           const int32_t N = o_h * o_w;
           if(has_negetive) {
-              matrix_mul(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
+            matrix_mul(int8_filter.get(), data_col.get(), b_data, y_data + i * out_channels * o_h * o_w,
                   M, K, N);
           }else{
-              bool ret = transpose_int8_avx256(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
+            transpose_int8_avx256(int8_filter.get(), data_col.get(), b_data, y_data + i * out_channels * o_h * o_w,
                   M, K, N);
-              if(ret == false){
-                free(data_col);
-                free(int8_filter);
-                CHECK(false);
-              }
           }
       }
-      free(data_col);
-      free(int8_filter);
 #ifdef CVM_PROFILING
         cvm_op_chnwise_conv_cnt += omp_get_wtime() - start;
         if (filter_h == 1 && filter_w == 1) {
