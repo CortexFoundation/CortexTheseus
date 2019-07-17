@@ -562,9 +562,6 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) ([]byte, error) {
 	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
 	log.Trace("Infer Detail", "Input Content", hexutil.Encode(inputArray))
-	if cvm.vmConfig.DebugInferVM {
-		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
-	}
 
 	if cvm.vmConfig.DebugInferVM {
 		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
