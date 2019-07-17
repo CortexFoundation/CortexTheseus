@@ -281,14 +281,14 @@ void transpose(const int8_t *A, int8_t *B, int K, int N) {
     }
 }
 
-void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
+bool matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
         int32_t *c, const int M, const int K, const int N, int algo = 0)
 {
 #ifdef CVM_PROFILING
     double start = omp_get_wtime();
 #endif
     if(std::memset(c, 0, sizeof(int32_t) * M * N) == NULL){
-        CHECK(false);
+      return false;
     }
 
     if (N > M ) {
@@ -306,7 +306,7 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
       try{
         tr_b.resize(N*K);
       }catch(const std::bad_alloc& e){
-        CHECK(false) << e.what();
+        return false;
       }
 
       transpose(b, tr_b.data(), K, N);
@@ -341,6 +341,7 @@ void matrix_mul(const int8_t *a, const int8_t *b, const int32_t *bias,
     // std::cerr << "matrix_mul = " << M << " " << K << " " << N << " " << M * K * N << "  " << cost_time << "\n";
     cvm_op_inline_matmul_cnt += cost_time;
 #endif
+    return true;
 }
 inline bool is_a_ge_zero_and_a_lt_b(int a, int b) {
   return static_cast<unsigned>(a) < static_cast<unsigned>(b);
@@ -449,7 +450,7 @@ void depthwise_conv2d_single(
 
   int8_t *data_col = (int8_t*)malloc(sizeof(int8_t) * in_channels * filter_h * filter_w * o_h * o_w);
   if(data_col == NULL){
-    delete int8_filter;
+    free(int8_filter);
     CHECK(false) << "malloc failed when alloc " << data_col;
   }
   bool has_negetive = false;
@@ -463,6 +464,8 @@ void depthwise_conv2d_single(
     data_col, has_negetive
   );
   if(std::memset(y_data, 0, sizeof(int32_t) * in_channels * M * N) == NULL){
+    free(int8_filter);
+    free(data_col);
     CHECK(false);
   }
   for(int batch = 0; batch < n_batch; batch++) {
@@ -578,17 +581,18 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
           const int32_t M = out_channels;
           const int32_t K = in_channels * filter_h * filter_w;
           const int32_t N = o_h * o_w;
+          bool ret;
           if(has_negetive) {
-              matrix_mul(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
+            ret = matrix_mul(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
                   M, K, N);
           }else{
-              bool ret = transpose_int8_avx256(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
+            ret = transpose_int8_avx256(int8_filter, data_col, b_data, y_data + i * out_channels * o_h * o_w,
                   M, K, N);
-              if(ret == false){
-                free(data_col);
-                free(int8_filter);
-                CHECK(false);
-              }
+          }
+          if(false == ret){
+            free(data_col);
+            free(int8_filter);
+            CHECK(false);
           }
       }
       free(data_col);
