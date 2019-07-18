@@ -114,7 +114,7 @@ func (tfs *TorrentFS) Stop() error {
 }
 
 
-func (fs TorrentFS) Available(infohash string, rawSize int64) bool {
+func (fs TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 	// modelDir := fs.DataDir + "/" + infoHash
 	// if (os.Stat)
 	return Available(infohash, rawSize)

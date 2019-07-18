@@ -193,6 +193,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.InferDeviceTypeFlag,
 			utils.InferDeviceIdFlag,
+			utils.InferPortFlag,
 			utils.InferMemoryFlag,
 		},
 	},

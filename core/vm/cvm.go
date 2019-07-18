@@ -26,12 +26,13 @@ import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	// "github.com/CortexFoundation/CortexTheseus/torrentfs"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -527,16 +528,16 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
-	// fmt.Println("infer", modelInfoHash, inputInfoHash)
-	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
-
+	//log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 	if !cvm.vmConfig.DebugInferVM {
-		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
-			return nil, errors.New("Torrent file model not available, blockchain and torrent not match, modelInfoHash: " + modelInfoHash)
+		if err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
+			log.Warn("Infer", "Torrent file model not available, blockchain and torrent not match, modelInfoHash", modelInfoHash)
+			return nil, err
 		}
 
-		if !torrentfs.Available(inputInfoHash, int64(inputRawSize)) {
-			return nil, errors.New("Torrent file input not available, blockchain and torrent not match, inputInfoHash: " + inputInfoHash)
+		if err := synapse.Engine().Available(inputInfoHash, int64(inputRawSize)); err != nil {
+			log.Warn("File non available", "inputInfoHash:", inputInfoHash)
+			return nil, err
 		}
 	}
 
@@ -545,10 +546,13 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		errRes   error
 	)
 
+	start := mclock.Now()
+
 	inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
+	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("Inference Succeed", "label", inferRes)
+		log.Info("Inference succeed !!!", "label", inferRes, "model", modelInfoHash, "input", inputInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	if cvm.vmConfig.DebugInferVM {
@@ -559,25 +563,31 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) ([]byte, error) {
-	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
+	//log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
 	log.Trace("Infer Detail", "Input Content", hexutil.Encode(inputArray))
+
 	if cvm.vmConfig.DebugInferVM {
 		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
 	if !cvm.vmConfig.DebugInferVM {
-		if !torrentfs.Available(modelInfoHash, int64(modelRawSize)) {
-			return nil, errors.New("Torrent file model not available, blockchain and torrent not match")
+		if err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
+			log.Warn("InferArray", "modelInfoHash", modelInfoHash, "not Available", "")
+			return nil, err
 		}
 	}
+
 	var (
 		inferRes []byte
 		errRes   error
 	)
 
+	start := mclock.Now()
+
 	inferRes, errRes = synapse.Engine().InferByInputContent(modelInfoHash, inputArray)
+	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("Inference Succeed", "label", inferRes)
+		log.Info("Infer array succeed !!!", "label", inferRes, "model", modelInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	return inferRes, errRes
@@ -591,12 +601,23 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 		return 0, err
 	}
 	modelRawSize := modelMeta.RawSize
-	if !cvm.vmConfig.DebugInferVM && !torrentfs.Available(modelMeta.Hash.Hex(), int64(modelRawSize)) {
-		log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize)
-		return 0, errors.New("Torrent file model not available, blockchain and torrent not match: " + modelMeta.Hash.Hex())
+
+	if !cvm.vmConfig.DebugInferVM {
+		if err := synapse.Engine().Available(modelMeta.Hash.Hex(), int64(modelRawSize)); err != nil {
+			log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize)
+			return 0, err
+		}
 	}
 
+	start := mclock.Now()
+
 	opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
+
+	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+
+	if errRes == nil {
+		log.Info("Ops infer succeed !!!", "ops", opsRes, "addr", addr, "elapsed", common.PrettyDuration(elapsed))
+	}
 
 	return opsRes, errRes
 }

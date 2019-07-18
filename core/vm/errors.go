@@ -16,7 +16,10 @@
 
 package vm
 
-import "errors"
+import (
+	"errors"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+)
 
 // List execution errors
 var (
@@ -29,10 +32,13 @@ var (
 
 	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
 	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
-	ErrInvalidMetaAuthor      = errors.New("invalid meta author")
+	ErrInvalidMetaAuthor       = errors.New("invalid meta author")
 
-	ErrDownloading = errors.New("downloading")
-	ErrFileNotExist = errors.New("file not exist")
+	ErrDownloading    = errors.New("downloading")
+	ErrFileNotExist   = errors.New("file not exist")
 	ErrInvalidTorrent = errors.New("invalid torrent")
-	ErrInfer = errors.New("infer error")
+	ErrInfer          = errors.New("infer error")
+
+	ErrRuntime = synapse.KERNEL_RUNTIME_ERROR
+	ErrLogic   = synapse.KERNEL_LOGIC_ERROR
 )

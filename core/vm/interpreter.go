@@ -25,7 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	// "github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"sync/atomic"
 )
 
@@ -60,7 +60,7 @@ type Config struct {
 	CallFakeVM   bool
 	DebugInferVM bool
 	StorageDir   string
-	Storagefs    torrentfs.CVMStorage
+	// Storagefs    torrentfs.CVMStorage
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -248,7 +248,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				if modelMeta.Gas == uint64(0) {
 					//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 					modelMeta.SetGas(0)
-				} else if modelMeta.Gas > params.MODEL_GAS_UP_LIMIT{
+				} else if modelMeta.Gas > params.MODEL_GAS_UP_LIMIT {
 					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
 				} else if int64(modelMeta.Gas) < 0 {
 					modelMeta.SetGas(0)
@@ -262,7 +262,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				}
 
 				contract.Code = append([]byte{0, 1}, tmpCode...)
-				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
+				log.Info("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 			}
 			return contract.Code, nil
 		}
@@ -391,38 +391,32 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		// gasCost will check model's metainfo before checking available gas
-		if err == ErrMetaInfoNotMature {
+		if err == ErrRuntime {
 			return nil, err
 		}
 
 		if op.IsInfer() {
-			var model_meta_err error
-			modelMeta, model_meta_err := in.cvm.GetModelMeta(common.BigToAddress(stack.Back(0)))
-			if model_meta_err != nil {
-				return nil, model_meta_err
+			modelMeta, err := in.cvm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			if err != nil {
+				return nil, err
 			}
 			//todo model validation
 			if modelMeta.AuthorAddress != common.EmptyAddress {
 				contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
-				log.Info("Model gas earn", "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas)
+				log.Debug("Model gas earn", "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas)
 			}
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
+				log.Warn("overflow", "cost", cost, "gas", modelMeta.Gas)
 				return nil, errGasUintOverflow
 			}
 		}
 
 		if err != nil || !contract.UseGas(cost) {
-			log.Debug("interpreter", "cost", cost, "err", err, "cgas", cgas)
+			log.Debug("Interpreter", "cost", cost, "err", err, "cgas", cgas)
 			return nil, ErrOutOfGas
 		}
-		// consume the gas and return an error if not enough gas is available.
-		// cost is explicitly set so that the capture state defer method can get the proper cost
-		//cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
 
-		//if err != nil || !contract.UseGas(cost) {
-		//	return nil, ErrOutOfGas
-		//}
 		if memorySize > 0 {
 			mem.Resize(memorySize)
 		}

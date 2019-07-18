@@ -70,6 +70,7 @@ sync
 # intermediate result
 *.o
 *.syso
+*.so
 *.a
 
 # infernet

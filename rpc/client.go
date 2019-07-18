@@ -117,7 +117,7 @@ type Client struct {
 	writeConn net.Conn
 
 	// for dispatch
-	close       chan struct{}
+	close chan struct{}
 	//didQuit     chan struct{}                  // closed when client quits
 	closing     chan struct{}                  // closed when client is quitting
 	didClose    chan struct{}                  // closed when client quits
@@ -272,8 +272,8 @@ func (c *Client) Close() {
 	}
 	select {
 	case c.close <- struct{}{}:
-	//	<-c.didQuit
-	//case <-c.didQuit:
+		//	<-c.didQuit
+		//case <-c.didQuit:
 		<-c.didClose
 	case <-c.didClose:
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 type CVMStorage interface {
-	Available(infohash string, rawSize int64) bool
+	Available(infohash string, rawSize int64) (bool, error)
 	GetFile(infohash string, path string) ([]byte, error)
 }
 
@@ -30,14 +30,14 @@ type InfoHashFileSystem struct {
 	DataDir   string
 }
 
-func (fs InfoHashFileSystem) Available(infohash string, rawSize int64) bool {
-	return true
+func (fs InfoHashFileSystem) Available(infohash string, rawSize int64) (bool, error) {
+	return true, nil
 }
 
 func (fs InfoHashFileSystem) GetFile(infohash string, subpath string) ([]byte, error) {
 	fn := path.Join(fs.DataDir, infohash, subpath)
 	data, err := ioutil.ReadFile(fn)
-	fmt.Println("InfoHashFileSystem", "GetFile", fn)
+	fmt.Println("InfoHashFileSystem", "GetFile", fn, "err", err)
 	return data, err
 }
 

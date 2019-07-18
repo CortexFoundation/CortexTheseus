@@ -27,10 +27,6 @@ inline TShape GetReduceAxes(const uint32_t indim,
     return r_axes;
   }
 
-  VERIFY_LT(axis[axis.ndim() - 1], indim)
-    << "Reduction axis " << axis[axis.ndim() - 1]
-    << " exceeds input dimensions " << indim;
-
   TShape in_axis = axis;
   for (auto& i : in_axis) {
     i = i < 0 ? i + indim : i;
@@ -151,15 +147,9 @@ Example::
      std::vector<int>* iattr,
      std::vector<int>* oattr) -> bool {
   IN_PREC_CHECK(iattr, attrs.name);
-  auto& axis = cvm::get<ReduceParam>(attrs.parsed).axis;
   const TShape& ishp = shapes->at(0);
-  std::vector<int> axis_shp;
-  int64_t suml = 1;
-  if (axis.ndim() == 0){
-    suml = ishp.Size();
-  } else {
-    for (const auto& idx : axis) suml *= ishp[idx];
-  }
+  const TShape& oshp = shapes->at(1);
+  int64_t suml = ishp.Size() / oshp.Size();
   int oprec = iattr->at(0);
   oprec += GetBit(suml);
   (*oattr)[0] = oprec;
