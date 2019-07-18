@@ -1221,6 +1221,8 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.DefaultTrackers = strings.Split(trackers, ",")
 	cfg.BoostNodes = strings.Split(boostnodes, ",")
 	cfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
+	log.Debug("SetTorrentFsConfig", "MaxSeedingNum", ctx.GlobalInt(StorageMaxSeedingFlag.Name),
+																   "MaxActiveNum", ctx.GlobalInt(StorageMaxActiveFlag.Name))
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
