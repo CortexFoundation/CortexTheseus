@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
@@ -527,8 +528,7 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
-	// fmt.Println("infer", modelInfoHash, inputInfoHash)
-	log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
+	//log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 	if !cvm.vmConfig.DebugInferVM {
 		if err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize)); err != nil {
 			log.Warn("Infer", "Torrent file model not available, blockchain and torrent not match, modelInfoHash", modelInfoHash)
@@ -546,10 +546,13 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		errRes   error
 	)
 
+	start := mclock.Now()
+
 	inferRes, errRes = synapse.Engine().InferByInfoHash(modelInfoHash, inputInfoHash)
+	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("Inference Succeed", "label", inferRes)
+		log.Info("Inference succeed !!!", "label", inferRes, "model", modelInfoHash, "input", inputInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	if cvm.vmConfig.DebugInferVM {
@@ -560,7 +563,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) ([]byte, error) {
-	log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
+	//log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
 	log.Trace("Infer Detail", "Input Content", hexutil.Encode(inputArray))
 
 	if cvm.vmConfig.DebugInferVM {
@@ -578,10 +581,13 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 		errRes   error
 	)
 
+	start := mclock.Now()
+
 	inferRes, errRes = synapse.Engine().InferByInputContent(modelInfoHash, inputArray)
+	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("Inference Succeed", "label", inferRes)
+		log.Info("Infer array succeed !!!", "label", inferRes, "model", modelInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	return inferRes, errRes
@@ -603,7 +609,15 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 		}
 	}
 
+	start := mclock.Now()
+
 	opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex())
+
+	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+
+	if errRes == nil {
+		log.Info("Ops infer succeed !!!", "ops", opsRes, "addr", addr, "elapsed", common.PrettyDuration(elapsed))
+	}
 
 	return opsRes, errRes
 }

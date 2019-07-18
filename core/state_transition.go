@@ -331,7 +331,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			return nil, 0, big0, false, vmerr
 		}
 
-		log.Warn("VM returned with error", "err", vmerr)
+		log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
 
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
@@ -365,7 +365,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 				return nil, 0, big0, false, vm.ErrInsufficientBalance
 			}
 			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
-			log.Info("Model author reward", "author", addr.Hex(), "reward", reward)
+			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward)
 			st.state.AddBalance(addr, reward)
 		}
 	}

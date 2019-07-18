@@ -62,12 +62,12 @@ func (m *Model) Predict(data []byte) ([]byte, int) {
 		status int
 		err    error
 	)
-	if len(data) != int(m.input_size) {
+	if len(data) < int(m.input_size) {
 		log.Warn("input length not matched",
 			"input length", len(data), "expected", m.input_size)
 		return nil, ERROR_LOGIC
 	}
-	if data, err = ToAlignedData(data, int(m.input_byte)); err != nil {
+	if data, err = ToAlignedData(data[:m.input_size], int(m.input_byte)); err != nil {
 		log.Warn("input ToAlignedData invalid", "error", err)
 		return nil, ERROR_LOGIC
 	}
