@@ -11,10 +11,10 @@ package main
 import "C"
 import (
 	"fmt"
-	"log"
 	//	"time"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"math/big"
 	"unsafe"
 )
@@ -33,7 +33,7 @@ func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error 
 }
 
 func CuckooFinalize() {
-	log.Println("finalize()")
+	log.Debug("CuckooFinalize")
 	C.CuckooFinalize()
 }
 
@@ -54,7 +54,7 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 		(*C.uint32_t)(unsafe.Pointer(&_numSols)))
 
 	if uint32(len(result)) < _solLength*_numSols {
-		log.Println(fmt.Sprintf("WARNING: discard possible solutions, total sol num=%v, received number=%v", _numSols, uint32(len(result))/_solLength))
+		log.Warn(fmt.Sprintf("WARNING: discard possible solutions, total sol num=%v, received number=%v", _numSols, uint32(len(result))/_solLength))
 		_numSols = uint32(len(result)) / _solLength
 	}
 

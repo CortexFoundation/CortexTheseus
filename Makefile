@@ -86,13 +86,15 @@ plugins/cpu_helper_for_node.so:
 	make -C PoolMiner cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
-plugins/cuda_cvm.so: infernet/kernel/infer_plugins/cuda_plugin.go
+plugins/cuda_cvm.so:
 	make -C ${INFER_NET_DIR} -j8 gpu
-	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cuda_plugin.go
+	ln -sf ../infernet/build/gpu/libcvm_runtime_cuda.so $@
+	# build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
-plugins/cpu_cvm.so: infernet/kernel/infer_plugins/cpu_plugin.go
+plugins/cpu_cvm.so:
 	make -C ${INFER_NET_DIR} -j8 cpu
-	build/env.sh go build -buildmode=plugin -o $@ infernet/kernel/infer_plugins/cpu_plugin.go
+	ln -sf ../infernet/build/cpu/libcvm_runtime_cpu.so $@
+	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
 
@@ -122,6 +124,7 @@ clean:
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
 	rm -rf infernet/build/*
+	rm -rf plugin/*
 	rm -f PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
 
 clean-clib:

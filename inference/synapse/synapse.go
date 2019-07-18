@@ -3,9 +3,9 @@ package synapse
 import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
-	"plugin"
 	"strconv"
 	"sync"
 )
@@ -45,7 +45,7 @@ type Synapse struct {
 	config      *Config
 	simpleCache sync.Map
 	modelLock   sync.Map
-	lib         *plugin.Plugin
+	lib         *kernel.LibCVM
 	caches      map[int]*lru.Cache
 	exitCh      chan struct{}
 }
@@ -61,8 +61,6 @@ func Engine() *Synapse {
 
 func New(config *Config) *Synapse {
 	path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX
-	var lib *plugin.Plugin = nil
-	// fmt.Println("config ", config, "synapseInstance ", synapseInstance)
 	if synapseInstance != nil {
 		log.Warn("Synapse Engine has been initalized")
 		if config.Debug {
@@ -70,15 +68,14 @@ func New(config *Config) *Synapse {
 		}
 		return synapseInstance
 	}
-
+	var lib *kernel.LibCVM
+	var status int
 	if !config.IsRemoteInfer {
-		var err error = nil
-		// fmt.Println("path ", path)
-		lib, err = plugin.Open(path)
-		if err != nil {
-			log.Error("infer helper", "init cvm plugin error", err)
+		lib, status = kernel.LibOpen(path)
+		if status != kernel.SUCCEED {
+			log.Error("infer helper", "init cvm plugin error", "")
 			if config.Debug {
-				fmt.Println("infer helper", "init cvm plugin error", err)
+				fmt.Println("infer helper", "init cvm plugin error", "")
 			}
 			return nil
 		}
@@ -100,4 +97,26 @@ func New(config *Config) *Synapse {
 func (s *Synapse) Close() {
 	close(s.exitCh)
 	log.Info("Synapse Engine Closed")
+}
+
+func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
+	if s.config.IsRemoteInfer {
+		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash)
+	}
+	return s.inferByInfoHash(modelInfoHash, inputInfoHash)
+}
+
+func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
+	if s.config.IsRemoteInfer {
+		return s.remoteInferByInputContent(modelInfoHash, inputContent)
+	}
+	inputInfoHash := RLPHashString(inputContent)
+	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
+}
+
+func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+	if s.config.IsRemoteInfer {
+		return s.remoteGasByModelHash(modelInfoHash)
+	}
+	return s.getGasByInfoHash(modelInfoHash)
 }

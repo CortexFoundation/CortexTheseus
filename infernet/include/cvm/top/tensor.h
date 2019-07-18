@@ -146,15 +146,15 @@ struct CastParam : public utils::Parameter<CastParam> {
 //   CVMUTIL_DECLARE_PARAMETER(IndicatorParam) {
 //     CVMUTIL_DECLARE_FIELD(axis).set_default(TShape())
 //     .describe(R"code(The axis or axes along which to perform the indicator rule.
-// 
+//
 //         The default, `axis=()`, will compute over all elements into a
 //         scalar array with shape `(1,)`.
-// 
+//
 //         If `axis` is int, rule is applied on a particular axis.
-// 
+//
 //         If `axis` is a tuple of ints, rule is applied on all the axes
 //         specified in the tuple.
-// 
+//
 //         If `exclude` is true, rule will be applied on the axes that are
 //         NOT in axis instead.)code");
 //     CVMUTIL_DECLARE_FIELD(exclude).set_default(false)
@@ -302,7 +302,7 @@ struct MatMulParam : public utils::Parameter<MatMulParam> {
 };
 
 struct ClipParam : public utils::Parameter<ClipParam> {
-  int a_min, a_max;
+  int32_t a_min, a_max;
   CVMUTIL_DECLARE_PARAMETER(ClipParam) {
     CVMUTIL_DECLARE_FIELD(a_min)
       .describe("Minimum value such that value smaller then this will be clipped.");

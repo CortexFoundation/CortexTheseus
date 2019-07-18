@@ -153,9 +153,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
-			// InferURI:                config.InferURI,
 			StorageDir:              config.StorageDir,
-			Storagefs:				 torrentfs.Torrentfs_handle,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)

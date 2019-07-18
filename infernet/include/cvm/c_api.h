@@ -19,40 +19,34 @@
 #define CVM_DLL __attribute__((visibility("default")))
 #endif
 
-/*! \brief manually define unsigned int */
-typedef unsigned int nn_uint;
-
-/*! \brief handle to a function that takes param and creates symbol */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void* CVMAPILoadModel(const char *graph_fname, int  json_len, const char *model_fname, int mdoel_len, int device_type, int device_id);
+const int SUCCEED = 0;
+const int ERROR_LOGIC = 1;
+const int ERROR_RUNTIME = 2;
 
-void CVMAPIFreeModel(void* model);
+int CVMAPILoadModel(const char *graph_json, int graph_strlen,
+                          const char *param_bytes, int param_strlen,
+                          void **net, // pass reference of network
+                          int device_type, int device_id);
+int CVMAPIFreeModel(void *net);
+int CVMAPIInference(void *net,
+                          char *input_data, int input_len,
+                          char *output_data);
 
-int CVMAPIGetInputLength(void* model);
+int CVMAPIGetVersion(void *net, char *version);
+int CVMAPIGetPreprocessMethod(void *net, char *method);
 
-int CVMAPIGetOutputLength(void* model);
+int CVMAPIGetInputLength(void *net, unsigned long long *size);
+int CVMAPIGetOutputLength(void *net, unsigned long long *size);
+int CVMAPIGetInputTypeSize(void *net, unsigned long long *size);
+int CVMAPIGetOutputTypeSize(void *net, unsigned long long *size);
 
-void CVMAPIGetVersion(void* model, char* version);
-
-void CVMAPIGetPreprocessMethod(void* model, char* method);
-
-int CVMAPIInfer(void* model, char *input_data, char *output_data);
-
-int CVMAPIInferInt32(void* model, char *input_data, char *output_data);
-
-int CVMAPISizeOfOutputType(void *model);
-
-int CVMAPISizeOfInputType(void *model);
-
-long long CVMAPIGetGasFromModel(void *model);
-
-long long CVMAPIGetStorageSize(void *model);
-
-long long CVMAPIGetGasFromGraphFile(char *graph_fname);
+int CVMAPIGetStorageSize(void *net, unsigned long long *gas);
+int CVMAPIGetGasFromModel(void *net, unsigned long long *gas);
+int CVMAPIGetGasFromGraphFile(const char *graph_json, unsigned long long *gas);
 
 #ifdef __cplusplus
 } /* end extern "C" */

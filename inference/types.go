@@ -14,6 +14,7 @@ const (
 	INFER_BY_IH   = InferType(1) // Infer By Input Hash
 	INFER_BY_IC   = InferType(2) // Infer By Input Content
 	GAS_BY_H      = InferType(3) // Gas By Model Hash
+	AVAILABLE_BY_H  = InferType(4) // Available by info hash
 )
 
 // Infer by input info hash
@@ -30,10 +31,17 @@ type ICWork struct {
 	Input hexutil.Bytes `json:"input"`
 }
 
-// Infer by input content
+// Infer gas 
 type GasWork struct {
-	Type  InferType     `json:"type"`
-	Model string        `json:"model"`
+	Type  InferType `json:"type"`
+	Model string    `json:"model"`
+}
+
+// check Available 
+type AvailableWork struct {
+	Type  InferType				 `json:"type"`
+	InfoHash string        `json:"infohash"`
+	RawSize  int64				 `json:"rawSize"`
 }
 
 func RetriveType(input []byte) InferType {

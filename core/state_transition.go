@@ -24,7 +24,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"github.com/CortexFoundation/CortexTheseus/core/asm"
@@ -272,7 +271,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		errCh <- ErrUnhandleTx
 		return
 	} else {
-		errCh <- nil
+		errCr <- nil
 		return
 	}
 }*/
@@ -326,12 +325,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	}
 
 	if vmerr != nil {
-		log.Warn("VM returned with error", "err", vmerr)
+		//log.Warn("VM returned with error", "err", vmerr)
 
-		// Inference error caused by torrent fs syncing is returned directly.
-		// This is called Built-In Torrent Fs Error
-		if synapse.CheckBuiltInTorrentFsError(vmerr) {
-			return nil, 0, big0, false, ErrBuiltInTorrentFS
+		log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
+
+		if vmerr == vm.ErrRuntime {
+			return nil, 0, big0, false, vmerr
 		}
 
 		// The only possible consensus-error would be if there wasn't
@@ -341,9 +340,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			return nil, 0, big0, false, vmerr
 		}
 
-		if vmerr == vm.ErrMetaInfoNotMature {
-			return nil, 0, big0, false, vmerr
-		}
+		//if vmerr == vm.ErrMetaInfoNotMature {
+		//	return nil, 0, big0, false, vmerr
+		//}
 	}
 
 	//gas cost below this line
@@ -351,7 +350,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	st.refundGas()
 	//model gas
 	gu := st.gasUsed()
-	if st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
+	if (vmerr == nil || vmerr == vm.ErrOutOfGas) && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
 		for addr, mgas := range st.modelGas {
 			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_UP_LIMIT {
 				continue
@@ -359,14 +358,14 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 			gu -= mgas
 			if gu < 0 { //should never happen
-				if mgas+gu > 0 {
-					st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
-				}
+				//if mgas+gu > 0 {
+				//	st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
+				//}
 
 				return nil, 0, big0, false, vm.ErrInsufficientBalance
 			}
 			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
-			log.Info("Model author reward", "author", addr.Hex(), "reward", reward)
+			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward)
 			st.state.AddBalance(addr, reward)
 		}
 	}
@@ -375,7 +374,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	st.state.AddBalance(st.cvm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 
 	quota := big.NewInt(0) //default used 4 k quota every tx for testing
-	if st.uploading() {
+	if vmerr == nil && st.uploading() {
 		quota = Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
 
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
