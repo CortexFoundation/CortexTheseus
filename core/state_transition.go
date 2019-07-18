@@ -350,7 +350,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	st.refundGas()
 	//model gas
 	gu := st.gasUsed()
-	if (vmerr == nil || vmerr == vm.ErrOutOfGas) && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
+	//if (vmerr == nil || vmerr == vm.ErrOutOfGas) && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
+	if (vmerr == nil || (st.cvm.ChainConfig().ChainID.Uint64() == 21 && st.cvm.BlockNumber.Cmp(big.NewInt(16000)) < 0 && vmerr == vm.ErrOutOfGas)) && st.modelGas != nil && len(st.modelGas) > 0 {
 		for addr, mgas := range st.modelGas {
 			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_UP_LIMIT {
 				continue
