@@ -104,7 +104,7 @@ func (set *unconfirmedBlocks) Shift(height uint64) {
 		case header == nil:
 			log.Warn("Failed to retrieve header of mined block", "number", next.index, "hash", next.hash)
 		case header.Hash() == next.hash:
-			log.Info("⚓ block canonic", "number", next.index, "hash", next.hash)
+			log.Info("⚓ block anchor", "number", next.index, "hash", next.hash)
 		default:
 			// Block is not canonical, check whether we have an uncle or a lost block
 			included := false
@@ -119,7 +119,7 @@ func (set *unconfirmedBlocks) Shift(height uint64) {
 				}
 			}
 			if included {
-				log.Info("⚒️  block uncle", "number", next.index, "hash", next.hash)
+				log.Info("⚒️  block forked", "number", next.index, "hash", next.hash)
 			} else {
 				log.Info("👻 block lost", "number", next.index, "hash", next.hash)
 			}
