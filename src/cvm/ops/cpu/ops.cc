@@ -27,12 +27,6 @@ double cvm_op_chnwise_conv1x1_cnt = 0;
 double cvm_op_depthwise_conv_cnt = 0;
 double cvm_op_depthwise_conv1x1_cnt = 0;
 
-/**
-* x
-* y
-* a_min -127
-* a_max 127
-*/
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.clip").set_body([](CVMArgs args, CVMRetValue* rv)
 {
 #ifdef CVM_PROFILING
