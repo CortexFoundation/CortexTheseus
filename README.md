@@ -61,5 +61,5 @@ And then, run any command to start full node `cortex`:
    (3)You can also run cortex full node as multiple services
    ./cvm.sh then node.sh
    (4)It is easy way to run cortex full node
-   ./start.sh
+   ./start.sh or ./start_gpu.sh
 ```
