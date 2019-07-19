@@ -84,7 +84,7 @@ type GenesisAccount struct {
 	Code       []byte                      `json:"code,omitempty"`
 	Storage    map[common.Hash]common.Hash `json:"storage,omitempty"`
 	Balance    *big.Int                    `json:"balance" gencodec:"required"`
-	BlockNum   *big.Int										 `json:"blocknum"`
+	BlockNum   *big.Int                    `json:"blocknum"`
 	Nonce      uint64                      `json:"nonce,omitempty"`
 	PrivateKey []byte                      `json:"secretKey,omitempty"` // for tests
 }
@@ -169,6 +169,9 @@ func SetupGenesisBlock(db ctxcdb.Database, genesis *Genesis) (*params.ChainConfi
 			log.Info("Writing custom genesis block")
 		}
 		block, err := genesis.Commit(db)
+		if err != nil {
+			return genesis.Config, common.Hash{}, err
+		}
 		return genesis.Config, block.Hash(), err
 	}
 
@@ -361,7 +364,7 @@ func DefaultDoloresGenesisBlock() *Genesis {
 // 	// Override the default period to the user requested one
 // 	config := *params.AllCliqueProtocolChanges
 // 	config.Clique.Period = period
-// 
+//
 // 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 // 	return &Genesis{
 // 		Config:     &config,
