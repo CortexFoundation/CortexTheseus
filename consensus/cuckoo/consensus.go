@@ -844,13 +844,13 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 	if cuckoo.minerPlugin == nil {
 		err := cuckoo.InitPlugin()
 		if err != nil {
-			log.Error("cuckoo", "init error.", "error:", err)
+			log.Error("cuckoo", "init error.", err)
 			return false
 		}
 	}
 	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
 	if err != nil {
-		log.Error("cuckoo", "lookup cuckaroo verify error.", "error:", err)
+		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
 		return false
 	}
 	r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)

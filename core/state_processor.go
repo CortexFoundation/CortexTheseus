@@ -19,7 +19,6 @@ package core
 import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
-	//"github.com/CortexFoundation/CortexTheseus/consensus/misc"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
@@ -89,10 +88,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	return receipts, allLogs, *usedGas, nil
 }
-
-var (
-//        big0 = big.NewInt(0)
-)
 
 // ApplyTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. It returns the receipt
