@@ -369,6 +369,7 @@ int test_models(int device_type = 0) {
     "/data/std_out/random_4_9/",
     "/data/std_out/log2",
     "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
+    "/data/std_out/lr_attr",
   };
   for (auto model_root : model_roots) {
     auto ret = run_LIF(model_root, device_type);
