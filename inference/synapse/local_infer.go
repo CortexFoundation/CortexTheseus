@@ -25,6 +25,10 @@ func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 
 func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
 
+	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") {
+		return 0, KERNEL_RUNTIME_ERROR
+	}
+
 	var (
 		modelHash     = strings.ToLower(modelInfoHash[2:])
 		modelJson     []byte
@@ -54,6 +58,9 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 }
 
 func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []byte, err error) {
+	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
+		return nil, KERNEL_RUNTIME_ERROR
+	}
 	var (
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
@@ -95,6 +102,10 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 }
 
 func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) (resCh []byte, errCh error) {
+	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
+		return nil, KERNEL_RUNTIME_ERROR
+	}
+
 	var (
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
@@ -183,7 +194,7 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 	if err != nil {
 		log.Warn("File non available", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
-	} else if is_ok == false {
+	} else if !is_ok {
 		log.Warn("File non available",
 			"info hash", infoHash, "error", KERNEL_LOGIC_ERROR)
 		return KERNEL_LOGIC_ERROR
