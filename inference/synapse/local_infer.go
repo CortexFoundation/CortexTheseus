@@ -199,6 +199,6 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 			"info hash", infoHash, "error", KERNEL_LOGIC_ERROR)
 		return KERNEL_LOGIC_ERROR
 	}
-	log.Info("File available", "info hash", infoHash)
+	log.Debug("File available", "info hash", infoHash)
 	return nil
 }

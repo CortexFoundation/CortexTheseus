@@ -506,7 +506,7 @@ func (m *Monitor) syncLastBlock() {
 		if minNumber > 5 {
 			minNumber = minNumber - 5
 		}
-		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return
 	}
