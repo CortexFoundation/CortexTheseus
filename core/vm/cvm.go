@@ -616,7 +616,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("Inference [ops ] succeed", "ops", opsRes, "addr", addr, "elapsed", common.PrettyDuration(elapsed))
+		log.Info("Inference [ops  ] succeed", "ops", opsRes, "addr", addr, "elapsed", common.PrettyDuration(elapsed))
 	}
 
 	return opsRes, errRes
