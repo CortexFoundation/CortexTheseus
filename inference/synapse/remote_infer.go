@@ -57,7 +57,7 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string) ([]
 
 	requestBody, err := json.Marshal(inferWork)
 	if err != nil {
-		return nil, err
+		return nil, KERNEL_RUNTIME_ERROR
 	}
 	log.Debug("remoteInferByInfoHash", "request", string(requestBody))
 
