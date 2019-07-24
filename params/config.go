@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ var (
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
 	//BernardGenesisHash: BernardTrustedCheckpoint,
-	//TestnetGenesisHash: TestnetTrustedCheckpoint,
+	DoloresGenesisHash: DoloresTrustedCheckpoint,
 }
 
 type TrustedCheckpoint struct {
@@ -55,6 +55,12 @@ var (
 		SectionIndex: 2,
 		SectionHead:  common.HexToHash("0x2a172bb4f71b55755e632922c77ff260b651236379904306e26f534c12d66256"),
 	}
+	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
+	DoloresTrustedCheckpoint = &TrustedCheckpoint{
+                Name:         "dolores",
+                SectionIndex: 0,
+                SectionHead:  common.HexToHash("0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6"),
+        }
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:        big.NewInt(21),             // If all gold available to men is melted into a cube, it's approx. 21mx21mx21m
