@@ -52,8 +52,8 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
-		SectionIndex: 1,
-		SectionHead:  common.HexToHash("0xf23a3cc21aeb2ec4ad0d81f841ed45256604b2ff158353d0160b79c125b73870"),
+		SectionIndex: 2,
+		SectionHead:  common.HexToHash("0x2a172bb4f71b55755e632922c77ff260b651236379904306e26f534c12d66256"),
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
