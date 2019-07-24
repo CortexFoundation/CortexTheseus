@@ -26,8 +26,7 @@ inline bool UpSamplingInferShape(const cvm::NodeAttrs& attrs,
   TShape dshape = (*in_shape)[0];
   if (dshape.ndim() ==  0) return false;
 
-  VERIFY_GT(param.scale, 0)
-    << "UpSampling only supported scale larger then 0 vs. " << param.scale;
+  VerifyAttrRange(param.scale, "UpSampling.scale", 1);
   VERIFY_EQ(param.layout, "NCHW")
     << "UpSampling only supported NCHW layout vs. " << param.layout;
   // dshape = ConvertLayout(dshape, param.layout, kNCHW);

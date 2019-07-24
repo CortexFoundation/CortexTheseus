@@ -45,10 +45,10 @@ inline bool Pool2DInferShape(const cvm::NodeAttrs& attrs,
   const auto widx = layout.indexof('W');
 
   dim_t pad_h, pad_w;
-  // TODO(kaihuo): padding dimension equals 1, 2 or 4.
-  VERIFY(param.padding.ndim() <= 2U && param.padding.ndim() > 0)
+  VERIFY(param.padding.ndim() == 1U || param.padding.ndim() == 2U)
     << "Pool2D only supported 1-D or 2-D padding vs. "
     << param.padding;
+  VerifyAttrRange(param.padding[0], "MaxPool2D.padding[0]");
   if (param.padding.ndim() == 1) {
     pad_h = param.padding[0] * 2;
     pad_w = param.padding[0] * 2;
@@ -56,10 +56,7 @@ inline bool Pool2DInferShape(const cvm::NodeAttrs& attrs,
     // (top, left)
     pad_h = param.padding[0] * 2;
     pad_w = param.padding[1] * 2;
-  } else if (param.padding.ndim() == 4) {
-    // (top, left, bottom, right)
-    pad_h = param.padding[0] + param.padding[2];
-    pad_w = param.padding[1] + param.padding[3];
+    VerifyAttrRange(param.padding[1], "MaxPool2D.padding[1]");
   } else {
     return false;
   }
@@ -67,6 +64,8 @@ inline bool Pool2DInferShape(const cvm::NodeAttrs& attrs,
   TShape oshape = dshape;
   VERIFY(param.pool_size.ndim() == 2);
   VERIFY(param.strides.ndim() == 2);
+  VerifyAttrRange(param.strides[0], "MaxPool2D.strides[0]", 1);
+  VerifyAttrRange(param.strides[1], "MaxPool2D.strides[1]", 1);
 
   VERIFY(param.pool_size[0] <= dshape[hidx] + pad_h)
       << "pool size (" << param.pool_size[0] << ") exceeds input (" << dshape[hidx]

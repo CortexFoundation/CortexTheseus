@@ -578,30 +578,26 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
     .set_body([](CVMArgs args, CVMRetValue *ret)
 {
 #ifdef CVM_PROFILING
-        double start = omp_get_wtime();
+  double start = omp_get_wtime();
 #endif
   DLTensor *x = args[0];
   DLTensor *y = args[1];
   void *_attr = args[2];
   auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
   auto &param = cvm::get<cvm::top::MaxPool2DParam>(attr->parsed);
-  TShape tpadding = param.padding;
-  int strides[2] = {(int)param.strides[0], (int)param.strides[1]};
-  int pool_size[2] = {(int)param.pool_size[0], (int)param.pool_size[1]};
   int padding[2] = {(int)param.padding[0], (int)param.padding[0]};
-  if(tpadding.ndim() == 2){
+  if(param.padding.ndim() == 2){
     padding[1] = (int)param.padding[1];
   }
-//  bool ceil_mode = param.ceil_mode;
 
-  int stride_h = strides[0];
-  int stride_w = strides[1];
+  int stride_h = param.strides[0];
+  int stride_w = param.strides[1];
 
   int32_t* x_data = (int32_t*)x->data;
   int32_t* y_data = (int32_t*)y->data;
 
-  int filter_h = pool_size[0];
-  int filter_w = pool_size[1];
+  int filter_h = param.pool_size[0];
+  int filter_w = param.pool_size[1];
 
   int n_batch = static_cast<int>(x->shape[0]);
   int in_channels = static_cast<int>(x->shape[1]);
@@ -613,31 +609,30 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
 #define GETX(n, c, h, w) x_data[(n) * in_channels * x_h * x_w + (c) * x_h * x_w + (h) * x_w + (w)]
 #define GETY(n, c, h, w) y_data[(n) * out_channels * o_h * o_w + (c) * o_h * o_w + (h) * o_w + (w)]
   auto calc_func = [&](int n, int k, int p, int q) {
-    int32_t y_sum = int32_t(1)<<31;
+    int32_t y_max = int32_t(1)<<31;
     for (int r = 0; r < filter_h; ++r) {
       for (int s = 0; s < filter_w; ++s) {
-        auto tp = p * stride_h + r - padding[0];
-        auto tq = q * stride_w + s - padding[1];
-        int32_t x_tmp = 0;
-        if (!(tp < 0 || tq < 0 || tp >= x_h || tq >= x_w))
+        int32_t tp = p * stride_h + r - padding[0];
+        int32_t tq = q * stride_w + s - padding[1];
+        int32_t x_tmp = 0; // zero padding by default
+        if (0 <= tp && tp < x_h && 0 <= tq && tq < x_w)
           x_tmp = GETX(n, k, tp, tq);
-        y_sum = std::max(x_tmp, y_sum);
+        y_max = std::max(x_tmp, y_max);
       }
     }
-    return y_sum;
-
+    return y_max;
   };
-    for (int n = 0; n < n_batch; ++n) {
-        for (int k = 0; k < out_channels; ++k) {
-            for (int p = 0; p < o_h; ++p) {
-                for (int q = 0; q < o_w; ++q) {
-                    GETY(n, k, p, q) = calc_func(n, k, p, q);
-                }
-            }
+  for (int n = 0; n < n_batch; ++n) {
+    for (int k = 0; k < out_channels; ++k) {
+      for (int p = 0; p < o_h; ++p) {
+        for (int q = 0; q < o_w; ++q) {
+          GETY(n, k, p, q) = calc_func(n, k, p, q);
         }
+      }
     }
+  }
 #ifdef CVM_PROFILING
-        cvm_op_maxpool_cnt += omp_get_wtime() - start;
+  cvm_op_maxpool_cnt += omp_get_wtime() - start;
 #endif
 
 });
@@ -1338,11 +1333,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.take")
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_lut")
 .set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-    DLTensor *x = args[0];
-    DLTensor *indices = args[1];
+    DLTensor *indices = args[0];
+    DLTensor *x = args[1];
     DLTensor *y = args[2];
 
-    take(indices, x, y);
+    take(x, indices, y);
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")

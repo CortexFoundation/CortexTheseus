@@ -52,7 +52,7 @@ void write_result(const char *filename, vector<char>& data){
         printf("open file %s failed\n", filename);
         return;
     }
-    fprintf(fp, "%zul\n", data.size());
+    fprintf(fp, "%lu\n", data.size());
     for(int i = 0; i < data.size(); i++){
         fprintf(fp, "%d ", data[i]);
     }
@@ -63,7 +63,8 @@ void write_result(const char *filename, vector<char>& data){
 void compare_result(const char *filename, vector<char>& data){
     FILE* fp = fopen(filename, "r");
     if(fp == NULL){
-        printf("open file %s failed\n", filename);
+        write_result(filename, data);
+        // printf("open file %s failed\n", filename);
         return;
     }
     int n = 0;
@@ -335,7 +336,7 @@ int test_models(int device_type = 0) {
     "/data/std_out/resnet50_v2",
     "/data/std_out/qd10_resnet20_v2",
     "/data/std_out/trec",
-    "/data/new_cvm/yolo3_darknet53_voc/data",
+     "/data/new_cvm/yolo3_darknet53_voc/data",
     "/data/lz_model_storage/dcnet_mnist_v1/data",
     "/data/lz_model_storage/mobilenetv1.0_imagenet/data",
     "/data/lz_model_storage/resnet50_v1_imagenet/data",
@@ -369,6 +370,7 @@ int test_models(int device_type = 0) {
     "/data/std_out/random_4_9/",
     "/data/std_out/log2",
     "./tests/3145ad19228c1cd2d051314e72f26c1ce77b7f02/",
+    "/data/std_out/lr_attr",
   };
   for (auto model_root : model_roots) {
     auto ret = run_LIF(model_root, device_type);
