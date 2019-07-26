@@ -10,6 +10,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
+const (
+	DATA_PATH   string = "/data"
+	SYMBOL_PATH string = "/data/symbol"
+	PARAM_PATH  string = "/data/params"
+)
+
 func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 	switch status {
 	case kernel.ERROR_RUNTIME:
@@ -34,7 +40,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		modelJson     []byte
 		modelJson_err error
 	)
-	modelJson, modelJson_err = s.config.Storagefs.GetFile(modelHash, "/data/symbol")
+	modelJson, modelJson_err = s.config.Storagefs.GetFile(modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
 		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err)
 		return 0, KERNEL_RUNTIME_ERROR
@@ -84,7 +90,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 		return v.([]byte), nil
 	}
 
-	inputBytes, dataErr := s.config.Storagefs.GetFile(inputHash, "/data")
+	inputBytes, dataErr := s.config.Storagefs.GetFile(inputHash, DATA_PATH)
 	if dataErr != nil {
 		log.Warn("inferByInfoHash: get file failed",
 			"input hash", inputHash, "error", dataErr)
@@ -148,13 +154,13 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
-		modelJson, modelJson_err := s.config.Storagefs.GetFile(modelHash, "/data/symbol")
+		modelJson, modelJson_err := s.config.Storagefs.GetFile(modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
 			log.Warn("inferByInputContent: model loaded failed",
 				"model hash", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-		modelParams, modelParams_err := s.config.Storagefs.GetFile(modelHash, "/data/params")
+		modelParams, modelParams_err := s.config.Storagefs.GetFile(modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
 			log.Warn("inferByInputContent: params loaded failed",
 				"model hash", modelHash, "error", modelParams_err)
