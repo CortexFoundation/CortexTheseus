@@ -19,6 +19,25 @@
 
 namespace cvm {
 namespace top {
+
+const int32_t ATTR_MIN_VALUE = 0;
+const int32_t ATTR_MAX_VALUE = 4096;
+
+/*
+ * verify attribute value range
+ */
+template<typename T>
+inline void VerifyAttrRange(
+    const T& val, 
+    const std::string& name, 
+    const int32_t min = ATTR_MIN_VALUE, 
+    const int32_t max = ATTR_MAX_VALUE) {
+  VERIFY(min <= val && val < max)
+    << "attribute " << name 
+    << " value: " << val
+    << " out of range [" << min << ", " << max << ")";
+}
+
 /*!
  * \brief Parse keyword arguments as PType arguments and save to parsed
  * \tparam PType the parameter type.

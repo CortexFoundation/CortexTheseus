@@ -3,7 +3,11 @@
 #include <algorithm>
 #include <stdint.h>
 #include <string.h>
-#include "../nms.h"
+#include "../common.h"
+#include "ops.h"
+
+namespace cvm {
+namespace runtime {
 
 int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t x1_min = format == FORMAT_CORNER ? rect1[0] : rect1[0] - rect1[2]/2;
@@ -16,7 +20,6 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     int32_t x2_max = format == FORMAT_CORNER ? rect2[2] : x2_min + rect2[2];
     int32_t y2_max = format == FORMAT_CORNER ? rect2[3] : y2_min + rect2[3];
 
-    //int64_t sum_area = static_cast<int64_t>(std::abs(x1_max-x1_min)) * std::abs(y1_max-y1_min) + static_cast<int64_t>(std::abs(x2_max-x2_min)) * std::abs(y2_max-y2_min);
     //x1,x2,y1,y2 precision <= 30
     //sum_arrea precision<=63
     int64_t sum_area = static_cast<int64_t>(x1_max-x1_min) * (y1_max-y1_min) + static_cast<int64_t>(x2_max-x2_min) * (y2_max-y2_min);
@@ -24,7 +27,6 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
         return 0;
     }
 
-//    if(x1_min > x2_max || x1_max < x2_min || y1_min > y2_max || y1_max < y2_min) return 0;
     //w,h precision <= 31
     int32_t w = std::max(0, std::min(x1_max, x2_max) - std::max(x1_min, x2_min));
     int32_t h = std::max(0, std::min(y1_max, y2_max) - std::max(y1_min, y2_min));
@@ -41,7 +43,7 @@ int64_t iou(const int32_t *rect1, const int32_t *rect2, const int32_t format){
     }else{
         overlap_area *= 100;
     }
-    int64_t ret = (overlap_area / tmp);//((sum_area - overlap_area)/100));
+    int64_t ret = (overlap_area / tmp);
     return ret;
 }
 
@@ -137,10 +139,62 @@ int non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32_
               }
             }
           }
-         //   if(max_output_size < num_valid_boxes){
-         //       memset(&y_batch[max_output_size * k], -1, (num_valid_boxes - max_output_size) * k * sizeof(int32_t));
-         //   }
         }
     }
     return 0;
+}
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *valid_count = args[1];
+    DLTensor *y = args[2];
+    void* _attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::GetValidCountsParam>(attr->parsed);
+
+    int32_t score_threshold = param.score_threshold; //TODO get from attr
+
+    int32_t batches = x->shape[0];
+    int32_t n = x->shape[1];
+    int32_t k = x->shape[2];
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    get_valid_count(x_data, y_data, valid_count_data, batches, n, k, score_threshold);
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *valid_count = args[1];
+    DLTensor *y = args[2];
+    void* _attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::NonMaximumSuppressionParam>(attr->parsed);
+
+    int32_t max_output_size = param.max_output_size;
+    int32_t iou_threshold = param.iou_threshold;
+    int32_t topk = param.top_k;
+    int32_t coord_start = param.coord_start;
+    int32_t score_index = param.score_index;
+    int32_t id_index = param.id_index;
+    bool force_suppress = param.force_suppress;
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    int32_t batchs = x->shape[0];
+    int32_t n = x->shape[1];
+    int32_t k = x->shape[2];
+
+    int ret = non_max_suppression(
+            x_data, valid_count_data, y_data, batchs, n, k,
+            max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
+    VERIFY(ret >= 0);
+});
+}
 }
