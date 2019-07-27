@@ -24,7 +24,6 @@ inline bool RepeatShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(in_attrs->size(), 1U);
   VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
-  if (shp.ndim() == 0) return false;
   const int ndim = static_cast<int>(shp.ndim());
 
   const RepeatParam& param = cvm::get<RepeatParam>(attrs.parsed);
@@ -75,7 +74,6 @@ inline bool TileShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(in_attrs->size(), 1U);
   VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
-  if (shp.ndim() == 0) return false;
   uint32_t sdim = shp.ndim();
 
   const TileParam& param = cvm::get<TileParam>(attrs.parsed);
@@ -126,7 +124,6 @@ inline bool FlattenInferShape(const NodeAttrs& attrs,
   VERIFY_EQ(in_attrs->size(), 1U) << "Input: [data]";
   VERIFY_EQ(out_attrs->size(), 1U);
   const TShape &dshape = (*in_attrs)[0];
-  if (dshape.ndim() == 0) return false;
   uint32_t target_dim = 1;
   for (uint32_t i = 1; i < dshape.ndim(); ++i) {
     target_dim *= dshape[i];
@@ -203,8 +200,6 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
     tmp[axis] = 0;
     shape_assign(&dshape, tmp);
   }
-
-  if (dshape.ndim() == 0) return false;
 
   for (size_t i = 0; i < in_shape->size(); ++i) {
     CVM_ASSIGN_INPUT_SHAPE(attrs, *in_shape, i, dshape);
@@ -349,7 +344,6 @@ inline bool ReshapeInferShape(const NodeAttrs& attrs,
   VERIFY_EQ(out_attrs->size(), 1U);
 
   const TShape &dshape = (*in_attrs)[0];
-  if (dshape.ndim() == 0) return false;
 
   const Tuple<int64_t>& target_shape = param.shape;
   std::vector<int64_t> oshape;
@@ -500,7 +494,6 @@ inline bool SqueezeShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(in_attrs->size(), 1U);
   VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
-  if (shp.ndim() == 0) return false;
 
   int ndim = shp.ndim();
   std::vector<int64_t> oshape;
@@ -583,7 +576,6 @@ inline bool TransposeShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
   int ndim = shp.ndim();
-  if (ndim == 0) return false;
 
   TShape ret(ndim);
   if (param.axes.ndim() == 0) {
@@ -700,7 +692,6 @@ inline bool StridedSliceInferShape(const NodeAttrs& attrs,
                             std::vector<TShape>* out_shape) {
   const StridedSliceParam& param = cvm::get<StridedSliceParam>(attrs.parsed);
   const TShape& dshape = (*in_shape)[0];
-  if (dshape.ndim() == 0) return false;
   TShape oshape = dshape;
   dim_t num_axis = dshape.ndim();
 
@@ -790,8 +781,6 @@ inline bool TakeInferShape(const NodeAttrs& attrs,
   const TShape& dshape = (*in_shape)[0];
   const TShape& indicesshape = (*in_shape)[1];
   int ndim = dshape.ndim();
-  if (ndim == 0) return false;
-  if (indicesshape.ndim() == 0) return false;
 
   const TakeParam& param = cvm::get<TakeParam>(attrs.parsed);
   TShape oshape((!param.axis ? 0: dshape.ndim() - 1) + indicesshape.ndim());
@@ -896,8 +885,6 @@ inline bool LUTInferShape(const NodeAttrs& attrs,
   VERIFY_EQ(out_shape->size(), 1U);
   const TShape& dshape = (*in_shape)[0];
   const TShape& lutshape = (*in_shape)[1];
-  if (dshape.ndim() == 0) return false;
-  if (lutshape.ndim() == 0) return false;
   const CVMLUTParam &param = cvm::get<CVMLUTParam>(attrs.parsed);
   VERIFY_EQ(lutshape.Size(), param.in_dim);
   TShape oshape(dshape.ndim());

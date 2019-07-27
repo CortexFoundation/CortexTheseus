@@ -3,8 +3,6 @@
 #include "omp.h"
 #include <immintrin.h>
 
-#include "../nms.h"
-
 #define CVM_PROFILING
 
 namespace cvm {
@@ -598,7 +596,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_precision")
     DLTensor *y = args[1];
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int32_t *x_data = static_cast<int32_t*>(x->data);
-    for(int j = 0; j < getSize(x); j++){
+    for(size_t j = 0; j < getSize(x); j++){
       y_data[j] = 64;
       for(int i = 1; i < 64; i++){
         int64_t tmp = (int64_t)1 << i;
@@ -737,25 +735,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     DLTensor *x = args[0];
     DLTensor *y = args[1];
-    void* _attr = args[2];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::TileParam>(attr->parsed);
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
 
     int32_t yndim = y->ndim;
     int32_t xndim = x->ndim;
-    TShape ts_reps = param.reps;
-    int64_t *reps = ts_reps.begin();
-
-    int i = 0, j = 0, k = 0;
-    for(i = yndim-1, j = xndim-1, k = ts_reps.ndim()-1; i >= 0 && j >= 0 && k >= 0; i--, j--, k--){
-        VERIFY(x->shape[j] * reps[k] == y->shape[i]);
-    }
-    for(; i >= 0 && k >= 0; i--, k--){
-        VERIFY(reps[k] == y->shape[i]);
-    }
 
     uint64_t tmp_y_size = 1;
     for(int i = 0; i < xndim; i++){
@@ -769,8 +754,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.tile")
             int col = o_i % y->shape[yj];
             o_i /= y->shape[yj];
             col = col % x->shape[j];
-            in_i += col * shapeSize; //(j == xndim-1 ? col : col * shapeSize);
-            shapeSize *= x->shape[j];//(j == xndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+            in_i += col * shapeSize; 
+            shapeSize *= x->shape[j];
        }
        y_data[i] = x_data[in_i];
     }
@@ -820,9 +805,8 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
     auto &param = cvm::get<cvm::top::TransposeParam>(attr->parsed);
 
     TShape axes = param.axes;
-    int64_t *axes_data = axes.begin();
     for(uint32_t i = 0; i < axes.ndim(); i++){
-        if(axes_data[i] < 0) axes_data[i] += x->ndim;
+        if(axes[i] < 0) axes[i] += x->ndim;
     }
     int32_t *x_data = static_cast<int32_t*>(x->data);
     int32_t *y_data = static_cast<int32_t*>(y->data);
@@ -844,7 +828,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.transpose")
           o_i /= y->shape[j];
           int xj = j;
           if(axes.ndim() > 0) {
-            xj = axes_data[j];
+            xj = axes[j];
           } else {
             xj = ndim - 1 - j;
           }
@@ -875,32 +859,25 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
     TShape stride = param.stride;
     int ndim = y->ndim;
     int32_t num_axis = x->ndim;
+    int64_t *dshp = x->shape;
     std::vector<int64_t> begin_vec;
-    std::vector<int64_t> end_vec;
-    std::vector<int64_t> stride_vec;
     std::copy(begin.begin(), begin.end(), std::back_inserter(begin_vec));
     for (dim_t i = begin_vec.size(); i < num_axis; ++i) {
       begin_vec.push_back(0);
     }
 
-    std::copy(end.begin(), end.end(), std::back_inserter(end_vec));
-    for (dim_t i = end_vec.size(); i < num_axis; ++i) {
-      end_vec.push_back(x->shape[i]);
-    }
-
+    std::vector<int64_t> stride_vec;
     std::copy(stride.begin(), stride.end(), std::back_inserter(stride_vec));
     for (dim_t i = stride_vec.size(); i < num_axis; ++i) {
       stride_vec.push_back(1);
     }
 
-    int64_t *begin_data = begin_vec.data();//begin.begin();
-    //int64_t *end_data = end_vec.data();//end.begin();
-    int64_t *step_data = stride_vec.data();//stride.begin();
-    for(uint32_t i = 0; i < begin.ndim();i++){
-        if(begin_data[i] < 0) {
-          begin_data[i] += x->shape[i];
-          begin_data[i] = std::min(std::max(begin_data[i], (int64_t)0), (int64_t)x->shape[i]-1);
-        }
+    for (size_t i = 0; i < begin_vec.size(); ++i) {
+      int64_t begin_range = stride_vec[i] < 0 ? -1 : 0;
+      int64_t end_range = stride_vec[i] < 0 ? dshp[i] -1 : dshp[i];
+      int64_t begin = begin_vec[i];
+      if (begin < 0) begin += dshp[i];
+      begin_vec[i]= std::min(std::max(begin, begin_range), end_range);
     }
 
     for(uint64_t i = 0; i < getSize(y); i++){
@@ -908,11 +885,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
         for(int j = ndim-1; j >= 0; j--){
             uint64_t col = o_i % y->shape[j];
             o_i /= y->shape[j];
-            int64_t tbegin = begin.ndim() > (uint32_t)j ? begin_data[j] : 0;
-            int64_t tstep = stride.ndim() > (uint32_t)j ? step_data[j] : 1;
+            int64_t tbegin = begin_vec[j];
+            int64_t tstep = stride_vec[j];
             col = tbegin + col * tstep;
-            in_i += col * shapeSize;//(j == ndim-1 ? col : col * shapeSize);
-            shapeSize *= x->shape[j];//(j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+            in_i += col * shapeSize;
+            shapeSize *= x->shape[j];
         }
         y_data[i] = x_data[in_i];
     }
@@ -921,17 +898,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
 .set_body([](CVMArgs args, CVMRetValue *ret){
     DLTensor *x = args[0];
-    //DLTensor *shape = args[1];
     DLTensor *y = args[2];
     void* _attr = args[3];
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::SliceLikeParam>(attr->parsed);
     Tuple<int> axis = param.axis;
-    //int *axis_data = axis.begin();
 
     int32_t *x_data = static_cast<int32_t*>(x->data);
-    //  int32_t *shape_like = static_cast<int32_t*>(shape->data);
-    //VERIFY(axis.ndim() < (uint32_t)x->ndim && axis.ndim() <= (uint32_t)shape->ndim);
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int ndim = x->ndim;
 
@@ -940,71 +913,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
       for(int j = ndim-1; j >= 0; j--){
         int col = o_i % y->shape[j];
         o_i /= y->shape[j];
-        in_i += col * shapeSize;//(j == ndim-1 ? col : col * shapeSize);
-        shapeSize *= x->shape[j];//(j == ndim-1 ? x->shape[j] : shapeSize * x->shape[j]);
+        in_i += col * shapeSize;
+        shapeSize *= x->shape[j];
       }
       y_data[i] = x_data[in_i];
     }
-});
-
-/**
- * box_nms:
- */
-
-
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
-.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-    DLTensor *x = args[0];
-    DLTensor *valid_count = args[1];
-    DLTensor *y = args[2];
-    void* _attr = args[3];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::GetValidCountsParam>(attr->parsed);
-
-    int32_t score_threshold = param.score_threshold; //TODO get from attr
-
-    int32_t batches = x->shape[0];
-    int32_t n = x->shape[1];
-    int32_t k = x->shape[2];
-
-    int32_t *x_data = static_cast<int32_t*>(x->data);
-    int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
-    int32_t *y_data = static_cast<int32_t*>(y->data);
-
-    get_valid_count(x_data, y_data, valid_count_data, batches, n, k, score_threshold);
-});
-
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
-.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
-    DLTensor *x = args[0];
-    DLTensor *valid_count = args[1];
-    DLTensor *y = args[2];
-    void* _attr = args[3];
-    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
-    auto &param = cvm::get<cvm::top::NonMaximumSuppressionParam>(attr->parsed);
-
-    int32_t max_output_size = param.max_output_size;
-    int32_t iou_threshold = param.iou_threshold;
-    int32_t topk = param.top_k;
-    int32_t coord_start = param.coord_start;
-    int32_t score_index = param.score_index;
-    int32_t id_index = param.id_index;
-    bool force_suppress = param.force_suppress;
-    //bool return_indices = param.return_indices;
-    //bool invalid_to_bottom = param.invalid_to_bottom;
-
-    int32_t *x_data = static_cast<int32_t*>(x->data);
-    int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
-    int32_t *y_data = static_cast<int32_t*>(y->data);
-
-    int32_t batchs = x->shape[0];
-    int32_t n = x->shape[1];
-    int32_t k = x->shape[2];
-
-    int ret = non_max_suppression(
-            x_data, valid_count_data, y_data, batchs, n, k,
-            max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
-    VERIFY(ret >= 0);
 });
 
 void take(DLTensor *x, DLTensor *indices, DLTensor *y){
@@ -1037,44 +950,32 @@ void take(DLTensor *x, DLTensor *indices, DLTensor *y, const int32_t axis){
       }
     }
     else {
-      for(uint64_t i = 0; i < getSize(y); i++){
-        uint64_t o_i = i, x_i = 0, indices_i = 0, x_shape_size = 0, indices_shape_size = 0;
-        for(int32_t j = yndim - 1, k = indices_ndim-1; j>=axis; j--){
-          uint64_t col = o_i % y->shape[j];
-          o_i /= y->shape[j];
-          if(j < axis + indices_ndim){
-            indices_i += (indices_shape_size == 0 ? col : col * indices_shape_size);
-            indices_shape_size = (indices_shape_size == 0 ? indices->shape[k]
-                : indices_shape_size * indices->shape[k]);
-            --k;
+      std::vector<size_t> x_shape_size(xndim, 1), indices_shape_size(indices_ndim, 1);
+      for (int i = xndim-2; i >= 0; --i) {
+        x_shape_size[i] = x_shape_size[i+1] * x->shape[i+1];
+      }
+      for (int i = indices_ndim-2; i >= 0; --i) {
+        indices_shape_size[i] = indices_shape_size[i+1] * indices->shape[i+1];
+      }
+      for (size_t i = 0; i < getSize(y); ++i) {
+        size_t oi = i, xi = 0, idxi = 0;
+        for(int j = yndim - 1; j>=0; --j){
+          size_t col = oi % y->shape[j];
+          oi /= y->shape[j];
+          if (axis <= j && j < axis+indices_ndim) {
+            idxi += col * indices_shape_size[j - axis];
+          } else {
+            int xidx = j < axis ? j : j - indices_ndim + 1;
+            xi += col * x_shape_size[xidx];
+          }
+
+          if (axis == j) {
+            int64_t idxx = std::min(std::max(indices_data[idxi], 0), 
+                (int32_t)x->shape[j]-1);
+            xi += idxx * x_shape_size[j];
           }
         }
-
-        o_i = i;
-        int32_t k = xndim - 1;
-        for(int32_t j = yndim - 1; j >= axis + indices_ndim; j--, k--){
-          uint64_t col = o_i % y->shape[j];
-          o_i /= y->shape[j];
-          x_i += (j == yndim-1 ? col : col * x_shape_size);
-          x_shape_size = (j == yndim-1 ? x->shape[k] : x_shape_size * x->shape[k]);
-        }
-
-        uint64_t x_indices_i = std::min(std::max(indices_data[indices_i], 0), (int32_t)x->shape[k]-1);
-        x_i += (x_shape_size == 0 ? x_indices_i : x_indices_i * x_shape_size);
-        x_shape_size = (x_shape_size == 0 ? x->shape[k] : x_shape_size * x->shape[k]);
-        --k;
-
-        o_i = i;
-        for(int32_t j = yndim - 1; j>=0 && k >= 0; j--){
-          uint64_t col = o_i % y->shape[j];
-          o_i /= y->shape[j];
-          if(j < axis){
-            x_i += x_shape_size == 0 ? col : col * x_shape_size;
-            x_shape_size = x_shape_size == 0 ? x->shape[k] : x_shape_size * x->shape[k];
-            --k;
-          }
-        }
-        y_data[i] = x_data[x_i];
+        y_data[i] = x_data[xi];
       }
     }
 }
