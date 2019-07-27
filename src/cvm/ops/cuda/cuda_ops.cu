@@ -38,6 +38,7 @@ inline int32_t getGridSize(const int64_t n, const int32_t blockSize){
   int64_t tg = (n + blockSize - 1) / blockSize;
   return tg > 4096 ? 4096 : tg;
 }
+
 inline int32_t getShareMemorySize(const int32_t device_id, int&error_code){
   static int32_t sharedMemPerBlock = 0;
   if(sharedMemPerBlock == 0){
