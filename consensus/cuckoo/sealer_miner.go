@@ -11,7 +11,7 @@ import (
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error) {
 	err = cuckoo.InitOnce()
 	if err != nil {
-		log.Error("cuckoo", "init error", "error:", err)
+		log.Error("cuckoo init error","error", err)
 		return err
 	}
 

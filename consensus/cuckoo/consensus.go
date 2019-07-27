@@ -844,7 +844,7 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 	if cuckoo.minerPlugin == nil {
 		err := cuckoo.InitPlugin()
 		if err != nil {
-			log.Error("cuckoo", "init error.", err)
+			log.Error("cuckoo init error", "error", err)
 			return false
 		}
 	}
