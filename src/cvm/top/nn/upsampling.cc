@@ -19,21 +19,22 @@ CVMUTIL_REGISTER_PARAMETER(UpSamplingParam);
 inline bool UpSamplingInferShape(const cvm::NodeAttrs& attrs,
                                  std::vector<TShape>* in_shape,
                                  std::vector<TShape>* out_shape) {
-  static const Layout kNCHW("NCHW");
   const UpSamplingParam& param = cvm::get<UpSamplingParam>(attrs.parsed);
   VERIFY_EQ(in_shape->size(), 1U);
   VERIFY_EQ(out_shape->size(), 1U);
   TShape dshape = (*in_shape)[0];
   if (dshape.ndim() ==  0) return false;
 
+  VERIFY_EQ(dshape.Size(), 4)
+    << "dimension should be 4D, Got: " << dshape;
+  VERIFY_EQ(param.method, "NEAREST_NEIGHBOR") 
+    << "only accept method = NEAREST_NEIGHBOR ";
   VerifyAttrRange(param.scale, "UpSampling.scale", 1);
   VERIFY_EQ(param.layout, "NCHW")
     << "UpSampling only supported NCHW layout vs. " << param.layout;
-  // dshape = ConvertLayout(dshape, param.layout, kNCHW);
   TShape oshape = dshape;
   oshape[2] = oshape[2] * param.scale;
   oshape[3] = oshape[3] * param.scale;
-  oshape = ConvertLayout(oshape, kNCHW, param.layout);
   CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, 0, oshape);
 
   return true;

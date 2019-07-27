@@ -22,7 +22,6 @@ double cvm_op_chnwise_conv1x1_cnt = 0;
 double cvm_op_depthwise_conv_cnt = 0;
 double cvm_op_depthwise_conv1x1_cnt = 0;
 
-
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.relu")
 .set_body([](CVMArgs args, CVMRetValue* rv){
 #ifdef CVM_PROFILING
@@ -72,79 +71,27 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense")
   auto x_data = static_cast<int32_t*>(x->data);
   auto y_data = static_cast<int32_t*>(y->data);
   auto w_data = static_cast<int32_t*>(w->data);
-  if (true) {
-    for (int64_t di = 0; di < y->shape[0]; di++) {
-      for (int64_t oi = 0; oi < y->shape[1]; oi++) {
-        int32_t sum = 0;
-        for (int64_t xi = 0; xi < x->shape[1]; xi++) {
-          sum += x_data[di * x->shape[1] + xi] * w_data[oi * w->shape[1] + xi];
-        }
-        if(bias_data != nullptr){
-          sum += bias_data[oi];
-        }
-        y_data[di * y->shape[1] + oi] = sum;
-      }
-    }
-    print_to_file(y, "dense.txt");
-  }  else {
-    auto N = y->shape[1], K = x->shape[1];
-    int blocks = K / 32 * 32;
-    int32_t weight_size = w->shape[0] * w->shape[1];
-    std::shared_ptr<int8_t> int8_filter(new int8_t[weight_size]);
-
-    for(int32_t i = 0; i < weight_size; i++){
-      int8_filter.get()[i] = static_cast<int8_t>(w_data[i]);
-    }
-
-    int32_t x_size = x->shape[0] * x->shape[1];
-    std::shared_ptr<int8_t> int8_x(new int8_t[x_size]);
-
-    bool all_positive = true;
-    for(int32_t i = 0; i < x_size; i++){
-      int8_x.get()[i] = static_cast<int8_t>(x_data[i]);
-      if ((int8_x.get()[i]) < 0)
-        all_positive = false;
-    }
-
-    int16_t int16[16];
-    for(int i = 0; i < 16; i++)
-      int16[i] = 1;
-    __m256i vint16 = _mm256_loadu_si256((__m256i*)&int16);
-    for (uint32_t di = 0; di < y->shape[0]; di++) {
-      auto cdy = y_data + di * N;
-      auto data_outer = int8_x.get() + di * K;
 #pragma omp parallel for
-      for (uint32_t oi = 0; oi < N; oi++) {
-        auto bp_inner = int8_filter.get() + oi * K;
-        auto data_inner = data_outer;
-        int sum = 0;
-
-        int k = 0;
-        if (all_positive) {
-          __m256i vc = _mm256_setzero_si256();
-          for(k = 0; k < blocks; k+=32, data_inner+=32, bp_inner+=32){
-            __m256i v_weight = _mm256_loadu_si256((__m256i*)bp_inner);
-            __m256i v_data = _mm256_loadu_si256((__m256i*)data_inner);
-            __m256i vresult1 = _mm256_maddubs_epi16(v_data, v_weight);
-            __m256i vresult2 = _mm256_madd_epi16(vresult1, vint16);
-            vc = _mm256_add_epi32(vresult2, vc);
-          }
-          for(uint32_t ti = 0; ti < 8; ti++){
-            sum += ((int32_t*)&vc)[ti];
-          }
-        }
-
-        // remained part
-        for(; k < K; k++){
-          sum += data_inner[k] * bp_inner[k];
-        }
-        if(bias_data != nullptr){
-          sum += bias_data[oi];
-        }
-        cdy[oi] = sum;
+  for (int64_t di = 0; di < y->shape[0]; ++di) {
+    int32_t y_offset = di * y->shape[1], x_offset = di * x->shape[1];
+    for (int64_t oi = 0; oi < y->shape[1]; ++oi) {
+      int32_t sum = 0, w_offset = oi * w->shape[1];
+      for (int64_t xi = 0; xi < x->shape[1]; ++xi) {
+        sum += x_data[x_offset + xi] * w_data[w_offset + xi];
+      }
+      y_data[y_offset + oi] = sum;
+    }
+  }
+  if (bias_data != nullptr) {
+#pragma omp parallel for
+    for (int64_t di = 0; di < y->shape[0]; ++di) {
+      int32_t y_offset = di * y->shape[1];
+      for (int64_t oi = 0; oi < y->shape[1]; ++oi) {
+        y_data[y_offset + oi] += bias_data[oi];
       }
     }
   }
+  print_to_file(y, "dense.txt");
 
 #ifdef CVM_PROFILING
   cvm_op_dense_cnt += omp_get_wtime() - start;
@@ -1019,16 +966,9 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
   DLTensor *x = args[0];
   DLTensor *y = args[1];
 
-  VERIFY_EQ(x->ndim,     4) << "dimension should be 4D, Got: " << x->ndim;
-  VERIFY_EQ(x->ndim,     y->ndim) << "dimension should match " << x->ndim << "!=" << y->ndim;
-  VERIFY_EQ(x->shape[0], y->shape[0]) << "batch size should match";
-  VERIFY_EQ(x->shape[1], y->shape[1]) << "batch size should match";
-
   void *_attr = args[2];
   auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
   auto &param = cvm::get<cvm::top::UpSamplingParam>(attr->parsed);
-  VERIFY_EQ(param.method, "NEAREST_NEIGHBOR") << "only accept method = NEAREST_NEIGHBOR ";
-  VERIFY_EQ(param.layout, "NCHW") << "only accept NHWC, Got:" << param.layout;
 
   uint32_t scale = {(uint32_t)param.scale};
   uint32_t h = x->shape[2], w = x->shape[3];
@@ -1040,12 +980,12 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
 
   //TODO(zkh) optimize nested for-loop for scale
   #pragma omp parallel for collapse(2)
-  for (uint32_t batch = 0; batch < n_batch; batch++) {
-    for (uint32_t c = 0; c< n_channels; c++) {
+  for (uint32_t batch = 0; batch < n_batch; ++batch) {
+    for (uint32_t c = 0; c< n_channels; ++c) {
       auto bc_y_data = y_data + batch * n_channels * oh * ow + c * oh * ow;
       auto bc_x_data = x_data + batch * n_channels *  h *  w + c *  h *  w;
-      for(uint32_t y = 0; y < oh; y++){
-        for(uint32_t x = 0; x < ow; x++){
+      for(uint32_t y = 0; y < oh; ++y){
+        for(uint32_t x = 0; x < ow; ++x){
             bc_y_data[y * ow + x] = bc_x_data[y/scale * w + x/scale];
         }
       }
