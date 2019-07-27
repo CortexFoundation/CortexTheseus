@@ -17,7 +17,7 @@
 
 using std::string;
 
-#define PRINT(e)  printf("ERROR: %s\n", e);
+#define PRINT(e) // printf("ERROR: %s\n", e);
 #define API_BEGIN() try {
 #define API_END() } \
   catch (const std::runtime_error &e) { PRINT(e.what()); return ERROR_RUNTIME; }  \

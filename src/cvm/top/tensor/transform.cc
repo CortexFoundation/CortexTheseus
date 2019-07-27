@@ -21,8 +21,8 @@ CVMUTIL_REGISTER_PARAMETER(RepeatParam);
 inline bool RepeatShape(const cvm::NodeAttrs& attrs,
                            std::vector<TShape>* in_attrs,
                            std::vector<TShape>* out_attrs) {
-  CHECK_EQ(in_attrs->size(), 1U);
-  CHECK_EQ(out_attrs->size(), 1U);
+  VERIFY_EQ(in_attrs->size(), 1U);
+  VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
   if (shp.ndim() == 0) return false;
   const int ndim = static_cast<int>(shp.ndim());
@@ -177,6 +177,7 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
   TShape dshape;
   dim_t size = 0;
   bool has_zero = false;
+  VERIFY(!in_shape->empty());
   int ndim = in_shape->at(0).ndim();
   VerifyAttrRange(param.axis, "concatenate.axis", -ndim, ndim);
   int axis = param.axis >= 0 ? param.axis : ndim + param.axis;

@@ -6,7 +6,7 @@
 #include <string.h>
 #include <iostream>
 #include <string>
-#include "../nms.h"
+#include "../common.h"
 
 // #define CVM_PRINT_CUDA_RESULT
 
