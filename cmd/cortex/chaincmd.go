@@ -456,13 +456,6 @@ func removeDB(ctx *cli.Context) error {
         } else {
                 log.Info("Full node ancient database missing", "path", path)
         }
-        // Remove the light node database
-        path = stack.ResolvePath("lightchaindata")
-        if common.FileExist(path) {
-                confirmAndRemoveDB(path, "light node database")
-        } else {
-                log.Info("Light node database missing", "path", path)
-        }
         return nil
 }
 
