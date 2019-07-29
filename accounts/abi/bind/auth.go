@@ -26,7 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/CortexTheseus/accounts"
 )
 
 // NewTransactor is a utility method to easily create a transaction signer from
