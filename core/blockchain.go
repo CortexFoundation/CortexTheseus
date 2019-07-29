@@ -335,7 +335,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 
-	updateFn := func(db ctxcdb.DatabaseWriter, header *types.Header) {
+	updateFn := func(db ctxcdb.KeyValueWriter, header *types.Header) {
                 // Rewind the block chain, ensuring we don't end up with a stateless head block
                 if currentBlock := bc.CurrentBlock(); currentBlock != nil && header.Number.Uint64() < currentBlock.NumberU64() {
                         newHeadBlock := bc.GetBlock(header.Hash(), header.Number.Uint64())
@@ -366,7 +366,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
         }
 
 	// Rewind the header chain, deleting all block bodies until then
-        delFn := func(db ctxcdb.DatabaseWriter, hash common.Hash, num uint64) {
+        delFn := func(db ctxcdb.KeyValueWriter, hash common.Hash, num uint64) {
                 // Ignore the error here since light client won't hit this path
                 frozen, _ := bc.db.Ancients()
                 if num+1 <= frozen {

@@ -456,11 +456,11 @@ func (hc *HeaderChain) SetCurrentHeader(head *types.Header) {
 type (
         // UpdateHeadBlocksCallback is a callback function that is called by SetHead
         // before head header is updated.
-        UpdateHeadBlocksCallback func(ctxcdb.DatabaseWriter, *types.Header)
+        UpdateHeadBlocksCallback func(ctxcdb.KeyValueWriter, *types.Header)
 
         // DeleteBlockContentCallback is a callback function that is called by SetHead
         // before each header is deleted.
-        DeleteBlockContentCallback func(ctxcdb.DatabaseWriter, common.Hash, uint64)
+        DeleteBlockContentCallback func(ctxcdb.KeyValueWriter, common.Hash, uint64)
 )
 
 // SetHead rewinds the local chain to a new head. Everything above the new head

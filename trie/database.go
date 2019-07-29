@@ -56,8 +56,8 @@ var secureKeyPrefix = []byte("secure-key-")
 // secureKeyLength is the length of the above prefix + 32byte hash.
 const secureKeyLength = 11 + 32
 
-// DatabaseReader wraps the Get and Has method of a backing store for the trie.
-type DatabaseReader interface {
+// KeyValueReader wraps the Get and Has method of a backing store for the trie.
+type KeyValueReader interface {
 	// Get retrieves the value associated with key from the database.
 	Get(key []byte) (value []byte, err error)
 
@@ -315,7 +315,7 @@ func NewDatabaseWithCache(diskdb ctxcdb.KeyValueStore, cache int) *Database {
 }
 
 // DiskDB retrieves the persistent storage backing the trie database.
-func (db *Database) DiskDB() DatabaseReader {
+func (db *Database) DiskDB() KeyValueReader {
 	return db.diskdb
 }
 

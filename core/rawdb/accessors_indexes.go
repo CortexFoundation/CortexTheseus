@@ -42,7 +42,7 @@ func ReadTxLookupEntry(db ctxcdb.Reader, hash common.Hash) (common.Hash, uint64,
 
 // WriteTxLookupEntries stores a positional metadata for every transaction from
 // a block, enabling hash based transaction and receipt lookups.
-func WriteTxLookupEntries(db ctxcdb.DatabaseWriter, block *types.Block) {
+func WriteTxLookupEntries(db ctxcdb.KeyValueWriter, block *types.Block) {
 	for i, tx := range block.Transactions() {
 		entry := TxLookupEntry{
 			BlockHash:  block.Hash(),
@@ -60,7 +60,7 @@ func WriteTxLookupEntries(db ctxcdb.DatabaseWriter, block *types.Block) {
 }
 
 // DeleteTxLookupEntry removes all transaction data associated with a hash.
-func DeleteTxLookupEntry(db ctxcdb.DatabaseWriter, hash common.Hash) {
+func DeleteTxLookupEntry(db ctxcdb.KeyValueWriter, hash common.Hash) {
 	db.Delete(txLookupKey(hash))
 }
 
@@ -102,7 +102,7 @@ func ReadBloomBits(db ctxcdb.Reader, bit uint, section uint64, head common.Hash)
 
 // WriteBloomBits stores the compressed bloom bits vector belonging to the given
 // section and bit index.
-func WriteBloomBits(db ctxcdb.DatabaseWriter, bit uint, section uint64, head common.Hash, bits []byte) {
+func WriteBloomBits(db ctxcdb.KeyValueWriter, bit uint, section uint64, head common.Hash, bits []byte) {
 	if err := db.Put(bloomBitsKey(bit, section, head), bits); err != nil {
 		log.Crit("Failed to store bloom bits", "err", err)
 	}

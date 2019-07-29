@@ -20,7 +20,7 @@ package ctxcdb
 import "io"
 
 // KeyValueReader wraps the Has and Get method of a backing data store.
-type DatabaseReader interface {
+type KeyValueReader interface {
 	// Has retrieves if a key is present in the key-value data store.
 	Has(key []byte) (bool, error)
 
@@ -29,7 +29,7 @@ type DatabaseReader interface {
 }
 
 // KeyValueWriter wraps the Put method of a backing data store.
-type DatabaseWriter interface {
+type KeyValueWriter interface {
 	// Put inserts the given value into the key-value data store.
 	Put(key []byte, value []byte) error
 
@@ -58,8 +58,8 @@ type Compacter interface {
 // KeyValueStore contains all the methods required to allow handling different
 // key-value data stores backing the high level database.
 type KeyValueStore interface {
-	DatabaseReader
-	DatabaseWriter
+	KeyValueReader
+	KeyValueWriter
 	Batcher
 	Iteratee
 	Stater
@@ -99,14 +99,14 @@ type AncientWriter interface {
 // Reader contains the methods required to read data from both key-value as well as
 // immutable ancient data.
 type Reader interface {
-	DatabaseReader
+	KeyValueReader
 	AncientReader
 }
 
 // Writer contains the methods required to write data to both key-value as well as
 // immutable ancient data.
 type Writer interface {
-	DatabaseWriter
+	KeyValueWriter
 	AncientWriter
 }
 

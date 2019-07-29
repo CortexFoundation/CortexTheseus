@@ -429,13 +429,13 @@ func (b *batch) Reset() {
 }
 
 // Replay replays the batch contents.
-func (b *batch) Replay(w ctxcdb.DatabaseWriter) error {
+func (b *batch) Replay(w ctxcdb.KeyValueWriter) error {
 	return b.b.Replay(&replayer{writer: w})
 }
 
 // replayer is a small wrapper to implement the correct replay methods.
 type replayer struct {
-	writer  ctxcdb.DatabaseWriter
+	writer  ctxcdb.KeyValueWriter
 	failure error
 }
 
