@@ -72,14 +72,14 @@ func newSyncMemBatch() *syncMemBatch {
 // unknown trie hashes to retrieve, accepts node data associated with said hashes
 // and reconstructs the trie step by step until all is done.
 type Sync struct {
-	database DatabaseReader           // Persistent database to check for existing entries
+	database KeyValueReader           // Persistent database to check for existing entries
 	membatch *syncMemBatch            // Memory buffer to avoid frequent database writes
 	requests map[common.Hash]*request // Pending requests pertaining to a key hash
 	queue    *prque.Prque             // Priority queue with the pending requests
 }
 
 // NewSync creates a new trie data download scheduler.
-func NewSync(root common.Hash, database DatabaseReader, callback LeafCallback) *Sync {
+func NewSync(root common.Hash, database KeyValueReader, callback LeafCallback) *Sync {
 	ts := &Sync{
 		database: database,
 		membatch: newSyncMemBatch(),

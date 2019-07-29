@@ -125,6 +125,10 @@ var (
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
 	}
+	AncientFlag = DirectoryFlag{
+                Name:  "datadir.ancient",
+                Usage: "Data directory for ancient chain segments (default = inside chaindata)",
+        }
 	// NoUSBFlag = cli.BoolFlag{
 	// 	Name:  "nousb",
 	// 	Usage: "Disables monitoring for and managing USB hardware wallets",
@@ -1062,6 +1066,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
 	cfg.DatabaseHandles = makeDatabaseHandles()
+	if ctx.GlobalIsSet(AncientFlag.Name) {
+                cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
+        }
 
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
@@ -1296,7 +1303,8 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ctxcdb.Database {
 		handles = makeDatabaseHandles()
 	)
 	name := "chaindata"
-	chainDb, err := stack.OpenDatabase(name, cache, handles)
+	//chainDb, err := stack.OpenDatabase(name, cache, handles)
+	 chainDb, err := stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "")
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
 	}
