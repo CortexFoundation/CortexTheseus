@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
@@ -75,16 +75,7 @@ var (
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolLifetimeFlag,
-		utils.StorageDirFlag,
-		utils.StorageEnabledFlag,
-		utils.StorageMaxSeedingFlag,
-		utils.StorageMaxActiveFlag,
-		utils.StorageBoostNodesFlag,
-		utils.StorageTrackerFlag,
 		utils.SyncModeFlag,
-		utils.InferDeviceTypeFlag,
-		utils.InferDeviceIdFlag,
-		utils.InferMemoryFlag,
 		utils.GCModeFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
@@ -137,6 +128,22 @@ var (
 		// utils.ModelCallInterfaceFlag,
 	}
 
+	inferFlags = []cli.Flag {
+		utils.InferDeviceTypeFlag,
+		utils.InferDeviceIdFlag,
+		utils.InferPortFlag,
+		utils.InferMemoryFlag,
+	}
+
+	storageFlags = []cli.Flag {
+		utils.StorageDirFlag,
+		utils.StorageEnabledFlag,
+		utils.StorageMaxSeedingFlag,
+		utils.StorageMaxActiveFlag,
+		utils.StorageBoostNodesFlag,
+		utils.StorageTrackerFlag,
+	}
+
 	rpcFlags = []cli.Flag{
 		utils.RPCEnabledFlag,
 		utils.RPCListenAddrFlag,
@@ -172,7 +179,7 @@ func init() {
 	// Initialize the CLI app and start Ctxc
 	app.Action = cortex
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2013-2018 The CortexFoundation Authors"
+	app.Copyright = "Copyright 2018-2019 The CortexTheseus Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -197,6 +204,7 @@ func init() {
 		// makecacheCommand,
 		// makedagCommand,
 		versionCommand,
+		cvmCommand,
 		// bugCommand,
 		// licenseCommand,
 		// See config.go
@@ -210,6 +218,9 @@ func init() {
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
+	app.Flags = append(app.Flags, cvmFlags...)
+	app.Flags = append(app.Flags, storageFlags...)
+	app.Flags = append(app.Flags, inferFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

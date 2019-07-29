@@ -1,4 +1,4 @@
-// Copyright 2017 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -75,12 +75,27 @@ type Trie interface {
 // concurrent use and retains cached trie nodes in memory. The pool is an optional
 // intermediate trie-node memory pool between the low level storage layer and the
 // high level trie abstraction.
-func NewDatabase(db ctxcdb.Database) Database {
+/*func NewDatabase(db ctxcdb.Database) Database {
 	csc, _ := lru.New(codeSizeCacheSize)
 	return &cachingDB{
 		db:            trie.NewDatabase(db),
 		codeSizeCache: csc,
 	}
+}*/
+
+func NewDatabase(db ctxcdb.Database) Database {
+        return NewDatabaseWithCache(db, 0)
+}
+
+// NewDatabaseWithCache creates a backing store for state. The returned database
+// is safe for concurrent use and retains a lot of collapsed RLP trie nodes in a
+// large memory cache.
+func NewDatabaseWithCache(db ctxcdb.Database, cache int) Database {
+        csc, _ := lru.New(codeSizeCacheSize)
+        return &cachingDB{
+                db:            trie.NewDatabaseWithCache(db, cache),
+                codeSizeCache: csc,
+        }
 }
 
 type cachingDB struct {

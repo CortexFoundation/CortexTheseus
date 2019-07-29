@@ -34,7 +34,7 @@ var (
 const (
 	defaultTimerInterval  = 2
 	connTryTimes          = 300
-	connTryInterval       = 10
+	connTryInterval       = 2
 	fetchBlockTryTimes    = 5
 	fetchBlockTryInterval = 3
 	fetchBlockLogStep     = 10000
@@ -108,15 +108,14 @@ func NewMonitor(flag *Config) (*Monitor, error) {
 // SetConnection method builds connection to remote or local communicator.
 func SetConnection(clientURI string) (*rpc.Client, error) {
 	for i := 0; i < connTryTimes; i++ {
+		time.Sleep(time.Second * connTryInterval)
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
-			log.Warn("Building internal-rpc connection failed", "URI", clientURI, "times", i, "error", err)
+			log.Warn("Building internal-ipc connection ... ", "URI", clientURI, "times", i, "error", err)
 		} else {
 			log.Debug("Internal-IPC connection established", "URI", clientURI)
 			return cl, nil
 		}
-
-		time.Sleep(time.Second * connTryInterval)
 	}
 
 	return nil, errors.New("Building Internal-IPC Connection Failed")
@@ -354,7 +353,7 @@ func (m *Monitor) startWork() error {
 
 	rpcClient, rpcErr := SetConnection(clientURI)
 	if rpcErr != nil {
-		log.Error("Torrent rpc client is wrong", "uri", clientURI, "error", rpcErr)
+		log.Error("Torrent rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
 		return rpcErr
 	}
 	m.cl = rpcClient
@@ -507,7 +506,7 @@ func (m *Monitor) syncLastBlock() {
 		if minNumber > 5 {
 			minNumber = minNumber - 5
 		}
-		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return
 	}

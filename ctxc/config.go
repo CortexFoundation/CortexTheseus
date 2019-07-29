@@ -1,4 +1,4 @@
-// Copyright 2017 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -79,6 +79,7 @@ type Config struct {
 	SkipBcVersionCheck bool `toml:"-"`
 	DatabaseHandles    int  `toml:"-"`
 	DatabaseCache      int
+	DatabaseFreezer    string
 	TrieCache          int
 	TrieTimeout        time.Duration
 
@@ -114,6 +115,7 @@ type Config struct {
 
 	// Miscellaneous options
 	DocRoot string `toml:"-"`
+	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
 }
 
 type configMarshaling struct {

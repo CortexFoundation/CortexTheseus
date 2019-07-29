@@ -1,4 +1,4 @@
-// Copyright 2017 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
@@ -17,14 +17,19 @@
 package main
 
 import (
+	"sync"
+	"bytes"
 	"bufio"
+	"time"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"reflect"
 	"unicode"
 	"strings"
+	"strconv"
 
 	cli "gopkg.in/urfave/cli.v1"
 
@@ -33,6 +38,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/naoina/toml"
 )
 
@@ -155,10 +161,59 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
 	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
+	if utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)) != ""{
+		storageEnabled = false
+	}
 	if storageEnabled {
+		log.Info("makeFullNode", "storageEnabled", storageEnabled)
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}
-	
+	if deviceType := utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)); deviceType != "" {
+		go func() {
+			cmd := os.Args[0]
+			log.Info("RegisterCVMService", "cmd", cmd)
+			args := []string{"cvm",
+					"--cvm.port", strconv.Itoa(ctx.GlobalInt(utils.InferPortFlag.Name)),
+					"--storage.dir", utils.MakeStorageDir(ctx),
+					"--cvm.datadir", utils.MakeDataDir(ctx),
+					"--infer.devicetype", deviceType,
+					"--cvm.max_seeding", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxSeedingFlag.Name)),
+					"--cvm.max_active", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxActiveFlag.Name)),
+					"--cvm.boostnodes", ctx.GlobalString(utils.StorageBoostNodesFlag.Name),
+					"--cvm.tracker", ctx.GlobalString(utils.StorageTrackerFlag.Name),
+				}
+			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
+			prg := exec.Command(cmd, args...)
+			var stdoutBuf, stderrBuf bytes.Buffer
+			stdoutIn, _ := prg.StdoutPipe()
+			stderrIn, _ := prg.StderrPipe()
+			stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
+			stderr := io.MultiWriter(os.Stderr, &stderrBuf)
+			if err := prg.Start(); err != nil {
+				panic (err)
+			}
+			run_result := prg.Start()
+			var wg sync.WaitGroup
+			wg.Add(2)
+			go func() {
+				_, _ = io.Copy(stdout, stdoutIn)
+				wg.Done()
+			}()
+			go func() {
+				_, _ = io.Copy(stderr, stderrIn)
+				wg.Done()
+			}()
+			wg.Wait()
+
+			if err := prg.Wait(); err != nil {
+				log.Error("RegisterCVMService", "err", err)
+			}
+			log.Debug("RegisterCVMService", "deviceType", deviceType, "Exited", run_result)
+			// outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
+			// log.Debug("RegisterCVMService", "out", outStr, "err", errStr)
+		}()
+		time.Sleep(10000 * time.Millisecond)
+	}
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 
 	// if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {

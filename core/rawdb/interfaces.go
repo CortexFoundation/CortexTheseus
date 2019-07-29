@@ -1,4 +1,4 @@
-// Copyright 2018 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -31,3 +31,25 @@ type DatabaseWriter interface {
 type DatabaseDeleter interface {
 	Delete(key []byte) error
 }
+
+/*type AncientWriter interface {
+        // AppendAncient injects all binary blobs belong to block at the end of the
+        // append-only immutable table files.
+        AppendAncient(number uint64, hash, header, body, receipt, td []byte) error
+
+        // TruncateAncients discards all but the first n ancient data from the ancient store.
+        TruncateAncients(n uint64) error
+
+        // Sync flushes all in-memory ancient store data to disk.
+        Sync() error
+}*/
+
+/*type KeyValueStore interface {
+        KeyValueReader
+        KeyValueWriter
+        Batcher
+        Iteratee
+        Stater
+        Compacter
+        io.Closer
+}*/

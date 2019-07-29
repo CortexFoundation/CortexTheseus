@@ -1,6 +1,7 @@
 #ifndef CUDA_OP_H
 #define CUDA_OP_H
 
+#include <stdint.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
@@ -18,6 +19,11 @@ const int ERROR_MEMSET = 22;
 const int ERROR_GET_PROPERTIES = 23;
 const int ERROR_KERNEL = 24;
 const int ERROR_PARAMS = 25;
+
+inline const char* check_cuda_error(cudaError_t error){
+  if(error == cudaSuccess) return NULL;
+  else return cudaGetErrorString(error);
+}
 
 const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n, int& error_code);
 const char* cuda_elemwise_sub(int32_t *a, int32_t *b, int32_t *c, uint64_t n, int& error_code);

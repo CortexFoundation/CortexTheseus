@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -27,8 +27,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	//"github.com/CortexFoundation/CortexTheseus/core"
-	//"time"
 )
 
 var (
@@ -867,10 +865,11 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, contract *Contract, m
 	}
 	inputSize := big.NewInt(int64(len(inputBuff)))
 	modelAddr := common.BigToAddress(_modelAddr)
-	log.Trace2(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
+	// log.Debug(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
 	modelMeta, modelErr := checkModel(interpreter.cvm, stack, modelAddr)
 	if modelErr != nil {
+		// log.Error("opInferArray", "modelErr", modelErr)
 		stack.push(interpreter.intPool.getZero())
 		return nil, modelErr
 	}

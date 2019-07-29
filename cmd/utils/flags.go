@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
@@ -125,6 +125,10 @@ var (
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
 	}
+	AncientFlag = DirectoryFlag{
+                Name:  "datadir.ancient",
+                Usage: "Data directory for ancient chain segments (default = inside chaindata)",
+        }
 	// NoUSBFlag = cli.BoolFlag{
 	// 	Name:  "nousb",
 	// 	Usage: "Disables monitoring for and managing USB hardware wallets",
@@ -404,6 +408,11 @@ var (
 		Usage: "the device used infering, use --infer.device=2, not available on cpu",
 		Value: 0,
 	}
+	InferPortFlag = cli.IntFlag{
+		Name:  "infer.port",
+		Usage: "local infer port",
+		Value: 4321,
+	}
 	InferMemoryFlag = cli.IntFlag{
 		Name: "infer.memory",
 		Usage: "the maximum memory usage of infer engine, use --infer.memory=4096. shoule at least be 2048 (MiB)",
@@ -576,16 +585,12 @@ var (
 		Usage: "Number of recent blocks to check for gas prices",
 		Value: ctxc.DefaultConfig.GPO.Blocks,
 	}
+
 	GpoPercentileFlag = cli.IntFlag{
 		Name:  "gpopercentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: ctxc.DefaultConfig.GPO.Percentile,
 	}
-	// ModelCallInterfaceFlag = cli.StringFlag{
-	// 	Name:  "cvm.inferuri",
-	// 	Usage: "URI for delegated inference (experimental)",
-	// 	Value: "",
-	// }
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
@@ -1061,6 +1066,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
 	cfg.DatabaseHandles = makeDatabaseHandles()
+	if ctx.GlobalIsSet(AncientFlag.Name) {
+                cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
+        }
 
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
@@ -1119,10 +1127,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
-	if cfg.InferDeviceType == "gpu" {
+	if cfg.InferDeviceType == "cpu" {
+	} else if cfg.InferDeviceType == "gpu" {
 		cfg.InferDeviceType = "cuda"
-	}
-	if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
+	} else if (strings.HasPrefix(cfg.InferDeviceType, "remote")) {
 		u, err := url.Parse(cfg.InferDeviceType)
 		if err == nil && u.Scheme == "remote" && len(u.Hostname()) > 0 && len(u.Port()) > 0 {
 			cfg.InferURI = "http://" + u.Hostname() + ":" + u.Port();
@@ -1130,6 +1138,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
+	} else if (IsCVMIPC(cfg.InferDeviceType) != "") {
+		cfg.InferURI = "http://127.0.0.1:" + strconv.Itoa(ctx.GlobalInt(InferPortFlag.Name));
+	} else {
+			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
 	cfg.InferMemoryUsage = int64(ctx.GlobalInt(InferMemoryFlag.Name))
@@ -1208,13 +1220,16 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		path := MakeDataDir(ctx)
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
-		log.Info("IPCPath", "path", cfg.IpcPath)
+		log.Info("path", "path", path, "ipc", IPCPath)
+		log.Info("SetTorrentFsConfig", "IPCPath", cfg.IpcPath)
 	}
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
 	cfg.DefaultTrackers = strings.Split(trackers, ",")
 	cfg.BoostNodes = strings.Split(boostnodes, ",")
 	cfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
+	log.Debug("SetTorrentFsConfig", "MaxSeedingNum", ctx.GlobalInt(StorageMaxSeedingFlag.Name),
+																   "MaxActiveNum", ctx.GlobalInt(StorageMaxActiveFlag.Name))
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
@@ -1288,7 +1303,8 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ctxcdb.Database {
 		handles = makeDatabaseHandles()
 	)
 	name := "chaindata"
-	chainDb, err := stack.OpenDatabase(name, cache, handles)
+	//chainDb, err := stack.OpenDatabase(name, cache, handles)
+	 chainDb, err := stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "")
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
 	}
@@ -1388,4 +1404,12 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 		}
 		return action(ctx)
 	}
+}
+
+func IsCVMIPC(deviceType string) string {
+	u, err := url.Parse(deviceType)
+	if err == nil && u.Scheme == "ipc" && len(u.Hostname()) > 0 && len(u.Port()) == 0 {
+		return u.Hostname()
+	}
+	return "";
 }

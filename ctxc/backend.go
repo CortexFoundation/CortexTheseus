@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -153,9 +153,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
-			// InferURI:                config.InferURI,
 			StorageDir:              config.StorageDir,
-			Storagefs:				 torrentfs.Torrentfs_handle,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
@@ -212,13 +210,13 @@ func makeExtraData(extra []byte) []byte {
 
 // CreateDB creates the chain database.
 func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ctxcdb.Database, error) {
-	db, err := ctx.OpenDatabase(name, config.DatabaseCache, config.DatabaseHandles)
+	db, err := ctx.OpenDatabaseWithFreezer(name, config.DatabaseCache, config.DatabaseHandles,config.DatabaseFreezer, "ctxc/db/chaindata/")
 	if err != nil {
 		return nil, err
 	}
-	if db, ok := db.(*ctxcdb.LDBDatabase); ok {
-		db.Meter("ctxc/db/chaindata/")
-	}
+	//if db, ok := db.(*ctxcdb.LDBDatabase); ok {
+	//	db.Meter("ctxc/db/chaindata/")
+	//}
 	return db, nil
 }
 

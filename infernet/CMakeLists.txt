@@ -61,6 +61,7 @@ else(MSVC)
   else()
     set(CMAKE_C_FLAGS "-mavx2 -O3 -Wall -fPIC ${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "-mavx2 -O3 -Wall -fPIC -std=c++11 ${CMAKE_CXX_FLAGS}")
+    # set(CMAKE_CXX_FLAGS "-mavx2 -O2 -fno-strict-aliasing -Wall -fPIC -std=c++11 ${CMAKE_CXX_FLAGS}")}"
   endif ()
   if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND
       CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
@@ -88,12 +89,18 @@ if(${USE_CUDA} STREQUAL "ON")
     set (EXECUTE_NAME cvm_runtime_cuda)
     add_definitions(-DCVM_RUNTIME_CUDA)
     file(GLOB RUNTIME_CVM_CUDA_SRCS src/cuda/*.cc)
-    list(APPEND RUNTIME_CVM_SRCS src/cvm/cuda_ops.cu)
+    file(GLOB CVM_OPS_CUDA_SRCS src/cvm/ops/cuda/*.cc
+      src/cvm/ops/cuda/*.cu)
+    list(APPEND RUNTIME_CVM_SRCS ${CVM_OPS_CUDA_SRCS})
+    list(APPEND RUNTIME_SRCS ${RUNTIME_CVM_CUDA_SRCS})
+    list(APPEND CVM_RUNTIME_LINKER_LIBS "cudart")
+    list(APPEND CVM_RUNTIME_LINKER_LIBS "cuda")
 else()
+    file(GLOB CVM_OPS_CPU_SRCS src/cvm/ops/cpu/*.cc)
+    list(APPEND RUNTIME_CVM_SRCS ${CVM_OPS_CPU_SRCS})
     set (EXECUTE_NAME cvm_runtime_cpu)
 endif()
 list(APPEND RUNTIME_SRCS ${RUNTIME_CVM_SRCS})
-list(APPEND RUNTIME_SRCS ${RUNTIME_CVM_CUDA_SRCS})
 file(GLOB CVM_TOP_SRCS src/cvm/top/*.cc
           src/cvm/top/nn/*.cc
           src/cvm/top/tensor/*.cc)

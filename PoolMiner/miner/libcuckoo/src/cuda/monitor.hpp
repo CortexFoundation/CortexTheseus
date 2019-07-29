@@ -15,11 +15,13 @@ int monitor_init(unsigned int deviceCount){
 	
 	unsigned int device_count = 0;
 	result = nvmlDeviceGetCount(&device_count);
+	if (NVML_SUCCESS != result)
+		printf ("nvml get device count failed: %s\n", nvmlErrorString (result));
 	if(device_count < deviceCount){
 		printf("there is no much device\n");
 		return -1;
 	}
-	return 0;
+	return device_count;
 }
 
 int query_fan_tem(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *temperatures){

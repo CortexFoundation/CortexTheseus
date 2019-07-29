@@ -21,15 +21,16 @@ void getDeviceInfo(){
 
 	printf("NVIDIA Cards available: %d\n", deviceCount);
 	int driverVersion = 0, runtimeVersion = 0;
-    	cudaDriverGetVersion(&driverVersion);
-    	cudaRuntimeGetVersion(&runtimeVersion);
-    	printf("\033[0;32;40m CUDA Driver Version / Runtime Version          %d.%d / %d.%d\n", driverVersion/1000, (driverVersion%100)/10, runtimeVersion/1000, (runtimeVersion%100)/10);
+	cudaDriverGetVersion(&driverVersion);
+	cudaRuntimeGetVersion(&runtimeVersion);
+	printf("\033[0;32;40m CUDA Driver Version / Runtime Version          %d.%d / %d.%d\n", driverVersion/1000, (driverVersion%100)/10, runtimeVersion/1000, (runtimeVersion%100)/10);
 	for(int dev = 0; dev < deviceCount; ++dev){
-        cudaSetDevice(dev);
-        cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, dev);
-
-		printf("\033[0;32;40m GPU #%d: %s, %.0fMB, %u compute units, capability: %d.%d\033[0m \n", dev, deviceProp.name, (float)deviceProp.totalGlobalMem/1048576.0f, deviceProp.multiProcessorCount, deviceProp.major, deviceProp.minor);
+			cudaSetDevice(dev);
+			cudaDeviceProp deviceProp;
+			cudaGetDeviceProperties(&deviceProp, dev);
+			size_t freeSize, totalSize;
+			cudaMemGetInfo(&freeSize, &totalSize);
+		printf("\033[0;32;40m GPU #%d: %s, total %.0fMB, free %.0fMB, %u compute units, capability: %d.%d\033[0m \n", dev, deviceProp.name, (float)deviceProp.totalGlobalMem/1048576.0f, (float)freeSize/1048576.0f, deviceProp.multiProcessorCount, deviceProp.major, deviceProp.minor);
 	}
 }
 
@@ -101,7 +102,6 @@ void initOne(uint32_t index, uint32_t device){
     using std::vector;
     trimparams tp;
     int nDevices = 0;
-    //TODO(tian) make use of multiple gpu
     checkCudaErrors(cudaGetDeviceCount(&nDevices));
     assert(device < nDevices);
     cudaSetDevice(device);
@@ -131,15 +131,16 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0, i
     using std::vector;
     if(printDeviceInfo != 0)
    	getDeviceInfo();
-    if(monitor_init(deviceNum) < 0) exit(0);
-	
+		int ret = monitor_init(deviceNum);
+    if(ret < 0) exit(0);
+
     for(int i = 0; i < deviceNum; i++){
-        if(selected == 0){
-                ctx.push_back(new cuckoo_solver_ctx());
-        }else{
-                ctx.push_back(new cuckaroo_solver_ctx());
-        }
-        initOne(i, devices[i]);
+				if(devices[i] >= ret){
+					printf("the device id %d must less than max device number %d\n", devices[i], ret);
+					exit(0);
+				}
+				ctx.push_back(new cuckaroo_solver_ctx());
+				initOne(i, devices[i]);
     }
 }
 

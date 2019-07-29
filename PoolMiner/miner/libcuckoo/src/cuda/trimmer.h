@@ -27,7 +27,11 @@ typedef u32 node_t;
 typedef u64 nonce_t;
 
 #ifndef XBITS
-#define XBITS ((EDGEBITS-16)/2)
+//#define XBITS ((EDGEBITS-16)/2)
+#define XBITS 6
+#endif
+#ifndef YBITS
+#define YBITS 7
 #endif
 
 #define NODEBITS (EDGEBITS + 1)
@@ -45,11 +49,12 @@ typedef u64 nonce_t;
 const static u32 MAXEDGES = 0x1000000;
 
 const static u32 NX        = 1 << XBITS;
-const static u32 NX2       = NX * NX;
-const static u32 XMASK     = NX - 1;
-const static u32 X2MASK    = NX2 - 1;
-const static u32 YBITS     = XBITS;
 const static u32 NY        = 1 << YBITS;
+const static u32 NX2       = NX * NY;
+const static u32 XMASK     = NX - 1;
+const static u32 YMASK     = NY - 1;
+const static u32 X2MASK    = NX2 - 1;
+//const static u32 YBITS     = XBITS;
 const static u32 YZBITS    = EDGEBITS - XBITS;
 const static u32 NYZ       = 1 << YZBITS;
 const static u32 ZBITS     = YZBITS - YBITS;
@@ -99,8 +104,10 @@ template <typename Edge> u32 __device__ endpoint(const siphash_keys &sipkeys, Ed
 
 #define checkCudaErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+	int device;
+	cudaGetDevice(&device);
   if (code != cudaSuccess) {
-    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    fprintf(stderr, "the GPU #%d assert: %s\n", device, cudaGetErrorString(code));
     if (abort) exit(code);
   }
 }
@@ -123,7 +130,7 @@ struct trimparams {
   trimparams() {
     expand              =    0;
     ntrims              =  176;
-    genA.blocks         = 4096;
+    genA.blocks         = NX2;
     genA.tpb            =  256;
     genB.blocks         =  NX2;
     genB.tpb            =  128;
