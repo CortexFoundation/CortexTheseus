@@ -131,6 +131,7 @@ type BlockChain struct {
 	shouldPreserve func(*types.Block) bool
 
 	badBlocks *lru.Cache // Bad block cache
+	terminateInsert func(common.Hash, uint64) bool
 }
 
 // NewBlockChain returns a fully initialised block chain using information
