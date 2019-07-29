@@ -17,12 +17,13 @@
 package trie
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"sync"
 	"time"
-
+	"github.com/allegro/bigcache"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -31,17 +32,22 @@ import (
 )
 
 var (
-	memcacheFlushTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/flush/time", nil)
-	memcacheFlushNodesMeter = metrics.NewRegisteredMeter("trie/memcache/flush/nodes", nil)
-	memcacheFlushSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/flush/size", nil)
+	memcacheCleanHitMeter   = metrics.NewRegisteredMeter("trie/memcache/clean/hit", nil)
+        memcacheCleanMissMeter  = metrics.NewRegisteredMeter("trie/memcache/clean/miss", nil)
+        memcacheCleanReadMeter  = metrics.NewRegisteredMeter("trie/memcache/clean/read", nil)
+        memcacheCleanWriteMeter = metrics.NewRegisteredMeter("trie/memcache/clean/write", nil)
 
-	memcacheGCTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/gc/time", nil)
-	memcacheGCNodesMeter = metrics.NewRegisteredMeter("trie/memcache/gc/nodes", nil)
-	memcacheGCSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/gc/size", nil)
+        memcacheFlushTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/flush/time", nil)
+        memcacheFlushNodesMeter = metrics.NewRegisteredMeter("trie/memcache/flush/nodes", nil)
+        memcacheFlushSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/flush/size", nil)
 
-	memcacheCommitTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/commit/time", nil)
-	memcacheCommitNodesMeter = metrics.NewRegisteredMeter("trie/memcache/commit/nodes", nil)
-	memcacheCommitSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/commit/size", nil)
+        memcacheGCTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/gc/time", nil)
+        memcacheGCNodesMeter = metrics.NewRegisteredMeter("trie/memcache/gc/nodes", nil)
+        memcacheGCSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/gc/size", nil)
+
+        memcacheCommitTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/commit/time", nil)
+        memcacheCommitNodesMeter = metrics.NewRegisteredMeter("trie/memcache/commit/nodes", nil)
+        memcacheCommitSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/commit/size", nil)
 )
 
 // secureKeyPrefix is the database key prefix used to store trie node preimages.
@@ -50,8 +56,8 @@ var secureKeyPrefix = []byte("secure-key-")
 // secureKeyLength is the length of the above prefix + 32byte hash.
 const secureKeyLength = 11 + 32
 
-// DatabaseReader wraps the Get and Has method of a backing store for the trie.
-type DatabaseReader interface {
+// KeyValueReader wraps the Get and Has method of a backing store for the trie.
+type KeyValueReader interface {
 	// Get retrieves the value associated with key from the database.
 	Get(key []byte) (value []byte, err error)
 
@@ -63,8 +69,8 @@ type DatabaseReader interface {
 // the disk database. The aim is to accumulate trie writes in-memory and only
 // periodically flush a couple tries to disk, garbage collecting the remainder.
 type Database struct {
-	diskdb ctxcdb.Database // Persistent storage for matured trie nodes
-
+	diskdb ctxcdb.KeyValueStore // Persistent storage for matured trie nodes
+	cleans  *bigcache.BigCache 
 	nodes  map[common.Hash]*cachedNode // Data and references relationships of a node
 	oldest common.Hash                 // Oldest tracked node, flush-list head
 	newest common.Hash                 // Newest tracked node, flush-list tail
@@ -264,16 +270,52 @@ func expandNode(hash hashNode, n node, cachegen uint16) node {
 
 // NewDatabase creates a new trie database to store ephemeral trie content before
 // its written out to disk or garbage collected.
-func NewDatabase(diskdb ctxcdb.Database) *Database {
+/*func NewDatabase(diskdb ctxcdb.Database) *Database {
 	return &Database{
 		diskdb:    diskdb,
 		nodes:     map[common.Hash]*cachedNode{{}: {}},
 		preimages: make(map[common.Hash][]byte),
 	}
+}*/
+
+type trienodeHasher struct{}
+
+// Sum64 implements the bigcache.Hasher interface.
+func (t trienodeHasher) Sum64(key string) uint64 {
+        return binary.BigEndian.Uint64([]byte(key))
+}
+
+func NewDatabase(diskdb ctxcdb.KeyValueStore) *Database {
+        return NewDatabaseWithCache(diskdb, 0)
+}
+
+// NewDatabaseWithCache creates a new trie database to store ephemeral trie content
+// before its written out to disk or garbage collected. It also acts as a read cache
+// for nodes loaded from disk.
+func NewDatabaseWithCache(diskdb ctxcdb.KeyValueStore, cache int) *Database {
+        var cleans *bigcache.BigCache
+        if cache > 0 {
+                cleans, _ = bigcache.NewBigCache(bigcache.Config{
+                        Shards:             1024,
+                        LifeWindow:         time.Hour,
+                        MaxEntriesInWindow: cache * 1024,
+                        MaxEntrySize:       512,
+                        HardMaxCacheSize:   cache,
+                        Hasher:             trienodeHasher{},
+                })
+        }
+        return &Database{
+                diskdb: diskdb,
+                cleans: cleans,
+                nodes: map[common.Hash]*cachedNode{{}: {
+                        children: make(map[common.Hash]uint16),
+                }},
+                preimages: make(map[common.Hash][]byte),
+        }
 }
 
 // DiskDB retrieves the persistent storage backing the trie database.
-func (db *Database) DiskDB() DatabaseReader {
+func (db *Database) DiskDB() KeyValueReader {
 	return db.diskdb
 }
 
@@ -347,6 +389,13 @@ func (db *Database) node(hash common.Hash, cachegen uint16) node {
 	if err != nil || enc == nil {
 		return nil
 	}
+
+	if db.cleans != nil {
+                db.cleans.Set(string(hash[:]), enc)
+                memcacheCleanMissMeter.Mark(1)
+                memcacheCleanWriteMeter.Mark(int64(len(enc)))
+        }
+
 	return mustDecodeNode(hash[:], enc, cachegen)
 }
 

@@ -210,13 +210,13 @@ func makeExtraData(extra []byte) []byte {
 
 // CreateDB creates the chain database.
 func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ctxcdb.Database, error) {
-	db, err := ctx.OpenDatabase(name, config.DatabaseCache, config.DatabaseHandles)
+	db, err := ctx.OpenDatabaseWithFreezer(name, config.DatabaseCache, config.DatabaseHandles,config.DatabaseFreezer, "ctxc/db/chaindata/")
 	if err != nil {
 		return nil, err
 	}
-	if db, ok := db.(*ctxcdb.LDBDatabase); ok {
-		db.Meter("ctxc/db/chaindata/")
-	}
+	//if db, ok := db.(*ctxcdb.LDBDatabase); ok {
+	//	db.Meter("ctxc/db/chaindata/")
+	//}
 	return db, nil
 }
 

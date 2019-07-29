@@ -49,4 +49,5 @@ const (
 	Check point:18 589823
 	Check point:19 622591
 	Check point:20 655359*/
+	ImmutabilityThreshold = 90000
 )
