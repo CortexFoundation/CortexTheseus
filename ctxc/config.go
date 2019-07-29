@@ -79,6 +79,7 @@ type Config struct {
 	SkipBcVersionCheck bool `toml:"-"`
 	DatabaseHandles    int  `toml:"-"`
 	DatabaseCache      int
+	DatabaseFreezer    string
 	TrieCache          int
 	TrieTimeout        time.Duration
 
