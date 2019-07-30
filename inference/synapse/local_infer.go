@@ -203,10 +203,10 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 	}
 	is_ok, err := s.config.Storagefs.Available(infoHash, rawSize)
 	if err != nil {
-		log.Warn("File non available", "infoHash", infoHash, "error", err)
+		log.Warn("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
 	} else if !is_ok {
-		log.Warn("File non available",
+		log.Warn("File is unavailable",
 			"info hash", infoHash, "error", KERNEL_LOGIC_ERROR)
 		return KERNEL_LOGIC_ERROR
 	}
