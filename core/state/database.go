@@ -68,7 +68,7 @@ type Trie interface {
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
-	Prove(key []byte, fromLevel uint, proofDb ctxcdb.Putter) error
+	Prove(key []byte, fromLevel uint, proofDb ctxcdb.KeyValueWriter) error
 }
 
 // NewDatabase creates a backing store for state. The returned database is safe for
@@ -84,18 +84,18 @@ type Trie interface {
 }*/
 
 func NewDatabase(db ctxcdb.Database) Database {
-        return NewDatabaseWithCache(db, 0)
+	return NewDatabaseWithCache(db, 0)
 }
 
 // NewDatabaseWithCache creates a backing store for state. The returned database
 // is safe for concurrent use and retains a lot of collapsed RLP trie nodes in a
 // large memory cache.
 func NewDatabaseWithCache(db ctxcdb.Database, cache int) Database {
-        csc, _ := lru.New(codeSizeCacheSize)
-        return &cachingDB{
-                db:            trie.NewDatabaseWithCache(db, cache),
-                codeSizeCache: csc,
-        }
+	csc, _ := lru.New(codeSizeCacheSize)
+	return &cachingDB{
+		db:            trie.NewDatabaseWithCache(db, cache),
+		codeSizeCache: csc,
+	}
 }
 
 type cachingDB struct {
@@ -115,7 +115,7 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 			return cachedTrie{db.pastTries[i].Copy(), db}, nil
 		}
 	}
-	tr, err := trie.NewSecure(root, db.db, MaxTrieCacheGen)
+	tr, err := trie.NewSecure(root, db.db) //, MaxTrieCacheGen)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (db *cachingDB) pushTrie(t *trie.SecureTrie) {
 
 // OpenStorageTrie opens the storage trie of an account.
 func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
-	return trie.NewSecure(root, db.db, 0)
+	return trie.NewSecure(root, db.db) //, 0)
 }
 
 // CopyTrie returns an independent copy of the given trie.
@@ -188,6 +188,6 @@ func (m cachedTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	return root, err
 }
 
-func (m cachedTrie) Prove(key []byte, fromLevel uint, proofDb ctxcdb.Putter) error {
+func (m cachedTrie) Prove(key []byte, fromLevel uint, proofDb ctxcdb.KeyValueWriter) error {
 	return m.SecureTrie.Prove(key, fromLevel, proofDb)
 }

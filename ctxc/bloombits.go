@@ -89,7 +89,7 @@ const (
 // for the Cortex header bloom filters, permitting blazing fast filtering.
 type BloomIndexer struct {
 	size    uint64               // section size to generate bloombits for
-	db      ctxcdb.Database       // database instance to write index data and metadata into
+	db      ctxcdb.Database      // database instance to write index data and metadata into
 	gen     *bloombits.Generator // generator to rotate the bloom bits crating the bloom index
 	section uint64               // Section is the section number being processed currently
 	head    common.Hash          // Head is the hash of the last header processed

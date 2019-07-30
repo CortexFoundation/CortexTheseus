@@ -40,7 +40,7 @@ import (
 // CortexAPIBackend implements ctxcapi.Backend for full nodes
 type CortexAPIBackend struct {
 	ctxc *Cortex
-	gpo *gasprice.Oracle
+	gpo  *gasprice.Oracle
 }
 
 // ChainConfig returns the active chain configuration.

@@ -19,9 +19,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
@@ -87,7 +87,7 @@ var (
 		Usage: "P2P storage tracker list",
 		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
 	}
-	
+
 	cvmFlags = []cli.Flag{
 		// StorageDirFlag,
 		CVMPortFlag,
@@ -121,7 +121,7 @@ func cvmServer(ctx *cli.Context) error {
 
 	fsCfg := torrentfs.DefaultConfig
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
-  trackers := ctx.GlobalString(StorageTrackerFlag.Name)
+	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
 	fsCfg.DefaultTrackers = strings.Split(trackers, ",")
 	fsCfg.BoostNodes = strings.Split(boostnodes, ",")

@@ -31,10 +31,10 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
+	"github.com/CortexFoundation/CortexTheseus/client"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/console"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
-	"github.com/CortexFoundation/CortexTheseus/client"
 	"github.com/CortexFoundation/CortexTheseus/internal/debug"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
@@ -128,14 +128,14 @@ var (
 		// utils.ModelCallInterfaceFlag,
 	}
 
-	inferFlags = []cli.Flag {
+	inferFlags = []cli.Flag{
 		utils.InferDeviceTypeFlag,
 		utils.InferDeviceIdFlag,
 		utils.InferPortFlag,
 		utils.InferMemoryFlag,
 	}
 
-	storageFlags = []cli.Flag {
+	storageFlags = []cli.Flag{
 		utils.StorageDirFlag,
 		utils.StorageEnabledFlag,
 		utils.StorageMaxSeedingFlag,

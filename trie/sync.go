@@ -1,18 +1,18 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package trie
 
@@ -72,19 +72,21 @@ func newSyncMemBatch() *syncMemBatch {
 // unknown trie hashes to retrieve, accepts node data associated with said hashes
 // and reconstructs the trie step by step until all is done.
 type Sync struct {
-	database KeyValueReader           // Persistent database to check for existing entries
+	database ctxcdb.KeyValueReader    // Persistent database to check for existing entries
 	membatch *syncMemBatch            // Memory buffer to avoid frequent database writes
 	requests map[common.Hash]*request // Pending requests pertaining to a key hash
 	queue    *prque.Prque             // Priority queue with the pending requests
+	bloom    *SyncBloom               // Bloom filter for fast node existence checks
 }
 
 // NewSync creates a new trie data download scheduler.
-func NewSync(root common.Hash, database KeyValueReader, callback LeafCallback) *Sync {
+func NewSync(root common.Hash, database ctxcdb.KeyValueReader, callback LeafCallback, bloom *SyncBloom) *Sync {
 	ts := &Sync{
 		database: database,
 		membatch: newSyncMemBatch(),
 		requests: make(map[common.Hash]*request),
 		queue:    prque.New(nil),
+		bloom:    bloom,
 	}
 	ts.AddSubTrie(root, 0, common.Hash{}, callback)
 	return ts
@@ -99,10 +101,14 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 	if _, ok := s.membatch.batch[root]; ok {
 		return
 	}
-	key := root.Bytes()
-	blob, _ := s.database.Get(key)
-	if local, err := decodeNode(key, blob, 0); local != nil && err == nil {
-		return
+	if s.bloom.Contains(root[:]) {
+		// Bloom filter says this might be a duplicate, double check
+		blob, _ := s.database.Get(root[:])
+		if local, err := decodeNode(root[:], blob); local != nil && err == nil {
+			return
+		}
+		// False positive, bump fault meter
+		bloomFaultMeter.Mark(1)
 	}
 	// Assemble the new sub-trie sync request
 	req := &request{
@@ -110,7 +116,7 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 		depth:    depth,
 		callback: callback,
 	}
-	// If this sub-trie has a designated parent, link them tocortexer
+	// If this sub-trie has a designated parent, link them together
 	if parent != (common.Hash{}) {
 		ancestor := s.requests[parent]
 		if ancestor == nil {
@@ -134,8 +140,13 @@ func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash) {
 	if _, ok := s.membatch.batch[hash]; ok {
 		return
 	}
-	if ok, _ := s.database.Has(hash.Bytes()); ok {
-		return
+	if s.bloom.Contains(hash[:]) {
+		// Bloom filter says this might be a duplicate, double check
+		if ok, _ := s.database.Has(hash[:]); ok {
+			return
+		}
+		// False positive, bump fault meter
+		bloomFaultMeter.Mark(1)
 	}
 	// Assemble the new sub-trie sync request
 	req := &request{
@@ -143,7 +154,7 @@ func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash) {
 		raw:   true,
 		depth: depth,
 	}
-	// If this sub-trie has a designated parent, link them tocortexer
+	// If this sub-trie has a designated parent, link them together
 	if parent != (common.Hash{}) {
 		ancestor := s.requests[parent]
 		if ancestor == nil {
@@ -157,7 +168,7 @@ func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash) {
 
 // Missing retrieves the known missing nodes from the trie for retrieval.
 func (s *Sync) Missing(max int) []common.Hash {
-	requests := []common.Hash{}
+	var requests []common.Hash
 	for !s.queue.Empty() && (max == 0 || len(requests) < max) {
 		requests = append(requests, s.queue.PopItem().(common.Hash))
 	}
@@ -187,7 +198,7 @@ func (s *Sync) Process(results []SyncResult) (bool, int, error) {
 			continue
 		}
 		// Decode the node data content and update the request
-		node, err := decodeNode(item.Hash[:], item.Data, 0)
+		node, err := decodeNode(item.Hash[:], item.Data)
 		if err != nil {
 			return committed, i, err
 		}
@@ -213,14 +224,15 @@ func (s *Sync) Process(results []SyncResult) (bool, int, error) {
 
 // Commit flushes the data stored in the internal membatch out to persistent
 // storage, returning the number of items written and any occurred error.
-func (s *Sync) Commit(dbw ctxcdb.Putter) (int, error) {
+func (s *Sync) Commit(dbw ctxcdb.KeyValueWriter) (int, error) {
 	// Dump the membatch into a database dbw
 	for i, key := range s.membatch.order {
 		if err := dbw.Put(key[:], s.membatch.batch[key]); err != nil {
 			return i, err
 		}
+		s.bloom.Add(key[:])
 	}
-	written := len(s.membatch.order)
+	written := len(s.membatch.order) // TODO(karalabe): could an order change improve write performance?
 
 	// Drop the membatch data and return
 	s.membatch = newSyncMemBatch()
@@ -254,7 +266,7 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 		node  node
 		depth int
 	}
-	children := []child{}
+	var children []child
 
 	switch node := (object).(type) {
 	case *shortNode:
@@ -292,8 +304,13 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 			if _, ok := s.membatch.batch[hash]; ok {
 				continue
 			}
-			if ok, _ := s.database.Has(node); ok {
-				continue
+			if s.bloom.Contains(node) {
+				// Bloom filter says this might be a duplicate, double check
+				if ok, _ := s.database.Has(node); ok {
+					continue
+				}
+				// False positive, bump fault meter
+				bloomFaultMeter.Mark(1)
 			}
 			// Locally unknown node, schedule for retrieval
 			requests = append(requests, &request{
