@@ -18,19 +18,19 @@ package main
 
 import (
 	"encoding/json"
-	"path/filepath"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync/atomic"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/console"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
@@ -172,18 +172,18 @@ The arguments are interpreted as block numbers or hashes.
 Use "cortex dump 0" to dump the genesis block.`,
 	}
 	inspectCommand = cli.Command{
-                Action:    utils.MigrateFlags(inspect),
-                Name:      "inspect",
-                Usage:     "Inspect the storage size for each type of data in the database",
-                ArgsUsage: " ",
-                Flags: []cli.Flag{
-                        utils.DataDirFlag,
-                        utils.AncientFlag,
-                        utils.CacheFlag,
-                        utils.SyncModeFlag,
-                },
-                Category: "BLOCKCHAIN COMMANDS",
-        }
+		Action:    utils.MigrateFlags(inspect),
+		Name:      "inspect",
+		Usage:     "Inspect the storage size for each type of data in the database",
+		ArgsUsage: " ",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.AncientFlag,
+			utils.CacheFlag,
+			utils.SyncModeFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+	}
 )
 
 // initGenesis will initialise the given JSON format genesis file and writes it as
@@ -297,11 +297,11 @@ func importChain(ctx *cli.Context) error {
 	start = time.Now()
 	fmt.Println("Compacting entire database...")
 	if err = db.Compact(nil, nil); err != nil {
-                utils.Fatalf("Compaction failed: %v", err)
-        }
+		utils.Fatalf("Compaction failed: %v", err)
+	}
 	fmt.Printf("Compaction done in %v.\n\n", time.Since(start))
 
-stats, err = db.Stat("leveldb.stats")
+	stats, err = db.Stat("leveldb.stats")
 	if err != nil {
 		utils.Fatalf("Failed to read database stats: %v", err)
 	}
@@ -387,8 +387,8 @@ func copyDb(ctx *cli.Context) error {
 	}
 
 	if len(ctx.Args()) < 2 {
-                utils.Fatalf("Source ancient chain directory path argument missing")
-        }
+		utils.Fatalf("Source ancient chain directory path argument missing")
+	}
 	// Initialize a new chain for the running node to sync into
 	stack := makeFullNode(ctx)
 	chain, chainDb := utils.MakeChain(ctx, stack)
@@ -425,9 +425,9 @@ func copyDb(ctx *cli.Context) error {
 	// Compact the entire database to remove any sync overhead
 	start = time.Now()
 	fmt.Println("Compacting entire database...")
-        if err = db.Compact(nil, nil); err != nil {
-                utils.Fatalf("Compaction failed: %v", err)
-        }
+	if err = db.Compact(nil, nil); err != nil {
+		utils.Fatalf("Compaction failed: %v", err)
+	}
 	fmt.Printf("Compaction done in %v.\n\n", time.Since(start))
 
 	return nil
@@ -436,54 +436,54 @@ func copyDb(ctx *cli.Context) error {
 func removeDB(ctx *cli.Context) error {
 	stack, config := makeConfigNode(ctx)
 
-        // Remove the full node state database
-        path := stack.ResolvePath("chaindata")
-        if common.FileExist(path) {
-                confirmAndRemoveDB(path, "full node state database")
-        } else {
-                log.Info("Full node state database missing", "path", path)
-        }
-        // Remove the full node ancient database
-        path = config.Cortex.DatabaseFreezer
-        switch {
-        case path == "":
-                path = filepath.Join(stack.ResolvePath("chaindata"), "ancient")
-        case !filepath.IsAbs(path):
-                path = config.Node.ResolvePath(path)
-        }
-        if common.FileExist(path) {
-                confirmAndRemoveDB(path, "full node ancient database")
-        } else {
-                log.Info("Full node ancient database missing", "path", path)
-        }
-        return nil
+	// Remove the full node state database
+	path := stack.ResolvePath("chaindata")
+	if common.FileExist(path) {
+		confirmAndRemoveDB(path, "full node state database")
+	} else {
+		log.Info("Full node state database missing", "path", path)
+	}
+	// Remove the full node ancient database
+	path = config.Cortex.DatabaseFreezer
+	switch {
+	case path == "":
+		path = filepath.Join(stack.ResolvePath("chaindata"), "ancient")
+	case !filepath.IsAbs(path):
+		path = config.Node.ResolvePath(path)
+	}
+	if common.FileExist(path) {
+		confirmAndRemoveDB(path, "full node ancient database")
+	} else {
+		log.Info("Full node ancient database missing", "path", path)
+	}
+	return nil
 }
 
 // confirmAndRemoveDB prompts the user for a last confirmation and removes the
 // folder if accepted.
 func confirmAndRemoveDB(database string, kind string) {
-        confirm, err := console.Stdin.PromptConfirm(fmt.Sprintf("Remove %s (%s)?", kind, database))
-        switch {
-        case err != nil:
-                utils.Fatalf("%v", err)
-        case !confirm:
-                log.Info("Database deletion skipped", "path", database)
-        default:
-                start := time.Now()
-                filepath.Walk(database, func(path string, info os.FileInfo, err error) error {
-                        // If we're at the top level folder, recurse into
-                        if path == database {
-                                return nil
-                        }
-                        // Delete all the files, but not subfolders
-                        if !info.IsDir() {
-                                os.Remove(path)
-                                return nil
-                        }
-                        return filepath.SkipDir
-                })
-                log.Info("Database successfully deleted", "path", database, "elapsed", common.PrettyDuration(time.Since(start)))
-        }
+	confirm, err := console.Stdin.PromptConfirm(fmt.Sprintf("Remove %s (%s)?", kind, database))
+	switch {
+	case err != nil:
+		utils.Fatalf("%v", err)
+	case !confirm:
+		log.Info("Database deletion skipped", "path", database)
+	default:
+		start := time.Now()
+		filepath.Walk(database, func(path string, info os.FileInfo, err error) error {
+			// If we're at the top level folder, recurse into
+			if path == database {
+				return nil
+			}
+			// Delete all the files, but not subfolders
+			if !info.IsDir() {
+				os.Remove(path)
+				return nil
+			}
+			return filepath.SkipDir
+		})
+		log.Info("Database successfully deleted", "path", database, "elapsed", common.PrettyDuration(time.Since(start)))
+	}
 }
 
 func dump(ctx *cli.Context) error {
@@ -513,15 +513,14 @@ func dump(ctx *cli.Context) error {
 }
 
 func inspect(ctx *cli.Context) error {
-        node, _ := makeConfigNode(ctx)
-        defer node.Close()
+	node, _ := makeConfigNode(ctx)
+	defer node.Close()
 
-        _, chainDb := utils.MakeChain(ctx, node)
-        defer chainDb.Close()
+	_, chainDb := utils.MakeChain(ctx, node)
+	defer chainDb.Close()
 
-        return rawdb.InspectDatabase(chainDb)
+	return rawdb.InspectDatabase(chainDb)
 }
-
 
 // hashish returns true for strings that look like hashes.
 func hashish(x string) bool {

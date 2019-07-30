@@ -98,7 +98,7 @@ var AppHelpFlagGroups = []flagGroup{
 	//	},
 	//},
 	{
-	Name: "TRANSACTION POOL",
+		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
 			utils.TxPoolLocalsFlag,
 			utils.TxPoolNoLocalsFlag,
@@ -216,7 +216,7 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name: "VIRTUAL MACHINE",
+		Name:  "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
 			// utils.ModelCallInterfaceFlag,
 			//		utils.VMEnableDebugFlag,
