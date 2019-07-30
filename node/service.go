@@ -21,11 +21,11 @@ import (
 	"reflect"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 )
 
 // ServiceContext is a collection of service independent options inherited from
@@ -60,20 +60,19 @@ func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, nam
 // database to immutable append-only files. If the node is an ephemeral one, a
 // memory database is returned.
 func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handles int, freezer string, namespace string) (ctxcdb.Database, error) {
-        if ctx.config.DataDir == "" {
-                return rawdb.NewMemoryDatabase(), nil
-        }
-        root := ctx.config.ResolvePath(name)
+	if ctx.config.DataDir == "" {
+		return rawdb.NewMemoryDatabase(), nil
+	}
+	root := ctx.config.ResolvePath(name)
 
-        switch {
-        case freezer == "":
-                freezer = filepath.Join(root, "ancient")
-        case !filepath.IsAbs(freezer):
-                freezer = ctx.config.ResolvePath(freezer)
-        }
-        return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
+	switch {
+	case freezer == "":
+		freezer = filepath.Join(root, "ancient")
+	case !filepath.IsAbs(freezer):
+		freezer = ctx.config.ResolvePath(freezer)
+	}
+	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
 }
-
 
 // ResolvePath resolves a user path into the data directory if that was relative
 // and if the user actually uses persistent storage. It will return an empty string
