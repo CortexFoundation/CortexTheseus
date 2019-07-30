@@ -196,8 +196,16 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 
 	if mode == downloader.FastSync {
 		// Make sure the peer's total difficulty we are synchronizing is higher.
-		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
-			return
+		fastTd := pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash())
+		if fastTd == nil {
+			log.Warn("Fast total difficulty is nil, switch to full sync mode", "hash", pm.blockchain.CurrentFastBlock().Hash().Hex())
+			//return
+			mode = downloader.FullSync
+			atomic.StoreUint32(&pm.fastSync, 0)
+		} else {
+			if fastTd.Cmp(pTd) >= 0 {
+				return
+			}
 		}
 	}
 

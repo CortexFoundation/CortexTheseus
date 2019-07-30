@@ -28,6 +28,8 @@ endif
 
 all: cortex
 
+cpu: cortex_cpu
+
 cortex_cpu: clib_cpu 
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex_cpu ..."
