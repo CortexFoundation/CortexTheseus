@@ -55,6 +55,10 @@ func (n *proofList) Put(key []byte, value []byte) error {
 	return nil
 }
 
+func (n *proofList) Delete(key []byte) error {
+	panic("not supported")
+}
+
 // StateDBs within the cortex protocol are used to store anything
 // within the merkle trie. StateDBs take care of caching and storing
 // nested states. It's the general query interface to retrieve:
@@ -325,7 +329,7 @@ func (self *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) (
 	for idx = 0; idx < int64(length); idx++ {
 		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
 		payload := self.GetState(addr, slotAddr).Bytes()
-		copy(buff[idx * 32:], payload[:])
+		copy(buff[idx*32:], payload[:])
 		log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 		// fmt.Println(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 	}
@@ -832,6 +836,6 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		}
 		return nil
 	})
-	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
+	//log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }

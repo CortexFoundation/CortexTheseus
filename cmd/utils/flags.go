@@ -1074,6 +1074,11 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
+	//cfg.NoPrefetch = ctx.GlobalBool(CacheNoPrefetchFlag.Name)
+
+	//if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+	//        cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+	//}
 
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1348,13 +1353,22 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
-		TrieNodeLimit: ctxc.DefaultConfig.TrieCache,
+		//TrieCleanLimit:      ctxc.DefaultConfig.TrieCleanCache,
+		//TrieCleanNoPrefetch: true, //ctx.GlobalBool(CacheNoPrefetchFlag.Name),
+		//TrieDirtyLimit:      ctxc.DefaultConfig.TrieDirtyCache,
+		TrieDirtyDisabled: ctx.GlobalString(GCModeFlag.Name) == "archive",
+		//	TrieNodeLimit: ctxc.DefaultConfig.TrieCache,
 		TrieTimeLimit: ctxc.DefaultConfig.TrieTimeout,
 	}
-	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
-	}
+	//if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
+	//	cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+	//}
+	// if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+	//       cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+	//}
+	//if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
+	//        cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+	//}
 	vmcfg := vm.Config{
 		// EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
 		// InferURI: ctx.GlobalString(ModelCallInterfaceFlag.Name),

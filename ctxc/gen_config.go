@@ -28,7 +28,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DatabaseCache           int
 		TrieCache               int
 		TrieTimeout             time.Duration
-		Coinbase               common.Address `toml:",omitempty"`
+		Coinbase                common.Address `toml:",omitempty"`
 		MinerNotify             []string       `toml:",omitempty"`
 		MinerExtraData          hexutil.Bytes  `toml:",omitempty"`
 		MinerGasFloor           uint64
@@ -90,7 +90,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DatabaseCache           *int
 		TrieCache               *int
 		TrieTimeout             *time.Duration
-		Coinbase               *common.Address `toml:",omitempty"`
+		Coinbase                *common.Address `toml:",omitempty"`
 		MinerNotify             []string        `toml:",omitempty"`
 		MinerExtraData          *hexutil.Bytes  `toml:",omitempty"`
 		MinerGasFloor           *uint64

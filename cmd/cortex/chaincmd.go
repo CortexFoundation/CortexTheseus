@@ -277,8 +277,8 @@ func importChain(ctx *cli.Context) error {
 	}
 	fmt.Println(ioStats)
 
-	fmt.Printf("Trie cache misses:  %d\n", trie.CacheMisses())
-	fmt.Printf("Trie cache unloads: %d\n\n", trie.CacheUnloads())
+	//fmt.Printf("Trie cache misses:  %d\n", trie.CacheMisses())
+	//fmt.Printf("Trie cache unloads: %d\n\n", trie.CacheUnloads())
 
 	// Print the memory statistics used by the importing
 	mem := new(runtime.MemStats)
@@ -393,8 +393,12 @@ func copyDb(ctx *cli.Context) error {
 	stack := makeFullNode(ctx)
 	chain, chainDb := utils.MakeChain(ctx, stack)
 
-	syncmode := *utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
-	dl := downloader.New(syncmode, 0, chainDb, new(event.TypeMux), chain, nil)
+	syncMode := *utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
+	var syncBloom *trie.SyncBloom
+	if syncMode == downloader.FastSync {
+		syncBloom = trie.NewSyncBloom(uint64(ctx.GlobalInt(utils.CacheFlag.Name)/2), chainDb)
+	}
+	dl := downloader.New(syncMode, 0, chainDb, syncBloom, new(event.TypeMux), chain, nil)
 
 	// Create a source peer to satisfy downloader requests from
 	//db, err := ctxcdb.NewLevelDatabase(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name), 256)
@@ -414,7 +418,7 @@ func copyDb(ctx *cli.Context) error {
 	start := time.Now()
 
 	currentHeader := hc.CurrentHeader()
-	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), syncmode); err != nil {
+	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), syncMode); err != nil {
 		return err
 	}
 	for dl.Synchronising() {

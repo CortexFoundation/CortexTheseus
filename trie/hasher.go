@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package trie
 
@@ -21,16 +21,14 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"golang.org/x/crypto/sha3"
 )
 
 type hasher struct {
-	tmp        sliceBuffer
-	sha        keccakState
-	cachegen   uint16
-	cachelimit uint16
-	onleaf     LeafCallback
+	tmp    sliceBuffer
+	sha    keccakState
+	onleaf LeafCallback
 }
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
@@ -57,14 +55,14 @@ var hasherPool = sync.Pool{
 	New: func() interface{} {
 		return &hasher{
 			tmp: make(sliceBuffer, 0, 550), // cap is as large as a full fullNode.
-			sha: sha3.NewKeccak256().(keccakState),
+			sha: sha3.NewLegacyKeccak256().(keccakState),
 		}
 	},
 }
 
-func newHasher(cachegen, cachelimit uint16, onleaf LeafCallback) *hasher {
+func newHasher(onleaf LeafCallback) *hasher {
 	h := hasherPool.Get().(*hasher)
-	h.cachegen, h.cachelimit, h.onleaf = cachegen, cachelimit, onleaf
+	h.onleaf = onleaf
 	return h
 }
 
@@ -80,14 +78,13 @@ func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
 		if db == nil {
 			return hash, n, nil
 		}
-		if n.canUnload(h.cachegen, h.cachelimit) {
-			// Unload the node from cache. All of its subnodes will have a lower or equal
-			// cache generation number.
-			cacheUnloadCounter.Inc(1)
-			return hash, hash, nil
-		}
 		if !dirty {
-			return hash, n, nil
+			switch n.(type) {
+			case *fullNode, *shortNode:
+				return hash, hash, nil
+			default:
+				return hash, n, nil
+			}
 		}
 	}
 	// Trie not processed yet or needs storage, walk the children

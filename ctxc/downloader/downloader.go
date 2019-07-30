@@ -35,6 +35,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 )
 
 var (
@@ -57,9 +58,9 @@ var (
 	qosConfidenceCap = 10   // Number of peers above which not to modify RTT confidence
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
-	maxQueuedHeaders  = 32 * 1024 // [ctxc/62] Maximum number of headers to queue for import (DOS protection)
-	maxHeadersProcess = 2048      // Number of header download results to import at once into the chain
-	maxResultsProcess = 2048      // Number of content download results to import at once into the chain
+	maxQueuedHeaders         = 32 * 1024 // [ctxc/62] Maximum number of headers to queue for import (DOS protection)
+	maxHeadersProcess        = 2048      // Number of header download results to import at once into the chain
+	maxResultsProcess        = 2048      // Number of content download results to import at once into the chain
 	maxForkAncestry   uint64 = params.ImmutabilityThreshold
 
 	reorgProtThreshold   = 48 // Threshold number of recent blocks to disable mini reorg protection
@@ -106,9 +107,10 @@ type Downloader struct {
 	checkpoint uint64 // Checkpoint block number to enforce head against (e.g. fast sync)
 	genesis    uint64
 
-	queue   *queue   // Scheduler for selecting the hashes to download
-	peers   *peerSet // Set of active peers from which download can proceed
-	stateDB ctxcdb.Database
+	queue      *queue   // Scheduler for selecting the hashes to download
+	peers      *peerSet // Set of active peers from which download can proceed
+	stateDB    ctxcdb.Database
+	stateBloom *trie.SyncBloom
 
 	rttEstimate   uint64 // Round trip time to target for download requests
 	rttConfidence uint64 // Confidence in the estimated RTT (unit: millionths to allow atomic ops)
@@ -202,11 +204,12 @@ type BlockChain interface {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(mode SyncMode, checkpoint uint64, stateDb ctxcdb.Database, mux *event.TypeMux, chain BlockChain, dropPeer peerDropFn) *Downloader {
+func New(mode SyncMode, checkpoint uint64, stateDb ctxcdb.Database, stateBloom *trie.SyncBloom, mux *event.TypeMux, chain BlockChain, dropPeer peerDropFn) *Downloader {
 
 	dl := &Downloader{
 		mode:           mode,
 		stateDB:        stateDb,
+		stateBloom:     stateBloom,
 		mux:            mux,
 		checkpoint:     checkpoint,
 		queue:          newQueue(),
@@ -349,6 +352,10 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 	if atomic.CompareAndSwapInt32(&d.notified, 0, 1) {
 		log.Info("Block synchronisation started")
 	}
+
+	if mode == FullSync && d.stateBloom != nil {
+		d.stateBloom.Close()
+	}
 	// Reset the queue, peer set and wake channels to clean any internal leftover state
 	d.queue.Reset()
 	d.peers.Reset()
@@ -451,35 +458,35 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 	}
 
 	if d.mode == FastSync {
-                // Set the ancient data limitation.
-                // If we are running fast sync, all block data older than ancientLimit will be
-                // written to the ancient store. More recent data will be written to the active
-                // database and will wait for the freezer to migrate.
-                //
-                // If there is a checkpoint available, then calculate the ancientLimit through
-                // that. Otherwise calculate the ancient limit through the advertised height
-                // of the remote peer.
-                //
-                // The reason for picking checkpoint first is that a malicious peer can give us
-                // a fake (very high) height, forcing the ancient limit to also be very high.
-                // The peer would start to feed us valid blocks until head, resulting in all of
-                // the blocks might be written into the ancient store. A following mini-reorg
-                // could cause issues.
-                if d.checkpoint != 0 && d.checkpoint > maxForkAncestry+1 {
-                        d.ancientLimit = d.checkpoint
-                } else if height > maxForkAncestry+1 {
-                        d.ancientLimit = height - maxForkAncestry - 1
-                }
-                frozen, _ := d.stateDB.Ancients() // Ignore the error here since light client can also hit here.
-                // If a part of blockchain data has already been written into active store,
-                // disable the ancient style insertion explicitly.
-                if origin >= frozen && frozen != 0 {
-                        d.ancientLimit = 0
-                        log.Info("Disabling direct-ancient mode", "origin", origin, "ancient", frozen-1)
-                } else if d.ancientLimit > 0 {
-                        log.Debug("Enabling direct-ancient mode", "ancient", d.ancientLimit)
-                }
-        }
+		// Set the ancient data limitation.
+		// If we are running fast sync, all block data older than ancientLimit will be
+		// written to the ancient store. More recent data will be written to the active
+		// database and will wait for the freezer to migrate.
+		//
+		// If there is a checkpoint available, then calculate the ancientLimit through
+		// that. Otherwise calculate the ancient limit through the advertised height
+		// of the remote peer.
+		//
+		// The reason for picking checkpoint first is that a malicious peer can give us
+		// a fake (very high) height, forcing the ancient limit to also be very high.
+		// The peer would start to feed us valid blocks until head, resulting in all of
+		// the blocks might be written into the ancient store. A following mini-reorg
+		// could cause issues.
+		if d.checkpoint != 0 && d.checkpoint > maxForkAncestry+1 {
+			d.ancientLimit = d.checkpoint
+		} else if height > maxForkAncestry+1 {
+			d.ancientLimit = height - maxForkAncestry - 1
+		}
+		frozen, _ := d.stateDB.Ancients() // Ignore the error here since light client can also hit here.
+		// If a part of blockchain data has already been written into active store,
+		// disable the ancient style insertion explicitly.
+		if origin >= frozen && frozen != 0 {
+			d.ancientLimit = 0
+			log.Info("Disabling direct-ancient mode", "origin", origin, "ancient", frozen-1)
+		} else if d.ancientLimit > 0 {
+			log.Debug("Enabling direct-ancient mode", "ancient", d.ancientLimit)
+		}
+	}
 	// Initiate the sync using a concurrent header and content retrieval algorithm
 	d.queue.Prepare(origin+1, d.mode)
 	if d.syncInitHook != nil {
@@ -550,7 +557,7 @@ func (d *Downloader) Cancel() {
 	d.cancel()
 	d.cancelWg.Wait()
 	d.ancientLimit = 0
-        log.Debug("Reset ancient limit to zero")
+	log.Debug("Reset ancient limit to zero")
 }
 
 // Terminate interrupts the downloader, canceling all pending operations.
@@ -1597,6 +1604,9 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 		return err
 	}
 	atomic.StoreInt32(&d.committed, 1)
+	if d.stateBloom != nil {
+		d.stateBloom.Close()
+	}
 	return nil
 }
 

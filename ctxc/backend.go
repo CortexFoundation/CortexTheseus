@@ -141,13 +141,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	}
 
 	ctxc.synapse = synapse.New(&synapse.Config{
-		DeviceType    : config.InferDeviceType,
-		DeviceId      : config.InferDeviceId,
+		DeviceType:     config.InferDeviceType,
+		DeviceId:       config.InferDeviceId,
 		MaxMemoryUsage: config.InferMemoryUsage,
-		IsRemoteInfer : config.InferURI != "",
-		InferURI      : config.InferURI,
-		IsNotCache    : false,
-		Storagefs     : torrentfs.Torrentfs_handle,
+		IsRemoteInfer:  config.InferURI != "",
+		InferURI:       config.InferURI,
+		IsNotCache:     false,
+		Storagefs:      torrentfs.Torrentfs_handle,
 	})
 
 	var (
@@ -155,7 +155,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			StorageDir:              config.StorageDir,
 		}
-		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
+		cacheConfig = &core.CacheConfig{TrieDirtyDisabled: config.NoPruning, TrieDirtyLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve)
 	if err != nil {
@@ -174,7 +174,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	}
 	ctxc.txPool = core.NewTxPool(config.TxPool, ctxc.chainConfig, ctxc.blockchain)
 
-	if ctxc.protocolManager, err = NewProtocolManager(ctxc.chainConfig, config.SyncMode, config.NetworkId, ctxc.eventMux, ctxc.txPool, ctxc.engine, ctxc.blockchain, chainDb, config.Whitelist); err != nil {
+	cacheLimit := 512 //cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
+	checkpoint := config.Checkpoint
+	if checkpoint == nil {
+		checkpoint = params.TrustedCheckpoints[genesisHash]
+	}
+
+	if ctxc.protocolManager, err = NewProtocolManager(ctxc.chainConfig, config.SyncMode, config.NetworkId, ctxc.eventMux, ctxc.txPool, ctxc.engine, ctxc.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
 		return nil, err
 	}
 
@@ -210,7 +216,7 @@ func makeExtraData(extra []byte) []byte {
 
 // CreateDB creates the chain database.
 func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ctxcdb.Database, error) {
-	db, err := ctx.OpenDatabaseWithFreezer(name, config.DatabaseCache, config.DatabaseHandles,config.DatabaseFreezer, "ctxc/db/chaindata/")
+	db, err := ctx.OpenDatabaseWithFreezer(name, config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/")
 	if err != nil {
 		return nil, err
 	}
@@ -361,52 +367,52 @@ func (s *Cortex) Coinbase() (eb common.Address, err error) {
 }
 
 func (s *Cortex) isLocalBlock(block *types.Block) bool {
-        author, err := s.engine.Author(block.Header())
-        if err != nil {
-                log.Warn("Failed to retrieve block author", "number", block.NumberU64(), "hash", block.Hash(), "err", err)
-                return false
-        }
-        // Check whether the given address is etherbase.
-        s.lock.RLock()
-        coinbase := s.coinbase
-        s.lock.RUnlock()
-        if author == coinbase {
-                return true
-        }
-        // Check whether the given address is specified by `txpool.local`
-        // CLI flag.
-        for _, account := range s.config.TxPool.Locals {
-                if account == author {
-                        return true
-                }
-        }
-        return false
+	author, err := s.engine.Author(block.Header())
+	if err != nil {
+		log.Warn("Failed to retrieve block author", "number", block.NumberU64(), "hash", block.Hash(), "err", err)
+		return false
+	}
+	// Check whether the given address is etherbase.
+	s.lock.RLock()
+	coinbase := s.coinbase
+	s.lock.RUnlock()
+	if author == coinbase {
+		return true
+	}
+	// Check whether the given address is specified by `txpool.local`
+	// CLI flag.
+	for _, account := range s.config.TxPool.Locals {
+		if account == author {
+			return true
+		}
+	}
+	return false
 }
 
 // shouldPreserve checks whether we should preserve the given block
 // during the chain reorg depending on whether the author of block
 // is a local account.
 func (s *Cortex) shouldPreserve(block *types.Block) bool {
-        // The reason we need to disable the self-reorg preserving for clique
-        // is it can be probable to introduce a deadlock.
-        //
-        // e.g. If there are 7 available signers
-        //
-        // r1   A
-        // r2     B
-        // r3       C
-        // r4         D
-        // r5   A      [X] F G
-        // r6    [X]
-        //
-        // In the round5, the inturn signer E is offline, so the worst case
-        // is A, F and G sign the block of round5 and reject the block of opponents
-        // and in the round6, the last available signer B is offline, the whole
-        // network is stuck.
-        if _, ok := s.engine.(*clique.Clique); ok {
-                return false
-        }
-        return s.isLocalBlock(block)
+	// The reason we need to disable the self-reorg preserving for clique
+	// is it can be probable to introduce a deadlock.
+	//
+	// e.g. If there are 7 available signers
+	//
+	// r1   A
+	// r2     B
+	// r3       C
+	// r4         D
+	// r5   A      [X] F G
+	// r6    [X]
+	//
+	// In the round5, the inturn signer E is offline, so the worst case
+	// is A, F and G sign the block of round5 and reject the block of opponents
+	// and in the round6, the last available signer B is offline, the whole
+	// network is stuck.
+	if _, ok := s.engine.(*clique.Clique); ok {
+		return false
+	}
+	return s.isLocalBlock(block)
 }
 
 // SetCoinbase sets the mining reward address.
