@@ -175,10 +175,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	ctxc.txPool = core.NewTxPool(config.TxPool, ctxc.chainConfig, ctxc.blockchain)
 
 	cacheLimit := 512 //cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
-	checkpoint := config.Checkpoint
-	if checkpoint == nil {
-		checkpoint = params.TrustedCheckpoints[genesisHash]
-	}
 
 	if ctxc.protocolManager, err = NewProtocolManager(ctxc.chainConfig, config.SyncMode, config.NetworkId, ctxc.eventMux, ctxc.txPool, ctxc.engine, ctxc.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
 		return nil, err
