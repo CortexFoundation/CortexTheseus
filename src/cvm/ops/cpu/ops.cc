@@ -1,4 +1,5 @@
 #include "ops.h"
+#include "../nms.h"
 
 #include "omp.h"
 #include <immintrin.h>
@@ -996,6 +997,59 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.upsampling")
     cvm_op_upsampling_cnt += omp_get_wtime() - start;
     start = omp_get_wtime();
 #endif
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *valid_count = args[1];
+    DLTensor *y = args[2];
+    void* _attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::GetValidCountsParam>(attr->parsed);
+
+    int32_t score_threshold = param.score_threshold; 
+
+    int32_t batches = x->shape[0];
+    int32_t n = x->shape[1];
+    int32_t k = x->shape[2];
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    get_valid_count(x_data, y_data, valid_count_data, batches, n, k, score_threshold);
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
+.set_body([](cvm::runtime::CVMArgs args, cvm::runtime::CVMRetValue *rv){
+    DLTensor *x = args[0];
+    DLTensor *valid_count = args[1];
+    DLTensor *y = args[2];
+    void* _attr = args[3];
+    auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
+    auto &param = cvm::get<cvm::top::NonMaximumSuppressionParam>(attr->parsed);
+
+    int32_t max_output_size = param.max_output_size;
+    int32_t iou_threshold = param.iou_threshold;
+    int32_t topk = param.top_k;
+    int32_t coord_start = param.coord_start;
+    int32_t score_index = param.score_index;
+    int32_t id_index = param.id_index;
+    bool force_suppress = param.force_suppress;
+
+    int32_t *x_data = static_cast<int32_t*>(x->data);
+    int32_t *valid_count_data = static_cast<int32_t*>(valid_count->data);
+    int32_t *y_data = static_cast<int32_t*>(y->data);
+
+    int32_t batchs = x->shape[0];
+    int32_t n = x->shape[1];
+    int32_t k = x->shape[2];
+
+    int ret = non_max_suppression(
+            x_data, valid_count_data, y_data, batchs, n, k,
+            max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
+    VERIFY(ret >= 0);
 });
 
 }
