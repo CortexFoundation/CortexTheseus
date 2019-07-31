@@ -70,7 +70,7 @@ else(MSVC)
 endif(MSVC)
 
 # add source group
-FILE(GLOB_RECURSE GROUP_INCLUDE "src/*.h" "include/*.h")
+FILE(GLOB_RECURSE GROUP_INCLUDE "src/cvm/ops/*.h" "src/*.h" "include/*.h")
 assign_source_group("Include" ${GROUP_INCLUDE})
 
 # Source file lists
@@ -82,7 +82,7 @@ if(NOT USE_RTTI)
 endif()
 
 message(STATUS "Build with CVM runtime support...")
-file(GLOB RUNTIME_CVM_SRCS src/cvm/*.cc)
+file(GLOB RUNTIME_CVM_SRCS src/cvm/ops/*.cc src/cvm/*.cc) 
 if(${USE_CUDA} STREQUAL "ON")
     message("use cuda")
     project(cvm CUDA)

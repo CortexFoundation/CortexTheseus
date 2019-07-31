@@ -2,6 +2,7 @@
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 #include "cuda_ops.h"
+#include "../common.h"
 #include "../nms.h"
 
 __global__ void kernel_get_valid_count(const int32_t *input, bool *saved, const int32_t n, const int32_t k, const int32_t score_threshold){
@@ -167,182 +168,182 @@ __global__ void kernel_compare_iou(int32_t **rows, int32_t *y_batch,
     d_y_index[0] = y_index;
 }
 
-const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_count_data, int32_t *d_y_data, const int32_t batchs, const int32_t n, const int32_t k,
-    const int32_t max_output_size, const int32_t iou_threshold, const int32_t topk, 
-    const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress, int& error_code){
-  int32_t *valid_count_data = (int32_t*)malloc(batchs * sizeof(int32_t));
-  int32_t **rows = NULL, *keys = NULL;
-  bool *removed = NULL;
-  int32_t *d_y_index = NULL;
-  cudaError_t status;
-  if(valid_count_data == NULL){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-  status = cudaMemcpy(valid_count_data, d_valid_count_data, batchs*sizeof(int32_t), cudaMemcpyDeviceToHost);
-  if(status != cudaSuccess){
-    free(valid_count_data);
-    error_code = ERROR_MEMCPY;
-    goto end;
-  }
-  status = cudaMalloc((void**)&rows, sizeof(int32_t*) * n);
-  if(status != cudaSuccess){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-  status = cudaMalloc((void**)&keys, sizeof(int32_t) * n);
-  if(status != cudaSuccess){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-  status = cudaMalloc((void**)&removed, sizeof(bool) * n);
-  if(status != cudaSuccess){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-  status = cudaMalloc((void**)&d_y_index, sizeof(int32_t));
-  if(status != cudaSuccess){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-
-  for(int32_t b = 0; b < batchs; b++){
-    int32_t vc = valid_count_data[b];
-    if(vc > n){
-      goto end;
-    }
-
-    int32_t *x_batch = d_x_data + b * n * k;
-    int32_t *y_batch = d_y_data + b * n * k;
-    if(vc <= 0){
-      cudaMemset(y_batch, -1, n * k * sizeof(int32_t));
-      goto end;
-    }
-
-    if(iou_threshold <= 0){
-      status = cudaMemcpy(y_batch, x_batch, vc * k * sizeof(int32_t), cudaMemcpyDeviceToDevice);
-      if(status != cudaSuccess){
-        error_code = ERROR_MEMCPY;
-        goto end;
-      }
-      status = cudaMemset(y_batch + vc * n * k, -1, (n-vc)*k*sizeof(int32_t));
-      if(status != cudaSuccess){
-        error_code = ERROR_MEMSET;
-        goto end;
-      }
-    }else{
-      const int blockSize = 256;
-      const int gridSize = (vc + blockSize - 1) / blockSize;
-      kernel_get_values_and_keys<<<gridSize, blockSize>>>(x_batch, vc, k, score_index, rows, keys);
-      thrust::sort_by_key(thrust::device, keys, keys+vc, rows, thrust::greater<int32_t>());
-
-      if(topk > 0 && topk < vc){
-        for(int i = 0; i < vc - topk; i++){
-          status = cudaMemset(rows[i+topk], -1, k*sizeof(int32_t));
-          if(status != cudaSuccess){
-            error_code = ERROR_MEMSET;
-            goto end;
-          }
-        }
-      }
-
-      status = cudaMemset(removed, false, sizeof(bool)*vc);
-      if(status != cudaSuccess){
-        error_code = ERROR_MEMSET;
-        goto end;
-      }
-      int need_keep = ((topk >= 0 && topk < vc) ? topk : vc);
-      if(need_keep < vc){
-        status = cudaMemset(removed + need_keep, true, (vc-need_keep)*sizeof(bool));
-        if(status != cudaSuccess){
-          error_code = ERROR_MEMSET;
-          goto end;
-        }
-      }
-      int32_t y_index;
-      kernel_compare_iou<<<1,1>>>(rows, y_batch, need_keep, k, force_suppress,
-          id_index, coord_start, iou_threshold, removed, d_y_index);
-      status = cudaMemcpy(&y_index, d_y_index, sizeof(int32_t), cudaMemcpyDeviceToHost);
-      if(status != cudaSuccess){
-        error_code = ERROR_MEMCPY;
-        goto end;
-      }
-
-      if(y_index < n){
-        status = cudaMemset(&y_batch[y_index*k], -1, (n-y_index)*k*sizeof(int32_t));
-        if(status != cudaSuccess){
-          error_code = ERROR_MEMSET;
-          goto end;
-        }
-      }
-    } 
-    if(max_output_size > 0){
-      int j = 0;
-      for(int i = 0; i < vc; i++){
-        if(j == max_output_size){
-          status = cudaMemset(y_batch + i * k, -1, k * sizeof(int32_t));
-          if(status != cudaSuccess){
-            error_code = ERROR_MEMSET;
-            goto end;
-          }
-        }else{
-          j += 1;
-        }
-      }
-    }
-  }
-end:
-  if(valid_count_data != NULL) free(valid_count_data);
-  if(rows != NULL) cudaFree(rows);
-  if(keys != NULL) cudaFree(keys);
-  if(d_y_index != NULL) cudaFree(d_y_index);
-  if(removed != NULL) cudaFree(removed);
-  return check_cuda_error(cudaGetLastError());
-}
-
 //const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_count_data, int32_t *d_y_data, const int32_t batchs, const int32_t n, const int32_t k,
 //    const int32_t max_output_size, const int32_t iou_threshold, const int32_t topk, 
 //    const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress, int& error_code){
-//  int32_t *x_data = NULL, *valid_count_data = NULL, *y_data = NULL;
-//  x_data = (int32_t*)malloc(sizeof(int32_t) * batchs*n*k);//new int32_t[batchs * n * k];
-//  valid_count_data = (int32_t*)malloc(sizeof(int32_t)*batchs);//new int32_t[batchs];
-//  y_data = (int32_t*)malloc(sizeof(int32_t) *batchs*n*k);//new int32_t[batchs * n * k];
-//  int ret = 0;
-//  if(x_data == NULL || valid_count_data == NULL || y_data == NULL){
-//    error_code = ERROR_MALLOC;
-//    goto end;
-//  }
+//  int32_t *valid_count_data = (int32_t*)malloc(batchs * sizeof(int32_t));
+//  int32_t **rows = NULL, *keys = NULL;
+//  bool *removed = NULL;
+//  int32_t *d_y_index = NULL;
 //  cudaError_t status;
-//  status = cudaMemcpy(x_data, d_x_data, batchs*n*k*sizeof(int32_t), cudaMemcpyDeviceToHost);
-//  if(status != cudaSuccess){
-//    error_code = ERROR_MEMCPY;
+//  if(valid_count_data == NULL){
+//    error_code = ERROR_MALLOC;
 //    goto end;
 //  }
 //  status = cudaMemcpy(valid_count_data, d_valid_count_data, batchs*sizeof(int32_t), cudaMemcpyDeviceToHost);
 //  if(status != cudaSuccess){
+//    free(valid_count_data);
 //    error_code = ERROR_MEMCPY;
 //    goto end;
 //  }
-//
-//  ret = non_max_suppression(
-//      x_data, valid_count_data, y_data, batchs, n, k,
-//      max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
-//
-//  status = cudaMemcpy(d_y_data, y_data, batchs * n * k * sizeof(int32_t), cudaMemcpyHostToDevice);
+//  status = cudaMalloc((void**)&rows, sizeof(int32_t*) * n);
 //  if(status != cudaSuccess){
-//    error_code = ERROR_MEMCPY;
+//    error_code = ERROR_MALLOC;
+//    goto end;
+//  }
+//  status = cudaMalloc((void**)&keys, sizeof(int32_t) * n);
+//  if(status != cudaSuccess){
+//    error_code = ERROR_MALLOC;
+//    goto end;
+//  }
+//  status = cudaMalloc((void**)&removed, sizeof(bool) * n);
+//  if(status != cudaSuccess){
+//    error_code = ERROR_MALLOC;
+//    goto end;
+//  }
+//  status = cudaMalloc((void**)&d_y_index, sizeof(int32_t));
+//  if(status != cudaSuccess){
+//    error_code = ERROR_MALLOC;
+//    goto end;
 //  }
 //
-//end:
-//  if(x_data != NULL)
-//    free(x_data);
-//  if(valid_count_data != NULL)
-//    free(valid_count_data);
-//  if(y_data != NULL)
-//    free(y_data);
-//  if(ret < 0){
-//    return "the valid count must less than the number of box";
+//  for(int32_t b = 0; b < batchs; b++){
+//    int32_t vc = valid_count_data[b];
+//    if(vc > n){
+//      goto end;
+//    }
+//
+//    int32_t *x_batch = d_x_data + b * n * k;
+//    int32_t *y_batch = d_y_data + b * n * k;
+//    if(vc <= 0){
+//      cudaMemset(y_batch, -1, n * k * sizeof(int32_t));
+//      goto end;
+//    }
+//
+//    if(iou_threshold <= 0){
+//      status = cudaMemcpy(y_batch, x_batch, vc * k * sizeof(int32_t), cudaMemcpyDeviceToDevice);
+//      if(status != cudaSuccess){
+//        error_code = ERROR_MEMCPY;
+//        goto end;
+//      }
+//      status = cudaMemset(y_batch + vc * n * k, -1, (n-vc)*k*sizeof(int32_t));
+//      if(status != cudaSuccess){
+//        error_code = ERROR_MEMSET;
+//        goto end;
+//      }
+//    }else{
+//      const int blockSize = 256;
+//      const int gridSize = (vc + blockSize - 1) / blockSize;
+//      kernel_get_values_and_keys<<<gridSize, blockSize>>>(x_batch, vc, k, score_index, rows, keys);
+//      thrust::stable_sort_by_key(thrust::device, keys, keys+vc, rows, thrust::greater<int32_t>());
+//
+//      if(topk > 0 && topk < vc){
+//        for(int i = 0; i < vc - topk; i++){
+//          status = cudaMemset(rows[i+topk], -1, k*sizeof(int32_t));
+//          if(status != cudaSuccess){
+//            error_code = ERROR_MEMSET;
+//            goto end;
+//          }
+//        }
+//      }
+//
+//      status = cudaMemset(removed, false, sizeof(bool)*vc);
+//      if(status != cudaSuccess){
+//        error_code = ERROR_MEMSET;
+//        goto end;
+//      }
+//      int need_keep = ((topk >= 0 && topk < vc) ? topk : vc);
+//      if(need_keep < vc){
+//        status = cudaMemset(removed + need_keep, true, (vc-need_keep)*sizeof(bool));
+//        if(status != cudaSuccess){
+//          error_code = ERROR_MEMSET;
+//          goto end;
+//        }
+//      }
+//      int32_t y_index;
+//      kernel_compare_iou<<<1,1>>>(rows, y_batch, need_keep, k, force_suppress,
+//          id_index, coord_start, iou_threshold, removed, d_y_index);
+//      status = cudaMemcpy(&y_index, d_y_index, sizeof(int32_t), cudaMemcpyDeviceToHost);
+//      if(status != cudaSuccess){
+//        error_code = ERROR_MEMCPY;
+//        goto end;
+//      }
+//
+//      if(y_index < n){
+//        status = cudaMemset(&y_batch[y_index*k], -1, (n-y_index)*k*sizeof(int32_t));
+//        if(status != cudaSuccess){
+//          error_code = ERROR_MEMSET;
+//          goto end;
+//        }
+//      }
+//    } 
+//    if(max_output_size > 0){
+//      int j = 0;
+//      for(int i = 0; i < vc; i++){
+//        if(j == max_output_size){
+//          status = cudaMemset(y_batch + i * k, -1, k * sizeof(int32_t));
+//          if(status != cudaSuccess){
+//            error_code = ERROR_MEMSET;
+//            goto end;
+//          }
+//        }else{
+//          j += 1;
+//        }
+//      }
+//    }
 //  }
+//end:
+//  if(valid_count_data != NULL) free(valid_count_data);
+//  if(rows != NULL) cudaFree(rows);
+//  if(keys != NULL) cudaFree(keys);
+//  if(d_y_index != NULL) cudaFree(d_y_index);
+//  if(removed != NULL) cudaFree(removed);
 //  return check_cuda_error(cudaGetLastError());
 //}
+
+const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_count_data, int32_t *d_y_data, const int32_t batchs, const int32_t n, const int32_t k,
+    const int32_t max_output_size, const int32_t iou_threshold, const int32_t topk, 
+    const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress, int& error_code){
+  int32_t *x_data = NULL, *valid_count_data = NULL, *y_data = NULL;
+  x_data = (int32_t*)malloc(sizeof(int32_t) * batchs*n*k);//new int32_t[batchs * n * k];
+  valid_count_data = (int32_t*)malloc(sizeof(int32_t)*batchs);//new int32_t[batchs];
+  y_data = (int32_t*)malloc(sizeof(int32_t) *batchs*n*k);//new int32_t[batchs * n * k];
+  int ret = 0;
+  if(x_data == NULL || valid_count_data == NULL || y_data == NULL){
+    error_code = ERROR_MALLOC;
+    goto end;
+  }
+  cudaError_t status;
+  status = cudaMemcpy(x_data, d_x_data, batchs*n*k*sizeof(int32_t), cudaMemcpyDeviceToHost);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+    goto end;
+  }
+  status = cudaMemcpy(valid_count_data, d_valid_count_data, batchs*sizeof(int32_t), cudaMemcpyDeviceToHost);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+    goto end;
+  }
+
+  ret = non_max_suppression(
+      x_data, valid_count_data, y_data, batchs, n, k,
+      max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
+
+  status = cudaMemcpy(d_y_data, y_data, batchs * n * k * sizeof(int32_t), cudaMemcpyHostToDevice);
+  if(status != cudaSuccess){
+    error_code = ERROR_MEMCPY;
+  }
+
+end:
+  if(x_data != NULL)
+    free(x_data);
+  if(valid_count_data != NULL)
+    free(valid_count_data);
+  if(y_data != NULL)
+    free(y_data);
+  if(ret < 0){
+    return "the valid count must less than the number of box";
+  }
+  return check_cuda_error(cudaGetLastError());
+}
 

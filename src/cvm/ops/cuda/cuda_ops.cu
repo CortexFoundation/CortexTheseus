@@ -6,7 +6,7 @@
 #include <string.h>
 #include <iostream>
 #include <string>
-#include "../nms.h"
+#include "../common.h"
 
 // #define CVM_PRINT_CUDA_RESULT
 
@@ -38,6 +38,7 @@ inline int32_t getGridSize(const int64_t n, const int32_t blockSize){
   int64_t tg = (n + blockSize - 1) / blockSize;
   return tg > 4096 ? 4096 : tg;
 }
+
 inline int32_t getShareMemorySize(const int32_t device_id, int&error_code){
   static int32_t sharedMemPerBlock = 0;
   if(sharedMemPerBlock == 0){
@@ -1566,32 +1567,27 @@ const char* cuda_reshape(const int32_t *x, int32_t *y, uint64_t n, int& error_co
   return check_cuda_error(error);
 }
 
-__global__ void kernel_log(const int32_t *x, int32_t *y){
-  for(int i = 0; i < 64; i++){
-    int64_t tmp = (int64_t)1 << i;
-    if(x[0] <= tmp){
-      y[0] = i;
-      return;
+__global__ void kernel_log(const int32_t *x, int32_t *y, const uint64_t n){
+  int32_t tid = threadIdx.x + blockIdx.x * blockDim.x;
+  for(uint64_t j = tid; j < n; j += gridDim.x * blockDim.x){
+    const int64_t x_val = x[j];
+    y[j] = 64;
+    for(int i = 1; i < 64; i++){
+      int64_t tmp = (int64_t)1 << i;
+      if(abs(x_val) < tmp){
+        y[j] = i;
+        break;
+      }
     }
   }
-  y[0] = 64;
 }
-const char* cuda_log(const int32_t *x, int32_t *y, int& error_code){
+const char* cuda_log(const int32_t *x, int32_t *y, const uint64_t n, int& error_code){
   const int32_t *dev_x = x;
   int32_t *dev_y = y;
 
-//  int h_x;
-//  cudaError_t status = cudaMemcpy(&h_x, dev_x, sizeof(int32_t), cudaMemcpyDeviceToHost);
-//  if(status != cudaSuccess){
-//    error_code = ERROR_MEMCPY;
-//    return check_cuda_error(cudaGetLastError());
-//  }
-//  if(h_x <= 0){
-//    error_code = ERROR_LOG_0;
-//    return "error: log2 a no positive value";
-//  }
-
-  kernel_log<<<1,1>>>(dev_x, dev_y);
+  int bSize = 256;
+  int gSize = getGridSize(n, bSize);
+  kernel_log<<<gSize,bSize>>>(dev_x, dev_y, n);
 
   cudaError_t error = cudaGetLastError();
   if(cudaSuccess != error){

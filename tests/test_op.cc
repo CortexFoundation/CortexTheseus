@@ -399,7 +399,7 @@ void read_one_line(string filename, string& str){
 template<typename T>
 void print(vector<T> &data){
   for(int i = 0; i < data.size() && i < 100; i++){
-    printf("%d ", data[i]);
+    printf("%d ", (int)data[i]);
   }
   printf("\n");
 
@@ -417,7 +417,7 @@ void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_
 //    printf("shape: ");
     for(int i = 0; i < shape_dim; i++){
         int64_t value = 0;
-        fscanf(fp, "%d ", &value);
+        fscanf(fp, "%ld ", &value);
         shape[i] = value;
 //        printf("%d ", shape[i]);
         size *= shape[i];
@@ -603,26 +603,26 @@ void test_op(string op_name) {
   }
 }
 int main() {
-//  test_op("max_pool2d");
-//  test_op("upsampling");
-//  test_op("dense");
-//  test_op("conv2d");
-//  test_op("sum");
-//  test_op("max"); // pass
-//  test_op("slice_like");
-//  test_op("tile"); //pass
-//  test_op("repeat"); //pass
+  test_op("max_pool2d");
+  test_op("upsampling");
+  test_op("dense");
+  test_op("conv2d");
+  test_op("sum");
+  test_op("max"); // pass
+  test_op("slice_like");
+  test_op("tile"); //pass
+  test_op("repeat"); //pass
   test_op("get_valid_counts");
-//
-//  test_op("strided_slice"); //pass
-//  test_op("concatenate");//pass
-//  test_op("transpose");// pass
-//  test_op("take");
-//  test_op("elemwise_add");
+
+  test_op("strided_slice"); //pass
+  test_op("concatenate");//pass
+  test_op("transpose");// pass
+  test_op("take");
+  test_op("elemwise_add");
   test_op("non_max_suppression");
-//  test_op("broadcast_sub");
-//  test_op("broadcast_add");
-//  test_op("broadcast_mul");
-//  test_op("broadcast_max");
+  test_op("broadcast_sub");
+  test_op("broadcast_add");
+  test_op("broadcast_mul");
+  test_op("broadcast_max");
   return 0;
 }

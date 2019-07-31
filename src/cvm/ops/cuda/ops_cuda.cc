@@ -532,7 +532,7 @@ namespace cvm {
             int32_t *y_data = static_cast<int32_t*>(y->data);
             int32_t *x = static_cast<int32_t*>(dlx->data);
             int error_code = NON_ERROR;
-            const char* errorStr = cuda_log(x, y_data, error_code);
+            const char* errorStr = cuda_log(x, y_data, getSize(y), error_code);
             deal_error(error_code, errorStr);
             });
       CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.abs")
