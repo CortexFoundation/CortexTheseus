@@ -1,13 +1,13 @@
 #ifndef CVM_OPS_H
 #define CVM_OPS_H
 
-#include <cvm/runtime/ndarray.h>
 #include <cvm/runtime/packed_func.h>
 #include <cvm/runtime/registry.h>
-#include <cvm/runtime/serializer.h>
 
 #include <cvm/op.h>
+#include <cvm/node.h>
 #include <cvm/top/tensor.h>
+#include <cvm/top/nn.h>
 
 #include <algorithm>
 #include <functional>
@@ -16,8 +16,6 @@
 #include <string>
 #include <memory>
 #include <utility>
-
-#include "../../graph_runtime.h"
 
 inline uint64_t getSize(DLTensor *dlTensor){
   uint64_t size = 1;

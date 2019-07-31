@@ -234,7 +234,7 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
       const int blockSize = 256;
       const int gridSize = (vc + blockSize - 1) / blockSize;
       kernel_get_values_and_keys<<<gridSize, blockSize>>>(x_batch, vc, k, score_index, rows, keys);
-      thrust::sort_by_key(thrust::device, keys, keys+vc, rows, thrust::greater<int32_t>());
+      thrust::stable_sort_by_key(thrust::device, keys, keys+vc, rows, thrust::greater<int32_t>());
 
       if(topk > 0 && topk < vc){
         for(int i = 0; i < vc - topk; i++){

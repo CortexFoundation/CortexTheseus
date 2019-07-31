@@ -544,10 +544,11 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.cvm_precision")
     int32_t *y_data = static_cast<int32_t*>(y->data);
     int32_t *x_data = static_cast<int32_t*>(x->data);
     for(size_t j = 0; j < getSize(x); j++){
+      int64_t x_val = x_data[j];
       y_data[j] = 64;
       for(int i = 1; i < 64; i++){
         int64_t tmp = (int64_t)1 << i;
-        if(std::abs((int64_t)x_data[j]) < tmp){
+        if(std::abs(x_val) < tmp){
           y_data[j] = i;
           break;
         }

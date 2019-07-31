@@ -189,7 +189,7 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
       has_zero = tmp[axis] == 0 || has_zero;
       size += tmp[axis];
       tmp[axis] = 0;
-      shape_assign(&dshape, tmp);
+      VERIFY_EQ(shape_assign(&dshape, tmp), true);
     }
   }
 
@@ -198,7 +198,7 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
     VERIFY_LT(static_cast<dim_t>(axis), tmp.ndim())
         << "concat dim " << axis << " out of range of input shape " << tmp;
     tmp[axis] = 0;
-    shape_assign(&dshape, tmp);
+    VERIFY_EQ(shape_assign(&dshape, tmp), true);
   }
 
   for (size_t i = 0; i < in_shape->size(); ++i) {

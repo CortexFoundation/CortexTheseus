@@ -90,10 +90,25 @@ int non_max_suppression(int32_t *x_data, const int32_t *valid_count_data, int32_
           for (int i = 0; i < vc; i++) {
             rows[i] = x_batch + i * k;
           }
-          auto score_idx_local = score_index;
-          std::sort(rows.begin(), rows.end(), [&score_idx_local](const int32_t* a, const int32_t* b){
-              return a[score_idx_local] > b[score_idx_local];
-              });
+          std::sort(rows.begin(), rows.end(), [score_index, id_index, coord_start](const int32_t* a, const int32_t* b) -> bool{
+              if(a[score_index] > b[score_index]) return true;
+              else if(a[score_index] == b[score_index]){
+                if(a[id_index] > b[id_index]) return true;
+                else if(a[id_index] == b[id_index]){
+                  if(a[coord_start] > b[coord_start]) return true;
+                  else if(a[coord_start] == b[coord_start]){
+                    if(a[coord_start + 1] > b[coord_start + 1]) return true;
+                    else if(a[coord_start + 1] == b[coord_start + 1]){
+                      if(a[coord_start + 2] > b[coord_start + 2]) return true;
+                      else if(a[coord_start + 2] == b[coord_start + 2]){
+                        if(a[coord_start + 3] > b[coord_start + 3]) return true;
+                      }
+                    }
+                  }
+                }
+              }
+              return false;
+          });
           if(topk > 0 && topk < vc){
             for(int i = 0; i < vc - topk; i++){
               memset(rows[i+topk], -1, k * sizeof(int32_t));
@@ -153,7 +168,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.get_valid_counts")
     auto *attr = static_cast<cvm::NodeAttrs*>(_attr);
     auto &param = cvm::get<cvm::top::GetValidCountsParam>(attr->parsed);
 
-    int32_t score_threshold = param.score_threshold; //TODO get from attr
+    int32_t score_threshold = param.score_threshold; 
 
     int32_t batches = x->shape[0];
     int32_t n = x->shape[1];
