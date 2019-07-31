@@ -67,19 +67,13 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
+
 	var (
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
 	)
 
-	// Inference Cache
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
-	/*log.Debug("inferByInputContent,", "ModelInputKey", cacheKey)
-	if cacheKey == "0x53f8e0b0c93dedff2706e28643804470d67d79a9f1447b75dab09304ed8d1fe0" {
-		return []byte{19, 52, 238, 252, 208, 237, 223, 227, 243, 91}, nil
-	} else if cacheKey == "0xe0c42bc0779d627e14fba7c4e6f355644aa2535dfe9786d64684fb05f1de615c" {
-		return []byte{6, 252, 4, 59, 242, 0, 247, 30, 224, 217}, nil
-	}*/
 
 	if _, ok := CvmFixHashes[cacheKey]; ok {
 		return CvmFixHashes[cacheKey], nil

@@ -352,571 +352,571 @@
 		},
 		{
 			"checksumSHA1": "nzmm0FQJbe9vtxqo86osU0xRR/o=",
-			"path": "github.com/ethereum/go-ethereum",
+			"path": "github.com/CortexFoundation/CortexTheseus",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "fEkaglcZ/z7ZSEcmq9VpiVfhTMg=",
-			"path": "github.com/ethereum/go-ethereum/accounts",
+			"path": "github.com/CortexFoundation/CortexTheseus/accounts",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "xdHF51UsR4MOlM+mZfYgF1aedrw=",
-			"path": "github.com/ethereum/go-ethereum/accounts/abi",
+			"path": "github.com/CortexFoundation/CortexTheseus/accounts/abi",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "g2PKufQDz37C+utACMaeScL8Fv0=",
-			"path": "github.com/ethereum/go-ethereum/accounts/abi/bind",
+			"path": "github.com/CortexFoundation/CortexTheseus/accounts/abi/bind",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "OUXqH7syCIKTPcCfsK//XMncIUQ=",
-			"path": "github.com/ethereum/go-ethereum/accounts/abi/bind/backends",
+			"path": "github.com/CortexFoundation/CortexTheseus/accounts/abi/bind/backends",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "GclEuwmrZ41Xrp4/HbaX/oYRQd0=",
-			"path": "github.com/ethereum/go-ethereum/accounts/keystore",
+			"path": "github.com/CortexFoundation/CortexTheseus/accounts/keystore",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "l+j3lTA0RNADknis0xezQbVwids=",
-			"path": "github.com/ethereum/go-ethereum/accounts/usbwallet",
+			"path": "github.com/CortexFoundation/CortexTheseus/accounts/usbwallet",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "v+GZWtQ40QSBdg40ehzytntaS9s=",
-			"path": "github.com/ethereum/go-ethereum/accounts/usbwallet/internal/trezor",
+			"path": "github.com/CortexFoundation/CortexTheseus/accounts/usbwallet/internal/trezor",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "JQhmc+wdYC/YmZ0VMIgw6boR50Q=",
-			"path": "github.com/ethereum/go-ethereum/cmd/evm/internal/compiler",
+			"path": "github.com/CortexFoundation/CortexTheseus/cmd/evm/internal/compiler",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "Qt+EHCoP4INrKBv0aE1xXQKxIPc=",
-			"path": "github.com/ethereum/go-ethereum/cmd/internal/browser",
+			"path": "github.com/CortexFoundation/CortexTheseus/cmd/internal/browser",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "J9JGc9Zgmsr2mUK3Lz7dSWvF8Co=",
-			"path": "github.com/ethereum/go-ethereum/cmd/utils",
+			"path": "github.com/CortexFoundation/CortexTheseus/cmd/utils",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "T9tN07oPI0ozAaWxipVLbZxx1Bg=",
-			"path": "github.com/ethereum/go-ethereum/common",
+			"path": "github.com/CortexFoundation/CortexTheseus/common",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "ZHiU5+5SfOMryI5MkCSXErdz0EU=",
-			"path": "github.com/ethereum/go-ethereum/common/bitutil",
+			"path": "github.com/CortexFoundation/CortexTheseus/common/bitutil",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "GCGerC+ybBMvJfPb5KYGTaGCmMM=",
-			"path": "github.com/ethereum/go-ethereum/common/compiler",
+			"path": "github.com/CortexFoundation/CortexTheseus/common/compiler",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "VfQBQZL87++ZpC7Pn6dJQxjdA7M=",
-			"path": "github.com/ethereum/go-ethereum/common/fdlimit",
+			"path": "github.com/CortexFoundation/CortexTheseus/common/fdlimit",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "2EkKilu0Q1uuX7XoHks8qnW/LXo=",
-			"path": "github.com/ethereum/go-ethereum/common/hexutil",
+			"path": "github.com/CortexFoundation/CortexTheseus/common/hexutil",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "BP3m/oEeoC9ustdCYzAVS/gabqg=",
-			"path": "github.com/ethereum/go-ethereum/common/math",
+			"path": "github.com/CortexFoundation/CortexTheseus/common/math",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "TUAAxnHql8XSYnC157Y5iqyL6FQ=",
-			"path": "github.com/ethereum/go-ethereum/common/mclock",
+			"path": "github.com/CortexFoundation/CortexTheseus/common/mclock",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "KGwz8XA1acIZLO/731eB1BVrKa4=",
-			"path": "github.com/ethereum/go-ethereum/common/prque",
+			"path": "github.com/CortexFoundation/CortexTheseus/common/prque",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "Q+L+mDvnZq/oUXNeWIIHWQ5oahk=",
-			"path": "github.com/ethereum/go-ethereum/consensus",
+			"path": "github.com/CortexFoundation/CortexTheseus/consensus",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "V3YMg7TtaZY1tryPlihEjOqSlfA=",
-			"path": "github.com/ethereum/go-ethereum/consensus/clique",
+			"path": "github.com/CortexFoundation/CortexTheseus/consensus/clique",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "BqFDg1YymtAfRxYVIpdfogN73Fc=",
-			"path": "github.com/ethereum/go-ethereum/consensus/cuckoo",
+			"path": "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "67Lw3ndx1KrduXeMUrz3mZZ1mNc=",
-			"path": "github.com/ethereum/go-ethereum/consensus/misc",
+			"path": "github.com/CortexFoundation/CortexTheseus/consensus/misc",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "MykAUDqayHuZO41J8ZCHpowJZW4=",
-			"path": "github.com/ethereum/go-ethereum/console",
+			"path": "github.com/CortexFoundation/CortexTheseus/console",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "01TDLDOe59kmOSoQB64ubzwTO7U=",
-			"path": "github.com/ethereum/go-ethereum/contracts/chequebook",
+			"path": "github.com/CortexFoundation/CortexTheseus/contracts/chequebook",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "K9jMqG6H+fVKsnoYH14exgZsjJc=",
-			"path": "github.com/ethereum/go-ethereum/contracts/chequebook/contract",
+			"path": "github.com/CortexFoundation/CortexTheseus/contracts/chequebook/contract",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "rZ80NsDHy8izaFZ0yrmZXswBLZI=",
-			"path": "github.com/ethereum/go-ethereum/contracts/ens",
+			"path": "github.com/CortexFoundation/CortexTheseus/contracts/ens",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "f7LbBlapBxbdknW3MhC0I8k3bd0=",
-			"path": "github.com/ethereum/go-ethereum/contracts/ens/contract",
+			"path": "github.com/CortexFoundation/CortexTheseus/contracts/ens/contract",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "NEkAAaPKhnI0yeJdKFdQS8lotGc=",
-			"path": "github.com/ethereum/go-ethereum/core",
+			"path": "github.com/CortexFoundation/CortexTheseus/core",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "EgATmwvsrJJt3qyMiW9TDSp9KLA=",
-			"path": "github.com/ethereum/go-ethereum/core/asm",
+			"path": "github.com/CortexFoundation/CortexTheseus/core/asm",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "iBnlp9YUoIcW1Gk0EY0lXuI9C4A=",
-			"path": "github.com/ethereum/go-ethereum/core/bloombits",
+			"path": "github.com/CortexFoundation/CortexTheseus/core/bloombits",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "0oM15iLOGPvF9GJ7KEKA1BBtxrk=",
-			"path": "github.com/ethereum/go-ethereum/core/rawdb",
+			"path": "github.com/CortexFoundation/CortexTheseus/core/rawdb",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "NyXuioyJ4ZL+RYt5Rs16IQWee1Y=",
-			"path": "github.com/ethereum/go-ethereum/core/state",
+			"path": "github.com/CortexFoundation/CortexTheseus/core/state",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "atVxuUhSfEvYzDCMuI9fv+WYK6U=",
-			"path": "github.com/ethereum/go-ethereum/core/types",
+			"path": "github.com/CortexFoundation/CortexTheseus/core/types",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "BoUJ5HPRES0nBLftkBupZH3XMZo=",
-			"path": "github.com/ethereum/go-ethereum/core/vm",
+			"path": "github.com/CortexFoundation/CortexTheseus/core/vm",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "0H03rgeDLW/aZHR3HGy3kSD2Uzc=",
-			"path": "github.com/ethereum/go-ethereum/core/vm/runtime",
+			"path": "github.com/CortexFoundation/CortexTheseus/core/vm/runtime",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "AkqhNZ5tkVy0WiJpzNDxeZUtvMw=",
-			"path": "github.com/ethereum/go-ethereum/crypto",
+			"path": "github.com/CortexFoundation/CortexTheseus/crypto",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "H8uV6Utd4i6GoV/zgVlbGyoQDz0=",
-			"path": "github.com/ethereum/go-ethereum/crypto/bn256",
+			"path": "github.com/CortexFoundation/CortexTheseus/crypto/bn256",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "aFyQMEKNzIyIRzEAdo8vGkOYqqc=",
-			"path": "github.com/ethereum/go-ethereum/crypto/bn256/cloudflare",
+			"path": "github.com/CortexFoundation/CortexTheseus/crypto/bn256/cloudflare",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "Su8qqDZsl8ty3UJJMt/xY9ADa7A=",
-			"path": "github.com/ethereum/go-ethereum/crypto/bn256/google",
+			"path": "github.com/CortexFoundation/CortexTheseus/crypto/bn256/google",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "h/0RCAuS2HAjwCylHYh6yQgrFu8=",
-			"path": "github.com/ethereum/go-ethereum/crypto/ecies",
+			"path": "github.com/CortexFoundation/CortexTheseus/crypto/ecies",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "6FNy+ljIirVAtXlAq7gDyUX70mw=",
-			"path": "github.com/ethereum/go-ethereum/crypto/secp256k1",
+			"path": "github.com/CortexFoundation/CortexTheseus/crypto/secp256k1",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "pQzUVRi0z/3Z4FpRyExSg1ROLSA=",
-			"path": "github.com/ethereum/go-ethereum/crypto/sha3",
+			"path": "github.com/CortexFoundation/CortexTheseus/crypto/sha3",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "bHbDsq9e0GkhGGA+ME/DrxPkEGY=",
-			"path": "github.com/ethereum/go-ethereum/dashboard",
+			"path": "github.com/CortexFoundation/CortexTheseus/dashboard",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "08ykKzTFKJRKHu2t48/J0l2dxps=",
-			"path": "github.com/ethereum/go-ethereum/eth",
+			"path": "github.com/CortexFoundation/CortexTheseus/eth",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "nuWMVon3XyUqtlcMdqtA6uU30rE=",
-			"path": "github.com/ethereum/go-ethereum/eth/downloader",
+			"path": "github.com/CortexFoundation/CortexTheseus/eth/downloader",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "bf1hqvELqDwlIgShR64hbpXXQkY=",
-			"path": "github.com/ethereum/go-ethereum/eth/fetcher",
+			"path": "github.com/CortexFoundation/CortexTheseus/eth/fetcher",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "h6UTOdp9MpPf1SZ6kg7XUHWnkaQ=",
-			"path": "github.com/ethereum/go-ethereum/eth/filters",
+			"path": "github.com/CortexFoundation/CortexTheseus/eth/filters",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "IBR2EAseLC/Zs980ciamTgu4xVQ=",
-			"path": "github.com/ethereum/go-ethereum/eth/gasprice",
+			"path": "github.com/CortexFoundation/CortexTheseus/eth/gasprice",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "OLL1jTcXZ4zQ5/JpiLXRjBXNY2o=",
-			"path": "github.com/ethereum/go-ethereum/eth/tracers",
+			"path": "github.com/CortexFoundation/CortexTheseus/eth/tracers",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "Qa8bIjKhBKQHJlwIiDMU1g55vR4=",
-			"path": "github.com/ethereum/go-ethereum/eth/tracers/internal/tracers",
+			"path": "github.com/CortexFoundation/CortexTheseus/eth/tracers/internal/tracers",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "S5yPeYbomAhP54J7oQCcca4zGZs=",
-			"path": "github.com/ethereum/go-ethereum/ethclient",
+			"path": "github.com/CortexFoundation/CortexTheseus/ethclient",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "74WgxcRd/1NSMAWzjcEK1l3MC2Y=",
-			"path": "github.com/ethereum/go-ethereum/ethdb",
+			"path": "github.com/CortexFoundation/CortexTheseus/ethdb",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "pyuh5M3p43OIfEDaMzMMec0rrfs=",
-			"path": "github.com/ethereum/go-ethereum/ethstats",
+			"path": "github.com/CortexFoundation/CortexTheseus/ethstats",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "egyKJ+8B2RjmvMz0xqkVGY0B6Ig=",
-			"path": "github.com/ethereum/go-ethereum/event",
+			"path": "github.com/CortexFoundation/CortexTheseus/event",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "LFreZX0UJLaJ7Cql159kKSTLtv8=",
-			"path": "github.com/ethereum/go-ethereum/internal/build",
+			"path": "github.com/CortexFoundation/CortexTheseus/internal/build",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "3a57c4vYEK78iSNJ8PlEZU1VWMs=",
-			"path": "github.com/ethereum/go-ethereum/internal/cmdtest",
+			"path": "github.com/CortexFoundation/CortexTheseus/internal/cmdtest",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "FuH/dWAwx7a6+0Y1B+mUOcZXsR4=",
-			"path": "github.com/ethereum/go-ethereum/internal/debug",
+			"path": "github.com/CortexFoundation/CortexTheseus/internal/debug",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "LtnJZHRnesmEzZyjqDFuXCgpkJU=",
-			"path": "github.com/ethereum/go-ethereum/internal/ethapi",
+			"path": "github.com/CortexFoundation/CortexTheseus/internal/ethapi",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "uhrswqbPNc+MYsnygcofbM1ALM8=",
-			"path": "github.com/ethereum/go-ethereum/internal/jsre",
+			"path": "github.com/CortexFoundation/CortexTheseus/internal/jsre",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "qVbEhE67ERmUJevFnRLb596WFj0=",
-			"path": "github.com/ethereum/go-ethereum/internal/jsre/deps",
+			"path": "github.com/CortexFoundation/CortexTheseus/internal/jsre/deps",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "mBj2ysanJzbH5GhAxFpC+2i9CUQ=",
-			"path": "github.com/ethereum/go-ethereum/internal/web3ext",
+			"path": "github.com/CortexFoundation/CortexTheseus/internal/web3ext",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "ELa2qTKkY0+5owflWpji/0M4lZ8=",
-			"path": "github.com/ethereum/go-ethereum/les",
+			"path": "github.com/CortexFoundation/CortexTheseus/les",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "s9wwqI4oWgYyqYAfTUBCt6qqeAI=",
-			"path": "github.com/ethereum/go-ethereum/les/flowcontrol",
+			"path": "github.com/CortexFoundation/CortexTheseus/les/flowcontrol",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "tY2eJbT8gUu2AYw37yPFfhlV03c=",
-			"path": "github.com/ethereum/go-ethereum/light",
+			"path": "github.com/CortexFoundation/CortexTheseus/light",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "KSRJC/V4LkGTakqzakXY/Ces0sw=",
-			"path": "github.com/ethereum/go-ethereum/log",
+			"path": "github.com/CortexFoundation/CortexTheseus/log",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "Sm6JjHTDnKAOy2DIvz7U1HJ8jiI=",
-			"path": "github.com/ethereum/go-ethereum/log/term",
+			"path": "github.com/CortexFoundation/CortexTheseus/log/term",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "ku9mr+PBOqnQfrLZ59UwHfZv4Ok=",
-			"path": "github.com/ethereum/go-ethereum/metrics",
+			"path": "github.com/CortexFoundation/CortexTheseus/metrics",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "Ls+sIpdo8dlAbrMnZbrq79OB34s=",
-			"path": "github.com/ethereum/go-ethereum/metrics/exp",
+			"path": "github.com/CortexFoundation/CortexTheseus/metrics/exp",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "roT2rn4t+82zSz7VTzf21zy3ChU=",
-			"path": "github.com/ethereum/go-ethereum/metrics/influxdb",
+			"path": "github.com/CortexFoundation/CortexTheseus/metrics/influxdb",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "B8fD6PfIJnVEnlqUVATwFbpCa+w=",
-			"path": "github.com/ethereum/go-ethereum/miner",
+			"path": "github.com/CortexFoundation/CortexTheseus/miner",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "ZWahbsbq+5uYAuO3Z8nMOdXJF8Q=",
-			"path": "github.com/ethereum/go-ethereum/node",
+			"path": "github.com/CortexFoundation/CortexTheseus/node",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "caBwyDtawOied9g5cFDKknaWdHs=",
-			"path": "github.com/ethereum/go-ethereum/p2p",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "vLz1w9KTY9O03Z3oXKUrBIzjrM4=",
-			"path": "github.com/ethereum/go-ethereum/p2p/discover",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/discover",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "hIz+PsT55imD/OitLy+JKrJXewU=",
-			"path": "github.com/ethereum/go-ethereum/p2p/discv5",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/discv5",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "oE84f6kRKbSs6nfRXhhD33VYv7I=",
-			"path": "github.com/ethereum/go-ethereum/p2p/nat",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/nat",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "lrZb72Om4/eSoa4uiwfFhUdECMI=",
-			"path": "github.com/ethereum/go-ethereum/p2p/netutil",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/netutil",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "rkYKIlfJQ3voDlM49PPiF8DXl4I=",
-			"path": "github.com/ethereum/go-ethereum/p2p/protocols",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/protocols",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "iOYuR6pmYBVvfL9ELAMtPPP678c=",
-			"path": "github.com/ethereum/go-ethereum/p2p/simulations",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/simulations",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "xeALygXA/4OOd9Of6MfM0NDGISA=",
-			"path": "github.com/ethereum/go-ethereum/p2p/simulations/adapters",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/simulations/adapters",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "tntq9lHyMQ07VTgsGoRFjB7sC6Q=",
-			"path": "github.com/ethereum/go-ethereum/p2p/simulations/pipes",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/simulations/pipes",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "zegrVAZCOmdOQogG3YZ6cWvc1lQ=",
-			"path": "github.com/ethereum/go-ethereum/p2p/testing",
+			"path": "github.com/CortexFoundation/CortexTheseus/p2p/testing",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "JjV4Ok4ps+UOsl91A7hkjJtcq6U=",
-			"path": "github.com/ethereum/go-ethereum/params",
+			"path": "github.com/CortexFoundation/CortexTheseus/params",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "z90HAmaR1d3Q71bT3FfCb38aPbw=",
-			"path": "github.com/ethereum/go-ethereum/rlp",
+			"path": "github.com/CortexFoundation/CortexTheseus/rlp",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "1Z4kUG1/zS4G92Dtb6wwXuTPwho=",
-			"path": "github.com/ethereum/go-ethereum/rpc",
+			"path": "github.com/CortexFoundation/CortexTheseus/rpc",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "pvu1iYRB9TvchBYvRnPqE1fPYuQ=",
-			"path": "github.com/ethereum/go-ethereum/signer/core",
+			"path": "github.com/CortexFoundation/CortexTheseus/signer/core",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "f10ny18+wZNX17fdh+zuceIFvng=",
-			"path": "github.com/ethereum/go-ethereum/signer/rules",
+			"path": "github.com/CortexFoundation/CortexTheseus/signer/rules",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "zJlg4hOJhzRnzRY5vchsL4aqBdM=",
-			"path": "github.com/ethereum/go-ethereum/signer/rules/deps",
+			"path": "github.com/CortexFoundation/CortexTheseus/signer/rules/deps",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "gvCDPz25vZm+d/yziLR6XbxKnW4=",
-			"path": "github.com/ethereum/go-ethereum/signer/storage",
+			"path": "github.com/CortexFoundation/CortexTheseus/signer/storage",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "gHVbRqwxwn6na/jSh00JUqZA6A4=",
-			"path": "github.com/ethereum/go-ethereum/tests",
+			"path": "github.com/CortexFoundation/CortexTheseus/tests",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "0aG+iQCVFk0gEN4t0wz3BrgBHSg=",
-			"path": "github.com/ethereum/go-ethereum/torrentfs",
+			"path": "github.com/CortexFoundation/CortexTheseus/torrentfs",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "i0bfqmlMoqUJ11DgPz8HtG2osNM=",
-			"path": "github.com/ethereum/go-ethereum/trie",
+			"path": "github.com/CortexFoundation/CortexTheseus/trie",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "FIWAQPpEd+CGDBSXyqBqlKzv2eY=",
-			"path": "github.com/ethereum/go-ethereum/whisper/mailserver",
+			"path": "github.com/CortexFoundation/CortexTheseus/whisper/mailserver",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "mW+O6Y6hGC3B19h6SLYtRxnia44=",
-			"path": "github.com/ethereum/go-ethereum/whisper/whisperv5",
+			"path": "github.com/CortexFoundation/CortexTheseus/whisper/whisperv5",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "ZW382lj4C4UDCzNvzHA+kC9U3rA=",
-			"path": "github.com/ethereum/go-ethereum/whisper/whisperv6",
+			"path": "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
@@ -1840,5 +1840,5 @@
 			"revisionTime": "2017-08-11T01:42:03Z"
 		}
 	],
-	"rootPath": "github.com/ethereum/go-ethereum"
+	"rootPath": "github.com/CortexFoundation/CortexTheseus"
 }
