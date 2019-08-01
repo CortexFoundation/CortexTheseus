@@ -114,7 +114,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
       bool exclude = param.exclude;
 
       reduce_func f = [](int32_t& tmp, int32_t value)->void {
-      tmp += value;
+        tmp += value;
       };
 
       Reduce(x, y, axis, exclude, f);
@@ -132,7 +132,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")
       bool exclude = param.exclude;
 
       reduce_func f = [](int32_t& tmp, int32_t value)->void {
-      if(tmp < value) tmp = value;
+        if(tmp < value) tmp = value;
       };
 
       Reduce(x, y, axis, exclude, f);

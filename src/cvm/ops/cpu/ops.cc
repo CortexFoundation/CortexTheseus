@@ -1,5 +1,5 @@
 #include "ops.h"
-#include "../nms.h"
+#include "nms.h"
 
 #include "omp.h"
 #include <immintrin.h>
