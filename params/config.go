@@ -58,8 +58,8 @@ var (
 	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
                 Name:         "dolores",
-                SectionIndex: 0,
-                SectionHead:  common.HexToHash("0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6"),
+                SectionIndex: 1,
+                SectionHead:  common.HexToHash("0xb7b7f06c6cc9dc5fe3b8a673fa3e18ef7bcbce033fa54051a4fb37d8fdb87d6c"),
         }
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
