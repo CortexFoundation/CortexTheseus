@@ -25,7 +25,7 @@ inline bool UpSamplingInferShape(const cvm::NodeAttrs& attrs,
   TShape dshape = (*in_shape)[0];
   if (dshape.ndim() ==  0) return false;
 
-  VERIFY_EQ(dshape.Size(), 4)
+  VERIFY_EQ(dshape.ndim(), 4)
     << "dimension should be 4D, Got: " << dshape;
   VERIFY_EQ(param.method, "NEAREST_NEIGHBOR") 
     << "only accept method = NEAREST_NEIGHBOR ";

@@ -6,6 +6,13 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+#include <memory>
+#include <string.h>
+#include <iostream>
+#include <string>
 #define DEBUG
 
 const int NON_ERROR = 0;
@@ -23,6 +30,60 @@ const int ERROR_PARAMS = 25;
 inline const char* check_cuda_error(cudaError_t error){
   if(error == cudaSuccess) return NULL;
   else return cudaGetErrorString(error);
+}
+
+// #define CVM_PRINT_CUDA_RESULT
+
+inline void print_to_file(const int32_t *y, int32_t n, std::string filename){
+#ifdef CVM_PRINT_CUDA_RESULT
+  int32_t *y_data = new int32_t[n];
+  cudaMemcpy(y_data, y, sizeof(int32_t)*n, cudaMemcpyDeviceToHost);
+
+  FILE *fp = fopen(filename.c_str(), "a+");
+
+  int32_t min = y_data[0], max= y_data[0];
+  for(uint64_t i = 0; i < n; i++){
+    min = min > y_data[i] ? y_data[i] : min;
+    max = max < y_data[i] ? y_data[i] : max;
+  }
+  fprintf(fp, "%d %d\n", min, max);
+  for(uint64_t i = 0; i < 1000 && i < n; i++){
+    fprintf(fp, "%d ", y_data[i]);
+  }
+  fprintf(fp, "\n");
+  fclose(fp);
+  delete y_data;
+#endif
+}
+
+#define MEMORY_LIMIT (512*1024*1024)
+
+inline int32_t getGridSize(const int64_t n, const int32_t blockSize){
+  int64_t tg = (n + blockSize - 1) / blockSize;
+  return tg > 4096 ? 4096 : tg;
+}
+
+inline int32_t getShareMemorySize(const int32_t device_id, int&error_code){
+  static int32_t sharedMemPerBlock = 0;
+  if(sharedMemPerBlock == 0){
+    cudaDeviceProp prop;
+    cudaError_t status = cudaGetDeviceProperties(&prop, device_id);
+    if(status != cudaSuccess){
+        error_code = ERROR_GET_PROPERTIES;
+        return -1;
+    }
+    sharedMemPerBlock = prop.sharedMemPerBlock;
+  }
+  return sharedMemPerBlock;
+}
+inline int32_t getFreeMemorySize(const int32_t device_id, int&error_code){
+  size_t freeSize = 0, totalSize = 0;
+  cudaError_t status = cudaMemGetInfo(&freeSize, &totalSize);
+  if(status != cudaSuccess){
+    error_code = ERROR_GET_PROPERTIES;
+    return -1;
+  }
+  return freeSize;
 }
 
 const char* cuda_elemwise_add(int32_t *a, int32_t *b, int32_t *c, uint64_t n, int& error_code);

@@ -70,7 +70,7 @@ else(MSVC)
 endif(MSVC)
 
 # add source group
-FILE(GLOB_RECURSE GROUP_INCLUDE "src/cvm/ops/*.h" "src/*.h" "include/*.h")
+FILE(GLOB_RECURSE GROUP_INCLUDE "src/*.h" "include/*.h")
 assign_source_group("Include" ${GROUP_INCLUDE})
 
 # Source file lists
@@ -82,7 +82,7 @@ if(NOT USE_RTTI)
 endif()
 
 message(STATUS "Build with CVM runtime support...")
-file(GLOB RUNTIME_CVM_SRCS src/cvm/ops/*.cc src/cvm/*.cc) 
+file(GLOB RUNTIME_CVM_SRCS src/cvm/*.cc) 
 if(${USE_CUDA} STREQUAL "ON")
     message("use cuda")
     project(cvm CUDA)
@@ -95,6 +95,7 @@ if(${USE_CUDA} STREQUAL "ON")
     list(APPEND RUNTIME_SRCS ${RUNTIME_CVM_CUDA_SRCS})
     list(APPEND CVM_RUNTIME_LINKER_LIBS "cudart")
     list(APPEND CVM_RUNTIME_LINKER_LIBS "cuda")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++11 --expt-extended-lambda")
 else()
     file(GLOB CVM_OPS_CPU_SRCS src/cvm/ops/cpu/*.cc)
     list(APPEND RUNTIME_CVM_SRCS ${CVM_OPS_CPU_SRCS})
