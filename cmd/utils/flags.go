@@ -39,7 +39,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus/clique"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
-	"github.com/CortexFoundation/CortexTheseus/core/state"
+	//"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
@@ -309,7 +309,8 @@ var (
 	TrieCacheGenFlag = cli.IntFlag{
 		Name:  "trie-cache-gens",
 		Usage: "Number of trie node generations to keep in memory",
-		Value: int(state.MaxTrieCacheGen),
+		//Value: int(state.MaxTrieCacheGen),
+		Value : 0,
 	}
 	// Miner settings
 	MiningEnabledFlag = cli.BoolFlag{
@@ -1202,7 +1203,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
-		state.MaxTrieCacheGen = uint16(gen)
+		//state.MaxTrieCacheGen = uint16(gen)
 	}
 }
 

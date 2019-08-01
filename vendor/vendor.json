@@ -616,61 +616,61 @@
 		},
 		{
 			"checksumSHA1": "08ykKzTFKJRKHu2t48/J0l2dxps=",
-			"path": "github.com/CortexFoundation/CortexTheseus/eth",
+			"path": "github.com/CortexFoundation/CortexTheseus/ctxc",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "nuWMVon3XyUqtlcMdqtA6uU30rE=",
-			"path": "github.com/CortexFoundation/CortexTheseus/eth/downloader",
+			"path": "github.com/CortexFoundation/CortexTheseus/ctxc/downloader",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "bf1hqvELqDwlIgShR64hbpXXQkY=",
-			"path": "github.com/CortexFoundation/CortexTheseus/eth/fetcher",
+			"path": "github.com/CortexFoundation/CortexTheseus/ctxc/fetcher",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "h6UTOdp9MpPf1SZ6kg7XUHWnkaQ=",
-			"path": "github.com/CortexFoundation/CortexTheseus/eth/filters",
+			"path": "github.com/CortexFoundation/CortexTheseus/ctxc/filters",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "IBR2EAseLC/Zs980ciamTgu4xVQ=",
-			"path": "github.com/CortexFoundation/CortexTheseus/eth/gasprice",
+			"path": "github.com/CortexFoundation/CortexTheseus/ctxc/gasprice",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "OLL1jTcXZ4zQ5/JpiLXRjBXNY2o=",
-			"path": "github.com/CortexFoundation/CortexTheseus/eth/tracers",
+			"path": "github.com/CortexFoundation/CortexTheseus/ctxc/tracers",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "Qa8bIjKhBKQHJlwIiDMU1g55vR4=",
-			"path": "github.com/CortexFoundation/CortexTheseus/eth/tracers/internal/tracers",
+			"path": "github.com/CortexFoundation/CortexTheseus/ctxc/tracers/internal/tracers",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "S5yPeYbomAhP54J7oQCcca4zGZs=",
-			"path": "github.com/CortexFoundation/CortexTheseus/ethclient",
+			"path": "github.com/CortexFoundation/CortexTheseus/ctxcclient",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "74WgxcRd/1NSMAWzjcEK1l3MC2Y=",
-			"path": "github.com/CortexFoundation/CortexTheseus/ethdb",
+			"path": "github.com/CortexFoundation/CortexTheseus/db",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
 		{
 			"checksumSHA1": "pyuh5M3p43OIfEDaMzMMec0rrfs=",
-			"path": "github.com/CortexFoundation/CortexTheseus/ethstats",
+			"path": "github.com/CortexFoundation/CortexTheseus/stats",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
@@ -700,7 +700,7 @@
 		},
 		{
 			"checksumSHA1": "LtnJZHRnesmEzZyjqDFuXCgpkJU=",
-			"path": "github.com/CortexFoundation/CortexTheseus/internal/ethapi",
+			"path": "github.com/CortexFoundation/CortexTheseus/internal/ctxcapi",
 			"revision": "4ab87b814022b8dfe9e3702dea870c5bd4bc40fc",
 			"revisionTime": "2018-09-15T10:22:30Z"
 		},
