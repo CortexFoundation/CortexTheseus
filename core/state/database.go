@@ -1,7 +1,7 @@
 // Copyright 2017 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package state
 
@@ -51,7 +51,7 @@ type Database interface {
 	TrieDB() *trie.Database
 }
 
-// Trie is a Ethereum Merkle Patricia trie.
+// Trie is a Merkle Patricia trie.
 type Trie interface {
 	// GetKey returns the sha3 preimage of a hashed key that was previously used
 	// to store a value.
