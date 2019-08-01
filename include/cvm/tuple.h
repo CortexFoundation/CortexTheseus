@@ -619,7 +619,8 @@ struct hash<cvm::TShape> {
 
 namespace utils {
 /*! \brief description for optional TShape */
-CVMUTIL_DECLARE_TYPE_NAME(optional<cvm::TShape>, "Shape or None");
+CVMUTIL_DECLARE_TYPE_NAME(optional<cvm::TShape>, "TShape or None");
+CVMUTIL_DECLARE_TYPE_NAME(cvm::TShape, "TShape");
 // avoid low version of MSVC
 #if !defined(_MSC_VER)
 template<typename T>
