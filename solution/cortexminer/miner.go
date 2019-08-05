@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
+	"github.com/CortexFoundation/CortexTheseus/solution/config"
 
 	"plugin"
 	"strconv"

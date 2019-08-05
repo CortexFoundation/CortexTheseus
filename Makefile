@@ -16,7 +16,7 @@ GO ?= latest
 #LIB_MINER_DIR = $(shell pwd)/cminer/
 LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/infernet/
-LIB_CUCKOO_DIR = $(shell pwd)/PoolMiner/miner/libcuckoo
+LIB_CUCKOO_DIR = $(shell pwd)/solution/miner/libcuckoo
 
 # Curkoo algorithm dynamic library path
 OS = $(shell uname)
@@ -81,11 +81,11 @@ nodekey:
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 plugins/cuda_helper_for_node.so: 
-	make -C PoolMiner cuda-miner
+	make -C solution cuda-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
-	make -C PoolMiner cpu-miner
+	make -C solution cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so:
@@ -127,7 +127,7 @@ clean:
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
 	rm -rf infernet/build/*
 	rm -rf plugin/*
-	rm -f PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
+	rm -f solution/miner/libcuckoo/*.a solution/miner/libcuckoo/*.o
 
 clean-clib:
 	#make -C $(LIB_MINER_DIR) clean

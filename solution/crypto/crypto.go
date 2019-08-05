@@ -19,8 +19,8 @@ package crypto
 import (
 	"encoding/binary"
 
-	"github.com/CortexFoundation/CortexTheseus/PoolMiner/common"
-	"github.com/CortexFoundation/CortexTheseus/PoolMiner/crypto/sha3"
+	"github.com/CortexFoundation/CortexTheseus/solution/common"
+	"github.com/CortexFoundation/CortexTheseus/solution/crypto/sha3"
 )
 
 // Keccak256 calculates and returns the Keccak256 hash of the input data.

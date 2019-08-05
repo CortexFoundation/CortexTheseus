@@ -11,10 +11,10 @@ fi
 workspace="$PWD/build/_workspace"
 root="$PWD"
 ethdir="$workspace/src/github.com/CortexFoundation"
-if [ ! -L "$ethdir/PoolMiner" ]; then
+if [ ! -L "$ethdir/solution" ]; then
     mkdir -p "$ethdir"
     cd "$ethdir"
-    ln -s ../../../../../. PoolMiner
+    ln -s ../../../../../. solution
     cd "$root"
 fi
 if [ ! -L "$ethdir/CortexTheseus" ]; then
@@ -31,8 +31,8 @@ GOBIN="$PWD/build/bin"
 export GOPATH GOBIN
 
 # Run the command inside the workspace.
-cd "$ethdir/PoolMiner"
-PWD="$ethdir/PoolMiner"
+cd "$ethdir/solution"
+PWD="$ethdir/solution"
 
 # Launch the arguments with the configured environment.
 exec "$@"
