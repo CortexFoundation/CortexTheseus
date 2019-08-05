@@ -76,45 +76,35 @@ var (
 		executablePath("bootnode"),
 		executablePath("cvm"),
 		executablePath("cortex"),
-		executablePath("puppeth"),
 		executablePath("rlpdump"),
-		executablePath("wnode"),
 	}
 
 	// A debian package is created for all executables listed here.
 	debExecutables = []debExecutable{
 		{
 			BinaryName:  "abigen",
-			Description: "Source code generator to convert Ethereum contract definitions into easy to use, compile-time type-safe Go packages.",
+			Description: "Source code generator to convert Cortex contract definitions into easy to use, compile-time type-safe Go packages.",
 		},
 		{
 			BinaryName:  "bootnode",
-			Description: "Ethereum bootnode.",
+			Description: "Cortex bootnode.",
 		},
 		{
 			BinaryName:  "cvm",
-			Description: "Developer utility version of the CVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+			Description: "Developer utility version of the CVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
 			BinaryName:  "cortex",
-			Description: "Ethereum CLI client.",
-		},
-		{
-			BinaryName:  "puppeth",
-			Description: "Ethereum private network manager.",
+			Description: "Cortex CLI client.",
 		},
 		{
 			BinaryName:  "rlpdump",
 			Description: "Developer utility tool that prints RLP structures.",
 		},
-		{
-			BinaryName:  "wnode",
-			Description: "Ethereum Whisper diagnostic tool",
-		},
 	}
 
 
-	debEthereum = debPackage{
+	debCortex = debPackage{
 		Name:        "CortexFoundation",
 		Version:     params.Version,
 		Executables: debExecutables,
@@ -122,7 +112,7 @@ var (
 
 	// Debian meta packages to build and push to Ubuntu PPA
 	debPackages = []debPackage{
-		debEthereum,
+		debCortex,
 	}
 
 	// Packages to be cross-compiled by the xgo command
@@ -564,7 +554,7 @@ func (d debExecutable) Package() string {
 func newDebMetadata(distro, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
 	if author == "" {
 		// No signing key, use default author.
-		author = "Ethereum Builds <fjl@CortexFoundation.org>"
+		author = "Cortex Builds <fjl@CortexFoundation.org>"
 	}
 	return debMetadata{
 		PackageName: name,
