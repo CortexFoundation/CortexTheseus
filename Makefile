@@ -45,6 +45,11 @@ bootnode:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/bootnode\" to launch cortex bootnode."
 
+keytools:
+	build/env.sh go run build/ci.go install ./cmd/keytools
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/keytools\" to launch cortex keytools."
+
 torrent:
 	build/env.sh go run build/ci.go install ./cmd/torrentfs
 	@echo "Done building."
