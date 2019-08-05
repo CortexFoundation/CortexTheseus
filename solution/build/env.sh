@@ -10,16 +10,16 @@ fi
 # Create fake Go workspace if it doesn't exist yet.
 workspace="$PWD/build/_workspace"
 root="$PWD"
-ethdir="$workspace/src/github.com/CortexFoundation"
-if [ ! -L "$ethdir/solution" ]; then
-    mkdir -p "$ethdir"
-    cd "$ethdir"
+dir="$workspace/src/github.com/CortexFoundation"
+if [ ! -L "$dir/solution" ]; then
+    mkdir -p "$dir"
+    cd "$dir"
     ln -s ../../../../../. solution
     cd "$root"
 fi
-if [ ! -L "$ethdir/CortexTheseus" ]; then
-    mkdir -p "$ethdir"
-    cd "$ethdir"
+if [ ! -L "$dir/CortexTheseus" ]; then
+    mkdir -p "$dir"
+    cd "$dir"
     ln -s ../../../../../../ CortexTheseus
     cd "$root"
 fi
@@ -31,8 +31,8 @@ GOBIN="$PWD/build/bin"
 export GOPATH GOBIN
 
 # Run the command inside the workspace.
-cd "$ethdir/solution"
-PWD="$ethdir/solution"
+cd "$dir/solution"
+PWD="$dir/solution"
 
 # Launch the arguments with the configured environment.
 exec "$@"

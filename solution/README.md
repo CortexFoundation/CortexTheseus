@@ -1,4 +1,4 @@
-# PoolMiner
+# Cortex Miner
 1. [参考1](https://github.com/tromp/cuckoo/blob/master/doc/cuckoo.pdf?raw=true)
 2. [参考2](https://github.com/tromp/cuckoo)
 

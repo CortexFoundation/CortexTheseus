@@ -80,3 +80,4 @@ plugins/
 *.log
 *.rdb
 password
+*.sh
