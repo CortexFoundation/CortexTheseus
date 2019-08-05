@@ -9,8 +9,8 @@ import (
 	"strings"
 	"strconv"
 	"sync"
-	"github.com/CortexFoundation/CortexTheseus/PoolMiner/cortexminer"
-	"github.com/CortexFoundation/CortexTheseus/PoolMiner/config"
+	"github.com/CortexFoundation/CortexTheseus/solution/cortexminer"
+	"github.com/CortexFoundation/CortexTheseus/solution/config"
 	"runtime"
 )
 

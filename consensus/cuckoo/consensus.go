@@ -39,7 +39,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	mapset "github.com/deckarep/golang-set"
 	"time"
-	//	"github.com/CortexFoundation/CortexTheseus/PoolMiner/miner/libcuckoo"
+	//	"github.com/CortexFoundation/CortexTheseus/solution/miner/libcuckoo"
 )
 
 // Cuckoo proof-of-work protocol constants.

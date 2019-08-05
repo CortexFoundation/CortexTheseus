@@ -53,12 +53,6 @@ var MainnetTrackers = []string{
 
 var BernardTrackers = []string{}
 
-var TestnetTrackers = []string{}
-
-// RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Rinkeby test network.
-var RinkebyTrackerss = []string{}
-
 var TorrentBoostNodes = []string{
 	"http://storage.cortexlabs.ai:7881",
 }
