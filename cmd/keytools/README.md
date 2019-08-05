@@ -1,7 +1,7 @@
 keytools
 ======
 
-keytools is a simple command-line tool for working with Ethereum keyfiles.
+keytools is a simple command-line tool for working with Cortex keyfiles.
 
 
 # Usage
