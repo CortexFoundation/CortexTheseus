@@ -767,7 +767,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 	}
 	header.Supply.Set(parent.Supply)
 
-	if header.Supply.Cmp(params.CTXC_INIT) < 0 {
+	if header.Supply.Cmp(params.CTXC_INIT) < 0 && config.ChainID.Uint64() != 42 {
 		header.Supply.Set(params.CTXC_INIT)
 	}
 
