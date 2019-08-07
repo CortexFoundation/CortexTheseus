@@ -56,6 +56,9 @@ func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if cvm.ChainConfig().IsByzantium(cvm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium
 		}
+		if cvm.chainRules.IsIstanbul {
+			precompiles = PrecompiledContractsIstanbul
+		}
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
@@ -219,6 +222,9 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		precompiles := PrecompiledContractsHomestead
 		if cvm.ChainConfig().IsByzantium(cvm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium
+		}
+		if cvm.chainRules.IsIstanbul {
+			precompiles = PrecompiledContractsIstanbul
 		}
 		if precompiles[addr] == nil && cvm.ChainConfig().IsEIP158(cvm.BlockNumber) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer

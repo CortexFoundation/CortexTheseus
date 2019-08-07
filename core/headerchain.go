@@ -479,7 +479,7 @@ func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, d
 			parent = hc.genesisHeader
 		}
 		parentHash = hdr.ParentHash
-		// Notably, since geth has the possibility for setting the head to a low
+		// Notably, since cortex has the possibility for setting the head to a low
 		// height which is even lower than ancient head.
 		// In order to ensure that the head is always no higher than the data in
 		// the database(ancient store or active store), we need to update head
