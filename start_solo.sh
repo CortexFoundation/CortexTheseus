@@ -1,3 +1,4 @@
+#!/bin/sh
 ./cvm.sh > /dev/null 2>&1 &
 ./solo.sh &
 while true; do

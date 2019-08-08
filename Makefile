@@ -65,21 +65,10 @@ torrent-test:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
 
-cortex-nominer: clib
-	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-	mv ./build/bin/cortex ./build/bin/cortex-nominer
-
 cvm: plugins/cuda_cvm.so plugins/cpu_cvm.so
 	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
-
-cuckoo-miner: clib
-	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner
-	@echo "Done building."
-
 nodekey:
 	build/env.sh go run build/ci.go install ./cmd/nodekey
 	@echo "Done building."

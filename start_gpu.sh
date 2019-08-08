@@ -1,3 +1,4 @@
+#!/bin/sh
 ./cvm_gpu.sh > /dev/null 2>&1 &
 ./node.sh &
 while true; do
