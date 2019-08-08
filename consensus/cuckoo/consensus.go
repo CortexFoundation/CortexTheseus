@@ -356,8 +356,7 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	next := new(big.Int).Add(parent.Number, big1)
 	switch {
 	case config.IsConstantinople(next):
-		//return calcDifficultyConstantinople(time, parent)
-		return calcDifficultyByzantium(time, parent)
+		return calcDifficultyConstantinople(time, parent)
 	case config.IsByzantium(next):
 		return calcDifficultyByzantium(time, parent)
 	case config.IsHomestead(next):
@@ -381,6 +380,10 @@ var (
 	bigMinus9     = big.NewInt(-9)
 	bigMinus99    = big.NewInt(-99)
 )
+
+func calcDifficultyConstantinople(time uint64, parent *types.Header) *big.Int {
+	return calcDifficultyByzantium(time, parent)
+}
 
 // calcDifficultyByzantium is the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time given the
