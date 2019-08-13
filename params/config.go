@@ -37,6 +37,16 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	DoloresGenesisHash: DoloresTrustedCheckpoint,
 }
 
+type CheckpointOracleConfig struct {
+	Address   common.Address   `json:"address"`
+	Signers   []common.Address `json:"signers"`
+	Threshold uint64           `json:"threshold"`
+}
+
+var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
+	MainnetGenesisHash: MainnetCheckpointOracle,
+}
+
 type TrustedCheckpoint struct {
 	Name         string      `json:"-"`
 	SectionIndex uint64      `json:"sectionIndex"`
@@ -60,6 +70,18 @@ var (
 		Name:         "dolores",
 		SectionIndex: 1,
 		SectionHead:  common.HexToHash("0xb7b7f06c6cc9dc5fe3b8a673fa3e18ef7bcbce033fa54051a4fb37d8fdb87d6c"),
+	}
+
+	MainnetCheckpointOracle = &CheckpointOracleConfig{
+		Address: common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a"),
+		Signers: []common.Address{
+			//                common.HexToAddress("0x1b2C260efc720BE89101890E4Db589b44E950527"),
+			//                common.HexToAddress("0x78d1aD571A1A09D60D9BBf25894b44e4C8859595"),
+			//                common.HexToAddress("0x286834935f4A8Cfb4FF4C77D5770C2775aE2b0E7"),
+			//                common.HexToAddress("0xb86e2B0Ab5A4B1373e40c51A7C712c70Ba2f9f8E"),
+			//                common.HexToAddress("0x0DF8fa387C602AE62559cC4aFa4972A7045d6707"),
+		},
+		Threshold: 2,
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
