@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"strings"
 
-	CortexFoundation "github.com/CortexFoundation/CortexTheseus"
+	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
 	"github.com/CortexFoundation/CortexTheseus/accounts/abi/bind"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -19,7 +19,7 @@ import (
 var (
 	_ = big.NewInt
 	_ = strings.NewReader
-	_ = CortexFoundation.NotFound
+	_ = cortex.NotFound
 	_ = abi.U256
 	_ = bind.Bind
 	_ = common.Big1
@@ -275,7 +275,7 @@ type CheckpointOracleNewCheckpointVoteIterator struct {
 	event    string              // Event name to use for unpacking event data
 
 	logs chan types.Log        // Log channel receiving the found contract events
-	sub  CortexFoundation.Subscription // Subscription for errors, completion and termination
+	sub  cortex.Subscription // Subscription for errors, completion and termination
 	done bool                  // Whether the subscription completed delivering logs
 	fail error                 // Occurred error to stop iteration
 }
