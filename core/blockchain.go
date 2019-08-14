@@ -1542,9 +1542,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				winner[j], winner[len(winner)-1-j] = winner[len(winner)-1-j], winner[j]
 			}
 			// Import all the pruned blocks to make the state available
-			bc.chainmu.Unlock()
-			_, evs, logs, err := bc.insertChain(winner)
 			bc.chainmu.Lock()
+			_, evs, logs, err := bc.insertChain(winner)
+			bc.chainmu.Unlock()
 			events, coalescedLogs = evs, logs
 
 			if err != nil {
