@@ -27,6 +27,7 @@ var MainnetTrackers = []string{
 	"http://47.91.147.37:5008/announce",
 	"http://47.89.178.175:5008/announce",
 	"http://47.88.214.96:5008/announce",
+	"http://47.93.158.68:5008/announce",
 	"http://torrent.cortexlabs.ai:5008/announce",
 	 "http://dht.coinbag.org:5008/announce",
 	 "http://dht.cortexlabs.ai:5008/announce",
