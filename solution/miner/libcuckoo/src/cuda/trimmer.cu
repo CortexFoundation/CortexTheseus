@@ -689,7 +689,7 @@ __global__ void Round2(const int round, const int part, const siphash_keys &sipk
         cudaMemset (indexesE[1], 0, indexesSize);
         cudaMemcpy (dipkeys, &sipkeys, sizeof (sipkeys), cudaMemcpyHostToDevice);
 
-        checkCudaErrors (cudaDeviceSynchronize ());
+//        checkCudaErrors (cudaDeviceSynchronize ());
 
 #ifdef TIMER
         float durationA, durationB;
@@ -706,7 +706,7 @@ __global__ void Round2(const int round, const int part, const siphash_keys &sipk
         else
             Cuckaroo_SeedA < EDGES_A ><<< tp.genA.blocks, tp.genA.tpb >>> (*dipkeys, (ulonglong4 *) bufferAB, (int *) indexesE[1]);
 
-        checkCudaErrors (cudaDeviceSynchronize ());
+//        checkCudaErrors (cudaDeviceSynchronize ());
 
 #ifdef TIMER
         cudaEventRecord (stop, NULL);
@@ -780,7 +780,7 @@ __global__ void Round2(const int round, const int part, const siphash_keys &sipk
       Round<EDGES_A/4, EDGES_B/4><<<tp.trim.blocks, tp.trim.tpb, BITMAPBYTES>>>(3, part, *dipkeys, (uint2 *)bufferB, (uint2 *)bufferA, indexesE[1], indexesE[0]); // to .117
     }
   
-    cudaDeviceSynchronize();
+//    cudaDeviceSynchronize();
   
     for (int round = 4; round < tp.ntrims; round += 2) {
       cudaMemset(indexesE[1], 0, indexesSize);
@@ -797,9 +797,18 @@ __global__ void Round2(const int round, const int part, const siphash_keys &sipk
     cudaDeviceSynchronize();
   
     Tail<EDGES_B/4><<<tp.tail.blocks, tp.tail.tpb>>>((const uint2 *)bufferA, (uint2 *)bufferB, (const u32 *)indexesE[0], (u32 *)indexesE[1]);
-    cudaMemcpy(&nedges, indexesE[1], sizeof(u32), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-        return nedges;
+//    cudaMemcpy(&nedges, indexesE[1], sizeof(u32), cudaMemcpyDeviceToHost);
+//    cudaDeviceSynchronize();
+    bool ready = false;
+    while(1){
+        usleep(1000);
+        ready = cudaSuccess == cudaStreamQuery(0);
+        if(ready){
+            cudaMemcpy(&nedges, indexesE[1], sizeof(u32), cudaMemcpyDeviceToHost);
+            break;
+        }
+    }
+    return nedges;
     }
 
 };
