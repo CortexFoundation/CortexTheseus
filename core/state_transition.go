@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -350,7 +350,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	st.refundGas()
 	//model gas
 	gu := st.gasUsed()
-	if (vmerr == nil || vmerr == vm.ErrOutOfGas) && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
+	//if (vmerr == nil || vmerr == vm.ErrOutOfGas) && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
+	if (vmerr == nil || (st.cvm.ChainConfig().ChainID.Uint64() == 21 && st.cvm.BlockNumber.Cmp(big.NewInt(16000)) < 0 && vmerr == vm.ErrOutOfGas)) && st.modelGas != nil && len(st.modelGas) > 0 {
 		for addr, mgas := range st.modelGas {
 			if int64(mgas) <= 0 || mgas > params.MODEL_GAS_UP_LIMIT {
 				continue
@@ -365,7 +366,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 				return nil, 0, big0, false, vm.ErrInsufficientBalance
 			}
 			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
-			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward)
+			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward, "number", cvm.BlockNumber)
 			st.state.AddBalance(addr, reward)
 		}
 	}
@@ -380,10 +381,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.cvm.BlockNumber)
-			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber)
+			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber)
 			//todo vote for model
 		} else {
-			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex())
+			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex(), "number", cvm.BlockNumber)
 		}
 	}
 

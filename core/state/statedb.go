@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"sync"
+	//"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -30,8 +30,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-
-	"github.com/CortexFoundation/CortexTheseus/core/vm"
 )
 
 type revision struct {
@@ -53,6 +51,10 @@ type proofList [][]byte
 func (n *proofList) Put(key []byte, value []byte) error {
 	*n = append(*n, value)
 	return nil
+}
+
+func (n *proofList) Delete(key []byte) error {
+	panic("not supported")
 }
 
 // StateDBs within the cortex protocol are used to store anything
@@ -91,7 +93,7 @@ type StateDB struct {
 	validRevisions []revision
 	nextRevisionId int
 
-	lock sync.Mutex
+	//lock sync.Mutex
 }
 
 // Create a new state from a given trie.
@@ -254,23 +256,6 @@ func (self *StateDB) GetTxIndex() int {
 	return self.txIndex
 }
 
-func (self *StateDB) Download(addr common.Address) error {
-	stateObject := self.getStateObject(addr)
-	if stateObject != nil {
-		if vm.IsModelMeta(stateObject.Code(self.db)) {
-			//todo
-		}
-		if vm.IsInputMeta(stateObject.Code(self.db)) {
-			//todo
-		}
-	}
-	return nil
-}
-
-func download(uri string) {
-	//todo call p2p restful interface
-}
-
 func (self *StateDB) GetCode(addr common.Address) []byte {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
@@ -325,7 +310,7 @@ func (self *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) (
 	for idx = 0; idx < int64(length); idx++ {
 		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
 		payload := self.GetState(addr, slotAddr).Bytes()
-		copy(buff[idx * 32:], payload[:])
+		copy(buff[idx*32:], payload[:])
 		log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 		// fmt.Println(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 	}
@@ -540,6 +525,7 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 
 // updateStateObject writes the given object to the trie.
 func (self *StateDB) updateStateObject(stateObject *stateObject) {
+
 	addr := stateObject.Address()
 	data, err := rlp.EncodeToBytes(stateObject)
 	if err != nil {
@@ -564,7 +550,6 @@ func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObje
 		}
 		return obj
 	}
-
 	// Load the object from the database.
 	enc, err := self.trie.TryGet(addr[:])
 	if len(enc) == 0 {
@@ -639,8 +624,10 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 		key := common.BytesToHash(db.trie.GetKey(it.Key))
 		if value, dirty := so.dirtyStorage[key]; dirty {
 			if !cb(key, value) {
-				continue
+				//continue
+				return nil
 			}
+			continue
 		}
 		//cb(key, common.BytesToHash(it.Value))
 		if len(it.Value) > 0 {
@@ -659,8 +646,8 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 // Copy creates a deep, independent copy of the state.
 // Snapshots of the copied state cannot be applied to the copy.
 func (self *StateDB) Copy() *StateDB {
-	self.lock.Lock()
-	defer self.lock.Unlock()
+	//self.lock.Lock()
+	//defer self.lock.Unlock()
 
 	// Copy all the basic fields, initialize the memory ones
 	state := &StateDB{
@@ -818,6 +805,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		delete(s.stateObjectsDirty, addr)
 	}
 	// Write trie changes.
+	// Write the account trie changes, measuing the amount of wasted time
 	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
@@ -832,6 +820,5 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		}
 		return nil
 	})
-	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }

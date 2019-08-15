@@ -2,7 +2,7 @@
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 #include "cuda_ops.h"
-#include "../nms.h"
+#include "../common.h"
 
 __global__ void kernel_get_valid_count(const int32_t *input, bool *saved, const int32_t n, const int32_t k, const int32_t score_threshold){
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -15,7 +15,7 @@ const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_
     const int32_t n, const int32_t k,
     const int32_t score_threshold, const int32_t batchs, int& error_code){
 
-  int32_t *host_count = (int32_t*)malloc(sizeof(int32_t) * batchs);//new int32_t[batchs];
+  int32_t *host_count = (int32_t*)malloc(sizeof(int32_t) * batchs);
   if(host_count == NULL){
     error_code = ERROR_MALLOC;
     return "malloc error";
@@ -59,7 +59,6 @@ const char* cuda_get_valid_counts(const int32_t *x_data, int32_t *y_data, int32_
       }
     }
     host_count[i] = y_index;
-    //valid_count_data[i] = y_index;
     if(y_index < n){
       status = cudaMemset(&output[y_index * k], -1, (n-y_index) * k * sizeof(int32_t));
       if(status != cudaSuccess){
@@ -94,11 +93,10 @@ end:
 }
 __global__ void kernel_get_values_and_keys(
     int32_t* data, const int32_t n, const int32_t k, const int32_t score_index,
-    int32_t **values, int32_t *keys){
+    int32_t **values){
     int tid = threadIdx.x + blockDim.x * blockIdx.x;
     if(tid < n){
         values[tid] = &data[tid * k];
-        keys[tid] = data[tid * k + score_index];
     }
 }
 
@@ -171,7 +169,7 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
     const int32_t max_output_size, const int32_t iou_threshold, const int32_t topk, 
     const int32_t coord_start, const int32_t score_index, const int32_t id_index, const bool force_suppress, int& error_code){
   int32_t *valid_count_data = (int32_t*)malloc(batchs * sizeof(int32_t));
-  int32_t **rows = NULL, *keys = NULL;
+  int32_t **rows = NULL; 
   bool *removed = NULL;
   int32_t *d_y_index = NULL;
   cudaError_t status;
@@ -186,11 +184,6 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
     goto end;
   }
   status = cudaMalloc((void**)&rows, sizeof(int32_t*) * n);
-  if(status != cudaSuccess){
-    error_code = ERROR_MALLOC;
-    goto end;
-  }
-  status = cudaMalloc((void**)&keys, sizeof(int32_t) * n);
   if(status != cudaSuccess){
     error_code = ERROR_MALLOC;
     goto end;
@@ -233,8 +226,27 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
     }else{
       const int blockSize = 256;
       const int gridSize = (vc + blockSize - 1) / blockSize;
-      kernel_get_values_and_keys<<<gridSize, blockSize>>>(x_batch, vc, k, score_index, rows, keys);
-      thrust::sort_by_key(thrust::device, keys, keys+vc, rows, thrust::greater<int32_t>());
+      kernel_get_values_and_keys<<<gridSize, blockSize>>>(x_batch, vc, k, score_index, rows);
+      thrust::sort(thrust::device, rows, rows+vc, 
+          [score_index, id_index, coord_start]__device__(const int32_t*a, const int32_t*b) ->bool {
+            if(a[score_index] > b[score_index]) return true;
+            else if(a[score_index] == b[score_index]){
+              if(a[id_index] > b[id_index]) return true;
+              else if(a[id_index] == b[id_index]){
+                if(a[coord_start] > b[coord_start]) return true;
+                else if(a[coord_start] == b[coord_start]){
+                  if(a[coord_start + 1] > b[coord_start + 1]) return true;
+                  else if(a[coord_start + 1] == b[coord_start + 1]){
+                    if(a[coord_start + 2] > b[coord_start + 2]) return true;
+                    else if(a[coord_start + 2] == b[coord_start + 2]){
+                      if(a[coord_start + 3] > b[coord_start + 3]) return true;
+                    }
+                  }
+                }
+              }
+            }
+            return false;
+          });
 
       if(topk > 0 && topk < vc){
         for(int i = 0; i < vc - topk; i++){
@@ -294,7 +306,6 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
 end:
   if(valid_count_data != NULL) free(valid_count_data);
   if(rows != NULL) cudaFree(rows);
-  if(keys != NULL) cudaFree(keys);
   if(d_y_index != NULL) cudaFree(d_y_index);
   if(removed != NULL) cudaFree(removed);
   return check_cuda_error(cudaGetLastError());

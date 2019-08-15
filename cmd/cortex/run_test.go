@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
@@ -22,8 +22,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/docker/docker/pkg/reexec"
 	"github.com/CortexFoundation/CortexTheseus/internal/cmdtest"
+	"github.com/docker/docker/pkg/reexec"
 )
 
 func tmpdir(t *testing.T) string {
@@ -38,7 +38,7 @@ type testcortex struct {
 	*cmdtest.TestCmd
 
 	// template variables for expect
-	Datadir   string
+	Datadir  string
 	Coinbase string
 }
 

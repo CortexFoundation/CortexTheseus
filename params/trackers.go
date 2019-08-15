@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -20,44 +20,51 @@ package params
 // the main Cortex network.
 var MainnetTrackers = []string{
 	"http://47.91.91.217:5008/announce",
-  "http://47.74.1.234:5008/announce",
-  "http://47.88.7.24:5008/announce",
-  "http://47.91.43.70:5008/announce",
+	"http://47.74.1.234:5008/announce",
+	"http://47.88.7.24:5008/announce",
+	"http://47.91.43.70:5008/announce",
 	"http://47.91.106.117:5008/announce",
 	"http://47.91.147.37:5008/announce",
-  "http://47.89.178.175:5008/announce",
-  "http://47.88.214.96:5008/announce",
-  "http://torrent.cortexlabs.ai:5008/announce",
-/*
-  "udp://47.91.91.217:5008/announce",
-	"udp://47.74.1.234:5008/announce",
-	"udp://47.88.7.24:5008/announce",
-	"udp://47.91.43.70:5008/announce",
-	"udp://47.91.106.117:5008/announce",
-	"udp://47.91.147.37:5008/announce",
-	"udp://47.89.178.175:5008/announce",
-	"udp://47.88.214.96:5008/announce",
-	"udp://torrent.cortexlabs.ai:5008/announce",
+	"http://47.89.178.175:5008/announce",
+	"http://47.88.214.96:5008/announce",
+	"http://47.93.158.68:5008/announce",
+	"http://torrent.cortexlabs.ai:5008/announce",
+	 "http://dht.coinbag.org:5008/announce",
+	 "http://dht.cortexlabs.ai:5008/announce",
+	/*
+	     "udp://47.91.91.217:5008/announce",
+	   	"udp://47.74.1.234:5008/announce",
+	   	"udp://47.88.7.24:5008/announce",
+	   	"udp://47.91.43.70:5008/announce",
+	   	"udp://47.91.106.117:5008/announce",
+	   	"udp://47.91.147.37:5008/announce",
+	   	"udp://47.89.178.175:5008/announce",
+	   	"udp://47.88.214.96:5008/announce",
+	   	"udp://torrent.cortexlabs.ai:5008/announce",
 
-	"ws://47.91.91.217:5008/announce",
-  "ws://47.74.1.234:5008/announce",
-  "ws://47.88.7.24:5008/announce",
-  "ws://47.91.43.70:5008/announce",
-  "ws://47.91.106.117:5008/announce",
-  "ws://47.91.147.37:5008/announce",
-  "ws://47.89.178.175:5008/announce",
-	"ws://47.88.214.96:5008/announce",
-	"ws://torrent.cortexlabs.ai:5008/announce",
-*/
+	   	"ws://47.91.91.217:5008/announce",
+	     "ws://47.74.1.234:5008/announce",
+	     "ws://47.88.7.24:5008/announce",
+	     "ws://47.91.43.70:5008/announce",
+	     "ws://47.91.106.117:5008/announce",
+	     "ws://47.91.147.37:5008/announce",
+	     "ws://47.89.178.175:5008/announce",
+	   	"ws://47.88.214.96:5008/announce",
+	   	"ws://torrent.cortexlabs.ai:5008/announce",
+	*/
 }
 
-var BernardTrackers = []string{}
-
-var TestnetTrackers = []string{}
-
-// RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Rinkeby test network.
-var RinkebyTrackerss = []string{}
+var BernardTrackers = []string{
+	"http://47.91.91.217:5008/announce",
+        "http://47.74.1.234:5008/announce",
+        "http://47.88.7.24:5008/announce",
+        "http://47.91.43.70:5008/announce",
+        "http://47.91.106.117:5008/announce",
+        "http://47.91.147.37:5008/announce",
+        "http://47.89.178.175:5008/announce",
+        "http://47.88.214.96:5008/announce",
+        "http://torrent.cortexlabs.ai:5008/announce",
+}
 
 var TorrentBoostNodes = []string{
 	"http://storage.cortexlabs.ai:7881",

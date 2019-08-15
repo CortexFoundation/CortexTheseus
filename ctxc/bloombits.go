@@ -1,4 +1,4 @@
-// Copyright 2017 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -89,7 +89,7 @@ const (
 // for the Cortex header bloom filters, permitting blazing fast filtering.
 type BloomIndexer struct {
 	size    uint64               // section size to generate bloombits for
-	db      ctxcdb.Database       // database instance to write index data and metadata into
+	db      ctxcdb.Database      // database instance to write index data and metadata into
 	gen     *bloombits.Generator // generator to rotate the bloom bits crating the bloom index
 	section uint64               // Section is the section number being processed currently
 	head    common.Hash          // Head is the hash of the last header processed
@@ -102,7 +102,7 @@ func NewBloomIndexer(db ctxcdb.Database, size, confirms uint64) *core.ChainIndex
 		db:   db,
 		size: size,
 	}
-	table := ctxcdb.NewTable(db, string(rawdb.BloomBitsIndexPrefix))
+	table := rawdb.NewTable(db, string(rawdb.BloomBitsIndexPrefix))
 
 	return core.NewChainIndexer(db, table, backend, size, confirms, bloomThrottling, "bloombits")
 }

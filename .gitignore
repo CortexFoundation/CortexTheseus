@@ -33,7 +33,7 @@ build/_vendor/pkg
 # used by the Makefile
 /build/_workspace/
 /build/bin/
-/geth*.zip
+/cortex*.zip
 
 # travis
 profile.tmp
@@ -80,3 +80,5 @@ plugins/
 *.log
 *.rdb
 password
+*.sh
+keyfile.json

@@ -90,6 +90,35 @@ void CvmRuntime::PrepareGraphWithVersion() {
   for (auto sid : attrs_.storage_id) {
     VERIFY_GE(sid, 0) << "storage id should not less than 0, but " << sid;
   }
+  // Check storage reused
+  std::unordered_set<std::string> reused_ops {
+    "flatten", "relu", "expand_dims", "reshape",
+    "squeeze", "abs", 
+    "cvm_precision", // replace log2 with cvm_precision
+    "elemwise_add", "elemwise_sub",
+    "nagetive", "clip", 
+    "cvm_clip", "cvm_right_shift", "cvm_left_shift",
+  };
+  for (size_t nid = 0; nid < nodes_.size(); ++nid) {
+    Node &node = nodes_[nid];
+    if (node.is_variable()) continue;
+    std::string op_name = node.op()->name;
+    if (reused_ops.find(op_name) == reused_ops.end()) {
+      for (uint32_t oi = 0; oi < node.num_outputs(); ++oi) {
+        auto node_eid = entry_id(nid, oi);
+        uint32_t node_sid = this->attrs_.storage_id[node_eid];
+        for (auto& entry: node.inputs) {
+          auto eid = entry_id(entry);
+          uint32_t input_sid = this->attrs_.storage_id[eid];
+          VERIFY_NE(node_sid, input_sid)
+            << "operator " << op_name 
+            << " input: (" << entry.node_id << ", " << entry.index << ")"
+            << " output: (" << nid << ", " << oi << ")" 
+            << " used same storage_id " << input_sid << " vs. " << node_sid;
+        }
+      }
+    }
+  }
 
   // Verify shape
   VERIFY_EQ(num_node_entries_, attrs_.shape.size())

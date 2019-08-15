@@ -1,4 +1,4 @@
-// Copyright 2017 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
@@ -17,28 +17,28 @@
 package main
 
 import (
-	"sync"
-	"bytes"
 	"bufio"
-	"time"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"reflect"
-	"unicode"
-	"strings"
 	"strconv"
+	"strings"
+	"sync"
+	"time"
+	"unicode"
 
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/naoina/toml"
 )
 
@@ -81,9 +81,9 @@ type ctxcstatsConfig struct {
 }
 
 type cortexConfig struct {
-	Cortex       ctxc.Config
-	Node      node.Config
-	Cortexstats  ctxcstatsConfig
+	Cortex      ctxc.Config
+	Node        node.Config
+	Cortexstats ctxcstatsConfig
 	// Dashboard dashboard.Config
 	TorrentFs torrentfs.Config
 }
@@ -115,9 +115,9 @@ func defaultNodeConfig() node.Config {
 
 func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// Load defaults.
-	cfg := cortexConfig {
-		Cortex:    ctxc.DefaultConfig,
-		Node:      defaultNodeConfig(),
+	cfg := cortexConfig{
+		Cortex: ctxc.DefaultConfig,
+		Node:   defaultNodeConfig(),
 		// Dashboard: dashboard.DefaultConfig,
 		TorrentFs: torrentfs.DefaultConfig,
 	}
@@ -161,7 +161,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
 	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
-	if utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)) != ""{
+	if utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)) != "" {
 		storageEnabled = false
 	}
 	if storageEnabled {
@@ -173,15 +173,15 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			cmd := os.Args[0]
 			log.Info("RegisterCVMService", "cmd", cmd)
 			args := []string{"cvm",
-					"--cvm.port", strconv.Itoa(ctx.GlobalInt(utils.InferPortFlag.Name)),
-					"--storage.dir", utils.MakeStorageDir(ctx),
-					"--cvm.datadir", utils.MakeDataDir(ctx),
-					"--infer.devicetype", deviceType,
-					"--cvm.max_seeding", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxSeedingFlag.Name)),
-					"--cvm.max_active", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxActiveFlag.Name)),
-					"--cvm.boostnodes", ctx.GlobalString(utils.StorageBoostNodesFlag.Name),
-					"--cvm.tracker", ctx.GlobalString(utils.StorageTrackerFlag.Name),
-				}
+				"--cvm.port", strconv.Itoa(ctx.GlobalInt(utils.InferPortFlag.Name)),
+				"--storage.dir", utils.MakeStorageDir(ctx),
+				"--cvm.datadir", utils.MakeDataDir(ctx),
+				"--infer.devicetype", deviceType,
+				"--cvm.max_seeding", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxSeedingFlag.Name)),
+				"--cvm.max_active", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxActiveFlag.Name)),
+				"--cvm.boostnodes", ctx.GlobalString(utils.StorageBoostNodesFlag.Name),
+				"--cvm.tracker", ctx.GlobalString(utils.StorageTrackerFlag.Name),
+			}
 			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
 			prg := exec.Command(cmd, args...)
 			var stdoutBuf, stderrBuf bytes.Buffer
@@ -190,7 +190,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
 			stderr := io.MultiWriter(os.Stderr, &stderrBuf)
 			if err := prg.Start(); err != nil {
-				panic (err)
+				panic(err)
 			}
 			run_result := prg.Start()
 			var wg sync.WaitGroup
@@ -240,7 +240,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	// 	utils.RegisterCortexStatsService(stack, cfg.Cortexstats.URL)
 	// }
 	//storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) && ctx.GlobalString(utils.SyncModeFlag.Name) == "full"
-  return stack
+	return stack
 }
 
 // dumpConfig is the dumpconfig command.

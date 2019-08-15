@@ -1,4 +1,4 @@
-// Copyright 2017 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	mapset "github.com/deckarep/golang-set"
 	"time"
-	//	"github.com/CortexFoundation/CortexTheseus/PoolMiner/miner/libcuckoo"
+	//	"github.com/CortexFoundation/CortexTheseus/solution/miner/libcuckoo"
 )
 
 // Cuckoo proof-of-work protocol constants.
@@ -303,29 +303,29 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	}
 
 	if header.Quota.Cmp(new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))) != 0 {
-                return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
-        }
+		return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
+	}
 
-        bigInitReward := calculateRewardByNumber(header.Number)
+	bigInitReward := calculateRewardByNumber(header.Number, chain.Config().ChainID.Uint64())
 
-        uncleMaxReward := big.NewInt(0).Div(big.NewInt(0).Mul(bigInitReward, big7), big8)
-        nephewReward := big.NewInt(0).Div(bigInitReward, big32)
+	uncleMaxReward := big.NewInt(0).Div(big.NewInt(0).Mul(bigInitReward, big7), big8)
+	nephewReward := big.NewInt(0).Div(bigInitReward, big32)
 
-        //final with uncle
-        bigMaxReward := big.NewInt(0).Add(big.NewInt(0).Mul(big2, big.NewInt(0).Add(uncleMaxReward, nephewReward)), bigInitReward)
+	//final with uncle
+	bigMaxReward := big.NewInt(0).Add(big.NewInt(0).Mul(big2, big.NewInt(0).Add(uncleMaxReward, nephewReward)), bigInitReward)
 
-        if header.UncleHash == types.EmptyUncleHash {
-                if _, ok := core.FixHashes[header.Hash()]; ok {
-                } else {
-                        if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) > 0 {
-                                return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number, bigInitReward)
-                        }
-                }
-        } else {
-                if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMaxReward)) > 0 {
-                        return fmt.Errorf("invalid supply with uncle of max reward %v, %v, %v", header.Supply, parent.Supply, bigMaxReward)
-                }
-        }
+	if header.UncleHash == types.EmptyUncleHash {
+		if _, ok := core.FixHashes[header.Hash()]; ok {
+		} else {
+			if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) > 0 {
+				return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number, bigInitReward)
+			}
+		}
+	} else {
+		if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigMaxReward)) > 0 {
+			return fmt.Errorf("invalid supply with uncle of max reward %v, %v, %v", header.Supply, parent.Supply, bigMaxReward)
+		}
+	}
 	// Verify the engine specific seal securing the block
 	if seal {
 		if err := cuckoo.VerifySeal(chain, header); err != nil {
@@ -356,8 +356,7 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	next := new(big.Int).Add(parent.Number, big1)
 	switch {
 	case config.IsConstantinople(next):
-		//return calcDifficultyConstantinople(time, parent)
-		return calcDifficultyByzantium(time, parent)
+		return calcDifficultyConstantinople(time, parent)
 	case config.IsByzantium(next):
 		return calcDifficultyByzantium(time, parent)
 	case config.IsHomestead(next):
@@ -381,6 +380,10 @@ var (
 	bigMinus9     = big.NewInt(-9)
 	bigMinus99    = big.NewInt(-99)
 )
+
+func calcDifficultyConstantinople(time uint64, parent *types.Header) *big.Int {
+	return calcDifficultyByzantium(time, parent)
+}
 
 // calcDifficultyByzantium is the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time given the
@@ -708,7 +711,7 @@ func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 
 // Some weird constants to avoid constant memory allocs for them.
 var (
-	big0 = big.NewInt(0)
+	big0    = big.NewInt(0)
 	big4    = big.NewInt(4)
 	big7    = big.NewInt(7)
 	big8    = big.NewInt(8)
@@ -722,13 +725,27 @@ var (
 	//bigMaxReward  = big.NewInt(0).Mul(big.NewInt(19687500000), big.NewInt(1000000000))
 )
 
-func calculateRewardByNumber(num *big.Int) *big.Int {
+func calculateRewardByNumber(num *big.Int, chainId uint64) *big.Int {
 	blockReward := big.NewInt(0).Set(FrontierBlockReward)
 
-	if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
-		d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
-		e := new(big.Int).Exp(big2, d, nil)
-		blockReward = new(big.Int).Div(blockReward, e)
+	if chainId == 21 {
+		if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
+			d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
+			e := new(big.Int).Exp(big2, d, nil)
+			blockReward = new(big.Int).Div(blockReward, e)
+		}
+	} else if chainId == 42 {
+		if num.Cmp(params.BernardBlockRewardPeriod) >= 0 {
+			d := new(big.Int).Div(num, params.BernardBlockRewardPeriod)
+			e := new(big.Int).Exp(big2, d, nil)
+			blockReward = new(big.Int).Div(blockReward, e)
+		}
+	} else if chainId == 43 {
+		if num.Cmp(params.DoloresBlockRewardPeriod) >= 0 {
+			d := new(big.Int).Div(num, params.DoloresBlockRewardPeriod)
+			e := new(big.Int).Exp(big2, d, nil)
+			blockReward = new(big.Int).Div(blockReward, e)
+		}
 	}
 
 	return blockReward
@@ -740,12 +757,12 @@ func calculateRewardByNumber(num *big.Int) *big.Int {
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header, parent *types.Header, uncles []*types.Header) {
 
 	if parent == nil {
-                return
-        }
+		return
+	}
 
 	headerInitialHash := header.Hash()
 
-	blockReward := calculateRewardByNumber(header.Number)
+	blockReward := calculateRewardByNumber(header.Number, config.ChainID.Uint64())
 
 	log.Debug("Parent status", "number", parent.Number, "hash", parent.Hash(), "supply", toCoin(parent.Supply))
 	if header.Supply == nil {
@@ -753,7 +770,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 	}
 	header.Supply.Set(parent.Supply)
 
-	if header.Supply.Cmp(params.CTXC_INIT) < 0 {
+	if header.Supply.Cmp(params.CTXC_INIT) < 0 && config.ChainID.Uint64() != 42 {
 		header.Supply.Set(params.CTXC_INIT)
 	}
 
@@ -844,13 +861,13 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 	if cuckoo.minerPlugin == nil {
 		err := cuckoo.InitPlugin()
 		if err != nil {
-			log.Error("cuckoo", "init error.", "error:", err)
+			log.Error("cuckoo init error", "error", err)
 			return false
 		}
 	}
 	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
 	if err != nil {
-		log.Error("cuckoo", "lookup cuckaroo verify error.", "error:", err)
+		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
 		return false
 	}
 	r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)

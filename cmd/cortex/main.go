@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
@@ -31,10 +31,10 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
+	"github.com/CortexFoundation/CortexTheseus/client"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/console"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
-	"github.com/CortexFoundation/CortexTheseus/client"
 	"github.com/CortexFoundation/CortexTheseus/internal/debug"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
@@ -128,14 +128,14 @@ var (
 		// utils.ModelCallInterfaceFlag,
 	}
 
-	inferFlags = []cli.Flag {
+	inferFlags = []cli.Flag{
 		utils.InferDeviceTypeFlag,
 		utils.InferDeviceIdFlag,
 		utils.InferPortFlag,
 		utils.InferMemoryFlag,
 	}
 
-	storageFlags = []cli.Flag {
+	storageFlags = []cli.Flag{
 		utils.StorageDirFlag,
 		utils.StorageEnabledFlag,
 		utils.StorageMaxSeedingFlag,
@@ -179,7 +179,7 @@ func init() {
 	// Initialize the CLI app and start Ctxc
 	app.Action = cortex
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2013-2018 The CortexFoundation Authors"
+	app.Copyright = "Copyright 2018-2019 The CortexTheseus Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,

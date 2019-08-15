@@ -1,18 +1,18 @@
-// Copyright 2014 The CortexFoundation Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2014 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
@@ -37,7 +37,7 @@ type PrecompiledContract interface {
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
 }
 
-// PrecompiledContractsHomestead contains the default set of pre-compiled Cortex
+// PrecompiledContractsHomestead contains the default set of pre-compiled CortexTheseus
 // contracts used in the Frontier and Homestead releases.
 var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{1}): &ecrecover{},
@@ -46,7 +46,7 @@ var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{4}): &dataCopy{},
 }
 
-// PrecompiledContractsByzantium contains the default set of pre-compiled Cortex
+// PrecompiledContractsByzantium contains the default set of pre-compiled CortexTheseus
 // contracts used in the Byzantium release.
 var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{1}): &ecrecover{},
@@ -54,9 +54,22 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{3}): &ripemd160hash{},
 	common.BytesToAddress([]byte{4}): &dataCopy{},
 	common.BytesToAddress([]byte{5}): &bigModExp{},
-	common.BytesToAddress([]byte{6}): &bn256Add{},
-	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
-	common.BytesToAddress([]byte{8}): &bn256Pairing{},
+	common.BytesToAddress([]byte{6}): &bn256AddByzantium{},
+	common.BytesToAddress([]byte{7}): &bn256ScalarMulByzantium{},
+	common.BytesToAddress([]byte{8}): &bn256PairingByzantium{},
+}
+
+// PrecompiledContractsIstanbul contains the default set of pre-compiled CortexTheseus
+// contracts used in the Istanbul release.
+var PrecompiledContractsIstanbul = map[common.Address]PrecompiledContract{
+	common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{2}): &sha256hash{},
+	common.BytesToAddress([]byte{3}): &ripemd160hash{},
+	common.BytesToAddress([]byte{4}): &dataCopy{},
+	common.BytesToAddress([]byte{5}): &bigModExp{},
+	common.BytesToAddress([]byte{6}): &bn256AddIstanbul{},
+	common.BytesToAddress([]byte{7}): &bn256ScalarMulIstanbul{},
+	common.BytesToAddress([]byte{8}): &bn256PairingIstanbul{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
@@ -271,15 +284,9 @@ func newTwistPoint(blob []byte) (*bn256.G2, error) {
 	return p, nil
 }
 
-// bn256Add implements a native elliptic curve point addition.
-type bn256Add struct{}
-
-// RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256Add) RequiredGas(input []byte) uint64 {
-	return params.Bn256AddGas
-}
-
-func (c *bn256Add) Run(input []byte) ([]byte, error) {
+// runBn256Add implements the Bn256Add precompile, referenced by both
+// Byzantium and Istanbul operations.
+func runBn256Add(input []byte) ([]byte, error) {
 	x, err := newCurvePoint(getData(input, 0, 64))
 	if err != nil {
 		return nil, err
@@ -293,15 +300,35 @@ func (c *bn256Add) Run(input []byte) ([]byte, error) {
 	return res.Marshal(), nil
 }
 
-// bn256ScalarMul implements a native elliptic curve scalar multiplication.
-type bn256ScalarMul struct{}
+// bn256Add implements a native elliptic curve point addition conforming to
+// Istanbul consensus rules.
+type bn256AddIstanbul struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256ScalarMul) RequiredGas(input []byte) uint64 {
-	return params.Bn256ScalarMulGas
+func (c *bn256AddIstanbul) RequiredGas(input []byte) uint64 {
+	return params.Bn256AddGasIstanbul
 }
 
-func (c *bn256ScalarMul) Run(input []byte) ([]byte, error) {
+func (c *bn256AddIstanbul) Run(input []byte) ([]byte, error) {
+	return runBn256Add(input)
+}
+
+// bn256AddByzantium implements a native elliptic curve point addition
+// conforming to Byzantium consensus rules.
+type bn256AddByzantium struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *bn256AddByzantium) RequiredGas(input []byte) uint64 {
+	return params.Bn256AddGasByzantium
+}
+
+func (c *bn256AddByzantium) Run(input []byte) ([]byte, error) {
+	return runBn256Add(input)
+}
+
+// runBn256ScalarMul implements the Bn256ScalarMul precompile, referenced by
+// both Byzantium and Istanbul operations.
+func runBn256ScalarMul(input []byte) ([]byte, error) {
 	p, err := newCurvePoint(getData(input, 0, 64))
 	if err != nil {
 		return nil, err
@@ -309,6 +336,32 @@ func (c *bn256ScalarMul) Run(input []byte) ([]byte, error) {
 	res := new(bn256.G1)
 	res.ScalarMult(p, new(big.Int).SetBytes(getData(input, 64, 32)))
 	return res.Marshal(), nil
+}
+
+// bn256ScalarMulIstanbul implements a native elliptic curve scalar
+// multiplication conforming to Istanbul consensus rules.
+type bn256ScalarMulIstanbul struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *bn256ScalarMulIstanbul) RequiredGas(input []byte) uint64 {
+	return params.Bn256ScalarMulGasIstanbul
+}
+
+func (c *bn256ScalarMulIstanbul) Run(input []byte) ([]byte, error) {
+	return runBn256ScalarMul(input)
+}
+
+// bn256ScalarMulByzantium implements a native elliptic curve scalar
+// multiplication conforming to Byzantium consensus rules.
+type bn256ScalarMulByzantium struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *bn256ScalarMulByzantium) RequiredGas(input []byte) uint64 {
+	return params.Bn256ScalarMulGasByzantium
+}
+
+func (c *bn256ScalarMulByzantium) Run(input []byte) ([]byte, error) {
+	return runBn256ScalarMul(input)
 }
 
 var (
@@ -322,15 +375,9 @@ var (
 	errBadPairingInput = errors.New("bad elliptic curve pairing size")
 )
 
-// bn256Pairing implements a pairing pre-compile for the bn256 curve
-type bn256Pairing struct{}
-
-// RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256Pairing) RequiredGas(input []byte) uint64 {
-	return params.Bn256PairingBaseGas + uint64(len(input)/192)*params.Bn256PairingPerPointGas
-}
-
-func (c *bn256Pairing) Run(input []byte) ([]byte, error) {
+// runBn256Pairing implements the Bn256Pairing precompile, referenced by both
+// Byzantium and Istanbul operations.
+func runBn256Pairing(input []byte) ([]byte, error) {
 	// Handle some corner cases cheaply
 	if len(input)%192 > 0 {
 		return nil, errBadPairingInput
@@ -357,4 +404,30 @@ func (c *bn256Pairing) Run(input []byte) ([]byte, error) {
 		return true32Byte, nil
 	}
 	return false32Byte, nil
+}
+
+// bn256PairingIstanbul implements a pairing pre-compile for the bn256 curve
+// conforming to Istanbul consensus rules.
+type bn256PairingIstanbul struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *bn256PairingIstanbul) RequiredGas(input []byte) uint64 {
+	return params.Bn256PairingBaseGasIstanbul + uint64(len(input)/192)*params.Bn256PairingPerPointGasIstanbul
+}
+
+func (c *bn256PairingIstanbul) Run(input []byte) ([]byte, error) {
+	return runBn256Pairing(input)
+}
+
+// bn256PairingByzantium implements a pairing pre-compile for the bn256 curve
+// conforming to Byzantium consensus rules.
+type bn256PairingByzantium struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *bn256PairingByzantium) RequiredGas(input []byte) uint64 {
+	return params.Bn256PairingBaseGasByzantium + uint64(len(input)/192)*params.Bn256PairingPerPointGasByzantium
+}
+
+func (c *bn256PairingByzantium) Run(input []byte) ([]byte, error) {
+	return runBn256Pairing(input)
 }

@@ -1,4 +1,4 @@
-// Copyright 2017 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -49,4 +49,5 @@ const (
 	Check point:18 589823
 	Check point:19 622591
 	Check point:20 655359*/
+	ImmutabilityThreshold = 90000
 )

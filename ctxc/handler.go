@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -40,6 +40,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 )
 
 const (
@@ -102,7 +103,7 @@ type ProtocolManager struct {
 
 // NewProtocolManager returns a new Cortex sub protocol manager. The Cortex sub protocol manages peers capable
 // with the Cortex network.
-func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ctxcdb.Database, whitelist map[uint64]common.Hash) (*ProtocolManager, error) {
+func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ctxcdb.Database, cacheLimit int, whitelist map[uint64]common.Hash) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		networkID:   networkID,
@@ -125,28 +126,28 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	//}
 
 	if mode == downloader.FullSync {
-                // The database seems empty as the current block is the genesis. Yet the fast
-                // block is ahead, so fast sync was enabled for this node at a certain point.
-                // The scenarios where this can happen is
-                // * if the user manually (or via a bad block) rolled back a fast sync node
-                //   below the sync point.
-                // * the last fast sync is not finished while user specifies a full sync this
-                //   time. But we don't have any recent state for full sync.
-                // In these cases however it's safe to reenable fast sync.
-                fullBlock, fastBlock := blockchain.CurrentBlock(), blockchain.CurrentFastBlock()
-                if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
-                        manager.fastSync = uint32(1)
-                        log.Warn("Switch sync mode from full sync to fast sync")
-                }
-        } else {
-                if blockchain.CurrentBlock().NumberU64() > 0 {
-                        // Print warning log if database is not empty to run fast sync.
-                        log.Warn("Switch sync mode from fast sync to full sync")
-                } else {
-                        // If fast sync was requested and our database is empty, grant it
-                        manager.fastSync = uint32(1)
-                }
-        }
+		// The database seems empty as the current block is the genesis. Yet the fast
+		// block is ahead, so fast sync was enabled for this node at a certain point.
+		// The scenarios where this can happen is
+		// * if the user manually (or via a bad block) rolled back a fast sync node
+		//   below the sync point.
+		// * the last fast sync is not finished while user specifies a full sync this
+		//   time. But we don't have any recent state for full sync.
+		// In these cases however it's safe to reenable fast sync.
+		fullBlock, fastBlock := blockchain.CurrentBlock(), blockchain.CurrentFastBlock()
+		if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
+			manager.fastSync = uint32(1)
+			log.Warn("Switch sync mode from full sync to fast sync")
+		}
+	} else {
+		if blockchain.CurrentBlock().NumberU64() > 0 {
+			// Print warning log if database is not empty to run fast sync.
+			log.Warn("Switch sync mode from fast sync to full sync")
+		} else {
+			// If fast sync was requested and our database is empty, grant it
+			manager.fastSync = uint32(1)
+		}
+	}
 
 	// If we have trusted checkpoints, enforce them on the chain
 	if checkpoint, ok := params.TrustedCheckpoints[blockchain.Genesis().Hash()]; ok {
@@ -194,8 +195,13 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	if len(manager.SubProtocols) == 0 {
 		return nil, errIncompatibleConfig
 	}
+
+	var stateBloom *trie.SyncBloom
+	if atomic.LoadUint32(&manager.fastSync) == 1 {
+		stateBloom = trie.NewSyncBloom(uint64(cacheLimit), chaindb)
+	}
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, manager.checkpointNumber, chaindb, manager.eventMux, blockchain, manager.removePeer)
+	manager.downloader = downloader.New(mode, manager.checkpointNumber, chaindb, stateBloom, manager.eventMux, blockchain, manager.removePeer)
 
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
@@ -204,6 +210,10 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return blockchain.CurrentBlock().NumberU64()
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
+		if manager.blockchain.CurrentBlock().NumberU64() < manager.checkpointNumber {
+			log.Warn("Unsynced yet, discarded propagated block", "number", blocks[0].Number(), "hash", blocks[0].Hash())
+			return 0, nil
+		}
 		// If fast sync is running, deny importing weird blocks
 		if atomic.LoadUint32(&manager.fastSync) == 1 {
 			log.Warn("Discarded bad propagated block", "number", blocks[0].Number(), "hash", blocks[0].Hash())

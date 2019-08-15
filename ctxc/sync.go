@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -172,6 +172,10 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 
 	pHead, pTd := peer.Head()
+	if pTd == nil {
+		return
+	}
+
 	if pTd.Cmp(td) <= 0 {
 		return
 	}
@@ -192,8 +196,16 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 
 	if mode == downloader.FastSync {
 		// Make sure the peer's total difficulty we are synchronizing is higher.
-		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
-			return
+		fastTd := pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash())
+		if fastTd == nil {
+			log.Warn("Fast total difficulty is nil, switch to full sync mode", "hash", pm.blockchain.CurrentFastBlock().Hash().Hex())
+			//return
+			mode = downloader.FullSync
+			atomic.StoreUint32(&pm.fastSync, 0)
+		} else {
+			if fastTd.Cmp(pTd) >= 0 {
+				return
+			}
 		}
 	}
 
@@ -201,9 +213,8 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
 		if err == vm.ErrRuntime {
 			//log.Warn("Waiting for off chain file downloading", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
-		} else {
-			//log.Warn("Failed synchronize blocks", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
 		}
+
 		return
 	}
 

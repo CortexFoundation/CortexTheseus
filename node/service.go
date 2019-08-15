@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -17,9 +17,11 @@
 package node
 
 import (
+	"path/filepath"
 	"reflect"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
@@ -39,15 +41,37 @@ type ServiceContext struct {
 // OpenDatabase opens an existing database with the given name (or creates one
 // if no previous can be found) from within the node's data directory. If the
 // node is an ephemeral one, a memory database is returned.
-func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int) (ctxcdb.Database, error) {
+func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, namespace string) (ctxcdb.Database, error) {
 	if ctx.config.DataDir == "" {
-		return ctxcdb.NewMemDatabase(), nil
+		//return ctxcdb.NewMemDatabase(), nil
+		return rawdb.NewMemoryDatabase(), nil
 	}
-	db, err := ctxcdb.NewLDBDatabase(ctx.config.ResolvePath(name), cache, handles)
-	if err != nil {
+	//db, err := ctxcdb.NewLDBDatabase(ctx.config.ResolvePath(name), cache, handles)
+	return rawdb.NewLevelDBDatabase(ctx.config.ResolvePath(name), cache, handles, namespace)
+	/*if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return db, nil*/
+}
+
+// OpenDatabaseWithFreezer opens an existing database with the given name (or
+// creates one if no previous can be found) from within the node's data directory,
+// also attaching a chain freezer to it that moves ancient chain data from the
+// database to immutable append-only files. If the node is an ephemeral one, a
+// memory database is returned.
+func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handles int, freezer string, namespace string) (ctxcdb.Database, error) {
+	if ctx.config.DataDir == "" {
+		return rawdb.NewMemoryDatabase(), nil
+	}
+	root := ctx.config.ResolvePath(name)
+
+	switch {
+	case freezer == "":
+		freezer = filepath.Join(root, "ancient")
+	case !filepath.IsAbs(freezer):
+		freezer = ctx.config.ResolvePath(freezer)
+	}
+	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
 }
 
 // ResolvePath resolves a user path into the data directory if that was relative

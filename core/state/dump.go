@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -18,8 +18,8 @@ package state
 
 import (
 	"encoding/json"
-	"strconv"
 	"fmt"
+	"strconv"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -29,7 +29,7 @@ import (
 type DumpAccount struct {
 	Balance  string            `json:"balance"`
 	BlockNum string            `json:"blocknum"`
-	Nonce    string						  `json:"nonce"`
+	Nonce    string            `json:"nonce"`
 	Root     string            `json:"root"`
 	CodeHash string            `json:"codeHash"`
 	Code     string            `json:"code"`
