@@ -482,8 +482,8 @@ func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64)
   //tm.mu.Unlock()
 }
 
-// DropMagnet ...
-func (tm *TorrentManager) DropMagnet(ih metainfo.Hash) bool {
+// DropInfoHash ...
+func (tm *TorrentManager) DropInfoHash(ih metainfo.Hash) bool {
   if t := tm.GetTorrent(ih); t != nil {
     t.Torrent.Drop()
     tm.lock.Lock()
@@ -574,7 +574,7 @@ func (tm *TorrentManager) mainLoop() {
   for {
     select {
    case torrent := <-tm.removeTorrent:
-      go tm.DropMagnet(torrent)
+      go tm.DropInfoHash(torrent)
     case msg := <-tm.updateTorrent:
       meta := msg.(FlowControlMeta)
 			if meta.IsCreate {
@@ -660,9 +660,17 @@ func (tm *TorrentManager) listenTorrentProgress() {
             } else {
               log.Warn("Boost failed", "infohash", t.infohash, "err", err)
             }
-            t.isBoosting = false
           }(t)
-        }
+				} else {
+					delete(tm.pendingTorrents, ih)
+					bytesRequested := t.bytesRequested
+					tm.DropInfoHash(ih)
+					tm.UpdateTorrent(FlowControlMeta{
+						InfoHash: ih,
+						BytesRequested: uint64(bytesRequested),
+						IsCreate: true,
+					})
+				}
       }
     }
     
