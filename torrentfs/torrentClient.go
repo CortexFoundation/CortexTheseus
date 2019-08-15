@@ -32,8 +32,7 @@ import (
 
 const (
   removeTorrentChanBuffer         = 16
-  newTorrentChanBuffer            = 32
-  updateTorrentChanBuffer         = 32
+  updateTorrentChanBuffer         = 320
   torrentPending                  = 0
   torrentPaused                   = 1
   torrentRunning                  = 2
@@ -252,7 +251,6 @@ type TorrentManager struct {
   DataDir           string
   TmpDataDir        string
   closeAll          chan struct{}
-  newTorrent        chan interface{}
   removeTorrent     chan metainfo.Hash
   updateTorrent     chan interface{}
   halt              bool
@@ -295,12 +293,6 @@ func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 func (tm *TorrentManager) Close() error {
   close(tm.closeAll)
   log.Info("Torrent Download Manager Closed")
-  return nil
-}
-
-func (tm *TorrentManager) NewTorrent(input interface{}) error {
-//  fmt.Println("NewTorrent", input.(FlowControlMeta))
-  tm.newTorrent <- input
   return nil
 }
 
@@ -490,8 +482,8 @@ func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64)
   //tm.mu.Unlock()
 }
 
-// DropMagnet ...
-func (tm *TorrentManager) DropMagnet(ih metainfo.Hash) bool {
+// DropInfoHash ...
+func (tm *TorrentManager) DropInfoHash(ih metainfo.Hash) bool {
   if t := tm.GetTorrent(ih); t != nil {
     t.Torrent.Drop()
     tm.lock.Lock()
@@ -556,7 +548,6 @@ func NewTorrentManager(config *Config) *TorrentManager {
     TmpDataDir:           tmpFilePath,
     boostFetcher:         NewBoostDataFetcher(config.BoostNodes),
     closeAll:             make(chan struct{}),
-    newTorrent:           make(chan interface{}, newTorrentChanBuffer),
     removeTorrent:        make(chan metainfo.Hash, removeTorrentChanBuffer),
     updateTorrent:        make(chan interface{}, updateTorrentChanBuffer),
   }
@@ -582,15 +573,16 @@ func (tm *TorrentManager) Start() error {
 func (tm *TorrentManager) mainLoop() {
   for {
     select {
-    case msg := <-tm.newTorrent:
-      meta := msg.(FlowControlMeta)
-      log.Debug("TorrentManager", "newTorrent", meta.InfoHash.String())
-      go tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested))
-    case torrent := <-tm.removeTorrent:
-      go tm.DropMagnet(torrent)
+   case torrent := <-tm.removeTorrent:
+      go tm.DropInfoHash(torrent)
     case msg := <-tm.updateTorrent:
       meta := msg.(FlowControlMeta)
-      go tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+			if meta.IsCreate {
+      	log.Debug("TorrentManager", "newTorrent", meta.InfoHash.String())
+      	tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+			} else {
+      	go tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+			}
     case <-tm.closeAll:
       tm.halt = true
       tm.client.Close()
@@ -668,9 +660,17 @@ func (tm *TorrentManager) listenTorrentProgress() {
             } else {
               log.Warn("Boost failed", "infohash", t.infohash, "err", err)
             }
-            t.isBoosting = false
           }(t)
-        }
+				} else {
+					delete(tm.pendingTorrents, ih)
+					bytesRequested := t.bytesRequested
+					tm.DropInfoHash(ih)
+					tm.UpdateTorrent(FlowControlMeta{
+						InfoHash: ih,
+						BytesRequested: uint64(bytesRequested),
+						IsCreate: true,
+					})
+				}
       }
     }
     

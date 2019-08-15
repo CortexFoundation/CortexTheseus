@@ -46,7 +46,6 @@ const (
 type TorrentManagerAPI interface {
 	Start() error
 	Close() error
-	NewTorrent(interface{}) error
 	RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
 }
@@ -203,9 +202,10 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return nil
 	}
 
-	m.dl.NewTorrent(FlowControlMeta{
+	m.dl.UpdateTorrent(FlowControlMeta{
 		InfoHash:       meta.InfoHash,
 		BytesRequested: 0,
+		IsCreate:       true,
 	})
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
@@ -240,6 +240,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	m.dl.UpdateTorrent(FlowControlMeta{
 		InfoHash:       meta.InfoHash,
 		BytesRequested: bytesRequested,
+		IsCreate:       false,
 	})
 	log.Debug("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
 	return nil
@@ -281,6 +282,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				m.dl.UpdateTorrent(FlowControlMeta{
 					InfoHash:       file.Meta.InfoHash,
 					BytesRequested: bytesRequested,
+					IsCreate:       false,
 				})
 			}
 		}
@@ -424,9 +426,10 @@ func (m *Monitor) validateStorage() error {
 		}
 		log.Debug("Data recovery", "request", bytesRequested, "raw", file.Meta.RawSize)
 
-		m.dl.NewTorrent(FlowControlMeta{
+		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
+			IsCreate:       true,
 		})
 
 		m.fs.AddCachedFile(file)

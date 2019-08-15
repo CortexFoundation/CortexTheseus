@@ -437,4 +437,5 @@ func (fs *FileStorage) writeBlockNumber() error {
 type FlowControlMeta struct {
 	InfoHash       metainfo.Hash
 	BytesRequested uint64
+	IsCreate       bool
 }
