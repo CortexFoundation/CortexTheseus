@@ -32,7 +32,7 @@ import (
 
 const (
   removeTorrentChanBuffer         = 16
-  updateTorrentChanBuffer         = 320
+  updateTorrentChanBuffer         = 1000
   torrentPending                  = 0
   torrentPaused                   = 1
   torrentRunning                  = 2
@@ -426,7 +426,6 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 
 func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
   if tm.GetTorrent(ih) != nil {
-    tm.UpdateInfoHash(ih, BytesRequested)
     return
   }
 
@@ -442,12 +441,6 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
     return
   }
   log.Debug("Get torrent from infohash", "InfoHash", ih.HexString())
-
-  if tm.GetTorrent(ih) != nil {
-    log.Warn("Torrent was already existed. Skip", "InfoHash", ih.HexString())
-    //tm.mu.Unlock()
-    return
-  }
   
   spec := &torrent.TorrentSpec{
     Trackers: [][]string{},
@@ -573,7 +566,7 @@ func (tm *TorrentManager) Start() error {
 func (tm *TorrentManager) mainLoop() {
   for {
     select {
-   case torrent := <-tm.removeTorrent:
+    case torrent := <-tm.removeTorrent:
       go tm.DropInfoHash(torrent)
     case msg := <-tm.updateTorrent:
       meta := msg.(FlowControlMeta)
@@ -581,6 +574,7 @@ func (tm *TorrentManager) mainLoop() {
       	log.Debug("TorrentManager", "newTorrent", meta.InfoHash.String())
       	tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			} else {
+      	log.Debug("TorrentManager", "updateTorrent", meta.InfoHash.String(), "bytes", meta.BytesRequested)
       	go tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			}
     case <-tm.closeAll:
@@ -662,6 +656,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
             }
           }(t)
 				} else {
+					/*
 					delete(tm.pendingTorrents, ih)
 					bytesRequested := t.bytesRequested
 					tm.DropInfoHash(ih)
@@ -670,6 +665,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						BytesRequested: uint64(bytesRequested),
 						IsCreate: true,
 					})
+					*/
 				}
       }
     }
