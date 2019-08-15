@@ -3,6 +3,7 @@ package synapse
 import (
 	"encoding/binary"
 	"encoding/json"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -89,7 +90,7 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 		return v.([]byte), nil
 	}
 
-	resp, err := resty.R().
+	resp, err := resty.SetTimeout(time.Duration(15*time.Second)).R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(uri)
