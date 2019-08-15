@@ -340,7 +340,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	log.Warn("Rewinding blockchain", "target", head)
 
 	bc.chainmu.Lock()
-        defer bc.chainmu.Unlock()
+	defer bc.chainmu.Unlock()
 
 	updateFn := func(db ctxcdb.KeyValueWriter, header *types.Header) {
 		// Rewind the block chain, ensuring we don't end up with a stateless head block
@@ -1973,8 +1973,8 @@ func (bc *BlockChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (i
 	defer bc.wg.Done()
 
 	whFunc := func(header *types.Header) error {
-		 _, err := bc.hc.WriteHeader(header)
-                return err
+		_, err := bc.hc.WriteHeader(header)
+		return err
 	}
 
 	return bc.hc.InsertHeaderChain(chain, whFunc, start)

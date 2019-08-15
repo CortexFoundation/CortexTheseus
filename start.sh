@@ -1,4 +1,10 @@
-#!/bin/sh
+#!/bin/bash
+trap 'EXIT' INT
+function EXIT(){
+	ps aux | grep 'cortex cvm' | grep -v grep | grep -v echo | cut -c 9-15 | xargs kill -9
+	exit 0
+}
+
 ./cvm.sh > /dev/null 2>&1 &
 ./node.sh &
 while true; do
@@ -8,3 +14,4 @@ while true; do
         fi
         sleep 3
 done
+exit 0 #Exit with success
