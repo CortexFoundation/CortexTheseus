@@ -239,6 +239,7 @@ func (t *Torrent) Pending() bool {
 // TorrentManager ...
 type TorrentManager struct {
   client            *torrent.Client
+	bytes             map[metainfo.Hash]int64
   torrents          map[metainfo.Hash]*Torrent
   seedingTorrents   map[metainfo.Hash]*Torrent
   activeTorrents    map[metainfo.Hash]*Torrent
@@ -463,7 +464,10 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 // UpdateInfoHash ...
 func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
   log.Debug("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
-  if t := tm.GetTorrent(ih); t != nil {
+	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
+		tm.bytes[ih] = BytesRequested
+	}
+	if t := tm.GetTorrent(ih); t != nil {
     if BytesRequested < t.bytesRequested {
       return
     }
@@ -534,6 +538,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
     pendingTorrents:      make(map[metainfo.Hash]*Torrent),
     seedingTorrents:      make(map[metainfo.Hash]*Torrent),
     activeTorrents:       make(map[metainfo.Hash]*Torrent),
+		bytes:                make(map[metainfo.Hash]int64),
     maxSeedTask:          config.MaxSeedingNum,
     maxActiveTask:        config.MaxActiveNum,
     maxEstablishedConns:  cfg.EstablishedConnsPerTorrent,
@@ -567,7 +572,7 @@ func (tm *TorrentManager) mainLoop() {
   for {
     select {
     case torrent := <-tm.removeTorrent:
-      go tm.DropInfoHash(torrent)
+      tm.DropInfoHash(torrent)
     case msg := <-tm.updateTorrent:
       meta := msg.(FlowControlMeta)
 			if meta.IsCreate {
@@ -656,16 +661,14 @@ func (tm *TorrentManager) listenTorrentProgress() {
             }
           }(t)
 				} else {
-					/*
 					delete(tm.pendingTorrents, ih)
 					bytesRequested := t.bytesRequested
-					tm.DropInfoHash(ih)
+					tm.RemoveTorrent(ih)
 					tm.UpdateTorrent(FlowControlMeta{
 						InfoHash: ih,
 						BytesRequested: uint64(bytesRequested),
 						IsCreate: true,
 					})
-					*/
 				}
       }
     }
@@ -677,6 +680,13 @@ func (tm *TorrentManager) listenTorrentProgress() {
 
     for _, t := range activeTorrentsCandidate {
       ih := t.Torrent.InfoHash()
+			BytesRequested := tm.bytes[ih]
+			if t.bytesRequested < BytesRequested {
+        t.bytesRequested = BytesRequested
+        if t.bytesRequested > t.bytesLimitation {
+          t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
+        }
+		  }
       t.bytesCompleted = t.BytesCompleted()
       t.bytesMissing = t.BytesMissing()
       
