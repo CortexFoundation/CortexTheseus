@@ -138,7 +138,7 @@ func WriteHeadBlockHash(db ctxcdb.KeyValueWriter, hash common.Hash) {
 }
 
 // ReadHeadFastBlockHash retrieves the hash of the current fast-sync head block.
-func ReadHeadFastBlockHash(db ctxcdb.Reader) common.Hash {
+func ReadHeadFastBlockHash(db ctxcdb.KeyValueReader) common.Hash {
 	data, _ := db.Get(headFastBlockKey)
 	if len(data) == 0 {
 		return common.Hash{}
@@ -155,7 +155,7 @@ func WriteHeadFastBlockHash(db ctxcdb.KeyValueWriter, hash common.Hash) {
 
 // ReadFastTrieProgress retrieves the number of tries nodes fast synced to allow
 // reporting correct numbers across restarts.
-func ReadFastTrieProgress(db ctxcdb.Reader) uint64 {
+func ReadFastTrieProgress(db ctxcdb.KeyValueReader) uint64 {
 	data, _ := db.Get(fastTrieProgressKey)
 	if len(data) == 0 {
 		return 0
@@ -165,7 +165,7 @@ func ReadFastTrieProgress(db ctxcdb.Reader) uint64 {
 
 // WriteFastTrieProgress stores the fast sync trie process counter to support
 // retrieving it across restarts.
-func WriteFastTrieProgress(db ctxcdb.Writer, count uint64) {
+func WriteFastTrieProgress(db ctxcdb.KeyValueWriter, count uint64) {
 	if err := db.Put(fastTrieProgressKey, new(big.Int).SetUint64(count).Bytes()); err != nil {
 		log.Crit("Failed to store fast sync trie progress", "err", err)
 	}
@@ -214,7 +214,7 @@ func ReadHeader(db ctxcdb.Reader, hash common.Hash, number uint64) *types.Header
 
 // WriteHeader stores a block header into the database and also stores the hash-
 // to-number mapping.
-func WriteHeader(db ctxcdb.Writer, header *types.Header) {
+func WriteHeader(db ctxcdb.KeyValueWriter, header *types.Header) {
 	var (
 		hash   = header.Hash()
 		number = header.Number.Uint64()
@@ -235,9 +235,7 @@ func WriteHeader(db ctxcdb.Writer, header *types.Header) {
 
 // DeleteHeader removes all block header data associated with a hash.
 func DeleteHeader(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
-	if err := db.Delete(headerKey(number, hash)); err != nil {
-		log.Crit("Failed to delete header", "err", err)
-	}
+	deleteHeaderWithoutNumber(db, hash, number)
 	if err := db.Delete(headerNumberKey(hash)); err != nil {
 		log.Crit("Failed to delete hash to number mapping", "err", err)
 	}
@@ -332,7 +330,7 @@ func ReadTdRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 }
 
 func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
-	data, _ := db.Get(headerTDKey(number, hash))
+	data := ReadTdRLP(db, hash, number)
 	if len(data) == 0 {
 		return nil
 	}
@@ -344,7 +342,7 @@ func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
 	return td
 }
 
-func WriteTd(db ctxcdb.Writer, hash common.Hash, number uint64, td *big.Int) {
+func WriteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, td *big.Int) {
 	data, err := rlp.EncodeToBytes(td)
 	if err != nil {
 		log.Crit("Failed to RLP encode block total difficulty", "err", err)

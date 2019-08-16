@@ -96,6 +96,7 @@ var (
 	errCancelStateFetch        = errors.New("state data download canceled (requested)")
 	errCancelHeaderProcessing  = errors.New("header processing canceled (requested)")
 	errCancelContentProcessing = errors.New("content processing canceled (requested)")
+	errCanceled                = errors.New("syncing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
 	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 62)")
 )
@@ -297,14 +298,6 @@ func (d *Downloader) UnregisterPeer(id string) error {
 	}
 	d.queue.Revoke(id)
 
-	// If this peer was the master peer, abort sync immediately
-	//d.cancelLock.RLock()
-	//master := id == d.cancelPeer
-	//d.cancelLock.RUnlock()
-
-	//if master {
-	//	d.cancel()
-	//}
 	return nil
 }
 
@@ -314,7 +307,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 	err := d.synchronise(id, head, td, mode)
 	switch err {
 	case nil:
-	case errBusy:
+	case errBusy, errCanceled:
 	case vm.ErrRuntime:
 
 	case errTimeout, errBadPeer, errStallingPeer, errUnsyncedPeer,
@@ -410,6 +403,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 		if err != nil {
 			d.mux.Post(FailedEvent{err})
 		} else {
+			//latest := d.blockchain.CurrentHeader()
 			d.mux.Post(DoneEvent{})
 		}
 	}()
@@ -486,6 +480,14 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 		} else if d.ancientLimit > 0 {
 			log.Debug("Enabling direct-ancient mode", "ancient", d.ancientLimit)
 		}
+		// Rewind the ancient store and blockchain if reorg happens.
+		if origin+1 < frozen {
+			var hashes []common.Hash
+			for i := origin + 1; i < d.blockchain.CurrentHeader().Number.Uint64(); i++ {
+				hashes = append(hashes, rawdb.ReadCanonicalHash(d.stateDB, i))
+			}
+			d.blockchain.Rollback(hashes)
+		}
 	}
 	// Initiate the sync using a concurrent header and content retrieval algorithm
 	d.queue.Prepare(origin+1, d.mode)
@@ -525,7 +527,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 			// it has processed the queue.
 			d.queue.Close()
 		}
-		if err = <-errc; err != nil {
+		if err = <-errc; err != nil && err != errCanceled {
 			break
 		}
 	}
@@ -590,7 +592,7 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.Header, error) {
 	for {
 		select {
 		case <-d.cancelCh:
-			return nil, errCancelBlockFetch
+			return nil, errCanceled
 
 		case packet := <-d.headerCh:
 			// Discard anything not from the origin peer
@@ -1251,13 +1253,16 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 			for i, header := range rollback {
 				hashes[i] = header.Hash()
 			}
+
+			lastHeader := d.blockchain.CurrentHeader()
 			lastFastBlock := d.blockchain.CurrentFastBlock().Number()
 			lastBlock := d.blockchain.CurrentBlock().Number()
-
+			d.blockchain.Rollback(hashes)
 			curFastBlock, curBlock := common.Big0, common.Big0
 			curFastBlock = d.blockchain.CurrentFastBlock().Number()
 			curBlock = d.blockchain.CurrentBlock().Number()
 			log.Warn("Rolled back headers", "count", len(hashes),
+				"header", fmt.Sprintf("%d->%d", lastHeader, d.blockchain.CurrentHeader().Number),
 				"fast", fmt.Sprintf("%d->%d", lastFastBlock, curFastBlock),
 				"block", fmt.Sprintf("%d->%d", lastBlock, curBlock))
 		}
@@ -1330,7 +1335,6 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 					limit = len(headers)
 				}
 				chunk := headers[:limit]
-
 				// In case of header only syncing, validate the chunk immediately
 				if d.mode == FastSync {
 					// Collect the yet unknown headers to mark them as uncertain
@@ -1350,7 +1354,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 						if n > 0 {
 							rollback = append(rollback, chunk[:n]...)
 						}
-						log.Debug("Invalid header encountered", "number", chunk[n].Number, "hash", chunk[n].Hash(), "err", err)
+						log.Warn("Invalid header encountered", "number", chunk[n].Number, "hash", chunk[n].Hash(), "err", err)
 						return errInvalidChain
 					}
 					// All verifications passed, store newly found uncertain headers
@@ -1458,7 +1462,7 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 	stateSync := d.syncState(latest.Root)
 	defer stateSync.Cancel()
 	go func() {
-		if err := stateSync.Wait(); err != nil && err != errCancelStateFetch {
+		if err := stateSync.Wait(); err != nil && err != errCancelStateFetch && err != errCanceled {
 			d.queue.Close() // wake up WaitResults
 		}
 	}()
