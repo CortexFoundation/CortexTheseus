@@ -1537,18 +1537,20 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			if parent == nil {
 				return i, nil, nil, errors.New("missing parent")
 			}
+			if len(winner) > 0 {
+				for j := 0; j < len(winner)/2; j++ {
+					winner[j], winner[len(winner)-1-j] = winner[len(winner)-1-j], winner[j]
+				}
+				// Import all the pruned blocks to make the state available
+				log.Info("Importing sidechain segment", "start", winner[0].NumberU64(), "end", winner[len(winner)-1].NumberU64())
+				bc.chainmu.Lock()
+				_, evs, logs, err := bc.insertChain(winner)
+				bc.chainmu.Unlock()
+				events, coalescedLogs = evs, logs
 
-			for j := 0; j < len(winner)/2; j++ {
-				winner[j], winner[len(winner)-1-j] = winner[len(winner)-1-j], winner[j]
-			}
-			// Import all the pruned blocks to make the state available
-			bc.chainmu.Lock()
-			_, evs, logs, err := bc.insertChain(winner)
-			bc.chainmu.Unlock()
-			events, coalescedLogs = evs, logs
-
-			if err != nil {
-				return i, events, coalescedLogs, err
+				if err != nil {
+					return i, events, coalescedLogs, err
+				}
 			}
 
 		case err != nil:
