@@ -991,13 +991,6 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		// Rewind may have occurred, skip in that case.
 		if bc.CurrentHeader().Number.Cmp(head.Number()) >= 0 {
 			currentFastBlock, td := bc.CurrentFastBlock(), bc.GetTd(head.Hash(), head.NumberU64())
-			if currentFastBlock == nil {
-				log.Warn("current fast block is nil")
-			}
-
-			if bc.GetTd(currentFastBlock.Hash(), currentFastBlock.NumberU64()) == nil {
-				log.Warn("td is nil", "number", currentFastBlock.NumberU64(), "hash", currentFastBlock.Hash().Hex())
-			}
 			if bc.GetTd(currentFastBlock.Hash(), currentFastBlock.NumberU64()).Cmp(td) < 0 {
 				rawdb.WriteHeadFastBlockHash(bc.db, head.Hash())
 				bc.currentFastBlock.Store(head)
