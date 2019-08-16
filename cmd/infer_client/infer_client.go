@@ -8,6 +8,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	resty "gopkg.in/resty.v1"
+	"time"
 )
 
 var (
@@ -66,7 +67,7 @@ func main() {
 	requestBody := string(data)
 	fmt.Println(requestBody)
 
-	resp, err := resty.R().
+	resp, err := resty.SetTimeout(time.Duration(15*time.Second)).R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(*uri)
