@@ -32,7 +32,7 @@ import (
 
 const (
   removeTorrentChanBuffer         = 16
-  updateTorrentChanBuffer         = 320
+  updateTorrentChanBuffer         = 1000
   torrentPending                  = 0
   torrentPaused                   = 1
   torrentRunning                  = 2
@@ -239,6 +239,7 @@ func (t *Torrent) Pending() bool {
 // TorrentManager ...
 type TorrentManager struct {
   client            *torrent.Client
+	bytes             map[metainfo.Hash]int64
   torrents          map[metainfo.Hash]*Torrent
   seedingTorrents   map[metainfo.Hash]*Torrent
   activeTorrents    map[metainfo.Hash]*Torrent
@@ -426,7 +427,6 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 
 func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
   if tm.GetTorrent(ih) != nil {
-    tm.UpdateInfoHash(ih, BytesRequested)
     return
   }
 
@@ -442,12 +442,6 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
     return
   }
   log.Debug("Get torrent from infohash", "InfoHash", ih.HexString())
-
-  if tm.GetTorrent(ih) != nil {
-    log.Warn("Torrent was already existed. Skip", "InfoHash", ih.HexString())
-    //tm.mu.Unlock()
-    return
-  }
   
   spec := &torrent.TorrentSpec{
     Trackers: [][]string{},
@@ -470,7 +464,10 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 // UpdateInfoHash ...
 func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
   log.Debug("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
-  if t := tm.GetTorrent(ih); t != nil {
+	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
+		tm.bytes[ih] = BytesRequested
+	}
+	if t := tm.GetTorrent(ih); t != nil {
     if BytesRequested < t.bytesRequested {
       return
     }
@@ -541,6 +538,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
     pendingTorrents:      make(map[metainfo.Hash]*Torrent),
     seedingTorrents:      make(map[metainfo.Hash]*Torrent),
     activeTorrents:       make(map[metainfo.Hash]*Torrent),
+		bytes:                make(map[metainfo.Hash]int64),
     maxSeedTask:          config.MaxSeedingNum,
     maxActiveTask:        config.MaxActiveNum,
     maxEstablishedConns:  cfg.EstablishedConnsPerTorrent,
@@ -573,14 +571,15 @@ func (tm *TorrentManager) Start() error {
 func (tm *TorrentManager) mainLoop() {
   for {
     select {
-   case torrent := <-tm.removeTorrent:
-      go tm.DropInfoHash(torrent)
+    case torrent := <-tm.removeTorrent:
+      tm.DropInfoHash(torrent)
     case msg := <-tm.updateTorrent:
       meta := msg.(FlowControlMeta)
 			if meta.IsCreate {
       	log.Debug("TorrentManager", "newTorrent", meta.InfoHash.String())
       	tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			} else {
+      	log.Debug("TorrentManager", "updateTorrent", meta.InfoHash.String(), "bytes", meta.BytesRequested)
       	go tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			}
     case <-tm.closeAll:
@@ -664,7 +663,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				} else {
 					delete(tm.pendingTorrents, ih)
 					bytesRequested := t.bytesRequested
-					tm.DropInfoHash(ih)
+					tm.RemoveTorrent(ih)
 					tm.UpdateTorrent(FlowControlMeta{
 						InfoHash: ih,
 						BytesRequested: uint64(bytesRequested),
@@ -681,6 +680,13 @@ func (tm *TorrentManager) listenTorrentProgress() {
 
     for _, t := range activeTorrentsCandidate {
       ih := t.Torrent.InfoHash()
+			BytesRequested := tm.bytes[ih]
+			if t.bytesRequested < BytesRequested {
+        t.bytesRequested = BytesRequested
+        if t.bytesRequested > t.bytesLimitation {
+          t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
+        }
+		  }
       t.bytesCompleted = t.BytesCompleted()
       t.bytesMissing = t.BytesMissing()
       
