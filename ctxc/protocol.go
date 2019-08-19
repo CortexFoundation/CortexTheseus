@@ -35,13 +35,13 @@ const (
 )
 
 // ProtocolName is the official short name of the protocol used during capability negotiation.
-var ProtocolName = "ctxc"
+var protocolName = "ctxc"
 
 // ProtocolVersions are the upported versions of the ctxc protocol (first is primary).
 var ProtocolVersions = []uint{ctxc63, ctxc62}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{17, 8}
+var protocolLengths = map[uint]uint64{ctxc63: 17, ctxc62: 8}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 

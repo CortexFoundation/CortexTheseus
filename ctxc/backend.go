@@ -497,7 +497,11 @@ func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
 func (s *Cortex) Protocols() []p2p.Protocol {
-	return s.protocolManager.SubProtocols
+	protos := make([]p2p.Protocol, len(ProtocolVersions))
+	for i, vsn := range ProtocolVersions {
+		protos[i] = s.protocolManager.makeProtocol(vsn)
+	}
+	return protos
 }
 
 // Start implements node.Service, starting all internal goroutines needed by the
