@@ -38,7 +38,7 @@ const (
 var protocolName = "ctxc"
 
 // ProtocolVersions are the upported versions of the ctxc protocol (first is primary).
-var ProtocolVersions = []uint{ctxc63, ctxc62}
+var ProtocolVersions = []uint{ctxc63} //, ctxc62}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
 var protocolLengths = map[uint]uint64{ctxc63: 17, ctxc62: 8}
