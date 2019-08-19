@@ -301,7 +301,7 @@ func (s *stateSync) loop() (err error) {
 			return errCancelStateFetch
 
 		case <-s.d.cancelCh:
-			return errCancelStateFetch
+			return errCanceled
 
 		case req := <-s.deliver:
 			// Response, disconnect or timeout triggered, drop the peer if stalling
@@ -428,16 +428,13 @@ func (s *stateSync) process(req *stateReq) (int, error) {
 		}
 	}(time.Now())
 
-	// Iterate over all the delivered data and inject one-by-one into the trie
-	progress := false
-
 	for _, blob := range req.response {
-		prog, hash, err := s.processNodeData(blob)
+		_, hash, err := s.processNodeData(blob)
 		switch err {
 		case nil:
 			s.numUncommitted++
 			s.bytesUncommitted += len(blob)
-			progress = progress || prog
+			successful++
 		case trie.ErrNotRequested:
 			unexpected++
 		case trie.ErrAlreadyProcessed:

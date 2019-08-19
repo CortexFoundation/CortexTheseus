@@ -1540,11 +1540,13 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 		if len(results) == 0 {
 			// If pivot sync is done, stop
 			if oldPivot == nil {
+				log.Warn("old pivot is nil")
 				return stateSync.Cancel()
 			}
 			// If sync failed, stop
 			select {
 			case <-d.cancelCh:
+				log.Warn("state sync is cancelled")
 				return stateSync.Cancel()
 			default:
 			}
