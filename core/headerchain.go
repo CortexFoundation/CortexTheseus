@@ -104,6 +104,7 @@ func NewHeaderChain(chainDb ctxcdb.Database, config *params.ChainConfig, engine 
 		}
 	}
 	hc.currentHeaderHash = hc.CurrentHeader().Hash()
+	headHeaderGauge.Update(hc.CurrentHeader().Number.Int64())
 
 	return hc, nil
 }
@@ -185,6 +186,7 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 
 		hc.currentHeaderHash = hash
 		hc.currentHeader.Store(types.CopyHeader(header))
+		headHeaderGauge.Update(header.Number.Int64())
 
 		status = CanonStatTy
 	} else {
@@ -219,14 +221,18 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 
 	// Generate the list of seal verification requests, and start the parallel verifier
 	seals := make([]bool, len(chain))
-	for i := 0; i < len(seals)/checkFreq; i++ {
-		index := i*checkFreq + hc.rand.Intn(checkFreq)
-		if index >= len(seals) {
-			index = len(seals) - 1
+	if checkFreq != 0 {
+		// In case of checkFreq == 0 all seals are left false.
+		for i := 0; i < len(seals)/checkFreq; i++ {
+			index := i*checkFreq + hc.rand.Intn(checkFreq)
+			if index >= len(seals) {
+				index = len(seals) - 1
+			}
+			seals[index] = true
 		}
-		seals[index] = true
+		// Last should always be verified to avoid junk.
+		seals[len(seals)-1] = true
 	}
-	seals[len(seals)-1] = true // Last should always be verified to avoid junk
 
 	abort, results := hc.engine.VerifyHeaders(hc, chain, seals)
 	defer close(abort)

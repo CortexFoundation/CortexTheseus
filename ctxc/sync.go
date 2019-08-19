@@ -183,7 +183,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	mode := downloader.FullSync
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		// Fast sync was explicitly requested, and explicitly granted
-		//mode = downloader.FastSync
+		// mode = downloader.FastSync
 		//} else if currentBlock.NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
 		// The database seems empty as the current block is the genesis. Yet the fast
 		// block is ahead, so fast sync was enabled for this node at a certain point.

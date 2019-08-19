@@ -123,6 +123,7 @@ type BlockChain struct {
 	chainSideFeed event.Feed
 	chainHeadFeed event.Feed
 	logsFeed      event.Feed
+	blockProcFeed event.Feed
 	scope         event.SubscriptionScope
 	genesisBlock  *types.Block
 
@@ -1254,6 +1255,14 @@ func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
 
 // WriteBlockWithState writes the block and all associated state to the database.
 func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) (status WriteStatus, err error) {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	return bc.writeBlockWithState(block, receipts, state)
+}
+
+// WriteBlockWithState writes the block and all associated state to the database.
+func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) (status WriteStatus, err error) {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -1262,9 +1271,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if ptd == nil {
 		return NonStatTy, consensus.ErrUnknownAncestor
 	}
-	// Make sure no inconsistent state is leaked during insertion
-	bc.chainmu.Lock()
-	defer bc.chainmu.Unlock()
 
 	currentBlock := bc.CurrentBlock()
 	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
@@ -1329,10 +1335,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 					lastWrite = chosen
 					bc.gcproc = 0
 				}
-				// Flush an entire trie and restart the counters
-				//triedb.Commit(header.Root, true)
-				//lastWrite = chosen
-				//bc.gcproc = 0
 			}
 			// Garbage collect anything below our required write retention
 			for !bc.triegc.Empty() {
@@ -1400,7 +1402,38 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 //
 // After insertion is done, all accumulated events will be fired.
 func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
-	n, events, logs, err := bc.insertChain(chain)
+	// Sanity check that we have something meaningful to import
+	if len(chain) == 0 {
+		return 0, nil
+	}
+
+	bc.blockProcFeed.Send(true)
+	defer bc.blockProcFeed.Send(false)
+
+	// Remove already known canon-blocks
+	var (
+		block, prev *types.Block
+	)
+	// Do a sanity check that the provided chain is actually ordered and linked
+	for i := 1; i < len(chain); i++ {
+		block = chain[i]
+		prev = chain[i-1]
+		if block.NumberU64() != prev.NumberU64()+1 || block.ParentHash() != prev.Hash() {
+			// Chain broke ancestry, log a message (programming error) and skip insertion
+			log.Error("Non contiguous block insert", "number", block.Number(), "hash", block.Hash(),
+				"parent", block.ParentHash(), "prevnumber", prev.Number(), "prevhash", prev.Hash())
+
+			return 0, fmt.Errorf("non contiguous insert: item %d is #%d [%x…], item %d is #%d [%x…] (parent [%x…])", i-1, prev.NumberU64(),
+				prev.Hash().Bytes()[:4], i, block.NumberU64(), block.Hash().Bytes()[:4], block.ParentHash().Bytes()[:4])
+		}
+	}
+	// Pre-checks passed, start the full block imports
+	bc.wg.Add(1)
+	bc.chainmu.Lock()
+	n, events, logs, err := bc.insertChain(chain, true)
+	bc.chainmu.Unlock()
+	bc.wg.Done()
+
 	bc.PostChainEvents(events, logs)
 	return n, err
 }
@@ -1408,28 +1441,13 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 // insertChain will execute the actual chain insertion and event aggregation. The
 // only reason this method exists as a separate one is to make locking cleaner
 // with deferred statements.
-func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*types.Log, error) {
+func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []interface{}, []*types.Log, error) {
 	// Sanity check that we have something meaningful to import
-	if len(chain) == 0 {
+	if atomic.LoadInt32(&bc.procInterrupt) == 1 {
 		return 0, nil, nil, nil
 	}
-	// Do a sanity check that the provided chain is actually ordered and linked
-	for i := 1; i < len(chain); i++ {
-		if chain[i].NumberU64() != chain[i-1].NumberU64()+1 || chain[i].ParentHash() != chain[i-1].Hash() {
-			// Chain broke ancestry, log a message (programming error) and skip insertion
-			log.Error("Non contiguous block insert", "number", chain[i].Number(), "hash", chain[i].Hash(),
-				"parent", chain[i].ParentHash(), "prevnumber", chain[i-1].Number(), "prevhash", chain[i-1].Hash())
-
-			return 0, nil, nil, fmt.Errorf("non contiguous insert: item %d is #%d [%x…], item %d is #%d [%x…] (parent [%x…])", i-1, chain[i-1].NumberU64(),
-				chain[i-1].Hash().Bytes()[:4], i, chain[i].NumberU64(), chain[i].Hash().Bytes()[:4], chain[i].ParentHash().Bytes()[:4])
-		}
-	}
-	// Pre-checks passed, start the full block imports
-	bc.wg.Add(1)
-	defer bc.wg.Done()
-
-	bc.mu.Lock()
-	defer bc.mu.Unlock()
+	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
+	senderCacher.recoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
 
 	// A queued approach to delivering events. This is generally
 	// faster than direct delivery and requires much less mutex
@@ -1446,13 +1464,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 	for i, block := range chain {
 		headers[i] = block.Header()
-		seals[i] = true
+		seals[i] = verifySeals
 	}
 	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
 	defer close(abort)
-
-	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
-	senderCacher.recoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
 
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
@@ -1549,7 +1564,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				// Import all the pruned blocks to make the state available
 				log.Info("Importing sidechain segment", "start", winner[0].NumberU64(), "end", winner[len(winner)-1].NumberU64())
 				bc.chainmu.Lock()
-				_, evs, logs, err := bc.insertChain(winner)
+				_, evs, logs, err := bc.insertChain(winner, false)
 				bc.chainmu.Unlock()
 				events, coalescedLogs = evs, logs
 
@@ -1605,7 +1620,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		proctime := time.Since(bstart)
 
 		// Write the block to the chain and get the status.
-		status, err := bc.WriteBlockWithState(block, receipts, dbState)
+		status, err := bc.writeBlockWithState(block, receipts, dbState)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
