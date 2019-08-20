@@ -84,17 +84,10 @@ var (
 	errEmptyHeaderSet          = errors.New("empty header set by peer")
 	errPeersUnavailable        = errors.New("no peers available or all tried for download")
 	errInvalidAncestor         = errors.New("retrieved ancestor is invalid")
-	errBuiltInTorrentFS        = errors.New("retrieved inference op with file syncing")
 	errInvalidChain            = errors.New("retrieved hash chain is invalid")
-	errInvalidBlock            = errors.New("retrieved block is invalid")
 	errInvalidBody             = errors.New("retrieved block body is invalid")
 	errInvalidReceipt          = errors.New("retrieved receipt is invalid")
-	errCancelBlockFetch        = errors.New("block download canceled (requested)")
-	errCancelHeaderFetch       = errors.New("block header download canceled (requested)")
-	errCancelBodyFetch         = errors.New("block body download canceled (requested)")
-	errCancelReceiptFetch      = errors.New("receipt download canceled (requested)")
 	errCancelStateFetch        = errors.New("state data download canceled (requested)")
-	errCancelHeaderProcessing  = errors.New("header processing canceled (requested)")
 	errCancelContentProcessing = errors.New("content processing canceled (requested)")
 	errCanceled                = errors.New("syncing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
@@ -253,11 +246,13 @@ func (d *Downloader) Progress() cortex.SyncProgress {
 	defer d.syncStatsLock.RUnlock()
 
 	current := uint64(0)
-	switch d.mode {
-	case FullSync:
+	switch {
+	case d.blockchain != nil && d.mode == FullSync:
 		current = d.blockchain.CurrentBlock().NumberU64()
-	case FastSync:
+	case d.blockchain != nil && d.mode == FastSync:
 		current = d.blockchain.CurrentFastBlock().NumberU64()
+	default:
+		log.Error("Unknown downloader chain/mode combo", "full", d.blockchain != nil, "mode", d.mode)
 	}
 	return cortex.SyncProgress{
 		StartingBlock: d.syncStatsChainOrigin,
@@ -543,6 +538,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 func (d *Downloader) cancel() {
 	// Close the current cancel channel
 	d.cancelLock.Lock()
+	defer d.cancelLock.Unlock()
 	if d.cancelCh != nil {
 		select {
 		case <-d.cancelCh:
@@ -551,7 +547,7 @@ func (d *Downloader) cancel() {
 			close(d.cancelCh)
 		}
 	}
-	d.cancelLock.Unlock()
+	//d.cancelLock.Unlock()
 }
 
 // Cancel aborts all of the operations and waits for all download goroutines to
@@ -892,7 +888,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 	for {
 		select {
 		case <-d.cancelCh:
-			return errCancelHeaderFetch
+			return errCanceled
 
 		case packet := <-d.headerCh:
 			// Make sure the active peer is giving us the skeleton headers
@@ -919,7 +915,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 						getHeaders(from)
 						continue
 					case <-d.cancelCh:
-						return errCancelHeaderFetch
+						return errCanceled
 					}
 				}
 				// Pivot done (or not in fast sync) and no more headers, terminate the process
@@ -928,7 +924,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 				case d.headerProcCh <- nil:
 					return nil
 				case <-d.cancelCh:
-					return errCancelHeaderFetch
+					return errCanceled
 				}
 			}
 			headers := packet.(*headerPack).headers
@@ -972,7 +968,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 				select {
 				case d.headerProcCh <- headers:
 				case <-d.cancelCh:
-					return errCancelHeaderFetch
+					return errCanceled
 				}
 				from += uint64(len(headers))
 				getHeaders(from)
@@ -984,7 +980,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 					getHeaders(from)
 					continue
 				case <-d.cancelCh:
-					return errCancelHeaderFetch
+					return errCanceled
 				}
 			}
 
@@ -1043,7 +1039,7 @@ func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*types.Header) (
 		capacity = func(p *peerConnection) int { return p.HeaderCapacity(d.requestRTT()) }
 		setIdle  = func(p *peerConnection, accepted int) { p.SetHeadersIdle(accepted) }
 	)
-	err := d.fetchParts(errCancelHeaderFetch, d.headerCh, deliver, d.queue.headerContCh, expire,
+	err := d.fetchParts(errCanceled, d.headerCh, deliver, d.queue.headerContCh, expire,
 		d.queue.PendingHeaders, d.queue.InFlightHeaders, throttle, reserve,
 		nil, fetch, d.queue.CancelHeaders, capacity, d.peers.HeaderIdlePeers, setIdle, "headers")
 
@@ -1069,7 +1065,7 @@ func (d *Downloader) fetchBodies(from uint64) error {
 		capacity = func(p *peerConnection) int { return p.BlockCapacity(d.requestRTT()) }
 		setIdle  = func(p *peerConnection, accepted int) { p.SetBodiesIdle(accepted) }
 	)
-	err := d.fetchParts(errCancelBodyFetch, d.bodyCh, deliver, d.bodyWakeCh, expire,
+	err := d.fetchParts(errCanceled, d.bodyCh, deliver, d.bodyWakeCh, expire,
 		d.queue.PendingBlocks, d.queue.InFlightBlocks, d.queue.ShouldThrottleBlocks, d.queue.ReserveBodies,
 		d.bodyFetchHook, fetch, d.queue.CancelBodies, capacity, d.peers.BodyIdlePeers, setIdle, "bodies")
 
@@ -1093,7 +1089,7 @@ func (d *Downloader) fetchReceipts(from uint64) error {
 		capacity = func(p *peerConnection) int { return p.ReceiptCapacity(d.requestRTT()) }
 		setIdle  = func(p *peerConnection, accepted int) { p.SetReceiptsIdle(accepted) }
 	)
-	err := d.fetchParts(errCancelReceiptFetch, d.receiptCh, deliver, d.receiptWakeCh, expire,
+	err := d.fetchParts(errCanceled, d.receiptCh, deliver, d.receiptWakeCh, expire,
 		d.queue.PendingReceipts, d.queue.InFlightReceipts, d.queue.ShouldThrottleReceipts, d.queue.ReserveReceipts,
 		d.receiptFetchHook, fetch, d.queue.CancelReceipts, capacity, d.peers.ReceiptIdlePeers, setIdle, "receipts")
 
@@ -1329,7 +1325,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 	for {
 		select {
 		case <-d.cancelCh:
-			return errCancelHeaderProcessing
+			return errCanceled
 
 		case headers := <-d.headerProcCh:
 			// Terminate header processing if we synced up
@@ -1381,7 +1377,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 				// Terminate if something failed in between processing chunks
 				select {
 				case <-d.cancelCh:
-					return errCancelHeaderProcessing
+					return errCanceled
 				default:
 				}
 				// Select the next chunk of headers to import
@@ -1424,7 +1420,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 					for d.queue.PendingBlocks() >= maxQueuedHeaders || d.queue.PendingReceipts() >= maxQueuedHeaders {
 						select {
 						case <-d.cancelCh:
-							return errCancelHeaderProcessing
+							return errCanceled
 						case <-time.After(time.Second):
 						}
 					}
@@ -1545,7 +1541,8 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 			// If sync failed, stop
 			select {
 			case <-d.cancelCh:
-				return stateSync.Cancel()
+				stateSync.Cancel()
+				return errCanceled
 			default:
 			}
 		}
@@ -1575,7 +1572,7 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 				stateSync = d.syncState(P.Header.Root)
 				defer stateSync.Cancel()
 				go func() {
-					if err := stateSync.Wait(); err != nil && err != errCancelStateFetch {
+					if err := stateSync.Wait(); err != nil && err != errCancelStateFetch && err != errCanceled {
 						d.queue.Close() // wake up WaitResults
 					}
 				}()
