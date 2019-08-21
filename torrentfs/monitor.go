@@ -386,7 +386,7 @@ func (m *Monitor) validateStorage() error {
 		}
 
 		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
-			log.Debug("No block found", "number", i)
+			log.Trace("No block found", "number", i)
 			m.lastNumber = uint64(i)
 			m.dirty = true
 			continue

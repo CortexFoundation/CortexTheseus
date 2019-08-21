@@ -310,13 +310,13 @@ func (s *stateSync) loop() (err error) {
 				// 2 items are the minimum requested, if even that times out, we've no use of
 				// this peer at the moment.
 				log.Warn("Stalling state sync, dropping peer", "peer", req.peer.id)
-				//s.d.dropPeer(req.peer.id)
 				if s.d.dropPeer == nil {
 					// The dropPeer method is nil when `--copydb` is used for a local copy.
 					// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 					req.peer.log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", req.peer.id)
 				} else {
 					s.d.dropPeer(req.peer.id)
+
 					// If this peer was the master peer, abort sync immediately
 					s.d.cancelLock.RLock()
 					master := req.peer.id == s.d.cancelPeer
@@ -329,13 +329,11 @@ func (s *stateSync) loop() (err error) {
 				}
 			}
 			// Process all the received blobs and check for stale delivery
-			//if err = s.process(req); err != nil {
 			delivered, err := s.process(req)
 			if err != nil {
 				log.Warn("Node data write error", "err", err)
 				return err
 			}
-			//req.peer.SetNodeDataIdle(len(req.response))
 			req.peer.SetNodeDataIdle(delivered)
 		}
 	}
@@ -442,9 +440,7 @@ func (s *stateSync) process(req *stateReq) (int, error) {
 		default:
 			return successful, fmt.Errorf("invalid state node %s: %v", hash.TerminalString(), err)
 		}
-		if _, ok := req.tasks[hash]; ok {
-			delete(req.tasks, hash)
-		}
+		delete(req.tasks, hash)
 	}
 	// Put unfulfilled tasks back into the retry queue
 	npeers := s.d.peers.Len()
