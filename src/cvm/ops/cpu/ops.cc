@@ -49,7 +49,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.relu")
 * w : N*K
 * b : N
 * y : M*N
-*/
+/data/std_out/shufflenet*/
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.dense")
 .set_body([](CVMArgs args, CVMRetValue* rv) {
 #ifdef CVM_PROFILING
@@ -380,7 +380,7 @@ void groupwise_conv2d(
     for(int32_t oc = 0; oc < out_channels; ++oc){
       for(int32_t oh = 0; oh < o_h; ++oh){
         for(int32_t ow = 0; ow < o_w; ++ow){
-          int32_t oi = n * out_channels * o_h * o_w + oc * o_h * o_w + o_h * o_w + ow;
+          int32_t oi = n * out_channels * o_h * o_w + oc * o_h * o_w + oh * o_w + ow;
           int32_t sum = 0;
           int32_t ic = oc / ochannels_per_group * ichannels_per_group;
           for(int32_t tic = 0; tic < ichannels_per_group; ++tic){
@@ -464,7 +464,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
           padding, stride_h, stride_w, dilation[0], dilation[1],
           groups);
     }else{
-      std::cout << "start groupwise_conv2d.......\n";
       groupwise_conv2d(
           x_data, n_batch, in_channels, x_h, x_w,
           w_data, filter_c, filter_h, filter_w,
@@ -472,7 +471,6 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
           b_data,
           padding, stride_h, stride_w, dilation[0], dilation[1],
           groups);
-      std::cout << "end groupwise_conv2d.......\n";
     }
 #ifdef CVM_PROFILING
     cvm_op_depthwise_conv_cnt += omp_get_wtime() - start;
@@ -562,7 +560,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
       for (int s = 0; s < filter_w; ++s) {
         int32_t tp = p * stride_h + r - padding[0];
         int32_t tq = q * stride_w + s - padding[1];
-        int32_t x_tmp = 0; // zero padding by default
+        int32_t x_tmp = y_max; 
         if (0 <= tp && tp < x_h && 0 <= tq && tq < x_w)
           x_tmp = GETX(n, k, tp, tq);
         y_max = std::max(x_tmp, y_max);
@@ -582,6 +580,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
 #ifdef CVM_PROFILING
   cvm_op_maxpool_cnt += omp_get_wtime() - start;
 #endif
+  print_to_file(y, "max_pool.txt");
 
 });
 

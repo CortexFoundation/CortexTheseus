@@ -17,7 +17,7 @@
 
 using std::string;
 
-#define PRINT(e)  printf("ERROR: %s\n", e);
+#define PRINT(e) // printf("ERROR: %s\n", e);
 #define API_BEGIN() try {
 #define API_END() } \
   catch (const std::runtime_error &e) { PRINT(e.what()); return ERROR_RUNTIME; }  \
@@ -123,18 +123,14 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
 }
 
 CVMModel::~CVMModel() {
-  printf("shape size = %d\n", shapes_.size());
   for (size_t i = 0; i < shapes_.size(); ++i) {
       if (shapes_[i]){
-        printf("delete %d shapes....\n", i);
           delete shapes_[i];
       }
   }
   if (out_size_){
-    printf("delete out size..\n");
       delete out_size_;
   }
-  printf("delete done..\n");
 //  delete lck;
 }
 
