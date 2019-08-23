@@ -62,7 +62,8 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
   VerifyAttrRange(param.dilation[1], "Conv2D.dilation[1]", 1);
 
   VERIFY(param.groups == 1 ||
-      (dshape[1] == param.groups && param.groups == param.channels))
+      (dshape[1] == param.groups && param.groups == param.channels) ||
+    (dshape[1] % param.groups == 0 && param.channels % param.groups == 0))
     << "Conv2D only supported groups (1 or in_channels " << param.channels
     << ") vs. " << param.groups;
 

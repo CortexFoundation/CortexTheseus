@@ -367,6 +367,41 @@ void depthwise_conv2d_single(
   }
 }
 
+void groupwise_conv2d(
+   int32_t *x_data, int32_t n_batch, int32_t in_channels, int32_t x_h, int32_t x_w,
+   int32_t *w_data, int32_t filter_c, int32_t filter_h, int32_t filter_w,
+   int32_t *y_data, int32_t out_channels, int32_t o_h, int32_t o_w,
+   int32_t *b_data,
+   int32_t padding[2], int32_t stride_h, int32_t stride_w, int32_t dilation_h, int32_t dilation_w,
+   int32_t groups){
+  int32_t ochannels_per_group = out_channels / groups;
+  int32_t ichannels_per_group = in_channels / groups;
+  for(int32_t n = 0; n < n_batch; ++n){
+    for(int32_t oc = 0; oc < out_channels; ++oc){
+      for(int32_t oh = 0; oh < o_h; ++oh){
+        for(int32_t ow = 0; ow < o_w; ++ow){
+          int32_t oi = n * out_channels * o_h * o_w + oc * o_h * o_w + o_h * o_w + ow;
+          int32_t sum = 0;
+          int32_t ic = oc / ochannels_per_group * ichannels_per_group;
+          for(int32_t tic = 0; tic < ichannels_per_group; ++tic){
+            for(int32_t fh = 0; fh < filter_h; ++fh){
+              for(int32_t fw = 0; fw < filter_w; ++fw){
+                int32_t th = oh * stride_h + fh*dilation_h - padding[0];
+                int32_t tw = ow * stride_w + fw*dilation_w - padding[1];
+                if(th < 0 || tw < 0 || th >= x_h || tw >= x_w)
+                  continue;
+                sum += x_data[n * in_channels * x_h * x_w + (ic+tic) * x_h * x_w + th * x_w + tw]
+                  * w_data[oc * filter_c * filter_h * filter_w + tic * filter_h * filter_w + fh * filter_w + fw];
+              }
+            }
+          }
+          y_data[oi] = sum + (b_data == nullptr ? 0 : b_data[oc]);
+        }
+      }
+    }
+  }
+}
+
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
     .set_body([](CVMArgs args, CVMRetValue* rv)
 {
@@ -418,52 +453,64 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
 
   if(groups > 1){
 #ifdef CVM_PROFILING
-        double start = omp_get_wtime();
+    double start = omp_get_wtime();
 #endif
-    depthwise_conv2d(
-        x_data, n_batch, in_channels, x_h, x_w,
-        w_data, filter_c, filter_h, filter_w,
-        y_data, out_channels, o_h, o_w,
-        b_data,
-        padding, stride_h, stride_w, dilation[0], dilation[1],
-        groups);
+    if(groups == in_channels){
+      depthwise_conv2d(
+          x_data, n_batch, in_channels, x_h, x_w,
+          w_data, filter_c, filter_h, filter_w,
+          y_data, out_channels, o_h, o_w,
+          b_data,
+          padding, stride_h, stride_w, dilation[0], dilation[1],
+          groups);
+    }else{
+      std::cout << "start groupwise_conv2d.......\n";
+      groupwise_conv2d(
+          x_data, n_batch, in_channels, x_h, x_w,
+          w_data, filter_c, filter_h, filter_w,
+          y_data, out_channels, o_h, o_w,
+          b_data,
+          padding, stride_h, stride_w, dilation[0], dilation[1],
+          groups);
+      std::cout << "end groupwise_conv2d.......\n";
+    }
 #ifdef CVM_PROFILING
     cvm_op_depthwise_conv_cnt += omp_get_wtime() - start;
 #endif
-    } else {
+  } else {
 #ifdef CVM_PROFILING
-      double start = omp_get_wtime();
-      //double start_1x1 = omp_get_wtime();
+    double start = omp_get_wtime();
+    //double start_1x1 = omp_get_wtime();
 #endif
-      std::shared_ptr<int8_t> data_col(new int8_t[in_channels * filter_h * filter_w * o_h * o_w]);
-      int32_t fn = out_channels * in_channels * filter_h * filter_w;
-      std::shared_ptr<int8_t> int8_filter(new int8_t[fn]);
+    std::shared_ptr<int8_t> data_col(new int8_t[in_channels * filter_h * filter_w * o_h * o_w]);
+    int32_t fn = out_channels * in_channels * filter_h * filter_w;
+    std::shared_ptr<int8_t> int8_filter(new int8_t[fn]);
 
-      for(int32_t i = 0; i < fn; i++){
-          int8_filter.get()[i] = static_cast<int8_t>(w_data[i]);
-      }
-      for(int32_t i = 0; i < n_batch; i++){
-          bool has_negetive = false;
-          im2col_cpu(x_data + i * in_channels * x_h * x_w, in_channels, x_h, x_w, filter_h, filter_w, padding[0], padding[1],
-                  stride_h, stride_w, dilation_h, dilation_w, data_col.get(), has_negetive);
-          const int32_t M = out_channels;
-          const int32_t K = in_channels * filter_h * filter_w;
-          const int32_t N = o_h * o_w;
-          if(has_negetive) {
-            matrix_mul(int8_filter.get(), data_col.get(), b_data, y_data + i * out_channels * o_h * o_w,
-                  M, K, N);
-          }else{
-            transpose_int8_avx256(int8_filter.get(), data_col.get(), b_data, y_data + i * out_channels * o_h * o_w,
-                  M, K, N);
-          }
-      }
-#ifdef CVM_PROFILING
-        cvm_op_chnwise_conv_cnt += omp_get_wtime() - start;
-        if (filter_h == 1 && filter_w == 1) {
-          cvm_op_chnwise_conv1x1_cnt += omp_get_wtime() - start;
-        }
-#endif
+    for(int32_t i = 0; i < fn; i++){
+      int8_filter.get()[i] = static_cast<int8_t>(w_data[i]);
     }
+    for(int32_t i = 0; i < n_batch; i++){
+      bool has_negetive = false;
+      im2col_cpu(x_data + i * in_channels * x_h * x_w, in_channels, x_h, x_w, filter_h, filter_w, padding[0], padding[1],
+          stride_h, stride_w, dilation_h, dilation_w, data_col.get(), has_negetive);
+      const int32_t M = out_channels;
+      const int32_t K = in_channels * filter_h * filter_w;
+      const int32_t N = o_h * o_w;
+      if(has_negetive) {
+        matrix_mul(int8_filter.get(), data_col.get(), b_data, y_data + i * out_channels * o_h * o_w,
+            M, K, N);
+      }else{
+        transpose_int8_avx256(int8_filter.get(), data_col.get(), b_data, y_data + i * out_channels * o_h * o_w,
+            M, K, N);
+      }
+    }
+#ifdef CVM_PROFILING
+    cvm_op_chnwise_conv_cnt += omp_get_wtime() - start;
+    if (filter_h == 1 && filter_w == 1) {
+      cvm_op_chnwise_conv1x1_cnt += omp_get_wtime() - start;
+    }
+#endif
+  }
   print_to_file(y, "conv2d.txt");
 });
 
