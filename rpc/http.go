@@ -204,6 +204,7 @@ func NewHTTPServer(cors []string, vhosts []string, timeouts HTTPTimeouts, srv *S
 	// Wrap the CORS-handler within a host-handler
 	handler := newCorsHandler(srv, cors)
 	handler = newVHostHandler(vhosts, handler)
+	handler = newGzipHandler(handler)
 
 	// Make sure timeout values are meaningful
 	if timeouts.ReadTimeout < time.Second {
