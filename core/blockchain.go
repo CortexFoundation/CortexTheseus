@@ -1563,9 +1563,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 				}
 				// Import all the pruned blocks to make the state available
 				log.Info("Importing sidechain segment", "start", winner[0].NumberU64(), "end", winner[len(winner)-1].NumberU64())
-				bc.chainmu.Lock()
+				//bc.chainmu.Lock()
 				_, evs, logs, err := bc.insertChain(winner, false)
-				bc.chainmu.Unlock()
+				//bc.chainmu.Unlock()
 				events, coalescedLogs = evs, logs
 
 				if err != nil {
