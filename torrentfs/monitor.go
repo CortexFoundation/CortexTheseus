@@ -187,7 +187,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	}
 
 	if receipt.ContractAddr == nil {
-		log.Warn("Contract address is nil", "receipt", receipt.TxHash)
+		//log.Warn("Contract address is nil", "receipt", receipt.TxHash)
 		return nil
 	}
 
@@ -198,7 +198,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	//}
 
 	if receipt.Status != 1 {
-		log.Warn("Upload status error", "status", receipt.Status)
+		//log.Warn("Upload status error", "status", receipt.Status)
 		return nil
 	}
 
