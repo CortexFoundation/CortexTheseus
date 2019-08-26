@@ -108,7 +108,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
       int32_t* b_data = b != nullptr ? (int32_t*)b->data : nullptr;
 
       int out_channels = static_cast<int>(w->shape[0]);
-      //    int filter_c = static_cast<int>(w->shape[1]);
+      int filter_c = static_cast<int>(w->shape[1]);
       int filter_h = static_cast<int>(w->shape[2]);
       int filter_w = static_cast<int>(w->shape[3]);
       int t_filter_h = (filter_h - 1) * dilation[0] + 1;
@@ -134,15 +134,27 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.conv2d")
             groups,
             y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, error_code);
       }else{
+        if(groups == in_channels && groups == out_channels){
         errorStr = cuda_depthwise_conv2d(
             x_data, n_batch, in_channels, x_h, x_w,
-            w_data, out_channels, in_channels, filter_h, filter_w,
+            w_data, out_channels, filter_c, filter_h, filter_w,
             b_data,
             padding[0], padding[1],
             strides[0], strides[1],
             dilation[0], dilation[1],
             groups,
             y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, error_code);
+        }else{
+        errorStr = cuda_groupwise_conv2d(
+            x_data, n_batch, in_channels, x_h, x_w,
+            w_data, out_channels, filter_c, filter_h, filter_w,
+            b_data,
+            padding[0], padding[1],
+            strides[0], strides[1],
+            dilation[0], dilation[1],
+            groups,
+            y_data, n_batch, out_channels, o_h, o_w, x->ctx.device_id, error_code);
+        }
       }
       deal_error(error_code, errorStr);
   });
