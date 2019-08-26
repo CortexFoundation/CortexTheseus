@@ -555,12 +555,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max_pool2d")
 #define GETX(n, c, h, w) x_data[(n) * in_channels * x_h * x_w + (c) * x_h * x_w + (h) * x_w + (w)]
 #define GETY(n, c, h, w) y_data[(n) * out_channels * o_h * o_w + (c) * o_h * o_w + (h) * o_w + (w)]
   auto calc_func = [&](int n, int k, int p, int q) {
-    int32_t y_max = int32_t(1)<<31;
+    const int32_t minV = int32_t(1) << 31;
+    int32_t y_max = minV;
     for (int r = 0; r < filter_h; ++r) {
       for (int s = 0; s < filter_w; ++s) {
         int32_t tp = p * stride_h + r - padding[0];
         int32_t tq = q * stride_w + s - padding[1];
-        int32_t x_tmp = y_max; 
+        int32_t x_tmp = minV; 
         if (0 <= tp && tp < x_h && 0 <= tq && tq < x_w)
           x_tmp = GETX(n, k, tp, tq);
         y_max = std::max(x_tmp, y_max);

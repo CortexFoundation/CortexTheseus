@@ -652,7 +652,8 @@ __global__ void kernel_max_pool(
   extern __shared__ int32_t  share[];
   int32_t *shared_i = (int32_t*)share; 
 
-  int32_t max_elem = int(1)<<31; 
+  int32_t minV = int32_t(1)<<31; 
+  int32_t max_elem = minV;
   int min_s_y = (l_o_hi+1) * BS <= tmp_o_h ? BS : tmp_o_h%BS;
   int min_s_x = (l_o_wi+1) * BS <= tmp_o_w ? BS : tmp_o_w%BS;
 
@@ -662,14 +663,14 @@ __global__ void kernel_max_pool(
   int i_x = g_x - padding_w;
   // 0~2-> -1~1
   if(l_i_h < 0 || i_x < 0 || l_i_h >= i_h || i_x >= i_w)
-    shared_i[l_y*siw + l_x] = max_elem;
+    shared_i[l_y*siw + l_x] = minV;
   else
     shared_i[l_y*siw + l_x] = input[i_y * i_w + i_x];
 
   if(l_y < F_H-1){
     for(int i = l_y; i < F_H-1; i+=min_s_y){
       if(l_i_h+min_s_y+i-l_y < 0 || i_x < 0 || l_i_h+min_s_y+i-l_y >= i_h || i_x >= i_w)
-        shared_i[(i+min_s_y)*siw + l_x] = max_elem;
+        shared_i[(i+min_s_y)*siw + l_x] = minV;
       else
         shared_i[(i + min_s_y)*siw + l_x] = input[(i_y + min_s_y + i - l_y) * i_w + i_x];     
     }
@@ -677,7 +678,7 @@ __global__ void kernel_max_pool(
   if(l_x < F_W-1){
     for(int i = l_x; i < F_W-1; i+= min_s_x){
       if(l_i_h < 0 || i_x+min_s_x+i-l_x < 0 || l_i_h >= i_h || i_x+min_s_x+i-l_x >= i_w)
-        shared_i[l_y * siw + i+min_s_x] = max_elem;
+        shared_i[l_y * siw + i+min_s_x] = minV;
       else
         shared_i[l_y * siw + i + min_s_x] = input[i_y * i_w + i_x + min_s_x + i - l_x];
     }
@@ -686,7 +687,7 @@ __global__ void kernel_max_pool(
     for(int i = l_y; i < F_H-1; i+=min_s_y){
       for(int j = l_x; j < F_W-1; j+=min_s_x){
         if(l_i_h+min_s_y+i-l_y < 0 || i_x+min_s_x+j-l_x < 0 || l_i_h+min_s_y+i-l_y >= i_h || i_x+min_s_x+j-l_x >= i_w)
-          shared_i[(i+min_s_y) * siw + j+min_s_x] = max_elem;
+          shared_i[(i+min_s_y) * siw + j+min_s_x] = minV;
         else
           shared_i[(i+min_s_y) * siw + j+min_s_x] = input[(i_y+min_s_y + i-l_y)*i_w + i_x + min_s_x + j - l_x];
       }
@@ -721,14 +722,15 @@ __global__ void kernel_max_pool_no_shared(
   int32_t l_o_c = gy / o_h % o_c;
   int32_t l_o_n = gy / (o_h * o_c);
   if(gy < o_n * o_c * o_h && gx < o_w){
-    int32_t maxV = (int32_t)1 << 31;
+    int32_t minV = (int32_t)1 << 31;
+    int32_t maxV = minV;
     for(int fy = 0; fy < f_h; ++fy){
       for(int fx = 0; fx < f_w; ++fx){
         int32_t l_i_h = l_o_h * stride_h + fy  - padding_h;
         int32_t l_i_w = gx * stride_w + fx - padding_w;
         int32_t x;
         if(l_i_h < 0 || l_i_w < 0 || l_i_h >= i_h || l_i_w >= i_w)
-          x = maxV;
+          x = minV;
         else x = input[l_o_n * i_c * i_h * i_w + l_o_c * i_h * i_w + l_i_h * i_w + l_i_w];
         maxV = maxV < x ? x : maxV;
       }
