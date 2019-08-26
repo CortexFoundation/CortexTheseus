@@ -1,6 +1,7 @@
 package torrent
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -63,6 +64,10 @@ func (me *Count) Int64() int64 {
 
 func (me *Count) String() string {
 	return fmt.Sprintf("%v", me.Int64())
+}
+
+func (me *Count) MarshalJSON() ([]byte, error) {
+	return json.Marshal(me.n)
 }
 
 func (cs *ConnStats) wroteMsg(msg *pp.Message) {

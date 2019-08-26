@@ -1,6 +1,7 @@
 package torrent
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/anacrolix/missinggo/pubsub"
@@ -46,14 +47,14 @@ func (t *Torrent) NewReader() Reader {
 // same state. The sum of the state run lengths is the number of pieces
 // in the torrent.
 func (t *Torrent) PieceStateRuns() []PieceStateRun {
-	t.cl.lock()
-	defer t.cl.unlock()
+	t.cl.rLock()
+	defer t.cl.rUnlock()
 	return t.pieceStateRuns()
 }
 
 func (t *Torrent) PieceState(piece pieceIndex) PieceState {
-	t.cl.lock()
-	defer t.cl.unlock()
+	t.cl.rLock()
+	defer t.cl.rUnlock()
 	return t.pieceState(piece)
 }
 
@@ -107,16 +108,17 @@ func (t *Torrent) Seeding() bool {
 // Clobbers the torrent display name. The display name is used as the torrent
 // name if the metainfo is not available.
 func (t *Torrent) SetDisplayName(dn string) {
-	t.cl.lock()
-	defer t.cl.unlock()
-	t.setDisplayName(dn)
+	t.nameMu.Lock()
+	defer t.nameMu.Unlock()
+	if t.haveInfo() {
+		return
+	}
+	t.displayName = dn
 }
 
 // The current working name for the torrent. Either the name in the info dict,
 // or a display name given such as by the dn value in a magnet link, or "".
 func (t *Torrent) Name() string {
-	t.cl.lock()
-	defer t.cl.unlock()
 	return t.name()
 }
 
@@ -222,9 +224,10 @@ func (t *Torrent) DownloadAll() {
 func (t *Torrent) String() string {
 	s := t.name()
 	if s == "" {
-		s = t.infoHash.HexString()
+		return t.infoHash.HexString()
+	} else {
+		return strconv.Quote(s)
 	}
-	return s
 }
 
 func (t *Torrent) AddTrackers(announceList [][]string) {

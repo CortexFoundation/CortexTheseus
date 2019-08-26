@@ -519,7 +519,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
   cfg.Seed = true
   cfg.EstablishedConnsPerTorrent = 10
   cfg.HalfOpenConnsPerTorrent = 5
-  cfg.DropDuplicatePeerIds = true
+  //cfg.DropDuplicatePeerIds = true
   log.Info("Torrent client configuration", "config", cfg)
   cl, err := torrent.NewClient(cfg)
   if err != nil {

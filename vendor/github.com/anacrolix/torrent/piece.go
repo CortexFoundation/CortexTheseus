@@ -40,7 +40,7 @@ const (
 
 type Piece struct {
 	// The completed piece SHA1 hash, from the metainfo "pieces" field.
-	hash  metainfo.Hash
+	hash  *metainfo.Hash
 	t     *Torrent
 	index pieceIndex
 	files []*File
@@ -179,6 +179,7 @@ func (p *Piece) bytesLeft() (ret pp.Integer) {
 	return p.length() - p.numDirtyBytes()
 }
 
+// Forces the piece data to be rehashed.
 func (p *Piece) VerifyData() {
 	p.t.cl.lock()
 	defer p.t.cl.unlock()
@@ -186,10 +187,13 @@ func (p *Piece) VerifyData() {
 	if p.hashing {
 		target++
 	}
-	// log.Printf("target: %d", target)
+	//log.Printf("target: %d", target)
 	p.t.queuePieceCheck(p.index)
-	for p.numVerifies < target {
-		// log.Printf("got %d verifies", p.numVerifies)
+	for {
+		//log.Printf("got %d verifies", p.numVerifies)
+		if p.numVerifies >= target {
+			break
+		}
 		p.t.cl.event.Wait()
 	}
 	// log.Print("done")

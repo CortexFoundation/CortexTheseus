@@ -69,6 +69,14 @@
 			"revisionTime": "2018-08-08T00:52:04Z"
 		},
 		{
+			"path": "github.com/anacrolix/dht/v2",
+			"revision": "cae37fd1842087605e61382e82e4f87fab27afdc"
+		},
+		{
+			"path": "github.com/anacrolix/dht/v2/krpc",
+			"revision": "cae37fd1842087605e61382e82e4f87fab27afdc"
+		},
+		{
 			"checksumSHA1": "tEd37zKcM3qviRlo87+YzccJeZ4=",
 			"path": "github.com/anacrolix/go-libutp",
 			"revision": "aebbeb60ea05ff6da8454a6afbbb961490ac5b1f",
@@ -189,10 +197,10 @@
 			"revisionTime": "2018-08-08T01:06:31Z"
 		},
 		{
-			"checksumSHA1": "CiSQAhxS/ahTUsI+gkUZeSyfmDQ=",
+			"checksumSHA1": "0MNL8L/YVsMwnvM1Zos2Gaglj/Y=",
 			"path": "github.com/anacrolix/torrent",
-			"revision": "4431464fd62c37843addc79822f7cd30b4467471",
-			"revisionTime": "2018-08-13T10:28:02Z"
+			"revision": "95a521bad6f5cc17d6c40f888add262a6c40fc20",
+			"revisionTime": "2019-08-23T02:19:28Z"
 		},
 		{
 			"checksumSHA1": "mmuWh2/dQy4teZNhw7tB1gnF5l4=",
