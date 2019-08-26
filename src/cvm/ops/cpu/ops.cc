@@ -455,23 +455,13 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.conv2d")
 #ifdef CVM_PROFILING
     double start = omp_get_wtime();
 #endif
-    if(groups == in_channels){
-      depthwise_conv2d(
-          x_data, n_batch, in_channels, x_h, x_w,
-          w_data, filter_c, filter_h, filter_w,
-          y_data, out_channels, o_h, o_w,
-          b_data,
-          padding, stride_h, stride_w, dilation[0], dilation[1],
-          groups);
-    }else{
-      groupwise_conv2d(
-          x_data, n_batch, in_channels, x_h, x_w,
-          w_data, filter_c, filter_h, filter_w,
-          y_data, out_channels, o_h, o_w,
-          b_data,
-          padding, stride_h, stride_w, dilation[0], dilation[1],
-          groups);
-    }
+    groupwise_conv2d(
+        x_data, n_batch, in_channels, x_h, x_w,
+        w_data, filter_c, filter_h, filter_w,
+        y_data, out_channels, o_h, o_w,
+        b_data,
+        padding, stride_h, stride_w, dilation[0], dilation[1],
+        groups);
 #ifdef CVM_PROFILING
     cvm_op_depthwise_conv_cnt += omp_get_wtime() - start;
 #endif
