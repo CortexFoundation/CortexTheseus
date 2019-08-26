@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anacrolix/dht/krpc"
+	"github.com/anacrolix/dht/v2/krpc"
 )
 
 // Transaction keeps track of a message exchange between nodes, such as a
@@ -40,8 +40,10 @@ func (t *Transaction) key() transactionKey {
 }
 
 func (t *Transaction) startResendTimer() {
-	t.timer = time.AfterFunc(t.queryResendDelay(), t.resendCallback)
+	t.timer = time.AfterFunc(0, t.resendCallback)
 }
+
+const maxTransactionSends = 3
 
 func (t *Transaction) resendCallback() {
 	t.mu.Lock()
@@ -49,7 +51,7 @@ func (t *Transaction) resendCallback() {
 	if t.gotResponse {
 		return
 	}
-	if t.retries == 2 {
+	if t.retries == maxTransactionSends {
 		go t.onTimeout()
 		return
 	}

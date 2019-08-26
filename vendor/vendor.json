@@ -57,18 +57,6 @@
 			"revisionTime": "2019-02-18T06:46:05Z"
 		},
 		{
-			"checksumSHA1": "grNaIWhDwa0qTgxALwEtcZy1Wh8=",
-			"path": "github.com/anacrolix/dht",
-			"revision": "cae37fd1842087605e61382e82e4f87fab27afdc",
-			"revisionTime": "2018-08-08T00:52:04Z"
-		},
-		{
-			"checksumSHA1": "epPJjZciLvumljWFobyaXjfnvFQ=",
-			"path": "github.com/anacrolix/dht/krpc",
-			"revision": "cae37fd1842087605e61382e82e4f87fab27afdc",
-			"revisionTime": "2018-08-08T00:52:04Z"
-		},
-		{
 			"path": "github.com/anacrolix/dht/v2",
 			"revision": "cae37fd1842087605e61382e82e4f87fab27afdc"
 		},

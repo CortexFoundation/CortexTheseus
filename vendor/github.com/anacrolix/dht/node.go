@@ -3,7 +3,7 @@ package dht
 import (
 	"time"
 
-	"github.com/anacrolix/dht/krpc"
+	"github.com/anacrolix/dht/v2/krpc"
 )
 
 type nodeKey struct {
@@ -13,7 +13,7 @@ type nodeKey struct {
 
 type node struct {
 	nodeKey
-	announceToken string
+	announceToken *string
 	readOnly      bool
 
 	lastGotQuery    time.Time
@@ -27,7 +27,7 @@ func (n *node) hasAddrAndID(addr Addr, id int160) bool {
 }
 
 func (n *node) IsSecure() bool {
-	return NodeIdSecure(n.id.AsByteArray(), n.addr.UDPAddr().IP)
+	return NodeIdSecure(n.id.AsByteArray(), n.addr.IP())
 }
 
 func (n *node) idString() string {
