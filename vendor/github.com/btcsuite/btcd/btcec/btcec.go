@@ -406,7 +406,7 @@ func (curve *KoblitzCurve) addGeneric(x1, y1, z1, x2, y2, z2, x3, y3, z3 *fieldV
 }
 
 // addJacobian adds the passed Jacobian points (x1, y1, z1) and (x2, y2, z2)
-// tocortexer and stores the result in (x3, y3, z3).
+// together and stores the result in (x3, y3, z3).
 func (curve *KoblitzCurve) addJacobian(x1, y1, z1, x2, y2, z2, x3, y3, z3 *fieldVal) {
 	// A point at infinity is the identity according to the group law for
 	// elliptic curve cryptography.  Thus, ∞ + P = P and P + ∞ = P.
@@ -871,7 +871,7 @@ func (curve *KoblitzCurve) ScalarBaseMult(k []byte) (*big.Int, *big.Int) {
 	// strategy is to add up the byte points. This is best understood by
 	// expressing k in base-256 which it already sort of is.
 	// Each "digit" in the 8-bit window can be looked up using bytePoints
-	// and added tocortexer.
+	// and added together.
 	for i, byteVal := range newK {
 		p := curve.bytePoints[diff+i][byteVal]
 		curve.addJacobian(qx, qy, qz, &p[0], &p[1], &p[2], qx, qy, qz)

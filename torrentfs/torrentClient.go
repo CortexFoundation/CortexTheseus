@@ -27,7 +27,7 @@ import (
   "github.com/anacrolix/torrent/mmap_span"
   "github.com/anacrolix/torrent/storage"
 
-  "github.com/anacrolix/dht"
+  //"github.com/anacrolix/dht"
 )
 
 const (
@@ -508,9 +508,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
   cfg := torrent.NewDefaultClientConfig()
   cfg.DisableUTP = config.DisableUTP
   cfg.NoDHT = config.DisableDHT
-  cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs
+  //cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs
   cfg.DataDir = config.DataDir
-  cfg.DisableEncryption = true
+  //cfg.DisableEncryption = true
   cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
   listenAddr := &net.TCPAddr{}
   log.Info("Torrent client listening on", "addr", listenAddr)
@@ -519,7 +519,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
   cfg.Seed = true
   cfg.EstablishedConnsPerTorrent = 10
   cfg.HalfOpenConnsPerTorrent = 5
-  cfg.DropDuplicatePeerIds = true
+  //cfg.DropDuplicatePeerIds = true
   log.Info("Torrent client configuration", "config", cfg)
   cl, err := torrent.NewClient(cfg)
   if err != nil {
