@@ -47,7 +47,7 @@ func (i *Iterator) Stop() {
 	}
 }
 
-// newIterator returns a new Iterator instance tocortexer with its item and stop channels.
+// newIterator returns a new Iterator instance together with its item and stop channels.
 func newIterator() (*Iterator, chan<- interface{}, <-chan struct{}) {
 	itemChan := make(chan interface{})
 	stopChan := make(chan struct{})

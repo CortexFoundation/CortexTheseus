@@ -6,6 +6,7 @@ package utp
 import "C"
 import (
 	"log"
+	"net"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -36,19 +37,26 @@ func (a *C.utp_callback_arguments) addressLen() C.socklen_t {
 	return *(*C.socklen_t)(unsafe.Pointer(&a.anon1[0]))
 }
 
-var sends int64
+var (
+	sends         int64
+	sendToUdpAddr = net.UDPAddr{
+		IP: make(net.IP, net.IPv6len),
+	}
+)
 
 //export sendtoCallback
 func sendtoCallback(a *C.utp_callback_arguments) (ret C.uint64) {
 	s := getSocketForLibContext(a.context)
 	b := a.bufBytes()
-	addr := structSockaddrToUDPAddr(a.address())
+	if err := structSockaddrToUDPAddr(a.address(), &sendToUdpAddr); err != nil {
+		panic(err)
+	}
 	newSends := atomic.AddInt64(&sends, 1)
 	if logCallbacks {
 		Logger.Printf("sending %d bytes, %d packets", len(b), newSends)
 	}
 	expMap.Add("socket PacketConn writes", 1)
-	n, err := s.pc.WriteTo(b, addr)
+	n, err := s.pc.WriteTo(b, &sendToUdpAddr)
 	c := s.conns[a.socket]
 	if err != nil {
 		expMap.Add("socket PacketConn write errors", 1)

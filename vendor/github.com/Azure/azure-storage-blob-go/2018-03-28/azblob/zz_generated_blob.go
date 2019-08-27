@@ -517,7 +517,7 @@ func (client blobClient) deleteResponder(resp pipeline.Response) (pipeline.Respo
 // href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations">Setting
 // Timeouts for Blob Service Operations.</a> rangeParameter is return only the bytes of the blob in the specified
 // range. leaseID is if specified, the operation only succeeds if the container's lease is active and matches this ID.
-// rangeGetContentMD5 is when set to true and specified tocortexer with the Range, the service returns the MD5 hash for
+// rangeGetContentMD5 is when set to true and specified together with the Range, the service returns the MD5 hash for
 // the range, as long as the range is less than or equal to 4 MB in size. ifModifiedSince is specify this header value
 // to operate only on a blob if it has been modified since the specified date/time. ifUnmodifiedSince is specify this
 // header value to operate only on a blob if it has not been modified since the specified date/time. ifMatches is

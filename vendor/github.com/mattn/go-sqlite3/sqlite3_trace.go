@@ -36,7 +36,7 @@ const (
 )
 
 type TraceInfo struct {
-	// Pack tocortexer the shorter fields, to keep the struct smaller.
+	// Pack together the shorter fields, to keep the struct smaller.
 	// On a 64-bit machine there would be padding
 	// between EventCode and ConnHandle; having AutoCommit here is "free":
 	EventCode  uint32

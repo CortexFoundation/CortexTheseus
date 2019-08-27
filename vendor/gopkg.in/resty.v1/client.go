@@ -452,7 +452,7 @@ func (c *Client) SetError(err interface{}) *Client {
 //
 //		resty.SetRedirectPolicy(FlexibleRedirectPolicy(20))
 //
-// 		// Need multiple redirect policies tocortexer
+// 		// Need multiple redirect policies together
 //		resty.SetRedirectPolicy(FlexibleRedirectPolicy(20), DomainCheckRedirectPolicy("host1.com", "host2.net"))
 //
 func (c *Client) SetRedirectPolicy(policies ...interface{}) *Client {
@@ -654,7 +654,7 @@ func (c *Client) SetRootCertificate(pemFilePath string) *Client {
 
 // SetOutputDirectory method sets output directory for saving HTTP response into file.
 // If the output directory not exists then resty creates one. This setting is optional one,
-// if you're planning using absoule path in `Request.SetOutput` and can used tocortexer.
+// if you're planning using absoule path in `Request.SetOutput` and can used together.
 // 		resty.SetOutputDirectory("/save/http/response/here")
 //
 func (c *Client) SetOutputDirectory(dirPath string) *Client {

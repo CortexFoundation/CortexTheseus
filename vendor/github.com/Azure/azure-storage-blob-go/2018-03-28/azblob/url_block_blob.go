@@ -86,7 +86,7 @@ func (bb BlockBlobURL) StageBlockFromURL(ctx context.Context, base64BlockID stri
 // In order to be written as part of a blob, a block must have been successfully written
 // to the server in a prior PutBlock operation. You can call PutBlockList to update a blob
 // by uploading only those blocks that have changed, then committing the new and existing
-// blocks tocortexer. Any blocks not specified in the block list and permanently deleted.
+// blocks together. Any blocks not specified in the block list and permanently deleted.
 // For more information, see https://docs.microsoft.com/rest/api/storageservices/put-block-list.
 func (bb BlockBlobURL) CommitBlockList(ctx context.Context, base64BlockIDs []string, h BlobHTTPHeaders,
 	metadata Metadata, ac BlobAccessConditions) (*BlockBlobCommitBlockListResponse, error) {

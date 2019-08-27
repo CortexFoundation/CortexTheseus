@@ -1,9 +1,8 @@
 package orderedmap
 
 import (
-	"github.com/google/btree"
-
 	"github.com/anacrolix/missinggo/iter"
+	"github.com/google/btree"
 )
 
 type GoogleBTree struct {
@@ -87,7 +86,7 @@ func (me *googleBTreeIter) Stop() {
 
 func (me *GoogleBTree) Iter(f iter.Callback) {
 	me.bt.Ascend(func(i btree.Item) bool {
-		return f(i.(*googleBTreeItem).value)
+		return f(i.(*googleBTreeItem).key)
 	})
 }
 
