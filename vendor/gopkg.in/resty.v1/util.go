@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2019 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -15,10 +15,10 @@ import (
 	"net/http"
 	"net/textproto"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -85,8 +85,38 @@ func Unmarshalc(c *Client, ct string, b []byte, d interface{}) (err error) {
 }
 
 //‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+// RequestLog and ResponseLog type
+//___________________________________
+
+// RequestLog struct is used to collected information from resty request
+// instance for debug logging. It sent to request log callback before resty
+// actually logs the information.
+type RequestLog struct {
+	Header http.Header
+	Body   string
+}
+
+// ResponseLog struct is used to collected information from resty response
+// instance for debug logging. It sent to response log callback before resty
+// actually logs the information.
+type ResponseLog struct {
+	Header http.Header
+	Body   string
+}
+
+//‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 // Package Unexported methods
 //___________________________________
+
+// way to disable the HTML escape as opt-in
+func jsonMarshal(c *Client, r *Request, d interface{}) ([]byte, error) {
+	if !r.jsonEscapeHTML {
+		return noescapeJSONMarshal(d)
+	} else if !c.jsonEscapeHTML {
+		return noescapeJSONMarshal(d)
+	}
+	return c.JSONMarshal(d)
+}
 
 func firstNonEmpty(v ...string) string {
 	for _, s := range v {
@@ -115,7 +145,7 @@ func createMultipartHeader(param, fileName, contentType string) textproto.MIMEHe
 	return hdr
 }
 
-func addMultipartFormField(w *multipart.Writer, mf *multipartField) error {
+func addMultipartFormField(w *multipart.Writer, mf *MultipartField) error {
 	partWriter, err := w.CreatePart(createMultipartHeader(mf.Param, mf.FileName, mf.ContentType))
 	if err != nil {
 		return err
@@ -151,10 +181,7 @@ func addFile(w *multipart.Writer, fieldName, path string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = file.Close()
-	}()
-
+	defer closeq(file)
 	return writeMultipartFormFile(w, fieldName, filepath.Base(path), file)
 }
 
@@ -202,7 +229,7 @@ func createDirectory(dir string) (err error) {
 }
 
 func canJSONMarshal(contentType string, kind reflect.Kind) bool {
-	return IsJSONType(contentType) && (kind == reflect.Struct || kind == reflect.Map)
+	return IsJSONType(contentType) && (kind == reflect.Struct || kind == reflect.Map || kind == reflect.Slice)
 }
 
 func functionName(i interface{}) string {
@@ -220,43 +247,35 @@ func releaseBuffer(buf *bytes.Buffer) {
 	}
 }
 
-func composeRequestURL(pathURL string, c *Client, r *Request) string {
-	if !strings.HasPrefix(pathURL, "/") {
-		pathURL = "/" + pathURL
-	}
-
-	hasTrailingSlash := false
-	if strings.HasSuffix(pathURL, "/") && len(pathURL) > 1 {
-		hasTrailingSlash = true
-	}
-
-	reqURL := "/"
-	for _, segment := range strings.Split(pathURL, "/") {
-		if strings.HasPrefix(segment, "{") && strings.HasSuffix(segment, "}") {
-			key := segment[1 : len(segment)-1]
-			if val, found := r.pathParams[key]; found {
-				reqURL = path.Join(reqURL, val)
-				continue
-			}
-
-			if val, found := c.pathParams[key]; found {
-				reqURL = path.Join(reqURL, val)
-				continue
-			}
-		}
-
-		reqURL = path.Join(reqURL, segment)
-	}
-
-	if hasTrailingSlash {
-		reqURL = reqURL + "/"
-	}
-
-	return reqURL
-}
-
 func closeq(v interface{}) {
 	if c, ok := v.(io.Closer); ok {
-		_ = c.Close()
+		sliently(c.Close())
 	}
+}
+
+func sliently(_ ...interface{}) {}
+
+func composeHeaders(hdrs http.Header) string {
+	var str []string
+	for _, k := range sortHeaderKeys(hdrs) {
+		str = append(str, fmt.Sprintf("%25s: %s", k, strings.Join(hdrs[k], ", ")))
+	}
+	return strings.Join(str, "\n")
+}
+
+func sortHeaderKeys(hdrs http.Header) []string {
+	var keys []string
+	for key := range hdrs {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func copyHeaders(hdrs http.Header) http.Header {
+	nh := http.Header{}
+	for k, v := range hdrs {
+		nh[k] = v
+	}
+	return nh
 }
