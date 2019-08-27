@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2019 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -25,19 +25,33 @@ import (
 //___________________________________
 
 func parseRequestURL(c *Client, r *Request) error {
+	// GitHub #103 Path Params
+	if len(r.pathParams) > 0 {
+		for p, v := range r.pathParams {
+			r.URL = strings.Replace(r.URL, "{"+p+"}", url.PathEscape(v), -1)
+		}
+	}
+	if len(c.pathParams) > 0 {
+		for p, v := range c.pathParams {
+			r.URL = strings.Replace(r.URL, "{"+p+"}", url.PathEscape(v), -1)
+		}
+	}
+
 	// Parsing request URL
 	reqURL, err := url.Parse(r.URL)
 	if err != nil {
 		return err
 	}
 
-	// GitHub #103 Path Params
-	reqURL.Path = composeRequestURL(reqURL.Path, c, r)
-
-	// If Request.Url is relative path then added c.HostUrl into
-	// the request URL otherwise Request.Url will be used as-is
+	// If Request.URL is relative path then added c.HostURL into
+	// the request URL otherwise Request.URL will be used as-is
 	if !reqURL.IsAbs() {
-		reqURL, err = url.Parse(c.HostURL + reqURL.String())
+		r.URL = reqURL.String()
+		if len(r.URL) > 0 && r.URL[0] != '/' {
+			r.URL = "/" + r.URL
+		}
+
+		reqURL, err = url.Parse(c.HostURL + r.URL)
 		if err != nil {
 			return err
 		}
@@ -209,15 +223,19 @@ func addCredentials(c *Client, r *Request) error {
 func requestLogger(c *Client, r *Request) error {
 	if c.Debug {
 		rr := r.RawRequest
+		rl := &RequestLog{Header: copyHeaders(rr.Header), Body: r.fmtBodyString()}
+		if c.requestLog != nil {
+			if err := c.requestLog(rl); err != nil {
+				return err
+			}
+		}
+
 		reqLog := "\n---------------------- REQUEST LOG -----------------------\n" +
 			fmt.Sprintf("%s  %s  %s\n", r.Method, rr.URL.RequestURI(), rr.Proto) +
 			fmt.Sprintf("HOST   : %s\n", rr.URL.Host) +
-			fmt.Sprintf("HEADERS:\n")
-
-		for h, v := range rr.Header {
-			reqLog += fmt.Sprintf("%25s: %v\n", h, strings.Join(v, ", "))
-		}
-		reqLog += fmt.Sprintf("BODY   :\n%v\n", r.fmtBodyString()) +
+			fmt.Sprintf("HEADERS:\n") +
+			composeHeaders(rl.Header) + "\n" +
+			fmt.Sprintf("BODY   :\n%v\n", rl.Body) +
 			"----------------------------------------------------------\n"
 
 		c.Log.Print(reqLog)
@@ -232,19 +250,23 @@ func requestLogger(c *Client, r *Request) error {
 
 func responseLogger(c *Client, res *Response) error {
 	if c.Debug {
+		rl := &ResponseLog{Header: copyHeaders(res.Header()), Body: res.fmtBodyString(c.debugBodySizeLimit)}
+		if c.responseLog != nil {
+			if err := c.responseLog(rl); err != nil {
+				return err
+			}
+		}
+
 		resLog := "\n---------------------- RESPONSE LOG -----------------------\n" +
 			fmt.Sprintf("STATUS 		: %s\n", res.Status()) +
 			fmt.Sprintf("RECEIVED AT	: %v\n", res.ReceivedAt().Format(time.RFC3339Nano)) +
 			fmt.Sprintf("RESPONSE TIME	: %v\n", res.Time()) +
-			"HEADERS:\n"
-
-		for h, v := range res.Header() {
-			resLog += fmt.Sprintf("%30s: %v\n", h, strings.Join(v, ", "))
-		}
+			"HEADERS:\n" +
+			composeHeaders(rl.Header) + "\n"
 		if res.Request.isSaveResponse {
 			resLog += fmt.Sprintf("BODY   :\n***** RESPONSE WRITTEN INTO FILE *****\n")
 		} else {
-			resLog += fmt.Sprintf("BODY   :\n%v\n", res.fmtBodyString(c.debugBodySizeLimit))
+			resLog += fmt.Sprintf("BODY   :\n%v\n", rl.Body)
 		}
 		resLog += "----------------------------------------------------------\n"
 
@@ -255,19 +277,22 @@ func responseLogger(c *Client, res *Response) error {
 }
 
 func parseResponseBody(c *Client, res *Response) (err error) {
+	if res.StatusCode() == http.StatusNoContent {
+		return
+	}
 	// Handles only JSON or XML content type
 	ct := firstNonEmpty(res.Header().Get(hdrContentTypeKey), res.Request.fallbackContentType)
 	if IsJSONType(ct) || IsXMLType(ct) {
-		// Considered as Result
-		if res.StatusCode() > 199 && res.StatusCode() < 300 {
+		// HTTP status code > 199 and < 300, considered as Result
+		if res.IsSuccess() {
 			if res.Request.Result != nil {
 				err = Unmarshalc(c, ct, res.body, res.Request.Result)
 				return
 			}
 		}
 
-		// Considered as Error
-		if res.StatusCode() > 399 {
+		// HTTP status code > 399, considered as Error
+		if res.IsError() {
 			// global error interface
 			if res.Request.Error == nil && c.Error != nil {
 				res.Request.Error = reflect.New(c.Error).Interface()
@@ -387,7 +412,7 @@ func handleRequestBody(c *Client, r *Request) (err error) {
 		bodyBytes = []byte(s)
 	} else if IsJSONType(contentType) &&
 		(kind == reflect.Struct || kind == reflect.Map || kind == reflect.Slice) {
-		bodyBytes, err = c.JSONMarshal(r.Body)
+		bodyBytes, err = jsonMarshal(c, r, r.Body)
 	} else if IsXMLType(contentType) && (kind == reflect.Struct) {
 		bodyBytes, err = xml.Marshal(r.Body)
 	}
@@ -427,14 +452,11 @@ func saveResponseIntoFile(c *Client, res *Response) error {
 		if err != nil {
 			return err
 		}
-		defer func() {
-			_ = outFile.Close()
-		}()
+		defer closeq(outFile)
 
 		// io.Copy reads maximum 32kb size, it is perfect for large file download too
-		defer func() {
-			_ = res.RawResponse.Body.Close()
-		}()
+		defer closeq(res.RawResponse.Body)
+
 		written, err := io.Copy(outFile, res.RawResponse.Body)
 		if err != nil {
 			return err
