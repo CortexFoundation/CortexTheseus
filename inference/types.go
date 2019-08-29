@@ -46,7 +46,7 @@ type AvailableWork struct {
 
 func RetriveType(input []byte) InferType {
 	type Work struct {
-		Type *InferType `json:"type"`
+		Type InferType `json:"type"`
 	}
 
 	var dec Work
@@ -54,7 +54,7 @@ func RetriveType(input []byte) InferType {
 		return INFER_UNKNOWN
 	}
 
-	return *dec.Type
+	return dec.Type
 }
 
 // infer response types

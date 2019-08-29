@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/inference"
-	"github.com/CortexFoundation/CortexTheseus/log"
+	//"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
