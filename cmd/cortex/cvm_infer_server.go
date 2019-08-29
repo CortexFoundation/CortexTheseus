@@ -26,7 +26,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Trace("Handler Info", "request", r, "inference.RetriveType(body)", inference.RetriveType(body))
+	//log.Trace("Handler Info", "request", r, "inference.RetriveType(body)", inference.RetriveType(body))
 
 	switch inference.RetriveType(body) {
 	case inference.INFER_BY_IH:
