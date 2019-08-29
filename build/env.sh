@@ -21,7 +21,7 @@ fi
 # Set up the environment to use the workspace.
 GOPATH="$workspace"
 export GOPATH
-#export GO111MODULE=on
+export GO111MODULE=off
 
 # Run the command inside the workspace.
 cd "$dir/CortexTheseus"

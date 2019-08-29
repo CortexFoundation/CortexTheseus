@@ -77,7 +77,7 @@ github.com/docker/docker/pkg/reexec
 github.com/dustin/go-humanize
 # github.com/edsrzf/mmap-go v1.0.0
 github.com/edsrzf/mmap-go
-# github.com/elastic/gosigar v0.10.4
+# github.com/elastic/gosigar v0.10.5
 github.com/elastic/gosigar
 github.com/elastic/gosigar/sys/windows
 # github.com/fatih/color v1.7.0
@@ -89,6 +89,8 @@ github.com/fjl/memsize
 github.com/fsnotify/fsnotify
 # github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2
 github.com/glycerine/go-unsnap-stream
+# github.com/go-resty/resty/v2 v2.0.0
+github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
 github.com/go-stack/stack
 # github.com/golang/protobuf v1.3.2
@@ -201,7 +203,7 @@ github.com/tinylib/msgp/msgp
 github.com/willf/bitset
 # github.com/willf/bloom v2.0.3+incompatible
 github.com/willf/bloom
-# golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
+# golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ripemd160
@@ -213,7 +215,7 @@ golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
-# golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
+# golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
 golang.org/x/net/websocket
 golang.org/x/net/publicsuffix
 golang.org/x/net/proxy
@@ -244,7 +246,7 @@ golang.org/x/text/runes
 golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190826234050-71894ab67ee3
+# golang.org/x/tools v0.0.0-20190829051458-42f498d34c4d
 golang.org/x/tools/imports
 golang.org/x/tools/internal/imports
 golang.org/x/tools/go/ast/astutil
@@ -265,8 +267,6 @@ gopkg.in/check.v1
 gopkg.in/natefinch/npipe.v2
 # gopkg.in/olebedev/go-duktape.v3 v3.0.0-20190709231704-1e4459ed25ff
 gopkg.in/olebedev/go-duktape.v3
-# gopkg.in/resty.v1 v1.12.0
-gopkg.in/resty.v1
 # gopkg.in/sourcemap.v1 v1.0.5
 gopkg.in/sourcemap.v1
 gopkg.in/sourcemap.v1/base64vlq
