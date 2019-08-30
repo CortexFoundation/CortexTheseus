@@ -40,5 +40,5 @@ cpu-miner:
 clean:
 	rm miner/libcuckoo/*.o miner/libcuckoo/*.a
 	rm -fr build/_workspace/pkg/ $(CBIN)/* $(PLUGINS_DIR)/*
-	go clean -cache
+	build/env.sh go clean -cache
 
