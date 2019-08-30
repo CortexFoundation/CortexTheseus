@@ -82,5 +82,3 @@ plugins/
 password
 *.sh
 keyfile.json
-go.mod
-go.sum
