@@ -75,20 +75,20 @@ nodekey:
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 plugins/cuda_helper_for_node.so: 
-	make -C solution cuda-miner
+	$(MAKE) -C solution cuda-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
-	make -C solution cpu-miner
+	$(MAKE) -C solution cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so:
-	make -C ${INFER_NET_DIR} -j8 gpu
+	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu
 	ln -sf ../infernet/build/gpu/libcvm_runtime_cuda.so $@
 	# build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
 plugins/cpu_cvm.so:
-	make -C ${INFER_NET_DIR} -j8 cpu
+	$(MAKE) -C ${INFER_NET_DIR} -j8 cpu
 	ln -sf ../infernet/build/cpu/libcvm_runtime_cpu.so $@
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
@@ -125,7 +125,7 @@ clean:
 
 clean-clib:
 	#make -C $(LIB_MINER_DIR) clean
-	make -C $(INFER_NET_DIR) clean
+	$(MAKE) -C $(INFER_NET_DIR) clean
 	
 .PHONY: clean-all
 clean-all: clean-clib clean
