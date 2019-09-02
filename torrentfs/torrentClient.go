@@ -26,8 +26,6 @@ import (
   "github.com/anacrolix/torrent/metainfo"
   "github.com/anacrolix/torrent/mmap_span"
   "github.com/anacrolix/torrent/storage"
-
-  //"github.com/anacrolix/dht"
 )
 
 const (
@@ -508,7 +506,6 @@ func NewTorrentManager(config *Config) *TorrentManager {
   cfg := torrent.NewDefaultClientConfig()
   cfg.DisableUTP = config.DisableUTP
   cfg.NoDHT = config.DisableDHT
-  //cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs
   cfg.DataDir = config.DataDir
   //cfg.DisableEncryption = true
   cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta

@@ -2,9 +2,9 @@
 bazil.org/fuse
 bazil.org/fuse/fs
 bazil.org/fuse/fuseutil
-# github.com/Azure/azure-pipeline-go v0.1.8
+# github.com/Azure/azure-pipeline-go v0.2.1
 github.com/Azure/azure-pipeline-go/pipeline
-# github.com/Azure/azure-storage-blob-go v0.6.0
+# github.com/Azure/azure-storage-blob-go v0.7.0
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/RoaringBitmap/roaring v0.4.18
 github.com/RoaringBitmap/roaring
@@ -130,6 +130,8 @@ github.com/kr/pretty
 github.com/kr/text
 # github.com/mattn/go-colorable v0.1.2
 github.com/mattn/go-colorable
+# github.com/mattn/go-ieproxy v0.0.0-20190610004146-91bb50d98149
+github.com/mattn/go-ieproxy
 # github.com/mattn/go-isatty v0.0.8
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.3
@@ -222,11 +224,14 @@ golang.org/x/net/html/charset
 golang.org/x/net/internal/socks
 golang.org/x/net/context
 golang.org/x/net/html
+golang.org/x/net/http/httpproxy
 golang.org/x/net/html/atom
+golang.org/x/net/idna
 # golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+golang.org/x/sys/windows/registry
 # golang.org/x/text v0.3.0
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -243,6 +248,9 @@ golang.org/x/text/language
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
 golang.org/x/text/internal/tag
+golang.org/x/text/secure/bidirule
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20190829051458-42f498d34c4d
