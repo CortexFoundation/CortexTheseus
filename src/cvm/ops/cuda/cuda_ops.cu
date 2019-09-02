@@ -1535,3 +1535,30 @@ const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_
   }
   return check_cuda_error(cudaGetLastError());
 }
+
+__global__ void kernel_where_same_shape(const int32_t *x_data, const int32_t *y_data, const int32_t *condition_data, int32_t *result, const uint64_t n){
+  int32_t tid = threadIdx.x + blockDim.x * blockIdx.x;
+  for(uint64_t i = tid; i < n; i+= gridDim.x * blockDim.x){
+    result[i] = condition_data[i] == 0 ? y_data[i] : x_data[i];
+  }
+}
+__global__ void kernel_where_shape0(const int32_t *x_data, const int32_t *y_data, const int32_t *condition_data, int32_t *result, const uint64_t shape0, const uint64_t n){
+  int32_t bid = blockIdx.x;
+  int32_t tid = threadIdx.x;
+  for(int32_t i = bid; i < shape0; i += gridDim.x  * blockDim.x){
+    for(int32_t j = tid; j < n; j += blockDim.x){
+      result[i * n + j] = (condition_data[i] == 0 ? y_data[i * n + j] : x_data[i * n + j]);
+    }
+  }
+}
+const char* cuda_where(const int32_t *x_data, const int32_t *y_data, const int32_t *condition_data, int32_t *result_data, bool same_shape, uint64_t n, uint64_t shape0, int& error_code){
+  if(same_shape){
+    const int32_t threadSize = 256;
+    const int32_t blockSize = getGridSize(n, threadSize);
+    kernel_where_same_shape<<<blockSize, threadSize>>>(x_data, y_data, condition_data, result_data, n);
+  }else{
+    const int32_t threadSize = 256;
+    const int32_t blockSize = shape0;
+    kernel_where_shape0<<<blockSize, threadSize>>>(x_data, y_data, condition_data, result_data, shape0, n);
+  }
+}

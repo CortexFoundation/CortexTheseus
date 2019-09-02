@@ -233,6 +233,41 @@ Example::
 )code" CVM_ADD_FILELINE)
 .set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
 
+CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_div, div)
+.add_alias("__div_symbol__")
+.describe(R"code(Returns element-wise max of the input arrays with broadcasting.
+
+Example::
+
+  x = [[ 6.,  6.,  6.]],
+      [ 6.,  6.,  6.]]
+
+   y = [[ 2.],
+        [ 3.]]
+
+  broadcast_div(x, y) = [[ 3.,  3.,  3.],],
+                        [ 2.,  2.,  2.]]
+
+)code" CVM_ADD_FILELINE)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
+
+CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_greater, greater)
+.add_alias("__greater_symbol__")
+.describe(R"code(Returns element-wise max of the input arrays with broadcasting.
+
+Example::
+x = [[ 1.,  1.,  1.],
+     [ 1.,  1.,  1.]]
+
+y = [[ 0.],
+     [ 1.]]
+
+broadcast_greater(x, y) = [[ 1.,  1.,  1.],
+                           [ 0.,  0.,  0.]]
+
+)code" CVM_ADD_FILELINE)
+.set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
+
 // CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_left_shift, left_shift)
 // .add_alias("__left_shift_symbol__")
 // .describe(R"code(Returns element-wise x << y of the input arrays with broadcasting.

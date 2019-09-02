@@ -102,6 +102,31 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_max")
     broadcast(args0, args1, args2, f);
     print_to_file(args2, "broadcast_max.txt");
 });
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_div")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *args0 = args[0];
+    DLTensor *args1 = args[1];
+    DLTensor *args2 = args[2];
+    broadcast_func f = [](int32_t a, int32_t b) -> int32_t {
+      return b == 0 ? 0 : a/b;
+    };
+
+    broadcast(args0, args1, args2, f);
+    print_to_file(args2, "broadcast_div.txt");
+});
+
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm.broadcast_greater")
+.set_body([](CVMArgs args, CVMRetValue *ret){
+    DLTensor *args0 = args[0];
+    DLTensor *args1 = args[1];
+    DLTensor *args2 = args[2];
+    broadcast_func f = [](int32_t a, int32_t b) -> int32_t {
+      return a > b;
+    };
+
+    broadcast(args0, args1, args2, f);
+    print_to_file(args2, "broadcast_greater.txt");
+});
 }
 }
 
