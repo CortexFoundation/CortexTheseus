@@ -490,7 +490,7 @@ func (s *Cortex) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Cortex) Engine() consensus.Engine           { return s.engine }
 func (s *Cortex) ChainDb() ctxcdb.Database           { return s.chainDb }
 func (s *Cortex) IsListening() bool                  { return true } // Always listening
-func (s *Cortex) CortexVersion() int                 { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Cortex) CortexVersion() int                 { return int(ProtocolVersions[0]) }
 func (s *Cortex) NetVersion() uint64                 { return s.networkID }
 func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
 
