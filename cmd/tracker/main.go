@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	cli "gopkg.in/urfave/cli.v1"
 	"os"
@@ -27,10 +28,11 @@ func main() {
 }
 
 func run(conf *Config) int {
-	cmd := exec.Command("bittorrent-tracker", "--port", "5008")
-	out, err := cmd.CombinedOutput()
+	cmd := exec.Command("bittorrent-tracker", "--port", "5008") //, "2&>1", "&")
+	err := cmd.Run()
 	if err != nil {
-		log.Crit("Tracker failed", "err", err, "out", out)
+		log.Crit("cmd.Run() failed", "err", err)
 	}
+	fmt.Println("Cortex tracker started")
 	return 1
 }
