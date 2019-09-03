@@ -55,6 +55,8 @@ torrent:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
 tracker:
+	sudo apt-get update
+	sudo apt-get install npm
 	sudo npm install -g bittorrent-tracker
 	build/env.sh go run build/ci.go install ./cmd/tracker
 	@echo "Done building."
