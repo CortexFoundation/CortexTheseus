@@ -2,9 +2,11 @@ package torrentfs
 
 import (
 	"errors"
+	"net"
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,8 +30,9 @@ var (
 	ErrGetLatestBlock = errors.New("get latest block failed")
 	ErrNoRPCClient    = errors.New("no rpc client")
 
-	ErrBlockHash  = errors.New("block or parent block hash invalid")
-	blockCache, _ = lru.New(6)
+	ErrBlockHash     = errors.New("block or parent block hash invalid")
+	blockCache, _    = lru.New(6)
+	unhealthPeers, _ = lru.New(25)
 )
 
 const (
@@ -154,17 +157,34 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
+var TRACKER_PORT = [3]string{"5008", "5009", "5010"}
+
 func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
 	err := m.cl.Call(&peers, "admin_peers")
-	if err == nil {
+	if err == nil && len(peers) > 0 {
+		var trackers = make([]string, len(peers))
 		for i, peer := range peers {
-			log.Info("peer", "index", i, "peer", peer.Network.RemoteAddress)
+			ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
+			if unhealthPeers.Contains(ip) {
+				continue
+			}
+			if m.healthy(ip, TRACKER_PORT[0]) {
+				log.Info("✨ Healthy peer found", "ip", ip)
+				trackers[i] = "http://" + ip + ":" + TRACKER_PORT[0] + "/announce"
+			} else {
+				//				log.Info("Unhealthy peer", "ip", ip)
+				unhealthPeers.Add(ip, peer)
+			}
 		}
+		if len(trackers) > 0 {
+			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
+		}
+		log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers)
 		return peers, nil
 	}
 
-	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
+	return nil, errors.New("[ Internal IPC Error ] peers")
 }
 
 /*func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
@@ -382,6 +402,7 @@ func (m *Monitor) startWork() error {
 	log.Info("Torrent fs validation passed")
 	m.wg.Add(1)
 	go m.listenLatestBlock()
+	go m.listenPeers()
 
 	return nil
 }
@@ -475,6 +496,32 @@ func (m *Monitor) listenLatestBlock() {
 	}
 }
 
+func (m *Monitor) listenPeers() {
+	defer m.wg.Done()
+	timer := time.NewTimer(time.Second * 30)
+
+	for {
+		select {
+		case <-timer.C:
+			m.peers()
+			timer.Reset(time.Minute * 3)
+		case <-m.exitCh:
+			return
+		}
+	}
+}
+
+func (m *Monitor) healthy(ip, port string) bool {
+	conn, err := net.DialTimeout("tcp", ip+":"+port, time.Millisecond*2000)
+	if err != nil {
+		log.Debug("Unhealthy", "ip", ip, "port", port, "err", err)
+		return false
+	}
+	defer conn.Close()
+	log.Debug("Healthy", "ip", ip, "port", port)
+	return true
+}
+
 const (
 	batch = 2048
 )
@@ -499,7 +546,6 @@ func (m *Monitor) syncLastBlock() {
 		}
 	}
 
-	m.peers()
 	//minNumber := uint64(0)
 	//if m.lastNumber > 6 {
 	//	minNumber = m.lastNumber - 6
