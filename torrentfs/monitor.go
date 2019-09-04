@@ -33,6 +33,7 @@ var (
 	ErrBlockHash     = errors.New("block or parent block hash invalid")
 	blockCache, _    = lru.New(6)
 	unhealthPeers, _ = lru.New(25)
+	healthPeers, _ = lru.New(25)
 )
 
 const (
@@ -162,6 +163,7 @@ var TRACKER_PORT = [3]string{"5008", "5009", "5010"}
 func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
 	err := m.cl.Call(&peers, "admin_peers")
+	update := false
 	if err == nil && len(peers) > 0 {
 		var trackers = make([]string, len(peers))
 		for i, peer := range peers {
@@ -169,19 +171,20 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			if unhealthPeers.Contains(ip) {
 				continue
 			}
-			if m.healthy(ip, TRACKER_PORT[0]) {
+			if m.healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
 				log.Info("✨ Healthy peer found", "ip", ip)
 				trackers[i] = "http://" + ip + ":" + TRACKER_PORT[0] + "/announce"
+				update = true
+				healthPeers.Add(ip, peer)
 			} else {
-				//				log.Info("Unhealthy peer", "ip", ip)
 				unhealthPeers.Add(ip, peer)
 			}
 		}
-		if len(trackers) > 0 {
+		if len(trackers) > 0 && update {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 		}
 		if len(m.fs.CurrentTorrentManager().trackers) > 1 {
-			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers[1], "healthy", len(trackers), "unhealthy", unhealthPeers.Len())
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers[1],  "unhealthy", unhealthPeers.Len())
 		}
 		return peers, nil
 	}
