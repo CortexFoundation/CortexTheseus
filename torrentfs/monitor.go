@@ -13,6 +13,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
@@ -148,6 +149,19 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 
 		time.Sleep(time.Second * fetchBlockTryInterval)
 		log.Warn("Torrent Fs Internal IPC ctx_getBlockByHash", "retry", i, "error", err)
+	}
+
+	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
+}
+
+func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
+	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
+	err := m.cl.Call(&peers, "admin_peers")
+	if err == nil {
+		for i, peer := range peers {
+			log.Info("peer", "index", i, "peer", peer.Network.RemoteAddress)
+		}
+		return peers, nil
 	}
 
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
@@ -484,6 +498,8 @@ func (m *Monitor) syncLastBlock() {
 			m.lastNumber = m.lastNumber - 12
 		}
 	}
+
+	m.peers()
 	//minNumber := uint64(0)
 	//if m.lastNumber > 6 {
 	//	minNumber = m.lastNumber - 6
