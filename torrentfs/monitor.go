@@ -180,7 +180,9 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		if len(trackers) > 0 {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 		}
-		log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers)
+		if len(m.fs.CurrentTorrentManager().trackers) > 1 {
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers[1], "healthy", len(trackers), "unhealthy", unhealthPeers.Len())
+		}
 		return peers, nil
 	}
 
