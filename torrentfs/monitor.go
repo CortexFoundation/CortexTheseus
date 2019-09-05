@@ -405,7 +405,7 @@ func (m *Monitor) startWork() error {
 	}
 
 	log.Info("Torrent fs validation passed")
-	m.wg.Add(1)
+	m.wg.Add(2)
 	go m.listenLatestBlock()
 	go m.listenPeers()
 
