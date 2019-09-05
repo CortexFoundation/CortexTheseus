@@ -159,13 +159,12 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 }
 
 var TRACKER_PORT = [3]string{"5008", "5009", "5010"}
-
+var trackers []string
 func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
 	err := m.cl.Call(&peers, "admin_peers")
 	update := false
 	if err == nil && len(peers) > 0 {
-		var trackers []string //= make([]string, len(peers))
 		for _, peer := range peers {
 			ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
 			if unhealthPeers.Contains(ip) {
