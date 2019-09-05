@@ -1,18 +1,17 @@
 package main
 
 import (
-	//"fmt"
-	//"github.com/CortexFoundation/CortexTheseus/log"
 	cli "gopkg.in/urfave/cli.v1"
 	"os"
 	"os/exec"
-	//"syscall"
 )
 
 type Config struct {
 }
-
-//sudo npm install -g bittorrent-tracker
+// curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+// source ~/.bashrc
+// nvm install node
+// sudo npm install -g bittorrent-tracker
 func main() {
 	var conf Config
 	app := cli.NewApp()
