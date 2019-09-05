@@ -160,11 +160,12 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 
 var TRACKER_PORT = [3]string{"5008", "5009", "5010"}
 var trackers []string
+
 func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
 	err := m.cl.Call(&peers, "admin_peers")
-	update := false
 	if err == nil && len(peers) > 0 {
+		update := false
 		for _, peer := range peers {
 			ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
 			if unhealthPeers.Contains(ip) {
@@ -172,7 +173,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			}
 			if m.healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
 				log.Info("✨ Healthy peer found", "ip", ip)
-				trackers = append(trackers,"http://" + ip + ":" + TRACKER_PORT[0] + "/announce")
+				trackers = append(trackers, "http://"+ip+":"+TRACKER_PORT[0]+"/announce")
 				update = true
 				healthPeers.Add(ip, peer)
 			} else {
@@ -183,7 +184,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 		}
 		if len(m.fs.CurrentTorrentManager().trackers) > 1 && update {
-			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers[1], "unhealthy", unhealthPeers.Len())
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers[1], "healthy", len(trackers), "unhealthy", unhealthPeers.Len())
 		}
 		return peers, nil
 	}
@@ -513,7 +514,7 @@ func (m *Monitor) listenPeers() {
 			m.peers()
 			timer.Reset(time.Second * 15)
 		case <-m.exitCh:
-			 log.Info("Peers listener stopped")
+			log.Info("Peers listener stopped")
 			return
 		}
 	}

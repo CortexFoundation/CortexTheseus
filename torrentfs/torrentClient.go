@@ -327,8 +327,8 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 		return
 	}
 	for _, t := range tm.pendingTorrents {
-                t.AddTrackers(tm.trackers)
-        }
+		t.AddTrackers(tm.trackers)
+	}
 
 	for _, t := range tm.activeTorrents {
 		t.AddTrackers(tm.trackers)
