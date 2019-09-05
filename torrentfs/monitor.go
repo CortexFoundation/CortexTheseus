@@ -333,6 +333,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 }
 
 func (m *Monitor) Stop() {
+	log.Info("Torrent listener closing")
 	atomic.StoreInt32(&(m.terminated), 1)
 	m.closeOnce.Do(func() {
 		close(m.exitCh)
@@ -345,6 +346,7 @@ func (m *Monitor) Stop() {
 		log.Info("Torrent fs listener synchronizing close")
 		m.wg.Wait()
 	})
+	log.Info("Torrent listener closed")
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
@@ -496,6 +498,7 @@ func (m *Monitor) listenLatestBlock() {
 			timer.Reset(time.Millisecond * 1000)
 
 		case <-m.exitCh:
+			log.Info("Block listener stopped")
 			return
 		}
 	}
@@ -511,6 +514,7 @@ func (m *Monitor) listenPeers() {
 			m.peers()
 			timer.Reset(time.Minute * 3)
 		case <-m.exitCh:
+			 log.Info("Peers listener stopped")
 			return
 		}
 	}

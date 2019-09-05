@@ -140,6 +140,7 @@ func cvmServer(ctx *cli.Context) error {
 	if fs_err != nil {
 		panic(fs_err)
 	}
+	defer storagefs.Stop()
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
 	DeviceId := ctx.GlobalInt(utils.InferDeviceIdFlag.Name)
