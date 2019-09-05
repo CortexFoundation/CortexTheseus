@@ -2,9 +2,11 @@ package torrentfs
 
 import (
 	"errors"
+	"net"
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
@@ -27,8 +30,10 @@ var (
 	ErrGetLatestBlock = errors.New("get latest block failed")
 	ErrNoRPCClient    = errors.New("no rpc client")
 
-	ErrBlockHash  = errors.New("block or parent block hash invalid")
-	blockCache, _ = lru.New(6)
+	ErrBlockHash     = errors.New("block or parent block hash invalid")
+	blockCache, _    = lru.New(6)
+	unhealthPeers, _ = lru.New(25)
+	healthPeers, _   = lru.New(25)
 )
 
 const (
@@ -151,6 +156,40 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	}
 
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
+}
+
+var TRACKER_PORT = [3]string{"5008", "5009", "5010"}
+var trackers []string
+
+func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
+	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
+	err := m.cl.Call(&peers, "admin_peers")
+	if err == nil && len(peers) > 0 {
+		update := false
+		for _, peer := range peers {
+			ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
+			if unhealthPeers.Contains(ip) {
+				continue
+			}
+			if m.healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
+				log.Info("✨ Healthy peer found", "ip", ip)
+				trackers = append(trackers, "http://"+ip+":"+TRACKER_PORT[0]+"/announce")
+				update = true
+				healthPeers.Add(ip, peer)
+			} else {
+				unhealthPeers.Add(ip, peer)
+			}
+		}
+		if len(trackers) > 0 && update {
+			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
+		}
+		if len(m.fs.CurrentTorrentManager().trackers) > 1 && update {
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers[1], "healthy", len(trackers), "unhealthy", unhealthPeers.Len())
+		}
+		return peers, nil
+	}
+
+	return nil, errors.New("[ Internal IPC Error ] peers")
 }
 
 /*func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
@@ -294,6 +333,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 }
 
 func (m *Monitor) Stop() {
+	log.Info("Torrent listener closing")
 	atomic.StoreInt32(&(m.terminated), 1)
 	m.closeOnce.Do(func() {
 		close(m.exitCh)
@@ -306,6 +346,7 @@ func (m *Monitor) Stop() {
 		log.Info("Torrent fs listener synchronizing close")
 		m.wg.Wait()
 	})
+	log.Info("Torrent listener closed")
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
@@ -366,8 +407,9 @@ func (m *Monitor) startWork() error {
 	}
 
 	log.Info("Torrent fs validation passed")
-	m.wg.Add(1)
+	m.wg.Add(2)
 	go m.listenLatestBlock()
+	go m.listenPeers()
 
 	return nil
 }
@@ -456,9 +498,37 @@ func (m *Monitor) listenLatestBlock() {
 			timer.Reset(time.Millisecond * 1000)
 
 		case <-m.exitCh:
+			log.Info("Block listener stopped")
 			return
 		}
 	}
+}
+
+func (m *Monitor) listenPeers() {
+	defer m.wg.Done()
+	timer := time.NewTimer(time.Second * defaultTimerInterval)
+
+	for {
+		select {
+		case <-timer.C:
+			m.peers()
+			timer.Reset(time.Second * 15)
+		case <-m.exitCh:
+			log.Info("Peers listener stopped")
+			return
+		}
+	}
+}
+
+func (m *Monitor) healthy(ip, port string) bool {
+	conn, err := net.DialTimeout("tcp", ip+":"+port, time.Millisecond*2000)
+	if err != nil {
+		log.Debug("Unhealthy", "ip", ip, "port", port, "err", err)
+		return false
+	}
+	defer conn.Close()
+	log.Debug("Healthy", "ip", ip, "port", port)
+	return true
 }
 
 const (
@@ -484,6 +554,7 @@ func (m *Monitor) syncLastBlock() {
 			m.lastNumber = m.lastNumber - 12
 		}
 	}
+
 	//minNumber := uint64(0)
 	//if m.lastNumber > 6 {
 	//	minNumber = m.lastNumber - 6

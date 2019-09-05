@@ -29,8 +29,9 @@ var MainnetTrackers = []string{
 	"http://47.88.214.96:5008/announce",
 	"http://47.93.158.68:5008/announce",
 	"http://torrent.cortexlabs.ai:5008/announce",
-	 "http://dht.coinbag.org:5008/announce",
-	 "http://dht.cortexlabs.ai:5008/announce",
+	"http://dht.coinbag.org:5008/announce",
+	"http://dht.cortexlabs.ai:5008/announce",
+	"http://127.0.0.1:5008/announce",
 	/*
 	     "udp://47.91.91.217:5008/announce",
 	   	"udp://47.74.1.234:5008/announce",
@@ -56,14 +57,14 @@ var MainnetTrackers = []string{
 
 var BernardTrackers = []string{
 	"http://47.91.91.217:5008/announce",
-        "http://47.74.1.234:5008/announce",
-        "http://47.88.7.24:5008/announce",
-        "http://47.91.43.70:5008/announce",
-        "http://47.91.106.117:5008/announce",
-        "http://47.91.147.37:5008/announce",
-        "http://47.89.178.175:5008/announce",
-        "http://47.88.214.96:5008/announce",
-        "http://torrent.cortexlabs.ai:5008/announce",
+	"http://47.74.1.234:5008/announce",
+	"http://47.88.7.24:5008/announce",
+	"http://47.91.43.70:5008/announce",
+	"http://47.91.106.117:5008/announce",
+	"http://47.91.147.37:5008/announce",
+	"http://47.89.178.175:5008/announce",
+	"http://47.88.214.96:5008/announce",
+	"http://torrent.cortexlabs.ai:5008/announce",
 }
 
 var TorrentBoostNodes = []string{

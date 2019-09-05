@@ -30,12 +30,12 @@ all: cortex
 
 cpu: cortex_cpu
 
-cortex_cpu: clib_cpu 
+cortex_cpu: clib_cpu tracker
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex_cpu ..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-cortex: clib 
+cortex: clib tracker
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
@@ -57,7 +57,7 @@ torrent:
 tracker:
 	build/env.sh go run build/ci.go install ./cmd/tracker
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/tracker\" to launch cortex tracker."
+	@echo "Run \"$(GOBIN)/tracker\" to launch tracker."
 
 seeding:
 	build/env.sh go run build/ci.go install ./cmd/seeding

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	cli "gopkg.in/urfave/cli.v1"
 	"os"
 	"os/exec"
@@ -10,8 +8,10 @@ import (
 
 type Config struct {
 }
-
-//sudo npm install -g bittorrent-tracker
+// curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+// source ~/.bashrc
+// nvm install node
+// sudo npm install -g bittorrent-tracker
 func main() {
 	var conf Config
 	app := cli.NewApp()
@@ -23,7 +23,7 @@ func main() {
 	}
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Crit("fatal", "err", err)
+		os.Exit(1)
 	}
 }
 
@@ -31,8 +31,8 @@ func run(conf *Config) int {
 	cmd := exec.Command("bittorrent-tracker", "--port", "5008") //, "2&>1", "&")
 	err := cmd.Run()
 	if err != nil {
-		log.Crit("cmd.Run() failed", "err", err)
+		os.Exit(1)
 	}
-	fmt.Println("Cortex tracker started")
+        //log.crit("cmd.Start", "err", err)
 	return 1
 }
