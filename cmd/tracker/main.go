@@ -18,8 +18,8 @@ func main() {
 	app.Flags = []cli.Flag{}
 
 	app.Action = func(c *cli.Context) error {
-		run(&conf)
-		return nil
+		err := run(&conf)
+		return err
 	}
 	err := app.Run(os.Args)
 	if err != nil {
@@ -28,7 +28,7 @@ func main() {
 }
 
 func run(conf *Config) error {
-	cmd := exec.Command("bittorrent-tracker", "--port", "5008", "--http") //, "2&>1", "&")
+	cmd := exec.Command("bittorrent-tracker", "--port", "5008", "--stats", "false", "--http", "--silent") //, "2&>1", "&")
 	err := cmd.Run()
 	if err != nil {
 		return err

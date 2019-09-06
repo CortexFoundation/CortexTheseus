@@ -2,7 +2,7 @@
 trap 'EXIT' INT
 function EXIT(){
 	pkill -P `cat cvm.pid`
-#	ps aux | grep 'cortex cvm' | grep -v grep | grep -v echo | cut -c 9-15 | xargs kill -9
+	ps aux | grep 'cortex cvm' | grep -v grep | grep -v echo | cut -c 9-15 | xargs kill -9
 	pkill -P `cat tracker.pid`
 	#	ps aux | grep 'bittorrent-tracker' | grep -v grep | grep -v echo | cut -c 9-15 | xargs kill -9
 	exit 0

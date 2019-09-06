@@ -167,6 +167,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	err := m.cl.Call(&peers, "admin_peers")
 	if err == nil && len(peers) > 0 {
 		flush := false
+		start := mclock.Now()
 		for _, peer := range peers {
 			ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
 			if unhealthPeers.Contains(ip) {
@@ -184,7 +185,8 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 		}
 		if len(m.fs.CurrentTorrentManager().trackers) > 1 {
-			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush)
+			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
@@ -531,18 +533,18 @@ func (m *Monitor) healthy(ip, port string) bool {
 	return true
 }
 
+var (
+	timeout = time.Duration(5 * time.Second)
+	client  = http.Client{
+		Timeout: timeout,
+	}
+)
+
 func (m *Monitor) http_healthy(ip, port string) bool {
 	url := "http://" + ip + ":" + port + "/stats"
-	response, err := http.Get(url)
-	if err != nil {
-		return false
-	}
-
-	if response == nil {
-		return false
-	}
-
-	if response.StatusCode != 200 {
+	//url := "http://127.0.0.1:5008/stats"
+	response, err := client.Get(url)
+	if err != nil || response == nil || response.StatusCode != 200 {
 		return false
 	}
 
@@ -550,7 +552,7 @@ func (m *Monitor) http_healthy(ip, port string) bool {
 }
 
 const (
-	batch = 2048
+	batch = 4096 //2048
 )
 
 func (m *Monitor) syncLastBlock() {
