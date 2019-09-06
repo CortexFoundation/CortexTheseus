@@ -10,7 +10,7 @@ function EXIT(){
 	fi
 	pkill -P `cat cvm.pid`
 	#ps aux | grep 'cortex cvm' | grep -v grep | grep -v echo | cut -c 9-15 | xargs kill -9
-	pkill -P `cat tracker.pid`
+#	pkill -P `cat tracker.pid`
 	pkill -P `cat node.pid`
 	rm -rf *.pid
 	#	ps aux | grep 'bittorrent-tracker' | grep -v grep | grep -v echo | cut -c 9-15 | xargs kill -9
@@ -23,11 +23,11 @@ if [ -f $cvm_pid ];then
 	exit 0
 fi
 
-if [ -f $tracker_pid ];then
-        echo "tracker is running."
-	remove=0
-        exit 0
-fi
+#if [ -f $tracker_pid ];then
+#        echo "tracker is running."
+#	remove=0
+#        exit 0
+#fi
 
 if [ -f $node_pid ];then
         echo "cortex node is running."
@@ -52,7 +52,7 @@ function start_tracker(){
 #echo $! > cvm.pid
 start_cvm
 #./tracker.sh &
-start_tracker
+#start_tracker
 #./node.sh &
 #echo $! > node.pid
 start_node
