@@ -28,6 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
+	"errors"
 	"net/http"
 )
 
@@ -138,7 +139,8 @@ func cvmServer(ctx *cli.Context) error {
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
 	storagefs.Start(nil)
 	if fs_err != nil {
-		panic(fs_err)
+		//panic(fs_err)
+		return errors.New("torrent start failed")
 	}
 	defer storagefs.Stop()
 	port := ctx.GlobalInt(CVMPortFlag.Name)
