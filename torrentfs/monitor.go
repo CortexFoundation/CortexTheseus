@@ -3,6 +3,7 @@ package torrentfs
 import (
 	"errors"
 	"net"
+	"net/http"
 	"os"
 	"runtime"
 	"strconv"
@@ -171,7 +172,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			if unhealthPeers.Contains(ip) {
 				continue
 			}
-			if m.healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
+			if m.http_healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
 				log.Info("✨ Healthy peer found", "ip", ip)
 				trackers = append(trackers, "http://"+ip+":"+TRACKER_PORT[0]+"/announce")
 				update = true
@@ -528,6 +529,24 @@ func (m *Monitor) healthy(ip, port string) bool {
 	}
 	defer conn.Close()
 	log.Debug("Healthy", "ip", ip, "port", port)
+	return true
+}
+
+func (m *Monitor) http_healthy(ip, port string) bool {
+	url := "http://" + ip + ":" + port + "/stats"
+	response, err := http.Get(url)
+	if err != nil {
+		return false
+	}
+
+	if response == nil {
+		return false
+	}
+
+	if response.StatusCode != 200 {
+		return false
+	}
+
 	return true
 }
 
