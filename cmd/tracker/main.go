@@ -27,12 +27,12 @@ func main() {
 	}
 }
 
-func run(conf *Config) int {
+func run(conf *Config) error {
 	cmd := exec.Command("bittorrent-tracker", "--port", "5008", "--http") //, "2&>1", "&")
 	err := cmd.Run()
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
         //log.crit("cmd.Start", "err", err)
-	return 1
+	return nil
 }

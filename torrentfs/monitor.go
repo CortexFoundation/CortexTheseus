@@ -166,7 +166,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
 	err := m.cl.Call(&peers, "admin_peers")
 	if err == nil && len(peers) > 0 {
-		update := false
+		flush := false
 		for _, peer := range peers {
 			ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
 			if unhealthPeers.Contains(ip) {
@@ -174,17 +174,17 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			}
 			if m.http_healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
 				trackers = append(trackers, "http://"+ip+":"+TRACKER_PORT[0]+"/announce")
-				update = true
+				flush = true
 				healthPeers.Add(ip, peer)
 			} else {
 				unhealthPeers.Add(ip, peer)
 			}
 		}
-		if len(trackers) > 0 && update {
+		if len(trackers) > 0 && flush {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 		}
-		if len(m.fs.CurrentTorrentManager().trackers) > 1 && update {
-			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "healthy", len(trackers), "unhealthy", unhealthPeers.Len())
+		if len(m.fs.CurrentTorrentManager().trackers) > 1 {
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush)
 		}
 		return peers, nil
 	}
@@ -506,13 +506,13 @@ func (m *Monitor) listenLatestBlock() {
 
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	timer := time.NewTimer(time.Second * 5)
 
 	for {
 		select {
 		case <-timer.C:
 			m.peers()
-			timer.Reset(time.Second * 15)
+			timer.Reset(time.Second * 60)
 		case <-m.exitCh:
 			log.Info("Peers listener stopped")
 			return
