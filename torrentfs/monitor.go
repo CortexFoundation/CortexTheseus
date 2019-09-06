@@ -173,7 +173,6 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				continue
 			}
 			if m.http_healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
-				log.Info("✨ Healthy peer found", "ip", ip)
 				trackers = append(trackers, "http://"+ip+":"+TRACKER_PORT[0]+"/announce")
 				update = true
 				healthPeers.Add(ip, peer)
@@ -185,7 +184,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 		}
 		if len(m.fs.CurrentTorrentManager().trackers) > 1 && update {
-			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "tm", m.fs.CurrentTorrentManager().trackers[1], "healthy", len(trackers), "unhealthy", unhealthPeers.Len())
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "healthy", len(trackers), "unhealthy", unhealthPeers.Len())
 		}
 		return peers, nil
 	}
