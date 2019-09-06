@@ -10,8 +10,8 @@ function EXIT(){
 
 ./cvm.sh & #> /dev/null 2>&1 &
 echo $! > cvm.pid
-./node.sh &
 ./tracker.sh &
+./node.sh &
 while true; do
         server=`ps aux | grep 'cortex cvm' | grep -v grep | grep -v echo`
         if [ ! "$server" ]; then
