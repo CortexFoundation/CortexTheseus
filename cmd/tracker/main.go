@@ -28,7 +28,7 @@ func main() {
 }
 
 func run(conf *Config) int {
-	cmd := exec.Command("bittorrent-tracker", "--port", "5008") //, "2&>1", "&")
+	cmd := exec.Command("bittorrent-tracker", "--port", "5008", "--http") //, "2&>1", "&")
 	err := cmd.Run()
 	if err != nil {
 		os.Exit(1)
