@@ -171,7 +171,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		for _, peer := range peers {
 			ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
 			if unhealthPeers.Contains(ip) {
-				continue
+				//continue
 			}
 			if m.http_healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
 				trackers = append(trackers, "http://"+ip+":"+TRACKER_PORT[0]+"/announce")
@@ -186,7 +186,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		}
 		if len(m.fs.CurrentTorrentManager().trackers) > 1 {
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(m.fs.CurrentTorrentManager().trackers), "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ TORRENT SEARCH COMPLETE", "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
@@ -508,7 +508,7 @@ func (m *Monitor) listenLatestBlock() {
 
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * 5)
+	timer := time.NewTimer(time.Second * 30)
 
 	for {
 		select {
