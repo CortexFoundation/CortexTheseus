@@ -37,8 +37,8 @@ const (
 	queryTimeInterval               = 3
   expansionFactor         float64 = 1.2
   defaultSeedInterval             = 600
-  torrentWaitingTime              = 120000
-  downloadWaitingTime             = 600000
+  torrentWaitingTime              = 1200000000
+  downloadWaitingTime             = 6000000000
   defaultBytesLimitation          = 512 * 1024
   defaultTmpFilePath              = ".tmp"
 )
