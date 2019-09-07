@@ -33,7 +33,7 @@ var (
 
 	ErrBlockHash     = errors.New("block or parent block hash invalid")
 	blockCache, _    = lru.New(6)
-	unhealthPeers, _ = lru.New(25)
+	unhealthPeers, _ = lru.New(256)
 	healthPeers, _   = lru.New(25)
 )
 
@@ -177,6 +177,9 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				trackers = append(trackers, "http://"+ip+":"+TRACKER_PORT[0]+"/announce")
 				flush = true
 				healthPeers.Add(ip, peer)
+				if unhealthPeers.Contains(ip) {
+					unhealthPeers.Remove(ip)
+				}
 			} else {
 				unhealthPeers.Add(ip, peer)
 			}
@@ -508,7 +511,7 @@ func (m *Monitor) listenLatestBlock() {
 
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * 30)
+	timer := time.NewTimer(time.Second * 15)
 
 	for {
 		select {
