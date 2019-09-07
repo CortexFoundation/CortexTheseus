@@ -1,4 +1,5 @@
 #!/bin/bash
+set +m
 cvm_pid=cvm.pid
 node_pid=node.pid
 tracker_pid=tracker_pid
@@ -9,6 +10,7 @@ function EXIT(){
 		exit 0
 	fi
 	pkill -P `cat cvm.pid`
+	#wait `cat cvm.pid` 2>/dev/null
 	#ps aux | grep 'cortex cvm' | grep -v grep | grep -v echo | cut -c 9-15 | xargs kill -9
 #	pkill -P `cat tracker.pid`
 	pkill -P `cat node.pid`
@@ -36,7 +38,7 @@ if [ -f $node_pid ];then
 fi
 
 function start_cvm(){
-	./cvm.sh & 
+	./cvm.sh & #>/dev/null 2>&1 &
 	echo $! > cvm.pid
 }
 
@@ -45,9 +47,9 @@ function start_node(){
 	echo $! > node.pid
 }
 
-function start_tracker(){
-	./tracker.sh &
-}
+#function start_tracker(){
+#	./tracker.sh &
+#}
 #./cvm.sh & 
 #echo $! > cvm.pid
 start_cvm
