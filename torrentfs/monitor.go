@@ -181,16 +181,18 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			if unhealthPeers.Contains(ip) {
 				//continue
 			}
-			if p, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc {
-				tracker := "http://" + ip + ":" + p + "/announce"
-				if healthPeers.Contains(tracker){
-					continue
-				}
-				trackers = append(trackers, tracker)
-				flush = true
-				healthPeers.Add(tracker, peer)
-				if unhealthPeers.Contains(ip) {
-					unhealthPeers.Remove(ip)
+			if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
+				for _, p := range ps {
+					tracker := "http://" + ip + ":" + p + "/announce"
+					if healthPeers.Contains(tracker) {
+						continue
+					}
+					trackers = append(trackers, tracker)
+					flush = true
+					healthPeers.Add(tracker, peer)
+					if unhealthPeers.Contains(ip) {
+						unhealthPeers.Remove(ip)
+					}
 				}
 			} else {
 				unhealthPeers.Add(ip, peer)
@@ -200,6 +202,9 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 		}
 		if len(m.fs.CurrentTorrentManager().trackers) > 1 {
+			for _, t := range trackers {
+				log.Info("tracker", "t", t)
+			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 			log.Info("✨ TORRENT SEARCH COMPLETE", "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
@@ -567,7 +572,9 @@ func (m *Monitor) http_healthy(ip, port string) bool {
 	return true
 }
 
-func (m *Monitor) batch_http_healthy(ip string, ports []string) (string, bool) {
+func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool) {
+	var res []string
+	var status = false
 	for _, port := range ports {
 		url := "http://" + ip + ":" + port + "/stats"
 		response, err := client.Get(url)
@@ -576,11 +583,14 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) (string, bool) {
 			continue
 		} else {
 			//log.Warn("Health check success", "url", url, "res", response)
-			return port, true
+			res = append(res, port)
+			//return port, true
+			status = true
 		}
 	}
 
-	return "", false
+	return res, status
+
 }
 
 const (
