@@ -182,10 +182,10 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				//continue
 			}
 			if p, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && !healthPeers.Contains(ip) {
-				//			if suc && !healthPeers.Contains(ip) {
-				trackers = append(trackers, "http://"+ip+":"+p+"/announce")
+				tracker := "http://" + ip + ":" + p + "/announce"
+				trackers = append(trackers, tracker)
 				flush = true
-				healthPeers.Add(ip, peer)
+				healthPeers.Add(tracker, peer)
 				if unhealthPeers.Contains(ip) {
 					unhealthPeers.Remove(ip)
 				}
