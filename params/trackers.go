@@ -18,6 +18,8 @@ package params
 
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Cortex network.
+var Tracker_ports = []string{"5007", "5008", "5009", "5010"}
+
 var MainnetTrackers = []string{
 	"http://47.91.91.217:5008/announce",
 	"http://47.74.1.234:5008/announce",

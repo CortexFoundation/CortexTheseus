@@ -159,8 +159,16 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
-var TRACKER_PORT = [3]string{"5008", "5009", "5010"}
-var trackers []string
+var (
+	ports        = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
+	TRACKER_PORT []string               // = append(TRACKER_PORT, ports...)
+
+	trackers []string
+)
+
+func (m *Monitor) init() {
+	TRACKER_PORT = append(TRACKER_PORT, ports...)
+}
 
 func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
@@ -173,8 +181,9 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			if unhealthPeers.Contains(ip) {
 				//continue
 			}
-			if m.http_healthy(ip, TRACKER_PORT[0]) && !healthPeers.Contains(ip) {
-				trackers = append(trackers, "http://"+ip+":"+TRACKER_PORT[0]+"/announce")
+			if p, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && !healthPeers.Contains(ip) {
+				//			if suc && !healthPeers.Contains(ip) {
+				trackers = append(trackers, "http://"+ip+":"+p+"/announce")
 				flush = true
 				healthPeers.Add(ip, peer)
 				if unhealthPeers.Contains(ip) {
@@ -414,6 +423,7 @@ func (m *Monitor) startWork() error {
 	log.Info("Torrent fs validation passed")
 	m.wg.Add(2)
 	go m.listenLatestBlock()
+	m.init()
 	go m.listenPeers()
 
 	return nil
@@ -552,6 +562,22 @@ func (m *Monitor) http_healthy(ip, port string) bool {
 	}
 
 	return true
+}
+
+func (m *Monitor) batch_http_healthy(ip string, ports []string) (string, bool) {
+	for _, port := range ports {
+		url := "http://" + ip + ":" + port + "/stats"
+		response, err := client.Get(url)
+		if err != nil || response == nil || response.StatusCode != 200 {
+			log.Warn("Health check failed", "url", url)
+			continue
+		} else {
+			log.Warn("Health check success", "url", url)
+			return port, true
+		}
+	}
+
+	return "", false
 }
 
 const (

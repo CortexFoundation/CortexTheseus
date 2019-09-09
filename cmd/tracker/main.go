@@ -1,13 +1,19 @@
 package main
 
 import (
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
 	cli "gopkg.in/urfave/cli.v1"
 	"os"
 	"os/exec"
+	"sync"
+	//        "sync/atomic"
 )
 
 type Config struct {
+	wg sync.WaitGroup
 }
+
 // curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
 // source ~/.bashrc
 // nvm install node
@@ -28,11 +34,21 @@ func main() {
 }
 
 func run(conf *Config) error {
-	cmd := exec.Command("bittorrent-tracker", "--port", "5008", "--stats", "false", "--http", "--silent") //, "2&>1", "&")
-	err := cmd.Run()
-	if err != nil {
-		return err
+
+	for _, port := range params.Tracker_ports {
+		//cmd := exec.Command("bittorrent-tracker", "--port", port, "--stats", "false", "--http", "--silent") //, "2&>1", "&")
+		log.Info("Tracker service starting", "port", port)
+		conf.wg.Add(1)
+		go func(p string) error {
+			defer conf.wg.Done()
+			log.Info("Tracker service starting", "port", p)
+			cmd := exec.Command("bittorrent-tracker", "--port", p, "--stats", "false", "--http", "--silent")
+			err := cmd.Run()
+
+			return err
+		}(port)
 	}
-        //log.crit("cmd.Start", "err", err)
+	conf.wg.Wait()
+	//log.crit("cmd.Start", "err", err)
 	return nil
 }
