@@ -1,17 +1,8 @@
 package torrentfs
 
 import (
+	"encoding/json"
 	"errors"
-	"net"
-	"net/http"
-	"os"
-	"runtime"
-	"strconv"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
@@ -21,6 +12,15 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
+	"net"
+	"net/http"
+	"os"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 //------------------------------------------------------------------------------
@@ -572,17 +572,38 @@ func (m *Monitor) http_healthy(ip, port string) bool {
 	return true
 }
 
+type tracker_stats struct {
+	Torrents              int `json:"torrents"`
+	ActiveTorrents        int `json:"activeTorrents"`
+	PeersAll              int `json:"peersAll"`
+	PeersSeederOnly       int `json:"peersSeederOnly"`
+	PeersLeecherOnly      int `json:"peersLeecherOnly"`
+	PeersSeederAndLeecher int `json:"peersSeederAndLeecher"`
+	PeersIPv4             int `json:"peersIPv4"`
+	PeersIPv6             int `json:"peersIPv6"`
+}
+
 func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool) {
 	var res []string
 	var status = false
+	var stats tracker_stats
 	for _, port := range ports {
-		url := "http://" + ip + ":" + port + "/stats"
+		url := "http://" + ip + ":" + port + "/stats.json"
 		response, err := client.Get(url)
 		if err != nil || response == nil || response.StatusCode != 200 {
 			//log.Warn("Health check failed", "url", url)
 			continue
 		} else {
-			//log.Warn("Health check success", "url", url, "res", response)
+			//			log.Warn("Health check success", "url", url, "res", response.Body)
+			//		if jsErr := json.Unmarshal(response.Body, &stats); jsErr != nil {
+			if jsErr := json.NewDecoder(response.Body).Decode(&stats); jsErr != nil {
+				//log.Warn("Json parse failed", "error", jsErr)
+				//return nil, KERNEL_RUNTIME_ERROR
+				continue
+			}
+
+			//todo high level check of correct response
+			//			log.Warn("Health check success", "url", url, "res", stats)
 			res = append(res, port)
 			//return port, true
 			status = true
