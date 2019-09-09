@@ -512,13 +512,24 @@ func (m *Monitor) validateStorage() error {
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
-
+	progress := uint64(0)
 	for {
 		select {
 		case <-timer.C:
-			m.syncLastBlock()
+			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			timer.Reset(time.Millisecond * 1000)
+			if progress > 4096 {
+				timer.Reset(time.Millisecond * 100)
+
+			} else if progress > 2048 {
+				timer.Reset(time.Millisecond * 500)
+			} else if progress > 1024 {
+				timer.Reset(time.Millisecond * 1000)
+			} else if progress > 6 {
+				timer.Reset(time.Millisecond * 2000)
+			} else {
+				timer.Reset(time.Millisecond * 5000)
+			}
 
 		case <-m.exitCh:
 			log.Info("Block listener stopped")
@@ -535,7 +546,13 @@ func (m *Monitor) listenPeers() {
 		select {
 		case <-timer.C:
 			m.peers()
-			timer.Reset(time.Second * 60)
+			if healthPeers.Len() == 0 {
+				timer.Reset(time.Second * 5)
+			} else if healthPeers.Len() < 6 {
+				timer.Reset(time.Second * 30)
+			} else {
+				timer.Reset(time.Second * 300)
+			}
 		case <-m.exitCh:
 			log.Info("Peers listener stopped")
 			return
@@ -618,17 +635,17 @@ const (
 	batch = 4096 //2048
 )
 
-func (m *Monitor) syncLastBlock() {
+func (m *Monitor) syncLastBlock() uint64 {
 	// Latest block number
 	var currentNumber hexutil.Uint64
 
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
 		log.Error("Sync old block | IPC ctx_blockNumber", "error", err)
-		return
+		return 0
 	}
 
 	if uint64(currentNumber) <= 0 {
-		return
+		return 0
 	}
 
 	if uint64(currentNumber) < m.lastNumber {
@@ -663,9 +680,9 @@ func (m *Monitor) syncLastBlock() {
 		if minNumber > 5 {
 			minNumber = minNumber - 5
 		}
-		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
+		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
-		return
+		return 0
 	}
 
 	for i := minNumber; i <= maxNumber; i++ {
@@ -678,7 +695,7 @@ func (m *Monitor) syncLastBlock() {
 		rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 		if rpcErr != nil {
 			log.Error("Sync old block", "number", i, "error", rpcErr)
-			return
+			return 0
 		}
 
 		if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
@@ -689,7 +706,7 @@ func (m *Monitor) syncLastBlock() {
 
 				if err := m.parseAndStore(block, true); err != nil {
 					log.Error("Fail to parse and storge latest block", "number", i, "error", err)
-					return
+					return 0
 				}
 
 			} else {
@@ -697,13 +714,13 @@ func (m *Monitor) syncLastBlock() {
 
 					if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
 						log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
-						return
+						return 0
 					}
 				} else {
 					//dirty tfs
 					if err := m.parseAndStore(rpcBlock, true); err != nil {
 						log.Error("Dirty tfs fail to parse and storge latest block", "number", i, "error", err)
-						return
+						return 0
 					}
 				}
 			}
@@ -712,6 +729,7 @@ func (m *Monitor) syncLastBlock() {
 	}
 	m.lastNumber = maxNumber
 	log.Debug("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
+	return uint64(maxNumber - minNumber)
 }
 
 func (m *Monitor) parseAndStore(block *Block, flow bool) error {
