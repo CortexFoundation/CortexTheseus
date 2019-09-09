@@ -572,7 +572,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) (string, bool) {
 			//log.Warn("Health check failed", "url", url)
 			continue
 		} else {
-			//log.Warn("Health check success", "url", url)
+			//log.Warn("Health check success", "url", url, "res", response)
 			return port, true
 		}
 	}

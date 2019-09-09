@@ -42,7 +42,8 @@ func run(conf *Config) error {
 		go func(p string) error {
 			defer conf.wg.Done()
 			log.Info("Tracker service starting", "port", p)
-			cmd := exec.Command("bittorrent-tracker", "--port", p, "--stats", "false", "--http", "--silent")
+			//cmd := exec.Command("bittorrent-tracker", "--port", p, "--stats", "false", "--http", "--silent")
+			cmd := exec.Command("bittorrent-tracker", "--port", p, "--http", "--silent")
 			err := cmd.Run()
 
 			return err
