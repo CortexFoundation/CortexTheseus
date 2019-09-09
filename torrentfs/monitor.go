@@ -203,7 +203,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		}
 		if len(m.fs.CurrentTorrentManager().trackers) > 1 {
 			for _, t := range trackers {
-				log.Debug("tracker", "t", t)
+				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 			log.Info("✨ TORRENT SEARCH COMPLETE", "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
