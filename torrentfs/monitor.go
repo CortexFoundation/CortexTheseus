@@ -188,6 +188,8 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						continue
 					}
 					trackers = append(trackers, tracker)
+					trackers = append(trackers, "udp://" + ip + ":" + p + "/announce")
+					trackers = append(trackers, "ws://" + ip + ":" + p + "/announce")
 					flush = true
 					healthPeers.Add(tracker, peer)
 					if unhealthPeers.Contains(ip) {
