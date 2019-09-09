@@ -181,8 +181,8 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			if unhealthPeers.Contains(ip) {
 				//continue
 			}
-			if p, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && !healthPeers.Contains(ip) {
-				tracker := "http://" + ip + ":" + p + "/announce"
+			tracker := "http://" + ip + ":" + p + "/announce"
+			if p, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && !healthPeers.Contains(tracker) {
 				trackers = append(trackers, tracker)
 				flush = true
 				healthPeers.Add(tracker, peer)
@@ -198,6 +198,9 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		}
 		if len(m.fs.CurrentTorrentManager().trackers) > 1 {
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+			for _, t := range trackers {
+				log.Info("tracker", "t", t)
+			}
 			log.Info("✨ TORRENT SEARCH COMPLETE", "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
