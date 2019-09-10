@@ -236,7 +236,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(peers), "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(peers), "healthy", len(trackers), "nodes", healthPeers.Len(), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
