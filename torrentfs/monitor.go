@@ -72,11 +72,12 @@ type Monitor struct {
 	lastNumber uint64
 	dirty      bool
 
-	closeOnce sync.Once
-	wg        sync.WaitGroup
-	peersWg   sync.WaitGroup
-	portLock  sync.Mutex
-	portsWg   sync.WaitGroup
+	closeOnce   sync.Once
+	wg          sync.WaitGroup
+	peersWg     sync.WaitGroup
+	trackerLock sync.Mutex
+	portLock    sync.Mutex
+	portsWg     sync.WaitGroup
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -208,9 +209,11 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						if healthPeers.Contains(tracker) {
 							continue
 						}
+						m.trackerLock.Lock()
 						trackers = append(trackers, tracker)
 						trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
 						trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
+						m.trackerLock.Unlock()
 						flush = true
 						healthPeers.Add(tracker, peer)
 						if unhealthPeers.Contains(ip) {
