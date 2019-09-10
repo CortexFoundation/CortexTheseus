@@ -12,7 +12,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
-	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -75,6 +74,9 @@ type Monitor struct {
 
 	closeOnce sync.Once
 	wg        sync.WaitGroup
+	peersWg   sync.WaitGroup
+	portLock  sync.Mutex
+	portsWg   sync.WaitGroup
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -162,12 +164,27 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 var (
 	ports        = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
 	TRACKER_PORT []string               // = append(TRACKER_PORT, ports...)
-
-	trackers []string
+	client       http.Client
+	trackers     []string
 )
 
 func (m *Monitor) init() {
 	TRACKER_PORT = append(TRACKER_PORT, ports...)
+	client = http.Client{
+		Timeout: time.Duration(5 * time.Second),
+	}
+}
+
+func (m *Monitor) http_tracker_build(ip, port string) string {
+	return "http://" + ip + ":" + port + "/announce"
+}
+
+func (m *Monitor) udp_tracker_build(ip, port string) string {
+	return "udp://" + ip + ":" + port + "/announce"
+}
+
+func (m *Monitor) ws_tracker_build(ip, port string) string {
+	return "ws://" + ip + ":" + port + "/announce"
 }
 
 func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
@@ -176,30 +193,38 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	if err == nil && len(peers) > 0 {
 		flush := false
 		start := mclock.Now()
+		//m.peersWg.Add(len(peers))
 		for _, peer := range peers {
-			ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
-			if unhealthPeers.Contains(ip) {
-				//continue
-			}
-			if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
-				for _, p := range ps {
-					tracker := "http://" + ip + ":" + p + "/announce"
-					if healthPeers.Contains(tracker) {
-						continue
-					}
-					trackers = append(trackers, tracker)
-					trackers = append(trackers, "udp://" + ip + ":" + p + "/announce")
-					trackers = append(trackers, "ws://" + ip + ":" + p + "/announce")
-					flush = true
-					healthPeers.Add(tracker, peer)
-					if unhealthPeers.Contains(ip) {
-						unhealthPeers.Remove(ip)
-					}
+			m.peersWg.Add(1)
+			go func(peer *p2p.PeerInfo) {
+				defer m.peersWg.Done()
+				ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
+				if unhealthPeers.Contains(ip) {
+					//continue
 				}
-			} else {
-				unhealthPeers.Add(ip, peer)
-			}
+				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
+					for _, p := range ps {
+						tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
+						if healthPeers.Contains(tracker) {
+							continue
+						}
+						trackers = append(trackers, tracker)
+						trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
+						trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
+						flush = true
+						healthPeers.Add(tracker, peer)
+						if unhealthPeers.Contains(ip) {
+							unhealthPeers.Remove(ip)
+						}
+					}
+				} else {
+					unhealthPeers.Add(ip, peer)
+				}
+			}(peer)
 		}
+		//log.Info("Waiting dynamic tracker", "size", len(peers))
+		m.peersWg.Wait()
+		//log.Info("Waiting dynamic tracker done", "size", len(peers))
 		if len(trackers) > 0 && flush {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 		}
@@ -208,7 +233,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ TORRENT SEARCH COMPLETE", "size", len(peers), "healthy", len(trackers), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
@@ -550,8 +575,8 @@ func (m *Monitor) listenPeers() {
 			m.peers()
 			if healthPeers.Len() == 0 {
 				timer.Reset(time.Second * 5)
-			} else if healthPeers.Len() < 6 {
-				timer.Reset(time.Second * 30)
+			} else if healthPeers.Len() < 10 {
+				timer.Reset(time.Second * 60)
 			} else {
 				timer.Reset(time.Second * 300)
 			}
@@ -560,35 +585,6 @@ func (m *Monitor) listenPeers() {
 			return
 		}
 	}
-}
-
-func (m *Monitor) healthy(ip, port string) bool {
-	conn, err := net.DialTimeout("tcp", ip+":"+port, time.Millisecond*2000)
-	if err != nil {
-		log.Debug("Unhealthy", "ip", ip, "port", port, "err", err)
-		return false
-	}
-	defer conn.Close()
-	log.Debug("Healthy", "ip", ip, "port", port)
-	return true
-}
-
-var (
-	timeout = time.Duration(5 * time.Second)
-	client  = http.Client{
-		Timeout: timeout,
-	}
-)
-
-func (m *Monitor) http_healthy(ip, port string) bool {
-	url := "http://" + ip + ":" + port + "/stats"
-	//url := "http://127.0.0.1:5008/stats"
-	response, err := client.Get(url)
-	if err != nil || response == nil || response.StatusCode != 200 {
-		return false
-	}
-
-	return true
 }
 
 type tracker_stats struct {
@@ -605,29 +601,28 @@ type tracker_stats struct {
 func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool) {
 	var res []string
 	var status = false
-	var stats tracker_stats
 	for _, port := range ports {
-		url := "http://" + ip + ":" + port + "/stats.json"
-		response, err := client.Get(url)
-		if err != nil || response == nil || response.StatusCode != 200 {
-			//log.Warn("Health check failed", "url", url)
-			continue
-		} else {
-			//			log.Warn("Health check success", "url", url, "res", response.Body)
-			//		if jsErr := json.Unmarshal(response.Body, &stats); jsErr != nil {
-			if jsErr := json.NewDecoder(response.Body).Decode(&stats); jsErr != nil {
-				//log.Warn("Json parse failed", "error", jsErr)
-				//return nil, KERNEL_RUNTIME_ERROR
-				continue
+		m.portsWg.Add(1)
+		go func(port string) {
+			defer m.portsWg.Done()
+			url := "http://" + ip + ":" + port + "/stats.json"
+			response, err := client.Get(url)
+			if err != nil || response == nil || response.StatusCode != 200 {
+				return
+			} else {
+				var stats tracker_stats
+				if jsErr := json.NewDecoder(response.Body).Decode(&stats); jsErr != nil {
+					return
+				}
+				m.portLock.Lock()
+				res = append(res, port)
+				status = true
+				m.portLock.Unlock()
 			}
-
-			//todo high level check of correct response
-			//			log.Warn("Health check success", "url", url, "res", stats)
-			res = append(res, port)
-			//return port, true
-			status = true
-		}
+		}(port)
 	}
+
+	m.portsWg.Wait()
 
 	return res, status
 
