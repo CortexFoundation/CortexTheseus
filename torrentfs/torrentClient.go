@@ -255,6 +255,7 @@ type TorrentManager struct {
 	halt                bool
 	mu                  sync.Mutex
 	lock                sync.RWMutex
+	wg                  sync.WaitGroup
 }
 
 func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
@@ -290,6 +291,7 @@ func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 }
 
 func (tm *TorrentManager) Close() error {
+	tm.wg.Wait()
 	close(tm.closeAll)
 	log.Info("Torrent Download Manager Closed")
 	return nil
@@ -584,14 +586,21 @@ func NewTorrentManager(config *Config) *TorrentManager {
 }
 
 func (tm *TorrentManager) Start() error {
-
+	tm.wg.Add(2)
 	go tm.mainLoop()
 	go tm.listenTorrentProgress()
 
 	return nil
 }
 
+func (tm *TorrentManager) Stop() error {
+	tm.wg.Wait()
+	close(tm.closeAll)
+	return nil
+}
+
 func (tm *TorrentManager) mainLoop() {
+	defer tm.wg.Done()
 	for {
 		select {
 		case torrent := <-tm.removeTorrent:
@@ -632,6 +641,7 @@ func (s seedingTorrentList) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s seedingTorrentList) Less(i, j int) bool { return s[i].weight > s[j].weight }
 
 func (tm *TorrentManager) listenTorrentProgress() {
+	defer tm.wg.Done()
 	var counter uint64
 	for counter = 0; ; counter++ {
 		if tm.halt {
