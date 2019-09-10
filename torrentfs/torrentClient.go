@@ -484,9 +484,11 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 // UpdateInfoHash ...
 func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	log.Debug("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
+	tm.lock.Lock()
 	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
 		tm.bytes[ih] = BytesRequested
 	}
+	tm.lock.Unlock()
 	if t := tm.GetTorrent(ih); t != nil {
 		if BytesRequested < t.bytesRequested {
 			return
