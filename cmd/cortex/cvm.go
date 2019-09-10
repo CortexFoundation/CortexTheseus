@@ -23,12 +23,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"errors"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
-	"errors"
 	"net/http"
 )
 
@@ -89,7 +89,7 @@ var (
 		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
 	}
 	StorageDisableDHTFlag = cli.BoolFlag{
-		Name: "cvm.disable_dht",
+		Name:  "cvm.disable_dht",
 		Usage: "disable DHT network in TorrentFS",
 	}
 	cvmFlags = []cli.Flag{
@@ -142,7 +142,7 @@ func cvmServer(ctx *cli.Context) error {
 		//panic(fs_err)
 		return errors.New("torrent start failed")
 	}
-	defer storagefs.Stop()
+	//defer storagefs.Stop()
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
 	DeviceId := ctx.GlobalInt(utils.InferDeviceIdFlag.Name)
@@ -169,6 +169,7 @@ func cvmServer(ctx *cli.Context) error {
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 
 	log.Error(fmt.Sprintf("Server Closed with Error %v", err))
+
 	inferServer.Close()
 
 	return nil

@@ -83,6 +83,7 @@ func New(config *Config) *Synapse {
 			panic("lib_path = " + PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX + " config.IsRemoteInfer = " + strconv.FormatBool(config.IsRemoteInfer))
 		}
 	}
+
 	synapseInstance = &Synapse{
 		config: config,
 		lib:    lib,
@@ -96,6 +97,9 @@ func New(config *Config) *Synapse {
 
 func (s *Synapse) Close() {
 	close(s.exitCh)
+	if s.config.Storagefs != nil {
+		s.config.Storagefs.Stop()
+	}
 	log.Info("Synapse Engine Closed")
 }
 

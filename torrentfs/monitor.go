@@ -396,8 +396,9 @@ func (m *Monitor) Stop() {
 			log.Error("Monitor Torrent Manager closed", "error", err)
 		}
 		log.Info("Torrent fs listener synchronizing close")
-		m.wg.Wait()
+		//m.wg.Wait()
 	})
+	m.wg.Wait()
 	log.Info("Torrent listener closed")
 }
 
