@@ -2,6 +2,7 @@
 #set +m
 cvm_pid=cvm.pid
 node_pid=node.pid
+main_pid=main.pid
 #tracker_pid=tracker_pid
 remove=1
 trap 'EXIT' INT
@@ -82,6 +83,8 @@ start_cvm
 #./node.sh &
 #echo $! > node.pid
 start_node
+echo $$ > ${main_pid}
+chmod 644 "${main_pid}"
 while true; do
         server=`ps aux | grep 'cortex cvm' | grep -v grep | grep -v echo`
         if [ ! "${server}" ]; then
