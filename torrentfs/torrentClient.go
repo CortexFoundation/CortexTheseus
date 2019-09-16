@@ -163,17 +163,19 @@ func (t *Torrent) SeedInQueue() {
 		t.currentConns = 0
 		t.Torrent.SetMaxEstablishedConns(0)
 	}
-	t.status = torrentSeedingInQueue
+	//t.status = torrentSeedingInQueue
 	t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+	t.status = torrentSeedingInQueue
 }
 
 func (t *Torrent) Seed() {
-	t.status = torrentSeeding
+	//t.status = torrentSeeding
 	if t.currentConns == 0 {
 		t.currentConns = t.maxEstablishedConns
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
 	t.Torrent.DownloadAll()
+	t.status = torrentSeeding
 }
 
 func (t *Torrent) Seeding() bool {
@@ -188,9 +190,10 @@ func (t *Torrent) Pause() {
 		t.Torrent.SetMaxEstablishedConns(0)
 	}
 	if t.status != torrentPaused {
-		t.status = torrentPaused
+		//t.status = torrentPaused
 		t.maxPieces = 0
 		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+		t.status = torrentPaused
 	}
 }
 
@@ -217,11 +220,12 @@ func (t *Torrent) Run() {
 		t.currentConns = t.maxEstablishedConns
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
-	t.status = torrentRunning
+	//t.status = torrentRunning
 	if maxPieces > t.maxPieces {
 		t.maxPieces = maxPieces
 		t.Torrent.DownloadPieces(0, maxPieces)
 	}
+	t.status = torrentRunning
 }
 
 // Running ...
