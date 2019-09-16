@@ -31,11 +31,12 @@ import (
 const (
 	removeTorrentChanBuffer = 16
 	updateTorrentChanBuffer = 1000
-	torrentPending          = 0
-	torrentPaused           = 1
-	torrentRunning          = 2
-	torrentSeeding          = 3
-	torrentSeedingInQueue   = 4
+
+	torrentPending = iota
+	torrentPaused
+	torrentRunning
+	torrentSeeding
+	torrentSeedingInQueue
 )
 
 // Torrent ...
