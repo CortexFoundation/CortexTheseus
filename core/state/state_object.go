@@ -121,9 +121,10 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		data.CodeHash = emptyCodeHash
 	}
 
-	/*if data.AiCache == nil {
-		data.AiCache = make(map[string]uint64)
-	}*/
+	if data.Root == (common.Hash{}) {
+		data.Root = emptyRoot
+	}
+
 	return &stateObject{
 		db:            db,
 		address:       address,

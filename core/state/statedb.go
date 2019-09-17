@@ -678,8 +678,8 @@ func (self *StateDB) Copy() *StateDB {
 	for addr := range self.stateObjectsDirty {
 		if _, exist := state.stateObjects[addr]; !exist {
 			state.stateObjects[addr] = self.stateObjects[addr].deepCopy(state)
-			state.stateObjectsDirty[addr] = struct{}{}
 		}
+		state.stateObjectsDirty[addr] = struct{}{}
 	}
 	for hash, logs := range self.logs {
 		cpy := make([]*types.Log, len(logs))
@@ -769,13 +769,15 @@ func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
 }
 
 func (s *StateDB) clearJournalAndRefund() {
-	s.journal = newJournal()
+	if len(s.journal.entries) > 0 {
+		s.journal = newJournal()
+		s.refund = 0
+	}
 	s.validRevisions = s.validRevisions[:0]
-	s.refund = 0
 }
 
 // Commit writes the state to the underlying in-memory trie database.
-func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) {
+func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	defer s.clearJournalAndRefund()
 
 	for addr := range s.journal.dirties {
@@ -804,9 +806,13 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		}
 		delete(s.stateObjectsDirty, addr)
 	}
+
+	if len(s.stateObjectsDirty) > 0 {
+		s.stateObjectsDirty = make(map[common.Address]struct{})
+	}
 	// Write trie changes.
 	// Write the account trie changes, measuing the amount of wasted time
-	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	return s.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
@@ -820,5 +826,4 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		}
 		return nil
 	})
-	return root, err
 }
