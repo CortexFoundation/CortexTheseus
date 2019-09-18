@@ -21,7 +21,7 @@ package params
 var Tracker_ports = []string{"80", "443", "5008", "8333", "30303"}
 
 var MainnetTrackers = []string{
-	/*"http://47.91.91.217:5008/announce",
+	"http://47.91.91.217:5008/announce",
 	"http://47.74.1.234:5008/announce",
 	"http://47.88.7.24:5008/announce",
 	"http://47.91.43.70:5008/announce",
@@ -60,7 +60,7 @@ var MainnetTrackers = []string{
 	"ws://47.93.158.68:5008/announce",
 	"ws://torrent.cortexlabs.ai:5008/announce",
 	"ws://dht.coinbag.org:5008/announce",
-	"ws://dht.cortexlabs.ai:5008/announce",*/
+	"ws://dht.cortexlabs.ai:5008/announce",
 	"ws://127.0.0.1:5008/announce",
 }
 
