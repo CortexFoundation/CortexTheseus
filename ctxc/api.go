@@ -62,7 +62,7 @@ func (api *PublicCortexAPI) Hashrate() hexutil.Uint64 {
 	return hexutil.Uint64(api.e.Miner().HashRate())
 }
 
-// ChainId is the EIP-155 replay-protection chain id for the current ethereum chain config.
+// ChainId is the EIP-155 replay-protection chain id for the current cortex chain config.
 func (api *PublicCortexAPI) ChainId() hexutil.Uint64 {
 	chainID := new(big.Int)
 	if config := api.e.chainConfig; config.IsEIP155(api.e.blockchain.CurrentBlock().Number()) {

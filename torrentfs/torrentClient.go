@@ -29,13 +29,14 @@ import (
 )
 
 const (
-  removeTorrentChanBuffer = 16
-  updateTorrentChanBuffer = 1000
-  torrentPending          = 0
-  torrentPaused           = 1
-  torrentRunning          = 2
-  torrentSeeding          = 3
-  torrentSeedingInQueue   = 4
+	removeTorrentChanBuffer = 16
+	updateTorrentChanBuffer = 1000
+
+	torrentPending = iota
+	torrentPaused
+	torrentRunning
+	torrentSeeding
+	torrentSeedingInQueue
 )
 
 // Torrent ...
@@ -159,21 +160,23 @@ func (t *Torrent) WriteTorrent() {
 }
 
 func (t *Torrent) SeedInQueue() {
-  if t.currentConns != 0 {
-    t.currentConns = 0
-    t.Torrent.SetMaxEstablishedConns(0)
-  }
-  t.status = torrentSeedingInQueue
-  t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+	if t.currentConns != 0 {
+		t.currentConns = 0
+		t.Torrent.SetMaxEstablishedConns(0)
+	}
+	//t.status = torrentSeedingInQueue
+	t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+	t.status = torrentSeedingInQueue
 }
 
 func (t *Torrent) Seed() {
-  t.status = torrentSeeding
-  if t.currentConns == 0 {
-    t.currentConns = t.maxEstablishedConns
-    t.Torrent.SetMaxEstablishedConns(t.currentConns)
-  }
-  t.Torrent.DownloadAll()
+	//t.status = torrentSeeding
+	if t.currentConns == 0 {
+		t.currentConns = t.maxEstablishedConns
+		t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	}
+	t.Torrent.DownloadAll()
+	t.status = torrentSeeding
 }
 
 func (t *Torrent) Seeding() bool {
@@ -183,15 +186,16 @@ func (t *Torrent) Seeding() bool {
 
 // Pause ...
 func (t *Torrent) Pause() {
-  if t.currentConns != 0 {
-    t.currentConns = 0
-    t.Torrent.SetMaxEstablishedConns(0)
-  }
-  if t.status != torrentPaused {
-    t.status = torrentPaused
-    t.maxPieces = 0
-    t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
-  }
+	if t.currentConns != 0 {
+		t.currentConns = 0
+		t.Torrent.SetMaxEstablishedConns(0)
+	}
+	if t.status != torrentPaused {
+		//t.status = torrentPaused
+		t.maxPieces = 0
+		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+		t.status = torrentPaused
+	}
 }
 
 // Paused ...
@@ -698,7 +702,8 @@ func (tm *TorrentManager) listenTorrentProgress() {
 							t.Torrent.Drop()
               t.ReloadTorrent(data, tm)
             } else {
-              log.Warn("Boost failed", "infohash", t.infohash, "err", err)
+              t.isBoosting = false
+							log.Warn("Boost failed", "infohash", t.infohash, "err", err)
             }
           }(t)
         } else {
