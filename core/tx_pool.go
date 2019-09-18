@@ -97,7 +97,9 @@ var (
 	queuedNofundsMeter   = metrics.NewRegisteredMeter("txpool/queued/nofunds", nil)   // Dropped due to out-of-funds
 
 	// General tx metrics
-	validMeter         = metrics.NewRegisteredMeter("txpool/valid", nil)
+	//validMeter         = metrics.NewRegisteredMeter("txpool/valid", nil)
+	knownTxMeter       = metrics.NewRegisteredMeter("txpool/known", nil)
+	validTxMeter       = metrics.NewRegisteredMeter("txpool/valid", nil)
 	invalidTxMeter     = metrics.NewRegisteredMeter("txpool/invalid", nil)
 	underpricedTxMeter = metrics.NewRegisteredMeter("txpool/underpriced", nil)
 
@@ -561,6 +563,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	// If the transaction is already known, discard it
 	hash := tx.Hash()
 	if pool.all.Get(hash) != nil {
+		knownTxMeter.Mark(1)
 		log.Trace("Discarding already known transaction", "hash", hash)
 		return false, fmt.Errorf("known transaction: %x", hash)
 	}
@@ -766,6 +769,13 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 
 // addTxs attempts to queue a batch of transactions if they are valid.
 func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
+	for i := 0; i < len(txs); i++ {
+		if pool.all.Get(txs[i].Hash()) != nil {
+			knownTxMeter.Mark(1)
+			txs = append(txs[:i], txs[i+1:]...)
+			i--
+		}
+	}
 	// Cache senders in transactions before obtaining lock (pool.signer is immutable)
 	for _, tx := range txs {
 		types.Sender(pool.signer, tx)
@@ -794,7 +804,7 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) ([]error,
 			dirty.addTx(tx)
 		}
 	}
-	validMeter.Mark(int64(len(dirty.accounts)))
+	validTxMeter.Mark(int64(len(dirty.accounts)))
 	return errs, dirty
 }
 
