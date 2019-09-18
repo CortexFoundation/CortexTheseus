@@ -101,7 +101,7 @@ func GlobalBootstrapAddrs() (addrs []Addr, err error) {
 		}
 		hostAddrs, err := net.LookupHost(host)
 		if err != nil {
-			log.Printf("error looking up %q: %v", s, err)
+//			log.Printf("error looking up %q: %v", s, err)
 			continue
 		}
 		for _, a := range hostAddrs {
