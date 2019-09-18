@@ -99,7 +99,7 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 
 func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	torrentPath := path.Join(t.filepath, "torrent")
-	//  os.Remove(path.Join(t.filepath, ".torrent.bolt.db"))
+	os.Remove(path.Join(t.filepath, ".torrent.bolt.db"))
 	f, _ := os.Create(torrentPath)
 	log.Debug("Write torrent file (Boost mode)", "path", torrentPath)
 	if _, err := f.Write(data); err != nil {
@@ -221,12 +221,11 @@ func (t *Torrent) Run() {
 		t.currentConns = t.maxEstablishedConns
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
-	//t.status = torrentRunning
+	t.status = torrentRunning
 	if maxPieces > t.maxPieces {
 		t.maxPieces = maxPieces
 		t.Torrent.DownloadPieces(0, maxPieces)
 	}
-	t.status = torrentRunning
 }
 
 // Running ...
@@ -321,8 +320,8 @@ func GetMagnetURI(infohash metainfo.Hash) string {
 }
 
 func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
+	tm.lock.RLock()
+	defer tm.lock.RUnlock()
 	if len(tm.trackers) == 0 {
 		tm.trackers = append(tm.trackers, trackers)
 	} else if len(tm.trackers) == 1 {
@@ -333,12 +332,14 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 		log.Warn("Tracker update warn", "size", len(tm.trackers), "trackers", tm.trackers)
 		return
 	}
+
+	var newTrackers [][]string = [][]string{trackers}
 	for _, t := range tm.pendingTorrents {
-		t.AddTrackers(tm.trackers)
+		t.AddTrackers(newTrackers)
 	}
 
 	for _, t := range tm.activeTorrents {
-		t.AddTrackers(tm.trackers)
+		t.AddTrackers(newTrackers)
 	}
 }
 
@@ -648,10 +649,12 @@ func (s seedingTorrentList) Less(i, j int) bool { return s[i].weight > s[j].weig
 func (tm *TorrentManager) listenTorrentProgress() {
 	defer tm.wg.Done()
 	var counter uint64
+	var log_counter uint64
 	for counter = 0; ; counter++ {
 		if tm.halt {
 			return
 		}
+		log_counter++
 
 		tm.lock.RLock()
 
@@ -693,12 +696,13 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						log.Debug("Try to boost torrent", "infohash", t.infohash)
 						if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
 							if t.Torrent.Info() != nil {
-								t.isBoosting = false
 								return
 							}
+							t.isBoosting = false
 							t.Torrent.Drop()
 							t.ReloadTorrent(data, tm)
 						} else {
+							t.isBoosting = false
 							log.Warn("Boost failed", "infohash", t.infohash, "err", err)
 						}
 					}(t)
@@ -725,9 +729,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			BytesRequested := tm.bytes[ih]
 			if t.bytesRequested < BytesRequested {
 				t.bytesRequested = BytesRequested
-				if t.bytesRequested > t.bytesLimitation {
-					t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
-				}
+				t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
 			}
 			t.bytesCompleted = t.BytesCompleted()
 			t.bytesMissing = t.BytesMissing()
@@ -742,6 +744,10 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.status = torrentSeeding
 				t.loop = defaultSeedInterval / queryTimeInterval
 				continue
+			}
+
+			if log_counter%20 == 0 && t.bytesRequested > 0 {
+				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "requested", t.bytesRequested, "limitation", t.bytesLimitation, "boosting", t.isBoosting)
 			}
 
 			if t.bytesCompleted >= t.bytesLimitation {
@@ -776,7 +782,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					}(t)
 				}
 			}
-			if t.bytesCompleted < t.bytesRequested && !t.isBoosting {
+			if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
 				activeTorrents = append(activeTorrents, t)
 			}
 		}
