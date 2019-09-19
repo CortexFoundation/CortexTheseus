@@ -767,24 +767,42 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 	return errs[0]
 }
 
-// addTxs attempts to queue a batch of transactions if they are valid.
 func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
-	for i := 0; i < len(txs); i++ {
-		if pool.all.Get(txs[i].Hash()) != nil {
+	// Filter out known ones without obtaining the pool lock or recovering signatures
+	var (
+		errs = make([]error, len(txs))
+		news = make([]*types.Transaction, 0, len(txs))
+	)
+	for i, tx := range txs {
+		// If the transaction is known, pre-set the error slot
+		if pool.all.Get(tx.Hash()) != nil {
+			errs[i] = fmt.Errorf("known transaction: %x", tx.Hash())
 			knownTxMeter.Mark(1)
-			txs = append(txs[:i], txs[i+1:]...)
-			i--
+			continue
 		}
+		// Accumulate all unknown transactions for deeper processing
+		news = append(news, tx)
+	}
+	if len(news) == 0 {
+		return errs
 	}
 	// Cache senders in transactions before obtaining lock (pool.signer is immutable)
-	for _, tx := range txs {
+	for _, tx := range news {
 		types.Sender(pool.signer, tx)
 	}
-
+	// Process all the new transaction and merge any errors into the original slice
 	pool.mu.Lock()
-	errs, dirtyAddrs := pool.addTxsLocked(txs, local)
+	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
 	pool.mu.Unlock()
 
+	var nilSlot = 0
+	for _, err := range newErrs {
+		for errs[nilSlot] != nil {
+			nilSlot++
+		}
+		errs[nilSlot] = err
+	}
+	// Reorg the pool internals if needed and return
 	done := pool.requestPromoteExecutables(dirtyAddrs)
 	if sync {
 		<-done
@@ -812,23 +830,23 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) ([]error,
 // identified by their hashes.
 func (pool *TxPool) Status(hashes []common.Hash) []TxStatus {
 	status := make([]TxStatus, len(hashes))
-        for i, hash := range hashes {
-                tx := pool.Get(hash)
-                if tx == nil {
-                        continue
-                }
-                from, _ := types.Sender(pool.signer, tx) // already validated
-                pool.mu.RLock()
-                if txList := pool.pending[from]; txList != nil && txList.txs.items[tx.Nonce()] != nil {
-                        status[i] = TxStatusPending
-                } else if txList := pool.queue[from]; txList != nil && txList.txs.items[tx.Nonce()] != nil {
-                        status[i] = TxStatusQueued
-                }
-                // implicit else: the tx may have been included into a block between
-                // checking pool.Get and obtaining the lock. In that case, TxStatusUnknown is correct
-                pool.mu.RUnlock()
-        }
-        return status
+	for i, hash := range hashes {
+		tx := pool.Get(hash)
+		if tx == nil {
+			continue
+		}
+		from, _ := types.Sender(pool.signer, tx) // already validated
+		pool.mu.RLock()
+		if txList := pool.pending[from]; txList != nil && txList.txs.items[tx.Nonce()] != nil {
+			status[i] = TxStatusPending
+		} else if txList := pool.queue[from]; txList != nil && txList.txs.items[tx.Nonce()] != nil {
+			status[i] = TxStatusQueued
+		}
+		// implicit else: the tx may have been included into a block between
+		// checking pool.Get and obtaining the lock. In that case, TxStatusUnknown is correct
+		pool.mu.RUnlock()
+	}
+	return status
 }
 
 // Get returns a transaction if it is contained in the pool and nil otherwise.

@@ -333,6 +333,11 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 		log.Warn("Tracker update warn", "size", len(tm.trackers), "trackers", tm.trackers)
 		//return
 	}
+	if tm.trackers != nil {
+		for i, tracker := range tm.trackers {
+			log.Trace("Current tracker list", "index", i, "list", tracker)
+		}
+	}
 
 	var newTrackers [][]string = [][]string{trackers}
 	for _, t := range tm.pendingTorrents {
