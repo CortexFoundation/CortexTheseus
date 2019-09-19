@@ -320,19 +320,15 @@ func GetMagnetURI(infohash metainfo.Hash) string {
 }
 
 func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
-	tm.lock.RLock()
-	defer tm.lock.RUnlock()
+	tm.lock.Lock()
 	if len(tm.trackers) == 0 {
 		tm.trackers = append(tm.trackers, trackers)
 	} else if len(tm.trackers) == 1 {
 		tm.trackers = append(tm.trackers, trackers)
-	} else if len(tm.trackers) == 2 {
-		tm.trackers[1] = trackers
 	} else {
 		tm.trackers[1] = trackers
-		log.Warn("Tracker update warn", "size", len(tm.trackers), "trackers", tm.trackers)
-		//return
 	}
+	tm.lock.Unlock()
 	if tm.trackers != nil {
 		for i, tracker := range tm.trackers {
 			log.Trace("Current tracker list", "index", i, "list", tracker)
