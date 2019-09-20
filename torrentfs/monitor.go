@@ -1,22 +1,25 @@
 package torrentfs
 
 import (
+	"encoding/json"
 	"errors"
-	"os"
-	"runtime"
-	"strconv"
-	"sync"
-	"sync/atomic"
-	"time"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
+	"net/http"
+	"os"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 //------------------------------------------------------------------------------
@@ -27,8 +30,10 @@ var (
 	ErrGetLatestBlock = errors.New("get latest block failed")
 	ErrNoRPCClient    = errors.New("no rpc client")
 
-	ErrBlockHash  = errors.New("block or parent block hash invalid")
-	blockCache, _ = lru.New(6)
+	ErrBlockHash     = errors.New("block or parent block hash invalid")
+	blockCache, _    = lru.New(6)
+	unhealthPeers, _ = lru.New(256)
+	healthPeers, _   = lru.New(25)
 )
 
 const (
@@ -46,7 +51,6 @@ const (
 type TorrentManagerAPI interface {
 	Start() error
 	Close() error
-	NewTorrent(interface{}) error
 	RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
 }
@@ -68,8 +72,12 @@ type Monitor struct {
 	lastNumber uint64
 	dirty      bool
 
-	closeOnce sync.Once
-	wg        sync.WaitGroup
+	closeOnce   sync.Once
+	wg          sync.WaitGroup
+	peersWg     sync.WaitGroup
+	trackerLock sync.Mutex
+	portLock    sync.Mutex
+	portsWg     sync.WaitGroup
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -154,6 +162,86 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
+var (
+	ports        = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
+	TRACKER_PORT []string               // = append(TRACKER_PORT, ports...)
+	client       http.Client
+	trackers     []string
+)
+
+func (m *Monitor) init() {
+	TRACKER_PORT = append(TRACKER_PORT, ports...)
+	client = http.Client{
+		Timeout: time.Duration(5 * time.Second),
+	}
+}
+
+func (m *Monitor) http_tracker_build(ip, port string) string {
+	return "http://" + ip + ":" + port + "/announce"
+}
+
+func (m *Monitor) udp_tracker_build(ip, port string) string {
+	return "udp://" + ip + ":" + port + "/announce"
+}
+
+func (m *Monitor) ws_tracker_build(ip, port string) string {
+	return "ws://" + ip + ":" + port + "/announce"
+}
+
+func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
+	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
+	err := m.cl.Call(&peers, "admin_peers")
+	if err == nil && len(peers) > 0 {
+		flush := false
+		start := mclock.Now()
+		//m.peersWg.Add(len(peers))
+		for _, peer := range peers {
+			m.peersWg.Add(1)
+			go func(peer *p2p.PeerInfo) {
+				defer m.peersWg.Done()
+				ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
+				if unhealthPeers.Contains(ip) {
+					//continue
+				}
+				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
+					for _, p := range ps {
+						tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
+						if healthPeers.Contains(tracker) {
+							continue
+						}
+						m.trackerLock.Lock()
+						trackers = append(trackers, tracker)
+						trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
+						trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
+						m.trackerLock.Unlock()
+						flush = true
+						healthPeers.Add(tracker, peer)
+						if unhealthPeers.Contains(ip) {
+							unhealthPeers.Remove(ip)
+						}
+					}
+				} else {
+					unhealthPeers.Add(ip, peer)
+				}
+			}(peer)
+		}
+		//log.Info("Waiting dynamic tracker", "size", len(peers))
+		m.peersWg.Wait()
+		//log.Info("Waiting dynamic tracker done", "size", len(peers))
+		if len(trackers) > 0 && flush {
+			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
+			for _, t := range trackers {
+				log.Trace("Healthy trackers", "tracker", t)
+			}
+			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", healthPeers.Len(), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
+		}
+		return peers, nil
+	}
+
+	return nil, errors.New("[ Internal IPC Error ] peers")
+}
+
 /*func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
 	block := m.fs.GetBlockByNumber(blockNumber)
 	if block == nil {
@@ -188,7 +276,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	}
 
 	if receipt.ContractAddr == nil {
-		log.Warn("Contract address is nil", "receipt", receipt.TxHash)
+		//log.Warn("Contract address is nil", "receipt", receipt.TxHash)
 		return nil
 	}
 
@@ -199,13 +287,14 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	//}
 
 	if receipt.Status != 1 {
-		log.Warn("Upload status error", "status", receipt.Status)
+		//log.Warn("Upload status error", "status", receipt.Status)
 		return nil
 	}
 
-	m.dl.NewTorrent(FlowControlMeta{
+	m.dl.UpdateTorrent(FlowControlMeta{
 		InfoHash:       meta.InfoHash,
 		BytesRequested: 0,
+		IsCreate:       true,
 	})
 	var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
@@ -240,6 +329,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	m.dl.UpdateTorrent(FlowControlMeta{
 		InfoHash:       meta.InfoHash,
 		BytesRequested: bytesRequested,
+		IsCreate:       false,
 	})
 	log.Debug("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
 	return nil
@@ -250,7 +340,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 		start := mclock.Now()
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				log.Info("Try to create a file", "meta", meta, "number", b.Number, "infohash", meta.InfoHash)
+				log.Debug("Try to create a file", "meta", meta, "number", b.Number, "infohash", meta.InfoHash)
 				if err := m.parseFileMeta(&tx, meta); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return err
@@ -281,6 +371,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				m.dl.UpdateTorrent(FlowControlMeta{
 					InfoHash:       file.Meta.InfoHash,
 					BytesRequested: bytesRequested,
+					IsCreate:       false,
 				})
 			}
 		}
@@ -292,6 +383,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 }
 
 func (m *Monitor) Stop() {
+	log.Info("Torrent listener closing")
 	atomic.StoreInt32(&(m.terminated), 1)
 	m.closeOnce.Do(func() {
 		close(m.exitCh)
@@ -302,8 +394,10 @@ func (m *Monitor) Stop() {
 			log.Error("Monitor Torrent Manager closed", "error", err)
 		}
 		log.Info("Torrent fs listener synchronizing close")
-		m.wg.Wait()
+		//m.wg.Wait()
 	})
+	m.wg.Wait()
+	log.Info("Torrent listener closed")
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
@@ -364,8 +458,10 @@ func (m *Monitor) startWork() error {
 	}
 
 	log.Info("Torrent fs validation passed")
-	m.wg.Add(1)
+	m.wg.Add(2)
 	go m.listenLatestBlock()
+	m.init()
+	go m.listenPeers()
 
 	return nil
 }
@@ -384,7 +480,7 @@ func (m *Monitor) validateStorage() error {
 		}
 
 		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
-			log.Debug("No block found", "number", i)
+			log.Trace("No block found", "number", i)
 			m.lastNumber = uint64(i)
 			m.dirty = true
 			continue
@@ -424,9 +520,10 @@ func (m *Monitor) validateStorage() error {
 		}
 		log.Debug("Data recovery", "request", bytesRequested, "raw", file.Meta.RawSize)
 
-		m.dl.NewTorrent(FlowControlMeta{
+		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
+			IsCreate:       true,
 		})
 
 		m.fs.AddCachedFile(file)
@@ -444,35 +541,110 @@ func (m *Monitor) validateStorage() error {
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
-
+	progress := uint64(0)
 	for {
 		select {
 		case <-timer.C:
-			m.syncLastBlock()
+			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			timer.Reset(time.Millisecond * 1000)
+			if progress > 4096 {
+				timer.Reset(time.Millisecond * 100)
+
+			} else if progress > 2048 {
+				timer.Reset(time.Millisecond * 500)
+			} else if progress > 1024 {
+				timer.Reset(time.Millisecond * 1000)
+			} else if progress > 6 {
+				timer.Reset(time.Millisecond * 2000)
+			} else {
+				timer.Reset(time.Millisecond * 5000)
+			}
 
 		case <-m.exitCh:
+			log.Info("Block listener stopped")
 			return
 		}
 	}
 }
 
+func (m *Monitor) listenPeers() {
+	defer m.wg.Done()
+	timer := time.NewTimer(time.Second * 15)
+
+	for {
+		select {
+		case <-timer.C:
+			m.peers()
+			if healthPeers.Len() == 0 {
+				timer.Reset(time.Second * 5)
+			} else if healthPeers.Len() < 10 {
+				timer.Reset(time.Second * 60)
+			} else {
+				timer.Reset(time.Second * 300)
+			}
+		case <-m.exitCh:
+			log.Info("Peers listener stopped")
+			return
+		}
+	}
+}
+
+type tracker_stats struct {
+	Torrents              int `json:"torrents"`
+	ActiveTorrents        int `json:"activeTorrents"`
+	PeersAll              int `json:"peersAll"`
+	PeersSeederOnly       int `json:"peersSeederOnly"`
+	PeersLeecherOnly      int `json:"peersLeecherOnly"`
+	PeersSeederAndLeecher int `json:"peersSeederAndLeecher"`
+	PeersIPv4             int `json:"peersIPv4"`
+	PeersIPv6             int `json:"peersIPv6"`
+}
+
+func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool) {
+	var res []string
+	var status = false
+	for _, port := range ports {
+		m.portsWg.Add(1)
+		go func(port string) {
+			defer m.portsWg.Done()
+			url := "http://" + ip + ":" + port + "/stats.json"
+			response, err := client.Get(url)
+			if err != nil || response == nil || response.StatusCode != 200 {
+				return
+			} else {
+				var stats tracker_stats
+				if jsErr := json.NewDecoder(response.Body).Decode(&stats); jsErr != nil {
+					return
+				}
+				m.portLock.Lock()
+				res = append(res, port)
+				status = true
+				m.portLock.Unlock()
+			}
+		}(port)
+	}
+
+	m.portsWg.Wait()
+
+	return res, status
+
+}
+
 const (
-	batch = 2048
+	batch = 4096 //2048
 )
 
-func (m *Monitor) syncLastBlock() {
+func (m *Monitor) syncLastBlock() uint64 {
 	// Latest block number
 	var currentNumber hexutil.Uint64
 
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
 		log.Error("Sync old block | IPC ctx_blockNumber", "error", err)
-		return
+		return 0
 	}
 
 	if uint64(currentNumber) <= 0 {
-		return
+		return 0
 	}
 
 	if uint64(currentNumber) < m.lastNumber {
@@ -481,6 +653,7 @@ func (m *Monitor) syncLastBlock() {
 			m.lastNumber = m.lastNumber - 12
 		}
 	}
+
 	//minNumber := uint64(0)
 	//if m.lastNumber > 6 {
 	//	minNumber = m.lastNumber - 6
@@ -506,9 +679,9 @@ func (m *Monitor) syncLastBlock() {
 		if minNumber > 5 {
 			minNumber = minNumber - 5
 		}
-		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber))
+		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
-		return
+		return 0
 	}
 
 	for i := minNumber; i <= maxNumber; i++ {
@@ -521,7 +694,7 @@ func (m *Monitor) syncLastBlock() {
 		rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 		if rpcErr != nil {
 			log.Error("Sync old block", "number", i, "error", rpcErr)
-			return
+			return 0
 		}
 
 		if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
@@ -532,7 +705,7 @@ func (m *Monitor) syncLastBlock() {
 
 				if err := m.parseAndStore(block, true); err != nil {
 					log.Error("Fail to parse and storge latest block", "number", i, "error", err)
-					return
+					return 0
 				}
 
 			} else {
@@ -540,13 +713,13 @@ func (m *Monitor) syncLastBlock() {
 
 					if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
 						log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
-						return
+						return 0
 					}
 				} else {
 					//dirty tfs
 					if err := m.parseAndStore(rpcBlock, true); err != nil {
 						log.Error("Dirty tfs fail to parse and storge latest block", "number", i, "error", err)
-						return
+						return 0
 					}
 				}
 			}
@@ -555,6 +728,7 @@ func (m *Monitor) syncLastBlock() {
 	}
 	m.lastNumber = maxNumber
 	log.Debug("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
+	return uint64(maxNumber - minNumber)
 }
 
 func (m *Monitor) parseAndStore(block *Block, flow bool) error {

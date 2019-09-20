@@ -3,12 +3,15 @@ package synapse
 import (
 	"encoding/binary"
 	"encoding/json"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	resty "gopkg.in/resty.v1"
+	resty "github.com/go-resty/resty/v2" //"gopkg.in/resty.v1"
 )
+
+var client = resty.New()
 
 func (s *Synapse) remoteGasByModelHash(modelInfoHash string) (uint64, error) {
 	inferWork := &inference.GasWork{
@@ -89,7 +92,7 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 		return v.([]byte), nil
 	}
 
-	resp, err := resty.R().
+	resp, err := client.SetTimeout(time.Duration(15*time.Second)).R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(uri)

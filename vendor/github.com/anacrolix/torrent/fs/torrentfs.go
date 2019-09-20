@@ -79,10 +79,17 @@ func isSubPath(parent, child string) bool {
 func (dn dirNode) ReadDirAll(ctx context.Context) (des []fuse.Dirent, err error) {
 	names := map[string]bool{}
 	for _, fi := range dn.metadata.Files {
-		if !isSubPath(dn.path, strings.Join(fi.Path, "/")) {
+		filePathname := strings.Join(fi.Path, "/")
+		if !isSubPath(dn.path, filePathname) {
 			continue
 		}
-		name := fi.Path[len(dn.path)]
+		var name string
+		if dn.path == "" {
+			name = fi.Path[0]
+		} else {
+			dirPathname := strings.Split(dn.path, "/")
+			name = fi.Path[len(dirPathname)]
+		}
 		if names[name] {
 			continue
 		}
@@ -103,7 +110,12 @@ func (dn dirNode) ReadDirAll(ctx context.Context) (des []fuse.Dirent, err error)
 func (dn dirNode) Lookup(_ context.Context, name string) (fusefs.Node, error) {
 	dir := false
 	var file *torrent.File
-	fullPath := dn.path + "/" + name
+	var fullPath string
+	if dn.path != "" {
+		fullPath = dn.path + "/" + name
+	} else {
+		fullPath = name
+	}
 	for _, f := range dn.t.Files() {
 		if f.DisplayPath() == fullPath {
 			file = f

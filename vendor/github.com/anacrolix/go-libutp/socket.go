@@ -32,13 +32,21 @@ import "C"
 import (
 	"context"
 	"errors"
+	"math"
 	"net"
-	"runtime/pprof"
 	"time"
+	"unsafe"
+
+	"syscall"
 
 	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/inproc"
 	"github.com/anacrolix/mmsg"
+)
+
+const (
+	utpCheckTimeoutInterval   = 500 * time.Millisecond
+	issueDeferredUtpAcksDelay = 1000 * time.Microsecond
 )
 
 type Socket struct {
@@ -53,6 +61,11 @@ type Socket struct {
 	firewallCallback FirewallCallback
 	// Whether the next accept is to be blocked.
 	block bool
+
+	acksScheduled bool
+	ackTimer      *time.Timer
+
+	utpTimeoutChecker *time.Timer
 }
 
 type FirewallCallback func(net.Addr) bool
@@ -80,27 +93,31 @@ func NewSocket(network, addr string) (*Socket, error) {
 	if err != nil {
 		return nil, err
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	ctx := C.utp_init(2)
-	if ctx == nil {
-		panic(ctx)
-	}
-	ctx.setCallbacks()
-	if utpLogging {
-		ctx.setOption(C.UTP_LOG_NORMAL, 1)
-		ctx.setOption(C.UTP_LOG_MTU, 1)
-		ctx.setOption(C.UTP_LOG_DEBUG, 1)
-	}
 	s := &Socket{
 		pc:          pc,
-		ctx:         ctx,
 		backlog:     make(chan *Conn, 5),
 		conns:       make(map[*C.utp_socket]*Conn),
 		nonUtpReads: make(chan packet, 100),
 	}
-	libContextToSocket[ctx] = s
-	go s.timeoutChecker()
+	s.ackTimer = time.AfterFunc(math.MaxInt64, s.ackTimerFunc)
+	s.ackTimer.Stop()
+	func() {
+		mu.Lock()
+		defer mu.Unlock()
+		ctx := C.utp_init(2)
+		if ctx == nil {
+			panic(ctx)
+		}
+		s.ctx = ctx
+		ctx.setCallbacks()
+		if utpLogging {
+			ctx.setOption(C.UTP_LOG_NORMAL, 1)
+			ctx.setOption(C.UTP_LOG_MTU, 1)
+			ctx.setOption(C.UTP_LOG_DEBUG, 1)
+		}
+		libContextToSocket[ctx] = s
+		s.utpTimeoutChecker = time.AfterFunc(0, s.timeoutCheckerTimerFunc)
+	}()
 	go s.packetReader()
 	return s, nil
 }
@@ -197,7 +214,9 @@ func (s *Socket) processReceivedMessages(ms []mmsg.Message) {
 			a := &args[i]
 			a.buf = (*C.byte)(&m.Buffers[0][0])
 			a.len = C.size_t(m.N)
-			a.sa, a.sal = netAddrToLibSockaddr(m.Addr)
+			var rsa syscall.RawSockaddrAny
+			rsa, a.sal = netAddrToLibSockaddr(m.Addr)
+			a.sa = (*C.struct_sockaddr)(unsafe.Pointer(&rsa))
 		}
 		C.process_received_messages(s.ctx, &args[0], C.size_t(len(ms)))
 	} else {
@@ -212,11 +231,31 @@ func (s *Socket) processReceivedMessages(ms []mmsg.Message) {
 }
 
 func (s *Socket) afterReceivingUtpMessages() {
-	pprof.Do(context.Background(), pprof.Labels("go-libutp", "afterReceivingUtpMessages"), func(context.Context) {
-		C.utp_issue_deferred_acks(s.ctx)
-		// TODO: When is this done in C?
-		C.utp_check_timeouts(s.ctx)
-	})
+	if s.acksScheduled {
+		return
+	}
+	s.ackTimer.Reset(issueDeferredUtpAcksDelay)
+	s.acksScheduled = true
+}
+
+func (s *Socket) issueDeferredAcks() {
+	expMap.Add("utp_issue_deferred_acks calls", 1)
+	C.utp_issue_deferred_acks(s.ctx)
+}
+
+func (s *Socket) checkUtpTimeouts() {
+	expMap.Add("utp_check_timeouts calls", 1)
+	C.utp_check_timeouts(s.ctx)
+}
+
+func (s *Socket) ackTimerFunc() {
+	mu.Lock()
+	defer mu.Unlock()
+	if !s.acksScheduled || s.ctx == nil {
+		return
+	}
+	s.acksScheduled = false
+	s.issueDeferredAcks()
 }
 
 func (s *Socket) processReceivedMessage(b []byte, addr net.Addr) (utp bool) {
@@ -233,9 +272,10 @@ func (s *Socket) processReceivedMessage(b []byte, addr net.Addr) (utp bool) {
 // requires GODEBUG=cgocheck=0.
 const processPacketsInC = false
 
+var staticRsa syscall.RawSockaddrAny
+
 // Wraps libutp's utp_process_udp, returning relevant information.
 func (s *Socket) utpProcessUdp(b []byte, addr net.Addr) (utp bool) {
-	sa, sal := netAddrToLibSockaddr(addr)
 	if len(b) == 0 {
 		// The implementation of utp_process_udp rejects null buffers, and
 		// anything smaller than the UTP header size. It's also prone to
@@ -257,7 +297,9 @@ func (s *Socket) utpProcessUdp(b []byte, addr net.Addr) (utp bool) {
 	if s.closed {
 		return false
 	}
-	ret := C.utp_process_udp(s.ctx, (*C.byte)(&b[0]), C.size_t(len(b)), sa, sal)
+	var sal C.socklen_t
+	staticRsa, sal = netAddrToLibSockaddr(addr)
+	ret := C.utp_process_udp(s.ctx, (*C.byte)(&b[0]), C.size_t(len(b)), (*C.struct_sockaddr)(unsafe.Pointer(&staticRsa)), sal)
 	switch ret {
 	case 1:
 		return true
@@ -268,18 +310,16 @@ func (s *Socket) utpProcessUdp(b []byte, addr net.Addr) (utp bool) {
 	}
 }
 
-func (s *Socket) timeoutChecker() {
-	for {
-		mu.Lock()
-		if s.closed {
-			mu.Unlock()
-			return
-		}
-		// C.utp_issue_deferred_acks(s.ctx)
-		C.utp_check_timeouts(s.ctx)
-		mu.Unlock()
-		time.Sleep(500 * time.Millisecond)
+func (s *Socket) timeoutCheckerTimerFunc() {
+	mu.Lock()
+	ok := s.ctx != nil
+	if ok {
+		s.checkUtpTimeouts()
 	}
+	if ok {
+		s.utpTimeoutChecker.Reset(utpCheckTimeoutInterval)
+	}
+	mu.Unlock()
 }
 
 func (s *Socket) Close() error {
@@ -300,6 +340,9 @@ func (s *Socket) closeLocked() error {
 	close(s.backlog)
 	close(s.nonUtpReads)
 	s.closed = true
+	s.ackTimer.Stop()
+	s.utpTimeoutChecker.Stop()
+	s.acksScheduled = false
 	return nil
 }
 

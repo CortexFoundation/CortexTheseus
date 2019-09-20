@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anacrolix/dht"
+	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/bitmap"
@@ -43,8 +43,10 @@ type connection struct {
 
 	t *Torrent
 	// The actual Conn, used for closing, and setting socket options.
-	conn     net.Conn
-	outgoing bool
+	conn       net.Conn
+	outgoing   bool
+	network    string
+	remoteAddr IpPort
 	// The Reader and Writer for this Conn, with hooks installed for stats,
 	// limiting, deadlines etc.
 	w io.Writer
@@ -134,7 +136,7 @@ func (cn *connection) expectingChunks() bool {
 
 // Returns true if the connection is over IPv6.
 func (cn *connection) ipv6() bool {
-	ip := missinggo.AddrIP(cn.remoteAddr())
+	ip := cn.remoteAddr.IP
 	if ip.To4() != nil {
 		return false
 	}
@@ -178,10 +180,6 @@ func (cn *connection) peerHasAllPieces() (all bool, known bool) {
 
 func (cn *connection) mu() sync.Locker {
 	return cn.t.cl.locker()
-}
-
-func (cn *connection) remoteAddr() net.Addr {
-	return cn.conn.RemoteAddr()
 }
 
 func (cn *connection) localAddr() net.Addr {
@@ -242,7 +240,7 @@ func (cn *connection) connectionFlags() (ret string) {
 }
 
 func (cn *connection) utp() bool {
-	return isUtpNetwork(cn.remoteAddr().Network())
+	return parseNetworkString(cn.network).Udp
 }
 
 // Inspired by https://github.com/transmission/transmission/wiki/Peer-Status-Text.
@@ -280,7 +278,7 @@ func (cn *connection) downloadRate() float64 {
 
 func (cn *connection) WriteStatus(w io.Writer, t *Torrent) {
 	// \t isn't preserved in <pre> blocks?
-	fmt.Fprintf(w, "%+-55q %s %s-%s\n", cn.PeerID, cn.PeerExtensionBytes, cn.localAddr(), cn.remoteAddr())
+	fmt.Fprintf(w, "%+-55q %s %s-%s\n", cn.PeerID, cn.PeerExtensionBytes, cn.localAddr(), cn.remoteAddr)
 	fmt.Fprintf(w, "    last msg: %s, connected: %s, last helpful: %s, itime: %s, etime: %s\n",
 		eventAgeString(cn.lastMessageReceived),
 		eventAgeString(cn.completedHandshake),
@@ -800,10 +798,13 @@ func iterUndirtiedChunks(piece pieceIndex, t *Torrent, f func(chunkSpec) bool) b
 		}
 		return true
 	}
-	chunkIndices := t.pieces[piece].undirtiedChunkIndices().ToSortedSlice()
-	// TODO: Use "math/rand".Shuffle >= Go 1.10
-	return iter.ForPerm(len(chunkIndices), func(i int) bool {
-		return f(t.chunkIndexSpec(pp.Integer(chunkIndices[i]), piece))
+	chunkIndices := t.pieces[piece].undirtiedChunkIndices()
+	return iter.ForPerm(chunkIndices.Len(), func(i int) bool {
+		ci, err := chunkIndices.RB.Select(uint32(i))
+		if err != nil {
+			panic(err)
+		}
+		return f(t.chunkIndexSpec(pp.Integer(ci), piece))
 	})
 }
 
@@ -1151,15 +1152,15 @@ func (c *connection) mainReadLoop() (err error) {
 		case pp.Extended:
 			err = c.onReadExtendedMsg(msg.ExtendedID, msg.ExtendedPayload)
 		case pp.Port:
-			pingAddr, err := net.ResolveUDPAddr("", c.remoteAddr().String())
-			if err != nil {
-				panic(err)
+			pingAddr := net.UDPAddr{
+				IP:   c.remoteAddr.IP,
+				Port: int(c.remoteAddr.Port),
 			}
 			if msg.Port != 0 {
 				pingAddr.Port = int(msg.Port)
 			}
 			cl.eachDhtServer(func(s *dht.Server) {
-				go s.Ping(pingAddr, nil)
+				go s.Ping(&pingAddr, nil)
 			})
 		case pp.AllowedFast:
 			torrent.Add("allowed fasts received", 1)
@@ -1196,7 +1197,7 @@ func (c *connection) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (e
 	case pp.HandshakeExtendedID:
 		var d pp.ExtendedHandshakeMessage
 		if err := bencode.Unmarshal(payload, &d); err != nil {
-			log.Printf("error parsing extended handshake message %q: %s", payload, err)
+			c.t.logger.Printf("error parsing extended handshake message %q: %s", payload, err)
 			return errors.Wrap(err, "unmarshalling extended handshake payload")
 		}
 		if d.Reqq != 0 {
@@ -1326,6 +1327,8 @@ func (c *connection) receiveChunk(msg *pp.Message) error {
 	err := func() error {
 		cl.unlock()
 		defer cl.lock()
+		concurrentChunkWrites.Add(1)
+		defer concurrentChunkWrites.Add(-1)
 		// Write the chunk out. Note that the upper bound on chunk writing
 		// concurrency will be the number of connections. We write inline with
 		// receiving the chunk (with this lock dance), because we want to
@@ -1338,7 +1341,7 @@ func (c *connection) receiveChunk(msg *pp.Message) error {
 	piece.decrementPendingWrites()
 
 	if err != nil {
-		log.Printf("%s (%s): error writing chunk %v: %s", t, t.infoHash, req, err)
+		panic(fmt.Sprintf("error writing chunk: %v", err))
 		t.pendRequest(req)
 		t.updatePieceCompletion(pieceIndex(msg.Index))
 		return nil
@@ -1551,9 +1554,9 @@ func (c *connection) peerPriority() peerPriority {
 }
 
 func (c *connection) remoteIp() net.IP {
-	return missinggo.AddrIP(c.remoteAddr())
+	return c.remoteAddr.IP
 }
 
-func (c *connection) remoteIpPort() ipPort {
-	return ipPort{missinggo.AddrIP(c.remoteAddr()), uint16(missinggo.AddrPort(c.remoteAddr()))}
+func (c *connection) remoteIpPort() IpPort {
+	return c.remoteAddr
 }

@@ -3,7 +3,7 @@ package torrent
 import (
 	"net"
 
-	"github.com/anacrolix/dht/krpc"
+	"github.com/anacrolix/dht/v2/krpc"
 
 	"github.com/anacrolix/torrent/peer_protocol"
 )
@@ -29,6 +29,6 @@ func (me *Peer) FromPex(na krpc.NodeAddr, fs peer_protocol.PexPeerFlags) {
 	me.PexPeerFlags = fs
 }
 
-func (me Peer) addr() ipPort {
-	return ipPort{me.IP, uint16(me.Port)}
+func (me Peer) addr() IpPort {
+	return IpPort{me.IP, uint16(me.Port)}
 }

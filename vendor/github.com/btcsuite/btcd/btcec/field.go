@@ -546,7 +546,7 @@ func (f *fieldVal) Add(val *fieldVal) *fieldVal {
 	return f
 }
 
-// Add2 adds the passed two field values tocortexer and stores the result in f.
+// Add2 adds the passed two field values together and stores the result in f.
 //
 // The field value is returned to support chaining.  This enables syntax like:
 // f3.Add2(f, f2).AddInt(1) so that f3 = f + f2 + 1.
@@ -610,7 +610,7 @@ func (f *fieldVal) Mul(val *fieldVal) *fieldVal {
 	return f.Mul2(f, val)
 }
 
-// Mul2 multiplies the passed two field values tocortexer and stores the result
+// Mul2 multiplies the passed two field values together and stores the result
 // result in f.  Note that this function can overflow if multiplying any of
 // the individual words exceeds a max uint32.  In practice, this means the
 // magnitude of either value involved in the multiplication must be a max of

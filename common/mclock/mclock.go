@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package mclock is a wrapper for a monotonic clock source
 package mclock
@@ -36,28 +36,39 @@ func (t AbsTime) Add(d time.Duration) AbsTime {
 	return t + AbsTime(d)
 }
 
-// Clock interface makes it possible to replace the monotonic system clock with
+// The Clock interface makes it possible to replace the monotonic system clock with
 // a simulated clock.
 type Clock interface {
 	Now() AbsTime
 	Sleep(time.Duration)
 	After(time.Duration) <-chan time.Time
+	AfterFunc(d time.Duration, f func()) Timer
+}
+
+// Timer represents a cancellable event returned by AfterFunc
+type Timer interface {
+	Stop() bool
 }
 
 // System implements Clock using the system clock.
 type System struct{}
 
-// Now implements Clock.
+// Now returns the current monotonic time.
 func (System) Now() AbsTime {
 	return AbsTime(monotime.Now())
 }
 
-// Sleep implements Clock.
+// Sleep blocks for the given duration.
 func (System) Sleep(d time.Duration) {
 	time.Sleep(d)
 }
 
-// After implements Clock.
+// After returns a channel which receives the current time after d has elapsed.
 func (System) After(d time.Duration) <-chan time.Time {
 	return time.After(d)
+}
+
+// AfterFunc runs f on a new goroutine after the duration has elapsed.
+func (System) AfterFunc(d time.Duration, f func()) Timer {
+	return time.AfterFunc(d, f)
 }

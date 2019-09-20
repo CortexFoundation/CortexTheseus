@@ -22,34 +22,34 @@ type Interface interface {
 // Bitmaps store the existence of values in [0,math.MaxUint32] more
 // efficiently than []bool. The empty value starts with no bits set.
 type Bitmap struct {
-	rb *roaring.Bitmap
+	RB *roaring.Bitmap
 }
 
 var ToEnd int = -1
 
 // The number of set bits in the bitmap. Also known as cardinality.
 func (me *Bitmap) Len() int {
-	if me.rb == nil {
+	if me.RB == nil {
 		return 0
 	}
-	return int(me.rb.GetCardinality())
+	return int(me.RB.GetCardinality())
 }
 
 func (me Bitmap) ToSortedSlice() (ret []int) {
-	if me.rb == nil {
+	if me.RB == nil {
 		return
 	}
-	for _, ui32 := range me.rb.ToArray() {
+	for _, ui32 := range me.RB.ToArray() {
 		ret = append(ret, int(int32(ui32)))
 	}
 	return
 }
 
 func (me *Bitmap) lazyRB() *roaring.Bitmap {
-	if me.rb == nil {
-		me.rb = roaring.NewBitmap()
+	if me.RB == nil {
+		me.RB = roaring.NewBitmap()
 	}
-	return me.rb
+	return me.RB
 }
 
 func (me Bitmap) Iter(cb iter.Callback) {
@@ -60,10 +60,10 @@ func (me Bitmap) Iter(cb iter.Callback) {
 
 // Returns true if all values were traversed without early termination.
 func (me Bitmap) IterTyped(f func(int) bool) bool {
-	if me.rb == nil {
+	if me.RB == nil {
 		return true
 	}
-	it := me.rb.Iterator()
+	it := me.RB.Iterator()
 	for it.HasNext() {
 		if !f(int(it.Next())) {
 			return false
@@ -94,10 +94,10 @@ func (me *Bitmap) AddRange(begin, end BitIndex) {
 }
 
 func (me *Bitmap) Remove(i BitIndex) bool {
-	if me.rb == nil {
+	if me.RB == nil {
 		return false
 	}
-	return me.rb.CheckedRemove(uint32(i))
+	return me.RB.CheckedRemove(uint32(i))
 }
 
 func (me *Bitmap) Union(other Bitmap) {
@@ -105,33 +105,33 @@ func (me *Bitmap) Union(other Bitmap) {
 }
 
 func (me *Bitmap) Contains(i int) bool {
-	if me.rb == nil {
+	if me.RB == nil {
 		return false
 	}
-	return me.rb.Contains(uint32(i))
+	return me.RB.Contains(uint32(i))
 }
 
 func (me *Bitmap) Sub(other Bitmap) {
-	if other.rb == nil {
+	if other.RB == nil {
 		return
 	}
-	if me.rb == nil {
+	if me.RB == nil {
 		return
 	}
-	me.rb.AndNot(other.rb)
+	me.RB.AndNot(other.RB)
 }
 
 func (me *Bitmap) Clear() {
-	if me.rb == nil {
+	if me.RB == nil {
 		return
 	}
-	me.rb.Clear()
+	me.RB.Clear()
 }
 
 func (me Bitmap) Copy() (ret Bitmap) {
 	ret = me
-	if ret.rb != nil {
-		ret.rb = ret.rb.Clone()
+	if ret.RB != nil {
+		ret.RB = ret.RB.Clone()
 	}
 	return
 }
@@ -141,31 +141,31 @@ func (me *Bitmap) FlipRange(begin, end BitIndex) {
 }
 
 func (me *Bitmap) Get(bit BitIndex) bool {
-	return me.rb != nil && me.rb.ContainsInt(bit)
+	return me.RB != nil && me.RB.ContainsInt(bit)
 }
 
 func (me *Bitmap) Set(bit BitIndex, value bool) {
 	if value {
 		me.lazyRB().AddInt(bit)
 	} else {
-		if me.rb != nil {
-			me.rb.Remove(uint32(bit))
+		if me.RB != nil {
+			me.RB.Remove(uint32(bit))
 		}
 	}
 }
 
 func (me *Bitmap) RemoveRange(begin, end BitIndex) *Bitmap {
-	if me.rb == nil {
+	if me.RB == nil {
 		return me
 	}
 	rangeEnd := uint64(end)
 	if end == ToEnd {
 		rangeEnd = 0x100000000
 	}
-	me.rb.RemoveRange(uint64(begin), rangeEnd)
+	me.RB.RemoveRange(uint64(begin), rangeEnd)
 	return me
 }
 
 func (me Bitmap) IsEmpty() bool {
-	return me.rb == nil || me.rb.IsEmpty()
+	return me.RB == nil || me.RB.IsEmpty()
 }

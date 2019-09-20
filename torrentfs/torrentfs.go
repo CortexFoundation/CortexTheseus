@@ -1,13 +1,13 @@
 package torrentfs
 
 import (
-	"io/ioutil"
 	"fmt"
-	"path"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"io/ioutil"
+	"path"
 )
 
 type GeneralMessage struct {
@@ -83,7 +83,7 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 		history: msg,
 		monitor: monitor,
 	}
-	Torrentfs_handle = *torrentInstance
+	Torrentfs_handle = torrentInstance
 
 	return torrentInstance, nil
 }
@@ -98,7 +98,7 @@ func (tfs *TorrentFS) APIs() []rpc.API { return nil }
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Start(server *p2p.Server) error {
 	log.Info("Torrent monitor starting", "torrentfs", tfs)
-	if tfs.monitor == nil {
+	if tfs == nil || tfs.monitor == nil {
 		log.Error("Monitor is error")
 		return nil
 	}
@@ -113,16 +113,14 @@ func (tfs *TorrentFS) Stop() error {
 	return nil
 }
 
-
-func (fs TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
+func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 	// modelDir := fs.DataDir + "/" + infoHash
 	// if (os.Stat)
 	return Available(infohash, rawSize)
 }
 
-func (fs TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
+func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 	fn := path.Join(fs.config.DataDir, infohash, subpath)
 	data, err := ioutil.ReadFile(fn)
 	return data, err
 }
-

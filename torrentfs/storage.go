@@ -115,6 +115,10 @@ func (fs *FileStorage) AddCachedFile(x *FileInfo) error {
 	return nil
 }
 
+func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
+	return CurrentTorrentManager
+}
+
 func (fs *FileStorage) AddFile(x *FileInfo) error {
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
@@ -437,4 +441,5 @@ func (fs *FileStorage) writeBlockNumber() error {
 type FlowControlMeta struct {
 	InfoHash       metainfo.Hash
 	BytesRequested uint64
+	IsCreate       bool
 }

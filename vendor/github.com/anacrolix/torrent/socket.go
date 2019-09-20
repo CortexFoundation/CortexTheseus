@@ -2,14 +2,13 @@ package torrent
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/perf"
+	"github.com/pkg/errors"
 	"golang.org/x/net/proxy"
 )
 
@@ -31,22 +30,15 @@ func getProxyDialer(proxyURL string) (proxy.Dialer, error) {
 	return proxy.FromURL(fixedURL, proxy.Direct)
 }
 
-func listen(network, addr, proxyURL string, f firewallCallback) (socket, error) {
-	if isTcpNetwork(network) {
-		return listenTcp(network, addr, proxyURL)
-	} else if isUtpNetwork(network) {
-		return listenUtp(network, addr, proxyURL, f)
-	} else {
-		panic(fmt.Sprintf("unknown network %q", network))
+func listen(n network, addr, proxyURL string, f firewallCallback) (socket, error) {
+	switch {
+	case n.Tcp:
+		return listenTcp(n.String(), addr, proxyURL)
+	case n.Udp:
+		return listenUtp(n.String(), addr, proxyURL, f)
+	default:
+		panic(n)
 	}
-}
-
-func isTcpNetwork(s string) bool {
-	return strings.Contains(s, "tcp")
-}
-
-func isUtpNetwork(s string) bool {
-	return strings.Contains(s, "utp") || strings.Contains(s, "udp")
 }
 
 func listenTcp(network, address, proxyURL string) (s socket, err error) {
@@ -89,21 +81,13 @@ func (me tcpSocket) dial(ctx context.Context, addr string) (net.Conn, error) {
 	return me.d(ctx, addr)
 }
 
-func setPort(addr string, port int) string {
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		panic(err)
-	}
-	return net.JoinHostPort(host, strconv.FormatInt(int64(port), 10))
-}
-
-func listenAll(networks []string, getHost func(string) string, port int, proxyURL string, f firewallCallback) ([]socket, error) {
+func listenAll(networks []network, getHost func(string) string, port int, proxyURL string, f firewallCallback) ([]socket, error) {
 	if len(networks) == 0 {
 		return nil, nil
 	}
 	var nahs []networkAndHost
 	for _, n := range networks {
-		nahs = append(nahs, networkAndHost{n, getHost(n)})
+		nahs = append(nahs, networkAndHost{n, getHost(n.String())})
 	}
 	for {
 		ss, retry, err := listenAllRetry(nahs, port, proxyURL, f)
@@ -114,7 +98,7 @@ func listenAll(networks []string, getHost func(string) string, port int, proxyUR
 }
 
 type networkAndHost struct {
-	Network string
+	Network network
 	Host    string
 }
 
@@ -123,7 +107,7 @@ func listenAllRetry(nahs []networkAndHost, port int, proxyURL string, f firewall
 	portStr := strconv.FormatInt(int64(port), 10)
 	ss[0], err = listen(nahs[0].Network, net.JoinHostPort(nahs[0].Host, portStr), proxyURL, f)
 	if err != nil {
-		return nil, false, fmt.Errorf("first listen: %s", err)
+		return nil, false, errors.Wrap(err, "first listen")
 	}
 	defer func() {
 		if err != nil || retry {
@@ -139,7 +123,7 @@ func listenAllRetry(nahs []networkAndHost, port int, proxyURL string, f firewall
 		if err != nil {
 			return ss,
 				missinggo.IsAddrInUse(err) && port == 0,
-				fmt.Errorf("subsequent listen: %s", err)
+				errors.Wrap(err, "subsequent listen")
 		}
 		ss = append(ss, s)
 	}

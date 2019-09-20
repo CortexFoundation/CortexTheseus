@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"sync"
 
+	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
-	"github.com/anacrolix/torrent/peer_protocol"
 )
 
 type Reader interface {
@@ -213,8 +212,8 @@ func (r *reader) readOnceAt(b []byte, pos int64, ctxErr *error) (n int, err erro
 				return
 			}
 		}
-		pi := peer_protocol.Integer(r.torrentOffset(pos) / r.t.info.PieceLength)
-		ip := r.t.info.Piece(int(pi))
+		pi := pieceIndex(r.torrentOffset(pos) / r.t.info.PieceLength)
+		ip := r.t.info.Piece(pi)
 		po := r.torrentOffset(pos) % r.t.info.PieceLength
 		b1 := missinggo.LimitLen(b, ip.Length()-po, avail)
 		n, err = r.t.readAt(b1, r.torrentOffset(pos))
@@ -225,9 +224,11 @@ func (r *reader) readOnceAt(b []byte, pos int64, ctxErr *error) (n int, err erro
 		r.t.cl.lock()
 		// TODO: Just reset pieces in the readahead window. This might help
 		// prevent thrashing with small caches and file and piece priorities.
-		log.Printf("error reading torrent %q piece %d offset %d, %d bytes: %s", r.t, pi, po, len(b1), err)
-		r.t.updateAllPieceCompletions()
-		r.t.updateAllPiecePriorities()
+		r.log(log.Fstr("error reading torrent %s piece %d offset %d, %d bytes: %v",
+			r.t.infoHash.HexString(), pi, po, len(b1), err))
+		if !r.t.updatePieceCompletion(pi) {
+			r.log(log.Fstr("piece %d completion unchanged", pi))
+		}
 		r.t.cl.unlock()
 	}
 }
@@ -270,4 +271,8 @@ func (r *reader) Seek(off int64, whence int) (ret int64, err error) {
 
 	r.posChanged()
 	return
+}
+
+func (r *reader) log(m log.Msg) {
+	r.t.logger.Log(m)
 }

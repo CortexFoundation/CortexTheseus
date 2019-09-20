@@ -16,6 +16,6 @@ type TranslatedProvider struct {
 	JoinLocations func(base, rel string) string
 }
 
-func (me *TranslatedProvider) NewInstance(rel string) (Instance, error) {
+func (me TranslatedProvider) NewInstance(rel string) (Instance, error) {
 	return me.BaseProvider.NewInstance(me.JoinLocations(me.BaseLocation, rel))
 }

@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"errors"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -87,7 +88,10 @@ var (
 		Usage: "P2P storage tracker list",
 		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
 	}
-
+	StorageDisableDHTFlag = cli.BoolFlag{
+		Name:  "cvm.disable_dht",
+		Usage: "disable DHT network in TorrentFS",
+	}
 	cvmFlags = []cli.Flag{
 		// StorageDirFlag,
 		CVMPortFlag,
@@ -99,6 +103,7 @@ var (
 		StorageMaxActiveFlag,
 		StorageBoostNodesFlag,
 		StorageTrackerFlag,
+		StorageDisableDHTFlag,
 	}
 
 	cvmCommand = cli.Command{
@@ -128,13 +133,16 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
 	fsCfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
+	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
 	storagefs.Start(nil)
 	if fs_err != nil {
-		panic(fs_err)
+		//panic(fs_err)
+		return errors.New("torrent start failed")
 	}
+	//defer storagefs.Stop()
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
 	DeviceId := ctx.GlobalInt(utils.InferDeviceIdFlag.Name)
@@ -161,6 +169,7 @@ func cvmServer(ctx *cli.Context) error {
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 
 	log.Error(fmt.Sprintf("Server Closed with Error %v", err))
+
 	inferServer.Close()
 
 	return nil
