@@ -749,7 +749,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			}
 
 			if log_counter%20 == 0 && t.bytesRequested > 0 {
-				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "requested", t.bytesRequested, "limitation", t.bytesLimitation, "boosting", t.isBoosting)
+				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "requested", t.bytesRequested, "limitation", t.bytesLimitation, "boosting", t.isBoosting, "progress", float64(t.bytesCompleted)/float64(t.bytesLimitation+t.bytesRequested))
 			}
 
 			if t.bytesCompleted >= t.bytesLimitation {
