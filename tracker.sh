@@ -8,3 +8,4 @@ fi
 #echo $! > ${tracker_pid}
 echo "INFO [$(date +"%d-%m|%H:%M:%S:000")] Cortex tracker start with status $?."
 echo $! > ${tracker_pid}
+chmod 644 "${tracker_pid}"
