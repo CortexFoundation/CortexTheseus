@@ -346,6 +346,8 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 }
 
 func (tm *TorrentManager) SetTrackers(trackers []string) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
 	tm.trackers = append(tm.trackers, trackers)
 }
 
