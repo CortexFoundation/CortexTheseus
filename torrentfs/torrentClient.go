@@ -551,8 +551,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	cfg.EstablishedConnsPerTorrent = 10
-	cfg.HalfOpenConnsPerTorrent = 5
+	//cfg.EstablishedConnsPerTorrent = 10
+	//cfg.HalfOpenConnsPerTorrent = 5
 	cfg.ListenPort = 0
 	//cfg.DropDuplicatePeerIds = true
 	log.Info("Torrent client configuration", "config", cfg)
@@ -728,6 +728,8 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			activeTorrentsCandidate = append(activeTorrentsCandidate, t)
 		}
 
+		all := 0
+
 		for _, t := range activeTorrentsCandidate {
 			ih := t.Torrent.InfoHash()
 			BytesRequested := tm.bytes[ih]
@@ -751,8 +753,9 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			}
 
 			if log_counter%20 == 0 && t.bytesRequested > 0 {
-				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "requested", t.bytesRequested, "limitation", t.bytesLimitation, "boosting", t.isBoosting, "progress", float64(t.bytesCompleted)/float64(t.bytesLimitation+t.bytesRequested))
+				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "requested", t.bytesRequested, "limitation", t.bytesLimitation, "boosting", t.isBoosting, "progress", float64(t.bytesCompleted)/float64(t.bytesLimitation+t.bytesRequested), "conns", len(t.Torrent.PieceStateRuns()))
 			}
+			all += len(t.Torrent.PieceStateRuns())
 
 			if t.bytesCompleted >= t.bytesLimitation {
 				t.Pause()
@@ -863,7 +866,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				}
 			}
 
-			log.Info("TorrentFs working status", "pending", len(tm.pendingTorrents), "downloading", active_running, "paused in queue", active_paused, "active", len(tm.activeTorrents), "seeding", nSeed, "seeding_in_queue", len(tm.seedingTorrents)-nSeed)
+			log.Info("TorrentFs working status", "pending", len(tm.pendingTorrents), "downloading", active_running, "paused in queue", active_paused, "active", len(tm.activeTorrents), "seeding", nSeed, "seeding_in_queue", len(tm.seedingTorrents)-nSeed, "all", all)
 			counter = 0
 		}
 
