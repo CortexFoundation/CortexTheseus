@@ -841,6 +841,9 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						t.SeedInQueue()
 					}
 				}
+
+				//all += len(t.Torrent.PieceStateRuns())
+
 			}
 		}
 
@@ -856,6 +859,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			var nSeed int = 0
 			for _, t := range tm.seedingTorrents {
 				if t.status == torrentSeeding {
+					all += len(t.Torrent.PieceStateRuns())
 					log.Trace("Torrent seeding",
 						"InfoHash", t.InfoHash(),
 						"completed", t.bytesCompleted,
