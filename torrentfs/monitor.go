@@ -211,8 +211,8 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						}
 						m.trackerLock.Lock()
 						trackers = append(trackers, tracker)
-						trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
-						trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
+						//trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
+						//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
 						m.trackerLock.Unlock()
 						flush = true
 						healthPeers.Add(tracker, peer)
@@ -577,7 +577,7 @@ func (m *Monitor) listenPeers() {
 			m.peers()
 			if healthPeers.Len() == 0 {
 				timer.Reset(time.Second * 5)
-			} else if healthPeers.Len() < 10 {
+			} else if healthPeers.Len() < 6 {
 				timer.Reset(time.Second * 60)
 			} else {
 				timer.Reset(time.Second * 300)

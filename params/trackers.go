@@ -35,7 +35,7 @@ var MainnetTrackers = []string{
 	//"http://dht.cortexlabs.ai:5008/announce",
 	"http://127.0.0.1:5008/announce",
 
-	"udp://47.91.91.217:5008/announce",
+	/*"udp://47.91.91.217:5008/announce",
 	"udp://47.74.1.234:5008/announce",
 	"udp://47.88.7.24:5008/announce",
 	"udp://47.91.43.70:5008/announce",
@@ -61,7 +61,7 @@ var MainnetTrackers = []string{
 	"ws://torrent.cortexlabs.ai:5008/announce",
 	//"ws://dht.coinbag.org:5008/announce",
 	//"ws://dht.cortexlabs.ai:5008/announce",
-	"ws://127.0.0.1:5008/announce",
+	"ws://127.0.0.1:5008/announce",*/
 }
 
 var BernardTrackers = []string{
