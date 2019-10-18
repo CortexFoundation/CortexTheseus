@@ -47,7 +47,8 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 ### Compile Source Code
 1. git clone https://github.com/CortexFoundation/CortexTheseus.git
 2. cd CortexTheseus
-3. make cpu or make gpu
+3. make clean
+4. make cpu or make gpu
 
 ### Running Bash
 
