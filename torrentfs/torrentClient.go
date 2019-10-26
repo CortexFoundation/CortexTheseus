@@ -870,7 +870,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				}
 			}
 
-			log.Info("TorrentFs working status", "pending", len(tm.pendingTorrents), "downloading", active_running, "paused in queue", active_paused, "active", len(tm.activeTorrents), "seeding", nSeed, "seeding_in_queue", len(tm.seedingTorrents)-nSeed, "all", all)
+			log.Debug("TorrentFs working status", "pending", len(tm.pendingTorrents), "downloading", active_running, "paused in queue", active_paused, "active", len(tm.activeTorrents), "seeding", nSeed, "seeding_in_queue", len(tm.seedingTorrents)-nSeed, "all", all)
 			counter = 0
 		}
 
