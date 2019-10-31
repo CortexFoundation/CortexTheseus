@@ -23,8 +23,7 @@ import (
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-        "github.com/CortexFoundation/CortexTheseus/core/vm"
-
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
 )
 
 // Compiler contains information about the parsed source
@@ -90,11 +89,11 @@ func (c *Compiler) Feed(ch <-chan token) {
 }
 
 // Compile compiles the current tokens and returns a
-// binary string that can be interpreted by the EVM
+// binary string that can be interpreted by the CVM
 // and an error if it failed.
 //
 // compile is the second stage in the compile phase
-// which compiles the tokens to EVM instructions.
+// which compiles the tokens to CVM instructions.
 func (c *Compiler) Compile() (string, []error) {
 	var errors []error
 	// continue looping over the tokens until
