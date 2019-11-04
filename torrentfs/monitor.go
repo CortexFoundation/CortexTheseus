@@ -33,7 +33,7 @@ var (
 
 	ErrBlockHash     = errors.New("block or parent block hash invalid")
 	blockCache, _    = lru.New(6)
-	unhealthPeers, _ = lru.New(256)
+	//unhealthPeers, _ = lru.New(256)
 	healthPeers, _   = lru.New(25)
 )
 
@@ -201,9 +201,9 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 			go func(peer *p2p.PeerInfo) {
 				defer m.peersWg.Done()
 				ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
-				if unhealthPeers.Contains(ip) {
+				//if unhealthPeers.Contains(ip) {
 					//continue
-				}
+				//}
 				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
 					for _, p := range ps {
 						tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
@@ -216,13 +216,13 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
 						m.trackerLock.Unlock()
 						flush = true
-						healthPeers.Add(tracker, peer)
-						if unhealthPeers.Contains(ip) {
-							unhealthPeers.Remove(ip)
-						}
+						healthPeers.Add(tracker, tracker)
+						//if unhealthPeers.Contains(ip) {
+						//	unhealthPeers.Remove(ip)
+						//}
 					}
 				} else {
-					unhealthPeers.Add(ip, peer)
+					//unhealthPeers.Add(ip, peer)
 				}
 
 				if ps, suc := m.batch_udp_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
@@ -235,10 +235,10 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						trackers = append(trackers, tracker)
 						m.trackerLock.Unlock()
 						flush = true
-						healthPeers.Add(tracker, peer)
-						if unhealthPeers.Contains(ip) {
-							unhealthPeers.Remove(ip)
-						}
+						healthPeers.Add(tracker, tracker)
+						//if unhealthPeers.Contains(ip) {
+						//	unhealthPeers.Remove(ip)
+						//}
 					}
 				}
 			}(peer)
@@ -252,7 +252,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", healthPeers.Len(), "unhealthy", unhealthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", healthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
