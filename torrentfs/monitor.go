@@ -249,7 +249,8 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		}
 		//log.Info("Waiting dynamic tracker", "size", len(peers))
 		m.peersWg.Wait()
-		trackers     []string
+
+		var trackers []string
 		for _, data := range healthPeers.Keys() {
 			if str, ok := data.(string); ok {
 				trackers = append(trackers, str)
