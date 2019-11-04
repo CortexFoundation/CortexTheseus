@@ -167,7 +167,7 @@ var (
 	ports        = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
 	TRACKER_PORT []string               // = append(TRACKER_PORT, ports...)
 	client       http.Client
-	trackers     []string
+	//trackers     []string
 )
 
 func (m *Monitor) init() {
@@ -249,6 +249,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		}
 		//log.Info("Waiting dynamic tracker", "size", len(peers))
 		m.peersWg.Wait()
+		trackers     []string
 		for _, data := range healthPeers.Keys() {
 			if str, ok := data.(string); ok {
 				trackers = append(trackers, str)
