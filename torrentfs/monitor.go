@@ -12,6 +12,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -222,6 +223,23 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 					}
 				} else {
 					unhealthPeers.Add(ip, peer)
+				}
+
+				if ps, suc := m.batch_udp_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
+					for _, p := range ps {
+						tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
+						if healthPeers.Contains(tracker) {
+							continue
+						}
+						m.trackerLock.Lock()
+						trackers = append(trackers, tracker)
+						m.trackerLock.Unlock()
+						flush = true
+						healthPeers.Add(tracker, peer)
+						if unhealthPeers.Contains(ip) {
+							unhealthPeers.Remove(ip)
+						}
+					}
 				}
 			}(peer)
 		}
@@ -628,6 +646,40 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 	return res, status
 
+}
+
+func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
+	var res []string
+	var status = false
+	//request := make([]byte, 1)
+	for _, port := range ports {
+		addr, err := net.ResolveUDPAddr("udp", ip+":"+port)
+		if err != nil {
+			continue
+		}
+		socket, err := net.DialUDP("udp", nil, addr)
+		if err != nil {
+			continue
+		} else {
+			defer socket.Close()
+			/*if _, err = socket.Write(request); err != nil {
+				continue
+			}
+			socket.SetDeadline(time.Now().Add(5 * time.Second))
+
+			reply := make([]byte, 48)
+			if _, err = socket.Read(reply); err != nil {
+				continue
+			}*/
+			//m.portLock.Lock()
+			res = append(res, port)
+			status = true
+			//m.portLock.Unlock()
+			//defer socket.Close()
+		}
+	}
+
+	return res, status
 }
 
 const (
