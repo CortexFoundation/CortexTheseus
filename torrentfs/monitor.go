@@ -31,10 +31,10 @@ var (
 	ErrGetLatestBlock = errors.New("get latest block failed")
 	ErrNoRPCClient    = errors.New("no rpc client")
 
-	ErrBlockHash     = errors.New("block or parent block hash invalid")
-	blockCache, _    = lru.New(6)
+	ErrBlockHash  = errors.New("block or parent block hash invalid")
+	blockCache, _ = lru.New(6)
 	//unhealthPeers, _ = lru.New(256)
-	healthPeers, _   = lru.New(25)
+	healthPeers, _ = lru.New(50)
 )
 
 const (
@@ -73,12 +73,12 @@ type Monitor struct {
 	lastNumber uint64
 	dirty      bool
 
-	closeOnce   sync.Once
-	wg          sync.WaitGroup
-	peersWg     sync.WaitGroup
-	trackerLock sync.Mutex
-	portLock    sync.Mutex
-	portsWg     sync.WaitGroup
+	closeOnce sync.Once
+	wg        sync.WaitGroup
+	peersWg   sync.WaitGroup
+	//trackerLock sync.Mutex
+	portLock sync.Mutex
+	portsWg  sync.WaitGroup
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -202,20 +202,22 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				defer m.peersWg.Done()
 				ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
 				//if unhealthPeers.Contains(ip) {
-					//continue
+				//continue
 				//}
 				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
 					for _, p := range ps {
 						tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
 						if healthPeers.Contains(tracker) {
-							continue
+							//continue
+						} else {
+							flush = true
 						}
-						m.trackerLock.Lock()
-						trackers = append(trackers, tracker)
+						//m.trackerLock.Lock()
+						//trackers = append(trackers, tracker)
 						//trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
 						//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
-						m.trackerLock.Unlock()
-						flush = true
+						//m.trackerLock.Unlock()
+						//flush = true
 						healthPeers.Add(tracker, tracker)
 						//if unhealthPeers.Contains(ip) {
 						//	unhealthPeers.Remove(ip)
@@ -229,12 +231,14 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 					for _, p := range ps {
 						tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
 						if healthPeers.Contains(tracker) {
-							continue
+							//continue
+						} else {
+							flush = true
 						}
-						m.trackerLock.Lock()
-						trackers = append(trackers, tracker)
-						m.trackerLock.Unlock()
-						flush = true
+						//m.trackerLock.Lock()
+						//trackers = append(trackers, tracker)
+						//m.trackerLock.Unlock()
+						//flush = true
 						healthPeers.Add(tracker, tracker)
 						//if unhealthPeers.Contains(ip) {
 						//	unhealthPeers.Remove(ip)
@@ -245,11 +249,18 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		}
 		//log.Info("Waiting dynamic tracker", "size", len(peers))
 		m.peersWg.Wait()
+		for _, data := range healthPeers.Keys() {
+			if str, ok := data.(string); ok {
+				trackers = append(trackers, str)
+			} else {
+			}
+			//trackers = append(trackers, string(k))
+		}
 		//log.Info("Waiting dynamic tracker done", "size", len(peers))
 		if len(trackers) > 0 && flush {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 			for _, t := range trackers {
-				log.Trace("Healthy trackers", "tracker", t)
+				log.Info("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", healthPeers.Len(), "flush", flush, "elapsed", elapsed)
