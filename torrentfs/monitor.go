@@ -260,7 +260,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		if len(trackers) > 0 && flush {
 			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
 			for _, t := range trackers {
-				log.Info("Healthy trackers", "tracker", t)
+				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", healthPeers.Len(), "flush", flush, "elapsed", elapsed)
