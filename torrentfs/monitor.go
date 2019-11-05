@@ -164,16 +164,16 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 }
 
 var (
-	ports        = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
-	TRACKER_PORT []string               // = append(TRACKER_PORT, ports...)
+	ports            = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
+	TRACKER_PORT     []string               // = append(TRACKER_PORT, ports...)
 	UDP_TRACKER_PORT []string
-	client       http.Client
+	client           http.Client
 	//trackers     []string
 )
 
 func (m *Monitor) init() {
 	TRACKER_PORT = append(TRACKER_PORT, ports...)
-	UDP_TRACKER_PORT = []string{"5008"}
+	UDP_TRACKER_PORT = params.UDP_Tracker_ports
 	client = http.Client{
 		Timeout: time.Duration(5 * time.Second),
 	}
