@@ -59,6 +59,9 @@ type Torrent struct {
 }
 
 func (t *Torrent) BytesLeft() int64 {
+	if t.bytesRequested < t.bytesCompleted {
+		return 0
+	}
 	return t.bytesRequested - t.bytesCompleted
 }
 
