@@ -18,7 +18,7 @@ package params
 
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Cortex network.
-var Tracker_ports = []string{"80", "443", "5008", "8333", "30303"}
+var Tracker_ports = []string{"5008", "80", "443", "8333", "30303"}
 var UDP_Tracker_ports = []string{"5008"}
 
 var MainnetTrackers = []string{
@@ -34,7 +34,7 @@ var MainnetTrackers = []string{
 	"http://torrent.cortexlabs.ai:5008/announce",
 	"http://127.0.0.1:5008/announce",
 
-	"udp://47.91.91.217:5008/announce",
+	/*"udp://47.91.91.217:5008/announce",
 	"udp://47.74.1.234:5008/announce",
 	"udp://47.88.7.24:5008/announce",
 	"udp://47.91.43.70:5008/announce",
@@ -43,7 +43,7 @@ var MainnetTrackers = []string{
 	"udp://47.89.178.175:5008/announce",
 	"udp://47.88.214.96:5008/announce",
 	"udp://47.93.158.68:5008/announce",
-	"udp://torrent.cortexlabs.ai:5008/announce",
+	"udp://torrent.cortexlabs.ai:5008/announce",*/
 	//"udp://127.0.0.1:5008/announce",
 
 	/*"ws://47.91.91.217:5008/announce",

@@ -77,8 +77,8 @@ type Monitor struct {
 	wg        sync.WaitGroup
 	peersWg   sync.WaitGroup
 	//trackerLock sync.Mutex
-	portLock sync.Mutex
-	portsWg  sync.WaitGroup
+	//portLock sync.Mutex
+	//portsWg  sync.WaitGroup
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -227,24 +227,24 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 					}
 				} else {
 					//unhealthPeers.Add(ip, peer)
-				}
 
-				if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
-					for _, p := range ps {
-						tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
-						if healthPeers.Contains(tracker) {
-							//continue
-						} else {
-							flush = true
+					if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
+						for _, p := range ps {
+							tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
+							if healthPeers.Contains(tracker) {
+								//continue
+							} else {
+								flush = true
+							}
+							//m.trackerLock.Lock()
+							//trackers = append(trackers, tracker)
+							//m.trackerLock.Unlock()
+							//flush = true
+							healthPeers.Add(tracker, tracker)
+							//if unhealthPeers.Contains(ip) {
+							//	unhealthPeers.Remove(ip)
+							//}
 						}
-						//m.trackerLock.Lock()
-						//trackers = append(trackers, tracker)
-						//m.trackerLock.Unlock()
-						//flush = true
-						healthPeers.Add(tracker, tracker)
-						//if unhealthPeers.Contains(ip) {
-						//	unhealthPeers.Remove(ip)
-						//}
 					}
 				}
 			}(peer)
@@ -637,27 +637,30 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 	var res []string
 	var status = false
 	for _, port := range ports {
-		m.portsWg.Add(1)
-		go func(port string) {
-			defer m.portsWg.Done()
-			url := "http://" + ip + ":" + port + "/stats.json"
-			response, err := client.Get(url)
-			if err != nil || response == nil || response.StatusCode != 200 {
-				return
-			} else {
-				var stats tracker_stats
-				if jsErr := json.NewDecoder(response.Body).Decode(&stats); jsErr != nil {
-					return
-				}
-				m.portLock.Lock()
-				res = append(res, port)
-				status = true
-				m.portLock.Unlock()
+		//m.portsWg.Add(1)
+		//go func(port string) {
+		//defer m.portsWg.Done()
+		url := "http://" + ip + ":" + port + "/stats.json"
+		response, err := client.Get(url)
+		if err != nil || response == nil || response.StatusCode != 200 {
+			//return
+			continue
+		} else {
+			var stats tracker_stats
+			if jsErr := json.NewDecoder(response.Body).Decode(&stats); jsErr != nil {
+				//return
+				continue
 			}
-		}(port)
+			//m.portLock.Lock()
+			res = append(res, port)
+			status = true
+			//m.portLock.Unlock()
+			break
+		}
+		//}(port)
 	}
 
-	m.portsWg.Wait()
+	//m.portsWg.Wait()
 
 	return res, status
 
@@ -689,6 +692,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 			//m.portLock.Lock()
 			res = append(res, port)
 			status = true
+			break
 			//m.portLock.Unlock()
 			//defer socket.Close()
 		}
