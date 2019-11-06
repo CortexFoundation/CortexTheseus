@@ -59,6 +59,10 @@ type Torrent struct {
 	isBoosting          bool
 }
 
+func GetLimitation(value int64) int64 {
+	return (value/(512 * 1024) + 1) * (512 * 1024)
+}
+
 func (t *Torrent) BytesLeft() int64 {
 	if t.bytesRequested < t.bytesCompleted {
 		return 0
@@ -271,7 +275,8 @@ func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, sta
 		t,
 		tm.maxEstablishedConns, tm.maxEstablishedConns,
 		requested,
-		int64(float64(requested) * expansionFactor),
+		//int64(float64(requested) * expansionFactor),
+		GetLimitation(requested),
 		0, 0, status,
 		ih.String(),
 		path.Join(tm.TmpDataDir, ih.String()),
@@ -506,7 +511,8 @@ func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64)
 		}
 		t.bytesRequested = BytesRequested
 		if t.bytesRequested > t.bytesLimitation {
-			t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
+			//t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
+			t.bytesLimitation = GetLimitation(BytesRequested)
 		}
 	}
 	//tm.mu.Unlock()
@@ -734,7 +740,8 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			BytesRequested := tm.bytes[ih]
 			if t.bytesRequested < BytesRequested {
 				t.bytesRequested = BytesRequested
-				t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
+				//t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
+				t.bytesLimitation = GetLimitation(BytesRequested)
 			}
 			t.bytesCompleted = t.BytesCompleted()
 			t.bytesMissing = t.BytesMissing()
@@ -755,6 +762,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				active_paused += 1
 				continue
 			}
+
 			if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
 				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "quota", t.bytesRequested, "left", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "boosting", t.isBoosting, "progress", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
 			}
