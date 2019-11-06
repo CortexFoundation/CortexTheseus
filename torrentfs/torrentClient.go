@@ -32,7 +32,7 @@ const (
 	removeTorrentChanBuffer = 16
 	updateTorrentChanBuffer = 1000
 
-	torrentPending = iota
+	torrentPending = iota //2
 	torrentPaused
 	torrentRunning
 	torrentSeeding
@@ -727,7 +727,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		}
 
 		all := 0
-
+		active_paused := 0
 		for _, t := range activeTorrentsCandidate {
 			ih := t.Torrent.InfoHash()
 			BytesRequested := tm.bytes[ih]
@@ -738,7 +738,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			t.bytesCompleted = t.BytesCompleted()
 			t.bytesMissing = t.BytesMissing()
 
-			if t.bytesMissing == 0 {
+			if t.bytesMissing == 0 { //finish downloading
 				os.Symlink(
 					path.Join(defaultTmpFilePath, t.InfoHash()),
 					path.Join(tm.DataDir, t.InfoHash()),
@@ -750,8 +750,13 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				continue
 			}
 
-			if log_counter%20 == 0 && t.bytesRequested > 0 {
-				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "requested", t.bytesRequested, "limitation", t.bytesLimitation, "boosting", t.isBoosting, "progress", float64(t.bytesCompleted)/float64(t.bytesLimitation+t.bytesRequested), "conns", len(t.Torrent.PieceStateRuns()))
+			if t.bytesRequested == 0 {
+				active_paused += 1
+				continue
+			}
+
+			if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
+				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "requested", t.bytesRequested, "limitation", t.bytesLimitation, "boosting", t.isBoosting, "progress", float64(t.bytesCompleted)/float64(t.bytesLimitation+t.bytesRequested), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
 			}
 			all += len(t.Torrent.PieceStateRuns())
 
@@ -793,7 +798,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		}
 
 		active_running := 0
-		active_paused := 0
+		//active_paused := 0
 		if len(activeTorrents) <= tm.maxActiveTask {
 			for _, t := range activeTorrents {
 				t.Run()
@@ -868,7 +873,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				}
 			}
 
-			log.Info("TorrentFs working status", "pending", len(tm.pendingTorrents), "downloading", active_running, "paused", active_paused, "active", len(tm.activeTorrents), "seeding", nSeed, "queue", len(tm.seedingTorrents)-nSeed, "pieces", all)
+			log.Info("Torrent status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "downloading", active_running, "paused", active_paused, "seeding", nSeed, "queue", len(tm.seedingTorrents)-nSeed, "pieces", all)
 			counter = 0
 		}
 
