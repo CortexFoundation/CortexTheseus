@@ -764,7 +764,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			}
 
 			if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
-				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "quota", t.bytesRequested, "left", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "boosting", t.isBoosting, "progress", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
+				log.Info("Downloading", "hash", ih.String(), "completed", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesLimitation, "left", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "boosting", t.isBoosting, "progress", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
 			}
 			all += len(t.Torrent.PieceStateRuns())
 
