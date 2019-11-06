@@ -59,8 +59,9 @@ type Torrent struct {
 	isBoosting          bool
 }
 
+const block = 524288
 func GetLimitation(value int64) int64 {
-	return (value/(512 * 1024) + 1) * (512 * 1024)
+	return ((value + block - 1)/block) * block
 }
 
 func (t *Torrent) BytesLeft() int64 {
@@ -638,7 +639,7 @@ func (tm *TorrentManager) mainLoop() {
 }
 
 const (
-	loops = 2
+	loops = 5
 )
 
 type ActiveTorrentList []*Torrent
