@@ -10,6 +10,7 @@ import (
 	"github.com/edsrzf/mmap-go"
 	"io"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"net"
 	"os"
@@ -754,14 +755,14 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				active_paused += 1
 				continue
 			}
-
 			if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
-				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "requested", t.bytesRequested, "limitation", t.bytesLimitation, "boosting", t.isBoosting, "progress", float64(t.bytesCompleted)/float64(t.bytesLimitation+t.bytesRequested), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
+				log.Info("Downloading Status", "infohash", ih.String(), "completed", t.bytesCompleted, "quota", t.bytesRequested, "left", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "boosting", t.isBoosting, "progress", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
 			}
 			all += len(t.Torrent.PieceStateRuns())
 
 			if t.bytesCompleted >= t.bytesLimitation {
 				t.Pause()
+				active_paused += 1
 			} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
 				t.loop += 1
 				if t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
