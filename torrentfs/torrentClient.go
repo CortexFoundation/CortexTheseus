@@ -59,7 +59,7 @@ type Torrent struct {
 	isBoosting          bool
 }
 
-const block = 524288
+const block = int64(params.PER_UPLOAD_BYTES)
 func GetLimitation(value int64) int64 {
 	return ((value + block - 1)/block) * block
 }
