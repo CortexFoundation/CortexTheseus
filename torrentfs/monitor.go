@@ -256,7 +256,6 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		for _, data := range healthPeers.Keys() {
 			if str, ok := data.(string); ok {
 				trackers = append(trackers, str)
-			} else {
 			}
 			//trackers = append(trackers, string(k))
 		}

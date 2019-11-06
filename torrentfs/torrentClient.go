@@ -337,9 +337,9 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 		t.AddTrackers(newTrackers)
 	}
 
-	for _, t := range tm.activeTorrents {
-		t.AddTrackers(newTrackers)
-	}
+	//for _, t := range tm.activeTorrents {
+	//	t.AddTrackers(newTrackers)
+	//}
 	tm.lock.Unlock()
 }
 
@@ -868,7 +868,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				}
 			}
 
-			log.Debug("TorrentFs working status", "pending", len(tm.pendingTorrents), "downloading", active_running, "paused in queue", active_paused, "active", len(tm.activeTorrents), "seeding", nSeed, "seeding_in_queue", len(tm.seedingTorrents)-nSeed, "all", all)
+			log.Info("TorrentFs working status", "pending", len(tm.pendingTorrents), "downloading", active_running, "paused", active_paused, "active", len(tm.activeTorrents), "seeding", nSeed, "queue", len(tm.seedingTorrents)-nSeed, "pieces", all)
 			counter = 0
 		}
 
