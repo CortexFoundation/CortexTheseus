@@ -355,17 +355,17 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return err_remainingSize
 	}*/
 
-	remainingSize, err := m.getRemainingSize(receipt.ContractAddr.String())
-	if err != nil {
-		return err
-	}
+	//remainingSize, err := m.getRemainingSize(receipt.ContractAddr.String())
+	//if err != nil {
+	//	return err
+	//}
 
 	info := m.fs.NewFileInfo(meta)
 	info.TxHash = tx.Hash
 
-	info.LeftSize = remainingSize
+	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
-	err = m.fs.AddFile(info)
+	err := m.fs.AddFile(info)
 	if err != nil {
 		//return err
 	}
@@ -419,20 +419,22 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				}
 
 				var bytesRequested uint64
-				file.LeftSize = uint64(remainingSize)
-				err := m.fs.WriteFile(file)
-				if err != nil {
-					return err
+				if file.LeftSize > uint64(remainingSize) {
+					file.LeftSize = uint64(remainingSize)
+					err := m.fs.WriteFile(file)
+					if err != nil {
+						return err
+					}
+					if file.Meta.RawSize > file.LeftSize {
+						bytesRequested = file.Meta.RawSize - file.LeftSize
+					}
+					log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
+					m.dl.UpdateTorrent(FlowControlMeta{
+						InfoHash:       file.Meta.InfoHash,
+						BytesRequested: bytesRequested,
+						IsCreate:       false,
+					})
 				}
-				if file.Meta.RawSize > file.LeftSize {
-					bytesRequested = file.Meta.RawSize - file.LeftSize
-				}
-				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
-				m.dl.UpdateTorrent(FlowControlMeta{
-					InfoHash:       file.Meta.InfoHash,
-					BytesRequested: bytesRequested,
-					IsCreate:       false,
-				})
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
