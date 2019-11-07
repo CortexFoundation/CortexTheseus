@@ -299,6 +299,21 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 	return 0, errors.New("[ Internal IPC Error ] try to get block number out of times")
 }*/
 
+func (m *Monitor) getRemainingSize(address string) (uint64, error) {
+	var _remainingSize string
+	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", address, "latest"); err != nil {
+		log.Warn("Failed to call get upload", "addr", address)
+		return 0, err
+	}
+	remainingSize, err_remainingSize := strconv.ParseUint(_remainingSize[2:], 16, 64)
+	log.Debug("Monitor", "remainingSize", remainingSize, "err", err_remainingSize)
+	if err_remainingSize != nil {
+		return 0, err_remainingSize
+	}
+
+	return remainingSize, nil
+}
+
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	log.Debug("Monitor", "FileMeta", meta)
 
@@ -328,34 +343,44 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		BytesRequested: 0,
 		IsCreate:       true,
 	})
-	var _remainingSize string
+	/*var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
 		return err
 	}
-	log.Debug("Monitor", "NewFileInfo", meta)
-	info := m.fs.NewFileInfo(meta)
-	info.TxHash = tx.Hash
 
 	remainingSize, err_remainingSize := strconv.ParseUint(_remainingSize[2:], 16, 64)
 	log.Debug("Monitor", "remainingSize", remainingSize, "err", err_remainingSize)
 	if err_remainingSize != nil {
 		return err_remainingSize
+	}*/
+
+	remainingSize, err := m.getRemainingSize(receipt.ContractAddr.String())
+	if err != nil {
+		return err
 	}
+
+	info := m.fs.NewFileInfo(meta)
+	info.TxHash = tx.Hash
 
 	info.LeftSize = remainingSize
 	info.ContractAddr = receipt.ContractAddr
-	m.fs.AddFile(info)
-	bytesRequested := uint64(0)
-	if meta.RawSize > remainingSize {
+	err = m.fs.AddFile(info)
+	if err != nil {
+		//return err
+	}
+	/*bytesRequested := uint64(0)
+	if meta.RawSize >= remainingSize {
 
-		if remainingSize > params.PER_UPLOAD_BYTES {
-			remainingSize = remainingSize - params.PER_UPLOAD_BYTES
-		} else {
-			remainingSize = uint64(0)
-		}
+		//if remainingSize > params.PER_UPLOAD_BYTES {
+		//	remainingSize = remainingSize - params.PER_UPLOAD_BYTES
+		//} else {
+		//	remainingSize = uint64(0)
+		//}
 
 		bytesRequested = meta.RawSize - remainingSize
+	} else {
+		log.Warn("Invalid raw size", "address", receipt.ContractAddr.String(), "hash", meta.InfoHash, "raw", meta.RawSize, "remain", remainingSize)
 	}
 	log.Debug("Monitor", "meta", meta, "meta info", meta.InfoHash)
 	m.dl.UpdateTorrent(FlowControlMeta{
@@ -363,7 +388,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		BytesRequested: bytesRequested,
 		IsCreate:       false,
 	})
-	log.Debug("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)
+	log.Info("Parse file meta successfully", "tx", receipt.TxHash.Hex(), "remain", remainingSize, "meta", meta)*/
 	return nil
 }
 
@@ -395,11 +420,14 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 
 				var bytesRequested uint64
 				file.LeftSize = uint64(remainingSize)
-				m.fs.WriteFile(file)
+				err := m.fs.WriteFile(file)
+				if err != nil {
+					return err
+				}
 				if file.Meta.RawSize > file.LeftSize {
 					bytesRequested = file.Meta.RawSize - file.LeftSize
 				}
-				log.Debug("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
+				log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
 				m.dl.UpdateTorrent(FlowControlMeta{
 					InfoHash:       file.Meta.InfoHash,
 					BytesRequested: bytesRequested,
@@ -701,7 +729,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 }
 
 const (
-	batch = 4096 //2048
+	batch = 2048
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
@@ -719,9 +747,10 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 	if uint64(currentNumber) < m.lastNumber {
 		log.Warn("Torrent fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
-		if m.lastNumber > 12 {
-			m.lastNumber = m.lastNumber - 12
-		}
+		//if m.lastNumber > batch {
+		//	m.lastNumber = m.lastNumber - batch
+		//}
+		m.lastNumber = 0
 	}
 
 	//minNumber := uint64(0)

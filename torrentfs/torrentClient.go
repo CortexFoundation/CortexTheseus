@@ -60,8 +60,9 @@ type Torrent struct {
 }
 
 const block = int64(params.PER_UPLOAD_BYTES)
+
 func GetLimitation(value int64) int64 {
-	return ((value + block - 1)/block) * block
+	return ((value + block - 1) / block) * block
 }
 
 func (t *Torrent) BytesLeft() int64 {
@@ -157,7 +158,6 @@ func (t *Torrent) HasTorrent() bool {
 }
 
 func (t *Torrent) WriteTorrent() {
-	// log.Debug("Torrent gotInfo finished")
 	f, _ := os.Create(path.Join(t.filepath, "torrent"))
 	log.Debug("Write torrent file", "path", t.filepath)
 	if err := t.Metainfo().Write(f); err != nil {
@@ -173,13 +173,11 @@ func (t *Torrent) SeedInQueue() {
 		t.currentConns = 0
 		t.Torrent.SetMaxEstablishedConns(0)
 	}
-	//t.status = torrentSeedingInQueue
 	t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 	t.status = torrentSeedingInQueue
 }
 
 func (t *Torrent) Seed() {
-	//t.status = torrentSeeding
 	if t.currentConns == 0 {
 		t.currentConns = t.maxEstablishedConns
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
@@ -193,14 +191,12 @@ func (t *Torrent) Seeding() bool {
 		t.status == torrentSeedingInQueue
 }
 
-// Pause ...
 func (t *Torrent) Pause() {
 	if t.currentConns != 0 {
 		t.currentConns = 0
 		t.Torrent.SetMaxEstablishedConns(0)
 	}
 	if t.status != torrentPaused {
-		//t.status = torrentPaused
 		t.maxPieces = 0
 		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 		t.status = torrentPaused
@@ -240,6 +236,10 @@ func (t *Torrent) Run() {
 // Running ...
 func (t *Torrent) Running() bool {
 	return t.status == torrentRunning
+}
+
+func (t *Torrent) Finished() bool {
+	return t.bytesMissing == 0
 }
 
 // Pending ...
@@ -639,7 +639,7 @@ func (tm *TorrentManager) mainLoop() {
 }
 
 const (
-	loops = 5
+	loops = 10
 )
 
 type ActiveTorrentList []*Torrent
@@ -733,7 +733,6 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		for _, t := range tm.activeTorrents {
 			activeTorrentsCandidate = append(activeTorrentsCandidate, t)
 		}
-
 		all := 0
 		active_paused := 0
 		for _, t := range activeTorrentsCandidate {
@@ -747,7 +746,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			t.bytesCompleted = t.BytesCompleted()
 			t.bytesMissing = t.BytesMissing()
 
-			if t.bytesMissing == 0 { //finish downloading
+			if t.Finished() {
 				os.Symlink(
 					path.Join(defaultTmpFilePath, t.InfoHash()),
 					path.Join(tm.DataDir, t.InfoHash()),
@@ -760,12 +759,15 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			}
 
 			if t.bytesRequested == 0 {
-				active_paused += 1
+				if !t.Paused() {
+					log.Warn("Invalid torrent status", "hash", ih.String(), "completed", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesLimitation, "left", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "boost", t.isBoosting, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
+					active_paused += 1
+				}
 				continue
 			}
 
 			if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
-				log.Info("Downloading", "hash", ih.String(), "completed", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesLimitation, "left", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "boosting", t.isBoosting, "progress", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
+				log.Info("Downloading", "hash", ih.String(), "completed", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesLimitation, "left", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "boost", t.isBoosting, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "pieces", len(t.Torrent.PieceStateRuns()), "max", t.maxPieces, "status", t.status)
 			}
 			all += len(t.Torrent.PieceStateRuns())
 
@@ -808,7 +810,6 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		}
 
 		active_running := 0
-		//active_paused := 0
 		if len(activeTorrents) <= tm.maxActiveTask {
 			for _, t := range activeTorrents {
 				t.Run()
@@ -854,9 +855,6 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						t.SeedInQueue()
 					}
 				}
-
-				//all += len(t.Torrent.PieceStateRuns())
-
 			}
 		}
 
