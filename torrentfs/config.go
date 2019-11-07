@@ -29,8 +29,8 @@ var DefaultConfig = Config{
 	SyncMode:        "full",
 	DisableUTP:      true,
 	DisableDHT:      false,
-	MaxSeedingNum:   640,
-	MaxActiveNum:    400,
+	MaxSeedingNum:   1024,
+	MaxActiveNum:    1024,
 }
 
 const (
