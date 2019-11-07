@@ -375,14 +375,14 @@ func (fs *FileStorage) readFiles() error {
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
-	
+
 		for index := uint64(0); index < fs.LastFileIndex; index++ {
 			k, err := json.Marshal(index)
 			if err != nil {
 				return err
 			}
 
-			v := buk.Get(k)	
+			v := buk.Get(k)
 			if v == nil {
 				return ErrReadDataFromBoltDB
 			}

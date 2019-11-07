@@ -114,17 +114,19 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	}
 	e = nil
 
+	log.Info("Loading storage data ... ...")
+
 	for _, file := range m.fs.Files() {
 		var bytesRequested uint64
 		bytesRequested = 0
 		if file.Meta.RawSize > file.LeftSize {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
-	
+		log.Info("File storage info", "hash", file.Meta.InfoHash, "size", file.LeftSize, "raw", file.Meta.RawSize, "request", bytesRequested)
 		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
-			IsCreate:       true,
+			IsCreate:       false,
 		})
 	}
 	return m, e
@@ -316,18 +318,11 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 }*/
 
 func (m *Monitor) getRemainingSize(address string) (uint64, error) {
-	var _remainingSize string
-	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", address, "latest"); err != nil {
-		log.Warn("Failed to call get upload", "addr", address)
+	var remainingSize hexutil.Uint64
+	if err := m.cl.Call(&remainingSize, "ctxc_getUpload", address, "latest"); err != nil {
 		return 0, err
 	}
-	remainingSize, err_remainingSize := strconv.ParseUint(_remainingSize[2:], 16, 64)
-	log.Debug("Monitor", "remainingSize", remainingSize, "err", err_remainingSize)
-	if err_remainingSize != nil {
-		return 0, err_remainingSize
-	}
-
-	return remainingSize, nil
+	return uint64(remainingSize), nil
 }
 
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
@@ -428,23 +423,33 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 
 				log.Debug("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number)
 
-				var remainingSize hexutil.Uint64
+				/*var remainingSize hexutil.Uint64
 				if err := m.cl.Call(&remainingSize, "ctxc_getUpload", addr.String(), "latest"); err != nil {
 					log.Warn("Failed call get upload", "addr", addr.String(), "tx", tx.Hash.Hex(), "number", b.Number)
+					return err
+				}*/
+
+				remainingSize, err := m.getRemainingSize(addr.String())
+				if err != nil {
 					return err
 				}
 
 				var bytesRequested uint64
-				if file.LeftSize > uint64(remainingSize) {
-					file.LeftSize = uint64(remainingSize)
+				if file.LeftSize > remainingSize {
+					file.LeftSize = remainingSize
 					err := m.fs.WriteFile(file)
 					if err != nil {
 						return err
 					}
+
+					log.Info("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+
 					if file.Meta.RawSize > file.LeftSize {
 						bytesRequested = file.Meta.RawSize - file.LeftSize
 					}
-					log.Info("Data downloading", "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
+
+					log.Info("Data downloading", "hash", file.Meta.InfoHash, "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
+
 					m.dl.UpdateTorrent(FlowControlMeta{
 						InfoHash:       file.Meta.InfoHash,
 						BytesRequested: bytesRequested,
