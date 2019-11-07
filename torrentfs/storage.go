@@ -98,9 +98,14 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 	fs.readBlockNumber()
 	fs.readLastFileIndex()
+	fs.readFiles()
 	//tmpCache, _ := lru.New(120)
 
 	return fs, nil
+}
+
+func (fs *FileStorage) Files() []*FileInfo {
+	return fs.files
 }
 
 func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
@@ -362,6 +367,37 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 	}
 
 	return err
+}
+
+func (fs *FileStorage) readFiles() error {
+	return fs.db.View(func(tx *bolt.Tx) error {
+		buk := tx.Bucket([]byte("files"))
+		if buk == nil {
+			return ErrReadDataFromBoltDB
+		}
+	
+		for index := uint64(0); index < fs.LastFileIndex; index++ {
+			k, err := json.Marshal(index)
+			if err != nil {
+				return err
+			}
+
+			v := buk.Get(k)	
+			if v == nil {
+				return ErrReadDataFromBoltDB
+			}
+
+			var x FileInfo
+
+			if err := json.Unmarshal(v, &x); err != nil {
+				return err
+			}
+
+			fs.filesContractAddr[*x.ContractAddr] = &x
+			fs.files = append(fs.files, &x)
+		}
+		return nil
+	})
 }
 
 func (fs *FileStorage) readLastFileIndex() error {

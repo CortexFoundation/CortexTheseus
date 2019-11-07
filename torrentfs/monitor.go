@@ -85,7 +85,7 @@ type Monitor struct {
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config) (*Monitor, error) {
+func NewMonitor(flag *Config) (m *Monitor, e error) {
 	log.Info("Initialising Torrent FS")
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
@@ -101,7 +101,7 @@ func NewMonitor(flag *Config) (*Monitor, error) {
 	}
 	log.Info("Torrent manager initialized")
 
-	return &Monitor{
+	m = &Monitor{
 		config:      flag,
 		cl:          nil,
 		fs:          fs,
@@ -111,7 +111,23 @@ func NewMonitor(flag *Config) (*Monitor, error) {
 		terminated:  0,
 		lastNumber:  uint64(0),
 		dirty:       false,
-	}, nil
+	}
+	e = nil
+
+	for _, file := range m.fs.Files() {
+		var bytesRequested uint64
+		bytesRequested = 0
+		if file.Meta.RawSize > file.LeftSize {
+			bytesRequested = file.Meta.RawSize - file.LeftSize
+		}
+	
+		m.dl.UpdateTorrent(FlowControlMeta{
+			InfoHash:       file.Meta.InfoHash,
+			BytesRequested: bytesRequested,
+			IsCreate:       true,
+		})
+	}
+	return m, e
 }
 
 // SetConnection method builds connection to remote or local communicator.
