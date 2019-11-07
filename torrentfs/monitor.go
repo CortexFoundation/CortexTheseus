@@ -116,13 +116,18 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 
 	log.Info("Loading storage data ... ...")
 
+	fileMap := make(map[metainfo.Hash]*FileInfo)
 	for _, file := range m.fs.Files() {
+		fileMap[file.Meta.InfoHash] = file
+	}
+
+	for _, file := range fileMap {
 		var bytesRequested uint64
 		bytesRequested = 0
 		if file.Meta.RawSize > file.LeftSize {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
-		log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "size", file.LeftSize, "raw", file.Meta.RawSize, "request", bytesRequested)
+		log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", file.LeftSize, "raw", file.Meta.RawSize, "request", bytesRequested)
 		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
@@ -423,12 +428,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				}
 
 				log.Debug("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number)
-
-				/*var remainingSize hexutil.Uint64
-				if err := m.cl.Call(&remainingSize, "ctxc_getUpload", addr.String(), "latest"); err != nil {
-					log.Warn("Failed call get upload", "addr", addr.String(), "tx", tx.Hash.Hex(), "number", b.Number)
-					return err
-				}*/
 
 				remainingSize, err := m.getRemainingSize(addr.String())
 				if err != nil {
