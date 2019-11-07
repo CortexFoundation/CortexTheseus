@@ -121,7 +121,6 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		fileMap[file.Meta.InfoHash] = file
 	}
 	seed := 0
-	total := 0
 	pause := 0
 	pending := 0
 
@@ -137,16 +136,15 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 			BytesRequested: bytesRequested,
 			IsCreate:       false,
 		})
-		total += 1
 		if file.LeftSize == 0 {
 			seed += 1
 		} else if file.Meta.RawSize == file.LeftSize {
 			pending += 1
-		} else if file.Meta.RawSize < file.LeftSize && file.LeftSize > 0 {
+		} else if file.Meta.RawSize > file.LeftSize && file.LeftSize > 0 {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", total, "seed", seed, "pause", pause, "pending", pending)
+	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending)
 	return m, e
 }
 
