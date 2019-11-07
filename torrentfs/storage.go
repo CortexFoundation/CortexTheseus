@@ -133,9 +133,7 @@ func (fs *FileStorage) AddFile(x *FileInfo) error {
 	fs.LastFileIndex += 1
 	fs.filesContractAddr[addr] = x
 	fs.files = append(fs.files, x)
-	fs.WriteFile(x)
-	//	log.Info("Write fileinfo to database", "info", *x, "meta", x.Meta)
-	return nil
+	return fs.WriteFile(x)
 }
 
 func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
