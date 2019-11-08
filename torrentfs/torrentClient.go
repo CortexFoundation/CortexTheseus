@@ -177,6 +177,10 @@ func (t *Torrent) SeedInQueue() {
 	t.status = torrentSeedingInQueue
 }
 
+func (t *Torrent) BoostOff() {
+	t.isBoosting = false
+}
+
 func (t *Torrent) Seed() {
 	if t.status == torrentSeeding {
 		return
@@ -709,20 +713,21 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					t.loop = 0
 					t.isBoosting = true
 					go func(t *Torrent) {
+						defer t.BoostOff()
 						log.Debug("Try to boost torrent", "infohash", t.infohash)
 						if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
 							if t.Torrent.Info() != nil {
-								t.isBoosting = false
+								//				t.isBoosting = false
 								return
 							}
-							t.isBoosting = false
+							//			t.isBoosting = false
 							t.Torrent.Drop()
 							t.ReloadTorrent(data, tm)
 						} else {
-							t.isBoosting = false
+							//t.isBoosting = false
 							log.Warn("Boost failed", "infohash", t.infohash, "err", err)
 						}
-						t.isBoosting = false
+						//		t.isBoosting = false
 					}(t)
 				} else {
 					delete(tm.pendingTorrents, ih)
@@ -793,6 +798,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					}
 					t.isBoosting = true
 					go func(t *Torrent) {
+						defer t.BoostOff()
 						log.Trace("Try to boost files", "infohash", ih.String())
 						if t.Files() != nil {
 							filepaths := []string{}
@@ -803,14 +809,14 @@ func (tm *TorrentManager) listenTorrentProgress() {
 									filedatas = append(filedatas, data)
 									filepaths = append(filepaths, subpath)
 								} else {
-									t.isBoosting = false
+									//	t.isBoosting = false
 									return
 								}
 							}
 							t.Torrent.Drop()
 							t.ReloadFile(filepaths, filedatas, tm)
 						}
-						t.isBoosting = false
+						//t.isBoosting = false
 					}(t)
 				}
 			}
