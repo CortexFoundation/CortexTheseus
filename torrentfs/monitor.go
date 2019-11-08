@@ -79,6 +79,9 @@ type Monitor struct {
 	//trackerLock sync.Mutex
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
+
+	taskCh      chan *Block
+	newTaskHook func(*Block)
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -111,6 +114,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		terminated:  0,
 		lastNumber:  uint64(0),
 		dirty:       false,
+		taskCh:      make(chan *Block, batch*4),
 	}
 	e = nil
 
@@ -147,7 +151,26 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		}
 	}
 	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", capcity)
+
 	return m, e
+}
+
+func (m *Monitor) taskLoop() {
+	defer m.wg.Done()
+	for {
+		select {
+		case task := <-m.taskCh:
+			if m.newTaskHook != nil {
+				m.newTaskHook(task)
+			}
+
+			if err := m.deal(task); err != nil {
+				log.Warn("Block dealing failed", "err", err)
+			}
+		case <-m.exitCh:
+			return
+		}
+	}
 }
 
 // SetConnection method builds connection to remote or local communicator.
@@ -555,7 +578,8 @@ func (m *Monitor) startWork() error {
 	}
 
 	log.Info("Torrent fs validation passed")
-	m.wg.Add(2)
+	m.wg.Add(3)
+	go m.taskLoop()
 	go m.listenLatestBlock()
 	m.init()
 	go m.listenPeers()
@@ -647,12 +671,12 @@ func (m *Monitor) listenLatestBlock() {
 		case <-timer.C:
 			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			if progress > 4096 {
+			if progress > batch {
 				timer.Reset(time.Millisecond * 100)
 
-			} else if progress > 2048 {
+			} else if progress > batch/2 {
 				timer.Reset(time.Millisecond * 500)
-			} else if progress > 1024 {
+			} else if progress > batch/4 {
 				timer.Reset(time.Millisecond * 1000)
 			} else if progress > 6 {
 				timer.Reset(time.Millisecond * 2000)
@@ -769,7 +793,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 }
 
 const (
-	batch = 2048
+	batch = 4096
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
@@ -837,37 +861,45 @@ func (m *Monitor) syncLastBlock() uint64 {
 		}
 
 		if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
-
-			block := m.fs.GetBlockByNumber(i)
-			if block == nil {
-				block = rpcBlock
-
-				if err := m.parseAndStore(block, true); err != nil {
-					log.Error("Fail to parse and storge latest block", "number", i, "error", err)
-					return 0
-				}
-
-			} else {
-				if block.Hash.Hex() == rpcBlock.Hash.Hex() {
-
-					if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
-						log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
-						return 0
-					}
-				} else {
-					//dirty tfs
-					if err := m.parseAndStore(rpcBlock, true); err != nil {
-						log.Error("Dirty tfs fail to parse and storge latest block", "number", i, "error", err)
-						return 0
-					}
-				}
-			}
-			blockCache.Add(i, rpcBlock.Hash.Hex())
+			go func() { m.taskCh <- rpcBlock }()
 		}
 	}
 	m.lastNumber = maxNumber
 	log.Debug("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
 	return uint64(maxNumber - minNumber)
+}
+
+func (m *Monitor) deal(rpcBlock *Block) error {
+	i := rpcBlock.Number
+	if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
+
+		block := m.fs.GetBlockByNumber(i)
+		if block == nil {
+			block = rpcBlock
+
+			if err := m.parseAndStore(block, true); err != nil {
+				log.Error("Fail to parse and storge latest block", "number", i, "error", err)
+				return err
+			}
+
+		} else {
+			if block.Hash.Hex() == rpcBlock.Hash.Hex() {
+
+				if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
+					log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
+					return parseErr
+				}
+			} else {
+				//dirty tfs
+				if err := m.parseAndStore(rpcBlock, true); err != nil {
+					log.Error("Dirty tfs fail to parse and storge latest block", "number", i, "error", err)
+					return err
+				}
+			}
+		}
+		blockCache.Add(i, rpcBlock.Hash.Hex())
+	}
+	return nil
 }
 
 func (m *Monitor) parseAndStore(block *Block, flow bool) error {
