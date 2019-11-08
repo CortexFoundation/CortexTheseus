@@ -183,9 +183,9 @@ func (t *Torrent) Seed() {
 	}
 
 	if t.currentConns == 0 {
-                t.currentConns = t.maxEstablishedConns
-                t.Torrent.SetMaxEstablishedConns(t.currentConns)
-        }
+		t.currentConns = t.maxEstablishedConns
+		t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	}
 
 	t.Torrent.DownloadAll()
 	t.status = torrentSeeding
@@ -712,6 +712,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						log.Debug("Try to boost torrent", "infohash", t.infohash)
 						if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
 							if t.Torrent.Info() != nil {
+								t.isBoosting = false
 								return
 							}
 							t.isBoosting = false
@@ -721,6 +722,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 							t.isBoosting = false
 							log.Warn("Boost failed", "infohash", t.infohash, "err", err)
 						}
+						t.isBoosting = false
 					}(t)
 				} else {
 					delete(tm.pendingTorrents, ih)
