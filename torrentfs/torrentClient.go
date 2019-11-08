@@ -784,10 +784,11 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
 				t.loop += 1
 				if t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
+					t.loop = 0
 					if t.isBoosting {
+						t.loop = 0
 						continue
 					}
-					t.loop = 0
 					t.isBoosting = true
 					go func(t *Torrent) {
 						log.Trace("Try to boost files", "infohash", ih.String())
