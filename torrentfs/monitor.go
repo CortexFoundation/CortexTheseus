@@ -439,7 +439,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
-					log.Warn("Uploading a not exist torrent file", "addr", addr, "tx", tx.Hash.Hex(), "gas", tx.GasLimit, "number", b.Number)
 					continue
 				}
 
@@ -611,6 +610,9 @@ func (m *Monitor) validateStorage() error {
 
 	for i := uint64(0); i < m.fs.LastFileIndex; i++ {
 		file := m.fs.GetFileByNumber(i)
+		if file == nil {
+			continue
+		}
 
 		var bytesRequested uint64
 		if file.Meta.RawSize > file.LeftSize {
@@ -624,7 +626,7 @@ func (m *Monitor) validateStorage() error {
 			IsCreate:       true,
 		})
 
-		m.fs.AddCachedFile(file)
+		//m.fs.AddCachedFile(file)
 	}
 
 	if m.lastNumber > 256 {

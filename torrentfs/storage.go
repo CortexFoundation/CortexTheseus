@@ -61,6 +61,7 @@ type FileStorage struct {
 	opCounter MutexCounter
 	dataDir   string
 	//tmpCache  *lru.Cache
+	indexLock sync.RWMutex
 }
 
 var initConfig *Config = nil
@@ -98,7 +99,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 	fs.readBlockNumber()
 	fs.readLastFileIndex()
-	fs.readFiles()
+	fs.initFiles()
 	//tmpCache, _ := lru.New(120)
 
 	return fs, nil
@@ -113,12 +114,12 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	return ret
 }
 
-func (fs *FileStorage) AddCachedFile(x *FileInfo) error {
+/*func (fs *FileStorage) AddCachedFile(x *FileInfo) error {
 	addr := *x.ContractAddr
 	fs.filesContractAddr[addr] = x
 	fs.files = append(fs.files, x)
 	return nil
-}
+}*/
 
 func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
 	return CurrentTorrentManager
@@ -127,13 +128,22 @@ func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
 func (fs *FileStorage) AddFile(x *FileInfo) error {
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
-		return errors.New("file already existed")
+		//return errors.New("file already existed")
+		return nil
 	}
+
+	err := fs.WriteFile(x)
+	if err != nil {
+		return err
+	}
+
 	x.Index = fs.LastFileIndex
+	fs.indexLock.Lock()
+	defer fs.indexLock.Unlock()
 	fs.LastFileIndex += 1
 	fs.filesContractAddr[addr] = x
 	fs.files = append(fs.files, x)
-	return fs.WriteFile(x)
+	return nil
 }
 
 func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
@@ -367,7 +377,7 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 	return err
 }
 
-func (fs *FileStorage) readFiles() error {
+func (fs *FileStorage) initFiles() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("files"))
 		if buk == nil {
@@ -390,9 +400,10 @@ func (fs *FileStorage) readFiles() error {
 			if err := json.Unmarshal(v, &x); err != nil {
 				return err
 			}
-
+			fs.indexLock.Lock()
 			fs.filesContractAddr[*x.ContractAddr] = &x
 			fs.files = append(fs.files, &x)
+			fs.indexLock.Unlock()
 		}
 		return nil
 	})
@@ -416,6 +427,8 @@ func (fs *FileStorage) readLastFileIndex() error {
 			return err
 		}
 
+		fs.indexLock.Lock()
+		defer fs.indexLock.Unlock()
 		fs.LastFileIndex = number
 
 		return nil
@@ -428,8 +441,9 @@ func (fs *FileStorage) writeLastFileIndex() error {
 		if err != nil {
 			return err
 		}
-
+		fs.lock.Lock()
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastFileIndex, 16)))
+		fs.lock.Unlock()
 
 		return e
 	})
@@ -465,8 +479,9 @@ func (fs *FileStorage) writeBlockNumber() error {
 		if err != nil {
 			return err
 		}
-
+		fs.lock.Lock()
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastListenBlockNumber, 16)))
+		fs.lock.Unlock()
 
 		return e
 	})
