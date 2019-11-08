@@ -178,12 +178,18 @@ func (t *Torrent) SeedInQueue() {
 }
 
 func (t *Torrent) Seed() {
-	if t.currentConns == 0 {
-		t.currentConns = t.maxEstablishedConns
-		t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	if t.status == torrentSeeding {
+		return
 	}
+
+	if t.currentConns == 0 {
+                t.currentConns = t.maxEstablishedConns
+                t.Torrent.SetMaxEstablishedConns(t.currentConns)
+        }
+
 	t.Torrent.DownloadAll()
 	t.status = torrentSeeding
+	log.Info("Download success, switch seeding", "hash", t.InfoHash(), "size", t.bytesCompleted)
 }
 
 func (t *Torrent) Seeding() bool {
