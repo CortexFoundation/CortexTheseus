@@ -64,7 +64,8 @@ func (t *Transaction) noPayload() bool {
 
 // IsFlowControl ...
 func (t *Transaction) IsFlowControl() bool {
-	return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas // && t.Receipt.GasLimit >= params.UploadGas
+	//return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas // && t.Receipt.GasLimit >= params.UploadGas
+	return t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas
 }
 
 func (t *Transaction) Parse() *FileMeta {

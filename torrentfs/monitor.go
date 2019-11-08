@@ -120,6 +120,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	for _, file := range m.fs.Files() {
 		fileMap[file.Meta.InfoHash] = file
 	}
+	capcity := uint64(0)
 	seed := 0
 	pause := 0
 	pending := 0
@@ -130,6 +131,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		if file.Meta.RawSize > file.LeftSize {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
+		capcity += bytesRequested
 		log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", file.LeftSize, "raw", file.Meta.RawSize, "request", bytesRequested)
 		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
@@ -138,13 +140,13 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		})
 		if file.LeftSize == 0 {
 			seed += 1
-		} else if file.Meta.RawSize == file.LeftSize {
+		} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
 			pending += 1
 		} else if file.Meta.RawSize > file.LeftSize && file.LeftSize > 0 {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending)
+	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", capcity)
 	return m, e
 }
 
@@ -431,6 +433,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 					return err
 				}
 			} else if flowCtrl && tx.IsFlowControl() {
+				if tx.Recipient == nil {
+					continue
+				}
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
