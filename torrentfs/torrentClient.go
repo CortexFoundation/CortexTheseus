@@ -759,7 +759,8 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				)
 				delete(tm.activeTorrents, ih)
 				tm.seedingTorrents[ih] = t
-				t.status = torrentSeeding
+				//t.status = torrentSeeding
+				t.Seed()
 				t.loop = defaultSeedInterval / queryTimeInterval
 				continue
 			}
