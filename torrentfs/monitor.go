@@ -861,7 +861,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 		}
 
 		if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
-			go func() { m.taskCh <- rpcBlock }()
+			//go func() { m.taskCh <- rpcBlock }()
+			m.taskCh <- rpcBlock
 		}
 	}
 	m.lastNumber = maxNumber
