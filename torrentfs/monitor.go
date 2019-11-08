@@ -136,7 +136,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
-			IsCreate:       false,
+			IsCreate:       true,
 		})
 		if file.LeftSize == 0 {
 			seed += 1
@@ -608,7 +608,7 @@ func (m *Monitor) validateStorage() error {
 		log.Warn("Torrent fs status", "dirty", m.dirty)
 	}
 
-	for i := uint64(0); i < m.fs.LastFileIndex; i++ {
+	/*for i := uint64(0); i < m.fs.LastFileIndex; i++ {
 		file := m.fs.GetFileByNumber(i)
 		if file == nil {
 			continue
@@ -633,7 +633,7 @@ func (m *Monitor) validateStorage() error {
 		m.lastNumber = m.lastNumber - 256
 	} else {
 		m.lastNumber = 0
-	}
+	}*/
 
 	return nil
 }

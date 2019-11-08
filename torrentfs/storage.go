@@ -132,15 +132,15 @@ func (fs *FileStorage) AddFile(x *FileInfo) error {
 		return nil
 	}
 
-	err := fs.WriteFile(x)
-	if err != nil {
-		return err
-	}
-
 	x.Index = fs.LastFileIndex
 	fs.indexLock.Lock()
 	defer fs.indexLock.Unlock()
 	fs.LastFileIndex += 1
+	err := fs.WriteFile(x)
+	if err != nil {
+		fs.LastFileIndex -= 1
+		return err
+	}
 	fs.filesContractAddr[addr] = x
 	fs.files = append(fs.files, x)
 	return nil
