@@ -276,7 +276,7 @@ type TorrentManager struct {
 	removeTorrent       chan metainfo.Hash
 	updateTorrent       chan interface{}
 	halt                bool
-	mu                  sync.Mutex
+	//mu                  sync.Mutex
 	lock                sync.RWMutex
 	wg                  sync.WaitGroup
 }
