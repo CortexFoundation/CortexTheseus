@@ -239,7 +239,7 @@ func (c *C) logValue(label string, value interface{}) {
 	}
 }
 
-func (c *C) logMultiLine(s string) {
+func formatMultiLine(s string, quote bool) []byte {
 	b := make([]byte, 0, len(s)*2)
 	i := 0
 	n := len(s)
@@ -249,14 +249,23 @@ func (c *C) logMultiLine(s string) {
 			j++
 		}
 		b = append(b, "...     "...)
-		b = strconv.AppendQuote(b, s[i:j])
-		if j < n {
+		if quote {
+			b = strconv.AppendQuote(b, s[i:j])
+		} else {
+			b = append(b, s[i:j]...)
+			b = bytes.TrimSpace(b)
+		}
+		if quote && j < n {
 			b = append(b, " +"...)
 		}
 		b = append(b, '\n')
 		i = j
 	}
-	c.writeLog(b)
+	return b
+}
+
+func (c *C) logMultiLine(s string) {
+	c.writeLog(formatMultiLine(s, true))
 }
 
 func isMultiLine(s string) bool {
@@ -727,7 +736,7 @@ func (runner *suiteRunner) runFixture(method *methodType, testName string, logb 
 
 // Run the fixture method with runFixture(), but panic with a fixturePanic{}
 // in case the fixture method panics.  This makes it easier to track the
-// fixture panic tocortexer with other call panics within forkTest().
+// fixture panic together with other call panics within forkTest().
 func (runner *suiteRunner) runFixtureWithPanic(method *methodType, testName string, logb *logger, skipped *bool) *C {
 	if skipped != nil && *skipped {
 		return nil
@@ -747,7 +756,7 @@ type fixturePanic struct {
 	method *methodType
 }
 
-// Run the suite test method, tocortexer with the test-specific fixture,
+// Run the suite test method, together with the test-specific fixture,
 // asynchronously.
 func (runner *suiteRunner) forkTest(method *methodType) *C {
 	testName := method.String()

@@ -19,7 +19,7 @@ func Uint64ToBytes(i uint64) []byte {
 }
 
 func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork) {
-	log.Info("Available", "Model Hash", inferWork.InfoHash, "rawSize", inferWork.RawSize)
+	log.Debug("Available", "Model Hash", inferWork.InfoHash, "rawSize", inferWork.RawSize)
 	if inferWork.InfoHash == "" {
 		log.Warn("info hash is empty")
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
@@ -30,13 +30,13 @@ func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork)
 		RespErrorText(w, err)
 	} else {
 		ret_arr := Uint64ToBytes(1)
-		log.Info("File avaiable", "hash", inferWork.InfoHash)
+		log.Debug("File avaiable", "hash", inferWork.InfoHash)
 		RespInfoText(w, ret_arr)
 	}
 }
 
 func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
-	log.Info("Gas Task", "Model Hash", inferWork.Model)
+	log.Debug("Gas Task", "Model Hash", inferWork.Model)
 	if inferWork.Model == "" {
 		log.Warn("model info hash is empty")
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
@@ -50,7 +50,7 @@ func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 		return
 	}
 
-	log.Info("Gas calculate Succeed", "result", ret)
+	log.Debug("Gas calculate Succeed", "result", ret)
 	ret_arr := Uint64ToBytes(ret)
 	RespInfoText(w, ret_arr)
 }
@@ -86,10 +86,10 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 
 	model, input := inferWork.Model, inferWork.Input
 
-	log.Info("Infer Work", "Model Hash", model)
+	log.Debug("Infer Work", "Model Hash", model)
 	var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
 	if v, ok := simpleCache.Load(cacheKey); ok && !(IsNotCache) {
-		log.Info("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
+		log.Debug("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
 		RespInfoText(w, v.([]byte))
 		return
 	}

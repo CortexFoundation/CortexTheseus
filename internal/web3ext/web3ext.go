@@ -403,6 +403,11 @@ web3._extend({
 	property: 'ctxc',
 	methods: [
 		new web3._extend.Method({
+				name: 'chainId',
+				call: 'ctxc_chainId',
+				params: 0
+		}),
+		new web3._extend.Method({
 			name: 'sign',
 			call: 'ctxc_sign',
 			params: 2,

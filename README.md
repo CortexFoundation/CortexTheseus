@@ -47,7 +47,7 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 ### Compile Source Code
 1. git clone https://github.com/CortexFoundation/CortexTheseus.git
 2. cd CortexTheseus
-3. make cpu (cpu) or make cortex (gpu)
+3. make clean && make
 
 ### Running Bash
 
@@ -56,8 +56,8 @@ And then, run any command to start full node `cortex`:
 ```Bash
 1. cd CortexTheseus
 2. export LD_LIBRARY_PATH=$PWD/infernet/build/cpu/:$PWD/infernet/build/gpu:$LD_LIBRARY_PATH
-3. (1)./build/bin/cortex --syncmode fast --infer.devicetype=cpu/gpu
-   (2)./build/bin/cortex --syncmode fast --infer.devicetype=ipc://cpu(gpu)
+3. (1)./build/bin/cortex --infer.devicetype=cpu(gpu)
+   (2)./build/bin/cortex --infer.devicetype=ipc://cpu(gpu)
    (3)You can also run cortex full node as multiple services
    ./cvm.sh then node.sh
    (4)It is easy way to run cortex full node

@@ -142,6 +142,7 @@ var (
 		utils.StorageMaxActiveFlag,
 		utils.StorageBoostNodesFlag,
 		utils.StorageTrackerFlag,
+		utils.StorageDisableDHTFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -149,11 +150,11 @@ var (
 		utils.RPCListenAddrFlag,
 		utils.RPCPortFlag,
 		utils.RPCApiFlag,
-		// utils.WSEnabledFlag,
-		// utils.WSListenAddrFlag,
-		// utils.WSPortFlag,
-		// utils.WSApiFlag,
-		// utils.WSAllowedOriginsFlag,
+		utils.WSEnabledFlag,
+		utils.WSListenAddrFlag,
+		utils.WSPortFlag,
+		utils.WSApiFlag,
+		utils.WSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,

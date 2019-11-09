@@ -29,7 +29,7 @@ fi
 GOPATH="$workspace"
 GOBIN="$PWD/build/bin"
 export GOPATH GOBIN
-
+export GO111MODULE=off
 # Run the command inside the workspace.
 cd "$dir/solution"
 PWD="$dir/solution"

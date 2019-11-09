@@ -212,6 +212,10 @@ var (
 		Usage: "P2P storage tracker list",
 		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
 	}
+	StorageDisableDHTFlag = cli.BoolFlag{
+		Name:  "storage.disable_dht",
+		Usage: "disable DHT network in TorrentFS",
+	}
 	// Dashboard settings
 	// DashboardEnabledFlag = cli.BoolFlag{
 	// 	Name:  metrics.DashboardEnabledFlag,
@@ -402,7 +406,7 @@ var (
 	InferDeviceTypeFlag = cli.StringFlag{
 		Name:  "infer.devicetype",
 		Usage: "infer device type : cpu or gpu",
-		Value: "gpu",
+		Value: "cpu",
 	}
 	InferDeviceIdFlag = cli.IntFlag{
 		Name:  "infer.device",
@@ -1238,6 +1242,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		"MaxActiveNum", ctx.GlobalInt(StorageMaxActiveFlag.Name))
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
+	cfg.DisableDHT = ctx.GlobalBool(StorageDisableDHTFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
 }
 

@@ -11,7 +11,6 @@ data/
 *un~
 .DS_Store
 */**/.DS_Store
-.ethtest
 */**/*tx_database*
 */**/*dapps*
 build/_vendor/pkg
@@ -82,3 +81,4 @@ plugins/
 password
 *.sh
 keyfile.json
+*.pid

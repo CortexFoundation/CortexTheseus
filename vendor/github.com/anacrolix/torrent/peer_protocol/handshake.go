@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"golang.org/x/xerrors"
+
 	"github.com/anacrolix/missinggo"
 
 	"github.com/anacrolix/torrent/metainfo"
@@ -70,11 +72,14 @@ type HandshakeResult struct {
 	metainfo.Hash
 }
 
-// ih is nil if we expect the peer to declare the InfoHash, such as when the
-// peer initiated the connection. Returns ok if the Handshake was successful,
-// and err if there was an unexpected condition other than the peer simply
-// abandoning the Handshake.
-func Handshake(sock io.ReadWriter, ih *metainfo.Hash, peerID [20]byte, extensions PeerExtensionBits) (res HandshakeResult, ok bool, err error) {
+// ih is nil if we expect the peer to declare the InfoHash, such as when the peer initiated the
+// connection. Returns ok if the Handshake was successful, and err if there was an unexpected
+// condition other than the peer simply abandoning the Handshake.
+func Handshake(
+	sock io.ReadWriter, ih *metainfo.Hash, peerID [20]byte, extensions PeerExtensionBits,
+) (
+	res HandshakeResult, err error,
+) {
 	// Bytes to be sent to the peer. Should never block the sender.
 	postCh := make(chan []byte, 4)
 	// A single error value sent when the writer completes.
@@ -84,11 +89,8 @@ func Handshake(sock io.ReadWriter, ih *metainfo.Hash, peerID [20]byte, extension
 
 	defer func() {
 		close(postCh) // Done writing.
-		if !ok {
-			return
-		}
 		if err != nil {
-			panic(err)
+			return
 		}
 		// Wait until writes complete before returning from handshake.
 		err = <-writeDone
@@ -114,16 +116,17 @@ func Handshake(sock io.ReadWriter, ih *metainfo.Hash, peerID [20]byte, extension
 	var b [68]byte
 	_, err = io.ReadFull(sock, b[:68])
 	if err != nil {
-		err = nil
+		err = xerrors.Errorf("while reading: %w", err)
 		return
 	}
 	if string(b[:20]) != Protocol {
+		err = xerrors.Errorf("unexpected protocol string")
 		return
 	}
 	missinggo.CopyExact(&res.PeerExtensionBits, b[20:28])
 	missinggo.CopyExact(&res.Hash, b[28:48])
 	missinggo.CopyExact(&res.PeerID, b[48:68])
-	// peerExtensions.Add(res.PeerExtensionBits.String(), 1) 
+	// peerExtensions.Add(res.PeerExtensionBits.String(), 1)
 
 	// TODO: Maybe we can just drop peers here if we're not interested. This
 	// could prevent them trying to reconnect, falsely believing there was
@@ -133,6 +136,5 @@ func Handshake(sock io.ReadWriter, ih *metainfo.Hash, peerID [20]byte, extension
 		post(peerID[:])
 	}
 
-	ok = true
 	return
 }

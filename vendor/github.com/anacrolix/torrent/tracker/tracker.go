@@ -1,11 +1,12 @@
 package tracker
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
 
-	"github.com/anacrolix/dht/krpc"
+	"github.com/anacrolix/dht/v2/krpc"
 )
 
 // Marshalled as binary by the UDP client, so be careful making changes.
@@ -13,7 +14,7 @@ type AnnounceRequest struct {
 	InfoHash   [20]byte
 	PeerId     [20]byte
 	Downloaded int64
-	Left       uint64
+	Left       int64 // If less than 0, math.MaxInt64 will be used for HTTP trackers instead.
 	Uploaded   int64
 	// Apparently this is optional. None can be used for announces done at
 	// regular intervals.
@@ -53,16 +54,16 @@ type Announce struct {
 	TrackerUrl string
 	Request    AnnounceRequest
 	HostHeader string
+	HTTPProxy  func(*http.Request) (*url.URL, error)
+	ServerName string
 	UserAgent  string
-	HttpClient *http.Client
 	UdpNetwork string
-	// If the port is zero, it's assumed to be the same as the Request.Port
+	// If the port is zero, it's assumed to be the same as the Request.Port.
 	ClientIp4 krpc.NodeAddr
-	// If the port is zero, it's assumed to be the same as the Request.Port
+	// If the port is zero, it's assumed to be the same as the Request.Port.
 	ClientIp6 krpc.NodeAddr
+	Context   context.Context
 }
-
-// In an FP language with currying, what order what you put these params?
 
 func (me Announce) Do() (res AnnounceResponse, err error) {
 	_url, err := url.Parse(me.TrackerUrl)

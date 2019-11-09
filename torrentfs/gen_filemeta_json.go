@@ -12,10 +12,10 @@ import (
 // MarshalJSON marshals as JSON.
 func (f FileMeta) MarshalJSON() ([]byte, error) {
 	type FileMeta struct {
-		InfoHash   metainfo.Hash  `json:"InfoHash"         gencodec:"required"`
-		Name       string         `json:"Name"             gencodec:"required"`
-		RawSize    uint64         `json:"RawSize"          gencodec:"required"`
-		BlockNum   uint64         `json:"BlockNum"         gencodec:"required"`
+		InfoHash metainfo.Hash `json:"InfoHash"         gencodec:"required"`
+		Name     string        `json:"Name"             gencodec:"required"`
+		RawSize  uint64        `json:"RawSize"          gencodec:"required"`
+		BlockNum uint64        `json:"BlockNum"         gencodec:"required"`
 	}
 	var enc FileMeta
 	enc.InfoHash = f.InfoHash
@@ -28,10 +28,10 @@ func (f FileMeta) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (f *FileMeta) UnmarshalJSON(input []byte) error {
 	type FileMeta struct {
-		InfoHash   *metainfo.Hash  `json:"InfoHash"         gencodec:"required"`
-		Name       *string         `json:"Name"             gencodec:"required"`
-		RawSize    *uint64         `json:"RawSize"          gencodec:"required"`
-		BlockNum   *uint64         `json:"BlockNum"         gencodec:"required"`
+		InfoHash *metainfo.Hash `json:"InfoHash"         gencodec:"required"`
+		Name     *string        `json:"Name"             gencodec:"required"`
+		RawSize  *uint64        `json:"RawSize"          gencodec:"required"`
+		BlockNum *uint64        `json:"BlockNum"         gencodec:"required"`
 	}
 	var dec FileMeta
 	if err := json.Unmarshal(input, &dec); err != nil {
