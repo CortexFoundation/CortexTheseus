@@ -784,7 +784,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 
 			if t.bytesRequested == 0 {
 				if log_counter%20 == 0 {
-					log.Debug("[Waiting]", "i", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
+					log.Debug("[Waiting]", "hash", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
 				}
 				active_wait += 1
 				continue
@@ -799,7 +799,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.Pause()
 				active_paused += 1
 				if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
-					log.Info("[Pausing]", "i", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
+					log.Info("[Pausing]", "hash", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
 				}
 				continue
 			} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
@@ -835,14 +835,14 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					}(t)
 					active_boost += 1
 					if log_counter%20 == 0 {
-						log.Info("[Boosting]", "i", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
+						log.Info("[Boosting]", "hash", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
 					}
 					continue
 				}
 			}
 
 			if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
-				log.Info("[Downloading]", "i", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
+				log.Info("[Downloading]", "hash", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
 			}
 
 			if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
