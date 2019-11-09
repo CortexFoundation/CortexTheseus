@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/anacrolix/missinggo/iter"
 )
@@ -42,9 +43,9 @@ type item struct {
 }
 
 // rename sink
-func (msg Msg) Log(l Logger) Msg {
-	l.Log(msg.Skip(1))
-	return msg
+func (m Msg) Log(l Logger) Msg {
+	l.Log(m.Skip(1))
+	return m
 }
 
 type msgWithValues struct {
@@ -61,24 +62,26 @@ func (me msgWithValues) Values(cb iter.Callback) {
 	me.MsgImpl.Values(cb)
 }
 
-func (me Msg) WithValues(v ...interface{}) Msg {
-	return Msg{msgWithValues{me.MsgImpl, v}}
+// TODO: What ordering should be applied to the values here, per MsgImpl.Values. For now they're
+// traversed in order of the slice.
+func (m Msg) WithValues(v ...interface{}) Msg {
+	return Msg{msgWithValues{m.MsgImpl, v}}
 }
 
-func (me Msg) AddValues(v ...interface{}) Msg {
-	return me.WithValues(v...)
+func (m Msg) AddValues(v ...interface{}) Msg {
+	return m.WithValues(v...)
 }
 
-func (me Msg) With(key, value interface{}) Msg {
-	return me.WithValues(item{key, value})
+func (m Msg) With(key, value interface{}) Msg {
+	return m.WithValues(item{key, value})
 }
 
-func (me Msg) Add(key, value interface{}) Msg {
-	return me.With(key, value)
+func (m Msg) Add(key, value interface{}) Msg {
+	return m.With(key, value)
 }
 
-func (me Msg) HasValue(v interface{}) (has bool) {
-	me.Values(func(i interface{}) bool {
+func (m Msg) HasValue(v interface{}) (has bool) {
+	m.Values(func(i interface{}) bool {
 		if i == v {
 			has = true
 		}
@@ -87,6 +90,35 @@ func (me Msg) HasValue(v interface{}) (has bool) {
 	return
 }
 
-func (me Msg) AddValue(v interface{}) Msg {
-	return me.AddValues(v)
+func (m Msg) AddValue(v interface{}) Msg {
+	return m.AddValues(v)
+}
+
+func (m Msg) GetValueByType(p interface{}) bool {
+	pve := reflect.ValueOf(p).Elem()
+	t := pve.Type()
+	return !iter.All(func(i interface{}) bool {
+		iv := reflect.ValueOf(i)
+		if iv.Type() == t {
+			pve.Set(iv)
+			return false
+		}
+		return true
+	}, m.Values)
+}
+
+func (m Msg) WithText(f func(Msg) string) Msg {
+	return Msg{msgWithText{
+		m,
+		func() string { return f(m) },
+	}}
+}
+
+type msgWithText struct {
+	MsgImpl
+	text func() string
+}
+
+func (me msgWithText) Text() string {
+	return me.text()
 }

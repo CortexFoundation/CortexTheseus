@@ -10,8 +10,8 @@ import (
 	"github.com/anacrolix/dht/v2/krpc"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
-	"github.com/anacrolix/missinggo/conntrack"
 	"github.com/anacrolix/missinggo/expect"
+	"github.com/anacrolix/missinggo/v2/conntrack"
 	"golang.org/x/time/rate"
 
 	"github.com/anacrolix/torrent/iplist"
@@ -172,8 +172,8 @@ func NewDefaultClientConfig() *ClientConfig {
 		ListenPort:     42069,
 		Logger:         log.Default,
 	}
-	cc.ConnTracker.SetNoMaxEntries()
-	cc.ConnTracker.Timeout = func(conntrack.Entry) time.Duration { return 0 }
+	//cc.ConnTracker.SetNoMaxEntries()
+	//cc.ConnTracker.Timeout = func(conntrack.Entry) time.Duration { return 0 }
 	return cc
 }
 

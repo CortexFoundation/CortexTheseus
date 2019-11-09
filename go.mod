@@ -7,8 +7,8 @@ require (
 	github.com/Azure/go-autorest/autorest/adal v0.6.0 // indirect
 	github.com/allegro/bigcache v1.2.1
 	github.com/anacrolix/missinggo v1.2.1
-	github.com/anacrolix/tagflag v1.0.0
-	github.com/anacrolix/torrent v1.7.0
+	github.com/anacrolix/tagflag v1.0.1
+	github.com/anacrolix/torrent v1.9.0
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -51,7 +51,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
-	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
+	golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b
 	golang.org/x/tools v0.0.0-20190829051458-42f498d34c4d
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce

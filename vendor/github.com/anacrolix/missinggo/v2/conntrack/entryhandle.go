@@ -1,7 +1,6 @@
 package conntrack
 
 import (
-	"sync"
 	"time"
 )
 
@@ -12,7 +11,6 @@ type EntryHandle struct {
 	i        *Instance
 	expires  time.Time
 	created  time.Time
-	wake     sync.Mutex
 }
 
 func (eh *EntryHandle) Done() {

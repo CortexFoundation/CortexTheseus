@@ -558,7 +558,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cfg.NoDHT = config.DisableDHT
 	cfg.DataDir = config.DataDir
 	//cfg.DisableEncryption = true
-	cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
+	//cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
 	listenAddr := &net.TCPAddr{}
 	log.Info("Torrent client listening on", "addr", listenAddr)
 	//cfg.SetListenAddr(listenAddr.String())

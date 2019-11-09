@@ -11,17 +11,16 @@ github.com/RoaringBitmap/roaring
 # github.com/allegro/bigcache v1.2.1
 github.com/allegro/bigcache
 github.com/allegro/bigcache/queue
-# github.com/anacrolix/dht/v2 v2.0.1
+# github.com/anacrolix/dht/v2 v2.2.1-0.20191103020011-1dba080fb358
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.2
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.3.0
+# github.com/anacrolix/log v0.3.1-0.20191001111012-13cede988bcd
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.2.1
 github.com/anacrolix/missinggo
 github.com/anacrolix/missinggo/bitmap
-github.com/anacrolix/missinggo/conntrack
 github.com/anacrolix/missinggo/expect
 github.com/anacrolix/missinggo/httptoo
 github.com/anacrolix/missinggo/inproc
@@ -36,14 +35,22 @@ github.com/anacrolix/missinggo/slices
 github.com/anacrolix/missinggo/x
 # github.com/anacrolix/missinggo/perf v1.0.0
 github.com/anacrolix/missinggo/perf
+# github.com/anacrolix/missinggo/v2 v2.2.1-0.20191103010835-12360f38ced0
+github.com/anacrolix/missinggo/v2
+github.com/anacrolix/missinggo/v2/conntrack
+github.com/anacrolix/missinggo/v2/iter
 # github.com/anacrolix/mmsg v1.0.0
 github.com/anacrolix/mmsg
 github.com/anacrolix/mmsg/socket
-# github.com/anacrolix/sync v0.0.0-20180808010631-44578de4e778
+# github.com/anacrolix/stm v0.1.0
+github.com/anacrolix/stm
+github.com/anacrolix/stm/rate
+github.com/anacrolix/stm/stmutil
+# github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/tagflag v1.0.0
+# github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.7.0
+# github.com/anacrolix/torrent v1.9.0
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
@@ -61,6 +68,8 @@ github.com/anacrolix/upnp
 github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 github.com/aristanetworks/goarista/monotime
+# github.com/benbjohnson/immutable v0.2.0
+github.com/benbjohnson/immutable
 # github.com/bitly/go-simplejson v0.5.0
 github.com/bitly/go-simplejson
 # github.com/boltdb/bolt v1.3.1
@@ -84,6 +93,8 @@ github.com/edsrzf/mmap-go
 # github.com/elastic/gosigar v0.10.5
 github.com/elastic/gosigar
 github.com/elastic/gosigar/sys/windows
+# github.com/etcd-io/bbolt v1.3.3
+github.com/etcd-io/bbolt
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
 # github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
@@ -106,7 +117,7 @@ github.com/google/uuid
 # github.com/hashicorp/golang-lru v0.5.3
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/huandu/xstrings v1.0.0
+# github.com/huandu/xstrings v1.2.0
 github.com/huandu/xstrings
 # github.com/huin/goupnp v1.0.0
 github.com/huin/goupnp
@@ -228,7 +239,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
 golang.org/x/net/websocket
-# golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
+# golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -252,7 +263,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
+# golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20190829051458-42f498d34c4d
 golang.org/x/tools/go/ast/astutil
