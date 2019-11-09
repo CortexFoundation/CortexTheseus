@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	removeTorrentChanBuffer = 16
+	removeTorrentChanBuffer = 1
 	updateTorrentChanBuffer = 1000
 
 	torrentPending = iota //2
@@ -215,7 +215,6 @@ func (t *Torrent) Pause() {
 	}
 }
 
-// Paused ...
 func (t *Torrent) Paused() bool {
 	return t.status == torrentPaused
 }
@@ -228,7 +227,6 @@ func (t *Torrent) NumPieces() int {
 	return t.Torrent.NumPieces()
 }
 
-// Run ...
 func (t *Torrent) Run() {
 	maxPieces := int((t.bytesRequested*int64(t.NumPieces()) + t.Length() - 1) / t.Length())
 	if maxPieces > t.NumPieces() {
@@ -245,7 +243,6 @@ func (t *Torrent) Run() {
 	}
 }
 
-// Running ...
 func (t *Torrent) Running() bool {
 	return t.status == torrentRunning
 }
@@ -254,12 +251,10 @@ func (t *Torrent) Finished() bool {
 	return t.bytesMissing == 0
 }
 
-// Pending ...
 func (t *Torrent) Pending() bool {
 	return t.status == torrentPending
 }
 
-// TorrentManager ...
 type TorrentManager struct {
 	client              *torrent.Client
 	bytes               map[metainfo.Hash]int64
@@ -569,8 +564,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	cfg.EstablishedConnsPerTorrent = 10
-	cfg.HalfOpenConnsPerTorrent = 5
+	//cfg.EstablishedConnsPerTorrent = 10
+	//cfg.HalfOpenConnsPerTorrent = 5
 	cfg.ListenPort = 0
 	//cfg.DropDuplicatePeerIds = true
 	log.Info("Torrent client configuration", "config", cfg)
@@ -719,37 +714,22 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						log.Debug("Try to boost torrent", "infohash", t.infohash)
 						if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
 							if t.Torrent.Info() != nil {
-								//				t.isBoosting = false
 								return
 							}
-							//			t.isBoosting = false
 							t.Torrent.Drop()
 							t.ReloadTorrent(data, tm)
 
-							//delete(tm.pendingTorrents, ih)
 							bytesRequested := t.bytesRequested
-							//tm.RemoveTorrent(ih)
 							tm.UpdateTorrent(FlowControlMeta{
 								InfoHash:       ih,
 								BytesRequested: uint64(bytesRequested),
 								IsCreate:       true,
 							})
 						} else {
-							//t.isBoosting = false
 							log.Warn("Boost failed", "infohash", t.infohash, "err", err)
 						}
-						//		t.isBoosting = false
 					}(t)
-				} /*else {
-					delete(tm.pendingTorrents, ih)
-					bytesRequested := t.bytesRequested
-					tm.RemoveTorrent(ih)
-					tm.UpdateTorrent(FlowControlMeta{
-						InfoHash:       ih,
-						BytesRequested: uint64(bytesRequested),
-						IsCreate:       true,
-					})
-				}*/
+				}
 			}
 		}
 
@@ -766,7 +746,6 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			BytesRequested := tm.bytes[ih]
 			if t.bytesRequested < BytesRequested {
 				t.bytesRequested = BytesRequested
-				//t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
 				t.bytesLimitation = GetLimitation(BytesRequested)
 			}
 			t.bytesCompleted = t.BytesCompleted()
@@ -779,7 +758,6 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				)
 				delete(tm.activeTorrents, ih)
 				tm.seedingTorrents[ih] = t
-				//t.status = torrentSeeding
 				t.Seed()
 				t.loop = defaultSeedInterval / queryTimeInterval
 				continue
@@ -793,15 +771,12 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				continue
 			}
 
-			//if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
-			//	log.Info("Downloading", "i", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "limit", t.bytesRequested-t.bytesCompleted, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "boost", t.isBoosting)
-			//}
 			all += len(t.Torrent.PieceStateRuns())
 
 			if t.bytesCompleted >= t.bytesLimitation {
 				t.Pause()
 				active_paused += 1
-				if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
+				if log_counter%20 == 0 {
 					log.Info("[Pausing]", "hash", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
 				}
 				continue
@@ -810,7 +785,6 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				if t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
 					t.loop = 0
 					if t.isBoosting {
-						t.loop = 0
 						continue
 					}
 					t.Pause()
@@ -827,7 +801,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 									filedatas = append(filedatas, data)
 									filepaths = append(filepaths, subpath)
 								} else {
-									return
+									continue
 								}
 							}
 							t.Torrent.Drop()
@@ -842,7 +816,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				}
 			}
 
-			if log_counter%20 == 0 { //&& t.bytesRequested > 0 {
+			if log_counter%20 == 0 && t.bytesCompleted > 0{
 				log.Info("[Downloading]", "hash", ih.String(), "complete", t.bytesCompleted, "quota", t.bytesRequested, "total", t.bytesMissing+t.bytesCompleted, "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
 			}
 
