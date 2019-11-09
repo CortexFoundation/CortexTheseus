@@ -114,7 +114,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		terminated:  0,
 		lastNumber:  uint64(0),
 		dirty:       false,
-		taskCh:      make(chan *Block, batch*4),
+		taskCh:      make(chan *Block),
 	}
 	e = nil
 
