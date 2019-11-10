@@ -678,7 +678,7 @@ func (m *Monitor) listenLatestBlock() {
 				timer.Reset(time.Millisecond * 500)
 			} else if progress > batch/4 {
 				timer.Reset(time.Millisecond * 1000)
-			} else if progress > 6 {
+			} else if progress > batch/8 {
 				timer.Reset(time.Millisecond * 2000)
 			} else {
 				timer.Reset(time.Millisecond * 5000)
