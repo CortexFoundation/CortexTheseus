@@ -673,17 +673,15 @@ func (m *Monitor) listenLatestBlock() {
 			// Aviod sync in full mode, fresh interval may be less.
 			if progress > batch {
 				timer.Reset(time.Millisecond * 100)
-
 			} else if progress > batch/2 {
 				timer.Reset(time.Millisecond * 500)
 			} else if progress > batch/4 {
 				timer.Reset(time.Millisecond * 1000)
-			} else if progress > batch/8 {
+			} else if progress > 6 {
 				timer.Reset(time.Millisecond * 2000)
 			} else {
 				timer.Reset(time.Millisecond * 5000)
 			}
-
 		case <-m.exitCh:
 			log.Info("Block listener stopped")
 			return
@@ -797,7 +795,6 @@ const (
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
-	// Latest block number
 	var currentNumber hexutil.Uint64
 
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
@@ -811,25 +808,16 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 	if uint64(currentNumber) < m.lastNumber {
 		log.Warn("Torrent fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
-		//if m.lastNumber > batch {
-		//	m.lastNumber = m.lastNumber - batch
-		//}
 		m.lastNumber = 0
 	}
 
-	//minNumber := uint64(0)
-	//if m.lastNumber > 6 {
-	//	minNumber = m.lastNumber - 6
-	//}
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
 	if uint64(currentNumber) > 3 {
-		//maxNumber = uint64(currentNumber) - 2
 		maxNumber = uint64(currentNumber)
 	}
 
 	if m.lastNumber > uint64(currentNumber) {
-		//block chain rollback
 		if m.lastNumber > batch {
 			minNumber = m.lastNumber - batch
 		}
@@ -847,6 +835,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		return 0
 	}
 
+	start := mclock.Now()
 	for i := minNumber; i <= maxNumber; i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			log.Warn("Torrent scan terminated", "number", i)
@@ -865,8 +854,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 			m.taskCh <- rpcBlock
 		}
 	}
+	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Debug("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber)
+	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed)
 	return uint64(maxNumber - minNumber)
 }
 
