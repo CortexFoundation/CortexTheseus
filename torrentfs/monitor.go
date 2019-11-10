@@ -136,7 +136,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
 		capcity += bytesRequested
-		log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", file.LeftSize, "raw", file.Meta.RawSize, "request", bytesRequested)
+		log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
 		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
@@ -150,7 +150,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", capcity)
+	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity))
 
 	return m, e
 }
@@ -484,7 +484,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 					if file.Meta.RawSize > file.LeftSize {
 						bytesRequested = file.Meta.RawSize - file.LeftSize
 					}
-					log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "number", b.Number)
+					log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 					//log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
 
 					m.dl.UpdateTorrent(FlowControlMeta{
