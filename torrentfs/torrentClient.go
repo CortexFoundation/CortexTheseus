@@ -679,9 +679,6 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		tm.lock.RLock()
 
 		for _, t := range tm.torrents {
-			if t.cited > maxCited {
-				maxCited = t.cited
-			}
 			t.weight = 1 + int(t.cited*10/maxCited)
 		}
 
