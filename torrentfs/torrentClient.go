@@ -146,8 +146,13 @@ func (t *Torrent) GetFile(subpath string) ([]byte, error) {
 	return data, data_err
 }
 
+var maxCited int64
+
 func (t *Torrent) IsAvailable() bool {
 	t.cited += 1
+	if t.cited > maxCited {
+		maxCited = t.cited
+	}
 	if t.Seeding() {
 		return true
 	}
@@ -679,11 +684,12 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			if t.cited > maxCited {
 				maxCited = t.cited
 			}
-		}
-
-		for _, t := range tm.torrents {
 			t.weight = 1 + int(t.cited*10/maxCited)
 		}
+
+		//for _, t := range tm.torrents {
+		//	t.weight = 1 + int(t.cited*10/maxCited)
+		//}
 
 		var pendingTorrents []*Torrent
 		for _, t := range tm.pendingTorrents {
