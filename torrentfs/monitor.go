@@ -35,6 +35,7 @@ var (
 	blockCache, _ = lru.New(6)
 	//unhealthPeers, _ = lru.New(256)
 	healthPeers, _ = lru.New(50)
+	sizeCache, _   = lru.New(4096)
 )
 
 const (
@@ -359,11 +360,18 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 }*/
 
 func (m *Monitor) getRemainingSize(address string) (uint64, error) {
+	if size, suc := sizeCache.Get(address); suc && size.(uint64) == 0 {
+		return size.(uint64), nil
+	}
 	var remainingSize hexutil.Uint64
 	if err := m.cl.Call(&remainingSize, "ctxc_getUpload", address, "latest"); err != nil {
 		return 0, err
 	}
-	return uint64(remainingSize), nil
+	remain := uint64(remainingSize)
+	if remain == 0 {
+		sizeCache.Add(address, remain)
+	}
+	return remain, nil
 }
 
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
@@ -375,18 +383,12 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	}
 
 	if receipt.ContractAddr == nil {
-		//log.Warn("Contract address is nil", "receipt", receipt.TxHash)
 		return nil
 	}
 
 	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
-	//if receipt.GasUsed != params.UploadGas {
-	//	log.Warn("Upload gas error", "gas", receipt.GasUsed, "ugas", params.UploadGas)
-	//	return nil
-	//}
 
 	if receipt.Status != 1 {
-		//log.Warn("Upload status error", "status", receipt.Status)
 		return nil
 	}
 
@@ -397,7 +399,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	info.ContractAddr = receipt.ContractAddr
 	err := m.fs.AddFile(info)
 	if err != nil {
-		//return err
+		return err
 	}
 
 	m.dl.UpdateTorrent(FlowControlMeta{
@@ -485,7 +487,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 						bytesRequested = file.Meta.RawSize - file.LeftSize
 					}
 					log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-					//log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
 
 					m.dl.UpdateTorrent(FlowControlMeta{
 						InfoHash:       file.Meta.InfoHash,
@@ -848,11 +849,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 			log.Error("Sync old block", "number", i, "error", rpcErr)
 			return 0
 		}
-
-		if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
-			//go func() { m.taskCh <- rpcBlock }()
-			m.taskCh <- rpcBlock
-		}
+		m.taskCh <- rpcBlock
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
