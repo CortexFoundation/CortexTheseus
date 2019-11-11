@@ -148,7 +148,7 @@ func (t *Torrent) GetFile(subpath string) ([]byte, error) {
 
 func (t *Torrent) IsAvailable() bool {
 	t.cited += 1
-	if t.status == torrentSeeding || t.status == torrentSeedingInQueue {
+	if t.Seeding() {
 		return true
 	}
 	return false
@@ -352,9 +352,6 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 		t.AddTrackers(newTrackers)
 	}
 
-	//for _, t := range tm.activeTorrents {
-	//	t.AddTrackers(newTrackers)
-	//}
 	tm.lock.Unlock()
 }
 
@@ -509,22 +506,20 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 // UpdateInfoHash ...
 func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	log.Debug("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
-	//tm.lock.Lock()
 	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
+		tm.lock.Lock()
 		tm.bytes[ih] = BytesRequested
+		tm.lock.Unlock()
 	}
-	//tm.lock.Unlock()
-	if t := tm.GetTorrent(ih); t != nil {
+	/*if t := tm.GetTorrent(ih); t != nil {
 		if BytesRequested < t.bytesRequested {
 			return
 		}
 		t.bytesRequested = BytesRequested
 		if t.bytesRequested > t.bytesLimitation {
-			//t.bytesLimitation = int64(float64(BytesRequested) * expansionFactor)
 			t.bytesLimitation = GetLimitation(BytesRequested)
 		}
-	}
-	//tm.mu.Unlock()
+	}*/
 }
 
 // DropInfoHash ...
@@ -694,6 +689,8 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		for _, t := range tm.pendingTorrents {
 			pendingTorrents = append(pendingTorrents, t)
 		}
+		tm.lock.RUnlock()
+
 		for _, t := range pendingTorrents {
 			ih := t.Torrent.InfoHash()
 			t.loop += 1
@@ -740,6 +737,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		for _, t := range tm.activeTorrents {
 			activeTorrentsCandidate = append(activeTorrentsCandidate, t)
 		}
+
 		all := 0
 		active_paused := 0
 		active_wait := 0
@@ -751,6 +749,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.bytesRequested = BytesRequested
 				t.bytesLimitation = GetLimitation(BytesRequested)
 			}
+
 			t.bytesCompleted = t.BytesCompleted()
 			t.bytesMissing = t.BytesMissing()
 
@@ -907,7 +906,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			current_size = 0
 		}
 
-		tm.lock.RUnlock()
+		//tm.lock.RUnlock()
 		time.Sleep(time.Second * queryTimeInterval)
 	}
 }
