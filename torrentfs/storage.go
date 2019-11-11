@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
+	//"sync"
 	"sync/atomic"
 	"time"
 
@@ -65,7 +65,8 @@ type FileStorage struct {
 }
 
 var initConfig *Config = nil
-var TorrentAPIAvailable sync.Mutex
+
+//var TorrentAPIAvailable sync.Mutex
 
 func InitConfig() *Config {
 	return initConfig
@@ -167,8 +168,8 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 
 func Available(infohash string, rawSize int64) (bool, error) {
 	log.Debug("Available", "infohash", infohash, "RawSize", rawSize)
-	TorrentAPIAvailable.Lock()
-	defer TorrentAPIAvailable.Unlock()
+	//TorrentAPIAvailable.Lock()
+	//defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
 	tm := CurrentTorrentManager
 	log.Debug("storage", "ih", ih)
@@ -186,8 +187,8 @@ func Available(infohash string, rawSize int64) (bool, error) {
 
 func GetFile(infohash string, path string) ([]byte, error) {
 	infohash = strings.ToLower(infohash[2:])
-	TorrentAPIAvailable.Lock()
-	defer TorrentAPIAvailable.Unlock()
+	//TorrentAPIAvailable.Lock()
+	//defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash)
 	tm := CurrentTorrentManager
 	var torrent Torrent
@@ -201,8 +202,8 @@ func GetFile(infohash string, path string) ([]byte, error) {
 }
 
 func ExistTorrent(infohash string) bool {
-	TorrentAPIAvailable.Lock()
-	defer TorrentAPIAvailable.Unlock()
+	//TorrentAPIAvailable.Lock()
+	//defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
 	tm := CurrentTorrentManager
 	if torrent := tm.GetTorrent(ih); torrent == nil {

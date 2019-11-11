@@ -114,7 +114,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		terminated:  0,
 		lastNumber:  uint64(0),
 		dirty:       false,
-		taskCh:      make(chan *Block, batch * 2),
+		taskCh:      make(chan *Block, batch*2),
 	}
 	e = nil
 
@@ -552,7 +552,7 @@ func (m *Monitor) Start() error {
 func (m *Monitor) startWork() error {
 	// Wait for ipc start...
 	time.Sleep(time.Second)
-	defer TorrentAPIAvailable.Unlock()
+	//defer TorrentAPIAvailable.Unlock()
 	// Rpc Client
 	var clientURI string
 	if runtime.GOOS != "windows" && m.config.IpcPath != "" {

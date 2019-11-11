@@ -62,7 +62,7 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 	}
 
 	versionMeta := ""
-	TorrentAPIAvailable.Lock()
+	//TorrentAPIAvailable.Lock()
 	if len(params.VersionMeta) > 0 {
 		versionMeta = fmt.Sprintf(" (%s)", params.VersionMeta)
 	}
