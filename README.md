@@ -11,7 +11,7 @@ tar zxvf cmake-3.11.0-rc4-Linux-x86_64.tar.gz
 sudo mv cmake-3.11.0-rc4-Linux-x86_64  /opt/cmake-3.11
 sudo ln -sf /opt/cmake-3.11/bin/*  /usr/bin/
  ```
-- go 1.10.0+
+- go 1.13.0+
 ```
 wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
