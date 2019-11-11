@@ -678,8 +678,6 @@ func (tm *TorrentManager) listenTorrentProgress() {
 
 		tm.lock.RLock()
 
-		var maxCited int64 = 1
-
 		for _, t := range tm.torrents {
 			if t.cited > maxCited {
 				maxCited = t.cited
