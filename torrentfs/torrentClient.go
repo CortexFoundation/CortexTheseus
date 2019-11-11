@@ -146,7 +146,7 @@ func (t *Torrent) GetFile(subpath string) ([]byte, error) {
 	return data, data_err
 }
 
-var maxCited int64
+var maxCited int64 = 1
 
 func (t *Torrent) IsAvailable() bool {
 	t.cited += 1
