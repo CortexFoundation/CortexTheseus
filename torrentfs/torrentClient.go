@@ -614,12 +614,16 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
+		return nil
 	}
 
 	tmpFilePath := path.Join(config.DataDir, defaultTmpFilePath)
-	if _, err := os.Stat(tmpFilePath); err == nil {
-		os.Remove(tmpFilePath)
-	}
+	/*if _, err := os.Stat(tmpFilePath); err == nil {
+		err := os.Remove(tmpFilePath)
+		if err != nil {
+			log.Warn("Purge the current file path failed", "path", tmpFilePath, "err", err)
+		}
+	}*/
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
 		err = os.Mkdir(tmpFilePath, os.FileMode(os.ModePerm))
