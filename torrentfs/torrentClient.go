@@ -459,7 +459,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		tm.client.AddDHTNodes(ss)
 		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 		<-t.GotInfo()
-		torrent.VerifyData()
+		t.VerifyData()
 		torrent.SeedInQueue()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
@@ -472,7 +472,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		tm.client.AddDHTNodes(ss)
 		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 		<-t.GotInfo()
-		torrent.VerifyData()
+		t.VerifyData()
 		torrent.Pause()
 	}
 }
@@ -613,6 +613,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	log.Info("Torrent client initialized")
 
 	CurrentTorrentManager = TorrentManager
+	//cl.WaitAll()
 	return TorrentManager
 }
 
