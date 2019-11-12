@@ -94,6 +94,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
 	if fsErr != nil {
+		log.Error("file storage failed")
 		return nil, fsErr
 	}
 	log.Info("Torrent file storage initialized")
@@ -101,6 +102,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	// Torrent Manager
 	tMana := NewTorrentManager(flag)
 	if tMana == nil {
+		log.Error("torrent manager failed")
 		return nil, errors.New("torrent download manager initialise failed")
 	}
 	log.Info("Torrent manager initialized")

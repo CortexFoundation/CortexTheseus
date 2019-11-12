@@ -74,7 +74,7 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 
 	monitor, moErr := NewMonitor(config)
 	if moErr != nil {
-		//log.Error("Failed create monitor")
+		log.Error("Failed create monitor")
 		return nil, moErr
 	}
 
