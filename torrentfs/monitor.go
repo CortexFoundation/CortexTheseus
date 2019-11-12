@@ -171,6 +171,7 @@ func (m *Monitor) taskLoop() {
 				log.Warn("Block dealing failed", "err", err)
 			}
 		case <-m.exitCh:
+			log.Info("Monitor task channel closed")
 			return
 		}
 	}
@@ -508,16 +509,23 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 func (m *Monitor) Stop() {
 	log.Info("Torrent listener closing")
 	atomic.StoreInt32(&(m.terminated), 1)
+	//m.fs.Close()
+	//m.dl.Close()
+	//m.wg.Add(1)
 	m.closeOnce.Do(func() {
-		close(m.exitCh)
+		//defer m.wg.Done()
+		//log.Info("fs closing")
 		if err := m.fs.Close(); err != nil {
 			log.Error("Monitor File Storage closed", "error", err)
 		}
+		//log.Info("fs closed")
+		//log.Info("torrent closing")
 		if err := m.dl.Close(); err != nil {
 			log.Error("Monitor Torrent Manager closed", "error", err)
 		}
+		//log.Info("torrent closed")
 		log.Info("Torrent fs listener synchronizing close")
-		//m.wg.Wait()
+		close(m.exitCh)
 	})
 	m.wg.Wait()
 	log.Info("Torrent listener closed")

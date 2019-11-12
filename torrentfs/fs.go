@@ -2,7 +2,7 @@ package torrentfs
 
 import (
 	"fmt"
-	_ "github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	_ "github.com/CortexFoundation/CortexTheseus/p2p"
 	_ "github.com/CortexFoundation/CortexTheseus/params"
 	_ "github.com/CortexFoundation/CortexTheseus/rpc"
@@ -36,6 +36,7 @@ func (fs *InfoHashFileSystem) Available(infohash string, rawSize int64) (bool, e
 }
 
 func (fs *InfoHashFileSystem) Stop() error {
+	log.Info("torrent storage fs stop", "fs", fs)
 	return nil
 }
 

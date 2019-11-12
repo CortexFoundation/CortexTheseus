@@ -30,6 +30,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 	"net/http"
+	"os/signal"
+	"sync"
 )
 
 func homeDir() string {
@@ -115,13 +117,16 @@ var (
 		Description: ``,
 	}
 )
+var (
+	wg sync.WaitGroup
+	c  chan os.Signal
+)
 
 // localConsole starts a new cortex node, attaching a JavaScript console to it at the
 // same time.
 func cvmServer(ctx *cli.Context) error {
-	// flag.Parse()
-
-	// Set log
+	c = make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
 	fsCfg := torrentfs.DefaultConfig
@@ -139,10 +144,8 @@ func cvmServer(ctx *cli.Context) error {
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
 	storagefs.Start(nil)
 	if fs_err != nil {
-		//panic(fs_err)
 		return errors.New("torrent start failed")
 	}
-	//defer storagefs.Stop()
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
 	DeviceId := ctx.GlobalInt(utils.InferDeviceIdFlag.Name)
@@ -163,14 +166,19 @@ func cvmServer(ctx *cli.Context) error {
 	inferServer := synapse.New(&synpapseConfig)
 	log.Info("Initilized inference server with synapse engine", "config", synpapseConfig)
 
-	http.HandleFunc("/", handler)
-
 	log.Info(fmt.Sprintf("Http Server Listen on 0.0.0.0:%d", port))
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	wg.Add(1)
+	go func(port int, inferServer *synapse.Synapse) {
+		defer wg.Done()
+		http.HandleFunc("/", handler)
+		go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+		select {
+		case <-c:
+			inferServer.Close()
+		}
+	}(port, inferServer)
 
-	log.Error(fmt.Sprintf("Server Closed with Error %v", err))
-
-	inferServer.Close()
+	wg.Wait()
 
 	return nil
 }

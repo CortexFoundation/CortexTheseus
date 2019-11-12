@@ -214,14 +214,13 @@ func ExistTorrent(infohash string) bool {
 }
 
 func (fs *FileStorage) Close() error {
-	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
-
 	// Wait for file storage closed...
 	for {
 		if fs.opCounter.IsZero() {
 			// persist storage block number
 			fs.writeBlockNumber()
 			fs.writeLastFileIndex()
+			log.Info("Torrent File Storage Closed", "database", fs.db.Path())
 			return fs.db.Close()
 		}
 

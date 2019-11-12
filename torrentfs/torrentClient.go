@@ -341,13 +341,22 @@ func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 }
 
 func (tm *TorrentManager) Close() error {
-	for _, t := range tm.torrents {
-		t.Stats()
-	}
+	log.Info("Torrent Download Manager Closing")
+	tm.dropAll()
 	close(tm.closeAll)
 	tm.wg.Wait()
 	log.Info("Torrent Download Manager Closed")
 	return nil
+}
+
+func (tm *TorrentManager) dropAll() {
+	tm.lock.Lock()
+	tm.lock.Unlock()
+	for _, t := range tm.torrents {
+		stats := t.Stats()
+		log.Info("torrent statics", "hash", t.infohash, "total", stats.TotalPeers, "pending", stats.PendingPeers, "active", stats.ActivePeers, "seeder", stats.ConnectedSeeders, "half", stats.HalfOpenPeers)
+		t.Drop()
+	}
 }
 
 func (tm *TorrentManager) RemoveTorrent(input metainfo.Hash) error {
@@ -670,11 +679,11 @@ func (tm *TorrentManager) Start() error {
 	return nil
 }
 
-func (tm *TorrentManager) Stop() error {
+/*func (tm *TorrentManager) Stop() error {
 	close(tm.closeAll)
 	tm.wg.Wait()
 	return nil
-}
+}*/
 
 func (tm *TorrentManager) mainLoop() {
 	defer tm.wg.Done()
