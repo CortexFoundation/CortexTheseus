@@ -17,16 +17,18 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 	"net/http"
@@ -142,10 +144,15 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
-	storagefs.Start(nil)
 	if fs_err != nil {
 		return errors.New("torrent start failed")
 	}
+
+	err := storagefs.Start(&p2p.Server{})
+	if err != nil {
+		return err
+	}
+
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
 	DeviceId := ctx.GlobalInt(utils.InferDeviceIdFlag.Name)
@@ -166,14 +173,26 @@ func cvmServer(ctx *cli.Context) error {
 	inferServer := synapse.New(&synpapseConfig)
 	log.Info("Initilized inference server with synapse engine", "config", synpapseConfig)
 
-	log.Info(fmt.Sprintf("Http Server Listen on 0.0.0.0:%d", port))
 	wg.Add(1)
 	go func(port int, inferServer *synapse.Synapse) {
 		defer wg.Done()
-		http.HandleFunc("/", handler)
-		go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+		log.Info("CVM http Server Listen on 0.0.0.0", "port", port)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", handler)
+		server := &http.Server{
+			Addr:         ":" + strconv.Itoa(port),
+			WriteTimeout: time.Second * 15,
+			Handler:      mux,
+		}
+
+		go server.ListenAndServe()
 		select {
 		case <-c:
+			if err := server.Close(); err != nil {
+				log.Info("Close http server failed", "err", err)
+			} else {
+				log.Info("CVM http server closed")
+			}
 			inferServer.Close()
 		}
 	}(port, inferServer)

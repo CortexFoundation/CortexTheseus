@@ -99,7 +99,6 @@ func (tfs *TorrentFS) APIs() []rpc.API { return nil }
 func (tfs *TorrentFS) Start(server *p2p.Server) error {
 	log.Info("Torrent monitor starting", "torrentfs", tfs)
 	if tfs == nil || tfs.monitor == nil {
-		//log.Error("Monitor is error")
 		return nil
 	}
 	return tfs.monitor.Start()
