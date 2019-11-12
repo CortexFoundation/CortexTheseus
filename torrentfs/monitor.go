@@ -179,13 +179,14 @@ func (m *Monitor) taskLoop() {
 
 // SetConnection method builds connection to remote or local communicator.
 func SetConnection(clientURI string) (*rpc.Client, error) {
-	for i := 0; i < connTryTimes; i++ {
+	//for i := 0; i < connTryTimes; i++ {
+	for {
 		time.Sleep(time.Second * connTryInterval)
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
-			log.Warn("Building internal-ipc connection ... ", "URI", clientURI, "times", i, "error", err)
+			log.Warn("Building internal ipc connection ... ", "uri", clientURI, "error", err)
 		} else {
-			log.Debug("Internal-IPC connection established", "URI", clientURI)
+			log.Debug("Internal ipc connection established", "uri", clientURI)
 			return cl, nil
 		}
 	}
@@ -810,7 +811,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	var currentNumber hexutil.Uint64
 
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
-		log.Error("Sync old block | IPC ctx_blockNumber", "error", err)
+		log.Error("Call ipc method ctx_blockNumber failed", "error", err)
 		return 0
 	}
 
@@ -857,7 +858,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 		rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 		if rpcErr != nil {
-			log.Error("Sync old block", "number", i, "error", rpcErr)
+			log.Error("Sync old block failed", "number", i, "error", rpcErr)
 			return 0
 		}
 		m.taskCh <- rpcBlock
