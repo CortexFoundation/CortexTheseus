@@ -748,10 +748,10 @@ func calculateRewardByNumber(num *big.Int, chainId uint64) *big.Int {
 		}
 	} else {
 		if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
-                        d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
-                        e := new(big.Int).Exp(big2, d, nil)
-                        blockReward = new(big.Int).Div(blockReward, e)
-                }
+			d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
+			e := new(big.Int).Exp(big2, d, nil)
+			blockReward = new(big.Int).Div(blockReward, e)
+		}
 	}
 
 	return blockReward
@@ -871,12 +871,30 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 			return false
 		}
 	}
-	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
-	if err != nil {
-		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
-		return false
+
+	flag := false
+	for i := 0; i < len(sol); i++ {
+		if sol[i] != 0 {
+			flag = true
+		}
 	}
-	r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
-	//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
+
+	var r bool
+	if flag {
+		m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
+		if err != nil {
+			log.Error("cuckoo", "lookup cuckaroo verify error.", err)
+			return false
+		}
+		r = m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
+		//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
+	} else {
+		m, err := cuckoo.xcortexPlugin.Lookup("Verify")
+		if err != nil {
+			log.Error("cuckoo", "lookup xcortex verify error", err)
+			return false
+		}
+		r = m.(func(*byte, uint64, string) bool)(&hash[0], nonce, targetDiff.String())
+	}
 	return r
 }

@@ -101,12 +101,13 @@ type Cuckoo struct {
 	fakeFail  uint64        // Block number which fails PoW check even in fake mode
 	fakeDelay time.Duration // Time delay to sleep for before returning from verify
 
-	lock        sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
-	once        sync.Once       // Ensures cuckoo-cycle algorithm initialize once
-	closeOnce   sync.Once       // Ensures exit channel will not be closed twice.
-	exitCh      chan chan error // Notification channel to exiting backend threads
-	cMutex      sync.Mutex
-	minerPlugin *plugin.Plugin
+	lock          sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
+	once          sync.Once       // Ensures cuckoo-cycle algorithm initialize once
+	closeOnce     sync.Once       // Ensures exit channel will not be closed twice.
+	exitCh        chan chan error // Notification channel to exiting backend threads
+	cMutex        sync.Mutex
+	minerPlugin   *plugin.Plugin
+	xcortexPlugin *plugin.Plugin
 }
 
 func New(config Config) *Cuckoo {
@@ -149,6 +150,7 @@ func NewShared() *Cuckoo {
 
 const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_helper_for_node.so"
+const XCORTEX_PLUGIN string = "plugins/xcortex_helper.so"
 
 func (cuckoo *Cuckoo) InitPlugin() error {
 	var minerName string = "cpu"
@@ -167,6 +169,7 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
 		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
 	cuckoo.minerPlugin, errc = plugin.Open(so_path)
+	cuckoo.xcortexPlugin, errc = plugin.Open(XCORTEX_PLUGIN)
 	return errc
 }
 
