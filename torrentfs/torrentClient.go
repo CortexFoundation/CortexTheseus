@@ -28,6 +28,7 @@ import (
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
 	"github.com/anacrolix/torrent/storage"
+	//"github.com/anacrolix/dht/v2"
 )
 
 const (
@@ -105,6 +106,7 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	torrent, _, _ := tm.client.AddTorrentSpec(spec)
 	t.Torrent = torrent
 	<-torrent.GotInfo()
+	torrent.VerifyData()
 	t.Pause()
 }
 
@@ -130,6 +132,7 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	torrent, _, _ := tm.client.AddTorrentSpec(spec)
 	t.Torrent = torrent
 	<-torrent.GotInfo()
+	torrent.VerifyData()
 	t.Pause()
 }
 
@@ -456,6 +459,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		tm.client.AddDHTNodes(ss)
 		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 		<-t.GotInfo()
+		torrent.VerifyData()
 		torrent.SeedInQueue()
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
@@ -468,6 +472,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		tm.client.AddDHTNodes(ss)
 		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 		<-t.GotInfo()
+		torrent.VerifyData()
 		torrent.Pause()
 	}
 }
@@ -569,6 +574,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//cfg.HalfOpenConnsPerTorrent = 5
 	cfg.ListenPort = 0
 	//cfg.DropDuplicatePeerIds = true
+	//cfg.ListenHost = torrent.LoopbackListenHost
+	//cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs //func() ([]dht.Addr, error) { return nil, nil }
 	log.Info("Torrent client configuration", "config", cfg)
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
