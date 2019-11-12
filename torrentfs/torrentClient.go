@@ -80,18 +80,25 @@ func (t *Torrent) InfoHash() string {
 
 func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager) {
 	if len(files) > 1 {
-		os.Mkdir(path.Join(t.filepath, "data"), os.ModePerm)
+		err := os.Mkdir(path.Join(t.filepath, "data"), os.ModePerm)
+		if err != nil {
+			return
+		}
 	}
 	//  os.Remove(path.Join(t.filepath, ".torrent.bolt.db"))
 	log.Info("Try to boost files", "files", files)
 	for i, filename := range files {
 		filePath := path.Join(t.filepath, filename)
-		f, _ := os.Create(filePath)
+		f, err := os.Create(filePath)
+		if err != nil {
+			return
+		}
+		defer f.Close()
 		log.Debug("Write file (Boost mode)", "path", filePath)
 		if _, err := f.Write(datas[i]); err != nil {
 			log.Error("Error while write data file", "error", err)
 		}
-		f.Close()
+		//f.Close()
 	}
 	mi, err := metainfo.LoadFromFile(path.Join(t.filepath, "torrent"))
 	if err != nil {
@@ -103,7 +110,10 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	for _, tracker := range tm.trackers {
 		spec.Trackers = append(spec.Trackers, tracker)
 	}
-	torrent, _, _ := tm.client.AddTorrentSpec(spec)
+	torrent, _, err := tm.client.AddTorrentSpec(spec)
+	if err != nil {
+		return
+	}
 	t.Torrent = torrent
 	<-torrent.GotInfo()
 	torrent.VerifyData()
@@ -113,12 +123,17 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	torrentPath := path.Join(t.filepath, "torrent")
 	os.Remove(path.Join(t.filepath, ".torrent.bolt.db"))
-	f, _ := os.Create(torrentPath)
+	f, err := os.Create(torrentPath)
+	if err != nil {
+		log.Warn("Create torrent path failed", "path", torrentPath)
+		return
+	}
+	defer f.Close()
 	log.Debug("Write torrent file (Boost mode)", "path", torrentPath)
 	if _, err := f.Write(data); err != nil {
 		log.Error("Error while write torrent file", "error", err)
+		return
 	}
-	f.Close()
 	mi, err := metainfo.LoadFromFile(torrentPath)
 	if err != nil {
 		log.Error("Error while adding torrent", "Err", err)
@@ -129,7 +144,10 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	for _, tracker := range tm.trackers {
 		spec.Trackers = append(spec.Trackers, tracker)
 	}
-	torrent, _, _ := tm.client.AddTorrentSpec(spec)
+	torrent, _, err := tm.client.AddTorrentSpec(spec)
+	if err != nil {
+		return
+	}
 	t.Torrent = torrent
 	<-torrent.GotInfo()
 	torrent.VerifyData()
@@ -167,15 +185,17 @@ func (t *Torrent) HasTorrent() bool {
 }
 
 func (t *Torrent) WriteTorrent() {
-	f, _ := os.Create(path.Join(t.filepath, "torrent"))
+	f, err := os.Create(path.Join(t.filepath, "torrent"))
+	if err != nil {
+		return
+	}
+	defer f.Close()
 	log.Debug("Write torrent file", "path", t.filepath)
 	if err := t.Metainfo().Write(f); err != nil {
 		log.Error("Error while write torrent file", "error", err)
 		return
 	}
 
-	defer f.Close()
-	//t.status = torrentPaused
 	t.Pause()
 }
 
@@ -321,6 +341,9 @@ func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 }
 
 func (tm *TorrentManager) Close() error {
+	for _, t := range tm.torrents {
+		t.Stats()
+	}
 	close(tm.closeAll)
 	tm.wg.Wait()
 	log.Info("Torrent Download Manager Closed")
@@ -453,7 +476,10 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
 		}
-		t, _, _ := tm.client.AddTorrentSpec(spec)
+		t, _, err := tm.client.AddTorrentSpec(spec)
+		if err != nil {
+			return
+		}
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
@@ -466,7 +492,10 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) {
 		for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
 		}
-		t, _, _ := tm.client.AddTorrentSpec(spec)
+		t, _, err := tm.client.AddTorrentSpec(spec)
+		if err != nil {
+			return
+		}
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
 		tm.client.AddDHTNodes(ss)
@@ -507,7 +536,10 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	}
 	log.Trace("Torrent specific info", "spec", spec)
 
-	t, _, _ := tm.client.AddTorrentSpec(spec)
+	t, _, err := tm.client.AddTorrentSpec(spec)
+	if err != nil {
+		return
+	}
 	tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 	//tm.mu.Unlock()
 	log.Trace("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
@@ -586,7 +618,10 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	if _, err := os.Stat(tmpFilePath); err == nil {
 		os.Remove(tmpFilePath)
 	}
-	os.Mkdir(tmpFilePath, os.FileMode(os.ModePerm))
+	err = os.Mkdir(tmpFilePath, os.FileMode(os.ModePerm))
+	if err != nil {
+		return nil
+	}
 
 	TorrentManager := &TorrentManager{
 		client:              cl,
