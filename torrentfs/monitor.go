@@ -513,6 +513,7 @@ func (m *Monitor) Stop() {
 	//m.dl.Close()
 	//m.wg.Add(1)
 	m.closeOnce.Do(func() {
+		close(m.exitCh)
 		//defer m.wg.Done()
 		//log.Info("fs closing")
 		if err := m.fs.Close(); err != nil {
@@ -525,7 +526,7 @@ func (m *Monitor) Stop() {
 		}
 		//log.Info("torrent closed")
 		log.Info("Torrent fs listener synchronizing close")
-		close(m.exitCh)
+		//close(m.exitCh)
 	})
 	m.wg.Wait()
 	log.Info("Torrent listener closed")
