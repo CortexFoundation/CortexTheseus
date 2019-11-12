@@ -681,13 +681,18 @@ func (tm *TorrentManager) mainLoop() {
 		case msg := <-tm.updateTorrent:
 			meta := msg.(FlowControlMeta)
 			if meta.IsCreate {
+				counter := 0
 				log.Debug("TorrentManager", "newTorrent", meta.InfoHash.String())
 				for {
 					if t := tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t != nil {
 						log.Debug("Torrent success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 						break
 					} else {
-						log.Error("Torrent failed", "hash", meta.InfoHash, "request", meta.BytesRequested)
+						if counter > 10 {
+							break
+						}
+						log.Error("Torrent failed", "hash", meta.InfoHash, "request", meta.BytesRequested, "counter", counter)
+						counter++
 					}
 				}
 			} else {
