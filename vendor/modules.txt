@@ -72,8 +72,6 @@ github.com/aristanetworks/goarista/monotime
 github.com/benbjohnson/immutable
 # github.com/bitly/go-simplejson v0.5.0
 github.com/bitly/go-simplejson
-# github.com/boltdb/bolt v1.3.1
-github.com/boltdb/bolt
 # github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c
 github.com/bradfitz/iter
 # github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
@@ -127,7 +125,7 @@ github.com/huin/goupnp/httpu
 github.com/huin/goupnp/scpd
 github.com/huin/goupnp/soap
 github.com/huin/goupnp/ssdp
-# github.com/influxdata/influxdb v1.7.7
+# github.com/influxdata/influxdb v1.7.9
 github.com/influxdata/influxdb/client
 github.com/influxdata/influxdb/models
 github.com/influxdata/influxdb/pkg/escape
