@@ -3,13 +3,13 @@ package torrentfs
 import (
 	"bytes"
 	"crypto/sha1"
-	"errors"
+	//"errors"
 	"fmt"
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
-	"io/ioutil"
+	//"io/ioutil"
 	"math"
 	"math/rand"
 	"net"
@@ -154,18 +154,17 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	t.Pause()
 }
 
-func (t *Torrent) GetFile(subpath string) ([]byte, error) {
+/*func (t *Torrent) GetFile(subpath string) ([]byte, error) {
 	if !t.IsAvailable() {
 		return nil, errors.New(fmt.Sprintf("InfoHash %s not Available", t.infohash))
 	}
 	filepath := path.Join(t.filepath, subpath)
-	// fmt.Println("modelCfg = ", modelCfg)
 	if _, cfgErr := os.Stat(filepath); os.IsNotExist(cfgErr) {
 		return nil, errors.New(fmt.Sprintf("File %s not Available", filepath))
 	}
 	data, data_err := ioutil.ReadFile(filepath)
 	return data, data_err
-}
+}*/
 
 var maxCited int64 = 1
 
@@ -701,18 +700,19 @@ func (tm *TorrentManager) mainLoop() {
 				counter := 0
 				for {
 					if t := tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t != nil {
-						log.Info("Torrent success", "hash", meta.InfoHash, "request", meta.BytesRequested)
+						log.Info("Torrent [create] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 						break
 					} else {
 						if counter > 10 {
 							break
 						}
-						log.Error("Torrent failed", "hash", meta.InfoHash, "request", meta.BytesRequested, "counter", counter)
+						log.Error("Torrent [create] failed", "hash", meta.InfoHash, "request", meta.BytesRequested, "counter", counter)
 						counter++
 					}
 				}
 			} else {
 				//log.Info("TorrentManager", "updateTorrent", meta.InfoHash.String(), "bytes", meta.BytesRequested)
+				log.Info("Torrent [update] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 				tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			}
 		case <-tm.closeAll:

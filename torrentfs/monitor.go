@@ -479,8 +479,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 					continue
 				}
 
-				//log.Info("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize)
-
 				remainingSize, err := m.getRemainingSize(addr.String())
 				if err != nil {
 					return err
@@ -493,7 +491,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 						return err
 					}
 
-					log.Info("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
 					var bytesRequested uint64
 					if file.Meta.RawSize > file.LeftSize {
 						bytesRequested = file.Meta.RawSize - file.LeftSize
@@ -506,7 +504,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 						IsCreate:       false,
 					})
 				} else {
-					log.Info("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
+					log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				}
 			}
 		}
@@ -594,13 +592,13 @@ func (m *Monitor) startWork() error {
 		return rpcErr
 	}
 	m.cl = rpcClient
+	m.lastNumber = m.fs.LastListenBlockNumber
+	//if err := m.validateStorage(); err != nil {
+	//	log.Error("Starting torrent fs ... ...", "error", err)
+	//	return err
+	//}
 
-	if err := m.validateStorage(); err != nil {
-		log.Error("Starting torrent fs ... ...", "error", err)
-		return err
-	}
-
-	log.Info("Torrent fs validation passed")
+	//log.Info("Torrent fs validation passed")
 	m.wg.Add(3)
 	go m.taskLoop()
 	go m.listenLatestBlock()
@@ -655,11 +653,11 @@ func (m *Monitor) validateStorage() error {
 		log.Warn("Torrent fs status", "dirty", m.dirty)
 	}
 
-	if m.lastNumber > batch {
+	/*if m.lastNumber > batch {
 		m.lastNumber = m.lastNumber - batch
 	} else {
 		m.lastNumber = 0
-	}
+	}*/
 
 	/*for i := uint64(0); i < m.fs.LastFileIndex; i++ {
 		file := m.fs.GetFileByNumber(i)
@@ -889,7 +887,7 @@ func (m *Monitor) deal(rpcBlock *Block) error {
 	i := rpcBlock.Number
 	if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
 
-		block := m.fs.GetBlockByNumber(i)
+		/*block := m.fs.GetBlockByNumber(i)
 		if block == nil {
 			block = rpcBlock
 
@@ -912,6 +910,10 @@ func (m *Monitor) deal(rpcBlock *Block) error {
 					return err
 				}
 			}
+		}*/
+		if err := m.parseAndStore(rpcBlock, true); err != nil {
+			log.Error("Fail to parse and storge latest block", "number", i, "error", err)
+			return err
 		}
 		blockCache.Add(i, rpcBlock.Hash.Hex())
 	}

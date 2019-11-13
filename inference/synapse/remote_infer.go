@@ -97,7 +97,7 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 		SetBody(requestBody).
 		Post(uri)
 	if err != nil {
-		log.Warn("remote infer: request response failed", "error", err)
+		log.Warn("remote infer: request response failed", "error", err, "body", requestBody)
 		return nil, KERNEL_RUNTIME_ERROR
 	} else if resp.StatusCode() != 200 {
 		log.Warn("remote infer: request response failed", "status code", resp.StatusCode())

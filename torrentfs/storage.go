@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	//"path"
+	//"io/ioutil"
 	"strconv"
 	"strings"
 	//"sync"
@@ -99,7 +101,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir:           config.DataDir,
 	}
 	fs.readBlockNumber()
-	fs.readLastFileIndex()
+	//fs.readLastFileIndex()
 	fs.initFiles()
 	//tmpCache, _ := lru.New(120)
 
@@ -129,22 +131,22 @@ func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
 func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
-		return 0 , nil
+		return 0, nil
 		//return nil
 	}
 
-	x.Index = fs.LastFileIndex
+	//x.Index = fs.LastFileIndex
 	//fs.indexLock.Lock()
 	//defer fs.indexLock.Unlock()
-	fs.LastFileIndex += 1
+	//fs.LastFileIndex += 1
 	err := fs.WriteFile(x)
 	if err != nil {
-		fs.LastFileIndex -= 1
+		//	fs.LastFileIndex -= 1
 		return 0, err
 	}
 	fs.filesContractAddr[addr] = x
 	fs.files = append(fs.files, x)
-	return x.Index, nil
+	return 1, nil
 }
 
 func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
@@ -170,25 +172,40 @@ func Available(infohash string, rawSize int64) (bool, error) {
 	log.Debug("Available", "infohash", infohash, "RawSize", rawSize)
 	//TorrentAPIAvailable.Lock()
 	//defer TorrentAPIAvailable.Unlock()
+	if !strings.HasPrefix(infohash, "0x") {
+		return false, errors.New("invalid info hash format")
+	}
 	ih := metainfo.NewHashFromHex(infohash[2:])
 	tm := CurrentTorrentManager
-	log.Debug("storage", "ih", ih)
+	//log.Debug("storage", "ih", ih)
 	if torrent := tm.GetTorrent(ih); torrent == nil {
-		log.Debug("storage", "ih", ih, "torrent", torrent)
+		//log.Debug("storage", "ih", ih, "torrent", torrent)
+		log.Info("Torrent not found", "hash", infohash)
 		return false, errors.New("download not completed")
 	} else {
 		if !torrent.IsAvailable() {
+			log.Info("Download not completed", "hash", infohash, "raw", rawSize)
 			return false, errors.New(fmt.Sprintf("download not completed: %d %d", torrent.BytesCompleted(), rawSize))
 		}
-		log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
+		//log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
+		//log.Info("download not completed", "complete", torrent.BytesCompleted(), "miss", torrent.BytesMissing(), "raw", rawSize)
 		return torrent.BytesCompleted() <= rawSize, nil
 	}
 }
 
-func GetFile(infohash string, path string) ([]byte, error) {
-	infohash = strings.ToLower(infohash[2:])
+/*func LoadFile(infohash string, fn string) ([]byte, error) {
+        data, err := ioutil.ReadFile(fn)
+        return data, err
+}*/
+
+/*func GetFile(infohash string, path string) ([]byte, error) {
+	infohash = strings.ToLower(infohash)
 	//TorrentAPIAvailable.Lock()
 	//defer TorrentAPIAvailable.Unlock()
+	if strings.HasPrefix(infohash, "0x") {
+		//infohash = infohash[2:]
+		infohash = infohash[2:]
+	}
 	ih := metainfo.NewHashFromHex(infohash)
 	tm := CurrentTorrentManager
 	var torrent Torrent
@@ -199,9 +216,9 @@ func GetFile(infohash string, path string) ([]byte, error) {
 	}
 	data, err := torrent.GetFile(path)
 	return data, err
-}
+}*/
 
-func ExistTorrent(infohash string) bool {
+/*func ExistTorrent(infohash string) bool {
 	//TorrentAPIAvailable.Lock()
 	//defer TorrentAPIAvailable.Unlock()
 	ih := metainfo.NewHashFromHex(infohash[2:])
@@ -211,7 +228,7 @@ func ExistTorrent(infohash string) bool {
 	} else {
 		return torrent.HasTorrent()
 	}
-}
+}*/
 
 func (fs *FileStorage) Close() error {
 	// Wait for file storage closed...
@@ -219,7 +236,7 @@ func (fs *FileStorage) Close() error {
 		if fs.opCounter.IsZero() {
 			// persist storage block number
 			fs.writeBlockNumber()
-			fs.writeLastFileIndex()
+			//fs.writeLastFileIndex()
 			log.Info("Torrent File Storage Closed", "database", fs.db.Path())
 			return fs.db.Close()
 		}
@@ -319,7 +336,7 @@ func (fs *FileStorage) WriteFile(f *FileInfo) error {
 		if err != nil {
 			return err
 		}
-		k, err := json.Marshal(f.Index)
+		k, err := json.Marshal(f.Meta.InfoHash)
 		if err != nil {
 			return err
 		}
@@ -334,7 +351,7 @@ func (fs *FileStorage) WriteFile(f *FileInfo) error {
 	//if err == nil && b.Number > fs.LastListenBlockNumber {
 	if err == nil {
 		//fs.bnLock.Lock()
-		fs.writeLastFileIndex()
+		//fs.writeLastFileIndex()
 		//fs.bnLock.Unlock()
 	}
 
@@ -345,7 +362,7 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 	fs.opCounter.Increase()
 	defer fs.opCounter.Decrease()
 
-	err := fs.db.Update(func(tx *bolt.Tx) error {
+	/*err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
 		if err != nil {
 			return err
@@ -364,17 +381,17 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 		//fs.lock.Unlock()
 
 		return e
-	})
+	})*/
 
 	//if err == nil && b.Number > fs.LastListenBlockNumber {
-	if err == nil {
-		//fs.bnLock.Lock()
-		fs.LastListenBlockNumber = b.Number
-		fs.writeBlockNumber()
-		//fs.bnLock.Unlock()
-	}
+	//if err == nil {
+	//fs.bnLock.Lock()
+	fs.LastListenBlockNumber = b.Number
+	return fs.writeBlockNumber()
+	//fs.bnLock.Unlock()
+	//}
 
-	return err
+	//return err
 }
 
 func (fs *FileStorage) initFiles() error {
@@ -384,16 +401,20 @@ func (fs *FileStorage) initFiles() error {
 			return ErrReadDataFromBoltDB
 		}
 
-		for index := uint64(0); index < fs.LastFileIndex; index++ {
-			k, err := json.Marshal(index)
-			if err != nil {
-				return err
-			}
+		c := buk.Cursor()
 
-			v := buk.Get(k)
-			if v == nil {
-				return ErrReadDataFromBoltDB
-			}
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+
+			//		for index := uint64(0); index < fs.LastFileIndex; index++ {
+			//			k, err := json.Marshal(index)
+			//			if err != nil {
+			//				return err
+			//			}
+
+			//			v := buk.Get(k)
+			//			if v == nil {
+			//				return ErrReadDataFromBoltDB
+			//			}
 
 			var x FileInfo
 
@@ -409,7 +430,7 @@ func (fs *FileStorage) initFiles() error {
 	})
 }
 
-func (fs *FileStorage) readLastFileIndex() error {
+/*func (fs *FileStorage) readLastFileIndex() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("lastFileIndex"))
 		if buk == nil {
@@ -433,9 +454,9 @@ func (fs *FileStorage) readLastFileIndex() error {
 
 		return nil
 	})
-}
+}*/
 
-func (fs *FileStorage) writeLastFileIndex() error {
+/*func (fs *FileStorage) writeLastFileIndex() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("lastFileIndex"))
 		if err != nil {
@@ -447,7 +468,7 @@ func (fs *FileStorage) writeLastFileIndex() error {
 
 		return e
 	})
-}
+}*/
 
 func (fs *FileStorage) readBlockNumber() error {
 	return fs.db.View(func(tx *bolt.Tx) error {

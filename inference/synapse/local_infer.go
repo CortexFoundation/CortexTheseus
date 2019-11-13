@@ -42,7 +42,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	)
 	modelJson, modelJson_err = s.config.Storagefs.GetFile(modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err)
+		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
@@ -116,8 +116,8 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		inputHash = strings.ToLower(inputInfoHash[2:])
 	)
 	// Inference Cache
-	ModelInputKey := RLPHashString(modelHash + "_" + inputHash)
-	if v, ok := s.simpleCache.Load(ModelInputKey); ok && !s.config.IsNotCache {
+	cacheKey := RLPHashString(modelHash + "_" + inputHash)
+	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
 		return v.([]byte), nil
 	}
@@ -181,7 +181,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	if !s.config.IsNotCache {
-		s.simpleCache.Store(ModelInputKey, result)
+		s.simpleCache.Store(cacheKey, result)
 	}
 
 	return result, nil

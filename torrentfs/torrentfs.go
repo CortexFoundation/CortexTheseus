@@ -8,8 +8,14 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"io/ioutil"
 	"path"
+	"sync"
 )
 
+type CVMStorage interface {
+	Available(infohash string, rawSize int64) (bool, error)
+	GetFile(infohash string, path string) ([]byte, error)
+	Stop() error
+}
 type GeneralMessage struct {
 	Version string `json:"version,omitempty"`
 	Commit  string `json:"commit,omitempty"`
@@ -20,6 +26,8 @@ type TorrentFS struct {
 	config  *Config
 	history *GeneralMessage
 	monitor *Monitor
+
+	fileLock sync.Mutex
 }
 
 func (t *TorrentFS) Config() *Config {
@@ -119,7 +127,11 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 }
 
 func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
+	fs.fileLock.Lock()
+	defer fs.fileLock.Unlock()
 	fn := path.Join(fs.config.DataDir, infohash, subpath)
 	data, err := ioutil.ReadFile(fn)
 	return data, err
+	//return LoadFile(infohash, fn)
+	//return GetFile(infohash, subpath)
 }
