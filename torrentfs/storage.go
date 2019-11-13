@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	// Chosen to match the usual chunk size in a torrent client. This way,
-	// most chunk writes are to exactly one full item in bolt DB.
-	chunkSize = 1 << 14
+// Chosen to match the usual chunk size in a torrent client. This way,
+// most chunk writes are to exactly one full item in bolt DB.
+//chunkSize = 1 << 14
 )
 
 type FileInfo struct {
@@ -287,7 +287,7 @@ var (
 	return &info
 }*/
 
-func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
+/*func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
 
 	fs.opCounter.Increase()
@@ -321,7 +321,7 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 		return nil
 	}
 	return &block
-}
+}*/
 
 func (fs *FileStorage) WriteFile(f *FileInfo) error {
 	fs.opCounter.Increase()

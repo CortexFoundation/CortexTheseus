@@ -599,16 +599,18 @@ func (m *Monitor) startWork() error {
 	//}
 
 	//log.Info("Torrent fs validation passed")
-	m.wg.Add(3)
+	m.wg.Add(1)
 	go m.taskLoop()
+	m.wg.Add(1)
 	go m.listenLatestBlock()
 	m.init()
+	m.wg.Add(1)
 	go m.listenPeers()
 
 	return nil
 }
 
-func (m *Monitor) validateStorage() error {
+/*func (m *Monitor) validateStorage() error {
 	m.lastNumber = m.fs.LastListenBlockNumber
 	end := uint64(0)
 
@@ -651,7 +653,7 @@ func (m *Monitor) validateStorage() error {
 	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
 	if m.dirty {
 		log.Warn("Torrent fs status", "dirty", m.dirty)
-	}
+	}*/
 
 	/*if m.lastNumber > batch {
 		m.lastNumber = m.lastNumber - batch
@@ -685,9 +687,9 @@ func (m *Monitor) validateStorage() error {
 	} else {
 		m.lastNumber = 0
 	}*/
-
+/*
 	return nil
-}
+}*/
 
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()

@@ -673,8 +673,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
 }
 
 func (tm *TorrentManager) Start() error {
-	tm.wg.Add(2)
+	tm.wg.Add(1)
 	go tm.mainLoop()
+	tm.wg.Add(1)
 	go tm.listenTorrentProgress()
 
 	return nil
