@@ -179,14 +179,13 @@ func (m *Monitor) taskLoop() {
 
 // SetConnection method builds connection to remote or local communicator.
 func SetConnection(clientURI string) (*rpc.Client, error) {
-	//for i := 0; i < connTryTimes; i++ {
 	for {
 		time.Sleep(time.Second * connTryInterval)
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
 			log.Warn("Building internal ipc connection ... ", "uri", clientURI, "error", err)
 		} else {
-			log.Debug("Internal ipc connection established", "uri", clientURI)
+			log.Info("Internal ipc connection established", "uri", clientURI)
 			return cl, nil
 		}
 	}

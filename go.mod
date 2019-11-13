@@ -30,7 +30,7 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/huin/goupnp v1.0.0
-	github.com/influxdata/influxdb v1.7.7
+	github.com/influxdata/influxdb v1.7.9
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kylelemons/godebug v1.1.0 // indirect

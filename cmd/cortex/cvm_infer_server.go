@@ -7,11 +7,10 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/inference"
-	//"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/rpc"
+	//"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
-var rpcClient *rpc.Client
+//var rpcClient *rpc.Client
 var simpleCache sync.Map
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -25,8 +24,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		RespErrorText(w, ErrRequestBodyRead)
 		return
 	}
-
-	//log.Trace("Handler Info", "request", r, "inference.RetriveType(body)", inference.RetriveType(body))
 
 	switch inference.RetriveType(body) {
 	case inference.INFER_BY_IH:

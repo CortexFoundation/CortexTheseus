@@ -224,7 +224,7 @@ func (t *Torrent) Seed() {
 
 	t.Torrent.DownloadAll()
 	t.status = torrentSeeding
-	log.Info("Download success, switch seeding", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()))
+	log.Info("Download success, switch seeding", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited)
 }
 
 func (t *Torrent) Seeding() bool {
