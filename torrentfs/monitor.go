@@ -486,8 +486,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 					return err
 				}
 
-				log.Info("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
-
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
 					err := m.fs.WriteFile(file)
@@ -507,6 +505,8 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 						BytesRequested: bytesRequested,
 						IsCreate:       false,
 					})
+				} else {
+					log.Info("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				}
 			}
 		}
