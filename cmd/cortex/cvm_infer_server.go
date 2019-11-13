@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"sync"
+	//"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	//"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
 //var rpcClient *rpc.Client
-var simpleCache sync.Map
+//var simpleCache sync.Map
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {

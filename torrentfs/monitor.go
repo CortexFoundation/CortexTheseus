@@ -67,7 +67,7 @@ type Monitor struct {
 
 	listenID rpc.ID
 
-	uncheckedCh chan uint64
+	//uncheckedCh chan uint64
 
 	exitCh     chan struct{}
 	terminated int32
@@ -108,16 +108,16 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	log.Info("Torrent manager initialized")
 
 	m = &Monitor{
-		config:      flag,
-		cl:          nil,
-		fs:          fs,
-		dl:          tMana,
-		uncheckedCh: make(chan uint64, 20),
-		exitCh:      make(chan struct{}),
-		terminated:  0,
-		lastNumber:  uint64(0),
-		dirty:       false,
-		taskCh:      make(chan *Block, batch*2),
+		config: flag,
+		cl:     nil,
+		fs:     fs,
+		dl:     tMana,
+		//uncheckedCh: make(chan uint64, 20),
+		exitCh:     make(chan struct{}),
+		terminated: 0,
+		lastNumber: uint64(0),
+		dirty:      false,
+		taskCh:     make(chan *Block, batch*2),
 	}
 	e = nil
 
@@ -125,7 +125,13 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 
 	fileMap := make(map[metainfo.Hash]*FileInfo)
 	for _, file := range m.fs.Files() {
-		fileMap[file.Meta.InfoHash] = file
+		if f, ok := fileMap[file.Meta.InfoHash]; ok {
+			if f.LeftSize > file.LeftSize {
+				fileMap[file.Meta.InfoHash] = file
+			}
+		} else {
+			fileMap[file.Meta.InfoHash] = file
+		}
 	}
 	capcity := uint64(0)
 	seed := 0
@@ -400,16 +406,18 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 
 	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
-	err := m.fs.AddFile(info)
+	index, err := m.fs.AddFile(info)
 	if err != nil {
 		return err
+	} else {
+		if index > 0 {
+			m.dl.UpdateTorrent(FlowControlMeta{
+				InfoHash:       meta.InfoHash,
+				BytesRequested: 0,
+				IsCreate:       true,
+			})
+		}
 	}
-
-	m.dl.UpdateTorrent(FlowControlMeta{
-		InfoHash:       meta.InfoHash,
-		BytesRequested: 0,
-		IsCreate:       true,
-	})
 	/*var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
@@ -467,15 +475,18 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
+					//log.Warn("Uploading a nonexist file", "addr", addr.String(), "number", b.Number)
 					continue
 				}
 
-				log.Debug("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number)
+				//log.Info("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize)
 
 				remainingSize, err := m.getRemainingSize(addr.String())
 				if err != nil {
 					return err
 				}
+
+				log.Info("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
@@ -484,7 +495,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 						return err
 					}
 
-					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+					log.Info("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
 					var bytesRequested uint64
 					if file.Meta.RawSize > file.LeftSize {
 						bytesRequested = file.Meta.RawSize - file.LeftSize
@@ -642,6 +653,12 @@ func (m *Monitor) validateStorage() error {
 	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
 	if m.dirty {
 		log.Warn("Torrent fs status", "dirty", m.dirty)
+	}
+
+	if m.lastNumber > batch {
+		m.lastNumber = m.lastNumber - batch
+	} else {
+		m.lastNumber = 0
 	}
 
 	/*for i := uint64(0); i < m.fs.LastFileIndex; i++ {

@@ -33,7 +33,7 @@ import (
 
 const (
 	removeTorrentChanBuffer = 1
-	updateTorrentChanBuffer = 1000
+	updateTorrentChanBuffer = 2048
 
 	torrentPending = iota //2
 	torrentPaused
@@ -365,6 +365,7 @@ func (tm *TorrentManager) RemoveTorrent(input metainfo.Hash) error {
 }
 
 func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
+	//go func() {tm.updateTorrent <- input}()
 	tm.updateTorrent <- input
 	return nil
 }
@@ -532,7 +533,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	} else if _, err := os.Stat(torrentPath); err == nil {
 		return tm.AddTorrent(torrentPath, BytesRequested)
 	}
-	log.Debug("Get torrent from infohash", "InfoHash", ih.HexString())
+	//log.Info("Get torrent from infohash", "InfoHash", ih.HexString())
 
 	spec := &torrent.TorrentSpec{
 		Trackers:    [][]string{},
@@ -544,7 +545,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	for _, tracker := range tm.trackers {
 		spec.Trackers = append(spec.Trackers, tracker)
 	}
-	log.Trace("Torrent specific info", "spec", spec)
+	//log.Info("Torrent specific info", "spec", spec)
 
 	t, _, err := tm.client.AddTorrentSpec(spec)
 	if err != nil {
@@ -552,17 +553,17 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	}
 	tt := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 	//tm.mu.Unlock()
-	log.Trace("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
+	//log.Info("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 	return tt
 }
 
 // UpdateInfoHash ...
 func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	log.Debug("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
 	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
-		tm.lock.Lock()
 		tm.bytes[ih] = BytesRequested
-		tm.lock.Unlock()
 	}
 	/*if t := tm.GetTorrent(ih); t != nil {
 		if BytesRequested < t.bytesRequested {
@@ -658,6 +659,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		closeAll:            make(chan struct{}),
 		removeTorrent:       make(chan metainfo.Hash, removeTorrentChanBuffer),
 		updateTorrent:       make(chan interface{}, updateTorrentChanBuffer),
+		//updateTorrent:       make(chan interface{}),
 	}
 
 	if len(config.DefaultTrackers) > 0 {
@@ -694,11 +696,12 @@ func (tm *TorrentManager) mainLoop() {
 		case msg := <-tm.updateTorrent:
 			meta := msg.(FlowControlMeta)
 			if meta.IsCreate {
+				//log.Info("TorrentManager", "newTorrent", meta.InfoHash.String())
+				//go tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 				counter := 0
-				log.Debug("TorrentManager", "newTorrent", meta.InfoHash.String())
 				for {
 					if t := tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t != nil {
-						log.Debug("Torrent success", "hash", meta.InfoHash, "request", meta.BytesRequested)
+						log.Info("Torrent success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 						break
 					} else {
 						if counter > 10 {
@@ -709,7 +712,7 @@ func (tm *TorrentManager) mainLoop() {
 					}
 				}
 			} else {
-				log.Debug("TorrentManager", "updateTorrent", meta.InfoHash.String(), "bytes", meta.BytesRequested)
+				//log.Info("TorrentManager", "updateTorrent", meta.InfoHash.String(), "bytes", meta.BytesRequested)
 				tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			}
 		case <-tm.closeAll:
@@ -786,7 +789,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					t.isBoosting = true
 					go func(t *Torrent) {
 						defer t.BoostOff()
-						log.Debug("Try to boost torrent", "infohash", t.infohash)
+						log.Info("Try to boost torrent", "infohash", t.infohash)
 						if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
 							if t.Torrent.Info() != nil {
 								return
@@ -819,7 +822,9 @@ func (tm *TorrentManager) listenTorrentProgress() {
 		active_boost := 0
 		for _, t := range activeTorrentsCandidate {
 			ih := t.Torrent.InfoHash()
+			tm.lock.RLock()
 			BytesRequested := tm.bytes[ih]
+			tm.lock.RUnlock()
 			if t.bytesRequested < BytesRequested {
 				t.bytesRequested = BytesRequested
 				t.bytesLimitation = GetLimitation(BytesRequested)

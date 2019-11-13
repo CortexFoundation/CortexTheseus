@@ -126,11 +126,11 @@ func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
 	return CurrentTorrentManager
 }
 
-func (fs *FileStorage) AddFile(x *FileInfo) error {
+func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
-		//return errors.New("file already existed")
-		return nil
+		return 0 , nil
+		//return nil
 	}
 
 	x.Index = fs.LastFileIndex
@@ -140,11 +140,11 @@ func (fs *FileStorage) AddFile(x *FileInfo) error {
 	err := fs.WriteFile(x)
 	if err != nil {
 		fs.LastFileIndex -= 1
-		return err
+		return 0, err
 	}
 	fs.filesContractAddr[addr] = x
 	fs.files = append(fs.files, x)
-	return nil
+	return x.Index, nil
 }
 
 func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
