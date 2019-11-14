@@ -233,20 +233,18 @@ func Available(infohash string, rawSize int64) (bool, error) {
 
 func (fs *FileStorage) Close() error {
 	defer fs.db.Close()
-	log.Info("Torrent File Storage Closing")
 	// Wait for file storage closed...
 	//for {
 	//	if fs.opCounter.IsZero() {
 	// persist storage block number
-	fs.writeBlockNumber()
-	//fs.writeLastFileIndex()
 	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
+	return fs.writeBlockNumber()
+	//fs.writeLastFileIndex()
 	//	}
 
 	// log.Debug("Waiting for boltdb operating...")
 	//	time.Sleep(time.Microsecond)
 	//}
-	return nil
 }
 
 var (
