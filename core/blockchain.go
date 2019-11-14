@@ -1574,6 +1574,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 			}
 
 		case err != nil:
+			bc.futureBlocks.Remove(block.Hash())
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}

@@ -86,18 +86,18 @@ func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent [
 }
 
 func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
-	cacheKey := RLPHashString(requestBody)
+	/*cacheKey := RLPHashString(requestBody)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
 		return v.([]byte), nil
-	}
+	}*/
 
 	resp, err := client.SetTimeout(time.Duration(15*time.Second)).R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(uri)
 	if err != nil {
-		log.Warn("remote infer: request response failed", "error", err)
+		log.Warn("remote infer: request response failed", "error", err, "body", requestBody)
 		return nil, KERNEL_RUNTIME_ERROR
 	} else if resp.StatusCode() != 200 {
 		log.Warn("remote infer: request response failed", "status code", resp.StatusCode())
@@ -114,9 +114,9 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 
 	if res.Info == inference.RES_OK {
 		var data = []byte(res.Data)
-		if !s.config.IsNotCache {
+		/*if !s.config.IsNotCache {
 			s.simpleCache.Store(cacheKey, data)
-		}
+		}*/
 		return data, nil
 	}
 	// res.Info == inference.RES_ERROR

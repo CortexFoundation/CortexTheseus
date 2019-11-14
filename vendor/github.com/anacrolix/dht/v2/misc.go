@@ -2,7 +2,11 @@ package dht
 
 import (
 	"fmt"
+	"hash/fnv"
 	"net"
+
+	"github.com/anacrolix/missinggo/v2"
+	"github.com/anacrolix/stm/stmutil"
 
 	"github.com/anacrolix/dht/v2/krpc"
 )
@@ -35,29 +39,27 @@ func (me addrMaybeId) String() string {
 	}
 }
 
-type nodesByDistance struct {
-	nis    []addrMaybeId
-	target int160
-}
-
-func (me nodesByDistance) Len() int { return len(me.nis) }
-func (me nodesByDistance) Less(i, j int) bool {
-	if me.nis[i].Id == nil {
-		return false
-	}
-	if me.nis[j].Id == nil {
-		return true
-	}
-	return distance(*me.nis[i].Id, me.target).Cmp(distance(*me.nis[j].Id, me.target)) < 0
-}
-func (me *nodesByDistance) Pop() interface{} {
-	ret := me.nis[len(me.nis)-1]
-	me.nis = me.nis[:len(me.nis)-1]
-	return ret
-}
-func (me *nodesByDistance) Push(x interface{}) {
-	me.nis = append(me.nis, x.(addrMaybeId))
-}
-func (me nodesByDistance) Swap(i, j int) {
-	me.nis[i], me.nis[j] = me.nis[j], me.nis[i]
+func nodesByDistance(target int160) stmutil.Settish {
+	return stmutil.NewSortedSet(func(_l, _r interface{}) bool {
+		var ml missinggo.MultiLess
+		l := _l.(addrMaybeId)
+		r := _r.(addrMaybeId)
+		ml.NextBool(r.Id == nil, l.Id == nil)
+		if l.Id != nil && r.Id != nil {
+			d := distance(*l.Id, target).Cmp(distance(*r.Id, target))
+			ml.StrictNext(d == 0, d < 0)
+		}
+		// TODO: Use bytes/hash when it's available (go1.14?), and have a unique seed for each
+		// instance.
+		hashString := func(s string) uint64 {
+			h := fnv.New64a()
+			h.Write([]byte(s))
+			return h.Sum64()
+		}
+		lh := hashString(l.Addr.String())
+		rh := hashString(r.Addr.String())
+		ml.StrictNext(lh == rh, lh < rh)
+		//ml.StrictNext(l.Addr.String() == r.Addr.String(), l.Addr.String() < r.Addr.String())
+		return ml.Less()
+	})
 }

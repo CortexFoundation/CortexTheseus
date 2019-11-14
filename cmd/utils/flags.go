@@ -406,7 +406,7 @@ var (
 	InferDeviceTypeFlag = cli.StringFlag{
 		Name:  "infer.devicetype",
 		Usage: "infer device type : cpu or gpu",
-		Value: "gpu",
+		Value: "cpu",
 	}
 	InferDeviceIdFlag = cli.IntFlag{
 		Name:  "infer.device",

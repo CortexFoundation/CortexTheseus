@@ -542,7 +542,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		}
 
 		if err := synapse.Engine().Available(inputInfoHash, int64(inputRawSize)); err != nil {
-			log.Warn("File non available", "inputInfoHash:", inputInfoHash, "err", err)
+			//log.Warn("File non available", "inputInfoHash:", inputInfoHash, "err", err)
 			return nil, err
 		}
 	}

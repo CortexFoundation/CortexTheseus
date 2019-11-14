@@ -28,18 +28,22 @@ endif
 
 all: cortex
 
+gpu: cortex_gpu
+
 cpu: cortex_cpu
+
+cortex: cpu
 
 cortex_cpu: clib_cpu tracker
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex_cpu ..."
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-cortex: clib tracker
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex cpu."
+cortex_gpu: clib tracker
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex gpu."
 bootnode:
 	build/env.sh go run build/ci.go install ./cmd/bootnode
 	@echo "Done building."

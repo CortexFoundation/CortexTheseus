@@ -30,6 +30,7 @@ func Parse(cmd interface{}, opts ...parseOpt) {
 	ParseArgs(cmd, os.Args[1:], opts...)
 }
 
+// Like Parse, but operates on the given args instead.
 func ParseArgs(cmd interface{}, args []string, opts ...parseOpt) {
 	p, err := newParser(cmd, opts...)
 	if err == nil {

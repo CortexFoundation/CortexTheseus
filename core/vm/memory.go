@@ -126,34 +126,32 @@ func (m *Memory) Print() {
 
 func (m* Memory) GetSolidityBytes(slot int64) ([]byte, error) {
 	bigLen := big.NewInt(0)
-	length_buff := m.Get(slot, 32)
+	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
-	buff := m.Get(slot + 32, bigLen.Int64())
+	buff := m.GetPtr(slot + 32, bigLen.Int64())
 	return buff, nil
 }
 
-func (m* Memory) GetLengthOfSolidityBytes(slot int64) (uint64, error) {
-	bigLen := big.NewInt(0)
-	length_buff := m.Get(slot, 32)
-	bigLen.SetBytes(length_buff)
-	return bigLen.Uint64(), nil
+/*func (m* Memory) GetLengthOfSolidityBytes(slot int64) (uint64, error) {
+       bigLen := big.NewInt(0)
+       length_buff := m.GetPtr(slot, 32)
+       bigLen.SetBytes(length_buff)
+       return bigLen.Uint64(), nil
 }
 
 func (m* Memory) GetLengthOfSolidityUint256Array(slot int64) (uint64, error) {
-	bigLen := big.NewInt(0)
-	length_buff := m.Get(slot, 32)
-	bigLen.SetBytes(length_buff)
-	return bigLen.Uint64(), nil
-}
+       bigLen := big.NewInt(0)
+       length_buff := m.GetPtr(slot, 32)
+       bigLen.SetBytes(length_buff)
+       return bigLen.Uint64(), nil
+}*/
 
 func (m* Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
 	bigLen := big.NewInt(0)
-	length_buff := m.Get(slot, 32)
+	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
 	// uint256 has 32 bytes
 	bigLen.Mul(bigLen, big.NewInt(32))
-	// fmt.Println("len(data) = ", len(data), "bigLen.Int64() = ", bigLen.Int64(), "length_buff = ", length_buff)
-	// fmt.Println("slot = ", slot,  "data ", data)
 	if int64(len(data)) > bigLen.Int64() {
 		return errors.New(fmt.Sprintf("solidity memory bytes length not match %d != %d", len(data), bigLen.Int64()))
 	}
@@ -163,9 +161,9 @@ func (m* Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
 
 func (m* Memory) GetSolidityUint256(slot int64) ([]byte, error) {
 	bigLen := big.NewInt(0)
-	length_buff := m.Get(slot, 32)
+	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
 	bigLen.Mul(bigLen, big.NewInt(32))
-	buff := m.Get(slot + 32, bigLen.Int64())
+	buff := m.GetPtr(slot + 32, bigLen.Int64())
 	return buff, nil
 }

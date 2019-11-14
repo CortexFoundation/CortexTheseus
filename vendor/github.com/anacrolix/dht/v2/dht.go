@@ -5,16 +5,17 @@ import (
 	crand "crypto/rand"
 	_ "crypto/sha1"
 	"errors"
-	"log"
 	"math/rand"
 	"net"
 	"time"
 
-	"github.com/anacrolix/dht/v2/krpc"
+	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
-	"github.com/anacrolix/missinggo/conntrack"
+	"github.com/anacrolix/missinggo/v2/conntrack"
 	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/metainfo"
+
+	"github.com/anacrolix/dht/v2/krpc"
 )
 
 func defaultQueryResendDelay() time.Duration {
@@ -54,13 +55,15 @@ type ServerConfig struct {
 	// the default handlers.
 	OnQuery func(query *krpc.Msg, source net.Addr) (propagate bool)
 	// Called when a peer successfully announces to us.
-	OnAnnouncePeer func(infoHash metainfo.Hash, peer Peer)
+	OnAnnouncePeer func(infoHash metainfo.Hash, ip net.IP, port int, portOk bool)
 	// How long to wait before resending queries that haven't received a
 	// response. Defaults to a random value between 4.5 and 5.5s.
 	QueryResendDelay func() time.Duration
 	// TODO: Expose Peers, to return NodeInfo for received get_peers queries.
 
 	ConnectionTracking *conntrack.Instance
+
+	Logger log.Logger
 }
 
 // ServerStats instance is returned by Server.Stats() and stores Server metrics
@@ -101,7 +104,7 @@ func GlobalBootstrapAddrs() (addrs []Addr, err error) {
 		}
 		hostAddrs, err := net.LookupHost(host)
 		if err != nil {
-//			log.Printf("error looking up %q: %v", s, err)
+			log.Printf("error looking up %q: %v", s, err)
 			continue
 		}
 		for _, a := range hostAddrs {

@@ -18,7 +18,7 @@ func Uint64ToBytes(i uint64) []byte {
 }
 
 func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
-	log.Info("Gas Task", "Model Hash", inferWork.Model)
+	log.Debug("Gas Task", "Model Hash", inferWork.Model)
 	if inferWork.Model == "" {
 		RespErrorText(w, ErrModelEmpty)
 		return
@@ -28,7 +28,7 @@ func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 	ret_arr := Uint64ToBytes(ret)
 
 	if err == nil {
-		log.Info("Get Operators Succeed", "result", ret)
+		log.Debug("Get Operators Succeed", "result", ret)
 		RespInfoText(w, ret_arr)
 	} else {
 		log.Warn("Get Operators Failed", "error", err)
@@ -67,7 +67,7 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 
 	model, input := inferWork.Model, inferWork.Input
 
-	log.Info("Infer Work", "Model Hash", model)
+	log.Debug("Infer Work", "Model Hash", model)
 	var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
 	if v, ok := simpleCache.Load(cacheKey); ok && !(*IsNotCache) {
 	//	log.Info("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))

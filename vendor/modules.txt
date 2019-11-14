@@ -11,60 +11,67 @@ github.com/RoaringBitmap/roaring
 # github.com/allegro/bigcache v1.2.1
 github.com/allegro/bigcache
 github.com/allegro/bigcache/queue
-# github.com/anacrolix/dht/v2 v2.0.1
+# github.com/anacrolix/dht/v2 v2.2.1-0.20191103020011-1dba080fb358
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.2
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.3.0
+# github.com/anacrolix/log v0.3.1-0.20191001111012-13cede988bcd
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.2.1
 github.com/anacrolix/missinggo
-github.com/anacrolix/missinggo/slices
 github.com/anacrolix/missinggo/bitmap
-github.com/anacrolix/missinggo/conntrack
 github.com/anacrolix/missinggo/expect
+github.com/anacrolix/missinggo/httptoo
+github.com/anacrolix/missinggo/inproc
 github.com/anacrolix/missinggo/iter
+github.com/anacrolix/missinggo/mime
+github.com/anacrolix/missinggo/orderedmap
 github.com/anacrolix/missinggo/pproffd
 github.com/anacrolix/missinggo/prioritybitmap
 github.com/anacrolix/missinggo/pubsub
 github.com/anacrolix/missinggo/resource
+github.com/anacrolix/missinggo/slices
 github.com/anacrolix/missinggo/x
-github.com/anacrolix/missinggo/inproc
-github.com/anacrolix/missinggo/orderedmap
-github.com/anacrolix/missinggo/httptoo
-github.com/anacrolix/missinggo/mime
 # github.com/anacrolix/missinggo/perf v1.0.0
 github.com/anacrolix/missinggo/perf
+# github.com/anacrolix/missinggo/v2 v2.2.1-0.20191103010835-12360f38ced0
+github.com/anacrolix/missinggo/v2
+github.com/anacrolix/missinggo/v2/conntrack
+github.com/anacrolix/missinggo/v2/iter
 # github.com/anacrolix/mmsg v1.0.0
 github.com/anacrolix/mmsg
 github.com/anacrolix/mmsg/socket
-# github.com/anacrolix/sync v0.0.0-20180808010631-44578de4e778
+# github.com/anacrolix/stm v0.1.0
+github.com/anacrolix/stm
+github.com/anacrolix/stm/rate
+github.com/anacrolix/stm/stmutil
+# github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/tagflag v1.0.0
+# github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.7.0
+# github.com/anacrolix/torrent v1.9.0
 github.com/anacrolix/torrent
-github.com/anacrolix/torrent/fs
-github.com/anacrolix/torrent/metainfo
-github.com/anacrolix/torrent/storage
-github.com/anacrolix/torrent/mmap_span
 github.com/anacrolix/torrent/bencode
+github.com/anacrolix/torrent/fs
 github.com/anacrolix/torrent/iplist
+github.com/anacrolix/torrent/logonce
+github.com/anacrolix/torrent/metainfo
+github.com/anacrolix/torrent/mmap_span
 github.com/anacrolix/torrent/mse
 github.com/anacrolix/torrent/peer_protocol
+github.com/anacrolix/torrent/storage
 github.com/anacrolix/torrent/tracker
-github.com/anacrolix/torrent/logonce
 # github.com/anacrolix/upnp v0.1.1
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 github.com/aristanetworks/goarista/monotime
+# github.com/benbjohnson/immutable v0.2.0
+github.com/benbjohnson/immutable
 # github.com/bitly/go-simplejson v0.5.0
 github.com/bitly/go-simplejson
-# github.com/boltdb/bolt v1.3.1
-github.com/boltdb/bolt
 # github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c
 github.com/bradfitz/iter
 # github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
@@ -84,11 +91,13 @@ github.com/edsrzf/mmap-go
 # github.com/elastic/gosigar v0.10.5
 github.com/elastic/gosigar
 github.com/elastic/gosigar/sys/windows
+# github.com/etcd-io/bbolt v1.3.3
+github.com/etcd-io/bbolt
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
 # github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
-github.com/fjl/memsize/memsizeui
 github.com/fjl/memsize
+github.com/fjl/memsize/memsizeui
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2
@@ -106,7 +115,7 @@ github.com/google/uuid
 # github.com/hashicorp/golang-lru v0.5.3
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/huandu/xstrings v1.0.0
+# github.com/huandu/xstrings v1.2.0
 github.com/huandu/xstrings
 # github.com/huin/goupnp v1.0.0
 github.com/huin/goupnp
@@ -116,7 +125,7 @@ github.com/huin/goupnp/httpu
 github.com/huin/goupnp/scpd
 github.com/huin/goupnp/soap
 github.com/huin/goupnp/ssdp
-# github.com/influxdata/influxdb v1.7.7
+# github.com/influxdata/influxdb v1.7.9
 github.com/influxdata/influxdb/client
 github.com/influxdata/influxdb/models
 github.com/influxdata/influxdb/pkg/escape
@@ -187,17 +196,17 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/syndtr/goleveldb v1.0.0
 github.com/syndtr/goleveldb/leveldb
-github.com/syndtr/goleveldb/leveldb/errors
-github.com/syndtr/goleveldb/leveldb/filter
-github.com/syndtr/goleveldb/leveldb/opt
-github.com/syndtr/goleveldb/leveldb/util
-github.com/syndtr/goleveldb/leveldb/iterator
-github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/cache
 github.com/syndtr/goleveldb/leveldb/comparer
+github.com/syndtr/goleveldb/leveldb/errors
+github.com/syndtr/goleveldb/leveldb/filter
+github.com/syndtr/goleveldb/leveldb/iterator
 github.com/syndtr/goleveldb/leveldb/journal
 github.com/syndtr/goleveldb/leveldb/memdb
+github.com/syndtr/goleveldb/leveldb/opt
+github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
+github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.0
 github.com/tinylib/msgp/msgp
 # github.com/willf/bitset v1.1.10
@@ -205,29 +214,30 @@ github.com/willf/bitset
 # github.com/willf/bloom v2.0.3+incompatible
 github.com/willf/bloom
 # golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
-golang.org/x/crypto/pbkdf2
-golang.org/x/crypto/scrypt
-golang.org/x/crypto/ripemd160
+golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp
-golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/openpgp/armor
+golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
-golang.org/x/crypto/cast5
-golang.org/x/crypto/openpgp/elgamal
+golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/ripemd160
+golang.org/x/crypto/scrypt
+golang.org/x/crypto/sha3
+golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
-golang.org/x/net/websocket
-golang.org/x/net/publicsuffix
-golang.org/x/net/proxy
-golang.org/x/net/html/charset
-golang.org/x/net/internal/socks
 golang.org/x/net/context
 golang.org/x/net/html
-golang.org/x/net/http/httpproxy
 golang.org/x/net/html/atom
+golang.org/x/net/html/charset
+golang.org/x/net/http/httpproxy
 golang.org/x/net/idna
-# golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
+golang.org/x/net/internal/socks
+golang.org/x/net/proxy
+golang.org/x/net/publicsuffix
+golang.org/x/net/websocket
+# golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -236,35 +246,35 @@ golang.org/x/sys/windows/registry
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
-golang.org/x/text/transform
-golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/japanese
 golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
-golang.org/x/text/language
-golang.org/x/text/internal/utf8internal
-golang.org/x/text/runes
 golang.org/x/text/internal/tag
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/language
+golang.org/x/text/runes
 golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
+# golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20190829051458-42f498d34c4d
-golang.org/x/tools/imports
-golang.org/x/tools/internal/imports
 golang.org/x/tools/go/ast/astutil
-golang.org/x/tools/go/packages
-golang.org/x/tools/internal/gopathwalk
-golang.org/x/tools/internal/module
 golang.org/x/tools/go/gcexportdata
-golang.org/x/tools/go/internal/packagesdriver
-golang.org/x/tools/internal/semver
-golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/go/internal/gcimporter
+golang.org/x/tools/go/internal/packagesdriver
+golang.org/x/tools/go/packages
+golang.org/x/tools/imports
+golang.org/x/tools/internal/fastwalk
+golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/module
+golang.org/x/tools/internal/semver
 # golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
 golang.org/x/xerrors
 golang.org/x/xerrors/internal

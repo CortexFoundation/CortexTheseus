@@ -49,6 +49,9 @@ type Work struct {
 }
 
 func RetriveType(input []byte) InferType {
+	if len(input) == 0 {
+		return INFER_UNKNOWN
+	}
 
 	var dec Work
 	if err := json.Unmarshal(input, &dec); err != nil {

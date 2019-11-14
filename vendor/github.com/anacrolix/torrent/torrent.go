@@ -576,7 +576,15 @@ func (t *Torrent) writeStatus(w io.Writer) {
 		tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 		fmt.Fprintf(tw, "    URL\tNext announce\tLast announce\n")
 		for _, ta := range slices.Sort(slices.FromMapElems(t.trackerAnnouncers), func(l, r *trackerScraper) bool {
-			return l.u.String() < r.u.String()
+			lu := l.u
+			ru := r.u
+			var luns, runs url.URL = lu, ru
+			luns.Scheme = ""
+			runs.Scheme = ""
+			var ml missinggo.MultiLess
+			ml.StrictNext(luns.String() == runs.String(), luns.String() < runs.String())
+			ml.StrictNext(lu.String() == ru.String(), lu.String() < ru.String())
+			return ml.Less()
 		}).([]*trackerScraper) {
 			fmt.Fprintf(tw, "    %s\n", ta.statusLine())
 		}
@@ -1333,7 +1341,7 @@ func (t *Torrent) consumeDhtAnnouncePeers(pvs <-chan dht.PeersValues) {
 			t.addPeer(Peer{
 				IP:     cp.IP[:],
 				Port:   cp.Port,
-				Source: peerSourceDHTGetPeers,
+				Source: peerSourceDhtGetPeers,
 			})
 		}
 		cl.unlock()
@@ -1519,7 +1527,7 @@ func (t *Torrent) pieceHashed(piece pieceIndex, correct bool) {
 		if correct {
 			pieceHashedCorrect.Add(1)
 		} else {
-			log.Fmsg("piece failed hash: %d connections contributed", len(touchers)).AddValues(t, p).Log(t.logger)
+			//log.Fmsg("piece failed hash: %d connections contributed", len(touchers)).AddValues(t, p).Log(t.logger)
 			pieceHashedNotCorrect.Add(1)
 		}
 	}

@@ -746,6 +746,12 @@ func calculateRewardByNumber(num *big.Int, chainId uint64) *big.Int {
 			e := new(big.Int).Exp(big2, d, nil)
 			blockReward = new(big.Int).Div(blockReward, e)
 		}
+	} else {
+		if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
+                        d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
+                        e := new(big.Int).Exp(big2, d, nil)
+                        blockReward = new(big.Int).Div(blockReward, e)
+                }
 	}
 
 	return blockReward

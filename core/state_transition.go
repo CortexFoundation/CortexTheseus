@@ -327,11 +327,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if vmerr != nil {
 		//log.Warn("VM returned with error", "err", vmerr)
 
-		log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
+		//log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
 
 		if vmerr == vm.ErrRuntime {
 			return nil, 0, big0, false, vmerr
 		}
+
+		log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
 
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
@@ -412,7 +414,7 @@ func Max(x, y *big.Int) *big.Int {
 //vote to model
 func (st *StateTransition) uploading() bool {
 	log.Debug("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
-	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to())// && st.gas >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() {
