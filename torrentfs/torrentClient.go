@@ -300,7 +300,6 @@ type TorrentManager struct {
 	closeAll            chan struct{}
 	removeTorrent       chan metainfo.Hash
 	updateTorrent       chan interface{}
-	halt                bool
 	//mu                  sync.Mutex
 	lock sync.RWMutex
 	wg   sync.WaitGroup
@@ -720,8 +719,6 @@ func (tm *TorrentManager) mainLoop() {
 				tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			}
 		case <-tm.closeAll:
-			tm.halt = true
-			tm.client.Close()
 			return
 		}
 	}
@@ -751,247 +748,242 @@ func (tm *TorrentManager) listenTorrentProgress() {
 	var log_counter uint64
 	var total_size uint64
 	var current_size uint64
+	timer := time.NewTimer(time.Second * defaultTimerInterval)
 	for counter = 0; ; counter++ {
-		if tm.halt {
-			return
-		}
-		log_counter++
-
-		tm.lock.RLock()
-
-		for _, t := range tm.torrents {
-			t.weight = 1 + int(t.cited*10/maxCited)
-		}
-
-		//for _, t := range tm.torrents {
-		//	t.weight = 1 + int(t.cited*10/maxCited)
-		//}
-
-		var pendingTorrents []*Torrent
-		for _, t := range tm.pendingTorrents {
-			pendingTorrents = append(pendingTorrents, t)
-		}
-		tm.lock.RUnlock()
-
-		for _, t := range pendingTorrents {
-			ih := t.Torrent.InfoHash()
-			t.loop += 1
-			log.Trace("pending status", "ih", t.infohash, "loop", t.loop)
-			if t.Seeding() {
-				delete(tm.pendingTorrents, ih)
-				tm.seedingTorrents[ih] = t
-				t.loop = 0
-			} else if !t.Pending() {
-				delete(tm.pendingTorrents, ih)
-				tm.activeTorrents[ih] = t
-				t.loop = 0
-			} else if t.Torrent.Info() != nil {
-				t.WriteTorrent()
-			} else if t.loop > torrentWaitingTime/queryTimeInterval {
-				if !t.isBoosting {
-					t.loop = 0
-					t.isBoosting = true
-					go func(t *Torrent) {
-						defer t.BoostOff()
-						log.Info("Try to boost torrent", "hash", t.infohash)
-						if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
-							if t.Torrent.Info() != nil {
-								log.Warn("Torrent already exist", "hash", t.infohash)
-								return
-							}
-							t.Torrent.Drop()
-							t.ReloadTorrent(data, tm)
-
-							bytesRequested := t.bytesRequested
-							tm.UpdateTorrent(FlowControlMeta{
-								InfoHash:       ih,
-								BytesRequested: uint64(bytesRequested),
-								IsCreate:       true,
-							})
-						} else {
-							log.Warn("Boost failed", "hash", t.infohash, "err", err)
-						}
-					}(t)
-				}
-			}
-		}
-
-		var activeTorrents, activeTorrentsCandidate []*Torrent
-		for _, t := range tm.activeTorrents {
-			activeTorrentsCandidate = append(activeTorrentsCandidate, t)
-		}
-
-		all := 0
-		active_paused := 0
-		active_wait := 0
-		active_boost := 0
-		for _, t := range activeTorrentsCandidate {
-			ih := t.Torrent.InfoHash()
+		select {
+		case <-timer.C:
 			tm.lock.RLock()
-			BytesRequested := tm.bytes[ih]
+			log_counter++
+
+			for _, t := range tm.torrents {
+				t.weight = 1 + int(t.cited*10/maxCited)
+			}
+
+			var pendingTorrents []*Torrent
+			for _, t := range tm.pendingTorrents {
+				pendingTorrents = append(pendingTorrents, t)
+			}
 			tm.lock.RUnlock()
-			if t.bytesRequested < BytesRequested {
-				t.bytesRequested = BytesRequested
-				t.bytesLimitation = GetLimitation(BytesRequested)
-			}
 
-			t.bytesCompleted = t.BytesCompleted()
-			t.bytesMissing = t.BytesMissing()
-
-			if t.Finished() {
-				os.Symlink(
-					path.Join(defaultTmpFilePath, t.InfoHash()),
-					path.Join(tm.DataDir, t.InfoHash()),
-				)
-				delete(tm.activeTorrents, ih)
-				tm.seedingTorrents[ih] = t
-				t.Seed()
-				t.loop = defaultSeedInterval / queryTimeInterval
-				total_size += uint64(t.bytesCompleted)
-				current_size += uint64(t.bytesCompleted)
-				continue
-			}
-
-			if t.bytesRequested == 0 {
-				if log_counter%20 == 0 {
-					log.Debug("[Waiting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
-				}
-				active_wait += 1
-				continue
-			}
-
-			all += len(t.Torrent.PieceStateRuns())
-
-			if t.bytesCompleted >= t.bytesLimitation {
-				t.Pause()
-				active_paused += 1
-				if log_counter%20 == 0 {
-					log.Info("[Pausing]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
-				}
-				continue
-			} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
+			for _, t := range pendingTorrents {
+				ih := t.Torrent.InfoHash()
 				t.loop += 1
-				if t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
+				if t.Seeding() {
+					delete(tm.pendingTorrents, ih)
+					tm.seedingTorrents[ih] = t
 					t.loop = 0
-					if t.isBoosting {
-						continue
-					}
-					t.Pause()
-					t.isBoosting = true
-					go func(t *Torrent) {
-						defer t.BoostOff()
-						log.Trace("Try to boost files", "infohash", ih.String())
-						if t.Files() != nil {
-							filepaths := []string{}
-							filedatas := [][]byte{}
-							for _, file := range t.Files() {
-								subpath := file.Path()
-								if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
-									filedatas = append(filedatas, data)
-									filepaths = append(filepaths, subpath)
-								} else {
-									continue
+				} else if !t.Pending() {
+					delete(tm.pendingTorrents, ih)
+					tm.activeTorrents[ih] = t
+					t.loop = 0
+				} else if t.Torrent.Info() != nil {
+					t.WriteTorrent()
+				} else if t.loop > torrentWaitingTime/queryTimeInterval {
+					if !t.isBoosting {
+						t.loop = 0
+						t.isBoosting = true
+						go func(t *Torrent) {
+							defer t.BoostOff()
+							log.Info("Try to boost torrent", "hash", t.infohash)
+							if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
+								if t.Torrent.Info() != nil {
+									log.Warn("Torrent already exist", "hash", t.infohash)
+									return
 								}
+								t.Torrent.Drop()
+								t.ReloadTorrent(data, tm)
+
+								bytesRequested := t.bytesRequested
+								tm.UpdateTorrent(FlowControlMeta{
+									InfoHash:       ih,
+									BytesRequested: uint64(bytesRequested),
+									IsCreate:       true,
+								})
+							} else {
+								log.Warn("Boost failed", "hash", t.infohash, "err", err)
 							}
-							t.Torrent.Drop()
-							t.ReloadFile(filepaths, filedatas, tm)
-						}
-					}(t)
-					active_boost += 1
-					if log_counter%20 == 0 {
-						log.Info("[Boosting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
+						}(t)
 					}
+				}
+			}
+
+			var activeTorrents, activeTorrentsCandidate []*Torrent
+			for _, t := range tm.activeTorrents {
+				activeTorrentsCandidate = append(activeTorrentsCandidate, t)
+			}
+
+			all := 0
+			active_paused := 0
+			active_wait := 0
+			active_boost := 0
+			for _, t := range activeTorrentsCandidate {
+				ih := t.Torrent.InfoHash()
+				tm.lock.RLock()
+				BytesRequested := tm.bytes[ih]
+				tm.lock.RUnlock()
+				if t.bytesRequested < BytesRequested {
+					t.bytesRequested = BytesRequested
+					t.bytesLimitation = GetLimitation(BytesRequested)
+				}
+
+				t.bytesCompleted = t.BytesCompleted()
+				t.bytesMissing = t.BytesMissing()
+
+				if t.Finished() {
+					os.Symlink(
+						path.Join(defaultTmpFilePath, t.InfoHash()),
+						path.Join(tm.DataDir, t.InfoHash()),
+					)
+					delete(tm.activeTorrents, ih)
+					tm.seedingTorrents[ih] = t
+					t.Seed()
+					t.loop = defaultSeedInterval / queryTimeInterval
+					total_size += uint64(t.bytesCompleted)
+					current_size += uint64(t.bytesCompleted)
 					continue
 				}
-			}
 
-			if log_counter%20 == 0 && t.bytesCompleted > 0 {
-				log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
-			}
+				if t.bytesRequested == 0 {
+					if log_counter%20 == 0 {
+						log.Debug("[Waiting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
+					}
+					active_wait += 1
+					continue
+				}
 
-			if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
-				activeTorrents = append(activeTorrents, t)
-			}
-		}
+				all += len(t.Torrent.PieceStateRuns())
 
-		active_running := 0
-		if len(activeTorrents) <= tm.maxActiveTask {
-			for _, t := range activeTorrents {
-				t.Run()
-				active_running += 1
-			}
-		} else {
-			sort.Stable(ActiveTorrentList(activeTorrents))
-			for i := 0; i < tm.maxActiveTask; i++ {
-				activeTorrents[i].Run()
-				active_running += 1
-			}
-			for i := tm.maxActiveTask; i < len(activeTorrents); i++ {
-				activeTorrents[i].Pause()
-				active_paused += 1
-			}
-		}
+				if t.bytesCompleted >= t.bytesLimitation {
+					t.Pause()
+					active_paused += 1
+					if log_counter%20 == 0 {
+						log.Info("[Pausing]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
+					}
+					continue
+				} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
+					t.loop += 1
+					if t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
+						t.loop = 0
+						if t.isBoosting {
+							continue
+						}
+						t.Pause()
+						t.isBoosting = true
+						go func(t *Torrent) {
+							defer t.BoostOff()
+							log.Trace("Try to boost files", "infohash", ih.String())
+							if t.Files() != nil {
+								filepaths := []string{}
+								filedatas := [][]byte{}
+								for _, file := range t.Files() {
+									subpath := file.Path()
+									if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
+										filedatas = append(filedatas, data)
+										filepaths = append(filepaths, subpath)
+									} else {
+										continue
+									}
+								}
+								t.Torrent.Drop()
+								t.ReloadFile(filepaths, filedatas, tm)
+							}
+						}(t)
+						active_boost += 1
+						if log_counter%20 == 0 {
+							log.Info("[Boosting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
+						}
+						continue
+					}
+				}
 
-		if len(tm.seedingTorrents) <= tm.maxSeedTask {
-			for _, t := range tm.seedingTorrents {
-				t.Seed()
-				t.loop = 0
-			}
-		} else {
-			var totalWeight int = 0
-			var nSeedTask int = tm.maxSeedTask
-			for _, t := range tm.seedingTorrents {
-				if t.loop == 0 {
-					totalWeight += t.weight
-				} else if t.status == torrentSeeding {
-					nSeedTask -= 1
+				if log_counter%20 == 0 && t.bytesCompleted > 0 {
+					log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
+				}
+
+				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
+					activeTorrents = append(activeTorrents, t)
 				}
 			}
 
-			for _, t := range tm.seedingTorrents {
-				if t.loop > 0 {
-					t.loop -= 1
-				} else {
-					t.loop = defaultSeedInterval / queryTimeInterval
-					prob := float32(t.weight) * float32(nSeedTask) / float32(totalWeight)
-					if rand.Float32() < prob {
-						t.Seed()
+			active_running := 0
+			if len(activeTorrents) <= tm.maxActiveTask {
+				for _, t := range activeTorrents {
+					t.Run()
+					active_running += 1
+				}
+			} else {
+				sort.Stable(ActiveTorrentList(activeTorrents))
+				for i := 0; i < tm.maxActiveTask; i++ {
+					activeTorrents[i].Run()
+					active_running += 1
+				}
+				for i := tm.maxActiveTask; i < len(activeTorrents); i++ {
+					activeTorrents[i].Pause()
+					active_paused += 1
+				}
+			}
+
+			if len(tm.seedingTorrents) <= tm.maxSeedTask {
+				for _, t := range tm.seedingTorrents {
+					t.Seed()
+					t.loop = 0
+				}
+			} else {
+				var totalWeight int = 0
+				var nSeedTask int = tm.maxSeedTask
+				for _, t := range tm.seedingTorrents {
+					if t.loop == 0 {
+						totalWeight += t.weight
+					} else if t.status == torrentSeeding {
+						nSeedTask -= 1
+					}
+				}
+
+				for _, t := range tm.seedingTorrents {
+					if t.loop > 0 {
+						t.loop -= 1
 					} else {
-						t.SeedInQueue()
+						t.loop = defaultSeedInterval / queryTimeInterval
+						prob := float32(t.weight) * float32(nSeedTask) / float32(totalWeight)
+						if rand.Float32() < prob {
+							t.Seed()
+						} else {
+							t.SeedInQueue()
+						}
 					}
 				}
 			}
-		}
 
-		if counter >= loops {
-			for _, t := range tm.activeTorrents {
-				log.Trace("Torrent progress",
-					"InfoHash", t.InfoHash(),
-					"completed", t.bytesCompleted,
-					"requested", t.bytesLimitation,
-					"total", common.StorageSize(t.bytesCompleted+t.bytesMissing),
-					"status", t.status)
-			}
-			var nSeed int = 0
-			for _, t := range tm.seedingTorrents {
-				if t.status == torrentSeeding {
-					all += len(t.Torrent.PieceStateRuns())
-					log.Trace("Torrent seeding",
+			if counter >= loops {
+				for _, t := range tm.activeTorrents {
+					log.Trace("Torrent progress",
 						"InfoHash", t.InfoHash(),
 						"completed", t.bytesCompleted,
 						"requested", t.bytesLimitation,
 						"total", common.StorageSize(t.bytesCompleted+t.bytesMissing),
 						"status", t.status)
-					nSeed += 1
 				}
+				var nSeed int = 0
+				for _, t := range tm.seedingTorrents {
+					if t.status == torrentSeeding {
+						all += len(t.Torrent.PieceStateRuns())
+						log.Trace("Torrent seeding",
+							"InfoHash", t.InfoHash(),
+							"completed", t.bytesCompleted,
+							"requested", t.bytesLimitation,
+							"total", common.StorageSize(t.bytesCompleted+t.bytesMissing),
+							"status", t.status)
+						nSeed += 1
+					}
+				}
+
+				log.Info("Torrent status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", nSeed, "queue", len(tm.seedingTorrents)-nSeed, "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s")
+				counter = 0
+				current_size = 0
 			}
-
-			log.Info("Torrent status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", nSeed, "queue", len(tm.seedingTorrents)-nSeed, "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s")
-			counter = 0
-			current_size = 0
+			timer.Reset(time.Second * queryTimeInterval)
+		case <-tm.closeAll:
+			return
 		}
-
-		//tm.lock.RUnlock()
-		time.Sleep(time.Second * queryTimeInterval)
 	}
 }

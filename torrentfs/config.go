@@ -34,7 +34,7 @@ var DefaultConfig = Config{
 }
 
 const (
-	queryTimeInterval              = 1
+	queryTimeInterval              = 2
 	expansionFactor        float64 = 1.2
 	defaultSeedInterval            = 600
 	torrentWaitingTime             = 900

@@ -39,7 +39,7 @@ var (
 )
 
 const (
-	defaultTimerInterval  = 2
+	defaultTimerInterval  = 3
 	connTryTimes          = 300
 	connTryInterval       = 2
 	fetchBlockTryTimes    = 5
@@ -173,9 +173,9 @@ func (m *Monitor) taskLoop() {
 	for {
 		select {
 		case task := <-m.taskCh:
-			if m.newTaskHook != nil {
-				m.newTaskHook(task)
-			}
+			//if m.newTaskHook != nil {
+			//	m.newTaskHook(task)
+			//}
 
 			if err := m.deal(task); err != nil {
 				log.Warn("Block dealing failed", "err", err)
@@ -533,16 +533,17 @@ func (m *Monitor) Stop() {
 	                }
 	                log.Info("Torrent client listener synchronizing closed")
 	        })*/
-
-	if err := m.fs.Close(); err != nil {
-		log.Error("Monitor File Storage closed", "error", err)
-	}
-	log.Info("Torrent fs listener synchronizing closed")
-
+	log.Info("Torrent client listener synchronizing closing")
 	if err := m.dl.Close(); err != nil {
 		log.Error("Monitor Torrent Manager closed", "error", err)
 	}
 	log.Info("Torrent client listener synchronizing closed")
+
+	log.Info("Torrent fs listener synchronizing closing")
+	if err := m.fs.Close(); err != nil {
+                log.Error("Monitor File Storage closed", "error", err)
+        }
+        log.Info("Torrent fs listener synchronizing closed")
 
 	log.Info("Torrent listener closed")
 }
@@ -700,13 +701,13 @@ if m.lastNumber > 256 {
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
-	progress := uint64(0)
+	//progress := uint64(0)
 	for {
 		select {
 		case <-timer.C:
-			progress = m.syncLastBlock()
+			m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			if progress > batch {
+			/*if progress > batch {
 				timer.Reset(time.Millisecond * 100)
 			} else if progress > batch/2 {
 				timer.Reset(time.Millisecond * 500)
@@ -716,7 +717,8 @@ func (m *Monitor) listenLatestBlock() {
 				timer.Reset(time.Millisecond * 2000)
 			} else {
 				timer.Reset(time.Millisecond * 5000)
-			}
+			}*/
+			 timer.Reset(time.Second * defaultTimerInterval)
 		case <-m.exitCh:
 			log.Info("Block listener stopped")
 			return
@@ -826,7 +828,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 }
 
 const (
-	batch = 4096
+	batch = 2048
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
