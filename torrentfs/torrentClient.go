@@ -341,14 +341,17 @@ func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 
 func (tm *TorrentManager) Close() error {
 	log.Info("Torrent Download Manager Closing")
-	tm.dropAll()
 	close(tm.closeAll)
 	tm.wg.Wait()
+	//tm.wg.Wait()
+	//tm.wg.Add(1)
+	tm.dropAll()
 	log.Info("Torrent Download Manager Closed")
 	return nil
 }
 
 func (tm *TorrentManager) dropAll() {
+	//defer tm.wg.Done()
 	tm.lock.Lock()
 	tm.lock.Unlock()
 	for _, t := range tm.torrents {

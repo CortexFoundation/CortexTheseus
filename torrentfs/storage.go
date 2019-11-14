@@ -232,6 +232,7 @@ func Available(infohash string, rawSize int64) (bool, error) {
 }*/
 
 func (fs *FileStorage) Close() error {
+	log.Info("Torrent File Storage Closing")
 	// Wait for file storage closed...
 	//for {
 	//	if fs.opCounter.IsZero() {
