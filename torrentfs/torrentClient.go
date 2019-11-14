@@ -701,7 +701,7 @@ func (tm *TorrentManager) mainLoop() {
 				counter := 0
 				for {
 					if t := tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t != nil {
-						log.Info("Torrent [create] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
+						log.Debug("Torrent [create] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 						break
 					} else {
 						if counter > 10 {
@@ -713,7 +713,7 @@ func (tm *TorrentManager) mainLoop() {
 				}
 			} else {
 				//log.Info("TorrentManager", "updateTorrent", meta.InfoHash.String(), "bytes", meta.BytesRequested)
-				log.Info("Torrent [update] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
+				log.Debug("Torrent [update] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 				tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			}
 		case <-tm.closeAll:
@@ -790,9 +790,10 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					t.isBoosting = true
 					go func(t *Torrent) {
 						defer t.BoostOff()
-						log.Info("Try to boost torrent", "infohash", t.infohash)
+						log.Info("Try to boost torrent", "hash", t.infohash)
 						if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
 							if t.Torrent.Info() != nil {
+								log.Warn("Torrent already exist", "hash", t.infohash)
 								return
 							}
 							t.Torrent.Drop()
@@ -805,7 +806,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 								IsCreate:       true,
 							})
 						} else {
-							log.Warn("Boost failed", "infohash", t.infohash, "err", err)
+							log.Warn("Boost failed", "hash", t.infohash, "err", err)
 						}
 					}(t)
 				}

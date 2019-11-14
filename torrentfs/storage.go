@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 	//"sync"
-	"sync/atomic"
+	//"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -33,12 +33,12 @@ type FileInfo struct {
 	// Contract Address
 	ContractAddr *common.Address
 	LeftSize     uint64
-	Index        uint64
+	//Index        uint64
 }
 
 type MutexCounter int32
 
-func (mc *MutexCounter) Increase() {
+/*func (mc *MutexCounter) Increase() {
 	atomic.AddInt32((*int32)(mc), int32(1))
 }
 
@@ -48,7 +48,7 @@ func (mc *MutexCounter) Decrease() {
 
 func (mc *MutexCounter) IsZero() bool {
 	return atomic.LoadInt32((*int32)(mc)) == 0
-}
+}*/
 
 type FileStorage struct {
 	filesContractAddr map[common.Address]*FileInfo
@@ -56,12 +56,12 @@ type FileStorage struct {
 	db                *bolt.DB
 
 	LastListenBlockNumber uint64
-	LastFileIndex         uint64
+	//LastFileIndex         uint64
 
 	//lock      sync.RWMutex
 	//bnLock    sync.Mutex
-	opCounter MutexCounter
-	dataDir   string
+	//opCounter MutexCounter
+	dataDir string
 	//tmpCache  *lru.Cache
 	//indexLock sync.RWMutex
 }
@@ -91,14 +91,14 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	if dbErr != nil {
 		return nil, dbErr
 	}
-	db.NoSync = true
+	//db.NoSync = true
 
 	fs := &FileStorage{
 		// filesInfoHash:     make(map[metainfo.Hash]*FileInfo),
 		filesContractAddr: make(map[common.Address]*FileInfo),
 		db:                db,
-		opCounter:         0,
-		dataDir:           config.DataDir,
+		//opCounter:         0,
+		dataDir: config.DataDir,
 	}
 	fs.readBlockNumber()
 	//fs.readLastFileIndex()
@@ -113,7 +113,8 @@ func (fs *FileStorage) Files() []*FileInfo {
 }
 
 func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
-	ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
+	//ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
+	ret := &FileInfo{Meta, nil, nil, Meta.RawSize}
 	return ret
 }
 
@@ -145,7 +146,7 @@ func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
 		return 0, err
 	}
 	fs.filesContractAddr[addr] = x
-	fs.files = append(fs.files, x)
+	//fs.files = append(fs.files, x)
 	return 1, nil
 }
 
@@ -232,18 +233,18 @@ func Available(infohash string, rawSize int64) (bool, error) {
 
 func (fs *FileStorage) Close() error {
 	// Wait for file storage closed...
-	for {
-		if fs.opCounter.IsZero() {
-			// persist storage block number
-			fs.writeBlockNumber()
-			//fs.writeLastFileIndex()
-			log.Info("Torrent File Storage Closed", "database", fs.db.Path())
-			return fs.db.Close()
-		}
+	//for {
+	//	if fs.opCounter.IsZero() {
+	// persist storage block number
+	fs.writeBlockNumber()
+	//fs.writeLastFileIndex()
+	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
+	return fs.db.Close()
+	//	}
 
-		// log.Debug("Waiting for boltdb operating...")
-		time.Sleep(time.Microsecond)
-	}
+	// log.Debug("Waiting for boltdb operating...")
+	//	time.Sleep(time.Microsecond)
+	//}
 }
 
 var (
@@ -324,8 +325,8 @@ var (
 }*/
 
 func (fs *FileStorage) WriteFile(f *FileInfo) error {
-	fs.opCounter.Increase()
-	defer fs.opCounter.Decrease()
+	//fs.opCounter.Increase()
+	//defer fs.opCounter.Decrease()
 
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("files"))
@@ -349,18 +350,18 @@ func (fs *FileStorage) WriteFile(f *FileInfo) error {
 	})
 
 	//if err == nil && b.Number > fs.LastListenBlockNumber {
-	if err == nil {
-		//fs.bnLock.Lock()
-		//fs.writeLastFileIndex()
-		//fs.bnLock.Unlock()
-	}
+	//if err == nil {
+	//fs.bnLock.Lock()
+	//fs.writeLastFileIndex()
+	//fs.bnLock.Unlock()
+	//}
 
 	return err
 }
 
 func (fs *FileStorage) WriteBlock(b *Block) error {
-	fs.opCounter.Increase()
-	defer fs.opCounter.Decrease()
+	//fs.opCounter.Increase()
+	//defer fs.opCounter.Decrease()
 
 	/*err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))

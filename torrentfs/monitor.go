@@ -35,7 +35,7 @@ var (
 	blockCache, _ = lru.New(6)
 	//unhealthPeers, _ = lru.New(256)
 	healthPeers, _ = lru.New(50)
-	sizeCache, _   = lru.New(4096)
+	sizeCache, _   = lru.New(batch)
 )
 
 const (
@@ -44,10 +44,10 @@ const (
 	connTryInterval       = 2
 	fetchBlockTryTimes    = 5
 	fetchBlockTryInterval = 3
-	fetchBlockLogStep     = 10000
-	minBlockNum           = 0
+	//fetchBlockLogStep     = 10000
+	//minBlockNum           = 0
 
-	maxSyncBlocks = 1024
+	//maxSyncBlocks = 1024
 )
 
 type TorrentManagerAPI interface {
@@ -124,6 +124,10 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	log.Info("Loading storage data ... ...")
 
 	fileMap := make(map[metainfo.Hash]*FileInfo)
+	//files, err := m.fs.Files()
+	//if err != nil {
+	//return nil, errors.New("torrent db init failed")
+	//}
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
 			if f.LeftSize > file.LeftSize {
@@ -410,6 +414,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	if err != nil {
 		return err
 	} else {
+		log.Debug("create file", "hash", meta.InfoHash, "index", index)
 		if index > 0 {
 			m.dl.UpdateTorrent(FlowControlMeta{
 				InfoHash:       meta.InfoHash,
@@ -611,82 +616,82 @@ func (m *Monitor) startWork() error {
 }
 
 /*func (m *Monitor) validateStorage() error {
-	m.lastNumber = m.fs.LastListenBlockNumber
-	end := uint64(0)
+m.lastNumber = m.fs.LastListenBlockNumber
+end := uint64(0)
 
-	log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
+log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
 
-	for i := m.lastNumber; i > end; i-- {
-		rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
-		if rpcErr != nil {
-			log.Warn("RPC ERROR", "error", rpcErr)
-			return rpcErr
-		}
+for i := m.lastNumber; i > end; i-- {
+	rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
+	if rpcErr != nil {
+		log.Warn("RPC ERROR", "error", rpcErr)
+		return rpcErr
+	}
 
-		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
-			log.Trace("No block found", "number", i)
-			m.lastNumber = uint64(i)
-			m.dirty = true
-			continue
-		} else {
-			m.dirty = false
-		}
-
-		stBlock := m.fs.GetBlockByNumber(uint64(i))
-		if stBlock == nil {
-			log.Warn("Vaidate Torrent FS Storage state failed, rescan", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent", "dirty", m.fs.LastListenBlockNumber)
-			m.lastNumber = uint64(i)
-			m.dirty = true
-			continue
-		}
-
-		if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
-			//log.Warn("Validate TFS continue", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
-			break
-		}
-
-		// block in storage invalid
-		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash, "latest", m.fs.LastListenBlockNumber)
+	if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
+		log.Trace("No block found", "number", i)
 		m.lastNumber = uint64(i)
+		m.dirty = true
+		continue
+	} else {
+		m.dirty = false
 	}
 
-	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
-	if m.dirty {
-		log.Warn("Torrent fs status", "dirty", m.dirty)
-	}*/
-
-	/*if m.lastNumber > batch {
-		m.lastNumber = m.lastNumber - batch
-	} else {
-		m.lastNumber = 0
-	}*/
-
-	/*for i := uint64(0); i < m.fs.LastFileIndex; i++ {
-		file := m.fs.GetFileByNumber(i)
-		if file == nil {
-			continue
-		}
-
-		var bytesRequested uint64
-		if file.Meta.RawSize > file.LeftSize {
-			bytesRequested = file.Meta.RawSize - file.LeftSize
-		}
-		log.Debug("Data recovery", "request", bytesRequested, "raw", file.Meta.RawSize)
-
-		m.dl.UpdateTorrent(FlowControlMeta{
-			InfoHash:       file.Meta.InfoHash,
-			BytesRequested: bytesRequested,
-			IsCreate:       true,
-		})
-
-		//m.fs.AddCachedFile(file)
+	stBlock := m.fs.GetBlockByNumber(uint64(i))
+	if stBlock == nil {
+		log.Warn("Vaidate Torrent FS Storage state failed, rescan", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent", "dirty", m.fs.LastListenBlockNumber)
+		m.lastNumber = uint64(i)
+		m.dirty = true
+		continue
 	}
 
-	if m.lastNumber > 256 {
-		m.lastNumber = m.lastNumber - 256
-	} else {
-		m.lastNumber = 0
-	}*/
+	if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
+		//log.Warn("Validate TFS continue", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
+		break
+	}
+
+	// block in storage invalid
+	log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash, "latest", m.fs.LastListenBlockNumber)
+	m.lastNumber = uint64(i)
+}
+
+log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
+if m.dirty {
+	log.Warn("Torrent fs status", "dirty", m.dirty)
+}*/
+
+/*if m.lastNumber > batch {
+	m.lastNumber = m.lastNumber - batch
+} else {
+	m.lastNumber = 0
+}*/
+
+/*for i := uint64(0); i < m.fs.LastFileIndex; i++ {
+	file := m.fs.GetFileByNumber(i)
+	if file == nil {
+		continue
+	}
+
+	var bytesRequested uint64
+	if file.Meta.RawSize > file.LeftSize {
+		bytesRequested = file.Meta.RawSize - file.LeftSize
+	}
+	log.Debug("Data recovery", "request", bytesRequested, "raw", file.Meta.RawSize)
+
+	m.dl.UpdateTorrent(FlowControlMeta{
+		InfoHash:       file.Meta.InfoHash,
+		BytesRequested: bytesRequested,
+		IsCreate:       true,
+	})
+
+	//m.fs.AddCachedFile(file)
+}
+
+if m.lastNumber > 256 {
+	m.lastNumber = m.lastNumber - 256
+} else {
+	m.lastNumber = 0
+}*/
 /*
 	return nil
 }*/
