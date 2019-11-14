@@ -1,6 +1,6 @@
 package main
 
-// #cgo LDFLAGS: -L . -lverify -lstdc++ -lcvm_runtime_cpu
+// #cgo LDFLAGS: -L . -lverify -lstdc++ -L../../../infernet/build/cpu/ -lcvm_runtime_cpu
 // #cgo CFLAGS: -I ./
 // #include "verify.h"
 import "C"
