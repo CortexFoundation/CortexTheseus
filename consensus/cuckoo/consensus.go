@@ -643,10 +643,27 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
 	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
-	r := cuckoo.CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64(), targetDiff)
-	if !r {
-		log.Trace(fmt.Sprintf("VerifySeal: %v, %v", r, targetDiff))
-		return errInvalidPoW
+
+	flag := false
+	for i := 0; i < len(result); i++ {
+		if result[i] != 0 {
+			flag = true
+			log.Info("cuckoo", "sol no zero", result[i], result)
+			break
+		}
+	}
+	if flag {
+		r := cuckoo.CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64(), targetDiff)
+		if !r {
+			log.Trace(fmt.Sprintf("VerifySeal: %v, %v", r, targetDiff))
+			return errInvalidPoW
+		}
+	} else {
+		r := cuckoo.XCortexVerifyHeader(hash, nonce, targetDiff)
+		if !r {
+			log.Trace(fmt.Sprintf("VerifySeal: %v, %v", r, targetDiff))
+			return errInvalidPoW
+		}
 	}
 
 	return nil
@@ -864,7 +881,7 @@ func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 }
 
 func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) (ok bool) {
-	if cuckoo.minerPlugin == nil {
+	if cuckoo.minerPlugin == nil || cuckoo.xcortexPlugin == nil {
 		err := cuckoo.InitPlugin()
 		if err != nil {
 			log.Error("cuckoo init error", "error", err)
@@ -872,29 +889,48 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 		}
 	}
 
-	flag := false
-	for i := 0; i < len(sol); i++ {
-		if sol[i] != 0 {
-			flag = true
-		}
-	}
-
 	var r bool
-	if flag {
-		m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
-		if err != nil {
-			log.Error("cuckoo", "lookup cuckaroo verify error.", err)
-			return false
-		}
-		r = m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
-		//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
-	} else {
-		m, err := cuckoo.xcortexPlugin.Lookup("Verify")
-		if err != nil {
-			log.Error("cuckoo", "lookup xcortex verify error", err)
-			return false
-		}
-		r = m.(func(*byte, uint64, string) bool)(&hash[0], nonce, targetDiff.String())
+	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
+	if err != nil {
+		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
+		return false
 	}
+	log.Info("cuckoo", "verify by cuckoo................................")
+	r = m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
+	//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	return r
+}
+func (cuckoo *Cuckoo) XCortexVerifyHeader(hash []byte, nonce uint64, targetDiff *big.Int) (ok bool) {
+	if cuckoo.xcortexPlugin == nil {
+		err := cuckoo.InitPlugin()
+		if err != nil {
+			log.Error("cuckoo init error", "error", err)
+			return false
+		}
+	}
+	log.Info("cuckoo", "verify by xcortex................................")
+	m, err := cuckoo.xcortexPlugin.Lookup("Verify")
+	if err != nil {
+		log.Error("cuckoo", "lookup xcortex verify error", err)
+		return false
+	}
+	r := m.(func(*byte, uint64, string) bool)(&hash[0], nonce, string(common.ToHex(targetDiff.Bytes())))
+	return r
+}
+func (cuckoo *Cuckoo) XCortexVerifyHeader2(hash []byte, nonce uint64, targetDiff *big.Int, shareTarget *big.Int, blockTarget *big.Int) (bool, bool, bool) {
+	if cuckoo.xcortexPlugin == nil {
+		err := cuckoo.InitPlugin()
+		if err != nil {
+			log.Error("cuckoo init error", "error", err)
+			return false, false, false
+		}
+	}
+	log.Info("cuckoo", "verify by xcortex................................")
+	m, err := cuckoo.xcortexPlugin.Lookup("Verify2")
+	if err != nil {
+		log.Error("cuckoo", "lookup xcortex verify error", err)
+		return false, false, false
+	}
+	r0, r1, r2 := m.(func(*byte, uint64, string, string, string) (bool, bool, bool))(&hash[0], nonce, string(common.ToHex(targetDiff.Bytes())), string(common.ToHex(shareTarget.Bytes())), string(common.ToHex(blockTarget.Bytes())))
+	return r0, r1, r2
 }

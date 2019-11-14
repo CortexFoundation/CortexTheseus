@@ -103,7 +103,7 @@ plugins/cpu_cvm.so:
 plugins/xcortex_helper.so:
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/xcortex/xcortex_helper.go
 
-clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
+clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so plugins/xcortex_helper.so
 
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so plugins/xcortex_helper.so
 

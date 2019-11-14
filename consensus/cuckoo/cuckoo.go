@@ -168,8 +168,16 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 	so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
 	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
 		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
-	cuckoo.minerPlugin, errc = plugin.Open(so_path)
-	cuckoo.xcortexPlugin, errc = plugin.Open(XCORTEX_PLUGIN)
+	if cuckoo.minerPlugin == nil {
+		cuckoo.minerPlugin, errc = plugin.Open(so_path)
+	}
+	if cuckoo.xcortexPlugin == nil {
+		log.Info("Cuckoo Init Plugin", "name", "xcortex", "library path", XCORTEX_PLUGIN)
+		cuckoo.xcortexPlugin, errc = plugin.Open(XCORTEX_PLUGIN)
+		if errc != nil {
+			log.Info("cuckoo init plugin", "error", errc)
+		}
+	}
 	return errc
 }
 
