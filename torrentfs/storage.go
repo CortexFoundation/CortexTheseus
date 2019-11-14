@@ -36,7 +36,7 @@ type FileInfo struct {
 	//Index        uint64
 }
 
-type MutexCounter int32
+//type MutexCounter int32
 
 /*func (mc *MutexCounter) Increase() {
 	atomic.AddInt32((*int32)(mc), int32(1))

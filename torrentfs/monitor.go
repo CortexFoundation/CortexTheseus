@@ -207,20 +207,20 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 	block := &Block{}
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 
-	for i := 0; i < fetchBlockTryTimes; i++ {
-		err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
-		if err == nil {
-			return block, nil
-		}
-
-		time.Sleep(time.Second * fetchBlockTryInterval)
-		log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err, "number", blockNumber)
+	//for i := 0; i < fetchBlockTryTimes; i++ {
+	err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
+	if err == nil {
+		return block, nil
 	}
+
+	//	time.Sleep(time.Second * fetchBlockTryInterval)
+	//	log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err, "number", blockNumber)
+	//}
 
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
-func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
+/*func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	block := &Block{}
 
 	for i := 0; i < fetchBlockTryTimes; i++ {
@@ -234,7 +234,7 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	}
 
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
-}
+}*/
 
 var (
 	ports            = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
