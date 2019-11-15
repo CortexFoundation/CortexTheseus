@@ -121,7 +121,8 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
 		return v.([]byte), nil
 	}
-
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	// lazy initialization of model cache
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		memoryUsage := s.config.MaxMemoryUsage
@@ -143,8 +144,6 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 
 	//v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
 	//mutex := v.(sync.Mutex)
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
