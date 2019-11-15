@@ -227,8 +227,8 @@ func (t *Torrent) Seed() {
 }
 
 func (t *Torrent) Seeding() bool {
-	return t.status == torrentSeeding ||
-		t.status == torrentSeedingInQueue
+	return (t.status == torrentSeeding ||
+		t.status == torrentSeedingInQueue) && t.BytesMissing() == 0
 }
 
 func (t *Torrent) Pause() {

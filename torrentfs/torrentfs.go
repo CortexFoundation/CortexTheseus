@@ -138,18 +138,20 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 	} else {
 
 		if !torrent.IsAvailable() {
-			log.Error("read file", "hash", infohash, "subpath", subpath)
-			return nil, errors.New("not av")
+			log.Error("Read unavailable file", "hash", infohash, "subpath", subpath)
+			return nil, errors.New("download not completed")
 		}
 		fn := path.Join(fs.config.DataDir, infohash, subpath)
 		data, err := ioutil.ReadFile(fn)
 		for _, file := range torrent.Files() {
-			if file.Path() == subpath {
+			log.Debug("File path info", "path", file.Path(), "subpath", subpath)
+			if file.Path() == subpath[1:] {
 				if int64(len(data)) != file.Length() {
 					log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
 					return nil, errors.New("not a complete file")
 				} else {
-					log.Warn("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
+					log.Debug("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
+					break
 				}
 			}
 		}
