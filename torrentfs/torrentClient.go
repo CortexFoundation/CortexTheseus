@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	//"errors"
 	"fmt"
-	//"github.com/anacrolix/missinggo/slices"
+	"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
@@ -495,9 +495,9 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		if err != nil {
 			return nil
 		}
-		//var ss []string
-		//slices.MakeInto(&ss, mi.Nodes)
-		//tm.client.AddDHTNodes(ss)
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
 		<-t.GotInfo()
 		t.VerifyData()
 		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
@@ -512,9 +512,9 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		if err != nil {
 			return nil
 		}
-		//var ss []string
-		//slices.MakeInto(&ss, mi.Nodes)
-		//tm.client.AddDHTNodes(ss)
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
 		<-t.GotInfo()
 		t.VerifyData()
 		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
@@ -825,18 +825,16 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.bytesMissing = t.BytesMissing()
 
 				if t.Finished() {
-					err := os.Symlink(
+					os.Symlink(
 						path.Join(defaultTmpFilePath, t.InfoHash()),
 						path.Join(tm.DataDir, t.InfoHash()),
 					)
-					if err == nil {
-						delete(tm.activeTorrents, ih)
-						tm.seedingTorrents[ih] = t
-						t.Seed()
-						t.loop = defaultSeedInterval / queryTimeInterval
-						total_size += uint64(t.bytesCompleted)
-						current_size += uint64(t.bytesCompleted)
-					}
+					delete(tm.activeTorrents, ih)
+					tm.seedingTorrents[ih] = t
+					t.Seed()
+					t.loop = defaultSeedInterval / queryTimeInterval
+					total_size += uint64(t.bytesCompleted)
+					current_size += uint64(t.bytesCompleted)
 					continue
 				}
 
