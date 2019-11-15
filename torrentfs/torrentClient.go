@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	//"errors"
 	"fmt"
-	"github.com/anacrolix/missinggo/slices"
+	//"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
@@ -114,9 +114,9 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	if err != nil {
 		return
 	}
-	t.Torrent = torrent
 	<-torrent.GotInfo()
 	torrent.VerifyData()
+	t.Torrent = torrent
 	t.Pause()
 }
 
@@ -148,9 +148,9 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	if err != nil {
 		return
 	}
-	t.Torrent = torrent
 	<-torrent.GotInfo()
 	torrent.VerifyData()
+	t.Torrent = torrent
 	t.Pause()
 }
 
@@ -354,8 +354,8 @@ func (tm *TorrentManager) Close() error {
 }
 
 func (tm *TorrentManager) dropAll() {
-	tm.lock.Lock()
-	tm.lock.Unlock()
+	//tm.lock.Lock()
+	//tm.lock.Unlock()
 	defer tm.client.Close()
 	for _, t := range tm.torrents {
 		stats := t.Stats()
@@ -495,13 +495,13 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		if err != nil {
 			return nil
 		}
-		var ss []string
-		slices.MakeInto(&ss, mi.Nodes)
-		tm.client.AddDHTNodes(ss)
-		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+		//var ss []string
+		//slices.MakeInto(&ss, mi.Nodes)
+		//tm.client.AddDHTNodes(ss)
 		<-t.GotInfo()
 		t.VerifyData()
-		torrent.SeedInQueue()
+		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+		torrent.Pause() //SeedInQueue()
 		return torrent
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
@@ -512,12 +512,12 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		if err != nil {
 			return nil
 		}
-		var ss []string
-		slices.MakeInto(&ss, mi.Nodes)
-		tm.client.AddDHTNodes(ss)
-		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+		//var ss []string
+		//slices.MakeInto(&ss, mi.Nodes)
+		//tm.client.AddDHTNodes(ss)
 		<-t.GotInfo()
 		t.VerifyData()
+		torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 		torrent.Pause()
 		return torrent
 	}
@@ -825,16 +825,18 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.bytesMissing = t.BytesMissing()
 
 				if t.Finished() {
-					os.Symlink(
+					err := os.Symlink(
 						path.Join(defaultTmpFilePath, t.InfoHash()),
 						path.Join(tm.DataDir, t.InfoHash()),
 					)
-					delete(tm.activeTorrents, ih)
-					tm.seedingTorrents[ih] = t
-					t.Seed()
-					t.loop = defaultSeedInterval / queryTimeInterval
-					total_size += uint64(t.bytesCompleted)
-					current_size += uint64(t.bytesCompleted)
+					if err == nil {
+						delete(tm.activeTorrents, ih)
+						tm.seedingTorrents[ih] = t
+						t.Seed()
+						t.loop = defaultSeedInterval / queryTimeInterval
+						total_size += uint64(t.bytesCompleted)
+						current_size += uint64(t.bytesCompleted)
+					}
 					continue
 				}
 
@@ -926,6 +928,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 			}
 			timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
+			log.Info("Listen torrent progress closed")
 			return
 		}
 	}
