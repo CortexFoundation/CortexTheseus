@@ -12,7 +12,7 @@ import (
 	//"io/ioutil"
 	"math"
 	"math/rand"
-	"net"
+	//"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -609,13 +609,13 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//      "max_activenum", config.MaxActiveNum,
 	//    )
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableUTP = config.DisableUTP
-	cfg.NoDHT = config.DisableDHT
+	cfg.DisableUTP = true //config.DisableUTP
+	//cfg.NoDHT = true//config.DisableDHT
 	cfg.DataDir = config.DataDir
 	//cfg.DisableEncryption = true
 	//cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
-	listenAddr := &net.TCPAddr{}
-	log.Info("Torrent client listening on", "addr", listenAddr)
+	//listenAddr := &net.TCPAddr{}
+	//log.Info("Torrent client listening on", "addr", listenAddr)
 	//cfg.SetListenAddr(listenAddr.String())
 	cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
@@ -625,7 +625,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//cfg.DropDuplicatePeerIds = true
 	//cfg.ListenHost = torrent.LoopbackListenHost
 	//cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs //func() ([]dht.Addr, error) { return nil, nil }
-	log.Info("Torrent client configuration", "config", cfg)
+	//log.Info("Torrent client configuration", "config", cfg)
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
