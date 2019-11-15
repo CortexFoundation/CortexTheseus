@@ -28,7 +28,7 @@ inline uint64_t getSize(DLTensor *dlTensor){
 // #define CVM_PROFILING
 // #define CVM_PRINT_OP_RESULT
 
-const std::string DIR = "/tmp/zkh/random_3_1/";
+const std::string DIR = "/tmp/zkh/shufflenet/";
 inline void print_to_file(DLTensor *y, std::string filename){
 #if defined(CVM_PRINT_OP_RESULT)
   FILE *fp = fopen((DIR + filename).c_str(), "a+");
@@ -40,7 +40,7 @@ inline void print_to_file(DLTensor *y, std::string filename){
       max = max < y_data[i] ? y_data[i] : max;
   }
   fprintf(fp, "%d %d\n", min, max);
-  for(uint64_t i = 0; i < 20 && i < getSize(y); i++){
+  for(uint64_t i = 0; i < 100 && i < getSize(y); i++){
       fprintf(fp, "%d ", y_data[i]);
   }
   fprintf(fp, "\n");

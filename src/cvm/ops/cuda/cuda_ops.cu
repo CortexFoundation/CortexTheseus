@@ -552,6 +552,77 @@ const char* cuda_depthwise_conv2d(
   }
   return check_cuda_error(error);
 }
+__global__ void kernel_groupwise_conv2d_no_shared(
+    int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
+    int32_t *filter, int32_t f_n, int32_t f_c, int32_t f_h, int32_t f_w,
+    int32_t *bias,
+    int32_t padding_h, int32_t padding_w,
+    int32_t stride_h, int32_t stride_w,
+    int32_t dilation_h, int32_t dilation_w, 
+    int32_t groups,
+    int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w){
+  int32_t gy = threadIdx.y + blockIdx.y * blockDim.y;
+  int32_t gx = threadIdx.x + blockIdx.x * blockDim.x;
+  int32_t l_o_h = gy % o_h;
+  int32_t l_o_c = gy / o_h % o_c;
+  int32_t l_o_n = gy / (o_h * o_c);
+  const int32_t ochannels_per_group = o_c / groups;
+  const int32_t ichannels_per_group = i_c / groups;
+  if(gy < o_n * o_c * o_h && gx < o_w){
+    int32_t sum = 0;
+    int32_t ic = l_o_c / ochannels_per_group * ichannels_per_group;
+    for(int tic = 0; tic < ichannels_per_group; ++tic){
+      for(int fy = 0; fy < f_h; ++fy){
+        for(int fx = 0; fx < f_w; ++fx){
+          int32_t l_i_h = l_o_h * stride_h + fy * dilation_h - padding_h;
+          int32_t l_i_w = gx * stride_w + fx * dilation_w - padding_w;
+          int32_t x;
+          if(l_i_h < 0 || l_i_w < 0 || l_i_h >= i_h || l_i_w >= i_w)
+            continue;
+          x = input[l_o_n * i_c * i_h * i_w + (ic+tic) * i_h * i_w + l_i_h * i_w + l_i_w];
+          sum += x * filter[l_o_c * f_h * f_w * f_c + tic * f_h * f_w + fy * f_w + fx];
+        }
+      }
+    }
+    output[gy * o_w + gx] = sum + (bias != NULL ? bias[l_o_c] : 0);
+  }
+}
+const char* cuda_groupwise_conv2d(
+    int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
+    int32_t *filter, int32_t f_n, int32_t f_c, int32_t f_h, int32_t f_w,
+    int32_t *bias,
+    int32_t padding_h, int32_t padding_w,
+    int32_t stride_h, int32_t stride_w,
+    int32_t dilation_h, int32_t dilation_w,
+    int32_t groups,
+    int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w, int32_t device_id, int& error_code){
+  int32_t *dev_i = input, *dev_f = filter, *dev_o = output, *dev_b = bias;
+
+  int b_h = BS;
+  int b_w = BS;
+  int tmp_f_h = (f_h - 1) * dilation_h + 1; 
+  int tmp_f_w = (f_w - 1) * dilation_w + 1;
+  int tmp_o_h = i_h + 2 * padding_h - tmp_f_h + 1; 
+  int tmp_o_w = i_w + 2 * padding_w - tmp_f_w + 1;
+  int32_t g_h = o_n * o_c * ((tmp_o_h + b_h - 1) / b_h); 
+  int32_t g_w = (tmp_o_w + b_w - 1) / b_w;
+  dim3 bDim(b_w, b_h, 1);
+  dim3 gDim(g_w, g_h, 1);
+  kernel_groupwise_conv2d_no_shared<<<gDim, bDim>>>(
+      dev_i, i_n, i_c, i_h, i_w,
+      dev_f, f_n, f_c, f_h, f_w,
+      dev_b, 
+      padding_h, padding_w,
+      stride_h, stride_w,
+      dilation_h, dilation_w,
+      groups,
+      dev_o, o_n, o_c, o_h, o_w);
+  cudaError_t error = cudaGetLastError();
+  if(cudaSuccess != error){
+    error_code = ERROR_KERNEL;
+  }
+  return check_cuda_error(error);
+}
 
 __global__ void kernel_max_pool(
     int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
@@ -581,7 +652,8 @@ __global__ void kernel_max_pool(
   extern __shared__ int32_t  share[];
   int32_t *shared_i = (int32_t*)share; 
 
-  int32_t max_elem = int(1)<<31; 
+  int32_t minV = int32_t(1)<<31; 
+  int32_t max_elem = minV;
   int min_s_y = (l_o_hi+1) * BS <= tmp_o_h ? BS : tmp_o_h%BS;
   int min_s_x = (l_o_wi+1) * BS <= tmp_o_w ? BS : tmp_o_w%BS;
 
@@ -591,14 +663,14 @@ __global__ void kernel_max_pool(
   int i_x = g_x - padding_w;
   // 0~2-> -1~1
   if(l_i_h < 0 || i_x < 0 || l_i_h >= i_h || i_x >= i_w)
-    shared_i[l_y*siw + l_x] = 0;
+    shared_i[l_y*siw + l_x] = minV;
   else
     shared_i[l_y*siw + l_x] = input[i_y * i_w + i_x];
 
   if(l_y < F_H-1){
     for(int i = l_y; i < F_H-1; i+=min_s_y){
       if(l_i_h+min_s_y+i-l_y < 0 || i_x < 0 || l_i_h+min_s_y+i-l_y >= i_h || i_x >= i_w)
-        shared_i[(i+min_s_y)*siw + l_x] = 0;
+        shared_i[(i+min_s_y)*siw + l_x] = minV;
       else
         shared_i[(i + min_s_y)*siw + l_x] = input[(i_y + min_s_y + i - l_y) * i_w + i_x];     
     }
@@ -606,7 +678,7 @@ __global__ void kernel_max_pool(
   if(l_x < F_W-1){
     for(int i = l_x; i < F_W-1; i+= min_s_x){
       if(l_i_h < 0 || i_x+min_s_x+i-l_x < 0 || l_i_h >= i_h || i_x+min_s_x+i-l_x >= i_w)
-        shared_i[l_y * siw + i+min_s_x] = 0;
+        shared_i[l_y * siw + i+min_s_x] = minV;
       else
         shared_i[l_y * siw + i + min_s_x] = input[i_y * i_w + i_x + min_s_x + i - l_x];
     }
@@ -615,7 +687,7 @@ __global__ void kernel_max_pool(
     for(int i = l_y; i < F_H-1; i+=min_s_y){
       for(int j = l_x; j < F_W-1; j+=min_s_x){
         if(l_i_h+min_s_y+i-l_y < 0 || i_x+min_s_x+j-l_x < 0 || l_i_h+min_s_y+i-l_y >= i_h || i_x+min_s_x+j-l_x >= i_w)
-          shared_i[(i+min_s_y) * siw + j+min_s_x] = 0;
+          shared_i[(i+min_s_y) * siw + j+min_s_x] = minV;
         else
           shared_i[(i+min_s_y) * siw + j+min_s_x] = input[(i_y+min_s_y + i-l_y)*i_w + i_x + min_s_x + j - l_x];
       }
@@ -650,14 +722,15 @@ __global__ void kernel_max_pool_no_shared(
   int32_t l_o_c = gy / o_h % o_c;
   int32_t l_o_n = gy / (o_h * o_c);
   if(gy < o_n * o_c * o_h && gx < o_w){
-    int32_t maxV = (int32_t)1 << 31;
+    int32_t minV = (int32_t)1 << 31;
+    int32_t maxV = minV;
     for(int fy = 0; fy < f_h; ++fy){
       for(int fx = 0; fx < f_w; ++fx){
         int32_t l_i_h = l_o_h * stride_h + fy  - padding_h;
         int32_t l_i_w = gx * stride_w + fx - padding_w;
         int32_t x;
         if(l_i_h < 0 || l_i_w < 0 || l_i_h >= i_h || l_i_w >= i_w)
-          x = 0;
+          x = minV;
         else x = input[l_o_n * i_c * i_h * i_w + l_o_c * i_h * i_w + l_i_h * i_w + l_i_w];
         maxV = maxV < x ? x : maxV;
       }
