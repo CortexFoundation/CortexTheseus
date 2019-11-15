@@ -75,8 +75,8 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
 
-	if _, ok := CvmFixHashes[cacheKey]; ok {
-		return CvmFixHashes[cacheKey], nil
+	if hash, ok := CvmFixHashes[cacheKey]; ok {
+		return hash, nil
 	}
 
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
@@ -191,8 +191,8 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 	if s.config.IsRemoteInfer {
 		errRes := s.remoteAvailable(
 			infoHash,
-			rawSize,
-			s.config.InferURI)
+			rawSize)
+			//s.config.InferURI)
 		return errRes
 	}
 	is_ok, err := s.config.Storagefs.Available(infoHash, rawSize)

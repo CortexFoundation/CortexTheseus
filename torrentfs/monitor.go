@@ -39,7 +39,7 @@ var (
 )
 
 const (
-	defaultTimerInterval  = 3
+	defaultTimerInterval  = 2
 	connTryTimes          = 300
 	connTryInterval       = 2
 	fetchBlockTryTimes    = 5
@@ -733,19 +733,13 @@ func (m *Monitor) listenLatestBlock() {
 
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * 15)
+	timer := time.NewTimer(time.Second * 300)
 
 	for {
 		select {
 		case <-timer.C:
 			m.peers()
-			if healthPeers.Len() == 0 {
-				timer.Reset(time.Second * 5)
-			} else if healthPeers.Len() < 6 {
-				timer.Reset(time.Second * 60)
-			} else {
-				timer.Reset(time.Second * 300)
-			}
+			timer.Reset(time.Second * 300)
 		case <-m.exitCh:
 			log.Info("Peers listener stopped")
 			return
@@ -833,7 +827,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 }
 
 const (
-	batch = 2048
+	batch = 4096
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
