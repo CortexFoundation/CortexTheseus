@@ -89,8 +89,13 @@ inline bool Pool2DInferShape(const cvm::NodeAttrs& attrs,
   } else {
     oshape[hidx] = ((dshape[hidx] + pad_h - param.pool_size[0] +
                     param.strides[0] - 1) / param.strides[0]) + 1;
+    int32_t min_o_h = (oshape[hidx]-1) * param.strides[0] - param.padding[0];
+    VERIFY(min_o_h < dshape[hidx]);
+    
     oshape[widx] = ((dshape[widx] + pad_w - param.pool_size[1] +
                     param.strides[1] - 1) / param.strides[1]) + 1;
+    int32_t min_o_w = (oshape[widx]-1) * param.strides[1] - (param.padding.ndim() == 1 ? param.padding[0] : param.padding[1]);
+    VERIFY(min_o_w < dshape[widx]);
   }
 	CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, 0, oshape);
   return true;
