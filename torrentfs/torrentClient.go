@@ -223,7 +223,7 @@ func (t *Torrent) Seed() {
 
 	t.Torrent.DownloadAll()
 	t.status = torrentSeeding
-	log.Info("Download success, switch seeding", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited)
+	log.Info("Download success, seeding(s)", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited)
 }
 
 func (t *Torrent) Seeding() bool {
@@ -354,8 +354,8 @@ func (tm *TorrentManager) Close() error {
 }
 
 func (tm *TorrentManager) dropAll() {
-	//tm.lock.Lock()
-	//tm.lock.Unlock()
+	tm.lock.Lock()
+	tm.lock.Unlock()
 	defer tm.client.Close()
 	for _, t := range tm.torrents {
 		stats := t.Stats()
@@ -837,7 +837,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 							path.Join(tm.DataDir, t.InfoHash()),
 						)
 						if err != nil {
-						//	log.Warn("Fix path error", "hash", t.Torrent.InfoHash(), "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
+							//	log.Warn("Fix path error", "hash", t.Torrent.InfoHash(), "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
 						} else {
 							log.Debug("Fix path success", "hash", t.Torrent.InfoHash(), "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
 						}

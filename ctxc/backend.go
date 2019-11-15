@@ -147,7 +147,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		IsRemoteInfer:  config.InferURI != "",
 		InferURI:       config.InferURI,
 		IsNotCache:     false,
-		Storagefs:      torrentfs.Torrentfs_handle,
+		Storagefs:      torrentfs.GetStorage(),//torrentfs.Torrentfs_handle,
 	})
 
 	var (

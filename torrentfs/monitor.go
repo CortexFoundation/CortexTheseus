@@ -31,11 +31,10 @@ var (
 	ErrGetLatestBlock = errors.New("get latest block failed")
 	ErrNoRPCClient    = errors.New("no rpc client")
 
-	ErrBlockHash  = errors.New("block or parent block hash invalid")
-	blockCache, _ = lru.New(6)
-	//unhealthPeers, _ = lru.New(256)
-	healthPeers, _ = lru.New(50)
-	sizeCache, _   = lru.New(batch)
+	ErrBlockHash = errors.New("block or parent block hash invalid")
+	//blockCache, _ = lru.New(6)
+	//healthPeers, _ = lru.New(50)
+	//sizeCache, _   = lru.New(batch)
 )
 
 const (
@@ -83,6 +82,9 @@ type Monitor struct {
 
 	taskCh      chan *Block
 	newTaskHook func(*Block)
+	blockCache  *lru.Cache
+	healthPeers *lru.Cache
+	sizeCache   *lru.Cache
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -94,7 +96,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
 	if fsErr != nil {
-		log.Error("file storage failed")
+		log.Error("file storage failed", "err", fsErr)
 		return nil, fsErr
 	}
 	log.Info("Torrent file storage initialized")
@@ -119,6 +121,9 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		dirty:      false,
 		taskCh:     make(chan *Block, batch*2),
 	}
+	m.blockCache, _ = lru.New(6)
+	m.healthPeers, _ = lru.New(50)
+	m.sizeCache, _ = lru.New(batch)
 	e = nil
 
 	log.Info("Loading storage data ... ...")
@@ -282,7 +287,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
 					for _, p := range ps {
 						tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
-						if healthPeers.Contains(tracker) {
+						if m.healthPeers.Contains(tracker) {
 							//continue
 						} else {
 							flush = true
@@ -293,7 +298,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
 						//m.trackerLock.Unlock()
 						//flush = true
-						healthPeers.Add(tracker, tracker)
+						m.healthPeers.Add(tracker, tracker)
 						//if unhealthPeers.Contains(ip) {
 						//	unhealthPeers.Remove(ip)
 						//}
@@ -304,7 +309,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 					if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
 						for _, p := range ps {
 							tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
-							if healthPeers.Contains(tracker) {
+							if m.healthPeers.Contains(tracker) {
 								//continue
 							} else {
 								flush = true
@@ -313,7 +318,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 							//trackers = append(trackers, tracker)
 							//m.trackerLock.Unlock()
 							//flush = true
-							healthPeers.Add(tracker, tracker)
+							m.healthPeers.Add(tracker, tracker)
 							//if unhealthPeers.Contains(ip) {
 							//	unhealthPeers.Remove(ip)
 							//}
@@ -326,7 +331,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		m.peersWg.Wait()
 
 		var trackers []string
-		for _, data := range healthPeers.Keys() {
+		for _, data := range m.healthPeers.Keys() {
 			if str, ok := data.(string); ok {
 				trackers = append(trackers, str)
 			}
@@ -339,7 +344,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", healthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", m.healthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
@@ -373,7 +378,7 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 }*/
 
 func (m *Monitor) getRemainingSize(address string) (uint64, error) {
-	if size, suc := sizeCache.Get(address); suc && size.(uint64) == 0 {
+	if size, suc := m.sizeCache.Get(address); suc && size.(uint64) == 0 {
 		return size.(uint64), nil
 	}
 	var remainingSize hexutil.Uint64
@@ -382,7 +387,7 @@ func (m *Monitor) getRemainingSize(address string) (uint64, error) {
 	}
 	remain := uint64(remainingSize)
 	if remain == 0 {
-		sizeCache.Add(address, remain)
+		m.sizeCache.Add(address, remain)
 	}
 	return remain, nil
 }
@@ -894,7 +899,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 func (m *Monitor) deal(rpcBlock *Block) error {
 	i := rpcBlock.Number
-	if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
+	if hash, suc := m.blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
 
 		/*block := m.fs.GetBlockByNumber(i)
 		if block == nil {
@@ -924,7 +929,7 @@ func (m *Monitor) deal(rpcBlock *Block) error {
 			log.Error("Fail to parse and storge latest block", "number", i, "error", err)
 			return err
 		}
-		blockCache.Add(i, rpcBlock.Hash.Hex())
+		m.blockCache.Add(i, rpcBlock.Hash.Hex())
 	}
 	return nil
 }

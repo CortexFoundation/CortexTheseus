@@ -2,7 +2,7 @@ package synapse
 
 import (
 	"strings"
-	"sync"
+	//"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -47,7 +47,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	}
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
-	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		return v.(uint64), nil
 	}
@@ -58,7 +58,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	}
 
 	if !s.config.IsNotCache {
-		s.simpleCache.Store(cacheKey, gas)
+		s.gasCache.Store(cacheKey, gas)
 	}
 	return gas, err
 }
@@ -141,10 +141,10 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		status int
 	)
 
-	v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
-	mutex := v.(sync.Mutex)
-	mutex.Lock()
-	defer mutex.Unlock()
+	//v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
+	//mutex := v.(sync.Mutex)
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
@@ -192,12 +192,12 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 		errRes := s.remoteAvailable(
 			infoHash,
 			rawSize)
-			//s.config.InferURI)
+		//s.config.InferURI)
 		return errRes
 	}
 	if len(infoHash) < 2 || !strings.HasPrefix(infoHash, "0x") {
-                return KERNEL_RUNTIME_ERROR
-        }
+		return KERNEL_RUNTIME_ERROR
+	}
 	ih := strings.ToLower(infoHash[2:])
 	is_ok, err := s.config.Storagefs.Available(ih, rawSize)
 	if err != nil {

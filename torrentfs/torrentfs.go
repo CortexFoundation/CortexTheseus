@@ -12,6 +12,7 @@ import (
 	"sync"
 	//"strings"
 	"errors"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 type CVMStorage interface {
@@ -30,7 +31,9 @@ type TorrentFS struct {
 	history *GeneralMessage
 	monitor *Monitor
 
-	fileLock sync.Mutex
+	fileLock  sync.Mutex
+	fileCache *lru.Cache
+	fileCh    chan bool
 }
 
 func (t *TorrentFS) Config() *Config {
@@ -44,9 +47,9 @@ func (t *TorrentFS) Monitor() *Monitor {
 var torrentInstance *TorrentFS = nil
 
 func GetTorrentInstance() *TorrentFS {
-	if torrentInstance == nil {
-		torrentInstance, _ = New(&DefaultConfig, "")
-	}
+	//if torrentInstance == nil {
+	//	torrentInstance, _ = New(&DefaultConfig, "")
+	//}
 	return torrentInstance
 }
 
@@ -64,7 +67,7 @@ func GetConfig() *Config {
 }
 
 // New creates a new dashboard instance with the given configuration.
-var Torrentfs_handle CVMStorage
+//var Torrentfs_handle CVMStorage
 
 // New creates a new torrentfs instance with the given configuration.
 func New(config *Config, commit string) (*TorrentFS, error) {
@@ -94,7 +97,9 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 		history: msg,
 		monitor: monitor,
 	}
-	Torrentfs_handle = torrentInstance
+	torrentInstance.fileCache, _ = lru.New(8)
+	torrentInstance.fileCh = make(chan bool, 4)
+	//	Torrentfs_handle = torrentInstance
 
 	return torrentInstance, nil
 }
@@ -118,6 +123,9 @@ func (tfs *TorrentFS) Start(server *p2p.Server) error {
 // Stop stops the data collection thread and the connection listener of the dashboard.
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Stop() error {
+	if tfs == nil || tfs.monitor == nil {
+		return nil
+	}
 	// Wait until every goroutine terminates.
 	tfs.monitor.Stop()
 	return nil
@@ -127,6 +135,10 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 	// modelDir := fs.DataDir + "/" + infoHash
 	// if (os.Stat)
 	return Available(infohash, rawSize)
+}
+
+func (fs *TorrentFS) release() {
+	<-torrentInstance.fileCh
 }
 
 func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
@@ -141,6 +153,17 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 			log.Error("Read unavailable file", "hash", infohash, "subpath", subpath)
 			return nil, errors.New("download not completed")
 		}
+		torrentInstance.fileCh <- true
+		defer fs.release()
+		var key = infohash + subpath
+
+		if cache, ok := fs.fileCache.Get(key); ok {
+			log.Trace("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len())
+			return cache.([]byte), nil
+		}
+
+		fs.fileLock.Lock()
+		defer fs.fileLock.Unlock()
 		fn := path.Join(fs.config.DataDir, infohash, subpath)
 		data, err := ioutil.ReadFile(fn)
 		for _, file := range torrent.Files() {
@@ -151,6 +174,7 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 					return nil, errors.New("not a complete file")
 				} else {
 					log.Debug("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
+					fs.fileCache.Add(key, data)
 					break
 				}
 			}
