@@ -6,9 +6,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/anacrolix/torrent/metainfo"
 	"io/ioutil"
 	"path"
 	"sync"
+	//"strings"
+	"errors"
 )
 
 type CVMStorage interface {
@@ -127,11 +130,49 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 }
 
 func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
-	fs.fileLock.Lock()
-	defer fs.fileLock.Unlock()
-	fn := path.Join(fs.config.DataDir, infohash, subpath)
-	data, err := ioutil.ReadFile(fn)
-	return data, err
-	//return LoadFile(infohash, fn)
-	//return GetFile(infohash, subpath)
+	ih := metainfo.NewHashFromHex(infohash)
+	tm := CurrentTorrentManager
+	if torrent := tm.GetTorrent(ih); torrent == nil {
+		log.Info("Torrent not found", "hash", infohash)
+		return nil, errors.New("download not completed")
+	} else {
+
+		if !torrent.IsAvailable() {
+			log.Error("read file", "hash", infohash, "subpath", subpath)
+			return nil, errors.New("not av")
+		}
+		fn := path.Join(fs.config.DataDir, infohash, subpath)
+		data, err := ioutil.ReadFile(fn)
+		if subpath == "/data" {
+			if int64(len(data)) != torrent.BytesCompleted() {
+				log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", torrent.BytesCompleted())
+				return nil, errors.New("not a complete file")
+			} else {
+				log.Warn("Read data sucess", "hash", infohash, "size", len(data), "path", subpath)
+			}
+		} else if subpath == "/data/symbol" {
+			for _, file := range torrent.Files() {
+				if file.Path() == "/data/symbol" {
+					if int64(len(data)) != file.Length() {
+						log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
+						return nil, errors.New("not a complete file")
+					} else {
+						log.Warn("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
+					}
+				}
+			}
+		} else if subpath == "/data/params" {
+			for _, file := range torrent.Files() {
+				if file.Path() == "/data/params" {
+					if int64(len(data)) != file.Length() {
+						log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
+						return nil, errors.New("not a complete file")
+					} else {
+						log.Warn("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
+					}
+				}
+			}
+		}
+		return data, err
+	}
 }

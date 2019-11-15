@@ -195,7 +195,11 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 			s.config.InferURI)
 		return errRes
 	}
-	is_ok, err := s.config.Storagefs.Available(infoHash, rawSize)
+	if len(infoHash) < 2 || !strings.HasPrefix(infoHash, "0x") {
+                return KERNEL_RUNTIME_ERROR
+        }
+	ih := strings.ToLower(infoHash[2:])
+	is_ok, err := s.config.Storagefs.Available(ih, rawSize)
 	if err != nil {
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
