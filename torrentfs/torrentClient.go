@@ -825,16 +825,31 @@ func (tm *TorrentManager) listenTorrentProgress() {
 				t.bytesMissing = t.BytesMissing()
 
 				if t.Finished() {
-					os.Symlink(
+					tm.lock.Lock()
+					err := os.Symlink(
 						path.Join(defaultTmpFilePath, t.InfoHash()),
 						path.Join(tm.DataDir, t.InfoHash()),
 					)
-					delete(tm.activeTorrents, ih)
-					tm.seedingTorrents[ih] = t
-					t.Seed()
-					t.loop = defaultSeedInterval / queryTimeInterval
-					total_size += uint64(t.bytesCompleted)
-					current_size += uint64(t.bytesCompleted)
+
+					if err != nil {
+						//log.Warn("Seeding path error", "hash", t.Torrent.InfoHash(), "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
+						err = os.Remove(
+							path.Join(tm.DataDir, t.InfoHash()),
+						)
+						if err != nil {
+						//	log.Warn("Fix path error", "hash", t.Torrent.InfoHash(), "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
+						} else {
+							log.Debug("Fix path success", "hash", t.Torrent.InfoHash(), "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
+						}
+					} else {
+						delete(tm.activeTorrents, ih)
+						tm.seedingTorrents[ih] = t
+						t.Seed()
+						t.loop = defaultSeedInterval / queryTimeInterval
+						total_size += uint64(t.bytesCompleted)
+						current_size += uint64(t.bytesCompleted)
+					}
+					tm.lock.Unlock()
 					continue
 				}
 
