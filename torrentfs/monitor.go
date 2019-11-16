@@ -54,6 +54,8 @@ type TorrentManagerAPI interface {
 	Close() error
 	RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
+	UpdateDynamicTrackers(trackers []string)
+	GetTorrent(ih metainfo.Hash) *Torrent
 }
 
 // Monitor observes the data changes on the blockchain and synchronizes.
@@ -339,7 +341,8 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		}
 		//log.Info("Waiting dynamic tracker done", "size", len(peers))
 		if len(trackers) > 0 && flush {
-			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
+			//m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
+			m.dl.UpdateDynamicTrackers(trackers)
 			for _, t := range trackers {
 				log.Trace("Healthy trackers", "tracker", t)
 			}

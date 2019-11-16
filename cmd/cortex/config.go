@@ -28,7 +28,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
+	//"time"
 	"unicode"
 
 	cli "gopkg.in/urfave/cli.v1"
@@ -168,8 +168,11 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 		log.Info("makeFullNode", "storageEnabled", storageEnabled)
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}
+	var wg sync.WaitGroup
 	if deviceType := utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)); deviceType != "" {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			cmd := os.Args[0]
 			log.Info("RegisterCVMService", "cmd", cmd)
 			args := []string{"cvm",
@@ -199,14 +202,14 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			var wg sync.WaitGroup
 			wg.Add(2)
 			go func() {
+				defer wg.Done()
 				_, _ = io.Copy(stdout, stdoutIn)
-				wg.Done()
 			}()
 			go func() {
+				defer wg.Done()
 				_, _ = io.Copy(stderr, stderrIn)
-				wg.Done()
 			}()
-			wg.Wait()
+			//wg.Wait()
 
 			if err := prg.Wait(); err != nil {
 				log.Error("RegisterCVMService", "err", err)
@@ -215,8 +218,10 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			// outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
 			// log.Debug("RegisterCVMService", "out", outStr, "err", errStr)
 		}()
-		time.Sleep(10000 * time.Millisecond)
+		wg.Wait()
+		//time.Sleep(10000 * time.Millisecond)
 	}
+	wg.Wait()
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 
 	// if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {

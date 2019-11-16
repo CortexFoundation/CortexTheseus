@@ -3,7 +3,7 @@ package torrentfs
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	//"fmt"
 	"os"
 	"path/filepath"
 	//"path"
@@ -125,9 +125,9 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	return nil
 }*/
 
-func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
-	return CurrentTorrentManager
-}
+//func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
+//	return CurrentTorrentManager
+//}
 
 func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
 	addr := *x.ContractAddr
@@ -169,7 +169,7 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 // 	}
 // }
 
-func Available(infohash string, rawSize int64) (bool, error) {
+/*func Available(infohash string, rawSize int64) (bool, error) {
 	//log.Info("Available", "infohash", infohash, "RawSize", rawSize)
 	//TorrentAPIAvailable.Lock()
 	//defer TorrentAPIAvailable.Unlock()
@@ -192,7 +192,7 @@ func Available(infohash string, rawSize int64) (bool, error) {
 		//log.Info("download not completed", "complete", torrent.BytesCompleted(), "miss", torrent.BytesMissing(), "raw", rawSize)
 		return torrent.BytesCompleted() <= rawSize, nil
 	}
-}
+}*/
 
 /*func LoadFile(infohash string, fn string) ([]byte, error) {
         data, err := ioutil.ReadFile(fn)

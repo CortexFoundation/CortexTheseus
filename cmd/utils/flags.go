@@ -314,7 +314,7 @@ var (
 		Name:  "trie-cache-gens",
 		Usage: "Number of trie node generations to keep in memory",
 		//Value: int(state.MaxTrieCacheGen),
-		Value : 0,
+		Value: 0,
 	}
 	// Miner settings
 	MiningEnabledFlag = cli.BoolFlag{
@@ -1260,9 +1260,14 @@ func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 
 // RegisterStorageService adds a torrent file system to the stack.
 func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
-	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+	var err error
+	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		return torrentfs.New(cfg, commit)
 	})
+
+	if err != nil {
+		Fatalf("Failed to register the storage service: %v", err)
+	}
 }
 
 // RegisterDashboardService adds a dashboard to the stack.

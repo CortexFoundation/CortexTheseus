@@ -593,7 +593,7 @@ func (tm *TorrentManager) DropInfoHash(ih metainfo.Hash) bool {
 	return false
 }
 
-var CurrentTorrentManager *TorrentManager = nil
+//var CurrentTorrentManager *TorrentManager = nil
 
 // NewTorrentManager ...
 func NewTorrentManager(config *Config) *TorrentManager {
@@ -673,7 +673,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	}
 	log.Info("Torrent client initialized")
 
-	CurrentTorrentManager = TorrentManager
+	//CurrentTorrentManager = TorrentManager
 	//cl.WaitAll()
 	return TorrentManager
 }

@@ -134,7 +134,29 @@ func (tfs *TorrentFS) Stop() error {
 func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 	// modelDir := fs.DataDir + "/" + infoHash
 	// if (os.Stat)
-	return Available(infohash, rawSize)
+	//return Available(infohash, rawSize)
+	//log.Info("Available", "infohash", infohash, "RawSize", rawSize)
+	//TorrentAPIAvailable.Lock()
+	//defer TorrentAPIAvailable.Unlock()
+	//if !strings.HasPrefix(infohash, "0x") {
+	//      return false, errors.New("invalid info hash format")
+	//}
+	ih := metainfo.NewHashFromHex(infohash)
+	tm := fs.monitor.dl //CurrentTorrentManager
+	//log.Debug("storage", "ih", ih)
+	if torrent := tm.GetTorrent(ih); torrent == nil {
+		//log.Debug("storage", "ih", ih, "torrent", torrent)
+		log.Info("Torrent not found", "hash", infohash)
+		return false, errors.New("download not completed")
+	} else {
+		if !torrent.IsAvailable() {
+			log.Warn("[Not available] Download not completed", "hash", infohash, "raw", rawSize, "complete", torrent.BytesCompleted())
+			return false, errors.New(fmt.Sprintf("download not completed: %d %d", torrent.BytesCompleted(), rawSize))
+		}
+		//log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
+		//log.Info("download not completed", "complete", torrent.BytesCompleted(), "miss", torrent.BytesMissing(), "raw", rawSize)
+		return torrent.BytesCompleted() <= rawSize, nil
+	}
 }
 
 func (fs *TorrentFS) release() {
@@ -143,7 +165,7 @@ func (fs *TorrentFS) release() {
 
 func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 	ih := metainfo.NewHashFromHex(infohash)
-	tm := CurrentTorrentManager
+	tm := fs.monitor.dl //CurrentTorrentManager
 	if torrent := tm.GetTorrent(ih); torrent == nil {
 		log.Info("Torrent not found", "hash", infohash)
 		return nil, errors.New("download not completed")
