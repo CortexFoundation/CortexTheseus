@@ -46,20 +46,20 @@ func (t *TorrentFS) Monitor() *Monitor {
 
 var torrentInstance *TorrentFS = nil
 
-func GetTorrentInstance() *TorrentFS {
-	//if torrentInstance == nil {
-	//	torrentInstance, _ = New(&DefaultConfig, "")
-	//}
-	return torrentInstance
-}
+//func GetTorrentInstance() *TorrentFS {
+//if torrentInstance == nil {
+//	torrentInstance, _ = New(&DefaultConfig, "")
+//}
+//	return torrentInstance
+//}
 
 func GetStorage() CVMStorage {
-	return GetTorrentInstance()
+	return torrentInstance //GetTorrentInstance()
 }
 
 func GetConfig() *Config {
 	if torrentInstance != nil {
-		return GetTorrentInstance().Config()
+		return torrentInstance.Config()
 	} else {
 		return &DefaultConfig
 	}

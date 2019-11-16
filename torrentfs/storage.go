@@ -100,6 +100,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		//opCounter:         0,
 		dataDir: config.DataDir,
 	}
+
 	fs.readBlockNumber()
 	//fs.readLastFileIndex()
 	fs.initFiles()
