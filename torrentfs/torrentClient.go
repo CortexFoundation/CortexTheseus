@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	removeTorrentChanBuffer = 1
+	//removeTorrentChanBuffer = 1
 	updateTorrentChanBuffer = 2048
 
 	torrentPending = iota //2
@@ -298,7 +298,7 @@ type TorrentManager struct {
 	DataDir             string
 	TmpDataDir          string
 	closeAll            chan struct{}
-	removeTorrent       chan metainfo.Hash
+	//removeTorrent       chan metainfo.Hash
 	updateTorrent       chan interface{}
 	//mu                  sync.Mutex
 	lock      sync.RWMutex
@@ -364,10 +364,10 @@ func (tm *TorrentManager) dropAll() {
 	}
 }
 
-func (tm *TorrentManager) RemoveTorrent(input metainfo.Hash) error {
-	tm.removeTorrent <- input
-	return nil
-}
+//func (tm *TorrentManager) RemoveTorrent(input metainfo.Hash) error {
+//	tm.removeTorrent <- input
+//	return nil
+//}
 
 func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
 	//go func() {tm.updateTorrent <- input}()
@@ -582,7 +582,7 @@ func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64)
 }
 
 // DropInfoHash ...
-func (tm *TorrentManager) DropInfoHash(ih metainfo.Hash) bool {
+/*func (tm *TorrentManager) DropInfoHash(ih metainfo.Hash) bool {
 	if t := tm.GetTorrent(ih); t != nil {
 		t.Torrent.Drop()
 		tm.lock.Lock()
@@ -591,7 +591,7 @@ func (tm *TorrentManager) DropInfoHash(ih metainfo.Hash) bool {
 		return true
 	}
 	return false
-}
+}*/
 
 //var CurrentTorrentManager *TorrentManager = nil
 
@@ -662,7 +662,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		TmpDataDir:          tmpFilePath,
 		boostFetcher:        NewBoostDataFetcher(config.BoostNodes),
 		closeAll:            make(chan struct{}),
-		removeTorrent:       make(chan metainfo.Hash, removeTorrentChanBuffer),
+		//removeTorrent:       make(chan metainfo.Hash, removeTorrentChanBuffer),
 		updateTorrent:       make(chan interface{}, updateTorrentChanBuffer),
 		//updateTorrent:       make(chan interface{}),
 	}
@@ -697,8 +697,8 @@ func (tm *TorrentManager) mainLoop() {
 	defer tm.wg.Done()
 	for {
 		select {
-		case torrent := <-tm.removeTorrent:
-			tm.DropInfoHash(torrent)
+		//case torrent := <-tm.removeTorrent:
+		//	tm.DropInfoHash(torrent)
 		case msg := <-tm.updateTorrent:
 			meta := msg.(FlowControlMeta)
 			if meta.IsCreate {
