@@ -299,7 +299,7 @@ type TorrentManager struct {
 	TmpDataDir          string
 	closeAll            chan struct{}
 	//removeTorrent       chan metainfo.Hash
-	updateTorrent       chan interface{}
+	updateTorrent chan interface{}
 	//mu                  sync.Mutex
 	lock      sync.RWMutex
 	wg        sync.WaitGroup
@@ -663,7 +663,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		boostFetcher:        NewBoostDataFetcher(config.BoostNodes),
 		closeAll:            make(chan struct{}),
 		//removeTorrent:       make(chan metainfo.Hash, removeTorrentChanBuffer),
-		updateTorrent:       make(chan interface{}, updateTorrentChanBuffer),
+		updateTorrent: make(chan interface{}, updateTorrentChanBuffer),
 		//updateTorrent:       make(chan interface{}),
 	}
 
