@@ -541,7 +541,18 @@ func (m *Monitor) Stop() {
 	                }
 	                log.Info("Torrent client listener synchronizing closed")
 	        })*/
-	m.wg.Add(1)
+	log.Info("Torrent client listener synchronizing closing")
+	if err := m.dl.Close(); err != nil {
+		log.Error("Monitor Torrent Manager closed", "error", err)
+	}
+	log.Info("Torrent client listener synchronizing closed")
+
+	log.Info("Torrent fs listener synchronizing closing")
+	if err := m.fs.Close(); err != nil {
+		log.Error("Monitor File Storage closed", "error", err)
+	}
+	log.Info("Torrent fs listener synchronizing closed")
+	/*m.wg.Add(1)
 	m.closeOnce.Do(func() {
 		defer m.wg.Done()
 		log.Info("Torrent client listener synchronizing closing")
@@ -556,7 +567,7 @@ func (m *Monitor) Stop() {
 		}
 		log.Info("Torrent fs listener synchronizing closed")
 	})
-	m.wg.Wait()
+	m.wg.Wait()*/
 
 	log.Info("Torrent listener closed")
 }
