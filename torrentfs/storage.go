@@ -91,7 +91,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	if dbErr != nil {
 		return nil, dbErr
 	}
-	db.NoSync = true
+	//db.NoSync = true
 
 	fs := &FileStorage{
 		// filesInfoHash:     make(map[metainfo.Hash]*FileInfo),

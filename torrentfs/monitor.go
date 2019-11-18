@@ -52,7 +52,7 @@ const (
 type TorrentManagerAPI interface {
 	Start() error
 	Close() error
-	RemoveTorrent(metainfo.Hash) error
+	//RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
 	UpdateDynamicTrackers(trackers []string)
 	GetTorrent(ih metainfo.Hash) *Torrent
