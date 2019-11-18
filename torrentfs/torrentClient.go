@@ -343,12 +343,13 @@ func (tm *TorrentManager) Close() error {
 	log.Info("Torrent Download Manager Closing")
 	close(tm.closeAll)
 	tm.wg.Wait()
-	tm.wg.Add(1)
+	tm.dropAll()
+	/*tm.wg.Add(1)
 	tm.closeOnce.Do(func() {
 		defer tm.wg.Done()
 		tm.dropAll()
 	})
-	tm.wg.Wait()
+	tm.wg.Wait()*/
 	log.Info("Torrent Download Manager Closed")
 	return nil
 }
