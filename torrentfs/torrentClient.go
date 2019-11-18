@@ -355,8 +355,8 @@ func (tm *TorrentManager) Close() error {
 }
 
 func (tm *TorrentManager) dropAll() {
-	tm.lock.Lock()
-	tm.lock.Unlock()
+	//tm.lock.Lock()
+	//tm.lock.Unlock()
 	defer tm.client.Close()
 	for _, t := range tm.torrents {
 		stats := t.Stats()
@@ -371,8 +371,8 @@ func (tm *TorrentManager) dropAll() {
 //}
 
 func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
-	//go func() {tm.updateTorrent <- input}()
-	tm.updateTorrent <- input
+	go func() { tm.updateTorrent <- input }()
+	//tm.updateTorrent <- input
 	return nil
 }
 

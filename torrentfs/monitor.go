@@ -82,7 +82,7 @@ type Monitor struct {
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
 
-	taskCh      chan *Block
+	//taskCh      chan *Block
 	newTaskHook func(*Block)
 	blockCache  *lru.Cache
 	healthPeers *lru.Cache
@@ -121,7 +121,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		terminated: 0,
 		lastNumber: uint64(0),
 		dirty:      false,
-		taskCh:     make(chan *Block, batch*2),
+		//taskCh:     make(chan *Block, batch*2),
 	}
 	m.blockCache, _ = lru.New(6)
 	m.healthPeers, _ = lru.New(50)
@@ -175,7 +175,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	return m, e
 }
 
-func (m *Monitor) taskLoop() {
+/*func (m *Monitor) taskLoop() {
 	defer m.wg.Done()
 	for {
 		select {
@@ -186,13 +186,14 @@ func (m *Monitor) taskLoop() {
 
 			if err := m.deal(task); err != nil {
 				log.Warn("Block dealing failed", "err", err)
+				continue
 			}
 		case <-m.exitCh:
 			log.Info("Monitor task channel closed")
 			return
 		}
 	}
-}
+}*/
 
 // SetConnection method builds connection to remote or local communicator.
 func SetConnection(clientURI string) (*rpc.Client, error) {
@@ -531,7 +532,8 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 func (m *Monitor) Stop() {
 	log.Info("Torrent listener closing")
 	atomic.StoreInt32(&(m.terminated), 1)
-	close(m.exitCh)
+	//close(m.exitCh)
+	//m.wg.Wait()
 	m.wg.Wait()
 	/*m.wg.Add(1)
 		m.closeOnce.Do(func() {
@@ -630,8 +632,8 @@ func (m *Monitor) startWork() error {
 	//}
 
 	//log.Info("Torrent fs validation passed")
-	m.wg.Add(1)
-	go m.taskLoop()
+	//m.wg.Add(1)
+	//go m.taskLoop()
 	m.wg.Add(1)
 	go m.listenLatestBlock()
 	m.init()
@@ -895,6 +897,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			log.Warn("Torrent scan terminated", "number", i)
 			maxNumber = i - 1
+			close(m.exitCh)
 			break
 		}
 
@@ -903,7 +906,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 			log.Error("Sync old block failed", "number", i, "error", rpcErr)
 			return 0
 		}
-		m.taskCh <- rpcBlock
+		//m.taskCh <- rpcBlock
+		m.deal(rpcBlock)
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
