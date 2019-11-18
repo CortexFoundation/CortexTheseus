@@ -531,6 +531,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 
 func (m *Monitor) Stop() {
 	log.Info("Torrent listener closing")
+	if atomic.LoadInt32(&(m.terminated)) == 1 {
+		return
+	}
 	atomic.StoreInt32(&(m.terminated), 1)
 	close(m.exitCh)
 	//m.wg.Wait()
