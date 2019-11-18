@@ -102,7 +102,7 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 	torrentInstance.fileCache, _ = lru.New(8)
 	torrentInstance.fileCh = make(chan bool, 4)
 	//	Torrentfs_handle = torrentInstance
-	torrentInstance.compress = true
+	//torrentInstance.compress = true
 
 	return torrentInstance, nil
 }
