@@ -532,7 +532,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 func (m *Monitor) Stop() {
 	log.Info("Torrent listener closing")
 	atomic.StoreInt32(&(m.terminated), 1)
-	//close(m.exitCh)
+	close(m.exitCh)
 	//m.wg.Wait()
 	m.wg.Wait()
 	/*m.wg.Add(1)
@@ -897,7 +897,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			log.Warn("Torrent scan terminated", "number", i)
 			maxNumber = i - 1
-			close(m.exitCh)
+			//close(m.exitCh)
 			break
 		}
 
