@@ -100,7 +100,7 @@ func New(config *Config) *Synapse {
 func (s *Synapse) Close() {
 	close(s.exitCh)
 	if s.config.Storagefs != nil {
-//		s.config.Storagefs.Stop()
+		s.config.Storagefs.Stop()
 	}
 	log.Info("Synapse Engine Closed")
 }
