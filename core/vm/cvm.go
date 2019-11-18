@@ -558,7 +558,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("[hash ] succeed", "label", inferRes, "model", modelInfoHash, "input", inputInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("[hash ] succeed", "label", inferRes, "model", modelInfoHash, "input", inputInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	if cvm.vmConfig.DebugInferVM {
@@ -593,7 +593,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("[array] succeed", "label", inferRes, "model", modelInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("[array] succeed", "label", inferRes, "model", modelInfoHash, "array", inputArray, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	return inferRes, errRes
@@ -622,7 +622,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("[ops  ] succeed", "ops", opsRes, "addr", addr, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("[ops  ] succeed", "ops", opsRes, "addr", addr, "elapsed", common.PrettyDuration(elapsed))
 	}
 
 	return opsRes, errRes

@@ -12,6 +12,7 @@ import (
 	"sync"
 	//"strings"
 	"errors"
+	"github.com/CortexFoundation/CortexTheseus/common/compress"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -34,6 +35,7 @@ type TorrentFS struct {
 	fileLock  sync.Mutex
 	fileCache *lru.Cache
 	fileCh    chan bool
+	compress  bool
 }
 
 func (t *TorrentFS) Config() *Config {
@@ -100,6 +102,7 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 	torrentInstance.fileCache, _ = lru.New(8)
 	torrentInstance.fileCh = make(chan bool, 4)
 	//	Torrentfs_handle = torrentInstance
+	torrentInstance.compress = true
 
 	return torrentInstance, nil
 }
@@ -163,6 +166,22 @@ func (fs *TorrentFS) release() {
 	<-torrentInstance.fileCh
 }
 
+func (fs *TorrentFS) unzip(data []byte, c bool) ([]byte, error) {
+	if c {
+		return compress.UnzipData(data)
+	} else {
+		return data, nil
+	}
+}
+
+func (fs *TorrentFS) zip(data []byte, c bool) ([]byte, error) {
+	if c {
+		return compress.ZipData(data)
+	} else {
+		return data, nil
+	}
+}
+
 func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 	ih := metainfo.NewHashFromHex(infohash)
 	tm := fs.monitor.dl //CurrentTorrentManager
@@ -180,8 +199,15 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 		var key = infohash + subpath
 
 		if cache, ok := fs.fileCache.Get(key); ok {
-			log.Trace("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len())
-			return cache.([]byte), nil
+			//log.Trace("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len())
+			if c, err := fs.unzip(cache.([]byte), fs.compress); err != nil {
+				return nil, err
+			} else {
+				if fs.compress {
+					log.Info("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len(), "compress", len(cache.([]byte)), "origin", len(c), "compress", fs.compress)
+				}
+				return c, nil
+			}
 		}
 
 		fs.fileLock.Lock()
@@ -196,7 +222,11 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 					return nil, errors.New("not a complete file")
 				} else {
 					log.Debug("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
-					fs.fileCache.Add(key, data)
+					if c, err := fs.zip(data, fs.compress); err != nil {
+						log.Warn("Compress data failed", "hash", infohash, "err", err)
+					} else {
+						fs.fileCache.Add(key, c)
+					}
 					break
 				}
 			}
