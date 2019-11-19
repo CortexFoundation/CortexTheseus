@@ -38,7 +38,7 @@ var (
 )
 
 const (
-	defaultTimerInterval  = 2
+	defaultTimerInterval  = 1
 	connTryTimes          = 300
 	connTryInterval       = 2
 	fetchBlockTryTimes    = 5
@@ -472,7 +472,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	return nil
 }
 
-func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
+func (m *Monitor) parseBlockTorrentInfo(b *Block) error {
 	if len(b.Txs) > 0 {
 		start := mclock.Now()
 		for _, tx := range b.Txs {
@@ -482,7 +482,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return err
 				}
-			} else if flowCtrl && tx.IsFlowControl() {
+			} else if tx.IsFlowControl() {
 				if tx.Recipient == nil {
 					continue
 				}
@@ -500,8 +500,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
-					err := m.fs.WriteFile(file)
-					if err != nil {
+					if err := m.fs.WriteFile(file); err != nil {
 						return err
 					}
 
@@ -523,7 +522,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
 	}
 
 	return nil
@@ -851,7 +850,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 }
 
 const (
-	batch = 4096
+	batch = 2048
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
@@ -946,7 +945,7 @@ func (m *Monitor) deal(rpcBlock *Block) error {
 				}
 			}
 		}*/
-		if err := m.parseAndStore(rpcBlock, true); err != nil {
+		if err := m.parseAndStore(rpcBlock); err != nil {
 			log.Error("Fail to parse and storge latest block", "number", i, "error", err)
 			return err
 		}
@@ -955,8 +954,8 @@ func (m *Monitor) deal(rpcBlock *Block) error {
 	return nil
 }
 
-func (m *Monitor) parseAndStore(block *Block, flow bool) error {
-	if parseErr := m.parseBlockTorrentInfo(block, flow); parseErr != nil {
+func (m *Monitor) parseAndStore(block *Block) error {
+	if parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 		log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 		return parseErr
 	}

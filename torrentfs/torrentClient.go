@@ -33,7 +33,7 @@ import (
 
 const (
 	//removeTorrentChanBuffer = 1
-	updateTorrentChanBuffer = 2048
+	updateTorrentChanBuffer = batch
 
 	torrentPending = iota //2
 	torrentPaused
@@ -371,8 +371,8 @@ func (tm *TorrentManager) dropAll() {
 //}
 
 func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
-	go func() { tm.updateTorrent <- input }()
-	//tm.updateTorrent <- input
+	//go func() { tm.updateTorrent <- input }()
+	tm.updateTorrent <- input
 	return nil
 }
 
