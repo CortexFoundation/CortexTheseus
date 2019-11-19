@@ -333,7 +333,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			return nil, 0, big0, false, vmerr
 		}
 
-		log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
+		log.Debug("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
 
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
