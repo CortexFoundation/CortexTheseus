@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -84,7 +84,7 @@ type GenesisAccount struct {
 	Code       []byte                      `json:"code,omitempty"`
 	Storage    map[common.Hash]common.Hash `json:"storage,omitempty"`
 	Balance    *big.Int                    `json:"balance" gencodec:"required"`
-	BlockNum   *big.Int										 `json:"blocknum"`
+	BlockNum   *big.Int                    `json:"blocknum"`
 	Nonce      uint64                      `json:"nonce,omitempty"`
 	PrivateKey []byte                      `json:"secretKey,omitempty"` // for tests
 }
@@ -169,6 +169,25 @@ func SetupGenesisBlock(db ctxcdb.Database, genesis *Genesis) (*params.ChainConfi
 			log.Info("Writing custom genesis block")
 		}
 		block, err := genesis.Commit(db)
+		if err != nil {
+			return genesis.Config, common.Hash{}, err
+		}
+		return genesis.Config, block.Hash(), err
+	}
+
+	// We have the genesis block in database(perhaps in ancient database)
+	// but the corresponding state is missing.
+	header := rawdb.ReadHeader(db, stored, 0)
+	if _, err := state.New(header.Root, state.NewDatabaseWithCache(db, 0)); err != nil {
+		if genesis == nil {
+			genesis = DefaultGenesisBlock()
+		}
+		// Ensure the stored genesis matches with the given one.
+		hash := genesis.ToBlock(nil).Hash()
+		if hash != stored {
+			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
+		}
+		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
 
@@ -226,7 +245,7 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 // to the given database (or discards it if nil).
 func (g *Genesis) ToBlock(db ctxcdb.Database) *types.Block {
 	if db == nil {
-		db = ctxcdb.NewMemDatabase()
+		db = rawdb.NewMemoryDatabase()
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
@@ -277,6 +296,7 @@ func (g *Genesis) Commit(db ctxcdb.Database) (*types.Block, error) {
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
 	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
 	rawdb.WriteHeadBlockHash(db, block.Hash())
+	rawdb.WriteHeadFastBlockHash(db, block.Hash())
 	rawdb.WriteHeadHeaderHash(db, block.Hash())
 
 	config := g.Config
@@ -361,7 +381,7 @@ func DefaultDoloresGenesisBlock() *Genesis {
 // 	// Override the default period to the user requested one
 // 	config := *params.AllCliqueProtocolChanges
 // 	config.Clique.Period = period
-// 
+//
 // 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 // 	return &Genesis{
 // 		Config:     &config,

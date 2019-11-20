@@ -1,10 +1,8 @@
-// +build !remote
-
 package synapse
 
 import (
 	"strings"
-	"sync"
+	//"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -12,42 +10,29 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
-func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
-	if s.config.IsRemoteInfer {
-		inferRes, errRes := s.remoteInferByInfoHash(
-			modelInfoHash,
-			inputInfoHash,
-			s.config.InferURI)
-		return inferRes, errRes
-	}
+const (
+	DATA_PATH   string = "/data"
+	SYMBOL_PATH string = "/data/symbol"
+	PARAM_PATH  string = "/data/params"
+)
 
-	res, err := s.inferByInfoHash(modelInfoHash, inputInfoHash)
-	return res, err
+func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
+	switch status {
+	case kernel.ERROR_RUNTIME:
+		return nil, KERNEL_RUNTIME_ERROR
+	case kernel.ERROR_LOGIC:
+		return nil, KERNEL_LOGIC_ERROR
+	case kernel.SUCCEED:
+		return ret, nil
+	}
+	log.Warn("status code invalid", "code", status)
+	return nil, KERNEL_RUNTIME_ERROR
 }
 
-func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
+func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
 
-	if s.config.IsRemoteInfer {
-		inferRes, errRes := s.remoteInferByInputContent(
-			modelInfoHash,
-			s.config.InferURI,
-			inputContent,
-		)
-		return inferRes, errRes
-	}
-
-	inputInfoHash := RLPHashString(inputContent)
-
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
-}
-
-func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
-	// fmt.Println("synapse: ", s)
-	if s.config.IsRemoteInfer {
-		opsRes, errRes := s.remoteGasByModelHash(
-			modelInfoHash,
-			s.config.InferURI)
-		return opsRes, errRes
+	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") {
+		return 0, KERNEL_RUNTIME_ERROR
 	}
 
 	var (
@@ -55,79 +40,89 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		modelJson     []byte
 		modelJson_err error
 	)
-	modelJson, modelJson_err = s.config.Storagefs.GetFile(modelHash, "/data/symbol")
+	modelJson, modelJson_err = s.config.Storagefs.GetFile(modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		return 0, modelJson_err
+		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
+		return 0, KERNEL_RUNTIME_ERROR
 	}
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
-	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		return v.(uint64), nil
 	}
 	var status int
 	gas, status = kernel.GetModelGasFromGraphFile(s.lib, modelJson)
-	if status == kernel.ERROR_RUNTIME {
-		return 0, KERNEL_RUNTIME_ERROR
-	}
-	if status == kernel.ERROR_LOGIC {
-		return 0, KERNEL_LOGIC_ERROR
+	if _, err := getReturnByStatusCode(gas, status); err != nil {
+		return 0, err
 	}
 
 	if !s.config.IsNotCache {
-		s.simpleCache.Store(cacheKey, gas)
+		s.gasCache.Store(cacheKey, gas)
 	}
 	return gas, err
 }
 
-func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) ( res []byte, err error) {
+func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []byte, err error) {
+	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
+		return nil, KERNEL_RUNTIME_ERROR
+	}
+
 	var (
 		modelHash = strings.ToLower(modelInfoHash[2:])
-		inputHash = strings.ToLower(string(inputInfoHash[2:]))
+		inputHash = strings.ToLower(inputInfoHash[2:])
 	)
 
-	// Inference Cache
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
-	log.Debug("inferByInputContent,", "ModelInputKey", cacheKey)
-	if cacheKey == "0x53f8e0b0c93dedff2706e28643804470d67d79a9f1447b75dab09304ed8d1fe0" {
-		return []byte{19, 52, 238, 252, 208, 237, 223, 227, 243, 91}, nil
-	} else if cacheKey == "0xe0c42bc0779d627e14fba7c4e6f355644aa2535dfe9786d64684fb05f1de615c" {
-		return []byte{6, 252, 4, 59, 242, 0, 247, 30, 224, 217}, nil
+
+	if hash, ok := CvmFixHashes[cacheKey]; ok {
+		return hash, nil
 	}
+
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.([]byte))
 		return v.([]byte), nil
 	}
 
-	inputBytes, dataErr := s.config.Storagefs.GetFile(inputHash, "/data")
+	inputBytes, dataErr := s.config.Storagefs.GetFile(inputHash, DATA_PATH)
 	if dataErr != nil {
-		return nil, dataErr
+		log.Warn("inferByInfoHash: get file failed",
+			"input hash", inputHash, "error", dataErr)
+		return nil, KERNEL_RUNTIME_ERROR
 	}
 	reader, reader_err := inference.NewBytesReader(inputBytes)
 	if reader_err != nil {
-		return nil, reader_err
+		log.Warn("inferByInfoHash: read data failed",
+			"input hash", inputHash, "error", reader_err)
+		return nil, KERNEL_LOGIC_ERROR
 	}
 	data, read_data_err := ReadData(reader)
 	if read_data_err != nil {
-		return nil, read_data_err
+		log.Warn("inferByInfoHash: read data failed",
+			"input hash", inputHash, "error", read_data_err)
+		return nil, KERNEL_LOGIC_ERROR
 	}
 
 	return s.inferByInputContent(modelInfoHash, inputInfoHash, data)
 }
 
-func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) (resCh []byte, errCh error) {
+func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) (res []byte, err error) {
+	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
+		return nil, KERNEL_RUNTIME_ERROR
+	}
+
 	var (
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
-		// modelDir  = s.config.StorageDir + "/" + modelHash
 	)
 	// Inference Cache
-	ModelInputKey := RLPHashString(modelHash + "_" + inputHash)
-	if v, ok := s.simpleCache.Load(ModelInputKey); ok && !s.config.IsNotCache {
+	cacheKey := RLPHashString(modelHash + "_" + inputHash)
+	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
 		return v.([]byte), nil
 	}
-
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	// lazy initialization of model cache
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		memoryUsage := s.config.MaxMemoryUsage
@@ -142,68 +137,76 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	var (
-		result   []byte
-		model    *kernel.Model
+		result []byte
+		model  *kernel.Model
+		status int
 	)
 
-	v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
-	mutex := v.(sync.Mutex)
-	mutex.Lock()
-	defer mutex.Unlock()
+	//v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
+	//mutex := v.(sync.Mutex)
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
-		modelJson, modelJson_err := s.config.Storagefs.GetFile(modelHash, "/data/symbol")
+		modelJson, modelJson_err := s.config.Storagefs.GetFile(modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			return nil, modelJson_err
+			log.Warn("inferByInputContent: model loaded failed",
+				"model hash", modelHash, "error", modelJson_err)
+			return nil, KERNEL_RUNTIME_ERROR
 		}
-		modelParams, modelParams_err := s.config.Storagefs.GetFile(modelHash, "/data/params")
+		modelParams, modelParams_err := s.config.Storagefs.GetFile(modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			return nil, ErrModelFileNotExist
+			log.Warn("inferByInputContent: params loaded failed",
+				"model hash", modelHash, "error", modelParams_err)
+			return nil, KERNEL_RUNTIME_ERROR
 		}
 		var deviceType = 0
-		if (s.config.DeviceType == "cuda") {
+		if s.config.DeviceType == "cuda" {
 			deviceType = 1
 		}
-		var status int
 		model, status = kernel.New(s.lib, modelJson, modelParams, deviceType, s.config.DeviceId)
-		if status == kernel.ERROR_RUNTIME || model == nil {
+		// TODO(wlt): all returned runtime_error
+		if _, err := getReturnByStatusCode(model, status); err != nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		s.caches[s.config.DeviceId].Add(modelHash, model, int64(model.Size()))
-
 	} else {
 		model = model_tmp.(*kernel.Model)
 	}
-	var status = 0
+
 	result, status = model.Predict(inputContent)
-	if status == kernel.ERROR_RUNTIME {
+	// TODO(wlt): all returned runtime_error
+	if _, err := getReturnByStatusCode(result, status); err != nil {
 		return nil, KERNEL_RUNTIME_ERROR
-	} else if status == kernel.ERROR_LOGIC {
-		return nil, KERNEL_LOGIC_ERROR
 	}
 
 	if !s.config.IsNotCache {
-		s.simpleCache.Store(ModelInputKey, result)
+		s.simpleCache.Store(cacheKey, result)
 	}
 
 	return result, nil
 }
 
-func (s* Synapse) Available(infoHash string, rawSize int64) (bool, error) {
-	log.Info("Available", "infoHash", infoHash, "rawSize", rawSize)
+func (s *Synapse) Available(infoHash string, rawSize int64) error {
 	if s.config.IsRemoteInfer {
-		inferRes, errRes := s.remoteAvailable(
+		errRes := s.remoteAvailable(
 			infoHash,
-			rawSize,
-			s.config.InferURI)
-		if errRes != nil {
-			return false, errRes
-		}
-		if inferRes == 0 {
-			return false, nil
-		}
-		return true, nil
+			rawSize)
+		//s.config.InferURI)
+		return errRes
 	}
-	return s.config.Storagefs.Available(infoHash, rawSize)
+	if len(infoHash) < 2 || !strings.HasPrefix(infoHash, "0x") {
+		return KERNEL_RUNTIME_ERROR
+	}
+	ih := strings.ToLower(infoHash[2:])
+	is_ok, err := s.config.Storagefs.Available(ih, rawSize)
+	if err != nil {
+		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
+		return KERNEL_RUNTIME_ERROR
+	} else if !is_ok {
+		log.Warn("File is unavailable",
+			"info hash", infoHash, "error", KERNEL_LOGIC_ERROR)
+		return KERNEL_LOGIC_ERROR
+	}
+	log.Debug("File available", "info hash", infoHash)
+	return nil
 }

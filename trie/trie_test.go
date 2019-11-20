@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -29,11 +29,11 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func init() {

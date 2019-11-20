@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -212,7 +212,8 @@ func sameNet(bits uint, ip, other net.IP) bool {
 	if mask != 0 && nb < len(ip) && ip[nb]&mask != other[nb]&mask {
 		return false
 	}
-	return nb <= len(ip) && bytes.Equal(ip[:nb], other[:nb])
+	//return nb <= len(ip) && bytes.Equal(ip[:nb], other[:nb])
+	return nb <= len(ip) && ip[:nb].Equal(other[:nb])
 }
 
 // DistinctNetSet tracks IPs, ensuring that at most N of them

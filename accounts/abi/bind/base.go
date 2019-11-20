@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -36,10 +36,10 @@ type SignerFn func(types.Signer, common.Address, *types.Transaction) (*types.Tra
 
 // CallOpts is the collection of options to fine tune a contract call request.
 type CallOpts struct {
-	Pending bool           // Whether to operate on the pending state or the last known one
-	From    common.Address // Optional the sender address, otherwise the first account is used
+	Pending     bool           // Whether to operate on the pending state or the last known one
+	From        common.Address // Optional the sender address, otherwise the first account is used
 	BlockNumber *big.Int
-	Context context.Context // Network context to support cancellation and timeouts (nil = no timeout)
+	Context     context.Context // Network context to support cancellation and timeouts (nil = no timeout)
 }
 
 // TransactOpts is the collection of authorization data required to create a
@@ -121,7 +121,7 @@ func DeployModelMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, b
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	tx, err := c.transact(opts, nil, append([]byte{'0','1'},append(bytecode, input...)...))
+	tx, err := c.transact(opts, nil, append([]byte{'0', '1'}, append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -137,7 +137,7 @@ func DeployInputMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, b
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	tx, err := c.transact(opts, nil, append([]byte{'0','2'},append(bytecode, input...)...))
+	tx, err := c.transact(opts, nil, append([]byte{'0', '2'}, append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -153,7 +153,7 @@ func DeployCodeContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backen
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	tx, err := c.transact(opts, nil, append([]byte{'0','0'},append(bytecode, input...)...))
+	tx, err := c.transact(opts, nil, append([]byte{'0', '0'}, append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -266,7 +266,7 @@ func (c *BoundContract) transact(opts *TransactOpts, contract *common.Address, i
 			}
 		}
 		// If the contract surely has code (or code is not needed), estimate the transaction
-		msg := cortex.CallMsg{From: opts.From, To: contract, Value: value, Data: input}
+		msg := cortex.CallMsg{From: opts.From, To: contract, GasPrice: gasPrice, Value: value, Data: input}
 		gasLimit, err = c.transactor.EstimateGas(ensureContext(opts.Context), msg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to estimate gas needed: %v", err)

@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -60,6 +60,15 @@ func (api *PublicCortexAPI) Coinbase() (common.Address, error) {
 // Hashrate returns the POW hashrate
 func (api *PublicCortexAPI) Hashrate() hexutil.Uint64 {
 	return hexutil.Uint64(api.e.Miner().HashRate())
+}
+
+// ChainId is the EIP-155 replay-protection chain id for the current cortex chain config.
+func (api *PublicCortexAPI) ChainId() hexutil.Uint64 {
+	chainID := new(big.Int)
+	if config := api.e.chainConfig; config.IsEIP155(api.e.blockchain.CurrentBlock().Number()) {
+		chainID = config.ChainID
+	}
+	return (hexutil.Uint64)(chainID.Uint64())
 }
 
 // PublicMinerAPI provides an API to control the miner.
@@ -155,6 +164,11 @@ func NewPrivateAdminAPI(ctxc *Cortex) *PrivateAdminAPI {
 
 // ExportChain exports the current blockchain into a local file.
 func (api *PrivateAdminAPI) ExportChain(file string) (bool, error) {
+	if _, err := os.Stat(file); err == nil {
+		// File already exists. Allowing overwrite could be a DoS vecotor,
+		// since the 'file' may point to arbitrary paths on the drive
+		return false, errors.New("location would overwrite an existing file")
+	}
 	// Make sure we can create the file to export into
 	out, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
@@ -275,7 +289,7 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 // the private debugging endpoint.
 type PrivateDebugAPI struct {
 	config *params.ChainConfig
-	ctxc    *Cortex
+	ctxc   *Cortex
 }
 
 // NewPrivateDebugAPI creates a new API definition for the full node-related
@@ -431,11 +445,11 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 		return nil, fmt.Errorf("start block height (%d) must be less than end block height (%d)", startBlock.Number().Uint64(), endBlock.Number().Uint64())
 	}
 
-	oldTrie, err := trie.NewSecure(startBlock.Root(), trie.NewDatabase(api.ctxc.chainDb), 0)
+	oldTrie, err := trie.NewSecure(startBlock.Root(), trie.NewDatabase(api.ctxc.chainDb))
 	if err != nil {
 		return nil, err
 	}
-	newTrie, err := trie.NewSecure(endBlock.Root(), trie.NewDatabase(api.ctxc.chainDb), 0)
+	newTrie, err := trie.NewSecure(endBlock.Root(), trie.NewDatabase(api.ctxc.chainDb))
 	if err != nil {
 		return nil, err
 	}

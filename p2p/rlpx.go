@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -427,16 +427,6 @@ func (h *encHandshake) makeAuthResp() (msg *authRespV4, err error) {
 	copy(msg.RandomPubkey[:], exportPubkey(&h.randomPrivKey.PublicKey))
 	msg.Version = 4
 	return msg, nil
-}
-
-func (msg *authMsgV4) sealPlain(h *encHandshake) ([]byte, error) {
-	buf := make([]byte, authMsgLen)
-	n := copy(buf, msg.Signature[:])
-	n += copy(buf[n:], crypto.Keccak256(exportPubkey(&h.randomPrivKey.PublicKey)))
-	n += copy(buf[n:], msg.InitiatorPubkey[:])
-	n += copy(buf[n:], msg.Nonce[:])
-	buf[n] = 0 // token-flag
-	return ecies.Encrypt(rand.Reader, h.remotePub, buf, nil, nil)
 }
 
 func (msg *authMsgV4) decodePlain(input []byte) {

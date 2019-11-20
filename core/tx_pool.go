@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexTheseus Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -97,7 +97,9 @@ var (
 	queuedNofundsMeter   = metrics.NewRegisteredMeter("txpool/queued/nofunds", nil)   // Dropped due to out-of-funds
 
 	// General tx metrics
-	validMeter         = metrics.NewRegisteredMeter("txpool/valid", nil)
+	//validMeter         = metrics.NewRegisteredMeter("txpool/valid", nil)
+	knownTxMeter       = metrics.NewRegisteredMeter("txpool/known", nil)
+	validTxMeter       = metrics.NewRegisteredMeter("txpool/valid", nil)
 	invalidTxMeter     = metrics.NewRegisteredMeter("txpool/invalid", nil)
 	underpricedTxMeter = metrics.NewRegisteredMeter("txpool/underpriced", nil)
 
@@ -561,6 +563,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	// If the transaction is already known, discard it
 	hash := tx.Hash()
 	if pool.all.Get(hash) != nil {
+		knownTxMeter.Mark(1)
 		log.Trace("Discarding already known transaction", "hash", hash)
 		return false, fmt.Errorf("known transaction: %x", hash)
 	}
@@ -764,17 +767,42 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 	return errs[0]
 }
 
-// addTxs attempts to queue a batch of transactions if they are valid.
 func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
+	// Filter out known ones without obtaining the pool lock or recovering signatures
+	var (
+		errs = make([]error, len(txs))
+		news = make([]*types.Transaction, 0, len(txs))
+	)
+	for i, tx := range txs {
+		// If the transaction is known, pre-set the error slot
+		if pool.all.Get(tx.Hash()) != nil {
+			errs[i] = fmt.Errorf("known transaction: %x", tx.Hash())
+			knownTxMeter.Mark(1)
+			continue
+		}
+		// Accumulate all unknown transactions for deeper processing
+		news = append(news, tx)
+	}
+	if len(news) == 0 {
+		return errs
+	}
 	// Cache senders in transactions before obtaining lock (pool.signer is immutable)
-	for _, tx := range txs {
+	for _, tx := range news {
 		types.Sender(pool.signer, tx)
 	}
-
+	// Process all the new transaction and merge any errors into the original slice
 	pool.mu.Lock()
-	errs, dirtyAddrs := pool.addTxsLocked(txs, local)
+	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
 	pool.mu.Unlock()
 
+	var nilSlot = 0
+	for _, err := range newErrs {
+		for errs[nilSlot] != nil {
+			nilSlot++
+		}
+		errs[nilSlot] = err
+	}
+	// Reorg the pool internals if needed and return
 	done := pool.requestPromoteExecutables(dirtyAddrs)
 	if sync {
 		<-done
@@ -794,26 +822,29 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) ([]error,
 			dirty.addTx(tx)
 		}
 	}
-	validMeter.Mark(int64(len(dirty.accounts)))
+	validTxMeter.Mark(int64(len(dirty.accounts)))
 	return errs, dirty
 }
 
 // Status returns the status (unknown/pending/queued) of a batch of transactions
 // identified by their hashes.
 func (pool *TxPool) Status(hashes []common.Hash) []TxStatus {
-	pool.mu.RLock()
-	defer pool.mu.RUnlock()
-
 	status := make([]TxStatus, len(hashes))
 	for i, hash := range hashes {
-		if tx := pool.all.Get(hash); tx != nil {
-			from, _ := types.Sender(pool.signer, tx) // already validated
-			if pool.pending[from] != nil && pool.pending[from].txs.items[tx.Nonce()] != nil {
-				status[i] = TxStatusPending
-			} else {
-				status[i] = TxStatusQueued
-			}
+		tx := pool.Get(hash)
+		if tx == nil {
+			continue
 		}
+		from, _ := types.Sender(pool.signer, tx) // already validated
+		pool.mu.RLock()
+		if txList := pool.pending[from]; txList != nil && txList.txs.items[tx.Nonce()] != nil {
+			status[i] = TxStatusPending
+		} else if txList := pool.queue[from]; txList != nil && txList.txs.items[tx.Nonce()] != nil {
+			status[i] = TxStatusQueued
+		}
+		// implicit else: the tx may have been included into a block between
+		// checking pool.Get and obtaining the lock. In that case, TxStatusUnknown is correct
+		pool.mu.RUnlock()
 	}
 	return status
 }

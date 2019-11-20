@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"runtime/pprof"
 	"sync"
 	"syscall"
 	"time"
@@ -19,8 +18,9 @@ import (
 )
 
 var (
-	ErrConnClosed    = errors.New("closed")
-	errConnDestroyed = errors.New("destroyed")
+	ErrConnClosed            = errors.New("closed")
+	errConnDestroyed         = errors.New("destroyed")
+	errDeadlineExceededValue = errDeadlineExceeded{}
 )
 
 type Conn struct {
@@ -135,9 +135,9 @@ func (c *Conn) readNoWait(b []byte) (n int, err error) {
 		case c.destroyed:
 			return errConnDestroyed
 		case c.closed:
-			return errors.New("closed")
+			return ErrConnClosed
 		case !c.readDeadline.IsZero() && !time.Now().Before(c.readDeadline):
-			return errDeadlineExceeded{}
+			return errDeadlineExceededValue
 		default:
 			return nil
 		}
@@ -170,7 +170,7 @@ func (c *Conn) writeNoWait(b []byte) (n int, err error) {
 		case c.destroyed:
 			return errConnDestroyed
 		case !c.writeDeadline.IsZero() && !time.Now().Before(c.writeDeadline):
-			return errDeadlineExceeded{}
+			return errDeadlineExceededValue
 		default:
 			return nil
 		}
@@ -178,9 +178,7 @@ func (c *Conn) writeNoWait(b []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	pprof.Do(context.Background(), pprof.Labels("cgo", "utp_write"), func(context.Context) {
-		n = int(C.utp_write(c.us, unsafe.Pointer(&b[0]), C.size_t(len(b))))
-	})
+	n = int(C.utp_write(c.us, unsafe.Pointer(&b[0]), C.size_t(len(b))))
 	if n < 0 {
 		panic(n)
 	}
@@ -212,11 +210,11 @@ func (c *Conn) setRemoteAddr() {
 	var rsa syscall.RawSockaddrAny
 	var addrlen C.socklen_t = C.socklen_t(unsafe.Sizeof(rsa))
 	C.utp_getpeername(c.us, (*C.struct_sockaddr)(unsafe.Pointer(&rsa)), &addrlen)
-	sa, err := anyToSockaddr(&rsa)
-	if err != nil {
+	var udp net.UDPAddr
+	if err := anySockaddrToUdp(&rsa, &udp); err != nil {
 		panic(err)
 	}
-	c.remoteAddr = sockaddrToUDP(sa)
+	c.remoteAddr = &udp
 }
 
 func (c *Conn) RemoteAddr() net.Addr {
@@ -307,7 +305,7 @@ func (c *Conn) Connect(ctx context.Context, network, addr string) error {
 	if c.s.closed {
 		return errSocketClosed
 	}
-	if n := C.utp_connect(c.us, sa, sl); n != 0 {
+	if n := C.utp_connect(c.us, (*C.struct_sockaddr)(unsafe.Pointer(&sa)), sl); n != 0 {
 		panic(n)
 	}
 	c.inited = true

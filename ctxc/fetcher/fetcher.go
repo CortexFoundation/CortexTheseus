@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -110,7 +110,6 @@ type Fetcher struct {
 	notify chan *announce
 	inject chan *inject
 
-	blockFilter  chan chan []*types.Block
 	headerFilter chan chan *headerFilterTask
 	bodyFilter   chan chan *bodyFilterTask
 
@@ -150,7 +149,6 @@ func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBloc
 	return &Fetcher{
 		notify:         make(chan *announce),
 		inject:         make(chan *inject),
-		blockFilter:    make(chan chan []*types.Block),
 		headerFilter:   make(chan chan *headerFilterTask),
 		bodyFilter:     make(chan chan *bodyFilterTask),
 		done:           make(chan common.Hash),

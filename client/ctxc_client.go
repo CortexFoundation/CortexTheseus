@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -499,7 +499,7 @@ func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) er
 	if err != nil {
 		return err
 	}
-	return ec.c.CallContext(ctx, nil, "ctxc_sendRawTransaction", common.ToHex(data))
+	return ec.c.CallContext(ctx, nil, "ctxc_sendRawTransaction", hexutil.Encode(data))
 }
 
 func toCallArg(msg cortex.CallMsg) interface{} {

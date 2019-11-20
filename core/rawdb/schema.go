@@ -1,4 +1,4 @@
-// Copyright 2018 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ var (
 	txLookupPrefix  = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
 	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
 
-	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
+	preimagePrefix = []byte("secure-key-")    // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("cortex-config-") // config prefix for the db
 
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
@@ -63,6 +63,33 @@ var (
 	preimageCounter    = metrics.NewRegisteredCounter("db/preimage/total", nil)
 	preimageHitCounter = metrics.NewRegisteredCounter("db/preimage/hits", nil)
 )
+
+const (
+	// freezerHeaderTable indicates the name of the freezer header table.
+	freezerHeaderTable = "headers"
+
+	// freezerHashTable indicates the name of the freezer canonical hash table.
+	freezerHashTable = "hashes"
+
+	// freezerBodiesTable indicates the name of the freezer block body table.
+	freezerBodiesTable = "bodies"
+
+	// freezerReceiptTable indicates the name of the freezer receipts table.
+	freezerReceiptTable = "receipts"
+
+	// freezerDifficultyTable indicates the name of the freezer total difficulty table.
+	freezerDifficultyTable = "diffs"
+)
+
+// freezerNoSnappy configures whether compression is disabled for the ancient-tables.
+// Hashes and difficulties don't compress well.
+var freezerNoSnappy = map[string]bool{
+	freezerHeaderTable:     false,
+	freezerHashTable:       true,
+	freezerBodiesTable:     false,
+	freezerReceiptTable:    false,
+	freezerDifficultyTable: true,
+}
 
 // TxLookupEntry is a positional metadata to help looking up the data content of
 // a transaction or receipt given only its hash.
@@ -79,6 +106,11 @@ func encodeBlockNumber(number uint64) []byte {
 	return enc
 }
 
+// headerKeyPrefix = headerPrefix + num (uint64 big endian)
+func headerKeyPrefix(number uint64) []byte {
+	return append(headerPrefix, encodeBlockNumber(number)...)
+}
+
 // headerKey = headerPrefix + num (uint64 big endian) + hash
 func headerKey(number uint64, hash common.Hash) []byte {
 	return append(append(headerPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
@@ -90,7 +122,7 @@ func headerTDKey(number uint64, hash common.Hash) []byte {
 }
 
 func headerTSKey(number uint64, hash common.Hash) []byte {
-        return append(headerKey(number, hash), headerTSSuffix...)
+	return append(headerKey(number, hash), headerTSSuffix...)
 }
 
 // headerHashKey = headerPrefix + num (uint64 big endian) + headerHashSuffix

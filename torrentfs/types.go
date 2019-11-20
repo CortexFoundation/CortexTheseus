@@ -5,12 +5,12 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/anacrolix/torrent/metainfo"
 )
 
 const (
@@ -64,7 +64,8 @@ func (t *Transaction) noPayload() bool {
 
 // IsFlowControl ...
 func (t *Transaction) IsFlowControl() bool {
-	return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas // && t.Receipt.GasLimit >= params.UploadGas
+	//return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas // && t.Receipt.GasLimit >= params.UploadGas
+	return t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas
 }
 
 func (t *Transaction) Parse() *FileMeta {
@@ -130,11 +131,11 @@ type TxReceipt struct {
 
 // FileMeta ...
 type FileMeta struct {
-	InfoHash metainfo.Hash            `json:"InfoHash"         gencodec:"required"`
-	Name  string                      `json:"Name"             gencodec:"required"`
+	InfoHash metainfo.Hash `json:"InfoHash"         gencodec:"required"`
+	Name     string        `json:"Name"             gencodec:"required"`
 	// The raw size of the file counted in bytes
-	RawSize  uint64                   `json:"RawSize"          gencodec:"required"`
-	BlockNum uint64                   `json:"BlockNum"         gencodec:"required"`
+	RawSize  uint64 `json:"RawSize"          gencodec:"required"`
+	BlockNum uint64 `json:"BlockNum"         gencodec:"required"`
 }
 
 // DisplayName ...

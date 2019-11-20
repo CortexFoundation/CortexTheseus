@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -37,10 +37,8 @@ func ToHex(b []byte) string {
 // FromHex returns the bytes represented by the hexadecimal string s.
 // s may be prefixed with "0x".
 func FromHex(s string) []byte {
-	if len(s) > 1 {
-		if s[0:2] == Prefix || s[0:2] == Prefix_caps {
-			s = s[2:]
-		}
+	if has0xPrefix(s) {
+		s = s[2:]
 	}
 	if len(s)%2 == 1 {
 		s = "0" + s
@@ -62,6 +60,10 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 // hasHexPrefix validates str begins with '0x' or '0X'.
 func hasHexPrefix(str string) bool {
 	return len(str) >= 2 && str[0] == Prefix[0] && (str[1] == Prefix[1] || str[1] == Prefix_caps[1])
+}
+
+func has0xPrefix(str string) bool {
+	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
 }
 
 // isHexCharacter returns bool of c being a valid hexadecimal.
@@ -168,4 +170,14 @@ func Uint32ArrayToHexString(value []uint32) string {
 
 func BytesArrayToHexString(value []byte) string {
 	return "0x" + hex.EncodeToString(value)
+}
+// TrimLeftZeroes returns a subslice of s without leading zeroes
+func TrimLeftZeroes(s []byte) []byte {
+	idx := 0
+	for ; idx < len(s); idx++ {
+		if s[idx] != 0 {
+			break
+		}
+	}
+	return s[idx:]
 }

@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -16,6 +16,10 @@
 
 package downloader
 
-type DoneEvent struct{}
+import "github.com/CortexFoundation/CortexTheseus/core/types"
+
+type DoneEvent struct {
+	Latest *types.Header
+}
 type StartEvent struct{}
 type FailedEvent struct{ Err error }

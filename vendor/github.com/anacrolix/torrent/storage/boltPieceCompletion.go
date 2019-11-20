@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/boltdb/bolt"
+	bolt "github.com/etcd-io/bbolt"
 
 	"github.com/anacrolix/torrent/metainfo"
 )

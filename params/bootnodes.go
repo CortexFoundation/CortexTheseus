@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -59,9 +59,3 @@ var BernardBootnodes = []string{
 	"enode://c5780febab5e5a7bd6387a20a2662df3f1b16a10d93931a40a147e0f6cfd89a576c2e2f758e0e886c3f91a1bc43b3c7fa01af0c8b8ce39c8004c048ca880bccf@47.74.1.234:37566",
 	"enode://9b3b10d4223e010b01411a252312fb69da63b88fd610c07adb5bfa941a8598009a4bb2deeac42c41498acbdaec2196e2cc1fe746286c46f0b5c47d42c5c777b3@47.88.7.24:37566",
 }
-
-var TestnetBootnodes = []string{}
-
-// RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Rinkeby test network.
-var RinkebyBootnodes = []string{}

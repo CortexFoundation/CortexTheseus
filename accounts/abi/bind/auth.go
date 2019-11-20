@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/CortexFoundation/CortexTheseus/accounts"
 )
 
 // NewTransactor is a utility method to easily create a transaction signer from

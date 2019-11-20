@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/Azure/azure-storage-blob-go/2018-03-28/azblob"
+	"github.com/Azure/azure-storage-blob-go/azblob"
 )
 
 // AzureBlobstoreConfig is an authentication and configuration struct containing
@@ -45,7 +45,7 @@ func AzureBlobstoreUpload(path string, name string, config AzureBlobstoreConfig)
 		return nil
 	}
 	// Create an authenticated client against the Azure cloud
-	credential := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	credential, _ := azblob.NewSharedKeyCredential(config.Account, config.Token)
 	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
 
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))
@@ -67,7 +67,7 @@ func AzureBlobstoreUpload(path string, name string, config AzureBlobstoreConfig)
 
 // AzureBlobstoreList lists all the files contained within an azure blobstore.
 func AzureBlobstoreList(config AzureBlobstoreConfig) ([]azblob.BlobItem, error) {
-	credential := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	credential, _ := azblob.NewSharedKeyCredential(config.Account, config.Token)
 	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
 
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))
@@ -95,7 +95,7 @@ func AzureBlobstoreDelete(config AzureBlobstoreConfig, blobs []azblob.BlobItem) 
 		return nil
 	}
 	// Create an authenticated client against the Azure cloud
-	credential := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	credential, _ := azblob.NewSharedKeyCredential(config.Account, config.Token)
 	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
 
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))

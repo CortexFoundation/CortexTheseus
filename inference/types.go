@@ -10,11 +10,11 @@ import (
 type InferType uint32
 
 const (
-	INFER_UNKNOWN = InferType(0)
-	INFER_BY_IH   = InferType(1) // Infer By Input Hash
-	INFER_BY_IC   = InferType(2) // Infer By Input Content
-	GAS_BY_H      = InferType(3) // Gas By Model Hash
-	AVAILABLE_BY_H  = InferType(4) // Available by info hash
+	INFER_UNKNOWN  = InferType(0)
+	INFER_BY_IH    = InferType(1) // Infer By Input Hash
+	INFER_BY_IC    = InferType(2) // Infer By Input Content
+	GAS_BY_H       = InferType(3) // Gas By Model Hash
+	AVAILABLE_BY_H = InferType(4) // Available by info hash
 )
 
 // Infer by input info hash
@@ -31,22 +31,26 @@ type ICWork struct {
 	Input hexutil.Bytes `json:"input"`
 }
 
-// Infer gas 
+// Infer gas
 type GasWork struct {
 	Type  InferType `json:"type"`
 	Model string    `json:"model"`
 }
 
-// check Available 
+// check Available
 type AvailableWork struct {
-	Type  InferType				 `json:"type"`
-	InfoHash string        `json:"infohash"`
-	RawSize  int64				 `json:"rawSize"`
+	Type     InferType `json:"type"`
+	InfoHash string    `json:"infohash"`
+	RawSize  int64     `json:"rawSize"`
+}
+
+type Work struct {
+	Type InferType `json:"type"`
 }
 
 func RetriveType(input []byte) InferType {
-	type Work struct {
-		Type *InferType `json:"type"`
+	if len(input) == 0 {
+		return INFER_UNKNOWN
 	}
 
 	var dec Work
@@ -54,7 +58,7 @@ func RetriveType(input []byte) InferType {
 		return INFER_UNKNOWN
 	}
 
-	return *dec.Type
+	return dec.Type
 }
 
 // infer response types

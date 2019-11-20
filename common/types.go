@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -45,7 +45,7 @@ var (
 	addressT = reflect.TypeOf(Address{})
 	//EmptyHash = HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 	EmptyHash = HexToHash("0000000000000000000000000000000000000000000000000000000000000000")
-//	EmptyAddress = HexToAddress("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+	//	EmptyAddress = HexToAddress("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 	EmptyAddress = HexToAddress("0000000000000000000000000000000000000000000000000000000000000000")
 )
 
@@ -184,7 +184,7 @@ func HexToAddress(s string) Address { return BytesToAddress(FromHex(s)) }
 // IsHexAddress verifies whether a string can represent a valid hex-encoded
 // Cortex address or not.
 func IsHexAddress(s string) bool {
-	if hasHexPrefix(s) {
+	if has0xPrefix(s) {
 		s = s[2:]
 	}
 	return len(s) == 2*AddressLength && isHex(s)

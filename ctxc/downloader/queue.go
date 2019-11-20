@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -664,11 +664,10 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 			}
 			// Add the peer to the expiry report along the number of failed requests
 			expiries[id] = len(request.Headers)
+
+			// Remove the expired requests from the pending pool directly
+			delete(pendPool, id)
 		}
-	}
-	// Remove the expired requests from the pending pool
-	for id := range expiries {
-		delete(pendPool, id)
 	}
 	return expiries
 }

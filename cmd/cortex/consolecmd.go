@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
@@ -33,7 +33,7 @@ import (
 
 var (
 	consoleFlags = []cli.Flag{
-			utils.JSpathFlag,
+		utils.JSpathFlag,
 		utils.ExecFlag, utils.PreloadJSFlag,
 	}
 

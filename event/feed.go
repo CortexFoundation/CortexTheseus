@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -39,10 +39,9 @@ type Feed struct {
 	sendCases caseList         // the active set of select cases used by Send
 
 	// The inbox holds newly subscribed channels until they are added to sendCases.
-	mu     sync.Mutex
-	inbox  caseList
-	etype  reflect.Type
-	closed bool
+	mu    sync.Mutex
+	inbox caseList
+	etype reflect.Type
 }
 
 // This is the index of the first actual subscription channel in sendCases.

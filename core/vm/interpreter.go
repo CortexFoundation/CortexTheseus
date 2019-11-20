@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -262,7 +262,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				}
 
 				contract.Code = append([]byte{0, 1}, tmpCode...)
-				log.Info("Model meta created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "number", in.cvm.BlockNumber, "birth", modelMeta.BlockNum.Uint64())
+				log.Info("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
+			} else {
+				log.Debug("Invalid model meta", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 			}
 			return contract.Code, nil
 		}
@@ -303,6 +305,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				}
 				contract.Code = append([]byte{0, 2}, tmpCode...)
 				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
+			} else {
+				log.Warn("Invalid input meta", "size", inputMeta.RawSize, "hash", inputMeta.Hash.Hex(), "birth", inputMeta.BlockNum.Uint64())
 			}
 			return contract.Code, nil
 		}
@@ -391,7 +395,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		// gasCost will check model's metainfo before checking available gas
-		if err == ErrBuiltInTorrentFS { //|| err == ErrMetaInfoNotMature {
+		if err == ErrRuntime {
 			return nil, err
 		}
 
@@ -403,7 +407,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			//todo model validation
 			if modelMeta.AuthorAddress != common.EmptyAddress {
 				contract.ModelGas[modelMeta.AuthorAddress] += modelMeta.Gas
-				log.Info("Model gas earn", "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas)
+				log.Debug("Model gas earn", "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas)
 			}
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
@@ -413,7 +417,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if err != nil || !contract.UseGas(cost) {
-			log.Warn("interpreter", "cost", cost, "err", err, "cgas", cgas)
+			log.Debug("Interpreter", "cost", cost, "err", err, "cgas", cgas)
 			return nil, ErrOutOfGas
 		}
 

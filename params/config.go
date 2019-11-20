@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -34,7 +34,17 @@ var (
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
 	//BernardGenesisHash: BernardTrustedCheckpoint,
-	//TestnetGenesisHash: TestnetTrustedCheckpoint,
+	DoloresGenesisHash: DoloresTrustedCheckpoint,
+}
+
+type CheckpointOracleConfig struct {
+	Address   common.Address   `json:"address"`
+	Signers   []common.Address `json:"signers"`
+	Threshold uint64           `json:"threshold"`
+}
+
+var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
+	MainnetGenesisHash: MainnetCheckpointOracle,
 }
 
 type TrustedCheckpoint struct {
@@ -44,20 +54,38 @@ type TrustedCheckpoint struct {
 }
 
 var (
-	CortexBlockRewardPeriod = big.NewInt(8409600)       // Halving every four years: 365 days*24 hours*60 minutes*4 blocks*4 years=8409600
-	BernardBlockRewardPeriod = big.NewInt(8409600)      // TESTING: for testnet Bernard
-	DoloresBlockRewardPeriod = big.NewInt(8409600)      // TESTING: for testnet Dolores
+	CortexBlockRewardPeriod  = big.NewInt(8409600) // Halving every four years: 365 days*24 hours*60 minutes*4 blocks*4 years=8409600
+	BernardBlockRewardPeriod = big.NewInt(100000)  // TESTING: for testnet Bernard
+	DoloresBlockRewardPeriod = big.NewInt(1000000) // TESTING: for testnet Dolores
 )
 
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
+		SectionIndex: 11,
+		SectionHead:  common.HexToHash("0xa545bd6b0b23741c0cb1883f2aa6286e3d74892ae074bfd0b026e5ea41d038e4"),
+	}
+	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
+	DoloresTrustedCheckpoint = &TrustedCheckpoint{
+		Name:         "dolores",
 		SectionIndex: 1,
-		SectionHead:  common.HexToHash("0xf23a3cc21aeb2ec4ad0d81f841ed45256604b2ff158353d0160b79c125b73870"),
+		SectionHead:  common.HexToHash("0xb7b7f06c6cc9dc5fe3b8a673fa3e18ef7bcbce033fa54051a4fb37d8fdb87d6c"),
+	}
+
+	MainnetCheckpointOracle = &CheckpointOracleConfig{
+		Address: common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a"),
+		Signers: []common.Address{
+			//                common.HexToAddress("0x1b2C260efc720BE89101890E4Db589b44E950527"),
+			//                common.HexToAddress("0x78d1aD571A1A09D60D9BBf25894b44e4C8859595"),
+			//                common.HexToAddress("0x286834935f4A8Cfb4FF4C77D5770C2775aE2b0E7"),
+			//                common.HexToAddress("0xb86e2B0Ab5A4B1373e40c51A7C712c70Ba2f9f8E"),
+			//                common.HexToAddress("0x0DF8fa387C602AE62559cC4aFa4972A7045d6707"),
+		},
+		Threshold: 2,
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:        big.NewInt(21),             // If all gold available to men is melted into a cube, it's approx. 21mx21mx21m
+		ChainID:        big.NewInt(21), // If all gold available to men is melted into a cube, it's approx. 21mx21mx21m
 		HomesteadBlock: big.NewInt(0),
 		DAOForkBlock:   big.NewInt(0),
 		DAOForkSupport: false,
@@ -69,38 +97,41 @@ var (
 		//CortexBlock:	     big.NewInt(8409600),
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       nil,
 		Cuckoo:              new(CuckooConfig),
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Bernard test network.
 	BernardChainConfig = &ChainConfig{
-		ChainID: big.NewInt(42),
+		ChainID:             big.NewInt(42),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
-		DAOForkSupport: false,
-		EIP150Block:    big.NewInt(0),
-		EIP150Hash:     common.HexToHash("0x"),
-		EIP155Block:    big.NewInt(0),
-		EIP158Block:    big.NewInt(0),
-		ByzantiumBlock: big.NewInt(0),
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.HexToHash("0x"),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       nil,
 		Cuckoo:              new(CuckooConfig),
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Dolores test network.
 	DoloresChainConfig = &ChainConfig{
-		ChainID: big.NewInt(43),
+		ChainID:             big.NewInt(43),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
-		DAOForkSupport: false,
-		EIP150Block:    big.NewInt(0),
-		EIP150Hash:     common.HexToHash("0x"),
-		EIP155Block:    big.NewInt(0),
-		EIP158Block:    big.NewInt(0),
-		ByzantiumBlock: big.NewInt(0),
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.HexToHash("0x"),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       nil,
 		Cuckoo:              new(CuckooConfig),
 	}
 
@@ -121,6 +152,7 @@ var (
 		ByzantiumBlock:      nil,
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       nil,
 		EWASMBlock:          nil,
 		Cuckoo:              new(CuckooConfig),
 		Clique:              nil}
@@ -132,7 +164,7 @@ var (
 	// adding flags to the config to also have to set these fields.
 	// AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(CuckooConfig), nil}
+	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, new(CuckooConfig), nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int))
 )
 
@@ -159,6 +191,7 @@ type ChainConfig struct {
 	ByzantiumBlock      *big.Int `json:"byzantiumBlock,omitempty"`      // Byzantium switch block (nil = no fork, 0 = already on byzantium)
 	ConstantinopleBlock *big.Int `json:"constantinopleBlock,omitempty"` // Constantinople switch block (nil = no fork, 0 = already activated)
 	PetersburgBlock     *big.Int `json:"petersburgBlock,omitempty"`     // Petersburg switch block (nil = same as Constantinople)
+	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	EWASMBlock          *big.Int `json:"ewasmBlock,omitempty"`          // EWASM switch block (nil = no fork, 0 = already activated)
 	// Various consensus engines
 	Cuckoo *CuckooConfig `json:"cuckoo,omitempty"`
@@ -194,7 +227,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v PetersburgBlock: %v Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v PetersburgBlock: %v Istanbul: %v Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
@@ -205,6 +238,7 @@ func (c *ChainConfig) String() string {
 		c.ByzantiumBlock,
 		c.ConstantinopleBlock,
 		c.PetersburgBlock,
+		c.IstanbulBlock,
 		engine,
 	)
 }
@@ -249,6 +283,10 @@ func (c *ChainConfig) IsConstantinople(num *big.Int) bool {
 // - OR is nil, and Constantinople is active
 func (c *ChainConfig) IsPetersburg(num *big.Int) bool {
 	return isForked(c.PetersburgBlock, num) || c.PetersburgBlock == nil && isForked(c.ConstantinopleBlock, num)
+}
+
+func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
+	return isForked(c.IstanbulBlock, num)
 }
 
 // IsEWASM returns whether num represents a block number after the EWASM fork
@@ -324,6 +362,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.PetersburgBlock, newcfg.PetersburgBlock, head) {
 		return newCompatError("ConstantinopleFix fork block", c.PetersburgBlock, newcfg.PetersburgBlock)
 	}
+	if isForkIncompatible(c.IstanbulBlock, newcfg.IstanbulBlock, head) {
+		return newCompatError("Istanbul fork block", c.IstanbulBlock, newcfg.IstanbulBlock)
+	}
 	if isForkIncompatible(c.EWASMBlock, newcfg.EWASMBlock, head) {
 		return newCompatError("ewasm fork block", c.EWASMBlock, newcfg.EWASMBlock)
 	}
@@ -391,9 +432,9 @@ func (err *ConfigCompatError) Error() string {
 // Rules is a one time interface meaning that it shouldn't be used in between transition
 // phases.
 type Rules struct {
-	ChainID                                     *big.Int
-	IsHomestead, IsEIP150, IsEIP155, IsEIP158   bool
-	IsByzantium, IsConstantinople, IsPetersburg bool
+	ChainID                                                 *big.Int
+	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
+	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -413,7 +454,7 @@ func (c *ChainConfig) GetMatureBlock() int64 {
 	if c.ChainID.Uint64() == 43 {
 		return DoloresMatureBlks
 	}
-	return MatureBlks;
+	return MatureBlks
 }
 
 // Get Block uploading quota
@@ -424,5 +465,5 @@ func (c *ChainConfig) GetBlockQuota(num *big.Int) uint64 {
 	if c.ChainID.Uint64() == 43 {
 		return Dolores_BLOCK_QUOTA
 	}
-	return BLOCK_QUOTA;
+	return BLOCK_QUOTA
 }

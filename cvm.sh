@@ -1,1 +1,2 @@
- ./build/bin/cortex cvm --infer.devicetype=cpu
+#!/bin/bash
+./build/bin/cortex cvm --infer.devicetype=cpu

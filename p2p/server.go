@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -442,7 +442,7 @@ func (srv *Server) Start() (err error) {
 	srv.peerOpDone = make(chan struct{})
 
 	var (
-		conn      *net.UDPConn
+		conn *net.UDPConn
 		//sconn     *sharedUDPConn
 		realaddr  *net.UDPAddr
 		unhandled chan discover.ReadPacket
@@ -714,6 +714,7 @@ running:
 func (srv *Server) protoHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCount int, c *conn) error {
 	// Drop connections with no matching protocols.
 	if len(srv.Protocols) > 0 && countMatchingProtocols(srv.Protocols, c.caps) == 0 {
+		srv.log.Info("useless", "pro", srv.Protocols, "caps", c.caps)
 		return DiscUselessPeer
 	}
 	// Repeat the encryption handshake checks because the

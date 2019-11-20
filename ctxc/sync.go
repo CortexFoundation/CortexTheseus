@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
@@ -172,6 +172,10 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 
 	pHead, pTd := peer.Head()
+	if pTd == nil {
+		return
+	}
+
 	if pTd.Cmp(td) <= 0 {
 		return
 	}
@@ -180,25 +184,37 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		// Fast sync was explicitly requested, and explicitly granted
 		mode = downloader.FastSync
-	//} else if currentBlock.NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
+		//} else if currentBlock.NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
 		// The database seems empty as the current block is the genesis. Yet the fast
 		// block is ahead, so fast sync was enabled for this node at a certain point.
 		// The only scenario where this can happen is if the user manually (or via a
 		// bad block) rolled back a fast sync node below the sync point. In this case
 		// however it's safe to reenable fast sync.
-	//	atomic.StoreUint32(&pm.fastSync, 1)
-	//	mode = downloader.FastSync
+		//	atomic.StoreUint32(&pm.fastSync, 1)
+		//	mode = downloader.FastSync
 	}
 
 	if mode == downloader.FastSync {
 		// Make sure the peer's total difficulty we are synchronizing is higher.
-		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
-			return
+		fastTd := pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash())
+		if fastTd == nil {
+			log.Warn("Fast total difficulty is nil, switch to full sync mode", "hash", pm.blockchain.CurrentFastBlock().Hash().Hex())
+			//return
+			mode = downloader.FullSync
+			atomic.StoreUint32(&pm.fastSync, 0)
+		} else {
+			if fastTd.Cmp(pTd) >= 0 {
+				return
+			}
 		}
 	}
 
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil && err != vm.ErrBuiltInTorrentFS {
+	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
+		if err == vm.ErrRuntime {
+			//log.Warn("Waiting for off chain file downloading", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
+		}
+
 		return
 	}
 
@@ -206,9 +222,17 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		log.Info("Fast sync complete, auto disabling")
 		atomic.StoreUint32(&pm.fastSync, 0)
 	}
-
-	atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
-	if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
+	// If we've successfully finished a sync cycle and passed any required checkpoint,
+	// enable accepting transactions from the network.
+	head := pm.blockchain.CurrentBlock()
+	if head.NumberU64() >= pm.checkpointNumber {
+		// Checkpoint passed, sanity check the timestamp to have a fallback mechanism
+		// for non-checkpointed (number = 0) private networks.
+		if head.Time().Uint64() >= uint64(time.Now().AddDate(0, -1, 0).Unix()) {
+			atomic.StoreUint32(&pm.acceptTxs, 1)
+		}
+	}
+	if head.NumberU64() > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is
 		// essential in star-topology networks where a gateway node needs to notify
 		// all its out-of-date peers of the availability of a new block. This failure

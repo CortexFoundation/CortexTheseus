@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
@@ -19,15 +19,21 @@ package main
 import (
 	"os"
 	"os/user"
-	"fmt"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 
-	"net/http"
-	"gopkg.in/urfave/cli.v1"
+	"errors"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
-	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"gopkg.in/urfave/cli.v1"
+	"net/http"
+	"os/signal"
+	"sync"
 )
 
 func homeDir() string {
@@ -39,6 +45,7 @@ func homeDir() string {
 	}
 	return ""
 }
+
 var (
 	// StorageDirFlag = utils.DirectoryFlag{
 	// 	Name:  "cvm.dir",
@@ -65,7 +72,30 @@ var (
 		//Value: utils.DirectoryString("~/.cortex/" + "cortex.ipc"),
 		Value: utils.DirectoryString{homeDir() + "/.cortex/"},
 	}
-
+	StorageMaxSeedingFlag = cli.IntFlag{
+		Name:  "cvm.max_seeding",
+		Usage: "The maximum number of seeding tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxSeedingNum,
+	}
+	StorageMaxActiveFlag = cli.IntFlag{
+		Name:  "cvm.max_active",
+		Usage: "The maximum number of active tasks in the same time",
+		Value: torrentfs.DefaultConfig.MaxActiveNum,
+	}
+	StorageBoostNodesFlag = cli.StringFlag{
+		Name:  "cvm.boostnodes",
+		Usage: "p2p storage boostnodes",
+		Value: strings.Join(torrentfs.DefaultConfig.BoostNodes, ","),
+	}
+	StorageTrackerFlag = cli.StringFlag{
+		Name:  "cvm.tracker",
+		Usage: "P2P storage tracker list",
+		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
+	}
+	StorageDisableDHTFlag = cli.BoolFlag{
+		Name:  "cvm.disable_dht",
+		Usage: "disable DHT network in TorrentFS",
+	}
 	cvmFlags = []cli.Flag{
 		// StorageDirFlag,
 		CVMPortFlag,
@@ -73,37 +103,56 @@ var (
 		// CVMDeviceId,
 		CVMVerbosity,
 		CVMCortexDir,
+		StorageMaxSeedingFlag,
+		StorageMaxActiveFlag,
+		StorageBoostNodesFlag,
+		StorageTrackerFlag,
+		StorageDisableDHTFlag,
 	}
 
 	cvmCommand = cli.Command{
-		Action:   utils.MigrateFlags(cvmServer),
-		Name:     "cvm",
-		Usage:    "CVM",
-		Flags:    append(append(cvmFlags, storageFlags...), inferFlags...),
-		Category: "CVMSERVER COMMANDS",
+		Action:      utils.MigrateFlags(cvmServer),
+		Name:        "cvm",
+		Usage:       "CVM",
+		Flags:       append(append(cvmFlags, storageFlags...), inferFlags...),
+		Category:    "CVMSERVER COMMANDS",
 		Description: ``,
 	}
-
+)
+var (
+	wg sync.WaitGroup
+	c  chan os.Signal
 )
 
 // localConsole starts a new cortex node, attaching a JavaScript console to it at the
 // same time.
 func cvmServer(ctx *cli.Context) error {
-	// flag.Parse()
-
-	// Set log
+	c = make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
-	fsCfg := torrentfs.Config{}
+	fsCfg := torrentfs.DefaultConfig
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
+	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
+	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
+	fsCfg.DefaultTrackers = strings.Split(trackers, ",")
+	fsCfg.BoostNodes = strings.Split(boostnodes, ",")
+	fsCfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
+	fsCfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
+	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
-	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
+	log.Info("Cvm Server", "torrentfs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
-	storagefs.Start(nil)
 	if fs_err != nil {
-		panic (fs_err)
+		return errors.New("torrent start failed")
 	}
+
+	err := storagefs.Start(&p2p.Server{})
+	if err != nil {
+		return err
+	}
+
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
 	DeviceId := ctx.GlobalInt(utils.InferDeviceIdFlag.Name)
@@ -113,25 +162,42 @@ func cvmServer(ctx *cli.Context) error {
 		DeviceName = "cuda"
 	}
 	synpapseConfig := synapse.Config{
-		IsNotCache: false,
-		DeviceType:  DeviceName,
-		DeviceId: DeviceId,
+		IsNotCache:     false,
+		DeviceType:     DeviceName,
+		DeviceId:       DeviceId,
 		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
-		IsRemoteInfer: false,
-		InferURI: "",
-		Storagefs:				 storagefs,
+		IsRemoteInfer:  false,
+		InferURI:       "",
+		Storagefs:      storagefs,
 	}
 	inferServer := synapse.New(&synpapseConfig)
 	log.Info("Initilized inference server with synapse engine", "config", synpapseConfig)
 
-	http.HandleFunc("/", handler)
+	wg.Add(1)
+	go func(port int, inferServer *synapse.Synapse) {
+		defer wg.Done()
+		log.Info("CVM http server listen on 0.0.0.0", "port", port)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", handler)
+		server := &http.Server{
+			Addr:         ":" + strconv.Itoa(port),
+			WriteTimeout: time.Second * 15,
+			Handler:      mux,
+		}
 
-	log.Info(fmt.Sprintf("Http Server Listen on 0.0.0.0:%d", port))
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+		go server.ListenAndServe()
+		select {
+		case <-c:
+			if err := server.Close(); err != nil {
+				log.Info("Close http server failed", "err", err)
+			} else {
+				log.Info("CVM http server closed")
+			}
+			inferServer.Close()
+		}
+	}(port, inferServer)
 
-	log.Error(fmt.Sprintf("Server Closed with Error %v", err))
-	inferServer.Close()
+	wg.Wait()
 
 	return nil
 }
-

@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/accounts/usbwallet"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/robertkrimen/otto"
@@ -103,10 +102,6 @@ func (b *bridge) OpenWallet(call otto.FunctionCall) (response otto.Value) {
 	val, err := call.Otto.Call("jctxc.openWallet", nil, wallet, passwd)
 	if err == nil {
 		return val
-	}
-	// Wallet open failed, report error unless it's a PIN entry
-	if !strings.HasSuffix(err.Error(), usbwallet.ErrTrezorPINNeeded.Error()) {
-		throwJSException(err.Error())
 	}
 	// Trezor PIN matrix input requested, display the matrix to the user and fetch the data
 	fmt.Fprintf(b.printer, "Look at the device for number positions\n\n")

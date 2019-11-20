@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -227,6 +227,9 @@ func doInstall(cmdline []string) {
 
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
+		if runtime.GOARCH == "arm64" {
+			goinstall.Args = append(goinstall.Args, "-p", "1")
+		}
 		if *remote_infer {
 			goinstall.Args = append(goinstall.Args, []string{"-tags", "remote"}...)
 		}

@@ -1,4 +1,4 @@
-package main
+/*package main
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	cuckoo_gpu "github.com/CortexFoundation/CortexTheseus/miner/cuckoocuda"
+	cuckoo_gpu "github.com/CortexFoundation/CortexTheseus/solution/miner"
 	"log"
 	"math/rand"
 	"net"
@@ -338,4 +338,4 @@ func main() {
 		verboseLevel: uint(verboseLevel),
 	}
 	cm.Mining()
-}
+}*/

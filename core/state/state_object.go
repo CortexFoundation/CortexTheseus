@@ -1,4 +1,4 @@
-// Copyright 2014 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -121,9 +121,10 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		data.CodeHash = emptyCodeHash
 	}
 
-	/*if data.AiCache == nil {
-		data.AiCache = make(map[string]uint64)
-	}*/
+	if data.Root == (common.Hash{}) {
+		data.Root = emptyRoot
+	}
+
 	return &stateObject{
 		db:            db,
 		address:       address,
@@ -246,7 +247,8 @@ func (self *stateObject) updateTrie(db Database) Trie {
 			continue
 		}
 		// Encoding []byte cannot fail, ok to ignore the error.
-		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(value[:], "\x00"))
+		//v, _ := rlp.EncodeToBytes(bytes.TrimLeft(value[:], "\x00"))
+		v, _ := rlp.EncodeToBytes(common.TrimLeftZeroes(value[:]))
 		self.setError(tr.TryUpdate(key[:], v))
 	}
 	return tr

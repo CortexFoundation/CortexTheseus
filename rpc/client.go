@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -117,7 +117,7 @@ type Client struct {
 	writeConn net.Conn
 
 	// for dispatch
-	close       chan struct{}
+	close chan struct{}
 	//didQuit     chan struct{}                  // closed when client quits
 	closing     chan struct{}                  // closed when client is quitting
 	didClose    chan struct{}                  // closed when client quits
@@ -272,8 +272,8 @@ func (c *Client) Close() {
 	}
 	select {
 	case c.close <- struct{}{}:
-	//	<-c.didQuit
-	//case <-c.didQuit:
+		//	<-c.didQuit
+		//case <-c.didQuit:
 		<-c.didClose
 	case <-c.didClose:
 	}

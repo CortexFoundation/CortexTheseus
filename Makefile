@@ -16,7 +16,7 @@ GO ?= latest
 #LIB_MINER_DIR = $(shell pwd)/cminer/
 LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/infernet/
-LIB_CUCKOO_DIR = $(shell pwd)/PoolMiner/miner/libcuckoo
+LIB_CUCKOO_DIR = $(shell pwd)/solution/miner/libcuckoo
 
 # Curkoo algorithm dynamic library path
 OS = $(shell uname)
@@ -28,25 +28,40 @@ endif
 
 all: cortex
 
-cortex_cpu: clib_cpu 
+gpu: cortex_gpu
+
+cpu: cortex_cpu
+
+cortex: cpu
+
+cortex_cpu: clib_cpu tracker
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex_cpu ..."
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-cortex: clib 
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex cpu."
+cortex_gpu: clib tracker
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex gpu."
 bootnode:
 	build/env.sh go run build/ci.go install ./cmd/bootnode
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/bootnode\" to launch cortex bootnode."
 
+keytools:
+	build/env.sh go run build/ci.go install ./cmd/keytools
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/keytools\" to launch cortex keytools."
+
 torrent:
 	build/env.sh go run build/ci.go install ./cmd/torrentfs
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
+tracker:
+	build/env.sh go run build/ci.go install ./cmd/tracker
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/tracker\" to launch tracker."
 
 seeding:
 	build/env.sh go run build/ci.go install ./cmd/seeding
@@ -58,41 +73,30 @@ torrent-test:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
 
-cortex-nominer: clib
-	build/env.sh go run build/ci.go install -disable_miner ./cmd/cortex
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cortex\" to launch cortex."
-	mv ./build/bin/cortex ./build/bin/cortex-nominer
-
 cvm: plugins/cuda_cvm.so plugins/cpu_cvm.so
 	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
-
-cuckoo-miner: clib
-	build/env.sh go run build/ci.go install -remote_infer ./cmd/miner
-	@echo "Done building."
-
 nodekey:
 	build/env.sh go run build/ci.go install ./cmd/nodekey
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 plugins/cuda_helper_for_node.so: 
-	make -C PoolMiner cuda-miner
+	$(MAKE) -C solution cuda-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
-	make -C PoolMiner cpu-miner
+	$(MAKE) -C solution cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
-plugins/cuda_cvm.so: cmd/plugins/c_wrapper.go
-	make -C ${INFER_NET_DIR} -j8 gpu
+plugins/cuda_cvm.so:
+	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu
 	ln -sf ../infernet/build/gpu/libcvm_runtime_cuda.so $@
 	# build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
-plugins/cpu_cvm.so: cmd/plugins/c_wrapper.go
-	make -C ${INFER_NET_DIR} -j8 cpu
+plugins/cpu_cvm.so:
+	$(MAKE) -C ${INFER_NET_DIR} -j8 cpu
 	ln -sf ../infernet/build/cpu/libcvm_runtime_cpu.so $@
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
@@ -125,11 +129,11 @@ clean:
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
 	rm -rf infernet/build/*
 	rm -rf plugin/*
-	rm -f PoolMiner/miner/libcuckoo/*.a PoolMiner/miner/libcuckoo/*.o
+	rm -f solution/miner/libcuckoo/*.a solution/miner/libcuckoo/*.o
 
 clean-clib:
 	#make -C $(LIB_MINER_DIR) clean
-	make -C $(INFER_NET_DIR) clean
+	$(MAKE) -C $(INFER_NET_DIR) clean
 	
 .PHONY: clean-all
 clean-all: clean-clib clean

@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anacrolix/dht"
+	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/bitmap"
@@ -31,9 +31,9 @@ type peerSource string
 const (
 	peerSourceTracker         = "Tr"
 	peerSourceIncoming        = "I"
-	peerSourceDHTGetPeers     = "Hg" // Peers we found by searching a DHT.
-	peerSourceDHTAnnouncePeer = "Ha" // Peers that were announced to us by a DHT.
-	peerSourcePEX             = "X"
+	peerSourceDhtGetPeers     = "Hg" // Peers we found by searching a DHT.
+	peerSourceDhtAnnouncePeer = "Ha" // Peers that were announced to us by a DHT.
+	peerSourcePex             = "X"
 )
 
 // Maintains the state of a connection with a peer.
@@ -43,8 +43,10 @@ type connection struct {
 
 	t *Torrent
 	// The actual Conn, used for closing, and setting socket options.
-	conn     net.Conn
-	outgoing bool
+	conn       net.Conn
+	outgoing   bool
+	network    string
+	remoteAddr IpPort
 	// The Reader and Writer for this Conn, with hooks installed for stats,
 	// limiting, deadlines etc.
 	w io.Writer
@@ -113,6 +115,8 @@ type connection struct {
 	writeBuffer *bytes.Buffer
 	uploadTimer *time.Timer
 	writerCond  sync.Cond
+
+	logger log.Logger
 }
 
 func (cn *connection) updateExpectingChunks() {
@@ -134,7 +138,7 @@ func (cn *connection) expectingChunks() bool {
 
 // Returns true if the connection is over IPv6.
 func (cn *connection) ipv6() bool {
-	ip := missinggo.AddrIP(cn.remoteAddr())
+	ip := cn.remoteAddr.IP
 	if ip.To4() != nil {
 		return false
 	}
@@ -178,10 +182,6 @@ func (cn *connection) peerHasAllPieces() (all bool, known bool) {
 
 func (cn *connection) mu() sync.Locker {
 	return cn.t.cl.locker()
-}
-
-func (cn *connection) remoteAddr() net.Addr {
-	return cn.conn.RemoteAddr()
 }
 
 func (cn *connection) localAddr() net.Addr {
@@ -242,7 +242,7 @@ func (cn *connection) connectionFlags() (ret string) {
 }
 
 func (cn *connection) utp() bool {
-	return isUtpNetwork(cn.remoteAddr().Network())
+	return parseNetworkString(cn.network).Udp
 }
 
 // Inspired by https://github.com/transmission/transmission/wiki/Peer-Status-Text.
@@ -280,7 +280,7 @@ func (cn *connection) downloadRate() float64 {
 
 func (cn *connection) WriteStatus(w io.Writer, t *Torrent) {
 	// \t isn't preserved in <pre> blocks?
-	fmt.Fprintf(w, "%+-55q %s %s-%s\n", cn.PeerID, cn.PeerExtensionBytes, cn.localAddr(), cn.remoteAddr())
+	fmt.Fprintf(w, "%+-55q %s %s-%s\n", cn.PeerID, cn.PeerExtensionBytes, cn.localAddr(), cn.remoteAddr)
 	fmt.Fprintf(w, "    last msg: %s, connected: %s, last helpful: %s, itime: %s, etime: %s\n",
 		eventAgeString(cn.lastMessageReceived),
 		eventAgeString(cn.completedHandshake),
@@ -350,6 +350,7 @@ func (cn *connection) requestMetadataPiece(index int) {
 	if index < len(cn.metadataRequests) && cn.metadataRequests[index] {
 		return
 	}
+	cn.logger.Printf("requesting metadata piece %d", index)
 	cn.Post(pp.Message{
 		Type:       pp.Extended,
 		ExtendedID: eID,
@@ -800,10 +801,13 @@ func iterUndirtiedChunks(piece pieceIndex, t *Torrent, f func(chunkSpec) bool) b
 		}
 		return true
 	}
-	chunkIndices := t.pieces[piece].undirtiedChunkIndices().ToSortedSlice()
-	// TODO: Use "math/rand".Shuffle >= Go 1.10
-	return iter.ForPerm(len(chunkIndices), func(i int) bool {
-		return f(t.chunkIndexSpec(pp.Integer(chunkIndices[i]), piece))
+	chunkIndices := t.pieces[piece].undirtiedChunkIndices()
+	return iter.ForPerm(chunkIndices.Len(), func(i int) bool {
+		ci, err := chunkIndices.RB.Select(uint32(i))
+		if err != nil {
+			panic(err)
+		}
+		return f(t.chunkIndexSpec(pp.Integer(ci), piece))
 	})
 }
 
@@ -943,8 +947,9 @@ func (c *connection) requestPendingMetadata() {
 			pending = append(pending, index)
 		}
 	}
-	for _, i := range rand.Perm(len(pending)) {
-		c.requestMetadataPiece(pending[i])
+	rand.Shuffle(len(pending), func(i, j int) { pending[i], pending[j] = pending[j], pending[i] })
+	for _, i := range pending {
+		c.requestMetadataPiece(i)
 	}
 }
 
@@ -1024,10 +1029,6 @@ func (c *connection) reject(r request) {
 
 func (c *connection) onReadRequest(r request) error {
 	requestedChunkLengths.Add(strconv.FormatUint(r.Length.Uint64(), 10), 1)
-	if r.Begin+r.Length > c.t.pieceLength(pieceIndex(r.Index)) {
-		torrent.Add("bad requests received", 1)
-		return errors.New("bad request")
-	}
 	if _, ok := c.PeerRequests[r]; ok {
 		torrent.Add("duplicate requests received", 1)
 		return nil
@@ -1055,6 +1056,11 @@ func (c *connection) onReadRequest(r request) error {
 		requestsReceivedForMissingPieces.Add(1)
 		return fmt.Errorf("peer requested piece we don't have: %v", r.Index.Int())
 	}
+	// Check this after we know we have the piece, so that the piece length will be known.
+	if r.Begin+r.Length > c.t.pieceLength(pieceIndex(r.Index)) {
+		torrent.Add("bad requests received", 1)
+		return errors.New("bad request")
+	}
 	if c.PeerRequests == nil {
 		c.PeerRequests = make(map[request]struct{}, maxRequests)
 	}
@@ -1063,8 +1069,8 @@ func (c *connection) onReadRequest(r request) error {
 	return nil
 }
 
-// Processes incoming bittorrent messages. The client lock is held upon entry
-// and exit. Returning will end the connection.
+// Processes incoming BitTorrent wire-protocol messages. The client lock is held upon entry and
+// exit. Returning will end the connection.
 func (c *connection) mainReadLoop() (err error) {
 	defer func() {
 		if err != nil {
@@ -1111,9 +1117,6 @@ func (c *connection) mainReadLoop() (err error) {
 			// We can then reset our interest.
 			c.updateRequests()
 			c.updateExpectingChunks()
-		case pp.Reject:
-			c.deleteRequest(newRequestFromMessage(&msg))
-			delete(c.validReceiveChunks, newRequestFromMessage(&msg))
 		case pp.Unchoke:
 			c.PeerChoked = false
 			c.tickleWriter()
@@ -1128,18 +1131,11 @@ func (c *connection) mainReadLoop() (err error) {
 			// appropriate, and is clearly specified.
 		case pp.Have:
 			err = c.peerSentHave(pieceIndex(msg.Index))
+		case pp.Bitfield:
+			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
 			err = c.onReadRequest(r)
-		case pp.Cancel:
-			req := newRequestFromMessage(&msg)
-			c.onPeerSentCancel(req)
-		case pp.Bitfield:
-			err = c.peerSentBitfield(msg.Bitfield)
-		case pp.HaveAll:
-			err = c.onPeerSentHaveAll()
-		case pp.HaveNone:
-			err = c.peerSentHaveNone()
 		case pp.Piece:
 			err = c.receiveChunk(&msg)
 			if len(msg.Piece) == int(t.chunkSize) {
@@ -1148,28 +1144,38 @@ func (c *connection) mainReadLoop() (err error) {
 			if err != nil {
 				err = fmt.Errorf("receiving chunk: %s", err)
 			}
-		case pp.Extended:
-			err = c.onReadExtendedMsg(msg.ExtendedID, msg.ExtendedPayload)
+		case pp.Cancel:
+			req := newRequestFromMessage(&msg)
+			c.onPeerSentCancel(req)
 		case pp.Port:
-			pingAddr, err := net.ResolveUDPAddr("", c.remoteAddr().String())
-			if err != nil {
-				panic(err)
+			pingAddr := net.UDPAddr{
+				IP:   c.remoteAddr.IP,
+				Port: int(c.remoteAddr.Port),
 			}
 			if msg.Port != 0 {
 				pingAddr.Port = int(msg.Port)
 			}
 			cl.eachDhtServer(func(s *dht.Server) {
-				go s.Ping(pingAddr, nil)
+				go s.Ping(&pingAddr, nil)
 			})
+		case pp.Suggest:
+			torrent.Add("suggests received", 1)
+			log.Fmsg("peer suggested piece %d", msg.Index).AddValues(c, msg.Index, debugLogValue).Log(c.t.logger)
+			c.updateRequests()
+		case pp.HaveAll:
+			err = c.onPeerSentHaveAll()
+		case pp.HaveNone:
+			err = c.peerSentHaveNone()
+		case pp.Reject:
+			c.deleteRequest(newRequestFromMessage(&msg))
+			delete(c.validReceiveChunks, newRequestFromMessage(&msg))
 		case pp.AllowedFast:
 			torrent.Add("allowed fasts received", 1)
 			log.Fmsg("peer allowed fast: %d", msg.Index).AddValues(c, debugLogValue).Log(c.t.logger)
 			c.peerAllowedFast.Add(int(msg.Index))
 			c.updateRequests()
-		case pp.Suggest:
-			torrent.Add("suggests received", 1)
-			log.Fmsg("peer suggested piece %d", msg.Index).AddValues(c, msg.Index, debugLogValue).Log(c.t.logger)
-			c.updateRequests()
+		case pp.Extended:
+			err = c.onReadExtendedMsg(msg.ExtendedID, msg.ExtendedPayload)
 		default:
 			err = fmt.Errorf("received unknown message type: %#v", msg.Type)
 		}
@@ -1196,7 +1202,7 @@ func (c *connection) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (e
 	case pp.HandshakeExtendedID:
 		var d pp.ExtendedHandshakeMessage
 		if err := bencode.Unmarshal(payload, &d); err != nil {
-			log.Printf("error parsing extended handshake message %q: %s", payload, err)
+			c.t.logger.Printf("error parsing extended handshake message %q: %s", payload, err)
 			return errors.Wrap(err, "unmarshalling extended handshake payload")
 		}
 		if d.Reqq != 0 {
@@ -1217,14 +1223,12 @@ func (c *connection) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (e
 				return errors.Wrapf(err, "setting metadata size to %d", d.MetadataSize)
 			}
 		}
-		if _, ok := c.PeerExtensionIDs[pp.ExtensionNameMetadata]; ok {
-			c.requestPendingMetadata()
-		}
+		c.requestPendingMetadata()
 		return nil
 	case metadataExtendedId:
 		err := cl.gotMetadataExtensionMsg(payload, t, c)
 		if err != nil {
-			return fmt.Errorf("error handling metadata extension message: %s", err)
+			return fmt.Errorf("handling metadata extension message: %w", err)
 		}
 		return nil
 	case pexExtendedId:
@@ -1326,6 +1330,8 @@ func (c *connection) receiveChunk(msg *pp.Message) error {
 	err := func() error {
 		cl.unlock()
 		defer cl.lock()
+		concurrentChunkWrites.Add(1)
+		defer concurrentChunkWrites.Add(-1)
 		// Write the chunk out. Note that the upper bound on chunk writing
 		// concurrency will be the number of connections. We write inline with
 		// receiving the chunk (with this lock dance), because we want to
@@ -1338,7 +1344,7 @@ func (c *connection) receiveChunk(msg *pp.Message) error {
 	piece.decrementPendingWrites()
 
 	if err != nil {
-		log.Printf("%s (%s): error writing chunk %v: %s", t, t.infoHash, req, err)
+		panic(fmt.Sprintf("error writing chunk: %v", err))
 		t.pendRequest(req)
 		t.updatePieceCompletion(pieceIndex(msg.Index))
 		return nil
@@ -1543,6 +1549,7 @@ func (c *connection) setTorrent(t *Torrent) {
 		panic("connection already associated with a torrent")
 	}
 	c.t = t
+	c.logger.Printf("torrent=%v", t)
 	t.reconcileHandshakeStats(c)
 }
 
@@ -1551,9 +1558,13 @@ func (c *connection) peerPriority() peerPriority {
 }
 
 func (c *connection) remoteIp() net.IP {
-	return missinggo.AddrIP(c.remoteAddr())
+	return c.remoteAddr.IP
 }
 
-func (c *connection) remoteIpPort() ipPort {
-	return ipPort{missinggo.AddrIP(c.remoteAddr()), uint16(missinggo.AddrPort(c.remoteAddr()))}
+func (c *connection) remoteIpPort() IpPort {
+	return c.remoteAddr
+}
+
+func (c *connection) String() string {
+	return fmt.Sprintf("connection %p", c)
 }

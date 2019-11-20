@@ -21,24 +21,19 @@ CVMUTIL_REGISTER_PARAMETER(RepeatParam);
 inline bool RepeatShape(const cvm::NodeAttrs& attrs,
                            std::vector<TShape>* in_attrs,
                            std::vector<TShape>* out_attrs) {
-  CHECK_EQ(in_attrs->size(), 1U);
-  CHECK_EQ(out_attrs->size(), 1U);
+  VERIFY_EQ(in_attrs->size(), 1U);
+  VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
-  if (shp.ndim() == 0) return false;
   const int ndim = static_cast<int>(shp.ndim());
 
   const RepeatParam& param = cvm::get<RepeatParam>(attrs.parsed);
   const int repeats = param.repeats;
   const int axis = param.axis;
-  CHECK(repeats >= 1)
-    << "repeat only accepts `repeats >= 1`"
-    << ", but got repeats = " << repeats;
-  CHECK(-ndim <= axis && axis < ndim)
-    << "repeat only accepts `axis` in [-data.ndim, data.ndim]"
-    << ", but got axis = " << axis
-    << ", and data.ndim = " << ndim;
+  VERIFY_GT(param.repeats, 0) 
+    << "operator " << attrs.name << " repeats:" << param.repeats
+    << " must greater than 0";
+  VerifyAttrRange(axis, "repeat.axis", -ndim, ndim);
   const int pivot = axis < 0 ? ndim + axis : axis;
-  VERIFY(pivot >= 0 && pivot < ndim);
   std::vector<int64_t> oshape;
   for (int i = 0; i < pivot; ++i) {
     oshape.emplace_back(shp[i]);
@@ -76,20 +71,18 @@ CVMUTIL_REGISTER_PARAMETER(TileParam);
 inline bool TileShape(const cvm::NodeAttrs& attrs,
                            std::vector<TShape>* in_attrs,
                            std::vector<TShape>* out_attrs) {
-  CHECK_EQ(in_attrs->size(), 1U);
-  CHECK_EQ(out_attrs->size(), 1U);
+  VERIFY_EQ(in_attrs->size(), 1U);
+  VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
-  if (shp.ndim() == 0) return false;
   uint32_t sdim = shp.ndim();
 
   const TileParam& param = cvm::get<TileParam>(attrs.parsed);
   const auto& reps = param.reps;
   uint32_t rdim = reps.ndim();
-  CHECK(rdim > 0)
+  VERIFY(rdim > 0)
     << "repetition array is not defined. data.ndim = " << sdim;
   for (size_t i = 0; i < rdim; ++i) {
-    CHECK_GT(reps[i], 0)
-        << "Tile reps value should always be larger than 0, but get: " << reps[i];
+    VerifyAttrRange(reps[i], "tile.reps", 1);
   }
 
   uint32_t odim = std::max(sdim, rdim);
@@ -131,7 +124,6 @@ inline bool FlattenInferShape(const NodeAttrs& attrs,
   VERIFY_EQ(in_attrs->size(), 1U) << "Input: [data]";
   VERIFY_EQ(out_attrs->size(), 1U);
   const TShape &dshape = (*in_attrs)[0];
-  if (dshape.ndim() == 0) return false;
   uint32_t target_dim = 1;
   for (uint32_t i = 1; i < dshape.ndim(); ++i) {
     target_dim *= dshape[i];
@@ -182,13 +174,10 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
   TShape dshape;
   dim_t size = 0;
   bool has_zero = false;
+  VERIFY(!in_shape->empty());
   int ndim = in_shape->at(0).ndim();
-  VERIFY(-ndim <= param.axis && param.axis < ndim)
-    << "repeat only accepts `axis` in [-data.ndim, data.ndim)"
-    << ", but got axis = " << param.axis
-    << ", and data.ndim = " << ndim;
+  VerifyAttrRange(param.axis, "concatenate.axis", -ndim, ndim);
   int axis = param.axis >= 0 ? param.axis : ndim + param.axis;
-  VERIFY(axis >= 0 && axis < ndim);
   for(size_t i = 0; i < in_shape->size(); ++i){
     VERIFY_EQ(in_shape->at(i).ndim(), ndim);
   }
@@ -200,7 +189,7 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
       has_zero = tmp[axis] == 0 || has_zero;
       size += tmp[axis];
       tmp[axis] = 0;
-      shape_assign(&dshape, tmp);
+      VERIFY_EQ(shape_assign(&dshape, tmp), true);
     }
   }
 
@@ -209,10 +198,8 @@ inline bool ConcatenateInferShape(const NodeAttrs& attrs,
     VERIFY_LT(static_cast<dim_t>(axis), tmp.ndim())
         << "concat dim " << axis << " out of range of input shape " << tmp;
     tmp[axis] = 0;
-    shape_assign(&dshape, tmp);
+    VERIFY_EQ(shape_assign(&dshape, tmp), true);
   }
-
-  if (dshape.ndim() == 0) return false;
 
   for (size_t i = 0; i < in_shape->size(); ++i) {
     CVM_ASSIGN_INPUT_SHAPE(attrs, *in_shape, i, dshape);
@@ -308,11 +295,8 @@ inline bool ExpandDimsInferShape(const NodeAttrs& attrs,
   VERIFY_EQ(in_shape->size(), 1U);
   const TShape& dshape = in_shape->at(0);
   int ndim = static_cast<int>(dshape.ndim());
-  VERIFY(param.axis >= -ndim - 1 && param.axis <= ndim)
-    << "with axis = " << param.axis << " ndim = " << ndim;
-  VERIFY(param.num_newaxis >= 0 && param.num_newaxis <= 1024)
-    << "expand_dims only accepts `num_newaxis >= 0`"
-    << ", but got num_newaxis = " << param.num_newaxis;
+  VerifyAttrRange(param.axis, "expand_dims.axis", -ndim-1, ndim+1);
+  VerifyAttrRange(param.num_newaxis, "expand_dims.num_newaxis");
   int axis = param.axis < 0 ? ndim + param.axis + 1 : param.axis;
   std::vector<dim_t> oshape;
   for (int i = 0; i < axis; ++i) {
@@ -348,98 +332,6 @@ will return a new array with shape ``(2,1,1,1,1,1,3,4)``.
 .set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
 .set_support_level(1);
 
-// split
-// CVMUTIL_REGISTER_PARAMETER(SplitParam);
-//
-// inline void SplitParamParser(cvm::NodeAttrs* attrs) {
-//   SplitParam param;
-//   param.Init(attrs->dict);
-//   if (!std::isdigit(attrs->dict.at("indices_or_sections")[0])) {
-//     param.equal_split = false;
-//   } else {
-//     VERIFY_EQ(param.indices_or_sections.ndim(), 1);
-//     param.equal_split = true;
-//   }
-//   attrs->parsed = std::move(param);
-// }
-//
-// inline bool SplitInferShape(const NodeAttrs& attrs,
-//                             std::vector<TShape>* in_shape,
-//                             std::vector<TShape>* out_shape) {
-//   const SplitParam& param = cvm::get<SplitParam>(attrs.parsed);
-//   const TShape& dshape = (*in_shape)[0];
-//   if (dshape.ndim() == 0) return false;
-//
-//   auto axis = param.axis;
-//   if (axis < 0) {
-//     axis += dshape.ndim();
-//   }
-//   VERIFY_LT(axis, dshape.ndim())
-//     << "axis should be within input dimension range but got " <<  axis;
-//   VERIFY_GT(axis, -1)
-//     << "axis should be within input dimension range but got " <<  axis;
-//
-//   if (param.equal_split) {
-//     int num_outputs = param.indices_or_sections[0];
-//     VERIFY_EQ(out_shape->size(), static_cast<size_t>(num_outputs));
-//     TShape oshape = dshape;
-//     VERIFY_EQ(oshape[axis] % num_outputs, 0)
-//         << "indices_or_sections need to be able to divide input.shape[axis] got sections "
-//         << num_outputs << " and dimension " << oshape[axis];
-//     oshape[axis] /= num_outputs;
-//
-//     for (size_t i = 0; i < out_shape->size(); ++i) {
-//       CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, i, oshape);
-//     }
-//   } else {
-//     dim_t num_outputs = param.indices_or_sections.ndim() + 1;
-//     VERIFY_EQ(out_shape->size(), static_cast<size_t>(num_outputs));
-//     TShape oshape = dshape;
-//     dim_t begin = 0;
-//     for (dim_t i = 0; i < num_outputs - 1; ++i) {
-//       VERIFY_GT(param.indices_or_sections[i], begin)
-//           << "indices_or_sections need to be a sorted ascending list got "
-//           << param.indices_or_sections;
-//       oshape[axis] = param.indices_or_sections[i] - begin;
-//       begin = param.indices_or_sections[i];
-//       CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, i, oshape);
-//     }
-//     VERIFY_LT(begin, dshape[axis])
-//         << "The sum of sections must match the input.shape[axis]";
-//     oshape[axis] = dshape[axis] - begin;
-//     CVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, num_outputs - 1, oshape);
-//   }
-//   return true;
-// }
-//
-// inline uint32_t SplitNumOutputs(const NodeAttrs& attrs) {
-//   const SplitParam& param = cvm::get<SplitParam>(attrs.parsed);
-//   if (param.equal_split) {
-//     return static_cast<uint32_t>(param.indices_or_sections[0]);
-//   } else {
-//     return static_cast<uint32_t>(param.indices_or_sections.ndim()) + 1;
-//   }
-// }
-//
-// // Intentionally not add ParamGetAttrDict for indices_or_sections.
-// CVM_REGISTER_OP(split)
-// .describe(R"code(Splits an array along a particular axis into multiple sub-arrays.
-//
-// **Note** that `indices_or_sections` should evenly divide the length of the axis
-// along which to split the array.
-//
-// )code" CVM_ADD_FILELINE)
-// .add_argument("data", "Tensor", "Array to be splitted")
-// .add_arguments(SplitParam::__FIELDS__())
-// .set_attr_parser(SplitParamParser)
-// .set_attr<FInferShape>("FInferShape", SplitInferShape)
-// .set_attr<FInferType>("FInferType", ElemwiseType<1, -1>)
-// .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, -1>)
-// .set_num_inputs(1)
-// .set_num_outputs(SplitNumOutputs)
-// .set_attr<FInferPrecision>("FInferPrecision", ElemwiseSamePrecision)
-// .set_support_level(3);
-
 // reshape
 CVMUTIL_REGISTER_PARAMETER(ReshapeParam);
 
@@ -452,7 +344,6 @@ inline bool ReshapeInferShape(const NodeAttrs& attrs,
   VERIFY_EQ(out_attrs->size(), 1U);
 
   const TShape &dshape = (*in_attrs)[0];
-  if (dshape.ndim() == 0) return false;
 
   const Tuple<int64_t>& target_shape = param.shape;
   std::vector<int64_t> oshape;
@@ -460,7 +351,7 @@ inline bool ReshapeInferShape(const NodeAttrs& attrs,
   int infer_idx = -1;
 
   for (dim_t i = 0; i < target_shape.ndim(); ++i) {
-    int svalue = target_shape[i];
+    int64_t svalue = target_shape[i];
     // special flag handling for shape inference.
     if (svalue > 0) {
       oshape.push_back(svalue);
@@ -603,11 +494,11 @@ inline bool SqueezeShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(in_attrs->size(), 1U);
   VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
-  if (shp.ndim() == 0) return false;
 
+  int ndim = shp.ndim();
   std::vector<int64_t> oshape;
   if (param.axis.ndim() == 0) {
-    for (dim_t i = 0; i < shp.ndim(); ++i) {
+    for (int i = 0; i < ndim; ++i) {
       if (shp[i] != 1) {
         oshape.emplace_back(shp[i]);
       }
@@ -615,16 +506,16 @@ inline bool SqueezeShape(const cvm::NodeAttrs& attrs,
   } else {
     std::unordered_set<dim_t> axis_checker;
     for (size_t i = 0; i < param.axis.ndim(); ++i) {
+      VerifyAttrRange(param.axis[i], "squeeze.axis", -ndim, ndim);
       int real_axis;
       if (param.axis[i] < 0) {
-        real_axis = param.axis[i] + static_cast<int>(shp.ndim());
+        real_axis = param.axis[i] + ndim;
       } else {
         real_axis = param.axis[i];
       }
-      VERIFY(real_axis < static_cast<int>(shp.ndim()) && real_axis >= 0);
       axis_checker.insert(real_axis);
     }
-    for (size_t i = 0; i < shp.ndim(); ++i) {
+    for (int i = 0; i < ndim; ++i) {
       if (axis_checker.find(i) == axis_checker.end()) {
         oshape.emplace_back(shp[i]);
       } else {
@@ -684,26 +575,24 @@ inline bool TransposeShape(const cvm::NodeAttrs& attrs,
   VERIFY_EQ(in_attrs->size(), 1U);
   VERIFY_EQ(out_attrs->size(), 1U);
   const TShape& shp = (*in_attrs)[0];
-  if (shp.ndim() == 0) return false;
+  int ndim = shp.ndim();
 
-  TShape ret(shp.ndim());
+  TShape ret(ndim);
   if (param.axes.ndim() == 0) {
-    for (dim_t i = 0; i < shp.ndim(); ++i) {
-      ret[i] = shp[shp.ndim() - 1 - i];
+    for (int i = 0; i < ndim; ++i) {
+      ret[i] = shp[ndim - 1 - i];
     }
   } else {
     VERIFY_EQ(shp.ndim(), param.axes.ndim());
     TShape axes(param.axes);
-    for (size_t i = 0; i < shp.ndim(); ++i) {
-      int new_axis = axes[i];
+    for (int i = 0; i < ndim; ++i) {
+      int64_t new_axis = axes[i];
+      VerifyAttrRange(new_axis, "transpose.axis", -ndim, ndim);
       if (new_axis < 0) {
-        new_axis += shp.ndim();
+        new_axis += ndim;
         axes[i] = new_axis;
       }
-      VERIFY((new_axis >= 0) && ((uint32_t)new_axis < shp.ndim()))
-        << "axis=" << axes[i] << " is invalid for the "
-        << shp.ndim() << "-dimensional input tensor";
-      for (size_t j = 0; j < shp.ndim(); ++j) {
+      for (int j = 0; j < ndim; ++j) {
         if (i != j) {
           VERIFY(new_axis != axes[j]) << "repeated axis in transpose";
         }
@@ -803,7 +692,6 @@ inline bool StridedSliceInferShape(const NodeAttrs& attrs,
                             std::vector<TShape>* out_shape) {
   const StridedSliceParam& param = cvm::get<StridedSliceParam>(attrs.parsed);
   const TShape& dshape = (*in_shape)[0];
-  if (dshape.ndim() == 0) return false;
   TShape oshape = dshape;
   dim_t num_axis = dshape.ndim();
 
@@ -892,8 +780,7 @@ inline bool TakeInferShape(const NodeAttrs& attrs,
   VERIFY_EQ(out_shape->size(), 1U);
   const TShape& dshape = (*in_shape)[0];
   const TShape& indicesshape = (*in_shape)[1];
-  if (dshape.ndim() == 0) return false;
-  if (indicesshape.ndim() == 0) return false;
+  int ndim = dshape.ndim();
 
   const TakeParam& param = cvm::get<TakeParam>(attrs.parsed);
   TShape oshape((!param.axis ? 0: dshape.ndim() - 1) + indicesshape.ndim());
@@ -903,15 +790,14 @@ inline bool TakeInferShape(const NodeAttrs& attrs,
     }
   } else {
     int axis = param.axis.value();
+    VerifyAttrRange(axis, "take.axis", -ndim, ndim);
     if (axis < 0) {
-      axis += dshape.ndim();
+      axis += ndim;
     }
-    //VERIFY_LT(axis, dshape.ndim());
-    VERIFY(axis >= 0 && (unsigned int)axis < dshape.ndim());
-
+    
     size_t posi = 0;
-    for (size_t i = 0; i < dshape.ndim(); ++i) {
-      if (static_cast<int>(i) == axis) {
+    for (int i = 0; i < ndim; ++i) {
+      if (i == axis) {
         for (size_t j = 0; j < indicesshape.ndim(); ++j) {
           oshape[posi++] = indicesshape[j];
         }
@@ -999,8 +885,8 @@ inline bool LUTInferShape(const NodeAttrs& attrs,
   VERIFY_EQ(out_shape->size(), 1U);
   const TShape& dshape = (*in_shape)[0];
   const TShape& lutshape = (*in_shape)[1];
-  if (dshape.ndim() == 0) return false;
-  if (lutshape.ndim() == 0) return false;
+  const CVMLUTParam &param = cvm::get<CVMLUTParam>(attrs.parsed);
+  VERIFY_EQ(lutshape.Size(), param.in_dim);
   TShape oshape(dshape.ndim());
 	for (size_t j = 0; j < dshape.ndim(); ++j) {
 	  oshape[j] = dshape[j];
@@ -1085,12 +971,11 @@ inline bool SliceLikeShape(const cvm::NodeAttrs& attrs,
     }
   } else {
     for (auto i : param.axis) {
+      VerifyAttrRange(i, "slice_like.axis",
+          -src_shape.ndim(), target_shape.ndim());
       if (i < 0) {
         i = src_shape.ndim() + i;
       }
-      VERIFY(i>=0 && (uint32_t)i < target_shape.ndim())
-        << "Axis " << i << " exceeds dimension "
-        << target_shape.ndim()<< " of target_shape.";
       end_idx[i] = target_shape[i];
       VERIFY_LE(end_idx[i], src_shape[i])
         << "End index of axis " << i << " exceeds input shape: "

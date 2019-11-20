@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -204,6 +204,7 @@ func NewHTTPServer(cors []string, vhosts []string, timeouts HTTPTimeouts, srv *S
 	// Wrap the CORS-handler within a host-handler
 	handler := newCorsHandler(srv, cors)
 	handler = newVHostHandler(vhosts, handler)
+	handler = newGzipHandler(handler)
 
 	// Make sure timeout values are meaningful
 	if timeouts.ReadTimeout < time.Second {

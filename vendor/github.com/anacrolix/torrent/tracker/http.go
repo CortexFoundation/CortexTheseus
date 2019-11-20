@@ -2,13 +2,17 @@ package tracker
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
+	"math"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
-	"github.com/anacrolix/dht/krpc"
+	"github.com/anacrolix/dht/v2/krpc"
 	"github.com/anacrolix/missinggo/httptoo"
 
 	"github.com/anacrolix/torrent/bencode"
@@ -72,7 +76,16 @@ func setAnnounceParams(_url *url.URL, ar *AnnounceRequest, opts Announce) {
 	q.Set("port", fmt.Sprintf("%d", ar.Port))
 	q.Set("uploaded", strconv.FormatInt(ar.Uploaded, 10))
 	q.Set("downloaded", strconv.FormatInt(ar.Downloaded, 10))
-	q.Set("left", strconv.FormatUint(ar.Left, 10))
+
+	// The AWS S3 tracker returns "400 Bad Request: left(-1) was not in the valid range 0 -
+	// 9223372036854775807" if left is out of range, or "500 Internal Server Error: Internal Server
+	// Error" if omitted entirely.
+	left := ar.Left
+	if left < 0 {
+		left = math.MaxInt64
+	}
+	q.Set("left", strconv.FormatInt(left, 10))
+
 	if ar.Event != None {
 		q.Set("event", ar.Event.String())
 	}
@@ -96,7 +109,23 @@ func announceHTTP(opt Announce, _url *url.URL) (ret AnnounceResponse, err error)
 	req, err := http.NewRequest("GET", _url.String(), nil)
 	req.Header.Set("User-Agent", opt.UserAgent)
 	req.Host = opt.HostHeader
-	resp, err := opt.HttpClient.Do(req)
+	if opt.Context != nil {
+		req = req.WithContext(opt.Context)
+	}
+	resp, err := (&http.Client{
+		Timeout: time.Second * 15,
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: 15 * time.Second,
+			}).Dial,
+			Proxy:               opt.HTTPProxy,
+			TLSHandshakeTimeout: 15 * time.Second,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				ServerName:         opt.ServerName,
+			},
+		},
+	}).Do(req)
 	if err != nil {
 		return
 	}

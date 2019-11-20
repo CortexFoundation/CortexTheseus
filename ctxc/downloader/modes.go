@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -60,7 +60,7 @@ func (mode *SyncMode) UnmarshalText(text []byte) error {
 	case "fast":
 		*mode = FastSync
 	default:
-		return fmt.Errorf(`unknown sync mode %q, want "full", "fast", "mute" or "light"`, text)
+		return fmt.Errorf(`unknown sync mode %q, want "full", "fast"`, text)
 	}
 	return nil
 }

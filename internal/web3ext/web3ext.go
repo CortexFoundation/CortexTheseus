@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexFoundation Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -402,6 +402,11 @@ const Cortex_JS = `
 web3._extend({
 	property: 'ctxc',
 	methods: [
+		new web3._extend.Method({
+				name: 'chainId',
+				call: 'ctxc_chainId',
+				params: 0
+		}),
 		new web3._extend.Method({
 			name: 'sign',
 			call: 'ctxc_sign',

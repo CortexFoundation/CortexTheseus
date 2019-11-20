@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexFoundation Authors
+// Copyright 2018 The CortexTheseus Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@ type StateDB interface {
 	//GetUpload(common.Address) *big.Int
 	Uploading(common.Address) bool
 	Upload(common.Address) *big.Int
-	Download(common.Address) error
+	//Download(common.Address) error
 
 	GetNum(common.Address) *big.Int
 	SetNum(common.Address, *big.Int)
