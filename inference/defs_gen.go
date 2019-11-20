@@ -7,6 +7,17 @@ import (
 	"fmt"
 )
 
+func (rdr *NpyReader) GetBytes() ([]byte, error) {
+
+	data := make([]byte, rdr.nElt)
+	err := binary.Read(rdr.r, rdr.Endian, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
 // GetComplex128 returns the array data as a slice of complex128 values.
 func (rdr *NpyReader) GetComplex128() ([]complex128, error) {
 
@@ -31,17 +42,6 @@ func (rdr *NpyReader) GetComplex64() ([]complex64, error) {
 	}
 
 	data := make([]complex64, rdr.nElt)
-	err := binary.Read(rdr.r, rdr.Endian, &data)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-func (rdr *NpyReader) GetBytes() ([]byte, error) {
-
-	data := make([]byte, rdr.nElt)
 	err := binary.Read(rdr.r, rdr.Endian, &data)
 	if err != nil {
 		return nil, err
