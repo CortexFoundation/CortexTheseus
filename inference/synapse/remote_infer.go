@@ -3,12 +3,15 @@ package synapse
 import (
 	"encoding/binary"
 	"encoding/json"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	resty "gopkg.in/resty.v1"
+	resty "github.com/go-resty/resty/v2" //"gopkg.in/resty.v1"
 )
+
+var client = resty.New()
 
 func (s *Synapse) remoteGasByModelHash(modelInfoHash string) (uint64, error) {
 	inferWork := &inference.GasWork{
@@ -30,7 +33,8 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash string) (uint64, error) {
 	return binary.BigEndian.Uint64(retArray), nil
 }
 
-func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
+//func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
+func (s *Synapse) remoteAvailable(infoHash string, rawSize int64) error {
 	inferWork := &inference.AvailableWork{
 		Type:     inference.AVAILABLE_BY_H,
 		InfoHash: infoHash,
@@ -44,7 +48,7 @@ func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) er
 	}
 	log.Debug("remoteAvailable", "request", string(requestBody))
 
-	_, err := s.sendRequest(string(requestBody), uri)
+	_, err := s.sendRequest(string(requestBody), s.config.InferURI)
 	return err
 }
 
@@ -83,18 +87,18 @@ func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent [
 }
 
 func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
-	cacheKey := RLPHashString(requestBody)
+	/*cacheKey := RLPHashString(requestBody)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
 		return v.([]byte), nil
-	}
+	}*/
 
-	resp, err := resty.R().
+	resp, err := client.SetTimeout(time.Duration(15*time.Second)).R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(uri)
 	if err != nil {
-		log.Warn("remote infer: request response failed", "error", err)
+		log.Warn("remote infer: request response failed", "error", err, "body", requestBody)
 		return nil, KERNEL_RUNTIME_ERROR
 	} else if resp.StatusCode() != 200 {
 		log.Warn("remote infer: request response failed", "status code", resp.StatusCode())
@@ -111,9 +115,9 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 
 	if res.Info == inference.RES_OK {
 		var data = []byte(res.Data)
-		if !s.config.IsNotCache {
+		/*if !s.config.IsNotCache {
 			s.simpleCache.Store(cacheKey, data)
-		}
+		}*/
 		return data, nil
 	}
 	// res.Info == inference.RES_ERROR

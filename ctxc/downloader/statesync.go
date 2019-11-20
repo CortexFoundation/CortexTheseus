@@ -239,7 +239,7 @@ type stateTask struct {
 func newStateSync(d *Downloader, root common.Hash) *stateSync {
 	return &stateSync{
 		d:       d,
-		sched:   state.NewStateSync(root, d.stateDB),
+		sched:   state.NewStateSync(root, d.stateDB, d.stateBloom),
 		keccak:  sha3.NewKeccak256(),
 		tasks:   make(map[common.Hash]*stateTask),
 		deliver: make(chan *stateReq),
@@ -301,7 +301,7 @@ func (s *stateSync) loop() (err error) {
 			return errCancelStateFetch
 
 		case <-s.d.cancelCh:
-			return errCancelStateFetch
+			return errCanceled
 
 		case req := <-s.deliver:
 			// Response, disconnect or timeout triggered, drop the peer if stalling
@@ -310,13 +310,13 @@ func (s *stateSync) loop() (err error) {
 				// 2 items are the minimum requested, if even that times out, we've no use of
 				// this peer at the moment.
 				log.Warn("Stalling state sync, dropping peer", "peer", req.peer.id)
-				//s.d.dropPeer(req.peer.id)
 				if s.d.dropPeer == nil {
 					// The dropPeer method is nil when `--copydb` is used for a local copy.
 					// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 					req.peer.log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", req.peer.id)
 				} else {
 					s.d.dropPeer(req.peer.id)
+
 					// If this peer was the master peer, abort sync immediately
 					s.d.cancelLock.RLock()
 					master := req.peer.id == s.d.cancelPeer
@@ -329,13 +329,11 @@ func (s *stateSync) loop() (err error) {
 				}
 			}
 			// Process all the received blobs and check for stale delivery
-			//if err = s.process(req); err != nil {
 			delivered, err := s.process(req)
 			if err != nil {
 				log.Warn("Node data write error", "err", err)
 				return err
 			}
-			//req.peer.SetNodeDataIdle(len(req.response))
 			req.peer.SetNodeDataIdle(delivered)
 		}
 	}
@@ -348,7 +346,8 @@ func (s *stateSync) commit(force bool) error {
 	}
 	start := time.Now()
 	b := s.d.stateDB.NewBatch()
-	if written, err := s.sched.Commit(b); written == 0 || err != nil {
+	//if written, err := s.sched.Commit(b); written == 0 || err != nil {
+	if err := s.sched.Commit(b); err != nil {
 		return err
 	}
 	if err := b.Write(); err != nil {
@@ -428,16 +427,13 @@ func (s *stateSync) process(req *stateReq) (int, error) {
 		}
 	}(time.Now())
 
-	// Iterate over all the delivered data and inject one-by-one into the trie
-	progress := false
-
 	for _, blob := range req.response {
-		prog, hash, err := s.processNodeData(blob)
+		_, hash, err := s.processNodeData(blob)
 		switch err {
 		case nil:
 			s.numUncommitted++
 			s.bytesUncommitted += len(blob)
-			progress = progress || prog
+			successful++
 		case trie.ErrNotRequested:
 			unexpected++
 		case trie.ErrAlreadyProcessed:
@@ -445,9 +441,7 @@ func (s *stateSync) process(req *stateReq) (int, error) {
 		default:
 			return successful, fmt.Errorf("invalid state node %s: %v", hash.TerminalString(), err)
 		}
-		if _, ok := req.tasks[hash]; ok {
-			delete(req.tasks, hash)
-		}
+		delete(req.tasks, hash)
 	}
 	// Put unfulfilled tasks back into the retry queue
 	npeers := s.d.peers.Len()

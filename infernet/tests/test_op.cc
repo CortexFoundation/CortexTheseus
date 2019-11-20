@@ -399,7 +399,7 @@ void read_one_line(string filename, string& str){
 template<typename T>
 void print(vector<T> &data){
   for(int i = 0; i < data.size() && i < 100; i++){
-    printf("%d ", data[i]);
+    printf("%d ", (int)data[i]);
   }
   printf("\n");
 
@@ -417,7 +417,7 @@ void read_data(const char *filename, vector<unsigned long> &shape, vector<int32_
 //    printf("shape: ");
     for(int i = 0; i < shape_dim; i++){
         int64_t value = 0;
-        fscanf(fp, "%d ", &value);
+        fscanf(fp, "%ld ", &value);
         shape[i] = value;
 //        printf("%d ", shape[i]);
         size *= shape[i];

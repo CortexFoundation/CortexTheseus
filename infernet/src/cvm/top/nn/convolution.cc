@@ -32,19 +32,10 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
     << "Conv2D only supported kernel layout: OIHW vs. " << param.kernel_layout;
   const Layout in_layout(param.layout);
   const Layout kernel_layout(param.kernel_layout);
-  // VERIFY(in_layout.convertible(kNCHW))
-  //   << "Conv only support input layouts that are convertible from NCHW."
-  //   << " But got " << in_layout;
-  // VERIFY(kernel_layout.convertible(kOIHW))
-  //   << "Conv only support kernel layouts that are convertible from OIHW."
-  //   << " But got "<< kernel_layout;
 
   Layout out_layout(param.out_layout);
   if (!out_layout.defined()) out_layout = in_layout;
   VERIFY_EQ(out_layout.name(), "NCHW");
-  // VERIFY(out_layout.convertible(kNCHW))
-  //   << "Conv only support output layouts that are convertible from NCHW."
-  //   << " But got " << out_layout;
 
   if (param.use_bias) {
     VERIFY_EQ(in_shape->size(), 3U) << "Input:[data, weight, bias]";
@@ -55,28 +46,23 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
 
   TShape dshape = in_shape->at(0);
   if (dshape.ndim() == 0) return false;
-  // dshape = ConvertLayout(dshape, in_layout, kNCHW);
 
   VERIFY_EQ(dshape.ndim(), 4U) << "Input data should be 4D";
   VERIFY_EQ(param.kernel_size.ndim(), 2U);
   VERIFY_EQ(param.padding.ndim(), 2U);
-  VERIFY_GE(param.padding[0], 0);
-  VERIFY_GE(param.padding[1], 0);
+  VerifyAttrRange(param.padding[0], "Conv2D.padding[0]");
+  VerifyAttrRange(param.padding[1], "Conv2D.padding[1]");
   VERIFY_EQ(param.strides.ndim(), 2U)
       << "incorrect stride size: " << param.strides;
-  VERIFY_GE(param.strides[0], 1);
-  VERIFY_GE(param.strides[1], 1);
+  VerifyAttrRange(param.strides[0], "Conv2D.strides[0]", 1);
+  VerifyAttrRange(param.strides[1], "Conv2D.strides[1]", 1);
   VERIFY_EQ(param.dilation.ndim(), 2U)
       << "incorrect dilate size: " << param.dilation;
-  VERIFY_GE(param.dilation[0], 1);
-  VERIFY_GE(param.dilation[1], 1);
-  VERIFY_EQ(dshape[1] % param.groups, 0U)
-      << "input channels must divide group size";
-  VERIFY_EQ(param.channels % param.groups, 0U)
-      << "output channels must divide group size";
-  TShape outshape = out_shape->at(0);
-  bool check_groups = ((dshape[1] == param.groups) || (param.groups == 1));
-  VERIFY(check_groups)
+  VerifyAttrRange(param.dilation[0], "Conv2D.dilation[0]", 1);
+  VerifyAttrRange(param.dilation[1], "Conv2D.dilation[1]", 1);
+
+  VERIFY(param.groups == 1 ||
+      (dshape[1] == param.groups && param.groups == param.channels))
     << "Conv2D only supported groups (1 or in_channels " << param.channels
     << ") vs. " << param.groups;
 
@@ -84,8 +70,6 @@ inline bool Conv2DInferShape(const cvm::NodeAttrs& attrs,
                  dshape[1] / param.groups,
                  param.kernel_size[0],
                  param.kernel_size[1]});
-
-  // wshape = ConvertLayout(wshape, kOIHW, kernel_layout);
 
   if (in_shape->at(Conv2DParam::kWeight).ndim() == 0) {
     CVM_ASSIGN_INPUT_SHAPE(attrs, *in_shape, Conv2DParam::kWeight, wshape);

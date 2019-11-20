@@ -119,7 +119,7 @@ func (i *Iter) Done() bool {
 // Next returns f(i.input[i.Pos():n]), where n is a boundary of i.input.
 // For any input a and b for which f(a) == f(b), subsequent calls
 // to Next will return the same segments.
-// Modifying runes are grouped tocortexer with the preceding starter, if such a starter exists.
+// Modifying runes are grouped together with the preceding starter, if such a starter exists.
 // Although not guaranteed, n will typically be the smallest possible n.
 func (i *Iter) Next() []byte {
 	return i.next(i)

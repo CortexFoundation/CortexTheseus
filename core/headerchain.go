@@ -104,6 +104,7 @@ func NewHeaderChain(chainDb ctxcdb.Database, config *params.ChainConfig, engine 
 		}
 	}
 	hc.currentHeaderHash = hc.CurrentHeader().Hash()
+	headHeaderGauge.Update(hc.CurrentHeader().Number.Int64())
 
 	return hc, nil
 }
@@ -185,6 +186,7 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 
 		hc.currentHeaderHash = hash
 		hc.currentHeader.Store(types.CopyHeader(header))
+		headHeaderGauge.Update(header.Number.Int64())
 
 		status = CanonStatTy
 	} else {
@@ -219,14 +221,18 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 
 	// Generate the list of seal verification requests, and start the parallel verifier
 	seals := make([]bool, len(chain))
-	for i := 0; i < len(seals)/checkFreq; i++ {
-		index := i*checkFreq + hc.rand.Intn(checkFreq)
-		if index >= len(seals) {
-			index = len(seals) - 1
+	if checkFreq != 0 {
+		// In case of checkFreq == 0 all seals are left false.
+		for i := 0; i < len(seals)/checkFreq; i++ {
+			index := i*checkFreq + hc.rand.Intn(checkFreq)
+			if index >= len(seals) {
+				index = len(seals) - 1
+			}
+			seals[index] = true
 		}
-		seals[index] = true
+		// Last should always be verified to avoid junk.
+		seals[len(seals)-1] = true
 	}
-	seals[len(seals)-1] = true // Last should always be verified to avoid junk
 
 	abort, results := hc.engine.VerifyHeaders(hc, chain, seals)
 	defer close(abort)
@@ -260,46 +266,46 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 // of the header retrieval mechanisms already need to verfy nonces, as well as
 // because nonces can be verified sparsely, not needing to check each.
 func (hc *HeaderChain) InsertHeaderChain(chain []*types.Header, writeHeader WhCallback, start time.Time) (int, error) {
-	 // Collect some import statistics to report on
-        stats := struct{ processed, ignored int }{}
-        // All headers passed verification, import them into the database
-        for i, header := range chain {
-                // Short circuit insertion if shutting down
-                if hc.procInterrupt() {
-                        log.Debug("Premature abort during headers import")
-                        return i, errors.New("aborted")
-                }
-                // If the header's already known, skip it, otherwise store
-                hash := header.Hash()
-                if hc.HasHeader(hash, header.Number.Uint64()) {
-                        externTd := hc.GetTd(hash, header.Number.Uint64())
-                        localTd := hc.GetTd(hc.currentHeaderHash, hc.CurrentHeader().Number.Uint64())
-                        if externTd == nil || externTd.Cmp(localTd) <= 0 {
-                                stats.ignored++
-                                continue
-                        }
-                }
-                if err := writeHeader(header); err != nil {
-                        return i, err
-                }
-                stats.processed++
-        }
-        // Report some public statistics so the user has a clue what's going on
-        last := chain[len(chain)-1]
+	// Collect some import statistics to report on
+	stats := struct{ processed, ignored int }{}
+	// All headers passed verification, import them into the database
+	for i, header := range chain {
+		// Short circuit insertion if shutting down
+		if hc.procInterrupt() {
+			log.Debug("Premature abort during headers import")
+			return i, errors.New("aborted")
+		}
+		// If the header's already known, skip it, otherwise store
+		hash := header.Hash()
+		if hc.HasHeader(hash, header.Number.Uint64()) {
+			externTd := hc.GetTd(hash, header.Number.Uint64())
+			localTd := hc.GetTd(hc.currentHeaderHash, hc.CurrentHeader().Number.Uint64())
+			if externTd == nil || externTd.Cmp(localTd) <= 0 {
+				stats.ignored++
+				continue
+			}
+		}
+		if err := writeHeader(header); err != nil {
+			return i, err
+		}
+		stats.processed++
+	}
+	// Report some public statistics so the user has a clue what's going on
+	last := chain[len(chain)-1]
 
-        context := []interface{}{
-                "count", stats.processed, "elapsed", common.PrettyDuration(time.Since(start)),
-                "number", last.Number, "hash", last.Hash(),
-        }
-        if timestamp := time.Unix(last.Time.Int64(), 0); time.Since(timestamp) > time.Minute {
-                context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
-        }
-        if stats.ignored > 0 {
-                context = append(context, []interface{}{"ignored", stats.ignored}...)
-        }
-        log.Info("Imported new block headers", context...)
+	context := []interface{}{
+		"count", stats.processed, "elapsed", common.PrettyDuration(time.Since(start)),
+		"number", last.Number, "hash", last.Hash(),
+	}
+	if timestamp := time.Unix(last.Time.Int64(), 0); time.Since(timestamp) > time.Minute {
+		context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
+	}
+	if stats.ignored > 0 {
+		context = append(context, []interface{}{"ignored", stats.ignored}...)
+	}
+	log.Info("Imported new block headers", context...)
 
-        return 0, nil
+	return 0, nil
 }
 
 // GetBlockHashesFromHash retrieves a number of block hashes starting at a given
@@ -344,8 +350,13 @@ func (hc *HeaderChain) GetAncestor(hash common.Hash, number, ancestor uint64, ma
 	}
 	for ancestor != 0 {
 		if rawdb.ReadCanonicalHash(hc.chainDb, number) == hash {
-			number -= ancestor
-			return rawdb.ReadCanonicalHash(hc.chainDb, number), number
+			//number -= ancestor
+			//return rawdb.ReadCanonicalHash(hc.chainDb, number), number
+			ancestorHash := rawdb.ReadCanonicalHash(hc.chainDb, number-ancestor)
+			if rawdb.ReadCanonicalHash(hc.chainDb, number) == hash {
+				number -= ancestor
+				return ancestorHash, number
+			}
 		}
 		if *maxNonCanonical == 0 {
 			return common.Hash{}, 0
@@ -446,71 +457,71 @@ func (hc *HeaderChain) CurrentHeader() *types.Header {
 
 // SetCurrentHeader sets the current head header of the canonical chain.
 func (hc *HeaderChain) SetCurrentHeader(head *types.Header) {
-        rawdb.WriteHeadHeaderHash(hc.chainDb, head.Hash())
+	rawdb.WriteHeadHeaderHash(hc.chainDb, head.Hash())
 
-        hc.currentHeader.Store(head)
-        hc.currentHeaderHash = head.Hash()
-        headHeaderGauge.Update(head.Number.Int64())
+	hc.currentHeader.Store(head)
+	hc.currentHeaderHash = head.Hash()
+	headHeaderGauge.Update(head.Number.Int64())
 }
 
 type (
-        // UpdateHeadBlocksCallback is a callback function that is called by SetHead
-        // before head header is updated.
-        UpdateHeadBlocksCallback func(ctxcdb.DatabaseWriter, *types.Header)
+	// UpdateHeadBlocksCallback is a callback function that is called by SetHead
+	// before head header is updated.
+	UpdateHeadBlocksCallback func(ctxcdb.KeyValueWriter, *types.Header)
 
-        // DeleteBlockContentCallback is a callback function that is called by SetHead
-        // before each header is deleted.
-        DeleteBlockContentCallback func(ctxcdb.DatabaseWriter, common.Hash, uint64)
+	// DeleteBlockContentCallback is a callback function that is called by SetHead
+	// before each header is deleted.
+	DeleteBlockContentCallback func(ctxcdb.KeyValueWriter, common.Hash, uint64)
 )
 
 // SetHead rewinds the local chain to a new head. Everything above the new head
 // will be deleted and the new one set.
 func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, delFn DeleteBlockContentCallback) {
-	 var (
-                parentHash common.Hash
-                batch      = hc.chainDb.NewBatch()
-        )
-        for hdr := hc.CurrentHeader(); hdr != nil && hdr.Number.Uint64() > head; hdr = hc.CurrentHeader() {
-                hash, num := hdr.Hash(), hdr.Number.Uint64()
+	var (
+		parentHash common.Hash
+		batch      = hc.chainDb.NewBatch()
+	)
+	for hdr := hc.CurrentHeader(); hdr != nil && hdr.Number.Uint64() > head; hdr = hc.CurrentHeader() {
+		hash, num := hdr.Hash(), hdr.Number.Uint64()
 
-                // Rewind block chain to new head.
-                parent := hc.GetHeader(hdr.ParentHash, num-1)
-                if parent == nil {
-                        parent = hc.genesisHeader
-                }
-                parentHash = hdr.ParentHash
-                // Notably, since geth has the possibility for setting the head to a low
-                // height which is even lower than ancient head.
-                // In order to ensure that the head is always no higher than the data in
-                // the database(ancient store or active store), we need to update head
-                // first then remove the relative data from the database.
-                //
-                // Update head first(head fast block, head full block) before deleting the data.
-                if updateFn != nil {
-                        updateFn(hc.chainDb, parent)
-                }
-                // Update head header then.
-                rawdb.WriteHeadHeaderHash(hc.chainDb, parentHash)
+		// Rewind block chain to new head.
+		parent := hc.GetHeader(hdr.ParentHash, num-1)
+		if parent == nil {
+			parent = hc.genesisHeader
+		}
+		parentHash = hdr.ParentHash
+		// Notably, since cortex has the possibility for setting the head to a low
+		// height which is even lower than ancient head.
+		// In order to ensure that the head is always no higher than the data in
+		// the database(ancient store or active store), we need to update head
+		// first then remove the relative data from the database.
+		//
+		// Update head first(head fast block, head full block) before deleting the data.
+		if updateFn != nil {
+			updateFn(hc.chainDb, parent)
+		}
+		// Update head header then.
+		rawdb.WriteHeadHeaderHash(hc.chainDb, parentHash)
 
-                // Remove the relative data from the database.
-                if delFn != nil {
-                        delFn(batch, hash, num)
-                }
-                // Rewind header chain to new head.
-                rawdb.DeleteHeader(batch, hash, num)
-                rawdb.DeleteTd(batch, hash, num)
-                rawdb.DeleteCanonicalHash(batch, num)
+		// Remove the relative data from the database.
+		if delFn != nil {
+			delFn(batch, hash, num)
+		}
+		// Rewind header chain to new head.
+		rawdb.DeleteHeader(batch, hash, num)
+		rawdb.DeleteTd(batch, hash, num)
+		rawdb.DeleteCanonicalHash(batch, num)
 
-                hc.currentHeader.Store(parent)
-                hc.currentHeaderHash = parentHash
-                headHeaderGauge.Update(parent.Number.Int64())
-        }
-        batch.Write()
+		hc.currentHeader.Store(parent)
+		hc.currentHeaderHash = parentHash
+		headHeaderGauge.Update(parent.Number.Int64())
+	}
+	batch.Write()
 
-        // Clear out any stale content from the caches
-        hc.headerCache.Purge()
-        hc.tdCache.Purge()
-        hc.numberCache.Purge()
+	// Clear out any stale content from the caches
+	hc.headerCache.Purge()
+	hc.tdCache.Purge()
+	hc.numberCache.Purge()
 }
 
 // SetGenesis sets a new genesis block header for the chain

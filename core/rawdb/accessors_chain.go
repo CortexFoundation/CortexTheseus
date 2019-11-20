@@ -23,6 +23,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -56,7 +57,7 @@ func WriteCanonicalHash(db ctxcdb.Writer, hash common.Hash, number uint64) {
 }
 
 // DeleteCanonicalHash removes the number to hash canonical mapping.
-func DeleteCanonicalHash(db ctxcdb.DatabaseWriter, number uint64) {
+func DeleteCanonicalHash(db ctxcdb.KeyValueWriter, number uint64) {
 	if err := db.Delete(headerHashKey(number)); err != nil {
 		log.Crit("Failed to delete number to hash mapping", "err", err)
 	}
@@ -80,7 +81,7 @@ func ReadAllHashes(db ctxcdb.Iteratee, number uint64) []common.Hash {
 }
 
 // ReadHeaderNumber returns the header number assigned to a hash.
-func ReadHeaderNumber(db ctxcdb.DatabaseReader, hash common.Hash) *uint64 {
+func ReadHeaderNumber(db ctxcdb.KeyValueReader, hash common.Hash) *uint64 {
 	data, _ := db.Get(headerNumberKey(hash))
 	if len(data) != 8 {
 		return nil
@@ -90,7 +91,7 @@ func ReadHeaderNumber(db ctxcdb.DatabaseReader, hash common.Hash) *uint64 {
 }
 
 // WriteHeaderNumber stores the hash->number mapping.
-func WriteHeaderNumber(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
+func WriteHeaderNumber(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	key := headerNumberKey(hash)
 	enc := encodeBlockNumber(number)
 	if err := db.Put(key, enc); err != nil {
@@ -99,14 +100,14 @@ func WriteHeaderNumber(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64
 }
 
 // DeleteHeaderNumber removes hash->number mapping.
-func DeleteHeaderNumber(db ctxcdb.DatabaseWriter, hash common.Hash) {
+func DeleteHeaderNumber(db ctxcdb.KeyValueWriter, hash common.Hash) {
 	if err := db.Delete(headerNumberKey(hash)); err != nil {
 		log.Crit("Failed to delete hash to number mapping", "err", err)
 	}
 }
 
 // ReadHeadHeaderHash retrieves the hash of the current canonical head header.
-func ReadHeadHeaderHash(db ctxcdb.DatabaseReader) common.Hash {
+func ReadHeadHeaderHash(db ctxcdb.KeyValueReader) common.Hash {
 	data, _ := db.Get(headHeaderKey)
 	if len(data) == 0 {
 		return common.Hash{}
@@ -131,14 +132,14 @@ func ReadHeadBlockHash(db ctxcdb.Reader) common.Hash {
 }
 
 // WriteHeadBlockHash stores the head block's hash.
-func WriteHeadBlockHash(db ctxcdb.DatabaseWriter, hash common.Hash) {
+func WriteHeadBlockHash(db ctxcdb.KeyValueWriter, hash common.Hash) {
 	if err := db.Put(headBlockKey, hash.Bytes()); err != nil {
 		log.Crit("Failed to store last block's hash", "err", err)
 	}
 }
 
 // ReadHeadFastBlockHash retrieves the hash of the current fast-sync head block.
-func ReadHeadFastBlockHash(db ctxcdb.Reader) common.Hash {
+func ReadHeadFastBlockHash(db ctxcdb.KeyValueReader) common.Hash {
 	data, _ := db.Get(headFastBlockKey)
 	if len(data) == 0 {
 		return common.Hash{}
@@ -147,7 +148,7 @@ func ReadHeadFastBlockHash(db ctxcdb.Reader) common.Hash {
 }
 
 // WriteHeadFastBlockHash stores the hash of the current fast-sync head block.
-func WriteHeadFastBlockHash(db ctxcdb.DatabaseWriter, hash common.Hash) {
+func WriteHeadFastBlockHash(db ctxcdb.KeyValueWriter, hash common.Hash) {
 	if err := db.Put(headFastBlockKey, hash.Bytes()); err != nil {
 		log.Crit("Failed to store last fast block's hash", "err", err)
 	}
@@ -155,7 +156,7 @@ func WriteHeadFastBlockHash(db ctxcdb.DatabaseWriter, hash common.Hash) {
 
 // ReadFastTrieProgress retrieves the number of tries nodes fast synced to allow
 // reporting correct numbers across restarts.
-func ReadFastTrieProgress(db ctxcdb.Reader) uint64 {
+func ReadFastTrieProgress(db ctxcdb.KeyValueReader) uint64 {
 	data, _ := db.Get(fastTrieProgressKey)
 	if len(data) == 0 {
 		return 0
@@ -165,7 +166,7 @@ func ReadFastTrieProgress(db ctxcdb.Reader) uint64 {
 
 // WriteFastTrieProgress stores the fast sync trie process counter to support
 // retrieving it across restarts.
-func WriteFastTrieProgress(db ctxcdb.Writer, count uint64) {
+func WriteFastTrieProgress(db ctxcdb.KeyValueWriter, count uint64) {
 	if err := db.Put(fastTrieProgressKey, new(big.Int).SetUint64(count).Bytes()); err != nil {
 		log.Crit("Failed to store fast sync trie progress", "err", err)
 	}
@@ -174,17 +175,23 @@ func WriteFastTrieProgress(db ctxcdb.Writer, count uint64) {
 // ReadHeaderRLP retrieves a block header in its raw RLP database encoding.
 func ReadHeaderRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	data, _ := db.Ancient(freezerHeaderTable, number)
-	if len(data) == 0 {
-		data, _ = db.Get(headerKey(number, hash))
-		// In the background freezer is moving data from leveldb to flatten files.
-		// So during the first check for ancient db, the data is not yet in there,
-		// but when we reach into leveldb, the data was already moved. That would
-		// result in a not found error.
-		if len(data) == 0 {
-			data, _ = db.Ancient(freezerHeaderTable, number)
-		}
+	if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
+		return data
 	}
-	return data
+	// Then try to look up the data in leveldb.
+	data, _ = db.Get(headerKey(number, hash))
+	if len(data) > 0 {
+		return data
+	}
+	// In the background freezer is moving data from leveldb to flatten files.
+	// So during the first check for ancient db, the data is not yet in there,
+	// but when we reach into leveldb, the data was already moved. That would
+	// result in a not found error.
+	data, _ = db.Ancient(freezerHeaderTable, number)
+	if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
+		return data
+	}
+	return nil
 }
 
 // HasHeader verifies the existence of a block header corresponding to the hash.
@@ -214,7 +221,7 @@ func ReadHeader(db ctxcdb.Reader, hash common.Hash, number uint64) *types.Header
 
 // WriteHeader stores a block header into the database and also stores the hash-
 // to-number mapping.
-func WriteHeader(db ctxcdb.Writer, header *types.Header) {
+func WriteHeader(db ctxcdb.KeyValueWriter, header *types.Header) {
 	var (
 		hash   = header.Hash()
 		number = header.Number.Uint64()
@@ -234,10 +241,8 @@ func WriteHeader(db ctxcdb.Writer, header *types.Header) {
 }
 
 // DeleteHeader removes all block header data associated with a hash.
-func DeleteHeader(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
-	if err := db.Delete(headerKey(number, hash)); err != nil {
-		log.Crit("Failed to delete header", "err", err)
-	}
+func DeleteHeader(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
+	deleteHeaderWithoutNumber(db, hash, number)
 	if err := db.Delete(headerNumberKey(hash)); err != nil {
 		log.Crit("Failed to delete hash to number mapping", "err", err)
 	}
@@ -245,7 +250,7 @@ func DeleteHeader(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
 
 // deleteHeaderWithoutNumber removes only the block header but does not remove
 // the hash to number mapping.
-func deleteHeaderWithoutNumber(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
+func deleteHeaderWithoutNumber(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	if err := db.Delete(headerKey(number, hash)); err != nil {
 		log.Crit("Failed to delete header", "err", err)
 	}
@@ -254,21 +259,33 @@ func deleteHeaderWithoutNumber(db ctxcdb.DatabaseWriter, hash common.Hash, numbe
 // ReadBodyRLP retrieves the block body (transactions and uncles) in RLP encoding.
 func ReadBodyRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	data, _ := db.Ancient(freezerBodiesTable, number)
-	if len(data) == 0 {
-		data, _ = db.Get(blockBodyKey(number, hash))
-		// In the background freezer is moving data from leveldb to flatten files.
-		// So during the first check for ancient db, the data is not yet in there,
-		// but when we reach into leveldb, the data was already moved. That would
-		// result in a not found error.
-		if len(data) == 0 {
-			data, _ = db.Ancient(freezerBodiesTable, number)
+	if len(data) > 0 {
+		h, _ := db.Ancient(freezerHashTable, number)
+		if common.BytesToHash(h) == hash {
+			return data
 		}
 	}
-	return data
+	// Then try to look up the data in leveldb.
+	data, _ = db.Get(blockBodyKey(number, hash))
+	if len(data) > 0 {
+		return data
+	}
+	// In the background freezer is moving data from leveldb to flatten files.
+	// So during the first check for ancient db, the data is not yet in there,
+	// but when we reach into leveldb, the data was already moved. That would
+	// result in a not found error.
+	data, _ = db.Ancient(freezerBodiesTable, number)
+	if len(data) > 0 {
+		h, _ := db.Ancient(freezerHashTable, number)
+		if common.BytesToHash(h) == hash {
+			return data
+		}
+	}
+	return nil
 }
 
 // WriteBodyRLP stores an RLP encoded block body into the database.
-func WriteBodyRLP(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64, rlp rlp.RawValue) {
+func WriteBodyRLP(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, rlp rlp.RawValue) {
 	if err := db.Put(blockBodyKey(number, hash), rlp); err != nil {
 		log.Crit("Failed to store block body", "err", err)
 	}
@@ -300,7 +317,7 @@ func ReadBody(db ctxcdb.Reader, hash common.Hash, number uint64) *types.Body {
 }
 
 // WriteBody storea a block body into the database.
-func WriteBody(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64, body *types.Body) {
+func WriteBody(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, body *types.Body) {
 	data, err := rlp.EncodeToBytes(body)
 	if err != nil {
 		log.Crit("Failed to RLP encode body", "err", err)
@@ -309,7 +326,7 @@ func WriteBody(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64, body *
 }
 
 // DeleteBody removes all block body data associated with a hash.
-func DeleteBody(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
+func DeleteBody(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	if err := db.Delete(blockBodyKey(number, hash)); err != nil {
 		log.Crit("Failed to delete block body", "err", err)
 	}
@@ -318,21 +335,33 @@ func DeleteBody(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
 // ReadTdRLP retrieves a block's total difficulty corresponding to the hash in RLP encoding.
 func ReadTdRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	data, _ := db.Ancient(freezerDifficultyTable, number)
-	if len(data) == 0 {
-		data, _ = db.Get(headerTDKey(number, hash))
-		// In the background freezer is moving data from leveldb to flatten files.
-		// So during the first check for ancient db, the data is not yet in there,
-		// but when we reach into leveldb, the data was already moved. That would
-		// result in a not found error.
-		if len(data) == 0 {
-			data, _ = db.Ancient(freezerDifficultyTable, number)
+	if len(data) > 0 {
+		h, _ := db.Ancient(freezerHashTable, number)
+		if common.BytesToHash(h) == hash {
+			return data
 		}
 	}
-	return data
+	// Then try to look up the data in leveldb.
+	data, _ = db.Get(headerTDKey(number, hash))
+	if len(data) > 0 {
+		return data
+	}
+	// In the background freezer is moving data from leveldb to flatten files.
+	// So during the first check for ancient db, the data is not yet in there,
+	// but when we reach into leveldb, the data was already moved. That would
+	// result in a not found error.
+	data, _ = db.Ancient(freezerDifficultyTable, number)
+	if len(data) > 0 {
+		h, _ := db.Ancient(freezerHashTable, number)
+		if common.BytesToHash(h) == hash {
+			return data
+		}
+	}
+	return nil
 }
 
 func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
-	data, _ := db.Get(headerTDKey(number, hash))
+	data := ReadTdRLP(db, hash, number)
 	if len(data) == 0 {
 		return nil
 	}
@@ -344,7 +373,7 @@ func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
 	return td
 }
 
-func WriteTd(db ctxcdb.Writer, hash common.Hash, number uint64, td *big.Int) {
+func WriteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, td *big.Int) {
 	data, err := rlp.EncodeToBytes(td)
 	if err != nil {
 		log.Crit("Failed to RLP encode block total difficulty", "err", err)
@@ -354,7 +383,7 @@ func WriteTd(db ctxcdb.Writer, hash common.Hash, number uint64, td *big.Int) {
 	}
 }
 
-func DeleteTd(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
+func DeleteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	if err := db.Delete(headerTDKey(number, hash)); err != nil {
 		log.Crit("Failed to delete block total difficulty", "err", err)
 	}
@@ -374,17 +403,29 @@ func HasReceipts(db ctxcdb.Reader, hash common.Hash, number uint64) bool {
 
 func ReadReceiptsRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	data, _ := db.Ancient(freezerReceiptTable, number)
-	if len(data) == 0 {
-		data, _ = db.Get(blockReceiptsKey(number, hash))
-		// In the background freezer is moving data from leveldb to flatten files.
-		// So during the first check for ancient db, the data is not yet in there,
-		// but when we reach into leveldb, the data was already moved. That would
-		// result in a not found error.
-		if len(data) == 0 {
-			data, _ = db.Ancient(freezerReceiptTable, number)
+	if len(data) > 0 {
+		h, _ := db.Ancient(freezerHashTable, number)
+		if common.BytesToHash(h) == hash {
+			return data
 		}
 	}
-	return data
+	// Then try to look up the data in leveldb.
+	data, _ = db.Get(blockReceiptsKey(number, hash))
+	if len(data) > 0 {
+		return data
+	}
+	// In the background freezer is moving data from leveldb to flatten files.
+	// So during the first check for ancient db, the data is not yet in there,
+	// but when we reach into leveldb, the data was already moved. That would
+	// result in a not found error.
+	data, _ = db.Ancient(freezerReceiptTable, number)
+	if len(data) > 0 {
+		h, _ := db.Ancient(freezerHashTable, number)
+		if common.BytesToHash(h) == hash {
+			return data
+		}
+	}
+	return nil
 }
 
 // WriteAncientBlock writes entire block data into ancient store and returns the total written size.
@@ -461,7 +502,7 @@ func ReadReceipts(db ctxcdb.Reader, hash common.Hash, number uint64, config *par
 }
 
 // WriteReceipts stores all the transaction receipts belonging to a block.
-func WriteReceipts(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64, receipts types.Receipts) {
+func WriteReceipts(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, receipts types.Receipts) {
 	// Convert the receipts into their storage form and serialize them
 	storageReceipts := make([]*types.ReceiptForStorage, len(receipts))
 	for i, receipt := range receipts {
@@ -478,7 +519,7 @@ func WriteReceipts(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64, re
 }
 
 // DeleteReceipts removes all receipt data associated with a block hash.
-func DeleteReceipts(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
+func DeleteReceipts(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	if err := db.Delete(blockReceiptsKey(number, hash)); err != nil {
 		log.Crit("Failed to delete block receipts", "err", err)
 	}
@@ -509,14 +550,14 @@ func WriteBlock(db ctxcdb.Writer, block *types.Block) {
 }
 
 // DeleteBlock removes all block data associated with a hash.
-func DeleteBlock(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
+func DeleteBlock(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)
 	DeleteHeader(db, hash, number)
 	DeleteBody(db, hash, number)
 	DeleteTd(db, hash, number)
 }
 
-func DeleteBlockWithoutNumber(db ctxcdb.DatabaseWriter, hash common.Hash, number uint64) {
+func DeleteBlockWithoutNumber(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)
 	deleteHeaderWithoutNumber(db, hash, number)
 	DeleteBody(db, hash, number)

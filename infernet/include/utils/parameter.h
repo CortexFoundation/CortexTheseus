@@ -570,7 +570,7 @@ class FieldEntryBase : public FieldAccessEntry {
     if (is.fail()) {
       std::ostringstream os;
       os << "Invalid Parameter format for " << key_
-         << " expect " << type_ << " but value=\'" << value<< '\'';
+         << " expect " << type_str() << " but value=\'" << value<< '\'';
       throw utils::ParamError(os.str());
     }
   }
@@ -634,6 +634,11 @@ class FieldEntryBase : public FieldAccessEntry {
   }
 
  protected:
+  inline const std::string& type_str() const { 
+    static const std::string UNKNOWN_TYPE("Unknown Type");
+    return type_.length() == 0 ? UNKNOWN_TYPE : type_;
+  }
+
   // print the value
   virtual void PrintValue(std::ostream &os, DType value) const { // NOLINT(*)
     os << value;
@@ -968,7 +973,7 @@ class FieldEntry<bool>
     } else {
       std::ostringstream os;
       os << "Invalid Parameter format for " << key_
-         << " expect " << type_ << " but value=\'" << value<< '\'';
+         << " expect " << type_str() << " but value=\'" << value<< '\'';
       throw utils::ParamError(os.str());
     }
   }
@@ -996,7 +1001,7 @@ class FieldEntry<float> : public FieldEntryNumeric<FieldEntry<float>, float> {
       this->Get(head) = utils::stof(value, &pos);
     } catch (const std::invalid_argument &) {
       std::ostringstream os;
-      os << "Invalid Parameter format for " << key_ << " expect " << type_
+      os << "Invalid Parameter format for " << key_ << " expect " << type_str()
          << " but value=\'" << value << '\'';
       throw utils::ParamError(os.str());
     } catch (const std::out_of_range&) {
@@ -1029,7 +1034,7 @@ class FieldEntry<double>
       this->Get(head) = utils::stod(value, &pos);
     } catch (const std::invalid_argument &) {
       std::ostringstream os;
-      os << "Invalid Parameter format for " << key_ << " expect " << type_
+      os << "Invalid Parameter format for " << key_ << " expect " << type_str()
          << " but value=\'" << value << '\'';
       throw utils::ParamError(os.str());
     } catch (const std::out_of_range&) {

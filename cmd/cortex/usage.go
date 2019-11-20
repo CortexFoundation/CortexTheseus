@@ -98,7 +98,7 @@ var AppHelpFlagGroups = []flagGroup{
 	//	},
 	//},
 	{
-	Name: "TRANSACTION POOL",
+		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
 			utils.TxPoolLocalsFlag,
 			utils.TxPoolNoLocalsFlag,
@@ -138,11 +138,11 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.RPCListenAddrFlag,
 			utils.RPCPortFlag,
 			utils.RPCApiFlag,
-			//		utils.WSEnabledFlag,
-			//		utils.WSListenAddrFlag,
-			//		utils.WSPortFlag,
-			//		utils.WSApiFlag,
-			//	utils.WSAllowedOriginsFlag,
+			utils.WSEnabledFlag,
+			utils.WSListenAddrFlag,
+			utils.WSPortFlag,
+			utils.WSApiFlag,
+			utils.WSAllowedOriginsFlag,
 			utils.IPCDisabledFlag,
 			utils.IPCPathFlag,
 			utils.RPCCORSDomainFlag,
@@ -206,6 +206,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.StorageMaxActiveFlag,
 			utils.StorageBoostNodesFlag,
 			utils.StorageTrackerFlag,
+			utils.StorageDisableDHTFlag,
 		},
 	},
 	{
@@ -216,7 +217,7 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name: "VIRTUAL MACHINE",
+		Name:  "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
 			// utils.ModelCallInterfaceFlag,
 			//		utils.VMEnableDebugFlag,

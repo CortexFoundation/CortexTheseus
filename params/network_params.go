@@ -29,6 +29,7 @@ const (
 	BloomConfirms = 256
 
 	CHTFrequency = 32768
+	//section = point - 1
 	/*Check point:1 32767
 	Check point:2 65535
 	Check point:3 98303

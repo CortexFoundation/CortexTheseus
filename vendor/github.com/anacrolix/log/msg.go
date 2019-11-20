@@ -2,76 +2,123 @@ package log
 
 import (
 	"fmt"
-	"path/filepath"
-	"runtime"
+	"reflect"
+
+	"github.com/anacrolix/missinggo/iter"
 )
 
-// maybe implement finalizer to ensure msgs are sunk
 type Msg struct {
-	fields  map[string][]interface{}
-	values  map[interface{}]struct{}
-	text    string
-	callers [32]uintptr
+	MsgImpl
 }
 
-func Fmsg(format string, a ...interface{}) (m Msg) {
-	m.text = fmt.Sprintf(format, a...)
-	m.setCallers(1)
-	return
+func newMsg(text string) Msg {
+	return Msg{rootMsgImpl{text}}
 }
+
+func Fmsg(format string, a ...interface{}) Msg {
+	return newMsg(fmt.Sprintf(format, a...))
+}
+
+var Fstr = Fmsg
 
 func Str(s string) (m Msg) {
-	m.text = s
-	m.setCallers(1)
-	return
+	return newMsg(s)
 }
 
-func (m *Msg) setCallers(skip int) {
-	runtime.Callers(skip+2, m.callers[:])
+type msgSkipCaller struct {
+	MsgImpl
+	skip int
+}
+
+func (me msgSkipCaller) Callers(skip int, pc []uintptr) int {
+	return me.MsgImpl.Callers(skip+1+me.skip, pc)
 }
 
 func (m Msg) Skip(skip int) Msg {
-	copy(m.callers[:], m.callers[skip:])
-	return m
+	return Msg{msgSkipCaller{m.MsgImpl, skip}}
 }
 
-func (msg Msg) Add(key string, value interface{}) Msg {
-	if msg.fields == nil {
-		msg.fields = make(map[string][]interface{})
-	}
-	msg.fields[key] = append(msg.fields[key], value)
-	return msg
+type item struct {
+	key, value interface{}
 }
 
 // rename sink
-func (msg Msg) Log(l *Logger) Msg {
-	l.Handle(msg)
-	return msg
-}
-
-func (m Msg) Values() map[interface{}]struct{} {
-	return m.values
-}
-
-func (m Msg) AddValue(value interface{}) Msg {
-	if m.values == nil {
-		m.values = make(map[interface{}]struct{})
-	}
-	m.values[value] = struct{}{}
+func (m Msg) Log(l Logger) Msg {
+	l.Log(m.Skip(1))
 	return m
 }
 
-func (m Msg) AddValues(values ...interface{}) Msg {
-	for _, v := range values {
-		m = m.AddValue(v)
-	}
-	return m
+type msgWithValues struct {
+	MsgImpl
+	values []interface{}
 }
 
-func humanPc(pc uintptr) string {
-	if pc == 0 {
-		panic(pc)
+func (me msgWithValues) Values(cb iter.Callback) {
+	for _, v := range me.values {
+		if !cb(v) {
+			return
+		}
 	}
-	f, _ := runtime.CallersFrames([]uintptr{pc}).Next()
-	return fmt.Sprintf("%s:%d", filepath.Base(f.File), f.Line)
+	me.MsgImpl.Values(cb)
+}
+
+// TODO: What ordering should be applied to the values here, per MsgImpl.Values. For now they're
+// traversed in order of the slice.
+func (m Msg) WithValues(v ...interface{}) Msg {
+	return Msg{msgWithValues{m.MsgImpl, v}}
+}
+
+func (m Msg) AddValues(v ...interface{}) Msg {
+	return m.WithValues(v...)
+}
+
+func (m Msg) With(key, value interface{}) Msg {
+	return m.WithValues(item{key, value})
+}
+
+func (m Msg) Add(key, value interface{}) Msg {
+	return m.With(key, value)
+}
+
+func (m Msg) HasValue(v interface{}) (has bool) {
+	m.Values(func(i interface{}) bool {
+		if i == v {
+			has = true
+		}
+		return !has
+	})
+	return
+}
+
+func (m Msg) AddValue(v interface{}) Msg {
+	return m.AddValues(v)
+}
+
+func (m Msg) GetValueByType(p interface{}) bool {
+	pve := reflect.ValueOf(p).Elem()
+	t := pve.Type()
+	return !iter.All(func(i interface{}) bool {
+		iv := reflect.ValueOf(i)
+		if iv.Type() == t {
+			pve.Set(iv)
+			return false
+		}
+		return true
+	}, m.Values)
+}
+
+func (m Msg) WithText(f func(Msg) string) Msg {
+	return Msg{msgWithText{
+		m,
+		func() string { return f(m) },
+	}}
+}
+
+type msgWithText struct {
+	MsgImpl
+	text func() string
+}
+
+func (me msgWithText) Text() string {
+	return me.text()
 }

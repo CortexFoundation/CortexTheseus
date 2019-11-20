@@ -56,6 +56,9 @@ func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if cvm.ChainConfig().IsByzantium(cvm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium
 		}
+		if cvm.chainRules.IsIstanbul {
+			precompiles = PrecompiledContractsIstanbul
+		}
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
@@ -219,6 +222,9 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		precompiles := PrecompiledContractsHomestead
 		if cvm.ChainConfig().IsByzantium(cvm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium
+		}
+		if cvm.chainRules.IsIstanbul {
+			precompiles = PrecompiledContractsIstanbul
 		}
 		if precompiles[addr] == nil && cvm.ChainConfig().IsEIP158(cvm.BlockNumber) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
@@ -536,7 +542,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		}
 
 		if err := synapse.Engine().Available(inputInfoHash, int64(inputRawSize)); err != nil {
-			log.Warn("File non available", "inputInfoHash:", inputInfoHash, "err", err)
+			//log.Warn("File non available", "inputInfoHash:", inputInfoHash, "err", err)
 			return nil, err
 		}
 	}
@@ -552,7 +558,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("Inference [hash ] succeed", "label", inferRes, "model", modelInfoHash, "input", inputInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("[hash ] succeed", "label", inferRes, "model", modelInfoHash, "input", inputInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	if cvm.vmConfig.DebugInferVM {
@@ -564,7 +570,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 // infer function that returns an int64 as output, can be used a categorical output
 func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize uint64) ([]byte, error) {
 	//log.Info("Inference Infomation", "Model Hash", modelInfoHash, "number", cvm.BlockNumber)
-	log.Trace("Infer Detail", "Input Content", hexutil.Encode(inputArray))
+	log.Trace("Detail", "Input Content", hexutil.Encode(inputArray))
 
 	if cvm.vmConfig.DebugInferVM {
 		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
@@ -587,7 +593,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("Inference [array] succeed", "label", inferRes, "model", modelInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("[array] succeed", "label", inferRes, "model", modelInfoHash, "array", inputArray, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	return inferRes, errRes
@@ -616,7 +622,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Info("Inference [ops  ] succeed", "ops", opsRes, "addr", addr, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("[ops  ] succeed", "ops", opsRes, "addr", addr, "elapsed", common.PrettyDuration(elapsed))
 	}
 
 	return opsRes, errRes

@@ -11,7 +11,6 @@ data/
 *un~
 .DS_Store
 */**/.DS_Store
-.ethtest
 */**/*tx_database*
 */**/*dapps*
 build/_vendor/pkg
@@ -33,7 +32,7 @@ build/_vendor/pkg
 # used by the Makefile
 /build/_workspace/
 /build/bin/
-/geth*.zip
+/cortex*.zip
 
 # travis
 profile.tmp
@@ -80,3 +79,6 @@ plugins/
 *.log
 *.rdb
 password
+*.sh
+keyfile.json
+*.pid

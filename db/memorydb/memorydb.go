@@ -199,7 +199,8 @@ func (db *Database) Stat(property string) (string, error) {
 
 // Compact is not supported on a memory database.
 func (db *Database) Compact(start []byte, limit []byte) error {
-	return errors.New("unsupported operation")
+	//return errors.New("unsupported operation")
+	return nil
 }
 
 // Len returns the number of entries currently present in the memory database.
@@ -270,7 +271,7 @@ func (b *batch) Reset() {
 }
 
 // Replay replays the batch contents.
-func (b *batch) Replay(w ctxcdb.DatabaseWriter) error {
+func (b *batch) Replay(w ctxcdb.KeyValueWriter) error {
 	for _, keyvalue := range b.writes {
 		if keyvalue.delete {
 			if err := w.Delete(keyvalue.key); err != nil {

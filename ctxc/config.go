@@ -33,9 +33,8 @@ import (
 
 // DefaultConfig contains default settings for use on the Cortex main net.
 var DefaultConfig = Config{
-	SyncMode: downloader.FullSync,
-	Cuckoo:   cuckoo.Config{
-	},
+	SyncMode:      downloader.FullSync,
+	Cuckoo:        cuckoo.Config{},
 	NetworkId:     21,
 	DatabaseCache: 768,
 	TrieCache:     256,
@@ -84,19 +83,19 @@ type Config struct {
 	TrieTimeout        time.Duration
 
 	// Mining-related options
-	Coinbase      common.Address `toml:",omitempty"`
-	MinerNotify    []string       `toml:",omitempty"`
-	MinerExtraData []byte         `toml:",omitempty"`
-	MinerGasFloor  uint64
-	MinerGasCeil   uint64
-	MinerGasPrice  *big.Int
-	MinerRecommit  time.Duration
-	MinerNoverify  bool
-	MinerCuda      bool
-	MinerOpenCL    bool
-	MinerDevices   string
-	InferDeviceType string
-	InferDeviceId int
+	Coinbase         common.Address `toml:",omitempty"`
+	MinerNotify      []string       `toml:",omitempty"`
+	MinerExtraData   []byte         `toml:",omitempty"`
+	MinerGasFloor    uint64
+	MinerGasCeil     uint64
+	MinerGasPrice    *big.Int
+	MinerRecommit    time.Duration
+	MinerNoverify    bool
+	MinerCuda        bool
+	MinerOpenCL      bool
+	MinerDevices     string
+	InferDeviceType  string
+	InferDeviceId    int
 	InferMemoryUsage int64
 
 	Cuckoo cuckoo.Config
@@ -114,7 +113,7 @@ type Config struct {
 	StorageDir string
 
 	// Miscellaneous options
-	DocRoot string `toml:"-"`
+	DocRoot    string                    `toml:"-"`
 	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
 }
 

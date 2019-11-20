@@ -27,8 +27,8 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
-	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/internal/debug"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -129,24 +129,24 @@ func New(conf *Config) (*Node, error) {
 // Close stops the Node and releases resources acquired in
 // Node constructor New.
 func (n *Node) Close() error {
-        var errs []error
+	var errs []error
 
-        // Terminate all subsystems and collect any errors
-        if err := n.Stop(); err != nil && err != ErrNodeStopped {
-                errs = append(errs, err)
-        }
-        if err := n.accman.Close(); err != nil {
-                errs = append(errs, err)
-        }
-        // Report any errors that might have occurred
-        switch len(errs) {
-        case 0:
-                return nil
-        case 1:
-                return errs[0]
-        default:
-                return fmt.Errorf("%v", errs)
-        }
+	// Terminate all subsystems and collect any errors
+	if err := n.Stop(); err != nil && err != ErrNodeStopped {
+		errs = append(errs, err)
+	}
+	if err := n.accman.Close(); err != nil {
+		errs = append(errs, err)
+	}
+	// Report any errors that might have occurred
+	switch len(errs) {
+	case 0:
+		return nil
+	case 1:
+		return errs[0]
+	default:
+		return fmt.Errorf("%v", errs)
+	}
 }
 
 // Register injects a new service into the node's stack. The service created by
@@ -615,18 +615,18 @@ func (n *Node) OpenDatabase(name string, cache, handles int, namespace string) (
 // database to immutable append-only files. If the node is an ephemeral one, a
 // memory database is returned.
 func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, freezer, namespace string) (ctxcdb.Database, error) {
-        if n.config.DataDir == "" {
-                return rawdb.NewMemoryDatabase(), nil
-        }
-        root := n.config.ResolvePath(name)
+	if n.config.DataDir == "" {
+		return rawdb.NewMemoryDatabase(), nil
+	}
+	root := n.config.ResolvePath(name)
 
-        switch {
-        case freezer == "":
-                freezer = filepath.Join(root, "ancient")
-        case !filepath.IsAbs(freezer):
-                freezer = n.config.ResolvePath(freezer)
-        }
-        return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
+	switch {
+	case freezer == "":
+		freezer = filepath.Join(root, "ancient")
+	case !filepath.IsAbs(freezer):
+		freezer = n.config.ResolvePath(freezer)
+	}
+	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
 }
 
 // ResolvePath returns the absolute path of a resource in the instance directory.

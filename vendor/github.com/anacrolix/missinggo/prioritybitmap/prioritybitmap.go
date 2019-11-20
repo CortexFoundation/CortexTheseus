@@ -149,7 +149,8 @@ func (me *PriorityBitmap) IterTyped(_f func(i bitmap.BitIndex) bool) bool {
 		defer me.mu.Lock()
 		return _f(i)
 	}
-	return iter.All(func(value interface{}) bool {
+	return iter.All(func(key interface{}) bool {
+		value := me.om.Get(key)
 		switch v := value.(type) {
 		case int:
 			return f(v)

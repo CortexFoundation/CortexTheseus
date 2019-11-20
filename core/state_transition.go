@@ -327,11 +327,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if vmerr != nil {
 		//log.Warn("VM returned with error", "err", vmerr)
 
-		log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
+		//log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
 
 		if vmerr == vm.ErrRuntime {
 			return nil, 0, big0, false, vmerr
 		}
+
+		log.Debug("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
 
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
@@ -366,7 +368,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 				return nil, 0, big0, false, vm.ErrInsufficientBalance
 			}
 			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
-			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward)
+			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward, "number", cvm.BlockNumber)
 			st.state.AddBalance(addr, reward)
 		}
 	}
@@ -381,10 +383,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.cvm.BlockNumber)
-			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber)
+			log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber)
 			//todo vote for model
 		} else {
-			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex())
+			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex(), "number", cvm.BlockNumber)
 		}
 	}
 
@@ -412,7 +414,7 @@ func Max(x, y *big.Int) *big.Int {
 //vote to model
 func (st *StateTransition) uploading() bool {
 	log.Debug("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
-	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to())// && st.gas >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() {

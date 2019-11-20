@@ -3,10 +3,10 @@
 package main
 
 /*
-#cgo LDFLAGS: -L../../PoolMiner/miner/libcuckoo -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
+#cgo LDFLAGS: -L../../solution/miner/libcuckoo -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
 #cgo CFLAGS: -I./
 
-#include "../../PoolMiner/miner/libcuckoo/miner.h"
+#include "../../solution/miner/libcuckoo/miner.h"
 */
 import "C"
 import (

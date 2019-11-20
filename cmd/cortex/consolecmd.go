@@ -33,7 +33,7 @@ import (
 
 var (
 	consoleFlags = []cli.Flag{
-			utils.JSpathFlag,
+		utils.JSpathFlag,
 		utils.ExecFlag, utils.PreloadJSFlag,
 	}
 

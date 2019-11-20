@@ -199,6 +199,6 @@ func (b *tableBatch) Reset() {
 }
 
 // Replay replays the batch contents.
-func (b *tableBatch) Replay(w ctxcdb.DatabaseWriter) error {
+func (b *tableBatch) Replay(w ctxcdb.KeyValueWriter) error {
 	return b.batch.Replay(w)
 }

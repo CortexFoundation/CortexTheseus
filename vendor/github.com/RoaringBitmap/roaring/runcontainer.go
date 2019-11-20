@@ -2270,7 +2270,7 @@ func (rc *runContainer16) iorArray(ac *arrayContainer) container {
 // without latency.
 //
 // However, imagine that you are aggregating 100
-// bitmaps tocortexer. So you OR the first two, then OR
+// bitmaps together. So you OR the first two, then OR
 // that with the third one and so forth. Clearly,
 // intermediate bitmaps don't need to be as
 // compressed as possible, right? They can be

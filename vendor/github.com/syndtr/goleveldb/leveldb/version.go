@@ -144,6 +144,7 @@ func (v *version) get(aux tFiles, ikey internalKey, ro *opt.ReadOptions, noValue
 	}
 
 	ukey := ikey.ukey()
+	sampleSeeks := !v.s.o.GetDisableSeeksCompaction()
 
 	var (
 		tset  *tSet
@@ -161,7 +162,7 @@ func (v *version) get(aux tFiles, ikey internalKey, ro *opt.ReadOptions, noValue
 	// Since entries never hop across level, finding key/value
 	// in smaller level make later levels irrelevant.
 	v.walkOverlapping(aux, ikey, func(level int, t *tFile) bool {
-		if level >= 0 && !tseek {
+		if sampleSeeks && level >= 0 && !tseek {
 			if tset == nil {
 				tset = &tSet{level, t}
 			} else {
@@ -260,7 +261,7 @@ func (v *version) getIterators(slice *util.Range, ro *opt.ReadOptions) (its []it
 	strict := opt.GetStrict(v.s.o.Options, ro, opt.StrictReader)
 	for level, tables := range v.levels {
 		if level == 0 {
-			// Merge all level zero files tocortexer since they may overlap.
+			// Merge all level zero files together since they may overlap.
 			for _, t := range tables {
 				its = append(its, v.s.tops.newIterator(t, slice, ro))
 			}
