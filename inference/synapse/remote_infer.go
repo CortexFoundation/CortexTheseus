@@ -97,7 +97,7 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(uri)
-	if err != nil {
+	if err != nil || resp == nil{
 		log.Warn("remote infer: request response failed", "error", err, "body", requestBody)
 		return nil, KERNEL_RUNTIME_ERROR
 	} else if resp.StatusCode() != 200 {

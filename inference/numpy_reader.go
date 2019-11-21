@@ -1,5 +1,7 @@
 package inference
 
+//go:generate go run gen.go defs.template
+
 import (
 	"bytes"
 	"encoding/binary"
@@ -35,12 +37,12 @@ type NpyReader struct {
 
 	// Number of elements in the array to be read (obtained from
 	// header).
-	n_elt int
+	nElt int
 }
 
-// NewFileReader is a convenience method returning a NpyReader that
-// can be used to obtain array data from the given named file.  Call
-// one of the GetXXX methods to obtain the data slice.
+// NewFileReader returns a NpyReader that can be used to obtain array
+// data from the given named file.  Call one of the GetXXX methods to
+// obtain the data as a Go slice.
 func NewFileReader(f string) (*NpyReader, error) {
 
 	fid, err := os.Open(f)
@@ -66,7 +68,7 @@ func parseShape(header []byte) ([]int, int, error) {
 
 	shapes := string(ma[1])
 	shape := make([]int, 0)
-	n_elt := 1
+	nElt := 1
 	for _, s := range strings.Split(shapes, ",") {
 		s = strings.Trim(s, " ")
 		if len(s) == 0 {
@@ -76,11 +78,11 @@ func parseShape(header []byte) ([]int, int, error) {
 		if err != nil {
 			panic(err)
 		}
-		n_elt *= x
+		nElt *= x
 		shape = append(shape, x)
 	}
 
-	return shape, n_elt, nil
+	return shape, nElt, nil
 }
 
 // NewReader returns a NpyReader that can be used to obtain array data
@@ -120,22 +122,22 @@ func NewReader(r io.Reader) (*NpyReader, error) {
 	}
 
 	// Get the size in bytes of the header
-	var header_length int
+	var headerLength int
 	if version == 1 {
 		var hl uint16
 		err = binary.Read(r, binary.LittleEndian, &hl)
-		header_length = int(hl)
+		headerLength = int(hl)
 	} else {
 		var hl uint32
 		err = binary.Read(r, binary.LittleEndian, &hl)
-		header_length = int(hl)
+		headerLength = int(hl)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	// Read the header
-	header := make([]byte, header_length)
+	header := make([]byte, headerLength)
 	_, err = r.Read(header)
 	if err != nil {
 		return nil, err
@@ -155,171 +157,30 @@ func NewReader(r io.Reader) (*NpyReader, error) {
 	if ma == nil {
 		return nil, fmt.Errorf("fortran_order not found in header")
 	}
-	fortran_order := string(ma[1])
+	fortranOrder := string(ma[1])
 
 	// Get the shape information
-	shape, n_elt, err := parseShape(header)
+	shape, nElt, err := parseShape(header)
 	if err != nil {
 		return nil, err
 	}
 
-	var endian binary.ByteOrder
+	var endian binary.ByteOrder = binary.LittleEndian
 	if strings.HasPrefix(dtype, ">") {
 		endian = binary.BigEndian
-	} else {
-		// Default
-		endian = binary.LittleEndian
 	}
 
 	rdr := &NpyReader{
 		Dtype:       dtype[1:],
-		ColumnMajor: fortran_order == "True",
+		ColumnMajor: fortranOrder == "True",
 		Shape:       shape,
 		Endian:      endian,
 		Version:     int(version),
-		n_elt:       n_elt,
+		nElt:        nElt,
 		r:           r,
 	}
 
 	return rdr, nil
-}
-
-// GetFloat64 returns the array data as a slice of float64 values.
-func (rdr *NpyReader) GetFloat64() ([]float64, error) {
-
-	if rdr.Dtype != "f8" {
-		return nil, fmt.Errorf("Reader does not contain float64 data")
-	}
-
-	data := make([]float64, rdr.n_elt)
-	for k := 0; k < rdr.n_elt; k++ {
-		err := binary.Read(rdr.r, rdr.Endian, &data[k])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
-}
-
-// GetFloat32 returns the array data as a slice of float32 values.
-func (rdr *NpyReader) GetFloat32() ([]float32, error) {
-
-	if rdr.Dtype != "f4" {
-		return nil, fmt.Errorf("Reader does not contain float32 data")
-	}
-
-	data := make([]float32, rdr.n_elt)
-	for k := 0; k < rdr.n_elt; k++ {
-		err := binary.Read(rdr.r, rdr.Endian, &data[k])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
-}
-
-func (rdr *NpyReader) GetBytes() ([]byte, error) {
-
-	data := make([]byte, rdr.n_elt)
-	for k := 0; k < rdr.n_elt; k++ {
-		err := binary.Read(rdr.r, rdr.Endian, &data[k])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
-}
-
-func (rdr *NpyReader) GetUInt8() ([]uint8, error) {
-
-	if rdr.Dtype != "u1" {
-		return nil, fmt.Errorf("Reader does not contain uint8 data")
-	}
-
-	data := make([]uint8, rdr.n_elt)
-	for k := 0; k < rdr.n_elt; k++ {
-		err := binary.Read(rdr.r, rdr.Endian, &data[k])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
-}
-
-// GetInt8 returns the array data as a slice of int8 values.
-func (rdr *NpyReader) GetInt8() ([]int8, error) {
-
-	if rdr.Dtype != "i1" {
-		return nil, fmt.Errorf("Reader does not contain int8 data")
-	}
-
-	data := make([]int8, rdr.n_elt)
-	for k := 0; k < rdr.n_elt; k++ {
-		err := binary.Read(rdr.r, rdr.Endian, &data[k])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
-}
-
-// GetInt16 returns the array data as a slice of int16 values.
-func (rdr *NpyReader) GetInt16() ([]int16, error) {
-
-	if rdr.Dtype != "i2" {
-		return nil, fmt.Errorf("Reader does not contain int16 data")
-	}
-
-	data := make([]int16, rdr.n_elt)
-	for k := 0; k < rdr.n_elt; k++ {
-		err := binary.Read(rdr.r, rdr.Endian, &data[k])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
-}
-
-// GetInt32 returns the array data as a slice of int32 values.
-func (rdr *NpyReader) GetInt32() ([]int32, error) {
-
-	if rdr.Dtype != "i4" {
-		return nil, fmt.Errorf("Reader does not contain int32 data")
-	}
-
-	data := make([]int32, rdr.n_elt)
-	for k := 0; k < rdr.n_elt; k++ {
-		err := binary.Read(rdr.r, rdr.Endian, &data[k])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
-}
-
-// GetInt64 returns the array data as a slice of int64 values.
-func (rdr *NpyReader) GetInt64() ([]int64, error) {
-
-	if rdr.Dtype != "i8" {
-		return nil, fmt.Errorf("Reader does not contain int64 data")
-	}
-
-	data := make([]int64, rdr.n_elt)
-	for k := 0; k < rdr.n_elt; k++ {
-		err := binary.Read(rdr.r, rdr.Endian, &data[k])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
 }
 
 func DumpToFile(fname string, data []byte) error {
