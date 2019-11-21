@@ -256,7 +256,7 @@ func (m *Monitor) init() {
 	TRACKER_PORT = append(TRACKER_PORT, ports...)
 	UDP_TRACKER_PORT = params.UDP_Tracker_ports
 	client = http.Client{
-		Timeout: time.Duration(5 * time.Second),
+		Timeout: time.Duration(3 * time.Second),
 	}
 }
 
@@ -309,7 +309,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				} else {
 					//unhealthPeers.Add(ip, peer)
 
-					if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
+					/*if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
 						for _, p := range ps {
 							tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
 							if m.healthPeers.Contains(tracker) {
@@ -326,7 +326,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 							//	unhealthPeers.Remove(ip)
 							//}
 						}
-					}
+					}*/
 				}
 			}(peer)
 		}
