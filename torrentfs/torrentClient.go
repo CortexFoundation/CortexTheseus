@@ -837,7 +837,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						log.Debug("Path exist", "hash", t.Torrent.InfoHash(), "path", path.Join(tm.DataDir, t.InfoHash()))
 						delete(tm.activeTorrents, ih)
 						tm.seedingTorrents[ih] = t
-						t.Seed()
+						//t.Seed()
 						t.loop = defaultSeedInterval / queryTimeInterval
 						total_size += uint64(t.bytesCompleted)
 						current_size += uint64(t.bytesCompleted)
@@ -861,7 +861,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 						} else {
 							delete(tm.activeTorrents, ih)
 							tm.seedingTorrents[ih] = t
-							t.Seed()
+							//t.Seed()
 							t.loop = defaultSeedInterval / queryTimeInterval
 							total_size += uint64(t.bytesCompleted)
 							current_size += uint64(t.bytesCompleted)
