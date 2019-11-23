@@ -130,6 +130,7 @@ clean:
 	rm -rf infernet/build/*
 	rm -rf plugin/*
 	rm -f solution/miner/libcuckoo/*.a solution/miner/libcuckoo/*.o
+	rm -fr solution/build/_workspace/pkg/
 
 clean-clib:
 	#make -C $(LIB_MINER_DIR) clean
