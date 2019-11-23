@@ -2,7 +2,7 @@ package torrentfs
 
 import (
 	"bytes"
-	"errors"
+	//"errors"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -20,9 +20,9 @@ const (
 	opNoInput     = 3
 )
 
-var (
-	errWrongOpCode = errors.New("unexpected opCode")
-)
+//var (
+//	errWrongOpCode = errors.New("unexpected opCode")
+//)
 
 // Transaction ... Tx struct
 type Transaction struct {
@@ -58,9 +58,9 @@ func (t *Transaction) Data() []byte {
 	return []byte{}
 }
 
-func (t *Transaction) noPayload() bool {
-	return len(t.Payload) == 0
-}
+//func (t *Transaction) noPayload() bool {
+//	return len(t.Payload) == 0
+//}
 
 // IsFlowControl ...
 func (t *Transaction) IsFlowControl() bool {

@@ -12,7 +12,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
-	"net"
+	//"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -66,7 +66,7 @@ type Monitor struct {
 	fs     *FileStorage
 	dl     TorrentManagerAPI
 
-	listenID rpc.ID
+	//listenID rpc.ID
 
 	//uncheckedCh chan uint64
 
@@ -75,15 +75,15 @@ type Monitor struct {
 	lastNumber uint64
 	dirty      bool
 
-	closeOnce sync.Once
-	wg        sync.WaitGroup
-	peersWg   sync.WaitGroup
+	//closeOnce sync.Once
+	wg      sync.WaitGroup
+	peersWg sync.WaitGroup
 	//trackerLock sync.Mutex
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
 
 	//taskCh      chan *Block
-	newTaskHook func(*Block)
+	//newTaskHook func(*Block)
 	blockCache  *lru.Cache
 	healthPeers *lru.Cache
 	sizeCache   *lru.Cache
@@ -264,13 +264,13 @@ func (m *Monitor) http_tracker_build(ip, port string) string {
 	return "http://" + ip + ":" + port + "/announce"
 }
 
-func (m *Monitor) udp_tracker_build(ip, port string) string {
+/*func (m *Monitor) udp_tracker_build(ip, port string) string {
 	return "udp://" + ip + ":" + port + "/announce"
 }
 
 func (m *Monitor) ws_tracker_build(ip, port string) string {
 	return "ws://" + ip + ":" + port + "/announce"
-}
+}*/
 
 func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
@@ -306,28 +306,28 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						//	unhealthPeers.Remove(ip)
 						//}
 					}
-				} else {
-					//unhealthPeers.Add(ip, peer)
+				} // else {
+				//unhealthPeers.Add(ip, peer)
 
-					/*if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
-						for _, p := range ps {
-							tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
-							if m.healthPeers.Contains(tracker) {
-								//continue
-							} else {
-								flush = true
-							}
-							//m.trackerLock.Lock()
-							//trackers = append(trackers, tracker)
-							//m.trackerLock.Unlock()
-							//flush = true
-							m.healthPeers.Add(tracker, tracker)
-							//if unhealthPeers.Contains(ip) {
-							//	unhealthPeers.Remove(ip)
-							//}
+				/*if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
+					for _, p := range ps {
+						tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
+						if m.healthPeers.Contains(tracker) {
+							//continue
+						} else {
+							flush = true
 						}
-					}*/
-				}
+						//m.trackerLock.Lock()
+						//trackers = append(trackers, tracker)
+						//m.trackerLock.Unlock()
+						//flush = true
+						m.healthPeers.Add(tracker, tracker)
+						//if unhealthPeers.Contains(ip) {
+						//	unhealthPeers.Remove(ip)
+						//}
+					}
+				}*/
+				//}
 			}(peer)
 		}
 		//log.Info("Waiting dynamic tracker", "size", len(peers))
@@ -814,7 +814,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 }
 
-func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
+/*func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
 	var res []string
 	var status = false
 	//request := make([]byte, 1)
@@ -828,15 +828,6 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 			continue
 		} else {
 			defer socket.Close()
-			/*if _, err = socket.Write(request); err != nil {
-				continue
-			}
-			socket.SetDeadline(time.Now().Add(5 * time.Second))
-
-			reply := make([]byte, 48)
-			if _, err = socket.Read(reply); err != nil {
-				continue
-			}*/
 			//m.portLock.Lock()
 			res = append(res, port)
 			status = true
@@ -847,7 +838,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 	}
 
 	return res, status
-}
+}*/
 
 const (
 	batch = 2048
@@ -861,9 +852,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 		return 0
 	}
 
-	if uint64(currentNumber) <= 0 {
-		return 0
-	}
+	//if uint64(currentNumber) <= 0 {
+	//	return 0
+	//}
 
 	if uint64(currentNumber) < m.lastNumber {
 		log.Warn("Torrent fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)

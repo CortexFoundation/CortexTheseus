@@ -414,7 +414,7 @@ func Max(x, y *big.Int) *big.Int {
 //vote to model
 func (st *StateTransition) uploading() bool {
 	log.Debug("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
-	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to())// && st.gas >= params.UploadGas
+	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() {

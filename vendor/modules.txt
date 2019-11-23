@@ -226,7 +226,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
+# golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -263,7 +263,7 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190829051458-42f498d34c4d
+# golang.org/x/tools v0.0.0-20191122080028-f774e2e2e5be
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/gcimporter
@@ -275,7 +275,8 @@ golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/module
 golang.org/x/tools/internal/semver
-# golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
+golang.org/x/tools/internal/span
+# golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127

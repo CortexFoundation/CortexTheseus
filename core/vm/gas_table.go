@@ -21,8 +21,8 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
 	// "github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
@@ -552,7 +552,7 @@ func gasInferArray(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stac
 	if errOps != nil {
 		return 0, errOps
 	}
-	modelGas :=  modelOps / params.InferOpsPerGas
+	modelGas := modelOps / params.InferOpsPerGas
 	if modelGas < params.CallInferGas {
 		modelGas = params.CallInferGas
 	}

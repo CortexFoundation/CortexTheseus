@@ -67,8 +67,8 @@ type ChainIndexerChain interface {
 // after an entire section has been finished or in case of rollbacks that might
 // affect already finished sections.
 type ChainIndexer struct {
-	chainDb  ctxcdb.Database      // Chain database to index the data from
-	indexDb  ctxcdb.Database      // Prefixed table-view of the db to write index metadata into
+	chainDb  ctxcdb.Database     // Chain database to index the data from
+	indexDb  ctxcdb.Database     // Prefixed table-view of the db to write index metadata into
 	backend  ChainIndexerBackend // Background processor generating the index data content
 	children []*ChainIndexer     // Child indexers to cascade chain updates to
 

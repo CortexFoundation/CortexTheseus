@@ -602,9 +602,9 @@ func opPop(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *
 
 func opMload(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	v := stack.peek()
-        offset := v.Int64()
-        v.SetBytes(memory.GetPtr(offset, 32))
-        return nil, nil
+	offset := v.Int64()
+	v.SetBytes(memory.GetPtr(offset, 32))
+	return nil, nil
 }
 
 func opMstore(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
