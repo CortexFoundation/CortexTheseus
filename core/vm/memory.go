@@ -17,8 +17,8 @@
 package vm
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common/math"
@@ -124,11 +124,11 @@ func (m *Memory) Print() {
 	fmt.Println("####################")
 }
 
-func (m* Memory) GetSolidityBytes(slot int64) ([]byte, error) {
+func (m *Memory) GetSolidityBytes(slot int64) ([]byte, error) {
 	bigLen := big.NewInt(0)
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
-	buff := m.GetPtr(slot + 32, bigLen.Int64())
+	buff := m.GetPtr(slot+32, bigLen.Int64())
 	return buff, nil
 }
 
@@ -146,7 +146,7 @@ func (m* Memory) GetLengthOfSolidityUint256Array(slot int64) (uint64, error) {
        return bigLen.Uint64(), nil
 }*/
 
-func (m* Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
+func (m *Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
 	bigLen := big.NewInt(0)
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
@@ -155,15 +155,15 @@ func (m* Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
 	if int64(len(data)) > bigLen.Int64() {
 		return errors.New(fmt.Sprintf("solidity memory bytes length not match %d != %d", len(data), bigLen.Int64()))
 	}
-	m.Set(uint64(slot + 32), bigLen.Uint64(), data)
+	m.Set(uint64(slot+32), bigLen.Uint64(), data)
 	return nil
 }
 
-func (m* Memory) GetSolidityUint256(slot int64) ([]byte, error) {
+func (m *Memory) GetSolidityUint256(slot int64) ([]byte, error) {
 	bigLen := big.NewInt(0)
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
 	bigLen.Mul(bigLen, big.NewInt(32))
-	buff := m.GetPtr(slot + 32, bigLen.Int64())
+	buff := m.GetPtr(slot+32, bigLen.Int64())
 	return buff, nil
 }

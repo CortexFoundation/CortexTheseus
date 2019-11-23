@@ -45,7 +45,7 @@ type Synapse struct {
 	config      *Config
 	simpleCache sync.Map
 	gasCache    sync.Map
-	modelLock   sync.Map
+	//modelLock   sync.Map
 	mutex       sync.Mutex
 	lib         *kernel.LibCVM
 	caches      map[int]*lru.Cache

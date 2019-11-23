@@ -154,7 +154,7 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 	} else {
 		if !torrent.IsAvailable() {
 			log.Debug("[Not available] Download not completed", "hash", infohash, "raw", rawSize, "complete", torrent.BytesCompleted())
-			return false, errors.New(fmt.Sprintf("download not completed: %d %d", torrent.BytesCompleted(), rawSize))
+			return false, fmt.Errorf("download not completed: %d %d", torrent.BytesCompleted(), rawSize)
 		}
 		//log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
 		//log.Info("download not completed", "complete", torrent.BytesCompleted(), "miss", torrent.BytesMissing(), "raw", rawSize)

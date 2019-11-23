@@ -17,7 +17,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"strings"
+	//"strings"
 	"sync"
 	"time"
 
@@ -107,9 +107,10 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(t.filepath)
-	for _, tracker := range tm.trackers {
+	spec.Trackers = append(spec.Trackers, tm.trackers...)
+	/*for _, tracker := range tm.trackers {
 		spec.Trackers = append(spec.Trackers, tracker)
-	}
+	}*/
 	torrent, _, err := tm.client.AddTorrentSpec(spec)
 	if err != nil {
 		return
@@ -141,9 +142,10 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(t.filepath)
-	for _, tracker := range tm.trackers {
+	/*for _, tracker := range tm.trackers {
 		spec.Trackers = append(spec.Trackers, tracker)
-	}
+	}*/
+	spec.Trackers = append(spec.Trackers, tm.trackers...)
 	torrent, _, err := tm.client.AddTorrentSpec(spec)
 	if err != nil {
 		return
@@ -301,9 +303,9 @@ type TorrentManager struct {
 	//removeTorrent       chan metainfo.Hash
 	updateTorrent chan interface{}
 	//mu                  sync.Mutex
-	lock      sync.RWMutex
-	wg        sync.WaitGroup
-	closeOnce sync.Once
+	lock sync.RWMutex
+	wg   sync.WaitGroup
+	//closeOnce sync.Once
 }
 
 func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
@@ -356,13 +358,14 @@ func (tm *TorrentManager) Close() error {
 
 func (tm *TorrentManager) dropAll() {
 	tm.lock.Lock()
-	tm.lock.Unlock()
-	defer tm.client.Close()
+	defer tm.lock.Unlock()
 	for _, t := range tm.torrents {
 		stats := t.Stats()
 		log.Info("torrent statics", "hash", t.infohash, "total", stats.TotalPeers, "pending", stats.PendingPeers, "active", stats.ActivePeers, "seeder", stats.ConnectedSeeders, "half", stats.HalfOpenPeers)
 		t.Drop()
 	}
+
+	tm.client.Close()
 }
 
 //func (tm *TorrentManager) RemoveTorrent(input metainfo.Hash) error {
@@ -376,9 +379,9 @@ func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
 	return nil
 }
 
-func isMagnetURI(uri string) bool {
-	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
-}
+//func isMagnetURI(uri string) bool {
+//	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
+//}
 
 func GetMagnetURI(infohash metainfo.Hash) string {
 	return "magnet:?xt=urn:btih:" + infohash.String()
@@ -489,9 +492,10 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 	if useExistDir {
 		log.Trace("existing dir", "dir", ExistDir)
 		spec.Storage = storage.NewFile(ExistDir)
-		for _, tracker := range tm.trackers {
-			spec.Trackers = append(spec.Trackers, tracker)
-		}
+		//for _, tracker := range tm.trackers {
+		//	spec.Trackers = append(spec.Trackers, tracker)
+		//}
+		spec.Trackers = append(spec.Trackers, tm.trackers...)
 		t, _, err := tm.client.AddTorrentSpec(spec)
 		if err != nil {
 			return nil
@@ -506,9 +510,10 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		return torrent
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
-		for _, tracker := range tm.trackers {
+		/*for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
-		}
+		}*/
+		spec.Trackers = append(spec.Trackers, tm.trackers...)
 		t, _, err := tm.client.AddTorrentSpec(spec)
 		if err != nil {
 			return nil
@@ -548,9 +553,10 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 		Storage:     storage.NewFile(dataPath),
 	}
 
-	for _, tracker := range tm.trackers {
-		spec.Trackers = append(spec.Trackers, tracker)
-	}
+	//for _, tracker := range tm.trackers {
+	//	spec.Trackers = append(spec.Trackers, tracker)
+	//}
+	spec.Trackers = append(spec.Trackers, tm.trackers...)
 	//log.Info("Torrent specific info", "spec", spec)
 
 	t, _, err := tm.client.AddTorrentSpec(spec)
@@ -738,11 +744,11 @@ func (s ActiveTorrentList) Less(i, j int) bool {
 	return s[i].BytesLeft() > s[j].BytesLeft() || (s[i].BytesLeft() == s[j].BytesLeft() && s[i].weight > s[j].weight)
 }
 
-type seedingTorrentList []*Torrent
+//type seedingTorrentList []*Torrent
 
-func (s seedingTorrentList) Len() int           { return len(s) }
-func (s seedingTorrentList) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s seedingTorrentList) Less(i, j int) bool { return s[i].weight > s[j].weight }
+//func (s seedingTorrentList) Len() int           { return len(s) }
+//func (s seedingTorrentList) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+//func (s seedingTorrentList) Less(i, j int) bool { return s[i].weight > s[j].weight }
 
 func (tm *TorrentManager) listenTorrentProgress() {
 	defer tm.wg.Done()

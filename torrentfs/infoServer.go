@@ -14,9 +14,9 @@ type HTTPMonitor struct {
 	Addr string
 
 	server *http.Server
-	mux    *http.ServeMux
-	info   sjson.Json
-	mu     sync.Mutex
+	//mux    *http.ServeMux
+	info sjson.Json
+	mu   sync.Mutex
 }
 
 // NewHTTPMonitor ... Create a http monitor instance.

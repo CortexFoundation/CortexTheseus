@@ -115,9 +115,9 @@ func TestShit(t *testing.T) {
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
 	testInputMeta := &InputMeta{
-		Hash:          ih,
-		RawSize:       10000,
-		Shape:         []uint64{1},
+		Hash:    ih,
+		RawSize: 10000,
+		Shape:   []uint64{1},
 		//AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x3})),
 	}
 	s := `

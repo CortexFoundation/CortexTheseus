@@ -249,7 +249,7 @@ func (fs *FileStorage) Close() error {
 }
 
 var (
-	ErrReadDataFromBoltDB = errors.New("Bolt DB Read Error")
+	ErrReadDataFromBoltDB = errors.New("bolt DB Read Error")
 )
 
 /*func (fs *FileStorage) GetFileByNumber(index uint64) *FileInfo {
