@@ -381,7 +381,7 @@ func (srv *Server) Stop() {
 
 // sharedUDPConn implements a shared connection. Write sends messages to the underlying connection while read returns
 // messages that were found unprocessable and sent to the unhandled channel by the primary listener.
-type sharedUDPConn struct {
+/*type sharedUDPConn struct {
 	*net.UDPConn
 	unhandled chan discover.ReadPacket
 }
@@ -403,7 +403,7 @@ func (s *sharedUDPConn) ReadFromUDP(b []byte) (n int, addr *net.UDPAddr, err err
 // Close implements discv5.conn
 func (s *sharedUDPConn) Close() error {
 	return nil
-}
+}*/
 
 // Start starts running the server.
 // Servers can not be re-used after stopping.
@@ -621,9 +621,9 @@ running:
 			// This channel is used by RemoveTrustedPeer to remove an enode
 			// from the trusted node set.
 			srv.log.Trace("Removing trusted node", "node", n)
-			if _, ok := trusted[n.ID]; ok {
-				delete(trusted, n.ID)
-			}
+			//if _, ok := trusted[n.ID]; ok {
+			delete(trusted, n.ID)
+			//}
 			// Unmark any already-connected peer as trusted
 			if p, ok := peers[n.ID]; ok {
 				p.rw.set(trustedConn, false)
