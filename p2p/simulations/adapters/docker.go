@@ -27,9 +27,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/docker/docker/pkg/reexec"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"github.com/docker/docker/pkg/reexec"
 )
 
 var (

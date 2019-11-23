@@ -30,13 +30,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/crypto/ecies"
 	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
 	"github.com/CortexFoundation/CortexTheseus/p2p/simulations/pipes"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestSharedSecret(t *testing.T) {

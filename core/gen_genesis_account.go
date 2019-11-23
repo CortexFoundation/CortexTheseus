@@ -45,7 +45,7 @@ func (g *GenesisAccount) UnmarshalJSON(input []byte) error {
 		Storage    map[storageJSON]storageJSON `json:"storage,omitempty"`
 		Balance    *math.HexOrDecimal256       `json:"balance" gencodec:"required"`
 		Nonce      *math.HexOrDecimal64        `json:"nonce,omitempty"`
-		BlockNum   *math.HexOrDecimal64				 `json:"blocknum,omitempty"`
+		BlockNum   *math.HexOrDecimal64        `json:"blocknum,omitempty"`
 		PrivateKey *hexutil.Bytes              `json:"secretKey,omitempty"`
 	}
 	var dec GenesisAccount

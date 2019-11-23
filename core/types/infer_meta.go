@@ -27,7 +27,7 @@ type InferMeta interface {
 	RawSize() uint64
 	// Gas() uint64
 	AuthorAddress() common.Address
-  InfoHash() metainfo.Hash
+	InfoHash() metainfo.Hash
 	Comment() string
 }
 
@@ -53,12 +53,12 @@ type ModelMeta struct {
 }
 
 type InputMeta struct {
-	Comment       string         `json:"Comment"`
-	Hash          common.Address `json:"Hash"`
-	RawSize       uint64         `json:"RawSize"`
-	Shape         []uint64       `json:"Shape"`
+	Comment string         `json:"Comment"`
+	Hash    common.Address `json:"Hash"`
+	RawSize uint64         `json:"RawSize"`
+	Shape   []uint64       `json:"Shape"`
 	//AuthorAddress common.Address `json:"AuthorAddress"`
-	BlockNum      big.Int        `json:"BlockNum"`
+	BlockNum big.Int `json:"BlockNum"`
 
 	//RawBytes []byte `json:"RawBytes"`
 }
@@ -72,7 +72,6 @@ func (mm *InputMeta) InfoHash() metainfo.Hash {
 	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
 	return ih
 }
-
 
 func (mm *Meta) InfoHash() metainfo.Hash {
 	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])

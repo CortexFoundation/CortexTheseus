@@ -225,16 +225,16 @@ func (s *Sync) Process(results []SyncResult) (bool, int, error) {
 // Commit flushes the data stored in the internal membatch out to persistent
 // storage, returning the number of items written and any occurred error.
 func (s *Sync) Commit(dbw ctxcdb.Batch) error {
-        // Dump the membatch into a database dbw
-        for key, value := range s.membatch.batch {
-                if err := dbw.Put(key[:], value); err != nil {
-                        return err
-                }
-                s.bloom.Add(key[:])
-        }
-        // Drop the membatch data and return
-        s.membatch = newSyncMemBatch()
-        return nil
+	// Dump the membatch into a database dbw
+	for key, value := range s.membatch.batch {
+		if err := dbw.Put(key[:], value); err != nil {
+			return err
+		}
+		s.bloom.Add(key[:])
+	}
+	// Drop the membatch data and return
+	s.membatch = newSyncMemBatch()
+	return nil
 }
 
 // Pending returns the number of state entries currently pending for download.
