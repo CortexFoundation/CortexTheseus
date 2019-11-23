@@ -18,3 +18,4 @@ gpu:
 
 clean:
 	  rm -rf ./build/*
+	  rm -rf *.so *.a test_interface obj/*.o
