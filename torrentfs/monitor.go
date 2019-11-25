@@ -522,7 +522,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) error {
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+		if len(b.Txs) > 0 {
+			log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+		}
 	}
 
 	return nil
@@ -880,7 +882,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		if minNumber > 5 {
 			minNumber = minNumber - 5
 		}
-		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
+		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return 0
 	}
@@ -904,7 +906,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed)
+	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed))
 	return uint64(maxNumber - minNumber)
 }
 
