@@ -522,7 +522,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) error {
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+		if len(b.Txs) > 0 {
+			log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+		}
 	}
 
 	return nil
@@ -729,24 +731,20 @@ if m.lastNumber > 256 {
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
-	//progress := uint64(0)
+	progress := uint64(0)
 	for {
 		select {
 		case <-timer.C:
-			m.syncLastBlock()
+			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			/*if progress > batch {
-				timer.Reset(time.Millisecond * 100)
-			} else if progress > batch/2 {
-				timer.Reset(time.Millisecond * 500)
-			} else if progress > batch/4 {
-				timer.Reset(time.Millisecond * 1000)
+			if progress > batch {
+				timer.Reset(time.Millisecond * 10)
 			} else if progress > 6 {
-				timer.Reset(time.Millisecond * 2000)
+				timer.Reset(time.Millisecond * 1000)
 			} else {
-				timer.Reset(time.Millisecond * 5000)
-			}*/
-			timer.Reset(time.Second * defaultTimerInterval)
+				timer.Reset(time.Millisecond * 2000)
+			}
+			//timer.Reset(time.Second * defaultTimerInterval)
 		case <-m.exitCh:
 			log.Info("Block listener stopped")
 			return
@@ -880,7 +878,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		if minNumber > 5 {
 			minNumber = minNumber - 5
 		}
-		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
+		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return 0
 	}
@@ -900,11 +898,13 @@ func (m *Monitor) syncLastBlock() uint64 {
 			return 0
 		}
 		//m.taskCh <- rpcBlock
-		m.deal(rpcBlock)
+		if err := m.deal(rpcBlock); err != nil {
+			return 0
+		}
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed)
+	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed))
 	return uint64(maxNumber - minNumber)
 }
 
