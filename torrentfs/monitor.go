@@ -731,24 +731,20 @@ if m.lastNumber > 256 {
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
-	//progress := uint64(0)
+	progress := uint64(0)
 	for {
 		select {
 		case <-timer.C:
-			m.syncLastBlock()
+			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			/*if progress > batch {
-				timer.Reset(time.Millisecond * 100)
-			} else if progress > batch/2 {
-				timer.Reset(time.Millisecond * 500)
-			} else if progress > batch/4 {
-				timer.Reset(time.Millisecond * 1000)
+			if progress > batch {
+				timer.Reset(time.Millisecond * 10)
 			} else if progress > 6 {
-				timer.Reset(time.Millisecond * 2000)
+				timer.Reset(time.Millisecond * 1000)
 			} else {
-				timer.Reset(time.Millisecond * 5000)
-			}*/
-			timer.Reset(time.Second * defaultTimerInterval)
+				timer.Reset(time.Millisecond * 2000)
+			}
+			//timer.Reset(time.Second * defaultTimerInterval)
 		case <-m.exitCh:
 			log.Info("Block listener stopped")
 			return
