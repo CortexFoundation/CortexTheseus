@@ -942,6 +942,7 @@ func (tm *TorrentManager) listenTorrentProgress() {
 
 			if len(activeTorrents) <= tm.maxActiveTask {
 				for _, t := range activeTorrents {
+					//log.Info("Active torrent", "hash", t.Torrent.InfoHash().String(), "request", t.bytesRequested, "complete", t.bytesCompleted)
 					t.Run()
 					active_running += 1
 				}
@@ -952,8 +953,13 @@ func (tm *TorrentManager) listenTorrentProgress() {
 					active_running += 1
 				}
 				for i := tm.maxActiveTask; i < len(activeTorrents); i++ {
-					activeTorrents[i].Pause()
-					active_paused += 1
+					if activeTorrents[i].bytesRequested > activeTorrents[i].bytesCompleted {
+						activeTorrents[i].Run()
+						active_running += 1
+					} else {
+						activeTorrents[i].Pause()
+						active_paused += 1
+					}
 				}
 			}
 
