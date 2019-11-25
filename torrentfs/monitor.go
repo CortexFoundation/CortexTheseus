@@ -902,7 +902,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 			return 0
 		}
 		//m.taskCh <- rpcBlock
-		m.deal(rpcBlock)
+		if err := m.deal(rpcBlock); err != nil {
+			return 0
+		}
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
