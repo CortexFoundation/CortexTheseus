@@ -945,7 +945,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					}
 				}
 
-				if log_counter%20 == 0 && t.bytesCompleted > 0 {
+				if log_counter%20 == 0 {
 					log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
 				}
 
