@@ -82,8 +82,8 @@ type Monitor struct {
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
 
-	//taskCh      chan *Block
-	//newTaskHook func(*Block)
+	taskCh      chan *Block
+	newTaskHook func(*Block)
 	blockCache  *lru.Cache
 	healthPeers *lru.Cache
 	sizeCache   *lru.Cache
@@ -121,7 +121,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		terminated: 0,
 		lastNumber: uint64(0),
 		dirty:      false,
-		//taskCh:     make(chan *Block, batch*2),
+		taskCh:     make(chan *Block, batch*2),
 	}
 	m.blockCache, _ = lru.New(6)
 	m.healthPeers, _ = lru.New(50)
@@ -175,14 +175,14 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	return m, e
 }
 
-/*func (m *Monitor) taskLoop() {
+func (m *Monitor) taskLoop() {
 	defer m.wg.Done()
 	for {
 		select {
 		case task := <-m.taskCh:
-			//if m.newTaskHook != nil {
-			//	m.newTaskHook(task)
-			//}
+			if m.newTaskHook != nil {
+				m.newTaskHook(task)
+			}
 
 			if err := m.deal(task); err != nil {
 				log.Warn("Block dealing failed", "err", err)
@@ -193,7 +193,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 			return
 		}
 	}
-}*/
+}
 
 // SetConnection method builds connection to remote or local communicator.
 func SetConnection(clientURI string) (*rpc.Client, error) {
@@ -537,7 +537,7 @@ func (m *Monitor) Stop() {
 	}
 	atomic.StoreInt32(&(m.terminated), 1)
 	close(m.exitCh)
-	//m.wg.Wait()
+	log.Info("Monitor is waiting to be closed")
 	m.wg.Wait()
 	/*m.wg.Add(1)
 		m.closeOnce.Do(func() {
@@ -636,8 +636,8 @@ func (m *Monitor) startWork() error {
 	//}
 
 	//log.Info("Torrent fs validation passed")
-	//m.wg.Add(1)
-	//go m.taskLoop()
+	m.wg.Add(1)
+	go m.taskLoop()
 	m.wg.Add(1)
 	go m.listenLatestBlock()
 	m.init()
@@ -738,12 +738,15 @@ func (m *Monitor) listenLatestBlock() {
 			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
 			if progress > batch {
-				timer.Reset(time.Millisecond * 10)
+				timer.Reset(time.Millisecond * 100)
 			} else if progress > 6 {
 				timer.Reset(time.Millisecond * 1000)
+			} else if progress == 0 {
+				timer.Reset(time.Millisecond * 10000)
 			} else {
-				timer.Reset(time.Millisecond * 2000)
+				timer.Reset(time.Millisecond * 5000)
 			}
+
 			//timer.Reset(time.Second * defaultTimerInterval)
 		case <-m.exitCh:
 			log.Info("Block listener stopped")
@@ -897,14 +900,22 @@ func (m *Monitor) syncLastBlock() uint64 {
 			log.Error("Sync old block failed", "number", i, "error", rpcErr)
 			return 0
 		}
-		//m.taskCh <- rpcBlock
-		if err := m.deal(rpcBlock); err != nil {
+		if len(m.taskCh) < cap(m.taskCh) {
+			m.taskCh <- rpcBlock
+		} else {
+			m.lastNumber = i - 1
+			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+			log.Info("Torrent scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+			//return m.lastNumber - minNumber
 			return 0
 		}
+		/*if err := m.deal(rpcBlock); err != nil {
+			return 0
+		}*/
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed))
+	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
 	return uint64(maxNumber - minNumber)
 }
 
