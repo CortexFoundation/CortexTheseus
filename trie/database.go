@@ -30,7 +30,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"github.com/allegro/bigcache"
+	//"github.com/allegro/bigcache"
+	"github.com/VictoriaMetrics/fastcache"
 )
 
 var (
@@ -69,7 +70,8 @@ const secureKeyLength = 11 + 32
 type Database struct {
 	diskdb ctxcdb.KeyValueStore // Persistent storage for matured trie nodes
 
-	cleans  *bigcache.BigCache          // GC friendly memory cache of clean node RLPs
+	//cleans  *bigcache.BigCache          // GC friendly memory cache of clean node RLPs
+	cleans  *fastcache.Cache
 	dirties map[common.Hash]*cachedNode // Data and references relationships of dirty nodes
 	oldest  common.Hash                 // Oldest tracked node, flush-list head
 	newest  common.Hash                 // Newest tracked node, flush-list tail
@@ -296,16 +298,18 @@ func NewDatabase(diskdb ctxcdb.KeyValueStore) *Database {
 // before its written out to disk or garbage collected. It also acts as a read cache
 // for nodes loaded from disk.
 func NewDatabaseWithCache(diskdb ctxcdb.KeyValueStore, cache int) *Database {
-	var cleans *bigcache.BigCache
+	//var cleans *bigcache.BigCache
+	var cleans *fastcache.Cache
 	if cache > 0 {
-		cleans, _ = bigcache.NewBigCache(bigcache.Config{
+		/*cleans, _ = bigcache.NewBigCache(bigcache.Config{
 			Shards:             1024,
 			LifeWindow:         time.Hour,
 			MaxEntriesInWindow: cache * 1024,
 			MaxEntrySize:       512,
 			HardMaxCacheSize:   cache,
 			Hasher:             trienodeHasher{},
-		})
+		})*/
+		cleans = fastcache.New(cache * 1024 * 1024)
 	}
 	return &Database{
 		diskdb: diskdb,
@@ -381,7 +385,8 @@ func (db *Database) insertPreimage(hash common.Hash, preimage []byte) {
 func (db *Database) node(hash common.Hash) node {
 	// Retrieve the node from the clean cache if available
 	if db.cleans != nil {
-		if enc, err := db.cleans.Get(string(hash[:])); err == nil && enc != nil {
+		//if enc, err := db.cleans.Get(string(hash[:])); err == nil && enc != nil {
+		if enc := db.cleans.Get(nil, hash[:]); enc != nil {
 			memcacheCleanHitMeter.Mark(1)
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
 			return mustDecodeNode(hash[:], enc)
@@ -401,7 +406,8 @@ func (db *Database) node(hash common.Hash) node {
 		return nil
 	}
 	if db.cleans != nil {
-		db.cleans.Set(string(hash[:]), enc)
+		//db.cleans.Set(string(hash[:]), enc)
+		db.cleans.Set(hash[:], enc)
 		memcacheCleanMissMeter.Mark(1)
 		memcacheCleanWriteMeter.Mark(int64(len(enc)))
 	}
@@ -417,7 +423,8 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	}
 	// Retrieve the node from the clean cache if available
 	if db.cleans != nil {
-		if enc, err := db.cleans.Get(string(hash[:])); err == nil && enc != nil {
+		//if enc, err := db.cleans.Get(string(hash[:])); err == nil && enc != nil {
+		if enc := db.cleans.Get(nil, hash[:]); enc != nil {
 			memcacheCleanHitMeter.Mark(1)
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
 			return enc, nil
@@ -435,7 +442,8 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	enc, err := db.diskdb.Get(hash[:])
 	if err == nil && enc != nil {
 		if db.cleans != nil {
-			db.cleans.Set(string(hash[:]), enc)
+			//db.cleans.Set(string(hash[:]), enc)
+			db.cleans.Set(hash[:], enc)
 			memcacheCleanMissMeter.Mark(1)
 			memcacheCleanWriteMeter.Mark(int64(len(enc)))
 		}
@@ -832,7 +840,8 @@ func (c *cleaner) Put(key []byte, rlp []byte) error {
 	}
 	// Move the flushed node into the clean cache to prevent insta-reloads
 	if c.db.cleans != nil {
-		c.db.cleans.Set(string(hash[:]), rlp)
+		//c.db.cleans.Set(string(hash[:]), rlp)
+		c.db.cleans.Set(hash[:], rlp)
 	}
 	return nil
 }
