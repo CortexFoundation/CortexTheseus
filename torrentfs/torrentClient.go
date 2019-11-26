@@ -784,12 +784,12 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				t.loop += 1
 				if t.Seeding() {
 					delete(tm.pendingTorrents, ih)
-					tm.seedingChan <- t
 					t.loop = 0
+					tm.seedingChan <- t
 				} else if !t.Pending() {
 					delete(tm.pendingTorrents, ih)
-					tm.activeChan <- t
 					t.loop = 0
+					tm.activeChan <- t
 				} else if t.Torrent.Info() != nil {
 					t.WriteTorrent()
 				} else if t.loop > torrentWaitingTime/queryTimeInterval {
