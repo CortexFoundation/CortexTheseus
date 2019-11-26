@@ -121,7 +121,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		terminated: 0,
 		lastNumber: uint64(0),
 		dirty:      false,
-		taskCh:     make(chan *Block, batch*2),
+		taskCh:     make(chan *Block, batch*4),
 	}
 	m.blockCache, _ = lru.New(6)
 	m.healthPeers, _ = lru.New(50)
