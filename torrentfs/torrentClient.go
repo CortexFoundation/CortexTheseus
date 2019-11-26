@@ -35,6 +35,7 @@ import (
 const (
 	//removeTorrentChanBuffer = 1
 	updateTorrentChanBuffer = batch
+	torrentChanSize         = 1024
 
 	torrentPending = iota //2
 	torrentPaused
@@ -664,9 +665,9 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		closeAll:            make(chan struct{}),
 		//removeTorrent:       make(chan metainfo.Hash, removeTorrentChanBuffer),
 		updateTorrent: make(chan interface{}, updateTorrentChanBuffer),
-		seedingChan:   make(chan *Torrent, 8),
-		activeChan:    make(chan *Torrent, 8),
-		pendingChan:   make(chan *Torrent, 8),
+		seedingChan:   make(chan *Torrent, torrentChanSize),
+		activeChan:    make(chan *Torrent, torrentChanSize),
+		pendingChan:   make(chan *Torrent, torrentChanSize),
 		//updateTorrent:       make(chan interface{}),
 	}
 
