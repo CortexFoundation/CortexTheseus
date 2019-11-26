@@ -187,12 +187,9 @@ func (t *Torrent) WriteTorrent() {
 	if f, err := os.Create(path.Join(t.filepath, "torrent")); err == nil {
 		defer f.Close()
 		log.Debug("Write torrent file", "path", t.filepath)
-		if err := t.Metainfo().Write(f); err != nil {
-			log.Error("Error while write torrent file", "error", err)
-			return
+		if err := t.Metainfo().Write(f); err == nil {
+			t.Pause()
 		}
-
-		t.Pause()
 	}
 }
 
