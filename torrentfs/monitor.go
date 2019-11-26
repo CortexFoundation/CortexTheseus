@@ -754,13 +754,13 @@ func (m *Monitor) listenLatestBlock() {
 
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * 300)
+	timer := time.NewTimer(time.Second * 600)
 
 	for {
 		select {
 		case <-timer.C:
 			m.peers()
-			timer.Reset(time.Second * 300)
+			timer.Reset(time.Second * 3600)
 		case <-m.exitCh:
 			log.Info("Peers listener stopped")
 			return
