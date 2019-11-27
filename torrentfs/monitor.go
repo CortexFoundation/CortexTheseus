@@ -128,7 +128,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	m.sizeCache, _ = lru.New(batch)
 	e = nil
 
-	log.Info("Loading storage data ... ...")
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
 
 	fileMap := make(map[metainfo.Hash]*FileInfo)
 	//files, err := m.fs.Files()
@@ -186,7 +186,6 @@ func (m *Monitor) taskLoop() {
 
 			if err := m.deal(task); err != nil {
 				log.Warn("Block dealing failed", "err", err)
-				continue
 			}
 		case <-m.exitCh:
 			log.Info("Monitor task channel closed")
@@ -472,7 +471,8 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	return nil
 }
 
-func (m *Monitor) parseBlockTorrentInfo(b *Block) error {
+func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
+	record := false
 	if len(b.Txs) > 0 {
 		start := mclock.Now()
 		for _, tx := range b.Txs {
@@ -480,8 +480,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) error {
 				log.Debug("Try to create a file", "meta", meta, "number", b.Number, "infohash", meta.InfoHash)
 				if err := m.parseFileMeta(&tx, meta); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
-					return err
+					return false, err
 				}
+				record = true
 			} else if tx.IsFlowControl() {
 				if tx.Recipient == nil {
 					continue
@@ -495,13 +496,13 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) error {
 
 				remainingSize, err := m.getRemainingSize(addr.String())
 				if err != nil {
-					return err
+					return false, err
 				}
 
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
 					if err := m.fs.WriteFile(file); err != nil {
-						return err
+						return false, err
 					}
 
 					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
@@ -519,6 +520,8 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) error {
 				} else {
 					log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				}
+
+				record = true
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
@@ -527,7 +530,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) error {
 		}
 	}
 
-	return nil
+	return record, nil
 }
 
 func (m *Monitor) Stop() {
@@ -919,44 +922,36 @@ func (m *Monitor) syncLastBlock() uint64 {
 	return uint64(maxNumber - minNumber)
 }
 
-func (m *Monitor) deal(rpcBlock *Block) error {
-	i := rpcBlock.Number
-	if hash, suc := m.blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
-
-		/*block := m.fs.GetBlockByNumber(i)
-		if block == nil {
-			block = rpcBlock
-
-			if err := m.parseAndStore(block, true); err != nil {
-				log.Error("Fail to parse and storge latest block", "number", i, "error", err)
-				return err
+func (m *Monitor) deal(block *Block) error {
+	i := block.Number
+	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
+		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
+			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
+			return parseErr
+		} else if record {
+			if storeErr := m.fs.WriteBlock(block); storeErr != nil {
+				log.Error("Store latest block", "number", block.Number, "error", storeErr)
+				return storeErr
 			}
 
+			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
 		} else {
-			if block.Hash.Hex() == rpcBlock.Hash.Hex() {
+			if i%batch == 0 {
+				if storeErr := m.fs.WriteBlock(block); storeErr != nil {
+					log.Error("Store latest block", "number", block.Number, "error", storeErr)
+					return storeErr
+				}
 
-				if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
-					log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
-					return parseErr
-				}
-			} else {
-				//dirty tfs
-				if err := m.parseAndStore(rpcBlock, true); err != nil {
-					log.Error("Dirty tfs fail to parse and storge latest block", "number", i, "error", err)
-					return err
-				}
+				log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
 			}
-		}*/
-		if err := m.parseAndStore(rpcBlock); err != nil {
-			log.Error("Fail to parse and storge latest block", "number", i, "error", err)
-			return err
 		}
-		m.blockCache.Add(i, rpcBlock.Hash.Hex())
+
+		m.blockCache.Add(i, block.Hash.Hex())
 	}
 	return nil
 }
 
-func (m *Monitor) parseAndStore(block *Block) error {
+/*func (m *Monitor) parseAndStore(block *Block) error {
 	if parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 		log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 		return parseErr
@@ -967,4 +962,4 @@ func (m *Monitor) parseAndStore(block *Block) error {
 		return storeErr
 	}
 	return nil
-}
+}*/

@@ -388,8 +388,13 @@ func (fs *FileStorage) WriteBlock(b *Block) error {
 	//if err == nil && b.Number > fs.LastListenBlockNumber {
 	//if err == nil {
 	//fs.bnLock.Lock()
+	if b.Number < fs.LastListenBlockNumber {
+		return nil
+	}
+
 	fs.LastListenBlockNumber = b.Number
 	return fs.writeBlockNumber()
+	//return nil
 	//fs.bnLock.Unlock()
 	//}
 
