@@ -190,6 +190,7 @@ func (m *Monitor) storageInit() error {
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
 		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks {
 			m.lastNumber = 0
+			log.Info("Torrent fs checkpoint dismatch, reloading ...", "blocks", len(m.fs.Blocks()), "checkpoint", checkpoint.TfsBlocks)
 		} else {
 			log.Info("Torrent fs checkpoint passed", "blocks", len(m.fs.Blocks()), "checkpoint", checkpoint.TfsBlocks)
 		}
