@@ -238,7 +238,7 @@ func (m *Monitor) storageInit() error {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity))
+	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()))
 	return nil
 }
 
@@ -490,7 +490,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return err
 	} else {
 		if index > 0 {
-			log.Info("Create new file", "hash", meta.InfoHash, "index", index)
+			log.Debug("Create new file", "hash", meta.InfoHash, "index", index)
 			m.dl.UpdateTorrent(FlowControlMeta{
 				InfoHash:       meta.InfoHash,
 				BytesRequested: 0,
