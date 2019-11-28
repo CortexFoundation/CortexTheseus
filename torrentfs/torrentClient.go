@@ -749,13 +749,13 @@ const (
 	loops = 30
 )
 
-type ActiveTorrentList []*Torrent
+//type ActiveTorrentList []*Torrent
 
-func (s ActiveTorrentList) Len() int      { return len(s) }
-func (s ActiveTorrentList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s ActiveTorrentList) Less(i, j int) bool {
-	return s[i].BytesLeft() > s[j].BytesLeft() || (s[i].BytesLeft() == s[j].BytesLeft() && s[i].weight > s[j].weight)
-}
+//func (s ActiveTorrentList) Len() int      { return len(s) }
+//func (s ActiveTorrentList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+//func (s ActiveTorrentList) Less(i, j int) bool {
+//	return s[i].BytesLeft() > s[j].BytesLeft() || (s[i].BytesLeft() == s[j].BytesLeft() && s[i].weight > s[j].weight)
+//}
 
 //type seedingTorrentList []*Torrent
 
@@ -766,6 +766,7 @@ func (s ActiveTorrentList) Less(i, j int) bool {
 func (tm *TorrentManager) pendingTorrentLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.pendingChan:
@@ -830,9 +831,11 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 }
 func (tm *TorrentManager) activeTorrentLoop() {
 	defer tm.wg.Done()
-	var total_size, current_size, counter, log_counter uint64
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
-	for counter = 0; ; counter++ {
+	defer timer.Stop()
+	var total_size, current_size, counter, log_counter uint64
+	for {
+		counter++
 		select {
 		case t := <-tm.activeChan:
 			tm.activeTorrents[t.Torrent.InfoHash()] = t
@@ -965,7 +968,10 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					active_running += 1
 				}
 			} else {
-				sort.Stable(ActiveTorrentList(activeTorrents))
+				//				sort.Stable(ActiveTorrentList(activeTorrents))
+				sort.Slice(activeTorrents, func(i, j int) bool {
+					return activeTorrents[i].BytesLeft() > activeTorrents[j].BytesLeft() || (activeTorrents[i].BytesLeft() == activeTorrents[j].BytesLeft() && activeTorrents[i].weight > activeTorrents[j].weight)
+				})
 				for i := 0; i < tm.maxActiveTask; i++ {
 					activeTorrents[i].Run()
 					active_running += 1

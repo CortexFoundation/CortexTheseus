@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -128,13 +129,80 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	m.sizeCache, _ = lru.New(batch)
 	e = nil
 
+	/*log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
+
+		fileMap := make(map[metainfo.Hash]*FileInfo)
+		for _, block := range m.fs.Blocks() {
+			if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
+	                        log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
+	                        return nil, parseErr
+			} else {
+				log.Info("Block storage info", "number", block.Number, "record", record)
+			}
+		}
+
+		for _, file := range m.fs.Files() {
+			if f, ok := fileMap[file.Meta.InfoHash]; ok {
+				if f.LeftSize > file.LeftSize {
+					fileMap[file.Meta.InfoHash] = file
+				}
+			} else {
+				fileMap[file.Meta.InfoHash] = file
+			}
+		}
+		capcity := uint64(0)
+		seed := 0
+		pause := 0
+		pending := 0
+
+		for _, file := range fileMap {
+			var bytesRequested uint64
+			bytesRequested = 0
+			if file.Meta.RawSize > file.LeftSize {
+				bytesRequested = file.Meta.RawSize - file.LeftSize
+			}
+			capcity += bytesRequested
+			log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
+			m.dl.UpdateTorrent(FlowControlMeta{
+				InfoHash:       file.Meta.InfoHash,
+				BytesRequested: bytesRequested,
+				IsCreate:       true,
+			})
+			if file.LeftSize == 0 {
+				seed += 1
+			} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
+				pending += 1
+			} else if file.Meta.RawSize > file.LeftSize && file.LeftSize > 0 {
+				pause += 1
+			}
+		}
+		log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity))*/
+
+	return m, e
+}
+
+func (m *Monitor) storageInit() error {
 	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
 
+	if len(m.fs.Blocks()) == 0 {
+		m.lastNumber = 0
+	}
+
+	blocks := m.fs.Blocks()
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i].Number < blocks[j].Number
+	})
+
+	for _, block := range m.fs.Blocks() {
+		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
+			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
+			return parseErr
+		} else {
+			log.Debug("Block storage info", "number", block.Number, "record", record)
+		}
+	}
+
 	fileMap := make(map[metainfo.Hash]*FileInfo)
-	//files, err := m.fs.Files()
-	//if err != nil {
-	//return nil, errors.New("torrent db init failed")
-	//}
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
 			if f.LeftSize > file.LeftSize {
@@ -156,7 +224,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
 		capcity += bytesRequested
-		log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
+		log.Debug("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
 		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
@@ -170,9 +238,8 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity))
-
-	return m, e
+	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()))
+	return nil
 }
 
 func (m *Monitor) taskLoop() {
@@ -422,8 +489,8 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	if err != nil {
 		return err
 	} else {
-		log.Debug("create file", "hash", meta.InfoHash, "index", index)
 		if index > 0 {
+			log.Debug("Create new file", "hash", meta.InfoHash, "index", index)
 			m.dl.UpdateTorrent(FlowControlMeta{
 				InfoHash:       meta.InfoHash,
 				BytesRequested: 0,
@@ -501,22 +568,23 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
-					if err := m.fs.WriteFile(file); err != nil {
+					if update, err := m.fs.WriteFile(file); err != nil {
 						return false, err
-					}
+					} else if update {
 
-					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
-					var bytesRequested uint64
-					if file.Meta.RawSize > file.LeftSize {
-						bytesRequested = file.Meta.RawSize - file.LeftSize
-					}
-					log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+						var bytesRequested uint64
+						if file.Meta.RawSize > file.LeftSize {
+							bytesRequested = file.Meta.RawSize - file.LeftSize
+						}
+						log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 
-					m.dl.UpdateTorrent(FlowControlMeta{
-						InfoHash:       file.Meta.InfoHash,
-						BytesRequested: bytesRequested,
-						IsCreate:       false,
-					})
+						m.dl.UpdateTorrent(FlowControlMeta{
+							InfoHash:       file.Meta.InfoHash,
+							BytesRequested: bytesRequested,
+							IsCreate:       false,
+						})
+					}
 				} else {
 					log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				}
@@ -612,7 +680,7 @@ func (m *Monitor) Start() error {
 
 func (m *Monitor) startWork() error {
 	// Wait for ipc start...
-	time.Sleep(time.Second)
+	//time.Sleep(time.Second)
 	//defer TorrentAPIAvailable.Unlock()
 	// Rpc Client
 	var clientURI string
@@ -639,6 +707,9 @@ func (m *Monitor) startWork() error {
 	//}
 
 	//log.Info("Torrent fs validation passed")
+	if err := m.storageInit(); err != nil {
+		return err
+	}
 	m.wg.Add(1)
 	go m.taskLoop()
 	m.wg.Add(1)
@@ -734,6 +805,7 @@ if m.lastNumber > 256 {
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	defer timer.Stop()
 	progress := uint64(0)
 	for {
 		select {
@@ -761,7 +833,7 @@ func (m *Monitor) listenLatestBlock() {
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * 600)
-
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
@@ -929,15 +1001,15 @@ func (m *Monitor) deal(block *Block) error {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
 		} else if record {
-			if storeErr := m.fs.WriteBlock(block); storeErr != nil {
+			if storeErr := m.fs.WriteBlock(block, true); storeErr != nil {
 				log.Error("Store latest block", "number", block.Number, "error", storeErr)
 				return storeErr
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
 		} else {
-			if i%batch == 0 {
-				if storeErr := m.fs.WriteBlock(block); storeErr != nil {
+			if i%(batch/8) == 0 {
+				if storeErr := m.fs.WriteBlock(block, false); storeErr != nil {
 					log.Error("Store latest block", "number", block.Number, "error", storeErr)
 					return storeErr
 				}

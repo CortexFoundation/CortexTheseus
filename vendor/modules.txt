@@ -8,7 +8,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/RoaringBitmap/roaring v0.4.18
 github.com/RoaringBitmap/roaring
-# github.com/VictoriaMetrics/fastcache v1.5.2
+# github.com/VictoriaMetrics/fastcache v1.5.3
 github.com/VictoriaMetrics/fastcache
 # github.com/anacrolix/dht/v2 v2.2.1-0.20191103020011-1dba080fb358
 github.com/anacrolix/dht/v2
