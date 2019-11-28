@@ -183,9 +183,16 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 
 func (m *Monitor) storageInit() error {
 	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
-
-	if len(m.fs.Blocks()) == 0 {
-		m.lastNumber = 0
+	genesis, err := m.rpcBlockByNumber(0)
+	if err != nil {
+		return err
+	}
+	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
+		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks {
+			m.lastNumber = 0
+		} else {
+			log.Info("Torrent fs checkpoint passed", "blocks", len(m.fs.Blocks()), "checkpoint", checkpoint.TfsBlocks)
+		}
 	}
 
 	blocks := m.fs.Blocks()

@@ -51,6 +51,7 @@ type TrustedCheckpoint struct {
 	Name         string      `json:"-"`
 	SectionIndex uint64      `json:"sectionIndex"`
 	SectionHead  common.Hash `json:"sectionHead"`
+	TfsBlocks    uint64      `json:"tfsBlocks"`
 }
 
 var (
@@ -64,12 +65,14 @@ var (
 		Name:         "mainnet",
 		SectionIndex: 13,
 		SectionHead:  common.HexToHash("0xbcb220cb151820896fe9ef0138b7d433ded14e9b489def7bfb4819bbf28be95e"),
+		TfsBlocks:    96,
 	}
 	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "dolores",
 		SectionIndex: 1,
 		SectionHead:  common.HexToHash("0xb7b7f06c6cc9dc5fe3b8a673fa3e18ef7bcbce033fa54051a4fb37d8fdb87d6c"),
+		TfsBlocks:    0,
 	}
 
 	MainnetCheckpointOracle = &CheckpointOracleConfig{
