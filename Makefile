@@ -127,11 +127,6 @@ lint: ## Run linters.
 clean: clean-clib
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
-	#rm -rf infernet/build/*
-	#rm -rf infernet/*.so infernet/*.a infernet/obj/*.o
-	#rm -f solution/miner/libcuckoo/*.a solution/miner/libcuckoo/*.o solution/plugins/*.so
-	#rm -fr solution/build/_workspace/pkg/
-	#rm -rf solution/build/bin/*
 
 clean-clib:
 	$(MAKE) -C $(LIB_MINER_DIR) clean
