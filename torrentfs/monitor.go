@@ -183,6 +183,10 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 func (m *Monitor) storageInit() error {
 	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
 
+	if len(m.fs.Blocks()) == 0 {
+		m.lastNumber = 0
+	}
+
 	for _, block := range m.fs.Blocks() {
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
