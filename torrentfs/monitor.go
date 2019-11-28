@@ -734,6 +734,7 @@ if m.lastNumber > 256 {
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	defer timer.Stop()
 	progress := uint64(0)
 	for {
 		select {
@@ -761,7 +762,7 @@ func (m *Monitor) listenLatestBlock() {
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * 600)
-
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:

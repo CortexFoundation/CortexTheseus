@@ -766,6 +766,7 @@ func (s ActiveTorrentList) Less(i, j int) bool {
 func (tm *TorrentManager) pendingTorrentLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.pendingChan:
@@ -830,9 +831,11 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 }
 func (tm *TorrentManager) activeTorrentLoop() {
 	defer tm.wg.Done()
-	var total_size, current_size, counter, log_counter uint64
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
-	for counter = 0; ; counter++ {
+	defer timer.Stop()
+	var total_size, current_size, counter, log_counter uint64
+	for {
+		counter++
 		select {
 		case t := <-tm.activeChan:
 			tm.activeTorrents[t.Torrent.InfoHash()] = t
