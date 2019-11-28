@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.0
 	github.com/Azure/go-autorest/autorest/adal v0.6.0 // indirect
-	github.com/VictoriaMetrics/fastcache v1.5.3
+	github.com/VictoriaMetrics/fastcache v1.5.4
 	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/anacrolix/missinggo v1.2.1
 	github.com/anacrolix/tagflag v1.0.1

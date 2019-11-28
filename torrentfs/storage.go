@@ -57,6 +57,7 @@ type FileStorage struct {
 	db                *bolt.DB
 
 	LastListenBlockNumber uint64
+	CheckPoint            uint64
 	//LastFileIndex         uint64
 
 	//lock      sync.RWMutex
@@ -103,6 +104,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 
 	fs.initBlockNumber()
+	fs.initCheckPoint()
 	fs.initBlocks()
 	//fs.readLastFileIndex()
 	fs.initFiles()
@@ -390,6 +392,11 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 		if err != nil {
 			return err
 		}
+
+		if b.Number > fs.CheckPoint {
+			fs.CheckPoint = b.Number
+			fs.writeCheckPoint()
+		}
 	}
 
 	if b.Number < fs.LastListenBlockNumber {
@@ -483,6 +490,29 @@ func (fs *FileStorage) initFiles() error {
 		return e
 	})
 }*/
+func (fs *FileStorage) initCheckPoint() error {
+	return fs.db.View(func(tx *bolt.Tx) error {
+		buk := tx.Bucket([]byte("checkpoint"))
+		if buk == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		v := buk.Get([]byte("key"))
+
+		if v == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		number, err := strconv.ParseUint(string(v), 16, 64)
+		if err != nil {
+			return err
+		}
+
+		fs.CheckPoint = number
+
+		return nil
+	})
+}
 
 func (fs *FileStorage) initBlockNumber() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
@@ -508,15 +538,25 @@ func (fs *FileStorage) initBlockNumber() error {
 	})
 }
 
+func (fs *FileStorage) writeCheckPoint() error {
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint"))
+		if err != nil {
+			return err
+		}
+		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.CheckPoint, 16)))
+
+		return e
+	})
+}
+
 func (fs *FileStorage) writeBlockNumber() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber"))
 		if err != nil {
 			return err
 		}
-		//fs.lock.Lock()
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastListenBlockNumber, 16)))
-		//fs.lock.Unlock()
 
 		return e
 	})
