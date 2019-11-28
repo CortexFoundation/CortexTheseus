@@ -190,9 +190,15 @@ func (m *Monitor) storageInit() error {
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
 		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
 			m.lastNumber = m.fs.CheckPoint
-			log.Info("Torrent fs block dismatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()))
+			log.Info("Torrent fs block unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()))
 		} else {
-			log.Info("Torrent fs block passed", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()))
+			block := m.fs.GetBlockByNumber(checkpoint.TfsCheckPoint)
+			if block != nil && checkpoint.TfsCkpHead == block.Hash {
+				log.Info("Torrent fs block passed", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()), "head", block.Hash)
+			} else {
+				log.Info("Torrent fs check point unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()), "head", block.Hash)
+				m.lastNumber = 0
+			}
 		}
 	}
 
@@ -202,6 +208,9 @@ func (m *Monitor) storageInit() error {
 	})
 
 	for _, block := range m.fs.Blocks() {
+		if b, err := m.rpcBlockByNumber(block.Number); err == nil && b.Hash != block.Hash {
+			m.lastNumber = 0
+		}
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
