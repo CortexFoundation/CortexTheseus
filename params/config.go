@@ -53,7 +53,7 @@ type TrustedCheckpoint struct {
 	SectionHead   common.Hash `json:"sectionHead"`
 	TfsBlocks     uint64      `json:"tfsBlocks"`
 	TfsCheckPoint uint64      `json:"tfsCheckPoint"`
-	TfsCkpHead   common.Hash `json:"tfsCkpHead"`
+	TfsCkpHead    common.Hash `json:"tfsCkpHead"`
 	TfsFiles      uint64      `json:"tfsFiles"`
 }
 
@@ -70,7 +70,7 @@ var (
 		SectionHead:   common.HexToHash("0xbcb220cb151820896fe9ef0138b7d433ded14e9b489def7bfb4819bbf28be95e"),
 		TfsBlocks:     96,
 		TfsCheckPoint: 395964,
-		TfsCkpHead: common.HexToHash("0x155637e09a5c0fc5b4a712abdf032242447f24cd989846fb96afce3927e8257c"),
+		TfsCkpHead:    common.HexToHash("0x155637e09a5c0fc5b4a712abdf032242447f24cd989846fb96afce3927e8257c"),
 		TfsFiles:      46,
 	}
 	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
