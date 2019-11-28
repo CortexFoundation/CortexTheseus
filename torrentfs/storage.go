@@ -357,7 +357,7 @@ func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
 				update = true
 				return buk.Put(k, v)
 			} else {
-				log.Warn("Write same file in 2 address", "hash", info.Meta.InfoHash.String(), "old", info.LeftSize, "new", f.LeftSize)
+				log.Debug("Write same file in 2 address", "hash", info.Meta.InfoHash.String(), "old", info.LeftSize, "new", f.LeftSize)
 			}
 		}
 		return nil

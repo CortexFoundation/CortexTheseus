@@ -589,7 +589,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 					log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				}
 
-				//record = true
+				record = true
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
