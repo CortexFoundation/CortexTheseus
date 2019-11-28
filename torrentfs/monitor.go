@@ -937,7 +937,7 @@ func (m *Monitor) deal(block *Block) error {
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
 		} else {
-			if i%batch == 0 {
+			if i%(batch/8) == 0 {
 				if storeErr := m.fs.WriteBlock(block); storeErr != nil {
 					log.Error("Store latest block", "number", block.Number, "error", storeErr)
 					return storeErr
