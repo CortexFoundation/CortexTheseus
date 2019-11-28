@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -186,6 +187,11 @@ func (m *Monitor) storageInit() error {
 	if len(m.fs.Blocks()) == 0 {
 		m.lastNumber = 0
 	}
+
+	blocks := m.fs.Blocks()
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i].Number < blocks[j].Number
+	})
 
 	for _, block := range m.fs.Blocks() {
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
@@ -583,7 +589,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 					log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				}
 
-				record = true
+				//record = true
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
