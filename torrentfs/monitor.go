@@ -198,7 +198,7 @@ func (m *Monitor) storageInit() error {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
 		} else {
-			log.Info("Block storage info", "number", block.Number, "record", record)
+			log.Debug("Block storage info", "number", block.Number, "record", record)
 		}
 	}
 
@@ -224,7 +224,7 @@ func (m *Monitor) storageInit() error {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
 		capcity += bytesRequested
-		log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
+		log.Debug("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
 		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
