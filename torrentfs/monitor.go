@@ -188,9 +188,7 @@ func (m *Monitor) storageInit() error {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
 		} else {
-			if record {
-				log.Info("Block storage info", "number", block.Number, "record", record)
-			}
+			log.Info("Block storage info", "number", block.Number, "record", record)
 		}
 	}
 
@@ -560,22 +558,23 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
-					if err := m.fs.WriteFile(file); err != nil {
+					if update, err := m.fs.WriteFile(file); err != nil {
 						return false, err
-					}
+					} else if update {
 
-					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
-					var bytesRequested uint64
-					if file.Meta.RawSize > file.LeftSize {
-						bytesRequested = file.Meta.RawSize - file.LeftSize
-					}
-					log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+						var bytesRequested uint64
+						if file.Meta.RawSize > file.LeftSize {
+							bytesRequested = file.Meta.RawSize - file.LeftSize
+						}
+						log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 
-					m.dl.UpdateTorrent(FlowControlMeta{
-						InfoHash:       file.Meta.InfoHash,
-						BytesRequested: bytesRequested,
-						IsCreate:       false,
-					})
+						m.dl.UpdateTorrent(FlowControlMeta{
+							InfoHash:       file.Meta.InfoHash,
+							BytesRequested: bytesRequested,
+							IsCreate:       false,
+						})
+					}
 				} else {
 					log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				}
