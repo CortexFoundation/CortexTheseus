@@ -128,13 +128,73 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	m.sizeCache, _ = lru.New(batch)
 	e = nil
 
+	/*log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
+
+		fileMap := make(map[metainfo.Hash]*FileInfo)
+		for _, block := range m.fs.Blocks() {
+			if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
+	                        log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
+	                        return nil, parseErr
+			} else {
+				log.Info("Block storage info", "number", block.Number, "record", record)
+			}
+		}
+
+		for _, file := range m.fs.Files() {
+			if f, ok := fileMap[file.Meta.InfoHash]; ok {
+				if f.LeftSize > file.LeftSize {
+					fileMap[file.Meta.InfoHash] = file
+				}
+			} else {
+				fileMap[file.Meta.InfoHash] = file
+			}
+		}
+		capcity := uint64(0)
+		seed := 0
+		pause := 0
+		pending := 0
+
+		for _, file := range fileMap {
+			var bytesRequested uint64
+			bytesRequested = 0
+			if file.Meta.RawSize > file.LeftSize {
+				bytesRequested = file.Meta.RawSize - file.LeftSize
+			}
+			capcity += bytesRequested
+			log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
+			m.dl.UpdateTorrent(FlowControlMeta{
+				InfoHash:       file.Meta.InfoHash,
+				BytesRequested: bytesRequested,
+				IsCreate:       true,
+			})
+			if file.LeftSize == 0 {
+				seed += 1
+			} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
+				pending += 1
+			} else if file.Meta.RawSize > file.LeftSize && file.LeftSize > 0 {
+				pause += 1
+			}
+		}
+		log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity))*/
+
+	return m, e
+}
+
+func (m *Monitor) storageInit() error {
 	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
 
+	for _, block := range m.fs.Blocks() {
+		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
+			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
+			return parseErr
+		} else {
+			if record {
+				log.Info("Block storage info", "number", block.Number, "record", record)
+			}
+		}
+	}
+
 	fileMap := make(map[metainfo.Hash]*FileInfo)
-	//files, err := m.fs.Files()
-	//if err != nil {
-	//return nil, errors.New("torrent db init failed")
-	//}
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
 			if f.LeftSize > file.LeftSize {
@@ -171,8 +231,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		}
 	}
 	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity))
-
-	return m, e
+	return nil
 }
 
 func (m *Monitor) taskLoop() {
@@ -422,8 +481,8 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	if err != nil {
 		return err
 	} else {
-		log.Debug("create file", "hash", meta.InfoHash, "index", index)
 		if index > 0 {
+			log.Info("Create new file", "hash", meta.InfoHash, "index", index)
 			m.dl.UpdateTorrent(FlowControlMeta{
 				InfoHash:       meta.InfoHash,
 				BytesRequested: 0,
@@ -612,7 +671,7 @@ func (m *Monitor) Start() error {
 
 func (m *Monitor) startWork() error {
 	// Wait for ipc start...
-	time.Sleep(time.Second)
+	//time.Sleep(time.Second)
 	//defer TorrentAPIAvailable.Unlock()
 	// Rpc Client
 	var clientURI string
@@ -639,6 +698,9 @@ func (m *Monitor) startWork() error {
 	//}
 
 	//log.Info("Torrent fs validation passed")
+	if err := m.storageInit(); err != nil {
+		return err
+	}
 	m.wg.Add(1)
 	go m.taskLoop()
 	m.wg.Add(1)
@@ -930,7 +992,7 @@ func (m *Monitor) deal(block *Block) error {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
 		} else if record {
-			if storeErr := m.fs.WriteBlock(block); storeErr != nil {
+			if storeErr := m.fs.WriteBlock(block, true); storeErr != nil {
 				log.Error("Store latest block", "number", block.Number, "error", storeErr)
 				return storeErr
 			}
@@ -938,7 +1000,7 @@ func (m *Monitor) deal(block *Block) error {
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
 		} else {
 			if i%(batch/8) == 0 {
-				if storeErr := m.fs.WriteBlock(block); storeErr != nil {
+				if storeErr := m.fs.WriteBlock(block, false); storeErr != nil {
 					log.Error("Store latest block", "number", block.Number, "error", storeErr)
 					return storeErr
 				}

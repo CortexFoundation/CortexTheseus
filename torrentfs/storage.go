@@ -53,6 +53,7 @@ func (mc *MutexCounter) IsZero() bool {
 type FileStorage struct {
 	filesContractAddr map[common.Address]*FileInfo
 	files             []*FileInfo
+	blocks            []*Block
 	db                *bolt.DB
 
 	LastListenBlockNumber uint64
@@ -102,6 +103,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 
 	fs.readBlockNumber()
+	fs.initBlocks()
 	//fs.readLastFileIndex()
 	fs.initFiles()
 	//tmpCache, _ := lru.New(120)
@@ -111,6 +113,10 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 
 func (fs *FileStorage) Files() []*FileInfo {
 	return fs.files
+}
+
+func (fs *FileStorage) Blocks() []*Block {
+	return fs.blocks
 }
 
 func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
@@ -289,11 +295,8 @@ var (
 	return &info
 }*/
 
-/*func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
+func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
-
-	fs.opCounter.Increase()
-	defer fs.opCounter.Decrease()
 
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("blocks"))
@@ -305,9 +308,7 @@ var (
 			return ErrReadDataFromBoltDB
 		}
 
-		//fs.lock.RLock()
 		v := buk.Get(k)
-		//fs.lock.RUnlock()
 
 		if v == nil {
 			return ErrReadDataFromBoltDB
@@ -323,7 +324,7 @@ var (
 		return nil
 	}
 	return &block
-}*/
+}
 
 func (fs *FileStorage) WriteFile(f *FileInfo) error {
 	//fs.opCounter.Increase()
@@ -343,11 +344,20 @@ func (fs *FileStorage) WriteFile(f *FileInfo) error {
 			return err
 		}
 
-		//fs.lock.Lock()
-		e := buk.Put(k, v)
-		//fs.lock.Unlock()
+		bef := buk.Get(k)
+		if bef == nil {
+			return buk.Put(k, v)
+		} else {
+			var info FileInfo
+			if err := json.Unmarshal(bef, &info); err != nil {
+				return buk.Put(k, v)
+			}
 
-		return e
+			if info.LeftSize > f.LeftSize {
+				return buk.Put(k, v)
+			}
+		}
+		return nil
 	})
 
 	//if err == nil && b.Number > fs.LastListenBlockNumber {
@@ -360,80 +370,81 @@ func (fs *FileStorage) WriteFile(f *FileInfo) error {
 	return err
 }
 
-func (fs *FileStorage) WriteBlock(b *Block) error {
-	//fs.opCounter.Increase()
-	//defer fs.opCounter.Decrease()
+func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
+	if record {
+		err := fs.db.Update(func(tx *bolt.Tx) error {
+			buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
+			if err != nil {
+				return err
+			}
+			v, err := json.Marshal(b)
+			if err != nil {
+				return err
+			}
+			k, err := json.Marshal(b.Number)
+			if err != nil {
+				return err
+			}
 
-	/*err := fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
+			e := buk.Put(k, v)
+
+			return e
+		})
+
 		if err != nil {
 			return err
 		}
-		v, err := json.Marshal(b)
-		if err != nil {
-			return err
-		}
-		k, err := json.Marshal(b.Number)
-		if err != nil {
-			return err
-		}
+	}
 
-		//fs.lock.Lock()
-		e := buk.Put(k, v)
-		//fs.lock.Unlock()
-
-		return e
-	})*/
-
-	//if err == nil && b.Number > fs.LastListenBlockNumber {
-	//if err == nil {
-	//fs.bnLock.Lock()
 	if b.Number < fs.LastListenBlockNumber {
 		return nil
 	}
 
 	fs.LastListenBlockNumber = b.Number
 	return fs.writeBlockNumber()
-	//return nil
-	//fs.bnLock.Unlock()
-	//}
+}
 
-	//return err
+func (fs *FileStorage) initBlocks() error {
+	return fs.db.View(func(tx *bolt.Tx) error {
+		if buk := tx.Bucket([]byte("blocks")); buk == nil {
+			return ErrReadDataFromBoltDB
+		} else {
+			c := buk.Cursor()
+
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+
+				var x Block
+
+				if err := json.Unmarshal(v, &x); err != nil {
+					return err
+				}
+				fs.blocks = append(fs.blocks, &x)
+			}
+			log.Info("Fs blocks initializing ... ...", "blocks", len(fs.blocks))
+			return nil
+		}
+	})
 }
 
 func (fs *FileStorage) initFiles() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("files"))
-		if buk == nil {
+		if buk := tx.Bucket([]byte("files")); buk == nil {
 			return ErrReadDataFromBoltDB
-		}
+		} else {
+			c := buk.Cursor()
 
-		c := buk.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
 
-		for k, v := c.First(); k != nil; k, v = c.Next() {
+				var x FileInfo
 
-			//		for index := uint64(0); index < fs.LastFileIndex; index++ {
-			//			k, err := json.Marshal(index)
-			//			if err != nil {
-			//				return err
-			//			}
-
-			//			v := buk.Get(k)
-			//			if v == nil {
-			//				return ErrReadDataFromBoltDB
-			//			}
-
-			var x FileInfo
-
-			if err := json.Unmarshal(v, &x); err != nil {
-				return err
+				if err := json.Unmarshal(v, &x); err != nil {
+					return err
+				}
+				fs.filesContractAddr[*x.ContractAddr] = &x
+				fs.files = append(fs.files, &x)
 			}
-			//fs.indexLock.Lock()
-			fs.filesContractAddr[*x.ContractAddr] = &x
-			fs.files = append(fs.files, &x)
-			//fs.indexLock.Unlock()
+			return nil
 		}
-		return nil
 	})
 }
 
