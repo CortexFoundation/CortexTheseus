@@ -182,7 +182,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 }
 
 func (m *Monitor) storageInit() error {
-	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint)
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
 		return err
@@ -190,9 +190,16 @@ func (m *Monitor) storageInit() error {
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
 		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks {
 			m.lastNumber = 0
-			log.Info("Torrent fs checkpoint dismatch, reloading ...", "blocks", len(m.fs.Blocks()), "checkpoint", checkpoint.TfsBlocks)
+			log.Info("Torrent fs block dismatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks)
 		} else {
-			log.Info("Torrent fs checkpoint passed", "blocks", len(m.fs.Blocks()), "checkpoint", checkpoint.TfsBlocks)
+			log.Info("Torrent fs block passed", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks)
+		}
+
+		if uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint {
+			m.lastNumber = 0
+			log.Info("Torrent fs checkpoint dismatch, reloading ...", "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint)
+		} else {
+			log.Info("Torrent fs checkpoint passed", "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint)
 		}
 	}
 
