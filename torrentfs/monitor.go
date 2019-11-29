@@ -191,7 +191,7 @@ func (m *Monitor) storageInit() error {
 
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
 		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
-			log.Info("Tfs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()))
+			log.Info("Tfs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 			m.lastNumber = 0
 		}
 		/*if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
@@ -208,7 +208,7 @@ func (m *Monitor) storageInit() error {
 		}*/
 		m.ckp = checkpoint
 
-		version := m.fs.GetVersionByNumber(checkpoint.TfsCheckPoint)
+		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
 			log.Warn("Tfs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
 			m.lastNumber = 0
@@ -605,7 +605,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 					if update, err := m.fs.WriteFile(file); err != nil {
 						return false, err
 					} else if update {
-
 						log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
 						var bytesRequested uint64
 						if file.Meta.RawSize > file.LeftSize {
