@@ -106,6 +106,15 @@ const char* cuda_depthwise_conv2d(
         int32_t dilation_h, int32_t dilation_w,
         int32_t groups,
         int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w, int32_t device_id, int& error_code);
+const char* cuda_groupwise_conv2d(
+        int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
+        int32_t *filter, int32_t f_n, int32_t f_c, int32_t f_h, int32_t f_w,
+        int32_t *bias,
+        int32_t padding_h, int32_t padding_w,
+        int32_t stride_h, int32_t stride_w,
+        int32_t dilation_h, int32_t dilation_w,
+        int32_t groups,
+        int32_t *output, int32_t o_n, int32_t o_c, int32_t o_h, int32_t o_w, int32_t device_id, int& error_code);
 const char* cuda_max_pool(
         int32_t *input, int32_t i_n, int32_t i_c, int32_t i_h, int32_t i_w,
         int32_t f_h, int32_t f_w,
@@ -145,6 +154,10 @@ const char* cuda_broadcast_left_shift(const int32_t *a, const int32_t *b, int32_
         int64_t* bshape, int32_t bdim,
         int64_t* cshape, int32_t cdim, int& error_code);
 const char* cuda_broadcast_max(const int32_t *a, const int32_t *b, int32_t* c, const uint64_t n,
+        int64_t* ashape, int32_t adim,
+        int64_t* bshape, int32_t bdim,
+        int64_t* cshape, int32_t cdim, int& error_code);
+const char* cuda_broadcast_greater(const int32_t *a, const int32_t *b, int32_t* c, const uint64_t n,
         int64_t* ashape, int32_t adim,
         int64_t* bshape, int32_t bdim,
         int64_t* cshape, int32_t cdim, int& error_code);
@@ -193,4 +206,5 @@ const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_
         const int64_t *xshape, const int64_t *yshape, const int64_t *indices_shape, const int32_t yndim,
         const int32_t xndim, const int32_t indices_ndim, const uint64_t ysize, const int32_t axis, int& error_code);
 const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const uint64_t ysize, const uint64_t xsize, int& error_code);
+const char* cuda_where(const int32_t *x_data, const int32_t *y_data, const int32_t *condition_data, int32_t *result_data, bool same_shape, uint64_t n, uint64_t shape0, int& error_code);
 #endif

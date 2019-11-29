@@ -227,26 +227,9 @@ const char *cuda_non_max_suppression(int32_t *d_x_data, const int32_t *d_valid_c
       const int blockSize = 256;
       const int gridSize = (vc + blockSize - 1) / blockSize;
       kernel_get_values_and_keys<<<gridSize, blockSize>>>(x_batch, vc, k, score_index, rows);
-      thrust::sort(thrust::device, rows, rows+vc, 
-          [score_index, id_index, coord_start]__device__(const int32_t*a, const int32_t*b) ->bool {
-            if(a[score_index] > b[score_index]) return true;
-            else if(a[score_index] == b[score_index]){
-              if(a[id_index] > b[id_index]) return true;
-              else if(a[id_index] == b[id_index]){
-                if(a[coord_start] > b[coord_start]) return true;
-                else if(a[coord_start] == b[coord_start]){
-                  if(a[coord_start + 1] > b[coord_start + 1]) return true;
-                  else if(a[coord_start + 1] == b[coord_start + 1]){
-                    if(a[coord_start + 2] > b[coord_start + 2]) return true;
-                    else if(a[coord_start + 2] == b[coord_start + 2]){
-                      if(a[coord_start + 3] > b[coord_start + 3]) return true;
-                    }
-                  }
-                }
-              }
-            }
-            return false;
-          });
+      thrust::stable_sort(thrust::device, rows, rows+vc, [score_index]__device__(const int32_t *a, int32_t *b) -> bool{
+            return a[score_index] > b[score_index];
+      });
 
       if(topk > 0 && topk < vc){
         for(int i = 0; i < vc - topk; i++){
