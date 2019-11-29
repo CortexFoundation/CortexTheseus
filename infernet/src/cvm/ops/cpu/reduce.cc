@@ -118,6 +118,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.sum")
       };
 
       Reduce(x, y, axis, exclude, f);
+      print_to_file(y, "sum.txt");
       });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.max")

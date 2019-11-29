@@ -124,11 +124,13 @@ CVMModel::CVMModel(const string& graph, DLContext _ctx):
 
 CVMModel::~CVMModel() {
   for (size_t i = 0; i < shapes_.size(); ++i) {
-      if (shapes_[i])
+      if (shapes_[i]){
           delete shapes_[i];
+      }
   }
-  if (out_size_)
+  if (out_size_){
       delete out_size_;
+  }
 //  delete lck;
 }
 
