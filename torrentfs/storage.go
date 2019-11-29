@@ -84,7 +84,7 @@ func InitConfig() *Config {
 
 func NewFileStorage(config *Config) (*FileStorage, error) {
 
-	if err := os.MkdirAll(config.DataDir, 0600); err != nil {
+	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
 		return nil, err
 	}
 

@@ -69,7 +69,7 @@ type Monitor struct {
 
 	//listenID rpc.ID
 
-	//uncheckedCh chan uint64
+	uncheckedCh chan uint64
 
 	exitCh     chan struct{}
 	terminated int32
@@ -88,6 +88,7 @@ type Monitor struct {
 	blockCache  *lru.Cache
 	healthPeers *lru.Cache
 	sizeCache   *lru.Cache
+	ckp         *params.TrustedCheckpoint
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -200,6 +201,7 @@ func (m *Monitor) storageInit() error {
 				m.lastNumber = 0
 			}
 		}*/
+		m.ckp = checkpoint
 
 		version := m.fs.GetVersionByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
@@ -1034,6 +1036,10 @@ func (m *Monitor) deal(block *Block) error {
 			if storeErr := m.fs.WriteBlock(block, true); storeErr != nil {
 				log.Error("Store latest block", "number", block.Number, "error", storeErr)
 				return storeErr
+			}
+
+			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
+				log.Info("Successfully synchronize to the latest checkpoint !!!", "number", i, "root", m.fs.Root())
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
