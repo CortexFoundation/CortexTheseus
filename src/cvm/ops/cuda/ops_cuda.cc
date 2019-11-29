@@ -293,28 +293,28 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_mul")
       deal_error(error_code, errorStr);
   });
 
-//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
-//  .set_body([](CVMArgs args, CVMRetValue *ret){
-//      DLTensor *args0 = args[0];
-//      DLTensor *args1 = args[1];
-//      DLTensor *args2 = args[2];
-//      int32_t *a = static_cast<int32_t*>(args0->data);
-//      int32_t *b = static_cast<int32_t*>(args1->data);
-//      int32_t *c = static_cast<int32_t*>(args2->data);
-//      int64_t *ashape = static_cast<int64_t*>(args0->shape);
-//      int32_t adim = static_cast<int32_t>(args0->ndim);
-//      int64_t *bshape = static_cast<int64_t*>(args1->shape);
-//      int32_t bdim = static_cast<int32_t>(args1->ndim);
-//      int64_t *cshape = static_cast<int64_t*>(args2->shape);
-//      int32_t cdim = static_cast<int32_t>(args2->ndim);
-//
-//      int error_code = NON_ERROR;
-//      const char* errorStr = cuda_broadcast_div(a, b, c, getSize(args2),
-//          ashape, adim,
-//          bshape, bdim,
-//          cshape, cdim, error_code);
-//      deal_error(error_code, errorStr);
-//  });
+CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
+  .set_body([](CVMArgs args, CVMRetValue *ret){
+      DLTensor *args0 = args[0];
+      DLTensor *args1 = args[1];
+      DLTensor *args2 = args[2];
+      int32_t *a = static_cast<int32_t*>(args0->data);
+      int32_t *b = static_cast<int32_t*>(args1->data);
+      int32_t *c = static_cast<int32_t*>(args2->data);
+      int64_t *ashape = static_cast<int64_t*>(args0->shape);
+      int32_t adim = static_cast<int32_t>(args0->ndim);
+      int64_t *bshape = static_cast<int64_t*>(args1->shape);
+      int32_t bdim = static_cast<int32_t>(args1->ndim);
+      int64_t *cshape = static_cast<int64_t*>(args2->shape);
+      int32_t cdim = static_cast<int32_t>(args2->ndim);
+
+      int error_code = NON_ERROR;
+      const char* errorStr = cuda_broadcast_div(a, b, c, getSize(args2),
+          ashape, adim,
+          bshape, bdim,
+          cshape, cdim, error_code);
+      deal_error(error_code, errorStr);
+  });
 
 //CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_greater")
 //  .set_body([](CVMArgs args, CVMRetValue *ret){
@@ -1044,30 +1044,30 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.squeeze")
       deal_error(error_code, errorStr);
 });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.where")
-  .set_body([](CVMArgs args, CVMRetValue *ret){
-    DLTensor *condition = args[0];
-    DLTensor *x = args[1];
-    DLTensor *y = args[2];
-    DLTensor *result = args[3];
-
-    int32_t *x_data = static_cast<int32_t*>(x->data);
-    int32_t *y_data = static_cast<int32_t*>(y->data);
-    int32_t *condition_data = static_cast<int32_t*>(condition->data);
-    int32_t *result_data = static_cast<int32_t*>(result->data);
-
-    uint64_t size = 1;
-    for(int32_t i = 1; i < result->ndim; i++){
-      size *= result->shape[i];
-    }
-    
-    bool same_shape = x->ndim == condition->ndim;
-    uint64_t n = same_shape ? getSize(result) : size;
-
-    int error_code = NON_ERROR;
-    const char* errorStr = cuda_where(x_data, y_data, condition_data, result_data, same_shape, n, result->shape[0], error_code);
-    deal_error(error_code, errorStr);
-  });
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.where")
+//  .set_body([](CVMArgs args, CVMRetValue *ret){
+//    DLTensor *condition = args[0];
+//    DLTensor *x = args[1];
+//    DLTensor *y = args[2];
+//    DLTensor *result = args[3];
+//
+//    int32_t *x_data = static_cast<int32_t*>(x->data);
+//    int32_t *y_data = static_cast<int32_t*>(y->data);
+//    int32_t *condition_data = static_cast<int32_t*>(condition->data);
+//    int32_t *result_data = static_cast<int32_t*>(result->data);
+//
+//    uint64_t size = 1;
+//    for(int32_t i = 1; i < result->ndim; i++){
+//      size *= result->shape[i];
+//    }
+//    
+//    bool same_shape = x->ndim == condition->ndim;
+//    uint64_t n = same_shape ? getSize(result) : size;
+//
+//    int error_code = NON_ERROR;
+//    const char* errorStr = cuda_where(x_data, y_data, condition_data, result_data, same_shape, n, result->shape[0], error_code);
+//    deal_error(error_code, errorStr);
+//  });
 
 }
 }

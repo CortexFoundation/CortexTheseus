@@ -1049,48 +1049,48 @@ inline bool WhereCorrectLayout(const NodeAttrs& attrs,
   return true;
 }
 
-CVM_REGISTER_OP(where)
-.describe(R"code(
-Return the elements, either from x or y, depending on the condition.
-
-Given three ndarrays, condition, x, and y, return an ndarray with the elements
-from x or y, depending on the elements from condition are true or false.
-x and y must have the same shape. If condition has the same shape as x,
-each element in the output array is from x if the corresponding element
-in the condition is true, and from y if false.
-
-If condition does not have the same shape as x, it must be a 1D array whose
-size is the same as x’s first dimension size. Each row of the output array
-is from x’s row if the corresponding element from condition is true, and
-from y’s row if false.
-
-Note that all non-zero values are interpreted as True in condition.
-
-Examples::
-
-  x = [[1, 2], [3, 4]]
-  y = [[5, 6], [7, 8]]
-  cond = [[0, 1], [-1, 0]]
-  where(cond, x, y) = [[5, 2], [3, 8]]
-
-
-  cond = [1, 0]
-  where(cond, x, y) = [[1, 2], [7, 8]]
-
-)code" CVM_ADD_FILELINE)
-.add_argument("condition", "Tensor", "Condition array")
-.add_argument("x", "Tensor", "First array to be selected")
-.add_argument("y", "Tensor", "Second array to be selected")
-.set_num_inputs(3)
-.set_num_outputs(1)
-.set_attr<FInferShape>("FInferShape", WhereShape)
-.set_attr<FInferType>("FInferType", WhereInferType)
-.set_attr<FCorrectLayout>("FCorrectLayout", WhereCorrectLayout)
-.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
-.set_attr<FListInputNames>("FListInputNames", [](const NodeAttrs& attrs) {
-  return std::vector<std::string>{"condition", "x", "y"};
-})
-.set_support_level(4);
+//CVM_REGISTER_OP(where)
+//.describe(R"code(
+//Return the elements, either from x or y, depending on the condition.
+//
+//Given three ndarrays, condition, x, and y, return an ndarray with the elements
+//from x or y, depending on the elements from condition are true or false.
+//x and y must have the same shape. If condition has the same shape as x,
+//each element in the output array is from x if the corresponding element
+//in the condition is true, and from y if false.
+//
+//If condition does not have the same shape as x, it must be a 1D array whose
+//size is the same as x’s first dimension size. Each row of the output array
+//is from x’s row if the corresponding element from condition is true, and
+//from y’s row if false.
+//
+//Note that all non-zero values are interpreted as True in condition.
+//
+//Examples::
+//
+//  x = [[1, 2], [3, 4]]
+//  y = [[5, 6], [7, 8]]
+//  cond = [[0, 1], [-1, 0]]
+//  where(cond, x, y) = [[5, 2], [3, 8]]
+//
+//
+//  cond = [1, 0]
+//  where(cond, x, y) = [[1, 2], [7, 8]]
+//
+//)code" CVM_ADD_FILELINE)
+//.add_argument("condition", "Tensor", "Condition array")
+//.add_argument("x", "Tensor", "First array to be selected")
+//.add_argument("y", "Tensor", "Second array to be selected")
+//.set_num_inputs(3)
+//.set_num_outputs(1)
+//.set_attr<FInferShape>("FInferShape", WhereShape)
+//.set_attr<FInferType>("FInferType", WhereInferType)
+//.set_attr<FCorrectLayout>("FCorrectLayout", WhereCorrectLayout)
+//.set_attr<FInferPrecision>("FInferPrecision", SamePrecision)
+//.set_attr<FListInputNames>("FListInputNames", [](const NodeAttrs& attrs) {
+//  return std::vector<std::string>{"condition", "x", "y"};
+//})
+//.set_support_level(4);
 
 }  // namespace top
 }  // namespace cvm
