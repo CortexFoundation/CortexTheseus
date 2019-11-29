@@ -14,7 +14,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	//"net"
 	"net/http"
-	"os"
+	//"os"
 	"runtime"
 	//"sort"
 	"strconv"
@@ -69,7 +69,7 @@ type Monitor struct {
 
 	//listenID rpc.ID
 
-	//uncheckedCh chan uint64
+	uncheckedCh chan uint64
 
 	exitCh     chan struct{}
 	terminated int32
@@ -88,6 +88,7 @@ type Monitor struct {
 	blockCache  *lru.Cache
 	healthPeers *lru.Cache
 	sizeCache   *lru.Cache
+	ckp         *params.TrustedCheckpoint
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -200,6 +201,7 @@ func (m *Monitor) storageInit() error {
 				m.lastNumber = 0
 			}
 		}*/
+		m.ckp = checkpoint
 
 		version := m.fs.GetVersionByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
@@ -682,9 +684,11 @@ func (m *Monitor) Start() error {
 		log.Warn("Torrent start error")
 		return err
 	}
-
+	m.wg.Add(1)
 	go func() {
-		err := m.startWork()
+		defer m.wg.Done()
+		m.startWork()
+		/*err := m.startWork()
 		if err != nil {
 			log.Error("Torrent Fs Internal Error", "error", err)
 			p, pErr := os.FindProcess(os.Getpid())
@@ -700,9 +704,10 @@ func (m *Monitor) Start() error {
 				panic("boom")
 				return
 			}
-		}
+		}*/
 	}()
 	return nil
+	//return err
 }
 
 func (m *Monitor) startWork() error {
@@ -1031,6 +1036,10 @@ func (m *Monitor) deal(block *Block) error {
 			if storeErr := m.fs.WriteBlock(block, true); storeErr != nil {
 				log.Error("Store latest block", "number", block.Number, "error", storeErr)
 				return storeErr
+			}
+
+			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
+				log.Info("Successfully synchronize to the latest checkpoint !!!", "number", i, "root", m.fs.Root())
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
