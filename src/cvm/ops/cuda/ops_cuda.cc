@@ -293,51 +293,51 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_mul")
       deal_error(error_code, errorStr);
   });
 
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
-  .set_body([](CVMArgs args, CVMRetValue *ret){
-      DLTensor *args0 = args[0];
-      DLTensor *args1 = args[1];
-      DLTensor *args2 = args[2];
-      int32_t *a = static_cast<int32_t*>(args0->data);
-      int32_t *b = static_cast<int32_t*>(args1->data);
-      int32_t *c = static_cast<int32_t*>(args2->data);
-      int64_t *ashape = static_cast<int64_t*>(args0->shape);
-      int32_t adim = static_cast<int32_t>(args0->ndim);
-      int64_t *bshape = static_cast<int64_t*>(args1->shape);
-      int32_t bdim = static_cast<int32_t>(args1->ndim);
-      int64_t *cshape = static_cast<int64_t*>(args2->shape);
-      int32_t cdim = static_cast<int32_t>(args2->ndim);
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_div")
+//  .set_body([](CVMArgs args, CVMRetValue *ret){
+//      DLTensor *args0 = args[0];
+//      DLTensor *args1 = args[1];
+//      DLTensor *args2 = args[2];
+//      int32_t *a = static_cast<int32_t*>(args0->data);
+//      int32_t *b = static_cast<int32_t*>(args1->data);
+//      int32_t *c = static_cast<int32_t*>(args2->data);
+//      int64_t *ashape = static_cast<int64_t*>(args0->shape);
+//      int32_t adim = static_cast<int32_t>(args0->ndim);
+//      int64_t *bshape = static_cast<int64_t*>(args1->shape);
+//      int32_t bdim = static_cast<int32_t>(args1->ndim);
+//      int64_t *cshape = static_cast<int64_t*>(args2->shape);
+//      int32_t cdim = static_cast<int32_t>(args2->ndim);
+//
+//      int error_code = NON_ERROR;
+//      const char* errorStr = cuda_broadcast_div(a, b, c, getSize(args2),
+//          ashape, adim,
+//          bshape, bdim,
+//          cshape, cdim, error_code);
+//      deal_error(error_code, errorStr);
+//  });
 
-      int error_code = NON_ERROR;
-      const char* errorStr = cuda_broadcast_div(a, b, c, getSize(args2),
-          ashape, adim,
-          bshape, bdim,
-          cshape, cdim, error_code);
-      deal_error(error_code, errorStr);
-  });
-
-CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_greater")
-  .set_body([](CVMArgs args, CVMRetValue *ret){
-      DLTensor *args0 = args[0];
-      DLTensor *args1 = args[1];
-      DLTensor *args2 = args[2];
-      int32_t *a = static_cast<int32_t*>(args0->data);
-      int32_t *b = static_cast<int32_t*>(args1->data);
-      int32_t *c = static_cast<int32_t*>(args2->data);
-      int64_t *ashape = static_cast<int64_t*>(args0->shape);
-      int32_t adim = static_cast<int32_t>(args0->ndim);
-      int64_t *bshape = static_cast<int64_t*>(args1->shape);
-      int32_t bdim = static_cast<int32_t>(args1->ndim);
-      int64_t *cshape = static_cast<int64_t*>(args2->shape);
-      int32_t cdim = static_cast<int32_t>(args2->ndim);
-
-      int error_code = NON_ERROR;
-      const char* errorStr = cuda_broadcast_greater(a, b, c, getSize(args2),
-          ashape, adim,
-          bshape, bdim,
-          cshape, cdim, error_code);
-      deal_error(error_code, errorStr);
-  });
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm_cuda.broadcast_greater")
+//  .set_body([](CVMArgs args, CVMRetValue *ret){
+//      DLTensor *args0 = args[0];
+//      DLTensor *args1 = args[1];
+//      DLTensor *args2 = args[2];
+//      int32_t *a = static_cast<int32_t*>(args0->data);
+//      int32_t *b = static_cast<int32_t*>(args1->data);
+//      int32_t *c = static_cast<int32_t*>(args2->data);
+//      int64_t *ashape = static_cast<int64_t*>(args0->shape);
+//      int32_t adim = static_cast<int32_t>(args0->ndim);
+//      int64_t *bshape = static_cast<int64_t*>(args1->shape);
+//      int32_t bdim = static_cast<int32_t>(args1->ndim);
+//      int64_t *cshape = static_cast<int64_t*>(args2->shape);
+//      int32_t cdim = static_cast<int32_t>(args2->ndim);
+//
+//      int error_code = NON_ERROR;
+//      const char* errorStr = cuda_broadcast_greater(a, b, c, getSize(args2),
+//          ashape, adim,
+//          bshape, bdim,
+//          cshape, cdim, error_code);
+//      deal_error(error_code, errorStr);
+//  });
 /*
  * strides (2, 2)
  * pool_size [3, 3]

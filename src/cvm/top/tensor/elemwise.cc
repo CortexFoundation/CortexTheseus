@@ -81,6 +81,9 @@ Example::
    std::vector<int>* oattr) -> bool {
   IN_PREC_CHECK(iattr, attrs.name);
   auto& param = cvm::get<ClipParam>(attrs.parsed);
+  VerifyAttrRange(param.a_max, "clip.a_max", -(1<<31), (1<<31));
+  VerifyAttrRange(param.a_min, "clip.a_min", -(1<<31), (1<<31));
+  VERIFY(param.a_min < param.a_max) << "clip a_min must less than a_max";
   int64_t range = std::max(std::abs(param.a_max), std::abs(param.a_min));
   (*oattr)[0] = GetBit(range) + 1;
   return true;
