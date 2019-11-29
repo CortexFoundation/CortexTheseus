@@ -1043,7 +1043,7 @@ func (m *Monitor) deal(block *Block) error {
 			}
 
 			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
-				log.Info("The tfs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root())
+				log.Info("The tfs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
