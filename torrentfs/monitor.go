@@ -190,7 +190,7 @@ func (m *Monitor) storageInit() error {
 	}
 
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
-		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks {
+		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
 			log.Info("Tfs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()))
 			m.lastNumber = 0
 		}
