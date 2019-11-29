@@ -625,6 +625,6 @@ int main() {
   test_op("broadcast_mul");
   test_op("broadcast_max");
   test_op("broadcast_div");
-  test_op("broadcast_greater");
+//test_op("broadcast_greater");
   return 0;
 }
