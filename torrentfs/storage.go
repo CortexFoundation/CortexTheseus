@@ -187,7 +187,7 @@ func (fs *FileStorage) addLeaf(block *Block) error {
 	fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
 	fs.tree.RebuildTreeWith(fs.leaves)
 	fs.writeVersion(block.Number, fs.tree.MerkleRoot())
-	log.Info("Add a new leaf", "number", block.Number, "root", common.ToHex(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+	log.Debug("Add a new leaf", "number", block.Number, "root", common.ToHex(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
 
 	return nil
 }
