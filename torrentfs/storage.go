@@ -185,7 +185,7 @@ func (fs *FileStorage) initMerkleTree() error {
 func (fs *FileStorage) addLeaf(block *Block) error {
 	fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
 	fs.tree.RebuildTreeWith(fs.leaves)
-	fs.writeVersion(block.Number, fs.tree.MerkleRoot())
+	fs.writeRoot(block.Number, fs.tree.MerkleRoot())
 	log.Debug("Add a new leaf", "number", block.Number, "root", common.ToHex(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
 
 	return nil
@@ -611,7 +611,7 @@ func (fs *FileStorage) writeCheckPoint() error {
 	})
 }
 
-func (fs *FileStorage) writeVersion(number uint64, root []byte) error {
+func (fs *FileStorage) writeRoot(number uint64, root []byte) error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
 		if err != nil {
@@ -634,7 +634,7 @@ func (fs *FileStorage) writeVersion(number uint64, root []byte) error {
 	})
 }
 
-func (fs *FileStorage) GetVersionByNumber(number uint64) (version []byte) {
+func (fs *FileStorage) GetRootByNumber(number uint64) (root []byte) {
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("version_" + fs.version))
 		if buk == nil {
@@ -647,14 +647,14 @@ func (fs *FileStorage) GetVersionByNumber(number uint64) (version []byte) {
 			return ErrReadDataFromBoltDB
 		}
 
-		version = v
+		root = v
 		return nil
 	}
 	if err := fs.db.View(cb); err != nil {
 		return nil
 	}
 
-	return version
+	return root
 }
 
 func (fs *FileStorage) writeBlockNumber() error {
