@@ -257,7 +257,7 @@ int run_LIF(string model_root, int device_type = 0) {
     << " " <<  sum_time / ellapsed_time <<"\n";
 #endif
 
-  if (json_path.find("yolo") != string::npos) {
+  if (json_path.find("yolo") != string::npos || json_path.find("ssd") != string::npos) {
     uint64_t n_bytes = 4;
     uint64_t ns =  output.size() / n_bytes;
     std::cout << "yolo output size = " << ns << " n_bytes = " << n_bytes << "\n";
@@ -373,6 +373,7 @@ int test_models(int device_type = 0) {
     "/data/std_out/lr_attr",
    // "/data/std_out/non_in",
     "/data/std_out/shufflenet",
+    "/data/std_out/ssd",
   };
   for (auto model_root : model_roots) {
     auto ret = run_LIF(model_root, device_type);

@@ -879,6 +879,7 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.strided_slice")
         }
         y_data[i] = x_data[in_i];
     }
+    print_to_file(y, "stride_slice.txt");
 });
 
 CVM_REGISTER_GLOBAL("cvm.runtime.cvm.slice_like")
@@ -1087,7 +1088,38 @@ CVM_REGISTER_GLOBAL("cvm.runtime.cvm.non_max_suppression")
             x_data, valid_count_data, y_data, batchs, n, k,
             max_output_size, iou_threshold, topk, coord_start, score_index, id_index, force_suppress);
     VERIFY(ret >= 0);
+    print_to_file(x, "nms_x.txt", true);
+    print_to_file(valid_count, "nms_valid_count.txt", true);
+    print_to_file(y, "nms.txt");
 });
+
+//CVM_REGISTER_GLOBAL("cvm.runtime.cvm.where")
+//.set_body([](CVMArgs args, CVMRetValue *ret){
+//    DLTensor *condition = args[0];
+//    DLTensor *x = args[1];
+//    DLTensor *y = args[2];
+//    DLTensor *result = args[3];
+//
+//    int32_t *x_data = static_cast<int32_t*>(x->data);
+//    int32_t *y_data = static_cast<int32_t*>(y->data);
+//    int32_t *condition_data = static_cast<int32_t*>(condition->data);
+//    int32_t *result_data = static_cast<int32_t*>(result->data);
+//
+//    if(x->ndim == condition->ndim){
+//      for(uint64_t i = 0; i < getSize(result); ++i){
+//        result_data[i] = condition_data[i] == 0 ? y_data[i] : x_data[i];
+//      }
+//    }else{
+//      uint64_t size = 1;
+//      for(int32_t i = 1; i < result->ndim; i++){
+//        size *= result->shape[i];
+//      }
+//      for(int32_t i = 0; i < result->shape[0]; ++i){
+//        memcpy(&result_data[i*size], (condition_data[i] == 0 ? &y_data[i*size] : &x_data[i*size]), size); 
+//      } 
+//    } 
+//    print_to_file(result, "where.txt");
+//});
 
 }
 }
