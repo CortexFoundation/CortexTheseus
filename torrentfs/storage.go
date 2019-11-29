@@ -57,6 +57,7 @@ type FileStorage struct {
 	files             []*FileInfo
 	blocks            []*Block
 	db                *bolt.DB
+	version           string
 
 	LastListenBlockNumber uint64
 	CheckPoint            uint64
@@ -108,6 +109,8 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		//opCounter:         0,
 		dataDir: config.DataDir,
 	}
+
+	fs.version = "1"
 
 	fs.initBlockNumber()
 	fs.initCheckPoint()
@@ -354,7 +357,7 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
 
 	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("blocks"))
+		buk := tx.Bucket([]byte("blocks_" + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -386,7 +389,7 @@ func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
 	//defer fs.opCounter.Decrease()
 	update := false
 	err := fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("files"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version))
 		if err != nil {
 			return err
 		}
@@ -429,7 +432,7 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 	}
 	if record && b.Number > fs.CheckPoint {
 		if err := fs.db.Update(func(tx *bolt.Tx) error {
-			buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
+			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
 			if err != nil {
 				return err
 			}
@@ -458,9 +461,13 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 	return fs.writeBlockNumber()
 }
 
+func (fs *FileStorage) Version() string {
+	return fs.version
+}
+
 func (fs *FileStorage) initBlocks() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
-		if buk := tx.Bucket([]byte("blocks")); buk == nil {
+		if buk := tx.Bucket([]byte("blocks_" + fs.version)); buk == nil {
 			return ErrReadDataFromBoltDB
 		} else {
 			c := buk.Cursor()
@@ -485,7 +492,7 @@ func (fs *FileStorage) initBlocks() error {
 
 func (fs *FileStorage) initFiles() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
-		if buk := tx.Bucket([]byte("files")); buk == nil {
+		if buk := tx.Bucket([]byte("files_" + fs.version)); buk == nil {
 			return ErrReadDataFromBoltDB
 		} else {
 			c := buk.Cursor()
@@ -546,7 +553,7 @@ func (fs *FileStorage) initFiles() error {
 }*/
 func (fs *FileStorage) initCheckPoint() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("checkpoint"))
+		buk := tx.Bucket([]byte("checkpoint_" + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -570,7 +577,7 @@ func (fs *FileStorage) initCheckPoint() error {
 
 func (fs *FileStorage) initBlockNumber() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("currentBlockNumber"))
+		buk := tx.Bucket([]byte("currentBlockNumber_" + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -594,7 +601,7 @@ func (fs *FileStorage) initBlockNumber() error {
 
 func (fs *FileStorage) writeCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
 		if err != nil {
 			return err
 		}
@@ -606,7 +613,7 @@ func (fs *FileStorage) writeCheckPoint() error {
 
 func (fs *FileStorage) writeVersion(number uint64, root []byte) error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("version"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
 		if err != nil {
 			return err
 		}
@@ -629,7 +636,7 @@ func (fs *FileStorage) writeVersion(number uint64, root []byte) error {
 
 func (fs *FileStorage) GetVersionByNumber(number uint64) (version []byte) {
 	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("version"))
+		buk := tx.Bucket([]byte("version_" + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -652,7 +659,7 @@ func (fs *FileStorage) GetVersionByNumber(number uint64) (version []byte) {
 
 func (fs *FileStorage) writeBlockNumber() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
 		if err != nil {
 			return err
 		}

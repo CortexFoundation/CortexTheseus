@@ -48,11 +48,11 @@ var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
 }
 
 type TrustedCheckpoint struct {
-	Name         string      `json:"-"`
-	SectionIndex uint64      `json:"sectionIndex"`
-	SectionHead  common.Hash `json:"sectionHead"`
-	//TfsBlocks     uint64      `json:"tfsBlocks"`
-	TfsCheckPoint uint64 `json:"tfsCheckPoint"`
+	Name          string      `json:"-"`
+	SectionIndex  uint64      `json:"sectionIndex"`
+	SectionHead   common.Hash `json:"sectionHead"`
+	TfsBlocks     uint64      `json:"tfsBlocks"`
+	TfsCheckPoint uint64      `json:"tfsCheckPoint"`
 	//TfsCkpHead    common.Hash `json:"tfsCkpHead"`
 	//TfsFiles      uint64      `json:"tfsFiles"`
 	TfsRoot common.Hash `json:"tfsRoot"`
@@ -69,7 +69,7 @@ var (
 		Name:         "mainnet",
 		SectionIndex: 13,
 		SectionHead:  common.HexToHash("0xbcb220cb151820896fe9ef0138b7d433ded14e9b489def7bfb4819bbf28be95e"),
-		//TfsBlocks:     96,
+		TfsBlocks:    96,
 		//TfsCkpHead:    common.HexToHash("0x155637e09a5c0fc5b4a712abdf032242447f24cd989846fb96afce3927e8257c"),
 		//TfsFiles:      46,
 		TfsCheckPoint: 395964,

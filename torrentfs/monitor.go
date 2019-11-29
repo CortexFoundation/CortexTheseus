@@ -188,7 +188,12 @@ func (m *Monitor) storageInit() error {
 	if err != nil {
 		return err
 	}
+
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
+		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks {
+			log.Info("Tfs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()))
+			m.lastNumber = 0
+		}
 		/*if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
 			m.lastNumber = m.fs.CheckPoint
 			log.Info("Torrent fs block unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()))
