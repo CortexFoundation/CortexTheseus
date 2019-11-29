@@ -16,7 +16,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"sort"
+	//"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -182,13 +182,13 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 }
 
 func (m *Monitor) storageInit() error {
-	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint)
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root())
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
 		return err
 	}
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
-		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
+		/*if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
 			m.lastNumber = m.fs.CheckPoint
 			log.Info("Torrent fs block unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()))
 		} else {
@@ -199,18 +199,28 @@ func (m *Monitor) storageInit() error {
 				log.Info("Torrent fs check point unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()), "head", block.Hash)
 				m.lastNumber = 0
 			}
+		}*/
+
+		version := m.fs.GetVersionByNumber(checkpoint.TfsCheckPoint)
+		if common.BytesToHash(version) != checkpoint.TfsRoot {
+			log.Warn("Tfs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
+			m.lastNumber = 0
+			//m.fs.LastListenBlockNumber = 0
+			//m.fs.CheckPoint = 0
+		} else {
+			log.Info("Tfs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version))
 		}
 	}
 
-	blocks := m.fs.Blocks()
+	/*blocks := m.fs.Blocks()
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i].Number < blocks[j].Number
-	})
+	})*/
 
 	for _, block := range m.fs.Blocks() {
-		if b, err := m.rpcBlockByNumber(block.Number); err == nil && b.Hash != block.Hash {
+		/*if b, err := m.rpcBlockByNumber(block.Number); err == nil && b.Hash != block.Hash {
 			m.lastNumber = 0
-		}
+		}*/
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
