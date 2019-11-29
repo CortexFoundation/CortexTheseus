@@ -357,7 +357,7 @@ func (tm *TorrentManager) dropAll() {
 	defer tm.lock.Unlock()
 	for _, t := range tm.torrents {
 		stats := t.Stats()
-		log.Info("torrent statics", "hash", t.infohash, "total", stats.TotalPeers, "pending", stats.PendingPeers, "active", stats.ActivePeers, "seeder", stats.ConnectedSeeders, "half", stats.HalfOpenPeers)
+		log.Debug("torrent statics", "hash", t.infohash, "total", stats.TotalPeers, "pending", stats.PendingPeers, "active", stats.ActivePeers, "seeder", stats.ConnectedSeeders, "half", stats.HalfOpenPeers)
 		t.Drop()
 	}
 
