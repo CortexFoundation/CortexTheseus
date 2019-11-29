@@ -84,7 +84,7 @@ func InitConfig() *Config {
 
 func NewFileStorage(config *Config) (*FileStorage, error) {
 
-	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
+	if err := os.MkdirAll(config.DataDir, 0600); err != nil {
 		return nil, err
 	}
 
@@ -170,11 +170,7 @@ func (fs *FileStorage) initMerkleTree() error {
 		return err
 	}
 	fs.tree = tr
-	//sort.Slice(fs.blocks, func(i, j int) bool {
-	//	return fs.blocks[i].Number < fs.blocks[j].Number
-	//})
 	for _, block := range fs.blocks {
-		//fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
 		fs.addLeaf(block)
 	}
 

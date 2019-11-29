@@ -14,7 +14,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	//"net"
 	"net/http"
-	"os"
+	//"os"
 	"runtime"
 	//"sort"
 	"strconv"
@@ -682,9 +682,11 @@ func (m *Monitor) Start() error {
 		log.Warn("Torrent start error")
 		return err
 	}
-
+	m.wg.Add(1)
 	go func() {
-		err := m.startWork()
+		defer m.wg.Done()
+		m.startWork()
+		/*err := m.startWork()
 		if err != nil {
 			log.Error("Torrent Fs Internal Error", "error", err)
 			p, pErr := os.FindProcess(os.Getpid())
@@ -700,9 +702,10 @@ func (m *Monitor) Start() error {
 				panic("boom")
 				return
 			}
-		}
+		}*/
 	}()
 	return nil
+	//return err
 }
 
 func (m *Monitor) startWork() error {
