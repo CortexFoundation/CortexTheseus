@@ -28,8 +28,8 @@ inline uint64_t getSize(DLTensor *dlTensor){
 // #define CVM_PROFILING
 // #define CVM_PRINT_OP_RESULT
 
-const std::string DIR = "/tmp/zkh/shufflenet/";
-inline void print_to_file(DLTensor *y, std::string filename){
+const std::string DIR = "/tmp/zkh/ssd/";
+inline void print_to_file(DLTensor *y, std::string filename, bool all=false){
 #if defined(CVM_PRINT_OP_RESULT)
   FILE *fp = fopen((DIR + filename).c_str(), "a+");
   int32_t *y_data = static_cast<int32_t*>(y->data);
@@ -40,8 +40,14 @@ inline void print_to_file(DLTensor *y, std::string filename){
       max = max < y_data[i] ? y_data[i] : max;
   }
   fprintf(fp, "%d %d\n", min, max);
-  for(uint64_t i = 0; i < 100 && i < getSize(y); i++){
+  if(all){
+    for(uint64_t i = 0; i < getSize(y); i++){
       fprintf(fp, "%d ", y_data[i]);
+    }
+  }else{
+    for(uint64_t i = 0; i < 100 && i < getSize(y); i++){
+      fprintf(fp, "%d ", y_data[i]);
+    }
   }
   fprintf(fp, "\n");
   fclose(fp);

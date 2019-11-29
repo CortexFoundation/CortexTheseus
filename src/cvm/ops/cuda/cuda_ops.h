@@ -157,6 +157,10 @@ const char* cuda_broadcast_max(const int32_t *a, const int32_t *b, int32_t* c, c
         int64_t* ashape, int32_t adim,
         int64_t* bshape, int32_t bdim,
         int64_t* cshape, int32_t cdim, int& error_code);
+const char* cuda_broadcast_greater(const int32_t *a, const int32_t *b, int32_t* c, const uint64_t n,
+        int64_t* ashape, int32_t adim,
+        int64_t* bshape, int32_t bdim,
+        int64_t* cshape, int32_t cdim, int& error_code);
 const char* cuda_sum(const int32_t *x, int32_t *y, const uint64_t xsize, const uint64_t ysize,
     const int64_t *xshape, const int64_t *yshape, const int32_t* realAxis, const int32_t* flag,
     const uint64_t *every_xdim_size, const int64_t axis_size,
@@ -202,4 +206,5 @@ const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_
         const int64_t *xshape, const int64_t *yshape, const int64_t *indices_shape, const int32_t yndim,
         const int32_t xndim, const int32_t indices_ndim, const uint64_t ysize, const int32_t axis, int& error_code);
 const char* cuda_take(const int32_t *x_data, const int32_t *indices_data, int32_t *y_data, const uint64_t ysize, const uint64_t xsize, int& error_code);
+const char* cuda_where(const int32_t *x_data, const int32_t *y_data, const int32_t *condition_data, int32_t *result_data, bool same_shape, uint64_t n, uint64_t shape0, int& error_code);
 #endif
