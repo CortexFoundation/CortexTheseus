@@ -123,7 +123,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		terminated: 0,
 		lastNumber: uint64(0),
 		dirty:      false,
-		taskCh:     make(chan *Block, batch*4),
+		taskCh:     make(chan *Block, batch),
 	}
 	m.blockCache, _ = lru.New(6)
 	m.healthPeers, _ = lru.New(50)
@@ -1020,9 +1020,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 			//return m.lastNumber - minNumber
 			return 0
 		}
-		/*if err := m.deal(rpcBlock); err != nil {
-			return 0
-		}*/
+		//if err := m.deal(rpcBlock); err != nil {
+		//	return 0
+		//}
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
