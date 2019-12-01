@@ -653,7 +653,7 @@ func (fs *FileStorage) GetRootByNumber(number uint64) (root []byte) {
 		v := buk.Get([]byte(strconv.FormatUint(number, 16)))
 
 		if v == nil {
-			return ErrReadDataFromBoltDB
+			return nil
 		}
 
 		root = v
