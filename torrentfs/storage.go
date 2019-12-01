@@ -2,8 +2,8 @@ package torrentfs
 
 import (
 	"encoding/json"
-	 "github.com/CortexFoundation/CortexTheseus/params"
 	"errors"
+	"github.com/CortexFoundation/CortexTheseus/params"
 	//"fmt"
 	"os"
 	"path/filepath"
@@ -176,7 +176,7 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 //}
 
 func (fs *FileStorage) initMerkleTree() error {
-	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()})//"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
+	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
 	tr, err := NewTree(fs.leaves)
 	if err != nil {
 		return err
@@ -637,17 +637,6 @@ func (fs *FileStorage) writeRoot(number uint64, root []byte) error {
 		if err != nil {
 			return err
 		}
-		/*k, err := json.Marshal(number)
-		                        if err != nil {
-		                                return err
-		                        }
-
-					v, err := json.Marshal(root)
-		                        if err != nil {
-		                                return err
-		                        }
-
-					e:=buk.Put(k, v)*/
 		e := buk.Put([]byte(strconv.FormatUint(number, 16)), root)
 
 		return e
@@ -670,7 +659,7 @@ func (fs *FileStorage) GetRootByNumber(number uint64) (root []byte) {
 		root = v
 		return nil
 	}
-	if err := fs.db.View(cb); err != nil {
+	if err := fs.db.Update(cb); err != nil {
 		return nil
 	}
 
