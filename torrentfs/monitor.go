@@ -125,7 +125,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		dirty:      false,
 		taskCh:     make(chan *Block, batch),
 	}
-	m.blockCache, _ = lru.New(6)
+	m.blockCache, _ = lru.New(delay)
 	m.healthPeers, _ = lru.New(50)
 	m.sizeCache, _ = lru.New(batch)
 	e = nil
@@ -848,7 +848,7 @@ func (m *Monitor) listenLatestBlock() {
 		case <-timer.C:
 			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			if progress > batch {
+			if progress >= batch {
 				timer.Reset(time.Millisecond * 100)
 			} else if progress > 6 {
 				timer.Reset(time.Millisecond * 1000)
@@ -954,6 +954,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 const (
 	batch = 2048
+	delay = 12
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
@@ -975,8 +976,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
-	if uint64(currentNumber) > 3 {
-		maxNumber = uint64(currentNumber)
+	if uint64(currentNumber) > delay {
+		maxNumber = uint64(currentNumber) - delay
 	}
 
 	if m.lastNumber > uint64(currentNumber) {
@@ -989,9 +990,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 		maxNumber = minNumber + batch
 	}
 	if maxNumber >= minNumber {
-		if minNumber > 5 {
-			minNumber = minNumber - 5
-		}
+		/*if minNumber > delay {
+			minNumber = minNumber - delay
+		}*/
 		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return 0
