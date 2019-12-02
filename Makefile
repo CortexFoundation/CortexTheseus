@@ -13,7 +13,7 @@
 
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
-#LIB_MINER_DIR = $(shell pwd)/cminer/
+LIB_MINER_DIR = $(shell pwd)/solution/
 LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/infernet/
 LIB_CUCKOO_DIR = $(shell pwd)/solution/miner/libcuckoo
@@ -124,15 +124,12 @@ test: all
 lint: ## Run linters.
 	build/env.sh go run build/ci.go lint
 
-clean:
+clean: clean-clib
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
-	rm -rf infernet/build/*
-	rm -rf plugin/*
-	rm -f solution/miner/libcuckoo/*.a solution/miner/libcuckoo/*.o
 
 clean-clib:
-	#make -C $(LIB_MINER_DIR) clean
+	$(MAKE) -C $(LIB_MINER_DIR) clean
 	$(MAKE) -C $(INFER_NET_DIR) clean
 	
 .PHONY: clean-all

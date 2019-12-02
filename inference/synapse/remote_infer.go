@@ -33,7 +33,8 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash string) (uint64, error) {
 	return binary.BigEndian.Uint64(retArray), nil
 }
 
-func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
+//func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
+func (s *Synapse) remoteAvailable(infoHash string, rawSize int64) error {
 	inferWork := &inference.AvailableWork{
 		Type:     inference.AVAILABLE_BY_H,
 		InfoHash: infoHash,
@@ -47,7 +48,7 @@ func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) er
 	}
 	log.Debug("remoteAvailable", "request", string(requestBody))
 
-	_, err := s.sendRequest(string(requestBody), uri)
+	_, err := s.sendRequest(string(requestBody), s.config.InferURI)
 	return err
 }
 
@@ -96,7 +97,7 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
 		Post(uri)
-	if err != nil {
+	if err != nil || resp == nil{
 		log.Warn("remote infer: request response failed", "error", err, "body", requestBody)
 		return nil, KERNEL_RUNTIME_ERROR
 	} else if resp.StatusCode() != 200 {

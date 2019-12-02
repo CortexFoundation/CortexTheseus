@@ -6,9 +6,8 @@ import (
 	"io"
 )
 
-func unzipData(data []byte) (resData []byte, err error) {
+func UnzipData(data []byte) (resData []byte, err error) {
 	b := bytes.NewBuffer(data)
-
 	var r io.Reader
 	r, err = gzip.NewReader(b)
 	if err != nil {
@@ -26,7 +25,7 @@ func unzipData(data []byte) (resData []byte, err error) {
 	return
 }
 
-func zipData(data []byte) (compressedData []byte, err error) {
+func ZipData(data []byte) (compressedData []byte, err error) {
 	var b bytes.Buffer
 	gz := gzip.NewWriter(&b)
 

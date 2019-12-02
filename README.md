@@ -56,10 +56,7 @@ And then, run any command to start full node `cortex`:
 ```Bash
 1. cd CortexTheseus
 2. export LD_LIBRARY_PATH=$PWD/infernet/build/cpu/:$PWD/infernet/build/gpu:$LD_LIBRARY_PATH
-3. (1)./build/bin/cortex
-   (2)./build/bin/cortex --infer.devicetype=ipc://cpu(gpu)
-   (3)You can also run cortex full node as multiple services
-   ./cvm.sh then node.sh
-   (4)It is easy way to run cortex full node
-   ./start.sh or ./start_gpu.sh or ./start_solo.sh
+3. ./build/bin/cortex
+
+It is easy for you to view the help document by running ./build/bin/cortex --help
 ```

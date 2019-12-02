@@ -2,7 +2,7 @@ package synapse
 
 import (
 	"strings"
-	"sync"
+	//"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -47,7 +47,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	}
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
-	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
+	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
 		return v.(uint64), nil
 	}
@@ -58,7 +58,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	}
 
 	if !s.config.IsNotCache {
-		s.simpleCache.Store(cacheKey, gas)
+		s.gasCache.Store(cacheKey, gas)
 	}
 	return gas, err
 }
@@ -75,8 +75,8 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
 
-	if _, ok := CvmFixHashes[cacheKey]; ok {
-		return CvmFixHashes[cacheKey], nil
+	if hash, ok := CvmFixHashes[cacheKey]; ok {
+		return hash, nil
 	}
 
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
@@ -121,7 +121,8 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
 		return v.([]byte), nil
 	}
-
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	// lazy initialization of model cache
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		memoryUsage := s.config.MaxMemoryUsage
@@ -141,10 +142,8 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		status int
 	)
 
-	v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
-	mutex := v.(sync.Mutex)
-	mutex.Lock()
-	defer mutex.Unlock()
+	//v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
+	//mutex := v.(sync.Mutex)
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
@@ -191,11 +190,15 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 	if s.config.IsRemoteInfer {
 		errRes := s.remoteAvailable(
 			infoHash,
-			rawSize,
-			s.config.InferURI)
+			rawSize)
+		//s.config.InferURI)
 		return errRes
 	}
-	is_ok, err := s.config.Storagefs.Available(infoHash, rawSize)
+	if len(infoHash) < 2 || !strings.HasPrefix(infoHash, "0x") {
+		return KERNEL_RUNTIME_ERROR
+	}
+	ih := strings.ToLower(infoHash[2:])
+	is_ok, err := s.config.Storagefs.Available(ih, rawSize)
 	if err != nil {
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR

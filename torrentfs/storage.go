@@ -3,17 +3,19 @@ package torrentfs
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	//"fmt"
 	"os"
 	"path/filepath"
 	//"path"
+	"sort"
 	//"io/ioutil"
 	"strconv"
-	"strings"
+	//"strings"
 	//"sync"
 	//"sync/atomic"
 	"time"
 
+	"crypto/sha256"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent/metainfo"
@@ -53,9 +55,15 @@ func (mc *MutexCounter) IsZero() bool {
 type FileStorage struct {
 	filesContractAddr map[common.Address]*FileInfo
 	files             []*FileInfo
+	blocks            []*Block
 	db                *bolt.DB
 
 	LastListenBlockNumber uint64
+	CheckPoint            uint64
+
+	//elements []*BlockContent
+	leaves []Content
+	tree   *MerkleTree
 	//LastFileIndex         uint64
 
 	//lock      sync.RWMutex
@@ -100,16 +108,42 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		//opCounter:         0,
 		dataDir: config.DataDir,
 	}
-	fs.readBlockNumber()
+
+	fs.initBlockNumber()
+	fs.initCheckPoint()
+	fs.initBlocks()
 	//fs.readLastFileIndex()
 	fs.initFiles()
+	fs.initMerkleTree()
 	//tmpCache, _ := lru.New(120)
 
 	return fs, nil
 }
 
+type BlockContent struct {
+	x string
+}
+
+func (t BlockContent) CalculateHash() ([]byte, error) {
+	h := sha256.New()
+	if _, err := h.Write([]byte(t.x)); err != nil {
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
+}
+
+//Equals tests for equality of two Contents
+func (t BlockContent) Equals(other Content) (bool, error) {
+	return t.x == other.(BlockContent).x, nil
+}
+
 func (fs *FileStorage) Files() []*FileInfo {
 	return fs.files
+}
+
+func (fs *FileStorage) Blocks() []*Block {
+	return fs.blocks
 }
 
 func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
@@ -125,28 +159,59 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	return nil
 }*/
 
-func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
-	return CurrentTorrentManager
+//func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
+//	return CurrentTorrentManager
+//}
+
+func (fs *FileStorage) initMerkleTree() error {
+	fs.leaves = append(fs.leaves, BlockContent{x: "0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
+	tr, err := NewTree(fs.leaves)
+	if err != nil {
+		return err
+	}
+	fs.tree = tr
+	//sort.Slice(fs.blocks, func(i, j int) bool {
+	//	return fs.blocks[i].Number < fs.blocks[j].Number
+	//})
+	for _, block := range fs.blocks {
+		//fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
+		fs.addLeaf(block)
+	}
+
+	log.Info("Storage merkletree initialization", "root", common.ToHex(fs.tree.MerkleRoot()))
+
+	return nil
+}
+
+func (fs *FileStorage) addLeaf(block *Block) error {
+	fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
+	fs.tree.RebuildTreeWith(fs.leaves)
+	fs.writeVersion(block.Number, fs.tree.MerkleRoot())
+	log.Debug("Add a new leaf", "number", block.Number, "root", common.ToHex(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+
+	return nil
+}
+
+func (fs *FileStorage) Root() common.Hash {
+	return common.BytesToHash(fs.tree.MerkleRoot())
 }
 
 func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
 		return 0, nil
-		//return nil
 	}
 
-	//x.Index = fs.LastFileIndex
-	//fs.indexLock.Lock()
-	//defer fs.indexLock.Unlock()
-	//fs.LastFileIndex += 1
-	err := fs.WriteFile(x)
+	fs.filesContractAddr[addr] = x
+
+	update, err := fs.WriteFile(x)
 	if err != nil {
-		//	fs.LastFileIndex -= 1
 		return 0, err
 	}
-	fs.filesContractAddr[addr] = x
-	//fs.files = append(fs.files, x)
+
+	if !update {
+		return 0, nil
+	}
 	return 1, nil
 }
 
@@ -169,14 +234,14 @@ func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
 // 	}
 // }
 
-func Available(infohash string, rawSize int64) (bool, error) {
-	log.Debug("Available", "infohash", infohash, "RawSize", rawSize)
+/*func Available(infohash string, rawSize int64) (bool, error) {
+	//log.Info("Available", "infohash", infohash, "RawSize", rawSize)
 	//TorrentAPIAvailable.Lock()
 	//defer TorrentAPIAvailable.Unlock()
-	if !strings.HasPrefix(infohash, "0x") {
-		return false, errors.New("invalid info hash format")
-	}
-	ih := metainfo.NewHashFromHex(infohash[2:])
+	//if !strings.HasPrefix(infohash, "0x") {
+	//	return false, errors.New("invalid info hash format")
+	//}
+	ih := metainfo.NewHashFromHex(infohash)
 	tm := CurrentTorrentManager
 	//log.Debug("storage", "ih", ih)
 	if torrent := tm.GetTorrent(ih); torrent == nil {
@@ -185,14 +250,14 @@ func Available(infohash string, rawSize int64) (bool, error) {
 		return false, errors.New("download not completed")
 	} else {
 		if !torrent.IsAvailable() {
-			log.Info("Download not completed", "hash", infohash, "raw", rawSize)
+			log.Warn("[Not available] Download not completed", "hash", infohash, "raw", rawSize, "complete", torrent.BytesCompleted())
 			return false, errors.New(fmt.Sprintf("download not completed: %d %d", torrent.BytesCompleted(), rawSize))
 		}
 		//log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
 		//log.Info("download not completed", "complete", torrent.BytesCompleted(), "miss", torrent.BytesMissing(), "raw", rawSize)
 		return torrent.BytesCompleted() <= rawSize, nil
 	}
-}
+}*/
 
 /*func LoadFile(infohash string, fn string) ([]byte, error) {
         data, err := ioutil.ReadFile(fn)
@@ -237,6 +302,7 @@ func (fs *FileStorage) Close() error {
 	//for {
 	//	if fs.opCounter.IsZero() {
 	// persist storage block number
+	fs.writeCheckPoint()
 	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
 	return fs.writeBlockNumber()
 	//fs.writeLastFileIndex()
@@ -248,7 +314,7 @@ func (fs *FileStorage) Close() error {
 }
 
 var (
-	ErrReadDataFromBoltDB = errors.New("Bolt DB Read Error")
+	ErrReadDataFromBoltDB = errors.New("bolt DB Read Error")
 )
 
 /*func (fs *FileStorage) GetFileByNumber(index uint64) *FileInfo {
@@ -288,11 +354,8 @@ var (
 	return &info
 }*/
 
-/*func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
+func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
-
-	fs.opCounter.Increase()
-	defer fs.opCounter.Decrease()
 
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("blocks"))
@@ -304,9 +367,7 @@ var (
 			return ErrReadDataFromBoltDB
 		}
 
-		//fs.lock.RLock()
 		v := buk.Get(k)
-		//fs.lock.RUnlock()
 
 		if v == nil {
 			return ErrReadDataFromBoltDB
@@ -322,12 +383,12 @@ var (
 		return nil
 	}
 	return &block
-}*/
+}
 
-func (fs *FileStorage) WriteFile(f *FileInfo) error {
+func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
 	//fs.opCounter.Increase()
 	//defer fs.opCounter.Decrease()
-
+	update := false
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("files"))
 		if err != nil {
@@ -342,92 +403,109 @@ func (fs *FileStorage) WriteFile(f *FileInfo) error {
 			return err
 		}
 
-		//fs.lock.Lock()
-		e := buk.Put(k, v)
-		//fs.lock.Unlock()
+		bef := buk.Get(k)
+		if bef == nil {
+			update = true
+			return buk.Put(k, v)
+		} else {
+			var info FileInfo
+			if err := json.Unmarshal(bef, &info); err != nil {
+				update = true
+				return buk.Put(k, v)
+			}
 
-		return e
+			if info.LeftSize > f.LeftSize {
+				update = true
+				return buk.Put(k, v)
+			} else {
+				log.Debug("Write same file in 2 address", "hash", info.Meta.InfoHash.String(), "old", info.LeftSize, "new", f.LeftSize)
+			}
+		}
+		return nil
 	})
 
-	//if err == nil && b.Number > fs.LastListenBlockNumber {
-	//if err == nil {
-	//fs.bnLock.Lock()
-	//fs.writeLastFileIndex()
-	//fs.bnLock.Unlock()
-	//}
-
-	return err
+	return update, err
 }
 
-func (fs *FileStorage) WriteBlock(b *Block) error {
-	//fs.opCounter.Increase()
-	//defer fs.opCounter.Decrease()
+func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
+	if b.Number < fs.LastListenBlockNumber {
+		return nil
+	}
+	if record && b.Number > fs.CheckPoint {
+		if err := fs.db.Update(func(tx *bolt.Tx) error {
+			buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
+			if err != nil {
+				return err
+			}
+			v, err := json.Marshal(b)
+			if err != nil {
+				return err
+			}
+			k, err := json.Marshal(b.Number)
+			if err != nil {
+				return err
+			}
 
-	/*err := fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
-		if err != nil {
+			return buk.Put(k, v)
+		}); err == nil {
+			if err := fs.writeCheckPoint(); err == nil {
+				fs.CheckPoint = b.Number
+				fs.addLeaf(b)
+			}
+		} else {
 			return err
 		}
-		v, err := json.Marshal(b)
-		if err != nil {
-			return err
-		}
-		k, err := json.Marshal(b.Number)
-		if err != nil {
-			return err
-		}
 
-		//fs.lock.Lock()
-		e := buk.Put(k, v)
-		//fs.lock.Unlock()
+	}
 
-		return e
-	})*/
-
-	//if err == nil && b.Number > fs.LastListenBlockNumber {
-	//if err == nil {
-	//fs.bnLock.Lock()
 	fs.LastListenBlockNumber = b.Number
 	return fs.writeBlockNumber()
-	//fs.bnLock.Unlock()
-	//}
+}
 
-	//return err
+func (fs *FileStorage) initBlocks() error {
+	return fs.db.View(func(tx *bolt.Tx) error {
+		if buk := tx.Bucket([]byte("blocks")); buk == nil {
+			return ErrReadDataFromBoltDB
+		} else {
+			c := buk.Cursor()
+
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+
+				var x Block
+
+				if err := json.Unmarshal(v, &x); err != nil {
+					return err
+				}
+				fs.blocks = append(fs.blocks, &x)
+			}
+			sort.Slice(fs.blocks, func(i, j int) bool {
+				return fs.blocks[i].Number < fs.blocks[j].Number
+			})
+			log.Info("Fs blocks initializing ... ...", "blocks", len(fs.blocks))
+			return nil
+		}
+	})
 }
 
 func (fs *FileStorage) initFiles() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("files"))
-		if buk == nil {
+		if buk := tx.Bucket([]byte("files")); buk == nil {
 			return ErrReadDataFromBoltDB
-		}
+		} else {
+			c := buk.Cursor()
 
-		c := buk.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
 
-		for k, v := c.First(); k != nil; k, v = c.Next() {
+				var x FileInfo
 
-			//		for index := uint64(0); index < fs.LastFileIndex; index++ {
-			//			k, err := json.Marshal(index)
-			//			if err != nil {
-			//				return err
-			//			}
-
-			//			v := buk.Get(k)
-			//			if v == nil {
-			//				return ErrReadDataFromBoltDB
-			//			}
-
-			var x FileInfo
-
-			if err := json.Unmarshal(v, &x); err != nil {
-				return err
+				if err := json.Unmarshal(v, &x); err != nil {
+					return err
+				}
+				fs.filesContractAddr[*x.ContractAddr] = &x
+				fs.files = append(fs.files, &x)
 			}
-			//fs.indexLock.Lock()
-			fs.filesContractAddr[*x.ContractAddr] = &x
-			fs.files = append(fs.files, &x)
-			//fs.indexLock.Unlock()
+			return nil
 		}
-		return nil
 	})
 }
 
@@ -470,8 +548,31 @@ func (fs *FileStorage) initFiles() error {
 		return e
 	})
 }*/
+func (fs *FileStorage) initCheckPoint() error {
+	return fs.db.View(func(tx *bolt.Tx) error {
+		buk := tx.Bucket([]byte("checkpoint"))
+		if buk == nil {
+			return ErrReadDataFromBoltDB
+		}
 
-func (fs *FileStorage) readBlockNumber() error {
+		v := buk.Get([]byte("key"))
+
+		if v == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		number, err := strconv.ParseUint(string(v), 16, 64)
+		if err != nil {
+			return err
+		}
+
+		fs.CheckPoint = number
+
+		return nil
+	})
+}
+
+func (fs *FileStorage) initBlockNumber() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("currentBlockNumber"))
 		if buk == nil {
@@ -495,15 +596,71 @@ func (fs *FileStorage) readBlockNumber() error {
 	})
 }
 
+func (fs *FileStorage) writeCheckPoint() error {
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint"))
+		if err != nil {
+			return err
+		}
+		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.CheckPoint, 16)))
+
+		return e
+	})
+}
+
+func (fs *FileStorage) writeVersion(number uint64, root []byte) error {
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("version"))
+		if err != nil {
+			return err
+		}
+		/*k, err := json.Marshal(number)
+		                        if err != nil {
+		                                return err
+		                        }
+
+					v, err := json.Marshal(root)
+		                        if err != nil {
+		                                return err
+		                        }
+
+					e:=buk.Put(k, v)*/
+		e := buk.Put([]byte(strconv.FormatUint(number, 16)), root)
+
+		return e
+	})
+}
+
+func (fs *FileStorage) GetVersionByNumber(number uint64) (version []byte) {
+	cb := func(tx *bolt.Tx) error {
+		buk := tx.Bucket([]byte("version"))
+		if buk == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		v := buk.Get([]byte(strconv.FormatUint(number, 16)))
+
+		if v == nil {
+			return ErrReadDataFromBoltDB
+		}
+
+		version = v
+		return nil
+	}
+	if err := fs.db.View(cb); err != nil {
+		return nil
+	}
+
+	return version
+}
+
 func (fs *FileStorage) writeBlockNumber() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber"))
 		if err != nil {
 			return err
 		}
-		//fs.lock.Lock()
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastListenBlockNumber, 16)))
-		//fs.lock.Unlock()
 
 		return e
 	})

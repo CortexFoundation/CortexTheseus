@@ -21,8 +21,8 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
 	//"golang.org/x/crypto/sha3"
 )
 
