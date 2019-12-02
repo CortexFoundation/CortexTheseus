@@ -645,9 +645,9 @@ func MakeDataDir(ctx *cli.Context) string {
 	case ctx.GlobalIsSet(DataDirFlag.Name):
 		return ctx.GlobalString(DataDirFlag.Name)
 	case ctx.GlobalBool(BernardFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "bernard")
+		return filepath.Join(node.DefaultDataDir(), BernardFlag.Name)
 	case ctx.GlobalBool(DoloresFlag.Name):
-		return filepath.Join(node.DefaultDataDir(), "dolores")
+		return filepath.Join(node.DefaultDataDir(), DoloresFlag.Name)
 	}
 
 	return node.DefaultDataDir()
