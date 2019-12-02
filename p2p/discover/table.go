@@ -72,7 +72,7 @@ type Table struct {
 	db         *nodeDB // database of known nodes
 	refreshReq chan chan struct{}
 	initDone   chan struct{}
-	closeOnce sync.Once
+	closeOnce  sync.Once
 	closeReq   chan struct{}
 	closed     chan struct{}
 
@@ -202,7 +202,7 @@ func (tab *Table) Close() {
 	})
 	//select {
 	//case <-tab.closed:
-		// already closed.
+	// already closed.
 	//case tab.closeReq <- struct{}{}:
 	//	<-tab.closed // wait for refreshLoop to end.
 	//}

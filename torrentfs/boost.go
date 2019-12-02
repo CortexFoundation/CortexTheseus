@@ -21,7 +21,7 @@ func getFileFromURI(uri string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	ret, err := ioutil.ReadAll(resp.Body)
-	if bytes.HasPrefix(ret, Str404NotFound) {
+	if err != nil || bytes.HasPrefix(ret, Str404NotFound) {
 		return nil, errors.New("404 Not Found")
 	}
 	return ret, nil

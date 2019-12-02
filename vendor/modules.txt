@@ -4,13 +4,12 @@ bazil.org/fuse/fs
 bazil.org/fuse/fuseutil
 # github.com/Azure/azure-pipeline-go v0.2.1
 github.com/Azure/azure-pipeline-go/pipeline
-# github.com/Azure/azure-storage-blob-go v0.7.0
+# github.com/Azure/azure-storage-blob-go v0.8.0
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/RoaringBitmap/roaring v0.4.18
 github.com/RoaringBitmap/roaring
-# github.com/allegro/bigcache v1.2.1
-github.com/allegro/bigcache
-github.com/allegro/bigcache/queue
+# github.com/VictoriaMetrics/fastcache v1.5.4
+github.com/VictoriaMetrics/fastcache
 # github.com/anacrolix/dht/v2 v2.2.1-0.20191103020011-1dba080fb358
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
@@ -72,14 +71,14 @@ github.com/aristanetworks/goarista/monotime
 github.com/benbjohnson/immutable
 # github.com/bitly/go-simplejson v0.5.0
 github.com/bitly/go-simplejson
-# github.com/boltdb/bolt v1.3.1
-github.com/boltdb/bolt
 # github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c
 github.com/bradfitz/iter
 # github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
 github.com/btcsuite/btcd/btcec
 # github.com/cespare/cp v1.1.1
 github.com/cespare/cp
+# github.com/cespare/xxhash/v2 v2.1.1
+github.com/cespare/xxhash/v2
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/deckarep/golang-set v1.7.1
@@ -127,7 +126,7 @@ github.com/huin/goupnp/httpu
 github.com/huin/goupnp/scpd
 github.com/huin/goupnp/soap
 github.com/huin/goupnp/ssdp
-# github.com/influxdata/influxdb v1.7.7
+# github.com/influxdata/influxdb v1.7.9
 github.com/influxdata/influxdb/client
 github.com/influxdata/influxdb/models
 github.com/influxdata/influxdb/pkg/escape
@@ -228,7 +227,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
+# golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -265,7 +264,7 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190829051458-42f498d34c4d
+# golang.org/x/tools v0.0.0-20191122080028-f774e2e2e5be
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/gcimporter
@@ -277,7 +276,8 @@ golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/module
 golang.org/x/tools/internal/semver
-# golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
+golang.org/x/tools/internal/span
+# golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127

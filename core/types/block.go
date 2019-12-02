@@ -21,11 +21,11 @@ import (
 	"encoding/binary"
 	"io"
 	"math/big"
-	"sort"
+	//"sort"
+	"fmt"
 	"sync/atomic"
 	"time"
 	"unsafe"
-	"fmt"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -282,12 +282,12 @@ func CopyHeader(h *Header) *Header {
 		cpy.Quota.Set(h.Quota)
 	}
 	if cpy.QuotaUsed = new(big.Int); h.QuotaUsed != nil {
-                cpy.QuotaUsed.Set(h.QuotaUsed)
-        }
+		cpy.QuotaUsed.Set(h.QuotaUsed)
+	}
 
 	if cpy.Supply = new(big.Int); h.Supply != nil {
-                cpy.Supply.Set(h.Supply)
-        }
+		cpy.Supply.Set(h.Supply)
+	}
 	return &cpy
 }
 
@@ -428,7 +428,7 @@ func (b *Block) Hash() common.Hash {
 
 type Blocks []*Block
 
-type BlockBy func(b1, b2 *Block) bool
+/*type BlockBy func(b1, b2 *Block) bool
 
 func (self BlockBy) Sort(blocks Blocks) {
 	bs := blockSorter{
@@ -449,4 +449,4 @@ func (self blockSorter) Swap(i, j int) {
 }
 func (self blockSorter) Less(i, j int) bool { return self.by(self.blocks[i], self.blocks[j]) }
 
-func Number(b1, b2 *Block) bool { return b1.header.Number.Cmp(b2.header.Number) < 0 }
+func Number(b1, b2 *Block) bool { return b1.header.Number.Cmp(b2.header.Number) < 0 }*/

@@ -28,7 +28,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
+	//"time"
 	"unicode"
 
 	cli "gopkg.in/urfave/cli.v1"
@@ -182,7 +182,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 				"--cvm.boostnodes", ctx.GlobalString(utils.StorageBoostNodesFlag.Name),
 				"--cvm.tracker", ctx.GlobalString(utils.StorageTrackerFlag.Name),
 			}
-			if (ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)) {
+			if ctx.GlobalBool(utils.StorageDisableDHTFlag.Name) {
 				args = append(args, "--cvm.disable_dht")
 			}
 			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
@@ -195,19 +195,20 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			if err := prg.Start(); err != nil {
 				panic(err)
 			}
+			log.Info("Cvm service register success", "config", cfg)
 			run_result := prg.Start()
 			var wg sync.WaitGroup
-			wg.Add(2)
+			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				_, _ = io.Copy(stdout, stdoutIn)
-				wg.Done()
 			}()
+			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				_, _ = io.Copy(stderr, stderrIn)
-				wg.Done()
 			}()
 			wg.Wait()
-
 			if err := prg.Wait(); err != nil {
 				log.Error("RegisterCVMService", "err", err)
 			}
@@ -215,8 +216,8 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			// outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
 			// log.Debug("RegisterCVMService", "out", outStr, "err", errStr)
 		}()
-		time.Sleep(10000 * time.Millisecond)
 	}
+
 	utils.RegisterCortexService(stack, &cfg.Cortex)
 
 	// if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {

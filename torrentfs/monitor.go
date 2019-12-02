@@ -12,10 +12,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
-	"net"
+	//"net"
 	"net/http"
-	"os"
+	//"os"
 	"runtime"
+	//"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,29 +32,31 @@ var (
 	ErrGetLatestBlock = errors.New("get latest block failed")
 	ErrNoRPCClient    = errors.New("no rpc client")
 
-	ErrBlockHash  = errors.New("block or parent block hash invalid")
-	blockCache, _ = lru.New(6)
-	//unhealthPeers, _ = lru.New(256)
-	healthPeers, _ = lru.New(50)
+	ErrBlockHash = errors.New("block or parent block hash invalid")
+	//blockCache, _ = lru.New(6)
+	//healthPeers, _ = lru.New(50)
+	//sizeCache, _   = lru.New(batch)
 )
 
 const (
-	defaultTimerInterval  = 2
+	defaultTimerInterval  = 1
 	connTryTimes          = 300
 	connTryInterval       = 2
 	fetchBlockTryTimes    = 5
 	fetchBlockTryInterval = 3
-	fetchBlockLogStep     = 10000
-	minBlockNum           = 0
+	//fetchBlockLogStep     = 10000
+	//minBlockNum           = 0
 
-	maxSyncBlocks = 1024
+	//maxSyncBlocks = 1024
 )
 
 type TorrentManagerAPI interface {
 	Start() error
 	Close() error
-	RemoveTorrent(metainfo.Hash) error
+	//RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
+	UpdateDynamicTrackers(trackers []string)
+	GetTorrent(ih metainfo.Hash) *Torrent
 }
 
 // Monitor observes the data changes on the blockchain and synchronizes.
@@ -64,7 +67,7 @@ type Monitor struct {
 	fs     *FileStorage
 	dl     TorrentManagerAPI
 
-	listenID rpc.ID
+	//listenID rpc.ID
 
 	uncheckedCh chan uint64
 
@@ -73,15 +76,19 @@ type Monitor struct {
 	lastNumber uint64
 	dirty      bool
 
-	closeOnce sync.Once
-	wg        sync.WaitGroup
-	peersWg   sync.WaitGroup
+	//closeOnce sync.Once
+	wg      sync.WaitGroup
+	peersWg sync.WaitGroup
 	//trackerLock sync.Mutex
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
 
 	taskCh      chan *Block
 	newTaskHook func(*Block)
+	blockCache  *lru.Cache
+	healthPeers *lru.Cache
+	sizeCache   *lru.Cache
+	ckp         *params.TrustedCheckpoint
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -93,6 +100,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
 	if fsErr != nil {
+		log.Error("file storage failed", "err", fsErr)
 		return nil, fsErr
 	}
 	log.Info("Torrent file storage initialized")
@@ -100,29 +108,143 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	// Torrent Manager
 	tMana := NewTorrentManager(flag)
 	if tMana == nil {
+		log.Error("torrent manager failed")
 		return nil, errors.New("torrent download manager initialise failed")
 	}
 	log.Info("Torrent manager initialized")
 
 	m = &Monitor{
-		config:      flag,
-		cl:          nil,
-		fs:          fs,
-		dl:          tMana,
-		uncheckedCh: make(chan uint64, 20),
-		exitCh:      make(chan struct{}),
-		terminated:  0,
-		lastNumber:  uint64(0),
-		dirty:       false,
-		taskCh:      make(chan *Block, batch * 2),
+		config: flag,
+		cl:     nil,
+		fs:     fs,
+		dl:     tMana,
+		//uncheckedCh: make(chan uint64, 20),
+		exitCh:     make(chan struct{}),
+		terminated: 0,
+		lastNumber: uint64(0),
+		dirty:      false,
+		taskCh:     make(chan *Block, batch),
 	}
+	m.blockCache, _ = lru.New(delay)
+	m.healthPeers, _ = lru.New(50)
+	m.sizeCache, _ = lru.New(batch)
 	e = nil
 
-	log.Info("Loading storage data ... ...")
+	/*log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber)
+
+		fileMap := make(map[metainfo.Hash]*FileInfo)
+		for _, block := range m.fs.Blocks() {
+			if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
+	                        log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
+	                        return nil, parseErr
+			} else {
+				log.Info("Block storage info", "number", block.Number, "record", record)
+			}
+		}
+
+		for _, file := range m.fs.Files() {
+			if f, ok := fileMap[file.Meta.InfoHash]; ok {
+				if f.LeftSize > file.LeftSize {
+					fileMap[file.Meta.InfoHash] = file
+				}
+			} else {
+				fileMap[file.Meta.InfoHash] = file
+			}
+		}
+		capcity := uint64(0)
+		seed := 0
+		pause := 0
+		pending := 0
+
+		for _, file := range fileMap {
+			var bytesRequested uint64
+			bytesRequested = 0
+			if file.Meta.RawSize > file.LeftSize {
+				bytesRequested = file.Meta.RawSize - file.LeftSize
+			}
+			capcity += bytesRequested
+			log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
+			m.dl.UpdateTorrent(FlowControlMeta{
+				InfoHash:       file.Meta.InfoHash,
+				BytesRequested: bytesRequested,
+				IsCreate:       true,
+			})
+			if file.LeftSize == 0 {
+				seed += 1
+			} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
+				pending += 1
+			} else if file.Meta.RawSize > file.LeftSize && file.LeftSize > 0 {
+				pause += 1
+			}
+		}
+		log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity))*/
+
+	return m, e
+}
+
+func (m *Monitor) storageInit() error {
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root())
+	genesis, err := m.rpcBlockByNumber(0)
+	if err != nil {
+		return err
+	}
+
+	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
+		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
+			log.Info("Tfs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			m.lastNumber = 0
+		}
+		/*if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
+			m.lastNumber = m.fs.CheckPoint
+			log.Info("Torrent fs block unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()))
+		} else {
+			block := m.fs.GetBlockByNumber(checkpoint.TfsCheckPoint)
+			if block != nil && checkpoint.TfsCkpHead == block.Hash {
+				log.Info("Torrent fs block passed", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()), "head", block.Hash)
+			} else {
+				log.Info("Torrent fs check point unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()), "head", block.Hash)
+				m.lastNumber = 0
+			}
+		}*/
+		m.ckp = checkpoint
+
+		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
+		if common.BytesToHash(version) != checkpoint.TfsRoot {
+			log.Warn("Tfs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
+			m.lastNumber = 0
+			//m.fs.LastListenBlockNumber = 0
+			//m.fs.CheckPoint = 0
+		} else {
+			log.Info("Tfs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version))
+		}
+	}
+
+	/*blocks := m.fs.Blocks()
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i].Number < blocks[j].Number
+	})*/
+
+	for _, block := range m.fs.Blocks() {
+		/*if b, err := m.rpcBlockByNumber(block.Number); err == nil && b.Hash != block.Hash {
+			m.lastNumber = 0
+		}*/
+		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
+			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
+			return parseErr
+		} else {
+			log.Debug("Block storage info", "number", block.Number, "record", record)
+		}
+	}
 
 	fileMap := make(map[metainfo.Hash]*FileInfo)
 	for _, file := range m.fs.Files() {
-		fileMap[file.Meta.InfoHash] = file
+		if f, ok := fileMap[file.Meta.InfoHash]; ok {
+			if f.LeftSize > file.LeftSize {
+				fileMap[file.Meta.InfoHash] = file
+			}
+		} else {
+			fileMap[file.Meta.InfoHash] = file
+		}
 	}
 	capcity := uint64(0)
 	seed := 0
@@ -136,7 +258,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
 		capcity += bytesRequested
-		log.Info("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
+		log.Debug("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
 		m.dl.UpdateTorrent(FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
@@ -150,9 +272,8 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity))
-
-	return m, e
+	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()))
+	return nil
 }
 
 func (m *Monitor) taskLoop() {
@@ -168,6 +289,7 @@ func (m *Monitor) taskLoop() {
 				log.Warn("Block dealing failed", "err", err)
 			}
 		case <-m.exitCh:
+			log.Info("Monitor task channel closed")
 			return
 		}
 	}
@@ -175,13 +297,13 @@ func (m *Monitor) taskLoop() {
 
 // SetConnection method builds connection to remote or local communicator.
 func SetConnection(clientURI string) (*rpc.Client, error) {
-	for i := 0; i < connTryTimes; i++ {
+	for {
 		time.Sleep(time.Second * connTryInterval)
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
-			log.Warn("Building internal-ipc connection ... ", "URI", clientURI, "times", i, "error", err)
+			log.Warn("Building internal ipc connection ... ", "uri", clientURI, "error", err)
 		} else {
-			log.Debug("Internal-IPC connection established", "URI", clientURI)
+			log.Info("Internal ipc connection established", "uri", clientURI)
 			return cl, nil
 		}
 	}
@@ -193,20 +315,20 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 	block := &Block{}
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 
-	for i := 0; i < fetchBlockTryTimes; i++ {
-		err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
-		if err == nil {
-			return block, nil
-		}
-
-		time.Sleep(time.Second * fetchBlockTryInterval)
-		log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err, "number", blockNumber)
+	//for i := 0; i < fetchBlockTryTimes; i++ {
+	err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
+	if err == nil {
+		return block, nil
 	}
+
+	//	time.Sleep(time.Second * fetchBlockTryInterval)
+	//	log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err, "number", blockNumber)
+	//}
 
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
-func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
+/*func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	block := &Block{}
 
 	for i := 0; i < fetchBlockTryTimes; i++ {
@@ -220,7 +342,7 @@ func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
 	}
 
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
-}
+}*/
 
 var (
 	ports            = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
@@ -234,7 +356,7 @@ func (m *Monitor) init() {
 	TRACKER_PORT = append(TRACKER_PORT, ports...)
 	UDP_TRACKER_PORT = params.UDP_Tracker_ports
 	client = http.Client{
-		Timeout: time.Duration(5 * time.Second),
+		Timeout: time.Duration(3 * time.Second),
 	}
 }
 
@@ -242,13 +364,13 @@ func (m *Monitor) http_tracker_build(ip, port string) string {
 	return "http://" + ip + ":" + port + "/announce"
 }
 
-func (m *Monitor) udp_tracker_build(ip, port string) string {
+/*func (m *Monitor) udp_tracker_build(ip, port string) string {
 	return "udp://" + ip + ":" + port + "/announce"
 }
 
 func (m *Monitor) ws_tracker_build(ip, port string) string {
 	return "ws://" + ip + ":" + port + "/announce"
-}
+}*/
 
 func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
@@ -268,7 +390,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
 					for _, p := range ps {
 						tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
-						if healthPeers.Contains(tracker) {
+						if m.healthPeers.Contains(tracker) {
 							//continue
 						} else {
 							flush = true
@@ -279,40 +401,40 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
 						//m.trackerLock.Unlock()
 						//flush = true
-						healthPeers.Add(tracker, tracker)
+						m.healthPeers.Add(tracker, tracker)
 						//if unhealthPeers.Contains(ip) {
 						//	unhealthPeers.Remove(ip)
 						//}
 					}
-				} else {
-					//unhealthPeers.Add(ip, peer)
+				} // else {
+				//unhealthPeers.Add(ip, peer)
 
-					if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
-						for _, p := range ps {
-							tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
-							if healthPeers.Contains(tracker) {
-								//continue
-							} else {
-								flush = true
-							}
-							//m.trackerLock.Lock()
-							//trackers = append(trackers, tracker)
-							//m.trackerLock.Unlock()
-							//flush = true
-							healthPeers.Add(tracker, tracker)
-							//if unhealthPeers.Contains(ip) {
-							//	unhealthPeers.Remove(ip)
-							//}
+				/*if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
+					for _, p := range ps {
+						tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
+						if m.healthPeers.Contains(tracker) {
+							//continue
+						} else {
+							flush = true
 						}
+						//m.trackerLock.Lock()
+						//trackers = append(trackers, tracker)
+						//m.trackerLock.Unlock()
+						//flush = true
+						m.healthPeers.Add(tracker, tracker)
+						//if unhealthPeers.Contains(ip) {
+						//	unhealthPeers.Remove(ip)
+						//}
 					}
-				}
+				}*/
+				//}
 			}(peer)
 		}
 		//log.Info("Waiting dynamic tracker", "size", len(peers))
 		m.peersWg.Wait()
 
 		var trackers []string
-		for _, data := range healthPeers.Keys() {
+		for _, data := range m.healthPeers.Keys() {
 			if str, ok := data.(string); ok {
 				trackers = append(trackers, str)
 			}
@@ -320,12 +442,13 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 		}
 		//log.Info("Waiting dynamic tracker done", "size", len(peers))
 		if len(trackers) > 0 && flush {
-			m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
+			//m.fs.CurrentTorrentManager().UpdateDynamicTrackers(trackers)
+			m.dl.UpdateDynamicTrackers(trackers)
 			for _, t := range trackers {
 				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", healthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", m.healthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
@@ -359,11 +482,18 @@ func (m *Monitor) getBlockNumber() (hexutil.Uint64, error) {
 }*/
 
 func (m *Monitor) getRemainingSize(address string) (uint64, error) {
+	if size, suc := m.sizeCache.Get(address); suc && size.(uint64) == 0 {
+		return size.(uint64), nil
+	}
 	var remainingSize hexutil.Uint64
 	if err := m.cl.Call(&remainingSize, "ctxc_getUpload", address, "latest"); err != nil {
 		return 0, err
 	}
-	return uint64(remainingSize), nil
+	remain := uint64(remainingSize)
+	if remain == 0 {
+		m.sizeCache.Add(address, remain)
+	}
+	return remain, nil
 }
 
 func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
@@ -375,18 +505,12 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	}
 
 	if receipt.ContractAddr == nil {
-		//log.Warn("Contract address is nil", "receipt", receipt.TxHash)
 		return nil
 	}
 
 	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
-	//if receipt.GasUsed != params.UploadGas {
-	//	log.Warn("Upload gas error", "gas", receipt.GasUsed, "ugas", params.UploadGas)
-	//	return nil
-	//}
 
 	if receipt.Status != 1 {
-		//log.Warn("Upload status error", "status", receipt.Status)
 		return nil
 	}
 
@@ -395,16 +519,19 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 
 	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
-	err := m.fs.AddFile(info)
+	index, err := m.fs.AddFile(info)
 	if err != nil {
-		//return err
+		return err
+	} else {
+		if index > 0 {
+			log.Debug("Create new file", "hash", meta.InfoHash, "index", index)
+			m.dl.UpdateTorrent(FlowControlMeta{
+				InfoHash:       meta.InfoHash,
+				BytesRequested: 0,
+				IsCreate:       true,
+			})
+		}
 	}
-
-	m.dl.UpdateTorrent(FlowControlMeta{
-		InfoHash:       meta.InfoHash,
-		BytesRequested: 0,
-		IsCreate:       true,
-	})
 	/*var _remainingSize string
 	if err := m.cl.Call(&_remainingSize, "ctxc_getUpload", receipt.ContractAddr.String(), "latest"); err != nil {
 		log.Warn("Failed to call get upload", "addr", receipt.ContractAddr.String())
@@ -445,7 +572,8 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 	return nil
 }
 
-func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
+func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
+	record := false
 	if len(b.Txs) > 0 {
 		start := mclock.Now()
 		for _, tx := range b.Txs {
@@ -453,70 +581,104 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block, flowCtrl bool) error {
 				log.Debug("Try to create a file", "meta", meta, "number", b.Number, "infohash", meta.InfoHash)
 				if err := m.parseFileMeta(&tx, meta); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
-					return err
+					return false, err
 				}
-			} else if flowCtrl && tx.IsFlowControl() {
+				record = true
+			} else if tx.IsFlowControl() {
 				if tx.Recipient == nil {
 					continue
 				}
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
+					//log.Warn("Uploading a nonexist file", "addr", addr.String(), "number", b.Number)
 					continue
 				}
 
-				log.Debug("Try to upload a file", "addr", addr, "infohash", file.Meta.InfoHash.String(), "number", b.Number)
-
 				remainingSize, err := m.getRemainingSize(addr.String())
 				if err != nil {
-					return err
+					return false, err
 				}
 
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
-					err := m.fs.WriteFile(file)
-					if err != nil {
-						return err
-					}
+					if update, err := m.fs.WriteFile(file); err != nil {
+						return false, err
+					} else if update {
+						log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+						var bytesRequested uint64
+						if file.Meta.RawSize > file.LeftSize {
+							bytesRequested = file.Meta.RawSize - file.LeftSize
+						}
+						log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 
-					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
-					var bytesRequested uint64
-					if file.Meta.RawSize > file.LeftSize {
-						bytesRequested = file.Meta.RawSize - file.LeftSize
+						m.dl.UpdateTorrent(FlowControlMeta{
+							InfoHash:       file.Meta.InfoHash,
+							BytesRequested: bytesRequested,
+							IsCreate:       false,
+						})
 					}
-					log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-					//log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", remainingSize, "request", bytesRequested, "raw", file.Meta.RawSize, "tx", tx.Hash.Hex(), "number", b.Number)
-
-					m.dl.UpdateTorrent(FlowControlMeta{
-						InfoHash:       file.Meta.InfoHash,
-						BytesRequested: bytesRequested,
-						IsCreate:       false,
-					})
+				} else {
+					log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				}
+
+				record = true
 			}
 		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "limit", flowCtrl, "elapsed", common.PrettyDuration(elapsed))
+		if len(b.Txs) > 0 {
+			log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+		}
 	}
 
-	return nil
+	return record, nil
 }
 
 func (m *Monitor) Stop() {
 	log.Info("Torrent listener closing")
+	if atomic.LoadInt32(&(m.terminated)) == 1 {
+		return
+	}
 	atomic.StoreInt32(&(m.terminated), 1)
+	close(m.exitCh)
+	log.Info("Monitor is waiting to be closed")
+	m.wg.Wait()
+	/*m.wg.Add(1)
+		m.closeOnce.Do(func() {
+	                defer m.wg.Done()
+			if err := m.dl.Close(); err != nil {
+	                      log.Error("Monitor Torrent Manager closed", "error", err)
+	                }
+	                log.Info("Torrent client listener synchronizing closed")
+	        })*/
+	log.Info("Torrent client listener synchronizing closing")
+	if err := m.dl.Close(); err != nil {
+		log.Error("Monitor Torrent Manager closed", "error", err)
+	}
+	log.Info("Torrent client listener synchronizing closed")
+
+	log.Info("Torrent fs listener synchronizing closing")
+	if err := m.fs.Close(); err != nil {
+		log.Error("Monitor File Storage closed", "error", err)
+	}
+	log.Info("Torrent fs listener synchronizing closed")
+	/*m.wg.Add(1)
 	m.closeOnce.Do(func() {
-		close(m.exitCh)
-		if err := m.fs.Close(); err != nil {
-			log.Error("Monitor File Storage closed", "error", err)
-		}
+		defer m.wg.Done()
+		log.Info("Torrent client listener synchronizing closing")
 		if err := m.dl.Close(); err != nil {
 			log.Error("Monitor Torrent Manager closed", "error", err)
 		}
-		log.Info("Torrent fs listener synchronizing close")
-		//m.wg.Wait()
+		log.Info("Torrent client listener synchronizing closed")
+
+		log.Info("Torrent fs listener synchronizing closing")
+		if err := m.fs.Close(); err != nil {
+			log.Error("Monitor File Storage closed", "error", err)
+		}
+		log.Info("Torrent fs listener synchronizing closed")
 	})
-	m.wg.Wait()
+	m.wg.Wait()*/
+
 	log.Info("Torrent listener closed")
 }
 
@@ -526,9 +688,11 @@ func (m *Monitor) Start() error {
 		log.Warn("Torrent start error")
 		return err
 	}
-
+	m.wg.Add(1)
 	go func() {
-		err := m.startWork()
+		defer m.wg.Done()
+		m.startWork()
+		/*err := m.startWork()
 		if err != nil {
 			log.Error("Torrent Fs Internal Error", "error", err)
 			p, pErr := os.FindProcess(os.Getpid())
@@ -544,15 +708,16 @@ func (m *Monitor) Start() error {
 				panic("boom")
 				return
 			}
-		}
+		}*/
 	}()
 	return nil
+	//return err
 }
 
 func (m *Monitor) startWork() error {
 	// Wait for ipc start...
-	time.Sleep(time.Second)
-	defer TorrentAPIAvailable.Unlock()
+	//time.Sleep(time.Second)
+	//defer TorrentAPIAvailable.Unlock()
 	// Rpc Client
 	var clientURI string
 	if runtime.GOOS != "windows" && m.config.IpcPath != "" {
@@ -571,117 +736,129 @@ func (m *Monitor) startWork() error {
 		return rpcErr
 	}
 	m.cl = rpcClient
+	m.lastNumber = m.fs.LastListenBlockNumber
+	//if err := m.validateStorage(); err != nil {
+	//	log.Error("Starting torrent fs ... ...", "error", err)
+	//	return err
+	//}
 
-	if err := m.validateStorage(); err != nil {
-		log.Error("Starting torrent fs ... ...", "error", err)
+	//log.Info("Torrent fs validation passed")
+	if err := m.storageInit(); err != nil {
 		return err
 	}
-
-	log.Info("Torrent fs validation passed")
-	m.wg.Add(3)
+	m.wg.Add(1)
 	go m.taskLoop()
+	m.wg.Add(1)
 	go m.listenLatestBlock()
 	m.init()
+	m.wg.Add(1)
 	go m.listenPeers()
 
 	return nil
 }
 
-func (m *Monitor) validateStorage() error {
-	m.lastNumber = m.fs.LastListenBlockNumber
-	end := uint64(0)
+/*func (m *Monitor) validateStorage() error {
+m.lastNumber = m.fs.LastListenBlockNumber
+end := uint64(0)
 
-	log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
+log.Info("Validate Torrent FS Storage", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
 
-	for i := m.lastNumber; i > end; i-- {
-		rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
-		if rpcErr != nil {
-			log.Warn("RPC ERROR", "error", rpcErr)
-			return rpcErr
-		}
+for i := m.lastNumber; i > end; i-- {
+	rpcBlock, rpcErr := m.rpcBlockByNumber(uint64(i))
+	if rpcErr != nil {
+		log.Warn("RPC ERROR", "error", rpcErr)
+		return rpcErr
+	}
 
-		if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
-			log.Trace("No block found", "number", i)
-			m.lastNumber = uint64(i)
-			m.dirty = true
-			continue
-		} else {
-			m.dirty = false
-		}
-
-		stBlock := m.fs.GetBlockByNumber(uint64(i))
-		if stBlock == nil {
-			log.Warn("Vaidate Torrent FS Storage state failed, rescan", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent", "dirty", m.fs.LastListenBlockNumber)
-			m.lastNumber = uint64(i)
-			m.dirty = true
-			continue
-		}
-
-		if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
-			//log.Warn("Validate TFS continue", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
-			break
-		}
-
-		// block in storage invalid
-		log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash, "latest", m.fs.LastListenBlockNumber)
+	if rpcBlock == nil || rpcBlock.Hash == common.EmptyHash {
+		log.Trace("No block found", "number", i)
 		m.lastNumber = uint64(i)
-	}
-
-	log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
-	if m.dirty {
-		log.Warn("Torrent fs status", "dirty", m.dirty)
-	}
-
-	/*for i := uint64(0); i < m.fs.LastFileIndex; i++ {
-		file := m.fs.GetFileByNumber(i)
-		if file == nil {
-			continue
-		}
-
-		var bytesRequested uint64
-		if file.Meta.RawSize > file.LeftSize {
-			bytesRequested = file.Meta.RawSize - file.LeftSize
-		}
-		log.Debug("Data recovery", "request", bytesRequested, "raw", file.Meta.RawSize)
-
-		m.dl.UpdateTorrent(FlowControlMeta{
-			InfoHash:       file.Meta.InfoHash,
-			BytesRequested: bytesRequested,
-			IsCreate:       true,
-		})
-
-		//m.fs.AddCachedFile(file)
-	}
-
-	if m.lastNumber > 256 {
-		m.lastNumber = m.lastNumber - 256
+		m.dirty = true
+		continue
 	} else {
-		m.lastNumber = 0
-	}*/
+		m.dirty = false
+	}
 
-	return nil
+	stBlock := m.fs.GetBlockByNumber(uint64(i))
+	if stBlock == nil {
+		log.Warn("Vaidate Torrent FS Storage state failed, rescan", "number", m.lastNumber, "error", "LastListenBlockNumber not persistent", "dirty", m.fs.LastListenBlockNumber)
+		m.lastNumber = uint64(i)
+		m.dirty = true
+		continue
+	}
+
+	if rpcBlock.Hash.Hex() == stBlock.Hash.Hex() {
+		//log.Warn("Validate TFS continue", "number", m.lastNumber, "rpc", rpcBlock.Hash.Hex(), "store", stBlock.Hash.Hex())
+		break
+	}
+
+	// block in storage invalid
+	log.Info("Update invalid block in storage", "old hash", stBlock.Hash, "new hash", rpcBlock.Hash, "latest", m.fs.LastListenBlockNumber)
+	m.lastNumber = uint64(i)
 }
+
+log.Info("Validate Torrent FS Storage ended", "last IPC listen number", m.lastNumber, "end", end, "latest", m.fs.LastListenBlockNumber)
+if m.dirty {
+	log.Warn("Torrent fs status", "dirty", m.dirty)
+}*/
+
+/*if m.lastNumber > batch {
+	m.lastNumber = m.lastNumber - batch
+} else {
+	m.lastNumber = 0
+}*/
+
+/*for i := uint64(0); i < m.fs.LastFileIndex; i++ {
+	file := m.fs.GetFileByNumber(i)
+	if file == nil {
+		continue
+	}
+
+	var bytesRequested uint64
+	if file.Meta.RawSize > file.LeftSize {
+		bytesRequested = file.Meta.RawSize - file.LeftSize
+	}
+	log.Debug("Data recovery", "request", bytesRequested, "raw", file.Meta.RawSize)
+
+	m.dl.UpdateTorrent(FlowControlMeta{
+		InfoHash:       file.Meta.InfoHash,
+		BytesRequested: bytesRequested,
+		IsCreate:       true,
+	})
+
+	//m.fs.AddCachedFile(file)
+}
+
+if m.lastNumber > 256 {
+	m.lastNumber = m.lastNumber - 256
+} else {
+	m.lastNumber = 0
+}*/
+/*
+	return nil
+}*/
 
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	defer timer.Stop()
 	progress := uint64(0)
 	for {
 		select {
 		case <-timer.C:
 			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			if progress > batch {
+			if progress >= batch {
 				timer.Reset(time.Millisecond * 100)
-			} else if progress > batch/2 {
-				timer.Reset(time.Millisecond * 500)
-			} else if progress > batch/4 {
-				timer.Reset(time.Millisecond * 1000)
 			} else if progress > 6 {
-				timer.Reset(time.Millisecond * 2000)
+				timer.Reset(time.Millisecond * 1000)
+			} else if progress == 0 {
+				timer.Reset(time.Millisecond * 10000)
 			} else {
 				timer.Reset(time.Millisecond * 5000)
 			}
+
+			//timer.Reset(time.Second * defaultTimerInterval)
 		case <-m.exitCh:
 			log.Info("Block listener stopped")
 			return
@@ -691,19 +868,13 @@ func (m *Monitor) listenLatestBlock() {
 
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * 15)
-
+	timer := time.NewTimer(time.Second * 600)
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
 			m.peers()
-			if healthPeers.Len() == 0 {
-				timer.Reset(time.Second * 5)
-			} else if healthPeers.Len() < 6 {
-				timer.Reset(time.Second * 60)
-			} else {
-				timer.Reset(time.Second * 300)
-			}
+			timer.Reset(time.Second * 3600)
 		case <-m.exitCh:
 			log.Info("Peers listener stopped")
 			return
@@ -755,7 +926,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 }
 
-func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
+/*func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
 	var res []string
 	var status = false
 	//request := make([]byte, 1)
@@ -769,15 +940,6 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 			continue
 		} else {
 			defer socket.Close()
-			/*if _, err = socket.Write(request); err != nil {
-				continue
-			}
-			socket.SetDeadline(time.Now().Add(5 * time.Second))
-
-			reply := make([]byte, 48)
-			if _, err = socket.Read(reply); err != nil {
-				continue
-			}*/
 			//m.portLock.Lock()
 			res = append(res, port)
 			status = true
@@ -788,23 +950,24 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 	}
 
 	return res, status
-}
+}*/
 
 const (
-	batch = 4096
+	batch = 2048
+	delay = 12
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
 	var currentNumber hexutil.Uint64
 
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
-		log.Error("Sync old block | IPC ctx_blockNumber", "error", err)
+		log.Error("Call ipc method ctx_blockNumber failed", "error", err)
 		return 0
 	}
 
-	if uint64(currentNumber) <= 0 {
-		return 0
-	}
+	//if uint64(currentNumber) <= 0 {
+	//	return 0
+	//}
 
 	if uint64(currentNumber) < m.lastNumber {
 		log.Warn("Torrent fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
@@ -813,8 +976,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
-	if uint64(currentNumber) > 3 {
-		maxNumber = uint64(currentNumber)
+	if uint64(currentNumber) > delay {
+		maxNumber = uint64(currentNumber) - delay
 	}
 
 	if m.lastNumber > uint64(currentNumber) {
@@ -827,10 +990,10 @@ func (m *Monitor) syncLastBlock() uint64 {
 		maxNumber = minNumber + batch
 	}
 	if maxNumber >= minNumber {
-		if minNumber > 5 {
-			minNumber = minNumber - 5
-		}
-		log.Info("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
+		/*if minNumber > delay {
+			minNumber = minNumber - delay
+		}*/
+		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return 0
 	}
@@ -840,61 +1003,69 @@ func (m *Monitor) syncLastBlock() uint64 {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			log.Warn("Torrent scan terminated", "number", i)
 			maxNumber = i - 1
+			//close(m.exitCh)
 			break
 		}
 
 		rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 		if rpcErr != nil {
-			log.Error("Sync old block", "number", i, "error", rpcErr)
+			log.Error("Sync old block failed", "number", i, "error", rpcErr)
 			return 0
 		}
-
-		if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
-			//go func() { m.taskCh <- rpcBlock }()
+		if len(m.taskCh) < cap(m.taskCh) {
 			m.taskCh <- rpcBlock
+		} else {
+			m.lastNumber = i - 1
+			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+			log.Info("Torrent scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+			//return m.lastNumber - minNumber
+			return 0
 		}
+		//if err := m.deal(rpcBlock); err != nil {
+		//	return 0
+		//}
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed)
+	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
 	return uint64(maxNumber - minNumber)
 }
 
-func (m *Monitor) deal(rpcBlock *Block) error {
-	i := rpcBlock.Number
-	if hash, suc := blockCache.Get(i); !suc || hash != rpcBlock.Hash.Hex() {
-
-		block := m.fs.GetBlockByNumber(i)
-		if block == nil {
-			block = rpcBlock
-
-			if err := m.parseAndStore(block, true); err != nil {
-				log.Error("Fail to parse and storge latest block", "number", i, "error", err)
-				return err
+func (m *Monitor) deal(block *Block) error {
+	i := block.Number
+	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
+		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
+			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
+			return parseErr
+		} else if record {
+			if storeErr := m.fs.WriteBlock(block, true); storeErr != nil {
+				log.Error("Store latest block", "number", block.Number, "error", storeErr)
+				return storeErr
 			}
 
-		} else {
-			if block.Hash.Hex() == rpcBlock.Hash.Hex() {
+			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
+				log.Info("The tfs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			}
 
-				if parseErr := m.parseBlockTorrentInfo(block, true); parseErr != nil { //dirty to do
-					log.Error("Parse old block", "number", i, "block", block, "error", parseErr)
-					return parseErr
+			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
+		} else {
+			if i%(batch/8) == 0 {
+				if storeErr := m.fs.WriteBlock(block, false); storeErr != nil {
+					log.Error("Store latest block", "number", block.Number, "error", storeErr)
+					return storeErr
 				}
-			} else {
-				//dirty tfs
-				if err := m.parseAndStore(rpcBlock, true); err != nil {
-					log.Error("Dirty tfs fail to parse and storge latest block", "number", i, "error", err)
-					return err
-				}
+
+				log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
 			}
 		}
-		blockCache.Add(i, rpcBlock.Hash.Hex())
+
+		m.blockCache.Add(i, block.Hash.Hex())
 	}
 	return nil
 }
 
-func (m *Monitor) parseAndStore(block *Block, flow bool) error {
-	if parseErr := m.parseBlockTorrentInfo(block, flow); parseErr != nil {
+/*func (m *Monitor) parseAndStore(block *Block) error {
+	if parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 		log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 		return parseErr
 	}
@@ -904,4 +1075,4 @@ func (m *Monitor) parseAndStore(block *Block, flow bool) error {
 		return storeErr
 	}
 	return nil
-}
+}*/

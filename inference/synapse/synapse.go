@@ -44,17 +44,19 @@ var DefaultConfig Config = Config{
 type Synapse struct {
 	config      *Config
 	simpleCache sync.Map
-	modelLock   sync.Map
+	gasCache    sync.Map
+	//modelLock   sync.Map
+	mutex       sync.Mutex
 	lib         *kernel.LibCVM
 	caches      map[int]*lru.Cache
 	exitCh      chan struct{}
 }
 
 func Engine() *Synapse {
-	if synapseInstance == nil {
+	/*if synapseInstance == nil {
 		log.Error("Synapse Engine has not been initalized")
 		return New(&DefaultConfig)
-	}
+	}*/
 
 	return synapseInstance
 }
