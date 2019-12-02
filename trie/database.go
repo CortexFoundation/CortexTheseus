@@ -39,6 +39,11 @@ var (
 	memcacheCleanReadMeter  = metrics.NewRegisteredMeter("trie/memcache/clean/read", nil)
 	memcacheCleanWriteMeter = metrics.NewRegisteredMeter("trie/memcache/clean/write", nil)
 
+	memcacheDirtyHitMeter   = metrics.NewRegisteredMeter("trie/memcache/dirty/hit", nil)
+	memcacheDirtyMissMeter  = metrics.NewRegisteredMeter("trie/memcache/dirty/miss", nil)
+	memcacheDirtyReadMeter  = metrics.NewRegisteredMeter("trie/memcache/dirty/read", nil)
+	memcacheDirtyWriteMeter = metrics.NewRegisteredMeter("trie/memcache/dirty/write", nil)
+
 	memcacheFlushTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/flush/time", nil)
 	memcacheFlushNodesMeter = metrics.NewRegisteredMeter("trie/memcache/flush/nodes", nil)
 	memcacheFlushSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/flush/size", nil)
@@ -332,6 +337,7 @@ func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 	if _, ok := db.dirties[hash]; ok {
 		return
 	}
+	memcacheDirtyWriteMeter.Mark(int64(len(blob)))
 	// Create the cached entry for this node
 	entry := &cachedNode{
 		node:      simplifyNode(node),
@@ -384,8 +390,11 @@ func (db *Database) node(hash common.Hash) node {
 	db.lock.RUnlock()
 
 	if dirty != nil {
+		memcacheDirtyHitMeter.Mark(1)
+		memcacheDirtyReadMeter.Mark(int64(dirty.size))
 		return dirty.obj(hash)
 	}
+	memcacheDirtyMissMeter.Mark(1)
 	// Content unavailable in memory, attempt to retrieve from disk
 	enc, err := db.diskdb.Get(hash[:])
 	if err != nil || enc == nil {
@@ -422,8 +431,11 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	db.lock.RUnlock()
 
 	if dirty != nil {
+		memcacheDirtyHitMeter.Mark(1)
+		memcacheDirtyReadMeter.Mark(int64(dirty.size))
 		return dirty.rlp(), nil
 	}
+	memcacheDirtyMissMeter.Mark(1)
 	// Content unavailable in memory, attempt to retrieve from disk
 	enc, err := db.diskdb.Get(hash[:])
 	if err == nil && enc != nil {
@@ -828,6 +840,7 @@ func (c *cleaner) Put(key []byte, rlp []byte) error {
 	if c.db.cleans != nil {
 		//c.db.cleans.Set(string(hash[:]), rlp)
 		c.db.cleans.Set(hash[:], rlp)
+		memcacheCleanWriteMeter.Mark(int64(len(rlp)))
 	}
 	return nil
 }
