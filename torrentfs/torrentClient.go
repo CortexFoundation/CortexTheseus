@@ -338,7 +338,6 @@ func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 }
 
 func (tm *TorrentManager) Close() error {
-	log.Info("Torrent Download Manager Closing")
 	close(tm.closeAll)
 	tm.wg.Wait()
 	tm.dropAll()
@@ -348,7 +347,7 @@ func (tm *TorrentManager) Close() error {
 		tm.dropAll()
 	})
 	tm.wg.Wait()*/
-	log.Info("Torrent Download Manager Closed")
+	log.Info("Fs Download Manager Closed")
 	return nil
 }
 
@@ -672,7 +671,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		log.Info("Tracker list", "trackers", config.DefaultTrackers)
 		TorrentManager.SetTrackers(config.DefaultTrackers)
 	}
-	log.Info("Torrent client initialized")
+	log.Info("Fs client initialized")
 
 	//CurrentTorrentManager = TorrentManager
 	//cl.WaitAll()
@@ -703,7 +702,7 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 				tm.seedingTask()
 			}
 		case <-tm.closeAll:
-			log.Info("Seeding torrent loop closed")
+			log.Info("Seeding loop closed")
 			return
 		}
 	}
@@ -824,7 +823,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 			}
 			timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
-			log.Info("Pending torrent loop closed")
+			log.Info("Pending seed loop closed")
 			return
 		}
 	}
@@ -988,13 +987,13 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			}
 
 			if counter >= loops {
-				log.Info("Seed status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent))
+				log.Info("Fs status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent))
 				counter = 0
 				current_size = 0
 			}
 			timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
-			log.Info("Active torrent loop closed")
+			log.Info("Active seed loop closed")
 			return
 		}
 	}
