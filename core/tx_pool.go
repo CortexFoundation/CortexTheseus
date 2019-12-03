@@ -543,7 +543,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrInsufficientFunds
 	}
 	// Ensure the transaction has more gas than the basic tx fee.
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, tx != nil && tx.To() != nil && tx.Value().Sign() == 0 && pool.currentState.Uploading(*tx.To()), true,pool.istanbul)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, tx != nil && tx.To() != nil && tx.Value().Sign() == 0 && pool.currentState.Uploading(*tx.To()), true, pool.istanbul)
 	//intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, true)
 	if err != nil {
 		return err
@@ -1155,7 +1155,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.addTxsLocked(reinject, false)
 
 	// Update all fork indicator by next pending block number.
-        next := new(big.Int).Add(newHead.Number, big.NewInt(1))
+	next := new(big.Int).Add(newHead.Number, big.NewInt(1))
 	pool.istanbul = pool.chainconfig.IsIstanbul(next)
 }
 
