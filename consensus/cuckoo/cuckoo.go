@@ -126,6 +126,7 @@ func New(config Config) *Cuckoo {
 		submitRateCh: make(chan *hashrate),
 		exitCh:       make(chan chan error),
 	}
+	cuckoo.InitPlugin()
 	go cuckoo.remote()
 	return cuckoo
 }
@@ -170,7 +171,7 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 	return errc
 }
 
-func (cuckoo *Cuckoo) InitOnce() error {
+/*func (cuckoo *Cuckoo) InitOnce() error {
 	var err error
 	cuckoo.once.Do(func() {
 		errc := cuckoo.InitPlugin()
@@ -191,32 +192,45 @@ func (cuckoo *Cuckoo) InitOnce() error {
 		}
 	})
 	return err
-}
+}*/
 
 // Close closes the exit channel to notify all backend threads exiting.
 func (cuckoo *Cuckoo) Close() error {
-	var err error
-	cuckoo.closeOnce.Do(func() {
-		// Short circuit if the exit channel is not allocated.
-		if cuckoo.exitCh == nil {
-			return
-		}
-		errc := make(chan error)
-		cuckoo.exitCh <- errc
-		err = <-errc
-		close(cuckoo.exitCh)
+	close(cuckoo.exitCh)
 
-		if cuckoo.minerPlugin == nil {
-			return
-		}
-		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-		if e != nil {
-			err = e
-			return
-		}
-		m.(func())()
-	})
-	return err
+	if cuckoo.minerPlugin == nil {
+		return nil
+	}
+	m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+	if e != nil {
+		return e
+	}
+	m.(func())()
+	return nil
+	/*
+		var err error
+		cuckoo.closeOnce.Do(func() {
+			// Short circuit if the exit channel is not allocated.
+			if cuckoo.exitCh == nil {
+				return
+			}
+			errc := make(chan error)
+			cuckoo.exitCh <- errc
+			err = <-errc
+			close(cuckoo.exitCh)
+
+			if cuckoo.minerPlugin == nil {
+				return
+			}
+			m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+			if e != nil {
+				err = e
+				return
+			}
+			m.(func())()
+		})
+		return err
+	*/
 }
 
 func (cuckoo *Cuckoo) Threads() int {
