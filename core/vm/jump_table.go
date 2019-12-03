@@ -55,7 +55,48 @@ var (
 	homesteadInstructionSet      = newHomesteadInstructionSet()
 	byzantiumInstructionSet      = newByzantiumInstructionSet()
 	constantinopleInstructionSet = newConstantinopleInstructionSet()
+	istanbulInstructionSet       = newIstanbulInstructionSet()
 )
+
+// newIstanbulInstructionSet returns the frontier, homestead
+// byzantium, contantinople and petersburg instructions.
+func newIstanbulInstructionSet() [256]operation {
+	instructionSet := newConstantinopleInstructionSet()
+
+	//enable1344(&instructionSet) // ChainID opcode - https://eips.ethereum.org/EIPS/eip-1344
+	//enable1884(&instructionSet) // Reprice reader opcodes - https://eips.ethereum.org/EIPS/eip-1884
+	//enable2200(&instructionSet) // Net metered SSTORE - https://eips.ethereum.org/EIPS/eip-2200
+	instructionSet[CHAINID] = operation{
+		execute: opChainID,
+		gasCost: constGasFunc(GasQuickStep),
+		//minStack:    minStack(0, 1),
+		//maxStack:    maxStack(0, 1),
+		validateStack: makeStackFunc(0, 1),
+		valid:         true,
+	}
+
+	// enable1884 applies EIP-1884 to the given jump table:
+	// - Increase cost of BALANCE to 700
+	// - Increase cost of EXTCODEHASH to 700
+	// - Increase cost of SLOAD to 800
+	// - Define SELFBALANCE, with cost GasFastStep (5)
+	// Gas cost changes
+	instructionSet[BALANCE].gasCost = constGasFunc(params.BalanceGasEIP1884)
+	instructionSet[EXTCODEHASH].gasCost = constGasFunc(params.ExtcodeHashGasEIP1884)
+	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP1884)
+
+	// New opcode
+	instructionSet[SELFBALANCE] = operation{
+		execute:       opSelfBalance,
+		gasCost:       constGasFunc(GasFastestStep),
+		validateStack: makeStackFunc(0, 1),
+		valid:         true,
+	}
+
+	//jt[SSTORE].dynamicGas = gasSStoreEIP2200
+
+	return instructionSet
+}
 
 // NewConstantinopleInstructionSet returns the frontier, homestead
 // byzantium and contantinople instructions.
