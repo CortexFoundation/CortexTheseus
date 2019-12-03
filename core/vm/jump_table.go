@@ -36,7 +36,9 @@ type operation struct {
 	// execute is the operation function
 	execute executionFunc
 	// gasCost is the gas function and returns the gas required for execution
-	gasCost gasFunc
+	gasCost     gasFunc
+	constantGas uint64
+	dynamicGas  gasFunc
 	// validateStack validates the stack (size) for the operation
 	validateStack stackValidationFunc
 	// memorySize returns the memory size required for the operation
@@ -92,8 +94,8 @@ func newIstanbulInstructionSet() [256]operation {
 		validateStack: makeStackFunc(0, 1),
 		valid:         true,
 	}
-
-	//jt[SSTORE].dynamicGas = gasSStoreEIP2200
+	//instructionSet[SSTORE].dynamicGas = gasSStoreEIP2200
+	instructionSet[SSTORE].gasCost = gasSStoreEIP2200
 
 	return instructionSet
 }
