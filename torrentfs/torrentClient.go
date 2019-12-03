@@ -186,7 +186,7 @@ func (t *Torrent) IsAvailable() bool {
 func (t *Torrent) WriteTorrent() {
 	if f, err := os.Create(path.Join(t.filepath, "torrent")); err == nil {
 		defer f.Close()
-		log.Debug("Write torrent file", "path", t.filepath)
+		log.Debug("Write seed file", "path", t.filepath)
 		if err := t.Metainfo().Write(f); err == nil {
 			t.Pause()
 		}
@@ -357,7 +357,7 @@ func (tm *TorrentManager) dropAll() {
 	defer tm.lock.Unlock()
 	for _, t := range tm.torrents {
 		stats := t.Stats()
-		log.Debug("torrent statics", "hash", t.infohash, "total", stats.TotalPeers, "pending", stats.PendingPeers, "active", stats.ActivePeers, "seeder", stats.ConnectedSeeders, "half", stats.HalfOpenPeers)
+		log.Debug("Fs statics", "hash", t.infohash, "total", stats.TotalPeers, "pending", stats.PendingPeers, "active", stats.ActivePeers, "seeder", stats.ConnectedSeeders, "half", stats.HalfOpenPeers)
 		t.Drop()
 	}
 
@@ -461,10 +461,10 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	ih := spec.InfoHash
-	log.Trace("Get torrent from local file", "InfoHash", ih.HexString())
+	log.Trace("Get seed from local file", "InfoHash", ih.HexString())
 
 	if t := tm.GetTorrent(ih); t != nil {
-		log.Trace("Torrent was already existed. Skip", "InfoHash", ih.HexString())
+		log.Trace("Seed was already existed. Skip", "InfoHash", ih.HexString())
 		return t
 	}
 	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
@@ -478,7 +478,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 			log.Error("error unmarshalling info: ", "info", err)
 		}
 		if err := verifyTorrent(&info, ExistDir); err != nil {
-			log.Warn("torrent failed verification:", "err", err)
+			log.Warn("Seed failed verification:", "err", err)
 		} else {
 			useExistDir = true
 		}
@@ -562,7 +562,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 
 // UpdateInfoHash ...
 func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
-	log.Debug("Update torrent", "InfoHash", ih, "bytes", BytesRequested)
+	log.Debug("Update seed", "InfoHash", ih, "bytes", BytesRequested)
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
@@ -725,18 +725,18 @@ func (tm *TorrentManager) mainLoop() {
 				counter := 0
 				for {
 					if t := tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t != nil {
-						log.Debug("Torrent [create] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
+						log.Debug("Seed [create] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 						break
 					} else {
 						if counter > 10 {
 							break
 						}
-						log.Error("Torrent [create] failed", "hash", meta.InfoHash, "request", meta.BytesRequested, "counter", counter)
+						log.Error("Seed [create] failed", "hash", meta.InfoHash, "request", meta.BytesRequested, "counter", counter)
 						counter++
 					}
 				}
 			} else {
-				log.Debug("Torrent [update] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
+				log.Debug("Seed [update] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 				tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			}
 		case <-tm.closeAll:
@@ -800,10 +800,10 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						t.isBoosting = true
 						go func(t *Torrent) {
 							defer t.BoostOff()
-							log.Info("Try to boost torrent", "hash", t.infohash)
+							log.Info("Try to boost seed", "hash", t.infohash)
 							if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
 								if t.Torrent.Info() != nil {
-									log.Warn("Torrent already exist", "hash", t.infohash)
+									log.Warn("Seed already exist", "hash", t.infohash)
 									return
 								}
 								t.Torrent.Drop()
@@ -988,7 +988,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			}
 
 			if counter >= loops {
-				log.Info("Torrent status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent))
+				log.Info("Seed status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent))
 				counter = 0
 				current_size = 0
 			}

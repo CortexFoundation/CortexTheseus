@@ -149,7 +149,7 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 	//log.Debug("storage", "ih", ih)
 	if torrent := tm.GetTorrent(ih); torrent == nil {
 		//log.Debug("storage", "ih", ih, "torrent", torrent)
-		log.Debug("Torrent not found", "hash", infohash)
+		log.Debug("Seed not found", "hash", infohash)
 		return false, errors.New("download not completed")
 	} else {
 		if !torrent.IsAvailable() {

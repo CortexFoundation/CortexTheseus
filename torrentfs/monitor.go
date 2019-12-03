@@ -96,22 +96,22 @@ type Monitor struct {
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
 func NewMonitor(flag *Config) (m *Monitor, e error) {
-	log.Info("Initialising Torrent FS")
+	log.Info("Initialising FS")
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
 		return nil, fsErr
 	}
-	log.Info("Torrent file storage initialized")
+	log.Info("File storage initialized")
 
 	// Torrent Manager
 	tMana := NewTorrentManager(flag)
 	if tMana == nil {
-		log.Error("torrent manager failed")
-		return nil, errors.New("torrent download manager initialise failed")
+		log.Error("fs manager failed")
+		return nil, errors.New("fs download manager initialise failed")
 	}
-	log.Info("Torrent manager initialized")
+	log.Info("Fs manager initialized")
 
 	m = &Monitor{
 		config: flag,
@@ -448,7 +448,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", m.healthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ FS SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", m.healthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
@@ -635,7 +635,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 }
 
 func (m *Monitor) Stop() {
-	log.Info("Torrent listener closing")
+	log.Info("Fs listener closing")
 	if atomic.LoadInt32(&(m.terminated)) == 1 {
 		return
 	}
@@ -651,17 +651,17 @@ func (m *Monitor) Stop() {
 	                }
 	                log.Info("Torrent client listener synchronizing closed")
 	        })*/
-	log.Info("Torrent client listener synchronizing closing")
+	log.Info("Fs client listener synchronizing closing")
 	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Torrent Manager closed", "error", err)
+		log.Error("Monitor Fs Manager closed", "error", err)
 	}
-	log.Info("Torrent client listener synchronizing closed")
+	log.Info("Fs client listener synchronizing closed")
 
-	log.Info("Torrent fs listener synchronizing closing")
+	log.Info("Fs listener synchronizing closing")
 	if err := m.fs.Close(); err != nil {
 		log.Error("Monitor File Storage closed", "error", err)
 	}
-	log.Info("Torrent fs listener synchronizing closed")
+	log.Info("Fs listener synchronizing closed")
 	/*m.wg.Add(1)
 	m.closeOnce.Do(func() {
 		defer m.wg.Done()
@@ -679,13 +679,13 @@ func (m *Monitor) Stop() {
 	})
 	m.wg.Wait()*/
 
-	log.Info("Torrent listener closed")
+	log.Info("Fs listener closed")
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
 	if err := m.dl.Start(); err != nil {
-		log.Warn("Torrent start error")
+		log.Warn("Fs start error")
 		return err
 	}
 	m.wg.Add(1)
@@ -724,15 +724,15 @@ func (m *Monitor) startWork() error {
 		clientURI = m.config.IpcPath
 	} else {
 		if m.config.RpcURI == "" {
-			log.Warn("Torrent rpc uri is empty")
-			return errors.New("Torrent RpcURI is empty")
+			log.Warn("Fs rpc uri is empty")
+			return errors.New("Fs RpcURI is empty")
 		}
 		clientURI = m.config.RpcURI
 	}
 
 	rpcClient, rpcErr := SetConnection(clientURI)
 	if rpcErr != nil {
-		log.Error("Torrent rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
+		log.Error("Fs rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
 		return rpcErr
 	}
 	m.cl = rpcClient

@@ -319,7 +319,7 @@ func (fs *FileStorage) Close() error {
 	//	if fs.opCounter.IsZero() {
 	// persist storage block number
 	fs.writeCheckPoint()
-	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
+	log.Info("File DB Closed", "database", fs.db.Path())
 	return fs.writeBlockNumber()
 	//fs.writeLastFileIndex()
 	//	}

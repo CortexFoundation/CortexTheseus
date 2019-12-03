@@ -53,11 +53,13 @@ type operation struct {
 }
 
 var (
-	frontierInstructionSet       = newFrontierInstructionSet()
-	homesteadInstructionSet      = newHomesteadInstructionSet()
-	byzantiumInstructionSet      = newByzantiumInstructionSet()
-	constantinopleInstructionSet = newConstantinopleInstructionSet()
-	istanbulInstructionSet       = newIstanbulInstructionSet()
+	frontierInstructionSet         = newFrontierInstructionSet()
+	homesteadInstructionSet        = newHomesteadInstructionSet()
+	tangerineWhistleInstructionSet = newTangerineWhistleInstructionSet()
+	spuriousDragonInstructionSet   = newSpuriousDragonInstructionSet()
+	byzantiumInstructionSet        = newByzantiumInstructionSet()
+	constantinopleInstructionSet   = newConstantinopleInstructionSet()
+	istanbulInstructionSet         = newIstanbulInstructionSet()
 )
 
 // newIstanbulInstructionSet returns the frontier, homestead
@@ -145,7 +147,7 @@ func newConstantinopleInstructionSet() [256]operation {
 // byzantium instructions.
 func newByzantiumInstructionSet() [256]operation {
 	// instructions that can be executed during the homestead phase.
-	instructionSet := newHomesteadInstructionSet()
+	instructionSet := newSpuriousDragonInstructionSet()
 	instructionSet[STATICCALL] = operation{
 		execute:       opStaticCall,
 		gasCost:       gasStaticCall,
@@ -176,6 +178,27 @@ func newByzantiumInstructionSet() [256]operation {
 		reverts:       true,
 		returns:       true,
 	}
+	return instructionSet
+}
+
+// EIP 158 a.k.a Spurious Dragon
+func newSpuriousDragonInstructionSet() [256]operation {
+	instructionSet := newTangerineWhistleInstructionSet()
+	instructionSet[EXP].dynamicGas = gasExpEIP158
+	return instructionSet
+
+}
+
+// EIP 150 a.k.a Tangerine Whistle
+func newTangerineWhistleInstructionSet() [256]operation {
+	instructionSet := newHomesteadInstructionSet()
+	instructionSet[BALANCE].constantGas = params.BalanceGasEIP150
+	instructionSet[EXTCODESIZE].constantGas = params.ExtcodeSizeGasEIP150
+	instructionSet[SLOAD].constantGas = params.SloadGasEIP150
+	instructionSet[EXTCODECOPY].constantGas = params.ExtcodeCopyBaseEIP150
+	instructionSet[CALL].constantGas = params.CallGasEIP150
+	instructionSet[CALLCODE].constantGas = params.CallGasEIP150
+	instructionSet[DELEGATECALL].constantGas = params.CallGasEIP150
 	return instructionSet
 }
 

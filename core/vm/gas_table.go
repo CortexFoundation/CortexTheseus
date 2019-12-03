@@ -424,6 +424,32 @@ func gasCreate2(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, 
 	return gas, nil
 }
 
+func gasExpFrontier(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	expByteLen := uint64((stack.data[stack.len()-2].BitLen() + 7) / 8)
+
+	var (
+		gas      = expByteLen * params.ExpByteFrontier // no overflow check required. Max is 256 * ExpByte gas
+		overflow bool
+	)
+	if gas, overflow = math.SafeAdd(gas, params.ExpGas); overflow {
+		return 0, errGasUintOverflow
+	}
+	return gas, nil
+}
+
+func gasExpEIP158(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	expByteLen := uint64((stack.data[stack.len()-2].BitLen() + 7) / 8)
+
+	var (
+		gas      = expByteLen * params.ExpByteEIP158 // no overflow check required. Max is 256 * ExpByte gas
+		overflow bool
+	)
+	if gas, overflow = math.SafeAdd(gas, params.ExpGas); overflow {
+		return 0, errGasUintOverflow
+	}
+	return gas, nil
+}
+
 func gasBalance(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	return gt.Balance, nil
 }
