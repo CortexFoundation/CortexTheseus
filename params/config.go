@@ -101,10 +101,10 @@ var (
 		HomesteadBlock: big.NewInt(0),
 		DAOForkBlock:   big.NewInt(0),
 		DAOForkSupport: false,
-		EIP150Block:    big.NewInt(0),
+		EIP150Block:    big.NewInt(0), // TangerineWhistle
 		EIP150Hash:     common.HexToHash("0x"),
-		EIP155Block:    big.NewInt(0),
-		EIP158Block:    big.NewInt(0),
+		EIP155Block:    big.NewInt(0), // SpuriousDragon
+		EIP158Block:    big.NewInt(0), // SpuriousDragon
 		ByzantiumBlock: big.NewInt(0),
 		//CortexBlock:	     big.NewInt(8409600),
 		ConstantinopleBlock: big.NewInt(0),
@@ -239,7 +239,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v TangerineWhistle(EIP150): %v SpuriousDragon(EIP155): %v SpuriousDragon(EIP158): %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
