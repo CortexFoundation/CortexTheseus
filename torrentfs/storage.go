@@ -12,6 +12,7 @@ import (
 	//"io/ioutil"
 	"strconv"
 	//"strings"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	//"sync"
 	//"sync/atomic"
 	"time"
@@ -188,7 +189,7 @@ func (fs *FileStorage) initMerkleTree() error {
 		}
 	}
 
-	log.Info("Storage merkletree initialization", "root", common.ToHex(fs.tree.MerkleRoot()))
+	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()))
 
 	return nil
 }
@@ -200,7 +201,7 @@ func (fs *FileStorage) addLeaf(block *Block) error {
 			return err
 		}
 
-		log.Debug("Add a new leaf", "number", block.Number, "root", common.ToHex(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+		log.Debug("Add a new leaf", "number", block.Number, "root", hexutil.Encode(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
 
 		return nil
 	} else {

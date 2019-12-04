@@ -10,8 +10,7 @@ require (
 	github.com/anacrolix/tagflag v1.0.1
 	github.com/anacrolix/torrent v1.9.1-0.20191130085335-f15aa27e24d0
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
-	github.com/bitly/go-simplejson v0.5.0
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/bitly/go-simplejson v0.5.1-0.20181114203107-9db4a59bd4d8
 	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c
 	github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
 	github.com/cespare/cp v1.1.1

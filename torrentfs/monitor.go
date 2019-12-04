@@ -69,7 +69,7 @@ type Monitor struct {
 
 	//listenID rpc.ID
 
-	uncheckedCh chan uint64
+	//uncheckedCh chan uint64
 
 	exitCh     chan struct{}
 	terminated int32
@@ -725,7 +725,7 @@ func (m *Monitor) startWork() error {
 	} else {
 		if m.config.RpcURI == "" {
 			log.Warn("Fs rpc uri is empty")
-			return errors.New("Fs RpcURI is empty")
+			return errors.New("fs RpcURI is empty")
 		}
 		clientURI = m.config.RpcURI
 	}
