@@ -897,6 +897,9 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 	var res []string
 	var status = false
 	for _, port := range ports {
+		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			break
+		}
 		//m.portsWg.Add(1)
 		//go func(port string) {
 		//defer m.portsWg.Done()
