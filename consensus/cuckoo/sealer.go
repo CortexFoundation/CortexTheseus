@@ -129,19 +129,11 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 	targetDiff := new(big.Int).Div(maxUint256, shareDiff)
 	fmt.Printf("targetDiff = %v, %s\n", targetDiff, string(common.ToHex(targetDiff.Bytes())))
 
-	flag := false
-	for i := 0; i < len(solution); i++ {
-		if solution[i] != 0 {
-			flag = true
-			log.Info("cuckoo", "sol no zero", solution[i], solution)
-			break
-		}
-	}
 	sha3Hash := common.BytesToHash(cuckoo.Sha3Solution(solution))
 	blockTarget := new(big.Int).Div(maxUint256, blockDiff)
 	shareTarget := new(big.Int).Div(maxUint256, shareDiff)
 	actualDiff := new(big.Int).Div(maxUint256, sha3Hash.Big())
-	if flag {
+	if cuckoo.config.Algorithm == "cuckaroo" {
 		ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), targetDiff)
 		if !ok {
 			//fmt.Println("invalid solution")
@@ -153,7 +145,7 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 		// 	sha3Hash.Hex())
 		return sha3Hash.Big().Cmp(shareTarget) <= 0, sha3Hash.Big().Cmp(blockTarget) <= 0, actualDiff.Int64()
 	} else {
-		ok1, ok2, ok3 := cuckoo.XCortexVerifyHeader2(hashNoNonce.Bytes(), block.Nonce(), targetDiff, shareTarget, blockTarget)
+		ok1, ok2, ok3 := cuckoo.XCortexVerifyHeader_remote(hashNoNonce.Bytes(), block.Nonce(), targetDiff, shareTarget, blockTarget)
 		if !ok1 {
 			return false, false, 0
 		}

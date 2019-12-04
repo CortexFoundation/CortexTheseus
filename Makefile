@@ -101,6 +101,8 @@ plugins/cpu_cvm.so:
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
 plugins/xcortex_helper.so: plugins/cpu_cvm.so
+	$(MAKE) -C XCortex/ libverify.so
+	cp XCortex/libverify.so consensus/cuckoo/xcortex/
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/xcortex/xcortex_helper.go
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so plugins/xcortex_helper.so
@@ -134,6 +136,7 @@ clean: clean-clib
 clean-clib:
 	$(MAKE) -C $(LIB_MINER_DIR) clean
 	$(MAKE) -C $(INFER_NET_DIR) clean
+	$(MAKE) -C ./XCortex/ clean
 	
 .PHONY: clean-all
 clean-all: clean-clib clean

@@ -101,7 +101,7 @@ var (
 		utils.MinerCudaFlag,
 		//utils.MinerOpenCLFlag,
 		utils.MinerDevicesFlag,
-		//utils.MinerAlgorithmFlag,
+		utils.MinerAlgorithmFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
 		// utils.DiscoveryV5Flag,

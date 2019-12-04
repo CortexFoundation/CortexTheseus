@@ -644,15 +644,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
 	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
 
-	flag := false
-	for i := 0; i < len(result); i++ {
-		if result[i] != 0 {
-			flag = true
-			log.Info("cuckoo", "sol no zero", result[i], result)
-			break
-		}
-	}
-	if flag {
+	if cuckoo.config.Algorithm == "cuckaroo" {
 		r := cuckoo.CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64(), targetDiff)
 		if !r {
 			log.Trace(fmt.Sprintf("VerifySeal: %v, %v", r, targetDiff))
@@ -895,7 +887,6 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
 		return false
 	}
-	log.Info("cuckoo", "verify by cuckoo................................")
 	r = m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
 	//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	return r
@@ -908,7 +899,6 @@ func (cuckoo *Cuckoo) XCortexVerifyHeader(hash []byte, nonce uint64, targetDiff 
 			return false
 		}
 	}
-	log.Info("cuckoo", "verify by xcortex................................")
 	m, err := cuckoo.xcortexPlugin.Lookup("Verify")
 	if err != nil {
 		log.Error("cuckoo", "lookup xcortex verify error", err)
@@ -917,7 +907,7 @@ func (cuckoo *Cuckoo) XCortexVerifyHeader(hash []byte, nonce uint64, targetDiff 
 	r := m.(func(*byte, uint64, string) bool)(&hash[0], nonce, string(common.ToHex(targetDiff.Bytes())))
 	return r
 }
-func (cuckoo *Cuckoo) XCortexVerifyHeader2(hash []byte, nonce uint64, targetDiff *big.Int, shareTarget *big.Int, blockTarget *big.Int) (bool, bool, bool) {
+func (cuckoo *Cuckoo) XCortexVerifyHeader_remote(hash []byte, nonce uint64, targetDiff *big.Int, shareTarget *big.Int, blockTarget *big.Int) (bool, bool, bool) {
 	if cuckoo.xcortexPlugin == nil {
 		err := cuckoo.InitPlugin()
 		if err != nil {
@@ -925,8 +915,7 @@ func (cuckoo *Cuckoo) XCortexVerifyHeader2(hash []byte, nonce uint64, targetDiff
 			return false, false, false
 		}
 	}
-	log.Info("cuckoo", "verify by xcortex................................")
-	m, err := cuckoo.xcortexPlugin.Lookup("Verify2")
+	m, err := cuckoo.xcortexPlugin.Lookup("Verify_remote")
 	if err != nil {
 		log.Error("cuckoo", "lookup xcortex verify error", err)
 		return false, false, false

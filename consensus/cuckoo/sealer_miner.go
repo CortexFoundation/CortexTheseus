@@ -3,6 +3,7 @@
 package cuckoo
 
 import (
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"math/big"
@@ -11,7 +12,7 @@ import (
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error) {
 	err = cuckoo.InitPlugin()
 	if err != nil {
-		log.Error("cuckoo init error","error", err)
+		log.Error("cuckoo init error", "error", err)
 		return err
 	}
 
@@ -48,22 +49,32 @@ search:
 				attempts = 0
 			}
 
-			m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
-			if err != nil {
-				return err
-			}
-			r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
-			if r == 0 {
-				nonce++
-				continue
-			}
-			copy(result[:], res[0][0:len(res[0])])
+			ret := false
+			if cuckoo.config.Algorithm == CUCKAROO {
+				m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
+				if err != nil {
+					return err
+				}
+				r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
+				if r == 0 {
+					nonce++
+					continue
+				}
+				copy(result[:], res[0][0:len(res[0])])
 
-			m, err = cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
-			if err != nil {
-				return err
+				m, err = cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
+				if err != nil {
+					return err
+				}
+				ret = m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
+			} else {
+				m, err := cuckoo.xcortexPlugin.Lookup("Verify")
+				if err != nil {
+					log.Error("cuckoo", "lookup xcortex verify error", err)
+					return err
+				}
+				ret = m.(func(*byte, uint64, string) bool)(&hash[0], nonce, string(common.ToHex(target.Bytes())))
 			}
-			ret := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
 			if ret {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)

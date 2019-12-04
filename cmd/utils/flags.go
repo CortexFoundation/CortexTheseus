@@ -399,10 +399,10 @@ var (
 		Name:  "miner.devices",
 		Usage: "the devices used mining, use --miner.devices=0,1",
 	}
-	//	MinerAlgorithmFlag = cli.StringFlag{
-	//		Name:  "miner.algorithm",
-	//		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
-	//	}
+	MinerAlgorithmFlag = cli.StringFlag{
+		Name:  "miner.algorithm",
+		Usage: "use mining algorithm, --miner.algorithm=cuckaroo/xcortex",
+	}
 	InferDeviceTypeFlag = cli.StringFlag{
 		Name:  "infer.devicetype",
 		Usage: "infer device type : cpu or gpu",
@@ -1133,8 +1133,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
 	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
-	//cfg.Cuckoo.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
-	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
+	cfg.Cuckoo.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
+	//cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
 	if cfg.InferDeviceType == "cpu" {

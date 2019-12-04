@@ -6,3 +6,6 @@
 	path = InferenceServer
     url = git@github.com:CortexFoundation/InferenceServer.git
     ignore = dirty
+[submodule "XCortex"]
+	path = XCortex
+	url = git@github.com:CortexFoundation/XCortex.git

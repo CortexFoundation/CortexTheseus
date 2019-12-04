@@ -152,31 +152,36 @@ func NewShared() *Cuckoo {
 const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_helper_for_node.so"
 const XCORTEX_PLUGIN string = "plugins/xcortex_helper.so"
+const CUCKAROO = "cuckaroo"
+const XCORTEX = "xcortex"
 
 func (cuckoo *Cuckoo) InitPlugin() error {
-	var minerName string = "cpu"
-	if cuckoo.config.UseCuda == true {
-		minerName = "cuda"
-		cuckoo.threads = 1
-	} else if cuckoo.config.UseOpenCL == true {
-		minerName = "opencl"
-		cuckoo.threads = 1
-	}
-	if cuckoo.config.StrDeviceIds == "" {
-		cuckoo.config.StrDeviceIds = "0" //default gpu device 0
-	}
 	var errc error
-	so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
-	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
-		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
-	if cuckoo.minerPlugin == nil {
-		cuckoo.minerPlugin, errc = plugin.Open(so_path)
-	}
-	if cuckoo.xcortexPlugin == nil {
-		log.Info("Cuckoo Init Plugin", "name", "xcortex", "library path", XCORTEX_PLUGIN)
-		cuckoo.xcortexPlugin, errc = plugin.Open(XCORTEX_PLUGIN)
-		if errc != nil {
-			log.Info("cuckoo init plugin", "error", errc)
+	if cuckoo.config.Algorithm == CUCKAROO {
+		var minerName string = "cpu"
+		if cuckoo.config.UseCuda == true {
+			minerName = "cuda"
+			cuckoo.threads = 1
+		} else if cuckoo.config.UseOpenCL == true {
+			minerName = "opencl"
+			cuckoo.threads = 1
+		}
+		if cuckoo.config.StrDeviceIds == "" {
+			cuckoo.config.StrDeviceIds = "0" //default gpu device 0
+		}
+		so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
+		log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
+			"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
+		if cuckoo.minerPlugin == nil {
+			cuckoo.minerPlugin, errc = plugin.Open(so_path)
+		}
+	} else {
+		if cuckoo.xcortexPlugin == nil {
+			log.Info("Cuckoo Init Plugin", "name", "xcortex", "library path", XCORTEX_PLUGIN)
+			cuckoo.xcortexPlugin, errc = plugin.Open(XCORTEX_PLUGIN)
+			if errc != nil {
+				log.Info("cuckoo init plugin", "error", errc)
+			}
 		}
 	}
 	return errc
