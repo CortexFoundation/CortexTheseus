@@ -16,8 +16,8 @@ github.com/anacrolix/envpprof v1.0.0/go.mod h1:KgHhUaQMc8cC0+cEflSgCFNFbKwi5h54g
 github.com/anacrolix/missinggo v1.1.0 h1:0lZbaNa6zTR1bELAIzCNmRGAtkHuLDPJqTiTtXoAIx8=
 github.com/anacrolix/missinggo v1.1.0/go.mod h1:MBJu3Sk/k3ZfGYcS7z18gwfu72Ey/xopPFJJbTi5yIo=
 github.com/anacrolix/missinggo/v2 v2.2.0/go.mod h1:o0jgJoYOyaoYQ4E2ZMISVa9c88BbUBVQQW4QeRkNCGY=
-github.com/anacrolix/stm v0.1.0 h1:B/Kt3e4+0uqJoLcNZFW69cCBASok6WxX9CEhz9PqIPM=
-github.com/anacrolix/stm v0.1.0/go.mod h1:ZKz7e7ERWvP0KgL7WXfRjBXHNRhlVRlbBQecqFtPq+A=
+github.com/anacrolix/stm v0.2.0 h1:q4IrMj/PPQM2OgHkQcWEVmiOXcuf0Kkil2rWasQeGkU=
+github.com/anacrolix/stm v0.2.0/go.mod h1:zoVQRvSiGjGoTmbM0vSLIiaKjWtNPeTvXUSdJQA4hsg=
 github.com/anacrolix/tagflag v0.0.0-20180109131632-2146c8d41bf0 h1:xcd2GmlPWBsGNjdbwriHXvJJtagl1AnbjTPhJTksJDQ=
 github.com/anacrolix/tagflag v0.0.0-20180109131632-2146c8d41bf0/go.mod h1:1m2U/K6ZT+JZG0+bdMK6qauP49QT4wE5pmhJXOKKCHw=
 github.com/anacrolix/tagflag v1.0.0 h1:NoxBVyke6iEtXfSY/n3lY3jNCBjQDu7aTvwHJxNLJAQ=
