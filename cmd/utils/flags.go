@@ -732,9 +732,9 @@ func setListenAddress(ctx *cli.Context, cfg *p2p.Config) {
 	if ctx.GlobalIsSet(ListenPortFlag.Name) {
 		cfg.ListenAddr = fmt.Sprintf(":%d", ctx.GlobalInt(ListenPortFlag.Name))
 	} else if ctx.GlobalBool(DoloresFlag.Name) {
-		cfg.ListenAddr = fmt.Sprintf(":%d", ctx.GlobalInt("40405"))
+		cfg.ListenAddr = fmt.Sprintf(":%d", 40405)
 	} else if ctx.GlobalBool(BernardFlag.Name) {
-		cfg.ListenAddr = fmt.Sprintf(":%d", ctx.GlobalInt("40406"))
+		cfg.ListenAddr = fmt.Sprintf(":%d", 40406)
 	}
 }
 
