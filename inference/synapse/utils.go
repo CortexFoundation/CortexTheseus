@@ -27,10 +27,11 @@ func ReadData(r *inference.NpyReader) ([]byte, error) {
 			return nil, derr
 		}
 		//TODO(tian) assume input is uint31! not int32
-		for idx := 0; idx < len(i4_data); idx++ {
-			tmp := make([]byte, 8)
-			binary.PutUvarint(tmp[:], uint64(i4_data[idx]))
-			copy(data[idx*4:idx*4+4], tmp[:4])
+		for i := 0; i < len(i4_data); i++ {
+			//tmp := make([]byte, 8)
+			//binary.PutUvarint(tmp[:], uint64(i4_data[idx]))
+			//copy(data[idx*4:idx*4+4], tmp[:4])
+			binary.LittleEndian.PutUint32(data[i:i+4], uint32(i4_data[i]))
 		}
 	} else {
 		return nil, errors.New("not support dtype for " + r.Dtype)
