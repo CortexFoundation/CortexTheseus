@@ -17,19 +17,23 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 	"net/http"
+	"os/signal"
+	"sync"
 )
 
 func homeDir() string {
@@ -115,13 +119,16 @@ var (
 		Description: ``,
 	}
 )
+var (
+	wg sync.WaitGroup
+	c  chan os.Signal
+)
 
 // localConsole starts a new cortex node, attaching a JavaScript console to it at the
 // same time.
 func cvmServer(ctx *cli.Context) error {
-	// flag.Parse()
-
-	// Set log
+	c = make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
 	fsCfg := torrentfs.DefaultConfig
@@ -135,14 +142,17 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
 	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
-	log.Info("cvmServer", "torrentfs.Config", fsCfg, "StorageDirFlag.Name", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
+	log.Info("Cvm Server", "torrentfs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
-	storagefs.Start(nil)
 	if fs_err != nil {
-		//panic(fs_err)
 		return errors.New("torrent start failed")
 	}
-	//defer storagefs.Stop()
+
+	err := storagefs.Start(&p2p.Server{})
+	if err != nil {
+		return err
+	}
+
 	port := ctx.GlobalInt(CVMPortFlag.Name)
 	DeviceType := ctx.GlobalString(utils.InferDeviceTypeFlag.Name)
 	DeviceId := ctx.GlobalInt(utils.InferDeviceIdFlag.Name)
@@ -163,14 +173,31 @@ func cvmServer(ctx *cli.Context) error {
 	inferServer := synapse.New(&synpapseConfig)
 	log.Info("Initilized inference server with synapse engine", "config", synpapseConfig)
 
-	http.HandleFunc("/", handler)
+	wg.Add(1)
+	go func(port int, inferServer *synapse.Synapse) {
+		defer wg.Done()
+		log.Info("CVM http server listen on 0.0.0.0", "port", port)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", handler)
+		server := &http.Server{
+			Addr:         ":" + strconv.Itoa(port),
+			WriteTimeout: time.Second * 15,
+			Handler:      mux,
+		}
 
-	log.Info(fmt.Sprintf("Http Server Listen on 0.0.0.0:%d", port))
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+		go server.ListenAndServe()
+		select {
+		case <-c:
+			if err := server.Close(); err != nil {
+				log.Info("Close http server failed", "err", err)
+			} else {
+				log.Info("CVM http server closed")
+			}
+			inferServer.Close()
+		}
+	}(port, inferServer)
 
-	log.Error(fmt.Sprintf("Server Closed with Error %v", err))
-
-	inferServer.Close()
+	wg.Wait()
 
 	return nil
 }

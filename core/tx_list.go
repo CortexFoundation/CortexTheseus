@@ -436,22 +436,21 @@ func (l *txPricedList) Put(tx *types.Transaction) {
 }*/
 
 func (l *txPricedList) Removed(count int) {
-        // Bump the stale counter, but exit if still too low (< 25%)
-        l.stales += count
-        if l.stales <= len(*l.items)/4 {
-                return
-        }
-        // Seems we've reached a critical number of stale transactions, reheap
-        reheap := make(priceHeap, 0, l.all.Count())
+	// Bump the stale counter, but exit if still too low (< 25%)
+	l.stales += count
+	if l.stales <= len(*l.items)/4 {
+		return
+	}
+	// Seems we've reached a critical number of stale transactions, reheap
+	reheap := make(priceHeap, 0, l.all.Count())
 
-        l.stales, l.items = 0, &reheap
-        l.all.Range(func(hash common.Hash, tx *types.Transaction) bool {
-                *l.items = append(*l.items, tx)
-                return true
-        })
-        heap.Init(l.items)
+	l.stales, l.items = 0, &reheap
+	l.all.Range(func(hash common.Hash, tx *types.Transaction) bool {
+		*l.items = append(*l.items, tx)
+		return true
+	})
+	heap.Init(l.items)
 }
-
 
 // Cap finds all the transactions below the given price threshold, drops them
 // from the priced list and returns them for further removal from the entire pool.

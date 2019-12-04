@@ -134,3 +134,25 @@ const char* cuda_broadcast_max(const int32_t *a, const int32_t *b, int32_t* c, c
   };
   return cuda_broadcast(a, b, c, n, ashape, adim, bshape, bdim, cshape, cdim, f, error_code);
 }
+
+const char* cuda_broadcast_div(const int32_t *a, const int32_t *b, int32_t* c, const uint64_t n, 
+    int64_t *ashape, int32_t adim,
+    int64_t *bshape, int32_t bdim,
+    int64_t *cshape, int32_t cdim,
+    int& error_code){
+  auto f = []__device__(const int32_t a, const int32_t b){
+    return b == 0 ? 0 : a/b;
+  };
+  return cuda_broadcast(a, b, c, n, ashape, adim, bshape, bdim, cshape, cdim, f, error_code);
+}
+
+const char* cuda_broadcast_greater(const int32_t *a, const int32_t *b, int32_t* c, const uint64_t n, 
+    int64_t *ashape, int32_t adim,
+    int64_t *bshape, int32_t bdim,
+    int64_t *cshape, int32_t cdim,
+    int& error_code){
+  auto f = []__device__(const int32_t a, const int32_t b){
+    return a > b;
+  };
+  return cuda_broadcast(a, b, c, n, ashape, adim, bshape, bdim, cshape, cdim, f, error_code);
+}

@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/binary"
-	"fmt"
+	//"fmt"
 	"net/http"
 
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -87,12 +87,12 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	model, input := inferWork.Model, inferWork.Input
 
 	log.Debug("Infer Work", "Model Hash", model)
-	var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
+	/*var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
 	if v, ok := simpleCache.Load(cacheKey); ok && !(IsNotCache) {
 		log.Debug("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
 		RespInfoText(w, v.([]byte))
 		return
-	}
+	}*/
 
 	// Fixed bugs, ctx_getSolidityBytes returns 0x which stands for state invalid
 	// if len(input) == 0 {
@@ -108,9 +108,9 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 		return
 	}
 
-	if !(IsNotCache) {
+	/*if !(IsNotCache) {
 		simpleCache.Store(cacheKey, label)
-	}
+	}*/
 
 	RespInfoText(w, label)
 }

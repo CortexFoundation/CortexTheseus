@@ -155,6 +155,10 @@ func (e *GenesisMismatchError) Error() string {
 //
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db ctxcdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+	return SetupGenesisBlockWithOverride(db, genesis, nil)
+}
+
+func SetupGenesisBlockWithOverride(db ctxcdb.Database, genesis *Genesis, overrideIstanbul *big.Int) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllCuckooProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -188,6 +192,9 @@ func SetupGenesisBlock(db ctxcdb.Database, genesis *Genesis) (*params.ChainConfi
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 		block, err := genesis.Commit(db)
+		if err != nil {
+			return genesis.Config, hash, err
+		}
 		return genesis.Config, block.Hash(), err
 	}
 
@@ -201,6 +208,12 @@ func SetupGenesisBlock(db ctxcdb.Database, genesis *Genesis) (*params.ChainConfi
 
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
+	if overrideIstanbul != nil {
+		newcfg.IstanbulBlock = overrideIstanbul
+	}
+	if err := newcfg.CheckConfigForkOrder(); err != nil {
+		return newcfg, common.Hash{}, err
+	}
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")

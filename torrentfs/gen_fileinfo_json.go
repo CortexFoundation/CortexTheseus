@@ -15,14 +15,14 @@ func (f FileInfo) MarshalJSON() ([]byte, error) {
 		TxHash       *common.Hash
 		ContractAddr *common.Address
 		LeftSize     uint64
-		Index        uint64
+		//		Index        uint64
 	}
 	var enc FileInfo
 	enc.Meta = f.Meta
 	enc.TxHash = f.TxHash
 	enc.ContractAddr = f.ContractAddr
 	enc.LeftSize = f.LeftSize
-	enc.Index = f.Index
+	//enc.Index = f.Index
 	return json.Marshal(&enc)
 }
 
@@ -33,7 +33,7 @@ func (f *FileInfo) UnmarshalJSON(input []byte) error {
 		TxHash       *common.Hash
 		ContractAddr *common.Address
 		LeftSize     *uint64
-		Index        *uint64
+		//		Index        *uint64
 	}
 	var dec FileInfo
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -51,8 +51,8 @@ func (f *FileInfo) UnmarshalJSON(input []byte) error {
 	if dec.LeftSize != nil {
 		f.LeftSize = *dec.LeftSize
 	}
-	if dec.Index != nil {
-		f.Index = *dec.Index
-	}
+	//	if dec.Index != nil {
+	//		f.Index = *dec.Index
+	//	}
 	return nil
 }

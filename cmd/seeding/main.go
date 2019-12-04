@@ -20,17 +20,17 @@ import (
 
 	"github.com/anacrolix/tagflag"
 
+	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/fs"
-	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 var (
 	args = struct {
 		DataDir string `help:"torrent files in this location describe the contents of download files"`
 
-		ReadaheadBytes  tagflag.Bytes
-		ListenAddr      *net.TCPAddr
+		ReadaheadBytes tagflag.Bytes
+		ListenAddr     *net.TCPAddr
 	}{
 		DataDir: func() string {
 			_user, err := user.Current()
@@ -44,7 +44,6 @@ var (
 	}
 )
 
-
 type Change uint
 
 const (
@@ -54,13 +53,13 @@ const (
 
 type Event struct {
 	Change
-	InfoHash        metainfo.Hash
-	FilePath        string
+	InfoHash metainfo.Hash
+	FilePath string
 }
 
 type entity struct {
 	metainfo.Hash
-	FilePath  string
+	FilePath string
 }
 
 type Instance struct {
@@ -78,8 +77,8 @@ func (i *Instance) handleEvents() {
 	defer close(i.Events)
 	for e := range i.w.Events {
 		if e.Op == fsnotify.Create || e.Op == fsnotify.Remove {
-//			log.Printf("event: %s", e)
-			go func(){
+			//			log.Printf("event: %s", e)
+			go func() {
 				time.Sleep(time.Second * 1)
 				i.refresh()
 			}()
@@ -154,9 +153,9 @@ func (i *Instance) torrentRemoved(ih metainfo.Hash) {
 
 func (i *Instance) torrentAdded(e entity) {
 	i.Events <- Event{
-		InfoHash:        e.Hash,
-		FilePath:        e.FilePath,
-		Change:          Added,
+		InfoHash: e.Hash,
+		FilePath: e.FilePath,
+		Change:   Added,
 	}
 }
 
@@ -206,7 +205,6 @@ func NewDirWatch(dirName string) (i *Instance, err error) {
 	return
 }
 
-
 func exitSignalHandlers(fs *torrentfs.TorrentFS) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
@@ -244,10 +242,10 @@ func mainExitCode() int {
 	}
 	go func() {
 		/*
-		entities := scanDir(args.DataDir)
-		for _, x := range entities {
-			log.Print(x.String())
-		}
+			entities := scanDir(args.DataDir)
+			for _, x := range entities {
+				log.Print(x.String())
+			}
 		*/
 		for ev := range dw.Events {
 			switch ev.Change {
@@ -271,10 +269,12 @@ func mainExitCode() int {
 							log.Printf("error adding torrent to client: %s", err)
 							continue
 						}
+						<-t.GotInfo()
+						t.VerifyData()
 						var ss []string
 						slices.MakeInto(&ss, mi.Nodes)
 						t.DownloadAll()
-						go func(){
+						go func() {
 							time.Sleep(time.Second * 5)
 							if t.Seeding() {
 								log.Println(ih, "is seeding")

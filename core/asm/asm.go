@@ -157,7 +157,7 @@ func HasInferOp(script []byte) bool {
 		//		fmt.Println("loops end")
 	}
 	//if err := it.Error(); err != nil {
-		//		fmt.Println("......")
+	//		fmt.Println("......")
 	//	return false
 	//}
 	//	fmt.Println("END")

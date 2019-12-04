@@ -47,6 +47,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		var iw inference.IHWork
 		if err := json.Unmarshal(body, &iw); err != nil {
 			RespErrorText(w, ErrDataParse)
+			return
 		}
 		infoHashHandler(w, &iw)
 		break
@@ -55,6 +56,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		var iw inference.ICWork
 		if err := json.Unmarshal(body, &iw); err != nil {
 			RespErrorText(w, ErrDataParse)
+			return
 		}
 		inputContentHandler(w, &iw)
 		break
@@ -63,10 +65,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		var iw inference.GasWork
 		if err := json.Unmarshal(body, &iw); err != nil {
 			RespErrorText(w, ErrDataParse)
+			return
 		}
 		gasHandler(w, &iw)
 		break
-
 
 	default:
 		RespErrorText(w, ErrInvalidInferTaskType)
@@ -83,7 +85,7 @@ func main() {
 	log.Info("Inference Server", "Help Command", "./infer_server -h")
 
 	storagefs := torrentfs.CreateStorage("simple", torrentfs.Config{
-		DataDir:  *storageDir,
+		DataDir: *storageDir,
 	})
 
 	DeviceName := "cpu"
@@ -94,13 +96,13 @@ func main() {
 
 	inferServer := synapse.New(&synapse.Config{
 		// StorageDir: *storageDir,
-		IsNotCache: *IsNotCache,
-		DeviceType:  DeviceName,
-		DeviceId: *DeviceId,
+		IsNotCache:     *IsNotCache,
+		DeviceType:     DeviceName,
+		DeviceId:       *DeviceId,
 		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
-		IsRemoteInfer: false,
-		InferURI: "",
-		Storagefs:				 storagefs,
+		IsRemoteInfer:  false,
+		InferURI:       "",
+		Storagefs:      storagefs,
 	})
 	log.Info("Initilized inference server with synapse engine")
 

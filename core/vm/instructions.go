@@ -602,9 +602,9 @@ func opPop(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *
 
 func opMload(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	v := stack.peek()
-        offset := v.Int64()
-        v.SetBytes(memory.GetPtr(offset, 32))
-        return nil, nil
+	offset := v.Int64()
+	v.SetBytes(memory.GetPtr(offset, 32))
+	return nil, nil
 }
 
 func opMstore(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
@@ -1133,6 +1133,19 @@ func opSuicide(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memo
 	interpreter.cvm.StateDB.AddBalance(common.BigToAddress(stack.pop()), balance)
 
 	interpreter.cvm.StateDB.Suicide(contract.Address())
+	return nil, nil
+}
+
+// opChainID implements CHAINID opcode
+func opChainID(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	chainId := interpreter.intPool.get().Set(interpreter.cvm.chainConfig.ChainID)
+	stack.push(chainId)
+	return nil, nil
+}
+
+func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	balance := interpreter.intPool.get().Set(interpreter.cvm.StateDB.GetBalance(contract.Address()))
+	stack.push(balance)
 	return nil, nil
 }
 
