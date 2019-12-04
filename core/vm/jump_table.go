@@ -36,9 +36,9 @@ type operation struct {
 	// execute is the operation function
 	execute executionFunc
 	// gasCost is the gas function and returns the gas required for execution
-	gasCost     gasFunc
-	constantGas uint64
-	dynamicGas  gasFunc
+	gasCost gasFunc
+	// constantGas uint64
+	// dynamicGas  gasFunc
 	// validateStack validates the stack (size) for the operation
 	validateStack stackValidationFunc
 	// memorySize returns the memory size required for the operation
@@ -184,7 +184,7 @@ func newByzantiumInstructionSet() [256]operation {
 // EIP 158 a.k.a Spurious Dragon
 func newSpuriousDragonInstructionSet() [256]operation {
 	instructionSet := newTangerineWhistleInstructionSet()
-	instructionSet[EXP].dynamicGas = gasExpEIP158
+	//instructionSet[EXP].gasCost = gasExpEIP158
 	return instructionSet
 
 }
@@ -192,13 +192,13 @@ func newSpuriousDragonInstructionSet() [256]operation {
 // EIP 150 a.k.a Tangerine Whistle
 func newTangerineWhistleInstructionSet() [256]operation {
 	instructionSet := newHomesteadInstructionSet()
-	instructionSet[BALANCE].constantGas = params.BalanceGasEIP150
-	instructionSet[EXTCODESIZE].constantGas = params.ExtcodeSizeGasEIP150
-	instructionSet[SLOAD].constantGas = params.SloadGasEIP150
-	instructionSet[EXTCODECOPY].constantGas = params.ExtcodeCopyBaseEIP150
-	instructionSet[CALL].constantGas = params.CallGasEIP150
-	instructionSet[CALLCODE].constantGas = params.CallGasEIP150
-	instructionSet[DELEGATECALL].constantGas = params.CallGasEIP150
+	/*instructionSet[BALANCE].gasCost = constGasFunc(params.BalanceGasEIP150)
+	instructionSet[EXTCODESIZE].gasCost = constGasFunc(params.ExtcodeSizeGasEIP150)
+	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP150)
+	instructionSet[EXTCODECOPY].gasCost = constGasFunc(params.ExtcodeCopyBaseEIP150)
+	instructionSet[CALL].gasCost = constGasFunc(params.CallGasEIP150)
+	instructionSet[CALLCODE].gasCost = constGasFunc(params.CallGasEIP150)
+	instructionSet[DELEGATECALL].gasCost = constGasFunc(params.CallGasEIP150)*/
 	return instructionSet
 }
 
