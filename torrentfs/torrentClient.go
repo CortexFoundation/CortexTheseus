@@ -668,7 +668,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	}
 
 	if len(config.DefaultTrackers) > 0 {
-		log.Info("Tracker list", "trackers", config.DefaultTrackers)
+		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
 		TorrentManager.SetTrackers(config.DefaultTrackers)
 	}
 	log.Info("Fs client initialized")
