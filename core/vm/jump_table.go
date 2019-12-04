@@ -96,6 +96,8 @@ func newIstanbulInstructionSet() [256]operation {
 		validateStack: makeStackFunc(0, 1),
 		valid:         true,
 	}
+
+	// enable2200 applies EIP-2200 (Rebalance net-metered SSTORE)
 	//instructionSet[SSTORE].dynamicGas = gasSStoreEIP2200
 	instructionSet[SSTORE].gasCost = gasSStoreEIP2200
 

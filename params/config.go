@@ -33,7 +33,7 @@ var (
 //It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
-	//BernardGenesisHash: BernardTrustedCheckpoint,
+	BernardGenesisHash: BernardTrustedCheckpoint,
 	DoloresGenesisHash: DoloresTrustedCheckpoint,
 }
 
@@ -53,9 +53,8 @@ type TrustedCheckpoint struct {
 	SectionHead   common.Hash `json:"sectionHead"`
 	TfsBlocks     uint64      `json:"tfsBlocks"`
 	TfsCheckPoint uint64      `json:"tfsCheckPoint"`
-	//TfsCkpHead    common.Hash `json:"tfsCkpHead"`
-	TfsFiles uint64      `json:"tfsFiles"`
-	TfsRoot  common.Hash `json:"tfsRoot"`
+	TfsFiles      uint64      `json:"tfsFiles"`
+	TfsRoot       common.Hash `json:"tfsRoot"`
 }
 
 var (
@@ -66,11 +65,10 @@ var (
 
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
-		Name:         "mainnet",
-		SectionIndex: 13,
-		SectionHead:  common.HexToHash("0xbcb220cb151820896fe9ef0138b7d433ded14e9b489def7bfb4819bbf28be95e"),
-		TfsBlocks:    96,
-		//TfsCkpHead:    common.HexToHash("0x155637e09a5c0fc5b4a712abdf032242447f24cd989846fb96afce3927e8257c"),
+		Name:          "mainnet",
+		SectionIndex:  13,
+		SectionHead:   common.HexToHash("0xbcb220cb151820896fe9ef0138b7d433ded14e9b489def7bfb4819bbf28be95e"),
+		TfsBlocks:     96,
 		TfsFiles:      46,
 		TfsCheckPoint: 395964,
 		TfsRoot:       common.HexToHash("0xb07f9a8a8300db4a82da72d3d024fb86bae3742d24a91a7160d2838a13e2520a"),
@@ -80,8 +78,10 @@ var (
 		Name:         "dolores",
 		SectionIndex: 1,
 		SectionHead:  common.HexToHash("0xb7b7f06c6cc9dc5fe3b8a673fa3e18ef7bcbce033fa54051a4fb37d8fdb87d6c"),
-		//TfsBlocks:     0,
-		TfsCheckPoint: 0,
+	}
+
+	BernardTrustedCheckpoint = &TrustedCheckpoint{
+		Name: "bernard",
 	}
 
 	MainnetCheckpointOracle = &CheckpointOracleConfig{

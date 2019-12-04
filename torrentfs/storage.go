@@ -464,9 +464,10 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 
 			return buk.Put(k, v)
 		}); err == nil {
-			if err := fs.writeCheckPoint(); err == nil {
-				fs.CheckPoint = b.Number
-				fs.addLeaf(b)
+			if err := fs.addLeaf(b); err == nil {
+				if err := fs.writeCheckPoint(); err == nil {
+					fs.CheckPoint = b.Number
+				}
 			}
 		} else {
 			return err
