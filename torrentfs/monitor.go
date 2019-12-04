@@ -970,7 +970,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	//}
 
 	if uint64(currentNumber) < m.lastNumber {
-		log.Warn("Torrent fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
+		log.Warn("Fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
 		m.lastNumber = 0
 	}
 
@@ -993,7 +993,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		/*if minNumber > delay {
 			minNumber = minNumber - delay
 		}*/
-		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
+		log.Debug("Fs scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return 0
 	}
@@ -1001,7 +1001,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	start := mclock.Now()
 	for i := minNumber; i <= maxNumber; i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
-			log.Warn("Torrent scan terminated", "number", i)
+			log.Warn("Fs scan terminated", "number", i)
 			maxNumber = i - 1
 			//close(m.exitCh)
 			break
