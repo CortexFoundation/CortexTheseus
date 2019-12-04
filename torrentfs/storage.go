@@ -111,7 +111,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir: config.DataDir,
 	}
 
-	fs.version = "1"
+	fs.version = version
 
 	if err := fs.initBlockNumber(); err != nil {
 		return nil, err

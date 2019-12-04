@@ -183,7 +183,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 }
 
 func (m *Monitor) storageInit() error {
-	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root())
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version())
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
 		return err
