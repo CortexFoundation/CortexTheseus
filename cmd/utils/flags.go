@@ -1231,14 +1231,14 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
 		log.Info("path", "path", path, "ipc", IPCPath)
-		log.Info("SetTorrentFsConfig", "IPCPath", cfg.IpcPath)
+		log.Info("FsConfig", "IPCPath", cfg.IpcPath)
 	}
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
 	cfg.DefaultTrackers = strings.Split(trackers, ",")
 	cfg.BoostNodes = strings.Split(boostnodes, ",")
 	cfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
-	log.Debug("SetTorrentFsConfig", "MaxSeedingNum", ctx.GlobalInt(StorageMaxSeedingFlag.Name),
+	log.Debug("FsConfig", "MaxSeedingNum", ctx.GlobalInt(StorageMaxSeedingFlag.Name),
 		"MaxActiveNum", ctx.GlobalInt(StorageMaxActiveFlag.Name))
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
