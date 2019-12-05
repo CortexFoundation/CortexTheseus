@@ -12,6 +12,7 @@ import (
 	//"io/ioutil"
 	"strconv"
 	//"strings"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	//"sync"
 	//"sync/atomic"
 	"time"
@@ -111,7 +112,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir: config.DataDir,
 	}
 
-	fs.version = "1"
+	fs.version = version
 
 	if err := fs.initBlockNumber(); err != nil {
 		return nil, err
@@ -188,7 +189,7 @@ func (fs *FileStorage) initMerkleTree() error {
 		}
 	}
 
-	log.Info("Storage merkletree initialization", "root", common.ToHex(fs.tree.MerkleRoot()))
+	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()))
 
 	return nil
 }
@@ -200,7 +201,7 @@ func (fs *FileStorage) addLeaf(block *Block) error {
 			return err
 		}
 
-		log.Debug("Add a new leaf", "number", block.Number, "root", common.ToHex(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+		log.Debug("Add a new leaf", "number", block.Number, "root", hexutil.Encode(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
 
 		return nil
 	} else {
@@ -319,7 +320,7 @@ func (fs *FileStorage) Close() error {
 	//	if fs.opCounter.IsZero() {
 	// persist storage block number
 	fs.writeCheckPoint()
-	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
+	log.Info("File DB Closed", "database", fs.db.Path())
 	return fs.writeBlockNumber()
 	//fs.writeLastFileIndex()
 	//	}
@@ -464,9 +465,10 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 
 			return buk.Put(k, v)
 		}); err == nil {
-			if err := fs.writeCheckPoint(); err == nil {
-				fs.CheckPoint = b.Number
-				fs.addLeaf(b)
+			if err := fs.addLeaf(b); err == nil {
+				if err := fs.writeCheckPoint(); err == nil {
+					fs.CheckPoint = b.Number
+				}
 			}
 		} else {
 			return err

@@ -88,7 +88,7 @@ type Message interface {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, upload, homestead bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation, upload, homestead bool, isEIP2028 bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation && homestead {
@@ -110,16 +110,20 @@ func IntrinsicGas(data []byte, contractCreation, upload, homestead bool) (uint64
 			}
 		}
 		// Make sure we don't exceed uint64 for all data combinations
-		if (math.MaxUint64-gas)/params.TxDataNonZeroGas < nz {
-			return 0, vm.ErrOutOfGas
-		}
-		gas += nz * params.TxDataNonZeroGas
+                nonZeroGas := params.TxDataNonZeroGasFrontier
+                if isEIP2028 {
+                        nonZeroGas = params.TxDataNonZeroGasEIP2028
+                }
+                if (math.MaxUint64-gas)/nonZeroGas < nz {
+                        return 0, vm.ErrOutOfGas
+                }
+                gas += nz * nonZeroGas
 
-		z := uint64(len(data)) - nz
-		if (math.MaxUint64-gas)/params.TxDataZeroGas < z {
-			return 0, vm.ErrOutOfGas
-		}
-		gas += z * params.TxDataZeroGas
+                z := uint64(len(data)) - nz
+                if (math.MaxUint64-gas)/params.TxDataZeroGas < z {
+                        return 0, vm.ErrOutOfGas
+                }
+                gas += z * params.TxDataZeroGas
 	}
 	return gas, nil
 }
@@ -288,6 +292,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	homestead := st.cvm.ChainConfig().IsHomestead(st.cvm.BlockNumber)
+	istanbul := st.cvm.ChainConfig().IsIstanbul(st.cvm.BlockNumber)
 	matureBlockNumber := st.cvm.ChainConfig().GetMatureBlock()
 	contractCreation := msg.To() == nil
 
@@ -298,7 +303,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	}*/
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead)
+	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead, istanbul)
 	if err != nil {
 		return nil, 0, big0, false, err
 	}

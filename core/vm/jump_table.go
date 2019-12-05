@@ -37,6 +37,8 @@ type operation struct {
 	execute executionFunc
 	// gasCost is the gas function and returns the gas required for execution
 	gasCost gasFunc
+	// constantGas uint64
+	// dynamicGas  gasFunc
 	// validateStack validates the stack (size) for the operation
 	validateStack stackValidationFunc
 	// memorySize returns the memory size required for the operation
@@ -51,11 +53,56 @@ type operation struct {
 }
 
 var (
-	frontierInstructionSet       = newFrontierInstructionSet()
-	homesteadInstructionSet      = newHomesteadInstructionSet()
-	byzantiumInstructionSet      = newByzantiumInstructionSet()
-	constantinopleInstructionSet = newConstantinopleInstructionSet()
+	frontierInstructionSet         = newFrontierInstructionSet()
+	homesteadInstructionSet        = newHomesteadInstructionSet()
+	tangerineWhistleInstructionSet = newTangerineWhistleInstructionSet()
+	spuriousDragonInstructionSet   = newSpuriousDragonInstructionSet()
+	byzantiumInstructionSet        = newByzantiumInstructionSet()
+	constantinopleInstructionSet   = newConstantinopleInstructionSet()
+	istanbulInstructionSet         = newIstanbulInstructionSet()
 )
+
+// newIstanbulInstructionSet returns the frontier, homestead
+// byzantium, contantinople and petersburg instructions.
+func newIstanbulInstructionSet() [256]operation {
+	instructionSet := newConstantinopleInstructionSet()
+
+	//enable1344(&instructionSet) // ChainID opcode - https://eips.ethereum.org/EIPS/eip-1344
+	//enable1884(&instructionSet) // Reprice reader opcodes - https://eips.ethereum.org/EIPS/eip-1884
+	//enable2200(&instructionSet) // Net metered SSTORE - https://eips.ethereum.org/EIPS/eip-2200
+	instructionSet[CHAINID] = operation{
+		execute: opChainID,
+		gasCost: constGasFunc(GasQuickStep),
+		//minStack:    minStack(0, 1),
+		//maxStack:    maxStack(0, 1),
+		validateStack: makeStackFunc(0, 1),
+		valid:         true,
+	}
+
+	// enable1884 applies EIP-1884 to the given jump table:
+	// - Increase cost of BALANCE to 700
+	// - Increase cost of EXTCODEHASH to 700
+	// - Increase cost of SLOAD to 800
+	// - Define SELFBALANCE, with cost GasFastStep (5)
+	// Gas cost changes
+	instructionSet[BALANCE].gasCost = constGasFunc(params.BalanceGasEIP1884)
+	instructionSet[EXTCODEHASH].gasCost = constGasFunc(params.ExtcodeHashGasEIP1884)
+	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP1884)
+
+	// New opcode
+	instructionSet[SELFBALANCE] = operation{
+		execute:       opSelfBalance,
+		gasCost:       constGasFunc(GasFastestStep),
+		validateStack: makeStackFunc(0, 1),
+		valid:         true,
+	}
+
+	// enable2200 applies EIP-2200 (Rebalance net-metered SSTORE)
+	//instructionSet[SSTORE].dynamicGas = gasSStoreEIP2200
+	instructionSet[SSTORE].gasCost = gasSStoreEIP2200
+
+	return instructionSet
+}
 
 // NewConstantinopleInstructionSet returns the frontier, homestead
 // byzantium and contantinople instructions.
@@ -102,7 +149,7 @@ func newConstantinopleInstructionSet() [256]operation {
 // byzantium instructions.
 func newByzantiumInstructionSet() [256]operation {
 	// instructions that can be executed during the homestead phase.
-	instructionSet := newHomesteadInstructionSet()
+	instructionSet := newSpuriousDragonInstructionSet()
 	instructionSet[STATICCALL] = operation{
 		execute:       opStaticCall,
 		gasCost:       gasStaticCall,
@@ -133,6 +180,27 @@ func newByzantiumInstructionSet() [256]operation {
 		reverts:       true,
 		returns:       true,
 	}
+	return instructionSet
+}
+
+// EIP 158 a.k.a Spurious Dragon
+func newSpuriousDragonInstructionSet() [256]operation {
+	instructionSet := newTangerineWhistleInstructionSet()
+	//instructionSet[EXP].gasCost = gasExpEIP158
+	return instructionSet
+
+}
+
+// EIP 150 a.k.a Tangerine Whistle
+func newTangerineWhistleInstructionSet() [256]operation {
+	instructionSet := newHomesteadInstructionSet()
+	/*instructionSet[BALANCE].gasCost = constGasFunc(params.BalanceGasEIP150)
+	instructionSet[EXTCODESIZE].gasCost = constGasFunc(params.ExtcodeSizeGasEIP150)
+	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP150)
+	instructionSet[EXTCODECOPY].gasCost = constGasFunc(params.ExtcodeCopyBaseEIP150)
+	instructionSet[CALL].gasCost = constGasFunc(params.CallGasEIP150)
+	instructionSet[CALLCODE].gasCost = constGasFunc(params.CallGasEIP150)
+	instructionSet[DELEGATECALL].gasCost = constGasFunc(params.CallGasEIP150)*/
 	return instructionSet
 }
 

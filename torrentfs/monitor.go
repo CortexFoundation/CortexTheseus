@@ -69,7 +69,7 @@ type Monitor struct {
 
 	//listenID rpc.ID
 
-	uncheckedCh chan uint64
+	//uncheckedCh chan uint64
 
 	exitCh     chan struct{}
 	terminated int32
@@ -96,22 +96,22 @@ type Monitor struct {
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
 func NewMonitor(flag *Config) (m *Monitor, e error) {
-	log.Info("Initialising Torrent FS")
+	log.Info("Initialising FS")
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
 		return nil, fsErr
 	}
-	log.Info("Torrent file storage initialized")
+	log.Info("File storage initialized")
 
 	// Torrent Manager
 	tMana := NewTorrentManager(flag)
 	if tMana == nil {
-		log.Error("torrent manager failed")
-		return nil, errors.New("torrent download manager initialise failed")
+		log.Error("fs manager failed")
+		return nil, errors.New("fs download manager initialise failed")
 	}
-	log.Info("Torrent manager initialized")
+	log.Info("Fs manager initialized")
 
 	m = &Monitor{
 		config: flag,
@@ -183,7 +183,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 }
 
 func (m *Monitor) storageInit() error {
-	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root())
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version())
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
 		return err
@@ -448,7 +448,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", m.healthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ FS SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", m.healthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
@@ -635,7 +635,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 }
 
 func (m *Monitor) Stop() {
-	log.Info("Torrent listener closing")
+	log.Info("Fs listener closing")
 	if atomic.LoadInt32(&(m.terminated)) == 1 {
 		return
 	}
@@ -651,17 +651,17 @@ func (m *Monitor) Stop() {
 	                }
 	                log.Info("Torrent client listener synchronizing closed")
 	        })*/
-	log.Info("Torrent client listener synchronizing closing")
+	log.Info("Fs client listener synchronizing closing")
 	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Torrent Manager closed", "error", err)
+		log.Error("Monitor Fs Manager closed", "error", err)
 	}
-	log.Info("Torrent client listener synchronizing closed")
+	log.Info("Fs client listener synchronizing closed")
 
-	log.Info("Torrent fs listener synchronizing closing")
+	log.Info("Fs listener synchronizing closing")
 	if err := m.fs.Close(); err != nil {
 		log.Error("Monitor File Storage closed", "error", err)
 	}
-	log.Info("Torrent fs listener synchronizing closed")
+	log.Info("Fs listener synchronizing closed")
 	/*m.wg.Add(1)
 	m.closeOnce.Do(func() {
 		defer m.wg.Done()
@@ -679,13 +679,13 @@ func (m *Monitor) Stop() {
 	})
 	m.wg.Wait()*/
 
-	log.Info("Torrent listener closed")
+	log.Info("Fs listener closed")
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
 	if err := m.dl.Start(); err != nil {
-		log.Warn("Torrent start error")
+		log.Warn("Fs start error")
 		return err
 	}
 	m.wg.Add(1)
@@ -724,15 +724,15 @@ func (m *Monitor) startWork() error {
 		clientURI = m.config.IpcPath
 	} else {
 		if m.config.RpcURI == "" {
-			log.Warn("Torrent rpc uri is empty")
-			return errors.New("Torrent RpcURI is empty")
+			log.Warn("Fs rpc uri is empty")
+			return errors.New("fs RpcURI is empty")
 		}
 		clientURI = m.config.RpcURI
 	}
 
 	rpcClient, rpcErr := SetConnection(clientURI)
 	if rpcErr != nil {
-		log.Error("Torrent rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
+		log.Error("Fs rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
 		return rpcErr
 	}
 	m.cl = rpcClient
@@ -897,6 +897,9 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 	var res []string
 	var status = false
 	for _, port := range ports {
+		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			break
+		}
 		//m.portsWg.Add(1)
 		//go func(port string) {
 		//defer m.portsWg.Done()
@@ -970,7 +973,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	//}
 
 	if uint64(currentNumber) < m.lastNumber {
-		log.Warn("Torrent fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
+		log.Warn("Fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
 		m.lastNumber = 0
 	}
 
@@ -993,7 +996,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		/*if minNumber > delay {
 			minNumber = minNumber - delay
 		}*/
-		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
+		log.Debug("Fs scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return 0
 	}
@@ -1001,7 +1004,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	start := mclock.Now()
 	for i := minNumber; i <= maxNumber; i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
-			log.Warn("Torrent scan terminated", "number", i)
+			log.Warn("Fs scan terminated", "number", i)
 			maxNumber = i - 1
 			//close(m.exitCh)
 			break
@@ -1017,7 +1020,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		} else {
 			m.lastNumber = i - 1
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("Torrent scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+			log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
 			//return m.lastNumber - minNumber
 			return 0
 		}
@@ -1027,7 +1030,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+	log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
 	return uint64(maxNumber - minNumber)
 }
 

@@ -5,7 +5,7 @@ package stm
 const Retry = "retry"
 
 // catchRetry returns true if fn calls tx.Retry.
-func catchRetry(fn func(*Tx), tx *Tx) (retry bool) {
+func catchRetry(fn Operation, tx *Tx) (result interface{}, retry bool) {
 	defer func() {
 		if r := recover(); r == Retry {
 			retry = true
@@ -13,6 +13,6 @@ func catchRetry(fn func(*Tx), tx *Tx) (retry bool) {
 			panic(r)
 		}
 	}()
-	fn(tx)
+	result = fn(tx)
 	return
 }
