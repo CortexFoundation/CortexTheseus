@@ -270,7 +270,13 @@ func (t *Torrent) Running() bool {
 }
 
 func (t *Torrent) Finished() bool {
-	return t.bytesMissing == 0
+	//for _, file := range t.Files() {
+	//	if file.BytesCompleted() <= 0 {
+	//		return false
+	//	}
+	//log.Info("File", "hash", t.InfoHash(), "name", file.Path(), "complete", file.BytesCompleted(), "file", file)
+	//}
+	return t.bytesMissing == 0 && t.bytesRequested > 0 && t.bytesCompleted > 0
 }
 
 func (t *Torrent) Pending() bool {
@@ -734,6 +740,9 @@ func (tm *TorrentManager) mainLoop() {
 						counter++
 					}
 				}
+				if int64(meta.BytesRequested) > 0 {
+					tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+				}
 			} else {
 				log.Debug("Seed [update] success", "hash", meta.InfoHash, "request", meta.BytesRequested)
 				tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
@@ -784,6 +793,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						delete(tm.pendingTorrents, ih)
 						t.loop = 0
 						tm.seedingChan <- t
+						log.Warn("Seeding from pending channel", "hash", ih.String())
 					}
 				} else if !t.Pending() {
 					if len(tm.activeChan) < cap(tm.activeChan) {
@@ -844,12 +854,18 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			}
 			log_counter++
 			var all, active_paused, active_wait, active_boost, active_running int
-			var activeTorrents, activeTorrentsCandidate []*Torrent
-			for _, t := range tm.activeTorrents {
-				activeTorrentsCandidate = append(activeTorrentsCandidate, t)
-			}
+			//			var activeTorrents, activeTorrentsCandidate []*Torrent
+			var activeTorrents []*Torrent
+			//for _, t := range tm.activeTorrents {
+			//	if tm.bytes[t.Torrent.InfoHash()] > 0{
+			//	activeTorrentsCandidate = append(activeTorrentsCandidate, t)
+			//}else{
+			//	log.Info("zero", "hash", t.Torrent.InfoHash(), "request", tm.bytes[t.Torrent.InfoHash()])
+			//}
+			//}
 
-			for _, t := range activeTorrentsCandidate {
+			//for _, t := range activeTorrentsCandidate {
+			for _, t := range tm.activeTorrents {
 				ih := t.Torrent.InfoHash()
 				tm.lock.RLock()
 				BytesRequested := tm.bytes[ih]
@@ -862,6 +878,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				t.bytesCompleted = t.BytesCompleted()
 				t.bytesMissing = t.BytesMissing()
 
+				//				if t.bytesRequested > 0 && t.bytesCompleted > 0 && t.Finished() {
 				if t.Finished() {
 					tm.lock.Lock()
 					if _, err := os.Stat(path.Join(tm.DataDir, t.InfoHash())); err == nil {
@@ -869,6 +886,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 							log.Debug("Path exist", "hash", t.Torrent.InfoHash(), "path", path.Join(tm.DataDir, t.InfoHash()))
 							delete(tm.activeTorrents, ih)
 							tm.seedingChan <- t
+							log.Trace("Seeding from active channel", "hash", t.Torrent.InfoHash(), "request", t.bytesRequested, "global", tm.bytes[t.Torrent.InfoHash()])
 							t.loop = defaultSeedInterval / queryTimeInterval
 							total_size += uint64(t.bytesCompleted)
 							current_size += uint64(t.bytesCompleted)
@@ -889,6 +907,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 							if len(tm.seedingChan) < cap(tm.seedingChan) {
 								delete(tm.activeTorrents, ih)
 								tm.seedingChan <- t
+								log.Trace("Seeding from active channel", "hash", t.Torrent.InfoHash())
 								t.loop = defaultSeedInterval / queryTimeInterval
 								total_size += uint64(t.bytesCompleted)
 								current_size += uint64(t.bytesCompleted)
