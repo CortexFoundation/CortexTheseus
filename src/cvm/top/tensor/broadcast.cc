@@ -231,7 +231,7 @@ Example::
                           [ 4.,  5.,  6.]]
 
 )code" CVM_ADD_FILELINE)
-.set_attr<FInferPrecision>("FInferPrecision", SamePrecision);
+.set_attr<FInferPrecision>("FInferPrecision", MaxInPrecision);
 
 CVM_REGISTER_BINARY_BROADCAST_OP(broadcast_div, div)
 .add_alias("__div_symbol__")
