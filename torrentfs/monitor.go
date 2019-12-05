@@ -296,7 +296,7 @@ func (m *Monitor) taskLoop() {
 }
 
 // SetConnection method builds connection to remote or local communicator.
-func SetConnection(clientURI string) (*rpc.Client, error) {
+func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 	for {
 		time.Sleep(time.Second * connTryInterval)
 		cl, err := rpc.Dial(clientURI)
@@ -305,6 +305,10 @@ func SetConnection(clientURI string) (*rpc.Client, error) {
 		} else {
 			log.Info("Internal ipc connection established", "uri", clientURI)
 			return cl, nil
+		}
+
+		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			break
 		}
 	}
 
@@ -730,7 +734,7 @@ func (m *Monitor) startWork() error {
 		clientURI = m.config.RpcURI
 	}
 
-	rpcClient, rpcErr := SetConnection(clientURI)
+	rpcClient, rpcErr := m.buildConnection(clientURI)
 	if rpcErr != nil {
 		log.Error("Fs rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
 		return rpcErr
