@@ -53,7 +53,7 @@ which exposes a node admin interface as well as the Ðapp JavaScript API.`,
 		Name:      "attach",
 		Usage:     "Start an interactive JavaScript environment (connect to node)",
 		ArgsUsage: "[endpoint]",
-		Flags:     append(append(consoleFlags, utils.DataDirFlag), utils.DoloresFlag),
+		Flags:     append(append(append(consoleFlags, utils.DataDirFlag), utils.DoloresFlag), utils.BernardFlag),
 		Category:  "CONSOLE COMMANDS",
 		Description: `
 The Ctxc console is an interactive shell for the JavaScript runtime environment
@@ -124,6 +124,12 @@ func remoteConsole(ctx *cli.Context) error {
 		if path != "" {
 			if ctx.GlobalBool(utils.DoloresFlag.Name) {
 				path = filepath.Join(path, utils.DoloresFlag.Name)
+			}
+		}
+
+		if path != "" {
+			if ctx.GlobalBool(utils.BernardFlag.Name) {
+				path = filepath.Join(path, utils.BernardFlag.Name)
 			}
 		}
 		endpoint = fmt.Sprintf("%s/cortex.ipc", path)

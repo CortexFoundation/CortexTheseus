@@ -17,7 +17,6 @@
 package trie
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -39,6 +38,11 @@ var (
 	memcacheCleanMissMeter  = metrics.NewRegisteredMeter("trie/memcache/clean/miss", nil)
 	memcacheCleanReadMeter  = metrics.NewRegisteredMeter("trie/memcache/clean/read", nil)
 	memcacheCleanWriteMeter = metrics.NewRegisteredMeter("trie/memcache/clean/write", nil)
+
+	memcacheDirtyHitMeter   = metrics.NewRegisteredMeter("trie/memcache/dirty/hit", nil)
+	memcacheDirtyMissMeter  = metrics.NewRegisteredMeter("trie/memcache/dirty/miss", nil)
+	memcacheDirtyReadMeter  = metrics.NewRegisteredMeter("trie/memcache/dirty/read", nil)
+	memcacheDirtyWriteMeter = metrics.NewRegisteredMeter("trie/memcache/dirty/write", nil)
 
 	memcacheFlushTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/flush/time", nil)
 	memcacheFlushNodesMeter = metrics.NewRegisteredMeter("trie/memcache/flush/nodes", nil)
@@ -274,19 +278,6 @@ func expandNode(hash hashNode, n node) node {
 	}
 }
 
-// trienodeHasher is a struct to be used with BigCache, which uses a Hasher to
-// determine which shard to place an entry into. It's not a cryptographic hash,
-// just to provide a bit of anti-collision (default is FNV64a).
-//
-// Since trie keys are already hashes, we can just use the key directly to
-// map shard id.
-type trienodeHasher struct{}
-
-// Sum64 implements the bigcache.Hasher interface.
-func (t trienodeHasher) Sum64(key string) uint64 {
-	return binary.BigEndian.Uint64([]byte(key))
-}
-
 // NewDatabase creates a new trie database to store ephemeral trie content before
 // its written out to disk or garbage collected. No read cache is created, so all
 // data retrievals will hit the underlying disk database.
@@ -346,6 +337,7 @@ func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 	if _, ok := db.dirties[hash]; ok {
 		return
 	}
+	memcacheDirtyWriteMeter.Mark(int64(len(blob)))
 	// Create the cached entry for this node
 	entry := &cachedNode{
 		node:      simplifyNode(node),
@@ -398,8 +390,11 @@ func (db *Database) node(hash common.Hash) node {
 	db.lock.RUnlock()
 
 	if dirty != nil {
+		memcacheDirtyHitMeter.Mark(1)
+		memcacheDirtyReadMeter.Mark(int64(dirty.size))
 		return dirty.obj(hash)
 	}
+	memcacheDirtyMissMeter.Mark(1)
 	// Content unavailable in memory, attempt to retrieve from disk
 	enc, err := db.diskdb.Get(hash[:])
 	if err != nil || enc == nil {
@@ -436,8 +431,11 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	db.lock.RUnlock()
 
 	if dirty != nil {
+		memcacheDirtyHitMeter.Mark(1)
+		memcacheDirtyReadMeter.Mark(int64(dirty.size))
 		return dirty.rlp(), nil
 	}
+	memcacheDirtyMissMeter.Mark(1)
 	// Content unavailable in memory, attempt to retrieve from disk
 	enc, err := db.diskdb.Get(hash[:])
 	if err == nil && enc != nil {
@@ -842,6 +840,7 @@ func (c *cleaner) Put(key []byte, rlp []byte) error {
 	if c.db.cleans != nil {
 		//c.db.cleans.Set(string(hash[:]), rlp)
 		c.db.cleans.Set(hash[:], rlp)
+		memcacheCleanWriteMeter.Mark(int64(len(rlp)))
 	}
 	return nil
 }

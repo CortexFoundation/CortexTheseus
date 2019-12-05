@@ -1,22 +1,25 @@
 package stm
 
 import (
+	"fmt"
+	"sort"
 	"sync"
+	"unsafe"
 )
 
 // A Tx represents an atomic transaction.
 type Tx struct {
 	reads  map[*Var]uint64
 	writes map[*Var]interface{}
+	locks  []*sync.Mutex
+	mu     sync.Mutex
 	cond   sync.Cond
 }
 
 // Check that none of the logged values have changed since the transaction began.
 func (tx *Tx) verify() bool {
 	for v, version := range tx.reads {
-		v.mu.Lock()
-		changed := v.version != version
-		v.mu.Unlock()
+		changed := v.loadState().version != version
 		if changed {
 			return false
 		}
@@ -27,30 +30,24 @@ func (tx *Tx) verify() bool {
 // Writes the values in the transaction log to their respective Vars.
 func (tx *Tx) commit() {
 	for v, val := range tx.writes {
-		v.mu.Lock()
-		v.val = val
-		v.version++
-		v.mu.Unlock()
-		for tx := range v.watchers {
-			tx.cond.Broadcast()
-			delete(v.watchers, tx)
-		}
+		v.changeValue(val)
 	}
 }
 
 // wait blocks until another transaction modifies any of the Vars read by tx.
 func (tx *Tx) wait() {
-	globalLock.Lock()
 	for v := range tx.reads {
-		v.watchers[tx] = struct{}{}
+		v.watchers.Store(tx, nil)
 	}
+	tx.mu.Lock()
 	for tx.verify() {
+		expvars.Add("waits", 1)
 		tx.cond.Wait()
 	}
+	tx.mu.Unlock()
 	for v := range tx.reads {
-		delete(v.watchers, tx)
+		v.watchers.Delete(tx)
 	}
-	globalLock.Unlock()
 }
 
 // Get returns the value of v as of the start of the transaction.
@@ -59,13 +56,12 @@ func (tx *Tx) Get(v *Var) interface{} {
 	if val, ok := tx.writes[v]; ok {
 		return val
 	}
-	v.mu.Lock()
-	defer v.mu.Unlock()
+	state := v.loadState()
 	// If we haven't previously read v, record its version
 	if _, ok := tx.reads[v]; !ok {
-		tx.reads[v] = v.version
+		tx.reads[v] = state.version
 	}
-	return v.val
+	return state.val
 }
 
 // Set sets the value of a Var for the lifetime of the transaction.
@@ -89,14 +85,6 @@ func (tx *Tx) Assert(p bool) {
 	}
 }
 
-func (tx *Tx) Return(v interface{}) {
-	panic(_return{v})
-}
-
-type _return struct {
-	value interface{}
-}
-
 func (tx *Tx) reset() {
 	for k := range tx.reads {
 		delete(tx.reads, k)
@@ -104,9 +92,57 @@ func (tx *Tx) reset() {
 	for k := range tx.writes {
 		delete(tx.writes, k)
 	}
+	tx.resetLocks()
 }
 
 func (tx *Tx) recycle() {
-	tx.reset()
 	txPool.Put(tx)
+}
+
+func (tx *Tx) lockAllVars() {
+	tx.resetLocks()
+	tx.collectAllLocks()
+	tx.sortLocks()
+	tx.lock()
+}
+
+func (tx *Tx) resetLocks() {
+	tx.locks = tx.locks[:0]
+}
+
+func (tx *Tx) collectReadLocks() {
+	for v := range tx.reads {
+		tx.locks = append(tx.locks, &v.mu)
+	}
+}
+
+func (tx *Tx) collectAllLocks() {
+	tx.collectReadLocks()
+	for v := range tx.writes {
+		if _, ok := tx.reads[v]; !ok {
+			tx.locks = append(tx.locks, &v.mu)
+		}
+	}
+}
+
+func (tx *Tx) sortLocks() {
+	sort.Slice(tx.locks, func(i, j int) bool {
+		return uintptr(unsafe.Pointer(tx.locks[i])) < uintptr(unsafe.Pointer(tx.locks[j]))
+	})
+}
+
+func (tx *Tx) lock() {
+	for _, l := range tx.locks {
+		l.Lock()
+	}
+}
+
+func (tx *Tx) unlock() {
+	for _, l := range tx.locks {
+		l.Unlock()
+	}
+}
+
+func (tx *Tx) String() string {
+	return fmt.Sprintf("%[1]T %[1]p", tx)
 }

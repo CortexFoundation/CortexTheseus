@@ -1,8 +1,0 @@
-[submodule "ctxc-solc"]
-	path = ctxc-solc
-    url = git@github.com:CortexFoundation/ctxc-solc.git
-    ignore = dirty
-[submodule "InferenceServer"]
-	path = InferenceServer
-    url = git@github.com:CortexFoundation/InferenceServer.git
-    ignore = dirty

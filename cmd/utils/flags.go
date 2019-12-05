@@ -542,8 +542,8 @@ var (
 	}
 	ListenPortFlag = cli.IntFlag{
 		Name:  "port",
-		Usage: "Network listening port",
-		Value: 30303,
+		Usage: "Network listening port (mainnet: '40404' dolores: '40405' bernard: '40406')",
+		Value: 40404,
 	}
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",
@@ -731,6 +731,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 func setListenAddress(ctx *cli.Context, cfg *p2p.Config) {
 	if ctx.GlobalIsSet(ListenPortFlag.Name) {
 		cfg.ListenAddr = fmt.Sprintf(":%d", ctx.GlobalInt(ListenPortFlag.Name))
+	} else if ctx.GlobalBool(DoloresFlag.Name) {
+		cfg.ListenAddr = fmt.Sprintf(":%d", 40405)
+	} else if ctx.GlobalBool(BernardFlag.Name) {
+		cfg.ListenAddr = fmt.Sprintf(":%d", 40406)
 	}
 }
 
@@ -1231,14 +1235,14 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
 		log.Info("path", "path", path, "ipc", IPCPath)
-		log.Info("SetTorrentFsConfig", "IPCPath", cfg.IpcPath)
+		log.Info("FsConfig", "IPCPath", cfg.IpcPath)
 	}
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
 	cfg.DefaultTrackers = strings.Split(trackers, ",")
 	cfg.BoostNodes = strings.Split(boostnodes, ",")
 	cfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
-	log.Debug("SetTorrentFsConfig", "MaxSeedingNum", ctx.GlobalInt(StorageMaxSeedingFlag.Name),
+	log.Debug("FsConfig", "MaxSeedingNum", ctx.GlobalInt(StorageMaxSeedingFlag.Name),
 		"MaxActiveNum", ctx.GlobalInt(StorageMaxActiveFlag.Name))
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)

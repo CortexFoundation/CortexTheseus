@@ -101,7 +101,7 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 	}
 	torrentInstance.fileCache, _ = lru.New(8)
 	torrentInstance.fileCh = make(chan bool, 4)
-	//	Torrentfs_handle = torrentInstance
+	//Torrentfs_handle = torrentInstance
 	//torrentInstance.compress = true
 
 	return torrentInstance, nil
@@ -116,7 +116,7 @@ func (tfs *TorrentFS) APIs() []rpc.API { return nil }
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Start(server *p2p.Server) error {
-	log.Info("Torrent monitor starting", "torrentfs", tfs)
+	log.Info("Fs monitor starting", "torrentfs", tfs)
 	if tfs == nil || tfs.monitor == nil {
 		return nil
 	}
@@ -149,7 +149,7 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 	//log.Debug("storage", "ih", ih)
 	if torrent := tm.GetTorrent(ih); torrent == nil {
 		//log.Debug("storage", "ih", ih, "torrent", torrent)
-		log.Debug("Torrent not found", "hash", infohash)
+		log.Debug("Seed not found", "hash", infohash)
 		return false, errors.New("download not completed")
 	} else {
 		if !torrent.IsAvailable() {

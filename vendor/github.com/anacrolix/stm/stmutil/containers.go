@@ -178,3 +178,5 @@ func interfaceHash(x interface{}) uint32 {
 type Lenner interface {
 	Len() int
 }
+
+type List = *immutable.List

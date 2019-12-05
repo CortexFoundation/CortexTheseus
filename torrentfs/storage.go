@@ -3,6 +3,7 @@ package torrentfs
 import (
 	"encoding/json"
 	"errors"
+	"github.com/CortexFoundation/CortexTheseus/params"
 	//"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	//"io/ioutil"
 	"strconv"
 	//"strings"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	//"sync"
 	//"sync/atomic"
 	"time"
@@ -54,9 +56,10 @@ func (mc *MutexCounter) IsZero() bool {
 
 type FileStorage struct {
 	filesContractAddr map[common.Address]*FileInfo
-	files             []*FileInfo
-	blocks            []*Block
+	files             []*FileInfo //only storage init files from local storage
+	blocks            []*Block    //only storage init ckp blocks from local storage
 	db                *bolt.DB
+	version           string
 
 	LastListenBlockNumber uint64
 	CheckPoint            uint64
@@ -109,13 +112,23 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir: config.DataDir,
 	}
 
-	fs.initBlockNumber()
-	fs.initCheckPoint()
-	fs.initBlocks()
-	//fs.readLastFileIndex()
-	fs.initFiles()
-	fs.initMerkleTree()
-	//tmpCache, _ := lru.New(120)
+	fs.version = version
+
+	if err := fs.initBlockNumber(); err != nil {
+		return nil, err
+	}
+	if err := fs.initCheckPoint(); err != nil {
+		return nil, err
+	}
+	if err := fs.initBlocks(); err != nil {
+		return nil, err
+	}
+	if err := fs.initFiles(); err != nil {
+		return nil, err
+	}
+	if err := fs.initMerkleTree(); err != nil {
+		return nil, err
+	}
 
 	return fs, nil
 }
@@ -164,32 +177,36 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 //}
 
 func (fs *FileStorage) initMerkleTree() error {
-	fs.leaves = append(fs.leaves, BlockContent{x: "0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
+	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
 	tr, err := NewTree(fs.leaves)
 	if err != nil {
 		return err
 	}
 	fs.tree = tr
-	//sort.Slice(fs.blocks, func(i, j int) bool {
-	//	return fs.blocks[i].Number < fs.blocks[j].Number
-	//})
 	for _, block := range fs.blocks {
-		//fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
-		fs.addLeaf(block)
+		if err := fs.addLeaf(block); err != nil {
+			panic("Storage merkletree construct failed")
+		}
 	}
 
-	log.Info("Storage merkletree initialization", "root", common.ToHex(fs.tree.MerkleRoot()))
+	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()))
 
 	return nil
 }
 
 func (fs *FileStorage) addLeaf(block *Block) error {
 	fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
-	fs.tree.RebuildTreeWith(fs.leaves)
-	fs.writeVersion(block.Number, fs.tree.MerkleRoot())
-	log.Debug("Add a new leaf", "number", block.Number, "root", common.ToHex(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
+		if err := fs.writeRoot(block.Number, fs.tree.MerkleRoot()); err != nil {
+			return err
+		}
 
-	return nil
+		log.Debug("Add a new leaf", "number", block.Number, "root", hexutil.Encode(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+
+		return nil
+	} else {
+		return err
+	}
 }
 
 func (fs *FileStorage) Root() common.Hash {
@@ -303,7 +320,7 @@ func (fs *FileStorage) Close() error {
 	//	if fs.opCounter.IsZero() {
 	// persist storage block number
 	fs.writeCheckPoint()
-	log.Info("Torrent File Storage Closed", "database", fs.db.Path())
+	log.Info("File DB Closed", "database", fs.db.Path())
 	return fs.writeBlockNumber()
 	//fs.writeLastFileIndex()
 	//	}
@@ -358,7 +375,7 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	var block Block
 
 	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("blocks"))
+		buk := tx.Bucket([]byte("blocks_" + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -390,7 +407,7 @@ func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
 	//defer fs.opCounter.Decrease()
 	update := false
 	err := fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("files"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version))
 		if err != nil {
 			return err
 		}
@@ -433,7 +450,7 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 	}
 	if record && b.Number > fs.CheckPoint {
 		if err := fs.db.Update(func(tx *bolt.Tx) error {
-			buk, err := tx.CreateBucketIfNotExists([]byte("blocks"))
+			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
 			if err != nil {
 				return err
 			}
@@ -448,9 +465,10 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 
 			return buk.Put(k, v)
 		}); err == nil {
-			if err := fs.writeCheckPoint(); err == nil {
-				fs.CheckPoint = b.Number
-				fs.addLeaf(b)
+			if err := fs.addLeaf(b); err == nil {
+				if err := fs.writeCheckPoint(); err == nil {
+					fs.CheckPoint = b.Number
+				}
 			}
 		} else {
 			return err
@@ -462,10 +480,14 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 	return fs.writeBlockNumber()
 }
 
+func (fs *FileStorage) Version() string {
+	return fs.version
+}
+
 func (fs *FileStorage) initBlocks() error {
-	return fs.db.View(func(tx *bolt.Tx) error {
-		if buk := tx.Bucket([]byte("blocks")); buk == nil {
-			return ErrReadDataFromBoltDB
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		if buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version)); err != nil {
+			return err
 		} else {
 			c := buk.Cursor()
 
@@ -488,9 +510,9 @@ func (fs *FileStorage) initBlocks() error {
 }
 
 func (fs *FileStorage) initFiles() error {
-	return fs.db.View(func(tx *bolt.Tx) error {
-		if buk := tx.Bucket([]byte("files")); buk == nil {
-			return ErrReadDataFromBoltDB
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		if buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version)); buk == nil || err != nil {
+			return err
 		} else {
 			c := buk.Cursor()
 
@@ -549,16 +571,17 @@ func (fs *FileStorage) initFiles() error {
 	})
 }*/
 func (fs *FileStorage) initCheckPoint() error {
-	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("checkpoint"))
-		if buk == nil {
-			return ErrReadDataFromBoltDB
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
+		if err != nil {
+			return err
 		}
 
 		v := buk.Get([]byte("key"))
 
 		if v == nil {
-			return ErrReadDataFromBoltDB
+			//return ErrReadDataFromBoltDB
+			return nil
 		}
 
 		number, err := strconv.ParseUint(string(v), 16, 64)
@@ -573,16 +596,18 @@ func (fs *FileStorage) initCheckPoint() error {
 }
 
 func (fs *FileStorage) initBlockNumber() error {
-	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("currentBlockNumber"))
-		if buk == nil {
-			return ErrReadDataFromBoltDB
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		//buk := tx.Bucket([]byte("currentBlockNumber_" + fs.version))
+		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
+		if err != nil {
+			return err
 		}
 
 		v := buk.Get([]byte("key"))
 
 		if v == nil {
-			return ErrReadDataFromBoltDB
+			//return ErrReadDataFromBoltDB
+			return nil
 		}
 
 		number, err := strconv.ParseUint(string(v), 16, 64)
@@ -598,7 +623,7 @@ func (fs *FileStorage) initBlockNumber() error {
 
 func (fs *FileStorage) writeCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
 		if err != nil {
 			return err
 		}
@@ -608,55 +633,44 @@ func (fs *FileStorage) writeCheckPoint() error {
 	})
 }
 
-func (fs *FileStorage) writeVersion(number uint64, root []byte) error {
+func (fs *FileStorage) writeRoot(number uint64, root []byte) error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("version"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
 		if err != nil {
 			return err
 		}
-		/*k, err := json.Marshal(number)
-		                        if err != nil {
-		                                return err
-		                        }
-
-					v, err := json.Marshal(root)
-		                        if err != nil {
-		                                return err
-		                        }
-
-					e:=buk.Put(k, v)*/
 		e := buk.Put([]byte(strconv.FormatUint(number, 16)), root)
 
 		return e
 	})
 }
 
-func (fs *FileStorage) GetVersionByNumber(number uint64) (version []byte) {
+func (fs *FileStorage) GetRootByNumber(number uint64) (root []byte) {
 	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("version"))
-		if buk == nil {
-			return ErrReadDataFromBoltDB
+		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
+		if err != nil {
+			return err
 		}
 
 		v := buk.Get([]byte(strconv.FormatUint(number, 16)))
 
 		if v == nil {
-			return ErrReadDataFromBoltDB
+			return nil
 		}
 
-		version = v
+		root = v
 		return nil
 	}
-	if err := fs.db.View(cb); err != nil {
+	if err := fs.db.Update(cb); err != nil {
 		return nil
 	}
 
-	return version
+	return root
 }
 
 func (fs *FileStorage) writeBlockNumber() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
 		if err != nil {
 			return err
 		}

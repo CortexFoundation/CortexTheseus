@@ -33,7 +33,7 @@ var (
 //It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
-	//BernardGenesisHash: BernardTrustedCheckpoint,
+	BernardGenesisHash: BernardTrustedCheckpoint,
 	DoloresGenesisHash: DoloresTrustedCheckpoint,
 }
 
@@ -48,14 +48,13 @@ var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
 }
 
 type TrustedCheckpoint struct {
-	Name         string      `json:"-"`
-	SectionIndex uint64      `json:"sectionIndex"`
-	SectionHead  common.Hash `json:"sectionHead"`
-	//TfsBlocks     uint64      `json:"tfsBlocks"`
-	TfsCheckPoint uint64 `json:"tfsCheckPoint"`
-	//TfsCkpHead    common.Hash `json:"tfsCkpHead"`
-	//TfsFiles      uint64      `json:"tfsFiles"`
-	TfsRoot common.Hash `json:"tfsRoot"`
+	Name          string      `json:"-"`
+	SectionIndex  uint64      `json:"sectionIndex"`
+	SectionHead   common.Hash `json:"sectionHead"`
+	TfsBlocks     uint64      `json:"tfsBlocks"`
+	TfsCheckPoint uint64      `json:"tfsCheckPoint"`
+	TfsFiles      uint64      `json:"tfsFiles"`
+	TfsRoot       common.Hash `json:"tfsRoot"`
 }
 
 var (
@@ -66,12 +65,11 @@ var (
 
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
-		Name:         "mainnet",
-		SectionIndex: 13,
-		SectionHead:  common.HexToHash("0xbcb220cb151820896fe9ef0138b7d433ded14e9b489def7bfb4819bbf28be95e"),
-		//TfsBlocks:     96,
-		//TfsCkpHead:    common.HexToHash("0x155637e09a5c0fc5b4a712abdf032242447f24cd989846fb96afce3927e8257c"),
-		//TfsFiles:      46,
+		Name:          "mainnet",
+		SectionIndex:  13,
+		SectionHead:   common.HexToHash("0xbcb220cb151820896fe9ef0138b7d433ded14e9b489def7bfb4819bbf28be95e"),
+		TfsBlocks:     96,
+		TfsFiles:      46,
 		TfsCheckPoint: 395964,
 		TfsRoot:       common.HexToHash("0xb07f9a8a8300db4a82da72d3d024fb86bae3742d24a91a7160d2838a13e2520a"),
 	}
@@ -80,8 +78,10 @@ var (
 		Name:         "dolores",
 		SectionIndex: 1,
 		SectionHead:  common.HexToHash("0xb7b7f06c6cc9dc5fe3b8a673fa3e18ef7bcbce033fa54051a4fb37d8fdb87d6c"),
-		//TfsBlocks:     0,
-		TfsCheckPoint: 0,
+	}
+
+	BernardTrustedCheckpoint = &TrustedCheckpoint{
+		Name: "bernard",
 	}
 
 	MainnetCheckpointOracle = &CheckpointOracleConfig{
@@ -101,10 +101,10 @@ var (
 		HomesteadBlock: big.NewInt(0),
 		DAOForkBlock:   big.NewInt(0),
 		DAOForkSupport: false,
-		EIP150Block:    big.NewInt(0),
+		EIP150Block:    big.NewInt(0), // TangerineWhistle
 		EIP150Hash:     common.HexToHash("0x"),
-		EIP155Block:    big.NewInt(0),
-		EIP158Block:    big.NewInt(0),
+		EIP155Block:    big.NewInt(0), // SpuriousDragon
+		EIP158Block:    big.NewInt(0), // SpuriousDragon
 		ByzantiumBlock: big.NewInt(0),
 		//CortexBlock:	     big.NewInt(8409600),
 		ConstantinopleBlock: big.NewInt(0),
@@ -239,7 +239,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v PetersburgBlock: %v Istanbul: %v Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v TangerineWhistle(EIP150): %v SpuriousDragon(EIP155): %v SpuriousDragon(EIP158): %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
@@ -341,6 +341,41 @@ func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64) *Confi
 		bhead.SetUint64(err.RewindTo)
 	}
 	return lasterr
+}
+
+// to guarantee that forks can be implemented in a different order than on official networks
+func (c *ChainConfig) CheckConfigForkOrder() error {
+	type fork struct {
+		name  string
+		block *big.Int
+	}
+	var lastFork fork
+	for _, cur := range []fork{
+		{"homesteadBlock", c.HomesteadBlock},
+		{"eip150Block", c.EIP150Block},
+		{"eip155Block", c.EIP155Block},
+		{"eip158Block", c.EIP158Block},
+		{"byzantiumBlock", c.ByzantiumBlock},
+		{"constantinopleBlock", c.ConstantinopleBlock},
+		{"petersburgBlock", c.PetersburgBlock},
+		{"istanbulBlock", c.IstanbulBlock},
+	} {
+		if lastFork.name != "" {
+			// Next one must be higher number
+			if lastFork.block == nil && cur.block != nil {
+				return fmt.Errorf("unsupported fork ordering: %v not enabled, but %v enabled at %v",
+					lastFork.name, cur.name, cur.block)
+			}
+			if lastFork.block != nil && cur.block != nil {
+				if lastFork.block.Cmp(cur.block) > 0 {
+					return fmt.Errorf("unsupported fork ordering: %v enabled at %v, but %v enabled at %v",
+						lastFork.name, lastFork.block, cur.name, cur.block)
+				}
+			}
+		}
+		lastFork = cur
+	}
+	return nil
 }
 
 func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *ConfigCompatError {

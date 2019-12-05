@@ -14,7 +14,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	//"net"
 	"net/http"
-	"os"
+	//"os"
 	"runtime"
 	//"sort"
 	"strconv"
@@ -88,6 +88,7 @@ type Monitor struct {
 	blockCache  *lru.Cache
 	healthPeers *lru.Cache
 	sizeCache   *lru.Cache
+	ckp         *params.TrustedCheckpoint
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -95,22 +96,22 @@ type Monitor struct {
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
 func NewMonitor(flag *Config) (m *Monitor, e error) {
-	log.Info("Initialising Torrent FS")
+	log.Info("Initialising FS")
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
 		return nil, fsErr
 	}
-	log.Info("Torrent file storage initialized")
+	log.Info("File storage initialized")
 
 	// Torrent Manager
 	tMana := NewTorrentManager(flag)
 	if tMana == nil {
-		log.Error("torrent manager failed")
-		return nil, errors.New("torrent download manager initialise failed")
+		log.Error("fs manager failed")
+		return nil, errors.New("fs download manager initialise failed")
 	}
-	log.Info("Torrent manager initialized")
+	log.Info("Fs manager initialized")
 
 	m = &Monitor{
 		config: flag,
@@ -122,9 +123,9 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		terminated: 0,
 		lastNumber: uint64(0),
 		dirty:      false,
-		taskCh:     make(chan *Block, batch*4),
+		taskCh:     make(chan *Block, batch),
 	}
-	m.blockCache, _ = lru.New(6)
+	m.blockCache, _ = lru.New(delay)
 	m.healthPeers, _ = lru.New(50)
 	m.sizeCache, _ = lru.New(batch)
 	e = nil
@@ -182,12 +183,17 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 }
 
 func (m *Monitor) storageInit() error {
-	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root())
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version())
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
 		return err
 	}
+
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
+		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
+			log.Info("Tfs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			m.lastNumber = 0
+		}
 		/*if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
 			m.lastNumber = m.fs.CheckPoint
 			log.Info("Torrent fs block unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()))
@@ -200,8 +206,9 @@ func (m *Monitor) storageInit() error {
 				m.lastNumber = 0
 			}
 		}*/
+		m.ckp = checkpoint
 
-		version := m.fs.GetVersionByNumber(checkpoint.TfsCheckPoint)
+		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
 			log.Warn("Tfs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
 			m.lastNumber = 0
@@ -441,7 +448,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				log.Trace("Healthy trackers", "tracker", t)
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("✨ TORRENT SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", m.healthPeers.Len(), "flush", flush, "elapsed", elapsed)
+			log.Info("✨ FS SEARCH COMPLETE", "ips", len(peers), "healthy", len(trackers), "nodes", m.healthPeers.Len(), "flush", flush, "elapsed", elapsed)
 		}
 		return peers, nil
 	}
@@ -598,7 +605,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 					if update, err := m.fs.WriteFile(file); err != nil {
 						return false, err
 					} else if update {
-
 						log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
 						var bytesRequested uint64
 						if file.Meta.RawSize > file.LeftSize {
@@ -629,7 +635,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 }
 
 func (m *Monitor) Stop() {
-	log.Info("Torrent listener closing")
+	log.Info("Fs listener closing")
 	if atomic.LoadInt32(&(m.terminated)) == 1 {
 		return
 	}
@@ -645,17 +651,17 @@ func (m *Monitor) Stop() {
 	                }
 	                log.Info("Torrent client listener synchronizing closed")
 	        })*/
-	log.Info("Torrent client listener synchronizing closing")
+	log.Info("Fs client listener synchronizing closing")
 	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Torrent Manager closed", "error", err)
+		log.Error("Monitor Fs Manager closed", "error", err)
 	}
-	log.Info("Torrent client listener synchronizing closed")
+	log.Info("Fs client listener synchronizing closed")
 
-	log.Info("Torrent fs listener synchronizing closing")
+	log.Info("Fs listener synchronizing closing")
 	if err := m.fs.Close(); err != nil {
 		log.Error("Monitor File Storage closed", "error", err)
 	}
-	log.Info("Torrent fs listener synchronizing closed")
+	log.Info("Fs listener synchronizing closed")
 	/*m.wg.Add(1)
 	m.closeOnce.Do(func() {
 		defer m.wg.Done()
@@ -673,18 +679,20 @@ func (m *Monitor) Stop() {
 	})
 	m.wg.Wait()*/
 
-	log.Info("Torrent listener closed")
+	log.Info("Fs listener closed")
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
 	if err := m.dl.Start(); err != nil {
-		log.Warn("Torrent start error")
+		log.Warn("Fs start error")
 		return err
 	}
-
+	m.wg.Add(1)
 	go func() {
-		err := m.startWork()
+		defer m.wg.Done()
+		m.startWork()
+		/*err := m.startWork()
 		if err != nil {
 			log.Error("Torrent Fs Internal Error", "error", err)
 			p, pErr := os.FindProcess(os.Getpid())
@@ -700,9 +708,10 @@ func (m *Monitor) Start() error {
 				panic("boom")
 				return
 			}
-		}
+		}*/
 	}()
 	return nil
+	//return err
 }
 
 func (m *Monitor) startWork() error {
@@ -715,15 +724,15 @@ func (m *Monitor) startWork() error {
 		clientURI = m.config.IpcPath
 	} else {
 		if m.config.RpcURI == "" {
-			log.Warn("Torrent rpc uri is empty")
-			return errors.New("Torrent RpcURI is empty")
+			log.Warn("Fs rpc uri is empty")
+			return errors.New("fs RpcURI is empty")
 		}
 		clientURI = m.config.RpcURI
 	}
 
 	rpcClient, rpcErr := SetConnection(clientURI)
 	if rpcErr != nil {
-		log.Error("Torrent rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
+		log.Error("Fs rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
 		return rpcErr
 	}
 	m.cl = rpcClient
@@ -839,7 +848,7 @@ func (m *Monitor) listenLatestBlock() {
 		case <-timer.C:
 			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
-			if progress > batch {
+			if progress >= batch {
 				timer.Reset(time.Millisecond * 100)
 			} else if progress > 6 {
 				timer.Reset(time.Millisecond * 1000)
@@ -888,6 +897,9 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 	var res []string
 	var status = false
 	for _, port := range ports {
+		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			break
+		}
 		//m.portsWg.Add(1)
 		//go func(port string) {
 		//defer m.portsWg.Done()
@@ -945,6 +957,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 const (
 	batch = 2048
+	delay = 12
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
@@ -960,14 +973,14 @@ func (m *Monitor) syncLastBlock() uint64 {
 	//}
 
 	if uint64(currentNumber) < m.lastNumber {
-		log.Warn("Torrent fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
+		log.Warn("Fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
 		m.lastNumber = 0
 	}
 
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
-	if uint64(currentNumber) > 3 {
-		maxNumber = uint64(currentNumber)
+	if uint64(currentNumber) > delay {
+		maxNumber = uint64(currentNumber) - delay
 	}
 
 	if m.lastNumber > uint64(currentNumber) {
@@ -980,10 +993,10 @@ func (m *Monitor) syncLastBlock() uint64 {
 		maxNumber = minNumber + batch
 	}
 	if maxNumber >= minNumber {
-		if minNumber > 5 {
-			minNumber = minNumber - 5
-		}
-		log.Debug("Torrent scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
+		/*if minNumber > delay {
+			minNumber = minNumber - delay
+		}*/
+		log.Debug("Fs scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
 	} else {
 		return 0
 	}
@@ -991,7 +1004,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	start := mclock.Now()
 	for i := minNumber; i <= maxNumber; i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
-			log.Warn("Torrent scan terminated", "number", i)
+			log.Warn("Fs scan terminated", "number", i)
 			maxNumber = i - 1
 			//close(m.exitCh)
 			break
@@ -1007,17 +1020,17 @@ func (m *Monitor) syncLastBlock() uint64 {
 		} else {
 			m.lastNumber = i - 1
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("Torrent scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+			log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
 			//return m.lastNumber - minNumber
 			return 0
 		}
-		/*if err := m.deal(rpcBlock); err != nil {
-			return 0
-		}*/
+		//if err := m.deal(rpcBlock); err != nil {
+		//	return 0
+		//}
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Info("Torrent scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+	log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
 	return uint64(maxNumber - minNumber)
 }
 
@@ -1031,6 +1044,10 @@ func (m *Monitor) deal(block *Block) error {
 			if storeErr := m.fs.WriteBlock(block, true); storeErr != nil {
 				log.Error("Store latest block", "number", block.Number, "error", storeErr)
 				return storeErr
+			}
+
+			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
+				log.Info("The tfs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
