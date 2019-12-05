@@ -75,24 +75,15 @@ type FileStorage struct {
 	dataDir string
 	//tmpCache  *lru.Cache
 	//indexLock sync.RWMutex
+	config *Config
 }
 
-var initConfig *Config = nil
-
-//var TorrentAPIAvailable sync.Mutex
-
-func InitConfig() *Config {
-	return initConfig
-}
+//var initConfig *Config = nil
 
 func NewFileStorage(config *Config) (*FileStorage, error) {
 
 	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
 		return nil, err
-	}
-
-	if initConfig == nil {
-		initConfig = config
 	}
 
 	db, dbErr := bolt.Open(filepath.Join(config.DataDir,
@@ -111,6 +102,8 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		//opCounter:         0,
 		dataDir: config.DataDir,
 	}
+
+	fs.config = config
 
 	fs.version = version
 

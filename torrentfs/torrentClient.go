@@ -65,7 +65,7 @@ type Torrent struct {
 
 const block = int64(params.PER_UPLOAD_BYTES)
 
-func GetLimitation(value int64) int64 {
+func (tm *TorrentManager) GetLimitation(value int64) int64 {
 	return ((value + block - 1) / block) * block
 }
 
@@ -309,7 +309,7 @@ func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, sta
 		tm.maxEstablishedConns, tm.maxEstablishedConns,
 		requested,
 		//int64(float64(requested) * expansionFactor),
-		GetLimitation(requested),
+		tm.GetLimitation(requested),
 		0, 0, status,
 		ih.String(),
 		path.Join(tm.TmpDataDir, ih.String()),
@@ -378,9 +378,9 @@ func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
 //	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
 //}
 
-func GetMagnetURI(infohash metainfo.Hash) string {
-	return "magnet:?xt=urn:btih:" + infohash.String()
-}
+//func GetMagnetURI(infohash metainfo.Hash) string {
+//	return "magnet:?xt=urn:btih:" + infohash.String()
+//}
 
 func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 	tm.lock.Lock()
@@ -421,7 +421,7 @@ func mmapFile(name string) (mm mmap.MMap, err error) {
 	return mmap.MapRegion(f, -1, mmap.RDONLY, mmap.COPY, 0)
 }
 
-func verifyTorrent(info *metainfo.Info, root string) error {
+func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error {
 	span := new(mmap_span.MMapSpan)
 	for _, file := range info.UpvertedFiles() {
 		filename := filepath.Join(append([]string{root, info.Name}, file.Path...)...)
@@ -476,7 +476,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		if err != nil {
 			log.Error("error unmarshalling info: ", "info", err)
 		}
-		if err := verifyTorrent(&info, ExistDir); err != nil {
+		if err := tm.verifyTorrent(&info, ExistDir); err != nil {
 			log.Warn("Seed failed verification:", "err", err)
 		} else {
 			useExistDir = true
@@ -856,7 +856,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				tm.lock.RUnlock()
 				if t.bytesRequested < BytesRequested {
 					t.bytesRequested = BytesRequested
-					t.bytesLimitation = GetLimitation(BytesRequested)
+					t.bytesLimitation = tm.GetLimitation(BytesRequested)
 				}
 
 				t.bytesCompleted = t.BytesCompleted()

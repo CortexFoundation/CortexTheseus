@@ -77,16 +77,18 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 		return torrentInstance, nil
 	}
 
-	versionMeta := ""
+	//versionMeta := ""
 	//TorrentAPIAvailable.Lock()
-	if len(params.VersionMeta) > 0 {
-		versionMeta = fmt.Sprintf(" (%s)", params.VersionMeta)
-	}
+	//if len(params.VersionMeta) > 0 {
+	//	versionMeta = fmt.Sprintf(" (%s)", params.VersionMeta)
+	//}
 
 	msg := &GeneralMessage{
 		Commit:  commit,
-		Version: fmt.Sprintf("v%d.%d.%d%s", params.VersionMajor, params.VersionMinor, params.VersionPatch, versionMeta),
+		Version: fmt.Sprintf("v%d.%d.%d-%s", params.VersionMajor, params.VersionMinor, params.VersionPatch, params.VersionMeta),
 	}
+
+	log.Info("Fs version info", "version", msg.Version)
 
 	monitor, moErr := NewMonitor(config)
 	if moErr != nil {

@@ -191,7 +191,7 @@ func (m *Monitor) storageInit() error {
 
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
 		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
-			log.Info("Tfs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			log.Info("Fs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 			m.lastNumber = 0
 		}
 		/*if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
@@ -210,12 +210,12 @@ func (m *Monitor) storageInit() error {
 
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Tfs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
+			log.Warn("Fs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
 			m.lastNumber = 0
 			//m.fs.LastListenBlockNumber = 0
 			//m.fs.CheckPoint = 0
 		} else {
-			log.Info("Tfs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version))
+			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version))
 		}
 	}
 
@@ -1051,7 +1051,7 @@ func (m *Monitor) deal(block *Block) error {
 			}
 
 			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
-				log.Info("The tfs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+				log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
