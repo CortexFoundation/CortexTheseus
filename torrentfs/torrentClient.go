@@ -614,6 +614,10 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableUTP = true //config.DisableUTP
 	//cfg.NoDHT = true//config.DisableDHT
+
+	cfg.HeaderObfuscationPolicy.Preferred = true
+	cfg.HeaderObfuscationPolicy.RequirePreferred = true
+
 	cfg.DataDir = config.DataDir
 	//cfg.DisableEncryption = true
 	//cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
