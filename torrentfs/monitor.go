@@ -312,7 +312,7 @@ func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 		}
 	}
 
-	return nil, errors.New("Building Internal-IPC Connection Failed")
+	return nil, errors.New("building internal ipc connection failed")
 }
 
 func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
