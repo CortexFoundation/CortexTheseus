@@ -767,23 +767,10 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 		case t := <-tm.pendingChan:
 			tm.pendingTorrents[t.Torrent.InfoHash()] = t
 		case <-timer.C:
-			//var pendingTorrents []*Torrent
-			//for _, t := range tm.pendingTorrents {
-			//	pendingTorrents = append(pendingTorrents, t)
-			//}
-			//pendingTorrents = append(pendingTorrents, tm.pendingTorrents...)
-
 			for _, t := range tm.pendingTorrents {
 				ih := t.Torrent.InfoHash()
 				t.loop += 1
-				/*if t.Seeding() {
-					if len(tm.seedingChan) < cap(tm.seedingChan) {
-						delete(tm.pendingTorrents, ih)
-						t.loop = 0
-						tm.seedingChan <- t
-						log.Warn("Seeding from pending channel", "hash", ih.String())
-					}
-				} else*/if !t.Pending() {
+				if !t.Pending() {
 					if len(tm.activeChan) < cap(tm.activeChan) {
 						delete(tm.pendingTorrents, ih)
 						t.loop = 0
@@ -924,12 +911,13 @@ func (tm *TorrentManager) activeTorrentLoop() {
 								filepaths := []string{}
 								filedatas := [][]byte{}
 								for _, file := range t.Files() {
+									if file.BytesCompleted() > 0 {
+										continue
+									}
 									subpath := file.Path()
 									if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
 										filedatas = append(filedatas, data)
 										filepaths = append(filepaths, subpath)
-									} else {
-										continue
 									}
 								}
 								t.Torrent.Drop()
