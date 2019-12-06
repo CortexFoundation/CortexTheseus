@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
@@ -52,6 +53,7 @@ type Torrent struct {
 	loop                int
 	maxPieces           int
 	isBoosting          bool
+	start               mclock.AbsTime
 }
 
 const block = int64(params.PER_UPLOAD_BYTES)
@@ -199,8 +201,11 @@ func (t *Torrent) Seed() {
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
 
-	t.Torrent.DownloadAll()
-	log.Info("Download success, seeding(s)", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited)
+	//t.Torrent.DownloadAll()
+	if t.Torrent.Seeding() {
+		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+		log.Info("Download success, seeding(s)", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "elapsed", elapsed)
+	}
 }
 
 func (t *Torrent) Seeding() bool {
@@ -233,18 +238,18 @@ func (t *Torrent) NumPieces() int {
 }
 
 func (t *Torrent) Run() {
-	maxPieces := int((t.bytesRequested*int64(t.NumPieces()) + t.Length() - 1) / t.Length())
-	if maxPieces > t.NumPieces() {
-		maxPieces = t.NumPieces()
+	limitPieces := int((t.bytesRequested*int64(t.NumPieces()) + t.Length() - 1) / t.Length())
+	if limitPieces > t.NumPieces() {
+		limitPieces = t.NumPieces()
 	}
 	if t.currentConns == 0 {
 		t.currentConns = t.maxEstablishedConns
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
 	t.status = torrentRunning
-	if maxPieces > t.maxPieces {
-		t.maxPieces = maxPieces
-		t.Torrent.DownloadPieces(0, maxPieces)
+	if limitPieces > t.maxPieces {
+		t.maxPieces = limitPieces
+		t.Torrent.DownloadPieces(0, limitPieces)
 	}
 }
 
@@ -302,7 +307,7 @@ func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, sta
 		0, 0, status,
 		ih.String(),
 		path.Join(tm.TmpDataDir, ih.String()),
-		0, 1, 0, 0, false,
+		0, 1, 0, 0, false, mclock.Now(),
 	}
 	tm.SetTorrent(ih, tt)
 	//tm.pendingChan <- tt
@@ -595,8 +600,12 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//      "max_activenum", config.MaxActiveNum,
 	//    )
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableUTP = true //config.DisableUTP
+	//cfg.DisableUTP = true //config.DisableUTP
 	//cfg.NoDHT = true//config.DisableDHT
+
+	cfg.HeaderObfuscationPolicy.Preferred = true
+	cfg.HeaderObfuscationPolicy.RequirePreferred = true
+
 	cfg.DataDir = config.DataDir
 	//cfg.DisableEncryption = true
 	//cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
@@ -763,23 +772,10 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 		case t := <-tm.pendingChan:
 			tm.pendingTorrents[t.Torrent.InfoHash()] = t
 		case <-timer.C:
-			//var pendingTorrents []*Torrent
-			//for _, t := range tm.pendingTorrents {
-			//	pendingTorrents = append(pendingTorrents, t)
-			//}
-			//pendingTorrents = append(pendingTorrents, tm.pendingTorrents...)
-
 			for _, t := range tm.pendingTorrents {
 				ih := t.Torrent.InfoHash()
 				t.loop += 1
-				/*if t.Seeding() {
-					if len(tm.seedingChan) < cap(tm.seedingChan) {
-						delete(tm.pendingTorrents, ih)
-						t.loop = 0
-						tm.seedingChan <- t
-						log.Warn("Seeding from pending channel", "hash", ih.String())
-					}
-				} else*/if !t.Pending() {
+				if !t.Pending() {
 					if len(tm.activeChan) < cap(tm.activeChan) {
 						delete(tm.pendingTorrents, ih)
 						t.loop = 0
@@ -916,21 +912,20 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						t.isBoosting = true
 						go func(t *Torrent) {
 							defer t.BoostOff()
-							if t.Files() != nil {
-								filepaths := []string{}
-								filedatas := [][]byte{}
-								for _, file := range t.Files() {
-									subpath := file.Path()
-									if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
-										filedatas = append(filedatas, data)
-										filepaths = append(filepaths, subpath)
-									} else {
-										continue
-									}
+							filepaths := []string{}
+							filedatas := [][]byte{}
+							for _, file := range t.Files() {
+								if file.BytesCompleted() > 0 {
+									continue
 								}
-								t.Torrent.Drop()
-								t.ReloadFile(filepaths, filedatas, tm)
+								subpath := file.Path()
+								if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
+									filedatas = append(filedatas, data)
+									filepaths = append(filepaths, subpath)
+								}
 							}
+							t.Torrent.Drop()
+							t.ReloadFile(filepaths, filedatas, tm)
 						}(t)
 						active_boost += 1
 						if log_counter%20 == 0 {
