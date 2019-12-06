@@ -907,22 +907,20 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						t.isBoosting = true
 						go func(t *Torrent) {
 							defer t.BoostOff()
-							if t.Files() != nil {
-								filepaths := []string{}
-								filedatas := [][]byte{}
-								for _, file := range t.Files() {
-									if file.BytesCompleted() > 0 {
-										continue
-									}
-									subpath := file.Path()
-									if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
-										filedatas = append(filedatas, data)
-										filepaths = append(filepaths, subpath)
-									}
+							filepaths := []string{}
+							filedatas := [][]byte{}
+							for _, file := range t.Files() {
+								if file.BytesCompleted() > 0 {
+									continue
 								}
-								t.Torrent.Drop()
-								t.ReloadFile(filepaths, filedatas, tm)
+								subpath := file.Path()
+								if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
+									filedatas = append(filedatas, data)
+									filepaths = append(filepaths, subpath)
+								}
 							}
+							t.Torrent.Drop()
+							t.ReloadFile(filepaths, filedatas, tm)
 						}(t)
 						active_boost += 1
 						if log_counter%20 == 0 {
