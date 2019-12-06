@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
@@ -52,6 +53,7 @@ type Torrent struct {
 	loop                int
 	maxPieces           int
 	isBoosting          bool
+	start               mclock.AbsTime
 }
 
 const block = int64(params.PER_UPLOAD_BYTES)
@@ -199,8 +201,11 @@ func (t *Torrent) Seed() {
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
 
-	t.Torrent.DownloadAll()
-	log.Info("Download success, seeding(s)", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited)
+	//t.Torrent.DownloadAll()
+	if t.Torrent.Seeding() {
+		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+		log.Info("Download success, seeding(s)", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "elapsed", elapsed)
+	}
 }
 
 func (t *Torrent) Seeding() bool {
@@ -233,18 +238,18 @@ func (t *Torrent) NumPieces() int {
 }
 
 func (t *Torrent) Run() {
-	maxPieces := int((t.bytesRequested*int64(t.NumPieces()) + t.Length() - 1) / t.Length())
-	if maxPieces > t.NumPieces() {
-		maxPieces = t.NumPieces()
+	limitPieces := int((t.bytesRequested*int64(t.NumPieces()) + t.Length() - 1) / t.Length())
+	if limitPieces > t.NumPieces() {
+		limitPieces = t.NumPieces()
 	}
 	if t.currentConns == 0 {
 		t.currentConns = t.maxEstablishedConns
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
 	t.status = torrentRunning
-	if maxPieces > t.maxPieces {
-		t.maxPieces = maxPieces
-		t.Torrent.DownloadPieces(0, maxPieces)
+	if limitPieces > t.maxPieces {
+		t.maxPieces = limitPieces
+		t.Torrent.DownloadPieces(0, limitPieces)
 	}
 }
 
@@ -302,7 +307,7 @@ func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, sta
 		0, 0, status,
 		ih.String(),
 		path.Join(tm.TmpDataDir, ih.String()),
-		0, 1, 0, 0, false,
+		0, 1, 0, 0, false, mclock.Now(),
 	}
 	tm.SetTorrent(ih, tt)
 	//tm.pendingChan <- tt
