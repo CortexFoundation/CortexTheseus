@@ -972,24 +972,26 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			if counter >= loops {
 				log.Info("Fs status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent))
 				tmp := make(map[common.Hash]int)
+				sum := 0
 				for _, ttt := range tm.client.Torrents() {
 					for _, p := range ttt.KnownSwarm() {
 						if common.BytesToHash(p.Id[:]) == common.EmptyHash {
 							continue
 						}
 						k := common.BytesToHash(append(p.Id[:], p.IP[:]...))
-						if _, ok := tmp[k]; !ok {
-							log.Info("Active peer status", "hash", ttt.InfoHash(), "id", common.BytesToHash(p.Id[:]), "k", k, "ip", p.IP.String(), "port", p.Port, "source", p.Source, "encrypt", p.SupportsEncryption, "flag", p.PexPeerFlags)
+						if v, ok := tmp[k]; !ok {
+							log.Debug("Active peer status", "hash", ttt.InfoHash(), "id", common.BytesToHash(p.Id[:]), "k", k, "ip", p.IP.String(), "port", p.Port, "source", p.Source, "encrypt", p.SupportsEncryption, "flag", p.PexPeerFlags, "buk", len(tmp), "active", sum, "total", len(ttt.KnownSwarm()))
 							tmp[k] = 1
 						} else {
-							tmp[k] = tmp[k] + 1
+							tmp[k] = v + 1
 						}
+						sum += tmp[k]
 					}
 				}
 
-				for k, v := range tmp {
-					log.Info("Storage peers statics", "k", k, "v", v)
-				}
+				//for k, v := range tmp {
+				//	log.Trace("Storage peers statics", "k", k, "v", v)
+				//}
 
 				for _, ip := range tm.client.BadPeerIPs() {
 					log.Warn("Bad peer", "ip", ip)

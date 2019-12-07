@@ -986,7 +986,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 }*/
 
 const (
-	batch = 2048
+	batch = 4096
 	delay = 12
 )
 
@@ -1050,7 +1050,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 		} else {
 			m.lastNumber = i - 1
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
+			log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 			//return m.lastNumber - minNumber
 			return 0
 		}
@@ -1060,7 +1061,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+	elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
+	log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 	return uint64(maxNumber - minNumber)
 }
 
