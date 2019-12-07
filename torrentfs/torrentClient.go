@@ -21,6 +21,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/anacrolix/torrent"
+	//	"net"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
 	"github.com/anacrolix/torrent/storage"
@@ -600,7 +601,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//      "max_activenum", config.MaxActiveNum,
 	//    )
 	cfg := torrent.NewDefaultClientConfig()
-	//cfg.DisableUTP = true //config.DisableUTP
+	//cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
 
 	cfg.HeaderObfuscationPolicy.Preferred = true
@@ -969,7 +970,31 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			}
 
 			if counter >= loops {
-				log.Info("Fs status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent))
+				log.Info("Fs status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "pieces", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent), "ip", tm.client.BadPeerIPs())
+				tmp := make(map[common.Hash]int)
+				for _, ttt := range tm.client.Torrents() {
+					for _, p := range ttt.KnownSwarm() {
+						if common.BytesToHash(p.Id[:]) == common.EmptyHash {
+							continue
+						}
+						k := common.BytesToHash(append(p.Id[:], p.IP[:]...))
+						if _, ok := tmp[k]; !ok {
+							log.Info("Active peer status", "hash", ttt.InfoHash(), "id", common.BytesToHash(p.Id[:]), "k", k, "ip", p.IP.String(), "port", p.Port, "source", p.Source, "encrypt", p.SupportsEncryption, "flag", p.PexPeerFlags)
+							tmp[k] = 1
+						} else {
+							tmp[k] = tmp[k] + 1
+						}
+					}
+				}
+
+				for k, v := range tmp {
+					log.Info("Storage peers statics", "k", k, "v", v)
+				}
+
+				for _, ip := range tm.client.BadPeerIPs() {
+					log.Warn("Bad peer", "ip", ip)
+				}
+
 				counter = 0
 				current_size = 0
 			}

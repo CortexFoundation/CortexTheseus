@@ -89,6 +89,7 @@ type Monitor struct {
 	healthPeers *lru.Cache
 	sizeCache   *lru.Cache
 	ckp         *params.TrustedCheckpoint
+	start       mclock.AbsTime
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -124,6 +125,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		lastNumber: uint64(0),
 		dirty:      false,
 		taskCh:     make(chan *Block, batch),
+		start:      mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
 	m.healthPeers, _ = lru.New(50)
@@ -872,6 +874,7 @@ func (m *Monitor) listenLatestBlock() {
 
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
+	m.default_tracker_check()
 	timer := time.NewTimer(time.Second * 600)
 	defer timer.Stop()
 	for {
@@ -895,6 +898,29 @@ type tracker_stats struct {
 	PeersSeederAndLeecher int `json:"peersSeederAndLeecher"`
 	PeersIPv4             int `json:"peersIPv4"`
 	PeersIPv6             int `json:"peersIPv6"`
+}
+
+func (m *Monitor) default_tracker_check() (r []string, err error) {
+	for _, tracker := range params.MainnetTrackers {
+		url := tracker[0:len(tracker)-9] + "/stats.json"
+		response, err := client.Get(url)
+		//start := mclock.Now()
+		if err != nil || response == nil || response.StatusCode != 200 {
+			log.Warn("Default tracker status is unhealthy", "name", tracker, "err", err)
+			continue
+		} else {
+			var stats tracker_stats
+			if jsErr := json.NewDecoder(response.Body).Decode(&stats); jsErr != nil {
+				//log.Warn("Default tracker status is unhealthy", "name", tracker, "url", url, "err", jsErr, "stats", stats)
+				continue
+			}
+			//elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+			//log.Info("Default tracker status is healthy", "name", tracker, "url", url, "elapsed", elapsed)
+			r = append(r, tracker)
+		}
+	}
+	log.Info("Default storage global status", "result", len(r))
+	return r, err
 }
 
 func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool) {
@@ -1051,7 +1077,8 @@ func (m *Monitor) deal(block *Block) error {
 			}
 
 			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
-				log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+				elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
+				log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "elapsed", elapsed)
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
