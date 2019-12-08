@@ -906,7 +906,7 @@ func (m *Monitor) default_tracker_check() (r []string, err error) {
 		response, err := client.Get(url)
 		//start := mclock.Now()
 		if err != nil || response == nil || response.StatusCode != 200 {
-			log.Warn("Default tracker status is unhealthy", "name", tracker, "err", err)
+			//log.Warn("Default tracker status is unhealthy", "name", tracker, "err", err)
 			continue
 		} else {
 			var stats tracker_stats
