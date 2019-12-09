@@ -858,10 +858,8 @@ func (m *Monitor) listenLatestBlock() {
 				timer.Reset(time.Millisecond * 100)
 			} else if progress > 6 {
 				timer.Reset(time.Millisecond * 1000)
-			} else if progress == 0 {
-				timer.Reset(time.Millisecond * 10000)
 			} else {
-				timer.Reset(time.Millisecond * 5000)
+				timer.Reset(time.Millisecond * 3000)
 			}
 
 			//timer.Reset(time.Second * defaultTimerInterval)
