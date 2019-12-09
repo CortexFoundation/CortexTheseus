@@ -178,6 +178,11 @@ func (t *Torrent) IsAvailable() bool {
 
 func (t *Torrent) WriteTorrent() {
 	//log.Info("Write seed", "hash", t.infohash)
+	if _, err := os.Stat(path.Join(t.filepath, "torrent")); err == nil {
+		t.Pause()
+		return
+	}
+
 	if f, err := os.Create(path.Join(t.filepath, "torrent")); err == nil {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
