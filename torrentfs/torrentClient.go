@@ -798,6 +798,9 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 		case <-timer.C:
 			for _, t := range tm.pendingTorrents {
 				ih := t.Torrent.InfoHash()
+				if _, ok := BadFiles[t.infohash]; ok {
+					continue
+				}
 				t.loop += 1
 				if !t.Pending() {
 					if len(tm.activeChan) < cap(tm.activeChan) {
