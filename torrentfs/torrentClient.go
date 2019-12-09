@@ -308,6 +308,7 @@ type TorrentManager struct {
 	activeChan  chan *Torrent
 	pendingChan chan *Torrent
 	//closeOnce sync.Once
+	fullSeed bool
 }
 
 func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
@@ -685,6 +686,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 		activeChan:    make(chan *Torrent, torrentChanSize),
 		pendingChan:   make(chan *Torrent, torrentChanSize),
 		//updateTorrent:       make(chan interface{}),
+		fullSeed: config.FullSeed,
 	}
 
 	if len(config.DefaultTrackers) > 0 {
@@ -865,7 +867,12 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			for _, t := range tm.activeTorrents {
 				ih := t.Torrent.InfoHash()
 				tm.lock.RLock()
-				BytesRequested := tm.bytes[ih]
+				BytesRequested := int64(0)
+				if tm.fullSeed {
+					BytesRequested = t.BytesCompleted() + t.BytesMissing()
+				} else {
+					BytesRequested = tm.bytes[ih]
+				}
 				tm.lock.RUnlock()
 				if t.bytesRequested < BytesRequested {
 					t.bytesRequested = BytesRequested

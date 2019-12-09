@@ -214,8 +214,12 @@ var (
 	}
 	StorageDisableDHTFlag = cli.BoolFlag{
 		Name:  "storage.disable_dht",
-		Usage: "disable DHT network in TorrentFS",
+		Usage: "disable DHT network in FS",
 	}
+	StorageFullSeedFlag = cli.BoolFlag{
+                Name:  "storage.full",
+                Usage: "try to boost seeding total files",
+        }
 	// Dashboard settings
 	// DashboardEnabledFlag = cli.BoolFlag{
 	// 	Name:  metrics.DashboardEnabledFlag,
@@ -1247,6 +1251,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DisableDHT = ctx.GlobalBool(StorageDisableDHTFlag.Name)
+	cfg.FullSeed = ctx.GlobalBool(StorageFullSeedFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
 }
 
