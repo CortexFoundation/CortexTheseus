@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
@@ -103,10 +104,13 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	spec.Storage = storage.NewFile(t.filepath)
 	spec.Trackers = append(spec.Trackers, tm.trackers...)
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-		<-torrent.GotInfo()
-		torrent.VerifyData()
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
+		//<-torrent.GotInfo()
+		//torrent.VerifyData()
 		t.Torrent = torrent
-		t.Pause()
+		//	t.Pause()
 	}
 }
 
@@ -119,7 +123,7 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 		return
 	}
 	defer f.Close()
-	log.Debug("Write torrent file (Boost mode)", "path", torrentPath)
+	log.Debug("Write seed file (Boost mode)", "path", torrentPath)
 	if _, err := f.Write(data); err != nil {
 		log.Error("Error while write torrent file", "error", err)
 		return
@@ -133,10 +137,13 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	spec.Storage = storage.NewFile(t.filepath)
 	spec.Trackers = append(spec.Trackers, tm.trackers...)
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-		<-torrent.GotInfo()
-		torrent.VerifyData()
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
+		//<-torrent.GotInfo()
+		//torrent.VerifyData()
 		t.Torrent = torrent
-		t.Pause()
+		//t.Pause()
 	}
 }
 
@@ -170,12 +177,17 @@ func (t *Torrent) IsAvailable() bool {
 //}
 
 func (t *Torrent) WriteTorrent() {
+	//log.Info("Write seed", "hash", t.infohash)
 	if f, err := os.Create(path.Join(t.filepath, "torrent")); err == nil {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
 		if err := t.Metainfo().Write(f); err == nil {
 			t.Pause()
+		} else {
+			log.Warn("Write seed error", "err", err)
 		}
+	} else {
+		log.Warn("Create Path error", "err", err)
 	}
 }
 
@@ -455,7 +467,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	ih := spec.InfoHash
-	log.Trace("Get seed from local file", "InfoHash", ih.HexString())
+	//log.Info("Get seed from local file", "InfoHash", ih.HexString())
 
 	if t := tm.GetTorrent(ih); t != nil {
 		log.Trace("Seed was already existed. Skip", "InfoHash", ih.HexString())
@@ -486,14 +498,16 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		//}
 		spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-			//var ss []string
-			//slices.MakeInto(&ss, mi.Nodes)
-			//tm.client.AddDHTNodes(ss)
-			<-t.GotInfo()
-			t.VerifyData()
+			var ss []string
+			slices.MakeInto(&ss, mi.Nodes)
+			tm.client.AddDHTNodes(ss)
+			//<-t.GotInfo()
+			//t.VerifyData()
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
-			torrent.Pause() //SeedInQueue()
+			//torrent.Pause() //SeedInQueue()
 			return torrent
+		} else {
+			log.Warn("Create error")
 		}
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
@@ -502,14 +516,16 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		}*/
 		spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-			//var ss []string
-			//slices.MakeInto(&ss, mi.Nodes)
-			//tm.client.AddDHTNodes(ss)
-			<-t.GotInfo()
-			t.VerifyData()
+			var ss []string
+			slices.MakeInto(&ss, mi.Nodes)
+			tm.client.AddDHTNodes(ss)
+			//<-t.GotInfo()
+			//t.VerifyData()
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
-			torrent.Pause()
+			//torrent.Pause()
 			return torrent
+		} else {
+			log.Warn("Create error ... ")
 		}
 	}
 	return nil
@@ -529,7 +545,8 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	} else if _, err := os.Stat(torrentPath); err == nil {
 		return tm.AddTorrent(torrentPath, BytesRequested)
 	}
-	//log.Info("Get torrent from infohash", "InfoHash", ih.HexString())
+
+	log.Trace("Get file from infohash", "InfoHash", ih.HexString())
 
 	spec := &torrent.TorrentSpec{
 		Trackers:    [][]string{},
@@ -548,6 +565,10 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	if err != nil {
 		return nil
 	}
+	/*go func() {
+		<-t.GotInfo()
+		t.VerifyData()
+	}()*/
 	tt := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 	//tm.mu.Unlock()
 	//log.Info("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
@@ -604,8 +625,8 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	//cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
 
-	cfg.HeaderObfuscationPolicy.Preferred = true
-	cfg.HeaderObfuscationPolicy.RequirePreferred = true
+	//cfg.HeaderObfuscationPolicy.Preferred = true
+	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
 
 	cfg.DataDir = config.DataDir
 	//cfg.DisableEncryption = true
@@ -809,6 +830,10 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 								log.Warn("Boost failed", "hash", t.infohash, "err", err)
 							}
 						}(t)
+					}
+				} else {
+					if t.loop%20 == 0 {
+						log.Debug("Searching file", "hash", t.infohash, "status", t.status, "file", t, "info", t.Torrent.Info(), "loops", t.loop)
 					}
 				}
 			}

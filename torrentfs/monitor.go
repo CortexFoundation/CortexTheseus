@@ -367,7 +367,7 @@ func (m *Monitor) init() {
 }
 
 func (m *Monitor) http_tracker_build(ip, port string) string {
-	return "http://" + ip + ":" + port + "/announce"
+	return "http://" + ip + ":" + port // + "/announce"
 }
 
 /*func (m *Monitor) udp_tracker_build(ip, port string) string {
@@ -616,7 +616,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 						if file.Meta.RawSize > file.LeftSize {
 							bytesRequested = file.Meta.RawSize - file.LeftSize
 						}
-						log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						log.Info("Data processing", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 
 						m.dl.UpdateTorrent(FlowControlMeta{
 							InfoHash:       file.Meta.InfoHash,
@@ -902,7 +902,10 @@ type tracker_stats struct {
 
 func (m *Monitor) default_tracker_check() (r []string, err error) {
 	for _, tracker := range params.MainnetTrackers {
-		url := tracker[0:len(tracker)-9] + "/stats.json"
+		url := tracker + "/stats.json"
+		if !strings.HasPrefix(url, "http") {
+			continue
+		}
 		response, err := client.Get(url)
 		//start := mclock.Now()
 		if err != nil || response == nil || response.StatusCode != 200 {
