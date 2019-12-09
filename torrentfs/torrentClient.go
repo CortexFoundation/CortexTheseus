@@ -202,8 +202,8 @@ func (t *Torrent) SeedInQueue() {
 		t.currentConns = 0
 		t.Torrent.SetMaxEstablishedConns(0)
 	}
-	//t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
-	t.Torrent.Drop()
+	t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+	//t.Torrent.Drop()
 }
 
 func (t *Torrent) BoostOff() {
@@ -247,8 +247,8 @@ func (t *Torrent) Pause() {
 	if t.status != torrentPaused {
 		t.status = torrentPaused
 		t.maxPieces = 0
-		//t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
-		t.Torrent.Drop()
+		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+		//t.Torrent.Drop()
 	}
 }
 
