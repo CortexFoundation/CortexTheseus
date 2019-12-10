@@ -22,6 +22,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent/metainfo"
 	bolt "github.com/etcd-io/bbolt"
+	"math/rand"
 )
 
 const (
@@ -61,8 +62,9 @@ type FileStorage struct {
 	db                *bolt.DB
 	version           string
 
-	LastListenBlockNumber uint64
+	id                    uint64
 	CheckPoint            uint64
+	LastListenBlockNumber uint64
 
 	//elements []*BlockContent
 	leaves []Content
@@ -122,6 +124,8 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	if err := fs.initMerkleTree(); err != nil {
 		return nil, err
 	}
+
+	fs.initFsId()
 
 	return fs, nil
 }
@@ -524,9 +528,9 @@ func (fs *FileStorage) initFiles() error {
 	})
 }
 
-/*func (fs *FileStorage) readLastFileIndex() error {
+func (fs *FileStorage) readFsId() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("lastFileIndex"))
+		buk := tx.Bucket([]byte("id_" + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -541,28 +545,33 @@ func (fs *FileStorage) initFiles() error {
 		if err != nil {
 			return err
 		}
-
-		//fs.indexLock.Lock()
-		//defer fs.indexLock.Unlock()
-		fs.LastFileIndex = number
+		fs.id = number
 
 		return nil
 	})
-}*/
+}
 
-/*func (fs *FileStorage) writeLastFileIndex() error {
+func (fs *FileStorage) ID() uint64 {
+	return fs.id
+}
+
+func (fs *FileStorage) initFsId() error {
+	err := fs.readFsId()
+	if fs.id > 0 && err != nil {
+		return nil
+	}
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("lastFileIndex"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("id_" + fs.version))
 		if err != nil {
 			return err
 		}
-		//fs.lock.Lock()
-		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastFileIndex, 16)))
-		//fs.lock.Unlock()
+		id := uint64(rand.Int63())
+		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(id, 16)))
+		fs.id = id
 
 		return e
 	})
-}*/
+}
 func (fs *FileStorage) initCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
