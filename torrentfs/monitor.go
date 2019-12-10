@@ -367,7 +367,7 @@ func (m *Monitor) init() {
 }
 
 func (m *Monitor) http_tracker_build(ip, port string) string {
-	return "http://" + ip + ":" + port // + "/announce"
+	return "http://" + ip + ":" + port + "/announce"
 }
 
 /*func (m *Monitor) udp_tracker_build(ip, port string) string {
@@ -900,7 +900,7 @@ type tracker_stats struct {
 
 func (m *Monitor) default_tracker_check() (r []string, err error) {
 	for _, tracker := range params.MainnetTrackers {
-		url := tracker + "/stats.json"
+		url := tracker[0:len(tracker)-9] + "/stats.json"
 		if !strings.HasPrefix(url, "http") {
 			continue
 		}
