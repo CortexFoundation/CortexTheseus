@@ -203,6 +203,7 @@ func (t *Torrent) SeedInQueue() {
 		t.Torrent.SetMaxEstablishedConns(0)
 	}
 	t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+	//t.Torrent.Drop()
 }
 
 func (t *Torrent) BoostOff() {
@@ -213,16 +214,23 @@ func (t *Torrent) Seed() {
 	if t.status == torrentSeeding {
 		return
 	}
-	t.status = torrentSeeding
-	if t.currentConns == 0 {
-		t.currentConns = t.maxEstablishedConns
-		t.Torrent.SetMaxEstablishedConns(t.currentConns)
-	}
+	//t.status = torrentSeeding
+	//if t.currentConns == 0 {
+	//	t.currentConns = t.maxEstablishedConns
+	//	t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	//}
 
 	//t.Torrent.DownloadAll()
 	if t.Torrent.Seeding() {
+		t.status = torrentSeeding
+		if t.currentConns == 0 {
+			t.currentConns = t.maxEstablishedConns
+			t.Torrent.SetMaxEstablishedConns(t.currentConns)
+		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 		log.Info("Download success, seeding(s)", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "elapsed", elapsed)
+	} else {
+		t.Torrent.DownloadAll()
 	}
 }
 
@@ -240,6 +248,7 @@ func (t *Torrent) Pause() {
 		t.status = torrentPaused
 		t.maxPieces = 0
 		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+		//t.Torrent.Drop()
 	}
 }
 
@@ -367,11 +376,6 @@ func (tm *TorrentManager) Close() error {
 func (tm *TorrentManager) dropAll() {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	/*for _, t := range tm.torrents {
-		stats := t.Stats()
-		log.Debug("Fs statics", "hash", t.infohash, "total", stats.TotalPeers, "pending", stats.PendingPeers, "active", stats.ActivePeers, "seeder", stats.ConnectedSeeders, "half", stats.HalfOpenPeers)
-		t.Drop()
-	}*/
 
 	tm.client.Close()
 }
@@ -939,7 +943,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					t.Pause()
 					active_paused += 1
 					if log_counter%20 == 0 {
-						log.Info("[Pausing]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
+						log.Info("[Pausing]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting, "s", t.Seeding())
 					}
 					continue
 				} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
@@ -977,7 +981,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				}
 
 				if log_counter%20 == 0 {
-					log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting)
+					log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.NumPieces(), "status", t.status, "boost", t.isBoosting, "s", t.Seeding())
 				}
 
 				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
