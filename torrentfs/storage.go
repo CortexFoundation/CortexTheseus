@@ -1,10 +1,12 @@
 package torrentfs
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"fmt"
+	"github.com/pborman/uuid"
 	"os"
 	"path/filepath"
 	//"path"
@@ -22,7 +24,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent/metainfo"
 	bolt "github.com/etcd-io/bbolt"
-	"math/rand"
+	//"math/rand"
 )
 
 const (
@@ -126,6 +128,8 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 
 	fs.initFsId()
+
+	log.Info("Storage ID init", "id", fs.id)
 
 	return fs, nil
 }
@@ -557,7 +561,7 @@ func (fs *FileStorage) ID() uint64 {
 
 func (fs *FileStorage) initFsId() error {
 	err := fs.readFsId()
-	if fs.id > 0 && err != nil {
+	if fs.id > 0 && err == nil {
 		return nil
 	}
 	return fs.db.Update(func(tx *bolt.Tx) error {
@@ -565,9 +569,12 @@ func (fs *FileStorage) initFsId() error {
 		if err != nil {
 			return err
 		}
-		id := uint64(rand.Int63())
+		//id := uint64(rand.Int63n(1 << 63 - 1))
+		//id := uint64(rand.Int63n(1000))
+		id := binary.LittleEndian.Uint64([]byte(uuid.NewRandom()))
+		//id := uint64(os.Getuid())
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(id, 16)))
-		fs.id = id
+		fs.id = id //binary.LittleEndian.Uint64([]byte(id[:]))//uint64(id[:])
 
 		return e
 	})
