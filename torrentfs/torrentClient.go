@@ -277,11 +277,11 @@ func (t *Torrent) Run(mod int) {
 	if limitPieces > t.maxPieces {
 		t.maxPieces = limitPieces
 		//t.Torrent.DownloadPieces(0, limitPieces)
-		t.Download(limitPieces, mod)
+		t.download(limitPieces, mod)
 	}
 }
 
-func (t *Torrent) Download(p, mod int) {
+func (t *Torrent) download(p, mod int) {
 	var s, e int
 	if mod == 0 {
 		e = p
