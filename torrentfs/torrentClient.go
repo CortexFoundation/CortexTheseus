@@ -367,11 +367,11 @@ func (tm *TorrentManager) Close() error {
 func (tm *TorrentManager) dropAll() {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	for _, t := range tm.torrents {
+	/*for _, t := range tm.torrents {
 		stats := t.Stats()
 		log.Debug("Fs statics", "hash", t.infohash, "total", stats.TotalPeers, "pending", stats.PendingPeers, "active", stats.ActivePeers, "seeder", stats.ConnectedSeeders, "half", stats.HalfOpenPeers)
 		t.Drop()
-	}
+	}*/
 
 	tm.client.Close()
 }
