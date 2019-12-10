@@ -34,12 +34,12 @@ cpu: cortex_cpu
 
 cortex: cpu
 
-cortex_cpu: clib_cpu tracker
+cortex_cpu: clib_cpu
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex_cpu ..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex cpu."
-cortex_gpu: clib tracker
+cortex_gpu: clib
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."

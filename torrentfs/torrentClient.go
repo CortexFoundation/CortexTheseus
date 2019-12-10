@@ -648,7 +648,7 @@ func NewTorrentManager(config *Config) *TorrentManager {
 	cfg.Seed = true
 	//cfg.EstablishedConnsPerTorrent = 10
 	//cfg.HalfOpenConnsPerTorrent = 5
-	cfg.ListenPort = 0
+	cfg.ListenPort = config.Port
 	//cfg.DropDuplicatePeerIds = true
 	//cfg.ListenHost = torrent.LoopbackListenHost
 	//cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs //func() ([]dht.Addr, error) { return nil, nil }

@@ -12,7 +12,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
-	//"net"
+	"net"
 	"net/http"
 	//"os"
 	"runtime"
@@ -370,11 +370,11 @@ func (m *Monitor) http_tracker_build(ip, port string) string {
 	return "http://" + ip + ":" + port + "/announce"
 }
 
-/*func (m *Monitor) udp_tracker_build(ip, port string) string {
+func (m *Monitor) udp_tracker_build(ip, port string) string {
 	return "udp://" + ip + ":" + port + "/announce"
 }
 
-func (m *Monitor) ws_tracker_build(ip, port string) string {
+/*func (m *Monitor) ws_tracker_build(ip, port string) string {
 	return "ws://" + ip + ":" + port + "/announce"
 }*/
 
@@ -393,29 +393,29 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				//if unhealthPeers.Contains(ip) {
 				//continue
 				//}
-				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
-					for _, p := range ps {
-						tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
-						if m.healthPeers.Contains(tracker) {
-							//continue
-						} else {
-							flush = true
-						}
-						//m.trackerLock.Lock()
-						//trackers = append(trackers, tracker)
-						//trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
-						//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
-						//m.trackerLock.Unlock()
-						//flush = true
-						m.healthPeers.Add(tracker, tracker)
-						//if unhealthPeers.Contains(ip) {
-						//	unhealthPeers.Remove(ip)
-						//}
-					}
-				} // else {
-				//unhealthPeers.Add(ip, peer)
-
-				/*if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
+				/*				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
+									for _, p := range ps {
+										tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
+										if m.healthPeers.Contains(tracker) {
+											//continue
+										} else {
+											flush = true
+										}
+										//m.trackerLock.Lock()
+										//trackers = append(trackers, tracker)
+										//trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
+										//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
+										//m.trackerLock.Unlock()
+										//flush = true
+										m.healthPeers.Add(tracker, tracker)
+										//if unhealthPeers.Contains(ip) {
+										//	unhealthPeers.Remove(ip)
+										//}
+									}
+								} // else {
+								//unhealthPeers.Add(ip, peer)
+				*/
+				if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
 					for _, p := range ps {
 						tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
 						if m.healthPeers.Contains(tracker) {
@@ -432,7 +432,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						//	unhealthPeers.Remove(ip)
 						//}
 					}
-				}*/
+				}
 				//}
 			}(peer)
 		}
@@ -757,8 +757,8 @@ func (m *Monitor) startWork() error {
 	m.wg.Add(1)
 	go m.listenLatestBlock()
 	m.init()
-	m.wg.Add(1)
-	go m.listenPeers()
+	//m.wg.Add(1)
+	//go m.listenPeers()
 
 	return nil
 }
@@ -873,13 +873,13 @@ func (m *Monitor) listenLatestBlock() {
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
 	m.default_tracker_check()
-	timer := time.NewTimer(time.Second * 600)
+	timer := time.NewTimer(time.Second * 60)
 	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
 			m.peers()
-			timer.Reset(time.Second * 3600)
+			timer.Reset(time.Second * 600)
 		case <-m.exitCh:
 			log.Info("Peers listener stopped")
 			return
@@ -960,7 +960,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 }
 
-/*func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
+func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
 	var res []string
 	var status = false
 	//request := make([]byte, 1)
@@ -984,7 +984,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 	}
 
 	return res, status
-}*/
+}
 
 const (
 	batch = 4096
