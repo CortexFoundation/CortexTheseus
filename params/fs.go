@@ -1,5 +1,5 @@
 package params
 
-const(
-	Bucket = 8
+const (
+	Bucket = 1024
 )
