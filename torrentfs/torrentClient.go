@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	bucket                  = 8 //it is best size is 1/3 full nodes
+	bucket                  = params.Bucket //it is best size is 1/3 full nodes
 	updateTorrentChanBuffer = batch
 	torrentChanSize         = 1024
 
