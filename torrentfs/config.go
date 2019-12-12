@@ -19,18 +19,20 @@ type Config struct {
 	SyncMode        string   `toml:",omitempty"`
 	MaxSeedingNum   int      `toml:",omitempty"`
 	MaxActiveNum    int      `toml:",omitempty"`
+	FullSeed        bool
 }
 
 // DefaultConfig contains default settings for the storage.
 var DefaultConfig = Config{
-	Port:            30090,
+	Port:            0,
 	DefaultTrackers: params.MainnetTrackers,
 	BoostNodes:      params.TorrentBoostNodes,
 	SyncMode:        "full",
-	DisableUTP:      true,
+	DisableUTP:      false,
 	DisableDHT:      false,
 	MaxSeedingNum:   1024,
 	MaxActiveNum:    1024,
+	FullSeed:        false,
 }
 
 const (

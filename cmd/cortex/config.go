@@ -165,7 +165,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 		storageEnabled = false
 	}
 	if storageEnabled {
-		log.Info("makeFullNode", "storageEnabled", storageEnabled)
+		log.Info("FullNode", "storageEnabled", storageEnabled)
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}
 	if deviceType := utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)); deviceType != "" {

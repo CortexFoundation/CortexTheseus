@@ -12,7 +12,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
-	//"net"
+	"net"
 	"net/http"
 	//"os"
 	"runtime"
@@ -89,6 +89,7 @@ type Monitor struct {
 	healthPeers *lru.Cache
 	sizeCache   *lru.Cache
 	ckp         *params.TrustedCheckpoint
+	start       mclock.AbsTime
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -105,8 +106,10 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	}
 	log.Info("File storage initialized")
 
+	id := fs.ID()
+
 	// Torrent Manager
-	tMana := NewTorrentManager(flag)
+	tMana := NewTorrentManager(flag, id)
 	if tMana == nil {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")
@@ -124,6 +127,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		lastNumber: uint64(0),
 		dirty:      false,
 		taskCh:     make(chan *Block, batch),
+		start:      mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
 	m.healthPeers, _ = lru.New(50)
@@ -191,7 +195,7 @@ func (m *Monitor) storageInit() error {
 
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
 		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
-			log.Info("Tfs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			log.Info("Fs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 			m.lastNumber = 0
 		}
 		/*if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
@@ -210,12 +214,12 @@ func (m *Monitor) storageInit() error {
 
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Tfs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
+			log.Warn("Fs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
 			m.lastNumber = 0
 			//m.fs.LastListenBlockNumber = 0
 			//m.fs.CheckPoint = 0
 		} else {
-			log.Info("Tfs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version))
+			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version))
 		}
 	}
 
@@ -296,7 +300,7 @@ func (m *Monitor) taskLoop() {
 }
 
 // SetConnection method builds connection to remote or local communicator.
-func SetConnection(clientURI string) (*rpc.Client, error) {
+func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 	for {
 		time.Sleep(time.Second * connTryInterval)
 		cl, err := rpc.Dial(clientURI)
@@ -306,9 +310,13 @@ func SetConnection(clientURI string) (*rpc.Client, error) {
 			log.Info("Internal ipc connection established", "uri", clientURI)
 			return cl, nil
 		}
+
+		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			break
+		}
 	}
 
-	return nil, errors.New("Building Internal-IPC Connection Failed")
+	return nil, errors.New("building internal ipc connection failed")
 }
 
 func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
@@ -364,11 +372,11 @@ func (m *Monitor) http_tracker_build(ip, port string) string {
 	return "http://" + ip + ":" + port + "/announce"
 }
 
-/*func (m *Monitor) udp_tracker_build(ip, port string) string {
+func (m *Monitor) udp_tracker_build(ip, port string) string {
 	return "udp://" + ip + ":" + port + "/announce"
 }
 
-func (m *Monitor) ws_tracker_build(ip, port string) string {
+/*func (m *Monitor) ws_tracker_build(ip, port string) string {
 	return "ws://" + ip + ":" + port + "/announce"
 }*/
 
@@ -387,29 +395,29 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 				//if unhealthPeers.Contains(ip) {
 				//continue
 				//}
-				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
-					for _, p := range ps {
-						tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
-						if m.healthPeers.Contains(tracker) {
-							//continue
-						} else {
-							flush = true
-						}
-						//m.trackerLock.Lock()
-						//trackers = append(trackers, tracker)
-						//trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
-						//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
-						//m.trackerLock.Unlock()
-						//flush = true
-						m.healthPeers.Add(tracker, tracker)
-						//if unhealthPeers.Contains(ip) {
-						//	unhealthPeers.Remove(ip)
-						//}
-					}
-				} // else {
-				//unhealthPeers.Add(ip, peer)
-
-				/*if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
+				/*				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
+									for _, p := range ps {
+										tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
+										if m.healthPeers.Contains(tracker) {
+											//continue
+										} else {
+											flush = true
+										}
+										//m.trackerLock.Lock()
+										//trackers = append(trackers, tracker)
+										//trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
+										//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
+										//m.trackerLock.Unlock()
+										//flush = true
+										m.healthPeers.Add(tracker, tracker)
+										//if unhealthPeers.Contains(ip) {
+										//	unhealthPeers.Remove(ip)
+										//}
+									}
+								} // else {
+								//unhealthPeers.Add(ip, peer)
+				*/
+				if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
 					for _, p := range ps {
 						tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
 						if m.healthPeers.Contains(tracker) {
@@ -426,7 +434,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						//	unhealthPeers.Remove(ip)
 						//}
 					}
-				}*/
+				}
 				//}
 			}(peer)
 		}
@@ -610,7 +618,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 						if file.Meta.RawSize > file.LeftSize {
 							bytesRequested = file.Meta.RawSize - file.LeftSize
 						}
-						log.Info("Data processing", "addr", addr.String(), "hash", file.Meta.InfoHash, "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						log.Info("Data processing", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 
 						m.dl.UpdateTorrent(FlowControlMeta{
 							InfoHash:       file.Meta.InfoHash,
@@ -730,7 +738,7 @@ func (m *Monitor) startWork() error {
 		clientURI = m.config.RpcURI
 	}
 
-	rpcClient, rpcErr := SetConnection(clientURI)
+	rpcClient, rpcErr := m.buildConnection(clientURI)
 	if rpcErr != nil {
 		log.Error("Fs rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
 		return rpcErr
@@ -751,8 +759,8 @@ func (m *Monitor) startWork() error {
 	m.wg.Add(1)
 	go m.listenLatestBlock()
 	m.init()
-	m.wg.Add(1)
-	go m.listenPeers()
+	//m.wg.Add(1)
+	//go m.listenPeers()
 
 	return nil
 }
@@ -852,10 +860,8 @@ func (m *Monitor) listenLatestBlock() {
 				timer.Reset(time.Millisecond * 100)
 			} else if progress > 6 {
 				timer.Reset(time.Millisecond * 1000)
-			} else if progress == 0 {
-				timer.Reset(time.Millisecond * 10000)
 			} else {
-				timer.Reset(time.Millisecond * 5000)
+				timer.Reset(time.Millisecond * 3000)
 			}
 
 			//timer.Reset(time.Second * defaultTimerInterval)
@@ -868,13 +874,14 @@ func (m *Monitor) listenLatestBlock() {
 
 func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * 600)
+	m.default_tracker_check()
+	timer := time.NewTimer(time.Second * 60)
 	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
 			m.peers()
-			timer.Reset(time.Second * 3600)
+			timer.Reset(time.Second * 600)
 		case <-m.exitCh:
 			log.Info("Peers listener stopped")
 			return
@@ -891,6 +898,32 @@ type tracker_stats struct {
 	PeersSeederAndLeecher int `json:"peersSeederAndLeecher"`
 	PeersIPv4             int `json:"peersIPv4"`
 	PeersIPv6             int `json:"peersIPv6"`
+}
+
+func (m *Monitor) default_tracker_check() (r []string, err error) {
+	for _, tracker := range params.MainnetTrackers {
+		url := tracker[0:len(tracker)-9] + "/stats.json"
+		if !strings.HasPrefix(url, "http") {
+			continue
+		}
+		response, err := client.Get(url)
+		//start := mclock.Now()
+		if err != nil || response == nil || response.StatusCode != 200 {
+			//log.Warn("Default tracker status is unhealthy", "name", tracker, "err", err)
+			continue
+		} else {
+			var stats tracker_stats
+			if jsErr := json.NewDecoder(response.Body).Decode(&stats); jsErr != nil {
+				//log.Warn("Default tracker status is unhealthy", "name", tracker, "url", url, "err", jsErr, "stats", stats)
+				continue
+			}
+			//elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+			//log.Info("Default tracker status is healthy", "name", tracker, "url", url, "elapsed", elapsed)
+			r = append(r, tracker)
+		}
+	}
+	log.Info("Default storage global status", "result", len(r))
+	return r, err
 }
 
 func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool) {
@@ -929,7 +962,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 }
 
-/*func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
+func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
 	var res []string
 	var status = false
 	//request := make([]byte, 1)
@@ -953,10 +986,10 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 	}
 
 	return res, status
-}*/
+}
 
 const (
-	batch = 2048
+	batch = 4096
 	delay = 12
 )
 
@@ -1020,7 +1053,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 		} else {
 			m.lastNumber = i - 1
 			elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-			log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
+			log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 			//return m.lastNumber - minNumber
 			return 0
 		}
@@ -1030,7 +1064,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 	m.lastNumber = maxNumber
-	log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "cap", len(m.taskCh))
+	elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
+	log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 	return uint64(maxNumber - minNumber)
 }
 
@@ -1047,7 +1082,8 @@ func (m *Monitor) deal(block *Block) error {
 			}
 
 			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
-				log.Info("The tfs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+				elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
+				log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "elapsed", elapsed)
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)

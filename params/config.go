@@ -59,15 +59,15 @@ type TrustedCheckpoint struct {
 
 var (
 	CortexBlockRewardPeriod  = big.NewInt(8409600) // Halving every four years: 365 days*24 hours*60 minutes*4 blocks*4 years=8409600
-	BernardBlockRewardPeriod = big.NewInt(100000)  // TESTING: for testnet Bernard
+	BernardBlockRewardPeriod = big.NewInt(8409600) // TESTING: for testnet Bernard
 	DoloresBlockRewardPeriod = big.NewInt(1000000) // TESTING: for testnet Dolores
 )
 
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:          "mainnet",
-		SectionIndex:  13,
-		SectionHead:   common.HexToHash("0xbcb220cb151820896fe9ef0138b7d433ded14e9b489def7bfb4819bbf28be95e"),
+		SectionIndex:  16,
+		SectionHead:   common.HexToHash("0xba4b6abf73eb13bf13efae93facdfe51f5a2cb3c3ac33f5cb1dc173206f599f1"),
 		TfsBlocks:     96,
 		TfsFiles:      46,
 		TfsCheckPoint: 395964,

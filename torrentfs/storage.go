@@ -1,10 +1,12 @@
 package torrentfs
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	//"fmt"
+	"github.com/pborman/uuid"
 	"os"
 	"path/filepath"
 	//"path"
@@ -22,6 +24,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent/metainfo"
 	bolt "github.com/etcd-io/bbolt"
+	//"math/rand"
 )
 
 const (
@@ -61,8 +64,9 @@ type FileStorage struct {
 	db                *bolt.DB
 	version           string
 
-	LastListenBlockNumber uint64
+	id                    uint64
 	CheckPoint            uint64
+	LastListenBlockNumber uint64
 
 	//elements []*BlockContent
 	leaves []Content
@@ -75,24 +79,15 @@ type FileStorage struct {
 	dataDir string
 	//tmpCache  *lru.Cache
 	//indexLock sync.RWMutex
+	config *Config
 }
 
-var initConfig *Config = nil
-
-//var TorrentAPIAvailable sync.Mutex
-
-func InitConfig() *Config {
-	return initConfig
-}
+//var initConfig *Config = nil
 
 func NewFileStorage(config *Config) (*FileStorage, error) {
 
 	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
 		return nil, err
-	}
-
-	if initConfig == nil {
-		initConfig = config
 	}
 
 	db, dbErr := bolt.Open(filepath.Join(config.DataDir,
@@ -112,6 +107,8 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		dataDir: config.DataDir,
 	}
 
+	fs.config = config
+
 	fs.version = version
 
 	if err := fs.initBlockNumber(); err != nil {
@@ -129,6 +126,10 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	if err := fs.initMerkleTree(); err != nil {
 		return nil, err
 	}
+
+	fs.initFsId()
+
+	log.Info("Storage ID init", "id", fs.id)
 
 	return fs, nil
 }
@@ -531,9 +532,9 @@ func (fs *FileStorage) initFiles() error {
 	})
 }
 
-/*func (fs *FileStorage) readLastFileIndex() error {
+func (fs *FileStorage) readFsId() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("lastFileIndex"))
+		buk := tx.Bucket([]byte("id_" + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -548,28 +549,36 @@ func (fs *FileStorage) initFiles() error {
 		if err != nil {
 			return err
 		}
-
-		//fs.indexLock.Lock()
-		//defer fs.indexLock.Unlock()
-		fs.LastFileIndex = number
+		fs.id = number
 
 		return nil
 	})
-}*/
+}
 
-/*func (fs *FileStorage) writeLastFileIndex() error {
+func (fs *FileStorage) ID() uint64 {
+	return fs.id
+}
+
+func (fs *FileStorage) initFsId() error {
+	err := fs.readFsId()
+	if fs.id > 0 && err == nil {
+		return nil
+	}
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("lastFileIndex"))
+		buk, err := tx.CreateBucketIfNotExists([]byte("id_" + fs.version))
 		if err != nil {
 			return err
 		}
-		//fs.lock.Lock()
-		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastFileIndex, 16)))
-		//fs.lock.Unlock()
+		//id := uint64(rand.Int63n(1 << 63 - 1))
+		//id := uint64(rand.Int63n(1000))
+		id := binary.LittleEndian.Uint64([]byte(uuid.NewRandom()))
+		//id := uint64(os.Getuid())
+		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(id, 16)))
+		fs.id = id //binary.LittleEndian.Uint64([]byte(id[:]))//uint64(id[:])
 
 		return e
 	})
-}*/
+}
 func (fs *FileStorage) initCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
