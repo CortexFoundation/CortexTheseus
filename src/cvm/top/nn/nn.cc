@@ -51,6 +51,8 @@ inline bool DenseInferShape(const cvm::NodeAttrs& attrs,
   } else {
     VERIFY_EQ(in_shape->size(), 2U) << "Input:[data, weight]";
   }
+  VERIFY_EQ((*in_shape)[0].ndim(), 2U) << "dense require 2-D data";
+  VERIFY_EQ((*in_shape)[1].ndim(), 2U) << "dense require 2-D weight";
   VERIFY_EQ(out_shape->size(), 1U);
   // reverse infer
   if ((*out_shape)[0].ndim() != 0) {
