@@ -1080,10 +1080,12 @@ func (m *Monitor) deal(block *Block) error {
 				log.Error("Store latest block", "number", block.Number, "error", storeErr)
 				return storeErr
 			}
+			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
+
+			log.Info("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 
 			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
-				elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
-				log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "elapsed", elapsed)
+				log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)
