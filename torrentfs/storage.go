@@ -190,7 +190,7 @@ func (fs *FileStorage) initMerkleTree() error {
 		}
 	}
 
-	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()))
+	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.LastListenBlockNumber, "checkpoint", fs.CheckPoint, "version", fs.version)
 
 	return nil
 }
