@@ -43,6 +43,9 @@ const (
 	defaultMaxPendingPeers = 50
 	defaultDialRatio       = 3
 
+	// This time limits inbound connection attempts per source IP.
+	inboundThrottleTime = 30 * time.Second
+
 	// Maximum time allowed for reading a complete message.
 	// This is effectively the amount of time a connection can be idle.
 	frameReadTimeout = 30 * time.Second
@@ -167,6 +170,8 @@ type Server struct {
 	loopWG        sync.WaitGroup // loop, listenLoop
 	peerFeed      event.Feed
 	log           log.Logger
+	// State of run loop and listenLoop.
+	inboundHistory expHeap
 }
 
 type peerOpFunc func(map[discover.NodeID]*Peer)
@@ -792,22 +797,41 @@ func (srv *Server) listenLoop() {
 		}
 
 		// Reject connections that do not match NetRestrict.
-		if srv.NetRestrict != nil {
-			if tcp, ok := fd.RemoteAddr().(*net.TCPAddr); ok && !srv.NetRestrict.Contains(tcp.IP) {
-				srv.log.Debug("Rejected conn (not whitelisted in NetRestrict)", "addr", fd.RemoteAddr())
-				fd.Close()
-				slots <- struct{}{}
-				continue
-			}
+		remoteIP := netutil.AddrIP(fd.RemoteAddr())
+		//if srv.NetRestrict != nil&& !srv.NetRestrict.Contains(remoteIP) {
+		if err := srv.checkInboundConn(fd, remoteIP); err != nil {
+			//if tcp, ok := fd.RemoteAddr().(*net.TCPAddr); ok && !srv.NetRestrict.Contains(tcp.IP) {
+			srv.log.Debug("Rejected conn (not whitelisted in NetRestrict)", "addr", fd.RemoteAddr())
+			fd.Close()
+			slots <- struct{}{}
+			continue
+			//}
 		}
-
-		fd = newMeteredConn(fd, true)
+		if remoteIP != nil {
+			fd = newMeteredConn(fd, true)
+		}
 		srv.log.Trace("Accepted connection", "addr", fd.RemoteAddr())
 		go func() {
 			srv.SetupConn(fd, inboundConn, nil)
 			slots <- struct{}{}
 		}()
 	}
+}
+
+func (srv *Server) checkInboundConn(fd net.Conn, remoteIP net.IP) error {
+	if remoteIP != nil {
+		// Reject connections that do not match NetRestrict.
+		if srv.NetRestrict != nil && !srv.NetRestrict.Contains(remoteIP) {
+			return fmt.Errorf("not whitelisted in NetRestrict")
+		}
+		// Reject Internet peers that try too often.
+		srv.inboundHistory.expire(time.Now())
+		if !netutil.IsLAN(remoteIP) && srv.inboundHistory.contains(remoteIP.String()) {
+			return fmt.Errorf("too many attempts")
+		}
+		srv.inboundHistory.add(remoteIP.String(), time.Now().Add(inboundThrottleTime))
+	}
+	return nil
 }
 
 // SetupConn runs the handshakes and attempts to add the connection
@@ -889,12 +913,7 @@ func (srv *Server) checkpoint(c *conn, stage chan<- *conn) error {
 	case <-srv.quit:
 		return errServerStopped
 	}
-	select {
-	case err := <-c.cont:
-		return err
-	case <-srv.quit:
-		return errServerStopped
-	}
+	return <-c.cont
 }
 
 // runPeer runs in its own goroutine for each peer.
