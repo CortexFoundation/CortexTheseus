@@ -319,7 +319,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 			d.dropPeer(id)
 		}
 	default:
-		log.Warn("Synchronisation failed, retrying", "err", err)
+		log.Warn("Synchronisation failed, retrying", "peer", id, "err", err)
 	}
 	return err
 }
@@ -1578,7 +1578,7 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 			}
 			// Wait for completion, occasionally checking for pivot staleness
 			select {
-				case <-sync.done:
+			case <-sync.done:
 				if sync.err != nil {
 					return sync.err
 				}
