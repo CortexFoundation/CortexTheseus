@@ -989,8 +989,8 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 }
 
 const (
-	batch = 4096
-	delay = 12
+	batch = params.SyncBatch
+	delay = params.Delay
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
