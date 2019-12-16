@@ -59,6 +59,7 @@ var (
 	batchFlag = cli.IntFlag{
 		Name:  "batch",
 		Usage: "batch size",
+		Value: 1,
 	}
 )
 
