@@ -49,7 +49,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.9.1-0.20191208093540-790ba6af3c9e
+# github.com/anacrolix/torrent v1.10.1-0.20191216022224-82e1c81a9ab2
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
