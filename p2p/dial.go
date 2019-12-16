@@ -160,10 +160,6 @@ func (s *dialstate) removeStatic(n *discover.Node) {
 }
 
 func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now time.Time) []task {
-	if s.start.IsZero() {
-		s.start = now
-	}
-
 	var newtasks []task
 	addDial := func(flag connFlag, n *discover.Node) bool {
 		if err := s.checkDial(n, peers); err != nil {
@@ -175,17 +171,8 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 		return true
 	}
 
-	// Compute number of dynamic dials necessary at this point.
-	needDynDials := s.maxDynDials
-	for _, p := range peers {
-		if p.rw.is(dynDialedConn) {
-			needDynDials--
-		}
-	}
-	for _, flag := range s.dialing {
-		if flag&dynDialedConn != 0 {
-			needDynDials--
-		}
+	if s.start.IsZero() {
+		s.start = now
 	}
 
 	// Expire the dial history on every invocation.
@@ -203,6 +190,19 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 			newtasks = append(newtasks, t)
 		}
 	}
+
+	// Compute number of dynamic dials necessary at this point.
+	needDynDials := s.maxDynDials
+	for _, p := range peers {
+		if p.rw.is(dynDialedConn) {
+			needDynDials--
+		}
+	}
+	for _, flag := range s.dialing {
+		if flag&dynDialedConn != 0 {
+			needDynDials--
+		}
+	}
 	// If we don't have any peers whatsoever, try to dial a random bootnode. This
 	// scenario is useful for the testnet (and private networks) where the discovery
 	// table might be full of mostly bad peers, making it hard to find good ones.
@@ -213,17 +213,6 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 
 		if addDial(dynDialedConn, bootnode) {
 			needDynDials--
-		}
-	}
-	// Use random nodes from the table for half of the necessary
-	// dynamic dials.
-	randomCandidates := needDynDials / 2
-	if randomCandidates > 0 {
-		n := s.ntab.ReadRandomNodes(s.randomNodes)
-		for i := 0; i < randomCandidates && i < n; i++ {
-			if addDial(dynDialedConn, s.randomNodes[i]) {
-				needDynDials--
-			}
 		}
 	}
 	// Create dynamic dials from random lookup results, removing tried

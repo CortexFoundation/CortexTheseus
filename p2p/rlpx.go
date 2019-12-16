@@ -165,7 +165,7 @@ func readProtocolHandshake(rw MsgReader, our *protoHandshake) (*protoHandshake, 
 	if err := msg.Decode(&hs); err != nil {
 		return nil, err
 	}
-	if (hs.ID == discover.NodeID{}) {
+	if (len(hs.ID) != 64 || hs.ID == discover.NodeID{}) {
 		return nil, DiscInvalidIdentity
 	}
 	return &hs, nil

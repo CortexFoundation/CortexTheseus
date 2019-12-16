@@ -989,8 +989,8 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 }
 
 const (
-	batch = 4096
-	delay = 12
+	batch = params.SyncBatch
+	delay = params.Delay
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
@@ -1082,10 +1082,10 @@ func (m *Monitor) deal(block *Block) error {
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 
-			log.Info("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
-
 			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
 				log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
+			} else {
+				log.Debug("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 			}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh), "record", record)

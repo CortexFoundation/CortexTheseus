@@ -26,8 +26,11 @@ var (
 	Big0     = big.NewInt(0)
 	BigTrue  = Big1
 	BigFalse = Big0
+	Big21    = big.NewInt(21)
 	Big32    = big.NewInt(32)
 	Big36    = big.NewInt(36)
+	Big42    = big.NewInt(42)
+	Big43    = big.NewInt(43)
 	Big97    = big.NewInt(97)
 	Big98    = big.NewInt(98)
 	Big256   = big.NewInt(0xff)

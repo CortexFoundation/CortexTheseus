@@ -130,7 +130,7 @@ func newTable(t transport, ourID NodeID, ourAddr *net.UDPAddr, nodeDBPath string
 	// seed nodes also considers older nodes that would otherwise be removed by the
 	// expiration.
 	tab.db.ensureExpirer()
-	go tab.loop()
+	//go tab.loop()
 	return tab, nil
 }
 
@@ -380,7 +380,7 @@ func (tab *Table) loop() {
 		revalidate     = time.NewTimer(tab.nextRevalidateTime())
 		refresh        = time.NewTicker(refreshInterval)
 		copyNodes      = time.NewTicker(copyNodesInterval)
-		revalidateDone = make(chan struct{})
+		revalidateDone chan struct{}
 		refreshDone    = make(chan struct{})           // where doRefresh reports completion
 		waiting        = []chan struct{}{tab.initDone} // holds waiting callers while doRefresh runs
 	)
@@ -412,9 +412,11 @@ loop:
 			}
 			waiting, refreshDone = nil, nil
 		case <-revalidate.C:
+			revalidateDone = make(chan struct{})
 			go tab.doRevalidate(revalidateDone)
 		case <-revalidateDone:
 			revalidate.Reset(tab.nextRevalidateTime())
+			revalidateDone = nil
 		case <-copyNodes.C:
 			go tab.copyLiveNodes()
 		case <-tab.closeReq:
@@ -431,7 +433,10 @@ loop:
 	for _, ch := range waiting {
 		close(ch)
 	}
-	tab.db.close()
+	if revalidateDone != nil {
+		<-revalidateDone
+	}
+	//tab.db.close()
 	close(tab.closed)
 }
 

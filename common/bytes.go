@@ -171,6 +171,7 @@ func Uint32ArrayToHexString(value []uint32) string {
 func BytesArrayToHexString(value []byte) string {
 	return "0x" + hex.EncodeToString(value)
 }
+
 // TrimLeftZeroes returns a subslice of s without leading zeroes
 func TrimLeftZeroes(s []byte) []byte {
 	idx := 0

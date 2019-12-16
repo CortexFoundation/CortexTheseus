@@ -190,7 +190,7 @@ func (fs *FileStorage) initMerkleTree() error {
 		}
 	}
 
-	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()))
+	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.LastListenBlockNumber, "checkpoint", fs.CheckPoint, "version", fs.version)
 
 	return nil
 }
@@ -449,6 +449,7 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 	if b.Number < fs.LastListenBlockNumber {
 		return nil
 	}
+
 	if record && b.Number > fs.CheckPoint {
 		if err := fs.db.Update(func(tx *bolt.Tx) error {
 			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
@@ -474,7 +475,6 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 		} else {
 			return err
 		}
-
 	}
 
 	fs.LastListenBlockNumber = b.Number

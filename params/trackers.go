@@ -54,6 +54,7 @@ var MainnetTrackers = []string{
 	"udp://47.88.214.96:5008/announce",
 	"udp://47.93.158.68:5008/announce",
 	"udp://torrent.cortexlabs.ai:5008/announce",
+	"udp://mainnet.cortexlabs.ai:5008/announce",
 
 	"http://47.91.91.217:5008/announce",
 	"http://47.74.1.234:5008/announce",
@@ -65,6 +66,7 @@ var MainnetTrackers = []string{
 	"http://47.88.214.96:5008/announce",
 	"http://47.93.158.68:5008/announce",
 	"http://torrent.cortexlabs.ai:5008/announce",
+	"http://mainnet.cortexlabs.ai:5008/announce",
 	//"udp://127.0.0.1:5008/announce",
 
 	/*"ws://47.91.91.217:5008/announce",
