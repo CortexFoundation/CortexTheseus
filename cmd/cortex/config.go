@@ -195,7 +195,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			if err := prg.Start(); err != nil {
 				panic(err)
 			}
-			log.Info("Cvm service register success", "config", cfg)
+			log.Debug("Cvm service register success", "config", cfg)
 			run_result := prg.Start()
 			var wg sync.WaitGroup
 			wg.Add(1)
