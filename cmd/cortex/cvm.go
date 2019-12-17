@@ -181,7 +181,8 @@ func cvmServer(ctx *cli.Context) error {
 		mux.HandleFunc("/", handler)
 		server := &http.Server{
 			Addr:         ":" + strconv.Itoa(port),
-			WriteTimeout: time.Second * 15,
+			WriteTimeout: 15 * time.Second,
+			ReadTimeout:  15 * time.Second,
 			Handler:      mux,
 		}
 		wg.Add(1)
