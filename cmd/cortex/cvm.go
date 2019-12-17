@@ -176,9 +176,9 @@ func cvmServer(ctx *cli.Context) error {
 	wg.Add(1)
 	go func(port int, inferServer *synapse.Synapse) {
 		defer wg.Done()
-		log.Info("CVM http server listen on 0.0.0.0", "port", port)
+		log.Info("CVM http server listen on 0.0.0.0", "port", port, "uri", "/infer")
 		mux := http.NewServeMux()
-		mux.HandleFunc("/", handler)
+		mux.HandleFunc("/infer", handler)
 		server := &http.Server{
 			Addr:         ":" + strconv.Itoa(port),
 			WriteTimeout: 15 * time.Second,

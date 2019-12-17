@@ -217,9 +217,9 @@ var (
 		Usage: "disable DHT network in FS",
 	}
 	StorageFullSeedFlag = cli.BoolFlag{
-                Name:  "storage.full",
-                Usage: "try to boost seeding total files",
-        }
+		Name:  "storage.full",
+		Usage: "try to boost seeding total files",
+	}
 	// Dashboard settings
 	// DashboardEnabledFlag = cli.BoolFlag{
 	// 	Name:  metrics.DashboardEnabledFlag,
@@ -1151,13 +1151,13 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	} else if strings.HasPrefix(cfg.InferDeviceType, "remote") {
 		u, err := url.Parse(cfg.InferDeviceType)
 		if err == nil && u.Scheme == "remote" && len(u.Hostname()) > 0 && len(u.Port()) > 0 {
-			cfg.InferURI = "http://" + u.Hostname() + ":" + u.Port()
+			cfg.InferURI = "http://" + u.Hostname() + ":" + u.Port() + "/infer"
 			log.Info("Cortex", "inferUri", cfg.InferURI)
 		} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
 	} else if IsCVMIPC(cfg.InferDeviceType) != "" {
-		cfg.InferURI = "http://127.0.0.1:" + strconv.Itoa(ctx.GlobalInt(InferPortFlag.Name))
+		cfg.InferURI = ("http://127.0.0.1:" + strconv.Itoa(ctx.GlobalInt(InferPortFlag.Name)) + "/infer")
 	} else {
 		panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
