@@ -184,8 +184,11 @@ func cvmServer(ctx *cli.Context) error {
 			WriteTimeout: time.Second * 15,
 			Handler:      mux,
 		}
-
-		go server.ListenAndServe()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			server.ListenAndServe()
+		}()
 		select {
 		case <-c:
 			if err := server.Close(); err != nil {
