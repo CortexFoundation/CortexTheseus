@@ -63,7 +63,9 @@ If you want to encrypt an existing private key, it can be specified by setting
 			}
 
 			k := common.ToHex(crypto.FromECDSA(privateKey))
+			address := crypto.PubkeyToAddress(privateKey.PublicKey)
 			fmt.Println(k)
+			fmt.Println(address.Hex())
 			//			p := common.ToHex(crypto.FromECDSAPub(&privateKey.PublicKey))
 			//			fmt.Println(p)
 
