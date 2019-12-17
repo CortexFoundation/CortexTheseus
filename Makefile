@@ -53,7 +53,10 @@ keytools:
 	build/env.sh go run build/ci.go install ./cmd/keytools
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/keytools\" to launch cortex keytools."
-
+rlpdump:
+	build/env.sh go run build/ci.go install ./cmd/rlpdump
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/rlpdump\" to launch cortex rlpdump."
 torrent:
 	build/env.sh go run build/ci.go install ./cmd/torrentfs
 	@echo "Done building."

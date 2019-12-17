@@ -37,6 +37,7 @@ func init() {
 	app = utils.NewApp(gitCommit, "an Cortex key manager")
 	app.Commands = []cli.Command{
 		commandGenerate,
+		commandBatchGenerate,
 		commandInspect,
 		commandChangePassphrase,
 		commandSignMessage,
@@ -53,6 +54,12 @@ var (
 	jsonFlag = cli.BoolFlag{
 		Name:  "json",
 		Usage: "output JSON instead of human-readable format",
+	}
+
+	batchFlag = cli.IntFlag{
+		Name:  "batch",
+		Usage: "batch size",
+		Value: 1,
 	}
 )
 

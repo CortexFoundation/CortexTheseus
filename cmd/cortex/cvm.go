@@ -142,10 +142,10 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
 	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
-	log.Info("Cvm Server", "torrentfs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
+	log.Debug("Cvm Server", "fs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")
 	if fs_err != nil {
-		return errors.New("torrent start failed")
+		return errors.New("fs start failed")
 	}
 
 	err := storagefs.Start(&p2p.Server{})
@@ -176,16 +176,20 @@ func cvmServer(ctx *cli.Context) error {
 	wg.Add(1)
 	go func(port int, inferServer *synapse.Synapse) {
 		defer wg.Done()
-		log.Info("CVM http server listen on 0.0.0.0", "port", port)
+		log.Info("CVM http server listen on 0.0.0.0", "port", port, "uri", "/infer")
 		mux := http.NewServeMux()
-		mux.HandleFunc("/", handler)
+		mux.HandleFunc("/infer", handler)
 		server := &http.Server{
 			Addr:         ":" + strconv.Itoa(port),
-			WriteTimeout: time.Second * 15,
+			WriteTimeout: 15 * time.Second,
+			ReadTimeout:  15 * time.Second,
 			Handler:      mux,
 		}
-
-		go server.ListenAndServe()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			server.ListenAndServe()
+		}()
 		select {
 		case <-c:
 			if err := server.Close(); err != nil {
