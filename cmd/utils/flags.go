@@ -712,10 +712,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
-	//case ctx.GlobalBool(BernardFlag.Name):
-	//	urls = params.BernardBootnodes
-	//case ctx.GlobalBool(DoloresFlag.Name):
-	//	urls = params.BernardBootnodes
+	case ctx.GlobalBool(BernardFlag.Name):
+		urls = params.BernardBootnodes
+	case ctx.GlobalBool(DoloresFlag.Name):
+		urls = params.BernardBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
