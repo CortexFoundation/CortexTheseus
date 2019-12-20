@@ -1,6 +1,6 @@
 ROOTDIR = $(CURDIR)
 
-.PHONY: clean all test
+.PHONY: clean all test cpu gpu
 
 INCLUDE_FLAGS = -Iinclude
 PKG_CFLAGS = -std=c++11 -Wall -O2 $(INCLUDE_FLAGS) -fPIC
