@@ -22,12 +22,12 @@ build/_vendor/pkg
 .project
 .settings
 
-# infernet
-/infernet/build/*
-/infernet/build/CMakeCache.txt
-/infernet/build/Makefile
-/infernet/build/cmake_install.cmake
-/infernet/build/compile_commands.json
+# cvm-runtime
+/cvm-runtime/build/*
+/cvm-runtime/build/CMakeCache.txt
+/cvm-runtime/build/Makefile
+/cvm-runtime/build/cmake_install.cmake
+/cvm-runtime/build/compile_commands.json
 
 # used by the Makefile
 /build/_workspace/
@@ -72,8 +72,8 @@ sync
 *.so
 *.a
 
-# infernet
-infernet/int_mnist_model/
+# cvm-runtime
+cvm-runtime/int_mnist_model/
 node_modules/
 plugins/
 *.log
