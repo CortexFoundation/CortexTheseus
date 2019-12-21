@@ -15,7 +15,7 @@ GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/solution/
 LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
-INFER_NET_DIR = $(shell pwd)/infernet/
+INFER_NET_DIR = $(shell pwd)/cvm-runtime/
 LIB_CUCKOO_DIR = $(shell pwd)/solution/miner/libcuckoo
 
 # Curkoo algorithm dynamic library path
@@ -95,13 +95,14 @@ plugins/cpu_helper_for_node.so:
 
 plugins/cuda_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu
-	ln -sf ../infernet/build/gpu/libcvm_runtime_cuda.so $@
+	ln -sf ../cvm-runtime/build/gpu/libcvm_runtime_cuda.so $@
 	# build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
 plugins/cpu_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 cpu
-	ln -sf ../infernet/build/cpu/libcvm_runtime_cpu.so $@
+	ln -sf ../cvm-runtime/build/cpu/libcvm_runtime_cpu.so $@
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
+	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
 
@@ -129,7 +130,9 @@ lint: ## Run linters.
 
 clean: clean-clib
 	./build/clean_go_build_cache.sh
-	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/*
+	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/* build/_workspace/src/
+	# rm -rf inference/synapse/kernel
+	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
 clean-clib:
 	$(MAKE) -C $(LIB_MINER_DIR) clean

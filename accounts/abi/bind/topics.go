@@ -171,6 +171,13 @@ func parseTopics(out interface{}, fields abi.Arguments, topics []common.Hash) er
 
 			case reflectBigInt:
 				num := new(big.Int).SetBytes(topics[0][:])
+				if arg.Type.T == abi.IntTy {
+					if num.Cmp(abi.MaxInt256) > 0 {
+						num.Add(abi.MaxUint256, big.NewInt(0).Neg(num))
+						num.Add(num, big.NewInt(1))
+						num.Neg(num)
+					}
+				}
 				field.Set(reflect.ValueOf(num))
 
 			default:
