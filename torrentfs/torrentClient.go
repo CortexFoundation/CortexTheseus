@@ -199,11 +199,12 @@ func (t *Torrent) WriteTorrent() {
 
 func (t *Torrent) SeedInQueue() {
 	t.status = torrentSeedingInQueue
-	if t.currentConns != 0 {
-		t.currentConns = 0
-		t.Torrent.SetMaxEstablishedConns(0)
-	}
-	t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+	//if t.currentConns != 0 {
+	t.currentConns = 1
+	t.Torrent.SetMaxEstablishedConns(1)
+	//}
+	//t.Torrent.close()
+	//t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 	//t.Torrent.Drop()
 }
 
