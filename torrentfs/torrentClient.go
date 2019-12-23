@@ -256,7 +256,7 @@ func (t *Torrent) Pause() {
 	}
 	if t.status != torrentPaused {
 		t.status = torrentPaused
-		t.maxPieces = t.minEstablishedConns
+		t.maxPieces = 0//t.minEstablishedConns
 		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 		//t.Torrent.Drop()
 	}
@@ -284,7 +284,7 @@ func (t *Torrent) Run(slot int) {
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
 	t.status = torrentRunning
-	if limitPieces > t.maxPieces {
+	if limitPieces != t.maxPieces {
 		t.maxPieces = limitPieces
 		//t.Torrent.DownloadPieces(0, limitPieces)
 		t.download(limitPieces, slot)
