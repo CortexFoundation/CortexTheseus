@@ -41,8 +41,6 @@ github.com/anacrolix/missinggo/v2/iter
 # github.com/anacrolix/mmsg v1.0.0
 github.com/anacrolix/mmsg
 github.com/anacrolix/mmsg/socket
-# github.com/anacrolix/multiless v0.0.0-20191223025854-070b7994e841
-github.com/anacrolix/multiless
 # github.com/anacrolix/stm v0.2.0
 github.com/anacrolix/stm
 github.com/anacrolix/stm/rate
@@ -51,7 +49,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.10.1-0.20191223030407-d4e90519e6aa
+# github.com/anacrolix/torrent v1.10.0
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs

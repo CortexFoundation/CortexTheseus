@@ -19,7 +19,6 @@ import (
 	"github.com/anacrolix/missinggo/bitmap"
 	"github.com/anacrolix/missinggo/iter"
 	"github.com/anacrolix/missinggo/prioritybitmap"
-	"github.com/anacrolix/multiless"
 	"github.com/pkg/errors"
 
 	"github.com/anacrolix/torrent/bencode"
@@ -56,7 +55,6 @@ type connection struct {
 	headerEncrypted bool
 	cryptoMethod    mse.CryptoMethod
 	Discovery       peerSource
-	trusted         bool
 	closed          missinggo.Event
 	// Set true after we've added our ConnStats generated during handshake to
 	// other ConnStat instances as determined when the *Torrent became known.
@@ -1569,17 +1567,4 @@ func (c *connection) remoteIpPort() IpPort {
 
 func (c *connection) String() string {
 	return fmt.Sprintf("connection %p", c)
-}
-
-func (c *connection) trust() connectionTrust {
-	return connectionTrust{c.trusted, c.netGoodPiecesDirtied()}
-}
-
-type connectionTrust struct {
-	Implicit            bool
-	NetGoodPiecesDirted int64
-}
-
-func (l connectionTrust) Less(r connectionTrust) bool {
-	return multiless.New().Bool(l.Implicit, r.Implicit).Int64(l.NetGoodPiecesDirted, r.NetGoodPiecesDirted).Less()
 }

@@ -36,8 +36,7 @@ func (t *Torrent) chunkIndexSpec(chunkIndex pp.Integer, piece pieceIndex) chunkS
 	return chunkIndexSpec(chunkIndex, t.pieceLength(piece), t.chunkSize)
 }
 
-// Maintains state of torrent within a Client. Many methods should not be called before the info is
-// available, see .Info and .GotInfo.
+// Maintains state of torrent within a Client.
 type Torrent struct {
 	// Torrent-level aggregate statistics. First in struct to ensure 64-bit
 	// alignment. See #262.
@@ -1549,7 +1548,8 @@ func (t *Torrent) pieceHashed(piece pieceIndex, correct bool) {
 		}
 	} else {
 		if len(touchers) != 0 {
-			// Don't increment stats above connection-level for every involved connection.
+			// Don't increment stats above connection-level for every involved
+			// connection.
 			t.allStats((*ConnStats).incrementPiecesDirtiedBad)
 			for _, c := range touchers {
 				// Y u do dis peer?!
@@ -1557,20 +1557,16 @@ func (t *Torrent) pieceHashed(piece pieceIndex, correct bool) {
 			}
 			slices.Sort(touchers, connLessTrusted)
 			if t.cl.config.Debug {
-				t.logger.Printf("conns by trust for piece %d: %v",
-					piece,
-					func() (ret []connectionTrust) {
-						for _, c := range touchers {
-							ret = append(ret, c.trust())
-						}
-						return
-					}())
+				t.logger.Printf("dropping first corresponding conn from trust: %v", func() (ret []int64) {
+					for _, c := range touchers {
+						ret = append(ret, c.netGoodPiecesDirtied())
+					}
+					return
+				}())
 			}
 			c := touchers[0]
-			if !c.trust().Implicit {
-				t.cl.banPeerIP(c.remoteAddr.IP)
-				c.Drop()
-			}
+			t.cl.banPeerIP(c.remoteAddr.IP)
+			c.Drop()
 		}
 		t.onIncompletePiece(piece)
 		p.Storage().MarkNotComplete()
@@ -1699,20 +1695,20 @@ func (t *Torrent) queuePieceCheck(pieceIndex pieceIndex) {
 	t.tryCreateMorePieceHashers()
 }
 
-// Forces all the pieces to be re-hashed. See also Piece.VerifyData. This should not be called
-// before the Info is available.
+// Forces all the pieces to be re-hashed. See also Piece.VerifyData.
 func (t *Torrent) VerifyData() {
 	for i := pieceIndex(0); i < t.NumPieces(); i++ {
 		t.Piece(i).VerifyData()
 	}
 }
 
-// Start the process of connecting to the given peer for the given torrent if appropriate.
+// Start the process of connecting to the given peer for the given torrent if
+// appropriate.
 func (t *Torrent) initiateConn(peer Peer) {
 	if peer.Id == t.cl.peerID {
 		return
 	}
-	if t.cl.badPeerIPPort(peer.IP, peer.Port) && !peer.Trusted {
+	if t.cl.badPeerIPPort(peer.IP, peer.Port) {
 		return
 	}
 	addr := IpPort{peer.IP, uint16(peer.Port)}
@@ -1720,17 +1716,15 @@ func (t *Torrent) initiateConn(peer Peer) {
 		return
 	}
 	t.halfOpen[addr.String()] = peer
-	go t.cl.outgoingConnection(t, addr, peer.Source, peer.Trusted)
+	go t.cl.outgoingConnection(t, addr, peer.Source)
 }
 
-// Adds each a trusted, pending peer for each of the Client's addresses.
 func (t *Torrent) AddClientPeer(cl *Client) {
 	t.AddPeers(func() (ps []Peer) {
 		for _, la := range cl.ListenAddrs() {
 			ps = append(ps, Peer{
-				IP:      missinggo.AddrIP(la),
-				Port:    missinggo.AddrPort(la),
-				Trusted: true,
+				IP:   missinggo.AddrIP(la),
+				Port: missinggo.AddrPort(la),
 			})
 		}
 		return

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/anacrolix/missinggo/v2"
+	"github.com/anacrolix/missinggo"
 	"golang.org/x/time/rate"
 
 	"github.com/anacrolix/torrent/metainfo"
@@ -107,7 +107,7 @@ func chunkIndexSpec(index pp.Integer, pieceLength, chunkSize pp.Integer) chunkSp
 }
 
 func connLessTrusted(l, r *connection) bool {
-	return l.trust().Less(r.trust())
+	return l.netGoodPiecesDirtied() < r.netGoodPiecesDirtied()
 }
 
 func connIsIpv6(nc interface {
