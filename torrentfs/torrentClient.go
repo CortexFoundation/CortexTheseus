@@ -164,6 +164,9 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 var maxCited int64 = 1
 
 func (t *Torrent) IsAvailable() bool {
+	if _, ok := BadFiles[t.InfoHash()]; ok {
+		return false
+	}
 	t.cited += 1
 	if t.cited > maxCited {
 		maxCited = t.cited
@@ -256,7 +259,7 @@ func (t *Torrent) Pause() {
 	}
 	if t.status != torrentPaused {
 		t.status = torrentPaused
-		t.maxPieces = 0//t.minEstablishedConns
+		t.maxPieces = 0 //t.minEstablishedConns
 		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 		//t.Torrent.Drop()
 	}
