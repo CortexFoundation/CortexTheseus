@@ -43,6 +43,7 @@ const (
 type Torrent struct {
 	*torrent.Torrent
 	maxEstablishedConns int
+	minEstablishedConns int
 	currentConns        int
 	bytesRequested      int64
 	bytesLimitation     int64
@@ -198,10 +199,14 @@ func (t *Torrent) WriteTorrent() {
 }
 
 func (t *Torrent) SeedInQueue() {
+	if t.status == torrentSeedingInQueue {
+		return
+	}
 	t.status = torrentSeedingInQueue
 	//if t.currentConns != 0 {
-	t.currentConns = 1
-	t.Torrent.SetMaxEstablishedConns(1)
+	t.currentConns = t.minEstablishedConns
+	t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
+	log.Info("Mute seeding", "hash", t.InfoHash(), "weight", t.weight, "conn", t.currentConns)
 	//}
 	//t.Torrent.close()
 	//t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
@@ -223,12 +228,12 @@ func (t *Torrent) Seed() {
 	//}
 
 	//t.Torrent.DownloadAll()
+	if t.currentConns <= t.minEstablishedConns {
+		t.currentConns = t.maxEstablishedConns
+		t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	}
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
-		if t.currentConns == 0 {
-			t.currentConns = t.maxEstablishedConns
-			t.Torrent.SetMaxEstablishedConns(t.currentConns)
-		}
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 		log.Info("Download success, seeding(s)", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "elapsed", elapsed)
 	} else {
@@ -242,13 +247,13 @@ func (t *Torrent) Seeding() bool {
 }
 
 func (t *Torrent) Pause() {
-	if t.currentConns != 0 {
-		t.currentConns = 0
-		t.Torrent.SetMaxEstablishedConns(0)
+	if t.currentConns != t.minEstablishedConns {
+		t.currentConns = t.minEstablishedConns
+		t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
 	}
 	if t.status != torrentPaused {
 		t.status = torrentPaused
-		t.maxPieces = 0
+		t.maxPieces = t.minEstablishedConns
 		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 		//t.Torrent.Drop()
 	}
@@ -271,7 +276,7 @@ func (t *Torrent) Run(slot int) {
 	if limitPieces > t.Torrent.NumPieces() {
 		limitPieces = t.Torrent.NumPieces()
 	}
-	if t.currentConns == 0 {
+	if t.currentConns <= t.minEstablishedConns {
 		t.currentConns = t.maxEstablishedConns
 		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
@@ -371,7 +376,7 @@ type TorrentManager struct {
 func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
 	tt := &Torrent{
 		t,
-		tm.maxEstablishedConns, tm.maxEstablishedConns,
+		tm.maxEstablishedConns, 1, tm.maxEstablishedConns,
 		requested,
 		//int64(float64(requested) * expansionFactor),
 		tm.GetLimitation(requested),
@@ -775,6 +780,7 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 		case t := <-tm.seedingChan:
 			tm.seedingTorrents[t.Torrent.InfoHash()] = t
 			t.Seed()
+			//log.Info("All seed status", "current", len(tm.seedingTorrents), "max", tm.maxSeedTask)
 			if len(tm.seedingTorrents) > tm.maxSeedTask {
 				tm.seedingTask()
 			}
@@ -947,7 +953,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 							log.Debug("Path exist", "hash", t.Torrent.InfoHash(), "path", path.Join(tm.DataDir, t.InfoHash()))
 							delete(tm.activeTorrents, ih)
 							tm.seedingChan <- t
-							t.loop = defaultSeedInterval / queryTimeInterval
+							//t.loop = defaultSeedInterval / queryTimeInterval
 							total_size += uint64(t.bytesCompleted)
 							current_size += uint64(t.bytesCompleted)
 						}
@@ -967,7 +973,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 							if len(tm.seedingChan) < cap(tm.seedingChan) {
 								delete(tm.activeTorrents, ih)
 								tm.seedingChan <- t
-								t.loop = defaultSeedInterval / queryTimeInterval
+								//t.loop = defaultSeedInterval / queryTimeInterval
 								total_size += uint64(t.bytesCompleted)
 								current_size += uint64(t.bytesCompleted)
 							}
