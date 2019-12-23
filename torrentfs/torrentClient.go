@@ -228,10 +228,10 @@ func (t *Torrent) Seed() {
 	//}
 
 	//t.Torrent.DownloadAll()
-	if t.currentConns <= t.minEstablishedConns {
-		t.currentConns = t.maxEstablishedConns
-		t.Torrent.SetMaxEstablishedConns(t.currentConns)
-	}
+	//if t.currentConns <= t.minEstablishedConns {
+	t.currentConns = t.maxEstablishedConns / 2
+	t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	//}
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
@@ -247,7 +247,7 @@ func (t *Torrent) Seeding() bool {
 }
 
 func (t *Torrent) Pause() {
-	if t.currentConns != t.minEstablishedConns {
+	if t.currentConns > t.minEstablishedConns {
 		t.currentConns = t.minEstablishedConns
 		t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
 	}
