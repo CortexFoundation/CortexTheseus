@@ -256,7 +256,7 @@ func (t *Torrent) Pause() {
 	}
 	if t.status != torrentPaused {
 		t.status = torrentPaused
-		t.maxPieces = t.minEstablishedConns
+		t.maxPieces = 0//t.minEstablishedConns
 		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 		//t.Torrent.Drop()
 	}
