@@ -956,6 +956,10 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				t.bytesCompleted = t.BytesCompleted()
 				t.bytesMissing = t.BytesMissing()
 
+				if counter >= loops {
+					all += len(t.Torrent.KnownSwarm()) //len(t.Torrent.PieceStateRuns())
+				}
+
 				if t.Finished() {
 					tm.lock.Lock()
 					if _, err := os.Stat(path.Join(tm.DataDir, t.InfoHash())); err == nil {
@@ -998,8 +1002,6 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					active_wait += 1
 					continue
 				}
-
-				all += len(t.Torrent.KnownSwarm()) //len(t.Torrent.PieceStateRuns())
 
 				if t.bytesCompleted >= t.bytesLimitation {
 					t.Pause()
