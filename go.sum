@@ -88,6 +88,8 @@ github.com/anacrolix/missinggo/v2 v2.3.1/go.mod h1:3XNH0OEmyMUZuvXmYdl+FDfXd0vvS
 github.com/anacrolix/mmsg v0.0.0-20180515031531-a4a3ba1fc8bb/go.mod h1:x2/ErsYUmT77kezS63+wzZp8E3byYB0gzirM/WMBLfw=
 github.com/anacrolix/mmsg v1.0.0 h1:btC7YLjOn29aTUAExJiVUhQOuf/8rhm+/nWCMAnL3Hg=
 github.com/anacrolix/mmsg v1.0.0/go.mod h1:x8kRaJY/dCrY9Al0PEcj1mb/uFHwP6GCJ9fLl4thEPc=
+github.com/anacrolix/multiless v0.0.0-20191223025854-070b7994e841 h1:AIQdjlpS6GLF/OrfLjWXTEneg7ZnXnlblcbAP83PJTk=
+github.com/anacrolix/multiless v0.0.0-20191223025854-070b7994e841/go.mod h1:TrCLEZfIDbMVfLoQt5tOoiBS/uq4y8+ojuEVVvTNPX4=
 github.com/anacrolix/stm v0.1.0 h1:B/Kt3e4+0uqJoLcNZFW69cCBASok6WxX9CEhz9PqIPM=
 github.com/anacrolix/stm v0.1.0/go.mod h1:ZKz7e7ERWvP0KgL7WXfRjBXHNRhlVRlbBQecqFtPq+A=
 github.com/anacrolix/stm v0.1.1-0.20191106051447-e749ba3531cf/go.mod h1:zoVQRvSiGjGoTmbM0vSLIiaKjWtNPeTvXUSdJQA4hsg=
@@ -110,8 +112,8 @@ github.com/anacrolix/torrent v0.0.0-20180622074351-fefeef4ee9eb/go.mod h1:3vcFVx
 github.com/anacrolix/torrent v1.7.1/go.mod h1:uvOcdpOjjrAq3uMP/u1Ide35f6MJ/o8kMnFG8LV3y6g=
 github.com/anacrolix/torrent v1.9.0 h1:AMCm9jIdkKp0zvKoYbleT5mnEdWbOYFtGZgJL1qpdR4=
 github.com/anacrolix/torrent v1.9.0/go.mod h1:jJJ6lsd2LD1eLHkUwFOhy7I0FcLYH0tHKw2K7ZYMHCs=
-github.com/anacrolix/torrent v1.10.0 h1:BrVEOEZQLFosPGtdxIMV9qhKA8v3XpWW49GQsz621Jg=
-github.com/anacrolix/torrent v1.10.0/go.mod h1:n1ikwF8cCDtCEcD+Uqb9Jsq+u1PXBw0M04P5eHk0Lok=
+github.com/anacrolix/torrent v1.10.1-0.20191223030407-d4e90519e6aa h1:QbVW2WAHUjgW4sIF/+Zjhbw8rXlxBh4a+NWG7KoFuxQ=
+github.com/anacrolix/torrent v1.10.1-0.20191223030407-d4e90519e6aa/go.mod h1:ZrReERUpdqpI2ZMXGsPloBNP0+fn+Y+k7huRymNYtF0=
 github.com/anacrolix/upnp v0.1.1 h1:v5C+wBiku2zmwFR5B+pUfdNBL5TfPtyO+sWuw+/VEDg=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
 github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572 h1:kpt6TQTVi6gognY+svubHfxxpq0DLU9AfTQyZVc3UOc=
