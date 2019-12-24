@@ -66,8 +66,8 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:          "mainnet",
-		SectionIndex:  17,
-		SectionHead:   common.HexToHash("0x7de82dc46a23956da2fc1eabee3551b1cc888af69045a15573e6489dd5fb6ae8"),
+		SectionIndex:  18,
+		SectionHead:   common.HexToHash("0xdc407fe1040b94207148e1f1991f2334cec9e7949eea45aa05462b60d508d2ca"),
 		TfsBlocks:     96,
 		TfsFiles:      46,
 		TfsCheckPoint: 395964,
