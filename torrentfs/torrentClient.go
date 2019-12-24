@@ -810,7 +810,7 @@ func (tm *TorrentManager) mainLoop() {
 		case msg := <-tm.updateTorrent:
 			meta := msg.(FlowControlMeta)
 			if _, ok := BadFiles[meta.InfoHash.HexString()]; ok {
-				return
+				continue
 			}
 
 			if meta.IsCreate {
