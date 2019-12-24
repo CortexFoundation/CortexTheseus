@@ -143,7 +143,7 @@ var (
 		utils.StorageBoostNodesFlag,
 		utils.StorageTrackerFlag,
 		utils.StorageDisableDHTFlag,
-		utils.StorageFullSeedFlag,
+		utils.StorageFullFlag,
 	}
 
 	rpcFlags = []cli.Flag{

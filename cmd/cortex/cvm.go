@@ -94,7 +94,11 @@ var (
 	}
 	StorageDisableDHTFlag = cli.BoolFlag{
 		Name:  "cvm.disable_dht",
-		Usage: "disable DHT network in TorrentFS",
+		Usage: "disable DHT network",
+	}
+	StorageFullFlag = cli.BoolFlag{
+		Name:  "cvm.full",
+		Usage: "full file download",
 	}
 	cvmFlags = []cli.Flag{
 		// StorageDirFlag,
