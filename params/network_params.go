@@ -29,26 +29,28 @@ const (
 	BloomConfirms = 256
 
 	CHTFrequency = 32768
-	//section = point - 1
-	/*Check point:1 32767
-	Check point:2 65535
-	Check point:3 98303
-	Check point:4 131071
-	Check point:5 163839
-	Check point:6 196607
-	Check point:7 229375
-	Check point:8 262143
-	Check point:9 294911
-	Check point:10 327679
-	Check point:11 360447
-	Check point:12 393215
-	Check point:13 425983
-	Check point:14 458751
-	Check point:15 491519
-	Check point:16 524287
-	Check point:17 557055
-	Check point:18 589823
-	Check point:19 622591
-	Check point:20 655359*/
+	/*Check section:18 622591
+	Check section:19 655359
+	Check section:20 688127
+	Check section:21 720895
+	Check section:22 753663
+	Check section:23 786431
+	Check section:24 819199
+	Check section:25 851967
+	Check section:26 884735
+	Check section:27 917503
+	Check section:28 950271
+	Check section:29 983039
+	Check section:30 1015807
+	Check section:31 1048575
+	Check section:32 1081343
+	Check section:33 1114111
+	Check section:34 1146879
+	Check section:35 1179647
+	Check section:36 1212415
+	Check section:37 1245183
+	Check section:38 1277951
+	Check section:39 1310719
+	Check section:40 1343487*/
 	ImmutabilityThreshold = 90000
 )
