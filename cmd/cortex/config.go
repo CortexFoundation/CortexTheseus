@@ -183,7 +183,11 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 				"--cvm.tracker", ctx.GlobalString(utils.StorageTrackerFlag.Name),
 			}
 			if ctx.GlobalBool(utils.StorageDisableDHTFlag.Name) {
-				args = append(args, "--cvm.disable_dht")
+				args = append(args, "--storage.disable_dht")
+			}
+
+			if ctx.GlobalBool(utils.StorageFullFlag.Name) {
+				args = append(args, "--storage.full")
 			}
 			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
 			prg := exec.Command(cmd, args...)
