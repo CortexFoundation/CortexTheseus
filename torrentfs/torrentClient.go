@@ -320,12 +320,21 @@ func (t *Torrent) download(p, slot int) {
 		e = t.Torrent.NumPieces()
 	}*/
 	s = (t.Torrent.NumPieces() * slot) / bucket
-	if t.Torrent.NumPieces() < s {
-		s = s - t.Torrent.NumPieces()
+	if s < t.Torrent.NumPieces()/3 {
+		s = s - p
+
+	} else if s >= t.Torrent.NumPieces()/3 && s < (t.Torrent.NumPieces()*2)/3 {
+		s = s - p/2
 	}
+
+	if s < 0 {
+		s = 0
+	}
+
 	if t.Torrent.NumPieces() < s+p {
 		s = t.Torrent.NumPieces() - p
 	}
+
 	e = s + p
 	log.Info("Download slot", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "swarm", len(t.Torrent.KnownSwarm()))
 	t.Torrent.DownloadPieces(s, e)
