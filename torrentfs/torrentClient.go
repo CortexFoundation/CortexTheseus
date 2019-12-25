@@ -14,7 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
+	//"sort"
 	"sync"
 	"time"
 
@@ -936,7 +936,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			}
 			log_counter++
 			var all, active_paused, active_wait, active_boost, active_running int
-			var activeTorrents []*Torrent
+			//var activeTorrents []*Torrent
 
 			for _, t := range tm.activeTorrents {
 				ih := t.Torrent.InfoHash()
@@ -1031,6 +1031,8 @@ func (tm *TorrentManager) activeTorrentLoop() {
 								if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
 									filedatas = append(filedatas, data)
 									filepaths = append(filepaths, subpath)
+								} else {
+									return
 								}
 							}
 							t.Torrent.Drop()
@@ -1049,11 +1051,13 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				}
 
 				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
-					activeTorrents = append(activeTorrents, t)
+					//activeTorrents = append(activeTorrents, t)
+					t.Run(tm.slot)
+					active_running += 1
 				}
 			}
 
-			if len(activeTorrents) <= tm.maxActiveTask {
+			/*if len(activeTorrents) <= tm.maxActiveTask {
 				for _, t := range activeTorrents {
 					t.Run(tm.slot)
 					active_running += 1
@@ -1075,7 +1079,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						active_paused += 1
 					}
 				}
-			}
+			}*/
 
 			if counter >= loops {
 				for _, ttt := range tm.client.Torrents() {
