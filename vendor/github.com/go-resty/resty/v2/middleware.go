@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -178,8 +179,13 @@ func createHTTPRequest(c *Client, r *Request) (err error) {
 	// Add headers into http request
 	r.RawRequest.Header = r.Header
 
-	// Add cookies into http request
+	// Add cookies from client instance into http request
 	for _, cookie := range c.Cookies {
+		r.RawRequest.AddCookie(cookie)
+	}
+
+	// Add cookies from request instance into http request
+	for _, cookie := range r.Cookies {
 		r.RawRequest.AddCookie(cookie)
 	}
 
@@ -189,15 +195,41 @@ func createHTTPRequest(c *Client, r *Request) (err error) {
 		r.RawRequest.URL.Host = r.URL
 	}
 
+	// Enable trace
+	if c.trace || r.trace {
+		r.clientTrace = &clientTrace{}
+		r.ctx = r.clientTrace.createContext(r.Context())
+	}
+
 	// Use context if it was specified
 	if r.ctx != nil {
 		r.RawRequest = r.RawRequest.WithContext(r.ctx)
 	}
 
-	// Enable trace
-	if c.trace || r.trace {
-		r.clientTrace = &clientTrace{}
-		r.RawRequest = r.RawRequest.WithContext(r.clientTrace.createContext())
+	// assign get body func for the underlying raw request instance
+	r.RawRequest.GetBody = func() (io.ReadCloser, error) {
+		// If r.bodyBuf present, return the copy
+		if r.bodyBuf != nil {
+			return ioutil.NopCloser(bytes.NewReader(r.bodyBuf.Bytes())), nil
+		}
+
+		// Maybe body is `io.Reader`.
+		// Note: Resty user have to watchout for large body size of `io.Reader`
+		if r.RawRequest.Body != nil {
+			b, err := ioutil.ReadAll(r.RawRequest.Body)
+			if err != nil {
+				return nil, err
+			}
+
+			// Restore the Body
+			closeq(r.RawRequest.Body)
+			r.RawRequest.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+
+			// Return the Body bytes
+			return ioutil.NopCloser(bytes.NewBuffer(b)), nil
+		}
+
+		return nil, nil
 	}
 
 	return
@@ -239,12 +271,13 @@ func requestLogger(c *Client, r *Request) error {
 				return err
 			}
 		}
+		// fmt.Sprintf("COOKIES:\n%s\n", composeCookies(c.GetClient().Jar, *rr.URL)) +
 
 		reqLog := "\n==============================================================================\n" +
+			"~~~ REQUEST ~~~\n" +
 			fmt.Sprintf("%s  %s  %s\n", r.Method, rr.URL.RequestURI(), rr.Proto) +
 			fmt.Sprintf("HOST   : %s\n", rr.URL.Host) +
-			fmt.Sprintf("HEADERS:\n") +
-			composeHeaders(rl.Header) + "\n" +
+			fmt.Sprintf("HEADERS:\n%s\n", composeHeaders(c, r, rl.Header)) +
 			fmt.Sprintf("BODY   :\n%v\n", rl.Body) +
 			"------------------------------------------------------------------------------\n"
 
@@ -269,15 +302,16 @@ func responseLogger(c *Client, res *Response) error {
 		}
 
 		debugLog := res.Request.values[debugRequestLogKey].(string)
-		debugLog += fmt.Sprintf("STATUS 		: %s\n", res.Status()) +
-			fmt.Sprintf("RECEIVED AT	: %v\n", res.ReceivedAt().Format(time.RFC3339Nano)) +
-			fmt.Sprintf("RESPONSE TIME	: %v\n", res.Time()) +
-			"HEADERS:\n" +
-			composeHeaders(rl.Header) + "\n"
+		debugLog += "~~~ RESPONSE ~~~\n" +
+			fmt.Sprintf("STATUS       : %s\n", res.Status()) +
+			fmt.Sprintf("RECEIVED AT  : %v\n", res.ReceivedAt().Format(time.RFC3339Nano)) +
+			fmt.Sprintf("TIME DURATION: %v\n", res.Time()) +
+			"HEADERS      :\n" +
+			composeHeaders(c, res.Request, rl.Header) + "\n"
 		if res.Request.isSaveResponse {
-			debugLog += fmt.Sprintf("BODY   :\n***** RESPONSE WRITTEN INTO FILE *****\n")
+			debugLog += fmt.Sprintf("BODY         :\n***** RESPONSE WRITTEN INTO FILE *****\n")
 		} else {
-			debugLog += fmt.Sprintf("BODY   :\n%v\n", rl.Body)
+			debugLog += fmt.Sprintf("BODY         :\n%v\n", rl.Body)
 		}
 		debugLog += "==============================================================================\n"
 
@@ -296,6 +330,7 @@ func parseResponseBody(c *Client, res *Response) (err error) {
 	if IsJSONType(ct) || IsXMLType(ct) {
 		// HTTP status code > 199 and < 300, considered as Result
 		if res.IsSuccess() {
+			res.Request.Error = nil
 			if res.Request.Result != nil {
 				err = Unmarshalc(c, ct, res.body, res.Request.Result)
 				return
