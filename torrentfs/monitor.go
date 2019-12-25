@@ -28,22 +28,22 @@ import (
 
 // Errors that are used throughout the Torrent API.
 var (
-	ErrBuildConn      = errors.New("build internal-rpc connection failed")
-	ErrGetLatestBlock = errors.New("get latest block failed")
-	ErrNoRPCClient    = errors.New("no rpc client")
+//ErrBuildConn      = errors.New("build internal-rpc connection failed")
+//ErrGetLatestBlock = errors.New("get latest block failed")
+//ErrNoRPCClient    = errors.New("no rpc client")
 
-	ErrBlockHash = errors.New("block or parent block hash invalid")
-	//blockCache, _ = lru.New(6)
-	//healthPeers, _ = lru.New(50)
-	//sizeCache, _   = lru.New(batch)
+//ErrBlockHash = errors.New("block or parent block hash invalid")
+//blockCache, _ = lru.New(6)
+//healthPeers, _ = lru.New(50)
+//sizeCache, _   = lru.New(batch)
 )
 
 const (
-	defaultTimerInterval  = 1
-	connTryTimes          = 300
-	connTryInterval       = 2
-	fetchBlockTryTimes    = 5
-	fetchBlockTryInterval = 3
+	//defaultTimerInterval  = 1
+	//connTryTimes          = 300
+	connTryInterval = 2
+	//fetchBlockTryTimes    = 5
+	//fetchBlockTryInterval = 3
 	//fetchBlockLogStep     = 10000
 	//minBlockNum           = 0
 
@@ -848,7 +848,7 @@ if m.lastNumber > 256 {
 
 func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * defaultTimerInterval)
+	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
 	progress := uint64(0)
 	for {
