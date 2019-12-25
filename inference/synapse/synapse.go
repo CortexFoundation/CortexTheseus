@@ -46,10 +46,10 @@ type Synapse struct {
 	simpleCache sync.Map
 	gasCache    sync.Map
 	//modelLock   sync.Map
-	mutex       sync.Mutex
-	lib         *kernel.LibCVM
-	caches      map[int]*lru.Cache
-	exitCh      chan struct{}
+	mutex  sync.Mutex
+	lib    *kernel.LibCVM
+	caches map[int]*lru.Cache
+	exitCh chan struct{}
 }
 
 func Engine() *Synapse {

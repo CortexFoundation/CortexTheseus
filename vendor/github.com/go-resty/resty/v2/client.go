@@ -58,7 +58,7 @@ var (
 	hdrAuthorizationKey   = http.CanonicalHeaderKey("Authorization")
 
 	plainTextType   = "text/plain; charset=utf-8"
-	jsonContentType = "application/json; charset=utf-8"
+	jsonContentType = "application/json"
 	formContentType = "application/x-www-form-urlencoded"
 
 	jsonCheck = regexp.MustCompile(`(?i:(application|text)/(json|.*\+json|json\-.*)(;|$))`)
@@ -185,11 +185,6 @@ func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
 // 		client.SetCookie(&http.Cookie{
 // 					Name:"go-resty",
 //					Value:"This is cookie value",
-//					Path: "/",
-// 					Domain: "sample.com",
-// 					MaxAge: 36000,
-// 					HttpOnly: true,
-//					Secure: false,
 // 				})
 func (c *Client) SetCookie(hc *http.Cookie) *Client {
 	c.Cookies = append(c.Cookies, hc)
@@ -198,27 +193,16 @@ func (c *Client) SetCookie(hc *http.Cookie) *Client {
 
 // SetCookies method sets an array of cookies in the client instance.
 // These cookies will be added to all the request raised from this client instance.
-// 		cookies := make([]*http.Cookie, 0)
-//
-//		cookies = append(cookies, &http.Cookie{
-// 					Name:"go-resty-1",
-//					Value:"This is cookie 1 value",
-//					Path: "/",
-// 					Domain: "sample.com",
-// 					MaxAge: 36000,
-// 					HttpOnly: true,
-//					Secure: false,
-// 				})
-//
-//		cookies = append(cookies, &http.Cookie{
-// 					Name:"go-resty-2",
-//					Value:"This is cookie 2 value",
-//					Path: "/",
-// 					Domain: "sample.com",
-// 					MaxAge: 36000,
-// 					HttpOnly: true,
-//					Secure: false,
-// 				})
+// 		cookies := []*http.Cookie{
+// 			&http.Cookie{
+// 				Name:"go-resty-1",
+// 				Value:"This is cookie 1 value",
+// 			},
+// 			&http.Cookie{
+// 				Name:"go-resty-2",
+// 				Value:"This is cookie 2 value",
+// 			},
+// 		}
 //
 //		// Setting a cookies into resty
 // 		client.SetCookies(cookies)
@@ -316,6 +300,7 @@ func (c *Client) R() *Request {
 		QueryParam: url.Values{},
 		FormData:   url.Values{},
 		Header:     http.Header{},
+		Cookies:    make([]*http.Cookie, 0),
 
 		client:          c,
 		multipartFiles:  []*File{},
@@ -771,15 +756,15 @@ func (c *Client) execute(req *Request) (*Response, error) {
 		}
 	}
 
+	if hostHeader := req.Header.Get("Host"); hostHeader != "" {
+		req.RawRequest.Host = hostHeader
+	}
+
 	// call pre-request if defined
 	if c.preReqHook != nil {
 		if err = c.preReqHook(c, req.RawRequest); err != nil {
 			return nil, err
 		}
-	}
-
-	if hostHeader := req.Header.Get("Host"); hostHeader != "" {
-		req.RawRequest.Host = hostHeader
 	}
 
 	if err = requestLogger(c, req); err != nil {
@@ -857,9 +842,10 @@ func (c *Client) transport() (*http.Transport, error) {
 	return nil, errors.New("current transport is not an *http.Transport instance")
 }
 
-// just an helper method
-func (c *Client) outputLogTo(w io.Writer) {
+// just an internal helper method
+func (c *Client) outputLogTo(w io.Writer) *Client {
 	c.log.(*logger).l.SetOutput(w)
+	return c
 }
 
 //‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
