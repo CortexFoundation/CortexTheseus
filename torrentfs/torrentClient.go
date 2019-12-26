@@ -340,8 +340,8 @@ func (t *Torrent) download(p, slot int) {
 	//base := t.Torrent.NumPieces()/10
 
 	//if base > 0 {
-	for i := 20; i > 0; i-- {
-		if i > (20*p)/t.Torrent.NumPieces() {
+	for i := 10; i > 0; i-- {
+		if i > (10*p)/t.Torrent.NumPieces() {
 			//progress = progress + "<"
 			progress = progress + " "
 		} else {
