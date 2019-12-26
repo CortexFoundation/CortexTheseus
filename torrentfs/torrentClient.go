@@ -336,7 +336,7 @@ func (t *Torrent) download(p, slot int) {
 	}
 
 	e = s + p
-	log.Info("Download slot", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "swarm", len(t.Torrent.KnownSwarm()))
+	log.Info("<<<<<<", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "swarm", len(t.Torrent.KnownSwarm()))
 	t.Torrent.DownloadPieces(s, e)
 }
 
@@ -932,11 +932,12 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 		}
 	}
 }
+
 func (tm *TorrentManager) activeTorrentLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
-	var total_size, current_size, counter, log_counter uint64
+	var total_size, current_size, log_counter, counter uint64
 	for {
 		counter++
 		select {
@@ -952,25 +953,31 @@ func (tm *TorrentManager) activeTorrentLoop() {
 
 			for _, t := range tm.activeTorrents {
 				ih := t.Torrent.InfoHash()
-				tm.lock.RLock()
 				BytesRequested := int64(0)
 				if tm.fullSeed {
-					BytesRequested = t.BytesCompleted() + t.BytesMissing()
+					BytesRequested = t.Length() //t.BytesCompleted() + t.BytesMissing()
 				} else {
-					BytesRequested = tm.bytes[ih]
+					tm.lock.RLock()
+					if tm.bytes[ih] >= t.Length() {
+						BytesRequested = tm.bytes[ih]
+					} else {
+						BytesRequested = int64(math.Min(float64(tm.bytes[ih]), float64(t.bytesRequested+block)))
+					}
+					tm.lock.RUnlock()
 				}
-				tm.lock.RUnlock()
+
 				if t.bytesRequested < BytesRequested {
 					t.bytesRequested = BytesRequested
 					t.bytesLimitation = tm.GetLimitation(BytesRequested)
 				}
 
+				if t.bytesRequested == 0 {
+					active_wait += 1
+					continue
+				}
+
 				t.bytesCompleted = t.BytesCompleted()
 				t.bytesMissing = t.BytesMissing()
-
-				//if counter >= loops {
-				//	all += len(t.Torrent.KnownSwarm()) //len(t.Torrent.PieceStateRuns())
-				//}
 
 				if t.Finished() {
 					tm.lock.Lock()
@@ -981,7 +988,6 @@ func (tm *TorrentManager) activeTorrentLoop() {
 							log.Info("A -> S", "hash", ih)
 							tm.seedingChan <- t
 							log.Info("S <- A", "hash", ih)
-							//t.loop = defaultSeedInterval / queryTimeInterval
 							total_size += uint64(t.bytesCompleted)
 							current_size += uint64(t.bytesCompleted)
 						}
@@ -1003,7 +1009,6 @@ func (tm *TorrentManager) activeTorrentLoop() {
 								log.Info("A -> S", "hash", ih)
 								tm.seedingChan <- t
 								log.Info("S <- A", "hash", ih)
-								//t.loop = defaultSeedInterval / queryTimeInterval
 								total_size += uint64(t.bytesCompleted)
 								current_size += uint64(t.bytesCompleted)
 							}
@@ -1011,11 +1016,6 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					}
 
 					tm.lock.Unlock()
-					continue
-				}
-
-				if t.bytesRequested == 0 {
-					active_wait += 1
 					continue
 				}
 
