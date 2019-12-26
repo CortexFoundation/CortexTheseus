@@ -336,7 +336,26 @@ func (t *Torrent) download(p, slot int) {
 	}
 
 	e = s + p
-	log.Info("<<<<<<", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "swarm", len(t.Torrent.KnownSwarm()))
+	progress := ""
+	//base := t.Torrent.NumPieces()/10
+
+	//if base > 0 {
+	for i := 20; i > 0; i-- {
+		if i > (20*p)/t.Torrent.NumPieces() {
+			//progress = progress + "<"
+			progress = progress + " "
+		} else {
+			//progress = progress + " "
+			progress = progress + "<"
+		}
+	}
+	//}else {
+	//	progress = "<<<<<<<<<"
+	//}
+	//if p == t.Torrent.NumPieces() {
+	//	progress = "<<<<<<"
+	//}
+	log.Info("[ "+progress+" ]", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "swarm", len(t.Torrent.KnownSwarm()))
 	t.Torrent.DownloadPieces(s, e)
 }
 
