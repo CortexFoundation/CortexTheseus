@@ -181,11 +181,11 @@ func (t *Torrent) IsAvailable() bool {
 //	return t.status != torrentPending
 //}
 
-func (t *Torrent) WriteTorrent() {
+func (t *Torrent) WriteTorrent() error {
 	//log.Info("Write seed", "hash", t.infohash)
 	if _, err := os.Stat(path.Join(t.filepath, "torrent")); err == nil {
 		t.Pause()
-		return
+		return nil
 	}
 
 	if f, err := os.Create(path.Join(t.filepath, "torrent")); err == nil {
@@ -193,11 +193,14 @@ func (t *Torrent) WriteTorrent() {
 		log.Debug("Write seed file", "path", t.filepath)
 		if err := t.Metainfo().Write(f); err == nil {
 			t.Pause()
+			return nil
 		} else {
 			log.Warn("Write seed error", "err", err)
+			return err
 		}
 	} else {
 		log.Warn("Create Path error", "err", err)
+		return err
 	}
 }
 
@@ -902,16 +905,14 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 					continue
 				}
 				t.loop += 1
-				if !t.Pending() {
-					if len(tm.activeChan) < cap(tm.activeChan) {
+				if t.Torrent.Info() != nil {
+					if err := t.WriteTorrent(); err == nil {
 						delete(tm.pendingTorrents, ih)
 						t.loop = 0
 						log.Info("P -> A", "hash", ih)
 						tm.activeChan <- t
 						log.Info("A <- P", "hash", ih)
 					}
-				} else if t.Torrent.Info() != nil {
-					t.WriteTorrent()
 				} else if t.loop > torrentWaitingTime/queryTimeInterval {
 					if !t.isBoosting {
 						t.loop = 0
@@ -1002,6 +1003,10 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					active_wait += 1
 					continue
 				}
+				if t.BytesCompleted() > t.bytesCompleted {
+					total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
+					current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
+				}
 
 				t.bytesCompleted = t.BytesCompleted()
 				t.bytesMissing = t.BytesMissing()
@@ -1015,8 +1020,6 @@ func (tm *TorrentManager) activeTorrentLoop() {
 							log.Info("A -> S", "hash", ih)
 							tm.seedingChan <- t
 							log.Info("S <- A", "hash", ih)
-							total_size += uint64(t.bytesCompleted)
-							current_size += uint64(t.bytesCompleted)
 						}
 					} else {
 						err := os.Symlink(
@@ -1036,8 +1039,6 @@ func (tm *TorrentManager) activeTorrentLoop() {
 								log.Info("A -> S", "hash", ih)
 								tm.seedingChan <- t
 								log.Info("S <- A", "hash", ih)
-								total_size += uint64(t.bytesCompleted)
-								current_size += uint64(t.bytesCompleted)
 							}
 						}
 					}
