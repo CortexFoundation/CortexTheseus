@@ -955,7 +955,16 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				ih := t.Torrent.InfoHash()
 				BytesRequested := int64(0)
 				if tm.fullSeed {
-					BytesRequested = t.Length() //t.BytesCompleted() + t.BytesMissing()
+					//BytesRequested = t.Length() //t.BytesCompleted() + t.BytesMissing()
+					tm.lock.RLock()
+					if tm.bytes[ih] >= t.Length() {
+						BytesRequested = tm.bytes[ih]
+					} else {
+						if t.bytesRequested <= t.BytesCompleted()+block/2 {
+							BytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
+						}
+					}
+					tm.lock.RUnlock()
 				} else {
 					tm.lock.RLock()
 					if tm.bytes[ih] >= t.Length() {
