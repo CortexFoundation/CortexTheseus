@@ -939,6 +939,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
 							//t.Torrent.VerifyData()
 							t.AddTrackers(tm.trackers)
+							t.start = mclock.Now()
 						} else {
 							log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 						}
