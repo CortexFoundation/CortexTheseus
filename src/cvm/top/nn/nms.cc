@@ -151,7 +151,7 @@ inline bool GetValidInferPrecision(
   IN_PREC_CHECK(iattr, attrs.name);
   const auto& shp = shapes->at(0);
   int64_t inl = shp.Size() / shp[0];
-  auto oprec1 = GetBit(inl);
+  auto oprec1 = GetNumberPrecision(inl);
   (*oattr)[0] = oprec1;
   (*oattr)[1] = iattr->at(0);
   return true;
