@@ -523,7 +523,8 @@ func (tm *TorrentManager) SetTrackers(trackers []string) {
 	defer tm.lock.Unlock()
 	array := make([][]string, len(trackers))
 	for i, tracker := range trackers {
-		array[i] = []string{"udp" + tracker, "http" + tracker + "/announce"}
+		//array[i] = []string{"udp" + tracker, "http" + tracker + "/announce"}
+		array[i] = []string{tracker}
 	}
 	tm.trackers = array
 	log.Info("Boot trackers", "t", tm.trackers)
