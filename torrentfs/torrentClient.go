@@ -106,7 +106,7 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(t.filepath)
 	//spec.Trackers = append(spec.Trackers, tm.trackers...)
-	spec.Trackers = tm.trackers
+	//spec.Trackers = tm.trackers
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 		//var ss []string
 		//slices.MakeInto(&ss, mi.Nodes)
@@ -140,7 +140,7 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(t.filepath)
 	//spec.Trackers = append(spec.Trackers, tm.trackers...)
-	spec.Trackers = tm.trackers
+	//spec.Trackers = tm.trackers
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 		//var ss []string
 		//slices.MakeInto(&ss, mi.Nodes)
@@ -436,7 +436,7 @@ func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, sta
 		0, 0, status,
 		ih.String(),
 		path.Join(tm.TmpDataDir, ih.String()),
-		0, 1, 0, 0, false, true, mclock.Now(),
+		0, 1, 0, 0, false, true, 0,
 	}
 	tm.SetTorrent(ih, tt)
 	//tm.pendingChan <- tt
@@ -615,7 +615,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		//for _, tracker := range tm.trackers {
 		//	spec.Trackers = append(spec.Trackers, tracker)
 		//}
-		spec.Trackers = tm.trackers
+		//spec.Trackers = tm.trackers
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			//var ss []string
@@ -634,7 +634,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		/*for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
 		}*/
-		spec.Trackers = tm.trackers
+		//spec.Trackers = tm.trackers
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			//var ss []string
@@ -670,7 +670,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	log.Trace("Get file from infohash", "InfoHash", ih.HexString())
 
 	spec := &torrent.TorrentSpec{
-		Trackers:    [][]string{},
+		Trackers:    [][]string{}, //tm.trackers, //[][]string{},
 		DisplayName: ih.String(),
 		InfoHash:    ih,
 		Storage:     storage.NewFile(dataPath),
@@ -679,7 +679,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	//for _, tracker := range tm.trackers {
 	//	spec.Trackers = append(spec.Trackers, tracker)
 	//}
-	spec.Trackers = tm.trackers
+	//spec.Trackers = tm.trackers
 	//spec.Trackers = append(spec.Trackers, tm.trackers...)
 	//log.Info("Torrent specific info", "spec", spec)
 
@@ -935,8 +935,14 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 					if err := t.WriteTorrent(); err == nil {
 						delete(tm.pendingTorrents, ih)
 						t.loop = 0
-						log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
-						t.start = mclock.Now()
+						if t.start == 0 {
+							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
+							//t.Torrent.VerifyData()
+							t.AddTrackers(tm.trackers)
+						} else {
+							log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+						}
+						//t.start = mclock.Now()
 						tm.activeChan <- t
 					}
 				} else if t.loop > torrentWaitingTime/queryTimeInterval {
@@ -966,8 +972,11 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						}(t)
 					}
 				} else {
-					if t.loop%20 == 0 {
-						log.Debug("Searching file", "hash", t.infohash, "status", t.status, "file", t, "info", t.Torrent.Info(), "loops", t.loop)
+					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && t.loop > 60) {
+					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && tm.fullSeed) || (t.start == 0 && t.loop > 1800) {
+					if t.start == 0 && (tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 900) {
+						t.AddTrackers(tm.trackers)
+						t.start = mclock.Now()
 					}
 				}
 			}
@@ -1028,17 +1037,22 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					t.bytesRequested = BytesRequested
 					t.bytesLimitation = tm.GetLimitation(BytesRequested)
 				} else {
-					if t.bytesRequested == 0 {
+					/*if t.bytesRequested == 0 {
 						active_wait += 1
 						continue
 					}
 					if t.BytesMissing() > 0 {
 						active_running += 1
 						if log_counter%20 == 0 {
-							log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "request", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(tm.bytes[ih]), "total", common.StorageSize(t.Torrent.Length()), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces(), "status", t.status)
+							log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.BytesCompleted()), "request", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(tm.bytes[ih]), "total", common.StorageSize(t.Torrent.Length()), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces(), "status", t.status)
 						}
 						continue
-					}
+					}*/
+				}
+
+				if t.bytesRequested == 0 {
+					active_wait += 1
+					continue
 				}
 
 				if t.BytesCompleted() > t.bytesCompleted {

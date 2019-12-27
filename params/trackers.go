@@ -95,19 +95,10 @@ var MainnetTrackers = []string{
 	"ws://127.0.0.1:5008/announce",*/
 }
 
-var BernardTrackers = []string{
-	"://47.91.91.217:5008",
-	"://47.74.1.234:5008",
-	"://47.88.7.24:5008",
-	"://47.91.43.70:5008",
-	"://47.91.106.117:5008",
-	"://47.91.147.37:5008",
-	"://47.89.178.175:5008",
-	"://47.88.214.96:5008",
-	"://47.93.158.68:5008",
-	"://torrent.cortexlabs.ai:5008",
-}
+var BernardTrackers = MainnetTrackers //[]string{
+//	MainnetTrackers,
+//}
 
 var TorrentBoostNodes = []string{
-	"://storage.cortexlabs.ai:7881",
+	"http://storage.cortexlabs.ai:7881",
 }
