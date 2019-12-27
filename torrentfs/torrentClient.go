@@ -105,7 +105,8 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(t.filepath)
-	spec.Trackers = append(spec.Trackers, tm.trackers...)
+	//spec.Trackers = append(spec.Trackers, tm.trackers...)
+	spec.Trackers = tm.trackers
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 		//var ss []string
 		//slices.MakeInto(&ss, mi.Nodes)
@@ -138,7 +139,8 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(t.filepath)
-	spec.Trackers = append(spec.Trackers, tm.trackers...)
+	//spec.Trackers = append(spec.Trackers, tm.trackers...)
+	spec.Trackers = tm.trackers
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 		//var ss []string
 		//slices.MakeInto(&ss, mi.Nodes)
@@ -521,7 +523,7 @@ func (tm *TorrentManager) SetTrackers(trackers []string) {
 	defer tm.lock.Unlock()
 	array := make([][]string, len(trackers))
 	for i, tracker := range trackers {
-		array[i] = []string{tracker}
+		array[i] = []string{"udp" + tracker, "http" + tracker + "/announce"}
 	}
 	tm.trackers = array
 	log.Info("Boot trackers", "t", tm.trackers)
@@ -612,7 +614,8 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		//for _, tracker := range tm.trackers {
 		//	spec.Trackers = append(spec.Trackers, tracker)
 		//}
-		spec.Trackers = append(spec.Trackers, tm.trackers...)
+		spec.Trackers = tm.trackers
+		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			//var ss []string
 			//slices.MakeInto(&ss, mi.Nodes)
@@ -630,7 +633,8 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		/*for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
 		}*/
-		spec.Trackers = append(spec.Trackers, tm.trackers...)
+		spec.Trackers = tm.trackers
+		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			//var ss []string
 			//slices.MakeInto(&ss, mi.Nodes)
@@ -674,7 +678,8 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	//for _, tracker := range tm.trackers {
 	//	spec.Trackers = append(spec.Trackers, tracker)
 	//}
-	spec.Trackers = append(spec.Trackers, tm.trackers...)
+	spec.Trackers = tm.trackers
+	//spec.Trackers = append(spec.Trackers, tm.trackers...)
 	//log.Info("Torrent specific info", "spec", spec)
 
 	t, _, err := tm.client.AddTorrentSpec(spec)
