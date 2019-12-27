@@ -586,7 +586,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 		start := mclock.Now()
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				log.Debug("Try to create a file", "meta", meta, "number", b.Number, "infohash", meta.InfoHash)
+				log.Debug("Data encounter", "hash", meta.InfoHash, "number", b.Number)
 				if err := m.parseFileMeta(&tx, meta); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return false, err

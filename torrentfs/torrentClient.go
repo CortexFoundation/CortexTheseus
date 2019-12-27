@@ -296,6 +296,11 @@ func (t *Torrent) Run(slot int) {
 			t.currentConns = t.maxEstablishedConns
 			t.Torrent.SetMaxEstablishedConns(t.currentConns)
 		}
+	} else {
+		if t.currentConns > t.minEstablishedConns {
+			t.currentConns = t.minEstablishedConns
+			t.Torrent.SetMaxEstablishedConns(t.currentConns)
+		}
 	}
 	//log.Info("Limit mode", "hash", t.infohash, "fast", t.fast, "conn", t.currentConns, "request", t.bytesRequested, "limit", limitPieces, "cur", t.maxPieces, "total", t.Torrent.NumPieces())
 	t.status = torrentRunning
@@ -367,7 +372,7 @@ func (t *Torrent) download(p, slot int) {
 	//if p == t.Torrent.NumPieces() {
 	//	progress = "<<<<<<"
 	//}
-	log.Info("[ "+progress+" ]", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket)
+	log.Info("[ "+progress+" ]", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "conn", t.currentConns)
 	t.Torrent.DownloadPieces(s, e)
 }
 
@@ -918,7 +923,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 					if err := t.WriteTorrent(); err == nil {
 						delete(tm.pendingTorrents, ih)
 						t.loop = 0
-						log.Info("A <- P", "hash", ih, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+						log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 						t.start = mclock.Now()
 						tm.activeChan <- t
 					}
