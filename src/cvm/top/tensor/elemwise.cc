@@ -86,7 +86,7 @@ Example::
   VerifyAttrRange(param.a_min, "clip.a_min", -r, r+1);
   VERIFY(param.a_min < param.a_max) << "clip a_min must less than a_max";
   int64_t range = std::max(std::abs(param.a_max), std::abs(param.a_min));
-  (*oattr)[0] = GetNumberPrecision(range) + 1;
+  (*oattr)[0] = GetNumberPrecision(range);
   return true;
 })
 .set_attr<cvm::FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutUnknownOut<1, 1>)
