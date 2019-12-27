@@ -160,7 +160,7 @@ inline bool Conv2DInferPrecision(const NodeAttrs& attrs,
   VERIFY_EQ(wshp.ndim(), 4);
   int64_t max_size = wshp.Size() / wshp[0];
   int oprec = iattr->at(0) + iattr->at(1);
-  oprec += GetBit(max_size);
+  oprec += GetReduceSumBit(max_size);
 
   const PARAM& param = cvm::get<PARAM>(attrs.parsed);
   if (param.use_bias) {

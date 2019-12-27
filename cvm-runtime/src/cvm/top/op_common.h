@@ -269,13 +269,32 @@ inline std::string attr_assign_error_msg(const NodeAttrs& attrs,
     << " has not been infered precision";             \
   }
 
-inline int GetBit(int64_t size) {
+/**
+ * Calculate the sum bit of size K for Int(p) addition
+ *  the reduction operator's precision is 
+ *    p + ceil(log(K))
+ **/
+inline int GetReduceSumBit(int64_t size) {
   int prec = 0;
-  while (size) {
-    prec ++;
-    size >>= 1;
-  }
+  while (size != 0) { prec ++; size >>= 1; }
   return prec;
+}
+
+/**
+ * Calculate the precision of number
+ *  number `n` of Int(p) indicates equation:
+ *    abs(n) <= 2 ^ (p - 1) - 1,
+ *  which is equal to transformation:
+ *    log(n + 1) + 1 <= p,
+ *  p is an interger, that is 
+ *    p >= ceil(log(n+1)) + 1
+ *  
+ **/
+inline int GetNumberPrecision(int64_t n) {
+  int prec = 0;
+  n = n + 1;
+  while (n != 0) { prec++; n >>= 1; }
+  return prec + 1;
 }
 
 // simply return the shape as same
