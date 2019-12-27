@@ -31,7 +31,7 @@ inline bool DenseInferPrecision(const NodeAttrs& attrs,
 
   int64_t max_size = shapes->at(0)[1];
   int oprec = iattr->at(0) + iattr->at(1);
-  oprec += GetBit(max_size);
+  oprec += GetReduceSumBit(max_size);
 
   auto& param = cvm::get<cvm::top::DenseParam>(attrs.parsed);
   if (param.use_bias) {

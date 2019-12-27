@@ -150,7 +150,7 @@ Example::
   const TShape& oshp = shapes->at(1);
   int64_t suml = ishp.Size() / oshp.Size();
   int oprec = iattr->at(0);
-  oprec += GetBit(suml);
+  oprec += GetReduceSumBit(suml);
   (*oattr)[0] = oprec;
   return true;
 });
