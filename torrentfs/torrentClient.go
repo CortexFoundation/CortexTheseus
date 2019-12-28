@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	//"github.com/anacrolix/missinggo/slices"
+	"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
@@ -108,9 +108,9 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	//spec.Trackers = append(spec.Trackers, tm.trackers...)
 	//spec.Trackers = tm.trackers
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-		//var ss []string
-		//slices.MakeInto(&ss, mi.Nodes)
-		//tm.client.AddDHTNodes(ss)
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
 		//<-torrent.GotInfo()
 		//torrent.VerifyData()
 		t.Torrent = torrent
@@ -142,9 +142,9 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	//spec.Trackers = append(spec.Trackers, tm.trackers...)
 	//spec.Trackers = tm.trackers
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-		//var ss []string
-		//slices.MakeInto(&ss, mi.Nodes)
-		//tm.client.AddDHTNodes(ss)
+		var ss []string
+		slices.MakeInto(&ss, mi.Nodes)
+		tm.client.AddDHTNodes(ss)
 		//<-torrent.GotInfo()
 		//torrent.VerifyData()
 		t.Torrent = torrent
@@ -618,9 +618,9 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		//spec.Trackers = tm.trackers
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-			//var ss []string
-			//slices.MakeInto(&ss, mi.Nodes)
-			//tm.client.AddDHTNodes(ss)
+			var ss []string
+			slices.MakeInto(&ss, mi.Nodes)
+			tm.client.AddDHTNodes(ss)
 			//<-t.GotInfo()
 			//t.VerifyData()
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
@@ -637,9 +637,9 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		//spec.Trackers = tm.trackers
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-			//var ss []string
-			//slices.MakeInto(&ss, mi.Nodes)
-			//tm.client.AddDHTNodes(ss)
+			var ss []string
+			slices.MakeInto(&ss, mi.Nodes)
+			tm.client.AddDHTNodes(ss)
 			//<-t.GotInfo()
 			//t.VerifyData()
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
