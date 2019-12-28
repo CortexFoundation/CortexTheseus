@@ -1010,7 +1010,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				t.weight = 1 + int(t.cited*10/maxCited)
 			}
 			log_counter++
-			var all, active_paused, active_wait, active_boost, active_running int
+			var active_paused, active_wait, active_boost, active_running int
 			//var activeTorrents []*Torrent
 
 			for _, t := range tm.activeTorrents {
@@ -1184,11 +1184,11 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				}
 			}*/
 
-			if counter >= loops {
+			if counter >= loops && (len(tm.pendingTorrents) > 0 || active_running > 0 || active_paused > 0 || counter >= 20*loops) {
 				//for _, ttt := range tm.client.Torrents() {
 				//	all += len(ttt.KnownSwarm())
 				//}
-				log.Info("Fs status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "swarm", all, "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent), "slot", tm.slot)
+				log.Info("Fs status", "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "wait", active_wait, "downloading", active_running, "paused", active_paused, "boost", active_boost, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent), "slot", tm.slot)
 				/*tmp := make(map[common.Hash]int)
 				sum := 0
 				for _, ttt := range tm.client.Torrents() {
