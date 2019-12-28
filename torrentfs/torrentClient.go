@@ -937,7 +937,6 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						t.loop = 0
 						if t.start == 0 {
 							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
-							//t.Torrent.VerifyData()
 							t.AddTrackers(tm.trackers)
 							t.start = mclock.Now()
 						} else {
@@ -975,7 +974,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				} else {
 					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && t.loop > 60) {
 					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && tm.fullSeed) || (t.start == 0 && t.loop > 1800) {
-					if t.start == 0 && (tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 900) {
+					if t.start == 0 && (tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
 					}

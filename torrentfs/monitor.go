@@ -130,7 +130,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		start:      mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
-	m.healthPeers, _ = lru.New(50)
+	//m.healthPeers, _ = lru.New(0)
 	m.sizeCache, _ = lru.New(batch)
 	e = nil
 
