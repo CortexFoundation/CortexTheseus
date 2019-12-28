@@ -932,16 +932,23 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				}
 				t.loop += 1
 				if t.Torrent.Info() != nil {
+					if t.start == 0 {
+						log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
+						t.AddTrackers(tm.trackers)
+						t.start = mclock.Now()
+					} else {
+						log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+					}
 					if err := t.WriteTorrent(); err == nil {
 						delete(tm.pendingTorrents, ih)
 						t.loop = 0
-						if t.start == 0 {
+						/*if t.start == 0 {
 							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
 							t.AddTrackers(tm.trackers)
 							t.start = mclock.Now()
 						} else {
 							log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
-						}
+						}*/
 						//t.start = mclock.Now()
 						tm.activeChan <- t
 					}
