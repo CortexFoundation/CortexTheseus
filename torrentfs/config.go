@@ -38,9 +38,9 @@ var DefaultConfig = Config{
 const (
 	queryTimeInterval              = 1
 	expansionFactor        float64 = 1.2
-	defaultSeedInterval            = 900
+	defaultSeedInterval            = 600
 	torrentWaitingTime             = 1800
-	downloadWaitingTime            = 1800
+	downloadWaitingTime            = 2700
 	defaultBytesLimitation         = 512 * 1024
 	defaultTmpFilePath             = ".tmp"
 	version                        = "1"
