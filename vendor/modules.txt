@@ -10,7 +10,7 @@ github.com/Azure/azure-storage-blob-go/azblob
 github.com/RoaringBitmap/roaring
 # github.com/VictoriaMetrics/fastcache v1.5.5-0.20191222100403-c9a5939fd508
 github.com/VictoriaMetrics/fastcache
-# github.com/anacrolix/dht/v2 v2.3.0
+# github.com/anacrolix/dht/v2 v2.3.1
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.2
@@ -51,7 +51,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.10.1-0.20191223030407-d4e90519e6aa
+# github.com/anacrolix/torrent v1.10.1-0.20191229020020-76f1516d3a24
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
