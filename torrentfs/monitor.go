@@ -1078,7 +1078,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 				if len(m.taskCh) < cap(m.taskCh) {
 					m.taskCh <- rpcBlock
 				} else {
-					m.lastNumber = i + j - 1
+					m.lastNumber = i + uint64(j) - 1
 					if maxNumber-minNumber > 6 {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
