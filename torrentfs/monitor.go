@@ -329,7 +329,7 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 		return block, nil
 	}
 
-	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
+	return nil, err//errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
 func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*Block, err error) {
