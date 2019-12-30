@@ -329,7 +329,7 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 		return block, nil
 	}
 
-	return nil, err//errors.New("[ Internal IPC Error ] try to get block out of times")
+	return nil, err //errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
 func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*Block, err error) {
@@ -1073,12 +1073,12 @@ func (m *Monitor) syncLastBlock() uint64 {
 				log.Error("Sync old block failed", "number", i, "error", rpcErr)
 				return 0
 			}
-			for _, rpcBlock := range blocks {
+			for j, rpcBlock := range blocks {
 				//log.Info("b", "b", rpcBlock.Number)
 				if len(m.taskCh) < cap(m.taskCh) {
 					m.taskCh <- rpcBlock
 				} else {
-					m.lastNumber = i - 1
+					m.lastNumber = i + j - 1
 					if maxNumber-minNumber > 6 {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
