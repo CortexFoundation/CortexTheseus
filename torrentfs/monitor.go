@@ -758,7 +758,7 @@ func (m *Monitor) startWork() error {
 	go m.taskLoop()
 	m.wg.Add(1)
 	go m.listenLatestBlock()
-	m.init()
+	//m.init()
 	//m.wg.Add(1)
 	//go m.listenPeers()
 
