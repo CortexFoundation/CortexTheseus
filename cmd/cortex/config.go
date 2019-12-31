@@ -186,6 +186,10 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 				args = append(args, "--storage.disable_dht")
 			}
 
+			if ctx.GlobalBool(utils.StorageDisableTCPFlag.Name) {
+				args = append(args, "--storage.disable_tcp")
+			}
+
 			if ctx.GlobalBool(utils.StorageFullFlag.Name) {
 				args = append(args, "--storage.full")
 			}

@@ -96,6 +96,10 @@ var (
 		Name:  "cvm.disable_dht",
 		Usage: "disable DHT network",
 	}
+	StorageDisableTCPFlag = cli.BoolFlag{
+		Name:  "cvm.disable_tcp",
+		Usage: "disable TCP network",
+	}
 	StorageFullFlag = cli.BoolFlag{
 		Name:  "cvm.full",
 		Usage: "full file download",
@@ -146,6 +150,7 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
 	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
+	fsCfg.DisableTCP = ctx.GlobalBool(utils.StorageDisableTCPFlag.Name)
 	fsCfg.FullSeed = ctx.GlobalBool(utils.StorageFullFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Debug("Cvm Server", "fs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)

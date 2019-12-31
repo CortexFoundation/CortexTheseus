@@ -13,6 +13,7 @@ type Config struct {
 	RpcURI          string   `toml:",omitempty"`
 	IpcPath         string   `toml:",omitempty"`
 	DisableUTP      bool     `toml:",omitempty"`
+	DisableTCP      bool     `toml:",omitempty"`
 	DisableDHT      bool     `toml:",omitempty"`
 	DefaultTrackers []string `toml:",omitempty"`
 	BoostNodes      []string `toml:",omitempty"`
@@ -30,6 +31,7 @@ var DefaultConfig = Config{
 	SyncMode:        "full",
 	DisableUTP:      false,
 	DisableDHT:      false,
+	DisableTCP:      false,
 	MaxSeedingNum:   1024,
 	MaxActiveNum:    1024,
 	FullSeed:        false,

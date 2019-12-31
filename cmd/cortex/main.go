@@ -143,6 +143,7 @@ var (
 		utils.StorageBoostNodesFlag,
 		utils.StorageTrackerFlag,
 		utils.StorageDisableDHTFlag,
+		utils.StorageDisableTCPFlag,
 		utils.StorageFullFlag,
 	}
 
