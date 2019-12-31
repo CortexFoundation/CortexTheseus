@@ -1071,14 +1071,17 @@ func (m *Monitor) syncLastBlock() uint64 {
 			blocks, rpcErr := m.rpcBatchBlockByNumber(i, i+scope)
 			if rpcErr != nil {
 				log.Error("Sync old block failed", "number", i, "error", rpcErr)
+				m.lastNumber = i - 1
 				return 0
 			}
-			for j, rpcBlock := range blocks {
+			for _, rpcBlock := range blocks {
 				//log.Info("b", "b", rpcBlock.Number)
 				if len(m.taskCh) < cap(m.taskCh) {
 					m.taskCh <- rpcBlock
+					i++
 				} else {
-					m.lastNumber = i + uint64(j) - 1
+					//m.lastNumber = i + uint64(j) - 1
+					m.lastNumber = i - 1
 					if maxNumber-minNumber > 6 {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
@@ -1087,13 +1090,14 @@ func (m *Monitor) syncLastBlock() uint64 {
 					return 0
 				}
 			}
-			i = i + scope
+			//i = i + scope
 		} else {
 
 			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 			//log.Info("bb", "b", rpcBlock.Number)
 			if rpcErr != nil {
 				log.Error("Sync old block failed", "number", i, "error", rpcErr)
+				m.lastNumber = i - 1
 				return 0
 			}
 			if len(m.taskCh) < cap(m.taskCh) {
