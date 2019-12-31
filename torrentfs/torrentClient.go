@@ -619,16 +619,13 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		//for _, tracker := range tm.trackers {
 		//	spec.Trackers = append(spec.Trackers, tracker)
 		//}
-		//spec.Trackers = tm.trackers
+		spec.Trackers = tm.trackers
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			var ss []string
 			slices.MakeInto(&ss, mi.Nodes)
 			tm.client.AddDHTNodes(ss)
-			//<-t.GotInfo()
-			//t.VerifyData()
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
-			//torrent.Pause() //SeedInQueue()
 			return torrent
 		} else {
 			log.Warn("Create error")
@@ -638,16 +635,13 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		/*for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
 		}*/
-		//spec.Trackers = tm.trackers
+		spec.Trackers = tm.trackers
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			var ss []string
 			slices.MakeInto(&ss, mi.Nodes)
 			tm.client.AddDHTNodes(ss)
-			//<-t.GotInfo()
-			//t.VerifyData()
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
-			//torrent.Pause()
 			return torrent
 		} else {
 			log.Warn("Create error ... ")
