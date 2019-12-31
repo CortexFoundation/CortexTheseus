@@ -79,6 +79,7 @@ type Monitor struct {
 	//closeOnce sync.Once
 	wg      sync.WaitGroup
 	peersWg sync.WaitGroup
+	rpcWg   sync.WaitGroup
 	//trackerLock sync.Mutex
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
@@ -323,17 +324,41 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 	block := &Block{}
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 
-	//for i := 0; i < fetchBlockTryTimes; i++ {
 	err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
 	if err == nil {
 		return block, nil
 	}
 
-	//	time.Sleep(time.Second * fetchBlockTryInterval)
-	//	log.Warn("Torrent Fs Internal IPC ctx_getBlockByNumber", "retry", i, "error", err, "number", blockNumber)
-	//}
+	return nil, err //errors.New("[ Internal IPC Error ] try to get block out of times")
+}
 
-	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
+func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*Block, err error) {
+	batch := to - from
+	//log.Info("batch", "from", from, "to", to, "batch", batch)
+	//c := make(chan bool)
+	result = make([]*Block, batch)
+	var e error = nil
+	for i := 0; i < int(batch); i++ {
+		m.rpcWg.Add(1)
+		go func(index int) {
+			defer m.rpcWg.Done()
+			result[index], e = m.rpcBlockByNumber(from + uint64(index))
+			if e != nil {
+				err = e
+			}
+			//c <- true
+		}(i)
+	}
+
+	m.rpcWg.Wait()
+
+	/*for i := 0; i < int(batch); i++ {
+		select {
+		case <-c:
+		}
+
+	}*/
+	return result, err
 }
 
 /*func (m *Monitor) rpcBlockByHash(blockHash string) (*Block, error) {
@@ -758,7 +783,7 @@ func (m *Monitor) startWork() error {
 	go m.taskLoop()
 	m.wg.Add(1)
 	go m.listenLatestBlock()
-	m.init()
+	//m.init()
 	//m.wg.Add(1)
 	//go m.listenPeers()
 
@@ -991,6 +1016,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 const (
 	batch = params.SyncBatch
 	delay = params.Delay
+	scope = params.Scope
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
@@ -1022,9 +1048,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 		}
 	}
 
-	if maxNumber > batch+minNumber {
+	/*if maxNumber > batch+minNumber {
 		maxNumber = minNumber + batch
-	}
+	}*/
 	if maxNumber >= minNumber {
 		/*if minNumber > delay {
 			minNumber = minNumber - delay
@@ -1035,37 +1061,57 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 
 	start := mclock.Now()
-	for i := minNumber; i <= maxNumber; i++ {
+	for i := minNumber; i <= maxNumber; { // i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			log.Warn("Fs scan terminated", "number", i)
 			maxNumber = i - 1
-			//close(m.exitCh)
 			break
 		}
-
-		rpcBlock, rpcErr := m.rpcBlockByNumber(i)
-		if rpcErr != nil {
-			log.Error("Sync old block failed", "number", i, "error", rpcErr)
-			return 0
-		}
-		if len(m.taskCh) < cap(m.taskCh) {
-			m.taskCh <- rpcBlock
-		} else {
-			m.lastNumber = i - 1
-			if maxNumber-minNumber > 6 {
-				elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-				elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-				log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+		if maxNumber-i >= scope {
+			blocks, rpcErr := m.rpcBatchBlockByNumber(i, i+scope)
+			if rpcErr != nil {
+				log.Error("Sync old block failed", "number", i, "error", rpcErr)
+				m.lastNumber = i - 1
+				return 0
 			}
-			//return m.lastNumber - minNumber
-			return 0
+			for _, rpcBlock := range blocks {
+				if len(m.taskCh) < cap(m.taskCh) {
+					m.taskCh <- rpcBlock
+					i++
+				} else {
+					m.lastNumber = i - 1
+					if maxNumber-minNumber > delay/2 {
+						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
+						log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+					}
+					return 0
+				}
+			}
+		} else {
+
+			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
+			if rpcErr != nil {
+				log.Error("Sync old block failed", "number", i, "error", rpcErr)
+				m.lastNumber = i - 1
+				return 0
+			}
+			if len(m.taskCh) < cap(m.taskCh) {
+				m.taskCh <- rpcBlock
+				i++
+			} else {
+				m.lastNumber = i - 1
+				if maxNumber-minNumber > delay/2 {
+					elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+					elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
+					log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+				}
+				return 0
+			}
 		}
-		//if err := m.deal(rpcBlock); err != nil {
-		//	return 0
-		//}
 	}
 	m.lastNumber = maxNumber
-	if maxNumber-minNumber > 6 {
+	if maxNumber-minNumber > delay/2 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
 		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "cost", elapsed_a)

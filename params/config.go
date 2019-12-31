@@ -66,8 +66,8 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:          "mainnet",
-		SectionIndex:  18,
-		SectionHead:   common.HexToHash("0xdc407fe1040b94207148e1f1991f2334cec9e7949eea45aa05462b60d508d2ca"),
+		SectionIndex:  19,
+		SectionHead:   common.HexToHash("0xaa331d35dbf7598bbacaf486d5a9dd8aac481a9cddf55501741ed3cb977abb26"),
 		TfsBlocks:     96,
 		TfsFiles:      46,
 		TfsCheckPoint: 395964,
@@ -126,7 +126,7 @@ var (
 		ByzantiumBlock:      big.NewInt(0),
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       nil,
+		IstanbulBlock:       big.NewInt(0),
 		Cuckoo:              new(CuckooConfig),
 	}
 
