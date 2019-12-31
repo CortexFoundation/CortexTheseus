@@ -1048,9 +1048,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 		}
 	}
 
-	if maxNumber > batch+minNumber {
-		//maxNumber = minNumber + batch
-	}
+	/*if maxNumber > batch+minNumber {
+		maxNumber = minNumber + batch
+	}*/
 	if maxNumber >= minNumber {
 		/*if minNumber > delay {
 			minNumber = minNumber - delay
@@ -1075,14 +1075,12 @@ func (m *Monitor) syncLastBlock() uint64 {
 				return 0
 			}
 			for _, rpcBlock := range blocks {
-				//log.Info("b", "b", rpcBlock.Number)
 				if len(m.taskCh) < cap(m.taskCh) {
 					m.taskCh <- rpcBlock
 					i++
 				} else {
-					//m.lastNumber = i + uint64(j) - 1
 					m.lastNumber = i - 1
-					if maxNumber-minNumber > 6 {
+					if maxNumber-minNumber > delay/2 {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
 						log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
@@ -1090,11 +1088,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 					return 0
 				}
 			}
-			//i = i + scope
 		} else {
 
 			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
-			//log.Info("bb", "b", rpcBlock.Number)
 			if rpcErr != nil {
 				log.Error("Sync old block failed", "number", i, "error", rpcErr)
 				m.lastNumber = i - 1
@@ -1102,20 +1098,20 @@ func (m *Monitor) syncLastBlock() uint64 {
 			}
 			if len(m.taskCh) < cap(m.taskCh) {
 				m.taskCh <- rpcBlock
+				i++
 			} else {
 				m.lastNumber = i - 1
-				if maxNumber-minNumber > 6 {
+				if maxNumber-minNumber > delay/2 {
 					elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 					elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
 					log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 				}
 				return 0
 			}
-			i++
 		}
 	}
 	m.lastNumber = maxNumber
-	if maxNumber-minNumber > 6 {
+	if maxNumber-minNumber > delay/2 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
 		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "cost", elapsed_a)
