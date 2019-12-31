@@ -619,7 +619,8 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		//for _, tracker := range tm.trackers {
 		//	spec.Trackers = append(spec.Trackers, tracker)
 		//}
-		spec.Trackers = tm.trackers
+		//spec.Trackers = tm.trackers
+		spec.Trackers = nil
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			var ss []string
@@ -635,7 +636,8 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		/*for _, tracker := range tm.trackers {
 			spec.Trackers = append(spec.Trackers, tracker)
 		}*/
-		spec.Trackers = tm.trackers
+		//spec.Trackers = tm.trackers
+		spec.Trackers = nil
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			var ss []string
