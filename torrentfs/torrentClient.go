@@ -518,13 +518,17 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 	}
 }
 
-func (tm *TorrentManager) SetTrackers(trackers []string) {
+func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP bool) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 	array := make([][]string, len(trackers))
 	for i, tracker := range trackers {
-		//array[i] = []string{"udp" + tracker, "http" + tracker + "/announce"}
-		array[i] = []string{tracker}
+		if disableTCP {
+			array[i] = []string{"udp" + tracker}
+		} else {
+			array[i] = []string{"udp" + tracker, "http" + tracker + "/announce"}
+		}
+		//array[i] = []string{tracker}
 	}
 	tm.trackers = array
 	log.Info("Boot trackers", "t", tm.trackers)
@@ -816,7 +820,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
-		TorrentManager.SetTrackers(config.DefaultTrackers)
+		TorrentManager.SetTrackers(config.DefaultTrackers, config.DisableTCP)
 	}
 	log.Info("Fs client initialized")
 
