@@ -228,8 +228,9 @@ func mainExitCode() int {
 	cfg.Seed = true
 	cfg.EstablishedConnsPerTorrent = 10
 	cfg.HalfOpenConnsPerTorrent = 5
-	cfg.DisableUTP = true
-	cfg.NoDHT = true
+	cfg.DisableUTP = false
+	cfg.DisableTCP = true
+	cfg.NoDHT = false
 	client, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Print(err)
