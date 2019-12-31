@@ -240,6 +240,13 @@ func mainExitCode() int {
 		log.Printf("error watching torrent dir: %s", err)
 		return 1
 	}
+
+	array := make([][]string, len(params.MainnetTrackers))
+	for i, tracker := range params.MainnetTrackers {
+		array[i] = []string{"udp" + tracker}
+		//array[i] = []string{tracker}
+	}
+
 	go func() {
 		/*
 			entities := scanDir(args.DataDir)
@@ -261,7 +268,8 @@ func mainExitCode() int {
 						}
 						spec := torrent.TorrentSpecFromMetaInfo(mi)
 						ih := spec.InfoHash
-						spec.Trackers = append(spec.Trackers, params.MainnetTrackers)
+						//spec.Trackers = append(spec.Trackers, params.MainnetTrackers)
+						spec.Trackers = array
 
 						spec.Storage = storage.NewFile(filePath)
 						t, _, err := client.AddTorrentSpec(spec)
