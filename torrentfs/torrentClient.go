@@ -518,13 +518,17 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 	}
 }
 
-func (tm *TorrentManager) SetTrackers(trackers []string) {
+func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP bool) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 	array := make([][]string, len(trackers))
 	for i, tracker := range trackers {
-		//array[i] = []string{"udp" + tracker, "http" + tracker + "/announce"}
-		array[i] = []string{tracker}
+		if disableTCP {
+			array[i] = []string{"udp" + tracker}
+		} else {
+			array[i] = []string{"http" + tracker + "/announce"}
+		}
+		//array[i] = []string{tracker}
 	}
 	tm.trackers = array
 	log.Info("Boot trackers", "t", tm.trackers)
@@ -616,15 +620,13 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		//	spec.Trackers = append(spec.Trackers, tracker)
 		//}
 		//spec.Trackers = tm.trackers
+		spec.Trackers = nil
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			var ss []string
 			slices.MakeInto(&ss, mi.Nodes)
 			tm.client.AddDHTNodes(ss)
-			//<-t.GotInfo()
-			//t.VerifyData()
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
-			//torrent.Pause() //SeedInQueue()
 			return torrent
 		} else {
 			log.Warn("Create error")
@@ -635,15 +637,13 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 			spec.Trackers = append(spec.Trackers, tracker)
 		}*/
 		//spec.Trackers = tm.trackers
+		spec.Trackers = nil
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 			var ss []string
 			slices.MakeInto(&ss, mi.Nodes)
 			tm.client.AddDHTNodes(ss)
-			//<-t.GotInfo()
-			//t.VerifyData()
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
-			//torrent.Pause()
 			return torrent
 		} else {
 			log.Warn("Create error ... ")
@@ -746,6 +746,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
+	cfg.DisableTCP = config.DisableTCP
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
@@ -815,7 +816,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
-		TorrentManager.SetTrackers(config.DefaultTrackers)
+		TorrentManager.SetTrackers(config.DefaultTrackers, config.DisableTCP)
 	}
 	log.Info("Fs client initialized")
 
