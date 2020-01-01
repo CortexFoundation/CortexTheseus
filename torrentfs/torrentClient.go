@@ -526,7 +526,7 @@ func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP bool) {
 		if disableTCP {
 			array[i] = []string{"udp" + tracker}
 		} else {
-			array[i] = []string{"udp" + tracker, "http" + tracker + "/announce"}
+			array[i] = []string{"http" + tracker + "/announce"}
 		}
 		//array[i] = []string{tracker}
 	}
