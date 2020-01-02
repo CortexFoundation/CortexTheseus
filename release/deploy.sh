@@ -1,19 +1,19 @@
 #!/bin/sh
 
-read -p "Please input the release version :" version
+read -p "... ... Please input the release version :" version
 echo "... ... Checkout git tag $version" 
 cd ..
 git fetch origin
 git checkout $version
+read -p "... ... Please input the latest commit :" commit
+prefix=cortex-linux-amd64
+name=${prefix}-${version}-${commit}
 
-echo "... ... Building release"
+echo "... ... Building release ${name}"
 make clean && make -j$(nproc) > /dev/null 2>&1
 ./build/bin/cortex version
 
-read -p "Please input the latest commit :" commit
-apt install zip
-prefix=cortex-linux-amd64
-name=${prefix}-${version}-${commit}
+apt install zip > /dev/null 2>&1
 echo "... ... Release space clean up"
 cd release
 rm -rf ${prefix}*
