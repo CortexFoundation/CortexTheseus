@@ -1,5 +1,11 @@
 #!/bin/sh
+
 read -p "Please input the release version :" version
+echo "... ... Building release"
+cd ..
+git checkout version
+make clean && make -j8
+./build/bin/cortex version
 read -p "Please input the latest commit :" commit
 apt install zip
 #$version=$1
@@ -7,6 +13,7 @@ apt install zip
 prefix=cortex-linux-amd64
 name=${prefix}-${version}-${commit}
 echo "... ... Release space clean up"
+cd release
 rm -rf ${prefix}*
 rm -rf *.tar.gz
 rm -rf *.zip
