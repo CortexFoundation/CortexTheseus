@@ -84,3 +84,4 @@ keyfile.json
 *.pid
 *tar.gz
 cortex-linux-amd64*
+checksum
