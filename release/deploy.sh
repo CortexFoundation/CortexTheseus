@@ -2,6 +2,7 @@
 
 cd ..
 git fetch origin
+git tag -l "1.9.*"
 read -p "... ... Please input the release version :" version
 echo "... ... Checkout git tag $version"
 git checkout $version
