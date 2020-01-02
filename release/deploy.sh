@@ -3,10 +3,28 @@
 cd ..
 git fetch origin
 git tag -l "1.9.*"
-read -p "... ... Please input the release version :" version
+
+while read -p "... ... Please input the release version number :" version
+do
+if  [ ! -n "$version" ] ;then
+    echo "You have not input a release version number!"
+else
+    break
+fi
+done
+
 echo "... ... Checkout git tag $version"
 git checkout $version
-read -p "... ... Please input the latest commit :" commit
+
+while read -p "... ... Please input the latest commit prefix :" commit
+do
+if  [ ! -n "$commit" ] ;then
+    echo "You have not input a commit prefix!"
+else
+    break
+fi
+done
+
 prefix=cortex-linux-amd64
 name=${prefix}-${version}-${commit}
 
