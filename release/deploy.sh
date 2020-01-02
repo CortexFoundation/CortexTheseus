@@ -4,7 +4,7 @@ read -p "Please input the release version :" version
 echo "... ... Checkout git tag $version" 
 cd ..
 git fetch origin
-git checkout version
+git checkout $version
 
 echo "... ... Building release"
 make clean && make -j$(nproc) > /dev/null 2>&1
@@ -34,4 +34,6 @@ zip -vr ${name}.zip ${name}
 echo "... ... Check sum"
 md5sum ${name}.tar.gz >> checksum
 md5sum ${name}.zip >> checksum
+sha256sum ${name}.tar.gz >> checksum
+sha256sum ${name}.zip >> checksum
 cat checksum
