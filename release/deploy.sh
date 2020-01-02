@@ -1,12 +1,21 @@
 #!/bin/sh
-read -p "Please input the release version :" version
-read -p "Please input the latest commit :" commit
-apt install zip
-#$version=$1
-#commit=$2
+
+read -p "... ... Please input the release version :" version
+echo "... ... Checkout git tag $version" 
+cd ..
+git fetch origin
+git checkout $version
+read -p "... ... Please input the latest commit :" commit
 prefix=cortex-linux-amd64
 name=${prefix}-${version}-${commit}
+
+echo "... ... Building release ${name}"
+make clean && make -j$(nproc) > /dev/null 2>&1
+./build/bin/cortex version
+
+apt install zip > /dev/null 2>&1
 echo "... ... Release space clean up"
+cd release
 rm -rf ${prefix}*
 rm -rf *.tar.gz
 rm -rf *.zip
@@ -25,4 +34,6 @@ zip -vr ${name}.zip ${name}
 echo "... ... Check sum"
 md5sum ${name}.tar.gz >> checksum
 md5sum ${name}.zip >> checksum
+sha256sum ${name}.tar.gz >> checksum
+sha256sum ${name}.zip >> checksum
 cat checksum
