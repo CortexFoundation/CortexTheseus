@@ -1,9 +1,9 @@
 #!/bin/sh
 
-read -p "... ... Please input the release version :" version
-echo "... ... Checkout git tag $version" 
 cd ..
 git fetch origin
+read -p "... ... Please input the release version :" version
+echo "... ... Checkout git tag $version"
 git checkout $version
 read -p "... ... Please input the latest commit :" commit
 prefix=cortex-linux-amd64
