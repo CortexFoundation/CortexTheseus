@@ -1,15 +1,17 @@
 #!/bin/sh
 
 read -p "Please input the release version :" version
-echo "... ... Building release"
+echo "... ... Checkout git tag $version" 
 cd ..
+git fetch origin
 git checkout version
-make clean && make -j8
+
+echo "... ... Building release"
+make clean && make -j$(nproc) > /dev/null 2>&1
 ./build/bin/cortex version
+
 read -p "Please input the latest commit :" commit
 apt install zip
-#$version=$1
-#commit=$2
 prefix=cortex-linux-amd64
 name=${prefix}-${version}-${commit}
 echo "... ... Release space clean up"
