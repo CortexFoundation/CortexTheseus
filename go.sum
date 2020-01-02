@@ -33,8 +33,8 @@ github.com/RoaringBitmap/roaring v0.4.21 h1:WJ/zIlNX4wQZ9x8Ey33O1UaD9TCTakYsdLFS
 github.com/RoaringBitmap/roaring v0.4.21/go.mod h1:D0gp8kJQgE1A4LQ5wFLggQEyvDi06Mq5mKs52e1TwOo=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
-github.com/VictoriaMetrics/fastcache v1.5.5 h1:HsBlzPgzKG0566YOl1mmfyz8SCU0zLKfbl9RDLsiLD8=
-github.com/VictoriaMetrics/fastcache v1.5.5/go.mod h1:ptDBkNMQI4RtmVo8VS/XwRY6RoTu1dAWCbrk+6WsEM8=
+github.com/VictoriaMetrics/fastcache v1.5.6-0.20191231192519-b83c58d2fd5a h1:52UXYgq2ONPFhAM3hzGiqqfPERSaUcBUbNOJjQm+O9U=
+github.com/VictoriaMetrics/fastcache v1.5.6-0.20191231192519-b83c58d2fd5a/go.mod h1:ptDBkNMQI4RtmVo8VS/XwRY6RoTu1dAWCbrk+6WsEM8=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc h1:cAKDfWh5VpdgMhJosfJnn5/FoN2SRZ4p7fJNX58YPaU=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -114,6 +114,8 @@ github.com/anacrolix/torrent v1.9.0 h1:AMCm9jIdkKp0zvKoYbleT5mnEdWbOYFtGZgJL1qpd
 github.com/anacrolix/torrent v1.9.0/go.mod h1:jJJ6lsd2LD1eLHkUwFOhy7I0FcLYH0tHKw2K7ZYMHCs=
 github.com/anacrolix/torrent v1.10.1-0.20191229020020-76f1516d3a24 h1:vhUP8fKTHRlzuQOXrfSTMLg7Em+NrwZAjO5K+jH2VNU=
 github.com/anacrolix/torrent v1.10.1-0.20191229020020-76f1516d3a24/go.mod h1:oK3hJZq+5BaKMw/uvzaw4fNljynD77/httUoOrEo8U0=
+github.com/anacrolix/torrent v1.10.1-0.20200101231814-d34dfa6575c4 h1:4kyvfrdOqjW05LZfi+hYH36pibwkGQKwovwnjN+JODI=
+github.com/anacrolix/torrent v1.10.1-0.20200101231814-d34dfa6575c4/go.mod h1:oK3hJZq+5BaKMw/uvzaw4fNljynD77/httUoOrEo8U0=
 github.com/anacrolix/upnp v0.1.1 h1:v5C+wBiku2zmwFR5B+pUfdNBL5TfPtyO+sWuw+/VEDg=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
 github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572 h1:kpt6TQTVi6gognY+svubHfxxpq0DLU9AfTQyZVc3UOc=
