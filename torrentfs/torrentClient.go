@@ -999,6 +999,11 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 							})*/
 						} else {
 							log.Warn("Boost failed", "hash", t.infohash, "err", err)
+							//boost failed , use the normal way
+							if t.start == 0 && (tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
+								t.AddTrackers(tm.trackers)
+								t.start = mclock.Now()
+							}
 						}
 						t.BoostOff()
 						//}(t)
