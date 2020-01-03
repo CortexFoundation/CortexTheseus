@@ -974,31 +974,34 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						//t.start = mclock.Now()
 						tm.activeChan <- t
 					}
-				} else if t.loop > torrentWaitingTime/queryTimeInterval || tm.boost {
+				} else if t.loop > torrentWaitingTime/queryTimeInterval || (t.start == 0 && tm.boost && tm.bytes[ih] > 0) {
 					if !t.isBoosting {
 						t.loop = 0
 						t.isBoosting = true
-						go func(t *Torrent) {
-							defer t.BoostOff()
-							//log.Info("Try to boost seed", "hash", t.infohash)
-							if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
-								if t.Torrent.Info() != nil {
-									//log.Warn("Seed already exist", "hash", t.infohash)
-									return
-								}
-								//t.Torrent.Drop()
-								t.ReloadTorrent(data, tm)
-
-								/*bytesRequested := t.bytesRequested
-								tm.UpdateTorrent(FlowControlMeta{
-									InfoHash:       ih,
-									BytesRequested: uint64(bytesRequested),
-									IsCreate:       true,
-								})*/
-							} else {
-								log.Warn("Boost failed", "hash", t.infohash, "err", err)
+						//go func(t *Torrent) {
+						//defer t.BoostOff()
+						//log.Info("Try to boost seed", "hash", t.infohash)
+						if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
+							if t.Torrent.Info() != nil {
+								//log.Warn("Seed already exist", "hash", t.infohash)
+								t.BoostOff()
+								//return
+								continue
 							}
-						}(t)
+							//t.Torrent.Drop()
+							t.ReloadTorrent(data, tm)
+
+							/*bytesRequested := t.bytesRequested
+							tm.UpdateTorrent(FlowControlMeta{
+								InfoHash:       ih,
+								BytesRequested: uint64(bytesRequested),
+								IsCreate:       true,
+							})*/
+						} else {
+							log.Warn("Boost failed", "hash", t.infohash, "err", err)
+						}
+						t.BoostOff()
+						//}(t)
 					}
 				} else {
 					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && t.loop > 60) {
