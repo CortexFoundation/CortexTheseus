@@ -145,6 +145,7 @@ var (
 		utils.StorageDisableDHTFlag,
 		utils.StorageDisableTCPFlag,
 		utils.StorageFullFlag,
+		utils.StorageBoostFlag,
 	}
 
 	rpcFlags = []cli.Flag{

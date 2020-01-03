@@ -96,6 +96,10 @@ var (
 		Name:  "cvm.disable_dht",
 		Usage: "disable DHT network",
 	}
+	StorageBoostFlag = cli.BoolFlag{
+		Name:  "cvm.boost",
+		Usage: "boost fs network",
+	}
 	StorageDisableTCPFlag = cli.BoolFlag{
 		Name:  "cvm.disable_tcp",
 		Usage: "disable TCP network",
@@ -152,6 +156,7 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
 	fsCfg.DisableTCP = ctx.GlobalBool(utils.StorageDisableTCPFlag.Name)
 	fsCfg.FullSeed = ctx.GlobalBool(utils.StorageFullFlag.Name)
+	fsCfg.Boost = ctx.GlobalBool(utils.StorageBoostFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Debug("Cvm Server", "fs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fs_err := torrentfs.New(&fsCfg, "")

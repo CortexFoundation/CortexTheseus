@@ -193,6 +193,9 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			if ctx.GlobalBool(utils.StorageFullFlag.Name) {
 				args = append(args, "--storage.full")
 			}
+			if ctx.GlobalBool(utils.StorageBoostFlag.Name) {
+				args = append(args, "--storage.boost")
+			}
 			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
 			prg := exec.Command(cmd, args...)
 			var stdoutBuf, stderrBuf bytes.Buffer
