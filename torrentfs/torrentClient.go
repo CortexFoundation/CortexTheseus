@@ -149,6 +149,7 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 		//<-torrent.GotInfo()
 		//torrent.VerifyData()
 		t.Torrent = torrent
+		//tm.torrents[spec.InfoHash] = t
 		//t.Pause()
 	}
 }
@@ -547,7 +548,7 @@ func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool)
 			array[i] = []string{"http" + tracker + "/announce"}
 		}
 	}*/
-	if disableTCP && !boost {
+	if disableTCP {
 		tm.trackers = tm.buildUdpTrackers(trackers)
 	} else {
 		tm.trackers = tm.buildHttpTrackers(trackers)
@@ -955,7 +956,12 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				t.loop += 1
 				if t.Torrent.Info() != nil {
 					if t.start == 0 {
-						log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
+						if t.isBoosting {
+							log.Info("A <- P (BOOST)", "hash", ih, "pieces", t.Torrent.NumPieces(), "boost", t.isBoosting)
+							t.isBoosting = false
+						} else {
+							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces(), "boost", t.isBoosting)
+						}
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
 					} else {
@@ -990,6 +996,9 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 							}
 							//t.Torrent.Drop()
 							t.ReloadTorrent(data, tm)
+							tm.lock.Lock()
+							tm.torrents[ih] = t
+							tm.lock.Unlock()
 
 							/*bytesRequested := t.bytesRequested
 							tm.UpdateTorrent(FlowControlMeta{
@@ -1004,8 +1013,9 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 								t.AddTrackers(tm.trackers)
 								t.start = mclock.Now()
 							}
+							t.BoostOff()
 						}
-						t.BoostOff()
+						//t.BoostOff()
 						//}(t)
 					}
 				} else {
