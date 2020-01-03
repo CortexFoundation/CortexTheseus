@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.0
-	github.com/Azure/go-autorest/autorest/adal v0.6.0 // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.6-0.20191231192519-b83c58d2fd5a
 	github.com/anacrolix/missinggo v1.2.1
 	github.com/anacrolix/tagflag v1.0.1
@@ -23,7 +22,6 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-resty/resty/v2 v2.1.1-0.20191201195748-d7b97669fe48
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.3-0.20191022195553-ed6926b37a63 // indirect
@@ -42,7 +40,7 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.1.0
-	github.com/prometheus/tsdb v0.10.1-0.20190813101244-656e53533ce7
+	github.com/prometheus/prometheus v1.8.2-0.20200102145409-91d76c802373
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/rs/cors v1.7.0
@@ -53,7 +51,6 @@ require (
 	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
 	golang.org/x/net v0.0.0-20191125084936-ffdde1057850
 	golang.org/x/sys v0.0.0-20191126131656-8a8471f7e56d
-	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20191122080028-f774e2e2e5be
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
