@@ -113,7 +113,7 @@ github.com/go-stack/stack
 github.com/golang/snappy
 # github.com/google/btree v1.0.0
 github.com/google/btree
-# github.com/google/uuid v1.0.0
+# github.com/google/uuid v1.1.1
 github.com/google/uuid
 # github.com/hashicorp/golang-lru v0.5.3
 github.com/hashicorp/golang-lru
@@ -172,8 +172,8 @@ github.com/philhofer/fwd
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/prometheus/tsdb v0.10.1-0.20190813101244-656e53533ce7
-github.com/prometheus/tsdb/fileutil
+# github.com/prometheus/prometheus v1.8.2-0.20200102145409-91d76c802373
+github.com/prometheus/prometheus/tsdb/fileutil
 # github.com/rjeczalik/notify v0.9.2
 github.com/rjeczalik/notify
 # github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d

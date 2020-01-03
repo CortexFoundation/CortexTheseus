@@ -35,7 +35,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	//"github.com/prometheus/prometheus/util/flock"
-	"github.com/prometheus/tsdb/fileutil"
+	"github.com/prometheus/prometheus/tsdb/fileutil"
 )
 
 // Node is a container on which services can be registered.
