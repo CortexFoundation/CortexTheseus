@@ -200,7 +200,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "STORAGE",
 		Flags: []cli.Flag{
-			utils.StorageEnabledFlag,
+			//utils.StorageEnabledFlag,
 			utils.StorageDirFlag,
 			utils.StorageMaxSeedingFlag,
 			utils.StorageMaxActiveFlag,

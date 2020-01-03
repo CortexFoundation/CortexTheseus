@@ -868,7 +868,7 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 			t.Seed()
 			//log.Info("All seed status", "current", len(tm.seedingTorrents), "max", tm.maxSeedTask)
 			if len(tm.seedingTorrents) > tm.maxSeedTask {
-				tm.seedingTask()
+				//tm.seedingTask()
 			}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
