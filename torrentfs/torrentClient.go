@@ -958,6 +958,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 					if t.start == 0 {
 						if t.isBoosting {
 							log.Info("A <- P (BOOST)", "hash", ih, "pieces", t.Torrent.NumPieces(), "boost", t.isBoosting)
+							t.isBoosting = false
 						} else {
 							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces(), "boost", t.isBoosting)
 						}
@@ -977,7 +978,6 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 							log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 						}*/
 						//t.start = mclock.Now()
-						t.isBoosting = false
 						tm.activeChan <- t
 					}
 				} else if t.loop > torrentWaitingTime/queryTimeInterval || (t.start == 0 && tm.boost && tm.bytes[ih] > 0) {
