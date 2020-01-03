@@ -85,7 +85,7 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 			return
 		}
 	}
-	log.Info("Try to boost files", "files", files)
+	//log.Info("Try to boost files", "files", files)
 	for i, filename := range files {
 		filePath := path.Join(t.filepath, filename)
 		f, err := os.Create(filePath)
@@ -141,6 +141,7 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	spec.Storage = storage.NewFile(t.filepath)
 	//spec.Trackers = append(spec.Trackers, tm.trackers...)
 	//spec.Trackers = tm.trackers
+	spec.Trackers = nil
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 		var ss []string
 		slices.MakeInto(&ss, mi.Nodes)
@@ -421,6 +422,7 @@ type TorrentManager struct {
 	pendingChan chan *Torrent
 	//closeOnce sync.Once
 	fullSeed bool
+	boost    bool
 	id       uint64
 	slot     int
 	//bucket int
@@ -518,21 +520,39 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 	}
 }
 
-func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP bool) {
+func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string) {
+	array = make([][]string, len(trackers))
+	for i, tracker := range trackers {
+		array[i] = []string{"udp" + tracker}
+	}
+	return array
+}
+
+func (tm *TorrentManager) buildHttpTrackers(trackers []string) (array [][]string) {
+	array = make([][]string, len(trackers))
+	for i, tracker := range trackers {
+		array[i] = []string{"http" + tracker + "/announce"}
+	}
+	return array
+}
+
+func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	array := make([][]string, len(trackers))
+	/*array := make([][]string, len(trackers))
 	for i, tracker := range trackers {
 		if disableTCP {
 			array[i] = []string{"udp" + tracker}
 		} else {
 			array[i] = []string{"http" + tracker + "/announce"}
 		}
-		//array[i] = []string{tracker}
+	}*/
+	if disableTCP && !boost {
+		tm.trackers = tm.buildUdpTrackers(trackers)
+	} else {
+		tm.trackers = tm.buildHttpTrackers(trackers)
 	}
-	tm.trackers = array
 	log.Info("Boot trackers", "t", tm.trackers)
-	//tm.trackers = append(tm.trackers, trackers)
 }
 
 func mmapFile(name string) (mm mmap.MMap, err error) {
@@ -809,6 +829,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 		pendingChan:   make(chan *Torrent, torrentChanSize),
 		//updateTorrent:       make(chan interface{}),
 		fullSeed: config.FullSeed,
+		boost:    config.Boost,
 		id:       fsid,
 		//bucket:1024
 		slot: int(fsid % bucket),
@@ -816,7 +837,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
-		TorrentManager.SetTrackers(config.DefaultTrackers, config.DisableTCP)
+		TorrentManager.SetTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
 	}
 	log.Info("Fs client initialized")
 
@@ -953,27 +974,27 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						//t.start = mclock.Now()
 						tm.activeChan <- t
 					}
-				} else if t.loop > torrentWaitingTime/queryTimeInterval {
+				} else if t.loop > torrentWaitingTime/queryTimeInterval || tm.boost {
 					if !t.isBoosting {
 						t.loop = 0
 						t.isBoosting = true
 						go func(t *Torrent) {
 							defer t.BoostOff()
-							log.Info("Try to boost seed", "hash", t.infohash)
+							//log.Info("Try to boost seed", "hash", t.infohash)
 							if data, err := tm.boostFetcher.GetTorrent(t.infohash); err == nil {
 								if t.Torrent.Info() != nil {
-									log.Warn("Seed already exist", "hash", t.infohash)
+									//log.Warn("Seed already exist", "hash", t.infohash)
 									return
 								}
-								t.Torrent.Drop()
+								//t.Torrent.Drop()
 								t.ReloadTorrent(data, tm)
 
-								bytesRequested := t.bytesRequested
+								/*bytesRequested := t.bytesRequested
 								tm.UpdateTorrent(FlowControlMeta{
 									InfoHash:       ih,
 									BytesRequested: uint64(bytesRequested),
 									IsCreate:       true,
-								})
+								})*/
 							} else {
 								log.Warn("Boost failed", "hash", t.infohash, "err", err)
 							}
