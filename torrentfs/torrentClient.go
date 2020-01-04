@@ -118,9 +118,12 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	}
 }
 
-func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
-	torrentPath := path.Join(t.filepath, "torrent")
-	os.Remove(path.Join(t.filepath, ".torrent.bolt.db"))
+func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
+	err := os.Remove(path.Join(t.filepath, ".torrent.bolt.db"))
+	if err != nil {
+		log.Warn("Remove path failed", "path", path.Join(t.filepath, ".torrent.bolt.db"), "err", err)
+	}
+	/*torrentPath := path.Join(t.filepath, "torrent")
 	f, err := os.Create(torrentPath)
 	if err != nil {
 		log.Warn("Create torrent path failed", "path", torrentPath)
@@ -131,11 +134,14 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 	if _, err := f.Write(data); err != nil {
 		log.Error("Error while write torrent file", "error", err)
 		return
-	}
-	mi, err := metainfo.LoadFromFile(torrentPath)
+	}*/
+	buf := bytes.NewBuffer(data)
+	mi, err := metainfo.Load(buf)
+
+	//mi, err := metainfo.LoadFromFile(torrentPath)
 	if err != nil {
 		log.Error("Error while adding torrent", "Err", err)
-		return
+		return err
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(t.filepath)
@@ -151,7 +157,10 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) {
 		t.Torrent = torrent
 		//tm.torrents[spec.InfoHash] = t
 		//t.Pause()
+	} else {
+		return err
 	}
+	return nil
 }
 
 /*func (t *Torrent) GetFile(subpath string) ([]byte, error) {
@@ -240,10 +249,10 @@ func (t *Torrent) Seed() {
 
 	//t.Torrent.DownloadAll()
 	//if t.currentConns <= t.minEstablishedConns {
-	t.currentConns = t.maxEstablishedConns / 2
-	if t.currentConns < t.minEstablishedConns {
-		t.currentConns = t.minEstablishedConns
-	}
+	t.currentConns = t.maxEstablishedConns
+	//if t.currentConns < t.minEstablishedConns {
+	//	t.currentConns = t.minEstablishedConns
+	//}
 	t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	//}
 	if t.Torrent.Seeding() {
@@ -995,10 +1004,13 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 								continue
 							}
 							//t.Torrent.Drop()
-							t.ReloadTorrent(data, tm)
-							tm.lock.Lock()
-							tm.torrents[ih] = t
-							tm.lock.Unlock()
+							if err := t.ReloadTorrent(data, tm); err == nil {
+								tm.lock.Lock()
+								tm.torrents[ih] = t
+								tm.lock.Unlock()
+							} else {
+								t.BoostOff()
+							}
 
 							/*bytesRequested := t.bytesRequested
 							tm.UpdateTorrent(FlowControlMeta{
