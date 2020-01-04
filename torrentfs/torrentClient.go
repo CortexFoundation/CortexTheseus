@@ -64,7 +64,8 @@ type Torrent struct {
 const block = int64(params.PER_UPLOAD_BYTES)
 
 func (tm *TorrentManager) GetLimitation(value int64) int64 {
-	return ((value + block - 1) / block) * block
+	//return ((value + block - 1) / block) * block
+	return value + block - 1
 }
 
 func (t *Torrent) BytesLeft() int64 {
@@ -258,7 +259,7 @@ func (t *Torrent) Seed() {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Download success, seeding(s)", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
+		log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
 	} else {
 		t.Torrent.DownloadAll()
 	}
