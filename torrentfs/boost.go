@@ -55,7 +55,8 @@ func (f *BoostDataFetcher) getTorrentFromBoostNodes(nodes []string, ih string) (
 	for _, node := range nodes {
 		ret, err := f.getFileFromURI(node + "/files/" + ih + "/torrent")
 		if err == nil {
-			mi, err2 := metainfo.Load(bytes.NewBuffer(ret))
+			buf := bytes.NewBuffer(ret)
+			mi, err2 := metainfo.Load(buf)
 			if err2 != nil {
 				continue
 			}
