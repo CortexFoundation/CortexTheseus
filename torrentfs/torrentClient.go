@@ -250,10 +250,10 @@ func (t *Torrent) Seed() {
 
 	//t.Torrent.DownloadAll()
 	//if t.currentConns <= t.minEstablishedConns {
-	t.currentConns = t.maxEstablishedConns
-	//if t.currentConns < t.minEstablishedConns {
-	//	t.currentConns = t.minEstablishedConns
-	//}
+	t.currentConns = t.maxEstablishedConns / 2
+	if t.currentConns < t.minEstablishedConns {
+		t.currentConns = t.minEstablishedConns
+	}
 	t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	//}
 	if t.Torrent.Seeding() {
@@ -790,8 +790,8 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 10
-	//cfg.HalfOpenConnsPerTorrent = 5
+	cfg.EstablishedConnsPerTorrent = 10
+	cfg.HalfOpenConnsPerTorrent = 5
 	cfg.ListenPort = config.Port
 	//cfg.DropDuplicatePeerIds = true
 	//cfg.ListenHost = torrent.LoopbackListenHost
