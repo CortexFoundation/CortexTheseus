@@ -775,9 +775,9 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//      "max_activenum", config.MaxActiveNum,
 	//    )
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableUTP = config.DisableUTP
+	//cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
-	cfg.DisableTCP = true //config.DisableTCP
+	cfg.DisableTCP = config.DisableTCP
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
