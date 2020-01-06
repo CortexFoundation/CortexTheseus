@@ -1053,6 +1053,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
 	var total_size, current_size, log_counter, counter uint64
+	var active_paused, active_wait, active_boost, active_running int
 	for {
 		counter++
 		select {
@@ -1063,7 +1064,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			//	t.weight = 1 + int(t.cited*10/maxCited)
 			//}
 			log_counter++
-			var active_paused, active_wait, active_boost, active_running int
+			//var active_paused, active_wait, active_boost, active_running int
 			//var activeTorrents []*Torrent
 
 			for _, t := range tm.activeTorrents {
@@ -1271,6 +1272,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				counter = 0
 				current_size = 0
 			}
+			active_paused, active_wait, active_boost, active_running = 0, 0, 0, 0
 			timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
