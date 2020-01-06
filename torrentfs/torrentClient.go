@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/anacrolix/missinggo/slices"
+	//"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"io"
@@ -109,9 +109,9 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	//spec.Trackers = append(spec.Trackers, tm.trackers...)
 	//spec.Trackers = tm.trackers
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-		var ss []string
-		slices.MakeInto(&ss, mi.Nodes)
-		tm.client.AddDHTNodes(ss)
+		//var ss []string
+		//slices.MakeInto(&ss, mi.Nodes)
+		//tm.client.AddDHTNodes(ss)
 		//<-torrent.GotInfo()
 		//torrent.VerifyData()
 		t.Torrent = torrent
@@ -150,9 +150,9 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
 	//spec.Trackers = tm.trackers
 	spec.Trackers = nil
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-		var ss []string
-		slices.MakeInto(&ss, mi.Nodes)
-		tm.client.AddDHTNodes(ss)
+		//var ss []string
+		//slices.MakeInto(&ss, mi.Nodes)
+		//tm.client.AddDHTNodes(ss)
 		//<-torrent.GotInfo()
 		//torrent.VerifyData()
 		t.Torrent = torrent
@@ -249,11 +249,11 @@ func (t *Torrent) Seed() {
 	//}
 
 	//t.Torrent.DownloadAll()
-	//if t.currentConns <= t.minEstablishedConns {
-	t.currentConns = t.maxEstablishedConns
-	//if t.currentConns < t.minEstablishedConns {
-	//	t.currentConns = t.minEstablishedConns
-	//}
+	if t.currentConns <= t.minEstablishedConns {
+		t.currentConns = t.maxEstablishedConns
+		//if t.currentConns < t.minEstablishedConns {
+		//	t.currentConns = t.minEstablishedConns
+	}
 	t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	//}
 	if t.Torrent.Seeding() {
@@ -654,9 +654,9 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		spec.Trackers = nil
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-			var ss []string
-			slices.MakeInto(&ss, mi.Nodes)
-			tm.client.AddDHTNodes(ss)
+			//var ss []string
+			//slices.MakeInto(&ss, mi.Nodes)
+			//tm.client.AddDHTNodes(ss)
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 			return torrent
 		} else {
@@ -671,9 +671,9 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 		spec.Trackers = nil
 		//spec.Trackers = append(spec.Trackers, tm.trackers...)
 		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-			var ss []string
-			slices.MakeInto(&ss, mi.Nodes)
-			tm.client.AddDHTNodes(ss)
+			//var ss []string
+			//slices.MakeInto(&ss, mi.Nodes)
+			//tm.client.AddDHTNodes(ss)
 			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
 			return torrent
 		} else {
@@ -775,9 +775,9 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//      "max_activenum", config.MaxActiveNum,
 	//    )
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableUTP = config.DisableUTP
+	//cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
-	cfg.DisableTCP = true //config.DisableTCP
+	cfg.DisableTCP = config.DisableTCP
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
@@ -788,10 +788,10 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//listenAddr := &net.TCPAddr{}
 	//log.Info("Torrent client listening on", "addr", listenAddr)
 	//cfg.SetListenAddr(listenAddr.String())
-	cfg.HTTPUserAgent = "Cortex"
+	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 10
-	//cfg.HalfOpenConnsPerTorrent = 5
+	cfg.EstablishedConnsPerTorrent = 20
+	cfg.HalfOpenConnsPerTorrent = 5
 	cfg.ListenPort = config.Port
 	//cfg.DropDuplicatePeerIds = true
 	//cfg.ListenHost = torrent.LoopbackListenHost
@@ -1053,17 +1053,18 @@ func (tm *TorrentManager) activeTorrentLoop() {
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
 	var total_size, current_size, log_counter, counter uint64
+	var active_paused, active_wait, active_boost, active_running int
 	for {
 		counter++
 		select {
 		case t := <-tm.activeChan:
 			tm.activeTorrents[t.Torrent.InfoHash()] = t
 		case <-timer.C:
-			for _, t := range tm.torrents {
-				t.weight = 1 + int(t.cited*10/maxCited)
-			}
+			//for _, t := range tm.torrents {
+			//	t.weight = 1 + int(t.cited*10/maxCited)
+			//}
 			log_counter++
-			var active_paused, active_wait, active_boost, active_running int
+			//var active_paused, active_wait, active_boost, active_running int
 			//var activeTorrents []*Torrent
 
 			for _, t := range tm.activeTorrents {
@@ -1271,6 +1272,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				counter = 0
 				current_size = 0
 			}
+			active_paused, active_wait, active_boost, active_running = 0, 0, 0, 0
 			timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
