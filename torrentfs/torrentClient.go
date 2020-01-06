@@ -249,10 +249,10 @@ func (t *Torrent) Seed() {
 	//}
 
 	//t.Torrent.DownloadAll()
-	//if t.currentConns <= t.minEstablishedConns {
-	//t.currentConns = t.maxEstablishedConns / 2
-	if t.currentConns < t.minEstablishedConns {
-		t.currentConns = t.minEstablishedConns
+	if t.currentConns <= t.minEstablishedConns {
+		t.currentConns = t.maxEstablishedConns
+		//if t.currentConns < t.minEstablishedConns {
+		//	t.currentConns = t.minEstablishedConns
 	}
 	t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	//}
