@@ -1059,9 +1059,9 @@ func (tm *TorrentManager) activeTorrentLoop() {
 		case t := <-tm.activeChan:
 			tm.activeTorrents[t.Torrent.InfoHash()] = t
 		case <-timer.C:
-			for _, t := range tm.torrents {
-				t.weight = 1 + int(t.cited*10/maxCited)
-			}
+			//for _, t := range tm.torrents {
+			//	t.weight = 1 + int(t.cited*10/maxCited)
+			//}
 			log_counter++
 			var active_paused, active_wait, active_boost, active_running int
 			//var activeTorrents []*Torrent
