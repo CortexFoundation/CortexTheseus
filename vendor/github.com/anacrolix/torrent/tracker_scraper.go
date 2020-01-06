@@ -98,7 +98,7 @@ func (me *trackerScraper) announce(event tracker.AnnounceEvent) (ret trackerAnno
 	defer func() {
 		ret.Completed = time.Now()
 	}()
-	ret.Interval = time.Minute
+	ret.Interval = time.Minute * 5
 	ip, err := me.getIp()
 	if err != nil {
 		ret.Err = fmt.Errorf("error getting ip: %s", err)
