@@ -951,14 +951,15 @@ const (
 
 func (tm *TorrentManager) pendingTorrentLoop() {
 	defer tm.wg.Done()
-	timer := time.NewTimer(0)
+	timer := time.NewTimer(time.Second * queryTimeInterval * 60)
 	defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.pendingChan:
 			tm.pendingTorrents[t.Torrent.InfoHash()] = t
 			if len(tm.pendingTorrents) == 1 {
-				timer.Reset(0)
+				status := timer.Reset(time.Millisecond * 1000)
+				log.Info("P -> [ON]", "status", status)
 			}
 		case <-timer.C:
 			for _, t := range tm.pendingTorrents {
@@ -1045,6 +1046,8 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 			}
 			if len(tm.pendingTorrents) > 0 {
 				timer.Reset(time.Second * queryTimeInterval)
+			} else {
+				log.Info("P -> [OFF]")
 			}
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
@@ -1055,7 +1058,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 
 func (tm *TorrentManager) activeTorrentLoop() {
 	defer tm.wg.Done()
-	timer := time.NewTimer(0)
+	timer := time.NewTimer(time.Second * queryTimeInterval * 60)
 	defer timer.Stop()
 	var total_size, current_size, log_counter, counter uint64
 	var active_paused, active_wait, active_boost, active_running int
@@ -1065,7 +1068,8 @@ func (tm *TorrentManager) activeTorrentLoop() {
 		case t := <-tm.activeChan:
 			tm.activeTorrents[t.Torrent.InfoHash()] = t
 			if len(tm.activeTorrents) == 1 {
-				timer.Reset(0)
+				status := timer.Reset(time.Millisecond * 1000)
+				log.Info("A -> [ON]", "status", status)
 			}
 		case <-timer.C:
 			//for _, t := range tm.torrents {
@@ -1283,6 +1287,8 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			active_paused, active_wait, active_boost, active_running = 0, 0, 0, 0
 			if len(tm.activeTorrents) > 0 {
 				timer.Reset(time.Second * queryTimeInterval)
+			} else {
+				log.Info("A -> [OFF]")
 			}
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
