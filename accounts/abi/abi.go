@@ -94,12 +94,13 @@ func (abi ABI) Unpack(v interface{}, name string, output []byte) (err error) {
 // UnmarshalJSON implements json.Unmarshaler interface
 func (abi *ABI) UnmarshalJSON(data []byte) error {
 	var fields []struct {
-		Type      string
-		Name      string
-		Constant  bool
-		Anonymous bool
-		Inputs    []Argument
-		Outputs   []Argument
+		Type            string
+		Name            string
+		Constant        bool
+		StateMutability string
+		Anonymous       bool
+		Inputs          []Argument
+		Outputs         []Argument
 	}
 
 	if err := json.Unmarshal(data, &fields); err != nil {
@@ -116,9 +117,10 @@ func (abi *ABI) UnmarshalJSON(data []byte) error {
 			}
 		// empty defaults to function according to the abi spec
 		case "function", "":
+			isConst := field.Constant || field.StateMutability == "pure" || field.StateMutability == "view"
 			abi.Methods[field.Name] = Method{
 				Name:    field.Name,
-				Const:   field.Constant,
+				Const:   isConst,
 				Inputs:  field.Inputs,
 				Outputs: field.Outputs,
 			}
