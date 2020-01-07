@@ -790,8 +790,8 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	cfg.EstablishedConnsPerTorrent = 20
-	cfg.HalfOpenConnsPerTorrent = 5
+	//cfg.EstablishedConnsPerTorrent = 20
+	//cfg.HalfOpenConnsPerTorrent = 5
 	cfg.ListenPort = config.Port
 	//cfg.DropDuplicatePeerIds = true
 	//cfg.ListenHost = torrent.LoopbackListenHost
@@ -850,7 +850,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
 		TorrentManager.SetTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
 	}
-	log.Info("Fs client initialized")
+	log.Info("Fs client initialized", "config", config)
 
 	//CurrentTorrentManager = TorrentManager
 	//cl.WaitAll()
