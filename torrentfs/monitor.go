@@ -1,24 +1,24 @@
 package torrentfs
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/p2p"
+	//"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
-	"net"
-	"net/http"
+	//"net"
+	//"net/http"
 	//"os"
 	"runtime"
 	//"sort"
 	"strconv"
-	"strings"
+	//"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -77,9 +77,9 @@ type Monitor struct {
 	dirty      bool
 
 	//closeOnce sync.Once
-	wg      sync.WaitGroup
-	peersWg sync.WaitGroup
-	rpcWg   sync.WaitGroup
+	wg sync.WaitGroup
+	//peersWg sync.WaitGroup
+	rpcWg sync.WaitGroup
 	//trackerLock sync.Mutex
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
@@ -87,10 +87,10 @@ type Monitor struct {
 	taskCh      chan *Block
 	newTaskHook func(*Block)
 	blockCache  *lru.Cache
-	healthPeers *lru.Cache
-	sizeCache   *lru.Cache
-	ckp         *params.TrustedCheckpoint
-	start       mclock.AbsTime
+	//healthPeers *lru.Cache
+	sizeCache *lru.Cache
+	ckp       *params.TrustedCheckpoint
+	start     mclock.AbsTime
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -377,7 +377,7 @@ func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*Block, err e
 	return nil, errors.New("[ Internal IPC Error ] try to get block out of times")
 }*/
 
-var (
+/*var (
 	ports            = params.Tracker_ports //[]string{"5007", "5008", "5009", "5010"}
 	TRACKER_PORT     []string               // = append(TRACKER_PORT, ports...)
 	UDP_TRACKER_PORT []string
@@ -399,49 +399,23 @@ func (m *Monitor) http_tracker_build(ip, port string) string {
 
 func (m *Monitor) udp_tracker_build(ip, port string) string {
 	return "udp://" + ip + ":" + port + "/announce"
-}
+}*/
 
 /*func (m *Monitor) ws_tracker_build(ip, port string) string {
 	return "ws://" + ip + ":" + port + "/announce"
 }*/
 
-func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
+/*func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	var peers []*p2p.PeerInfo // = make([]*p2p.PeerInfo, 0, 25)
 	err := m.cl.Call(&peers, "admin_peers")
 	if err == nil && len(peers) > 0 {
 		flush := false
 		start := mclock.Now()
-		//m.peersWg.Add(len(peers))
 		for _, peer := range peers {
 			m.peersWg.Add(1)
 			go func(peer *p2p.PeerInfo) {
 				defer m.peersWg.Done()
 				ip := strings.Split(peer.Network.RemoteAddress, ":")[0]
-				//if unhealthPeers.Contains(ip) {
-				//continue
-				//}
-				/*				if ps, suc := m.batch_http_healthy(ip, TRACKER_PORT); suc && len(ps) > 0 {
-									for _, p := range ps {
-										tracker := m.http_tracker_build(ip, p) //"http://" + ip + ":" + p + "/announce"
-										if m.healthPeers.Contains(tracker) {
-											//continue
-										} else {
-											flush = true
-										}
-										//m.trackerLock.Lock()
-										//trackers = append(trackers, tracker)
-										//trackers = append(trackers, m.udp_tracker_build(ip, p)) //"udp://" + ip + ":" + p + "/announce")
-										//trackers = append(trackers, m.ws_tracker_build(ip, p))  //"ws://" + ip + ":" + p + "/announce")
-										//m.trackerLock.Unlock()
-										//flush = true
-										m.healthPeers.Add(tracker, tracker)
-										//if unhealthPeers.Contains(ip) {
-										//	unhealthPeers.Remove(ip)
-										//}
-									}
-								} // else {
-								//unhealthPeers.Add(ip, peer)
-				*/
 				if ps, suc := m.batch_udp_healthy(ip, UDP_TRACKER_PORT); suc && len(ps) > 0 {
 					for _, p := range ps {
 						tracker := m.udp_tracker_build(ip, p) //"udp://" + ip + ":" + p + "/announce"
@@ -450,17 +424,9 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 						} else {
 							flush = true
 						}
-						//m.trackerLock.Lock()
-						//trackers = append(trackers, tracker)
-						//m.trackerLock.Unlock()
-						//flush = true
 						m.healthPeers.Add(tracker, tracker)
-						//if unhealthPeers.Contains(ip) {
-						//	unhealthPeers.Remove(ip)
-						//}
 					}
 				}
-				//}
 			}(peer)
 		}
 		//log.Info("Waiting dynamic tracker", "size", len(peers))
@@ -487,7 +453,7 @@ func (m *Monitor) peers() ([]*p2p.PeerInfo, error) {
 	}
 
 	return nil, errors.New("[ Internal IPC Error ] peers")
-}
+}*/
 
 /*func (m *Monitor) getBlockByNumber(blockNumber uint64) (*Block, error) {
 	block := m.fs.GetBlockByNumber(blockNumber)
@@ -897,7 +863,7 @@ func (m *Monitor) listenLatestBlock() {
 	}
 }
 
-func (m *Monitor) listenPeers() {
+/*func (m *Monitor) listenPeers() {
 	defer m.wg.Done()
 	m.default_tracker_check()
 	timer := time.NewTimer(time.Second * 60)
@@ -912,9 +878,9 @@ func (m *Monitor) listenPeers() {
 			return
 		}
 	}
-}
+}*/
 
-type tracker_stats struct {
+/*type tracker_stats struct {
 	Torrents              int `json:"torrents"`
 	ActiveTorrents        int `json:"activeTorrents"`
 	PeersAll              int `json:"peersAll"`
@@ -923,9 +889,9 @@ type tracker_stats struct {
 	PeersSeederAndLeecher int `json:"peersSeederAndLeecher"`
 	PeersIPv4             int `json:"peersIPv4"`
 	PeersIPv6             int `json:"peersIPv6"`
-}
+}*/
 
-func (m *Monitor) default_tracker_check() (r []string, err error) {
+/*func (m *Monitor) default_tracker_check() (r []string, err error) {
 	for _, tracker := range params.MainnetTrackers {
 		url := tracker[0:len(tracker)-9] + "/stats.json"
 		if !strings.HasPrefix(url, "http") {
@@ -985,9 +951,9 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 	return res, status
 
-}
+}*/
 
-func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
+/*func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) {
 	var res []string
 	var status = false
 	//request := make([]byte, 1)
@@ -1011,7 +977,7 @@ func (m *Monitor) batch_udp_healthy(ip string, ports []string) ([]string, bool) 
 	}
 
 	return res, status
-}
+}*/
 
 const (
 	batch = params.SyncBatch

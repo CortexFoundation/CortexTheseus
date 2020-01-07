@@ -10,7 +10,7 @@ import (
 	"github.com/edsrzf/mmap-go"
 	"io"
 	"math"
-	"math/rand"
+	//"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -878,9 +878,9 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 			tm.seedingTorrents[t.Torrent.InfoHash()] = t
 			t.Seed()
 			//log.Info("All seed status", "current", len(tm.seedingTorrents), "max", tm.maxSeedTask)
-			if len(tm.seedingTorrents) > tm.maxSeedTask {
-				//tm.seedingTask()
-			}
+			//if len(tm.seedingTorrents) > tm.maxSeedTask {
+			//tm.seedingTask()
+			//}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
 			return
@@ -1097,7 +1097,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				if t.bytesRequested < BytesRequested {
 					t.bytesRequested = BytesRequested
 					t.bytesLimitation = tm.GetLimitation(BytesRequested)
-				} else {
+					//} else {
 					/*if t.bytesRequested == 0 {
 						active_wait += 1
 						continue
@@ -1281,7 +1281,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 	}
 }
 
-func (tm *TorrentManager) seedingTask() error {
+/*func (tm *TorrentManager) seedingTask() error {
 	//nSeed := 0
 	//if len(tm.seedingTorrents) <= tm.maxSeedTask {
 	//	for _, t := range tm.seedingTorrents {
@@ -1318,4 +1318,4 @@ func (tm *TorrentManager) seedingTask() error {
 
 	//return nSeed
 	return nil
-}
+}*/
