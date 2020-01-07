@@ -958,8 +958,8 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 		case t := <-tm.pendingChan:
 			tm.pendingTorrents[t.Torrent.InfoHash()] = t
 			if len(tm.pendingTorrents) == 1 {
-				status := timer.Reset(time.Millisecond * 1000)
-				log.Info("P -> [ON]", "status", status)
+				ok := timer.Reset(time.Millisecond * 0)
+				log.Info("P -> [ON]", "ok", ok)
 			}
 		case <-timer.C:
 			for _, t := range tm.pendingTorrents {
@@ -1068,8 +1068,8 @@ func (tm *TorrentManager) activeTorrentLoop() {
 		case t := <-tm.activeChan:
 			tm.activeTorrents[t.Torrent.InfoHash()] = t
 			if len(tm.activeTorrents) == 1 {
-				status := timer.Reset(time.Millisecond * 1000)
-				log.Info("A -> [ON]", "status", status)
+				ok := timer.Reset(time.Millisecond * 0)
+				log.Info("A -> [ON]", "ok", ok)
 			}
 		case <-timer.C:
 			//for _, t := range tm.torrents {
