@@ -1040,7 +1040,11 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 					}
 				}
 			}
-			timer.Reset(time.Second * queryTimeInterval)
+			if len(tm.pendingTorrents) > 0 {
+				timer.Reset(time.Second * queryTimeInterval)
+			} else {
+				timer.Reset(time.Second * queryTimeInterval * 5)
+			}
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
 			return
@@ -1273,7 +1277,11 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				current_size = 0
 			}
 			active_paused, active_wait, active_boost, active_running = 0, 0, 0, 0
-			timer.Reset(time.Second * queryTimeInterval)
+			if len(tm.activeTorrents) > 0 {
+				timer.Reset(time.Second * queryTimeInterval)
+			} else {
+				timer.Reset(time.Second * queryTimeInterval * 5)
+			}
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
 			return
