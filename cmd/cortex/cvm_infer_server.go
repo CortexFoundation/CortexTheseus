@@ -32,7 +32,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			RespErrorText(w, ErrDataParse)
 		}
 		infoHashHandler(w, &iw)
-		break
 
 	case inference.INFER_BY_IC:
 		var iw inference.ICWork
@@ -40,7 +39,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			RespErrorText(w, ErrDataParse)
 		}
 		inputContentHandler(w, &iw)
-		break
 
 	case inference.GAS_BY_H:
 		var iw inference.GasWork
@@ -48,7 +46,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			RespErrorText(w, ErrDataParse)
 		}
 		gasHandler(w, &iw)
-		break
 
 	case inference.AVAILABLE_BY_H:
 		var iw inference.AvailableWork
@@ -56,10 +53,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			RespErrorText(w, ErrDataParse)
 		}
 		AvailableHandler(w, &iw)
-		break
 
 	default:
 		RespErrorText(w, ErrInvalidInferTaskType)
-		break
 	}
 }
