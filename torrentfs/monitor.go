@@ -848,7 +848,7 @@ func (m *Monitor) listenLatestBlock() {
 			progress = m.syncLastBlock()
 			// Aviod sync in full mode, fresh interval may be less.
 			if progress >= batch {
-				timer.Reset(time.Millisecond * 100)
+				timer.Reset(0)
 			} else if progress > 6 {
 				timer.Reset(time.Millisecond * 1000)
 			} else {
@@ -1080,7 +1080,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	if maxNumber-minNumber > delay/2 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "cost", elapsed_a)
+		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a)
 	}
 	return uint64(maxNumber - minNumber)
 }
