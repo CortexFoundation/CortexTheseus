@@ -877,7 +877,6 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 		case t := <-tm.seedingChan:
 			tm.seedingTorrents[t.Torrent.InfoHash()] = t
 			t.Seed()
-			//log.Info("All seed status", "current", len(tm.seedingTorrents), "max", tm.maxSeedTask)
 			//if len(tm.seedingTorrents) > tm.maxSeedTask {
 			//tm.seedingTask()
 			//}
@@ -959,7 +958,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 			tm.pendingTorrents[t.Torrent.InfoHash()] = t
 			if len(tm.pendingTorrents) == 1 {
 				ok := timer.Reset(time.Millisecond * 0)
-				log.Info("P -> [ON]", "ok", ok)
+				log.Trace("P -> [ON]", "ok", ok)
 			}
 		case <-timer.C:
 			for _, t := range tm.pendingTorrents {
@@ -1047,7 +1046,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 			if len(tm.pendingTorrents) > 0 {
 				timer.Reset(time.Second * queryTimeInterval)
 			} else {
-				log.Info("P -> [OFF]")
+				log.Trace("P -> [OFF]")
 			}
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
@@ -1069,7 +1068,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			tm.activeTorrents[t.Torrent.InfoHash()] = t
 			if len(tm.activeTorrents) == 1 {
 				ok := timer.Reset(time.Millisecond * 0)
-				log.Info("A -> [ON]", "ok", ok)
+				log.Trace("A -> [ON]", "ok", ok)
 			}
 		case <-timer.C:
 			//for _, t := range tm.torrents {
@@ -1288,7 +1287,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			if len(tm.activeTorrents) > 0 {
 				timer.Reset(time.Second * queryTimeInterval)
 			} else {
-				log.Info("A -> [OFF]")
+				log.Trace("A -> [OFF]")
 			}
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
