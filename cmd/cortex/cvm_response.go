@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	//"io"
 	"net/http"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -58,7 +58,8 @@ func RespErrorText(w http.ResponseWriter, ctx ...interface{}) {
 	}
 
 	//fmt.Fprintf(w, string(data))
-	io.WriteString(w, string(data))
+	//io.WriteString(w, string(data))
+	w.Write(data)
 }
 
 func RespInfoText(w http.ResponseWriter, result []byte) {
@@ -74,5 +75,6 @@ func RespInfoText(w http.ResponseWriter, result []byte) {
 	}
 
 	//fmt.Fprintf(w, string(data))
-	io.WriteString(w, string(data))
+	//io.WriteString(w, string(data))
+	w.Write(data)
 }
