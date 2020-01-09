@@ -38,6 +38,7 @@ github.com/anacrolix/missinggo/perf
 github.com/anacrolix/missinggo/v2
 github.com/anacrolix/missinggo/v2/conntrack
 github.com/anacrolix/missinggo/v2/iter
+github.com/anacrolix/missinggo/v2/slices
 # github.com/anacrolix/mmsg v1.0.0
 github.com/anacrolix/mmsg
 github.com/anacrolix/mmsg/socket
