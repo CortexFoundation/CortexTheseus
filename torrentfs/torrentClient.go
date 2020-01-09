@@ -878,7 +878,7 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 		case t := <-tm.seedingChan:
 			tm.seedingTorrents[t.Torrent.InfoHash()] = t
 			t.Seed()
-			if len(tm.seedingTorrents) > tm.maxSeedTask {
+			if len(tm.seedingTorrents) > tm.maxSeedTask && !tm.fullSeed {
 				tm.graceSeeding(tm.slot)
 			}
 		case <-tm.closeAll:
