@@ -2,7 +2,7 @@
 package main
 
 import (
-	"github.com/anacrolix/missinggo"
+	"github.com/anacrolix/missinggo/v2"
 	"github.com/fsnotify/fsnotify"
 	"log"
 	"net"
