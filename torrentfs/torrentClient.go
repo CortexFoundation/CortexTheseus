@@ -1298,12 +1298,14 @@ func (tm *TorrentManager) activeTorrentLoop() {
 }
 
 func (tm *TorrentManager) graceSeeding(slot int) error {
-	s := (len(tm.seedingTorrents) * slot) % group
+	//s := (tm.maxSeedTask * slot) % group
+	g := int(math.Min(float64(group), float64(tm.maxSeedTask)))
+	s := slot % g
 	i := 0
 	for ih, t := range tm.seedingTorrents {
 		if i%group == s {
 			delete(tm.seedingTorrents, ih)
-			log.Info("Grace invoke", "hash", ih, "i", i, "s", s, "slot", slot)
+			log.Info("Grace invoke", "hash", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask)
 			t.Torrent.Drop()
 		}
 		i++
