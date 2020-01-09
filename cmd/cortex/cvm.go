@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"errors"
@@ -141,7 +142,7 @@ var (
 // same time.
 func cvmServer(ctx *cli.Context) error {
 	c = make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
 	fsCfg := torrentfs.DefaultConfig
@@ -206,15 +207,16 @@ func cvmServer(ctx *cli.Context) error {
 			defer wg.Done()
 			server.ListenAndServe()
 		}()
-		select {
-		case <-c:
-			if err := server.Close(); err != nil {
-				log.Info("Close http server failed", "err", err)
-			} else {
-				log.Info("CVM http server closed")
-			}
-			inferServer.Close()
+		//		select {
+		//		case <-c:
+		<-c
+		if err := server.Close(); err != nil {
+			log.Info("Close http server failed", "err", err)
+		} else {
+			log.Info("CVM http server closed")
 		}
+		inferServer.Close()
+		//		}
 	}(port, inferServer)
 
 	wg.Wait()

@@ -448,6 +448,7 @@ func (cl *Client) acceptConnections(l net.Listener) {
 		go func() {
 			if reject != nil {
 				torrent.Add("rejected accepted connections", 1)
+				log.Fmsg("rejecting accepted conn: %v", reject).AddValue(debugLogValue).Log(cl.logger)
 				conn.Close()
 			} else {
 				go cl.incomingConnection(conn)
@@ -842,7 +843,7 @@ func (cl *Client) runReceivedConn(c *connection) {
 	}
 	if t == nil {
 		torrent.Add("received handshake for unloaded torrent", 1)
-		//t.logger.Printf("received handshake for unloaded torrent")
+		log.Fmsg("received handshake for unloaded torrent").AddValue(debugLogValue).Log(cl.logger)
 		cl.lock()
 		cl.onBadAccept(c.remoteAddr)
 		cl.unlock()
