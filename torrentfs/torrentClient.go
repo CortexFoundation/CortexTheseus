@@ -81,7 +81,7 @@ func (t *Torrent) InfoHash() string {
 
 func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager) {
 	if len(files) > 1 {
-		err := os.Mkdir(path.Join(t.filepath, "data"), os.ModePerm)
+		err := os.MkdirAll(filepath.Dir(path.Join(t.filepath, "data")), 0750) //os.ModePerm)
 		if err != nil {
 			return
 		}
@@ -89,7 +89,7 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 	//log.Info("Try to boost files", "files", files)
 	for i, filename := range files {
 		filePath := path.Join(t.filepath, filename)
-		f, err := os.Create(filePath)
+		f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0660)
 		if err != nil {
 			return
 		}
@@ -203,12 +203,12 @@ func (t *Torrent) WriteTorrent() error {
 		return nil
 	}
 
-	if f, err := os.Create(path.Join(t.filepath, "torrent")); err == nil {
+	if f, err := os.OpenFile(path.Join(t.filepath, "torrent"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0660); err == nil {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
 		if err := t.Metainfo().Write(f); err == nil {
 			t.Pause()
-			return nil
+			return f.Close()
 		} else {
 			log.Warn("Write seed error", "err", err)
 			return err
@@ -812,7 +812,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	}*/
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
-		err = os.Mkdir(tmpFilePath, os.FileMode(os.ModePerm))
+		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0750) //os.FileMode(os.ModePerm))
 		if err != nil {
 			log.Error("Mkdir failed", "path", tmpFilePath)
 			return nil
