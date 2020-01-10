@@ -85,7 +85,7 @@ type Monitor struct {
 	//portsWg  sync.WaitGroup
 
 	taskCh      chan *Block
-	newTaskHook func(*Block)
+	//newTaskHook func(*Block)
 	blockCache  *lru.Cache
 	//healthPeers *lru.Cache
 	sizeCache *lru.Cache
@@ -286,9 +286,9 @@ func (m *Monitor) taskLoop() {
 	for {
 		select {
 		case task := <-m.taskCh:
-			if m.newTaskHook != nil {
-				m.newTaskHook(task)
-			}
+			//if m.newTaskHook != nil {
+			//	m.newTaskHook(task)
+			//}
 
 			if err := m.deal(task); err != nil {
 				log.Warn("Block dealing failed", "err", err)
