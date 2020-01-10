@@ -253,6 +253,7 @@ func cortex(ctx *cli.Context) error {
 	}
 	prepare(ctx)
 	node := makeFullNode(ctx)
+	defer node.Close()
 	startNode(ctx, node)
 	node.Wait()
 	return nil
@@ -285,7 +286,7 @@ func prepare(ctx *cli.Context) {
 	cache := ctx.GlobalInt(utils.CacheFlag.Name)
 	gogc := math.Max(20, math.Min(100, 100/(float64(cache)/1024)))
 
-	log.Debug("Sanitizing Go's GC trigger", "percent", int(gogc))
+	log.Info("Sanitizing Go's GC trigger", "percent", int(gogc))
 	godebug.SetGCPercent(int(gogc))
 
 	// Start metrics export if enabled
