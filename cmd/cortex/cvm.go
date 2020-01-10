@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -33,6 +34,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 	"net/http"
+	_ "net/http/pprof"
 	"os/signal"
 	"sync"
 )
@@ -202,6 +204,21 @@ func cvmServer(ctx *cli.Context) error {
 			ReadTimeout:  15 * time.Second,
 			Handler:      mux,
 		}
+		s1 := &http.Server{
+			Addr:    ":6060",
+			Handler: nil,
+		}
+		if fsCfg.FullSeed {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			//runtime.GOMAXPROCS(1)
+			runtime.SetMutexProfileFraction(1)
+			runtime.SetBlockProfileRate(1)
+			s1.ListenAndServe()
+		}()
+		}
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -210,6 +227,13 @@ func cvmServer(ctx *cli.Context) error {
 		//		select {
 		//		case <-c:
 		<-c
+		if fsCfg.FullSeed {
+		if err := s1.Close(); err != nil {
+			log.Info("Close resource server failed", "err", err)
+		} else {
+			log.Info("CVM resource server closed")
+		}
+		}
 		if err := server.Close(); err != nil {
 			log.Info("Close http server failed", "err", err)
 		} else {
