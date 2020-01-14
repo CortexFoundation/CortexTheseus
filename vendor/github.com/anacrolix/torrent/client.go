@@ -1341,14 +1341,17 @@ func (cl *Client) clearAcceptLimits() {
 }
 
 func (cl *Client) acceptLimitClearer() {
+	timer := time.NewTimer(15 * time.Minute)
+	defer timer.Stop()
 	for {
 		select {
 		case <-cl.closed.LockedChan(cl.locker()):
 			return
-		case <-time.After(15 * time.Minute):
+		case <-timer.C:
 			cl.lock()
 			cl.clearAcceptLimits()
 			cl.unlock()
+			timer.Reset(15 * time.Minute)
 		}
 	}
 }

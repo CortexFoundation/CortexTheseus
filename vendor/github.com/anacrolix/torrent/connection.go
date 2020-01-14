@@ -323,6 +323,7 @@ func (cn *connection) Close() {
 	cn.discardPieceInclination()
 	cn.pieceRequestOrder.Clear()
 	if cn.uploadTimer != nil {
+		cn.uploadTimer.Reset(0)
 		cn.uploadTimer.Stop()
 	}
 	if cn.writeBuffer != nil {
@@ -616,10 +617,13 @@ func (cn *connection) writer(keepAliveTimeout time.Duration) {
 		}
 		keepAliveTimer.Reset(keepAliveTimeout)
 	})
+	defer func() {
+		keepAliveTimer.Reset(0)
+		keepAliveTimer.Stop()
+	}()
 	cn.mu().Lock()
 	defer cn.mu().Unlock()
 	defer cn.Close()
-	defer keepAliveTimer.Stop()
 	frontBuf := new(bytes.Buffer)
 	for {
 		if cn.closed.IsSet() {
@@ -1096,7 +1100,7 @@ func (c *connection) mainReadLoop() (err error) {
 		MaxLength: 256 * 1024,
 		Pool:      t.chunkPool,
 	}
-	defer func(){
+	defer func() {
 		decoder.R.Reset(c.r)
 	}()
 	for {

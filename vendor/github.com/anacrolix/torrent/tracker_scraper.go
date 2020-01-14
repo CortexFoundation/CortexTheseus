@@ -132,6 +132,11 @@ func (me *trackerScraper) announce(event tracker.AnnounceEvent) (ret trackerAnno
 func (me *trackerScraper) Run() {
 	defer me.announceStopped()
 	// make sure first announce is a "started"
+	timer := time.NewTimer(time.Minute)
+	defer func() {
+		timer.Reset(0)
+		timer.Stop()
+	}()
 	e := tracker.Started
 	for {
 		ar := me.announce(e)
@@ -155,13 +160,15 @@ func (me *trackerScraper) Run() {
 			wantPeers = nil
 		default:
 		}
-
+		//timer.Reset(time.Duration(interval) * time.Second)
+		timer.Reset(interval)
 		select {
 		case <-me.t.closed.LockedChan(me.t.cl.locker()):
 			return
 		case <-wantPeers:
 			goto wait
-		case <-time.After(time.Until(ar.Completed.Add(interval))):
+		//case <-time.After(time.Until(ar.Completed.Add(interval))):
+		case <-timer.C:
 		}
 	}
 }
