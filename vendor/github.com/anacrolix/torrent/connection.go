@@ -325,6 +325,10 @@ func (cn *connection) Close() {
 	if cn.uploadTimer != nil {
 		cn.uploadTimer.Stop()
 	}
+	if cn.writeBuffer != nil {
+		cn.writeBuffer.Reset()
+		cn.writeBuffer = nil
+	}
 	if cn.conn != nil {
 		go cn.conn.Close()
 	}
@@ -1092,6 +1096,9 @@ func (c *connection) mainReadLoop() (err error) {
 		MaxLength: 256 * 1024,
 		Pool:      t.chunkPool,
 	}
+	defer func(){
+		decoder.R.Reset(c.r)
+	}()
 	for {
 		var msg pp.Message
 		func() {
