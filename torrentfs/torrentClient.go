@@ -536,17 +536,22 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 }
 
 func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string) {
-	array = make([][]string, len(trackers))
+	/*array = make([][]string, len(trackers))
 	for i, tracker := range trackers {
 		array[i] = []string{"udp" + tracker}
+	}*/
+	array = make([][]string, 1)
+	for _, tracker := range trackers {
+		array[0] = append(array[0], "udp"+tracker)
 	}
 	return array
 }
 
 func (tm *TorrentManager) buildHttpTrackers(trackers []string) (array [][]string) {
-	array = make([][]string, len(trackers))
-	for i, tracker := range trackers {
-		array[i] = []string{"http" + tracker + "/announce"}
+	//array = make([][]string, len(trackers))
+	array = make([][]string, 1)
+	for _, tracker := range trackers {
+		array[0] = append(array[0], "http"+tracker+"/announce") //[]string{"http" + tracker + "/announce"}
 	}
 	return array
 }
