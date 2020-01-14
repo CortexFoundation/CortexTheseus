@@ -61,7 +61,7 @@ fi
 function start_cvm(){
 	#./cvm.sh | grep -v 'Terminated   ' & #>/dev/null 2>&1 &
 	#echo $$ > cvm.pid
-	./cvm.sh & #2>/dev/null &
+	./cvm.sh 2>/dev/null &
 	echo $! > ${cvm_pid}
 	chmod 644 "${cvm_pid}"
 }

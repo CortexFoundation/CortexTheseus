@@ -877,8 +877,8 @@ func (tm *TorrentManager) Start() error {
 
 func (tm *TorrentManager) seedingTorrentLoop() {
 	defer tm.wg.Done()
-	timer := time.NewTimer(time.Second * queryTimeInterval * 60)
-	defer timer.Stop()
+	//timer := time.NewTimer(time.Second * queryTimeInterval * 60)
+	//defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.seedingChan:
@@ -887,14 +887,14 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 			if len(tm.seedingTorrents) > tm.maxSeedTask && !tm.fullSeed {
 				tm.graceSeeding(tm.slot)
 			}
-		case <- timer.C:
+			//	case <- timer.C:
 			//for _, t := range tm.seedingTorrents {
-				//t.SetMaxEstablishedConns(0)
-				//t.SetMaxEstablishedConns(1)
-				//t.Torrent.Drop()
+			//t.SetMaxEstablishedConns(0)
+			//t.SetMaxEstablishedConns(1)
+			//t.Torrent.Drop()
 			//}
 			//log.Info("Seeding status refresh", "len", len(tm.seedingTorrents))
-			timer.Reset(time.Second * queryTimeInterval * 60)
+			//		timer.Reset(time.Second * queryTimeInterval * 60)
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
 			return
