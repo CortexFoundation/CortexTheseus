@@ -617,13 +617,13 @@ func (cn *connection) writer(keepAliveTimeout time.Duration) {
 		}
 		keepAliveTimer.Reset(keepAliveTimeout)
 	})
+	cn.mu().Lock()
+	defer cn.mu().Unlock()
+	defer cn.Close()
 	defer func() {
 		keepAliveTimer.Reset(0)
 		keepAliveTimer.Stop()
 	}()
-	cn.mu().Lock()
-	defer cn.mu().Unlock()
-	defer cn.Close()
 	frontBuf := new(bytes.Buffer)
 	for {
 		if cn.closed.IsSet() {
