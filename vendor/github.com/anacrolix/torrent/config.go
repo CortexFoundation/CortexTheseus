@@ -165,7 +165,6 @@ func NewDefaultClientConfig() *ClientConfig {
 		UploadRateLimiter:              unlimited,
 		DownloadRateLimiter:            unlimited,
 		ConnTracker:                    conntrack.NewInstance(),
-		DisableAcceptRateLimiting:      true,
 		HeaderObfuscationPolicy: HeaderObfuscationPolicy{
 			Preferred:        true,
 			RequirePreferred: false,
@@ -173,7 +172,7 @@ func NewDefaultClientConfig() *ClientConfig {
 		CryptoSelector: mse.DefaultCryptoSelector,
 		CryptoProvides: mse.AllSupportedCrypto,
 		ListenPort:     42069,
-		Logger:         log.Default,
+		Logger:         log.Default(),
 	}
 	//cc.ConnTracker.SetNoMaxEntries()
 	//cc.ConnTracker.Timeout = func(conntrack.Entry) time.Duration { return 0 }
