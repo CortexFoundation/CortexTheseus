@@ -226,8 +226,8 @@ func mainExitCode() int {
 	cfg.DataDir = args.DataDir
 	cfg.SetListenAddr(args.ListenAddr.String())
 	cfg.Seed = true
-	cfg.EstablishedConnsPerTorrent = 10
-	cfg.HalfOpenConnsPerTorrent = 5
+	//cfg.EstablishedConnsPerTorrent = 10
+	cfg.HalfOpenConnsPerTorrent = 1
 	cfg.DisableUTP = false
 	cfg.DisableTCP = true
 	cfg.NoDHT = false

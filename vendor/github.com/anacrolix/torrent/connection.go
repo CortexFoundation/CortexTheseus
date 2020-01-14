@@ -322,6 +322,9 @@ func (cn *connection) Close() {
 	cn.tickleWriter()
 	cn.discardPieceInclination()
 	cn.pieceRequestOrder.Clear()
+	if cn.uploadTimer != nil {
+		cn.uploadTimer.Stop()
+	}
 	if cn.conn != nil {
 		go cn.conn.Close()
 	}
