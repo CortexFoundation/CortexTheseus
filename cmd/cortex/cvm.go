@@ -244,6 +244,7 @@ func cvmServer(ctx *cli.Context) error {
 	}(port, inferServer)
 
 	wg.Wait()
+	log.Info("CVM finally stop")
 
 	return nil
 }

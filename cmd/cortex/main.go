@@ -275,7 +275,7 @@ func prepare(ctx *cli.Context) {
 	// Check https://github.com/elastic/gosigar#supported-platforms
 	if runtime.GOOS != "openbsd" {
 		if err := mem.Get(); err == nil {
-			allowance := int(mem.Total / 1024 / 1024 / 3)
+			allowance := int(mem.Total / 1024 / 1024 / 4)
 			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
 				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
 				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
