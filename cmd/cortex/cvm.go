@@ -17,10 +17,13 @@
 package main
 
 import (
+	"github.com/elastic/gosigar"
+	"math"
 	"os"
 	"os/user"
 	"path/filepath"
 	"runtime"
+	godebug "runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -143,6 +146,33 @@ var (
 // localConsole starts a new cortex node, attaching a JavaScript console to it at the
 // same time.
 func cvmServer(ctx *cli.Context) error {
+	if !ctx.GlobalIsSet(utils.CacheFlag.Name) && !ctx.GlobalIsSet(utils.NetworkIdFlag.Name) {
+		// Make sure we're not on any supported preconfigured testnet either
+		// Nope, we're really on mainnet. Bump that cache up!
+		log.Info("Bumping default cache on mainnet", "provided", ctx.GlobalInt(utils.CacheFlag.Name), "updated", 4096)
+		ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(4096))
+	}
+	var mem gosigar.Mem
+	// Workaround until OpenBSD support lands into gosigar
+	// Check https://github.com/elastic/gosigar#supported-platforms
+	if runtime.GOOS != "openbsd" {
+		if err := mem.Get(); err == nil {
+			allowance := int(mem.Total / 1024 / 1024 / 3)
+			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
+				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
+				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
+			}
+		} else {
+			log.Warn("Memory total get failed", "err", err)
+		}
+	}
+	// Ensure Go's GC ignores the database cache for trigger percentage
+	cache := ctx.GlobalInt(utils.CacheFlag.Name)
+	gogc := math.Max(20, math.Min(100, 100/(float64(cache)/1024)))
+
+	log.Info("Sanitizing Go's GC trigger", "percent", int(gogc), "cache", cache, "os", runtime.GOOS)
+	godebug.SetGCPercent(int(gogc))
+
 	c = make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
@@ -244,6 +274,7 @@ func cvmServer(ctx *cli.Context) error {
 	}(port, inferServer)
 
 	wg.Wait()
+	log.Info("CVM finally stop")
 
 	return nil
 }

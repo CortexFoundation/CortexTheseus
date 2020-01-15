@@ -1281,7 +1281,8 @@ func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
 	var err error
 	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return torrentfs.New(cfg, commit)
+		storage, err := torrentfs.New(cfg, commit)
+		return storage, err
 	})
 
 	if err != nil {
