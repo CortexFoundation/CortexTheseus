@@ -799,8 +799,8 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	cfg.EstablishedConnsPerTorrent = 10 //len(config.DefaultTrackers)
-	cfg.HalfOpenConnsPerTorrent = 1
+	//cfg.EstablishedConnsPerTorrent = 10 //len(config.DefaultTrackers)
+	//cfg.HalfOpenConnsPerTorrent = 5
 	cfg.ListenPort = config.Port
 	//cfg.Debug = true
 	//cfg.DropDuplicatePeerIds = true
