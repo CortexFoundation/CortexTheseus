@@ -276,8 +276,8 @@ func (t *Torrent) Seeding() bool {
 
 func (t *Torrent) Pause() {
 	if t.currentConns > t.minEstablishedConns {
-		//t.currentConns = t.minEstablishedConns
-		//t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
+		t.currentConns = t.minEstablishedConns
+		t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
 	}
 	if t.status != torrentPaused {
 		t.status = torrentPaused
@@ -446,7 +446,7 @@ type TorrentManager struct {
 func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
 	tt := &Torrent{
 		t,
-		tm.maxEstablishedConns, 1, tm.maxEstablishedConns,
+		tm.maxEstablishedConns, 5, tm.maxEstablishedConns,
 		requested,
 		//int64(float64(requested) * expansionFactor),
 		tm.GetLimitation(requested),
