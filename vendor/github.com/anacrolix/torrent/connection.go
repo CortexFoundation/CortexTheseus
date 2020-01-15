@@ -322,6 +322,14 @@ func (cn *connection) Close() {
 	cn.tickleWriter()
 	cn.discardPieceInclination()
 	cn.pieceRequestOrder.Clear()
+	if cn.uploadTimer != nil {
+		cn.uploadTimer.Reset(0)
+		cn.uploadTimer.Stop()
+	}
+	if cn.writeBuffer != nil {
+		cn.writeBuffer.Reset()
+		cn.writeBuffer = nil
+	}
 	if cn.conn != nil {
 		go cn.conn.Close()
 	}
@@ -612,7 +620,10 @@ func (cn *connection) writer(keepAliveTimeout time.Duration) {
 	cn.mu().Lock()
 	defer cn.mu().Unlock()
 	defer cn.Close()
-	defer keepAliveTimer.Stop()
+	defer func() {
+		keepAliveTimer.Reset(0)
+		keepAliveTimer.Stop()
+	}()
 	frontBuf := new(bytes.Buffer)
 	for {
 		if cn.closed.IsSet() {
@@ -1089,6 +1100,9 @@ func (c *connection) mainReadLoop() (err error) {
 		MaxLength: 256 * 1024,
 		Pool:      t.chunkPool,
 	}
+	defer func() {
+		decoder.R.Reset(c.r)
+	}()
 	for {
 		var msg pp.Message
 		func() {

@@ -401,26 +401,22 @@ func (cl *Client) waitAccept() {
 	}
 }
 
-func (cl *Client) rejectAccepted(conn net.Conn) error {
+func (cl *Client) rejectAccepted(conn net.Conn) bool {
 	ra := conn.RemoteAddr()
 	rip := missinggo.AddrIP(ra)
 	if cl.config.DisableIPv4Peers && rip.To4() != nil {
-		return errors.New("ipv4 peers disabled")
+		return true
 	}
 	if cl.config.DisableIPv4 && len(rip) == net.IPv4len {
-		return errors.New("ipv4 disabled")
-
+		return true
 	}
 	if cl.config.DisableIPv6 && len(rip) == net.IPv6len && rip.To4() == nil {
-		return errors.New("ipv6 disabled")
+		return true
 	}
 	if cl.rateLimitAccept(rip) {
-		return errors.New("source IP accepted rate limited")
+		return true
 	}
-	if cl.badPeerIPPort(rip, missinggo.AddrPort(ra)) {
-		return errors.New("bad source addr")
-	}
-	return nil
+	return cl.badPeerIPPort(rip, missinggo.AddrPort(ra))
 }
 
 func (cl *Client) acceptConnections(l net.Listener) {
@@ -430,7 +426,7 @@ func (cl *Client) acceptConnections(l net.Listener) {
 		conn = pproffd.WrapNetConn(conn)
 		cl.rLock()
 		closed := cl.closed.IsSet()
-		var reject error
+		reject := false
 		if conn != nil {
 			reject = cl.rejectAccepted(conn)
 		}
@@ -446,9 +442,8 @@ func (cl *Client) acceptConnections(l net.Listener) {
 			continue
 		}
 		go func() {
-			if reject != nil {
+			if reject {
 				torrent.Add("rejected accepted connections", 1)
-				log.Fmsg("rejecting accepted conn: %v", reject).AddValue(debugLogValue).Log(cl.logger)
 				conn.Close()
 			} else {
 				go cl.incomingConnection(conn)
@@ -843,7 +838,6 @@ func (cl *Client) runReceivedConn(c *connection) {
 	}
 	if t == nil {
 		torrent.Add("received handshake for unloaded torrent", 1)
-		log.Fmsg("received handshake for unloaded torrent").AddValue(debugLogValue).Log(cl.logger)
 		cl.lock()
 		cl.onBadAccept(c.remoteAddr)
 		cl.unlock()
@@ -1347,14 +1341,17 @@ func (cl *Client) clearAcceptLimits() {
 }
 
 func (cl *Client) acceptLimitClearer() {
+	timer := time.NewTimer(15 * time.Minute)
+	defer timer.Stop()
 	for {
 		select {
 		case <-cl.closed.LockedChan(cl.locker()):
 			return
-		case <-time.After(15 * time.Minute):
+		case <-timer.C:
 			cl.lock()
 			cl.clearAcceptLimits()
 			cl.unlock()
+			timer.Reset(15 * time.Minute)
 		}
 	}
 }

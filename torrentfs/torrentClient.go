@@ -252,17 +252,20 @@ func (t *Torrent) Seed() {
 	//t.Torrent.DownloadAll()
 	if t.currentConns <= t.minEstablishedConns {
 		t.currentConns = t.maxEstablishedConns
+		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 		//if t.currentConns < t.minEstablishedConns {
 		//	t.currentConns = t.minEstablishedConns
 	}
-	t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	//t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	//t.Torrent.SetMaxEstablishedConns(0)
 	//}
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 		log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
+		//t.Torrent.Drop()
 	} else {
-		t.Torrent.DownloadAll()
+		//t.Torrent.DownloadAll()
 	}
 }
 
@@ -273,8 +276,8 @@ func (t *Torrent) Seeding() bool {
 
 func (t *Torrent) Pause() {
 	if t.currentConns > t.minEstablishedConns {
-		t.currentConns = t.minEstablishedConns
-		t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
+		//t.currentConns = t.minEstablishedConns
+		//t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
 	}
 	if t.status != torrentPaused {
 		t.status = torrentPaused
@@ -533,17 +536,22 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 }
 
 func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string) {
-	array = make([][]string, len(trackers))
+	/*array = make([][]string, len(trackers))
 	for i, tracker := range trackers {
 		array[i] = []string{"udp" + tracker}
+	}*/
+	array = make([][]string, 1)
+	for _, tracker := range trackers {
+		array[0] = append(array[0], "udp"+tracker)
 	}
 	return array
 }
 
 func (tm *TorrentManager) buildHttpTrackers(trackers []string) (array [][]string) {
-	array = make([][]string, len(trackers))
-	for i, tracker := range trackers {
-		array[i] = []string{"http" + tracker + "/announce"}
+	//array = make([][]string, len(trackers))
+	array = make([][]string, 1)
+	for _, tracker := range trackers {
+		array[0] = append(array[0], "http"+tracker+"/announce") //[]string{"http" + tracker + "/announce"}
 	}
 	return array
 }
@@ -791,9 +799,10 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 20
-	//cfg.HalfOpenConnsPerTorrent = 5
+	cfg.EstablishedConnsPerTorrent = 10 //len(config.DefaultTrackers)
+	cfg.HalfOpenConnsPerTorrent = 1
 	cfg.ListenPort = config.Port
+	//cfg.Debug = true
 	//cfg.DropDuplicatePeerIds = true
 	//cfg.ListenHost = torrent.LoopbackListenHost
 	//cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs //func() ([]dht.Addr, error) { return nil, nil }
@@ -873,6 +882,8 @@ func (tm *TorrentManager) Start() error {
 
 func (tm *TorrentManager) seedingTorrentLoop() {
 	defer tm.wg.Done()
+	//timer := time.NewTimer(time.Second * queryTimeInterval * 60)
+	//defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.seedingChan:
@@ -881,6 +892,14 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 			if len(tm.seedingTorrents) > tm.maxSeedTask && !tm.fullSeed {
 				tm.graceSeeding(tm.slot)
 			}
+			//	case <- timer.C:
+			//for _, t := range tm.seedingTorrents {
+			//t.SetMaxEstablishedConns(0)
+			//t.SetMaxEstablishedConns(1)
+			//t.Torrent.Drop()
+			//}
+			//log.Info("Seeding status refresh", "len", len(tm.seedingTorrents))
+			//		timer.Reset(time.Second * queryTimeInterval * 60)
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
 			return

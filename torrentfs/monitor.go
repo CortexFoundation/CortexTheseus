@@ -84,9 +84,9 @@ type Monitor struct {
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
 
-	taskCh      chan *Block
+	taskCh chan *Block
 	//newTaskHook func(*Block)
-	blockCache  *lru.Cache
+	blockCache *lru.Cache
 	//healthPeers *lru.Cache
 	sizeCache *lru.Cache
 	ckp       *params.TrustedCheckpoint

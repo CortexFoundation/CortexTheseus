@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime/pprof"
 	"text/tabwriter"
 	"time"
 
@@ -157,7 +158,7 @@ func NewServer(c *ServerConfig) (s *Server, err error) {
 	// If Logger is empty, emulate the old behaviour: Everything is logged to the default location,
 	// and there are no debug messages.
 	if c.Logger.LoggerImpl == nil {
-		c.Logger = log.Default.WithFilter(func(m log.Msg) bool {
+		c.Logger = log.Default().WithFilter(func(m log.Msg) bool {
 			return !m.HasValue(log.Debug)
 		})
 	}
@@ -724,7 +725,9 @@ func (s *Server) queryContext(ctx context.Context, addr Addr, q string, a *krpc.
 	sendErr := make(chan error, 1)
 	sendCtx, cancelSend := context.WithCancel(ctx)
 	defer cancelSend()
-	go s.transactionQuerySender(sendCtx, sendErr, s.makeQueryBytes(q, a, tid), &writes, addr)
+	go pprof.Do(sendCtx, pprof.Labels("q", q), func(ctx context.Context) {
+		s.transactionQuerySender(ctx, sendErr, s.makeQueryBytes(q, a, tid), &writes, addr)
+	})
 	expvars.Add(fmt.Sprintf("outbound %s queries", q), 1)
 	select {
 	case reply = <-replyChan:
