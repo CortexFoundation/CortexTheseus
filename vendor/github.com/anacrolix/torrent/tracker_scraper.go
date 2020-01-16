@@ -136,6 +136,7 @@ func (me *trackerScraper) Run() {
 	defer func() {
 		timer.Reset(0)
 		timer.Stop()
+		timer = nil
 	}()
 	e := tracker.Started
 	for {

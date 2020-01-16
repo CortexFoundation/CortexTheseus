@@ -325,6 +325,7 @@ func (cn *connection) Close() {
 	if cn.uploadTimer != nil {
 		cn.uploadTimer.Reset(0)
 		cn.uploadTimer.Stop()
+		cn.uploadTimer = nil
 	}
 	if cn.writeBuffer != nil {
 		cn.writeBuffer.Reset()
@@ -341,15 +342,18 @@ func (cn *connection) PeerHasPiece(piece pieceIndex) bool {
 
 // Writes a message into the write buffer.
 func (cn *connection) Post(msg pp.Message) {
+	defer cn.tickleWriter()
 	torrent.Add(fmt.Sprintf("messages posted of type %s", msg.Type.String()), 1)
 	// We don't need to track bytes here because a connection.w Writer wrapper
 	// takes care of that (although there's some delay between us recording
 	// the message, and the connection writer flushing it out.).
-	cn.writeBuffer.Write(msg.MustMarshalBinary())
-	// Last I checked only Piece messages affect stats, and we don't post
-	// those.
-	cn.wroteMsg(&msg)
-	cn.tickleWriter()
+	if cn.writeBuffer != nil {
+		cn.writeBuffer.Write(msg.MustMarshalBinary())
+		// Last I checked only Piece messages affect stats, and we don't post
+		// those.
+		cn.wroteMsg(&msg)
+	}
+	//cn.tickleWriter()
 }
 
 func (cn *connection) requestMetadataPiece(index int) {
@@ -625,6 +629,10 @@ func (cn *connection) writer(keepAliveTimeout time.Duration) {
 		keepAliveTimer.Stop()
 	}()
 	frontBuf := new(bytes.Buffer)
+	defer func() {
+		frontBuf.Reset()
+		frontBuf = nil
+	}()
 	for {
 		if cn.closed.IsSet() {
 			return
@@ -1102,6 +1110,7 @@ func (c *connection) mainReadLoop() (err error) {
 	}
 	defer func() {
 		decoder.R.Reset(c.r)
+		decoder.R = nil
 	}()
 	for {
 		var msg pp.Message

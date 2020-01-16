@@ -1356,12 +1356,16 @@ func (t *Torrent) announceToDht(impliedPort bool, s *dht.Server) error {
 	if err != nil {
 		return err
 	}
+	defer ps.Close()
 	go t.consumeDhtAnnouncePeers(ps.Peers)
+	timer := time.NewTimer(5 * time.Minute)
+	defer timer.Stop()
 	select {
 	case <-t.closed.LockedChan(t.cl.locker()):
-	case <-time.After(5 * time.Minute):
+	//case <-time.After(5 * time.Minute):
+	case <-timer.C:
 	}
-	ps.Close()
+	//ps.Close()
 	return nil
 }
 
