@@ -342,12 +342,12 @@ func (cn *connection) PeerHasPiece(piece pieceIndex) bool {
 
 // Writes a message into the write buffer.
 func (cn *connection) Post(msg pp.Message) {
-	defer cn.tickleWriter()
-	torrent.Add(fmt.Sprintf("messages posted of type %s", msg.Type.String()), 1)
 	// We don't need to track bytes here because a connection.w Writer wrapper
 	// takes care of that (although there's some delay between us recording
 	// the message, and the connection writer flushing it out.).
 	if cn.writeBuffer != nil {
+		defer cn.tickleWriter()
+		torrent.Add(fmt.Sprintf("messages posted of type %s", msg.Type.String()), 1)
 		cn.writeBuffer.Write(msg.MustMarshalBinary())
 		// Last I checked only Piece messages affect stats, and we don't post
 		// those.
