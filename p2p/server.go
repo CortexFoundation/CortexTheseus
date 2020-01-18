@@ -551,9 +551,11 @@ func (srv *Server) run(dialstate dialer) {
 		inboundCount = 0
 		trusted      = make(map[discover.NodeID]bool, len(srv.TrustedNodes))
 		taskdone     = make(chan task, maxActiveDialTasks)
+		tick         = time.NewTicker(30 * time.Second)
 		runningTasks []task
 		queuedTasks  []task // tasks that can't run yet
 	)
+	defer tick.Stop()
 	// Put trusted nodes into a map to speed up checks.
 	// Trusted peers are loaded on startup or added via AddTrustedPeer RPC.
 	for _, n := range srv.TrustedNodes {
@@ -595,6 +597,8 @@ running:
 		scheduleTasks()
 
 		select {
+		case <-tick.C:
+			// This is just here to ensure the dial scheduler runs occasionally.
 		case <-srv.quit:
 			// The server was stopped. Run the cleanup logic.
 			break running
@@ -764,7 +768,7 @@ type tempError interface {
 // listenLoop runs in its own goroutine and accepts
 // inbound connections.
 func (srv *Server) listenLoop() {
-	defer srv.loopWG.Done()
+	srv.log.Debug("TCP listener up", "addr", srv.listener.Addr())
 	srv.log.Info("RLPx listener up", "self", srv.makeSelf(srv.listener, srv.ntab))
 
 	tokens := defaultMaxPendingPeers
@@ -775,6 +779,15 @@ func (srv *Server) listenLoop() {
 	for i := 0; i < tokens; i++ {
 		slots <- struct{}{}
 	}
+
+	// Wait for slots to be returned on exit. This ensures all connection goroutines
+	// are down before listenLoop returns.
+	defer srv.loopWG.Done()
+	defer func() {
+		for i := 0; i < cap(slots); i++ {
+			<-slots
+		}
+	}()
 
 	for {
 		// Wait for a handshake slot before accepting.
@@ -791,6 +804,7 @@ func (srv *Server) listenLoop() {
 				continue
 			} else if err != nil {
 				srv.log.Debug("Read error", "err", err)
+				slots <- struct{}{}
 				return
 			}
 			break
