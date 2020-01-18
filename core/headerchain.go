@@ -145,27 +145,28 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 	}
 	localTd := hc.GetTd(hc.currentHeaderHash, hc.CurrentHeader().Number.Uint64())
 	externTd := new(big.Int).Add(header.Difficulty, ptd)
-
-	// Irrelevant of the canonical status, write the td and header to the database
-	if err := hc.WriteTd(hash, number, externTd); err != nil {
-		log.Crit("Failed to write header total difficulty", "err", err)
+	// Note all the components of header(td, hash->number index and header) should
+	// be written atomically.
+	headerBatch := hc.chainDb.NewBatch()
+	rawdb.WriteTd(headerBatch, hash, number, externTd)
+	rawdb.WriteHeader(headerBatch, header)
+	if err := headerBatch.Write(); err != nil {
+		log.Crit("Failed to write header into disk", "err", err)
 	}
-	rawdb.WriteHeader(hc.chainDb, header)
 
 	// If the total difficulty is higher than our known, add it to the canonical chain
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
 	if externTd.Cmp(localTd) > 0 || (externTd.Cmp(localTd) == 0 && mrand.Float64() < 0.5) {
 		// Delete any canonical number assignments above the new head
-		batch := hc.chainDb.NewBatch()
+		markerBatch := hc.chainDb.NewBatch()
 		for i := number + 1; ; i++ {
 			hash := rawdb.ReadCanonicalHash(hc.chainDb, i)
 			if hash == (common.Hash{}) {
 				break
 			}
-			rawdb.DeleteCanonicalHash(batch, i)
+			rawdb.DeleteCanonicalHash(markerBatch, i)
 		}
-		batch.Write()
 
 		// Overwrite any stale canonical number assignments
 		var (
@@ -174,15 +175,19 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 			headHeader = hc.GetHeader(headHash, headNumber)
 		)
 		for rawdb.ReadCanonicalHash(hc.chainDb, headNumber) != headHash {
-			rawdb.WriteCanonicalHash(hc.chainDb, headHash, headNumber)
+			rawdb.WriteCanonicalHash(markerBatch, headHash, headNumber)
 
 			headHash = headHeader.ParentHash
 			headNumber = headHeader.Number.Uint64() - 1
 			headHeader = hc.GetHeader(headHash, headNumber)
 		}
 		// Extend the canonical chain with the new header
-		rawdb.WriteCanonicalHash(hc.chainDb, hash, number)
-		rawdb.WriteHeadHeaderHash(hc.chainDb, hash)
+		rawdb.WriteCanonicalHash(markerBatch, hash, number)
+		rawdb.WriteHeadHeaderHash(markerBatch, hash)
+		if err := markerBatch.Write(); err != nil {
+			log.Crit("Failed to write header markers into disk", "err", err)
+		}
+		// Last step update all in-memory head header markers
 
 		hc.currentHeaderHash = hash
 		hc.currentHeader.Store(types.CopyHeader(header))
@@ -192,7 +197,7 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 	} else {
 		status = SideStatTy
 	}
-
+	hc.tdCache.Add(hash, externTd)
 	hc.headerCache.Add(hash, header)
 	hc.numberCache.Add(hash, number)
 
@@ -399,12 +404,6 @@ func (hc *HeaderChain) GetTdByHash(hash common.Hash) *big.Int {
 	return hc.GetTd(hash, *number)
 }
 
-func (hc *HeaderChain) WriteTd(hash common.Hash, number uint64, td *big.Int) error {
-	rawdb.WriteTd(hc.chainDb, hash, number, td)
-	hc.tdCache.Add(hash, new(big.Int).Set(td))
-	return nil
-}
-
 // GetHeader retrieves a block header from the database by hash and number,
 // caching it if found.
 func (hc *HeaderChain) GetHeader(hash common.Hash, number uint64) *types.Header {
@@ -457,8 +456,6 @@ func (hc *HeaderChain) CurrentHeader() *types.Header {
 
 // SetCurrentHeader sets the current head header of the canonical chain.
 func (hc *HeaderChain) SetCurrentHeader(head *types.Header) {
-	rawdb.WriteHeadHeaderHash(hc.chainDb, head.Hash())
-
 	hc.currentHeader.Store(head)
 	hc.currentHeaderHash = head.Hash()
 	headHeaderGauge.Update(head.Number.Int64())
@@ -497,11 +494,18 @@ func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, d
 		// first then remove the relative data from the database.
 		//
 		// Update head first(head fast block, head full block) before deleting the data.
+		markerBatch := hc.chainDb.NewBatch()
 		if updateFn != nil {
-			updateFn(hc.chainDb, parent)
+			updateFn(markerBatch, parent)
 		}
 		// Update head header then.
-		rawdb.WriteHeadHeaderHash(hc.chainDb, parentHash)
+		rawdb.WriteHeadHeaderHash(markerBatch, parentHash)
+		if err := markerBatch.Write(); err != nil {
+			log.Crit("Failed to update chain markers", "error", err)
+		}
+		hc.currentHeader.Store(parent)
+		hc.currentHeaderHash = parentHash
+		headHeaderGauge.Update(parent.Number.Int64())
 
 		// Remove the relative data from the database.
 		if delFn != nil {
@@ -511,13 +515,11 @@ func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, d
 		rawdb.DeleteHeader(batch, hash, num)
 		rawdb.DeleteTd(batch, hash, num)
 		rawdb.DeleteCanonicalHash(batch, num)
-
-		hc.currentHeader.Store(parent)
-		hc.currentHeaderHash = parentHash
-		headHeaderGauge.Update(parent.Number.Int64())
 	}
-	batch.Write()
-
+	// Flush all accumulated deletions.
+	if err := batch.Write(); err != nil {
+		log.Crit("Failed to rewind block", "error", err)
+	}
 	// Clear out any stale content from the caches
 	hc.headerCache.Purge()
 	hc.tdCache.Purge()

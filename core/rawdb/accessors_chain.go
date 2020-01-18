@@ -50,7 +50,7 @@ func ReadCanonicalHash(db ctxcdb.Reader, number uint64) common.Hash {
 }
 
 // WriteCanonicalHash stores the hash assigned to a canonical block number.
-func WriteCanonicalHash(db ctxcdb.Writer, hash common.Hash, number uint64) {
+func WriteCanonicalHash(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	if err := db.Put(headerHashKey(number), hash.Bytes()); err != nil {
 		log.Crit("Failed to store number to hash mapping", "err", err)
 	}
@@ -116,14 +116,14 @@ func ReadHeadHeaderHash(db ctxcdb.KeyValueReader) common.Hash {
 }
 
 // WriteHeadHeaderHash stores the hash of the current canonical head header.
-func WriteHeadHeaderHash(db ctxcdb.Writer, hash common.Hash) {
+func WriteHeadHeaderHash(db ctxcdb.KeyValueWriter, hash common.Hash) {
 	if err := db.Put(headHeaderKey, hash.Bytes()); err != nil {
 		log.Crit("Failed to store last header's hash", "err", err)
 	}
 }
 
 // ReadHeadBlockHash retrieves the hash of the current canonical head block.
-func ReadHeadBlockHash(db ctxcdb.Reader) common.Hash {
+func ReadHeadBlockHash(db ctxcdb.KeyValueReader) common.Hash {
 	data, _ := db.Get(headBlockKey)
 	if len(data) == 0 {
 		return common.Hash{}
@@ -544,7 +544,7 @@ func ReadBlock(db ctxcdb.Reader, hash common.Hash, number uint64) *types.Block {
 }
 
 // WriteBlock serializes a block into the database, header and body separately.
-func WriteBlock(db ctxcdb.Writer, block *types.Block) {
+func WriteBlock(db ctxcdb.KeyValueWriter, block *types.Block) {
 	WriteBody(db, block.Hash(), block.NumberU64(), block.Body())
 	WriteHeader(db, block.Header())
 }
