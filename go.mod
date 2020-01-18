@@ -22,7 +22,7 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/go-resty/resty/v2 v2.1.1-0.20191201195748-d7b97669fe48
+	github.com/go-resty/resty/v2 v2.1.1-0.20200115073606-57ba3bacde0a
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.3-0.20191022195553-ed6926b37a63 // indirect
 	github.com/golang/snappy v0.0.1
@@ -40,7 +40,7 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.1.0
-	github.com/prometheus/prometheus v1.8.2-0.20200102145409-91d76c802373
+	github.com/prometheus/prometheus v1.8.2-0.20200117201204-669592a2c4d5
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/rs/cors v1.7.0
@@ -48,10 +48,10 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
-	golang.org/x/net v0.0.0-20191125084936-ffdde1057850
-	golang.org/x/sys v0.0.0-20191126131656-8a8471f7e56d
-	golang.org/x/tools v0.0.0-20191122080028-f774e2e2e5be
+	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
+	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
+	golang.org/x/sys v0.0.0-20200117145432-59e60aa80a0c
+	golang.org/x/tools v0.0.0-20200117220505-0cba7a3a9ee9
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20190709231704-1e4459ed25ff
