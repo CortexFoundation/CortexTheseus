@@ -127,10 +127,12 @@ func announceHTTP(opt Announce, _url *url.URL) (ret AnnounceResponse, err error)
 			DisableKeepAlives: true,
 		},
 	}).Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return
 	}
-	defer resp.Body.Close()
 	var buf bytes.Buffer
 	io.Copy(&buf, resp.Body)
 	if resp.StatusCode != 200 {
