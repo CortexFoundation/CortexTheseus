@@ -6,4 +6,5 @@ const (
 	SyncBatch = 4096
 	Delay     = 12
 	Scope     = 4
+	TIER      = 3
 )
