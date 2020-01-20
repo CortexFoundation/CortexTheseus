@@ -1360,7 +1360,7 @@ func (t *Torrent) announceToDht(impliedPort bool, s *dht.Server) error {
 		return err
 	}
 	go t.consumeDhtAnnouncePeers(ps.Peers)
-	timer := time.NewTimer(5 * time.Minute)
+	timer := time.NewTimer(time.Minute)
 	defer timer.Stop()
 	select {
 	case <-t.closed.LockedChan(t.cl.locker()):
