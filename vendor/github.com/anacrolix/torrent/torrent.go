@@ -1353,10 +1353,12 @@ func (t *Torrent) consumeDhtAnnouncePeers(pvs <-chan dht.PeersValues) {
 
 func (t *Torrent) announceToDht(impliedPort bool, s *dht.Server) error {
 	ps, err := s.Announce(t.infoHash, t.cl.incomingPeerPort(), impliedPort)
+	if ps != nil {
+		defer ps.Close()
+	}
 	if err != nil {
 		return err
 	}
-	defer ps.Close()
 	go t.consumeDhtAnnouncePeers(ps.Peers)
 	timer := time.NewTimer(5 * time.Minute)
 	defer timer.Stop()
