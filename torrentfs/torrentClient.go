@@ -31,6 +31,7 @@ import (
 const (
 	bucket                  = params.Bucket //it is best size is 1/3 full nodes
 	group                   = params.Group
+	tier                    = params.TIER
 	updateTorrentChanBuffer = batch
 	torrentChanSize         = 1024
 
@@ -536,22 +537,21 @@ func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
 }
 
 func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string) {
-	/*array = make([][]string, len(trackers))
+	array = make([][]string, tier)
 	for i, tracker := range trackers {
-		array[i] = []string{"udp" + tracker}
-	}*/
-	array = make([][]string, 1)
+		array[i%tier] = append(array[i%tier], "udp"+tracker)
+	}
+	/*array = make([][]string, 1)
 	for _, tracker := range trackers {
 		array[0] = append(array[0], "udp"+tracker)
-	}
+	}*/
 	return array
 }
 
 func (tm *TorrentManager) buildHttpTrackers(trackers []string) (array [][]string) {
-	//array = make([][]string, len(trackers))
-	array = make([][]string, 1)
-	for _, tracker := range trackers {
-		array[0] = append(array[0], "http"+tracker+"/announce") //[]string{"http" + tracker + "/announce"}
+	array = make([][]string, tier)
+	for i, tracker := range trackers {
+		array[i%tier] = append(array[i%tier], "http"+tracker+"/announce")
 	}
 	return array
 }
@@ -799,8 +799,8 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 10 //len(config.DefaultTrackers)
-	//cfg.HalfOpenConnsPerTorrent = 5
+	cfg.EstablishedConnsPerTorrent = 20 //len(config.DefaultTrackers)
+	cfg.HalfOpenConnsPerTorrent = 10
 	cfg.ListenPort = config.Port
 	//cfg.Debug = true
 	//cfg.DropDuplicatePeerIds = true

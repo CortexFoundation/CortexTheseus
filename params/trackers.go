@@ -20,7 +20,6 @@ package params
 // the main Cortex network.
 var Tracker_ports = []string{"5008", "80", "443", "8333", "30303"}
 var UDP_Tracker_ports = []string{"5008", "30090"}
-
 var MainnetTrackers = []string{
 	"://47.91.91.217:5008",
 	"://47.74.1.234:5008",

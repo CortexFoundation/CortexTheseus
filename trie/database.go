@@ -29,7 +29,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	//"github.com/allegro/bigcache"
 	"github.com/VictoriaMetrics/fastcache"
 )
 
@@ -74,8 +73,7 @@ const secureKeyLength = 11 + 32
 type Database struct {
 	diskdb ctxcdb.KeyValueStore // Persistent storage for matured trie nodes
 
-	//cleans  *bigcache.BigCache          // GC friendly memory cache of clean node RLPs
-	cleans  *fastcache.Cache
+	cleans  *fastcache.Cache            // GC friendly memory cache of clean node RLPs
 	dirties map[common.Hash]*cachedNode // Data and references relationships of dirty nodes
 	oldest  common.Hash                 // Oldest tracked node, flush-list head
 	newest  common.Hash                 // Newest tracked node, flush-list tail
@@ -182,35 +180,31 @@ func (n *cachedNode) obj(hash common.Hash) node {
 	return expandNode(hash[:], n.node)
 }
 
-// childs returns all the tracked children of this node, both the implicit ones
-// from inside the node as well as the explicit ones from outside the node.
-func (n *cachedNode) childs() []common.Hash {
-	children := make([]common.Hash, 0, 16)
+// forChilds invokes the callback for  all the tracked children of this node,
+// both the implicit ones  from inside the node as well as the explicit ones
+//from outside the node.
+func (n *cachedNode) forChilds(onChild func(hash common.Hash)) {
 	for child := range n.children {
-		children = append(children, child)
+		onChild(child)
 	}
 	if _, ok := n.node.(rawNode); !ok {
-		gatherChildren(n.node, &children)
+		forGatherChildren(n.node, onChild)
 	}
-	return children
 }
 
-// gatherChildren traverses the node hierarchy of a collapsed storage node and
-// retrieves all the hashnode children.
-func gatherChildren(n node, children *[]common.Hash) {
+// forGatherChildren traverses the node hierarchy of a collapsed storage node and
+// invokes the callback for all the hashnode children.
+func forGatherChildren(n node, onChild func(hash common.Hash)) {
 	switch n := n.(type) {
 	case *rawShortNode:
-		gatherChildren(n.Val, children)
-
+		forGatherChildren(n.Val, onChild)
 	case rawFullNode:
 		for i := 0; i < 16; i++ {
-			gatherChildren(n[i], children)
+			forGatherChildren(n[i], onChild)
 		}
 	case hashNode:
-		*children = append(*children, common.BytesToHash(n))
-
+		onChild(common.BytesToHash(n))
 	case valueNode, nil:
-
 	default:
 		panic(fmt.Sprintf("unknown node type: %T", n))
 	}
@@ -289,17 +283,8 @@ func NewDatabase(diskdb ctxcdb.KeyValueStore) *Database {
 // before its written out to disk or garbage collected. It also acts as a read cache
 // for nodes loaded from disk.
 func NewDatabaseWithCache(diskdb ctxcdb.KeyValueStore, cache int) *Database {
-	//var cleans *bigcache.BigCache
 	var cleans *fastcache.Cache
 	if cache > 0 {
-		/*cleans, _ = bigcache.NewBigCache(bigcache.Config{
-			Shards:             1024,
-			LifeWindow:         time.Hour,
-			MaxEntriesInWindow: cache * 1024,
-			MaxEntrySize:       512,
-			HardMaxCacheSize:   cache,
-			Hasher:             trienodeHasher{},
-		})*/
 		cleans = fastcache.New(cache * 1024 * 1024)
 	}
 	return &Database{
@@ -338,17 +323,18 @@ func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 		return
 	}
 	memcacheDirtyWriteMeter.Mark(int64(len(blob)))
+
 	// Create the cached entry for this node
 	entry := &cachedNode{
 		node:      simplifyNode(node),
 		size:      uint16(len(blob)),
 		flushPrev: db.newest,
 	}
-	for _, child := range entry.childs() {
+	entry.forChilds(func(child common.Hash) {
 		if c := db.dirties[child]; c != nil {
 			c.parents++
 		}
-	}
+	})
 	db.dirties[hash] = entry
 
 	// Update the flush-list endpoints
@@ -377,7 +363,6 @@ func (db *Database) insertPreimage(hash common.Hash, preimage []byte) {
 func (db *Database) node(hash common.Hash) node {
 	// Retrieve the node from the clean cache if available
 	if db.cleans != nil {
-		//if enc, err := db.cleans.Get(string(hash[:])); err == nil && enc != nil {
 		if enc := db.cleans.Get(nil, hash[:]); enc != nil {
 			memcacheCleanHitMeter.Mark(1)
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
@@ -395,13 +380,13 @@ func (db *Database) node(hash common.Hash) node {
 		return dirty.obj(hash)
 	}
 	memcacheDirtyMissMeter.Mark(1)
+
 	// Content unavailable in memory, attempt to retrieve from disk
 	enc, err := db.diskdb.Get(hash[:])
 	if err != nil || enc == nil {
 		return nil
 	}
 	if db.cleans != nil {
-		//db.cleans.Set(string(hash[:]), enc)
 		db.cleans.Set(hash[:], enc)
 		memcacheCleanMissMeter.Mark(1)
 		memcacheCleanWriteMeter.Mark(int64(len(enc)))
@@ -418,7 +403,6 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	}
 	// Retrieve the node from the clean cache if available
 	if db.cleans != nil {
-		//if enc, err := db.cleans.Get(string(hash[:])); err == nil && enc != nil {
 		if enc := db.cleans.Get(nil, hash[:]); enc != nil {
 			memcacheCleanHitMeter.Mark(1)
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
@@ -436,11 +420,11 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 		return dirty.rlp(), nil
 	}
 	memcacheDirtyMissMeter.Mark(1)
+
 	// Content unavailable in memory, attempt to retrieve from disk
 	enc, err := db.diskdb.Get(hash[:])
 	if err == nil && enc != nil {
 		if db.cleans != nil {
-			//db.cleans.Set(string(hash[:]), enc)
 			db.cleans.Set(hash[:], enc)
 			memcacheCleanMissMeter.Mark(1)
 			memcacheCleanWriteMeter.Mark(int64(len(enc)))
@@ -582,9 +566,9 @@ func (db *Database) dereference(child common.Hash, parent common.Hash) {
 			db.dirties[node.flushNext].flushPrev = node.flushPrev
 		}
 		// Dereference all children and delete the node
-		for _, hash := range node.childs() {
+		node.forChilds(func(hash common.Hash) {
 			db.dereference(hash, child)
-		}
+		})
 		delete(db.dirties, child)
 		db.dirtiesSize -= common.StorageSize(common.HashLength + int(node.size))
 		if node.children != nil {
@@ -778,10 +762,14 @@ func (db *Database) commit(hash common.Hash, batch ctxcdb.Batch, uncacher *clean
 	if !ok {
 		return nil
 	}
-	for _, child := range node.childs() {
-		if err := db.commit(child, batch, uncacher); err != nil {
-			return err
+	var err error
+	node.forChilds(func(child common.Hash) {
+		if err == nil {
+			err = db.commit(child, batch, uncacher)
 		}
+	})
+	if err != nil {
+		return err
 	}
 	if err := batch.Put(hash[:], node.rlp()); err != nil {
 		return err
@@ -838,7 +826,6 @@ func (c *cleaner) Put(key []byte, rlp []byte) error {
 	}
 	// Move the flushed node into the clean cache to prevent insta-reloads
 	if c.db.cleans != nil {
-		//c.db.cleans.Set(string(hash[:]), rlp)
 		c.db.cleans.Set(hash[:], rlp)
 		memcacheCleanWriteMeter.Mark(int64(len(rlp)))
 	}
