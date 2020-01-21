@@ -263,7 +263,8 @@ func (t *Torrent) Seed() {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
+		log.Info("Download success", "hash", t.InfoHash(), "elapsed", elapsed)
+		//log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
 		//t.Torrent.Drop()
 	} else {
 		//t.Torrent.DownloadAll()
@@ -990,10 +991,10 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				if t.Torrent.Info() != nil {
 					if t.start == 0 {
 						if t.isBoosting {
-							log.Info("A <- P (BOOST)", "hash", ih, "pieces", t.Torrent.NumPieces(), "boost", t.isBoosting)
+							log.Info("A <- P (BOOST)", "hash", ih, "boost", t.isBoosting)
 							t.isBoosting = false
 						} else {
-							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces(), "boost", t.isBoosting)
+							log.Info("A <- P (UDP)", "hash", ih, "boost", t.isBoosting)
 						}
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
