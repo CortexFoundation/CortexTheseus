@@ -263,7 +263,7 @@ func (t *Torrent) Seed() {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Download success", "hash", t.InfoHash(), "elapsed", elapsed)
+		log.Info("Finish downloading", "hash", t.InfoHash(), "elapsed", elapsed)
 		//log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
 		//t.Torrent.Drop()
 	} else {
@@ -1162,7 +1162,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						if len(tm.seedingChan) < cap(tm.seedingChan) {
 							log.Debug("Path exist", "hash", ih, "path", path.Join(tm.DataDir, ih.String()))
 							delete(tm.activeTorrents, ih)
-							log.Info("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+							log.Debug("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 							//t.start = mclock.Now()
 							tm.seedingChan <- t
 						}
@@ -1181,7 +1181,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						} else {
 							if len(tm.seedingChan) < cap(tm.seedingChan) {
 								delete(tm.activeTorrents, ih)
-								log.Info("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+								log.Debug("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 								//t.start = mclock.Now()
 								tm.seedingChan <- t
 							}
