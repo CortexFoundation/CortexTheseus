@@ -610,23 +610,21 @@ func (cn *connection) fillWriteBuffer(msg func(pp.Message) bool) {
 // connection is writable.
 func (cn *connection) writer(keepAliveTimeout time.Duration) {
 	var (
-		lastWrite      time.Time = time.Now()
-		keepAliveTimer *time.Timer
+	//lastWrite      time.Time = time.Now()
+	//keepAliveTimer *time.Timer
 	)
-	keepAliveTimer = time.AfterFunc(keepAliveTimeout, func() {
-		cn.mu().Lock()
-		defer cn.mu().Unlock()
+	cn.mu().Lock()
+	defer cn.mu().Unlock()
+	defer cn.Close()
+	/*keepAliveTimer = time.AfterFunc(keepAliveTimeout, func() {
 		if time.Since(lastWrite) >= keepAliveTimeout {
 			cn.tickleWriter()
 		}
 		keepAliveTimer.Reset(keepAliveTimeout)
-	})
-	cn.mu().Lock()
-	defer cn.mu().Unlock()
-	defer cn.Close()
+	})*/
 	defer func() {
-		keepAliveTimer.Reset(0)
-		keepAliveTimer.Stop()
+		//keepAliveTimer.Reset(0)
+		//keepAliveTimer.Stop()
 	}()
 	frontBuf := new(bytes.Buffer)
 	defer func() {
@@ -645,10 +643,10 @@ func (cn *connection) writer(keepAliveTimeout time.Duration) {
 				return cn.writeBuffer.Len() < 1<<16 // 64KiB
 			})
 		}
-		if cn.writeBuffer.Len() == 0 && time.Since(lastWrite) >= keepAliveTimeout {
-			cn.writeBuffer.Write(pp.Message{Keepalive: true}.MustMarshalBinary())
-			postedKeepalives.Add(1)
-		}
+		//if cn.writeBuffer.Len() == 0 && time.Since(lastWrite) >= keepAliveTimeout {
+		//	cn.writeBuffer.Write(pp.Message{Keepalive: true}.MustMarshalBinary())
+		//	postedKeepalives.Add(1)
+		//}
 		if cn.writeBuffer.Len() == 0 {
 			// TODO: Minimize wakeups....
 			cn.writerCond.Wait()
@@ -656,12 +654,12 @@ func (cn *connection) writer(keepAliveTimeout time.Duration) {
 		}
 		// Flip the buffers.
 		frontBuf, cn.writeBuffer = cn.writeBuffer, frontBuf
-		cn.mu().Unlock()
+		//cn.mu().Unlock()
 		n, err := cn.w.Write(frontBuf.Bytes())
-		cn.mu().Lock()
+		//cn.mu().Lock()
 		if n != 0 {
-			lastWrite = time.Now()
-			keepAliveTimer.Reset(keepAliveTimeout)
+			//lastWrite = time.Now()
+			//keepAliveTimer.Reset(keepAliveTimeout)
 		}
 		if err != nil {
 			return

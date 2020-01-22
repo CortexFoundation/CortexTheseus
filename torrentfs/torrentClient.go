@@ -263,7 +263,8 @@ func (t *Torrent) Seed() {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
+		log.Info("Finish downloading", "hash", t.InfoHash(), "elapsed", elapsed)
+		//log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
 		//t.Torrent.Drop()
 	} else {
 		//t.Torrent.DownloadAll()
@@ -476,7 +477,7 @@ func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 	tm.torrents[ih] = torrent
 	tm.lock.Unlock()
 	tm.pendingChan <- torrent
-	log.Info("P <- B", "hash", ih)
+	log.Debug("P <- B", "hash", ih)
 }
 
 func (tm *TorrentManager) Close() error {
@@ -784,7 +785,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//      "max_activenum", config.MaxActiveNum,
 	//    )
 	cfg := torrent.NewDefaultClientConfig()
-	//cfg.DisableUTP = config.DisableUTP
+	cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
 	cfg.DisableTCP = config.DisableTCP
 
@@ -990,10 +991,10 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				if t.Torrent.Info() != nil {
 					if t.start == 0 {
 						if t.isBoosting {
-							log.Info("A <- P (BOOST)", "hash", ih, "pieces", t.Torrent.NumPieces(), "boost", t.isBoosting)
+							log.Info("A <- P (BOOST)", "hash", ih, "boost", t.isBoosting)
 							t.isBoosting = false
 						} else {
-							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces(), "boost", t.isBoosting)
+							log.Info("A <- P (UDP)", "hash", ih, "boost", t.isBoosting)
 						}
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
@@ -1161,7 +1162,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						if len(tm.seedingChan) < cap(tm.seedingChan) {
 							log.Debug("Path exist", "hash", ih, "path", path.Join(tm.DataDir, ih.String()))
 							delete(tm.activeTorrents, ih)
-							log.Info("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+							log.Debug("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 							//t.start = mclock.Now()
 							tm.seedingChan <- t
 						}
@@ -1180,7 +1181,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						} else {
 							if len(tm.seedingChan) < cap(tm.seedingChan) {
 								delete(tm.activeTorrents, ih)
-								log.Info("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+								log.Debug("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 								//t.start = mclock.Now()
 								tm.seedingChan <- t
 							}

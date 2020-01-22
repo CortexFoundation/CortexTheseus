@@ -133,6 +133,7 @@ func (tfs *TorrentFS) Stop() error {
 	}
 	// Wait until every goroutine terminates.
 	tfs.monitor.Stop()
+	tfs.fileCache.Purge()
 	return nil
 }
 
