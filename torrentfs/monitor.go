@@ -642,6 +642,9 @@ func (m *Monitor) Stop() {
 	close(m.exitCh)
 	log.Info("Monitor is waiting to be closed")
 	m.wg.Wait()
+
+	m.blockCache.Purge()
+	m.sizeCache.Purge()
 	/*m.wg.Add(1)
 		m.closeOnce.Do(func() {
 	                defer m.wg.Done()
