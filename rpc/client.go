@@ -468,7 +468,7 @@ func (c *Client) send(ctx context.Context, op *requestOp, msg interface{}) error
 		log.Trace2("", "msg", log.Lazy{Fn: func() string {
 			return fmt.Sprint("sending ", msg)
 		}})
-		err := c.write(ctx, msg)
+		err := c.write(ctx, msg, false)
 		c.sendDone <- err
 		return err
 	case <-ctx.Done():
@@ -483,7 +483,7 @@ func (c *Client) send(ctx context.Context, op *requestOp, msg interface{}) error
 	}
 }
 
-func (c *Client) write(ctx context.Context, msg interface{}) error {
+func (c *Client) write(ctx context.Context, msg interface{}, retry bool) error {
 	deadline, ok := ctx.Deadline()
 	if !ok {
 		deadline = time.Now().Add(defaultWriteTimeout)
@@ -499,6 +499,9 @@ func (c *Client) write(ctx context.Context, msg interface{}) error {
 	c.writeConn.SetWriteDeadline(time.Time{})
 	if err != nil {
 		c.writeConn = nil
+		if !retry {
+			return c.write(ctx, msg, true)
+		}
 	}
 	return err
 }
