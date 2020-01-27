@@ -750,7 +750,7 @@ func (t *Torrent) hashPiece(piece pieceIndex) (ret metainfo.Hash) {
 	p.waitNoPendingWrites()
 	ip := t.info.Piece(int(piece))
 	pl := ip.Length()
-	n, err := io.Copy(hash, io.NewSectionReader(t.pieces[piece].Storage(), 0, pl))
+	n, err := io.CopyN(hash, io.NewSectionReader(t.pieces[piece].Storage(), 0, pl), pl)
 	if n == pl {
 		missinggo.CopyExact(&ret, hash.Sum(nil))
 		return
