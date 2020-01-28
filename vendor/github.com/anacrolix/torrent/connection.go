@@ -1373,14 +1373,14 @@ func (c *connection) receiveChunk(msg *pp.Message) error {
 		return nil
 	}
 
+	c.onDirtiedPiece(pieceIndex(req.Index))
+
 	// It's important that the piece is potentially queued before we check if
 	// the piece is still wanted, because if it is queued, it won't be wanted.
 	if t.pieceAllDirty(pieceIndex(req.Index)) {
 		t.queuePieceCheck(pieceIndex(req.Index))
 		t.pendAllChunkSpecs(pieceIndex(req.Index))
 	}
-
-	c.onDirtiedPiece(pieceIndex(req.Index))
 
 	cl.event.Broadcast()
 	t.publishPieceChange(pieceIndex(req.Index))

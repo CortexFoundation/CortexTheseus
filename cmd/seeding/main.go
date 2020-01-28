@@ -227,9 +227,9 @@ func mainExitCode() int {
 	cfg.SetListenAddr(args.ListenAddr.String())
 	cfg.Seed = true
 	//cfg.EstablishedConnsPerTorrent = 10
-	cfg.HalfOpenConnsPerTorrent = 1
-	cfg.DisableUTP = false
-	cfg.DisableTCP = true
+	cfg.HalfOpenConnsPerTorrent = 10
+	cfg.DisableUTP = true
+	cfg.DisableTCP = false
 	cfg.NoDHT = false
 	client, err := torrent.NewClient(cfg)
 	if err != nil {
