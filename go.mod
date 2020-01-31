@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.0
-	github.com/VictoriaMetrics/fastcache v1.5.6-0.20191231192519-b83c58d2fd5a
+	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/anacrolix/missinggo/v2 v2.3.1
 	github.com/anacrolix/tagflag v1.0.1
 	github.com/anacrolix/torrent v1.11.0
