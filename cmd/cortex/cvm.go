@@ -223,13 +223,14 @@ func cvmServer(ctx *cli.Context) error {
 	log.Info("Initilized inference server with synapse engine", "config", synpapseConfig)
 
 	wg.Add(1)
+	host := "127.0.0.1"
 	go func(port int, inferServer *synapse.Synapse) {
 		defer wg.Done()
-		log.Info("CVM http server listen on 0.0.0.0", "port", port, "uri", "/infer")
+		log.Info("CVM http server listen on "+host, "port", port, "uri", "/infer")
 		mux := http.NewServeMux()
 		mux.HandleFunc("/infer", handler)
 		server := &http.Server{
-			Addr:         ":" + strconv.Itoa(port),
+			Addr:         host + ":" + strconv.Itoa(port),
 			WriteTimeout: 15 * time.Second,
 			ReadTimeout:  15 * time.Second,
 			Handler:      mux,
