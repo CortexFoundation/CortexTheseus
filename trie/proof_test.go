@@ -1,18 +1,18 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package trie
 
@@ -25,7 +25,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
 )
 
 func init() {
@@ -34,18 +34,18 @@ func init() {
 
 // makeProvers creates Merkle trie provers based on different implementations to
 // test all variations.
-func makeProvers(trie *Trie) []func(key []byte) *ctxcdb.MemDatabase {
-	var provers []func(key []byte) *ctxcdb.MemDatabase
+func makeProvers(trie *Trie) []func(key []byte) *memorydb.Database {
+	var provers []func(key []byte) *memorydb.Database
 
 	// Create a direct trie based Merkle prover
-	provers = append(provers, func(key []byte) *ctxcdb.MemDatabase {
-		proof := ctxcdb.NewMemDatabase()
+	provers = append(provers, func(key []byte) *memorydb.Database {
+		proof := memorydb.New()
 		trie.Prove(key, 0, proof)
 		return proof
 	})
 	// Create a leaf iterator based Merkle prover
-	provers = append(provers, func(key []byte) *ctxcdb.MemDatabase {
-		proof := ctxcdb.NewMemDatabase()
+	provers = append(provers, func(key []byte) *memorydb.Database {
+		proof := memorydb.New()
 		if it := NewIterator(trie.NodeIterator(key)); it.Next() && bytes.Equal(key, it.Key) {
 			for _, p := range it.Prove() {
 				proof.Put(crypto.Keccak256(p), p)
@@ -106,9 +106,14 @@ func TestBadProof(t *testing.T) {
 			if proof == nil {
 				t.Fatalf("prover %d: nil proof", i)
 			}
-			key := proof.Keys()[mrand.Intn(proof.Len())]
+			it := proof.NewIterator()
+			for i, d := 0, mrand.Intn(proof.Len()); i <= d; i++ {
+				it.Next()
+			}
+			key := it.Key()
 			val, _ := proof.Get(key)
 			proof.Delete(key)
+			it.Release()
 
 			mutateByte(val)
 			proof.Put(crypto.Keccak256(val), val)
@@ -127,7 +132,7 @@ func TestMissingKeyProof(t *testing.T) {
 	updateString(trie, "k", "v")
 
 	for i, key := range []string{"a", "j", "l", "z"} {
-		proof := ctxcdb.NewMemDatabase()
+		proof := memorydb.New()
 		trie.Prove([]byte(key), 0, proof)
 
 		if proof.Len() != 1 {
@@ -164,8 +169,8 @@ func BenchmarkProve(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		kv := vals[keys[i%len(keys)]]
-		proofs := ctxcdb.NewMemDatabase()
-		if trie.Prove(kv.k, 0, proofs); len(proofs.Keys()) == 0 {
+		proofs := memorydb.New()
+		if trie.Prove(kv.k, 0, proofs); proofs.Len() == 0 {
 			b.Fatalf("zero length proof for %x", kv.k)
 		}
 	}
@@ -175,10 +180,10 @@ func BenchmarkVerifyProof(b *testing.B) {
 	trie, vals := randomTrie(100)
 	root := trie.Hash()
 	var keys []string
-	var proofs []*ctxcdb.MemDatabase
+	var proofs []*memorydb.Database
 	for k := range vals {
 		keys = append(keys, k)
-		proof := ctxcdb.NewMemDatabase()
+		proof := memorydb.New()
 		trie.Prove([]byte(k), 0, proof)
 		proofs = append(proofs, proof)
 	}
