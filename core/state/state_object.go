@@ -232,6 +232,9 @@ func (self *stateObject) setState(key, value common.Hash) {
 
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (self *stateObject) updateTrie(db Database) Trie {
+	if len(self.dirtyStorage) == 0 {
+		return self.trie
+	}
 	tr := self.getTrie(db)
 	for key, value := range self.dirtyStorage {
 		delete(self.dirtyStorage, key)
@@ -256,14 +259,19 @@ func (self *stateObject) updateTrie(db Database) Trie {
 
 // UpdateRoot sets the trie root to the current root hash of
 func (self *stateObject) updateRoot(db Database) {
-	self.updateTrie(db)
+	// If nothing changed, don't bother with hashing anything
+	if self.updateTrie(db) == nil {
+		return
+	}
 	self.data.Root = self.trie.Hash()
 }
 
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
 func (self *stateObject) CommitTrie(db Database) error {
-	self.updateTrie(db)
+	if self.updateTrie(db) == nil {
+		return nil
+	}
 	if self.dbErr != nil {
 		return self.dbErr
 	}
