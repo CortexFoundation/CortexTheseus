@@ -1107,7 +1107,7 @@ func (m *Monitor) deal(block *Block) error {
 				log.Debug("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 			}
 
-			log.Info("Confirm to seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex())
+			log.Info("Confirm to seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 		} else {
 			if i%(batch/8) == 0 {
 				if storeErr := m.fs.WriteBlock(block, false); storeErr != nil {
