@@ -168,13 +168,6 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	return ret
 }
 
-/*func (fs *FileStorage) AddCachedFile(x *FileInfo) error {
-	addr := *x.ContractAddr
-	fs.filesContractAddr[addr] = x
-	fs.files = append(fs.files, x)
-	return nil
-}*/
-
 //func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
 //	return CurrentTorrentManager
 //}
@@ -232,6 +225,9 @@ func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
 	if !update {
 		return 0, nil
 	}
+
+	fs.files = append(fs.files, x)
+
 	return 1, nil
 }
 
@@ -474,6 +470,7 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 					fs.CheckPoint = b.Number
 				}
 			}
+			fs.blocks = append(fs.blocks, b)
 		} else {
 			return err
 		}
