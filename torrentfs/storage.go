@@ -127,7 +127,9 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		return nil, err
 	}
 
-	fs.initFsId()
+	if err := fs.initFsId(); err != nil {
+		return nil, err
+	}
 
 	log.Info("Storage ID init", "id", fs.id)
 
