@@ -390,7 +390,8 @@ func (self *StateDB) StorageTrie(addr common.Address) Trie {
 		return nil
 	}
 	cpy := stateObject.deepCopy(self)
-	return cpy.updateTrie(self.db)
+	cpy.updateTrie(self.db)
+	return cpy.getTrie(self.db)
 }
 
 func (self *StateDB) HasSuicided(addr common.Address) bool {
@@ -812,8 +813,8 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	}
 	// Write trie changes.
 	// Write the account trie changes, measuing the amount of wasted time
+	var account Account
 	return s.trie.Commit(func(leaf []byte, parent common.Hash) error {
-		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
 		}

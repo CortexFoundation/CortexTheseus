@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.0
-	github.com/VictoriaMetrics/fastcache v1.5.6-0.20191231192519-b83c58d2fd5a
+	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/anacrolix/missinggo/v2 v2.3.1
 	github.com/anacrolix/tagflag v1.0.1
 	github.com/anacrolix/torrent v1.11.0
@@ -48,10 +48,10 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
-	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
-	golang.org/x/sys v0.0.0-20200117145432-59e60aa80a0c
-	golang.org/x/tools v0.0.0-20200117220505-0cba7a3a9ee9
+	golang.org/x/crypto v0.0.0-20200208060501-ecb85df21340
+	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
+	golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5
+	golang.org/x/tools v0.0.0-20200207224406-61798d64f025
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20190709231704-1e4459ed25ff

@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexTheseus Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -17,19 +17,17 @@
 package trie
 
 import (
-	"fmt"
+	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
 )
 
-// MissingNodeError is returned by the trie functions (TryGet, TryUpdate, TryDelete)
-// in the case where a trie node is not present in the local database. It contains
-// information necessary for retrieving the missing node.
-type MissingNodeError struct {
-	NodeHash common.Hash // hash of the missing node
-	Path     []byte      // hex-encoded path to the missing node
-}
-
-func (err *MissingNodeError) Error() string {
-	return fmt.Sprintf("missing trie node %x (path %x)", err.NodeHash, err.Path)
+// Tests that the trie database returns a missing trie node error if attempting
+// to retrieve the meta root.
+func TestDatabaseMetarootFetch(t *testing.T) {
+	db := NewDatabase(memorydb.New())
+	if _, err := db.Node(common.Hash{}); err == nil {
+		t.Fatalf("metaroot retrieval succeeded")
+	}
 }

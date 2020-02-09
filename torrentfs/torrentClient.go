@@ -785,7 +785,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//      "max_activenum", config.MaxActiveNum,
 	//    )
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableUTP = true//config.DisableUTP
+	cfg.DisableUTP = true //config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
 	//cfg.DisableTCP = config.DisableTCP
 
@@ -800,8 +800,8 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	cfg.EstablishedConnsPerTorrent = 20 //len(config.DefaultTrackers)
-	cfg.HalfOpenConnsPerTorrent = 10
+	//cfg.EstablishedConnsPerTorrent = 20 //len(config.DefaultTrackers)
+	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.ListenPort = config.Port
 	//cfg.Debug = true
 	//cfg.DropDuplicatePeerIds = true

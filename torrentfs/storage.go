@@ -127,7 +127,9 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		return nil, err
 	}
 
-	fs.initFsId()
+	if err := fs.initFsId(); err != nil {
+		return nil, err
+	}
 
 	log.Info("Storage ID init", "id", fs.id)
 
@@ -165,13 +167,6 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	ret := &FileInfo{Meta, nil, nil, Meta.RawSize}
 	return ret
 }
-
-/*func (fs *FileStorage) AddCachedFile(x *FileInfo) error {
-	addr := *x.ContractAddr
-	fs.filesContractAddr[addr] = x
-	fs.files = append(fs.files, x)
-	return nil
-}*/
 
 //func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
 //	return CurrentTorrentManager
@@ -230,6 +225,9 @@ func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
 	if !update {
 		return 0, nil
 	}
+
+	fs.files = append(fs.files, x)
+
 	return 1, nil
 }
 
@@ -472,6 +470,7 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 					fs.CheckPoint = b.Number
 				}
 			}
+			fs.blocks = append(fs.blocks, b)
 		} else {
 			return err
 		}
