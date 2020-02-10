@@ -51,8 +51,10 @@ echo "... ... Release (${name}.zip) package"
 zip -vr ${name}.zip ${name}
 
 echo "... ... Check sum"
+echo "MD5" >> checksum
 md5sum ${name}.tar.gz >> checksum
 md5sum ${name}.zip >> checksum
+echo "SHA256" >> checksum
 sha256sum ${name}.tar.gz >> checksum
 sha256sum ${name}.zip >> checksum
 cat checksum
