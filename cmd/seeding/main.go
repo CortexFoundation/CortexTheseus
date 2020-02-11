@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/anacrolix/missinggo/v2/slices"
+	//"github.com/anacrolix/missinggo/v2/slices"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
 
@@ -227,7 +227,7 @@ func mainExitCode() int {
 	cfg.SetListenAddr(args.ListenAddr.String())
 	cfg.Seed = true
 	//cfg.EstablishedConnsPerTorrent = 10
-	cfg.HalfOpenConnsPerTorrent = 10
+	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.DisableUTP = true
 	cfg.DisableTCP = false
 	cfg.NoDHT = false
@@ -247,6 +247,8 @@ func mainExitCode() int {
 		array[i] = []string{"udp" + tracker}
 		//array[i] = []string{tracker}
 	}
+
+	log.Println(array)
 
 	go func() {
 		/*
@@ -278,17 +280,18 @@ func mainExitCode() int {
 							log.Printf("error adding torrent to client: %s", err)
 							continue
 						}
-						<-t.GotInfo()
-						t.VerifyData()
-						var ss []string
-						slices.MakeInto(&ss, mi.Nodes)
+						//<-t.GotInfo()
+						//t.VerifyData()
+						//var ss []string
+						//slices.MakeInto(&ss, mi.Nodes)
 						t.DownloadAll()
-						go func() {
-							time.Sleep(time.Second * 5)
-							if t.Seeding() {
-								log.Println(ih, "is seeding")
-							}
-						}()
+						client.WaitAll()
+						//go func() {
+						//	time.Sleep(time.Second * 5)
+						if t.Seeding() {
+							log.Println(ih, "is seeding")
+						}
+						//}()
 					}
 					if err != nil {
 						log.Printf("error adding torrent to client: %s", err)
