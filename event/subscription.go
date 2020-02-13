@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package event
 
@@ -145,7 +145,6 @@ func (s *resubscribeSub) loop() {
 func (s *resubscribeSub) subscribe() Subscription {
 	subscribed := make(chan error)
 	var sub Subscription
-retry:
 	for {
 		s.lastTry = mclock.Now()
 		ctx, cancel := context.WithCancel(context.Background())
@@ -157,19 +156,19 @@ retry:
 		select {
 		case err := <-subscribed:
 			cancel()
-			if err != nil {
-				// Subscribing failed, wait before launching the next try.
-				if s.backoffWait() {
-					return nil
+			if err == nil {
+				if sub == nil {
+					panic("event: ResubscribeFunc returned nil subscription and no error")
 				}
-				continue retry
+				return sub
 			}
-			if sub == nil {
-				panic("event: ResubscribeFunc returned nil subscription and no error")
+			// Subscribing failed, wait before launching the next try.
+			if s.backoffWait() {
+				return nil // unsubscribed during wait
 			}
-			return sub
 		case <-s.unsub:
 			cancel()
+			<-subscribed // avoid leaking the s.fn goroutine.
 			return nil
 		}
 	}
