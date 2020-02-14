@@ -18,7 +18,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 	"sort"
@@ -52,6 +51,10 @@ const (
 )
 
 var (
+	// ErrAlreadyKnown is returned if the transactions is already contained
+	// within the pool.
+	ErrAlreadyKnown = errors.New("already known")
+
 	// ErrInvalidSender is returned if the transaction contains an invalid signature.
 	ErrInvalidSender = errors.New("invalid sender")
 
@@ -582,7 +585,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	if pool.all.Get(hash) != nil {
 		knownTxMeter.Mark(1)
 		log.Trace("Discarding already known transaction", "hash", hash)
-		return false, fmt.Errorf("known transaction: %x", hash)
+		return false, ErrAlreadyKnown
 	}
 
 	// If the transaction fails basic validation, discard it
@@ -793,7 +796,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 	for i, tx := range txs {
 		// If the transaction is known, pre-set the error slot
 		if pool.all.Get(tx.Hash()) != nil {
-			errs[i] = fmt.Errorf("known transaction: %x", tx.Hash())
+			errs[i] = ErrAlreadyKnown
 			knownTxMeter.Mark(1)
 			continue
 		}
