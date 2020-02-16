@@ -839,11 +839,11 @@ func (srv *Server) checkInboundConn(fd net.Conn, remoteIP net.IP) error {
 			return fmt.Errorf("not whitelisted in NetRestrict")
 		}
 		// Reject Internet peers that try too often.
-		srv.inboundHistory.expire(time.Now())
+		srv.inboundHistory.expire(mclock.Now(), nil)
 		if !netutil.IsLAN(remoteIP) && srv.inboundHistory.contains(remoteIP.String()) {
 			return fmt.Errorf("too many attempts")
 		}
-		srv.inboundHistory.add(remoteIP.String(), time.Now().Add(inboundThrottleTime))
+		srv.inboundHistory.add(remoteIP.String(), mclock.Now().Add(inboundThrottleTime))
 	}
 	return nil
 }
