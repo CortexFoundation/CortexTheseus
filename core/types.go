@@ -35,6 +35,14 @@ type Validator interface {
 	ValidateState(block, parent *types.Block, state *state.StateDB, receipts types.Receipts, usedGas uint64) error
 }
 
+// Prefetcher is an interface for pre-caching transaction signatures and state.
+type Prefetcher interface {
+	// Prefetch processes the state changes according to the Ethereum rules by running
+	// the transaction messages using the statedb, but any changes are discarded. The
+	// only goal is to pre-cache transaction signatures and state trie nodes.
+	Prefetch(block *types.Block, statedb *state.StateDB, cfg vm.Config, interrupt *uint32)
+}
+
 // Processor is an interface for processing blocks using a given initial state.
 //
 // Process takes the block to be processed and the statedb upon which the

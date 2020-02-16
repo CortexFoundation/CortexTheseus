@@ -149,10 +149,11 @@ type BlockChain struct {
 	procInterrupt int32          // interrupt signaler for block processing
 	wg            sync.WaitGroup // chain processing wait group for shutting down
 
-	engine    consensus.Engine
-	processor Processor // block processor interface
-	validator Validator // block and state validator interface
-	vmConfig  vm.Config
+	engine     consensus.Engine
+	processor  Processor  // block processor interface
+	prefetcher Prefetcher // Block state prefetcher interface
+	validator  Validator  // block and state validator interface
+	vmConfig   vm.Config
 
 	shouldPreserve func(*types.Block) bool
 
@@ -194,8 +195,11 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 		vmConfig:      vmConfig,
 		badBlocks:     badBlocks,
 	}
-	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
-	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
+	//bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
+	bc.validator = NewBlockValidator(chainConfig, bc, engine)
+	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
+	//bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
+	bc.processor = NewStateProcessor(chainConfig, bc, engine)
 
 	var err error
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.getProcInterrupt)
@@ -1616,6 +1620,22 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 		dbState, pErr = state.New(parent.Root(), bc.stateCache)
 		if pErr != nil {
 			return i, events, coalescedLogs, pErr
+		}
+		// If we have a followup block, run that against the current state to pre-cache
+		// transactions and probabilistically some of the account/storage trie nodes.
+		var followupInterrupt uint32
+		if !bc.cacheConfig.TrieCleanNoPrefetch && i+1 < len(chain) {
+			if followup := chain[i+1]; followup != nil {
+				throwaway, _ := state.New(parent.Root(), bc.stateCache)
+				go func(start time.Time, followup *types.Block, throwaway *state.StateDB, interrupt *uint32) {
+					bc.prefetcher.Prefetch(followup, throwaway, bc.vmConfig, interrupt)
+
+					blockPrefetchExecuteTimer.Update(time.Since(start))
+					if atomic.LoadUint32(interrupt) == 1 {
+						blockPrefetchInterruptMeter.Mark(1)
+					}
+				}(time.Now(), followup, throwaway, &followupInterrupt)
+			}
 		}
 		//block quota init by parent consensus
 		block.Header().Quota.Add(parent.Quota(), new(big.Int).SetUint64(bc.chainConfig.GetBlockQuota(block.Number())))
