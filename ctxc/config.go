@@ -119,7 +119,7 @@ type Config struct {
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
 
 	// Istanbul block override (TODO: remove after the fork)
-	OverrideIstanbul *big.Int
+	OverrideIstanbul *big.Int `toml:",omitempty"`
 }
 
 type configMarshaling struct {
