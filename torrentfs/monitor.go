@@ -609,7 +609,11 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 						if file.Meta.RawSize > file.LeftSize {
 							bytesRequested = file.Meta.RawSize - file.LeftSize
 						}
-						log.Info("Data processing", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						if file.LeftSize == 0 {
+							log.Info("Data processing completed !!!", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						} else {
+							log.Info("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						}
 
 						m.dl.UpdateTorrent(FlowControlMeta{
 							InfoHash:       file.Meta.InfoHash,
