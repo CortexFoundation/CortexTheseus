@@ -99,6 +99,7 @@ func newIstanbulInstructionSet() [256]operation {
 
 	// enable2200 applies EIP-2200 (Rebalance net-metered SSTORE)
 	//instructionSet[SSTORE].dynamicGas = gasSStoreEIP2200
+	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP2200)
 	instructionSet[SSTORE].gasCost = gasSStoreEIP2200
 
 	return instructionSet
