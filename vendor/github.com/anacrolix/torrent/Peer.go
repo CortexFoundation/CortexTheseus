@@ -11,9 +11,8 @@ import (
 // Peer connection info, handed about publicly.
 type Peer struct {
 	Id     [20]byte
-	IP     net.IP
-	Port   int
-	Source peerSource
+	Addr   net.Addr
+	Source PeerSource
 	// Peer is known to support encryption.
 	SupportsEncryption bool
 	peer_protocol.PexPeerFlags
@@ -21,10 +20,10 @@ type Peer struct {
 	Trusted bool
 }
 
+// FromPex generate Peer from peer exchange
 func (me *Peer) FromPex(na krpc.NodeAddr, fs peer_protocol.PexPeerFlags) {
-	me.IP = append([]byte(nil), na.IP...)
-	me.Port = na.Port
-	me.Source = peerSourcePex
+	me.Addr = ipPortAddr{append([]byte(nil), na.IP...), na.Port}
+	me.Source = PeerSourcePex
 	// If they prefer encryption, they must support it.
 	if fs.Get(peer_protocol.PexPrefersEncryption) {
 		me.SupportsEncryption = true
@@ -33,5 +32,5 @@ func (me *Peer) FromPex(na krpc.NodeAddr, fs peer_protocol.PexPeerFlags) {
 }
 
 func (me Peer) addr() IpPort {
-	return IpPort{me.IP, uint16(me.Port)}
+	return IpPort{IP: addrIpOrNil(me.Addr), Port: uint16(addrPortOrZero(me.Addr))}
 }

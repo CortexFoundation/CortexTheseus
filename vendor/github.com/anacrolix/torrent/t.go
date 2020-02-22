@@ -9,8 +9,7 @@ import (
 	"github.com/anacrolix/torrent/metainfo"
 )
 
-// The torrent's infohash. This is fixed and cannot change. It uniquely
-// identifies a torrent.
+// The Torrent's infohash. This is fixed and cannot change. It uniquely identifies a torrent.
 func (t *Torrent) InfoHash() metainfo.Hash {
 	return t.infoHash
 }
@@ -29,8 +28,8 @@ func (t *Torrent) Info() *metainfo.Info {
 	return t.info
 }
 
-// Returns a Reader bound to the torrent's data. All read calls block until
-// the data requested is actually available.
+// Returns a Reader bound to the torrent's data. All read calls block until the data requested is
+// actually available. Note that you probably want to ensure the Torrent Info is available first.
 func (t *Torrent) NewReader() Reader {
 	r := reader{
 		mu:        t.cl.locker(),
@@ -243,4 +242,12 @@ func (t *Torrent) AddTrackers(announceList [][]string) {
 
 func (t *Torrent) Piece(i pieceIndex) *Piece {
 	return t.piece(i)
+}
+
+func (t *Torrent) PeerConns() []*PeerConn {
+	ret := make([]*PeerConn, 0, len(t.conns))
+	for c := range t.conns {
+		ret = append(ret, c)
+	}
+	return ret
 }

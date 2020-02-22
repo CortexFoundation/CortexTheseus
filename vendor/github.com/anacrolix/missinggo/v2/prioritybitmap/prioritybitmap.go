@@ -20,7 +20,6 @@ var (
 
 // Maintains set of ints ordered by priority.
 type PriorityBitmap struct {
-	mu sync.Mutex
 	// From priority to singleton or set of bit indices.
 	om orderedmap.OrderedMap
 	// From bit index to priority
@@ -117,8 +116,6 @@ func (me *PriorityBitmap) Set(bit int, priority int) bool {
 }
 
 func (me *PriorityBitmap) Remove(bit int) bool {
-	me.mu.Lock()
-	defer me.mu.Unlock()
 	if _, ok := me.deleteBit(bit); !ok {
 		return false
 	}
@@ -139,14 +136,10 @@ func (me *PriorityBitmap) Iter(f iter.Callback) {
 }
 
 func (me *PriorityBitmap) IterTyped(_f func(i bitmap.BitIndex) bool) bool {
-	me.mu.Lock()
-	defer me.mu.Unlock()
 	if me == nil || me.om == nil {
 		return true
 	}
 	f := func(i int) bool {
-		me.mu.Unlock()
-		defer me.mu.Lock()
 		return _f(i)
 	}
 	return iter.All(func(key interface{}) bool {
