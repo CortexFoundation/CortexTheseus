@@ -5,12 +5,12 @@ go 1.13
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.0
 	github.com/VictoriaMetrics/fastcache v1.5.7
-	github.com/anacrolix/missinggo/v2 v2.3.1
+	github.com/anacrolix/missinggo/v2 v2.4.0
 	github.com/anacrolix/tagflag v1.0.1
-	github.com/anacrolix/torrent v1.11.0
+	github.com/anacrolix/torrent v1.14.1-0.20200221035621-b16118ee1855
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 	github.com/bitly/go-simplejson v0.5.1-0.20181114203107-9db4a59bd4d8
-	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c
+	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
 	github.com/cespare/cp v1.1.1
 	github.com/davecgh/go-spew v1.1.1
@@ -49,7 +49,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
+	golang.org/x/net v0.0.0-20200222033325-078779b8f2d8
 	golang.org/x/sys v0.0.0-20200217220822-9197077df867
 	golang.org/x/tools v0.0.0-20200218205902-f8e42dc47720
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
