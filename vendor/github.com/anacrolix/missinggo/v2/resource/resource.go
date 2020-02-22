@@ -11,9 +11,13 @@ type Instance interface {
 	Get() (io.ReadCloser, error)
 	Put(io.Reader) error
 	Stat() (os.FileInfo, error)
-	ReadAt([]byte, int64) (int, error)
+	io.ReaderAt
 	WriteAt([]byte, int64) (int, error)
 	Delete() error
+}
+
+type DirInstance interface {
+	Readdirnames() ([]string, error)
 }
 
 // Creates a io.ReadSeeker to an Instance.

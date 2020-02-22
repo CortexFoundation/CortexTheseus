@@ -19,16 +19,13 @@ import (
 	"github.com/anacrolix/torrent/storage"
 )
 
-var DefaultHTTPUserAgent = "Go-Torrent/1.0"
-
 // Probably not safe to modify this after it's given to a Client.
 type ClientConfig struct {
 	// Store torrent file data in this directory unless .DefaultStorage is
 	// specified.
 	DataDir string `long:"data-dir" description:"directory to store downloaded torrent data"`
-	// The address to listen for new uTP and TCP bittorrent protocol
-	// connections. DHT shares a UDP socket with uTP unless configured
-	// otherwise.
+	// The address to listen for new uTP and TCP BitTorrent protocol connections. DHT shares a UDP
+	// socket with uTP unless configured otherwise.
 	ListenHost              func(network string) string
 	ListenPort              int
 	NoDefaultPortForwarding bool
@@ -68,7 +65,7 @@ type ClientConfig struct {
 	DisableTCP bool `long:"disable-tcp"`
 	// Called to instantiate storage for each added torrent. Builtin backends
 	// are in the storage package. If not set, the "file" implementation is
-	// used.
+	// used (and Closed when the Client is Closed).
 	DefaultStorage storage.ClientImpl
 
 	HeaderObfuscationPolicy HeaderObfuscationPolicy
@@ -76,11 +73,6 @@ type ClientConfig struct {
 	CryptoProvides mse.CryptoMethod
 	// Chooses the crypto method to use when receiving connections with header obfuscation.
 	CryptoSelector mse.CryptoSelector
-
-	// Sets usage of Socks5 Proxy. Authentication should be included in the url if needed.
-	// Examples: socks5://demo:demo@192.168.99.100:1080
-	// 			 http://proxy.domain.com:3128
-	ProxyURL string
 
 	IPBlocklist      iplist.Ranger
 	DisableIPv6      bool `long:"disable-ipv6"`
@@ -90,11 +82,8 @@ type ClientConfig struct {
 	Debug  bool `help:"enable debugging"`
 	Logger log.Logger
 
-	// HTTPProxy defines proxy for HTTP requests.
-	// Format: func(*Request) (*url.URL, error),
-	// or result of http.ProxyURL(HTTPProxy).
-	// By default, it is composed from ClientConfig.ProxyURL,
-	// if not set explicitly in ClientConfig struct
+	// Defines proxy for HTTP requests, such as for trackers. It's commonly set from the result of
+	// "net/http".ProxyURL(HTTPProxy).
 	HTTPProxy func(*http.Request) (*url.URL, error)
 	// HTTPUserAgent changes default UserAgent for HTTP requests
 	HTTPUserAgent string
@@ -137,6 +126,8 @@ type ClientConfig struct {
 
 	// OnQuery hook func
 	DHTOnQuery func(query *krpc.Msg, source net.Addr) (propagate bool)
+
+	DefaultRequestStrategy RequestStrategyMaker
 }
 
 func (cfg *ClientConfig) SetListenAddr(addr string) *ClientConfig {
@@ -149,7 +140,7 @@ func (cfg *ClientConfig) SetListenAddr(addr string) *ClientConfig {
 
 func NewDefaultClientConfig() *ClientConfig {
 	cc := &ClientConfig{
-		HTTPUserAgent:                  DefaultHTTPUserAgent,
+		HTTPUserAgent:                  "Go-Torrent/1.0",
 		ExtendedHandshakeClientVersion: "go.torrent dev 20181121",
 		Bep20:                          "-GT0002-",
 		UpnpID:                         "anacrolix/torrent",
@@ -173,7 +164,9 @@ func NewDefaultClientConfig() *ClientConfig {
 		CryptoSelector: mse.DefaultCryptoSelector,
 		CryptoProvides: mse.AllSupportedCrypto,
 		ListenPort:     42069,
-		Logger:         log.Default(),
+		Logger:         log.Default,
+
+		DefaultRequestStrategy: RequestStrategyDuplicateRequestTimeout(5 * time.Second),
 	}
 	//cc.ConnTracker.SetNoMaxEntries()
 	//cc.ConnTracker.Timeout = func(conntrack.Entry) time.Duration { return 0 }

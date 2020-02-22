@@ -158,7 +158,7 @@ func NewServer(c *ServerConfig) (s *Server, err error) {
 	// If Logger is empty, emulate the old behaviour: Everything is logged to the default location,
 	// and there are no debug messages.
 	if c.Logger.LoggerImpl == nil {
-		c.Logger = log.Default().WithFilter(func(m log.Msg) bool {
+		c.Logger = log.Default.WithFilter(func(m log.Msg) bool {
 			return !m.HasValue(log.Debug)
 		})
 	}
@@ -390,8 +390,6 @@ func (s *Server) setReturnNodes(r *krpc.Return, queryMsg krpc.Msg, querySource A
 	return nil
 }
 
-// TODO: Probably should write error messages back to senders if something is
-// wrong.
 func (s *Server) handleQuery(source Addr, m krpc.Msg) {
 	go func() {
 		expvars.Add(fmt.Sprintf("received query %q", m.Q), 1)
