@@ -7,7 +7,7 @@ require (
 	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/anacrolix/missinggo/v2 v2.4.0
 	github.com/anacrolix/tagflag v1.0.1
-	github.com/anacrolix/torrent v1.14.1-0.20200221035621-b16118ee1855
+	github.com/anacrolix/torrent v1.14.1-0.20200222083856-ddc61845acb7
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 	github.com/bitly/go-simplejson v0.5.1-0.20181114203107-9db4a59bd4d8
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
