@@ -23,12 +23,15 @@ import (
 )
 
 var (
-	propAnnounceInMeter   = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/in", nil)
-	propAnnounceOutTimer  = metrics.NewRegisteredTimer("ctxc/fetcher/prop/announces/out", nil)
-	propAnnounceDropMeter = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/drop", nil)
-	propAnnounceDOSMeter  = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/dos", nil)
+	// Useful block announcements == announcements we did not already know about
+	propAnnounceUsefulInMeter = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/useful", nil)
+	propAnnounceOutTimer      = metrics.NewRegisteredTimer("ctxc/fetcher/prop/announces/out", nil)
+	propAnnounceDropMeter     = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/drop", nil)
+	propAnnounceDOSMeter      = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/dos", nil)
 
-	propBroadcastInMeter   = metrics.NewRegisteredMeter("ctxc/fetcher/prop/broadcasts/in", nil)
+	// All useful incoming block broadcasts == broadcasts we did not already have
+	propBroadcastUsefulMeter = metrics.NewRegisteredMeter("ctxc/fetcher/prop/broadcasts/useful", nil)
+
 	propBroadcastOutTimer  = metrics.NewRegisteredTimer("ctxc/fetcher/prop/broadcasts/out", nil)
 	propBroadcastDropMeter = metrics.NewRegisteredMeter("ctxc/fetcher/prop/broadcasts/drop", nil)
 	propBroadcastDOSMeter  = metrics.NewRegisteredMeter("ctxc/fetcher/prop/broadcasts/dos", nil)
