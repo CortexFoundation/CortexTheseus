@@ -91,6 +91,14 @@ var freezerNoSnappy = map[string]bool{
 	freezerDifficultyTable: true,
 }
 
+// LegacyTxLookupEntry is the legacy TxLookupEntry definition with some unnecessary
+// fields.
+type LegacyTxLookupEntry struct {
+	BlockHash  common.Hash
+	BlockIndex uint64
+	Index      uint64
+}
+
 // TxLookupEntry is a positional metadata to help looking up the data content of
 // a transaction or receipt given only its hash.
 type TxLookupEntry struct {

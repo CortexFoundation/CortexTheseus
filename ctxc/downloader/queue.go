@@ -565,7 +565,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 // CancelHeaders aborts a fetch request, returning all pending skeleton indexes to the queue.
 func (q *queue) CancelHeaders(request *fetchRequest) {
 	q.lock.Lock()
-        defer q.lock.Unlock()
+	defer q.lock.Unlock()
 	q.cancel(request, q.headerTaskQueue, q.headerPendPool)
 }
 
@@ -573,7 +573,7 @@ func (q *queue) CancelHeaders(request *fetchRequest) {
 // task queue.
 func (q *queue) CancelBodies(request *fetchRequest) {
 	q.lock.Lock()
-        defer q.lock.Unlock()
+	defer q.lock.Unlock()
 	q.cancel(request, q.blockTaskQueue, q.blockPendPool)
 }
 
@@ -581,7 +581,7 @@ func (q *queue) CancelBodies(request *fetchRequest) {
 // the task queue.
 func (q *queue) CancelReceipts(request *fetchRequest) {
 	q.lock.Lock()
-        defer q.lock.Unlock()
+	defer q.lock.Unlock()
 	q.cancel(request, q.receiptTaskQueue, q.receiptPendPool)
 }
 
