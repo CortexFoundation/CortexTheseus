@@ -468,7 +468,11 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 			if err := fs.addLeaf(b); err == nil {
 				if err := fs.writeCheckPoint(); err == nil {
 					fs.CheckPoint = b.Number
+				} else {
+					panic(err.Error())
 				}
+			} else {
+				panic(err.Error())
 			}
 			fs.blocks = append(fs.blocks, b)
 		} else {
