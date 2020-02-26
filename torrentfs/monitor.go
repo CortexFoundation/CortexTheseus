@@ -1105,10 +1105,16 @@ func (m *Monitor) deal(block *Block) error {
 			}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 
-			if i == m.ckp.TfsCheckPoint && m.fs.Root() == m.ckp.TfsRoot {
-				log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
-			} else {
-				log.Debug("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
+			if m.ckp != nil {
+				if i == m.ckp.TfsCheckPoint {
+					if m.fs.Root() == m.ckp.TfsRoot {
+						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
+					} else {
+						panic("Fs sync fatal error")
+					}
+				} else {
+					log.Debug("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
+				}
 			}
 
 			log.Info("Confirm to seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
