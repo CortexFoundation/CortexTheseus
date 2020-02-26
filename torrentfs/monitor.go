@@ -853,7 +853,7 @@ func (m *Monitor) listenLatestBlock() {
 		select {
 		case <-timer.C:
 			progress = m.syncLastBlock()
-			// Aviod sync in full mode, fresh interval may be less.
+			// Avoid sync in full mode, fresh interval may be less.
 			if progress >= batch {
 				timer.Reset(0)
 			} else if progress > 6 {
