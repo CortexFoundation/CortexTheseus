@@ -1106,7 +1106,7 @@ func (m *Monitor) deal(block *Block) error {
 			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 
 			if m.ckp != nil {
-				if i == m.ckp.TfsCheckPoint {
+				if m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
 					if m.fs.Root() == m.ckp.TfsRoot {
 						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 					} else {
