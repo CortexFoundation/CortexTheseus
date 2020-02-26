@@ -286,14 +286,14 @@ func (bc *BlockChain) loadLastState() error {
 	if head == (common.Hash{}) {
 		// Corrupt or empty database, init from scratch
 		log.Warn("Empty database, resetting chain")
-		return bc.resetWithGenesisBlockNoLock(bc.genesisBlock)
+		return bc.Reset()
 	}
 	// Make sure the entire head block is available
 	currentBlock := bc.GetBlockByHash(head)
 	if currentBlock == nil {
 		// Corrupt or empty database, init from scratch
 		log.Warn("Head block missing, resetting chain", "hash", head)
-		return bc.resetWithGenesisBlockNoLock(bc.genesisBlock)
+		return bc.Reset()
 	}
 	// Make sure the state associated with the block is available
 	if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
