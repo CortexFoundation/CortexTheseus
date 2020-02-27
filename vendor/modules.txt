@@ -32,7 +32,7 @@ github.com/anacrolix/missinggo/slices
 github.com/anacrolix/missinggo/x
 # github.com/anacrolix/missinggo/perf v1.0.0
 github.com/anacrolix/missinggo/perf
-# github.com/anacrolix/missinggo/v2 v2.4.0
+# github.com/anacrolix/missinggo/v2 v2.4.1-0.20200227072623-f02f6484f997
 github.com/anacrolix/missinggo/v2
 github.com/anacrolix/missinggo/v2/bitmap
 github.com/anacrolix/missinggo/v2/conntrack
@@ -52,7 +52,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.14.1-0.20200222083856-ddc61845acb7
+# github.com/anacrolix/torrent v1.14.1-0.20200227073344-7fe199992c7e
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
@@ -96,6 +96,8 @@ github.com/edsrzf/mmap-go
 # github.com/elastic/gosigar v0.10.5
 github.com/elastic/gosigar
 github.com/elastic/gosigar/sys/windows
+# github.com/elliotchance/orderedmap v1.2.0
+github.com/elliotchance/orderedmap
 # github.com/etcd-io/bbolt v1.3.3
 github.com/etcd-io/bbolt
 # github.com/fatih/color v1.7.0
