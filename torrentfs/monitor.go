@@ -291,7 +291,8 @@ func (m *Monitor) taskLoop() {
 			//}
 
 			if err := m.deal(task); err != nil {
-				log.Warn("Block dealing failed", "err", err)
+				log.Warn("Block dealing failed, try again", "err", err, "num", task.Number)
+				m.deal(task)
 			}
 		case <-m.exitCh:
 			log.Info("Monitor task channel closed")

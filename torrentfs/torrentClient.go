@@ -474,8 +474,8 @@ func (tm *TorrentManager) GetTorrent(ih metainfo.Hash) *Torrent {
 
 func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 	tm.lock.Lock()
+	defer tm.lock.Unlock()
 	tm.torrents[ih] = torrent
-	tm.lock.Unlock()
 	tm.pendingChan <- torrent
 	log.Debug("P <- B", "hash", ih)
 }
