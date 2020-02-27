@@ -721,6 +721,8 @@ func (m *Monitor) Start() error {
 	//return err
 }
 
+var scope = uint64(runtime.NumCPU())
+
 func (m *Monitor) startWork() error {
 	// Wait for ipc start...
 	//time.Sleep(time.Second)
@@ -990,7 +992,7 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 const (
 	batch = params.SyncBatch
 	delay = params.Delay
-	scope = params.Scope
+	//scope = runtime.NumCPU()//params.Scope
 )
 
 func (m *Monitor) syncLastBlock() uint64 {
@@ -1088,7 +1090,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	if maxNumber-minNumber > delay/2 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a)
+		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a, "scope", scope)
 	}
 	return uint64(maxNumber - minNumber)
 }
