@@ -40,7 +40,9 @@ type Torrent struct {
 	cl     *Client
 	logger log.Logger
 
-	networkingEnabled bool
+	networkingEnabled      bool
+	dataDownloadDisallowed bool
+	userOnWriteChunkErr    func(error)
 
 	// Determines what chunks to request from peers.
 	requestStrategy requestStrategy
@@ -501,7 +503,7 @@ func (t *Torrent) newMetadataExtensionMessage(c *PeerConn, msgType int, piece in
 	}
 }
 
-func (t *Torrent) pieceStateRuns() (ret []PieceStateRun) {
+func (t *Torrent) pieceStateRuns() (ret PieceStateRuns) {
 	rle := missinggo.NewRunLengthEncoder(func(el interface{}, count uint64) {
 		ret = append(ret, PieceStateRun{
 			PieceState: el.(PieceState),
@@ -516,7 +518,7 @@ func (t *Torrent) pieceStateRuns() (ret []PieceStateRun) {
 }
 
 // Produces a small string representing a PieceStateRun.
-func pieceStateRunStatusChars(psr PieceStateRun) (ret string) {
+func (psr PieceStateRun) String() (ret string) {
 	ret = fmt.Sprintf("%d", psr.Length)
 	ret += func() string {
 		switch psr.Priority {
@@ -574,11 +576,7 @@ func (t *Torrent) writeStatus(w io.Writer) {
 	}())
 	if t.info != nil {
 		fmt.Fprintf(w, "Num Pieces: %d (%d completed)\n", t.numPieces(), t.numPiecesCompleted())
-		fmt.Fprint(w, "Piece States:")
-		for _, psr := range t.pieceStateRuns() {
-			w.Write([]byte(" "))
-			w.Write([]byte(pieceStateRunStatusChars(psr)))
-		}
+		fmt.Fprintf(w, "Piece States: %s", t.pieceStateRuns())
 		fmt.Fprintln(w)
 	}
 	fmt.Fprintf(w, "Reader Pieces:")
@@ -726,7 +724,7 @@ func (t *Torrent) writeChunk(piece int, begin int64, data []byte) (err error) {
 	if err == nil && n != len(data) {
 		err = io.ErrShortWrite
 	}
-	return
+	return err
 }
 
 func (t *Torrent) bitfield() (bf []bool) {
@@ -1684,8 +1682,10 @@ func (t *Torrent) pieceHasher(index pieceIndex) {
 	p := t.piece(index)
 	sum, copyErr := t.hashPiece(index)
 	correct := sum == *p.hash
-	if !correct {
-		//log.Fmsg("piece %v (%s) hash failure copy error: %v", p, p.hash.HexString(), copyErr).Log(t.logger)
+	switch copyErr {
+	case nil, io.EOF:
+	default:
+		log.Fmsg("piece %v (%s) hash failure copy error: %v", p, p.hash.HexString(), copyErr).Log(t.logger)
 	}
 	t.storageLock.RUnlock()
 	t.cl.lock()
@@ -1809,4 +1809,43 @@ func (cb torrentRequestStrategyCallbacks) requestTimedOut(r request) {
 
 func (t *Torrent) requestStrategyCallbacks() requestStrategyCallbacks {
 	return torrentRequestStrategyCallbacks{t}
+}
+
+func (t *Torrent) onWriteChunkErr(err error) {
+	if t.userOnWriteChunkErr != nil {
+		go t.userOnWriteChunkErr(err)
+		return
+	}
+	t.disallowDataDownloadLocked()
+}
+
+func (t *Torrent) DisallowDataDownload() {
+	t.cl.lock()
+	defer t.cl.unlock()
+	t.disallowDataDownloadLocked()
+}
+
+func (t *Torrent) disallowDataDownloadLocked() {
+	log.Printf("disallowing data download")
+	t.dataDownloadDisallowed = true
+	for c := range t.conns {
+		c.updateRequests()
+	}
+}
+
+func (t *Torrent) AllowDataDownload() {
+	t.cl.lock()
+	defer t.cl.unlock()
+	log.Printf("AllowDataDownload")
+	t.dataDownloadDisallowed = false
+	for c := range t.conns {
+		c.updateRequests()
+	}
+
+}
+
+func (t *Torrent) SetOnWriteChunkError(f func(error)) {
+	t.cl.lock()
+	defer t.cl.unlock()
+	t.userOnWriteChunkErr = f
 }
