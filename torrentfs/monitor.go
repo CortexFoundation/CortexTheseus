@@ -55,7 +55,7 @@ type TorrentManagerAPI interface {
 	Close() error
 	//RemoveTorrent(metainfo.Hash) error
 	UpdateTorrent(interface{}) error
-	UpdateDynamicTrackers(trackers []string)
+	//UpdateDynamicTrackers(trackers []string)
 	GetTorrent(ih metainfo.Hash) *Torrent
 }
 
@@ -74,7 +74,7 @@ type Monitor struct {
 	exitCh     chan struct{}
 	terminated int32
 	lastNumber uint64
-	dirty      bool
+	//dirty      bool
 
 	//closeOnce sync.Once
 	wg sync.WaitGroup
@@ -126,9 +126,9 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		exitCh:     make(chan struct{}),
 		terminated: 0,
 		lastNumber: uint64(0),
-		dirty:      false,
-		taskCh:     make(chan *Block, batch),
-		start:      mclock.Now(),
+		//dirty:      false,
+		taskCh: make(chan *Block, batch),
+		start:  mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
 	//m.healthPeers, _ = lru.New(0)
