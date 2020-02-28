@@ -995,30 +995,44 @@ const (
 	//scope = runtime.NumCPU()//params.Scope
 )
 
-func (m *Monitor) syncLastBlock() uint64 {
+func (m *Monitor) currentBlock() (uint64, error) {
 	var currentNumber hexutil.Uint64
 
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
 		log.Error("Call ipc method ctx_blockNumber failed", "error", err)
-		return 0
+		return 0, err
 	}
+	return uint64(currentNumber), nil
+}
+
+func (m *Monitor) syncLastBlock() uint64 {
+	//var currentNumber hexutil.Uint64
+
+	//if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
+	//	log.Error("Call ipc method ctx_blockNumber failed", "error", err)
+	//	return 0
+	//}
 
 	//if uint64(currentNumber) <= 0 {
 	//	return 0
 	//}
+	currentNumber, err := m.currentBlock()
+	if err != nil {
+		return 0
+	}
 
-	if uint64(currentNumber) < m.lastNumber {
-		log.Warn("Fs sync rollback", "current", uint64(currentNumber), "last", m.lastNumber)
+	if currentNumber < m.lastNumber {
+		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber)
 		m.lastNumber = 0
 	}
 
 	minNumber := m.lastNumber + 1
 	maxNumber := uint64(0)
-	if uint64(currentNumber) > delay {
-		maxNumber = uint64(currentNumber) - delay
+	if currentNumber > delay {
+		maxNumber = currentNumber - delay
 	}
 
-	if m.lastNumber > uint64(currentNumber) {
+	if m.lastNumber > currentNumber {
 		if m.lastNumber > batch {
 			minNumber = m.lastNumber - batch
 		}
@@ -1120,7 +1134,7 @@ func (m *Monitor) deal(block *Block) error {
 				}
 			}
 
-			log.Info("Confirm to seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			log.Info("Seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 		} else {
 			if i%(batch/8) == 0 {
 				if storeErr := m.fs.WriteBlock(block, false); storeErr != nil {
