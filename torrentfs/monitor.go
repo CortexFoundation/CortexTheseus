@@ -71,10 +71,11 @@ type Monitor struct {
 
 	//uncheckedCh chan uint64
 
-	exitCh     chan struct{}
-	terminated int32
-	lastNumber uint64
-	scope      uint64
+	exitCh        chan struct{}
+	terminated    int32
+	lastNumber    uint64
+	scope         uint64
+	currentNumber uint64
 	//dirty      bool
 
 	//closeOnce sync.Once
@@ -124,13 +125,13 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		fs:     fs,
 		dl:     tMana,
 		//uncheckedCh: make(chan uint64, 20),
-		exitCh:     make(chan struct{}),
-		terminated: 0,
-		lastNumber: uint64(0),
-		scope:      uint64(runtime.NumCPU()),
-		//dirty:      false,
-		taskCh: make(chan *Block, batch),
-		start:  mclock.Now(),
+		exitCh:        make(chan struct{}),
+		terminated:    0,
+		lastNumber:    uint64(0),
+		scope:         uint64(runtime.NumCPU()),
+		currentNumber: uint64(0),
+		taskCh:        make(chan *Block, batch),
+		start:         mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
 	//m.healthPeers, _ = lru.New(0)
@@ -292,9 +293,9 @@ func (m *Monitor) taskLoop() {
 			//	m.newTaskHook(task)
 			//}
 
-			if err := m.deal(task); err != nil {
-				log.Warn("Block dealing failed, try again", "err", err, "num", task.Number)
-				m.deal(task)
+			if err := m.solve(task); err != nil {
+				log.Warn("Block solved failed, try again", "err", err, "num", task.Number)
+				m.solve(task)
 			}
 		case <-m.exitCh:
 			log.Info("Monitor task channel closed")
@@ -748,6 +749,7 @@ func (m *Monitor) startWork() error {
 	}
 	m.cl = rpcClient
 	m.lastNumber = m.fs.LastListenBlockNumber
+	m.currentBlock()
 	//if err := m.validateStorage(); err != nil {
 	//	log.Error("Starting torrent fs ... ...", "error", err)
 	//	return err
@@ -761,6 +763,8 @@ func (m *Monitor) startWork() error {
 	go m.taskLoop()
 	m.wg.Add(1)
 	go m.listenLatestBlock()
+	m.wg.Add(1)
+	go m.syncLatestBlock()
 	//m.init()
 	//m.wg.Add(1)
 	//go m.listenPeers()
@@ -853,6 +857,22 @@ func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
+	for {
+		select {
+		case <-timer.C:
+			m.currentBlock()
+			timer.Reset(time.Second * queryTimeInterval)
+		case <-m.exitCh:
+			log.Info("Block listener stopped")
+			return
+		}
+	}
+}
+
+func (m *Monitor) syncLatestBlock() {
+	defer m.wg.Done()
+	timer := time.NewTimer(time.Second * queryTimeInterval)
+	defer timer.Stop()
 	progress := uint64(0)
 	for {
 		select {
@@ -866,10 +886,8 @@ func (m *Monitor) listenLatestBlock() {
 			} else {
 				timer.Reset(time.Millisecond * 3000)
 			}
-
-			//timer.Reset(time.Second * defaultTimerInterval)
 		case <-m.exitCh:
-			log.Info("Block listener stopped")
+			log.Info("Block syncer stopped")
 			return
 		}
 	}
@@ -1004,6 +1022,9 @@ func (m *Monitor) currentBlock() (uint64, error) {
 		log.Error("Call ipc method ctxc_blockNumber failed", "error", err)
 		return 0, err
 	}
+	if m.currentNumber != uint64(currentNumber) {
+		m.currentNumber = uint64(currentNumber)
+	}
 	return uint64(currentNumber), nil
 }
 
@@ -1018,10 +1039,11 @@ func (m *Monitor) syncLastBlock() uint64 {
 	//if uint64(currentNumber) <= 0 {
 	//	return 0
 	//}
-	currentNumber, err := m.currentBlock()
-	if err != nil {
-		return 0
-	}
+	//currentNumber, err := m.currentBlock()
+	currentNumber := m.currentNumber
+	//if err != nil {
+	//	return 0
+	//}
 
 	if currentNumber < m.lastNumber {
 		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber)
@@ -1075,7 +1097,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 					if maxNumber-minNumber > delay/2 {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+						log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 					}
 					return 0
 				}
@@ -1096,7 +1118,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 				if maxNumber-minNumber > delay/2 {
 					elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 					elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-					log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(currentNumber), "progress", float64(i)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+					log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 				}
 				return 0
 			}
@@ -1106,12 +1128,12 @@ func (m *Monitor) syncLastBlock() uint64 {
 	if maxNumber-minNumber > delay/2 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a, "scope", m.scope)
+		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a, "scope", m.scope)
 	}
 	return uint64(maxNumber - minNumber)
 }
 
-func (m *Monitor) deal(block *Block) error {
+func (m *Monitor) solve(block *Block) error {
 	i := block.Number
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
