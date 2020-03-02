@@ -74,6 +74,7 @@ type Monitor struct {
 	exitCh     chan struct{}
 	terminated int32
 	lastNumber uint64
+	scope      uint64
 	//dirty      bool
 
 	//closeOnce sync.Once
@@ -126,6 +127,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		exitCh:     make(chan struct{}),
 		terminated: 0,
 		lastNumber: uint64(0),
+		scope:      uint64(runtime.NumCPU()),
 		//dirty:      false,
 		taskCh: make(chan *Block, batch),
 		start:  mclock.Now(),
@@ -721,7 +723,7 @@ func (m *Monitor) Start() error {
 	//return err
 }
 
-var scope = uint64(runtime.NumCPU())
+//var scope = uint64(runtime.NumCPU())
 
 func (m *Monitor) startWork() error {
 	// Wait for ipc start...
@@ -999,7 +1001,7 @@ func (m *Monitor) currentBlock() (uint64, error) {
 	var currentNumber hexutil.Uint64
 
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
-		log.Error("Call ipc method ctx_blockNumber failed", "error", err)
+		log.Error("Call ipc method ctxc_blockNumber failed", "error", err)
 		return 0, err
 	}
 	return uint64(currentNumber), nil
@@ -1057,8 +1059,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 			maxNumber = i - 1
 			break
 		}
-		if maxNumber-i >= scope {
-			blocks, rpcErr := m.rpcBatchBlockByNumber(i, i+scope)
+		if maxNumber-i >= m.scope {
+			blocks, rpcErr := m.rpcBatchBlockByNumber(i, i+m.scope)
 			if rpcErr != nil {
 				log.Error("Sync old block failed", "number", i, "error", rpcErr)
 				m.lastNumber = i - 1
@@ -1104,7 +1106,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	if maxNumber-minNumber > delay/2 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a, "scope", scope)
+		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(currentNumber), "progress", float64(maxNumber)/float64(currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a, "scope", m.scope)
 	}
 	return uint64(maxNumber - minNumber)
 }
