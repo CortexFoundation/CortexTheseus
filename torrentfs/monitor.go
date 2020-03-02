@@ -1022,7 +1022,9 @@ func (m *Monitor) currentBlock() (uint64, error) {
 		log.Error("Call ipc method ctxc_blockNumber failed", "error", err)
 		return 0, err
 	}
-	m.currentNumber = uint64(currentNumber)
+	if m.currentNumber != uint64(currentNumber) {
+		m.currentNumber = uint64(currentNumber)
+	}
 	return uint64(currentNumber), nil
 }
 
