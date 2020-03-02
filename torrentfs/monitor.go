@@ -293,9 +293,9 @@ func (m *Monitor) taskLoop() {
 			//	m.newTaskHook(task)
 			//}
 
-			if err := m.deal(task); err != nil {
-				log.Warn("Block dealing failed, try again", "err", err, "num", task.Number)
-				m.deal(task)
+			if err := m.solve(task); err != nil {
+				log.Warn("Block solved failed, try again", "err", err, "num", task.Number)
+				m.solve(task)
 			}
 		case <-m.exitCh:
 			log.Info("Monitor task channel closed")
@@ -1133,7 +1133,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	return uint64(maxNumber - minNumber)
 }
 
-func (m *Monitor) deal(block *Block) error {
+func (m *Monitor) solve(block *Block) error {
 	i := block.Number
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
