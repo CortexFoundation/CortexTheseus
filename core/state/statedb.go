@@ -67,8 +67,9 @@ type StateDB struct {
 	trie Trie
 
 	// This map holds 'live' objects, which will get modified while processing a state transition.
-	stateObjects      map[common.Address]*stateObject
-	stateObjectsDirty map[common.Address]struct{}
+	stateObjects        map[common.Address]*stateObject
+	stateObjectsPending map[common.Address]struct{} // State objects finalized but not yet written to the trie
+	stateObjectsDirty   map[common.Address]struct{}
 
 	// DB error.
 	// State objects are used by the consensus core and VM which are
@@ -103,13 +104,14 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		return nil, err
 	}
 	return &StateDB{
-		db:                db,
-		trie:              tr,
-		stateObjects:      make(map[common.Address]*stateObject),
-		stateObjectsDirty: make(map[common.Address]struct{}),
-		logs:              make(map[common.Hash][]*types.Log),
-		preimages:         make(map[common.Hash][]byte),
-		journal:           newJournal(),
+		db:                  db,
+		trie:                tr,
+		stateObjects:        make(map[common.Address]*stateObject),
+		stateObjectsPending: make(map[common.Address]struct{}),
+		stateObjectsDirty:   make(map[common.Address]struct{}),
+		logs:                make(map[common.Hash][]*types.Log),
+		preimages:           make(map[common.Hash][]byte),
+		journal:             newJournal(),
 	}, nil
 }
 
@@ -133,6 +135,7 @@ func (s *StateDB) Reset(root common.Hash) error {
 	}
 	s.trie = tr
 	s.stateObjects = make(map[common.Address]*stateObject)
+	s.stateObjectsPending = make(map[common.Address]struct{})
 	s.stateObjectsDirty = make(map[common.Address]struct{})
 	s.thash = common.Hash{}
 	s.bhash = common.Hash{}
@@ -652,15 +655,16 @@ func (s *StateDB) Copy() *StateDB {
 
 	// Copy all the basic fields, initialize the memory ones
 	state := &StateDB{
-		db:                s.db,
-		trie:              s.db.CopyTrie(s.trie),
-		stateObjects:      make(map[common.Address]*stateObject, len(s.journal.dirties)),
-		stateObjectsDirty: make(map[common.Address]struct{}, len(s.journal.dirties)),
-		refund:            s.refund,
-		logs:              make(map[common.Hash][]*types.Log, len(s.logs)),
-		logSize:           s.logSize,
-		preimages:         make(map[common.Hash][]byte),
-		journal:           newJournal(),
+		db:                  s.db,
+		trie:                s.db.CopyTrie(s.trie),
+		stateObjects:        make(map[common.Address]*stateObject, len(s.journal.dirties)),
+		stateObjectsPending: make(map[common.Address]struct{}, len(s.stateObjectsPending)),
+		stateObjectsDirty:   make(map[common.Address]struct{}, len(s.journal.dirties)),
+		refund:              s.refund,
+		logs:                make(map[common.Hash][]*types.Log, len(s.logs)),
+		logSize:             s.logSize,
+		preimages:           make(map[common.Hash][]byte),
+		journal:             newJournal(),
 	}
 	// Copy the dirty states, logs, and preimages
 	for addr := range s.journal.dirties {
@@ -671,11 +675,18 @@ func (s *StateDB) Copy() *StateDB {
 		if object, exist := s.stateObjects[addr]; exist {
 			state.stateObjects[addr] = object.deepCopy(state)
 			state.stateObjectsDirty[addr] = struct{}{}
+			state.stateObjectsPending[addr] = struct{}{} // Mark the copy pending to force external (account) commits
 		}
 	}
 	// Above, we don't copy the actual journal. This means that if the copy is copied, the
 	// loop above will be a no-op, since the copy's journal is empty.
 	// Thus, here we iterate over stateObjects, to enable copies of copies
+	for addr := range s.stateObjectsPending {
+		if _, exist := state.stateObjects[addr]; !exist {
+			state.stateObjects[addr] = s.stateObjects[addr].deepCopy(state)
+		}
+		state.stateObjectsPending[addr] = struct{}{}
+	}
 	for addr := range s.stateObjectsDirty {
 		if _, exist := state.stateObjects[addr]; !exist {
 			state.stateObjects[addr] = s.stateObjects[addr].deepCopy(state)
@@ -730,7 +741,7 @@ func (s *StateDB) GetRefund() uint64 {
 // and clears the journal as well as the refunds.
 func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 	for addr := range s.journal.dirties {
-		stateObject, exist := s.stateObjects[addr]
+		obj, exist := s.stateObjects[addr]
 		if !exist {
 			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
 			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the
@@ -740,13 +751,12 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			// Thus, we can safely ignore it here
 			continue
 		}
-
-		if stateObject.suicided || (deleteEmptyObjects && stateObject.empty()) {
-			s.deleteStateObject(stateObject)
+		if obj.suicided || (deleteEmptyObjects && obj.empty()) {
+			obj.deleted = true
 		} else {
-			stateObject.updateRoot(s.db)
-			s.updateStateObject(stateObject)
+			obj.finalise()
 		}
+		s.stateObjectsPending[addr] = struct{}{}
 		s.stateObjectsDirty[addr] = struct{}{}
 	}
 	// Invalidate journal because reverting across transactions is not allowed.
@@ -757,7 +767,21 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
+
 	s.Finalise(deleteEmptyObjects)
+
+	for addr := range s.stateObjectsPending {
+		obj := s.stateObjects[addr]
+		if obj.deleted {
+			s.deleteStateObject(obj)
+		} else {
+			obj.updateRoot(s.db)
+			s.updateStateObject(obj)
+		}
+	}
+	if len(s.stateObjectsPending) > 0 {
+		s.stateObjectsPending = make(map[common.Address]struct{})
+	}
 	return s.trie.Hash()
 }
 

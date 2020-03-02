@@ -77,8 +77,9 @@ type stateObject struct {
 	trie Trie // storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
-	originStorage Storage // Storage entry cache to avoid duplicate reads
-	dirtyStorage  Storage // Storage entries that need to be flushed to disk
+	originStorage  Storage // Storage entry cache to avoid duplicate reads
+	pendingStorage Storage // Storage entries that need to be flushed to disk, at the end of an entire block
+	dirtyStorage   Storage // Storage entries that need to be flushed to disk
 
 	// Cache flags.
 	// When an object is marked suicided it will be delete from the trie
@@ -126,12 +127,13 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	}
 
 	return &stateObject{
-		db:            db,
-		address:       address,
-		addrHash:      crypto.Keccak256Hash(address[:]),
-		data:          data,
-		originStorage: make(Storage),
-		dirtyStorage:  make(Storage),
+		db:             db,
+		address:        address,
+		addrHash:       crypto.Keccak256Hash(address[:]),
+		data:           data,
+		originStorage:  make(Storage),
+		pendingStorage: make(Storage),
+		dirtyStorage:   make(Storage),
 	}
 }
 
@@ -187,6 +189,9 @@ func (s *stateObject) GetState(db Database, key common.Hash) common.Hash {
 
 // GetCommittedState retrieves a value from the committed account storage trie.
 func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
+	if value, pending := s.pendingStorage[key]; pending {
+		return value
+	}
 	// If we have the original value cached, return that
 	value, cached := s.originStorage[key]
 	if cached {
@@ -230,15 +235,26 @@ func (s *stateObject) setState(key, value common.Hash) {
 	s.dirtyStorage[key] = value
 }
 
+// finalise moves all dirty storage slots into the pending area to be hashed or
+// committed later. It is invoked at the end of every transaction.
+func (s *stateObject) finalise() {
+	for key, value := range s.dirtyStorage {
+		s.pendingStorage[key] = value
+	}
+	if len(s.dirtyStorage) > 0 {
+		s.dirtyStorage = make(Storage)
+	}
+}
+
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (s *stateObject) updateTrie(db Database) Trie {
-	if len(s.dirtyStorage) == 0 {
+	s.finalise()
+	if len(s.pendingStorage) == 0 {
 		return s.trie
 	}
+	// Insert all the pending updates into the trie
 	tr := s.getTrie(db)
-	for key, value := range s.dirtyStorage {
-		delete(s.dirtyStorage, key)
-
+	for key, value := range s.pendingStorage {
 		// Skip noop changes, persist actual changes
 		if value == s.originStorage[key] {
 			continue
@@ -250,9 +266,11 @@ func (s *stateObject) updateTrie(db Database) Trie {
 			continue
 		}
 		// Encoding []byte cannot fail, ok to ignore the error.
-		//v, _ := rlp.EncodeToBytes(bytes.TrimLeft(value[:], "\x00"))
 		v, _ := rlp.EncodeToBytes(common.TrimLeftZeroes(value[:]))
 		s.setError(tr.TryUpdate(key[:], v))
+	}
+	if len(s.pendingStorage) > 0 {
+		s.pendingStorage = make(Storage)
 	}
 	return tr
 }
@@ -386,6 +404,7 @@ func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	stateObject.code = s.code
 	stateObject.dirtyStorage = s.dirtyStorage.Copy()
 	stateObject.originStorage = s.originStorage.Copy()
+	stateObject.pendingStorage = s.pendingStorage.Copy()
 	stateObject.suicided = s.suicided
 	stateObject.dirtyCode = s.dirtyCode
 	stateObject.deleted = s.deleted
