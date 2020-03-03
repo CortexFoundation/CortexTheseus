@@ -19,6 +19,7 @@ import (
 	//"sort"
 	"strconv"
 	//"strings"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -128,7 +129,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		exitCh:        make(chan struct{}),
 		terminated:    0,
 		lastNumber:    uint64(0),
-		scope:         uint64(runtime.NumCPU()) * 2,
+		scope:         uint64(math.Min(float64(runtime.NumCPU()*2), float64(8))),
 		currentNumber: uint64(0),
 		taskCh:        make(chan *Block, batch),
 		start:         mclock.Now(),
