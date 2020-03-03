@@ -624,11 +624,11 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 		return nil
 	}
 	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
+
 	for it.Next() {
 		key := common.BytesToHash(db.trie.GetKey(it.Key))
 		if value, dirty := so.dirtyStorage[key]; dirty {
 			if !cb(key, value) {
-				//continue
 				return nil
 			}
 			continue
@@ -650,9 +650,6 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 // Copy creates a deep, independent copy of the state.
 // Snapshots of the copied state cannot be applied to the copy.
 func (s *StateDB) Copy() *StateDB {
-	//s.lock.Lock()
-	//defer s.lock.Unlock()
-
 	// Copy all the basic fields, initialize the memory ones
 	state := &StateDB{
 		db:                  s.db,
@@ -663,7 +660,7 @@ func (s *StateDB) Copy() *StateDB {
 		refund:              s.refund,
 		logs:                make(map[common.Hash][]*types.Log, len(s.logs)),
 		logSize:             s.logSize,
-		preimages:           make(map[common.Hash][]byte),
+		preimages:           make(map[common.Hash][]byte, len(s.preimages)),
 		journal:             newJournal(),
 	}
 	// Copy the dirty states, logs, and preimages
@@ -673,7 +670,11 @@ func (s *StateDB) Copy() *StateDB {
 		// in the stateObjects: OOG after touch on ripeMD prior to Byzantium. Thus, we need to check for
 		// nil
 		if object, exist := s.stateObjects[addr]; exist {
+			// Even though the original object is dirty, we are not copying the journal,
+			// so we need to make sure that anyside effect the journal would have caused
+			// during a commit (or similar op) is already applied to the copy.
 			state.stateObjects[addr] = object.deepCopy(state)
+
 			state.stateObjectsDirty[addr] = struct{}{}
 			state.stateObjectsPending[addr] = struct{}{} // Mark the copy pending to force external (account) commits
 		}
