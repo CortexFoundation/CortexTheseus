@@ -19,6 +19,7 @@ import (
 	//"sort"
 	"strconv"
 	//"strings"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -128,7 +129,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		exitCh:        make(chan struct{}),
 		terminated:    0,
 		lastNumber:    uint64(0),
-		scope:         uint64(runtime.NumCPU()),
+		scope:         uint64(math.Min(float64(runtime.NumCPU()*2), float64(8))),
 		currentNumber: uint64(0),
 		taskCh:        make(chan *Block, batch),
 		start:         mclock.Now(),
@@ -879,12 +880,12 @@ func (m *Monitor) syncLatestBlock() {
 		case <-timer.C:
 			progress = m.syncLastBlock()
 			// Avoid sync in full mode, fresh interval may be less.
-			if progress >= batch {
+			if progress >= delay {
 				timer.Reset(0)
-			} else if progress > 6 {
+			} else if progress > 1 {
 				timer.Reset(time.Millisecond * 1000)
 			} else {
-				timer.Reset(time.Millisecond * 3000)
+				timer.Reset(time.Millisecond * 2000)
 			}
 		case <-m.exitCh:
 			log.Info("Block syncer stopped")
