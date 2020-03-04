@@ -43,8 +43,6 @@ func ReadDatabaseVersion(db ctxcdb.KeyValueReader) *uint64 {
 
 // WriteDatabaseVersion stores the version number of the database
 func WriteDatabaseVersion(db ctxcdb.KeyValueWriter, version uint64) {
-	//enc, _ := rlp.EncodeToBytes(version)
-	//if err := db.Put(databaseVerisionKey, enc); err != nil {
 	enc, err := rlp.EncodeToBytes(version)
 	if err != nil {
 		log.Crit("Failed to encode database version", "err", err)

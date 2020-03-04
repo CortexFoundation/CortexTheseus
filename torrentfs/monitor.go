@@ -219,7 +219,7 @@ func (m *Monitor) storageInit() error {
 
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Fs storage version check failed, reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
+			log.Warn("Fs storage is reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
 			m.lastNumber = 0
 			//m.fs.LastListenBlockNumber = 0
 			//m.fs.CheckPoint = 0
