@@ -182,7 +182,7 @@ func (b *CortexAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transacti
 }
 
 func (b *CortexAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
-	return b.ctxc.txPool.State().GetNonce(addr), nil
+	return b.ctxc.txPool.Nonce(addr), nil
 }
 
 func (b *CortexAPIBackend) Stats() (pending int, queued int) {
