@@ -174,6 +174,9 @@ func WriteFastTrieProgress(db ctxcdb.KeyValueWriter, count uint64) {
 
 // ReadHeaderRLP retrieves a block header in its raw RLP database encoding.
 func ReadHeaderRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
+	// First try to look up the data in ancient database. Extra hash
+	// comparison is necessary since ancient database only maintains
+	// the canonical data
 	data, _ := db.Ancient(freezerHeaderTable, number)
 	if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
 		return data
@@ -258,6 +261,9 @@ func deleteHeaderWithoutNumber(db ctxcdb.KeyValueWriter, hash common.Hash, numbe
 
 // ReadBodyRLP retrieves the block body (transactions and uncles) in RLP encoding.
 func ReadBodyRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
+	// First try to look up the data in ancient database. Extra hash
+	// comparison is necessary since ancient database only maintains
+	// the canonical data
 	data, _ := db.Ancient(freezerBodiesTable, number)
 	if len(data) > 0 {
 		h, _ := db.Ancient(freezerHashTable, number)
@@ -334,6 +340,9 @@ func DeleteBody(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 
 // ReadTdRLP retrieves a block's total difficulty corresponding to the hash in RLP encoding.
 func ReadTdRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
+	// First try to look up the data in ancient database. Extra hash
+	// comparison is necessary since ancient database only maintains
+	// the canonical data
 	data, _ := db.Ancient(freezerDifficultyTable, number)
 	if len(data) > 0 {
 		h, _ := db.Ancient(freezerHashTable, number)
@@ -360,6 +369,7 @@ func ReadTdRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	return nil
 }
 
+// ReadTd retrieves a block's total difficulty corresponding to the hash
 func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
 	data := ReadTdRLP(db, hash, number)
 	if len(data) == 0 {
@@ -373,6 +383,7 @@ func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
 	return td
 }
 
+// WriteTd stores the total difficulty of a block into the database
 func WriteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, td *big.Int) {
 	data, err := rlp.EncodeToBytes(td)
 	if err != nil {
@@ -383,6 +394,7 @@ func WriteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, td *big.
 	}
 }
 
+// DeleteTd removes all block total difficulty data associated with a hash
 func DeleteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	if err := db.Delete(headerTDKey(number, hash)); err != nil {
 		log.Crit("Failed to delete block total difficulty", "err", err)
@@ -401,7 +413,11 @@ func HasReceipts(db ctxcdb.Reader, hash common.Hash, number uint64) bool {
 	return true
 }
 
+// ReadReceiptsRLP retrieves all the transaction receipts belonging to a block in RLP encoding.
 func ReadReceiptsRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
+	// First try to look up the data in ancient database. Extra hash
+	// comparison is necessary since ancient database only maintains
+	// the canonical data
 	data, _ := db.Ancient(freezerReceiptTable, number)
 	if len(data) > 0 {
 		h, _ := db.Ancient(freezerHashTable, number)
@@ -481,22 +497,27 @@ func ReadRawReceipts(db ctxcdb.Reader, hash common.Hash, number uint64) types.Re
 	return receipts
 }
 
-// ReadReceipts retrieves all the transaction receipts belonging to a block.
+// ReadReceipts retrieves all the transaction receipts belonging to a block, including
+// its correspoinding metadata fields. If it is unable to populate these metadata
+// fields then nil is returned.
+//
+// The current implementation populates these metadata fields by reading the receipts'
+// corresponding block body, so if the block body is not found it will return nil even
+// if the receipt itself is stored
 func ReadReceipts(db ctxcdb.Reader, hash common.Hash, number uint64, config *params.ChainConfig) types.Receipts {
-	// Retrieve the flattened receipt slice
-	data, _ := db.Get(blockReceiptsKey(number, hash))
-	if len(data) == 0 {
+	// We're deriving many fields from the block body, retrieve beside the receipt
+	receipts := ReadRawReceipts(db, hash, number)
+	if receipts == nil {
 		return nil
 	}
-	// Convert the revceipts from their storage form to their internal representation
-	storageReceipts := []*types.ReceiptForStorage{}
-	if err := rlp.DecodeBytes(data, &storageReceipts); err != nil {
-		log.Error("Invalid receipt array RLP", "hash", hash, "err", err)
+	body := ReadBody(db, hash, number)
+	if body == nil {
+		log.Error("Missing body but have receipt", "hash", hash, "number", number)
 		return nil
 	}
-	receipts := make(types.Receipts, len(storageReceipts))
-	for i, receipt := range storageReceipts {
-		receipts[i] = (*types.Receipt)(receipt)
+	if err := receipts.DeriveFields(config, hash, number, body.Transactions); err != nil {
+		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
+		return nil
 	}
 	return receipts
 }
@@ -557,6 +578,8 @@ func DeleteBlock(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteTd(db, hash, number)
 }
 
+// DeleteBlockWithoutNumber removes all block data associated with a hash, except
+// the hash to number mapping
 func DeleteBlockWithoutNumber(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)
 	deleteHeaderWithoutNumber(db, hash, number)

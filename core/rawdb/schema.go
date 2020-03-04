@@ -44,7 +44,6 @@ var (
 	// Data item prefixes (use single byte to avoid mixing data types, avoid `i`, used for indexes).
 	headerPrefix       = []byte("h") // headerPrefix + num (uint64 big endian) + hash -> header
 	headerTDSuffix     = []byte("t") // headerPrefix + num (uint64 big endian) + hash + headerTDSuffix -> td
-	headerTSSuffix     = []byte("s")
 	headerHashSuffix   = []byte("n") // headerPrefix + num (uint64 big endian) + headerHashSuffix -> hash
 	headerNumberPrefix = []byte("H") // headerNumberPrefix + hash -> num (uint64 big endian)
 
@@ -99,14 +98,6 @@ type LegacyTxLookupEntry struct {
 	Index      uint64
 }
 
-// TxLookupEntry is a positional metadata to help looking up the data content of
-// a transaction or receipt given only its hash.
-type TxLookupEntry struct {
-	BlockHash  common.Hash
-	BlockIndex uint64
-	Index      uint64
-}
-
 // encodeBlockNumber encodes a block number as big endian uint64
 func encodeBlockNumber(number uint64) []byte {
 	enc := make([]byte, 8)
@@ -127,10 +118,6 @@ func headerKey(number uint64, hash common.Hash) []byte {
 // headerTDKey = headerPrefix + num (uint64 big endian) + hash + headerTDSuffix
 func headerTDKey(number uint64, hash common.Hash) []byte {
 	return append(headerKey(number, hash), headerTDSuffix...)
-}
-
-func headerTSKey(number uint64, hash common.Hash) []byte {
-	return append(headerKey(number, hash), headerTSSuffix...)
 }
 
 // headerHashKey = headerPrefix + num (uint64 big endian) + headerHashSuffix
