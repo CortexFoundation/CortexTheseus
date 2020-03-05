@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2020 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -30,6 +30,7 @@ type Request struct {
 	URL        string
 	Method     string
 	Token      string
+	AuthScheme string
 	QueryParam url.Values
 	FormData   url.Values
 	Header     http.Header
@@ -382,7 +383,7 @@ func (r *Request) SetBasicAuth(username, password string) *Request {
 	return r
 }
 
-// SetAuthToken method sets bearer auth token header in the current HTTP request. Header example:
+// SetAuthToken method sets the auth token header(Default Scheme: Bearer) in the current HTTP request. Header example:
 // 		Authorization: Bearer <auth-token-value-comes-here>
 //
 // For Example: To set auth token BC594900518B4F7EAC75BD37F019E08FBC594900518B4F7EAC75BD37F019E08F
@@ -392,6 +393,27 @@ func (r *Request) SetBasicAuth(username, password string) *Request {
 // This method overrides the Auth token set by method `Client.SetAuthToken`.
 func (r *Request) SetAuthToken(token string) *Request {
 	r.Token = token
+	return r
+}
+
+// SetAuthScheme method sets the auth token scheme type in the HTTP request. For Example:
+//      Authorization: <auth-scheme-value-set-here> <auth-token-value>
+//
+// For Example: To set the scheme to use OAuth
+//
+// 		client.R().SetAuthScheme("OAuth")
+//
+// This auth header scheme gets added to all the request rasied from this client instance.
+// Also it can be overridden or set one at the request level is supported.
+//
+// Information about Auth schemes can be found in RFC7235 which is linked to below along with the page containing
+// the currently defined official authentication schemes:
+//     https://tools.ietf.org/html/rfc7235
+//     https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml#authschemes
+//
+// This method overrides the Authorization scheme set by method `Client.SetAuthScheme`.
+func (r *Request) SetAuthScheme(scheme string) *Request {
+	r.AuthScheme = scheme
 	return r
 }
 
@@ -539,9 +561,9 @@ func (r *Request) TraceInfo() TraceInfo {
 		DNSLookup:     ct.dnsDone.Sub(ct.dnsStart),
 		ConnTime:      ct.gotConn.Sub(ct.getConn),
 		TLSHandshake:  ct.tlsHandshakeDone.Sub(ct.tlsHandshakeStart),
-		ServerTime:    ct.gotFirstResponseByte.Sub(ct.wroteRequest),
+		ServerTime:    ct.gotFirstResponseByte.Sub(ct.gotConn),
 		ResponseTime:  ct.endTime.Sub(ct.gotFirstResponseByte),
-		TotalTime:     ct.endTime.Sub(ct.getConn),
+		TotalTime:     ct.endTime.Sub(ct.dnsStart),
 		IsConnReused:  ct.gotConnInfo.Reused,
 		IsConnWasIdle: ct.gotConnInfo.WasIdle,
 		ConnIdleTime:  ct.gotConnInfo.IdleTime,
