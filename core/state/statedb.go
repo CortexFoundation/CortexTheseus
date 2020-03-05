@@ -162,14 +162,6 @@ func (s *StateDB) GetLogs(hash common.Hash) []*types.Log {
 	return s.logs[hash]
 }
 
-/*func (s *StateDB) GetCurrentLogs() []*types.Log {
-	return s.logs[s.thash]
-}*/
-
-/*func (s *StateDB) GetTxHash() common.Hash {
-	return s.thash
-}*/
-
 func (s *StateDB) Logs() []*types.Log {
 	var logs []*types.Log
 	for _, lgs := range s.logs {
@@ -193,6 +185,7 @@ func (s *StateDB) Preimages() map[common.Hash][]byte {
 	return s.preimages
 }
 
+// AddRefund adds gas to the refund counter
 func (s *StateDB) AddRefund(gas uint64) {
 	s.journal.append(refundChange{prev: s.refund})
 	s.refund += gas
@@ -203,7 +196,7 @@ func (s *StateDB) AddRefund(gas uint64) {
 func (s *StateDB) SubRefund(gas uint64) {
 	s.journal.append(refundChange{prev: s.refund})
 	if gas > s.refund {
-		panic("Refund counter below zero")
+		panic(fmt.Sprintf("Refund counter below zero (gas: %d > refund: %d)", gas, s.refund))
 	}
 	s.refund -= gas
 }
@@ -290,6 +283,7 @@ func (s *StateDB) GetCodeHash(addr common.Address) common.Hash {
 	return common.BytesToHash(stateObject.CodeHash())
 }
 
+// GetState retrieves a value from the given account's storage trie
 func (s *StateDB) GetState(addr common.Address, bhash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
@@ -610,11 +604,11 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 //
 // Carrying over the balance ensures that Cortex doesn't disappear.
 func (s *StateDB) CreateAccount(addr common.Address) {
-	new, prev := s.createObject(addr)
+	newObj, prev := s.createObject(addr)
 	if prev != nil {
-		new.setBalance(prev.data.Balance)
-		new.setUpload(prev.data.Upload)
-		new.setNum(prev.data.Num)
+		newObj.setBalance(prev.data.Balance)
+		newObj.setUpload(prev.data.Upload)
+		newObj.setNum(prev.data.Num)
 	}
 }
 
@@ -804,40 +798,28 @@ func (s *StateDB) clearJournalAndRefund() {
 
 // Commit writes the state to the underlying in-memory trie database.
 func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
-	defer s.clearJournalAndRefund()
+	// Finalize any pending changes and merge everything into the tries
+	s.IntermediateRoot(deleteEmptyObjects)
 
-	for addr := range s.journal.dirties {
-		s.stateObjectsDirty[addr] = struct{}{}
-	}
-	// Commit objects to the trie.
-	for addr, stateObject := range s.stateObjects {
-		_, isDirty := s.stateObjectsDirty[addr]
-		switch {
-		case stateObject.suicided || (isDirty && deleteEmptyObjects && stateObject.empty()):
-			// If the object has been removed, don't bother syncing it
-			// and just mark it for deletion in the trie.
-			s.deleteStateObject(stateObject)
-		case isDirty:
+	// Commit objects to the trie, measuring the elapsed time
+	for addr := range s.stateObjectsDirty {
+		if obj := s.stateObjects[addr]; !obj.deleted {
 			// Write any contract code associated with the state object
-			if stateObject.code != nil && stateObject.dirtyCode {
-				s.db.TrieDB().InsertBlob(common.BytesToHash(stateObject.CodeHash()), stateObject.code)
-				stateObject.dirtyCode = false
+			if obj.code != nil && obj.dirtyCode {
+				s.db.TrieDB().InsertBlob(common.BytesToHash(obj.CodeHash()), obj.code)
+				obj.dirtyCode = false
 			}
-			// Write any storage changes in the state object to its storage trie.
-			if err := stateObject.CommitTrie(s.db); err != nil {
+			// Write any storage changes in the state object to its storage trie
+			if err := obj.CommitTrie(s.db); err != nil {
 				return common.Hash{}, err
 			}
-			// Update the object in the main account trie.
-			s.updateStateObject(stateObject)
 		}
-		delete(s.stateObjectsDirty, addr)
 	}
-
 	if len(s.stateObjectsDirty) > 0 {
 		s.stateObjectsDirty = make(map[common.Address]struct{})
 	}
-	// Write trie changes.
-	// Write the account trie changes, measuing the amount of wasted time
+	// The onleaf func is called _serially_, so we can reuse the same account
+	// for unmarshalling every time.
 	var account Account
 	return s.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
