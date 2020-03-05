@@ -36,7 +36,7 @@ const (
 	GasContractByte uint64 = 200
 )
 
-// calcGas returns the actual gas cost of the call.
+// callGas returns the actual gas cost of the call.
 //
 // The cost of gas was changed during the homestead price change HF. To allow for EIP150
 // to be implemented. The returned gas is gas - base * 63 / 64.
