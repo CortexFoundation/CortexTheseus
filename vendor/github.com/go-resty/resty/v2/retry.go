@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2020 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -89,7 +89,7 @@ func Backoff(operation func() (*Response, error), options ...Option) error {
 		err  error
 	)
 
-	for attempt := 0; attempt < opts.maxRetries; attempt++ {
+	for attempt := 0; attempt <= opts.maxRetries; attempt++ {
 		resp, err = operation()
 		ctx := context.Background()
 		if resp != nil && resp.Request.ctx != nil {

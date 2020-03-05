@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2020 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -252,11 +252,21 @@ func addCredentials(c *Client, r *Request) error {
 		}
 	}
 
-	// Token Auth
+	// Set the Authorization Header Scheme
+	var authScheme string
+	if !IsStringEmpty(r.AuthScheme) {
+		authScheme = r.AuthScheme
+	} else if !IsStringEmpty(c.AuthScheme) {
+		authScheme = c.AuthScheme
+	} else {
+		authScheme = "Bearer"
+	}
+
+	// Build the Token Auth header
 	if !IsStringEmpty(r.Token) { // takes precedence
-		r.RawRequest.Header.Set(hdrAuthorizationKey, "Bearer "+r.Token)
+		r.RawRequest.Header.Set(hdrAuthorizationKey, authScheme+" "+r.Token)
 	} else if !IsStringEmpty(c.Token) {
-		r.RawRequest.Header.Set(hdrAuthorizationKey, "Bearer "+c.Token)
+		r.RawRequest.Header.Set(hdrAuthorizationKey, authScheme+" "+c.Token)
 	}
 
 	return nil
@@ -444,7 +454,7 @@ func handleRequestBody(c *Client, r *Request) (err error) {
 	r.bodyBuf = nil
 
 	if reader, ok := r.Body.(io.Reader); ok {
-		if c.setContentLength || r.setContentLength { // keep backward compability
+		if c.setContentLength || r.setContentLength { // keep backward compatibility
 			r.bodyBuf = acquireBuffer()
 			_, err = r.bodyBuf.ReadFrom(reader)
 			r.Body = nil

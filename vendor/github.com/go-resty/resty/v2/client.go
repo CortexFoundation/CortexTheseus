@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2020 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -80,6 +80,7 @@ type Client struct {
 	Header                http.Header
 	UserInfo              *User
 	Token                 string
+	AuthScheme            string
 	Cookies               []*http.Cookie
 	Error                 reflect.Type
 	Debug                 bool
@@ -278,19 +279,41 @@ func (c *Client) SetBasicAuth(username, password string) *Client {
 	return c
 }
 
-// SetAuthToken method sets bearer auth token header in the HTTP request. For Example:
-// 		Authorization: Bearer <auth-token-value-comes-here>
+// SetAuthToken method sets the auth token of the `Authorization` header for all HTTP requests.
+// The default auth scheme is `Bearer`, it can be customized with the method `SetAuthScheme`. For Example:
+// 		Authorization: <auth-scheme> <auth-token-value>
 //
 // For Example: To set auth token BC594900518B4F7EAC75BD37F019E08FBC594900518B4F7EAC75BD37F019E08F
 //
 // 		client.SetAuthToken("BC594900518B4F7EAC75BD37F019E08FBC594900518B4F7EAC75BD37F019E08F")
 //
-// This bearer auth token gets added to all the request rasied from this client instance.
+// This auth token gets added to all the requests rasied from this client instance.
 // Also it can be overridden or set one at the request level is supported.
 //
 // See `Request.SetAuthToken`.
 func (c *Client) SetAuthToken(token string) *Client {
 	c.Token = token
+	return c
+}
+
+// SetAuthScheme method sets the auth scheme type in the HTTP request. For Example:
+//      Authorization: <auth-scheme-value> <auth-token-value>
+//
+// For Example: To set the scheme to use OAuth
+//
+// 		client.SetAuthScheme("OAuth")
+//
+// This auth scheme gets added to all the requests rasied from this client instance.
+// Also it can be overridden or set one at the request level is supported.
+//
+// Information about auth schemes can be found in RFC7235 which is linked to below
+// along with the page containing the currently defined official authentication schemes:
+//     https://tools.ietf.org/html/rfc7235
+//     https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml#authschemes
+//
+// See `Request.SetAuthToken`.
+func (c *Client) SetAuthScheme(scheme string) *Client {
+	c.AuthScheme = scheme
 	return c
 }
 
@@ -606,9 +629,25 @@ func (c *Client) SetRootCertificate(pemFilePath string) *Client {
 	return c
 }
 
+// SetRootCertificateFromString method helps to add one or more root certificates into Resty client
+// 		client.SetRootCertificateFromString("pem file content")
+func (c *Client) SetRootCertificateFromString(pemContent string) *Client {
+	config, err := c.tlsConfig()
+	if err != nil {
+		c.log.Errorf("%v", err)
+		return c
+	}
+	if config.RootCAs == nil {
+		config.RootCAs = x509.NewCertPool()
+	}
+
+	config.RootCAs.AppendCertsFromPEM([]byte(pemContent))
+	return c
+}
+
 // SetOutputDirectory method sets output directory for saving HTTP response into file.
 // If the output directory not exists then resty creates one. This setting is optional one,
-// if you're planning using absoule path in `Request.SetOutput` and can used together.
+// if you're planning using absolute path in `Request.SetOutput` and can used together.
 // 		client.SetOutputDirectory("/save/http/response/here")
 func (c *Client) SetOutputDirectory(dirPath string) *Client {
 	c.outputDirectory = dirPath
@@ -773,19 +812,14 @@ func (c *Client) execute(req *Request) (*Response, error) {
 
 	req.Time = time.Now()
 	resp, err := c.httpClient.Do(req.RawRequest)
-	endTime := time.Now()
-
-	if c.trace || req.trace {
-		req.clientTrace.endTime = endTime
-	}
 
 	response := &Response{
 		Request:     req,
 		RawResponse: resp,
-		receivedAt:  endTime,
 	}
 
 	if err != nil || req.notParseResponse || c.notParseResponse {
+		response.setReceivedAt()
 		return response, err
 	}
 
@@ -798,6 +832,7 @@ func (c *Client) execute(req *Request) (*Response, error) {
 			if _, ok := body.(*gzip.Reader); !ok {
 				body, err = gzip.NewReader(body)
 				if err != nil {
+					response.setReceivedAt()
 					return response, err
 				}
 				defer closeq(body)
@@ -805,9 +840,11 @@ func (c *Client) execute(req *Request) (*Response, error) {
 		}
 
 		if response.body, err = ioutil.ReadAll(body); err != nil {
+			response.setReceivedAt()
 			return response, err
 		}
 
+		response.setReceivedAt() // after we read the body
 		response.size = int64(len(response.body))
 	}
 

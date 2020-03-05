@@ -22,7 +22,7 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/go-resty/resty/v2 v2.1.1-0.20200115073606-57ba3bacde0a
+	github.com/go-resty/resty/v2 v2.2.1-0.20200302084117-a8bb0982c19a
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.3-0.20191022195553-ed6926b37a63 // indirect
 	github.com/golang/snappy v0.0.1
