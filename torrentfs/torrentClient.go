@@ -266,8 +266,6 @@ func (t *Torrent) Seed() {
 		log.Info("Finish downloading", "hash", t.InfoHash(), "elapsed", elapsed)
 		//log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
 		//t.Torrent.Drop()
-	} else {
-		//t.Torrent.DownloadAll()
 	}
 }
 
@@ -935,7 +933,7 @@ func (tm *TorrentManager) mainLoop() {
 						break
 					} else {
 						if counter > 10 {
-							break
+							panic("Fail adding file for 10 times")
 						}
 						log.Error("Seed [create] failed", "hash", meta.InfoHash, "request", meta.BytesRequested, "counter", counter)
 						counter++
