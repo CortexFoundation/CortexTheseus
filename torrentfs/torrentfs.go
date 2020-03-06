@@ -35,6 +35,7 @@ type TorrentFS struct {
 	fileLock  sync.Mutex
 	fileCache *lru.Cache
 	fileCh    chan bool
+	cache     bool
 	compress  bool
 }
 
@@ -72,7 +73,7 @@ func GetConfig() *Config {
 //var Torrentfs_handle CVMStorage
 
 // New creates a new torrentfs instance with the given configuration.
-func New(config *Config, commit string) (*TorrentFS, error) {
+func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error) {
 	if torrentInstance != nil {
 		return torrentInstance, nil
 	}
@@ -103,8 +104,8 @@ func New(config *Config, commit string) (*TorrentFS, error) {
 	}
 	torrentInstance.fileCache, _ = lru.New(8)
 	torrentInstance.fileCh = make(chan bool, 4)
-	//Torrentfs_handle = torrentInstance
-	//torrentInstance.compress = true
+	torrentInstance.compress = compress
+	torrentInstance.cache = cache
 
 	return torrentInstance, nil
 }
@@ -200,16 +201,17 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 		torrentInstance.fileCh <- true
 		defer fs.release()
 		var key = infohash + subpath
-
-		if cache, ok := fs.fileCache.Get(key); ok {
-			//log.Trace("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len())
-			if c, err := fs.unzip(cache.([]byte), fs.compress); err != nil {
-				return nil, err
-			} else {
-				if fs.compress {
-					log.Info("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len(), "compress", len(cache.([]byte)), "origin", len(c), "compress", fs.compress)
+		if fs.cache {
+			if cache, ok := fs.fileCache.Get(key); ok {
+				//log.Trace("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len())
+				if c, err := fs.unzip(cache.([]byte), fs.compress); err != nil {
+					return nil, err
+				} else {
+					if fs.compress {
+						log.Info("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len(), "compress", len(cache.([]byte)), "origin", len(c), "compress", fs.compress)
+					}
+					return c, nil
 				}
-				return c, nil
 			}
 		}
 
@@ -228,7 +230,9 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 					if c, err := fs.zip(data, fs.compress); err != nil {
 						log.Warn("Compress data failed", "hash", infohash, "err", err)
 					} else {
-						fs.fileCache.Add(key, c)
+						if fs.cache {
+							fs.fileCache.Add(key, c)
+						}
 					}
 					break
 				}
