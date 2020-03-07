@@ -1078,9 +1078,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 		}
 	}
 
-	/*if maxNumber > batch+minNumber {
-		maxNumber = minNumber + batch
-	}*/
+	if maxNumber > batch*8+minNumber {
+		maxNumber = minNumber + batch*8
+	}
 	if maxNumber >= minNumber {
 		/*if minNumber > delay {
 			minNumber = minNumber - delay
