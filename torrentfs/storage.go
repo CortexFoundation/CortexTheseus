@@ -163,14 +163,16 @@ func (fs *FileStorage) Blocks() []*Block {
 }
 
 func (fs *FileStorage) Reset() error {
-	fs.filesContractAddr = make(map[common.Address]*FileInfo)
-	fs.files = nil
+	//fs.filesContractAddr = make(map[common.Address]*FileInfo)
+	//fs.files = nil
 	fs.blocks = nil
+	//fs.leaves = nil
 	fs.CheckPoint = 0
 	err := fs.initMerkleTree()
 	if err != nil {
 		errors.New("Storage reset error")
 	}
+	log.Warn("Storage status reset")
 	return nil
 }
 
@@ -185,6 +187,7 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 //}
 
 func (fs *FileStorage) initMerkleTree() error {
+	fs.leaves = nil
 	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
 	tr, err := NewTree(fs.leaves)
 	if err != nil {
@@ -465,9 +468,9 @@ func (fs *FileStorage) updateFile(f *FileInfo) (bool, error) {
 
 //func (fs *FileStorage) addBlock(b *Block, record bool) error {
 func (fs *FileStorage) addBlock(b *Block) error {
-	//if b.Number < fs.LastListenBlockNumber {
-	//	return nil
-	//}
+	if b.Number < fs.LastListenBlockNumber {
+		return nil
+	}
 
 	//if record && b.Number > fs.CheckPoint {
 	if b.Number > fs.CheckPoint {

@@ -220,14 +220,16 @@ func (m *Monitor) storageInit() error {
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
 			log.Warn("Fs storage is reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
-			m.lastNumber = 0
 			//m.fs.LastListenBlockNumber = 0
 			//m.fs.CheckPoint = 0
-			err := m.fs.Reset()
-			if err != nil {
-				return err
+			if m.lastNumber > 0 {
+				m.lastNumber = 0
+				err := m.fs.Reset()
+				if err != nil {
+					return err
+				}
 			}
-			return nil
+			//return nil
 		} else {
 			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 		}
@@ -1165,7 +1167,7 @@ func (m *Monitor) solve(block *Block) error {
 					if m.fs.Root() == m.ckp.TfsRoot {
 						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 					} else {
-						log.Info("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
+						log.Info("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
 						panic("Fs sync fatal error")
 					}
 				} else {
