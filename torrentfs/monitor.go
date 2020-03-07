@@ -317,7 +317,7 @@ func (m *Monitor) taskLoop() {
 
 			if err := m.solve(task); err != nil {
 				log.Warn("Block solved failed, try again", "err", err, "num", task.Number)
-				m.solve(task)
+				//m.solve(task)
 			}
 		case <-m.exitCh:
 			log.Info("Monitor task channel closed")
@@ -1176,10 +1176,10 @@ func (m *Monitor) solve(block *Block) error {
 						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 					} else {
 						log.Info("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
-						//panic("Fs sync fatal error")
-						m.lastNumber = 0
-						m.fs.Reset()
-						return errors.New("Milestone checkpoint error, reloading")
+						panic("Fs sync fatal error")
+						//m.lastNumber = 0
+						//m.fs.Reset()
+						//return errors.New("Milestone checkpoint error, reloading")
 					}
 				} else {
 					log.Debug("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)

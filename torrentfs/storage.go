@@ -450,8 +450,9 @@ func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 		} else {
 			var info FileInfo
 			if err := json.Unmarshal(bef, &info); err != nil {
-				update = true
-				return buk.Put(k, v)
+				//update = true
+				//return buk.Put(k, v)
+				return err
 			}
 
 			if info.LeftSize > f.LeftSize {
