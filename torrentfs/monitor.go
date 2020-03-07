@@ -220,15 +220,22 @@ func (m *Monitor) storageInit() error {
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
 			log.Warn("Fs storage is reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
-			//m.fs.LastListenBlockNumber = 0
-			//m.fs.CheckPoint = 0
-			if m.lastNumber > 0 {
+			if m.lastNumber > checkpoint.TfsCheckPoint {
 				m.lastNumber = 0
 				err := m.fs.Reset()
 				if err != nil {
 					return err
 				}
 			}
+			//m.fs.LastListenBlockNumber = 0
+			//m.fs.CheckPoint = 0
+			//	if m.lastNumber > 0 {
+			//	m.lastNumber = 0
+			//	err := m.fs.Reset()
+			//	if err != nil {
+			//		return err
+			//		}
+			//	}
 			//return nil
 		} else {
 			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
@@ -902,6 +909,7 @@ func (m *Monitor) syncLatestBlock() {
 			} else {
 				timer.Reset(time.Millisecond * 2000)
 			}
+			m.fs.Flush()
 		case <-m.exitCh:
 			log.Info("Block syncer stopped")
 			return
@@ -1089,7 +1097,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	} else {
 		return 0
 	}
-
+	//defer m.fs.Flush()
 	start := mclock.Now()
 	for i := minNumber; i <= maxNumber; { // i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
@@ -1168,7 +1176,10 @@ func (m *Monitor) solve(block *Block) error {
 						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 					} else {
 						log.Info("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
-						panic("Fs sync fatal error")
+						//panic("Fs sync fatal error")
+						m.lastNumber = 0
+						m.fs.Reset()
+						return errors.New("Milestone checkpoint error, reloading")
 					}
 				} else {
 					log.Debug("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
@@ -1183,9 +1194,9 @@ func (m *Monitor) solve(block *Block) error {
 			//	return storeErr
 			//}
 			m.fs.LastListenBlockNumber = i
-			if i%(batch/delay) == 0 {
-				m.fs.Flush()
-			}
+			//if i%(batch/delay) == 0 {
+			//m.fs.Flush()
+			//}
 
 			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
 			//			}
