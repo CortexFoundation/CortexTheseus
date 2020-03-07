@@ -544,7 +544,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta, b *Block) error
 
 	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
-	index, _, err := m.fs.AddFile(info, b)
+	index, _, err := m.fs.UpdateFile(info, b)
 	if err != nil {
 		return err
 	} else {
@@ -628,7 +628,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
 				}
-				if _, update, err := m.fs.AddFile(file, b); err != nil {
+				if _, update, err := m.fs.UpdateFile(file, b); err != nil {
 					return false, err
 				} else if update {
 					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)

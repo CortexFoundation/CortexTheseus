@@ -224,14 +224,14 @@ func (fs *FileStorage) Root() common.Hash {
 	return common.BytesToHash(fs.tree.MerkleRoot())
 }
 
-func (fs *FileStorage) AddFile(x *FileInfo, b *Block) (uint64, bool, error) {
+func (fs *FileStorage) UpdateFile(x *FileInfo, b *Block) (uint64, bool, error) {
 	err := fs.addBlock(b)
 	if err != nil {
 		return 0, false, nil
 	}
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
-		update, err := fs.updateFile(x)
+		update, err := fs.progress(x)
 		if err != nil {
 			return 0, update, err
 		}
@@ -240,7 +240,7 @@ func (fs *FileStorage) AddFile(x *FileInfo, b *Block) (uint64, bool, error) {
 
 	fs.filesContractAddr[addr] = x
 
-	update, err := fs.updateFile(x)
+	update, err := fs.progress(x)
 	if err != nil {
 		return 0, update, err
 	}
@@ -424,7 +424,7 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	return &block
 }
 
-func (fs *FileStorage) updateFile(f *FileInfo) (bool, error) {
+func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 	//fs.opCounter.Increase()
 	//defer fs.opCounter.Decrease()
 	update := false
