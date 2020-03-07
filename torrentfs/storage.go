@@ -168,6 +168,7 @@ func (fs *FileStorage) Reset() error {
 	fs.blocks = nil
 	//fs.leaves = nil
 	fs.CheckPoint = 0
+	fs.LastListenBlockNumber = 0
 	err := fs.initMerkleTree()
 	if err != nil {
 		errors.New("Storage reset error")
