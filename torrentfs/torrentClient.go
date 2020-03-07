@@ -571,7 +571,7 @@ func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool)
 	} else {
 		tm.trackers = tm.buildHttpTrackers(trackers)
 	}
-	log.Info("Boot trackers", "t", tm.trackers)
+	log.Debug("Boot trackers", "t", tm.trackers)
 }
 
 func mmapFile(name string) (mm mmap.MMap, err error) {
@@ -859,7 +859,7 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
 		TorrentManager.SetTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
 	}
-	log.Info("Fs client initialized", "config", config)
+	log.Debug("Fs client initialized", "config", config)
 
 	//CurrentTorrentManager = TorrentManager
 	//cl.WaitAll()

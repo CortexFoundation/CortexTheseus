@@ -162,6 +162,18 @@ func (fs *FileStorage) Blocks() []*Block {
 	return fs.blocks
 }
 
+func (fs *FileStorage) Reset() error {
+	fs.filesContractAddr = make(map[common.Address]*FileInfo)
+	fs.files = nil
+	fs.blocks = nil
+	fs.CheckPoint = 0
+	err := fs.initMerkleTree()
+	if err != nil {
+		errors.New("Storage reset error")
+	}
+	return nil
+}
+
 func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	//ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
 	ret := &FileInfo{Meta, nil, nil, Meta.RawSize}
@@ -209,26 +221,34 @@ func (fs *FileStorage) Root() common.Hash {
 	return common.BytesToHash(fs.tree.MerkleRoot())
 }
 
-func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
+func (fs *FileStorage) AddFile(x *FileInfo, b *Block) (uint64, bool, error) {
+	err := fs.addBlock(b)
+	if err != nil {
+		return 0, false, nil
+	}
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
-		return 0, nil
+		update, err := fs.updateFile(x)
+		if err != nil {
+			return 0, update, err
+		}
+		return 0, update, nil
 	}
 
 	fs.filesContractAddr[addr] = x
 
-	update, err := fs.WriteFile(x)
+	update, err := fs.updateFile(x)
 	if err != nil {
-		return 0, err
+		return 0, update, err
 	}
 
 	if !update {
-		return 0, nil
+		return 0, update, nil
 	}
 
 	fs.files = append(fs.files, x)
 
-	return 1, nil
+	return 1, update, nil
 }
 
 func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
@@ -320,7 +340,7 @@ func (fs *FileStorage) Close() error {
 	// persist storage block number
 	fs.writeCheckPoint()
 	log.Info("File DB Closed", "database", fs.db.Path())
-	return fs.writeBlockNumber()
+	return fs.Flush()
 	//fs.writeLastFileIndex()
 	//	}
 
@@ -401,7 +421,7 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	return &block
 }
 
-func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
+func (fs *FileStorage) updateFile(f *FileInfo) (bool, error) {
 	//fs.opCounter.Increase()
 	//defer fs.opCounter.Decrease()
 	update := false
@@ -443,12 +463,14 @@ func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
 	return update, err
 }
 
-func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
-	if b.Number < fs.LastListenBlockNumber {
-		return nil
-	}
+//func (fs *FileStorage) addBlock(b *Block, record bool) error {
+func (fs *FileStorage) addBlock(b *Block) error {
+	//if b.Number < fs.LastListenBlockNumber {
+	//	return nil
+	//}
 
-	if record && b.Number > fs.CheckPoint {
+	//if record && b.Number > fs.CheckPoint {
+	if b.Number > fs.CheckPoint {
 		if err := fs.db.Update(func(tx *bolt.Tx) error {
 			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
 			if err != nil {
@@ -478,10 +500,13 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 		} else {
 			return err
 		}
+
+		fs.LastListenBlockNumber = b.Number
 	}
 
-	fs.LastListenBlockNumber = b.Number
-	return fs.writeBlockNumber()
+	//fs.LastListenBlockNumber = b.Number
+	//return fs.writeBlockNumber()
+	return nil
 }
 
 func (fs *FileStorage) Version() string {
@@ -680,12 +705,13 @@ func (fs *FileStorage) GetRootByNumber(number uint64) (root []byte) {
 	return root
 }
 
-func (fs *FileStorage) writeBlockNumber() error {
+func (fs *FileStorage) Flush() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
 		if err != nil {
 			return err
 		}
+		log.Trace("Write block number", "num", fs.LastListenBlockNumber)
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastListenBlockNumber, 16)))
 
 		return e
