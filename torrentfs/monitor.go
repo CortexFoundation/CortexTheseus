@@ -541,6 +541,8 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta, b *Block) error
 		return nil
 	}
 
+	log.Debug("Meta data", "meta", meta)
+
 	info := m.fs.NewFileInfo(meta)
 	//info.TxHash = tx.Hash
 
