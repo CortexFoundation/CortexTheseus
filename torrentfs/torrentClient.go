@@ -709,10 +709,10 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	log.Trace("Get file from infohash", "InfoHash", ih.HexString())
 
 	spec := &torrent.TorrentSpec{
-		Trackers:    [][]string{}, //tm.trackers, //[][]string{},
-		DisplayName: ih.String(),
-		InfoHash:    ih,
-		Storage:     storage.NewFile(dataPath),
+		Trackers: [][]string{}, //tm.trackers, //[][]string{},
+		//DisplayName: ih.String(),
+		InfoHash: ih,
+		Storage:  storage.NewFile(dataPath),
 	}
 
 	//for _, tracker := range tm.trackers {
