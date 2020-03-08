@@ -477,8 +477,8 @@ func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 						}
 					}
 					if insert {
-						//info.Relate = append(info.Relate, *info.ContractAddr)
-						f.Relate = info.Relate
+						f.Relate = append(f.Relate, *info.ContractAddr)
+						//f.Relate = info.Relate
 						log.Debug("Write same file in 2 address and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate))
 					}
 				}

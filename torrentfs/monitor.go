@@ -1180,7 +1180,7 @@ func (m *Monitor) solve(block *Block) error {
 					if m.fs.Root() == m.ckp.TfsRoot {
 						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 					} else {
-						log.Info("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
+						log.Error("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
 						panic("Fs sync fatal error")
 						//m.lastNumber = 0
 						//m.fs.Reset()
