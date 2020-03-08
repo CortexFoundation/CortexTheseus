@@ -266,6 +266,8 @@ func (m *Monitor) storageInit() error {
 		}
 	}
 
+	log.Info("Block refresh finished", "len", len(m.fs.Blocks()))
+
 	fileMap := make(map[metainfo.Hash]*FileInfo)
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
@@ -302,7 +304,7 @@ func (m *Monitor) storageInit() error {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()))
+	log.Info("Storage current state", "total", len(m.fs.Files()), "dis", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()))
 	return nil
 }
 
@@ -540,11 +542,12 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta, b *Block) error
 	}
 
 	info := m.fs.NewFileInfo(meta)
-	info.TxHash = tx.Hash
+	//info.TxHash = tx.Hash
 
 	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
-	index, _, err := m.fs.UpdateFile(info, b)
+	info.Relate = append(info.Relate, *info.ContractAddr)
+	index, _, err := m.fs.UpdateFile(info, b, true)
 	if err != nil {
 		return err
 	} else {
@@ -624,13 +627,15 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 				if err != nil {
 					return false, err
 				}
-
+				var progress bool
+				//log.Info("....", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "cur", file.LeftSize, "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
+					progress = true
 				}
-				if _, update, err := m.fs.UpdateFile(file, b); err != nil {
+				if _, update, err := m.fs.UpdateFile(file, b, progress); err != nil {
 					return false, err
-				} else if update {
+				} else if update && progress {
 					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
 					var bytesRequested uint64
 					if file.Meta.RawSize > file.LeftSize {

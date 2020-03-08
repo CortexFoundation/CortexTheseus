@@ -36,11 +36,11 @@ const (
 type FileInfo struct {
 	Meta *FileMeta
 	// Transaction hash
-	TxHash *common.Hash
+	//TxHash *common.Hash
 	// Contract Address
 	ContractAddr *common.Address
 	LeftSize     uint64
-	//Index        uint64
+	Relate       []common.Address
 }
 
 //type MutexCounter int32
@@ -179,7 +179,7 @@ func (fs *FileStorage) Reset() error {
 
 func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	//ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
-	ret := &FileInfo{Meta, nil, nil, Meta.RawSize}
+	ret := &FileInfo{Meta, nil, Meta.RawSize, nil}
 	return ret
 }
 
@@ -225,26 +225,33 @@ func (fs *FileStorage) Root() common.Hash {
 	return common.BytesToHash(fs.tree.MerkleRoot())
 }
 
-func (fs *FileStorage) UpdateFile(x *FileInfo, b *Block) (uint64, bool, error) {
+func (fs *FileStorage) UpdateFile(x *FileInfo, b *Block, prog bool) (uint64, bool, error) {
 	err := fs.addBlock(b)
 	if err != nil {
 		return 0, false, nil
 	}
+
+	if !prog {
+		return 0, false, nil
+	}
+
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
 		update, err := fs.progress(x)
 		if err != nil {
 			return 0, update, err
 		}
+
+		fs.filesContractAddr[addr] = x
 		return 0, update, nil
 	}
-
-	fs.filesContractAddr[addr] = x
 
 	update, err := fs.progress(x)
 	if err != nil {
 		return 0, update, err
 	}
+
+	fs.filesContractAddr[addr] = x
 
 	if !update {
 		return 0, update, nil
@@ -434,18 +441,22 @@ func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 		if err != nil {
 			return err
 		}
-		v, err := json.Marshal(f)
-		if err != nil {
-			return err
-		}
+		//v, err := json.Marshal(f)
+		//if err != nil {
+		//	return err
+		//}
 		k, err := json.Marshal(f.Meta.InfoHash)
 		if err != nil {
 			return err
 		}
-
+		var v []byte
 		bef := buk.Get(k)
 		if bef == nil {
 			update = true
+			v, err = json.Marshal(f)
+			if err != nil {
+				return err
+			}
 			return buk.Put(k, v)
 		} else {
 			var info FileInfo
@@ -457,9 +468,44 @@ func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 
 			if info.LeftSize > f.LeftSize {
 				update = true
+				if *info.ContractAddr != *f.ContractAddr {
+					var insert = true
+					for _, addr := range info.Relate {
+						if *f.ContractAddr == addr {
+							insert = false
+							break
+						}
+					}
+					if insert {
+						//info.Relate = append(info.Relate, *info.ContractAddr)
+						f.Relate = info.Relate
+						log.Debug("Write same file in 2 address and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate))
+					}
+				}
+				v, err = json.Marshal(f)
+				if err != nil {
+					return err
+				}
+				//log.Info("test", "hash", info.Meta.InfoHash.String(), "left", info.LeftSize, "new", f.LeftSize)
 				return buk.Put(k, v)
 			} else {
-				log.Debug("Write same file in 2 address", "hash", info.Meta.InfoHash.String(), "old", info.LeftSize, "new", f.LeftSize)
+				if *info.ContractAddr != *f.ContractAddr {
+					for _, addr := range info.Relate {
+						if *f.ContractAddr == addr {
+							return nil
+						}
+					}
+					info.Relate = append(info.Relate, *f.ContractAddr)
+					v, err = json.Marshal(info)
+					if err != nil {
+						return err
+					}
+					f.Relate = info.Relate
+					log.Debug("Write same file in 2 address", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "left", info.LeftSize)
+					//log.Info("test1", "hash", info.Meta.InfoHash.String(), "left", info.LeftSize, "new", f.LeftSize)
+					return buk.Put(k, v)
+				}
+				//log.Info("test2", "hash", info.Meta.InfoHash.String(),"addr", *info.ContractAddr, "left", info.LeftSize, "new", f.LeftSize, "update", update)
 			}
 		}
 		return nil
@@ -559,7 +605,20 @@ func (fs *FileStorage) initFiles() error {
 				}
 				fs.filesContractAddr[*x.ContractAddr] = &x
 				fs.files = append(fs.files, &x)
+				if x.Relate == nil {
+					x.Relate = append(x.Relate, *x.ContractAddr)
+				}
+				//log.Warn("Init file with relate addr", "hash", x.Meta.InfoHash.String(), "relate", len(x.Relate))
+				for _, addr := range x.Relate {
+					if _, ok := fs.filesContractAddr[addr]; !ok {
+						tmp := x
+						tmp.ContractAddr = &addr
+						fs.filesContractAddr[addr] = &tmp
+					}
+					//log.Warn("Init file with relate addr", "file", x, "addr", addr)
+				}
 			}
+			log.Info("File init finished", "files", len(fs.files), "total", len(fs.filesContractAddr))
 			return nil
 		}
 	})
