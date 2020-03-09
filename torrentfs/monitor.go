@@ -192,17 +192,17 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 }
 
 func (m *Monitor) storageInit() error {
-	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version())
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version(), "current", m.currentNumber)
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
 		return err
 	}
 
 	if checkpoint, ok := params.TrustedCheckpoints[genesis.Hash]; ok {
-		if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
-			log.Info("Fs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
-			m.lastNumber = 0
-		}
+		//if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
+		//	log.Warn("Fs storage version upgrade", "version", m.fs.Version(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+		//	m.lastNumber = 0
+		//}
 		/*if uint64(len(m.fs.Blocks())) < checkpoint.TfsBlocks || uint64(m.fs.CheckPoint) < checkpoint.TfsCheckPoint || uint64(len(m.fs.Files())) < checkpoint.TfsFiles {
 			m.lastNumber = m.fs.CheckPoint
 			log.Info("Torrent fs block unmatch, reloading ...", "blocks", len(m.fs.Blocks()), "limit", checkpoint.TfsBlocks, "ckp", m.fs.CheckPoint, "checkpoint", checkpoint.TfsCheckPoint, "files", len(m.fs.Files()))
@@ -219,12 +219,26 @@ func (m *Monitor) storageInit() error {
 
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Fs storage is reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot)
-			m.lastNumber = 0
+			log.Warn("Fs storage is reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			if m.lastNumber > checkpoint.TfsCheckPoint {
+				m.lastNumber = 0
+				err := m.fs.Reset()
+				if err != nil {
+					return err
+				}
+			}
 			//m.fs.LastListenBlockNumber = 0
 			//m.fs.CheckPoint = 0
+			//	if m.lastNumber > 0 {
+			//	m.lastNumber = 0
+			//	err := m.fs.Reset()
+			//	if err != nil {
+			//		return err
+			//		}
+			//	}
+			//return nil
 		} else {
-			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version))
+			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
 		}
 	}
 
@@ -233,17 +247,26 @@ func (m *Monitor) storageInit() error {
 		return blocks[i].Number < blocks[j].Number
 	})*/
 
-	for _, block := range m.fs.Blocks() {
+	for i, block := range m.fs.Blocks() {
 		/*if b, err := m.rpcBlockByNumber(block.Number); err == nil && b.Hash != block.Hash {
 			m.lastNumber = 0
 		}*/
+		if block.Number > m.currentNumber {
+			break
+		}
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
 		} else {
-			log.Debug("Block storage info", "number", block.Number, "record", record)
+			log.Debug("Block storage info", "number", block.Number, "record", record, "i", i)
+			if !record {
+				//return errors.New("Fs blocks init error")
+				log.Warn("Block storage info", "number", block.Number, "record", record, "txs", block.Txs)
+			}
 		}
 	}
+
+	log.Info("Block refresh finished", "len", len(m.fs.Blocks()))
 
 	fileMap := make(map[metainfo.Hash]*FileInfo)
 	for _, file := range m.fs.Files() {
@@ -281,7 +304,7 @@ func (m *Monitor) storageInit() error {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()))
+	log.Info("Storage current state", "total", len(m.fs.Files()), "dis", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()))
 	return nil
 }
 
@@ -296,7 +319,7 @@ func (m *Monitor) taskLoop() {
 
 			if err := m.solve(task); err != nil {
 				log.Warn("Block solved failed, try again", "err", err, "num", task.Number)
-				m.solve(task)
+				//m.solve(task)
 			}
 		case <-m.exitCh:
 			log.Info("Monitor task channel closed")
@@ -500,7 +523,7 @@ func (m *Monitor) getRemainingSize(address string) (uint64, error) {
 	return remain, nil
 }
 
-func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
+func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta, b *Block) error {
 	log.Debug("Monitor", "FileMeta", meta)
 
 	var receipt TxReceipt
@@ -518,12 +541,15 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta) error {
 		return nil
 	}
 
+	log.Debug("Meta data", "meta", meta)
+
 	info := m.fs.NewFileInfo(meta)
-	info.TxHash = tx.Hash
+	//info.TxHash = tx.Hash
 
 	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
-	index, err := m.fs.AddFile(info)
+	info.Relate = append(info.Relate, *info.ContractAddr)
+	index, _, err := m.fs.UpdateFile(info, b, true)
 	if err != nil {
 		return err
 	} else {
@@ -583,7 +609,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				log.Debug("Data encounter", "hash", meta.InfoHash, "number", b.Number)
-				if err := m.parseFileMeta(&tx, meta); err != nil {
+				if err := m.parseFileMeta(&tx, meta, b); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return false, err
 				}
@@ -595,7 +621,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 				addr := *tx.Recipient
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
-					//log.Warn("Uploading a nonexist file", "addr", addr.String(), "number", b.Number)
+					//log.Warn("Uploading a nonexist file", "addr", addr.String(), "number", b.Number, "len", len(b.Txs))
 					continue
 				}
 
@@ -603,32 +629,35 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 				if err != nil {
 					return false, err
 				}
-
+				var progress bool
+				//log.Info("....", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "cur", file.LeftSize, "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
-					if update, err := m.fs.WriteFile(file); err != nil {
-						return false, err
-					} else if update {
-						log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
-						var bytesRequested uint64
-						if file.Meta.RawSize > file.LeftSize {
-							bytesRequested = file.Meta.RawSize - file.LeftSize
-						}
-						if file.LeftSize == 0 {
-							log.Info("Data processing completed !!!", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-						} else {
-							log.Info("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-						}
-
-						m.dl.UpdateTorrent(FlowControlMeta{
-							InfoHash:       file.Meta.InfoHash,
-							BytesRequested: bytesRequested,
-							IsCreate:       false,
-						})
-					}
-				} else {
-					log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
+					progress = true
 				}
+				if _, update, err := m.fs.UpdateFile(file, b, progress); err != nil {
+					return false, err
+				} else if update && progress {
+					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+					var bytesRequested uint64
+					if file.Meta.RawSize > file.LeftSize {
+						bytesRequested = file.Meta.RawSize - file.LeftSize
+					}
+					if file.LeftSize == 0 {
+						log.Info("Data processing completed !!!", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+					} else {
+						log.Info("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+					}
+
+					m.dl.UpdateTorrent(FlowControlMeta{
+						InfoHash:       file.Meta.InfoHash,
+						BytesRequested: bytesRequested,
+						IsCreate:       false,
+					})
+				}
+				//} else {
+				//	log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
+				//}
 
 				record = true
 			}
@@ -887,6 +916,7 @@ func (m *Monitor) syncLatestBlock() {
 			} else {
 				timer.Reset(time.Millisecond * 2000)
 			}
+			m.fs.Flush()
 		case <-m.exitCh:
 			log.Info("Block syncer stopped")
 			return
@@ -1063,9 +1093,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 		}
 	}
 
-	/*if maxNumber > batch+minNumber {
-		maxNumber = minNumber + batch
-	}*/
+	if maxNumber > batch*8+minNumber {
+		maxNumber = minNumber + batch*8
+	}
 	if maxNumber >= minNumber {
 		/*if minNumber > delay {
 			minNumber = minNumber - delay
@@ -1074,7 +1104,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	} else {
 		return 0
 	}
-
+	//defer m.fs.Flush()
 	start := mclock.Now()
 	for i := minNumber; i <= maxNumber; { // i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
@@ -1141,10 +1171,10 @@ func (m *Monitor) solve(block *Block) error {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
 		} else if record {
-			if storeErr := m.fs.WriteBlock(block, true); storeErr != nil {
-				log.Error("Store latest block", "number", block.Number, "error", storeErr)
-				return storeErr
-			}
+			//if storeErr := m.fs.AddBlock(block, true); storeErr != nil {
+			//	log.Error("Store latest block", "number", block.Number, "error", storeErr)
+			//	return storeErr
+			//}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 
 			if m.ckp != nil {
@@ -1152,23 +1182,31 @@ func (m *Monitor) solve(block *Block) error {
 					if m.fs.Root() == m.ckp.TfsRoot {
 						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 					} else {
+						log.Error("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
 						panic("Fs sync fatal error")
+						//m.lastNumber = 0
+						//m.fs.Reset()
+						//return errors.New("Milestone checkpoint error, reloading")
 					}
 				} else {
 					log.Debug("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 				}
 			}
 
-			log.Info("Seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			log.Info("Seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint)
 		} else {
-			if i%(batch/8) == 0 {
-				if storeErr := m.fs.WriteBlock(block, false); storeErr != nil {
-					log.Error("Store latest block", "number", block.Number, "error", storeErr)
-					return storeErr
-				}
+			//			if i%(batch/8) == 0 {
+			//if storeErr := m.fs.AddBlock(block, false); storeErr != nil {
+			//	log.Error("Store latest block", "number", block.Number, "error", storeErr)
+			//	return storeErr
+			//}
+			m.fs.LastListenBlockNumber = i
+			//if i%(batch/delay) == 0 {
+			//m.fs.Flush()
+			//}
 
-				log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
-			}
+			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
+			//			}
 		}
 
 		m.blockCache.Add(i, block.Hash.Hex())

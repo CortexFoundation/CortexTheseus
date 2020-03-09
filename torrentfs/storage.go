@@ -36,11 +36,11 @@ const (
 type FileInfo struct {
 	Meta *FileMeta
 	// Transaction hash
-	TxHash *common.Hash
+	//TxHash *common.Hash
 	// Contract Address
 	ContractAddr *common.Address
 	LeftSize     uint64
-	//Index        uint64
+	Relate       []common.Address
 }
 
 //type MutexCounter int32
@@ -162,9 +162,24 @@ func (fs *FileStorage) Blocks() []*Block {
 	return fs.blocks
 }
 
+func (fs *FileStorage) Reset() error {
+	//fs.filesContractAddr = make(map[common.Address]*FileInfo)
+	//fs.files = nil
+	fs.blocks = nil
+	//fs.leaves = nil
+	fs.CheckPoint = 0
+	fs.LastListenBlockNumber = 0
+	err := fs.initMerkleTree()
+	if err != nil {
+		errors.New("Storage reset error")
+	}
+	log.Warn("Storage status reset")
+	return nil
+}
+
 func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 	//ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
-	ret := &FileInfo{Meta, nil, nil, Meta.RawSize}
+	ret := &FileInfo{Meta, nil, Meta.RawSize, nil}
 	return ret
 }
 
@@ -173,6 +188,7 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 //}
 
 func (fs *FileStorage) initMerkleTree() error {
+	fs.leaves = nil
 	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
 	tr, err := NewTree(fs.leaves)
 	if err != nil {
@@ -209,26 +225,41 @@ func (fs *FileStorage) Root() common.Hash {
 	return common.BytesToHash(fs.tree.MerkleRoot())
 }
 
-func (fs *FileStorage) AddFile(x *FileInfo) (uint64, error) {
+func (fs *FileStorage) UpdateFile(x *FileInfo, b *Block, prog bool) (uint64, bool, error) {
+	err := fs.addBlock(b)
+	if err != nil {
+		return 0, false, nil
+	}
+
+	if !prog {
+		return 0, false, nil
+	}
+
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
-		return 0, nil
+		update, err := fs.progress(x)
+		if err != nil {
+			return 0, update, err
+		}
+
+		fs.filesContractAddr[addr] = x
+		return 0, update, nil
+	}
+
+	update, err := fs.progress(x)
+	if err != nil {
+		return 0, update, err
 	}
 
 	fs.filesContractAddr[addr] = x
 
-	update, err := fs.WriteFile(x)
-	if err != nil {
-		return 0, err
-	}
-
 	if !update {
-		return 0, nil
+		return 0, update, nil
 	}
 
 	fs.files = append(fs.files, x)
 
-	return 1, nil
+	return 1, update, nil
 }
 
 func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
@@ -320,7 +351,7 @@ func (fs *FileStorage) Close() error {
 	// persist storage block number
 	fs.writeCheckPoint()
 	log.Info("File DB Closed", "database", fs.db.Path())
-	return fs.writeBlockNumber()
+	return fs.Flush()
 	//fs.writeLastFileIndex()
 	//	}
 
@@ -401,7 +432,7 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	return &block
 }
 
-func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
+func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 	//fs.opCounter.Increase()
 	//defer fs.opCounter.Decrease()
 	update := false
@@ -410,31 +441,71 @@ func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
 		if err != nil {
 			return err
 		}
-		v, err := json.Marshal(f)
-		if err != nil {
-			return err
-		}
+		//v, err := json.Marshal(f)
+		//if err != nil {
+		//	return err
+		//}
 		k, err := json.Marshal(f.Meta.InfoHash)
 		if err != nil {
 			return err
 		}
-
+		var v []byte
 		bef := buk.Get(k)
 		if bef == nil {
 			update = true
+			v, err = json.Marshal(f)
+			if err != nil {
+				return err
+			}
 			return buk.Put(k, v)
 		} else {
 			var info FileInfo
 			if err := json.Unmarshal(bef, &info); err != nil {
-				update = true
-				return buk.Put(k, v)
+				//update = true
+				//return buk.Put(k, v)
+				return err
 			}
 
 			if info.LeftSize > f.LeftSize {
 				update = true
+				if *info.ContractAddr != *f.ContractAddr {
+					var insert = true
+					for _, addr := range info.Relate {
+						if *f.ContractAddr == addr {
+							insert = false
+							break
+						}
+					}
+					if insert {
+						f.Relate = append(f.Relate, *info.ContractAddr)
+						//f.Relate = info.Relate
+						log.Debug("Write same file in 2 address and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate))
+					}
+				}
+				v, err = json.Marshal(f)
+				if err != nil {
+					return err
+				}
+				//log.Info("test", "hash", info.Meta.InfoHash.String(), "left", info.LeftSize, "new", f.LeftSize)
 				return buk.Put(k, v)
 			} else {
-				log.Debug("Write same file in 2 address", "hash", info.Meta.InfoHash.String(), "old", info.LeftSize, "new", f.LeftSize)
+				if *info.ContractAddr != *f.ContractAddr {
+					for _, addr := range info.Relate {
+						if *f.ContractAddr == addr {
+							return nil
+						}
+					}
+					info.Relate = append(info.Relate, *f.ContractAddr)
+					v, err = json.Marshal(info)
+					if err != nil {
+						return err
+					}
+					f.Relate = info.Relate
+					log.Debug("Write same file in 2 address", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "left", info.LeftSize)
+					//log.Info("test1", "hash", info.Meta.InfoHash.String(), "left", info.LeftSize, "new", f.LeftSize)
+					return buk.Put(k, v)
+				}
+				//log.Info("test2", "hash", info.Meta.InfoHash.String(),"addr", *info.ContractAddr, "left", info.LeftSize, "new", f.LeftSize, "update", update)
 			}
 		}
 		return nil
@@ -443,12 +514,14 @@ func (fs *FileStorage) WriteFile(f *FileInfo) (bool, error) {
 	return update, err
 }
 
-func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
+//func (fs *FileStorage) addBlock(b *Block, record bool) error {
+func (fs *FileStorage) addBlock(b *Block) error {
 	if b.Number < fs.LastListenBlockNumber {
 		return nil
 	}
 
-	if record && b.Number > fs.CheckPoint {
+	//if record && b.Number > fs.CheckPoint {
+	if b.Number > fs.CheckPoint {
 		if err := fs.db.Update(func(tx *bolt.Tx) error {
 			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
 			if err != nil {
@@ -478,10 +551,13 @@ func (fs *FileStorage) WriteBlock(b *Block, record bool) error {
 		} else {
 			return err
 		}
+
+		fs.LastListenBlockNumber = b.Number
 	}
 
-	fs.LastListenBlockNumber = b.Number
-	return fs.writeBlockNumber()
+	//fs.LastListenBlockNumber = b.Number
+	//return fs.writeBlockNumber()
+	return nil
 }
 
 func (fs *FileStorage) Version() string {
@@ -529,7 +605,20 @@ func (fs *FileStorage) initFiles() error {
 				}
 				fs.filesContractAddr[*x.ContractAddr] = &x
 				fs.files = append(fs.files, &x)
+				if x.Relate == nil {
+					x.Relate = append(x.Relate, *x.ContractAddr)
+				}
+				//log.Warn("Init file with relate addr", "hash", x.Meta.InfoHash.String(), "relate", len(x.Relate))
+				for _, addr := range x.Relate {
+					if _, ok := fs.filesContractAddr[addr]; !ok {
+						tmp := x
+						tmp.ContractAddr = &addr
+						fs.filesContractAddr[addr] = &tmp
+					}
+					//log.Warn("Init file with relate addr", "file", x, "addr", addr)
+				}
 			}
+			log.Info("File init finished", "files", len(fs.files), "total", len(fs.filesContractAddr))
 			return nil
 		}
 	})
@@ -680,12 +769,13 @@ func (fs *FileStorage) GetRootByNumber(number uint64) (root []byte) {
 	return root
 }
 
-func (fs *FileStorage) writeBlockNumber() error {
+func (fs *FileStorage) Flush() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
 		if err != nil {
 			return err
 		}
+		log.Trace("Write block number", "num", fs.LastListenBlockNumber)
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastListenBlockNumber, 16)))
 
 		return e

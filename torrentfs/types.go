@@ -77,9 +77,9 @@ func (t *Transaction) Parse() *FileMeta {
 		var InfoHash = meta.InfoHash()
 		return &FileMeta{
 			InfoHash,
-			meta.Comment,
+			//	meta.Comment,
 			meta.RawSize,
-			meta.BlockNum.Uint64(),
+			//meta.BlockNum.Uint64(),
 		}
 	} else if t.Op() == opCreateModel {
 		var meta types.ModelMeta
@@ -89,9 +89,9 @@ func (t *Transaction) Parse() *FileMeta {
 		var InfoHash = meta.InfoHash()
 		return &FileMeta{
 			InfoHash,
-			meta.Comment,
+			//	meta.Comment,
 			meta.RawSize,
-			meta.BlockNum.Uint64(),
+			//meta.BlockNum.Uint64(),
 		}
 	} else {
 		return nil
@@ -132,13 +132,13 @@ type TxReceipt struct {
 // FileMeta ...
 type FileMeta struct {
 	InfoHash metainfo.Hash `json:"InfoHash"         gencodec:"required"`
-	Name     string        `json:"Name"             gencodec:"required"`
+	//	Name     string        `json:"Name"             gencodec:"required"`
 	// The raw size of the file counted in bytes
-	RawSize  uint64 `json:"RawSize"          gencodec:"required"`
-	BlockNum uint64 `json:"BlockNum"         gencodec:"required"`
+	RawSize uint64 `json:"RawSize"          gencodec:"required"`
+	//BlockNum uint64 `json:"BlockNum"         gencodec:"required"`
 }
 
 // DisplayName ...
-func (m *FileMeta) DisplayName() string {
-	return m.Name
-}
+//func (m *FileMeta) DisplayName() string {
+//	return m.Name
+//}
