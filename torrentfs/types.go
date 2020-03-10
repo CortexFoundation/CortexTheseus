@@ -108,10 +108,10 @@ type transactionMarshaling struct {
 // gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
 // Block ... block struct
 type Block struct {
-	Number     uint64        `json:"number"           gencodec:"required"`
-	Hash       common.Hash   `json:"Hash"             gencodec:"required"`
-	ParentHash common.Hash   `json:"parentHash"       gencodec:"required"`
-	Txs        []Transaction `json:"Transactions"     gencodec:"required"`
+	Number uint64      `json:"number"           gencodec:"required"`
+	Hash   common.Hash `json:"Hash"             gencodec:"required"`
+	//ParentHash common.Hash   `json:"parentHash"       gencodec:"required"`
+	Txs []Transaction `json:"Transactions"     gencodec:"required"`
 }
 
 type blockMarshaling struct {
