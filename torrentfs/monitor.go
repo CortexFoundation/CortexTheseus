@@ -219,7 +219,7 @@ func (m *Monitor) storageInit() error {
 
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Fs storage is reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			log.Warn("Fs storage is reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 			if m.lastNumber > checkpoint.TfsCheckPoint {
 				m.lastNumber = 0
 				err := m.fs.Reset()
@@ -238,7 +238,7 @@ func (m *Monitor) storageInit() error {
 			//	}
 			//return nil
 		} else {
-			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()))
+			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 		}
 	}
 
@@ -247,10 +247,7 @@ func (m *Monitor) storageInit() error {
 		return blocks[i].Number < blocks[j].Number
 	})*/
 
-	for i, block := range m.fs.Blocks() {
-		/*if b, err := m.rpcBlockByNumber(block.Number); err == nil && b.Hash != block.Hash {
-			m.lastNumber = 0
-		}*/
+	/*for i, block := range m.fs.Blocks() {
 		if block.Number > m.currentNumber {
 			break
 		}
@@ -260,13 +257,12 @@ func (m *Monitor) storageInit() error {
 		} else {
 			log.Debug("Block storage info", "number", block.Number, "record", record, "i", i)
 			if !record {
-				//return errors.New("Fs blocks init error")
 				log.Warn("Block storage info", "number", block.Number, "record", record, "txs", block.Txs)
 			}
 		}
 	}
 
-	log.Info("Block refresh finished", "len", len(m.fs.Blocks()))
+	log.Info("Block refresh finished", "len", len(m.fs.Blocks()), "txs", m.fs.Txs())*/
 
 	fileMap := make(map[metainfo.Hash]*FileInfo)
 	for _, file := range m.fs.Files() {
@@ -304,7 +300,7 @@ func (m *Monitor) storageInit() error {
 			pause += 1
 		}
 	}
-	log.Info("Storage current state", "total", len(m.fs.Files()), "dis", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()))
+	log.Info("Storage current state", "total", len(m.fs.Files()), "dis", len(fileMap), "seed", seed, "pause", pause, "pending", pending, "capcity", common.StorageSize(capcity), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs())
 	return nil
 }
 
@@ -549,12 +545,12 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta, b *Block) error
 	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
 	info.Relate = append(info.Relate, *info.ContractAddr)
-	index, _, err := m.fs.UpdateFile(info, b, true)
+	op, update, err := m.fs.UpdateFile(info)
 	if err != nil {
 		return err
 	} else {
-		if index > 0 {
-			log.Debug("Create new file", "hash", meta.InfoHash, "index", index)
+		if update && op == 1 {
+			log.Debug("Create new file", "hash", meta.InfoHash, "op", op)
 			m.dl.UpdateTorrent(FlowControlMeta{
 				InfoHash:       meta.InfoHash,
 				BytesRequested: 0,
@@ -606,6 +602,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 	record := false
 	if len(b.Txs) > 0 {
 		start := mclock.Now()
+		var final []Transaction
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				log.Debug("Data encounter", "hash", meta.InfoHash, "number", b.Number)
@@ -613,6 +610,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return false, err
 				}
+				final = append(final, tx)
 				record = true
 			} else if tx.IsFlowControl() {
 				if tx.Recipient == nil {
@@ -629,39 +627,51 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 				if err != nil {
 					return false, err
 				}
-				var progress bool
+				//var progress bool
 				//log.Info("....", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "cur", file.LeftSize, "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
-					progress = true
-				}
-				if _, update, err := m.fs.UpdateFile(file, b, progress); err != nil {
-					return false, err
-				} else if update && progress {
-					log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
-					var bytesRequested uint64
-					if file.Meta.RawSize > file.LeftSize {
-						bytesRequested = file.Meta.RawSize - file.LeftSize
-					}
-					if file.LeftSize == 0 {
-						log.Info("Data processing completed !!!", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-					} else {
-						log.Info("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-					}
+					///progress = true
+					//}
+					//if _, update, err := m.fs.UpdateFile(file, b, progress); err != nil {
+					if _, progress, err := m.fs.UpdateFile(file); err != nil {
+						return false, err
+					} else if progress { // && progress {
+						log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+						var bytesRequested uint64
+						if file.Meta.RawSize > file.LeftSize {
+							bytesRequested = file.Meta.RawSize - file.LeftSize
+						}
+						if file.LeftSize == 0 {
+							log.Info("Data processing completed !!!", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						} else {
+							log.Info("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						}
 
-					m.dl.UpdateTorrent(FlowControlMeta{
-						InfoHash:       file.Meta.InfoHash,
-						BytesRequested: bytesRequested,
-						IsCreate:       false,
-					})
+						m.dl.UpdateTorrent(FlowControlMeta{
+							InfoHash:       file.Meta.InfoHash,
+							BytesRequested: bytesRequested,
+							IsCreate:       false,
+						})
+					}
 				}
 				//} else {
 				//	log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				//}
 
 				record = true
+				final = append(final, tx)
 			}
 		}
+		if len(final) > 0 && len(final) < len(b.Txs) {
+			log.Debug("Final txs layout", "total", len(b.Txs), "final", len(final), "num", b.Number, "txs", m.fs.Txs())
+			b.Txs = final
+		}
+
+		if record {
+			m.fs.AddBlock(b)
+		}
+
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		if len(b.Txs) > 0 {
 			log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
@@ -1193,7 +1203,7 @@ func (m *Monitor) solve(block *Block) error {
 				}
 			}
 
-			log.Info("Seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint)
+			log.Info("Seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint)
 		} else {
 			//			if i%(batch/8) == 0 {
 			//if storeErr := m.fs.AddBlock(block, false); storeErr != nil {

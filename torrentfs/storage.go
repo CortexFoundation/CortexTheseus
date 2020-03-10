@@ -61,6 +61,7 @@ type FileStorage struct {
 	filesContractAddr map[common.Address]*FileInfo
 	files             []*FileInfo //only storage init files from local storage
 	blocks            []*Block    //only storage init ckp blocks from local storage
+	txs               uint64
 	db                *bolt.DB
 	version           string
 
@@ -162,6 +163,10 @@ func (fs *FileStorage) Blocks() []*Block {
 	return fs.blocks
 }
 
+func (fs *FileStorage) Txs() uint64 {
+	return fs.txs
+}
+
 func (fs *FileStorage) Reset() error {
 	//fs.filesContractAddr = make(map[common.Address]*FileInfo)
 	//fs.files = nil
@@ -225,15 +230,16 @@ func (fs *FileStorage) Root() common.Hash {
 	return common.BytesToHash(fs.tree.MerkleRoot())
 }
 
-func (fs *FileStorage) UpdateFile(x *FileInfo, b *Block, prog bool) (uint64, bool, error) {
-	err := fs.addBlock(b)
-	if err != nil {
-		return 0, false, nil
-	}
+//func (fs *FileStorage) UpdateFile(x *FileInfo, b *Block, prog bool) (uint64, bool, error) {
+func (fs *FileStorage) UpdateFile(x *FileInfo) (uint64, bool, error) {
+	//err := fs.AddBlock(b)
+	//if err != nil {
+	//	return 0, false, nil
+	//}
 
-	if !prog {
-		return 0, false, nil
-	}
+	//if !prog {
+	//	return 0, false, nil
+	//}
 
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
@@ -515,7 +521,7 @@ func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 }
 
 //func (fs *FileStorage) addBlock(b *Block, record bool) error {
-func (fs *FileStorage) addBlock(b *Block) error {
+func (fs *FileStorage) AddBlock(b *Block) error {
 	if b.Number < fs.LastListenBlockNumber {
 		return nil
 	}
@@ -551,7 +557,7 @@ func (fs *FileStorage) addBlock(b *Block) error {
 		} else {
 			return err
 		}
-
+		fs.txs += uint64(len(b.Txs))
 		fs.LastListenBlockNumber = b.Number
 	}
 
@@ -579,11 +585,12 @@ func (fs *FileStorage) initBlocks() error {
 					return err
 				}
 				fs.blocks = append(fs.blocks, &x)
+				fs.txs += uint64(len(x.Txs))
 			}
 			sort.Slice(fs.blocks, func(i, j int) bool {
 				return fs.blocks[i].Number < fs.blocks[j].Number
 			})
-			log.Info("Fs blocks initializing ... ...", "blocks", len(fs.blocks))
+			log.Info("Fs blocks initializing ... ...", "blocks", len(fs.blocks), "txs", fs.txs)
 			return nil
 		}
 	})
