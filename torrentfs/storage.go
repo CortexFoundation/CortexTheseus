@@ -478,7 +478,7 @@ func (fs *FileStorage) progress(f *FileInfo, init bool) (bool, error) {
 						}
 					}
 					if insert {
-						log.Warn("New relate file found and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
+						log.Debug("New relate file found and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 						f.Relate = append(f.Relate, *info.ContractAddr)
 					} else {
 						log.Warn("Address changed and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
@@ -501,7 +501,7 @@ func (fs *FileStorage) progress(f *FileInfo, init bool) (bool, error) {
 					if err != nil {
 						return err
 					}
-					log.Warn("New relate file found", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "r", len(info.Relate), "l", info.LeftSize, "r", len(f.Relate), "l", f.LeftSize, "init", init)
+					log.Debug("New relate file found", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "r", len(info.Relate), "l", info.LeftSize, "r", len(f.Relate), "l", f.LeftSize, "init", init)
 					f.Relate = info.Relate
 					return buk.Put(k, v)
 				}
