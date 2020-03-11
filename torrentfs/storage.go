@@ -243,7 +243,7 @@ func (fs *FileStorage) UpdateFile(x *FileInfo) (uint64, bool, error) {
 
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
-		update, err := fs.progress(x)
+		update, err := fs.progress(x, false)
 		if err != nil {
 			return 0, update, err
 		}
@@ -252,7 +252,7 @@ func (fs *FileStorage) UpdateFile(x *FileInfo) (uint64, bool, error) {
 		return 0, update, nil
 	}
 
-	update, err := fs.progress(x)
+	update, err := fs.progress(x, true)
 	if err != nil {
 		return 0, update, err
 	}
@@ -438,19 +438,14 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	return &block
 }
 
-func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
-	//fs.opCounter.Increase()
-	//defer fs.opCounter.Decrease()
+func (fs *FileStorage) progress(f *FileInfo, init bool) (bool, error) {
 	update := false
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version))
 		if err != nil {
 			return err
 		}
-		//v, err := json.Marshal(f)
-		//if err != nil {
-		//	return err
-		//}
+
 		k, err := json.Marshal(f.Meta.InfoHash)
 		if err != nil {
 			return err
@@ -467,9 +462,9 @@ func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 		} else {
 			var info FileInfo
 			if err := json.Unmarshal(bef, &info); err != nil {
-				//update = true
-				//return buk.Put(k, v)
-				return err
+				update = true
+				return buk.Put(k, v)
+				//return err
 			}
 
 			if info.LeftSize > f.LeftSize {
@@ -483,16 +478,16 @@ func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 						}
 					}
 					if insert {
+						log.Warn("New relate file found and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 						f.Relate = append(f.Relate, *info.ContractAddr)
-						//f.Relate = info.Relate
-						log.Debug("Write same file in 2 address and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate))
+					} else {
+						log.Warn("Address changed and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 					}
 				}
 				v, err = json.Marshal(f)
 				if err != nil {
 					return err
 				}
-				//log.Info("test", "hash", info.Meta.InfoHash.String(), "left", info.LeftSize, "new", f.LeftSize)
 				return buk.Put(k, v)
 			} else {
 				if *info.ContractAddr != *f.ContractAddr {
@@ -506,12 +501,10 @@ func (fs *FileStorage) progress(f *FileInfo) (bool, error) {
 					if err != nil {
 						return err
 					}
+					log.Warn("New relate file found", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "r", len(info.Relate), "l", info.LeftSize, "r", len(f.Relate), "l", f.LeftSize, "init", init)
 					f.Relate = info.Relate
-					log.Debug("Write same file in 2 address", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "left", info.LeftSize)
-					//log.Info("test1", "hash", info.Meta.InfoHash.String(), "left", info.LeftSize, "new", f.LeftSize)
 					return buk.Put(k, v)
 				}
-				//log.Info("test2", "hash", info.Meta.InfoHash.String(),"addr", *info.ContractAddr, "left", info.LeftSize, "new", f.LeftSize, "update", update)
 			}
 		}
 		return nil
