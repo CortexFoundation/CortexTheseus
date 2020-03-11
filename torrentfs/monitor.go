@@ -741,7 +741,10 @@ func (m *Monitor) Start() error {
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
-		m.startWork()
+		if err := m.startWork(); err != nil {
+			log.Error("Fs monitor start failed", "err", err)
+			panic("Fs monitor start failed")
+		}
 		/*err := m.startWork()
 		if err != nil {
 			log.Error("Torrent Fs Internal Error", "error", err)
