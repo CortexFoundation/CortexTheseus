@@ -1209,12 +1209,14 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 						setIdle(peer, 0)
 					} else {
 						peer.log.Debug("Stalling delivery, dropping", "type", kind)
+
 						if d.dropPeer == nil {
 							// The dropPeer method is nil when `--copydb` is used for a local copy.
 							// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 							peer.log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", pid)
 						} else {
 							d.dropPeer(pid)
+
 							// If this peer was the master peer, abort sync immediately
 							d.cancelLock.RLock()
 							master := pid == d.cancelPeer
@@ -1372,7 +1374,6 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 			}
 			// Otherwise split the chunk of headers into batches and process them
 			gotHeaders = true
-
 			for len(headers) > 0 {
 				// Terminate if something failed in between processing chunks
 				select {
@@ -1573,7 +1574,6 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 				sync = d.syncState(P.Header.Root)
 				defer sync.Cancel()
 				go closeOnErr(sync)
-
 				oldPivot = P
 			}
 			// Wait for completion, occasionally checking for pivot staleness
@@ -1592,7 +1592,6 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 				continue
 			}
 		}
-
 		// Fast sync done, pivot commit done, full import
 		if err := d.importBlockResults(afterP); err != nil {
 			return err
