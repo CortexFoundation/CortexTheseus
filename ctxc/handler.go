@@ -323,9 +323,9 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		p.Log().Debug("Cortex handshake failed", "err", err)
 		return err
 	}
-	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
-		rw.Init(p.version)
-	}
+	//if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
+	//	rw.Init(p.version)
+	//}
 	// Register the peer locally
 	if err := pm.peers.Register(p); err != nil {
 		p.Log().Error("Cortex peer registration failed", "err", err)
@@ -357,7 +357,6 @@ func (pm *ProtocolManager) handle(p *peer) error {
 			}
 		}()
 	}
-
 	// If we have any explicit whitelist block hashes, request them
 	for number := range pm.whitelist {
 		if err := p.RequestHeadersByNumber(number, 1, 0, false); err != nil {
