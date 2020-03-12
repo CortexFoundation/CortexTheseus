@@ -70,11 +70,17 @@ type ChanTimer interface {
 }
 
 // System implements Clock using the system clock.
-type System struct{}
+type System struct {
+	offset AbsTime
+}
 
 // Now returns the current monotonic time.
 func (c System) Now() AbsTime {
-	return AbsTime(monotime.Now())
+	//return AbsTime(monotime.Now())
+	return AbsTime(monotime.Now()) + c.offset
+}
+func (c *System) SetAbsTime(now AbsTime) {
+	c.offset = now - AbsTime(monotime.Now())
 }
 
 // Sleep blocks for the given duration.
