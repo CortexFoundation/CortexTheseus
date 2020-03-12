@@ -521,19 +521,22 @@ func (srv *Server) startListening() error {
 	if err != nil {
 		return err
 	}
-	laddr := listener.Addr().(*net.TCPAddr)
-	srv.ListenAddr = laddr.String()
+	srv.ListenAddr = listener.Addr().String()
 	srv.listener = listener
+
+	// Update the local node record and map the TCP listening port if NAT is configured.
+	if tcp, ok := listener.Addr().(*net.TCPAddr); ok {
+		if !tcp.IP.IsLoopback() && srv.NAT != nil {
+			srv.loopWG.Add(1)
+			go func() {
+				nat.Map(srv.NAT, srv.quit, "tcp", tcp.Port, tcp.Port, "cortex p2p")
+				srv.loopWG.Done()
+			}()
+		}
+	}
+
 	srv.loopWG.Add(1)
 	go srv.listenLoop()
-	// Map the TCP listening port if NAT is configured.
-	if !laddr.IP.IsLoopback() && srv.NAT != nil {
-		srv.loopWG.Add(1)
-		go func() {
-			nat.Map(srv.NAT, srv.quit, "tcp", laddr.Port, laddr.Port, "cortex p2p")
-			srv.loopWG.Done()
-		}()
-	}
 	return nil
 }
 
@@ -949,6 +952,11 @@ func (srv *Server) runPeer(p *Peer) {
 	// run the protocol
 	remoteRequested, err := p.run()
 
+	// Announce disconnect on the main loop to update the peer set.
+	// The main loop waits for existing peers to be sent on srv.delpeer
+	// before returning, so this send should not select on srv.quit.
+	srv.delpeer <- peerDrop{p, err, remoteRequested}
+
 	// broadcast peer drop
 	srv.peerFeed.Send(&PeerEvent{
 		Type:          PeerEventTypeDrop,
@@ -957,10 +965,6 @@ func (srv *Server) runPeer(p *Peer) {
 		RemoteAddress: p.RemoteAddr().String(),
 		LocalAddress:  p.LocalAddr().String(),
 	})
-
-	// Note: run waits for existing peers to be sent on srv.delpeer
-	// before returning, so this send should not select on srv.quit.
-	srv.delpeer <- peerDrop{p, err, remoteRequested}
 }
 
 // NodeInfo represents a short summary of the information known about the host.
