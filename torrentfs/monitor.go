@@ -40,15 +40,15 @@ var (
 )
 
 const (
-	//defaultTimerInterval  = 1
-	//connTryTimes          = 300
-	connTryInterval = 2
-	//fetchBlockTryTimes    = 5
-	//fetchBlockTryInterval = 3
-	//fetchBlockLogStep     = 10000
-	//minBlockNum           = 0
+//defaultTimerInterval  = 1
+//connTryTimes          = 300
+//connTryInterval = 2
+//fetchBlockTryTimes    = 5
+//fetchBlockTryInterval = 3
+//fetchBlockLogStep     = 10000
+//minBlockNum           = 0
 
-	//maxSyncBlocks = 1024
+//maxSyncBlocks = 1024
 )
 
 type TorrentManagerAPI interface {
@@ -327,7 +327,7 @@ func (m *Monitor) taskLoop() {
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 	for {
-		time.Sleep(time.Second * connTryInterval)
+		time.Sleep(time.Second * queryTimeInterval)
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
 			log.Warn("Building internal ipc connection ... ", "uri", clientURI, "error", err)
@@ -741,7 +741,10 @@ func (m *Monitor) Start() error {
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
-		m.startWork()
+		if err := m.startWork(); err != nil {
+			log.Error("Fs monitor start failed", "err", err)
+			panic("Fs monitor start failed")
+		}
 		/*err := m.startWork()
 		if err != nil {
 			log.Error("Torrent Fs Internal Error", "error", err)
