@@ -472,7 +472,7 @@ func (fs *FileStorage) progress(f *types.FileInfo, init bool) (bool, error) {
 						log.Debug("New relate file found and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 						f.Relate = append(f.Relate, *info.ContractAddr)
 					} else {
-						log.Warn("Address changed and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
+						log.Debug("Address changed and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 					}
 				}
 				v, err = json.Marshal(f)
