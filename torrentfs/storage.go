@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 	//"fmt"
 	"github.com/pborman/uuid"
 	"os"
@@ -22,7 +23,7 @@ import (
 	"crypto/sha256"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/anacrolix/torrent/metainfo"
+	//"github.com/anacrolix/torrent/metainfo"
 	bolt "github.com/etcd-io/bbolt"
 	//"math/rand"
 )
@@ -32,16 +33,6 @@ const (
 // most chunk writes are to exactly one full item in bolt DB.
 //chunkSize = 1 << 14
 )
-
-type FileInfo struct {
-	Meta *FileMeta
-	// Transaction hash
-	//TxHash *common.Hash
-	// Contract Address
-	ContractAddr *common.Address
-	LeftSize     uint64
-	Relate       []common.Address
-}
 
 //type MutexCounter int32
 
@@ -58,9 +49,9 @@ func (mc *MutexCounter) IsZero() bool {
 }*/
 
 type FileStorage struct {
-	filesContractAddr map[common.Address]*FileInfo
-	files             []*FileInfo //only storage init files from local storage
-	blocks            []*Block    //only storage init ckp blocks from local storage
+	filesContractAddr map[common.Address]*types.FileInfo
+	files             []*types.FileInfo //only storage init files from local storage
+	blocks            []*types.Block    //only storage init ckp blocks from local storage
 	txs               uint64
 	db                *bolt.DB
 	version           string
@@ -70,8 +61,8 @@ type FileStorage struct {
 	LastListenBlockNumber uint64
 
 	//elements []*BlockContent
-	leaves []Content
-	tree   *MerkleTree
+	leaves []types.Content
+	tree   *types.MerkleTree
 	//LastFileIndex         uint64
 
 	//lock      sync.RWMutex
@@ -102,7 +93,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 
 	fs := &FileStorage{
 		// filesInfoHash:     make(map[metainfo.Hash]*FileInfo),
-		filesContractAddr: make(map[common.Address]*FileInfo),
+		filesContractAddr: make(map[common.Address]*types.FileInfo),
 		db:                db,
 		//opCounter:         0,
 		dataDir: config.DataDir,
@@ -151,15 +142,15 @@ func (t BlockContent) CalculateHash() ([]byte, error) {
 }
 
 //Equals tests for equality of two Contents
-func (t BlockContent) Equals(other Content) (bool, error) {
+func (t BlockContent) Equals(other types.Content) (bool, error) {
 	return t.x == other.(BlockContent).x, nil
 }
 
-func (fs *FileStorage) Files() []*FileInfo {
+func (fs *FileStorage) Files() []*types.FileInfo {
 	return fs.files
 }
 
-func (fs *FileStorage) Blocks() []*Block {
+func (fs *FileStorage) Blocks() []*types.Block {
 	return fs.blocks
 }
 
@@ -182,9 +173,9 @@ func (fs *FileStorage) Reset() error {
 	return nil
 }
 
-func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
+func (fs *FileStorage) NewFileInfo(Meta *types.FileMeta) *types.FileInfo {
 	//ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
-	ret := &FileInfo{Meta, nil, Meta.RawSize, nil}
+	ret := &types.FileInfo{Meta, nil, Meta.RawSize, nil}
 	return ret
 }
 
@@ -195,7 +186,7 @@ func (fs *FileStorage) NewFileInfo(Meta *FileMeta) *FileInfo {
 func (fs *FileStorage) initMerkleTree() error {
 	fs.leaves = nil
 	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
-	tr, err := NewTree(fs.leaves)
+	tr, err := types.NewTree(fs.leaves)
 	if err != nil {
 		return err
 	}
@@ -211,7 +202,7 @@ func (fs *FileStorage) initMerkleTree() error {
 	return nil
 }
 
-func (fs *FileStorage) addLeaf(block *Block) error {
+func (fs *FileStorage) addLeaf(block *types.Block) error {
 	fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
 	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
 		if err := fs.writeRoot(block.Number, fs.tree.MerkleRoot()); err != nil {
@@ -231,7 +222,7 @@ func (fs *FileStorage) Root() common.Hash {
 }
 
 //func (fs *FileStorage) UpdateFile(x *FileInfo, b *Block, prog bool) (uint64, bool, error) {
-func (fs *FileStorage) UpdateFile(x *FileInfo) (uint64, bool, error) {
+func (fs *FileStorage) UpdateFile(x *types.FileInfo) (uint64, bool, error) {
 	//err := fs.AddBlock(b)
 	//if err != nil {
 	//	return 0, false, nil
@@ -268,7 +259,7 @@ func (fs *FileStorage) UpdateFile(x *FileInfo) (uint64, bool, error) {
 	return 1, update, nil
 }
 
-func (fs *FileStorage) GetFileByAddr(addr common.Address) *FileInfo {
+func (fs *FileStorage) GetFileByAddr(addr common.Address) *types.FileInfo {
 	if f, ok := fs.filesContractAddr[addr]; ok {
 		return f
 	}
@@ -407,8 +398,8 @@ var (
 	return &info
 }*/
 
-func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
-	var block Block
+func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *types.Block {
+	var block types.Block
 
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("blocks_" + fs.version))
@@ -438,7 +429,7 @@ func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *Block {
 	return &block
 }
 
-func (fs *FileStorage) progress(f *FileInfo, init bool) (bool, error) {
+func (fs *FileStorage) progress(f *types.FileInfo, init bool) (bool, error) {
 	update := false
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version))
@@ -460,7 +451,7 @@ func (fs *FileStorage) progress(f *FileInfo, init bool) (bool, error) {
 			}
 			return buk.Put(k, v)
 		} else {
-			var info FileInfo
+			var info types.FileInfo
 			if err := json.Unmarshal(bef, &info); err != nil {
 				update = true
 				return buk.Put(k, v)
@@ -514,7 +505,7 @@ func (fs *FileStorage) progress(f *FileInfo, init bool) (bool, error) {
 }
 
 //func (fs *FileStorage) addBlock(b *Block, record bool) error {
-func (fs *FileStorage) AddBlock(b *Block) error {
+func (fs *FileStorage) AddBlock(b *types.Block) error {
 	if b.Number < fs.LastListenBlockNumber {
 		return nil
 	}
@@ -572,7 +563,7 @@ func (fs *FileStorage) initBlocks() error {
 
 			for k, v := c.First(); k != nil; k, v = c.Next() {
 
-				var x Block
+				var x types.Block
 
 				if err := json.Unmarshal(v, &x); err != nil {
 					return err
@@ -598,7 +589,7 @@ func (fs *FileStorage) initFiles() error {
 
 			for k, v := c.First(); k != nil; k, v = c.Next() {
 
-				var x FileInfo
+				var x types.FileInfo
 
 				if err := json.Unmarshal(v, &x); err != nil {
 					return err
@@ -780,10 +771,4 @@ func (fs *FileStorage) Flush() error {
 
 		return e
 	})
-}
-
-type FlowControlMeta struct {
-	InfoHash       metainfo.Hash
-	BytesRequested uint64
-	IsCreate       bool
 }

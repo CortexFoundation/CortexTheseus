@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 	//"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
@@ -917,7 +918,7 @@ func (tm *TorrentManager) mainLoop() {
 	for {
 		select {
 		case msg := <-tm.updateTorrent:
-			meta := msg.(FlowControlMeta)
+			meta := msg.(types.FlowControlMeta)
 			if _, ok := BadFiles[meta.InfoHash.HexString()]; ok {
 				continue
 			}

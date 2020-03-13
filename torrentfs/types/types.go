@@ -1,4 +1,4 @@
-package torrentfs
+package types
 
 import (
 	"bytes"
@@ -19,6 +19,16 @@ const (
 	opCreateInput = 2
 	opNoInput     = 3
 )
+
+type FileInfo struct {
+	Meta *FileMeta
+	// Transaction hash
+	//TxHash *common.Hash
+	// Contract Address
+	ContractAddr *common.Address
+	LeftSize     uint64
+	Relate       []common.Address
+}
 
 //var (
 //	errWrongOpCode = errors.New("unexpected opCode")
@@ -142,3 +152,10 @@ type FileMeta struct {
 //func (m *FileMeta) DisplayName() string {
 //	return m.Name
 //}
+
+type FlowControlMeta struct {
+	InfoHash       metainfo.Hash
+	BytesRequested uint64
+	IsCreate       bool
+}
+

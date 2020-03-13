@@ -10,6 +10,7 @@ import (
 	//"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
 	//"net"
@@ -87,7 +88,7 @@ type Monitor struct {
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
 
-	taskCh chan *Block
+	taskCh chan *types.Block
 	//newTaskHook func(*Block)
 	blockCache *lru.Cache
 	//healthPeers *lru.Cache
@@ -131,7 +132,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		lastNumber:    uint64(0),
 		scope:         uint64(math.Min(float64(runtime.NumCPU()*2), float64(8))),
 		currentNumber: uint64(0),
-		taskCh:        make(chan *Block, batch),
+		taskCh:        make(chan *types.Block, batch),
 		start:         mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
@@ -264,7 +265,7 @@ func (m *Monitor) storageInit() error {
 
 	log.Info("Block refresh finished", "len", len(m.fs.Blocks()), "txs", m.fs.Txs())*/
 
-	fileMap := make(map[metainfo.Hash]*FileInfo)
+	fileMap := make(map[metainfo.Hash]*types.FileInfo)
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
 			if f.LeftSize > file.LeftSize {
@@ -287,7 +288,7 @@ func (m *Monitor) storageInit() error {
 		}
 		capcity += bytesRequested
 		log.Debug("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
-		m.dl.UpdateTorrent(FlowControlMeta{
+		m.dl.UpdateTorrent(types.FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
 			IsCreate:       true,
@@ -344,8 +345,8 @@ func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 	return nil, errors.New("building internal ipc connection failed")
 }
 
-func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
-	block := &Block{}
+func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*types.Block, error) {
+	block := &types.Block{}
 	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 
 	err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
@@ -356,11 +357,11 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*Block, error) {
 	return nil, err //errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
-func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*Block, err error) {
+func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*types.Block, err error) {
 	batch := to - from
 	//log.Info("batch", "from", from, "to", to, "batch", batch)
 	//c := make(chan bool)
-	result = make([]*Block, batch)
+	result = make([]*types.Block, batch)
 	var e error = nil
 	for i := 0; i < int(batch); i++ {
 		m.rpcWg.Add(1)
@@ -519,10 +520,10 @@ func (m *Monitor) getRemainingSize(address string) (uint64, error) {
 	return remain, nil
 }
 
-func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta, b *Block) error {
+func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *types.Block) error {
 	log.Debug("Monitor", "FileMeta", meta)
 
-	var receipt TxReceipt
+	var receipt types.TxReceipt
 	if err := m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx.Hash.String()); err != nil {
 		return err
 	}
@@ -551,7 +552,7 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta, b *Block) error
 	} else {
 		if update && op == 1 {
 			log.Debug("Create new file", "hash", meta.InfoHash, "op", op)
-			m.dl.UpdateTorrent(FlowControlMeta{
+			m.dl.UpdateTorrent(types.FlowControlMeta{
 				InfoHash:       meta.InfoHash,
 				BytesRequested: 0,
 				IsCreate:       true,
@@ -598,11 +599,11 @@ func (m *Monitor) parseFileMeta(tx *Transaction, meta *FileMeta, b *Block) error
 	return nil
 }
 
-func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
+func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 	record := false
 	if len(b.Txs) > 0 {
 		start := mclock.Now()
-		var final []Transaction
+		var final []types.Transaction
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
 				log.Debug("Data encounter", "hash", meta.InfoHash, "number", b.Number)
@@ -648,7 +649,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *Block) (bool, error) {
 							log.Info("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
 
-						m.dl.UpdateTorrent(FlowControlMeta{
+						m.dl.UpdateTorrent(types.FlowControlMeta{
 							InfoHash:       file.Meta.InfoHash,
 							BytesRequested: bytesRequested,
 							IsCreate:       false,
@@ -1177,7 +1178,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	return uint64(maxNumber - minNumber)
 }
 
-func (m *Monitor) solve(block *Block) error {
+func (m *Monitor) solve(block *types.Block) error {
 	i := block.Number
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
