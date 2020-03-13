@@ -73,7 +73,7 @@ func mainExitCode(conf *Config) int {
 	cfg.DataDir = conf.Dir
 	cfg.DisableDHT = !conf.Dht
 	cfg.DisableUTP = true
-	tfs, _ := torrentfs.New(&cfg, "")
+	tfs, _ := torrentfs.New(&cfg, "", true, false)
 	tfs.Start(nil)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
