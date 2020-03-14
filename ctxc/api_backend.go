@@ -18,6 +18,7 @@ package ctxc
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
@@ -85,6 +86,31 @@ func (b *CortexAPIBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockN
 		return b.ctxc.blockchain.CurrentBlock(), nil
 	}
 	return b.ctxc.blockchain.GetBlockByNumber(uint64(blockNr)), nil
+}
+
+func (b *CortexAPIBackend) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
+	return b.ctxc.blockchain.GetBlockByHash(hash), nil
+}
+
+func (b *CortexAPIBackend) BlockByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*types.Block, error) {
+	if blockNr, ok := blockNrOrHash.Number(); ok {
+		return b.BlockByNumber(ctx, blockNr)
+	}
+	if hash, ok := blockNrOrHash.Hash(); ok {
+		header := b.ctxc.blockchain.GetHeaderByHash(hash)
+		if header == nil {
+			return nil, errors.New("header for hash not found")
+		}
+		if blockNrOrHash.RequireCanonical && b.ctxc.blockchain.GetCanonicalHash(header.Number.Uint64()) != hash {
+			return nil, errors.New("hash is not currently canonical")
+		}
+		block := b.ctxc.blockchain.GetBlock(hash, header.Number.Uint64())
+		if block == nil {
+			return nil, errors.New("header found, but block body is missing")
+		}
+		return block, nil
+	}
+	return nil, errors.New("invalid arguments; neither block nor hash specified")
 }
 
 func (b *CortexAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDB, *types.Header, error) {

@@ -21,6 +21,7 @@ type CVMStorage interface {
 	GetFile(infohash string, path string) ([]byte, error)
 	Stop() error
 }
+
 type GeneralMessage struct {
 	Version string `json:"version,omitempty"`
 	Commit  string `json:"commit,omitempty"`
