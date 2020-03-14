@@ -1,4 +1,4 @@
-package torrentfs
+package types
 
 import (
 	"bytes"
