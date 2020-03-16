@@ -19,16 +19,16 @@ package ctxc
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"sync"
-	"time"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	mapset "github.com/deckarep/golang-set"
+	"math/big"
+	"sync"
+	"time"
 )
 
 var (
