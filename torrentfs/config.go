@@ -30,7 +30,7 @@ var DefaultConfig = Config{
 	DefaultTrackers: params.MainnetTrackers,
 	BoostNodes:      params.TorrentBoostNodes,
 	SyncMode:        "full",
-	DisableUTP:      false,
+	DisableUTP:      true,
 	DisableDHT:      false,
 	DisableTCP:      false,
 	MaxSeedingNum:   1024,

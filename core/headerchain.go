@@ -33,7 +33,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -188,7 +188,6 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 			log.Crit("Failed to write header markers into disk", "err", err)
 		}
 		// Last step update all in-memory head header markers
-
 		hc.currentHeaderHash = hash
 		hc.currentHeader.Store(types.CopyHeader(header))
 		headHeaderGauge.Update(header.Number.Int64())
@@ -200,7 +199,6 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 	hc.tdCache.Add(hash, externTd)
 	hc.headerCache.Add(hash, header)
 	hc.numberCache.Add(hash, number)
-
 	return
 }
 
@@ -355,8 +353,6 @@ func (hc *HeaderChain) GetAncestor(hash common.Hash, number, ancestor uint64, ma
 	}
 	for ancestor != 0 {
 		if rawdb.ReadCanonicalHash(hc.chainDb, number) == hash {
-			//number -= ancestor
-			//return rawdb.ReadCanonicalHash(hc.chainDb, number), number
 			ancestorHash := rawdb.ReadCanonicalHash(hc.chainDb, number-ancestor)
 			if rawdb.ReadCanonicalHash(hc.chainDb, number) == hash {
 				number -= ancestor
@@ -446,6 +442,10 @@ func (hc *HeaderChain) GetHeaderByNumber(number uint64) *types.Header {
 		return nil
 	}
 	return hc.GetHeader(hash, number)
+}
+
+func (hc *HeaderChain) GetCanonicalHash(number uint64) common.Hash {
+	return rawdb.ReadCanonicalHash(hc.chainDb, number)
 }
 
 // CurrentHeader retrieves the current head header of the canonical chain. The
