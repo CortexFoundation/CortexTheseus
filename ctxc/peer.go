@@ -58,6 +58,14 @@ const (
 	handshakeTimeout = 5 * time.Second
 )
 
+// max is a helper function which returns the larger of the two given integers.
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // PeerInfo represents a short summary of the Cortex sub-protocol metadata known
 // about a connected peer.
 type PeerInfo struct {
@@ -196,11 +204,12 @@ func (p *peer) MarkTransaction(hash common.Hash) {
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendTransactions(txs types.Transactions) error {
+	for p.knownTxs.Cardinality() > max(0, maxKnownTxs-len(txs)) {
+		p.knownTxs.Pop()
+	}
+
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())
-	}
-	for p.knownTxs.Cardinality() >= maxKnownTxs {
-		p.knownTxs.Pop()
 	}
 	return p2p.Send(p.rw, TxMsg, txs)
 }
@@ -210,11 +219,12 @@ func (p *peer) SendTransactions(txs types.Transactions) error {
 func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
 	select {
 	case p.queuedTxs <- txs:
+		for p.knownTxs.Cardinality() > max(0, maxKnownTxs-len(txs)) {
+			p.knownTxs.Pop()
+		}
+
 		for _, tx := range txs {
 			p.knownTxs.Add(tx.Hash())
-		}
-		for p.knownTxs.Cardinality() >= maxKnownTxs {
-			p.knownTxs.Pop()
 		}
 	default:
 		p.Log().Debug("Dropping transaction propagation", "count", len(txs))
@@ -224,11 +234,12 @@ func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
 // SendNewBlockHashes announces the availability of a number of blocks through
 // a hash notification.
 func (p *peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64) error {
+	for p.knownBlocks.Cardinality() > max(0, maxKnownBlocks-len(hashes)) {
+		p.knownBlocks.Pop()
+	}
+
 	for _, hash := range hashes {
 		p.knownBlocks.Add(hash)
-	}
-	for p.knownBlocks.Cardinality() >= maxKnownBlocks {
-		p.knownBlocks.Pop()
 	}
 	request := make(newBlockHashesData, len(hashes))
 	for i := 0; i < len(hashes); i++ {
@@ -244,10 +255,10 @@ func (p *peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64) error 
 func (p *peer) AsyncSendNewBlockHash(block *types.Block) {
 	select {
 	case p.queuedAnns <- block:
-		p.knownBlocks.Add(block.Hash())
 		for p.knownBlocks.Cardinality() >= maxKnownBlocks {
 			p.knownBlocks.Pop()
 		}
+		p.knownBlocks.Add(block.Hash())
 	default:
 		p.Log().Debug("Dropping block announcement", "number", block.NumberU64(), "hash", block.Hash())
 	}
@@ -255,10 +266,10 @@ func (p *peer) AsyncSendNewBlockHash(block *types.Block) {
 
 // SendNewBlock propagates an entire block to a remote peer.
 func (p *peer) SendNewBlock(block *types.Block, td *big.Int) error {
-	p.knownBlocks.Add(block.Hash())
 	for p.knownBlocks.Cardinality() >= maxKnownBlocks {
 		p.knownBlocks.Pop()
 	}
+	p.knownBlocks.Add(block.Hash())
 	return p2p.Send(p.rw, NewBlockMsg, []interface{}{block, td})
 }
 
@@ -267,10 +278,10 @@ func (p *peer) SendNewBlock(block *types.Block, td *big.Int) error {
 func (p *peer) AsyncSendNewBlock(block *types.Block, td *big.Int) {
 	select {
 	case p.queuedProps <- &propEvent{block: block, td: td}:
-		p.knownBlocks.Add(block.Hash())
 		for p.knownBlocks.Cardinality() >= maxKnownBlocks {
 			p.knownBlocks.Pop()
 		}
+		p.knownBlocks.Add(block.Hash())
 	default:
 		p.Log().Debug("Dropping block propagation", "number", block.NumberU64(), "hash", block.Hash())
 	}
