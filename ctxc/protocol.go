@@ -23,6 +23,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/forkid"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -32,36 +33,42 @@ import (
 const (
 	ctxc62 = 62
 	ctxc63 = 63
+	ctxc64 = 64
+	ctxc65 = 65
 )
 
 // ProtocolName is the official short name of the protocol used during capability negotiation.
 var protocolName = "ctxc"
 
 // ProtocolVersions are the upported versions of the ctxc protocol (first is primary).
-var ProtocolVersions = []uint{ctxc63} //, ctxc62}
+var ProtocolVersions = []uint{ctxc65, ctxc64, ctxc63} //, ctxc62}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{ctxc63: 17, ctxc62: 8}
+var protocolLengths = map[uint]uint64{ctxc65: 17, ctxc64: 17, ctxc63: 17, ctxc62: 8}
 
-const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
+const protocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
 // ctxc protocol message codes
 const (
-	// Protocol messages belonging to ctxc/62
 	StatusMsg          = 0x00
 	NewBlockHashesMsg  = 0x01
-	TxMsg              = 0x02
+	TransactionMsg     = 0x02
 	GetBlockHeadersMsg = 0x03
 	BlockHeadersMsg    = 0x04
 	GetBlockBodiesMsg  = 0x05
 	BlockBodiesMsg     = 0x06
 	NewBlockMsg        = 0x07
-
-	// Protocol messages belonging to ctxc/63
-	GetNodeDataMsg = 0x0d
-	NodeDataMsg    = 0x0e
-	GetReceiptsMsg = 0x0f
-	ReceiptsMsg    = 0x10
+	GetNodeDataMsg     = 0x0d
+	NodeDataMsg        = 0x0e
+	GetReceiptsMsg     = 0x0f
+	ReceiptsMsg        = 0x10
+	// New protocol message codes introduced in eth65
+	//
+	// Previously these message ids(0x08, 0x09) were used by some
+	// legacy and unsupported eth protocols, reown them here.
+	NewPooledTransactionHashesMsg = 0x08
+	GetPooledTransactionsMsg      = 0x09
+	PooledTransactionsMsg         = 0x0a
 )
 
 type errCode int
@@ -72,6 +79,9 @@ const (
 	ErrInvalidMsgCode
 	ErrProtocolVersionMismatch
 	ErrNetworkIdMismatch
+	ErrNetworkIDMismatch
+	ErrGenesisMismatch
+	ErrForkIDRejected
 	ErrGenesisBlockMismatch
 	ErrNoStatusMsg
 	ErrExtraStatusMsg
@@ -89,6 +99,9 @@ var errorToString = map[int]string{
 	ErrInvalidMsgCode:          "Invalid message code",
 	ErrProtocolVersionMismatch: "Protocol version mismatch",
 	ErrNetworkIdMismatch:       "NetworkId mismatch",
+	ErrNetworkIDMismatch:       "NetworkId mismatch",
+	ErrGenesisMismatch:         "Genesis mismatch",
+	ErrForkIDRejected:          "Fork ID rejected",
 	ErrGenesisBlockMismatch:    "Genesis block mismatch",
 	ErrNoStatusMsg:             "No status message",
 	ErrExtraStatusMsg:          "Extra status message",
@@ -115,13 +128,23 @@ type txPool interface {
 	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
 }
 
-// statusData is the network packet for the status message.
-type statusData struct {
+// statusData63 is the network packet for the status message for eth/63.
+type statusData63 struct {
 	ProtocolVersion uint32
 	NetworkId       uint64
 	TD              *big.Int
 	CurrentBlock    common.Hash
 	GenesisBlock    common.Hash
+}
+
+// statusData is the network packet for the status message.
+type statusData struct {
+	ProtocolVersion uint32
+	NetworkID       uint64
+	TD              *big.Int
+	Head            common.Hash
+	Genesis         common.Hash
+	ForkID          forkid.ID
 }
 
 // newBlockHashesData is the network packet for the block announcements.
