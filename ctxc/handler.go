@@ -50,9 +50,6 @@ const (
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
-
-	// minimim number of peers to broadcast new blocks to
-	//minBroadcastPeers = 4
 )
 
 var (
@@ -323,9 +320,9 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		p.Log().Debug("Cortex handshake failed", "err", err)
 		return err
 	}
-	//if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
-	//	rw.Init(p.version)
-	//}
+	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
+		rw.Init(p.version)
+	}
 	// Register the peer locally
 	if err := pm.peers.Register(p); err != nil {
 		p.Log().Error("Cortex peer registration failed", "err", err)

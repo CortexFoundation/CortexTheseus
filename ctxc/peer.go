@@ -207,7 +207,6 @@ func (p *peer) SendTransactions(txs types.Transactions) error {
 	for p.knownTxs.Cardinality() > max(0, maxKnownTxs-len(txs)) {
 		p.knownTxs.Pop()
 	}
-
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())
 	}
@@ -222,7 +221,6 @@ func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
 		for p.knownTxs.Cardinality() > max(0, maxKnownTxs-len(txs)) {
 			p.knownTxs.Pop()
 		}
-
 		for _, tx := range txs {
 			p.knownTxs.Add(tx.Hash())
 		}
@@ -237,7 +235,6 @@ func (p *peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64) error 
 	for p.knownBlocks.Cardinality() > max(0, maxKnownBlocks-len(hashes)) {
 		p.knownBlocks.Pop()
 	}
-
 	for _, hash := range hashes {
 		p.knownBlocks.Add(hash)
 	}
