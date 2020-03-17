@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.0
 	github.com/VictoriaMetrics/fastcache v1.5.7
+	github.com/anacrolix/log v0.6.1-0.20200211014814-17693f71c449
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200227072623-f02f6484f997
 	github.com/anacrolix/tagflag v1.0.1
 	github.com/anacrolix/torrent v1.14.1-0.20200317024809-378ccd0932c5
@@ -24,7 +25,6 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-resty/resty/v2 v2.2.1-0.20200302084117-a8bb0982c19a
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/protobuf v1.3.3-0.20191022195553-ed6926b37a63 // indirect
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.3
