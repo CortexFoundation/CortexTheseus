@@ -315,10 +315,12 @@ func (cl *Client) newAnacrolixDhtServer(conn net.PacketConn) (s *dht.Server, err
 			}
 			return cl.config.PublicIp4
 		}(),
-		StartingNodes:      cl.config.DhtStartingNodes,
+		StartingNodes:      cl.config.DhtStartingNodes(conn.LocalAddr().Network()),
 		ConnectionTracking: cl.config.ConnTracker,
 		OnQuery:            cl.config.DHTOnQuery,
-		Logger:             cl.logger.WithValues("dht", conn.LocalAddr().String()),
+		Logger: cl.logger.WithText(func(m log.Msg) string {
+			return fmt.Sprintf("dht server on %v: %s", conn.LocalAddr().String(), m.Text())
+		}),
 	}
 	s, err = dht.NewServer(&cfg)
 	if err == nil {

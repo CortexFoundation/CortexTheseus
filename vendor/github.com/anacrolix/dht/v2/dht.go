@@ -63,6 +63,9 @@ type ServerConfig struct {
 
 	ConnectionTracking *conntrack.Instance
 
+	// If no Logger is provided, log.Default is used and log.Debug messages are filtered out. Note
+	// that all messages without a log.Level, have log.Debug added to them before being passed to
+	// this Logger.
 	Logger log.Logger
 }
 
@@ -88,7 +91,7 @@ func jitterDuration(average time.Duration, plusMinus time.Duration) time.Duratio
 
 type Peer = krpc.NodeAddr
 
-func GlobalBootstrapAddrs() (addrs []Addr, err error) {
+func GlobalBootstrapAddrs(network string) (addrs []Addr, err error) {
 	for _, s := range []string{
 		"router.utorrent.com:6881",
 		"router.bittorrent.com:6881",
@@ -96,7 +99,6 @@ func GlobalBootstrapAddrs() (addrs []Addr, err error) {
 		"dht.aelitis.com:6881",     // Vuze
 		"router.silotis.us:6881",   // IPv6
 		"dht.libtorrent.org:25401", // @arvidn's
-
 	} {
 		host, port, err := net.SplitHostPort(s)
 		if err != nil {
