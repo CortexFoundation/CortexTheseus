@@ -803,7 +803,9 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//cfg.EstablishedConnsPerTorrent = 20 //len(config.DefaultTrackers)
 	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.ListenPort = config.Port
-	cfg.Logger = xlog.Discard
+	if config.Quiet {
+		cfg.Logger = xlog.Discard
+	}
 	//cfg.Debug = true
 	//cfg.DropDuplicatePeerIds = true
 	//cfg.ListenHost = torrent.LoopbackListenHost
