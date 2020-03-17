@@ -22,6 +22,7 @@ type Config struct {
 	MaxActiveNum    int      `toml:",omitempty"`
 	FullSeed        bool
 	Boost           bool
+	Quiet           bool
 }
 
 // DefaultConfig contains default settings for the storage.
@@ -37,6 +38,7 @@ var DefaultConfig = Config{
 	MaxActiveNum:    1024,
 	FullSeed:        false,
 	Boost:           false,
+	Quiet:           true,
 }
 
 const (

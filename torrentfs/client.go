@@ -24,6 +24,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/anacrolix/torrent"
 	//	"net"
+	xlog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
 	"github.com/anacrolix/torrent/storage"
@@ -802,6 +803,9 @@ func NewTorrentManager(config *Config, fsid uint64) *TorrentManager {
 	//cfg.EstablishedConnsPerTorrent = 20 //len(config.DefaultTrackers)
 	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.ListenPort = config.Port
+	if config.Quiet {
+		cfg.Logger = xlog.Discard
+	}
 	//cfg.Debug = true
 	//cfg.DropDuplicatePeerIds = true
 	//cfg.ListenHost = torrent.LoopbackListenHost
