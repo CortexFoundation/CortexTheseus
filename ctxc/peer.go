@@ -69,10 +69,10 @@ func max(a, b int) int {
 	return b
 }
 
-// PeerInfo represents a short summary of the Ethereum sub-protocol metadata known
+// PeerInfo represents a short summary of the Cortex sub-protocol metadata known
 // about a connected peer.
 type PeerInfo struct {
-	Version    int      `json:"version"`    // Ethereum protocol version negotiated
+	Version    int      `json:"version"`    // Cortex protocol version negotiated
 	Difficulty *big.Int `json:"difficulty"` // Total difficulty of the peer's blockchain
 	Head       string   `json:"head"`       // SHA3 hash of the peer's best owned block
 }
@@ -332,7 +332,7 @@ func (p *peer) MarkTransaction(hash common.Hash) {
 // in its transaction hash set for future reference.
 //
 // This method is legacy support for initial transaction exchange in ctxc/64 and
-// prior. For eth/65 and higher use SendPooledTransactionHashes.
+// prior. For ctxc/65 and higher use SendPooledTransactionHashes.
 func (p *peer) SendTransactions64(txs types.Transactions) error {
 	return p.sendTransactions(txs)
 }
@@ -557,7 +557,7 @@ func (p *peer) RequestTxs(hashes []common.Hash) error {
 	return p2p.Send(p.rw, GetPooledTransactionsMsg, hashes)
 }
 
-// Handshake executes the eth protocol handshake, negotiating version number,
+// Handshake executes the ctxc protocol handshake, negotiating version number,
 // network IDs, difficulties, head and genesis blocks.
 func (p *peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis common.Hash, forkID forkid.ID, forkFilter forkid.Filter) error {
 	// Send out own handshake in a new thread
@@ -587,7 +587,7 @@ func (p *peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis 
 				ForkID:          forkID,
 			})
 		default:
-			panic(fmt.Sprintf("unsupported eth protocol version: %d", p.version))
+			panic(fmt.Sprintf("unsupported ctxc protocol version: %d", p.version))
 		}
 	}()
 	go func() {
@@ -597,7 +597,7 @@ func (p *peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis 
 		case p.version >= ctxc64:
 			errc <- p.readStatus(network, &status, genesis, forkFilter)
 		default:
-			panic(fmt.Sprintf("unsupported eth protocol version: %d", p.version))
+			panic(fmt.Sprintf("unsupported ctxc protocol version: %d", p.version))
 		}
 	}()
 	timeout := time.NewTimer(handshakeTimeout)
@@ -618,7 +618,7 @@ func (p *peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis 
 	case p.version >= ctxc64:
 		p.td, p.head = status.TD, status.Head
 	default:
-		panic(fmt.Sprintf("unsupported eth protocol version: %d", p.version))
+		panic(fmt.Sprintf("unsupported ctxc protocol version: %d", p.version))
 	}
 	return nil
 }
@@ -683,12 +683,12 @@ func (p *peer) readStatus(network uint64, status *statusData, genesis common.Has
 // String implements fmt.Stringer.
 func (p *peer) String() string {
 	return fmt.Sprintf("Peer %s [%s]", p.id,
-		fmt.Sprintf("eth/%2d", p.version),
+		fmt.Sprintf("ctxc/%2d", p.version),
 	)
 }
 
 // peerSet represents the collection of active peers currently participating in
-// the Ethereum sub-protocol.
+// the Cortex sub-protocol.
 type peerSet struct {
 	peers  map[string]*peer
 	lock   sync.RWMutex
