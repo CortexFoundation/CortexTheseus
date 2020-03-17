@@ -20,7 +20,7 @@ require (
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/elastic/gosigar v0.10.5
 	github.com/etcd-io/bbolt v1.3.3
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.9.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-resty/resty/v2 v2.2.1-0.20200302084117-a8bb0982c19a
@@ -33,7 +33,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/mattn/go-colorable v0.1.4
+	github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/olekukonko/tablewriter v0.0.1
