@@ -25,7 +25,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-resty/resty/v2 v2.2.1-0.20200302084117-a8bb0982c19a
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/snappy v0.0.1
+	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/huin/goupnp v1.0.0

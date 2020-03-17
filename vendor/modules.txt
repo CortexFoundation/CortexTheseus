@@ -113,7 +113,7 @@ github.com/glycerine/go-unsnap-stream
 github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
 github.com/go-stack/stack
-# github.com/golang/snappy v0.0.1
+# github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 github.com/golang/snappy
 # github.com/google/btree v1.0.0
 github.com/google/btree
