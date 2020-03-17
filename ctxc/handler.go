@@ -56,10 +56,6 @@ var (
 	syncChallengeTimeout = 15 * time.Second
 )
 
-// errIncompatibleConfig is returned if the requested protocols and configs are
-// not compatible (low protocol version restrictions and high requirements).
-var errIncompatibleConfig = errors.New("incompatible configuration")
-
 func errResp(code errCode, format string, v ...interface{}) error {
 	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
 }
@@ -526,7 +522,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				}
 				return nil
 			}
-
 			// Otherwise if it's a whitelisted block, validate against the set
 			if want, ok := pm.whitelist[headers[0].Number.Uint64()]; ok {
 				if hash := headers[0].Hash(); want != hash {
@@ -715,16 +710,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Warn("Propagated block has invalid uncles", "have", hash, "exp", request.Block.UncleHash())
 			break // TODO return error eventually, but wait a few releases
 		}
-
 		if hash := types.DeriveSha(request.Block.Transactions()); hash != request.Block.TxHash() {
 			log.Warn("Propagated block has invalid body", "have", hash, "exp", request.Block.TxHash())
 			break // TODO return error eventually, but wait a few releases
 		}
-
 		if err := request.sanityCheck(); err != nil {
 			return err
 		}
-
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 
