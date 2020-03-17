@@ -195,11 +195,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 
 	pHead, pTd := peer.Head()
-	if pTd == nil {
-		return
-	}
-
-	if pTd.Cmp(td) <= 0 {
+	if pTd == nil || pTd.Cmp(td) <= 0 {
 		return
 	}
 	// Otherwise try to sync with the downloader
@@ -209,15 +205,15 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		mode = downloader.FastSync
 	}
 	if mode == downloader.FastSync {
+		// Make sure the peer's total difficulty we are synchronizing is higher
 		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
 			return
 		}
 	}
-
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
 		if err == vm.ErrRuntime {
-			//log.Warn("Waiting for off chain file downloading", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
+			log.Debug("Waiting for cvm", "peer", peer.id, "head", pHead, "td", pTd, "mode", mode, "err", err)
 		}
 
 		return

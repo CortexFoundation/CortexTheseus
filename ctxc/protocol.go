@@ -78,14 +78,11 @@ const (
 	ErrDecode
 	ErrInvalidMsgCode
 	ErrProtocolVersionMismatch
-	ErrNetworkIdMismatch
 	ErrNetworkIDMismatch
 	ErrGenesisMismatch
 	ErrForkIDRejected
-	ErrGenesisBlockMismatch
 	ErrNoStatusMsg
 	ErrExtraStatusMsg
-	ErrSuspendedPeer
 )
 
 func (e errCode) String() string {
@@ -98,14 +95,11 @@ var errorToString = map[int]string{
 	ErrDecode:                  "Invalid message",
 	ErrInvalidMsgCode:          "Invalid message code",
 	ErrProtocolVersionMismatch: "Protocol version mismatch",
-	ErrNetworkIdMismatch:       "NetworkId mismatch",
-	ErrNetworkIDMismatch:       "NetworkId mismatch",
+	ErrNetworkIDMismatch:       "Network ID mismatch",
 	ErrGenesisMismatch:         "Genesis mismatch",
 	ErrForkIDRejected:          "Fork ID rejected",
-	ErrGenesisBlockMismatch:    "Genesis block mismatch",
 	ErrNoStatusMsg:             "No status message",
 	ErrExtraStatusMsg:          "Extra status message",
-	ErrSuspendedPeer:           "Suspended peer",
 }
 
 type txPool interface {
@@ -116,6 +110,7 @@ type txPool interface {
 	// Get retrieves the transaction from local txpool with given
 	// tx hash.
 	Get(hash common.Hash) *types.Transaction
+
 	// AddRemotes should add the given transactions to the pool.
 	AddRemotes([]*types.Transaction) []error
 
