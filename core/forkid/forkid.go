@@ -52,7 +52,7 @@ type ID struct {
 // Filter is a fork id filter to validate a remotely advertised ID.
 type Filter func(id ID) error
 
-// NewID calculates the Cortexfork ID from the chain config and head.
+// NewID calculates the Cortex fork ID from the chain config and head.
 func NewID(chain *core.BlockChain) ID {
 	return newID(
 		chain.Config(),
