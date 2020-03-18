@@ -687,15 +687,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		for _, block := range announces {
 			p.MarkBlock(block.Hash)
 		}
-		propAnnounceAllInMeter.Mark(int64(len(announces)))
+		//propAnnounceAllInMeter.Mark(int64(len(announces)))
 		// Schedule all the unknown hashes for retrieval
-		unknown := make(newBlockHashesData, 0, len(announces))
+		//unknown := make(newBlockHashesData, 0, len(announces))
 		for _, block := range announces {
-			if !pm.blockchain.HasBlock(block.Hash, block.Number) {
-				unknown = append(unknown, block)
-			}
-		}
-		for _, block := range unknown {
+			//	if !pm.blockchain.HasBlock(block.Hash, block.Number) {
+			//		unknown = append(unknown, block)
+			//	}
+			//}
+			//for _, block := range unknown {
 			pm.fetcher.Notify(p.id, block.Hash, block.Number, time.Now(), p.RequestOneHeader, p.RequestBodies)
 		}
 
@@ -705,7 +705,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		propBroadcastAllInMeter.Mark(1)
+		//propBroadcastAllInMeter.Mark(1)
 		if hash := types.CalcUncleHash(request.Block.Uncles()); hash != request.Block.UncleHash() {
 			log.Warn("Propagated block has invalid uncles", "have", hash, "exp", request.Block.UncleHash())
 			break // TODO return error eventually, but wait a few releases

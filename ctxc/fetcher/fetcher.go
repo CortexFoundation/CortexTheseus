@@ -192,6 +192,12 @@ func (f *Fetcher) Stop() {
 // the network.
 func (f *Fetcher) Notify(peer string, hash common.Hash, number uint64, time time.Time,
 	headerFetcher headerRequesterFn, bodyFetcher bodyRequesterFn) error {
+	// Keep track of all the announced blocks
+	propAnnounceInMeter.Mark(1)
+	if f.hasBlock(hash) {
+		propAnnounceUsefulInMeter.Mark(1)
+		return nil
+	}
 	block := &announce{
 		hash:        hash,
 		number:      number,
@@ -200,7 +206,6 @@ func (f *Fetcher) Notify(peer string, hash common.Hash, number uint64, time time
 		fetchHeader: headerFetcher,
 		fetchBodies: bodyFetcher,
 	}
-	propAnnounceUsefulInMeter.Mark(1)
 	select {
 	case f.notify <- block:
 		return nil
@@ -211,10 +216,11 @@ func (f *Fetcher) Notify(peer string, hash common.Hash, number uint64, time time
 
 // Enqueue tries to fill gaps the fetcher's future import queue.
 func (f *Fetcher) Enqueue(peer string, block *types.Block) error {
+	propBroadcastInMeter.Mark(1)
 	if f.hasBlock(block.Hash()) {
+		propBroadcastUsefulMeter.Mark(1)
 		return nil
 	}
-	propBroadcastUsefulMeter.Mark(1)
 	op := &inject{
 		origin: peer,
 		block:  block,
@@ -653,8 +659,7 @@ func (f *Fetcher) insert(peer string, block *types.Block) {
 		defer func() { f.done <- hash }()
 
 		// If the parent's unknown, abort insertion
-		parent := f.getBlock(block.ParentHash())
-		if parent == nil {
+		if !f.hasBlock(block.ParentHash()) {
 			log.Debug("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
 			return
 		}
