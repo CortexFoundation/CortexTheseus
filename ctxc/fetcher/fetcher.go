@@ -335,7 +335,6 @@ func (f *Fetcher) loop() {
 
 		case notification := <-f.notify:
 			// A block was announced, make sure the peer isn't DOSing us
-			propAnnounceInMeter.Mark(1)
 
 			count := f.announces[notification.origin] + 1
 			if count > hashLimit {
@@ -369,7 +368,6 @@ func (f *Fetcher) loop() {
 
 		case op := <-f.inject:
 			// A direct block insertion was requested, try and fill any pending gaps
-			propBroadcastInMeter.Mark(1)
 			f.enqueue(op.origin, op.block)
 
 		case hash := <-f.done:
