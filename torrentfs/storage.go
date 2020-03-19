@@ -205,13 +205,21 @@ func (fs *FileStorage) initMerkleTree() error {
 func (fs *FileStorage) addLeaf(block *types.Block) error {
 	number := block.Number
 	leaf := BlockContent{x: block.Hash.String()}
+
+	if len(fs.leaves) >= 512 {
+		fs.leaves = nil
+
+		fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
+		log.Info("New tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()))
+	}
+
 	fs.leaves = append(fs.leaves, leaf)
 	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
 		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
 			return err
 		}
 
-		log.Debug("New leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+		log.Debug("New leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks)) //, "version", common.ToHex(version)) //MerkleRoot())
 
 		return nil
 	} else {
