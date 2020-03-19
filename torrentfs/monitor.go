@@ -1192,9 +1192,9 @@ func (m *Monitor) solve(block *types.Block) error {
 			if m.ckp != nil {
 				if m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
 					if m.fs.Root() == m.ckp.TfsRoot {
-						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
+						log.Debug("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 					} else {
-						log.Error("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
+						log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
 						panic("Fs sync fatal error")
 						//m.lastNumber = 0
 						//m.fs.Reset()
