@@ -28,11 +28,11 @@ import (
 	//"math/rand"
 )
 
-const (
+//const (
 // Chosen to match the usual chunk size in a torrent client. This way,
 // most chunk writes are to exactly one full item in bolt DB.
 //chunkSize = 1 << 14
-)
+//)
 
 //type MutexCounter int32
 
@@ -203,13 +203,15 @@ func (fs *FileStorage) initMerkleTree() error {
 }
 
 func (fs *FileStorage) addLeaf(block *types.Block) error {
-	fs.leaves = append(fs.leaves, BlockContent{x: block.Hash.String()})
+	number := block.Number
+	leaf := BlockContent{x: block.Hash.String()}
+	fs.leaves = append(fs.leaves, leaf)
 	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
-		if err := fs.writeRoot(block.Number, fs.tree.MerkleRoot()); err != nil {
+		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
 			return err
 		}
 
-		log.Debug("Add a new leaf", "number", block.Number, "root", hexutil.Encode(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+		log.Debug("New leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
 
 		return nil
 	} else {
