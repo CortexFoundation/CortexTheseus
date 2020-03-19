@@ -196,7 +196,6 @@ func (fs *FileStorage) initMerkleTree() error {
 }
 
 func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
-	defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
 	number := block.Number
 	leaf := BlockContent{x: block.Hash.String()}
 
@@ -207,6 +206,9 @@ func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
 	}
 
 	fs.leaves = append(fs.leaves, leaf)
+
+	defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
+
 	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
 		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
 			return err
