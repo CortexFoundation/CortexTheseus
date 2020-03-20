@@ -136,7 +136,7 @@ func NewDefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
 		Conn:               mustListen(":0"),
 		NoSecurity:         true,
-		StartingNodes:      GlobalBootstrapAddrs,
+		StartingNodes:      func() ([]Addr, error) { return GlobalBootstrapAddrs("udp") },
 		ConnectionTracking: conntrack.NewInstance(),
 	}
 }
@@ -749,7 +749,7 @@ func (s *Server) transactionQuerySender(sendCtx context.Context, sendErr chan<- 
 	err := transactionSender(
 		sendCtx,
 		func() error {
-			wrote, err := s.writeToNode(sendCtx, b, addr, *writes == 0, *writes != 0)
+			wrote, err := s.writeToNode(sendCtx, b, addr, *writes == 0, true)
 			if wrote {
 				*writes++
 			}
@@ -916,6 +916,11 @@ func (s *Server) traversalStartingNodes() (nodes []addrMaybeId, err error) {
 		return
 	}
 	if s.config.StartingNodes != nil {
+		// There seems to be floods on this call on occasion, which may cause a barrage of DNS
+		// resolution attempts. This would require that we're unable to get replies because we can't
+		// resolve, transmit or receive on the network. Nodes currently don't get expired from the
+		// table, so once we have some entries, we should never have to fallback.
+		s.logger().WithValues(log.Warning).Printf("falling back on starting nodes")
 		addrs, err := s.config.StartingNodes()
 		if err != nil {
 			return nil, errors.Wrap(err, "getting starting nodes")

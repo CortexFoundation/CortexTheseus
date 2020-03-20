@@ -111,11 +111,9 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	}
 	log.Info("File storage initialized")
 
-	id := fs.ID()
-
 	// Torrent Manager
-	tMana := NewTorrentManager(flag, id)
-	if tMana == nil {
+	err, tMana := NewTorrentManager(flag, fs.ID())
+	if err != nil || tMana == nil {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")
 	}
@@ -644,9 +642,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 							bytesRequested = file.Meta.RawSize - file.LeftSize
 						}
 						if file.LeftSize == 0 {
-							log.Info("Data processing completed !!!", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+							log.Debug("Data processing completed !!!", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						} else {
-							log.Info("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+							log.Debug("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
 
 						m.dl.UpdateTorrent(types.FlowControlMeta{
@@ -675,7 +673,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		if len(b.Txs) > 0 {
-			log.Debug("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+			log.Trace("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
 		}
 	}
 
@@ -1142,7 +1140,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 					if maxNumber-minNumber > delay/2 {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+						log.Debug("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 					}
 					return 0
 				}
@@ -1163,7 +1161,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 				if maxNumber-minNumber > delay/2 {
 					elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 					elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-					log.Info("Blocks scan finished", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+					log.Debug("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 				}
 				return 0
 			}
@@ -1173,7 +1171,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	if maxNumber-minNumber > delay/2 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Info("Blocks scan finished", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a, "scope", m.scope)
+		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "elasped", elapsed, "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", elapsed_a)
 	}
 	return uint64(maxNumber - minNumber)
 }
@@ -1194,9 +1192,9 @@ func (m *Monitor) solve(block *types.Block) error {
 			if m.ckp != nil {
 				if m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
 					if m.fs.Root() == m.ckp.TfsRoot {
-						log.Info("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
+						log.Debug("Fs checkpoint goal ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed)
 					} else {
-						log.Error("Fs checkpoint failed ❄️ ", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
+						log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
 						panic("Fs sync fatal error")
 						//m.lastNumber = 0
 						//m.fs.Reset()
@@ -1207,7 +1205,7 @@ func (m *Monitor) solve(block *types.Block) error {
 				}
 			}
 
-			log.Info("Seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint)
+			log.Debug("Seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint)
 		} else {
 			//			if i%(batch/8) == 0 {
 			//if storeErr := m.fs.AddBlock(block, false); storeErr != nil {
@@ -1219,7 +1217,7 @@ func (m *Monitor) solve(block *types.Block) error {
 			//m.fs.Flush()
 			//}
 
-			log.Debug("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
+			log.Trace("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
 			//			}
 		}
 

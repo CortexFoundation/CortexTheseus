@@ -24,12 +24,15 @@ import (
 
 var (
 	// Useful block announcements == announcements we did not already know about
+	propAnnounceInMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/in", nil)
 	propAnnounceUsefulInMeter = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/useful", nil)
-	propAnnounceOutTimer      = metrics.NewRegisteredTimer("ctxc/fetcher/prop/announces/out", nil)
-	propAnnounceDropMeter     = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/drop", nil)
-	propAnnounceDOSMeter      = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/dos", nil)
+
+	propAnnounceOutTimer  = metrics.NewRegisteredTimer("ctxc/fetcher/prop/announces/out", nil)
+	propAnnounceDropMeter = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/drop", nil)
+	propAnnounceDOSMeter  = metrics.NewRegisteredMeter("ctxc/fetcher/prop/announces/dos", nil)
 
 	// All useful incoming block broadcasts == broadcasts we did not already have
+	propBroadcastInMeter     = metrics.NewRegisteredMeter("ctxc/fetcher/prop/broadcasts/in", nil)
 	propBroadcastUsefulMeter = metrics.NewRegisteredMeter("ctxc/fetcher/prop/broadcasts/useful", nil)
 
 	propBroadcastOutTimer  = metrics.NewRegisteredTimer("ctxc/fetcher/prop/broadcasts/out", nil)

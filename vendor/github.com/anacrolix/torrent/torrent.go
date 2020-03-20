@@ -1384,7 +1384,7 @@ func (t *Torrent) dhtAnnouncer(s DhtServer) {
 		cl.unlock()
 		err := t.announceToDht(true, s)
 		if err != nil {
-			t.logger.Printf("error announcing %q to DHT: %s", t, err)
+			t.logger.WithValues(log.Warning).Printf("error announcing %q to DHT: %s", t, err)
 		}
 	}
 }
@@ -1395,6 +1395,8 @@ func (t *Torrent) addPeers(peers []Peer) {
 	}
 }
 
+// The returned TorrentStats may require alignment in memory. See
+// https://github.com/anacrolix/torrent/issues/383.
 func (t *Torrent) Stats() TorrentStats {
 	t.cl.rLock()
 	defer t.cl.rUnlock()

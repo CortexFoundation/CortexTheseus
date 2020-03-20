@@ -10,12 +10,12 @@ github.com/Azure/azure-storage-blob-go/azblob
 github.com/RoaringBitmap/roaring
 # github.com/VictoriaMetrics/fastcache v1.5.7
 github.com/VictoriaMetrics/fastcache
-# github.com/anacrolix/dht/v2 v2.5.0
+# github.com/anacrolix/dht/v2 v2.5.1-0.20200317023935-129f05e9b752
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.2
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.6.0
+# github.com/anacrolix/log v0.6.1-0.20200211014814-17693f71c449
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.2.1
 github.com/anacrolix/missinggo
@@ -52,7 +52,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.14.1-0.20200227073344-7fe199992c7e
+# github.com/anacrolix/torrent v1.14.1-0.20200317024809-378ccd0932c5
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
@@ -100,7 +100,7 @@ github.com/elastic/gosigar/sys/windows
 github.com/elliotchance/orderedmap
 # github.com/etcd-io/bbolt v1.3.3
 github.com/etcd-io/bbolt
-# github.com/fatih/color v1.7.0
+# github.com/fatih/color v1.9.0
 github.com/fatih/color
 # github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 github.com/fjl/memsize
@@ -113,7 +113,7 @@ github.com/glycerine/go-unsnap-stream
 github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
 github.com/go-stack/stack
-# github.com/golang/snappy v0.0.1
+# github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 github.com/golang/snappy
 # github.com/google/btree v1.0.0
 github.com/google/btree
@@ -144,11 +144,11 @@ github.com/julienschmidt/httprouter
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
-# github.com/mattn/go-colorable v0.1.4
+# github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 github.com/mattn/go-colorable
 # github.com/mattn/go-ieproxy v0.0.0-20190610004146-91bb50d98149
 github.com/mattn/go-ieproxy
-# github.com/mattn/go-isatty v0.0.10
+# github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.3
 github.com/mattn/go-runewidth
@@ -220,7 +220,7 @@ github.com/tinylib/msgp/msgp
 github.com/willf/bitset
 # github.com/willf/bloom v2.0.3+incompatible
 github.com/willf/bloom
-# golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+# golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/openpgp/armor
@@ -245,7 +245,7 @@ golang.org/x/net/http/httpproxy
 golang.org/x/net/idna
 golang.org/x/net/publicsuffix
 golang.org/x/net/websocket
-# golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
+# golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -273,7 +273,7 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200304193943-95d2e580d8eb
+# golang.org/x/tools v0.0.0-20200317205521-2944c61d58b4
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/imports
 golang.org/x/tools/internal/fastwalk
@@ -287,7 +287,7 @@ golang.org/x/xerrors/internal
 gopkg.in/check.v1
 # gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 gopkg.in/natefinch/npipe.v2
-# gopkg.in/olebedev/go-duktape.v3 v3.0.0-20190709231704-1e4459ed25ff
+# gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 gopkg.in/olebedev/go-duktape.v3
 # gopkg.in/sourcemap.v1 v1.0.5
 gopkg.in/sourcemap.v1

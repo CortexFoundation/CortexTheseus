@@ -5,9 +5,10 @@ go 1.13
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.0
 	github.com/VictoriaMetrics/fastcache v1.5.7
+	github.com/anacrolix/log v0.6.1-0.20200211014814-17693f71c449
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200227072623-f02f6484f997
 	github.com/anacrolix/tagflag v1.0.1
-	github.com/anacrolix/torrent v1.14.1-0.20200227073344-7fe199992c7e
+	github.com/anacrolix/torrent v1.14.1-0.20200317024809-378ccd0932c5
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 	github.com/bitly/go-simplejson v0.5.1-0.20181114203107-9db4a59bd4d8
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
@@ -19,13 +20,12 @@ require (
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/elastic/gosigar v0.10.5
 	github.com/etcd-io/bbolt v1.3.3
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.9.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-resty/resty/v2 v2.2.1-0.20200302084117-a8bb0982c19a
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/protobuf v1.3.3-0.20191022195553-ed6926b37a63 // indirect
-	github.com/golang/snappy v0.0.1
+	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/huin/goupnp v1.0.0
@@ -33,7 +33,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/mattn/go-colorable v0.1.4
+	github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/olekukonko/tablewriter v0.0.1
@@ -48,13 +48,13 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+	golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
-	golang.org/x/tools v0.0.0-20200304193943-95d2e580d8eb
+	golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d
+	golang.org/x/tools v0.0.0-20200317205521-2944c61d58b4
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
-	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20190709231704-1e4459ed25ff
+	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
