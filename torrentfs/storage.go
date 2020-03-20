@@ -202,7 +202,7 @@ func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
 	if len(fs.leaves) >= params.LEAFS {
 		fs.leaves = nil
 		fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
-		log.Info("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()))
+		log.Debug("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()))
 	}
 
 	fs.leaves = append(fs.leaves, leaf)
@@ -214,7 +214,7 @@ func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
 			return err
 		}
 
-		log.Info("New leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks), "time", fs.treeUpdates, "init", init)
+		log.Debug("New leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks), "time", fs.treeUpdates, "init", init)
 
 		return nil
 	} else {

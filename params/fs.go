@@ -7,5 +7,5 @@ const (
 	Delay     = 12
 	//Scope     = 4
 	TIER  = 3
-	LEAFS = 1024
+	LEAFS = 32768
 )
