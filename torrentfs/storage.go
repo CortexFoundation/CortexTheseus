@@ -4,28 +4,20 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
-	//"fmt"
 	"github.com/pborman/uuid"
 	"os"
 	"path/filepath"
-	//"path"
 	"sort"
-	//"io/ioutil"
 	"strconv"
-	//"strings"
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	//"sync"
-	//"sync/atomic"
 	"time"
 
 	"crypto/sha256"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	//"github.com/anacrolix/torrent/metainfo"
 	bolt "github.com/etcd-io/bbolt"
-	//"math/rand"
 )
 
 //const (
@@ -71,7 +63,8 @@ type FileStorage struct {
 	dataDir string
 	//tmpCache  *lru.Cache
 	//indexLock sync.RWMutex
-	config *Config
+	config      *Config
+	treeUpdates time.Duration
 }
 
 //var initConfig *Config = nil
@@ -192,7 +185,7 @@ func (fs *FileStorage) initMerkleTree() error {
 	}
 	fs.tree = tr
 	for _, block := range fs.blocks {
-		if err := fs.addLeaf(block); err != nil {
+		if err := fs.addLeaf(block, true); err != nil {
 			panic("Storage merkletree construct failed")
 		}
 	}
@@ -202,16 +195,26 @@ func (fs *FileStorage) initMerkleTree() error {
 	return nil
 }
 
-func (fs *FileStorage) addLeaf(block *types.Block) error {
+func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
 	number := block.Number
 	leaf := BlockContent{x: block.Hash.String()}
+
+	if len(fs.leaves) >= params.LEAFS {
+		fs.leaves = nil
+		fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
+		log.Debug("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()))
+	}
+
 	fs.leaves = append(fs.leaves, leaf)
+
+	defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
+
 	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
 		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
 			return err
 		}
 
-		log.Debug("New leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot())) //, "version", common.ToHex(version)) //MerkleRoot())
+		log.Debug("New leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks), "time", fs.treeUpdates, "init", init)
 
 		return nil
 	} else {
@@ -530,7 +533,7 @@ func (fs *FileStorage) AddBlock(b *types.Block) error {
 
 			return buk.Put(k, v)
 		}); err == nil {
-			if err := fs.addLeaf(b); err == nil {
+			if err := fs.addLeaf(b, false); err == nil {
 				if err := fs.writeCheckPoint(); err == nil {
 					fs.CheckPoint = b.Number
 				} else {
