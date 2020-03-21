@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -172,32 +173,42 @@ func (db *nodeDB) fetchInt64(key []byte) int64 {
 func (db *nodeDB) storeInt64(key []byte, n int64) error {
 	blob := make([]byte, binary.MaxVarintLen64)
 	blob = blob[:binary.PutVarint(blob, n)]
-
 	return db.lvl.Put(key, blob, nil)
+}
+
+func (db *nodeDB) storeRLP(key []byte, val interface{}) error {
+	blob, err := rlp.EncodeToBytes(val)
+	if err != nil {
+		return err
+	}
+	return db.lvl.Put(key, blob, nil)
+}
+
+func (db *nodeDB) fetchRLP(key []byte, val interface{}) error {
+	blob, err := db.lvl.Get(key, nil)
+	if err != nil {
+		return err
+	}
+	err = rlp.DecodeBytes(blob, val)
+	if err != nil {
+		log.Warn(fmt.Sprintf("key %x (%T) %v", key, val, err))
+	}
+	return err
 }
 
 // node retrieves a node with a given id from the database.
 func (db *nodeDB) node(id NodeID) *Node {
-	blob, err := db.lvl.Get(makeKey(id, nodeDBDiscoverRoot), nil)
-	if err != nil {
-		return nil
-	}
-	node := new(Node)
-	if err := rlp.DecodeBytes(blob, node); err != nil {
-		log.Error("Failed to decode node RLP", "err", err)
+	var node Node
+	if err := db.fetchRLP(makeKey(id, nodeDBDiscoverRoot), &node); err != nil {
 		return nil
 	}
 	node.sha = crypto.Keccak256Hash(node.ID[:])
-	return node
+	return &node
 }
 
 // updateNode inserts - potentially overwriting - a node into the peer database.
 func (db *nodeDB) updateNode(node *Node) error {
-	blob, err := rlp.EncodeToBytes(node)
-	if err != nil {
-		return err
-	}
-	return db.lvl.Put(makeKey(node.ID, nodeDBDiscoverRoot), blob, nil)
+	return db.storeRLP(makeKey(node.ID, nodeDBDiscoverRoot), node)
 }
 
 // deleteNode deletes all information/keys associated with a node.
