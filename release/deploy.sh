@@ -2,7 +2,7 @@
 
 cd ..
 git fetch origin
-git tag -l "1.9.*"
+git tag --sort=committerdate | tail -1
 
 while read -p "... ... Please input the release version number :" version
 do
