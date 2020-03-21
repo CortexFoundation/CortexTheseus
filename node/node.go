@@ -605,7 +605,6 @@ func (n *Node) OpenDatabase(name string, cache, handles int, namespace string) (
 	if n.config.DataDir == "" {
 		return rawdb.NewMemoryDatabase(), nil
 	}
-	//return ctxcdb.NewLDBDatabase(n.config.ResolvePath(name), cache, handles)
 	return rawdb.NewLevelDBDatabase(n.config.ResolvePath(name), cache, handles, namespace)
 }
 

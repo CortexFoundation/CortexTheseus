@@ -100,11 +100,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
 	}
 	// Assemble the Cortex object
-	chainDb, err := CreateDB(ctx, config, "chaindata")
+	chainDb, err := ctx.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/")
 	if err != nil {
 		return nil, err
 	}
-	//chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.OverrideIstanbul)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -126,19 +125,21 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 	}
 
-	log.Info("Initialising Cortex protocol", "versions", ProtocolVersions, "network", config.NetworkId)
+	bcVersion := rawdb.ReadDatabaseVersion(chainDb)
+	var dbVer = "<nil>"
+	if bcVersion != nil {
+		dbVer = fmt.Sprintf("%d", *bcVersion)
+	}
+
+	log.Info("Initialising Cortex protocol", "versions", ProtocolVersions, "network", config.NetworkId, "dbversion", dbVer)
 
 	if !config.SkipBcVersionCheck {
-		bcVersion := rawdb.ReadDatabaseVersion(chainDb)
-		//if bcVersion != core.BlockChainVersion && bcVersion != 0 {
-		//	return nil, fmt.Errorf("Blockchain DB version mismatch (%d / %d).\n", bcVersion, core.BlockChainVersion)
-		//}
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
 			return nil, fmt.Errorf("database version is v%d, Ctxc %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
 		} else if bcVersion != nil && *bcVersion < core.BlockChainVersion {
 			log.Warn("Upgrade blockchain database version", "from", *bcVersion, "to", core.BlockChainVersion)
+			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 		}
-		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 	}
 
 	ctxc.synapse = synapse.New(&synapse.Config{
@@ -209,18 +210,6 @@ func makeExtraData(extra []byte) []byte {
 		extra = nil
 	}
 	return extra
-}
-
-// CreateDB creates the chain database.
-func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ctxcdb.Database, error) {
-	db, err := ctx.OpenDatabaseWithFreezer(name, config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/")
-	if err != nil {
-		return nil, err
-	}
-	//if db, ok := db.(*ctxcdb.LDBDatabase); ok {
-	//	db.Meter("ctxc/db/chaindata/")
-	//}
-	return db, nil
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Cortex service
