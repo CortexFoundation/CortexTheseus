@@ -2,16 +2,16 @@
 
 cd ..
 git fetch origin
-git tag --sort=committerdate | tail -1
+version=$(git tag --sort=committerdate | tail -1)
 
-while read -p "... ... Please input the release version number :" version
-do
-if  [ ! -n "$version" ] ;then
-    echo "You have not input a release version number!"
-else
-    break
-fi
-done
+#while read -p "... ... Please input the release version number :" version
+#do
+#if  [ ! -n "$version" ] ;then
+#    echo "You have not input a release version number!"
+#else
+#    break
+#fi
+#done
 
 echo "... ... Checkout git tag $version"
 git checkout $version
