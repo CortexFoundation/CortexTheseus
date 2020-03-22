@@ -48,10 +48,10 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
-	golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d
-	golang.org/x/tools v0.0.0-20200317205521-2944c61d58b4
+	golang.org/x/crypto v0.0.0-20200320181102-891825fb96df
+	golang.org/x/net v0.0.0-20200320220750-118fecf932d8
+	golang.org/x/sys v0.0.0-20200321134203-328b4cd54aae
+	golang.org/x/tools v0.0.0-20200321224714-0d839f3cf2ed
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
