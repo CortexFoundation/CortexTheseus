@@ -926,9 +926,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		*receipts[i] = *l
 	}
 	s := w.current.state.Copy()
-
-	///h := new(types.Header)
-	//*h = *w.current.header
 	h := types.CopyHeader(w.current.header)
 	block, err := w.engine.Finalize(w.chain, h, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
@@ -952,7 +949,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			//capacity := new(big.Float).Quo(new(big.Float).SetInt(block.QuotaUsed()), new(big.Float).SetInt(block.Quota()))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
-				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined /*"peace", peace,*/, "quota", block.Quota(), "used", block.QuotaUsed()) //, "capacity", capacity)
+				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined /*"peace", peace,*/, "quota", common.StorageSize(block.Quota().Int64()), "used", common.StorageSize(block.QuotaUsed().Int64())) //, "capacity", capacity)
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")
