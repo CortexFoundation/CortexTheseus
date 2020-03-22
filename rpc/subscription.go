@@ -51,7 +51,7 @@ type notifierKey struct{}
 // Notifier is tight to a RPC connection that supports subscriptions.
 // Server callbacks use the notifier to send notifications.
 type Notifier struct {
-	codec    ServerCodec
+	codec ServerCodec
 	//subMu    sync.RWMutex // guards active and inactive maps
 	subMu    sync.Mutex
 	active   map[ID]*Subscription
@@ -109,6 +109,7 @@ func (n *Notifier) send(sub *Subscription, data interface{}) error {
 	}
 	return err
 }
+
 // Closed returns a channel that is closed when the RPC connection is closed.
 func (n *Notifier) Closed() <-chan interface{} {
 	return n.codec.Closed()

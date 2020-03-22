@@ -34,7 +34,7 @@ func checkModuleAvailability(modules []string, apis []API) (bad, available []str
 		}
 	}
 	for _, name := range modules {
-		if _, ok := availableSet[name]; !ok {
+		if _, ok := availableSet[name]; !ok && name != MetadataApi {
 			bad = append(bad, name)
 		}
 	}
