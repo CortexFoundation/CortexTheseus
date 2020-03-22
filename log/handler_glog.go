@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2017 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package log
 
@@ -207,7 +207,7 @@ func (h *GlogHandler) Log(r *Record) error {
 	}
 	// Check callsite cache for previously calculated log levels
 	h.lock.RLock()
-	lvl, ok := h.siteCache[r.Call.PC()]
+	lvl, ok := h.siteCache[r.Call.Frame().PC]
 	h.lock.RUnlock()
 
 	// If we didn't cache the callsite yet, calculate it
@@ -215,13 +215,13 @@ func (h *GlogHandler) Log(r *Record) error {
 		h.lock.Lock()
 		for _, rule := range h.patterns {
 			if rule.pattern.MatchString(fmt.Sprintf("%+s", r.Call)) {
-				h.siteCache[r.Call.PC()], lvl, ok = rule.level, rule.level, true
+				h.siteCache[r.Call.Frame().PC], lvl, ok = rule.level, rule.level, true
 				break
 			}
 		}
 		// If no rule matched, remember to drop log the next time
 		if !ok {
-			h.siteCache[r.Call.PC()] = 0
+			h.siteCache[r.Call.Frame().PC] = 0
 		}
 		h.lock.Unlock()
 	}

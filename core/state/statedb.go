@@ -308,10 +308,8 @@ func (s *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]b
 		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
 		payload := s.GetState(addr, slotAddr).Bytes()
 		copy(buff[idx*32:], payload[:])
-		log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 		// fmt.Println(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 	}
-	log.Trace2(fmt.Sprintf("data: %v", buff))
 	// fmt.Println(fmt.Sprintf("data: %v", buff))
 	return buff, nil
 }

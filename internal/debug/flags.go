@@ -119,7 +119,7 @@ func init() {
 func Setup(ctx *cli.Context, logdir string) error {
 	// logging
 	log.PrintOrigins(ctx.GlobalBool(debugFlag.Name))
-	if logdir != "" {
+	/*if logdir != "" {
 		rfh, err := log.RotatingFileHandler(
 			logdir,
 			262144,
@@ -129,7 +129,7 @@ func Setup(ctx *cli.Context, logdir string) error {
 			return err
 		}
 		glogger.SetHandler(log.MultiHandler(ostream, rfh))
-	}
+	}*/
 	glogger.Verbosity(log.Lvl(ctx.GlobalInt(verbosityFlag.Name)))
 	glogger.Vmodule(ctx.GlobalString(vmoduleFlag.Name))
 	glogger.BacktraceAt(ctx.GlobalString(backtraceAtFlag.Name))
@@ -144,16 +144,16 @@ func Setup(ctx *cli.Context, logdir string) error {
 		}
 	}
 	// if cpuFile := ctx.GlobalString(cpuprofileFlag.Name); cpuFile != "" {
-	// 	if err := Handler.StartCPUProfile(cpuFile); err != nil {
-	// 		return err
-	// 	}
-	// }
+	//	if err := Handler.StartCPUProfile(cpuFile); err != nil {
+	//		return err
+	//	}
+	//}
 
 	// pprof server
-	// if ctx.GlobalBool(pprofFlag.Name) {
-	// 	address := fmt.Sprintf("%s:%d", ctx.GlobalString(pprofAddrFlag.Name), ctx.GlobalInt(pprofPortFlag.Name))
-	// 	StartPProf(address)
-	// }
+	//if ctx.GlobalBool(pprofFlag.Name) {
+	//	address := fmt.Sprintf("%s:%d", ctx.GlobalString(pprofAddrFlag.Name), ctx.GlobalInt(pprofPortFlag.Name))
+	//	StartPProf(address)
+	//}
 	return nil
 }
 
