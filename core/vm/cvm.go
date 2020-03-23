@@ -32,7 +32,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	// "github.com/CortexFoundation/CortexTheseus/torrentfs"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -53,7 +52,7 @@ type (
 func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsHomestead
-		if cvm.ChainConfig().IsByzantium(cvm.BlockNumber) {
+		if cvm.chainRules.IsByzantium {
 			precompiles = PrecompiledContractsByzantium
 		}
 		if cvm.chainRules.IsIstanbul {
@@ -220,13 +219,13 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	)
 	if !cvm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsHomestead
-		if cvm.ChainConfig().IsByzantium(cvm.BlockNumber) {
+		if cvm.chainRules.IsByzantium {
 			precompiles = PrecompiledContractsByzantium
 		}
 		if cvm.chainRules.IsIstanbul {
 			precompiles = PrecompiledContractsIstanbul
 		}
-		if precompiles[addr] == nil && cvm.ChainConfig().IsEIP158(cvm.BlockNumber) && value.Sign() == 0 {
+		if precompiles[addr] == nil && cvm.chainRules.IsEIP158 && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if cvm.vmConfig.Debug && cvm.depth == 0 {
 				cvm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
@@ -268,9 +267,6 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			contract.UseGas(contract.Gas)
 		}
 	}
-
-	//todo deadline verification
-
 	return ret, contract.Gas, contract.ModelGas, err
 }
 
@@ -343,9 +339,6 @@ func (cvm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
-			// for addr, mGas := range contract.ModelGas {
-			// 	contract.ModelGas[addr] = 0
-			// }
 		}
 	}
 	return ret, contract.Gas, contract.ModelGas, err
@@ -373,6 +366,12 @@ func (cvm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	// only.
 	contract := NewContract(caller, to, new(big.Int), gas)
 	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
+
+	// We do an AddBalance of zero here, just in order to trigger a touch.
+	// This doesn't matter on Mainnet, where all empties are gone at the time of Byzantium,
+	// but is the correct thing to do and matters on other networks, in tests, and potential
+	// future scenarios
+	cvm.StateDB.AddBalance(addr, bigZero)
 
 	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
@@ -408,14 +407,13 @@ func (cvm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// Create a new account on the state
 	snapshot := cvm.StateDB.Snapshot()
 	cvm.StateDB.CreateAccount(address)
-	if cvm.ChainConfig().IsEIP158(cvm.BlockNumber) {
+	if cvm.chainRules.IsEIP158 {
 		cvm.StateDB.SetNonce(address, 1)
 	}
 	cvm.Transfer(cvm.StateDB, caller.Address(), address, value)
 
 	// initialise a new contract and set the code that is to be used by the
-	// CVM. The contract is a scoped environment for this execution context
-	// only.
+	// CVM. The contract is a scoped environment for this execution contex only.
 	contract := NewContract(caller, AccountRef(address), value, gas)
 	contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
 
@@ -435,7 +433,7 @@ func (cvm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	}
 
 	// check whether the max code size has been exceeded
-	maxCodeSizeExceeded := cvm.ChainConfig().IsEIP158(cvm.BlockNumber) && len(ret) > params.MaxCodeSize
+	maxCodeSizeExceeded := cvm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize
 	// if the contract creation ran successfully and no errors were returned
 	// calculate the gas required to store the code. If the code could not
 	// be stored due to not enough gas set an error and let it be handled
@@ -452,7 +450,7 @@ func (cvm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
-	if maxCodeSizeExceeded || (err != nil && (cvm.ChainConfig().IsHomestead(cvm.BlockNumber) || err != ErrCodeStoreOutOfGas)) {
+	if maxCodeSizeExceeded || (err != nil && (cvm.chainRules.IsHomestead || err != ErrCodeStoreOutOfGas)) {
 		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
