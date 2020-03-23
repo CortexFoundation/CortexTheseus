@@ -52,7 +52,7 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 //
 // The produced signature is in the [R || S || V] format where V is 0 or 1.
 func Sign(hash []byte, prv *ecdsa.PrivateKey) (sig []byte, err error) {
-	if len(hash) != 32 {
+	if len(hash) != DigestLength {
 		return nil, fmt.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash))
 	}
 	seckey := math.PaddedBigBytes(prv.D, prv.Params().BitSize/8)
