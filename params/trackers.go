@@ -31,6 +31,7 @@ var MainnetTrackers = []string{
 	"://47.88.214.96:5008",
 	"://47.93.158.68:5008",
 	"://torrent.cortexlabs.ai:5008",
+	"://mainnet.cortexlabs.ai:5008",
 
 	/*"udp://47.91.91.217:5008",
 	"udp://47.74.1.234:5008",
