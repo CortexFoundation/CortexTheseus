@@ -386,8 +386,20 @@ func (cvm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	return ret, contract.Gas, contract.ModelGas, err
 }
 
+type codeAndHash struct {
+	code []byte
+	hash common.Hash
+}
+
+func (c *codeAndHash) Hash() common.Hash {
+	if c.hash == (common.Hash{}) {
+		c.hash = crypto.Keccak256Hash(c.code)
+	}
+	return c.hash
+}
+
 // create creates a new contract using code as deployment code.
-func (cvm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
+func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
 	if cvm.depth > int(params.CallCreateDepth) {
@@ -415,14 +427,16 @@ func (cvm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// initialise a new contract and set the code that is to be used by the
 	// CVM. The contract is a scoped environment for this execution contex only.
 	contract := NewContract(caller, AccountRef(address), value, gas)
-	contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
+	//contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
+	contract.SetCallCode(&address, codeAndHash.Hash(), codeAndHash.code)
+	//contract.SetCodeOptionalHash(&address, codeAndHash)
 
 	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
 		return nil, address, gas, nil, nil
 	}
 
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
-		cvm.vmConfig.Tracer.CaptureStart(caller.Address(), address, true, code, gas, value)
+		cvm.vmConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.code, gas, value)
 	}
 	start := time.Now()
 
@@ -469,8 +483,10 @@ func (cvm *CVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 // Create creates a new contract using code as deployment code.
 func (cvm *CVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+	//contractAddr = crypto.CreateAddress(caller.Address(), cvm.StateDB.GetNonce(caller.Address()))
 	contractAddr = crypto.CreateAddress(caller.Address(), cvm.StateDB.GetNonce(caller.Address()))
-	return cvm.create(caller, code, gas, value, contractAddr)
+	//return cvm.create(caller, code, gas, value, contractAddr)
+	return cvm.create(caller, &codeAndHash{code: code}, gas, value, contractAddr)
 }
 
 // Create2 creates a new contract using code as deployment code.
@@ -478,8 +494,11 @@ func (cvm *CVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 // The different between Create2 with Create is Create2 uses sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code))[12:]
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
 func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
-	return cvm.create(caller, code, gas, endowment, contractAddr)
+	//contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
+	//	return cvm.create(caller, code, gas, endowment, contractAddr)
+	codeAndHash := &codeAndHash{code: code}
+	contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), codeAndHash.Hash().Bytes())
+	return cvm.create(caller, codeAndHash, gas, endowment, contractAddr)
 }
 
 // ChainConfig returns the environment's chain configuration

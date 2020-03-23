@@ -29,8 +29,8 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -153,7 +153,7 @@ func (h *Header) SanityCheck() error {
 }
 
 func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
+	hw := sha3.NewLegacyKeccak256()
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h

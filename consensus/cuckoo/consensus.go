@@ -33,11 +33,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	mapset "github.com/deckarep/golang-set"
+	"golang.org/x/crypto/sha3"
 	"time"
 	//	"github.com/CortexFoundation/CortexTheseus/solution/miner/libcuckoo"
 )
@@ -685,7 +685,7 @@ func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
-	hasher := sha3.NewKeccak256()
+	hasher := sha3.NewLegacyKeccak256()
 
 	rlp.Encode(hasher, []interface{}{
 		header.ParentHash,
@@ -748,10 +748,10 @@ func calculateRewardByNumber(num *big.Int, chainId uint64) *big.Int {
 		}
 	} else {
 		if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
-                        d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
-                        e := new(big.Int).Exp(big2, d, nil)
-                        blockReward = new(big.Int).Div(blockReward, e)
-                }
+			d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
+			e := new(big.Int).Exp(big2, d, nil)
+			blockReward = new(big.Int).Div(blockReward, e)
+		}
 	}
 
 	return blockReward
