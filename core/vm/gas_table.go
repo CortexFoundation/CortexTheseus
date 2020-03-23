@@ -480,7 +480,7 @@ func gasCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem
 		gas            = gt.Calls
 		transfersValue = stack.Back(2).Sign() != 0
 		address        = common.BigToAddress(stack.Back(1))
-		eip158         = cvm.ChainConfig().IsEIP158(cvm.BlockNumber)
+		eip158         = cvm.chainRules.IsEIP158
 	)
 	if eip158 {
 		if transfersValue && cvm.StateDB.Empty(address) {
@@ -546,11 +546,11 @@ func gasRevert(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, m
 func gasSuicide(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var gas uint64
 	// EIP150 homestead gas reprice fork:
-	if cvm.ChainConfig().IsEIP150(cvm.BlockNumber) {
+	if cvm.chainRules.IsEIP150 {
 		gas = gt.Suicide
 		var (
 			address = common.BigToAddress(stack.Back(0))
-			eip158  = cvm.ChainConfig().IsEIP158(cvm.BlockNumber)
+			eip158  = cvm.chainRules.IsEIP158
 		)
 
 		if eip158 {

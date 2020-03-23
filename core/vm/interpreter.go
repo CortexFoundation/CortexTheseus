@@ -109,13 +109,13 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	// log.Debug("NewCVMInterpreter", "cvm.ChainConfig().IsByzantium(cvm.BlockNumber)", cvm.ChainConfig().IsByzantium(cvm.BlockNumber), "cvm.ChainConfig().IsConstantinople(cvm.BlockNumber)", cvm.ChainConfig().IsConstantinople(cvm.BlockNumber))
 	if !cfg.JumpTable[STOP].valid {
 		switch {
-		case cvm.ChainConfig().IsIstanbul(cvm.BlockNumber):
+		case cvm.chainRules.IsIstanbul:
 			cfg.JumpTable = istanbulInstructionSet
-		case cvm.ChainConfig().IsConstantinople(cvm.BlockNumber):
+		case cvm.chainRules.IsConstantinople:
 			cfg.JumpTable = constantinopleInstructionSet
-		case cvm.ChainConfig().IsByzantium(cvm.BlockNumber):
+		case cvm.chainRules.IsByzantium:
 			cfg.JumpTable = byzantiumInstructionSet
-		case cvm.ChainConfig().IsHomestead(cvm.BlockNumber):
+		case cvm.chainRules.IsHomestead:
 			cfg.JumpTable = homesteadInstructionSet
 		default:
 			cfg.JumpTable = frontierInstructionSet
