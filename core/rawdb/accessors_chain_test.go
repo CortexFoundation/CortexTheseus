@@ -23,9 +23,9 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
 	"github.com/CortexFoundation/CortexTheseus/db"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"golang.org/x/crypto/sha3"
 )
 
 // Tests block header storage and retrieval operations.
@@ -47,7 +47,7 @@ func TestHeaderStorage(t *testing.T) {
 	if entry := ReadHeaderRLP(db, header.Hash(), header.Number.Uint64()); entry == nil {
 		t.Fatalf("Stored header RLP not found")
 	} else {
-		hasher := sha3.NewKeccak256()
+		hasher := sha3.NewLegacyKeccak256()
 		hasher.Write(entry)
 
 		if hash := common.BytesToHash(hasher.Sum(nil)); hash != header.Hash() {
