@@ -1690,6 +1690,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 
 		// Write the block to the chain and get the status.
 		status, err := bc.writeBlockWithState(block, receipts, logs, dbState, false)
+		atomic.StoreUint32(&followupInterrupt, 1)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
