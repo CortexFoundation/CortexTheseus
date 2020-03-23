@@ -427,9 +427,7 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// initialise a new contract and set the code that is to be used by the
 	// CVM. The contract is a scoped environment for this execution contex only.
 	contract := NewContract(caller, AccountRef(address), value, gas)
-	//contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
-	contract.SetCallCode(&address, codeAndHash.Hash(), codeAndHash.code)
-	//contract.SetCodeOptionalHash(&address, codeAndHash)
+	contract.SetCodeOptionalHash(&address, codeAndHash)
 
 	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
 		return nil, address, gas, nil, nil
