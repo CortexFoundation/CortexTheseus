@@ -2,6 +2,8 @@
 
 cd ..
 git fetch origin
+
+echo "... ... Fetch the latest tag version"
 version=$(git tag --sort=committerdate | tail -1)
 
 #while read -p "... ... Please input the release version number :" version
