@@ -202,7 +202,6 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		enc []byte
 		err error
 	)
-	var snp = true
 	if s.db.snap != nil {
 		// If the object was destructed in *this* block (and potentially resurrected),
 		// the storage has been cleared out, and we should *not* consult the previous
@@ -215,16 +214,12 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		}
 		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key[:]))
 	}
-	if len(enc) > 0 {
-		log.Warn("Snap is on", "s.addrHash", s.addrHash, "key", key, "enc", len(enc))
-	}
 	// If snapshot unavailable or reading from it failed, load from the database
 	if s.db.snap == nil || err != nil || len(enc) == 0 {
 		if enc, err = s.getTrie(db).TryGet(key[:]); err != nil {
 			s.setError(err)
 			return common.Hash{}
 		}
-		snp = false
 	}
 	var value common.Hash
 	if len(enc) > 0 {
@@ -235,7 +230,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		value.SetBytes(content)
 	}
 	s.originStorage[key] = value
-	log.Trace("Committed state", "value", value, "key", key, "addr", s.address, "s.addrHash", s.addrHash, "snap", snp)
+	log.Trace("Committed state", "value", value, "key", key, "addr", s.address, "s.addrHash", s.addrHash)
 	return value
 }
 
