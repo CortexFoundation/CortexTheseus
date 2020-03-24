@@ -54,26 +54,38 @@ func (f *File) bytesCompleted() int64 {
 	return f.length - f.bytesLeft()
 }
 
-func (f *File) bytesLeft() (left int64) {
-	pieceSize := int64(f.t.usualPieceSize())
-	firstPieceIndex := f.firstPieceIndex()
-	endPieceIndex := f.endPieceIndex() - 1
-	bitmap.Flip(f.t._completedPieces, firstPieceIndex+1, endPieceIndex).IterTyped(func(piece int) bool {
-		if piece >= endPieceIndex {
-			return false
+func fileBytesLeft(
+	torrentUsualPieceSize int64,
+	fileFirstPieceIndex int,
+	fileEndPieceIndex int,
+	fileTorrentOffset int64,
+	fileLength int64,
+	torrentCompletedPieces bitmap.Bitmap,
+) (left int64) {
+	numPiecesSpanned := fileEndPieceIndex - fileFirstPieceIndex
+	switch numPiecesSpanned {
+	case 0:
+	case 1:
+		if !torrentCompletedPieces.Get(fileFirstPieceIndex) {
+			left += fileLength
 		}
-		if piece > firstPieceIndex {
-			left += pieceSize
+	default:
+		if !torrentCompletedPieces.Get(fileFirstPieceIndex) {
+			left += torrentUsualPieceSize - (fileTorrentOffset % torrentUsualPieceSize)
 		}
-		return true
-	})
-	if !f.t.pieceComplete(firstPieceIndex) {
-		left += pieceSize - (f.offset % pieceSize)
-	}
-	if !f.t.pieceComplete(endPieceIndex) {
-		left += (f.offset + f.length) % pieceSize
+		if !torrentCompletedPieces.Get(fileEndPieceIndex - 1) {
+			left += fileTorrentOffset + fileLength - int64(fileEndPieceIndex-1)*torrentUsualPieceSize
+		}
+		completedMiddlePieces := torrentCompletedPieces.Copy()
+		completedMiddlePieces.RemoveRange(0, fileFirstPieceIndex+1)
+		completedMiddlePieces.RemoveRange(fileEndPieceIndex-1, bitmap.ToEnd)
+		left += int64(numPiecesSpanned-2-completedMiddlePieces.Len()) * torrentUsualPieceSize
 	}
 	return
+}
+
+func (f *File) bytesLeft() (left int64) {
+	return fileBytesLeft(int64(f.t.usualPieceSize()), f.firstPieceIndex(), f.endPieceIndex(), f.offset, f.length, f.t._completedPieces)
 }
 
 // The relative file path for a multi-file torrent, and the torrent name for a

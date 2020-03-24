@@ -17,7 +17,8 @@ import (
 	"crypto/sha256"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	bolt "github.com/etcd-io/bbolt"
+	//bolt "github.com/etcd-io/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 //const (
