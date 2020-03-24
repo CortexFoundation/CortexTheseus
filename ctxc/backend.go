@@ -157,7 +157,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			StorageDir:              config.StorageDir,
 		}
-		cacheConfig = &core.CacheConfig{TrieDirtyDisabled: config.NoPruning, TrieDirtyLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
+		cacheConfig = &core.CacheConfig{TrieDirtyDisabled: config.NoPruning, TrieDirtyLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout, SnapshotLimit: config.SnapshotCache}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve)
 	if err != nil {

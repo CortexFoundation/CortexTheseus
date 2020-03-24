@@ -24,6 +24,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
@@ -193,16 +194,39 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		return value
 	}
 	// If we have the original value cached, return that
-	value, cached := s.originStorage[key]
-	if cached {
+	if value, cached := s.originStorage[key]; cached {
 		return value
 	}
-	// Otherwise load the value from the database
-	enc, err := s.getTrie(db).TryGet(key[:])
-	if err != nil {
-		s.setError(err)
-		return common.Hash{}
+	// If no live objects are available, attempt to use snapshots
+	var (
+		enc []byte
+		err error
+	)
+	var snp = true
+	if s.db.snap != nil {
+		// If the object was destructed in *this* block (and potentially resurrected),
+		// the storage has been cleared out, and we should *not* consult the previous
+		// snapshot about any storage values. The only possible alternatives are:
+		//   1) resurrect happened, and new slot values were set -- those should
+		//      have been handles via pendingStorage above.
+		//   2) we don't have new values, and can deliver empty response back
+		if _, destructed := s.db.snapDestructs[s.addrHash]; destructed {
+			return common.Hash{}
+		}
+		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key[:]))
 	}
+	if len(enc) > 0 {
+		log.Warn("Snap is on", "s.addrHash", s.addrHash, "key", key, "enc", len(enc))
+	}
+	// If snapshot unavailable or reading from it failed, load from the database
+	if s.db.snap == nil || err != nil || len(enc) == 0 {
+		if enc, err = s.getTrie(db).TryGet(key[:]); err != nil {
+			s.setError(err)
+			return common.Hash{}
+		}
+		snp = false
+	}
+	var value common.Hash
 	if len(enc) > 0 {
 		_, content, _, err := rlp.Split(enc)
 		if err != nil {
@@ -211,6 +235,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		value.SetBytes(content)
 	}
 	s.originStorage[key] = value
+	log.Trace("Committed state", "value", value, "key", key, "addr", s.address, "s.addrHash", s.addrHash, "snap", snp)
 	return value
 }
 
@@ -247,10 +272,22 @@ func (s *stateObject) finalise() {
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
+// It will return nil if the trie has not been loaded and no changes have been made
 func (s *stateObject) updateTrie(db Database) Trie {
+	// Make sure all dirty slots are finalized into the pending storage area
 	s.finalise()
 	if len(s.pendingStorage) == 0 {
 		return s.trie
+	}
+	// Retrieve the snapshot storage map for the object
+	var storage map[common.Hash][]byte
+	if s.db.snap != nil {
+		// Retrieve the old storage map, if available, create a new one otherwise
+		storage = s.db.snapStorage[s.addrHash]
+		if storage == nil {
+			storage = make(map[common.Hash][]byte)
+			s.db.snapStorage[s.addrHash] = storage
+		}
 	}
 	// Insert all the pending updates into the trie
 	tr := s.getTrie(db)
@@ -261,13 +298,19 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		}
 		s.originStorage[key] = value
 
+		var v []byte
 		if (value == common.Hash{}) {
 			s.setError(tr.TryDelete(key[:]))
-			continue
+			//continue
+		} else {
+			// Encoding []byte cannot fail, ok to ignore the error.
+			v, _ := rlp.EncodeToBytes(common.TrimLeftZeroes(value[:]))
+			s.setError(tr.TryUpdate(key[:], v))
 		}
-		// Encoding []byte cannot fail, ok to ignore the error.
-		v, _ := rlp.EncodeToBytes(common.TrimLeftZeroes(value[:]))
-		s.setError(tr.TryUpdate(key[:], v))
+		// If state snapshotting is active, cache the data til commit
+		if storage != nil {
+			storage[crypto.Keccak256Hash(key[:])] = v // v will be nil if value is 0x00
+		}
 	}
 	if len(s.pendingStorage) > 0 {
 		s.pendingStorage = make(Storage)

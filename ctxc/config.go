@@ -39,6 +39,7 @@ var DefaultConfig = Config{
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
+	SnapshotCache: 256,
 	MinerGasFloor: params.MinerGasFloor, //8000000,
 	MinerGasCeil:  params.MinerGasCeil,  //8000000,
 	MinerGasPrice: big.NewInt(params.GWei),
@@ -81,6 +82,7 @@ type Config struct {
 	DatabaseFreezer    string
 	TrieCache          int
 	TrieTimeout        time.Duration
+	SnapshotCache      int
 
 	// Mining-related options
 	Coinbase         common.Address `toml:",omitempty"`

@@ -117,6 +117,7 @@ func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte)
 		return s.remoteInferByInputContent(modelInfoHash, inputContent)
 	}
 	inputInfoHash := RLPHashString(inputContent)
+	log.Trace("content", "inputContent", inputContent, "inputInfoHash", inputInfoHash, "modelInfoHash", modelInfoHash)
 	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
 }
 
