@@ -187,6 +187,8 @@ func New(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, cache int, root com
 		snap.layers[head.Root()] = head
 		head = head.Parent()
 	}
+
+	log.Info("Snapshot is waiting ... ...", "head", head, "root", root, "async", async, "cache", cache)
 	return snap
 }
 
@@ -209,6 +211,7 @@ func (t *Tree) waitBuild() {
 	if done != nil {
 		<-done
 	}
+	log.Info("Snapshot is open")
 }
 
 // Snapshot retrieves a snapshot belonging to the given block root, or nil if no
