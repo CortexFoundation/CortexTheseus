@@ -1714,8 +1714,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 		}
 
 		// Validate the state using the default validator
-		err = bc.Validator().ValidateState(block, parent, dbState, receipts, usedGas)
-		if err != nil {
+		if err := bc.Validator().ValidateState(block, parent, dbState, receipts, usedGas); err != nil {
 			bc.reportBlock(block, receipts, err)
 			atomic.StoreUint32(&followupInterrupt, 1)
 			return i, events, coalescedLogs, err
