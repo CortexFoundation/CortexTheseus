@@ -772,7 +772,6 @@ func (s *StateDB) Snapshot() int {
 	id := s.nextRevisionId
 	s.nextRevisionId++
 	s.validRevisions = append(s.validRevisions, revision{id, s.journal.length()})
-	//log.Info("snap version len", "len", len(s.validRevisions))
 	return id
 }
 
