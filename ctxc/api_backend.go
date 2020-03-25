@@ -23,7 +23,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -160,7 +159,6 @@ func (b *CortexAPIBackend) GetTd(blockHash common.Hash) *big.Int {
 }
 
 func (b *CortexAPIBackend) GetCVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.CVM, func() error, error) {
-	state.SetBalance(msg.From(), math.MaxBig256)
 	vmError := func() error { return nil }
 
 	context := core.NewCVMContext(msg, header, b.ctxc.BlockChain(), nil)
