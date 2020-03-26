@@ -160,6 +160,7 @@ func (s *StateDB) Reset(root common.Hash) error {
 	s.logSize = 0
 	s.preimages = make(map[common.Hash][]byte)
 	s.clearJournalAndRefund()
+
 	if s.snaps != nil {
 		s.snapAccounts, s.snapDestructs, s.snapStorage = nil, nil, nil
 		if s.snap = s.snaps.Snapshot(root); s.snap != nil {
@@ -810,8 +811,9 @@ func (s *StateDB) GetRefund() uint64 {
 	return s.refund
 }
 
-// Finalise finalises the state by removing the s destructed objects
-// and clears the journal as well as the refunds.
+// Finalise finalises the state by removing the s destructed objects and clears
+// the journal as well as the refunds. Finalise, however, will not push any updates
+// into the tries just yet. Only IntermediateRoot or Commit will do that.
 func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 	for addr := range s.journal.dirties {
 		obj, exist := s.stateObjects[addr]

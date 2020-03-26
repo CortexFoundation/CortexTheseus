@@ -374,36 +374,25 @@ func (s *stateObject) setBalance(amount *big.Int) {
 	s.data.Balance = amount
 }
 
-/*func (c *stateObject) AddAiCache(amount *big.Int) {
-        if amount.Sign() == 0 {
-                if c.empty() {
-                        c.touch()
-                }
-
-                return
-        }
-        c.SetUpload(new(big.Int).Add(c.Upload(), amount))
-}*/
-
-func (c *stateObject) AddUpload(amount *big.Int) {
+func (s *stateObject) AddUpload(amount *big.Int) {
 	if amount.Sign() == 0 {
-		if c.empty() {
-			c.touch()
+		if s.empty() {
+			s.touch()
 		}
 
 		return
 	}
-	c.SetUpload(new(big.Int).Add(c.Upload(), amount))
+	s.SetUpload(new(big.Int).Add(s.Upload(), amount))
 }
 
-func (c *stateObject) SubUpload(amount *big.Int) {
+func (s *stateObject) SubUpload(amount *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-	if c.Upload().Cmp(amount) > 0 {
-		c.SetUpload(new(big.Int).Sub(c.Upload(), amount))
+	if s.Upload().Cmp(amount) > 0 {
+		s.SetUpload(new(big.Int).Sub(s.Upload(), amount))
 	} else {
-		c.SetUpload(big.NewInt(0))
+		s.SetUpload(big.NewInt(0))
 	}
 }
 
@@ -432,7 +421,7 @@ func (s *stateObject) setUpload(amount *big.Int) {
 }
 
 // Return the gas back to the origin. Used by the Virtual machine or Closures
-func (c *stateObject) ReturnGas(gas *big.Int) {}
+func (s *stateObject) ReturnGas(gas *big.Int) {}
 
 func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	stateObject := newObject(db, s.address, s.data)
@@ -454,8 +443,8 @@ func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 //
 
 // Returns the address of the contract/account
-func (c *stateObject) Address() common.Address {
-	return c.address
+func (s *stateObject) Address() common.Address {
+	return s.address
 }
 
 // Code returns the contract code associated with this object, if any.
