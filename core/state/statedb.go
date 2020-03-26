@@ -320,7 +320,7 @@ func (s *StateDB) GetState(addr common.Address, bhash common.Hash) common.Hash {
 // GetState returns a value in account storage.
 func (s *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]byte, error) {
 	length := s.GetState(addr, slot).Big().Uint64()
-	if length == 0 {
+	if length == uint64(0) {
 		return nil, nil
 	}
 	hashBig := new(big.Int).SetBytes(crypto.Keccak256(slot.Bytes()))
@@ -331,7 +331,7 @@ func (s *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]b
 	//buffSize := length * 32
 
 	buff := new(bytes.Buffer) //make([]byte, length * 32)
-	for i := 0; i < int64(length); i++ {
+	for i := int64(0); i < int64(length); i++ {
 		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(i)))
 		payload := s.GetState(addr, slotAddr).Bytes()
 		//copy(buff[idx*32:], payload[:])
