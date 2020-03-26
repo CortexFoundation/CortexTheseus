@@ -630,7 +630,7 @@ func (s *StateDB) setStateObject(object *stateObject) {
 // Retrieve a state object or create a new state object if nil.
 func (s *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
 	stateObject := s.getStateObject(addr)
-	if stateObject == nil || stateObject.deleted {
+	if stateObject == nil{// || stateObject.deleted {
 		stateObject, _ = s.createObject(addr)
 	}
 	return stateObject
