@@ -18,11 +18,10 @@
 package state
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/big"
-	"sort"
-	//"sync"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/state/snapshot"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -30,6 +29,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
+	"math/big"
+	"sort"
 )
 
 type revision struct {
@@ -319,24 +320,27 @@ func (s *StateDB) GetState(addr common.Address, bhash common.Hash) common.Hash {
 // GetState returns a value in account storage.
 func (s *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]byte, error) {
 	length := s.GetState(addr, slot).Big().Uint64()
-	hash := crypto.Keccak256(slot.Bytes())
-	hashBig := new(big.Int).SetBytes(hash)
+	if length == 0 {
+		return nil, nil
+	}
+	hashBig := new(big.Int).SetBytes(crypto.Keccak256(slot.Bytes()))
 	//log.Warn(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, length, hash))
-	log.Trace("solid", "addr", addr, "slot", slot, "length", length, "hash", hash, "x", s.GetState(addr, slot), "y", common.Hash{})
+	//log.Trace("solid", "addr", addr, "slot", slot, "length", length, "hash", hash, "x", s.GetState(addr, slot), "y", common.Hash{})
 	// fmt.Println(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, length, hash))
 
-	buffSize := length * 32
+	//buffSize := length * 32
 
-	buff := make([]byte, buffSize)
-	var idx int64
-	for idx = 0; idx < int64(length); idx++ {
-		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
+	buff := new(bytes.Buffer) //make([]byte, length * 32)
+	for i := 0; i < int64(length); i++ {
+		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(i)))
 		payload := s.GetState(addr, slotAddr).Bytes()
-		copy(buff[idx*32:], payload[:])
+		//copy(buff[idx*32:], payload[:])
+		binary.Write(buff, binary.LittleEndian, payload[:])
+		//binary.LittleEndian.Put(buff[idx*32:], payload[:])
 		// fmt.Println(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
 	}
 	// fmt.Println(fmt.Sprintf("data: %v", buff))
-	return buff, nil
+	return buff.Bytes(), nil
 }
 
 // GetState returns a value in account storage.
@@ -565,26 +569,35 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 
 // deleteStateObject removes the given object from the state trie.
 func (s *StateDB) deleteStateObject(stateObject *stateObject) {
-	stateObject.deleted = true
+	//stateObject.deleted = true
 	addr := stateObject.Address()
 	s.setError(s.trie.TryDelete(addr[:]))
 }
 
-// Retrieve a state object given by the address. Returns nil if not found.
-func (s *StateDB) getStateObject(addr common.Address) (stateObject *stateObject) {
-	// Prefer 'live' objects.
-	if obj := s.stateObjects[addr]; obj != nil {
-		if obj.deleted {
-			return nil
-		}
+// getStateObject retrieves a state object given by the address, returning nil if
+// the object is not found or was deleted in this execution context. If you need
+// to differentiate between non-existent/just-deleted, use getDeletedStateObject
+func (s *StateDB) getStateObject(addr common.Address) *stateObject {
+	if obj := s.getDeletedStateObject(addr); obj != nil && !obj.deleted {
 		return obj
 	}
+	return nil
+}
 
+// getDeletedStateObject is similar to getStateObject, but instead of returning
+// nil for a deleted state object, it returns the actual object with the deleted
+// flag set. This is needed by the state journal to revert to the correct s-
+// destructed object instead of wiping all knowledge about the state object.
+func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *stateObject) {
+	// Prefer 'live' objects.
+	if obj := s.stateObjects[addr]; obj != nil {
+		return obj
+	}
+	// If no live objects are available, attempt to use snapshots
 	var (
 		data Account
 		err  error
 	)
-	// If no live objects are available, attempt to use snapshots
 	if s.snap != nil {
 		var acc *snapshot.Account
 		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr[:])); err == nil {
@@ -630,7 +643,7 @@ func (s *StateDB) setStateObject(object *stateObject) {
 // Retrieve a state object or create a new state object if nil.
 func (s *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
 	stateObject := s.getStateObject(addr)
-	if stateObject == nil{// || stateObject.deleted {
+	if stateObject == nil { // || stateObject.deleted {
 		stateObject, _ = s.createObject(addr)
 	}
 	return stateObject
