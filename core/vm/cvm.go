@@ -22,7 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"errors"
+	//"errors"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -171,6 +171,7 @@ func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
+		category:     Category{},
 		chainRules:   chainConfig.Rules(ctx.BlockNumber),
 		interpreters: make([]Interpreter, 1),
 		//Fs:           fileFs,
@@ -665,7 +666,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	return opsRes, errRes
 }
 
-func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
+/*func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
 	metaRaw := cvm.StateDB.GetCode(addr)
 	if cvm.category.IsModel {
 		if modelMeta, err := types.ParseModelMeta(metaRaw); err != nil {
@@ -684,7 +685,7 @@ func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error
 	}
 
 	return common.EmptyAddress, errors.New("quota limit reached")
-}
+}*/
 
 func (cvm *CVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
