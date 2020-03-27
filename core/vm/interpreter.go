@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"hash"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -25,7 +26,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	// "github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"sync/atomic"
 )
 
@@ -61,6 +61,11 @@ type Config struct {
 	DebugInferVM bool
 	StorageDir   string
 	// Storagefs    torrentfs.CVMStorage
+
+	CWASMInterpreter string // External CWASM interpreter options
+	CVMInterpreter   string // External CVM interpreter options
+
+	ExtraEips []int // Additional EIPS that are to be enabled
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -90,12 +95,23 @@ type Interpreter interface {
 	CanRun([]byte) bool
 }
 
+// keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
+// Read to get a variable amount of data from the hash state. Read is faster than Sum
+// because it doesn't copy the internal state, but also modifies the internal state.
+type keccakState interface {
+	hash.Hash
+	Read([]byte) (int, error)
+}
+
 // CVMInterpreter represents an CVM interpreter
 type CVMInterpreter struct {
 	cvm      *CVM
 	cfg      Config
 	gasTable params.GasTable
 	intPool  *intPool
+
+	hasher    keccakState // Keccak256 hasher instance shared across opcodes
+	hasherBuf common.Hash // Keccak256 hasher result array shared aross opcodes
 
 	readOnly   bool   // Whether to throw on stateful modifications
 	returnData []byte // Last CALL's return data for subsequent reuse
@@ -108,18 +124,31 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	// we'll set the default jump table.
 	// log.Debug("NewCVMInterpreter", "cvm.ChainConfig().IsByzantium(cvm.BlockNumber)", cvm.ChainConfig().IsByzantium(cvm.BlockNumber), "cvm.ChainConfig().IsConstantinople(cvm.BlockNumber)", cvm.ChainConfig().IsConstantinople(cvm.BlockNumber))
 	if !cfg.JumpTable[STOP].valid {
+		var jt JumpTable
 		switch {
 		case cvm.chainRules.IsIstanbul:
-			cfg.JumpTable = istanbulInstructionSet
+			jt = istanbulInstructionSet
 		case cvm.chainRules.IsConstantinople:
-			cfg.JumpTable = constantinopleInstructionSet
+			jt = constantinopleInstructionSet
 		case cvm.chainRules.IsByzantium:
-			cfg.JumpTable = byzantiumInstructionSet
+			jt = byzantiumInstructionSet
+		case cvm.chainRules.IsEIP158:
+			jt = spuriousDragonInstructionSet
+		case cvm.chainRules.IsEIP150:
+			jt = tangerineWhistleInstructionSet
 		case cvm.chainRules.IsHomestead:
-			cfg.JumpTable = homesteadInstructionSet
+			jt = homesteadInstructionSet
 		default:
-			cfg.JumpTable = frontierInstructionSet
+			jt = frontierInstructionSet
 		}
+		for i, eip := range cfg.ExtraEips {
+			if err := EnableEIP(eip, &jt); err != nil {
+				// Disable it, so caller can check if it's activated or not
+				cfg.ExtraEips = append(cfg.ExtraEips[:i], cfg.ExtraEips[i+1:]...)
+				log.Error("EIP activation failed", "eip", eip, "error", err)
+			}
+		}
+		cfg.JumpTable = jt
 	}
 
 	return &CVMInterpreter{
