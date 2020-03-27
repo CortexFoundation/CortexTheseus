@@ -93,8 +93,8 @@ type Interpreter interface {
 	// }
 	// ```
 	CanRun([]byte) bool
-	IsModelMeta([]byte) bool
-	IsInputMeta([]byte) bool
+	//IsModelMeta([]byte) bool
+	//IsInputMeta([]byte) bool
 }
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
@@ -117,6 +117,10 @@ type CVMInterpreter struct {
 
 	readOnly   bool   // Whether to throw on stateful modifications
 	returnData []byte // Last CALL's return data for subsequent reuse
+
+	//Code bool
+	//ModelMeta bool
+	//InputMeta bool
 }
 
 // NewCVMInterpreter returns a new instance of the Interpreter.
@@ -176,7 +180,8 @@ func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation operation, st
 	}
 	return nil
 }
-func (in *CVMInterpreter) IsCode(code []byte) bool {
+
+/*func (in *CVMInterpreter) IsCode(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 0 {
 		return true
 	}
@@ -194,7 +199,7 @@ func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
 		return true
 	}
 	return false
-}
+}*/
 
 // Run loops and evaluates the contract's code with the given input data and returns
 // the return byte-slice and an error if one occurred.
@@ -231,7 +236,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
-	if in.IsModelMeta(contract.Code) {
+	//if in.IsModelMeta(contract.Code) {
+	if in.cvm.category.IsModel {
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
 		}
@@ -298,7 +304,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 	}
 
-	if in.IsInputMeta(contract.Code) {
+	//if in.IsInputMeta(contract.Code) {
+	if in.cvm.category.IsInput {
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
 		}
@@ -369,7 +376,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
-	if in.IsCode(contract.Code) {
+	//if in.IsCode(contract.Code) {
+	if in.cvm.category.IsCode {
 		contract.Code = contract.Code[2:]
 	}
 	cgas := uint64(0)
@@ -490,5 +498,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
 func (in *CVMInterpreter) CanRun(code []byte) bool {
+	//in.Code = in.IsCode(code)
+	//in.ModelMeta = in.IsModelMeta(code)
+	//in.InputMeta = in.IsInputMeta(code)
 	return true
 }
