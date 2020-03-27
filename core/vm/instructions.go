@@ -1133,17 +1133,17 @@ func opSuicide(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memo
 }
 
 // opChainID implements CHAINID opcode
-func opChainID(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	chainId := interpreter.intPool.get().Set(interpreter.cvm.chainConfig.ChainID)
-	stack.push(chainId)
-	return nil, nil
-}
+//func opChainID(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+//	chainId := interpreter.intPool.get().Set(interpreter.cvm.chainConfig.ChainID)
+//	stack.push(chainId)
+//	return nil, nil
+//}
 
-func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	balance := interpreter.intPool.get().Set(interpreter.cvm.StateDB.GetBalance(contract.Address()))
-	stack.push(balance)
-	return nil, nil
-}
+//func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+//	balance := interpreter.intPool.get().Set(interpreter.cvm.StateDB.GetBalance(contract.Address()))
+//	stack.push(balance)
+//	return nil, nil
+//}
 
 // following functions are used by the instruction jump  table
 

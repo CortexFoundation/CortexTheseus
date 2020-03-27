@@ -62,52 +62,24 @@ var (
 	istanbulInstructionSet         = newIstanbulInstructionSet()
 )
 
+// JumpTable contains the CVM opcodes supported at a given fork.
+type JumpTable [256]operation
+
 // newIstanbulInstructionSet returns the frontier, homestead
 // byzantium, contantinople and petersburg instructions.
-func newIstanbulInstructionSet() [256]operation {
+func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 
-	//enable1344(&instructionSet) // ChainID opcode - https://eips.ethereum.org/EIPS/eip-1344
-	//enable1884(&instructionSet) // Reprice reader opcodes - https://eips.ethereum.org/EIPS/eip-1884
-	//enable2200(&instructionSet) // Net metered SSTORE - https://eips.ethereum.org/EIPS/eip-2200
-	instructionSet[CHAINID] = operation{
-		execute: opChainID,
-		gasCost: constGasFunc(GasQuickStep),
-		//minStack:    minStack(0, 1),
-		//maxStack:    maxStack(0, 1),
-		validateStack: makeStackFunc(0, 1),
-		valid:         true,
-	}
-
-	// enable1884 applies EIP-1884 to the given jump table:
-	// - Increase cost of BALANCE to 700
-	// - Increase cost of EXTCODEHASH to 700
-	// - Increase cost of SLOAD to 800
-	// - Define SELFBALANCE, with cost GasFastStep (5)
-	// Gas cost changes
-	instructionSet[BALANCE].gasCost = constGasFunc(params.BalanceGasEIP1884)
-	instructionSet[EXTCODEHASH].gasCost = constGasFunc(params.ExtcodeHashGasEIP1884)
-	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP1884)
-
-	// New opcode
-	instructionSet[SELFBALANCE] = operation{
-		execute:       opSelfBalance,
-		gasCost:       constGasFunc(GasFastestStep),
-		validateStack: makeStackFunc(0, 1),
-		valid:         true,
-	}
-
-	// enable2200 applies EIP-2200 (Rebalance net-metered SSTORE)
-	//instructionSet[SSTORE].dynamicGas = gasSStoreEIP2200
-	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP2200)
-	instructionSet[SSTORE].gasCost = gasSStoreEIP2200
+	enable1344(&instructionSet)
+	enable1884(&instructionSet)
+	enable2200(&instructionSet)
 
 	return instructionSet
 }
 
 // NewConstantinopleInstructionSet returns the frontier, homestead
 // byzantium and contantinople instructions.
-func newConstantinopleInstructionSet() [256]operation {
+func newConstantinopleInstructionSet() JumpTable {
 	// instructions that can be executed during the byzantium phase.
 	instructionSet := newByzantiumInstructionSet()
 	instructionSet[SHL] = operation{
@@ -148,7 +120,7 @@ func newConstantinopleInstructionSet() [256]operation {
 
 // NewByzantiumInstructionSet returns the frontier, homestead and
 // byzantium instructions.
-func newByzantiumInstructionSet() [256]operation {
+func newByzantiumInstructionSet() JumpTable {
 	// instructions that can be executed during the homestead phase.
 	instructionSet := newSpuriousDragonInstructionSet()
 	instructionSet[STATICCALL] = operation{
@@ -185,7 +157,7 @@ func newByzantiumInstructionSet() [256]operation {
 }
 
 // EIP 158 a.k.a Spurious Dragon
-func newSpuriousDragonInstructionSet() [256]operation {
+func newSpuriousDragonInstructionSet() JumpTable {
 	instructionSet := newTangerineWhistleInstructionSet()
 	//instructionSet[EXP].gasCost = gasExpEIP158
 	return instructionSet
@@ -193,7 +165,7 @@ func newSpuriousDragonInstructionSet() [256]operation {
 }
 
 // EIP 150 a.k.a Tangerine Whistle
-func newTangerineWhistleInstructionSet() [256]operation {
+func newTangerineWhistleInstructionSet() JumpTable {
 	instructionSet := newHomesteadInstructionSet()
 	/*instructionSet[BALANCE].gasCost = constGasFunc(params.BalanceGasEIP150)
 	instructionSet[EXTCODESIZE].gasCost = constGasFunc(params.ExtcodeSizeGasEIP150)
@@ -207,7 +179,7 @@ func newTangerineWhistleInstructionSet() [256]operation {
 
 // NewHomesteadInstructionSet returns the frontier and homestead
 // instructions that can be executed during the homestead phase.
-func newHomesteadInstructionSet() [256]operation {
+func newHomesteadInstructionSet() JumpTable {
 	instructionSet := newFrontierInstructionSet()
 	instructionSet[DELEGATECALL] = operation{
 		execute:       opDelegateCall,
@@ -222,8 +194,8 @@ func newHomesteadInstructionSet() [256]operation {
 
 // NewFrontierInstructionSet returns the frontier instructions
 // that can be executed during the frontier phase.
-func newFrontierInstructionSet() [256]operation {
-	return [256]operation{
+func newFrontierInstructionSet() JumpTable {
+	return JumpTable{
 		STOP: {
 			execute:       opStop,
 			gasCost:       constGasFunc(0),
