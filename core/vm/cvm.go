@@ -645,7 +645,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 
 func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
 	metaRaw := cvm.StateDB.GetCode(addr)
-	if IsModelMeta(metaRaw) {
+	if cvm.interpreter.IsModelMeta(metaRaw) {
 		if modelMeta, err := types.ParseModelMeta(metaRaw); err != nil {
 			return common.EmptyAddress, err
 		} else {
@@ -653,7 +653,7 @@ func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error
 		}
 	}
 
-	if IsInputMeta(metaRaw) {
+	if cvm.interpreter.IsInputMeta(metaRaw) {
 		if inputMeta, err := types.ParseInputMeta(metaRaw); err != nil {
 			return common.EmptyAddress, err
 		} else {

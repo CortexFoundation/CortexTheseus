@@ -93,6 +93,8 @@ type Interpreter interface {
 	// }
 	// ```
 	CanRun([]byte) bool
+	IsModelMeta([]byte) bool
+	IsInputMeta([]byte) bool
 }
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
@@ -174,20 +176,20 @@ func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation operation, st
 	}
 	return nil
 }
-func IsCode(code []byte) bool {
+func (in *CVMInterpreter) IsCode(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 0 {
 		return true
 	}
 	return false
 }
-func IsModelMeta(code []byte) bool {
+func (in *CVMInterpreter) IsModelMeta(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 1 {
 		return true
 	}
 	return false
 }
 
-func IsInputMeta(code []byte) bool {
+func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 2 {
 		return true
 	}
@@ -229,7 +231,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
-	if IsModelMeta(contract.Code) {
+	if in.IsModelMeta(contract.Code) {
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
 		}
@@ -261,9 +263,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					//deal with the big model
 					//}
 
-					if modelMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
-						//in.cvm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
-					} else {
+					if modelMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
 						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 					}
 				} else {
@@ -273,8 +273,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
 					return nil, ErrInvalidMetaAuthor
 				}
-
-				//todo Hash check
 
 				if modelMeta.Gas == uint64(0) {
 					//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
@@ -287,12 +285,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
 				modelMeta.SetBlockNum(*in.cvm.BlockNumber)
-				tmpCode, err := modelMeta.ToBytes()
-				if err != nil {
+				if tmpCode, err := modelMeta.ToBytes(); err != nil {
 					return nil, err
+				} else {
+					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
-
-				contract.Code = append([]byte{0, 1}, tmpCode...)
 				log.Debug("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 			} else {
 				log.Debug("Invalid model meta", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
@@ -301,7 +298,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 	}
 
-	if IsInputMeta(contract.Code) {
+	if in.IsInputMeta(contract.Code) {
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
 		}
@@ -315,13 +312,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
-				//if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
-				//return nil, ErrInvalidMetaRawSize
-				//}
 				if inputMeta.RawSize > 0 {
-					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
-						//in.cvm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
-					} else {
+					if inputMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
 						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 					}
 				} else {
@@ -330,11 +322,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 				inputMeta.SetBlockNum(*in.cvm.BlockNumber)
 				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
-				tmpCode, err := inputMeta.ToBytes()
-				if err != nil {
+				if tmpCode, err := inputMeta.ToBytes(); err != nil {
 					return nil, err
+				} else {
+					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
-				contract.Code = append([]byte{0, 2}, tmpCode...)
 				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
 			} else {
 				log.Warn("Invalid input meta", "size", inputMeta.RawSize, "hash", inputMeta.Hash.Hex(), "birth", inputMeta.BlockNum.Uint64())
@@ -377,7 +369,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
-	if IsCode(contract.Code) {
+	if in.IsCode(contract.Code) {
 		contract.Code = contract.Code[2:]
 	}
 	cgas := uint64(0)
