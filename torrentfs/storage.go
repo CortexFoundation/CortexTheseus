@@ -215,7 +215,7 @@ func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
 			return err
 		}
 
-		log.Debug("New leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks), "time", fs.treeUpdates, "init", init)
+		log.Debug("New merkle tree leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks), "time", fs.treeUpdates, "init", init)
 
 		return nil
 	} else {

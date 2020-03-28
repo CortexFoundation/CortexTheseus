@@ -22,7 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"errors"
+	//"errors"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -38,6 +38,10 @@ import (
 // deployed contract addresses (relevant after the account abstraction).
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
+type Category struct {
+	IsCode, IsModel, IsInput bool
+}
+
 type (
 	// CanTransferFunc is the signature of a transfer guard function
 	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
@@ -47,6 +51,18 @@ type (
 	// and is used by the BLOCKHASH CVM op code.
 	GetHashFunc func(uint64) common.Hash
 )
+
+func (in *CVM) IsCode(code []byte) bool {
+	return len(code) >= 2 && code[0] == 0 && code[1] == 0
+}
+
+func (in *CVM) IsModel(code []byte) bool {
+	return len(code) >= 2 && code[0] == 0 && code[1] == 1
+}
+
+func (in *CVM) IsInput(code []byte) bool {
+	return len(code) >= 2 && code[0] == 0 && code[1] == 2
+}
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
@@ -62,6 +78,10 @@ func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
+
+	cvm.category = Category{}
+	cvm.category.IsCode, cvm.category.IsModel, cvm.category.IsInput = cvm.IsCode(contract.Code), cvm.IsModel(contract.Code), cvm.IsInput(contract.Code)
+
 	for _, interpreter := range cvm.interpreters {
 		if interpreter.CanRun(contract.Code) {
 			if cvm.interpreter != interpreter {
@@ -123,6 +143,8 @@ type CVM struct {
 	chainConfig *params.ChainConfig
 	// chain rules contains the chain rules for the current epoch
 	chainRules params.Rules
+
+	category Category
 	// virtual machine configuration options used to initialise the
 	// cvm.
 	vmConfig Config
@@ -149,6 +171,7 @@ func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
+		category:     Category{},
 		chainRules:   chainConfig.Rules(ctx.BlockNumber),
 		interpreters: make([]Interpreter, 1),
 		//Fs:           fileFs,
@@ -643,9 +666,9 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	return opsRes, errRes
 }
 
-func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
+/*func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
 	metaRaw := cvm.StateDB.GetCode(addr)
-	if IsModelMeta(metaRaw) {
+	if cvm.category.IsModel {
 		if modelMeta, err := types.ParseModelMeta(metaRaw); err != nil {
 			return common.EmptyAddress, err
 		} else {
@@ -653,7 +676,7 @@ func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error
 		}
 	}
 
-	if IsInputMeta(metaRaw) {
+	if cvm.category.IsInput {
 		if inputMeta, err := types.ParseInputMeta(metaRaw); err != nil {
 			return common.EmptyAddress, err
 		} else {
@@ -662,7 +685,7 @@ func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error
 	}
 
 	return common.EmptyAddress, errors.New("quota limit reached")
-}
+}*/
 
 func (cvm *CVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
 	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
