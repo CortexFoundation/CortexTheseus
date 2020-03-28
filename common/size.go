@@ -60,15 +60,15 @@ type HashSize float64
 // String implements the stringer interface.
 func (s HashSize) String() string {
 	if s > 1099511627776 {
-		return fmt.Sprintf("%.2f TiH", s/1099511627776)
+		return fmt.Sprintf("%.3f TiH", s/1099511627776)
 	} else if s > 1073741824 {
-		return fmt.Sprintf("%.2f GiH", s/1073741824)
+		return fmt.Sprintf("%.3f GiH", s/1073741824)
 	} else if s > 1048576 {
-		return fmt.Sprintf("%.2f MiH", s/1048576)
+		return fmt.Sprintf("%.3f MiH", s/1048576)
 	} else if s > 1024 {
-		return fmt.Sprintf("%.2f KiH", s/1024)
+		return fmt.Sprintf("%.3f KiH", s/1024)
 	} else {
-		return fmt.Sprintf("%.2f H", s)
+		return fmt.Sprintf("%.3f H", s)
 	}
 }
 
@@ -76,14 +76,14 @@ func (s HashSize) String() string {
 // output during logging.
 func (s HashSize) TerminalString() string {
 	if s > 1099511627776 {
-		return fmt.Sprintf("%.2fTiH", s/1099511627776)
+		return fmt.Sprintf("%.3fTiH", s/1099511627776)
 	} else if s > 1073741824 {
-		return fmt.Sprintf("%.2fGiH", s/1073741824)
+		return fmt.Sprintf("%.3fGiH", s/1073741824)
 	} else if s > 1048576 {
-		return fmt.Sprintf("%.2fMiH", s/1048576)
+		return fmt.Sprintf("%.3fMiH", s/1048576)
 	} else if s > 1024 {
-		return fmt.Sprintf("%.2fKiH", s/1024)
+		return fmt.Sprintf("%.3fKiH", s/1024)
 	} else {
-		return fmt.Sprintf("%.2fH", s)
+		return fmt.Sprintf("%.3fH", s)
 	}
 }
