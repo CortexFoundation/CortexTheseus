@@ -945,8 +945,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			}
 			feesCortex := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Cortex)))
 			mined := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Sub(block.Supply(), params.CTXC_INIT)), new(big.Float).SetInt(big.NewInt(params.Cortex)))
-			//peace := new(big.Float).Quo(new(big.Float).SetInt(block.Supply()), new(big.Float).SetInt(params.CTXC_TOP))
-			//capacity := new(big.Float).Quo(new(big.Float).SetInt(block.QuotaUsed()), new(big.Float).SetInt(block.Quota()))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
 				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined /*"peace", peace,*/, "quota", common.StorageSize(block.Quota().Int64()), "used", common.StorageSize(block.QuotaUsed().Int64())) //, "capacity", capacity)

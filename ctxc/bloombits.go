@@ -54,7 +54,7 @@ func (ctxc *Cortex) startBloomHandlers(sectionSize uint64) {
 		go func() {
 			for {
 				select {
-				case <-ctxc.shutdownChan:
+				case <-ctxc.closeBloomHandler:
 					return
 
 				case request := <-ctxc.bloomRequests:

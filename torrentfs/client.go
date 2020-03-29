@@ -800,7 +800,7 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 20 //len(config.DefaultTrackers)
+	//cfg.EstablishedConnsPerTorrent = 25 //len(config.DefaultTrackers)
 	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.ListenPort = config.Port
 	if config.Quiet {
