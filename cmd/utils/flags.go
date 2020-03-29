@@ -574,12 +574,12 @@ var (
 	}
 	BootnodesV4Flag = cli.StringFlag{
 		Name:  "bootnodesv4",
-		Usage: "Comma separated enode URLs for P2P v4 discovery bootstrap (light server, full nodes)",
+		Usage: "Comma separated enode URLs for P2P v4 discovery bootstrap",
 		Value: "",
 	}
 	BootnodesV5Flag = cli.StringFlag{
                 Name:  "bootnodesv5",
-                Usage: "Comma separated enode URLs for P2P v5 discovery bootstrap (light server, light nodes)",
+                Usage: "Comma separated enode URLs for P2P v5 discovery bootstrap",
                 Value: "",
         }
 	NodeKeyFileFlag = cli.StringFlag{

@@ -218,7 +218,6 @@ func (m *FairMix) Next() bool {
 		select {
 		case n, ok := <-source.next:
 			if ok {
-				log.Warn("Source Node", "node", n)
 				m.cur = n
 				source.timeout = m.timeout
 				return true
