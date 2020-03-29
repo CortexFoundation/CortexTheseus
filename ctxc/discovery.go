@@ -25,9 +25,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
-// ethEntry is the "eth" ENR entry which advertises eth protocol
+// ctxcEntry is the "ctxc" ENR entry which advertises ctxc protocol
 // on the discovery network.
-type ethEntry struct {
+type ctxcEntry struct {
 	ForkID forkid.ID // Fork identifier per EIP-2124
 
 	// Ignore additional fields (for forward compatibility).
@@ -35,23 +35,23 @@ type ethEntry struct {
 }
 
 // ENRKey implements enr.Entry.
-func (e ethEntry) ENRKey() string {
-	return "eth"
+func (e ctxcEntry) ENRKey() string {
+	return "ctxc"
 }
 
-// startEthEntryUpdate starts the ENR updater loop.
-func (eth *Cortex) startEthEntryUpdate(ln *enode.LocalNode) {
+// startCtxcEntryUpdate starts the ENR updater loop.
+func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
 	var newHead = make(chan core.ChainHeadEvent, 10)
-	sub := eth.blockchain.SubscribeChainHeadEvent(newHead)
+	sub := ctxc.blockchain.SubscribeChainHeadEvent(newHead)
 
 	go func() {
 		defer sub.Unsubscribe()
 		for {
 			select {
 			case <-newHead:
-				ln.Set(eth.currentEthEntry())
+				ln.Set(ctxc.currentCtxcEntry())
 			case <-sub.Err():
-				// Would be nice to sync with eth.Stop, but there is no
+				// Would be nice to sync with ctxc.Stop, but there is no
 				// good way to do that.
 				return
 			}
@@ -59,15 +59,15 @@ func (eth *Cortex) startEthEntryUpdate(ln *enode.LocalNode) {
 	}()
 }
 
-func (eth *Cortex) currentEthEntry() *ethEntry {
-	return &ethEntry{ForkID: forkid.NewID(eth.blockchain)}
+func (ctxc *Cortex) currentCtxcEntry() *ctxcEntry {
+	return &ctxcEntry{ForkID: forkid.NewID(ctxc.blockchain)}
 }
 
-// setupDiscovery creates the node discovery source for the eth protocol.
-func (eth *Cortex) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error) {
-	if cfg.NoDiscovery || len(eth.config.DiscoveryURLs) == 0 {
+// setupDiscovery creates the node discovery source for the ctxc protocol.
+func (ctxc *Cortex) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error) {
+	if cfg.NoDiscovery || len(ctxc.config.DiscoveryURLs) == 0 {
 		return nil, nil
 	}
 	client := dnsdisc.NewClient(dnsdisc.Config{})
-	return client.NewIterator(eth.config.DiscoveryURLs...)
+	return client.NewIterator(ctxc.config.DiscoveryURLs...)
 }

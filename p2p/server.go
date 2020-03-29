@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package p2p implements the Ethereum p2p network protocols.
+// Package p2p implements the Cortex p2p network protocols.
 package p2p
 
 import (
@@ -1057,7 +1057,7 @@ type NodeInfo struct {
 	ID    string `json:"id"`    // Unique node identifier (also the encryption key)
 	Name  string `json:"name"`  // Name of the node, including client type, version, OS, custom data
 	Enode string `json:"enode"` // Enode URL for adding this peer from remote peers
-	ENR   string `json:"enr"`   // Ethereum Node Record
+	ENR   string `json:"enr"`   // Cortex Node Record
 	IP    string `json:"ip"`    // IP address of the node
 	Ports struct {
 		Discovery int `json:"discovery"` // UDP listening port for discovery protocol
