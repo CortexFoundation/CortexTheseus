@@ -19,7 +19,6 @@ package enode
 import (
 	"sync"
 	"time"
-	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 // Iterator represents a sequence of nodes. The Next method moves to the next node in the
