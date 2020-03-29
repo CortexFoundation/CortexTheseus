@@ -106,7 +106,7 @@ func loadConfig(file string, cfg *cortexConfig) error {
 func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
-	cfg.Version = params.VersionWithCommit(gitCommit)
+	cfg.Version = params.VersionWithCommit(gitCommit, "")
 	cfg.HTTPModules = append(cfg.HTTPModules, "ctxc")
 	cfg.WSModules = append(cfg.WSModules, "ctxc")
 	cfg.IPCPath = "cortex.ipc"
