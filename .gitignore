@@ -86,3 +86,7 @@ keyfile.json
 cortex-linux-amd64*
 checksum
 privatekey
+
+all-nodes.json
+dnskey.json
+all.mainnet.*
