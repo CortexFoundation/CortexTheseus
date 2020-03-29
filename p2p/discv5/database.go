@@ -1,23 +1,23 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 // Contains the node database, storing previously seen nodes and any collected
 // metadata about them for QoS purposes.
 
-package discover
+package discv5
 
 import (
 	"bytes"
@@ -43,7 +43,6 @@ var (
 	nodeDBNilNodeID      = NodeID{}       // Special node ID to use as a nil element.
 	nodeDBNodeExpiration = 24 * time.Hour // Time after which an unseen node should be dropped.
 	nodeDBCleanupCycle   = time.Hour      // Time period for running the expiration task.
-	nodeDBVersion        = 5
 )
 
 // nodeDB stores all nodes we know about.
@@ -63,6 +62,7 @@ var (
 	nodeDBDiscoverPing      = nodeDBDiscoverRoot + ":lastping"
 	nodeDBDiscoverPong      = nodeDBDiscoverRoot + ":lastpong"
 	nodeDBDiscoverFindFails = nodeDBDiscoverRoot + ":findfail"
+	nodeDBTopicRegTickets   = ":tickets"
 )
 
 // newNodeDB creates a new node database for storing and retrieving infos about
@@ -244,7 +244,7 @@ func (db *nodeDB) expirer() {
 		select {
 		case <-tick.C:
 			if err := db.expireNodes(); err != nil {
-				log.Error("Failed to expire nodedb items", "err", err)
+				log.Error(fmt.Sprintf("Failed to expire nodedb items: %v", err))
 			}
 		case <-db.quit:
 			return
@@ -269,7 +269,7 @@ func (db *nodeDB) expireNodes() error {
 		}
 		// Skip the node if not expired yet (and not self)
 		if !bytes.Equal(id[:], db.self[:]) {
-			if seen := db.lastPongReceived(id); seen.After(threshold) {
+			if seen := db.lastPong(id); seen.After(threshold) {
 				continue
 			}
 		}
@@ -279,28 +279,24 @@ func (db *nodeDB) expireNodes() error {
 	return nil
 }
 
-// lastPingReceived retrieves the time of the last ping packet sent by the remote node.
-func (db *nodeDB) lastPingReceived(id NodeID) time.Time {
+// lastPing retrieves the time of the last ping packet send to a remote node,
+// requesting binding.
+func (db *nodeDB) lastPing(id NodeID) time.Time {
 	return time.Unix(db.fetchInt64(makeKey(id, nodeDBDiscoverPing)), 0)
 }
 
-// updateLastPing updates the last time remote node pinged us.
-func (db *nodeDB) updateLastPingReceived(id NodeID, instance time.Time) error {
+// updateLastPing updates the last time we tried contacting a remote node.
+func (db *nodeDB) updateLastPing(id NodeID, instance time.Time) error {
 	return db.storeInt64(makeKey(id, nodeDBDiscoverPing), instance.Unix())
 }
 
-// lastPongReceived retrieves the time of the last successful pong from remote node.
-func (db *nodeDB) lastPongReceived(id NodeID) time.Time {
+// lastPong retrieves the time of the last successful contact from remote node.
+func (db *nodeDB) lastPong(id NodeID) time.Time {
 	return time.Unix(db.fetchInt64(makeKey(id, nodeDBDiscoverPong)), 0)
 }
 
-// hasBond reports whether the given node is considered bonded.
-func (db *nodeDB) hasBond(id NodeID) bool {
-	return time.Since(db.lastPongReceived(id)) < nodeDBNodeExpiration
-}
-
-// updateLastPongReceived updates the last pong time of a node.
-func (db *nodeDB) updateLastPongReceived(id NodeID, instance time.Time) error {
+// updateLastPong updates the last time a remote node successfully contacted.
+func (db *nodeDB) updateLastPong(id NodeID, instance time.Time) error {
 	return db.storeInt64(makeKey(id, nodeDBDiscoverPong), instance.Unix())
 }
 
@@ -343,7 +339,7 @@ seek:
 		if n.ID == db.self {
 			continue seek
 		}
-		if now.Sub(db.lastPongReceived(n.ID)) > maxAge {
+		if now.Sub(db.lastPong(n.ID)) > maxAge {
 			continue seek
 		}
 		for i := range nodes {
@@ -356,6 +352,25 @@ seek:
 	return nodes
 }
 
+func (db *nodeDB) fetchTopicRegTickets(id NodeID) (issued, used uint32) {
+	key := makeKey(id, nodeDBTopicRegTickets)
+	blob, _ := db.lvl.Get(key, nil)
+	if len(blob) != 8 {
+		return 0, 0
+	}
+	issued = binary.BigEndian.Uint32(blob[0:4])
+	used = binary.BigEndian.Uint32(blob[4:8])
+	return
+}
+
+func (db *nodeDB) updateTopicRegTickets(id NodeID, issued, used uint32) error {
+	key := makeKey(id, nodeDBTopicRegTickets)
+	blob := make([]byte, 8)
+	binary.BigEndian.PutUint32(blob[0:4], issued)
+	binary.BigEndian.PutUint32(blob[4:8], used)
+	return db.lvl.Put(key, blob, nil)
+}
+
 // reads the next node record from the iterator, skipping over other
 // database entries.
 func nextNode(it iterator.Iterator) *Node {
@@ -366,7 +381,7 @@ func nextNode(it iterator.Iterator) *Node {
 		}
 		var n Node
 		if err := rlp.DecodeBytes(it.Value(), &n); err != nil {
-			log.Warn("Failed to decode node RLP", "id", id, "err", err)
+			log.Warn(fmt.Sprintf("invalid node %x: %v", id, err))
 			continue
 		}
 		return &n

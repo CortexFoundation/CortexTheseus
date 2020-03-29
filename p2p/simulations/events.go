@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2017 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package simulations
 
@@ -58,6 +58,9 @@ type Event struct {
 
 	// Msg is set if the type is EventTypeMsg
 	Msg *Msg `json:"msg,omitempty"`
+
+	//Optionally provide data (currently for simulation frontends only)
+	Data interface{} `json:"data"`
 }
 
 // NewEvent creates a new event for the given object which should be either a
@@ -70,8 +73,7 @@ func NewEvent(v interface{}) *Event {
 	switch v := v.(type) {
 	case *Node:
 		event.Type = EventTypeNode
-		node := *v
-		event.Node = &node
+		event.Node = v.copy()
 	case *Conn:
 		event.Type = EventTypeConn
 		conn := *v
@@ -97,7 +99,7 @@ func ControlEvent(v interface{}) *Event {
 func (e *Event) String() string {
 	switch e.Type {
 	case EventTypeNode:
-		return fmt.Sprintf("<node-event> id: %s up: %t", e.Node.ID().TerminalString(), e.Node.Up)
+		return fmt.Sprintf("<node-event> id: %s up: %t", e.Node.ID().TerminalString(), e.Node.Up())
 	case EventTypeConn:
 		return fmt.Sprintf("<conn-event> nodes: %s->%s up: %t", e.Conn.One.TerminalString(), e.Conn.Other.TerminalString(), e.Conn.Up)
 	case EventTypeMsg:

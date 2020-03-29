@@ -24,14 +24,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
@@ -77,6 +76,9 @@ type Config struct {
 	// DataDir. If DataDir is unspecified and KeyStoreDir is empty, an ephemeral directory
 	// is created by New and destroyed when the node is stopped.
 	KeyStoreDir string `toml:",omitempty"`
+
+	// ExternalSigner specifies an external URI for a clef-type signer
+        ExternalSigner string `toml:"omitempty"`
 
 	// UseLightweightKDF lowers the memory and CPU requirements of the key store
 	// scrypt KDF at the expense of security.
@@ -285,7 +287,6 @@ func (c *Config) ResolvePath(path string) string {
 			oldpath = filepath.Join(c.DataDir, path)
 		}
 		if oldpath != "" && common.FileExist(oldpath) {
-			// TODO: print warning
 			return oldpath
 		}
 	}
@@ -338,18 +339,18 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 }
 
 // StaticNodes returns a list of node enode URLs configured as static nodes.
-func (c *Config) StaticNodes() []*discover.Node {
+func (c *Config) StaticNodes() []*enode.Node {
 	return c.parsePersistentNodes(c.ResolvePath(datadirStaticNodes))
 }
 
 // TrustedNodes returns a list of node enode URLs configured as trusted nodes.
-func (c *Config) TrustedNodes() []*discover.Node {
+func (c *Config) TrustedNodes() []*enode.Node {
 	return c.parsePersistentNodes(c.ResolvePath(datadirTrustedNodes))
 }
 
 // parsePersistentNodes parses a list of discovery node URLs loaded from a .json
 // file from within the data directory.
-func (c *Config) parsePersistentNodes(path string) []*discover.Node {
+func (c *Config) parsePersistentNodes(path string) []*enode.Node {
 	// Short circuit if no node config is present
 	if c.DataDir == "" {
 		return nil
@@ -364,12 +365,12 @@ func (c *Config) parsePersistentNodes(path string) []*discover.Node {
 		return nil
 	}
 	// Interpret the list as a discovery node array
-	var nodes []*discover.Node
+	var nodes []*enode.Node
 	for _, url := range nodelist {
 		if url == "" {
 			continue
 		}
-		node, err := discover.ParseNode(url)
+		node, err := enode.Parse(enode.ValidSchemes, url)
 		if err != nil {
 			log.Error(fmt.Sprintf("Node URL %s: %v\n", url, err))
 			continue

@@ -1,20 +1,20 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of CortexFoundation.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of CortexTheseus.
 //
-// CortexFoundation is free software: you can redistribute it and/or modify
+// CortexTheseus is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// CortexFoundation is distributed in the hope that it will be useful,
+// CortexTheseus is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with CortexFoundation. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexTheseus. If not, see <http://www.gnu.org/licenses/>.
 
-// bootnode runs a bootstrap node for the Cortex Discovery Protocol.
+// bootnode runs a bootstrap node for the Ethereum Discovery Protocol.
 package main
 
 import (
@@ -28,19 +28,22 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discv5"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 )
 
 func main() {
 	var (
-		listenAddr  = flag.String("addr", ":37566", "listen address")
+		listenAddr  = flag.String("addr", ":30301", "listen address")
 		genKey      = flag.String("genkey", "", "generate a node key")
-		writeAddr   = flag.Bool("writeaddress", false, "write out the node's pubkey hash and quit")
+		writeAddr   = flag.Bool("writeaddress", false, "write out the node's public key and quit")
 		nodeKeyFile = flag.String("nodekey", "", "private key filename")
 		nodeKeyHex  = flag.String("nodekeyhex", "", "private key as hex (for testing)")
 		natdesc     = flag.String("nat", "none", "port mapping mechanism (any|none|upnp|pmp|extip:<IP>)")
 		netrestrict = flag.String("netrestrict", "", "restrict network communication to the given IP networks (CIDR masks)")
+		runv5       = flag.Bool("v5", false, "run a v5 topic discovery bootnode")
 		verbosity   = flag.Int("verbosity", int(log.LvlInfo), "log verbosity (0-9)")
 		vmodule     = flag.String("vmodule", "", "log verbosity pattern")
 
@@ -83,8 +86,9 @@ func main() {
 			utils.Fatalf("-nodekeyhex: %v", err)
 		}
 	}
+
 	if *writeAddr {
-		fmt.Printf("%v\n", discover.PubkeyID(&nodeKey.PublicKey))
+		fmt.Printf("%x\n", crypto.FromECDSAPub(&nodeKey.PublicKey)[1:])
 		os.Exit(0)
 	}
 
@@ -100,7 +104,6 @@ func main() {
 	if err != nil {
 		utils.Fatalf("-ResolveUDPAddr: %v", err)
 	}
-
 	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		utils.Fatalf("-ListenUDP: %v", err)
@@ -109,21 +112,40 @@ func main() {
 	realaddr := conn.LocalAddr().(*net.UDPAddr)
 	if natm != nil {
 		if !realaddr.IP.IsLoopback() {
-			go nat.Map(natm, nil, "udp", realaddr.Port, realaddr.Port, "cortex discovery")
+			go nat.Map(natm, nil, "udp", realaddr.Port, realaddr.Port, "CortexFoundation discovery")
 		}
-		// TODO: react to external IP changes over time.
 		if ext, err := natm.ExternalIP(); err == nil {
 			realaddr = &net.UDPAddr{IP: ext, Port: realaddr.Port}
 		}
 	}
 
-	cfg := discover.Config{
-		PrivateKey:   nodeKey,
-		AnnounceAddr: realaddr,
-		NetRestrict:  restrictList,
+	printNotice(&nodeKey.PublicKey, *realaddr)
+
+	if *runv5 {
+		if _, err := discv5.ListenUDP(nodeKey, conn, "", restrictList); err != nil {
+			utils.Fatalf("%v", err)
+		}
+	} else {
+		db, _ := enode.OpenDB("")
+		ln := enode.NewLocalNode(db, nodeKey)
+		cfg := discover.Config{
+			PrivateKey:  nodeKey,
+			NetRestrict: restrictList,
+		}
+		if _, err := discover.ListenUDP(conn, ln, cfg); err != nil {
+			utils.Fatalf("%v", err)
+		}
 	}
-	if _, err := discover.ListenUDP(conn, cfg); err != nil {
-		utils.Fatalf("%v", err)
-	}
+
 	select {}
+}
+
+func printNotice(nodeKey *ecdsa.PublicKey, addr net.UDPAddr) {
+	if addr.IP.IsUnspecified() {
+		addr.IP = net.IP{127, 0, 0, 1}
+	}
+	n := enode.NewV4(nodeKey, addr.IP, 0, addr.Port)
+	fmt.Println(n.URLv4())
+	fmt.Println("Note: you're using cmd/bootnode, a developer tool.")
+	fmt.Println("We recommend using a regular node as bootstrap node for production deployments.")
 }

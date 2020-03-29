@@ -32,7 +32,7 @@ import (
 // the protocol stack, that is passed to all constructors to be optionally used;
 // as well as utility methods to operate on the service environment.
 type ServiceContext struct {
-	config         *Config
+	Config         *Config
 	services       map[reflect.Type]Service // Index of the already constructed services
 	EventMux       *event.TypeMux           // Event multiplexer used for decoupled notifications
 	AccountManager *accounts.Manager        // Account manager created by the node.
@@ -42,12 +42,12 @@ type ServiceContext struct {
 // if no previous can be found) from within the node's data directory. If the
 // node is an ephemeral one, a memory database is returned.
 func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, namespace string) (ctxcdb.Database, error) {
-	if ctx.config.DataDir == "" {
+	if ctx.Config.DataDir == "" {
 		//return ctxcdb.NewMemDatabase(), nil
 		return rawdb.NewMemoryDatabase(), nil
 	}
 	//db, err := ctxcdb.NewLDBDatabase(ctx.config.ResolvePath(name), cache, handles)
-	return rawdb.NewLevelDBDatabase(ctx.config.ResolvePath(name), cache, handles, namespace)
+	return rawdb.NewLevelDBDatabase(ctx.Config.ResolvePath(name), cache, handles, namespace)
 	/*if err != nil {
 		return nil, err
 	}
@@ -60,16 +60,16 @@ func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, nam
 // database to immutable append-only files. If the node is an ephemeral one, a
 // memory database is returned.
 func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handles int, freezer string, namespace string) (ctxcdb.Database, error) {
-	if ctx.config.DataDir == "" {
+	if ctx.Config.DataDir == "" {
 		return rawdb.NewMemoryDatabase(), nil
 	}
-	root := ctx.config.ResolvePath(name)
+	root := ctx.Config.ResolvePath(name)
 
 	switch {
 	case freezer == "":
 		freezer = filepath.Join(root, "ancient")
 	case !filepath.IsAbs(freezer):
-		freezer = ctx.config.ResolvePath(freezer)
+		freezer = ctx.Config.ResolvePath(freezer)
 	}
 	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
 }
@@ -78,7 +78,7 @@ func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handl
 // and if the user actually uses persistent storage. It will return an empty string
 // for emphemeral storage and the user's own input for absolute paths.
 func (ctx *ServiceContext) ResolvePath(path string) string {
-	return ctx.config.ResolvePath(path)
+	return ctx.Config.ResolvePath(path)
 }
 
 // Service retrieves a currently running service registered of a specific type.

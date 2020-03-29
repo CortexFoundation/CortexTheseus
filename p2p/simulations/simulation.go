@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2017 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package simulations
 
@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 )
 
 // Simulation provides a framework for running actions in a simulated network
@@ -55,7 +55,7 @@ func (s *Simulation) Run(ctx context.Context, step *Step) (result *StepResult) {
 	}
 
 	// wait for all node expectations to either pass, error or timeout
-	nodes := make(map[discover.NodeID]struct{}, len(step.Expect.Nodes))
+	nodes := make(map[enode.ID]struct{}, len(step.Expect.Nodes))
 	for _, id := range step.Expect.Nodes {
 		nodes[id] = struct{}{}
 	}
@@ -119,7 +119,7 @@ type Step struct {
 
 	// Trigger is a channel which receives node ids and triggers an
 	// expectation check for that node
-	Trigger chan discover.NodeID
+	Trigger chan enode.ID
 
 	// Expect is the expectation to wait for when performing this step
 	Expect *Expectation
@@ -127,15 +127,15 @@ type Step struct {
 
 type Expectation struct {
 	// Nodes is a list of nodes to check
-	Nodes []discover.NodeID
+	Nodes []enode.ID
 
 	// Check checks whether a given node meets the expectation
-	Check func(context.Context, discover.NodeID) (bool, error)
+	Check func(context.Context, enode.ID) (bool, error)
 }
 
 func newStepResult() *StepResult {
 	return &StepResult{
-		Passes: make(map[discover.NodeID]time.Time),
+		Passes: make(map[enode.ID]time.Time),
 	}
 }
 
@@ -150,7 +150,7 @@ type StepResult struct {
 	FinishedAt time.Time
 
 	// Passes are the timestamps of the successful node expectations
-	Passes map[discover.NodeID]time.Time
+	Passes map[enode.ID]time.Time
 
 	// NetworkEvents are the network events which occurred during the step
 	NetworkEvents []*Event

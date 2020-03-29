@@ -1,23 +1,22 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package discover
+package discv5
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -142,7 +141,7 @@ var parseNodeTests = []struct {
 	{
 		// This test checks that errors from url.Parse are handled.
 		rawurl:    "://foo",
-		wantError: `parse ://foo: missing protocol scheme`,
+		wantError: `missing protocol scheme`,
 	},
 }
 
@@ -153,7 +152,7 @@ func TestParseNode(t *testing.T) {
 			if err == nil {
 				t.Errorf("test %q:\n  got nil error, expected %#q", test.rawurl, test.wantError)
 				continue
-			} else if err.Error() != test.wantError {
+			} else if !strings.Contains(err.Error(), test.wantError) {
 				t.Errorf("test %q:\n  got error %#q, expected %#q", test.rawurl, err.Error(), test.wantError)
 				continue
 			}
@@ -190,35 +189,6 @@ func TestHexID(t *testing.T) {
 	}
 	if id2 != ref {
 		t.Errorf("wrong id2\ngot  %v\nwant %v", id2[:], ref[:])
-	}
-}
-
-func TestNodeID_textEncoding(t *testing.T) {
-	ref := NodeID{
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
-		0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x20,
-		0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30,
-		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x40,
-		0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x50,
-		0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x60,
-		0x61, 0x62, 0x63, 0x64,
-	}
-	hex := "01020304050607080910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364"
-
-	text, err := ref.MarshalText()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(text, []byte(hex)) {
-		t.Fatalf("text encoding did not match\nexpected: %s\ngot:      %s", hex, text)
-	}
-
-	id := new(NodeID)
-	if err := id.UnmarshalText(text); err != nil {
-		t.Fatal(err)
-	}
-	if *id != ref {
-		t.Fatalf("text decoding did not match\nexpected: %s\ngot:      %s", ref, id)
 	}
 }
 

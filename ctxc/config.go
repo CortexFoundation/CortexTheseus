@@ -71,6 +71,7 @@ type Config struct {
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
 	SyncMode  downloader.SyncMode
+	DiscoveryURLs []string
 	NoPruning bool
 
 	Whitelist map[uint64]common.Hash `toml:"-"`

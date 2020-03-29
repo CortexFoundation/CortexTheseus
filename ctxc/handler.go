@@ -37,7 +37,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
@@ -222,7 +222,7 @@ func (pm *ProtocolManager) makeProtocol(version uint) p2p.Protocol {
 		NodeInfo: func() interface{} {
 			return pm.NodeInfo()
 		},
-		PeerInfo: func(id discover.NodeID) interface{} {
+		PeerInfo: func(id enode.ID) interface{} {
 			if p := pm.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
 				return p.Info()
 			}

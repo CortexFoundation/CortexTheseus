@@ -1,20 +1,20 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package discover
+package discv5
 
 import (
 	"bytes"
@@ -79,7 +79,7 @@ var nodeDBInt64Tests = []struct {
 }
 
 func TestNodeDBInt64(t *testing.T) {
-	db, _ := newNodeDB("", nodeDBVersion, NodeID{})
+	db, _ := newNodeDB("", Version, NodeID{})
 	defer db.close()
 
 	tests := nodeDBInt64Tests
@@ -111,27 +111,27 @@ func TestNodeDBFetchStore(t *testing.T) {
 	inst := time.Now()
 	num := 314
 
-	db, _ := newNodeDB("", nodeDBVersion, NodeID{})
+	db, _ := newNodeDB("", Version, NodeID{})
 	defer db.close()
 
 	// Check fetch/store operations on a node ping object
-	if stored := db.lastPingReceived(node.ID); stored.Unix() != 0 {
+	if stored := db.lastPing(node.ID); stored.Unix() != 0 {
 		t.Errorf("ping: non-existing object: %v", stored)
 	}
-	if err := db.updateLastPingReceived(node.ID, inst); err != nil {
+	if err := db.updateLastPing(node.ID, inst); err != nil {
 		t.Errorf("ping: failed to update: %v", err)
 	}
-	if stored := db.lastPingReceived(node.ID); stored.Unix() != inst.Unix() {
+	if stored := db.lastPing(node.ID); stored.Unix() != inst.Unix() {
 		t.Errorf("ping: value mismatch: have %v, want %v", stored, inst)
 	}
 	// Check fetch/store operations on a node pong object
-	if stored := db.lastPongReceived(node.ID); stored.Unix() != 0 {
+	if stored := db.lastPong(node.ID); stored.Unix() != 0 {
 		t.Errorf("pong: non-existing object: %v", stored)
 	}
-	if err := db.updateLastPongReceived(node.ID, inst); err != nil {
+	if err := db.updateLastPong(node.ID, inst); err != nil {
 		t.Errorf("pong: failed to update: %v", err)
 	}
-	if stored := db.lastPongReceived(node.ID); stored.Unix() != inst.Unix() {
+	if stored := db.lastPong(node.ID); stored.Unix() != inst.Unix() {
 		t.Errorf("pong: value mismatch: have %v, want %v", stored, inst)
 	}
 	// Check fetch/store operations on a node findnode-failure object
@@ -173,7 +173,7 @@ var nodeDBSeedQueryNodes = []struct {
 		),
 		pong: time.Now().Add(-3 * time.Hour),
 	},
-	// This one shouldn't be in in the result set because its
+	// This one shouldn't be in the result set because its
 	// nodeID is the local node's ID.
 	{
 		node: NewNode(
@@ -216,7 +216,7 @@ var nodeDBSeedQueryNodes = []struct {
 }
 
 func TestNodeDBSeedQuery(t *testing.T) {
-	db, _ := newNodeDB("", nodeDBVersion, nodeDBSeedQueryNodes[1].node.ID)
+	db, _ := newNodeDB("", Version, nodeDBSeedQueryNodes[1].node.ID)
 	defer db.close()
 
 	// Insert a batch of nodes for querying
@@ -224,8 +224,8 @@ func TestNodeDBSeedQuery(t *testing.T) {
 		if err := db.updateNode(seed.node); err != nil {
 			t.Fatalf("node %d: failed to insert: %v", i, err)
 		}
-		if err := db.updateLastPongReceived(seed.node.ID, seed.pong); err != nil {
-			t.Fatalf("node %d: failed to insert bondTime: %v", i, err)
+		if err := db.updateLastPong(seed.node.ID, seed.pong); err != nil {
+			t.Fatalf("node %d: failed to insert lastPong: %v", i, err)
 		}
 	}
 
@@ -267,7 +267,7 @@ func TestNodeDBPersistency(t *testing.T) {
 	)
 
 	// Create a persistent database and store some values
-	db, err := newNodeDB(filepath.Join(root, "database"), nodeDBVersion, NodeID{})
+	db, err := newNodeDB(filepath.Join(root, "database"), Version, NodeID{})
 	if err != nil {
 		t.Fatalf("failed to create persistent database: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestNodeDBPersistency(t *testing.T) {
 	db.close()
 
 	// Reopen the database and check the value
-	db, err = newNodeDB(filepath.Join(root, "database"), nodeDBVersion, NodeID{})
+	db, err = newNodeDB(filepath.Join(root, "database"), Version, NodeID{})
 	if err != nil {
 		t.Fatalf("failed to open persistent database: %v", err)
 	}
@@ -287,7 +287,7 @@ func TestNodeDBPersistency(t *testing.T) {
 	db.close()
 
 	// Change the database version and check flush
-	db, err = newNodeDB(filepath.Join(root, "database"), nodeDBVersion+1, NodeID{})
+	db, err = newNodeDB(filepath.Join(root, "database"), Version+1, NodeID{})
 	if err != nil {
 		t.Fatalf("failed to open persistent database: %v", err)
 	}
@@ -324,7 +324,7 @@ var nodeDBExpirationNodes = []struct {
 }
 
 func TestNodeDBExpiration(t *testing.T) {
-	db, _ := newNodeDB("", nodeDBVersion, NodeID{})
+	db, _ := newNodeDB("", Version, NodeID{})
 	defer db.close()
 
 	// Add all the test nodes and set their last pong time
@@ -332,8 +332,8 @@ func TestNodeDBExpiration(t *testing.T) {
 		if err := db.updateNode(seed.node); err != nil {
 			t.Fatalf("node %d: failed to insert: %v", i, err)
 		}
-		if err := db.updateLastPongReceived(seed.node.ID, seed.pong); err != nil {
-			t.Fatalf("node %d: failed to update bondTime: %v", i, err)
+		if err := db.updateLastPong(seed.node.ID, seed.pong); err != nil {
+			t.Fatalf("node %d: failed to update pong: %v", i, err)
 		}
 	}
 	// Expire some of them, and check the rest
@@ -357,7 +357,7 @@ func TestNodeDBSelfExpiration(t *testing.T) {
 			break
 		}
 	}
-	db, _ := newNodeDB("", nodeDBVersion, self)
+	db, _ := newNodeDB("", Version, self)
 	defer db.close()
 
 	// Add all the test nodes and set their last pong time
@@ -365,8 +365,8 @@ func TestNodeDBSelfExpiration(t *testing.T) {
 		if err := db.updateNode(seed.node); err != nil {
 			t.Fatalf("node %d: failed to insert: %v", i, err)
 		}
-		if err := db.updateLastPongReceived(seed.node.ID, seed.pong); err != nil {
-			t.Fatalf("node %d: failed to update bondTime: %v", i, err)
+		if err := db.updateLastPong(seed.node.ID, seed.pong); err != nil {
+			t.Fatalf("node %d: failed to update pong: %v", i, err)
 		}
 	}
 	// Expire the nodes and make sure self has been evacuated too

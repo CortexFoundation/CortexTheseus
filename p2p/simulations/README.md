@@ -63,18 +63,6 @@ using the devp2p node stack rather than executing `main()`.
 The nodes listen for devp2p connections and WebSocket RPC clients on random
 localhost ports.
 
-### DockerAdapter
-
-The `DockerAdapter` is similar to the `ExecAdapter` but executes `docker run`
-to run the node in a Docker container using a Docker image containing the
-simulation binary at `/bin/p2p-node`.
-
-The Docker image is built using `docker build` when the adapter is initialised,
-meaning no prior setup is necessary other than having a working Docker client.
-
-Each node listens on the external IP of the container and the default p2p and
-RPC ports (`30303` and `8546` respectively).
-
 ## Network
 
 A simulation network is created with an ID and default service (which is used
@@ -118,7 +106,7 @@ with a `Step` which has the following fields:
 * `Trigger` - a channel which receives node IDs which then trigger a check
     of the expectation function to be performed against that node
 
-As a concrete example, consider a simulated network of Cortex nodes. An
+As a concrete example, consider a simulated network of Ethereum nodes. An
 `Action` could be the sending of a transaction, `Expect` it being included in
 a block, and `Trigger` a check for every block that is mined.
 
