@@ -10,10 +10,12 @@ require (
 	github.com/anacrolix/tagflag v1.0.1
 	github.com/anacrolix/torrent v1.15.1-0.20200329003825-2c00258e7058
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
+	github.com/aws/aws-sdk-go v1.25.48
 	github.com/bitly/go-simplejson v0.5.1-0.20181114203107-9db4a59bd4d8
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
 	github.com/cespare/cp v1.1.1
+	github.com/cloudflare/cloudflare-go v0.11.5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.13.1
@@ -26,6 +28,7 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/go-cmp v0.3.1 // indirect
+	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.9
@@ -35,8 +38,7 @@ require (
 	github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
-	github.com/olekukonko/tablewriter v0.0.1
-	github.com/opentracing/opentracing-go v1.1.0
+	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.1.0
 	github.com/prometheus/prometheus v1.8.2-0.20200117201204-669592a2c4d5
@@ -45,13 +47,14 @@ require (
 	github.com/rs/cors v1.7.0
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775
-	golang.org/x/tools v0.0.0-20200328031815-3db5fc6bac03
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
+	golang.org/x/tools v0.0.0-20200329025819-fd4102a86c65
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
