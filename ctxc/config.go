@@ -69,10 +69,10 @@ type Config struct {
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	// Protocol options
-	NetworkId uint64 // Network ID to use for selecting peers to connect to
-	SyncMode  downloader.SyncMode
+	NetworkId     uint64 // Network ID to use for selecting peers to connect to
+	SyncMode      downloader.SyncMode
 	DiscoveryURLs []string
-	NoPruning bool
+	NoPruning     bool
 
 	Whitelist map[uint64]common.Hash `toml:"-"`
 

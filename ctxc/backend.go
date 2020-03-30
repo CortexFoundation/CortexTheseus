@@ -25,8 +25,6 @@ import (
 	"sync/atomic"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
-	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
-	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
@@ -48,6 +46,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/miner"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
@@ -67,7 +67,7 @@ type Cortex struct {
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 
-	dialCandiates   enode.Iterator
+	dialCandiates enode.Iterator
 
 	// DB interfaces
 	chainDb ctxcdb.Database // Block chain database
@@ -197,9 +197,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
 	ctxc.dialCandiates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
-        if err != nil {
-                return nil, err
-        }
+	if err != nil {
+		return nil, err
+	}
 
 	return ctxc, nil
 }
@@ -500,7 +500,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 	for i, vsn := range ProtocolVersions {
 		protos[i] = s.protocolManager.makeProtocol(vsn)
 		protos[i].Attributes = []enr.Entry{s.currentCtxcEntry()}
-                protos[i].DialCandidates = s.dialCandiates
+		protos[i].DialCandidates = s.dialCandiates
 	}
 	return protos
 }
