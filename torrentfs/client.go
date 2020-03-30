@@ -477,7 +477,7 @@ func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
 	defer tm.lock.Unlock()
 	tm.torrents[ih] = torrent
 	tm.pendingChan <- torrent
-	log.Debug("P <- B", "hash", ih)
+	log.Trace("P <- B", "hash", ih)
 }
 
 func (tm *TorrentManager) Close() error {
@@ -994,15 +994,15 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				if t.Torrent.Info() != nil {
 					if t.start == 0 {
 						if t.isBoosting {
-							log.Info("A <- P (BOOST)", "hash", ih, "boost", t.isBoosting)
+							log.Trace("A <- P (BOOST)", "hash", ih, "boost", t.isBoosting)
 							t.isBoosting = false
 						} else {
-							log.Debug("A <- P (UDP)", "hash", ih, "boost", t.isBoosting)
+							log.Trace("A <- P (UDP)", "hash", ih, "boost", t.isBoosting)
 						}
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
 					} else {
-						log.Debug("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+						log.Trace("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 					}
 					if err := t.WriteTorrent(); err == nil {
 						delete(tm.pendingTorrents, ih)
@@ -1168,7 +1168,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						if len(tm.seedingChan) < cap(tm.seedingChan) {
 							log.Debug("Path exist", "hash", ih, "path", path.Join(tm.DataDir, ih.String()))
 							delete(tm.activeTorrents, ih)
-							log.Debug("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+							log.Trace("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 							//t.start = mclock.Now()
 							tm.seedingChan <- t
 						}
@@ -1187,7 +1187,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						} else {
 							if len(tm.seedingChan) < cap(tm.seedingChan) {
 								delete(tm.activeTorrents, ih)
-								log.Debug("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+								log.Trace("S <- A", "hash", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 								//t.start = mclock.Now()
 								tm.seedingChan <- t
 							}
