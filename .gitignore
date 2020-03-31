@@ -64,7 +64,7 @@ python_restful/model
 python_restful/upload
 python_restful/__pycache__/
 
-sync
+#sync
 
 # intermediate result
 *.o
