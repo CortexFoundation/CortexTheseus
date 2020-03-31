@@ -39,6 +39,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
 
@@ -82,6 +83,7 @@ type ctxcstatsConfig struct {
 
 type cortexConfig struct {
 	Cortex      ctxc.Config
+	Shh         whisper.Config
 	Node        node.Config
 	Cortexstats ctxcstatsConfig
 	// Dashboard dashboard.Config
@@ -117,6 +119,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// Load defaults.
 	cfg := cortexConfig{
 		Cortex: ctxc.DefaultConfig,
+		Shh:    whisper.DefaultConfig,
 		Node:   defaultNodeConfig(),
 		// Dashboard: dashboard.DefaultConfig,
 		TorrentFs: torrentfs.DefaultConfig,

@@ -246,10 +246,14 @@ var AppHelpFlagGroups = []flagGroup{
 	// 		utils.MetricsInfluxDBHostTagFlag,
 	// 	},
 	// },
-	// {
-	// 	Name:  "WHISPER (EXPERIMENTAL)",
-	// 	Flags: whisperFlags,
-	// },
+	{
+		Name:  "METRICS AND STATS",
+		Flags: metricsFlags,
+	},
+	{
+		Name:  "WHISPER (EXPERIMENTAL)",
+		Flags: whisperFlags,
+	},
 	// {
 	// 	Name: "DEPRECATED",
 	// 	Flags: []cli.Flag{

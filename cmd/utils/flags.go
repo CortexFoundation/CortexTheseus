@@ -39,6 +39,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus/clique"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	//"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -578,10 +579,10 @@ var (
 		Value: "",
 	}
 	BootnodesV5Flag = cli.StringFlag{
-                Name:  "bootnodesv5",
-                Usage: "Comma separated enode URLs for P2P v5 discovery bootstrap",
-                Value: "",
-        }
+		Name:  "bootnodesv5",
+		Usage: "Comma separated enode URLs for P2P v5 discovery bootstrap",
+		Value: "",
+	}
 	NodeKeyFileFlag = cli.StringFlag{
 		Name:  "nodekey",
 		Usage: "P2P node key file",
@@ -600,9 +601,9 @@ var (
 		Usage: "Disables the peer discovery mechanism (manual peer addition)",
 	}
 	DNSDiscoveryFlag = cli.StringFlag{
-                Name:  "discovery.dns",
-                Usage: "Sets DNS discovery entry points (use \"\" to disable DNS)",
-        }
+		Name:  "discovery.dns",
+		Usage: "Sets DNS discovery entry points (use \"\" to disable DNS)",
+	}
 	NetrestrictFlag = cli.StringFlag{
 		Name:  "netrestrict",
 		Usage: "Restricts network communication to the given IP networks (CIDR masks)",
@@ -626,6 +627,25 @@ var (
 		Name:  "gpopercentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: ctxc.DefaultConfig.GPO.Percentile,
+	}
+
+	WhisperEnabledFlag = cli.BoolFlag{
+		Name:  "shh",
+		Usage: "Enable Whisper",
+	}
+	WhisperMaxMessageSizeFlag = cli.IntFlag{
+		Name:  "shh.maxmessagesize",
+		Usage: "Max message size accepted",
+		Value: int(whisper.DefaultMaxMessageSize),
+	}
+	WhisperMinPOWFlag = cli.Float64Flag{
+		Name:  "shh.pow",
+		Usage: "Minimum POW accepted",
+		Value: whisper.DefaultMinimumPoW,
+	}
+	WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
+		Name:  "shh.restrict-light",
+		Usage: "Restrict connection between two whisper light clients",
 	}
 
 	// Metrics flags
@@ -1115,6 +1135,19 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 	}
 }
 
+// SetShhConfig applies shh-related command line flags to the config.
+func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
+	if ctx.GlobalIsSet(WhisperMaxMessageSizeFlag.Name) {
+		cfg.MaxMessageSize = uint32(ctx.GlobalUint(WhisperMaxMessageSizeFlag.Name))
+	}
+	if ctx.GlobalIsSet(WhisperMinPOWFlag.Name) {
+		cfg.MinimumAcceptedPOW = ctx.GlobalFloat64(WhisperMinPOWFlag.Name)
+	}
+	if ctx.GlobalIsSet(WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
+		cfg.RestrictConnectionBetweenLightClients = true
+	}
+}
+
 // SetCortexConfig applies ctxc-related command line flags to the config.
 func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
@@ -1203,13 +1236,13 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
 	//	}
 	if ctx.GlobalIsSet(DNSDiscoveryFlag.Name) {
-                urls := ctx.GlobalString(DNSDiscoveryFlag.Name)
-                if urls == "" {
-                        cfg.DiscoveryURLs = []string{}
-                } else {
-                        cfg.DiscoveryURLs = splitAndTrim(urls)
-                }
-        }
+		urls := ctx.GlobalString(DNSDiscoveryFlag.Name)
+		if urls == "" {
+			cfg.DiscoveryURLs = []string{}
+		} else {
+			cfg.DiscoveryURLs = splitAndTrim(urls)
+		}
+	}
 	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
 	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
@@ -1286,8 +1319,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		// 	}
 	default:
 		if cfg.NetworkId == 21 {
-                        setDNSDiscoveryDefaults(cfg, params.KnownDNSNetworks[params.MainnetGenesisHash])
-                }
+			setDNSDiscoveryDefaults(cfg, params.KnownDNSNetworks[params.MainnetGenesisHash])
+		}
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
@@ -1298,10 +1331,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 // setDNSDiscoveryDefaults configures DNS discovery with the given URL if
 // no URLs are set.
 func setDNSDiscoveryDefaults(cfg *ctxc.Config, url string) {
-        if cfg.DiscoveryURLs != nil {
-                return
-        }
-        cfg.DiscoveryURLs = []string{url}
+	if cfg.DiscoveryURLs != nil {
+		return
+	}
+	cfg.DiscoveryURLs = []string{url}
 }
 
 // SetDashboardConfig applies dashboard related command line flags to the config.
@@ -1351,6 +1384,15 @@ func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 	})
 	if err != nil {
 		Fatalf("Failed to register the Cortex service: %v", err)
+	}
+}
+
+// RegisterShhService configures Whisper and adds it to the given node.
+func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
+	if err := stack.Register(func(n *node.ServiceContext) (node.Service, error) {
+		return whisper.New(cfg), nil
+	}); err != nil {
+		Fatalf("Failed to register the Whisper service: %v", err)
 	}
 }
 
