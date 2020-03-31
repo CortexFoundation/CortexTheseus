@@ -44,8 +44,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
-	"github.com/CortexFoundation/CortexTheseus/whisper/mailserver"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/whisper/mailserver"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -103,7 +103,7 @@ var (
 	argPub     = flag.String("pub", "", "public key for asymmetric encryption")
 	argDBPath  = flag.String("dbpath", "", "path to the server's DB directory")
 	argIDFile  = flag.String("idfile", "", "file name with node id (private key)")
-	argEnode   = flag.String("boot", params.MainnetBootnodes[0], "bootstrap node you want to connect to (e.g. enode://e454......08d50@52.176.211.200:16428)")
+	argEnode   = flag.String("boot", "", "bootstrap node you want to connect to (e.g. enode://e454......08d50@52.176.211.200:16428)")
 	argTopic   = flag.String("topic", "", "topic in hexadecimal format (e.g. 70a4beef)")
 	argSaveDir = flag.String("savedir", "", "directory where all incoming messages will be saved as files")
 )
@@ -202,11 +202,16 @@ func initialize() {
 	} else if *fileReader {
 		*bootstrapMode = true
 	} else {
-		if len(*argEnode) == 0 {
-			argEnode = scanLineA("Please enter the peer's enode: ")
+		for _, en := range params.MainnetBootnodes {
+			peer := enode.MustParse(en)
+			peers = append(peers, peer)
 		}
-		peer := enode.MustParse(*argEnode)
-		peers = append(peers, peer)
+
+		if len(*argEnode) == 0 && len(peers) == 0 {
+			argEnode = scanLineA("Please enter the peer's enode: ")
+			peer := enode.MustParse(*argEnode)
+			peers = append(peers, peer)
+		}
 	}
 
 	if *mailServerMode {
