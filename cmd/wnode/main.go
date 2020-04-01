@@ -463,6 +463,7 @@ func run() {
 
 func shutdown() {
 	close(done)
+	wg.Wait()
 	mailServer.Close()
 }
 
