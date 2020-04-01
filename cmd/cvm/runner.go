@@ -89,8 +89,8 @@ func runCmd(ctx *cli.Context) error {
 		debugLogger *vm.StructLogger
 		statedb     *state.StateDB
 		chainConfig *params.ChainConfig
-		sender      = common.BytesToAddress([]byte("sender"))
-		receiver    = common.BytesToAddress([]byte("receiver"))
+		sender             = common.BytesToAddress([]byte("sender"))
+		receiver           = common.BytesToAddress([]byte("receiver"))
 		blockNumber uint64 = 0
 	)
 	if ctx.GlobalBool(MachineFlag.Name) {
@@ -111,13 +111,13 @@ func runCmd(ctx *cli.Context) error {
 		gen := readGenesis(ctx.GlobalString(GenesisFlag.Name))
 		db := ctxcdb.NewMemDatabase()
 		genesis := gen.ToBlock(db)
-		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db))
+		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db), nil)
 		chainConfig = gen.Config
 		if blockNumber == 0 {
 			blockNumber = gen.Number
 		}
 	} else {
-		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ctxcdb.NewMemDatabase()))
+		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ctxcdb.NewMemDatabase()), nil)
 	}
 	if ctx.GlobalString(SenderFlag.Name) != "" {
 		sender = common.HexToAddress(ctx.GlobalString(SenderFlag.Name))
@@ -173,50 +173,50 @@ func runCmd(ctx *cli.Context) error {
 			OutputShape:   []uint64{1},
 			Gas:           1000,
 			AuthorAddress: common.BytesToAddress(crypto.Keccak256([]byte{0x2, 0x2})),
-	})
+		})
 	// new a modelmeta at 0x1001 and new a datameta at 0x2001
 
 	ih1, _ := hex.DecodeString("4c5e20b86f46943422e0ac09749aed9882b4bf35")
 	testInputMeta1, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
-			Hash:          common.BytesToAddress(ih1),
-			RawSize:       10000,
-			Shape:         []uint64{3, 224, 224},
+			Hash:    common.BytesToAddress(ih1),
+			RawSize: 10000,
+			Shape:   []uint64{3, 224, 224},
 		})
 	ih2, _ := hex.DecodeString("aea5584d0cd3865e90c80eace3bfcb062473d966")
 	testInputMeta2, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
-			Hash:          common.BytesToAddress(ih2),
-			RawSize:       3200,
-			Shape:         []uint64{3, 32, 32},
+			Hash:    common.BytesToAddress(ih2),
+			RawSize: 3200,
+			Shape:   []uint64{3, 32, 32},
 		})
 	ih3, _ := hex.DecodeString("8e14bbd1c395b7fdcc36fbd3e5f3b6cb7931cc67")
 	testInputMeta3, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
-			Hash:          common.BytesToAddress(ih3),
-			RawSize:       519296,
-			Shape:         []uint64{3, 416, 416},
+			Hash:    common.BytesToAddress(ih3),
+			RawSize: 519296,
+			Shape:   []uint64{3, 416, 416},
 		})
 	ih4, _ := hex.DecodeString("0fa499fb0966faf927d0c7a4c5f561a37ef8c3e3")
 	testInputMeta4, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
-			Hash:          common.BytesToAddress(ih4),
-			RawSize:       10000,
-			Shape:         []uint64{1, 38, 1},
+			Hash:    common.BytesToAddress(ih4),
+			RawSize: 10000,
+			Shape:   []uint64{1, 38, 1},
 		})
 	ih5, _ := hex.DecodeString("91122004e230af0addc1f084fe0c7bbc6cf6c7fb")
 	testInputMeta5, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
-			Hash:          common.BytesToAddress(ih5),
-			RawSize:       519296,
-			Shape:         []uint64{3, 416, 416},
+			Hash:    common.BytesToAddress(ih5),
+			RawSize: 519296,
+			Shape:   []uint64{3, 416, 416},
 		})
 	ih6, _ := hex.DecodeString("f302746f4e07c8dc4c9b4e09fac1cebfc336b585")
 	testInputMeta6, _ := rlp.EncodeToBytes(
 		&types.InputMeta{
-			Hash:          common.BytesToAddress(ih6),
-			RawSize:       3200,
-			Shape:         []uint64{3, 32, 32},
+			Hash:    common.BytesToAddress(ih6),
+			RawSize: 3200,
+			Shape:   []uint64{3, 32, 32},
 		})
 	if false {
 		// statedb.SetCode(common.HexToAddress("0xFCE5a78Bfb16e599E3d2628fA4b21aCFE25a190E"),
@@ -315,11 +315,11 @@ func runCmd(ctx *cli.Context) error {
 		Value:       utils.GlobalBig(ctx, ValueFlag.Name),
 		BlockNumber: new(big.Int).SetUint64(blockNumber),
 		CVMConfig: vm.Config{
-			Tracer:   tracer,
-			Debug:    ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
-			StorageDir:  storageDir,
+			Tracer:       tracer,
+			Debug:        ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
+			StorageDir:   storageDir,
 			DebugInferVM: true,
-			Storagefs: storagefs,
+			Storagefs:    storagefs,
 		},
 	}
 
@@ -344,12 +344,12 @@ func runCmd(ctx *cli.Context) error {
 	fmt.Println("cvm storageDir", storageDir)
 	inferServer := infer.New(&infer.Config{
 		// StorageDir: storageDir,
-		IsNotCache: false,
+		IsNotCache:    false,
 		IsRemoteInfer: false,
-		DeviceType: "cpu",
-		DeviceId: 0,
-		Debug: true,
-		Storagefs: storagefs,
+		DeviceType:    "cpu",
+		DeviceId:      0,
+		Debug:         true,
+		Storagefs:     storagefs,
 	})
 
 	if ctx.GlobalBool(CreateFlag.Name) {

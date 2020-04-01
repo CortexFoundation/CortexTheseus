@@ -48,7 +48,10 @@ bootnode:
 	build/env.sh go run build/ci.go install ./cmd/bootnode
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/bootnode\" to launch cortex bootnode."
-
+devp2p:
+	build/env.sh go run build/ci.go install ./cmd/devp2p
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/devp2p\" to launch cortex devp2p."
 keytools:
 	build/env.sh go run build/ci.go install ./cmd/keytools
 	@echo "Done building."
@@ -70,6 +73,10 @@ seeding:
 	build/env.sh go run build/ci.go install ./cmd/seeding
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
+wnode:
+	build/env.sh go run build/ci.go install ./cmd/wnode
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/wnode\" to launch cortex whisper node."
 
 torrent-test:
 	build/env.sh go run build/ci.go install ./cmd/torrent-test

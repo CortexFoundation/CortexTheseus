@@ -33,11 +33,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/crypto/sha3"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	mapset "github.com/deckarep/golang-set"
+	"golang.org/x/crypto/sha3"
 	"time"
 	//	"github.com/CortexFoundation/CortexTheseus/solution/miner/libcuckoo"
 )
@@ -685,7 +685,7 @@ func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
-	hasher := sha3.NewKeccak256()
+	hasher := sha3.NewLegacyKeccak256()
 
 	rlp.Encode(hasher, []interface{}{
 		header.ParentHash,
@@ -748,10 +748,10 @@ func calculateRewardByNumber(num *big.Int, chainId uint64) *big.Int {
 		}
 	} else {
 		if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
-                        d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
-                        e := new(big.Int).Exp(big2, d, nil)
-                        blockReward = new(big.Int).Div(blockReward, e)
-                }
+			d := new(big.Int).Div(num, params.CortexBlockRewardPeriod)
+			e := new(big.Int).Exp(big2, d, nil)
+			blockReward = new(big.Int).Div(blockReward, e)
+		}
 	}
 
 	return blockReward
@@ -770,7 +770,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 
 	blockReward := calculateRewardByNumber(header.Number, config.ChainID.Uint64())
 
-	log.Debug("Parent status", "number", parent.Number, "hash", parent.Hash(), "supply", toCoin(parent.Supply))
+	log.Trace("Parent status", "number", parent.Number, "hash", parent.Hash(), "supply", toCoin(parent.Supply))
 	if header.Supply == nil {
 		header.Supply = new(big.Int)
 	}
@@ -799,7 +799,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			return
 		}
 
-		log.Debug("Block mining reward", "parent", toCoin(parent.Supply), "current", toCoin(header.Supply), "number", header.Number, "reward", toCoin(blockReward))
+		log.Trace("Block mining reward", "parent", toCoin(parent.Supply), "current", toCoin(header.Supply), "number", header.Number, "reward", toCoin(blockReward))
 		// Accumulate the rewards for the miner and any included uncles
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
@@ -825,7 +825,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 					break
 				}
 				state.AddBalance(uncle.Coinbase, r)
-				log.Debug("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
+				log.Trace("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
 
 				r.Div(blockReward, big32)
 				header.Supply.Add(header.Supply, r)
@@ -835,7 +835,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 					break
 				}
 
-				log.Debug("Nephew mining reward", "reward", toCoin(r), "total", toCoin(header.Supply))
+				log.Trace("Nephew mining reward", "reward", toCoin(r), "total", toCoin(header.Supply))
 				reward.Add(reward, r)
 			}
 		} else {

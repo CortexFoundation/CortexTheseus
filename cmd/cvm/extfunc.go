@@ -75,9 +75,9 @@ func extCmd(ctx *cli.Context) error {
 			var data_tmp InputMetaExt
 			json.Unmarshal(json_data, &data_tmp)
 			data := &types.InputMeta{
-				Hash:          common.HexToAddress(data_tmp.Hash),
-				RawSize:       data_tmp.RawSize,
-				Shape:         data_tmp.Shape,
+				Hash:    common.HexToAddress(data_tmp.Hash),
+				RawSize: data_tmp.RawSize,
+				Shape:   data_tmp.Shape,
 			}
 			out, _ := rlp.EncodeToBytes(data)
 			fmt.Printf("payload: %v\n", hex.EncodeToString(append([]byte{0, 2}, out...)))

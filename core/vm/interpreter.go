@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"hash"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -25,7 +26,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	// "github.com/CortexFoundation/CortexTheseus/torrentfs"
 	"sync/atomic"
 )
 
@@ -61,6 +61,11 @@ type Config struct {
 	DebugInferVM bool
 	StorageDir   string
 	// Storagefs    torrentfs.CVMStorage
+
+	CWASMInterpreter string // External CWASM interpreter options
+	CVMInterpreter   string // External CVM interpreter options
+
+	ExtraEips []int // Additional EIPS that are to be enabled
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
@@ -88,6 +93,16 @@ type Interpreter interface {
 	// }
 	// ```
 	CanRun([]byte) bool
+	//IsModelMeta([]byte) bool
+	//IsInputMeta([]byte) bool
+}
+
+// keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
+// Read to get a variable amount of data from the hash state. Read is faster than Sum
+// because it doesn't copy the internal state, but also modifies the internal state.
+type keccakState interface {
+	hash.Hash
+	Read([]byte) (int, error)
 }
 
 // CVMInterpreter represents an CVM interpreter
@@ -97,8 +112,15 @@ type CVMInterpreter struct {
 	gasTable params.GasTable
 	intPool  *intPool
 
+	hasher    keccakState // Keccak256 hasher instance shared across opcodes
+	hasherBuf common.Hash // Keccak256 hasher result array shared aross opcodes
+
 	readOnly   bool   // Whether to throw on stateful modifications
 	returnData []byte // Last CALL's return data for subsequent reuse
+
+	//Code bool
+	//ModelMeta bool
+	//InputMeta bool
 }
 
 // NewCVMInterpreter returns a new instance of the Interpreter.
@@ -108,18 +130,31 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	// we'll set the default jump table.
 	// log.Debug("NewCVMInterpreter", "cvm.ChainConfig().IsByzantium(cvm.BlockNumber)", cvm.ChainConfig().IsByzantium(cvm.BlockNumber), "cvm.ChainConfig().IsConstantinople(cvm.BlockNumber)", cvm.ChainConfig().IsConstantinople(cvm.BlockNumber))
 	if !cfg.JumpTable[STOP].valid {
+		var jt JumpTable
 		switch {
-		case cvm.ChainConfig().IsIstanbul(cvm.BlockNumber):
-			cfg.JumpTable = istanbulInstructionSet
-		case cvm.ChainConfig().IsConstantinople(cvm.BlockNumber):
-			cfg.JumpTable = constantinopleInstructionSet
-		case cvm.ChainConfig().IsByzantium(cvm.BlockNumber):
-			cfg.JumpTable = byzantiumInstructionSet
-		case cvm.ChainConfig().IsHomestead(cvm.BlockNumber):
-			cfg.JumpTable = homesteadInstructionSet
+		case cvm.chainRules.IsIstanbul:
+			jt = istanbulInstructionSet
+		case cvm.chainRules.IsConstantinople:
+			jt = constantinopleInstructionSet
+		case cvm.chainRules.IsByzantium:
+			jt = byzantiumInstructionSet
+		case cvm.chainRules.IsEIP158:
+			jt = spuriousDragonInstructionSet
+		case cvm.chainRules.IsEIP150:
+			jt = tangerineWhistleInstructionSet
+		case cvm.chainRules.IsHomestead:
+			jt = homesteadInstructionSet
 		default:
-			cfg.JumpTable = frontierInstructionSet
+			jt = frontierInstructionSet
 		}
+		for i, eip := range cfg.ExtraEips {
+			if err := EnableEIP(eip, &jt); err != nil {
+				// Disable it, so caller can check if it's activated or not
+				cfg.ExtraEips = append(cfg.ExtraEips[:i], cfg.ExtraEips[i+1:]...)
+				log.Error("EIP activation failed", "eip", eip, "error", err)
+			}
+		}
+		cfg.JumpTable = jt
 	}
 
 	return &CVMInterpreter{
@@ -145,25 +180,26 @@ func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation operation, st
 	}
 	return nil
 }
-func IsCode(code []byte) bool {
+
+/*func (in *CVMInterpreter) IsCode(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 0 {
 		return true
 	}
 	return false
 }
-func IsModelMeta(code []byte) bool {
+func (in *CVMInterpreter) IsModelMeta(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 1 {
 		return true
 	}
 	return false
 }
 
-func IsInputMeta(code []byte) bool {
+func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 2 {
 		return true
 	}
 	return false
-}
+}*/
 
 // Run loops and evaluates the contract's code with the given input data and returns
 // the return byte-slice and an error if one occurred.
@@ -200,7 +236,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
-	if IsModelMeta(contract.Code) {
+	//if in.IsModelMeta(contract.Code) {
+	if in.cvm.category.IsModel {
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
 		}
@@ -232,9 +269,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					//deal with the big model
 					//}
 
-					if modelMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
-						//in.cvm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
-					} else {
+					if modelMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
 						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 					}
 				} else {
@@ -244,8 +279,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
 					return nil, ErrInvalidMetaAuthor
 				}
-
-				//todo Hash check
 
 				if modelMeta.Gas == uint64(0) {
 					//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
@@ -258,12 +291,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
 				modelMeta.SetBlockNum(*in.cvm.BlockNumber)
-				tmpCode, err := modelMeta.ToBytes()
-				if err != nil {
+				if tmpCode, err := modelMeta.ToBytes(); err != nil {
 					return nil, err
+				} else {
+					contract.Code = append([]byte{0, 1}, tmpCode...)
 				}
-
-				contract.Code = append([]byte{0, 1}, tmpCode...)
 				log.Debug("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 			} else {
 				log.Debug("Invalid model meta", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
@@ -272,7 +304,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 	}
 
-	if IsInputMeta(contract.Code) {
+	//if in.IsInputMeta(contract.Code) {
+	if in.cvm.category.IsInput {
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			return nil, nil
 		}
@@ -286,13 +319,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
-				//if inputMeta.RawSize > params.MaxRawSize || uint64(len(inputMeta.RawBytes)) > params.MaxRawSize || inputMeta.RawSize != uint64(len(inputMeta.RawBytes)) {
-				//return nil, ErrInvalidMetaRawSize
-				//}
 				if inputMeta.RawSize > 0 {
-					if inputMeta.RawSize <= params.DEFAULT_UPLOAD_BYTES {
-						//in.cvm.StateDB.SetUpload(contract.Address(), big.NewInt(0))
-					} else {
+					if inputMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
 						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 					}
 				} else {
@@ -301,11 +329,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 				inputMeta.SetBlockNum(*in.cvm.BlockNumber)
 				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
-				tmpCode, err := inputMeta.ToBytes()
-				if err != nil {
+				if tmpCode, err := inputMeta.ToBytes(); err != nil {
 					return nil, err
+				} else {
+					contract.Code = append([]byte{0, 2}, tmpCode...)
 				}
-				contract.Code = append([]byte{0, 2}, tmpCode...)
 				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
 			} else {
 				log.Warn("Invalid input meta", "size", inputMeta.RawSize, "hash", inputMeta.Hash.Hex(), "birth", inputMeta.BlockNum.Uint64())
@@ -348,7 +376,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
-	if IsCode(contract.Code) {
+	//if in.IsCode(contract.Code) {
+	if in.cvm.category.IsCode {
 		contract.Code = contract.Code[2:]
 	}
 	cgas := uint64(0)
@@ -469,5 +498,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 // CanRun tells if the contract, passed as an argument, can be
 // run by the current interpreter.
 func (in *CVMInterpreter) CanRun(code []byte) bool {
+	//in.Code = in.IsCode(code)
+	//in.ModelMeta = in.IsModelMeta(code)
+	//in.InputMeta = in.IsInputMeta(code)
 	return true
 }

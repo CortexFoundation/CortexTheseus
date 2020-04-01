@@ -24,14 +24,11 @@ const (
 	LvlInfo
 	LvlDebug
 	LvlTrace
-	LvlTrace2
 )
 
 // AlignedString returns a 5-character string containing the name of a Lvl.
 func (l Lvl) AlignedString() string {
 	switch l {
-	case LvlTrace2:
-		return "TRACE2"
 	case LvlTrace:
 		return "TRACE"
 	case LvlDebug:
@@ -52,8 +49,6 @@ func (l Lvl) AlignedString() string {
 // Strings returns the name of a Lvl.
 func (l Lvl) String() string {
 	switch l {
-	case LvlTrace2:
-		return "trc2"
 	case LvlTrace:
 		return "trce"
 	case LvlDebug:
@@ -88,7 +83,7 @@ func LvlFromString(lvlString string) (Lvl, error) {
 	case "crit":
 		return LvlCrit, nil
 	default:
-		return LvlDebug, fmt.Errorf("Unknown level: %v", lvlString)
+		return LvlDebug, fmt.Errorf("unknown level: %v", lvlString)
 	}
 }
 
@@ -122,7 +117,6 @@ type Logger interface {
 	SetHandler(h Handler)
 
 	// Log a message at the given level with context key/value pairs
-	Trace2(msg string, ctx ...interface{})
 	Trace(msg string, ctx ...interface{})
 	Debug(msg string, ctx ...interface{})
 	Info(msg string, ctx ...interface{})
@@ -166,9 +160,6 @@ func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 	return newCtx
 }
 
-func (l *logger) Trace2(msg string, ctx ...interface{}) {
-	l.write(msg, LvlTrace2, ctx, skipLevel)
-}
 func (l *logger) Trace(msg string, ctx ...interface{}) {
 	l.write(msg, LvlTrace, ctx, skipLevel)
 }

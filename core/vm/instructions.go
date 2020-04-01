@@ -24,9 +24,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -40,8 +40,8 @@ var (
 	errMetaShapeNotMatch     = errors.New("cvm: model and input shape not matched")
 	errMetaInfoExpired       = errors.New("cvm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("cvm: max code size exceeded")
-	errAiRuntime             = errors.New("ai runtime error")
-	errInvalidJump           = errors.New("cvm: invalid jump destination")
+	//errAiRuntime             = errors.New("ai runtime error")
+	errInvalidJump = errors.New("cvm: invalid jump destination")
 
 	big0  = big.NewInt(0)
 	big31 = big.NewInt(31)
@@ -391,14 +391,20 @@ func opSAR(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *
 func opSha3(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	offset, size := stack.pop(), stack.pop()
 	data := memory.GetPtr(offset.Int64(), size.Int64())
-	hash := crypto.Keccak256(data)
-	// log.Trace(fmt.Sprintf("opsha3: %v, %v, %v, %v", offset.Int64(), size.Int64(), data, hash))
-	cvm := interpreter.cvm
 
-	if cvm.vmConfig.EnablePreimageRecording {
-		cvm.StateDB.AddPreimage(common.BytesToHash(hash), data)
+	if interpreter.hasher == nil {
+		interpreter.hasher = sha3.NewLegacyKeccak256().(keccakState)
+	} else {
+		interpreter.hasher.Reset()
 	}
-	stack.push(interpreter.intPool.get().SetBytes(hash))
+	interpreter.hasher.Write(data)
+	interpreter.hasher.Read(interpreter.hasherBuf[:])
+
+	cvm := interpreter.cvm
+	if cvm.vmConfig.EnablePreimageRecording {
+		cvm.StateDB.AddPreimage(interpreter.hasherBuf, data)
+	}
+	stack.push(interpreter.intPool.get().SetBytes(interpreter.hasherBuf[:]))
 
 	interpreter.intPool.put(offset, size)
 	return nil, nil
@@ -641,9 +647,7 @@ func opSstore(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memor
 
 func opJump(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	pos := stack.pop()
-	if !contract.jumpdests.has(contract.CodeHash, contract.Code, pos) {
-		//nop := contract.GetOp(pos.Uint64())
-		//return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
+	if !contract.validJumpdest(pos) {
 		return nil, errInvalidJump
 	}
 	*pc = pos.Uint64()
@@ -655,9 +659,7 @@ func opJump(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory 
 func opJumpi(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	pos, cond := stack.pop(), stack.pop()
 	if cond.Sign() != 0 {
-		if !contract.jumpdests.has(contract.CodeHash, contract.Code, pos) {
-			//nop := contract.GetOp(pos.Uint64())
-			//return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
+		if !contract.validJumpdest(pos) {
 			return nil, errInvalidJump
 		}
 		*pc = pos.Uint64()
@@ -1135,21 +1137,6 @@ func opSuicide(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memo
 	interpreter.cvm.StateDB.Suicide(contract.Address())
 	return nil, nil
 }
-
-// opChainID implements CHAINID opcode
-func opChainID(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	chainId := interpreter.intPool.get().Set(interpreter.cvm.chainConfig.ChainID)
-	stack.push(chainId)
-	return nil, nil
-}
-
-func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	balance := interpreter.intPool.get().Set(interpreter.cvm.StateDB.GetBalance(contract.Address()))
-	stack.push(balance)
-	return nil, nil
-}
-
-// following functions are used by the instruction jump  table
 
 // make log instruction function
 func makeLog(size int) executionFunc {

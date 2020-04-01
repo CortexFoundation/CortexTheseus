@@ -64,7 +64,7 @@ python_restful/model
 python_restful/upload
 python_restful/__pycache__/
 
-sync
+#sync
 
 # intermediate result
 *.o
@@ -86,3 +86,7 @@ keyfile.json
 cortex-linux-amd64*
 checksum
 privatekey
+
+all-nodes.json
+dnskey.json
+all.mainnet.*

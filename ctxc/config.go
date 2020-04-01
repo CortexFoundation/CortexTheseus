@@ -39,6 +39,7 @@ var DefaultConfig = Config{
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
+	SnapshotCache: 256,
 	MinerGasFloor: params.MinerGasFloor, //8000000,
 	MinerGasCeil:  params.MinerGasCeil,  //8000000,
 	MinerGasPrice: big.NewInt(params.GWei),
@@ -68,9 +69,10 @@ type Config struct {
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	// Protocol options
-	NetworkId uint64 // Network ID to use for selecting peers to connect to
-	SyncMode  downloader.SyncMode
-	NoPruning bool
+	NetworkId     uint64 // Network ID to use for selecting peers to connect to
+	SyncMode      downloader.SyncMode
+	DiscoveryURLs []string
+	NoPruning     bool
 
 	Whitelist map[uint64]common.Hash `toml:"-"`
 
@@ -81,6 +83,7 @@ type Config struct {
 	DatabaseFreezer    string
 	TrieCache          int
 	TrieTimeout        time.Duration
+	SnapshotCache      int
 
 	// Mining-related options
 	Coinbase         common.Address `toml:",omitempty"`

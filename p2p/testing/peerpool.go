@@ -1,18 +1,18 @@
 // Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package testing
 
@@ -21,22 +21,22 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 )
 
 type TestPeer interface {
-	ID() discover.NodeID
-	Drop(error)
+	ID() enode.ID
+	Drop()
 }
 
 // TestPeerPool is an example peerPool to demonstrate registration of peer connections
 type TestPeerPool struct {
 	lock  sync.Mutex
-	peers map[discover.NodeID]TestPeer
+	peers map[enode.ID]TestPeer
 }
 
 func NewTestPeerPool() *TestPeerPool {
-	return &TestPeerPool{peers: make(map[discover.NodeID]TestPeer)}
+	return &TestPeerPool{peers: make(map[enode.ID]TestPeer)}
 }
 
 func (p *TestPeerPool) Add(peer TestPeer) {
@@ -53,14 +53,14 @@ func (p *TestPeerPool) Remove(peer TestPeer) {
 	delete(p.peers, peer.ID())
 }
 
-func (p *TestPeerPool) Has(id discover.NodeID) bool {
+func (p *TestPeerPool) Has(id enode.ID) bool {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	_, ok := p.peers[id]
 	return ok
 }
 
-func (p *TestPeerPool) Get(id discover.NodeID) TestPeer {
+func (p *TestPeerPool) Get(id enode.ID) TestPeer {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	return p.peers[id]

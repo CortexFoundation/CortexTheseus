@@ -29,8 +29,8 @@ import (
 	"strings"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	mapset "github.com/deckarep/golang-set"
 	"golang.org/x/net/websocket"
 )
 

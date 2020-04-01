@@ -102,6 +102,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 			"input hash", inputHash, "error", read_data_err)
 		return nil, KERNEL_LOGIC_ERROR
 	}
+	log.Trace("data", "data", data, "len", len(data), "hash", inputInfoHash)
 
 	return s.inferByInputContent(modelInfoHash, inputInfoHash, data)
 }
@@ -172,7 +173,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	} else {
 		model = model_tmp.(*kernel.Model)
 	}
-
+	log.Trace("iput content", "input", inputContent, "len", len(inputContent))
 	result, status = model.Predict(inputContent)
 	// TODO(wlt): all returned runtime_error
 	if _, err := getReturnByStatusCode(result, status); err != nil {

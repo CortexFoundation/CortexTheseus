@@ -1,26 +1,28 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2017 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package simulations
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"math/rand"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -28,22 +30,33 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/event"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/simulations/adapters"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/mattn/go-colorable"
 )
+
+func TestMain(m *testing.M) {
+	loglevel := flag.Int("loglevel", 2, "verbosity of logs")
+
+	flag.Parse()
+	log.PrintOrigins(true)
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
+	os.Exit(m.Run())
+}
 
 // testService implements the node.Service interface and provides protocols
 // and APIs which are useful for testing nodes in a simulation network
 type testService struct {
-	id discover.NodeID
+	id enode.ID
 
 	// peerCount is incremented once a peer handshake has been performed
 	peerCount int64
 
-	peers    map[discover.NodeID]*testPeer
+	peers    map[enode.ID]*testPeer
 	peersMtx sync.Mutex
 
 	// state stores []byte which is used to test creating and loading
@@ -54,7 +67,7 @@ type testService struct {
 func newTestService(ctx *adapters.ServiceContext) (node.Service, error) {
 	svc := &testService{
 		id:    ctx.Config.ID,
-		peers: make(map[discover.NodeID]*testPeer),
+		peers: make(map[enode.ID]*testPeer),
 	}
 	svc.state.Store(ctx.Snapshot)
 	return svc, nil
@@ -65,7 +78,7 @@ type testPeer struct {
 	dumReady  chan struct{}
 }
 
-func (t *testService) peer(id discover.NodeID) *testPeer {
+func (t *testService) peer(id enode.ID) *testPeer {
 	t.peersMtx.Lock()
 	defer t.peersMtx.Unlock()
 	if peer, ok := t.peers[id]; ok {
@@ -280,6 +293,7 @@ var testServices = adapters.Services{
 }
 
 func testHTTPServer(t *testing.T) (*Network, *httptest.Server) {
+	t.Helper()
 	adapter := adapters.NewSimAdapter(testServices)
 	network := NewNetwork(adapter, &NetworkConfig{
 		DefaultService: "test",
@@ -406,23 +420,16 @@ type expectEvents struct {
 }
 
 func (t *expectEvents) nodeEvent(id string, up bool) *Event {
-	return &Event{
-		Type: EventTypeNode,
-		Node: &Node{
-			Config: &adapters.NodeConfig{
-				ID: discover.MustHexID(id),
-			},
-			Up: up,
-		},
-	}
+	config := &adapters.NodeConfig{ID: enode.HexID(id)}
+	return &Event{Type: EventTypeNode, Node: newNode(nil, config, up)}
 }
 
 func (t *expectEvents) connEvent(one, other string, up bool) *Event {
 	return &Event{
 		Type: EventTypeConn,
 		Conn: &Conn{
-			One:   discover.MustHexID(one),
-			Other: discover.MustHexID(other),
+			One:   enode.HexID(one),
+			Other: enode.HexID(other),
 			Up:    up,
 		},
 	}
@@ -435,7 +442,7 @@ loop:
 	for {
 		select {
 		case event := <-t.events:
-			t.Logf("received %s event: %s", event.Type, event)
+			t.Logf("received %s event: %v", event.Type, event)
 
 			if event.Type != EventTypeMsg || event.Msg.Received {
 				continue loop
@@ -465,12 +472,13 @@ loop:
 }
 
 func (t *expectEvents) expect(events ...*Event) {
+	t.Helper()
 	timeout := time.After(10 * time.Second)
 	i := 0
 	for {
 		select {
 		case event := <-t.events:
-			t.Logf("received %s event: %s", event.Type, event)
+			t.Logf("received %s event: %v", event.Type, event)
 
 			expected := events[i]
 			if event.Type != expected.Type {
@@ -486,8 +494,8 @@ func (t *expectEvents) expect(events ...*Event) {
 				if event.Node.ID() != expected.Node.ID() {
 					t.Fatalf("expected node event %d to have id %q, got %q", i, expected.Node.ID().TerminalString(), event.Node.ID().TerminalString())
 				}
-				if event.Node.Up != expected.Node.Up {
-					t.Fatalf("expected node event %d to have up=%t, got up=%t", i, expected.Node.Up, event.Node.Up)
+				if event.Node.Up() != expected.Node.Up() {
+					t.Fatalf("expected node event %d to have up=%t, got up=%t", i, expected.Node.Up(), event.Node.Up())
 				}
 
 			case EventTypeConn:
@@ -584,8 +592,25 @@ func TestHTTPNodeRPC(t *testing.T) {
 // TestHTTPSnapshot tests creating and loading network snapshots
 func TestHTTPSnapshot(t *testing.T) {
 	// start the server
-	_, s := testHTTPServer(t)
+	network, s := testHTTPServer(t)
 	defer s.Close()
+
+	var eventsDone = make(chan struct{})
+	count := 1
+	eventsDoneChan := make(chan *Event)
+	eventSub := network.Events().Subscribe(eventsDoneChan)
+	go func() {
+		defer eventSub.Unsubscribe()
+		for event := range eventsDoneChan {
+			if event.Type == EventTypeConn && !event.Control {
+				count--
+				if count == 0 {
+					eventsDone <- struct{}{}
+					return
+				}
+			}
+		}
+	}()
 
 	// create a two-node network
 	client := NewClient(s.URL)
@@ -620,7 +645,7 @@ func TestHTTPSnapshot(t *testing.T) {
 		}
 		states[i] = state
 	}
-
+	<-eventsDone
 	// create a snapshot
 	snap, err := client.CreateSnapshot()
 	if err != nil {
@@ -634,9 +659,23 @@ func TestHTTPSnapshot(t *testing.T) {
 	}
 
 	// create another network
-	_, s = testHTTPServer(t)
+	network2, s := testHTTPServer(t)
 	defer s.Close()
 	client = NewClient(s.URL)
+	count = 1
+	eventSub = network2.Events().Subscribe(eventsDoneChan)
+	go func() {
+		defer eventSub.Unsubscribe()
+		for event := range eventsDoneChan {
+			if event.Type == EventTypeConn && !event.Control {
+				count--
+				if count == 0 {
+					eventsDone <- struct{}{}
+					return
+				}
+			}
+		}
+	}()
 
 	// subscribe to events so we can check them later
 	events := make(chan *Event, 100)
@@ -651,6 +690,7 @@ func TestHTTPSnapshot(t *testing.T) {
 	if err := client.LoadSnapshot(snap); err != nil {
 		t.Fatalf("error loading snapshot: %s", err)
 	}
+	<-eventsDone
 
 	// check the nodes and connection exists
 	net, err := client.GetNetwork()
@@ -675,6 +715,9 @@ func TestHTTPSnapshot(t *testing.T) {
 	}
 	if conn.Other.String() != nodes[1].ID {
 		t.Fatalf("expected connection to have other=%q, got other=%q", nodes[1].ID, conn.Other)
+	}
+	if !conn.Up {
+		t.Fatal("should be up")
 	}
 
 	// check the node states were restored
@@ -809,6 +852,12 @@ func TestMsgFilterFailBadParams(t *testing.T) {
 		Filter: "foo:",
 	}
 	_, err := client.SubscribeNetwork(events, opts)
+	if err == nil {
+		t.Fatalf("expected event subscription to fail but succeeded!")
+	}
+
+	opts.Filter = "bzz:aa"
+	_, err = client.SubscribeNetwork(events, opts)
 	if err == nil {
 		t.Fatalf("expected event subscription to fail but succeeded!")
 	}

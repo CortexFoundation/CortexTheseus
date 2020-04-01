@@ -229,7 +229,7 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 					log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
 					return nil, errors.New("not a complete file")
 				} else {
-					log.Debug("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
+					log.Debug("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
 					if c, err := fs.zip(data, fs.compress); err != nil {
 						log.Warn("Compress data failed", "hash", infohash, "err", err)
 					} else {
@@ -247,7 +247,7 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 					log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", torrent.BytesCompleted())
 					return nil, errors.New("not a complete file")
 				} else {
-					log.Warn("Read data sucess", "hash", infohash, "size", len(data), "path", subpath)
+					log.Warn("Read data success", "hash", infohash, "size", len(data), "path", subpath)
 				}
 			} else if subpath == "/data/symbol" {
 				for _, file := range torrent.Files() {
@@ -256,7 +256,7 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 							log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
 							return nil, errors.New("not a complete file")
 						} else {
-							log.Warn("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
+							log.Warn("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
 						}
 					}
 				}
@@ -267,7 +267,7 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 							log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
 							return nil, errors.New("not a complete file")
 						} else {
-							log.Warn("Read data sucess", "hash", infohash, "size", len(data), "path", file.Path())
+							log.Warn("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
 						}
 					}
 				}

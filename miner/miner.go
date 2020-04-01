@@ -44,7 +44,7 @@ type Miner struct {
 	mux      *event.TypeMux
 	worker   *worker
 	coinbase common.Address
-	ctxc      Backend
+	ctxc     Backend
 	engine   consensus.Engine
 	exitCh   chan struct{}
 
@@ -54,7 +54,7 @@ type Miner struct {
 
 func New(ctxc Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64) *Miner {
 	miner := &Miner{
-		ctxc:      ctxc,
+		ctxc:     ctxc,
 		mux:      mux,
 		engine:   engine,
 		exitCh:   make(chan struct{}),

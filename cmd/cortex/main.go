@@ -77,9 +77,11 @@ var (
 		utils.TxPoolLifetimeFlag,
 		utils.SyncModeFlag,
 		utils.GCModeFlag,
+		utils.SnapshotFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
 		utils.CacheGCFlag,
+		utils.CacheSnapshotFlag,
 		utils.TrieCacheGenFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
@@ -164,18 +166,20 @@ var (
 	}
 
 	whisperFlags = []cli.Flag{
-		// 	utils.WhisperEnabledFlag,
-		// 	utils.WhisperMaxMessageSizeFlag,
-		// 	utils.WhisperMinPOWFlag,
+		utils.WhisperEnabledFlag,
+		utils.WhisperMaxMessageSizeFlag,
+		utils.WhisperMinPOWFlag,
 	}
 
 	metricsFlags = []cli.Flag{
-		//	utils.MetricsEnableInfluxDBFlag,
-		//	utils.MetricsInfluxDBEndpointFlag,
-		//	utils.MetricsInfluxDBDatabaseFlag,
-		//	utils.MetricsInfluxDBUsernameFlag,
-		//	utils.MetricsInfluxDBPasswordFlag,
-		//	utils.MetricsInfluxDBHostTagFlag,
+		utils.MetricsEnabledFlag,
+		utils.MetricsEnabledExpensiveFlag,
+		utils.MetricsEnableInfluxDBFlag,
+		utils.MetricsInfluxDBEndpointFlag,
+		utils.MetricsInfluxDBDatabaseFlag,
+		utils.MetricsInfluxDBUsernameFlag,
+		utils.MetricsInfluxDBPasswordFlag,
+		utils.MetricsInfluxDBTagsFlag,
 	}
 )
 

@@ -39,6 +39,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
 
@@ -82,6 +83,7 @@ type ctxcstatsConfig struct {
 
 type cortexConfig struct {
 	Cortex      ctxc.Config
+	Shh         whisper.Config
 	Node        node.Config
 	Cortexstats ctxcstatsConfig
 	// Dashboard dashboard.Config
@@ -106,7 +108,7 @@ func loadConfig(file string, cfg *cortexConfig) error {
 func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
-	cfg.Version = params.VersionWithCommit(gitCommit)
+	cfg.Version = params.VersionWithCommit(gitCommit, "")
 	cfg.HTTPModules = append(cfg.HTTPModules, "ctxc")
 	cfg.WSModules = append(cfg.WSModules, "ctxc")
 	cfg.IPCPath = "cortex.ipc"
@@ -117,6 +119,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 	// Load defaults.
 	cfg := cortexConfig{
 		Cortex: ctxc.DefaultConfig,
+		Shh:    whisper.DefaultConfig,
 		Node:   defaultNodeConfig(),
 		// Dashboard: dashboard.DefaultConfig,
 		TorrentFs: torrentfs.DefaultConfig,
@@ -234,21 +237,22 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	// if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
 	// 	utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
 	// }
+
 	// Whisper must be explicitly enabled by specifying at least 1 whisper flag or in dev mode
-	//shhEnabled := enableWhisper(ctx)
-	// shhAutoEnabled := !ctx.GlobalIsSet(utils.WhisperEnabledFlag.Name) && ctx.GlobalIsSet(utils.DeveloperFlag.Name)
-	// if shhEnabled || shhAutoEnabled {
-	// 	if ctx.GlobalIsSet(utils.WhisperMaxMessageSizeFlag.Name) {
-	// 		cfg.Shh.MaxMessageSize = uint32(ctx.Int(utils.WhisperMaxMessageSizeFlag.Name))
-	// 	}
-	// 	if ctx.GlobalIsSet(utils.WhisperMinPOWFlag.Name) {
-	// 		cfg.Shh.MinimumAcceptedPOW = ctx.Float64(utils.WhisperMinPOWFlag.Name)
-	// 	}
-	// 	if ctx.GlobalIsSet(utils.WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
-	// 		cfg.Shh.RestrictConnectionBetweenLightClients = true
-	// 	}
-	// 	utils.RegisterShhService(stack, &cfg.Shh)
-	// }
+	shhEnabled := enableWhisper(ctx)
+	//shhAutoEnabled := !ctx.GlobalIsSet(utils.WhisperEnabledFlag.Name) && ctx.GlobalIsSet(utils.DeveloperFlag.Name)
+	if shhEnabled { // || shhAutoEnabled {
+		if ctx.GlobalIsSet(utils.WhisperMaxMessageSizeFlag.Name) {
+			cfg.Shh.MaxMessageSize = uint32(ctx.Int(utils.WhisperMaxMessageSizeFlag.Name))
+		}
+		if ctx.GlobalIsSet(utils.WhisperMinPOWFlag.Name) {
+			cfg.Shh.MinimumAcceptedPOW = ctx.Float64(utils.WhisperMinPOWFlag.Name)
+		}
+		if ctx.GlobalIsSet(utils.WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
+			cfg.Shh.RestrictConnectionBetweenLightClients = true
+		}
+		utils.RegisterShhService(stack, &cfg.Shh)
+	}
 
 	// Add the Cortex Stats daemon if requested.
 	// if cfg.Cortexstats.URL != "" {
