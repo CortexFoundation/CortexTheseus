@@ -48,6 +48,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/whisper/mailserver"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	"golang.org/x/crypto/pbkdf2"
+	"sync"
 )
 
 const quitCommand = "~Q"
@@ -77,6 +78,8 @@ var (
 	symFilterID  string
 	symPass      string
 	msPassword   string
+
+	wg sync.WaitGroup
 )
 
 // cmd arguments
@@ -443,6 +446,7 @@ func run() {
 	defer shh.Stop()
 
 	if !*forwarderMode {
+		wg.Add(1)
 		go messageLoop()
 	}
 
@@ -594,6 +598,7 @@ func sendMsg(payload []byte) common.Hash {
 }
 
 func messageLoop() {
+	defer wg.Done()
 	sf := shh.GetFilter(symFilterID)
 	if sf == nil {
 		utils.Fatalf("symmetric filter is not installed")
@@ -605,6 +610,7 @@ func messageLoop() {
 	}
 
 	ticker := time.NewTicker(time.Millisecond * 50)
+	defer ticker.Stop()
 
 	for {
 		select {
