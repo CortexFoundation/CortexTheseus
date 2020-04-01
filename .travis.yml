@@ -1,1 +1,21 @@
 language: go
+go_import_path: github.com/CortexFoundation/CortexTheseus
+sudo: false
+jobs:
+  allow_failures:
+    - stage: build
+      os: osx
+      go: 1.14.x
+      env:
+        - azure-osx
+        - azure-ios
+        - cocoapods-ios
+  include:
+   - stage: build
+      os: linux
+      arch: amd64
+      dist: xenial
+      go: 1.14.x
+      script:
+        - go run build/ci.go install
+        #- go run build/ci.go test -coverage $TEST_PACKAGES
