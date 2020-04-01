@@ -21,7 +21,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/elastic/gosigar v0.10.5
-	github.com/ethereum/go-ethereum v1.9.12
+	github.com/ethereum/go-ethereum v1.9.12 // indirect
 	github.com/fatih/color v1.9.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
