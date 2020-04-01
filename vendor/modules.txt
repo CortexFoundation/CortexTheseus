@@ -4,7 +4,7 @@ bazil.org/fuse/fs
 bazil.org/fuse/fuseutil
 # github.com/Azure/azure-pipeline-go v0.2.2
 github.com/Azure/azure-pipeline-go/pipeline
-# github.com/Azure/azure-storage-blob-go v0.8.0
+# github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/RoaringBitmap/roaring v0.4.21
 github.com/RoaringBitmap/roaring

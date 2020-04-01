@@ -3,7 +3,8 @@ module github.com/CortexFoundation/CortexTheseus
 go 1.13
 
 require (
-	github.com/Azure/azure-storage-blob-go v0.8.0
+	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
+	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/anacrolix/log v0.6.1-0.20200211014814-17693f71c449
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200227072623-f02f6484f997
@@ -21,7 +22,6 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/elastic/gosigar v0.10.5
-	github.com/ethereum/go-ethereum v1.9.12 // indirect
 	github.com/fatih/color v1.9.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
