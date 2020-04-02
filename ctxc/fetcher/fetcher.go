@@ -295,6 +295,8 @@ func (f *Fetcher) loop() {
 	// Iterate the block fetching until a quit is requested
 	fetchTimer := time.NewTimer(0)
 	completeTimer := time.NewTimer(0)
+	defer fetchTimer.Stop()
+	defer completeTimer.Stop()
 
 	for {
 		// Clean up any expired block fetches
