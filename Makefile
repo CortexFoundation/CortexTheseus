@@ -48,6 +48,10 @@ bootnode:
 	build/env.sh go run build/ci.go install ./cmd/bootnode
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/bootnode\" to launch cortex bootnode."
+abigen:
+	build/env.sh go run build/ci.go install ./cmd/abigen
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/abigen\" to launch abigen."
 devp2p:
 	build/env.sh go run build/ci.go install ./cmd/devp2p
 	@echo "Done building."

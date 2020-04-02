@@ -74,6 +74,16 @@ SUBCOMMANDS:
 {{range $categorized.Flags}}{{"\t"}}{{.}}
 {{end}}
 {{end}}{{end}}`
+	OriginCommandHelpTemplate = `{{.Name}}{{if .Subcommands}} command{{end}}{{if .Flags}} [command options]{{end}} [arguments...]
+{{if .Description}}{{.Description}}
+{{end}}{{if .Subcommands}}
+SUBCOMMANDS:
+        {{range .Subcommands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
+        {{end}}{{end}}{{if .Flags}}
+OPTIONS:
+{{range $.Flags}}{{"\t"}}{{.}}
+{{end}}
+{{end}}`
 )
 
 func init() {
@@ -1142,6 +1152,44 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 	if len(set) > 1 {
 		Fatalf("Flags %v can't be used at the same time", strings.Join(set, ", "))
 	}
+}
+
+func CheckExclusive(ctx *cli.Context, args ...interface{}) {
+        set := make([]string, 0, 1)
+        for i := 0; i < len(args); i++ {
+                // Make sure the next argument is a flag and skip if not set
+                flag, ok := args[i].(cli.Flag)
+                if !ok {
+                        panic(fmt.Sprintf("invalid argument, not cli.Flag type: %T", args[i]))
+                }
+                // Check if next arg extends current and expand its name if so
+                name := flag.GetName()
+
+                if i+1 < len(args) {
+                        switch option := args[i+1].(type) {
+                        case string:
+                                // Extended flag check, make sure value set doesn't conflict with passed in option
+                                if ctx.GlobalString(flag.GetName()) == option {
+                                        name += "=" + option
+                                        set = append(set, "--"+name)
+                                }
+                                // shift arguments and continue
+                                i++
+                                continue
+
+                        case cli.Flag:
+                        default:
+                                panic(fmt.Sprintf("invalid argument, not cli.Flag or string extension: %T", args[i+1]))
+                        }
+                }
+                // Mark the flag if it's set
+                if ctx.GlobalIsSet(flag.GetName()) {
+                        set = append(set, "--"+name)
+                }
+        }
+        if len(set) > 1 {
+                Fatalf("Flags %v can't be used at the same time", strings.Join(set, ", "))
+        }
 }
 
 // SetShhConfig applies shh-related command line flags to the config.
