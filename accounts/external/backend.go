@@ -18,8 +18,6 @@ package external
 
 import (
 	"fmt"
-	"math/big"
-	"sync"
 	"github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -30,6 +28,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/CortexTheseus/signer/core"
+	"math/big"
+	"sync"
 )
 
 type ExternalBackend struct {
