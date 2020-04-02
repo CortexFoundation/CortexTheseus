@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package bind
 
@@ -22,11 +22,12 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/accounts/external"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/accounts"
 )
 
 // NewTransactor is a utility method to easily create a transaction signer from
@@ -43,7 +44,9 @@ func NewTransactor(keyin io.Reader, passphrase string) (*TransactOpts, error) {
 	return NewKeyedTransactor(key.PrivateKey), nil
 }
 
-func NewTransactorFromKeyStore(keystore *keystore.KeyStore, account accounts.Account) (*TransactOpts, error) {
+// NewKeyStoreTransactor is a utility method to easily create a transaction signer from
+// an decrypted key from a keystore
+func NewKeyStoreTransactor(keystore *keystore.KeyStore, account accounts.Account) (*TransactOpts, error) {
 	return &TransactOpts{
 		From: account.Address,
 		Signer: func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
@@ -74,6 +77,20 @@ func NewKeyedTransactor(key *ecdsa.PrivateKey) *TransactOpts {
 				return nil, err
 			}
 			return tx.WithSignature(signer, signature)
+		},
+	}
+}
+
+// NewClefTransactor is a utility method to easily create a transaction signer
+// with a clef backend.
+func NewClefTransactor(clef *external.ExternalSigner, account accounts.Account) *TransactOpts {
+	return &TransactOpts{
+		From: account.Address,
+		Signer: func(signer types.Signer, address common.Address, transaction *types.Transaction) (*types.Transaction, error) {
+			if address != account.Address {
+				return nil, errors.New("not authorized to sign this account")
+			}
+			return clef.SignTx(account, transaction, nil) // Clef enforces its own chain id
 		},
 	}
 }

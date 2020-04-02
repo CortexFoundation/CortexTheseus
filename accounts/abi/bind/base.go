@@ -1,18 +1,18 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package bind
 
@@ -36,9 +36,9 @@ type SignerFn func(types.Signer, common.Address, *types.Transaction) (*types.Tra
 
 // CallOpts is the collection of options to fine tune a contract call request.
 type CallOpts struct {
-	Pending     bool           // Whether to operate on the pending state or the last known one
-	From        common.Address // Optional the sender address, otherwise the first account is used
-	BlockNumber *big.Int
+	Pending     bool            // Whether to operate on the pending state or the last known one
+	From        common.Address  // Optional the sender address, otherwise the first account is used
+	BlockNumber *big.Int        // Optional the block number on which the call should be performed
 	Context     context.Context // Network context to support cancellation and timeouts (nil = no timeout)
 }
 
@@ -106,54 +106,6 @@ func DeployContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend Co
 		return common.Address{}, nil, nil, err
 	}
 	tx, err := c.transact(opts, nil, append(bytecode, input...))
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	c.address = crypto.CreateAddress(opts.From, tx.Nonce())
-	return c.address, tx, c, nil
-}
-
-func DeployModelMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
-	// Otherwise try to deploy the contract
-	c := NewBoundContract(common.Address{}, abi, backend, backend, backend)
-
-	input, err := c.abi.Pack("", params...)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	tx, err := c.transact(opts, nil, append([]byte{'0', '1'}, append(bytecode, input...)...))
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	c.address = crypto.CreateAddress(opts.From, tx.Nonce())
-	return c.address, tx, c, nil
-}
-
-func DeployInputMetaContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
-	// Otherwise try to deploy the contract
-	c := NewBoundContract(common.Address{}, abi, backend, backend, backend)
-
-	input, err := c.abi.Pack("", params...)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	tx, err := c.transact(opts, nil, append([]byte{'0', '2'}, append(bytecode, input...)...))
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	c.address = crypto.CreateAddress(opts.From, tx.Nonce())
-	return c.address, tx, c, nil
-}
-
-func DeployCodeContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
-	// Otherwise try to deploy the contract
-	c := NewBoundContract(common.Address{}, abi, backend, backend, backend)
-
-	input, err := c.abi.Pack("", params...)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	tx, err := c.transact(opts, nil, append([]byte{'0', '0'}, append(bytecode, input...)...))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -300,7 +252,7 @@ func (c *BoundContract) FilterLogs(opts *FilterOpts, name string, query ...[]int
 		opts = new(FilterOpts)
 	}
 	// Append the event selector to the query parameters and construct the topic set
-	query = append([][]interface{}{{c.abi.Events[name].Id()}}, query...)
+	query = append([][]interface{}{{c.abi.Events[name].ID()}}, query...)
 
 	topics, err := makeTopics(query...)
 	if err != nil {
@@ -349,7 +301,7 @@ func (c *BoundContract) WatchLogs(opts *WatchOpts, name string, query ...[]inter
 		opts = new(WatchOpts)
 	}
 	// Append the event selector to the query parameters and construct the topic set
-	query = append([][]interface{}{{c.abi.Events[name].Id()}}, query...)
+	query = append([][]interface{}{{c.abi.Events[name].ID()}}, query...)
 
 	topics, err := makeTopics(query...)
 	if err != nil {
@@ -386,6 +338,22 @@ func (c *BoundContract) UnpackLog(out interface{}, event string, log types.Log) 
 		}
 	}
 	return parseTopics(out, indexed, log.Topics[1:])
+}
+
+// UnpackLogIntoMap unpacks a retrieved log into the provided map.
+func (c *BoundContract) UnpackLogIntoMap(out map[string]interface{}, event string, log types.Log) error {
+	if len(log.Data) > 0 {
+		if err := c.abi.UnpackIntoMap(out, event, log.Data); err != nil {
+			return err
+		}
+	}
+	var indexed abi.Arguments
+	for _, arg := range c.abi.Events[event].Inputs {
+		if arg.Indexed {
+			indexed = append(indexed, arg)
+		}
+	}
+	return parseTopicsIntoMap(out, indexed, log.Topics[1:])
 }
 
 // ensureContext is a helper method to ensure a context is not nil, even if the

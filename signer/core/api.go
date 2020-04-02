@@ -205,7 +205,7 @@ func NewSignerAPI(chainID int64, ksLocation string, noUSB bool, ui SignerUI, abi
 	if len(ksLocation) > 0 {
 		backends = append(backends, keystore.NewKeyStore(ksLocation, n, p))
 	}
-	return &SignerAPI{big.NewInt(chainID), accounts.NewManager(backends...), ui, NewValidator(abidb)}
+	return &SignerAPI{big.NewInt(chainID), accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: false},backends...), ui, NewValidator(abidb)}
 }
 
 // List returns the set of wallet this signer manages. Each wallet can contain
@@ -378,7 +378,8 @@ func (api *SignerAPI) Sign(ctx context.Context, addr common.MixedcaseAddress, da
 		return nil, err
 	}
 	// Assemble sign the data with the wallet
-	signature, err := wallet.SignHashWithPassphrase(account, res.Password, sighash)
+	//signature, err := wallet.SignHashWithPassphrase(account, res.Password, sighash)
+	signature, err := wallet.SignTextWithPassphrase(account, res.Password, data)
 	if err != nil {
 		api.UI.ShowError(err.Error())
 		return nil, err

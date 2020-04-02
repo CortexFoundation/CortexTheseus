@@ -20,6 +20,7 @@ package clique
 import (
 	"bytes"
 	"errors"
+	"io"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -143,8 +144,7 @@ var (
 
 // SignerFn is a signer callback function to request a hash to be signed by a
 // backing account.
-type SignerFn func(accounts.Account, []byte) ([]byte, error)
-
+type SignerFn func(accounts.Account, string, []byte) ([]byte, error)
 // sigHash returns the hash which is used as input for the proof-of-authority
 // signing. It is the hash of the entire header apart from the 65 byte signature
 // contained at the end of the extra data.
@@ -650,7 +650,8 @@ func (c *Clique) Seal(chain consensus.ChainReader, block *types.Block, results c
 		log.Trace("Out-of-turn signing requested", "wiggle", common.PrettyDuration(wiggle))
 	}
 	// Sign all the things!
-	sighash, err := signFn(accounts.Account{Address: signer}, sigHash(header).Bytes())
+	//sighash, err := signFn(accounts.Account{Address: signer}, sigHash(header).Bytes())
+	sighash, err := signFn(accounts.Account{Address: signer}, accounts.MimetypeClique, CliqueRLP(header))
 	if err != nil {
 		return err
 	}
@@ -699,7 +700,34 @@ func CalcDifficulty(snap *Snapshot, signer common.Address) *big.Int {
 func (c *Clique) SealHash(header *types.Header) common.Hash {
 	return sigHash(header)
 }
+func CliqueRLP(header *types.Header) []byte {
+        b := new(bytes.Buffer)
+        encodeSigHeader(b, header)
+        return b.Bytes()
+}
 
+func encodeSigHeader(w io.Writer, header *types.Header) {
+        err := rlp.Encode(w, []interface{}{
+                header.ParentHash,
+                header.UncleHash,
+                header.Coinbase,
+                header.Root,
+                header.TxHash,
+                header.ReceiptHash,
+                header.Bloom,
+                header.Difficulty,
+                header.Number,
+                header.GasLimit,
+                header.GasUsed,
+                header.Time,
+                header.Extra[:len(header.Extra)-crypto.SignatureLength], // Yes, this will panic if extra is too short
+                header.MixDigest,
+                header.Nonce,
+        })
+        if err != nil {
+                panic("can't encode: " + err.Error())
+        }
+}
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
 func (c *Clique) Close() error {
 	return nil
