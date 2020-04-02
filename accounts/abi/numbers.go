@@ -38,7 +38,7 @@ var (
 	addressT  = reflect.TypeOf(common.Address{})
 )
 
-// U256 converts a big Int into a 256bit EVM number.
+// U256 converts a big Int into a 256bit CVM number.
 func U256(n *big.Int) []byte {
 	return math.PaddedBigBytes(math.U256(n), 32)
 }
