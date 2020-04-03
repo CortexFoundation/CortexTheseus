@@ -279,6 +279,7 @@ func (pm *ProtocolManager) Stop() {
 	// Quit chainSync and txsync64.
 	// After this is done, no new peers will be accepted.
 	close(pm.quitSync)
+	log.Info("Cortex peers stopping ... ...")
 	pm.wg.Wait()
 
 	// Disconnect existing sessions.
@@ -286,6 +287,7 @@ func (pm *ProtocolManager) Stop() {
 	// sessions which are already established but not added to pm.peers yet
 	// will exit when they try to register.
 	pm.peers.Close()
+	log.Info("Cortex protocol stopping ... ...")
 	pm.peerWG.Wait()
 
 	log.Info("Cortex protocol stopped")

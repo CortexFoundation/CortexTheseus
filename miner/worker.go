@@ -948,7 +948,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			mined := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Sub(block.Supply(), params.CTXC_INIT)), new(big.Float).SetInt(big.NewInt(params.Cortex)))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
-				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined /*"peace", peace,*/, "quota", common.StorageSize(block.Quota().Int64()), "used", common.StorageSize(block.QuotaUsed().Int64())) //, "capacity", capacity)
+				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined /*"peace", peace,*, "quota", common.StorageSize(block.Quota().Int64()), "used", common.StorageSize(block.QuotaUsed().Int64())*/) //, "capacity", capacity)
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")
