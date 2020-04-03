@@ -846,7 +846,7 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 		DataDir:             config.DataDir,
 		TmpDataDir:          tmpFilePath,
 		boostFetcher:        NewBoostDataFetcher(config.BoostNodes),
-		closeAll:            make(chan struct{}, 1),
+		closeAll:            make(chan struct{}),
 		//removeTorrent:       make(chan metainfo.Hash, removeTorrentChanBuffer),
 		updateTorrent: make(chan interface{}, updateTorrentChanBuffer),
 		seedingChan:   make(chan *Torrent, torrentChanSize),
