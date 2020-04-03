@@ -125,7 +125,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 		fs:     fs,
 		dl:     tMana,
 		//uncheckedCh: make(chan uint64, 20),
-		exitCh:        make(chan struct{}),
+		exitCh:        make(chan struct{}, 1),
 		terminated:    0,
 		lastNumber:    uint64(0),
 		scope:         uint64(math.Min(float64(runtime.NumCPU()*2), float64(8))),
