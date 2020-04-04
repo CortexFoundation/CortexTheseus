@@ -169,13 +169,13 @@ func HexStringToUint64(str string) uint64 {
 	return s
 }
 
-func Uint32ArrayToHexString(value []uint32) string {
-	buf := make([]byte, len(value)*4)
-	for i := 0; i < len(value); i++ {
-		binary.BigEndian.PutUint32(buf[i*4:], value[i])
-	}
-	return "0x" + hex.EncodeToString(buf)
-}
+//func Uint32ArrayToHexString(value []uint32) string {
+//	buf := make([]byte, len(value)*4)
+//	for i := 0; i < len(value); i++ {
+//		binary.BigEndian.PutUint32(buf[i*4:], value[i])
+//	}
+//	return "0x" + hex.EncodeToString(buf)
+//}
 
 func BytesArrayToHexString(value []byte) string {
 	return "0x" + hex.EncodeToString(value)

@@ -17,6 +17,7 @@
 package common
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"math/big"
@@ -50,11 +51,15 @@ func Uint64ToHexString(value uint64) string {
 }
 
 func Uint32ArrayToHexString(value []uint32) string {
-	buf := make([]byte, len(value)*4)
-	for i := 0; i < len(value); i++ {
-		binary.BigEndian.PutUint32(buf[i*4:], value[i])
+	//buf := make([]byte, len(value)*4)
+	//for i := 0; i < len(value); i++ {
+	//	binary.BigEndian.PutUint32(buf[i*4:], value[i])
+	//}
+	buf := new(bytes.Buffer)
+	for _, v := range value {
+		binary.Write(buf, binary.BigEndian, v)
 	}
-	return "0x" + hex.EncodeToString(buf)
+	return "0x" + hex.EncodeToString(buf.Bytes())
 }
 
 func Uint32ToHexString(value uint32) string {
