@@ -252,6 +252,7 @@ func main() {
 // cortex is the main entry point into the system if no special subcommand is ran.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
+
 func cortex(ctx *cli.Context) error {
 	if args := ctx.Args(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
@@ -298,7 +299,9 @@ func prepare(ctx *cli.Context) {
 	utils.SetupMetrics(ctx)
 
 	// Start system runtime metrics collection
-	go metrics.CollectProcessMetrics(3 * time.Second)
+	go func() {
+		metrics.CollectProcessMetrics(3 * time.Second)
+	}()
 }
 
 // startNode boots up the system node and all registered protocols, after which
@@ -363,10 +366,10 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 				log.Info("New wallet appeared", "url", event.Wallet.URL(), "status", status)
 
 				var derivationPaths []accounts.DerivationPath
-                                if event.Wallet.URL().Scheme == "ledger" {
-                                        derivationPaths = append(derivationPaths, accounts.LegacyLedgerBaseDerivationPath)
-                                }
-                                derivationPaths = append(derivationPaths, accounts.DefaultBaseDerivationPath)
+				if event.Wallet.URL().Scheme == "ledger" {
+					derivationPaths = append(derivationPaths, accounts.LegacyLedgerBaseDerivationPath)
+				}
+				derivationPaths = append(derivationPaths, accounts.DefaultBaseDerivationPath)
 				event.Wallet.SelfDerive(derivationPaths, stateReader)
 
 			case accounts.WalletDropped:
@@ -401,6 +404,5 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		if err := cortex.StartMining(threads); err != nil {
 			utils.Fatalf("Failed to start mining: %v", err)
 		}
-
 	}
 }

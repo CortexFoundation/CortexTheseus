@@ -26,6 +26,7 @@ import (
 	godebug "runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -39,7 +40,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os/signal"
-	"sync"
 )
 
 func homeDir() string {
@@ -139,8 +139,7 @@ var (
 	}
 )
 var (
-	wg sync.WaitGroup
-	c  chan os.Signal
+	c chan os.Signal
 )
 
 // localConsole starts a new cortex node, attaching a JavaScript console to it at the
@@ -221,7 +220,7 @@ func cvmServer(ctx *cli.Context) error {
 	}
 	inferServer := synapse.New(&synpapseConfig)
 	log.Info("Initilized inference server with synapse engine", "config", synpapseConfig)
-
+	var wg sync.WaitGroup
 	wg.Add(1)
 	host := "127.0.0.1"
 	go func(port int, inferServer *synapse.Synapse) {

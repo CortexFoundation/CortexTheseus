@@ -27,7 +27,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	//"time"
 	"unicode"
 
@@ -172,7 +171,9 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}
 	if deviceType := utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)); deviceType != "" {
+		//wg.Add(1)
 		go func() {
+			//defer wg.Done()
 			cmd := os.Args[0]
 			log.Info("RegisterCVMService", "cmd", cmd)
 			args := []string{"cvm",
@@ -211,18 +212,17 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 			}
 			log.Debug("Cvm service register success", "config", cfg)
 			run_result := prg.Start()
-			var wg sync.WaitGroup
-			wg.Add(1)
+			//wg.Add(1)
 			go func() {
-				defer wg.Done()
+				//	defer wg.Done()
 				_, _ = io.Copy(stdout, stdoutIn)
 			}()
-			wg.Add(1)
+			//wg.Add(1)
 			go func() {
-				defer wg.Done()
+				//	defer wg.Done()
 				_, _ = io.Copy(stderr, stderrIn)
 			}()
-			wg.Wait()
+			//wg.Wait()
 			if err := prg.Wait(); err != nil {
 				log.Error("RegisterCVMService", "err", err)
 			}
