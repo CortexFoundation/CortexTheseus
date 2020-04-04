@@ -1795,7 +1795,7 @@ func (st *insertStats) report(chain []*types.Block, index int, dirty common.Stor
 		//	context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
 		//}
 		//context = append(context, []interface{}{"act", common.StorageSize(end.QuotaUsed().Int64())}...)
-		context = append(context, []interface{}{"vol", common.StorageSize(end.Quota().Int64())}...)
+		context = append(context, []interface{}{"vol", common.StorageSize(end.Quota().Int64() - end.QuotaUsed().Int64())}...)
 		timestamp := time.Unix(end.Time().Int64(), 0)
 		context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
 		context = append(context, []interface{}{"dirty", dirty}...)
