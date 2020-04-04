@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 
+	"bytes"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -13,34 +14,31 @@ import (
 )
 
 func ReadData(r *inference.NpyReader) ([]byte, error) {
-	var (
-		data []byte
-		derr error
-	)
 	log.Debug("ReadData", "r.Dtype", r.Dtype)
 	if r.Dtype == "i1" {
-		data, derr = r.GetBytes()
+		data, err := r.GetBytes()
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
 	} else if r.Dtype == "i4" {
-		i4_data, i4_derr := r.GetInt32()
-		data = make([]byte, len(i4_data)*4)
-		if i4_derr != nil {
-			return nil, derr
+		i4_data, err := r.GetInt32()
+
+		if err != nil {
+			return nil, err
 		}
-		//TODO(tian) assume input is uint31! not int32
-		for i := 0; i < len(i4_data); i++ {
-			//tmp := make([]byte, 8)
-			//binary.PutUvarint(tmp[:], uint64(i4_data[idx]))
-			//copy(data[idx*4:idx*4+4], tmp[:4])
-			binary.LittleEndian.PutUint32(data[i:i+4], uint32(i4_data[i]))
+		//for i := 0; i < len(i4_data); i++ {
+		//	binary.LittleEndian.PutUint32(data[i:i+4], uint32(i4_data[i]))
+		//}
+		buf := new(bytes.Buffer)
+		//for i := 0; i < len(i4_data); i++ {
+		for _, d := range i4_data {
+			binary.Write(buf, binary.LittleEndian, d)
 		}
+		return buf.Bytes(), nil
 	} else {
 		return nil, errors.New("not support dtype for " + r.Dtype)
 	}
-	if derr != nil {
-		return nil, derr
-	}
-
-	return data, nil
 }
 
 func RLPHashString(x interface{}) string {
