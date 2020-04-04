@@ -19,6 +19,7 @@ package cuckoo
 import (
 	"encoding/binary"
 	//"encoding/hex"
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -854,12 +855,17 @@ func toCoin(wei *big.Int) *big.Float {
 }
 
 func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
-	buf := make([]byte, 42*4)
-	for i := 0; i < len(sol); i++ {
-		binary.BigEndian.PutUint32(buf[i*4:], sol[i])
+	//buf := make([]byte, 42*4)
+	//for i := 0; i < len(sol); i++ {
+	//	binary.BigEndian.PutUint32(buf[i*4:], sol[i])
+	//}
+
+	buf := new(bytes.Buffer)
+	for _, s := range sol {
+		binary.Write(buf, binary.BigEndian, s)
 	}
-	ret := crypto.Keccak256(buf)
-	// fmt.Println("Sha3Solution: ", ret, "buf: ", buf, "sol: ", sol)
+	ret := crypto.Keccak256(buf.Bytes())
+	//ret := crypto.Keccak256(buf)
 	return ret
 }
 
@@ -877,6 +883,5 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 		return false
 	}
 	r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
-	//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	return r
 }
