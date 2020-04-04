@@ -52,7 +52,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200329003825-2c00258e7058
+# github.com/anacrolix/torrent v1.15.1-0.20200403070216-c435d713c4c4
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
@@ -264,7 +264,7 @@ github.com/willf/bloom
 github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.4
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
+# golang.org/x/crypto v0.0.0-20200403201458-baeed622b8d8
 golang.org/x/crypto/cast5
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/openpgp
