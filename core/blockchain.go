@@ -1630,26 +1630,82 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 				continue
 			}
 			// Competitor chain beat canonical, gather all blocks from the common ancestor
-			var winner []*types.Block
+			/*var winners []*types.Block
 
 			parent := bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
 			for parent != nil && !bc.HasState(parent.Root()) {
-				winner = append(winner, parent)
+				winners = append(winners, parent)
 				parent = bc.GetBlock(parent.ParentHash(), parent.NumberU64()-1)
 			}
 
 			if parent == nil {
 				return i, nil, nil, errors.New("missing parent")
 			}
-			if len(winner) > 0 {
-				for j := 0; j < len(winner)/2; j++ {
-					winner[j], winner[len(winner)-1-j] = winner[len(winner)-1-j], winner[j]
+			if len(winners) > 0 {
+				for j := 0; j < len(winners)/2; j++ {
+					winners[j], winner[len(winners)-1-j] = winners[len(winner)-1-j], winners[j]
 				}
 				// Import all the pruned blocks to make the state available
-				log.Info("Importing sidechain segment", "start", winner[0].NumberU64(), "end", winner[len(winner)-1].NumberU64())
-				//bc.chainmu.Lock()
-				_, evs, logs, err := bc.insertChain(winner, false)
-				//bc.chainmu.Unlock()
+				log.Info("Importing sidechain segment", "start", winners[0].NumberU64(), "end", winners[len(winner)-1].NumberU64())
+				_, evs, logs, err := bc.insertChain(winners, false)
+				events, coalescedLogs = evs, logs
+
+				if err != nil {
+					return i, events, coalescedLogs, err
+				}
+			}*/
+
+			// Gather all the sidechain hashes (full blocks may be memory heavy)
+			var (
+				hashes  []common.Hash
+				numbers []uint64
+			)
+			parent := bc.GetHeader(block.ParentHash(), block.NumberU64()-1)
+			for parent != nil && !bc.HasState(parent.Root) {
+				hashes = append(hashes, parent.Hash())
+				numbers = append(numbers, parent.Number.Uint64())
+
+				parent = bc.GetHeader(parent.ParentHash, parent.Number.Uint64()-1)
+			}
+			if parent == nil {
+				return i, nil, nil, errors.New("missing parent")
+			}
+			// Import all the pruned blocks to make the state available
+			var (
+				blocks []*types.Block
+				memory common.StorageSize
+			)
+			for i := len(hashes) - 1; i >= 0; i-- {
+				// Append the next block to our batch
+				block := bc.GetBlock(hashes[i], numbers[i])
+
+				blocks = append(blocks, block)
+				memory += block.Size()
+
+				// If memory use grew too large, import and continue. Sadly we need to discard
+				// all raised events and logs from notifications since we're too heavy on the
+				// memory here.
+				if len(blocks) >= 2048 || memory > 64*1024*1024 {
+					log.Info("Importing heavy sidechain segment", "blocks", len(blocks), "start", blocks[0].NumberU64(), "end", block.NumberU64())
+					_, evs, logs, err := bc.insertChain(blocks, false)
+					events, coalescedLogs = evs, logs
+
+					if err != nil {
+						return i, events, coalescedLogs, err
+					}
+					blocks, memory = blocks[:0], 0
+
+					// If the chain is terminating, stop processing blocks
+					if atomic.LoadInt32(&bc.procInterrupt) == 1 {
+						log.Debug("Premature abort during blocks processing")
+						return 0, events, coalescedLogs, nil
+					}
+				}
+			}
+			if len(blocks) > 0 {
+				log.Info("Importing sidechain segment", "start", blocks[0].NumberU64(), "end", blocks[len(blocks)-1].NumberU64())
+				//return bc.insertChain(blocks, false)
+				_, evs, logs, err := bc.insertChain(blocks, false)
 				events, coalescedLogs = evs, logs
 
 				if err != nil {
