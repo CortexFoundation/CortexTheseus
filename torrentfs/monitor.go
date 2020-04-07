@@ -518,12 +518,24 @@ func (m *Monitor) getRemainingSize(address string) (uint64, error) {
 	return remain, nil
 }
 
+func (m *Monitor) getReceipt(tx string) (receipt types.TxReceipt, err error) {
+	if err = m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx); err != nil {
+		log.Warn("R is nil", "R", tx, "err", err)
+		return receipt, err
+	}
+	return receipt, nil
+}
+
 func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *types.Block) error {
 	log.Debug("Monitor", "FileMeta", meta)
 
-	var receipt types.TxReceipt
-	if err := m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx.Hash.String()); err != nil {
-		log.Warn("R is nil", "R", tx.Hash.String(), "err", err)
+	//var receipt types.TxReceipt
+	//if err := m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx.Hash.String()); err != nil {
+	//	log.Warn("R is nil", "R", tx.Hash.String(), "err", err)
+	//	return err
+	//}
+	receipt, err := m.getReceipt(tx.Hash.String())
+	if err != nil {
 		return err
 	}
 
@@ -532,7 +544,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 		return nil
 	}
 
-	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
+	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status) //, "tx", receipt.TxHash.String())
 
 	if receipt.Status != 1 {
 		log.Warn("receipt.Status is wrong", "receipt.Status", receipt.Status)
@@ -624,6 +636,20 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				file := m.fs.GetFileByAddr(addr)
 				if file == nil {
 					//log.Warn("Uploading a nonexist file", "addr", addr.String(), "number", b.Number, "len", len(b.Txs))
+					continue
+				}
+
+				receipt, err := m.getReceipt(tx.Hash.String())
+				if err != nil {
+					return false, err
+				}
+
+				if receipt.Status != 1 {
+					continue
+				}
+
+				if receipt.GasUsed != params.UploadGas {
+					//log.Warn("Receipt", "gas", receipt.GasUsed, "expected", params.UploadGas)
 					continue
 				}
 
