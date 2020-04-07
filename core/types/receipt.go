@@ -59,7 +59,11 @@ type Receipt struct {
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
 	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
-	//AiCache         []uint64 `json:"aiCache" gencodec:"required"`
+	// Inclusion information: These fields provide information about the inclusion of the
+        // transaction corresponding to this receipt.
+        BlockHash        common.Hash `json:"blockHash,omitempty"`
+        BlockNumber      *big.Int    `json:"blockNumber,omitempty"`
+        TransactionIndex uint        `json:"transactionIndex"`
 }
 
 type receiptMarshaling struct {
@@ -67,6 +71,8 @@ type receiptMarshaling struct {
 	Status            hexutil.Uint64
 	CumulativeGasUsed hexutil.Uint64
 	GasUsed           hexutil.Uint64
+	BlockNumber       *hexutil.Big
+	TransactionIndex  hexutil.Uint
 }
 
 // receiptRLP is the consensus encoding of a receipt.
@@ -304,9 +310,9 @@ func (r Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, num
 		r[i].TxHash = txs[i].Hash()
 
 		// block location fields
-		//r[i].BlockHash = hash
-		//r[i].BlockNumber = new(big.Int).SetUint64(number)
-		//r[i].TransactionIndex = uint(i)
+		r[i].BlockHash = hash
+		r[i].BlockNumber = new(big.Int).SetUint64(number)
+		r[i].TransactionIndex = uint(i)
 
 		// The contract address can be derived from the transaction itself
 		if txs[i].To() == nil {
