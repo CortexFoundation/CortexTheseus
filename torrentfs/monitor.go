@@ -523,16 +523,19 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 
 	var receipt types.TxReceipt
 	if err := m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx.Hash.String()); err != nil {
+		log.Warn("R is nil", "R", tx.Hash.String(), "err", err)
 		return err
 	}
 
 	if receipt.ContractAddr == nil {
+		log.Warn("contract address is nil", "tx.Hash.String()", tx.Hash.String())
 		return nil
 	}
 
 	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status, "tx", receipt.TxHash.String())
 
 	if receipt.Status != 1 {
+		log.Warn("receipt.Status is wrong", "receipt.Status", receipt.Status)
 		return nil
 	}
 
@@ -546,6 +549,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	info.Relate = append(info.Relate, *info.ContractAddr)
 	op, update, err := m.fs.UpdateFile(info)
 	if err != nil {
+		log.Warn("Create file failed", "err", err)
 		return err
 	} else {
 		if update && op == 1 {
@@ -604,7 +608,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 		var final []types.Transaction
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				log.Debug("Data encounter", "hash", meta.InfoHash, "number", b.Number)
+				log.Debug("Data encounter", "hash", meta.InfoHash, "number", b.Number, "meta", meta)
 				if err := m.parseFileMeta(&tx, meta, b); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return false, err
@@ -613,6 +617,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				record = true
 			} else if tx.IsFlowControl() {
 				if tx.Recipient == nil {
+					log.Trace("Recipient is nil", "num", b.Number)
 					continue
 				}
 				addr := *tx.Recipient
@@ -624,6 +629,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 
 				remainingSize, err := m.getRemainingSize(addr.String())
 				if err != nil {
+					log.Error("Get remain failed", "err", err, "addr", addr.String())
 					return false, err
 				}
 				//var progress bool
