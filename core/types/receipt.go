@@ -60,10 +60,10 @@ type Receipt struct {
 	ContractAddress common.Address `json:"contractAddress"`
 	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
 	// Inclusion information: These fields provide information about the inclusion of the
-        // transaction corresponding to this receipt.
-        BlockHash        common.Hash `json:"blockHash,omitempty"`
-        BlockNumber      *big.Int    `json:"blockNumber,omitempty"`
-        TransactionIndex uint        `json:"transactionIndex"`
+	// transaction corresponding to this receipt.
+	BlockHash        common.Hash `json:"blockHash,omitempty"`
+	BlockNumber      *big.Int    `json:"blockNumber,omitempty"`
+	TransactionIndex uint        `json:"transactionIndex"`
 }
 
 type receiptMarshaling struct {
@@ -87,9 +87,9 @@ type receiptRLP struct {
 type storedReceiptRLP struct {
 	PostStateOrStatus []byte
 	CumulativeGasUsed uint64
-	ContractAddress   common.Address
 	Logs              []*LogForStorage
 	GasUsed           uint64
+	ContractAddress   common.Address
 }
 
 // v4StoredReceiptRLP is the storage encoding of a receipt used in database version 4.
@@ -190,9 +190,9 @@ func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
 	enc := &storedReceiptRLP{
 		PostStateOrStatus: (*Receipt)(r).statusEncoding(),
 		CumulativeGasUsed: r.CumulativeGasUsed,
-		ContractAddress:   r.ContractAddress,
 		Logs:              make([]*LogForStorage, len(r.Logs)),
 		GasUsed:           r.GasUsed,
+		ContractAddress:   r.ContractAddress,
 	}
 	for i, log := range r.Logs {
 		enc.Logs[i] = (*LogForStorage)(log)
@@ -229,9 +229,9 @@ func decodeStoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
 		return err
 	}
 	r.CumulativeGasUsed = stored.CumulativeGasUsed
-	r.ContractAddress = stored.ContractAddress
 	r.Logs = make([]*Log, len(stored.Logs))
 	r.GasUsed = stored.GasUsed
+	r.ContractAddress = stored.ContractAddress
 	for i, log := range stored.Logs {
 		r.Logs[i] = (*Log)(log)
 	}
