@@ -58,9 +58,9 @@ func enable1884(instructionSet *JumpTable) {
 	}
 }
 
-func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	balance := interpreter.intPool.get().Set(interpreter.cvm.StateDB.GetBalance(contract.Address()))
-	stack.push(balance)
+func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	balance := interpreter.intPool.get().Set(interpreter.cvm.StateDB.GetBalance(callContext.contract.Address()))
+	callContext.stack.push(balance)
 	return nil, nil
 }
 
@@ -79,9 +79,9 @@ func enable1344(instructionSet *JumpTable) {
 }
 
 // opChainID implements CHAINID opcode
-func opChainID(pc *uint64, interpreter *CVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+func opChainID(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
 	chainId := interpreter.intPool.get().Set(interpreter.cvm.chainConfig.ChainID)
-	stack.push(chainId)
+	callContext.stack.push(chainId)
 	return nil, nil
 }
 

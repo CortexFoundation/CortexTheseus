@@ -97,6 +97,14 @@ type Interpreter interface {
 	//IsInputMeta([]byte) bool
 }
 
+// callCtx contains the things that are per-call, such as stack and memory,
+// but not transients like pc and gas
+type callCtx struct {
+	memory   *Memory
+	stack    *Stack
+	contract *Contract
+}
+
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
 // Read to get a variable amount of data from the hash state. Read is faster than Sum
 // because it doesn't copy the internal state, but also modifies the internal state.
@@ -343,9 +351,14 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	var (
-		op    OpCode        // current opcode
-		mem   = NewMemory() // bound memory
-		stack = newstack()  // local stack
+		op          OpCode        // current opcode
+		mem         = NewMemory() // bound memory
+		stack       = newstack()  // local stack
+		callContext = &callCtx{
+			memory:   mem,
+			stack:    stack,
+			contract: contract,
+		}
 		// For optimisation reason we're using uint64 as the program counter.
 		// It's theoretically possible to go above 2^64. The YP defines the PC
 		// to be uint256. Practically much less so feasible.
@@ -462,7 +475,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		// execute the operation
-		ret, err = operation.execute(&pc, in, contract, mem, stack)
+		ret, err = operation.execute(&pc, in, callContext)
 		if in.cvm.vmConfig.RPC_GetInternalTransaction {
 			if op == CALL {
 				res = append(res, ret...)
