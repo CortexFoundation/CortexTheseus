@@ -181,7 +181,7 @@ func (t *UDPv4) nodeFromRPC(sender *net.UDPAddr, rn rpcNode) (*node, error) {
 	if t.netrestrict != nil && !t.netrestrict.Contains(rn.IP) {
 		return nil, errors.New("not contained in netrestrict whitelist")
 	}
-	key, err := decodePubkey(rn.ID)
+	key, err := decodePubkey(crypto.S256(), rn.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ type UDPv4 struct {
 	addReplyMatcher chan *replyMatcher
 	gotreply        chan reply
 	closeCtx        context.Context
-	cancelCloseCtx  func()
+	cancelCloseCtx  context.CancelFunc
 }
 
 // replyMatcher represents a pending reply.
@@ -263,6 +263,7 @@ type reply struct {
 }
 
 func ListenV4(c UDPConn, ln *enode.LocalNode, cfg Config) (*UDPv4, error) {
+	cfg = cfg.withDefaults()
 	closeCtx, cancel := context.WithCancel(context.Background())
 	t := &UDPv4{
 		conn:            c,
@@ -822,7 +823,7 @@ func (req *pingV4) preverify(t *UDPv4, from *net.UDPAddr, fromID enode.ID, fromK
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	key, err := decodePubkey(fromKey)
+	key, err := decodePubkey(crypto.S256(), fromKey)
 	if err != nil {
 		return errors.New("invalid public key")
 	}
