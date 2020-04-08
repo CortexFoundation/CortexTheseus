@@ -47,6 +47,7 @@ var (
 	errTimeout          = errors.New("RPC timeout")
 	errClockWarp        = errors.New("reply deadline too far in the future")
 	errClosed           = errors.New("socket closed")
+	errLowPort          = errors.New("low port")
 )
 
 const (
