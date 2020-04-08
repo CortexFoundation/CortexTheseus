@@ -267,6 +267,7 @@ go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
 golang.org/x/crypto/cast5
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/hkdf
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/openpgp/elgamal
