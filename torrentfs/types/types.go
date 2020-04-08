@@ -43,7 +43,7 @@ type Transaction struct {
 	From      *common.Address `json:"from"     gencodec:"required"`
 	Recipient *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
 	Hash      *common.Hash    `json:"hash"     gencodec:"required"`
-	Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
+	//Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 }
 
 // Op ...

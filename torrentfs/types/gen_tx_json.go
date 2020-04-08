@@ -23,7 +23,7 @@ func (t Transaction) MarshalJSON() ([]byte, error) {
 		From      *common.Address `json:"from"     gencodec:"required"`
 		Recipient *common.Address `json:"to"       rlp:"nil"`
 		Hash      *common.Hash    `json:"hash"     gencodec:"required"`
-		Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
+		//		Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 	}
 	var enc Transaction
 	enc.Price = (*hexutil.Big)(t.Price)
@@ -33,7 +33,7 @@ func (t Transaction) MarshalJSON() ([]byte, error) {
 	enc.From = t.From
 	enc.Recipient = t.Recipient
 	enc.Hash = t.Hash
-	enc.Receipt = t.Receipt
+	//	enc.Receipt = t.Receipt
 	return json.Marshal(&enc)
 }
 
@@ -47,7 +47,7 @@ func (t *Transaction) UnmarshalJSON(input []byte) error {
 		From      *common.Address `json:"from"     gencodec:"required"`
 		Recipient *common.Address `json:"to"       rlp:"nil"`
 		Hash      *common.Hash    `json:"hash"     gencodec:"required"`
-		Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
+		//		Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 	}
 	var dec Transaction
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -88,8 +88,8 @@ func (t *Transaction) UnmarshalJSON(input []byte) error {
 	}
 	t.Hash = dec.Hash
 
-	if dec.Receipt != nil {
-		t.Receipt = dec.Receipt
-	}
+	//	if dec.Receipt != nil {
+	//		t.Receipt = dec.Receipt
+	//	}
 	return nil
 }
