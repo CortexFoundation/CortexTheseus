@@ -289,7 +289,7 @@ golang.org/x/net/publicsuffix
 golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200406155108-e3b113bbe6a4
+# golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
