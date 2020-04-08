@@ -132,10 +132,7 @@ func (b *CortexAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*typ
 }
 
 func (b *CortexAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
-	if number := rawdb.ReadHeaderNumber(b.ctxc.chainDb, hash); number != nil {
-		return rawdb.ReadRawReceipts(b.ctxc.chainDb, hash, *number), nil
-	}
-	return nil, nil
+	return b.ctxc.blockchain.GetReceiptsByHash(hash), nil
 }
 
 func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {

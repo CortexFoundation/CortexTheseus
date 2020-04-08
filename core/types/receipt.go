@@ -88,8 +88,6 @@ type storedReceiptRLP struct {
 	PostStateOrStatus []byte
 	CumulativeGasUsed uint64
 	Logs              []*LogForStorage
-	GasUsed           uint64
-	ContractAddress   common.Address
 }
 
 // v4StoredReceiptRLP is the storage encoding of a receipt used in database version 4.
@@ -191,8 +189,6 @@ func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
 		PostStateOrStatus: (*Receipt)(r).statusEncoding(),
 		CumulativeGasUsed: r.CumulativeGasUsed,
 		Logs:              make([]*LogForStorage, len(r.Logs)),
-		GasUsed:           r.GasUsed,
-		ContractAddress:   r.ContractAddress,
 	}
 	for i, log := range r.Logs {
 		enc.Logs[i] = (*LogForStorage)(log)
@@ -230,8 +226,6 @@ func decodeStoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
 	}
 	r.CumulativeGasUsed = stored.CumulativeGasUsed
 	r.Logs = make([]*Log, len(stored.Logs))
-	r.GasUsed = stored.GasUsed
-	r.ContractAddress = stored.ContractAddress
 	for i, log := range stored.Logs {
 		r.Logs[i] = (*Log)(log)
 	}
