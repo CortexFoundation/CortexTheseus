@@ -86,7 +86,7 @@ func (s *BlockSolution) MarshalText() ([]byte, error) {
 
 func (s *BlockSolution) UnmarshalText(input []byte) error {
 	for i := 0; i < 42; i++ {
-		s[i] = binary.BigEndian.Uint32(input[4*i : i*4+4])
+		s[i] = binary.BigEndian.Uint32(input[i*4 : i*4+4])
 	}
 	//buf := bytes.NewBuffer(input)
 	//for i := 0; i < 42 && buf.Len() > 3; i++ {
