@@ -104,3 +104,14 @@ func (ipp *intPoolPool) put(ip *intPool) {
 		ipp.pools = append(ipp.pools, ip)
 	}
 }
+
+// putOne returns an allocated big int to the pool to be later reused by get calls.
+// Note, the values as saved as is; neither put nor get zeroes the ints out!
+// As opposed to 'put' with variadic args, this method becomes inlined by the
+// go compiler
+func (p *intPool) putOne(i *big.Int) {
+	if len(p.pool.data) > poolLimit {
+		return
+	}
+	p.pool.push(i)
+}

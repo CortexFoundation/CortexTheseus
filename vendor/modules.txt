@@ -52,7 +52,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.0.1
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200329003825-2c00258e7058
+# github.com/anacrolix/torrent v1.15.1-0.20200404225758-692029877097
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
@@ -262,11 +262,12 @@ github.com/willf/bitset
 github.com/willf/bloom
 # github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 github.com/wsddn/go-ecdh
-# go.etcd.io/bbolt v1.3.4
+# go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
+# golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
 golang.org/x/crypto/cast5
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/hkdf
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/openpgp/elgamal
@@ -289,7 +290,7 @@ golang.org/x/net/publicsuffix
 golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200331124033-c3d80250170d
+# golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows

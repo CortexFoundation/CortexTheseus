@@ -130,8 +130,8 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		// In these cases however it's safe to reenable fast sync.
 		fullBlock, fastBlock := blockchain.CurrentBlock(), blockchain.CurrentFastBlock()
 		if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
-			manager.fastSync = uint32(1)
-			log.Warn("Switch sync mode from full sync to fast sync")
+			//manager.fastSync = uint32(1)
+			//log.Warn("Switch sync mode from full sync to fast sync")
 		}
 	} else {
 		if blockchain.CurrentBlock().NumberU64() > 0 {
@@ -139,7 +139,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 			log.Warn("Switch sync mode from fast sync to full sync")
 		} else {
 			// If fast sync was requested and our database is empty, grant it
-			manager.fastSync = uint32(1)
+			//manager.fastSync = uint32(1)
 		}
 	}
 
@@ -279,6 +279,7 @@ func (pm *ProtocolManager) Stop() {
 	// Quit chainSync and txsync64.
 	// After this is done, no new peers will be accepted.
 	close(pm.quitSync)
+	log.Info("Cortex peers stopping ... ...")
 	pm.wg.Wait()
 
 	// Disconnect existing sessions.
@@ -286,6 +287,7 @@ func (pm *ProtocolManager) Stop() {
 	// sessions which are already established but not added to pm.peers yet
 	// will exit when they try to register.
 	pm.peers.Close()
+	log.Info("Cortex protocol stopping ... ...")
 	pm.peerWG.Wait()
 
 	log.Info("Cortex protocol stopped")

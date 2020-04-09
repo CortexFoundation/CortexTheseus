@@ -20,6 +20,7 @@ package mailserver
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -67,6 +68,11 @@ func (s *WMailServer) Init(shh *whisper.Whisper, path string, password string, p
 
 	if len(password) == 0 {
 		return fmt.Errorf("password is not specified")
+	}
+
+	s.db, err = leveldb.OpenFile(path, &opt.Options{OpenFilesCacheCapacity: 32})
+	if _, iscorrupted := err.(*errors.ErrCorrupted); iscorrupted {
+		s.db, err = leveldb.RecoverFile(path, nil)
 	}
 
 	s.db, err = leveldb.OpenFile(path, &opt.Options{OpenFilesCacheCapacity: 32})

@@ -220,7 +220,7 @@ func dnsToRoute53(ctx *cli.Context) error {
 	return client.deploy(domain, t)
 }
 
-// loadSigningKey loads a private key in Ethereum keystore format.
+// loadSigningKey loads a private key in Cortex keystore format.
 func loadSigningKey(keyfile string) *ecdsa.PrivateKey {
 	keyjson, err := ioutil.ReadFile(keyfile)
 	if err != nil {

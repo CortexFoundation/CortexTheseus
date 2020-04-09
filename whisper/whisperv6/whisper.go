@@ -61,7 +61,7 @@ const (
 	restrictConnectionBetweenLightClientsIdx        // Restrict connection between two light clients
 )
 
-// Whisper represents a dark communication interface through the Ethereum
+// Whisper represents a dark communication interface through the Cortex
 // network, using its very own P2P communication layer.
 type Whisper struct {
 	protocol p2p.Protocol // Protocol description and parameters
@@ -94,7 +94,7 @@ type Whisper struct {
 	wg sync.WaitGroup
 }
 
-// New creates a Whisper client ready to communicate through the Ethereum P2P network.
+// New creates a Whisper client ready to communicate through the Cortex P2P network.
 func New(cfg *Config) *Whisper {
 	if cfg == nil {
 		cfg = &DefaultConfig

@@ -22,15 +22,17 @@ import (
 	"io"
 	"math/big"
 	//"sort"
+	//"bytes"
 	"fmt"
 	"sync/atomic"
 	"time"
-	"unsafe"
+	//"unsafe"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"golang.org/x/crypto/sha3"
+	"reflect"
 )
 
 var (
@@ -69,23 +71,27 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 func (s *BlockSolution) Uint32() []uint32 { return s[:] }
 
 func (s *BlockSolution) MarshalText() ([]byte, error) {
-	//fmt.Println("MarshalText: ", s)
-	var solSize int = 4
-	var solLen int = 42
-	buf := make([]byte, solLen*solSize)
-	for i := 0; i < len(s); i++ {
-		binary.BigEndian.PutUint32(buf[i*solSize:], s[i])
+	buf := make([]byte, 42*4)
+	//for i := 0; i < len(s); i++ {
+	for i, sol := range s {
+		binary.BigEndian.PutUint32(buf[i*4:], sol)
 	}
 	return buf, nil
+	//buf := new(bytes.Buffer)
+	//for _, d := range s {
+	//	binary.Write(buf, binary.BigEndian, d)
+	//}
+	//return buf.Bytes(), nil
 }
 
 func (s *BlockSolution) UnmarshalText(input []byte) error {
-	//fmt.Println("UnmarshalText: ", input)
-	var solSize int = 4
-	var solLen int = 42
-	for i := 0; i < solLen; i++ {
-		s[i] = binary.BigEndian.Uint32(input[solSize*i:])
+	for i := 0; i < 42; i++ {
+		s[i] = binary.BigEndian.Uint32(input[4*i : 4*i+4])
 	}
+	//buf := bytes.NewBuffer(input)
+	//for i := 0; i < 42 && buf.Len() > 3; i++ {
+	//	s[i] = binary.BigEndian.Uint32(buf.Next(4))
+	//}
 	return nil
 }
 
@@ -104,7 +110,7 @@ type Header struct {
 	Number      *big.Int       `json:"number"           gencodec:"required"`
 	GasLimit    uint64         `json:"gasLimit"         gencodec:"required"`
 	GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
-	Time        *big.Int       `json:"timestamp"        gencodec:"required"`
+	Time        uint64         `json:"timestamp"        gencodec:"required"`
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
@@ -120,7 +126,7 @@ type headerMarshaling struct {
 	Number     *hexutil.Big
 	GasLimit   hexutil.Uint64
 	GasUsed    hexutil.Uint64
-	Time       *hexutil.Big
+	Time       *hexutil.Uint64
 	Extra      hexutil.Bytes
 	Hash       common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 }
@@ -131,10 +137,13 @@ func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
 }
 
+var headerSize = common.StorageSize(reflect.TypeOf(Header{}).Size())
+
 // Size returns the approximate memory used by all internal contents. It is used
 // to approximate and limit the memory consumption of various caches.
 func (h *Header) Size() common.StorageSize {
-	return common.StorageSize(unsafe.Sizeof(*h)) + common.StorageSize(len(h.Extra)+(h.Difficulty.BitLen()+h.Number.BitLen()+h.Time.BitLen())/8)
+	//return common.StorageSize(unsafe.Sizeof(*h)) + common.StorageSize(len(h.Extra)+(h.Difficulty.BitLen()+h.Number.BitLen()+h.Time.BitLen())/8)
+	return headerSize + common.StorageSize(len(h.Extra)+(h.Difficulty.BitLen()+h.Number.BitLen())/8)
 }
 
 func (h *Header) SanityCheck() error {
@@ -265,9 +274,9 @@ func NewBlockWithHeader(header *Header) *Block {
 // modifying a header variable.
 func CopyHeader(h *Header) *Header {
 	cpy := *h
-	if cpy.Time = new(big.Int); h.Time != nil {
-		cpy.Time.Set(h.Time)
-	}
+	//if cpy.Time = new(big.Int); h.Time != nil {
+	//	cpy.Time.Set(h.Time)
+	//}
 	if cpy.Difficulty = new(big.Int); h.Difficulty != nil {
 		cpy.Difficulty.Set(h.Difficulty)
 	}
@@ -340,7 +349,7 @@ func (b *Block) Number() *big.Int     { return new(big.Int).Set(b.header.Number)
 func (b *Block) GasLimit() uint64     { return b.header.GasLimit }
 func (b *Block) GasUsed() uint64      { return b.header.GasUsed }
 func (b *Block) Difficulty() *big.Int { return new(big.Int).Set(b.header.Difficulty) }
-func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
+func (b *Block) Time() uint64         { return b.header.Time }
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) MixDigest() common.Hash   { return b.header.MixDigest }

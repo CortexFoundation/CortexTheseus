@@ -558,6 +558,10 @@ func (w *worker) resultLoop() {
 				logs     []*types.Log
 			)
 			for i, receipt := range task.receipts {
+				// add block location fields
+                                receipt.BlockHash = hash
+                                receipt.BlockNumber = block.Number()
+                                receipt.TransactionIndex = uint(i)
 
 				receipts[i] = new(types.Receipt)
 				*receipts[i] = *receipt
@@ -812,8 +816,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	tstart := time.Now()
 	parent := w.chain.CurrentBlock()
 
-	if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
-		timestamp = parent.Time().Int64() + 1
+	if parent.Time() >= uint64(timestamp) {
+		timestamp = int64(parent.Time() + 1)
 	}
 	// this will ensure we're not going off too far in the future
 	if now := time.Now().Unix(); timestamp > now+1 {
@@ -834,7 +838,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		//		QuotaUsed:  quotaUsed,
 		//Supply:     supply,
 		Extra: w.extra,
-		Time:  big.NewInt(timestamp),
+		Time:  uint64(timestamp),
 	}
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
@@ -948,7 +952,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			mined := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Sub(block.Supply(), params.CTXC_INIT)), new(big.Float).SetInt(big.NewInt(params.Cortex)))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
-				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined /*"peace", peace,*/, "quota", common.StorageSize(block.Quota().Int64()), "used", common.StorageSize(block.QuotaUsed().Int64())) //, "capacity", capacity)
+				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesCortex, "elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "mined", mined /*"peace", peace,*, "quota", common.StorageSize(block.Quota().Int64()), "used", common.StorageSize(block.QuotaUsed().Int64())*/) //, "capacity", capacity)
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")

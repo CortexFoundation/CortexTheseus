@@ -19,6 +19,7 @@ package cuckoo
 import (
 	"encoding/binary"
 	//"encoding/hex"
+	//"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -252,20 +253,16 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
 	}
 	// Verify the header's timestamp
-	if uncle {
-		if header.Time.Cmp(math.MaxBig256) > 0 {
-			return errLargeBlockTime
-		}
-	} else {
-		if header.Time.Cmp(big.NewInt(time.Now().Add(allowedFutureBlockTime).Unix())) > 0 {
+	if !uncle {
+		if header.Time > uint64(time.Now().Add(allowedFutureBlockTime).Unix()) {
 			return consensus.ErrFutureBlock
 		}
 	}
-	if header.Time.Cmp(parent.Time) <= 0 {
+	if header.Time <= parent.Time {
 		return errZeroBlockTime
 	}
 	// Verify the block's difficulty based in it's timestamp and parent's difficulty
-	expected := cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
+	expected := cuckoo.CalcDifficulty(chain, header.Time, parent)
 
 	if expected.Cmp(header.Difficulty) != 0 {
 		return fmt.Errorf("invalid difficulty: have %v, want %v", header.Difficulty, expected)
@@ -396,7 +393,7 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 	//        ) + 2^(periodCount - 2)
 
 	bigTime := new(big.Int).SetUint64(time)
-	bigParentTime := new(big.Int).Set(parent.Time)
+	bigParentTime := new(big.Int).SetUint64(parent.Time)
 
 	// holds intermediate values to make the algo easier to read & audit
 	x := new(big.Int)
@@ -484,7 +481,7 @@ func makeDifficultyCalculator(bombDelay *big.Int) func(time uint64, parent *type
 		//        ) + 2^(periodCount - 2)
 
 		bigTime := new(big.Int).SetUint64(time)
-		bigParentTime := new(big.Int).Set(parent.Time)
+		bigParentTime := new(big.Int).SetUint64(parent.Time)
 
 		// holds intermediate values to make the algo easier to read & audit
 		x := new(big.Int)
@@ -543,7 +540,7 @@ func calcDifficultyHomestead(time uint64, parent *types.Header) *big.Int {
 	//        ) + 2^(periodCount - 2)
 
 	bigTime := new(big.Int).SetUint64(time)
-	bigParentTime := new(big.Int).Set(parent.Time)
+	bigParentTime := new(big.Int).SetUint64(parent.Time)
 
 	// holds intermediate values to make the algo easier to read & audit
 	x := new(big.Int)
@@ -597,7 +594,7 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 	bigParentTime := new(big.Int)
 
 	bigTime.SetUint64(time)
-	bigParentTime.Set(parent.Time)
+	bigParentTime.SetUint64(parent.Time)
 
 	if bigTime.Sub(bigTime, bigParentTime).Cmp(params.DurationLimit) < 0 {
 		diff.Add(parent.Difficulty, adjust)
@@ -659,7 +656,7 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
-	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time.Uint64(), parent)
+	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time, parent)
 	header.Supply = new(big.Int).Set(parent.Supply)
 	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))
 	header.QuotaUsed = new(big.Int).Set(parent.QuotaUsed)
@@ -855,11 +852,17 @@ func toCoin(wei *big.Int) *big.Float {
 
 func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 	buf := make([]byte, 42*4)
-	for i := 0; i < len(sol); i++ {
-		binary.BigEndian.PutUint32(buf[i*4:], sol[i])
+	//for i := 0; i < len(sol); i++ {
+	//	binary.BigEndian.PutUint32(buf[i*4:], sol[i])
+	//}
+
+	//buf := new(bytes.Buffer)
+	for i, s := range sol {
+		//binary.Write(buf, binary.BigEndian, s)
+		binary.BigEndian.PutUint32(buf[i*4:], s)
 	}
 	ret := crypto.Keccak256(buf)
-	// fmt.Println("Sha3Solution: ", ret, "buf: ", buf, "sol: ", sol)
+	//ret := crypto.Keccak256(buf)
 	return ret
 }
 
@@ -877,6 +880,5 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 		return false
 	}
 	r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
-	//r = CuckooVerify(&hash[0], len(hash), nonce, sol[:], nil, nil)
 	return r
 }

@@ -140,7 +140,7 @@ type snapshot interface {
 	AccountIterator(seek common.Hash) AccountIterator
 }
 
-// SnapshotTree is an Ethereum state snapshot tree. It consists of one persistent
+// SnapshotTree is an Cortex state snapshot tree. It consists of one persistent
 // base layer backed by a key-value store, on top of which arbitrarily many in-
 // memory diff layers are topped. The memory diffs can form a tree with branching,
 // but the disk layer is singleton and common to all. If a reorg goes deeper than
