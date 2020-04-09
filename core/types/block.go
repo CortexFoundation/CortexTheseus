@@ -22,7 +22,7 @@ import (
 	"io"
 	"math/big"
 	//"sort"
-	"bytes"
+	//"bytes"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -71,28 +71,27 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 func (s *BlockSolution) Uint32() []uint32 { return s[:] }
 
 func (s *BlockSolution) MarshalText() ([]byte, error) {
-	//var solSize int = 4
-	//var solLen int = 42
-	//buf := make([]byte, solLen*solSize)
+	buf := make([]byte, 42*4)
 	//for i := 0; i < len(s); i++ {
-	//	binary.BigEndian.PutUint32(buf[i*solSize:], s[i])
-	//}
-	//return buf, nil
-	buf := new(bytes.Buffer)
-	for _, d := range s {
-		binary.Write(buf, binary.BigEndian, d)
+	for i, sol := range s {
+		binary.BigEndian.PutUint32(buf[i*4:], sol)
 	}
-	return buf.Bytes(), nil
+	return buf, nil
+	//buf := new(bytes.Buffer)
+	//for _, d := range s {
+	//	binary.Write(buf, binary.BigEndian, d)
+	//}
+	//return buf.Bytes(), nil
 }
 
 func (s *BlockSolution) UnmarshalText(input []byte) error {
-	//for i := 0; i < 42; i++ {
-	//	s[i] = binary.BigEndian.Uint32(input[4*i:])
-	//}
-	buf := bytes.NewBuffer(input)
-	for i := 0; i < 42 && buf.Len() > 3; i++ {
-		s[i] = binary.BigEndian.Uint32(buf.Next(4))
+	for i := 0; i < 42; i++ {
+		s[i] = binary.BigEndian.Uint32(input[4*i : 4*i+4])
 	}
+	//buf := bytes.NewBuffer(input)
+	//for i := 0; i < 42 && buf.Len() > 3; i++ {
+	//	s[i] = binary.BigEndian.Uint32(buf.Next(4))
+	//}
 	return nil
 }
 
