@@ -787,7 +787,7 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 	cfg := torrent.NewDefaultClientConfig()
 	//cfg.DisableUTP = true //config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
-	cfg.DisableTCP = true//config.DisableTCP
+	//cfg.DisableTCP = true//config.DisableTCP
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
