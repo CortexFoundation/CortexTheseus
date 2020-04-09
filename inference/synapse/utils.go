@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"bytes"
+	//"bytes"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -30,12 +30,15 @@ func ReadData(r *inference.NpyReader) ([]byte, error) {
 		//for i := 0; i < len(i4_data); i++ {
 		//	binary.LittleEndian.PutUint32(data[i:i+4], uint32(i4_data[i]))
 		//}
-		buf := new(bytes.Buffer)
+		//buf := new(bytes.Buffer)
+		buf := make([]byte, len(i4_data) * 4)
 		//for i := 0; i < len(i4_data); i++ {
-		for _, d := range i4_data {
-			binary.Write(buf, binary.LittleEndian, d)
+		for i, d := range i4_data {
+			//binary.Write(buf, binary.LittleEndian, d)
+			binary.LittleEndian.PutUint32(buf[i*4:], uint32(d))
 		}
-		return buf.Bytes(), nil
+		//return buf.Bytes(), nil
+		return buf, nil
 	} else {
 		return nil, errors.New("not support dtype for " + r.Dtype)
 	}

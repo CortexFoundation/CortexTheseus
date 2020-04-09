@@ -19,7 +19,7 @@ package cuckoo
 import (
 	"encoding/binary"
 	//"encoding/hex"
-	"bytes"
+	//"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -851,16 +851,17 @@ func toCoin(wei *big.Int) *big.Float {
 }
 
 func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
-	//buf := make([]byte, 42*4)
+	buf := make([]byte, 42*4)
 	//for i := 0; i < len(sol); i++ {
 	//	binary.BigEndian.PutUint32(buf[i*4:], sol[i])
 	//}
 
-	buf := new(bytes.Buffer)
-	for _, s := range sol {
-		binary.Write(buf, binary.BigEndian, s)
+	//buf := new(bytes.Buffer)
+	for i, s := range sol {
+		//binary.Write(buf, binary.BigEndian, s)
+		binary.BigEndian.PutUint32(buf[i*4:], s)
 	}
-	ret := crypto.Keccak256(buf.Bytes())
+	ret := crypto.Keccak256(buf)
 	//ret := crypto.Keccak256(buf)
 	return ret
 }

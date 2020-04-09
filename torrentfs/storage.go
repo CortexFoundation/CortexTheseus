@@ -117,7 +117,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 		return nil, err
 	}
 
-	log.Info("Storage ID init", "id", fs.id)
+	log.Info("Storage ID generated", "id", fs.id)
 
 	return fs, nil
 }
