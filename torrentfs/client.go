@@ -570,7 +570,7 @@ func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool)
 	}*/
 	tm.trackers = tm.buildUdpTrackers(trackers)
 	if !disableTCP {
-		tm.trackers = append(tm.trackers, tm.buildHttpTrackers(trackers)...)
+		//tm.trackers = append(tm.trackers, tm.buildHttpTrackers(trackers)...)
 	}
 	log.Debug("Boot trackers", "t", tm.trackers)
 }
