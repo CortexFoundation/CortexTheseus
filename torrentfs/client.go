@@ -568,10 +568,9 @@ func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool)
 			array[i] = []string{"http" + tracker + "/announce"}
 		}
 	}*/
-	if disableTCP {
-		tm.trackers = tm.buildUdpTrackers(trackers)
-	} else {
-		tm.trackers = tm.buildHttpTrackers(trackers)
+	tm.trackers = tm.buildUdpTrackers(trackers)
+	if !disableTCP {
+		tm.trackers = append(tm.trackers, tm.buildHttpTrackers(trackers)...)
 	}
 	log.Debug("Boot trackers", "t", tm.trackers)
 }
@@ -787,7 +786,7 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 	cfg := torrent.NewDefaultClientConfig()
 	//cfg.DisableUTP = true //config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
-	//cfg.DisableTCP = true//config.DisableTCP
+	cfg.DisableTCP = config.DisableTCP
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
@@ -800,7 +799,7 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 25 //len(config.DefaultTrackers)
+	cfg.EstablishedConnsPerTorrent = 25 //len(config.DefaultTrackers)
 	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.ListenPort = config.Port
 	if config.Quiet {
