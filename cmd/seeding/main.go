@@ -231,7 +231,7 @@ func mainExitCode() int {
 	//cfg.EstablishedConnsPerTorrent = 10
 	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.DisableUTP = false
-	cfg.DisableTCP = false
+	cfg.DisableTCP = true
 	cfg.NoDHT = false
 	client, err := torrent.NewClient(cfg)
 	if err != nil {
@@ -287,7 +287,7 @@ func mainExitCode() int {
 						//var ss []string
 						//slices.MakeInto(&ss, mi.Nodes)
 						t.DownloadAll()
-						client.WaitAll()
+						//client.WaitAll()
 						//go func() {
 						//	time.Sleep(time.Second * 5)
 						if t.Seeding() {
