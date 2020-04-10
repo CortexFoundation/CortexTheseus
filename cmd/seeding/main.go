@@ -2,6 +2,7 @@
 package main
 
 import (
+	xlog "github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2"
 	"github.com/fsnotify/fsnotify"
 	"log"
@@ -225,10 +226,11 @@ func mainExitCode() int {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DataDir = args.DataDir
 	cfg.SetListenAddr(args.ListenAddr.String())
+	cfg.Logger = xlog.Discard
 	cfg.Seed = true
 	//cfg.EstablishedConnsPerTorrent = 10
 	//cfg.HalfOpenConnsPerTorrent = 10
-	cfg.DisableUTP = true
+	cfg.DisableUTP = false
 	cfg.DisableTCP = false
 	cfg.NoDHT = false
 	client, err := torrent.NewClient(cfg)
