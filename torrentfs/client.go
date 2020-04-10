@@ -265,8 +265,7 @@ func (t *Torrent) Seed() {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Debug("Finish downloading", "hash", t.InfoHash(), "elapsed", elapsed)
-		//log.Info("Download success", "hash", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", elapsed)
+		log.Info("Imported new chain segment", "hash", common.HexToHash(t.InfoHash()), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", common.PrettyDuration(elapsed))
 		//t.Torrent.Drop()
 	}
 }
@@ -568,10 +567,9 @@ func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool)
 			array[i] = []string{"http" + tracker + "/announce"}
 		}
 	}*/
-	if disableTCP {
-		tm.trackers = tm.buildUdpTrackers(trackers)
-	} else {
-		tm.trackers = tm.buildHttpTrackers(trackers)
+	tm.trackers = tm.buildUdpTrackers(trackers)
+	if !disableTCP {
+		//tm.trackers = append(tm.trackers, tm.buildHttpTrackers(trackers)...)
 	}
 	log.Debug("Boot trackers", "t", tm.trackers)
 }
@@ -785,9 +783,9 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 	//      "max_activenum", config.MaxActiveNum,
 	//    )
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableUTP = true //config.DisableUTP
+	//cfg.DisableUTP = true //config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
-	//cfg.DisableTCP = config.DisableTCP
+	cfg.DisableTCP = config.DisableTCP
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
@@ -800,7 +798,7 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 25 //len(config.DefaultTrackers)
+	cfg.EstablishedConnsPerTorrent = 25 //len(config.DefaultTrackers)
 	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.ListenPort = config.Port
 	if config.Quiet {
