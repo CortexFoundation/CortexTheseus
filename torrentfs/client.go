@@ -919,7 +919,7 @@ func (tm *TorrentManager) mainLoop() {
 	defer tm.wg.Done()
 	for k, ok := range GoodFiles {
 		if ok {
-			tm.AddInfoHash(metainfo.NewHashFromHex(k), 0)
+			tm.AddInfoHash(metainfo.NewHashFromHex(k), math.MaxInt64)
 		}
 	}
 
