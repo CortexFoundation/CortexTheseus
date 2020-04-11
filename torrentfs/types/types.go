@@ -36,11 +36,11 @@ type FileInfo struct {
 
 // Transaction ... Tx struct
 type Transaction struct {
-	Price     *big.Int        `json:"gasPrice" gencodec:"required"`
-	Amount    *big.Int        `json:"value"    gencodec:"required"`
-	GasLimit  uint64          `json:"gas"      gencodec:"required"`
-	Payload   []byte          `json:"input"    gencodec:"required"`
-	From      *common.Address `json:"from"     gencodec:"required"`
+	//Price     *big.Int        `json:"gasPrice" gencodec:"required"`
+	Amount   *big.Int `json:"value"    gencodec:"required"`
+	GasLimit uint64   `json:"gas"      gencodec:"required"`
+	Payload  []byte   `json:"input"    gencodec:"required"`
+	//From      *common.Address `json:"from"     gencodec:"required"`
 	Recipient *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
 	Hash      *common.Hash    `json:"hash"     gencodec:"required"`
 	//Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
@@ -108,12 +108,12 @@ func (t *Transaction) Parse() *FileMeta {
 	}
 }
 
-type transactionMarshaling struct {
-	Price    *hexutil.Big
-	Amount   *hexutil.Big
-	GasLimit hexutil.Uint64
-	Payload  hexutil.Bytes
-}
+//type transactionMarshaling struct {
+//Price    *hexutil.Big
+//	Amount   *hexutil.Big
+//	GasLimit hexutil.Uint64
+//	Payload  hexutil.Bytes
+//}
 
 // gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
 // Block ... block struct
