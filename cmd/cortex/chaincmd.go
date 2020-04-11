@@ -483,6 +483,13 @@ func removeDB(ctx *cli.Context) error {
 	} else {
 		log.Info("Full node ancient database missing", "path", path)
 	}
+
+	path = stack.ResolvePath("../storage")
+	if common.FileExist(path) {
+		confirmAndRemoveDB(path, "full node file storage")
+	} else {
+		log.Info("Full node file torage missing", "path", path)
+	}
 	return nil
 }
 
