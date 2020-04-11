@@ -456,6 +456,7 @@ func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, sta
 		path.Join(tm.TmpDataDir, ih.String()),
 		0, 1, 0, 0, false, true, 0,
 	}
+	//tm.bytes[ih] = requested
 	tm.SetTorrent(ih, tt)
 	//tm.pendingChan <- tt
 	return tt
@@ -919,7 +920,16 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 func (tm *TorrentManager) init() {
 	for k, ok := range GoodFiles {
 		if ok {
-			tm.AddInfoHash(metainfo.NewHashFromHex(k), 0)
+			tm.SearchAndDownload(k, 0)
+		}
+	}
+}
+
+func (tm *TorrentManager) SearchAndDownload(hex string, request int64) {
+	hash := metainfo.NewHashFromHex(hex)
+	if t := tm.AddInfoHash(hash, request); t != nil {
+		if request > 0 {
+			tm.UpdateInfoHash(hash, request)
 		}
 	}
 }
