@@ -280,7 +280,6 @@ func (m *Monitor) storageInit() error {
 
 	for _, file := range fileMap {
 		var bytesRequested uint64
-		bytesRequested = 0
 		if file.Meta.RawSize > file.LeftSize {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}

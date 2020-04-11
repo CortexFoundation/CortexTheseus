@@ -917,6 +917,12 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 
 func (tm *TorrentManager) mainLoop() {
 	defer tm.wg.Done()
+	for k, ok := range GoodFiles {
+		if ok {
+			tm.AddInfoHash(metainfo.NewHashFromHex(k), math.MaxInt64)
+		}
+	}
+
 	for {
 		select {
 		case msg := <-tm.updateTorrent:
@@ -1059,7 +1065,10 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				} else {
 					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && t.loop > 60) {
 					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && tm.fullSeed) || (t.start == 0 && t.loop > 1800) {
-					if t.start == 0 && (tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
+					if _, ok := GoodFiles[t.InfoHash()]; t.start == 0 && (ok || tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) {
+						if ok {
+							log.Debug("Good file found in pending", "hash", common.HexToHash(ih.String()))
+						}
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
 					}
@@ -1103,53 +1112,51 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			for ih, t := range tm.activeTorrents {
 				//ih := t.Torrent.InfoHash()
 				BytesRequested := int64(0)
-				tm.lock.RLock()
-				if tm.fullSeed {
-					if tm.bytes[ih] >= t.Length() {
-						BytesRequested = tm.bytes[ih]
+				if _, ok := GoodFiles[t.InfoHash()]; ok {
+					if t.bytesRequested == math.MaxInt64 || t.Length() > t.bytesRequested || !t.fast {
+						BytesRequested = t.Length()
+						t.bytesRequested = BytesRequested
+						t.bytesLimitation = tm.GetLimitation(BytesRequested)
 						t.fast = true
-					} else {
-						if t.bytesRequested <= t.BytesCompleted() {
-							BytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
-							t.fast = false
-						}
+						log.Debug("Good file found", "hash", common.HexToHash(ih.String()), "size", common.StorageSize(BytesRequested), "request", common.StorageSize(t.bytesRequested), "len", common.StorageSize(t.Length()), "limit", common.StorageSize(t.bytesLimitation))
 					}
 				} else {
-					if tm.bytes[ih] >= t.Length() {
-						BytesRequested = tm.bytes[ih]
-						t.fast = true
+					tm.lock.RLock()
+					if tm.fullSeed {
+						if tm.bytes[ih] >= t.Length() {
+							BytesRequested = tm.bytes[ih]
+							t.fast = true
+						} else {
+							if t.bytesRequested <= t.BytesCompleted() {
+								BytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
+								t.fast = false
+							}
+						}
 					} else {
-						if t.bytesRequested <= t.BytesCompleted() {
-							BytesRequested = int64(math.Min(float64(tm.bytes[ih]), float64(t.bytesRequested+block)))
-							t.fast = false
+						if tm.bytes[ih] >= t.Length() {
+							BytesRequested = tm.bytes[ih]
+							t.fast = true
+						} else {
+							if t.bytesRequested <= t.BytesCompleted() {
+								BytesRequested = int64(math.Min(float64(tm.bytes[ih]), float64(t.bytesRequested+block)))
+								t.fast = false
+							}
 						}
 					}
-				}
-				tm.lock.RUnlock()
+					tm.lock.RUnlock()
 
-				if t.bytesRequested < BytesRequested {
-					t.bytesRequested = BytesRequested
-					t.bytesLimitation = tm.GetLimitation(BytesRequested)
-					//} else {
-					/*if t.bytesRequested == 0 {
+					if t.bytesRequested < BytesRequested {
+						t.bytesRequested = BytesRequested
+						t.bytesLimitation = tm.GetLimitation(BytesRequested)
+					}
+
+					if t.bytesRequested == 0 {
 						active_wait += 1
-						continue
-					}
-					if t.BytesMissing() > 0 {
-						active_running += 1
-						if log_counter%20 == 0 {
-							log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.BytesCompleted()), "request", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(tm.bytes[ih]), "total", common.StorageSize(t.Torrent.Length()), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces(), "status", t.status)
+						if log_counter%60 == 0 {
+							log.Debug("[Waiting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.BytesMissing()), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces())
 						}
 						continue
-					}*/
-				}
-
-				if t.bytesRequested == 0 {
-					active_wait += 1
-					if log_counter%60 == 0 {
-						log.Debug("[Waiting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.BytesMissing()), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces())
 					}
-					continue
 				}
 
 				if t.BytesCompleted() > t.bytesCompleted {
