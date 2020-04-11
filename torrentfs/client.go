@@ -1144,31 +1144,19 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						}
 					}
 					tm.lock.RUnlock()
-				}
 
-				if t.bytesRequested < BytesRequested {
-					t.bytesRequested = BytesRequested
-					t.bytesLimitation = tm.GetLimitation(BytesRequested)
-					//} else {
-					/*if t.bytesRequested == 0 {
-						active_wait += 1
-						continue
+					if t.bytesRequested < BytesRequested {
+						t.bytesRequested = BytesRequested
+						t.bytesLimitation = tm.GetLimitation(BytesRequested)
 					}
-					if t.BytesMissing() > 0 {
-						active_running += 1
-						if log_counter%20 == 0 {
-							log.Info("[Downloading]", "hash", ih.String(), "complete", common.StorageSize(t.BytesCompleted()), "request", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(tm.bytes[ih]), "total", common.StorageSize(t.Torrent.Length()), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces(), "status", t.status)
+
+					if t.bytesRequested == 0 {
+						active_wait += 1
+						if log_counter%60 == 0 {
+							log.Debug("[Waiting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.BytesMissing()), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces())
 						}
 						continue
-					}*/
-				}
-
-				if t.bytesRequested == 0 {
-					active_wait += 1
-					if log_counter%60 == 0 {
-						log.Debug("[Waiting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.BytesMissing()), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces())
 					}
-					continue
 				}
 
 				if t.BytesCompleted() > t.bytesCompleted {
