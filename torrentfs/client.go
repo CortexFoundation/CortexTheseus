@@ -1113,10 +1113,12 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				//ih := t.Torrent.InfoHash()
 				BytesRequested := int64(0)
 				if _, ok := GoodFiles[t.InfoHash()]; ok {
-					if t.Length() > t.bytesRequested || !t.fast {
+					if t.bytesRequested == math.MaxInt64 || t.Length() > t.bytesRequested || !t.fast {
 						BytesRequested = t.Length()
+						t.bytesRequested = BytesRequested
+						t.bytesLimitation = tm.GetLimitation(BytesRequested)
 						t.fast = true
-						log.Debug("Good file found", "hash", common.HexToHash(ih.String()), "size", common.StorageSize(BytesRequested))
+						log.Debug("Good file found", "hash", common.HexToHash(ih.String()), "size", common.StorageSize(BytesRequested), "request", common.StorageSize(t.bytesRequested), "len", common.StorageSize(t.Length()), "limit", common.StorageSize(t.bytesLimitation))
 					}
 				} else {
 					tm.lock.RLock()
