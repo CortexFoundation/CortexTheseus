@@ -870,6 +870,8 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 }
 
 func (tm *TorrentManager) Start() error {
+	tm.init()
+
 	tm.wg.Add(1)
 	go tm.mainLoop()
 	tm.wg.Add(1)
@@ -914,15 +916,16 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 	tm.wg.Wait()
 	return nil
 }*/
-
-func (tm *TorrentManager) mainLoop() {
-	defer tm.wg.Done()
+func (tm *TorrentManager) init() {
 	for k, ok := range GoodFiles {
 		if ok {
 			tm.AddInfoHash(metainfo.NewHashFromHex(k), math.MaxInt64)
 		}
 	}
+}
 
+func (tm *TorrentManager) mainLoop() {
+	defer tm.wg.Done()
 	for {
 		select {
 		case msg := <-tm.updateTorrent:
