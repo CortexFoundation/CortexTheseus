@@ -917,6 +917,12 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 
 func (tm *TorrentManager) mainLoop() {
 	defer tm.wg.Done()
+	for k, ok := range GoodFiles {
+		if ok {
+			tm.AddInfoHash(metainfo.NewHashFromHex(k), 0)
+		}
+	}
+
 	for {
 		select {
 		case msg := <-tm.updateTorrent:
@@ -1059,7 +1065,10 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 				} else {
 					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && t.loop > 60) {
 					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && tm.fullSeed) || (t.start == 0 && t.loop > 1800) {
-					if t.start == 0 && (tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
+					if _, ok := GoodFiles[t.InfoHash()]; t.start == 0 && (ok || tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) {
+						if ok {
+							log.Debug("Good file found in pending", "hash", common.HexToHash(ih.String()))
+						}
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
 					}
@@ -1103,29 +1112,37 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			for ih, t := range tm.activeTorrents {
 				//ih := t.Torrent.InfoHash()
 				BytesRequested := int64(0)
-				tm.lock.RLock()
-				if tm.fullSeed {
-					if tm.bytes[ih] >= t.Length() {
-						BytesRequested = tm.bytes[ih]
+				if _, ok := GoodFiles[t.InfoHash()]; ok {
+					if t.Length() > t.bytesRequested || !t.fast {
+						BytesRequested = t.Length()
 						t.fast = true
-					} else {
-						if t.bytesRequested <= t.BytesCompleted() {
-							BytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
-							t.fast = false
-						}
+						log.Debug("Good file found", "hash", common.HexToHash(ih.String()), "size", common.StorageSize(BytesRequested))
 					}
 				} else {
-					if tm.bytes[ih] >= t.Length() {
-						BytesRequested = tm.bytes[ih]
-						t.fast = true
+					tm.lock.RLock()
+					if tm.fullSeed {
+						if tm.bytes[ih] >= t.Length() {
+							BytesRequested = tm.bytes[ih]
+							t.fast = true
+						} else {
+							if t.bytesRequested <= t.BytesCompleted() {
+								BytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
+								t.fast = false
+							}
+						}
 					} else {
-						if t.bytesRequested <= t.BytesCompleted() {
-							BytesRequested = int64(math.Min(float64(tm.bytes[ih]), float64(t.bytesRequested+block)))
-							t.fast = false
+						if tm.bytes[ih] >= t.Length() {
+							BytesRequested = tm.bytes[ih]
+							t.fast = true
+						} else {
+							if t.bytesRequested <= t.BytesCompleted() {
+								BytesRequested = int64(math.Min(float64(tm.bytes[ih]), float64(t.bytesRequested+block)))
+								t.fast = false
+							}
 						}
 					}
+					tm.lock.RUnlock()
 				}
-				tm.lock.RUnlock()
 
 				if t.bytesRequested < BytesRequested {
 					t.bytesRequested = BytesRequested
