@@ -456,6 +456,7 @@ func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, sta
 		path.Join(tm.TmpDataDir, ih.String()),
 		0, 1, 0, 0, false, true, 0,
 	}
+	//tm.bytes[ih] = requested
 	tm.SetTorrent(ih, tt)
 	//tm.pendingChan <- tt
 	return tt
@@ -919,7 +920,16 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 func (tm *TorrentManager) init() {
 	for k, ok := range GoodFiles {
 		if ok {
-			tm.AddInfoHash(metainfo.NewHashFromHex(k), math.MaxInt64)
+			tm.SearchAndDownload(k, 0)
+		}
+	}
+}
+
+func (tm *TorrentManager) SearchAndDownload(hex string, request int64) {
+	hash := metainfo.NewHashFromHex(hex)
+	if t := tm.AddInfoHash(hash, request); t != nil {
+		if request > 0 {
+			tm.UpdateInfoHash(hash, request)
 		}
 	}
 }
@@ -1116,10 +1126,8 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				//ih := t.Torrent.InfoHash()
 				BytesRequested := int64(0)
 				if _, ok := GoodFiles[t.InfoHash()]; ok {
-					if t.bytesRequested == math.MaxInt64 || t.Length() > t.bytesRequested || !t.fast {
+					if t.Length() != t.bytesRequested || !t.fast {
 						BytesRequested = t.Length()
-						t.bytesRequested = BytesRequested
-						t.bytesLimitation = tm.GetLimitation(BytesRequested)
 						t.fast = true
 						log.Debug("Good file found", "hash", common.HexToHash(ih.String()), "size", common.StorageSize(BytesRequested), "request", common.StorageSize(t.bytesRequested), "len", common.StorageSize(t.Length()), "limit", common.StorageSize(t.bytesLimitation))
 					}
@@ -1147,19 +1155,19 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						}
 					}
 					tm.lock.RUnlock()
+				}
 
-					if t.bytesRequested < BytesRequested {
-						t.bytesRequested = BytesRequested
-						t.bytesLimitation = tm.GetLimitation(BytesRequested)
-					}
+				if t.bytesRequested < BytesRequested {
+					t.bytesRequested = BytesRequested
+					t.bytesLimitation = tm.GetLimitation(BytesRequested)
+				}
 
-					if t.bytesRequested == 0 {
-						active_wait += 1
-						if log_counter%60 == 0 {
-							log.Debug("[Waiting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.BytesMissing()), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces())
-						}
-						continue
+				if t.bytesRequested == 0 {
+					active_wait += 1
+					if log_counter%60 == 0 {
+						log.Debug("[Waiting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.BytesMissing()), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces())
 					}
+					continue
 				}
 
 				if t.BytesCompleted() > t.bytesCompleted {
