@@ -534,7 +534,7 @@ func (fs *FileStorage) AddBlock(b *types.Block) error {
 
 			return buk.Put(k, v)
 		}); err == nil {
-			if fs.blocks[len(fs.blocks)-1].Number < b.Number {
+			if len(fs.blocks) == 0 || fs.blocks[len(fs.blocks)-1].Number < b.Number {
 				fs.blocks = append(fs.blocks, b)
 			} else {
 				return nil
