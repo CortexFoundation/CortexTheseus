@@ -187,7 +187,7 @@ func (fs *FileStorage) initMerkleTree() error {
 	fs.tree = tr
 	for _, block := range fs.blocks {
 		if err := fs.addLeaf(block, true); err != nil {
-			//panic("Storage merkletree construct failed")
+			panic("Storage merkletree construct failed")
 		}
 	}
 
