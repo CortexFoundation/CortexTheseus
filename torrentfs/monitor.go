@@ -1222,11 +1222,12 @@ func (m *Monitor) solve(block *types.Block) error {
 
 			if m.ckp != nil {
 				if m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
-					if m.fs.Root() == m.ckp.TfsRoot {
+					if common.BytesToHash(m.fs.GetRootByNumber(i)) == m.ckp.TfsRoot {
+						//if m.fs.Root() == m.ckp.TfsRoot {
 						log.Info("First milestone", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", elapsed)
 					} else {
 						log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", elapsed, "exp", m.ckp.TfsRoot)
-						panic("Fs sync fatal error")
+						panic("Fs sync fatal error, removedb to solve it")
 						//m.lastNumber = 0
 						//m.fs.Reset()
 						//return errors.New("Milestone checkpoint error, reloading")

@@ -534,6 +534,11 @@ func (fs *FileStorage) AddBlock(b *types.Block) error {
 
 			return buk.Put(k, v)
 		}); err == nil {
+			if fs.blocks[len(fs.blocks)-1].Number < b.Number {
+				fs.blocks = append(fs.blocks, b)
+			} else {
+				return nil
+			}
 			if err := fs.addLeaf(b, false); err == nil {
 				if err := fs.writeCheckPoint(); err == nil {
 					fs.CheckPoint = b.Number
@@ -543,7 +548,6 @@ func (fs *FileStorage) AddBlock(b *types.Block) error {
 			} else {
 				panic(err.Error())
 			}
-			fs.blocks = append(fs.blocks, b)
 		} else {
 			return err
 		}
