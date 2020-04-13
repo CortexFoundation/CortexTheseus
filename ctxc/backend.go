@@ -141,8 +141,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
 			return nil, fmt.Errorf("database version is v%d, Ctxc %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
-		} else if bcVersion != nil && *bcVersion < core.BlockChainVersion {
-			log.Warn("Upgrade blockchain database version", "from", *bcVersion, "to", core.BlockChainVersion)
+		} else if bcVersion == nil || *bcVersion < core.BlockChainVersion {
+			log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
 			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 		}
 	}
@@ -160,9 +160,17 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
+			CWASMInterpreter:        config.CWASMInterpreter,
+			CVMInterpreter:          config.CVMInterpreter,
 			StorageDir:              config.StorageDir,
 		}
-		cacheConfig = &core.CacheConfig{TrieDirtyDisabled: config.NoPruning, TrieDirtyLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout, SnapshotLimit: config.SnapshotCache, SnapshotWait: true}
+		cacheConfig = &core.CacheConfig{
+			TrieDirtyDisabled: config.NoPruning,
+			TrieDirtyLimit:    config.TrieCache,
+			TrieTimeLimit:     config.TrieTimeout,
+			SnapshotLimit:     config.SnapshotCache,
+			SnapshotWait:      true,
+		}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve)
 	if err != nil {
