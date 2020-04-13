@@ -179,7 +179,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 			TrieTimeLimit:       config.TrieTimeout,
 
 			SnapshotLimit: config.SnapshotCache,
-			SnapshotWait:  true,
 		}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve)
