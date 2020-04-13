@@ -109,8 +109,9 @@ type Config struct {
 	// Gas Price Oracle options
 	GPO gasprice.Config
 
-	// Enables tracking of SHA3 preimages in the VM
 	EnablePreimageRecording bool
+	CWASMInterpreter string
+	CVMInterpreter string
 
 	InferURI   string
 	StorageDir string
