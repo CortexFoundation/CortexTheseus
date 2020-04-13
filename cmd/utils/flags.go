@@ -340,7 +340,7 @@ var (
 	}
 	CacheGCFlag = cli.IntFlag{
 		Name:  "cache.gc",
-		Usage: "Percentage of cache memory allowance to use for trie pruning 15%",
+		Usage: "Percentage of cache memory allowance to use for trie pruning 25%",
 		Value: 25,
 	}
 	CacheSnapshotFlag = cli.IntFlag{
