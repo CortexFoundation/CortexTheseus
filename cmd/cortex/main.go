@@ -82,6 +82,7 @@ var (
 		utils.CacheDatabaseFlag,
 		utils.CacheGCFlag,
 		utils.CacheSnapshotFlag,
+		utils.CacheNoPrefetchFlag,
 		utils.TrieCacheGenFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,

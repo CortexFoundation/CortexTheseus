@@ -121,6 +121,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.CacheDatabaseFlag,
 			utils.CacheGCFlag,
 			utils.CacheSnapshotFlag,
+			utils.CacheNoPrefetchFlag,
 			utils.TrieCacheGenFlag,
 		},
 	},
