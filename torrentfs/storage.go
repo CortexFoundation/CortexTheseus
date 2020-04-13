@@ -196,6 +196,7 @@ func (fs *FileStorage) initMerkleTree() error {
 	return nil
 }
 
+//Make sure the block group is increasing by number
 func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
 	number := block.Number
 	leaf := BlockContent{x: block.Hash.String()}
@@ -534,29 +535,32 @@ func (fs *FileStorage) AddBlock(b *types.Block) error {
 
 			return buk.Put(k, v)
 		}); err == nil {
-			if len(fs.blocks) == 0 || fs.blocks[len(fs.blocks)-1].Number < b.Number {
-				fs.blocks = append(fs.blocks, b)
-			} else {
-				return nil
-			}
-			if err := fs.addLeaf(b, false); err == nil {
-				if err := fs.writeCheckPoint(); err == nil {
-					fs.CheckPoint = b.Number
-				} else {
-					//panic(err.Error())
+			if err := fs.appendBlock(b); err == nil {
+				fs.txs += uint64(len(b.Txs))
+				if err := fs.addLeaf(b, false); err == nil {
+					if err := fs.writeCheckPoint(); err == nil {
+						fs.CheckPoint = b.Number
+					}
 				}
-			} else {
-				//panic(err.Error())
 			}
 		} else {
 			return err
 		}
-		fs.txs += uint64(len(b.Txs))
-		fs.LastListenBlockNumber = b.Number
+		//fs.LastListenBlockNumber = b.Number
 	}
 
-	//fs.LastListenBlockNumber = b.Number
-	//return fs.writeBlockNumber()
+	fs.LastListenBlockNumber = b.Number
+	return fs.Flush()
+	//return nil
+}
+
+func (fs *FileStorage) appendBlock(b *types.Block) error {
+	if len(fs.blocks) == 0 || fs.blocks[len(fs.blocks)-1].Number < b.Number {
+		log.Debug("Append block", "number", b.Number)
+		fs.blocks = append(fs.blocks, b)
+	} else {
+		return errors.New("err block duplicated")
+	}
 	return nil
 }
 

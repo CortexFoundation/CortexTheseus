@@ -88,9 +88,9 @@ type Monitor struct {
 	//portLock sync.Mutex
 	//portsWg  sync.WaitGroup
 
-	taskCh chan *types.Block
-	//newTaskHook func(*Block)
-	blockCache *lru.Cache
+	taskCh      chan *types.Block
+	newTaskHook func(*types.Block)
+	blockCache  *lru.Cache
 	//healthPeers *lru.Cache
 	sizeCache *lru.Cache
 	ckp       *params.TrustedCheckpoint
@@ -307,13 +307,12 @@ func (m *Monitor) taskLoop() {
 	for {
 		select {
 		case task := <-m.taskCh:
-			//if m.newTaskHook != nil {
-			//	m.newTaskHook(task)
-			//}
+			if m.newTaskHook != nil {
+				m.newTaskHook(task)
+			}
 
 			if err := m.solve(task); err != nil {
 				log.Warn("Block solved failed, try again", "err", err, "num", task.Number)
-				//m.solve(task)
 			}
 		case <-m.exitCh:
 			log.Info("Monitor task channel closed")
@@ -1244,7 +1243,9 @@ func (m *Monitor) solve(block *types.Block) error {
 			//	log.Error("Store latest block", "number", block.Number, "error", storeErr)
 			//	return storeErr
 			//}
-			m.fs.LastListenBlockNumber = i
+			if m.fs.LastListenBlockNumber < i {
+				m.fs.LastListenBlockNumber = i
+			}
 			//if i%(batch/delay) == 0 {
 			//m.fs.Flush()
 			//}
