@@ -3,7 +3,6 @@ package torrentfs
 import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
@@ -13,6 +12,7 @@ import (
 	//"strings"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common/compress"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -29,9 +29,10 @@ type GeneralMessage struct {
 
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
-	config  *Config
-	history *GeneralMessage
-	monitor *Monitor
+	protocol p2p.Protocol // Protocol description and parameters
+	config   *Config
+	history  *GeneralMessage
+	monitor  *Monitor
 
 	fileLock  sync.Mutex
 	fileCache *lru.Cache
@@ -108,11 +109,37 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 	torrentInstance.compress = compress
 	torrentInstance.cache = cache
 
+	torrentInstance.protocol = p2p.Protocol{
+		Name:    ProtocolName,
+		Version: uint(ProtocolVersion),
+		Length:  NumberOfMessageCodes,
+		Run:     torrentInstance.HandlePeer,
+		NodeInfo: func() interface{} {
+			return map[string]interface{}{
+				"version": ProtocolVersionStr,
+				//"maxMessageSize": torrentInstance.MaxMessageSize(),
+				"utp":    !config.DisableUTP,
+				"tcp":    !config.DisableTCP,
+				"dht":    !config.DisableDHT,
+				"listen": config.Port,
+			}
+		},
+	}
+
 	return torrentInstance, nil
 }
 
+func (tfs *TorrentFS) MaxMessageSize() uint64 {
+	return NumberOfMessageCodes
+}
+
+func (tfs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
+	log.Info("Handler nas peer")
+	return nil
+}
+
 // Protocols implements the node.Service interface.
-func (tfs *TorrentFS) Protocols() []p2p.Protocol { return nil }
+func (tfs *TorrentFS) Protocols() []p2p.Protocol { return []p2p.Protocol{tfs.protocol} }
 
 // APIs implements the node.Service interface.
 func (tfs *TorrentFS) APIs() []rpc.API { return nil }

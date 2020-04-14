@@ -234,11 +234,11 @@ var (
 	}
 	StorageBoostFlag = cli.BoolFlag{
 		Name:  "storage.boost",
-		Usage: "Boost fs",
+		Usage: "Boost fs (EXPERIMENTAL)",
 	}
 	StorageDisableTCPFlag = cli.BoolFlag{
 		Name:  "storage.disable_tcp",
-		Usage: "disable TCP network in FS",
+		Usage: "disable TCP network in FS (EXPERIMENTAL)",
 	}
 	StorageFullFlag = cli.BoolFlag{
 		Name:  "storage.full",
@@ -1438,7 +1438,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
 	cfg.DisableDHT = ctx.GlobalBool(StorageDisableDHTFlag.Name)
-	cfg.DisableTCP = ctx.GlobalBool(StorageDisableTCPFlag.Name)
+	//cfg.DisableTCP = ctx.GlobalBool(StorageDisableTCPFlag.Name)
 	cfg.FullSeed = ctx.GlobalBool(StorageFullFlag.Name)
 	cfg.Boost = ctx.GlobalBool(StorageBoostFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
