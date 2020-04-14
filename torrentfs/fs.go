@@ -9,10 +9,12 @@ import (
 	"io/ioutil"
 	"path"
 	"sync"
+	"time"
 	//"strings"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common/compress"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -124,6 +126,12 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 				"listen": config.Port,
 			}
 		},
+		PeerInfo: func(id enode.ID) interface{} {
+			//if p := pm.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
+			//      return p.Info()
+			//}
+			return nil
+		},
 	}
 
 	return torrentInstance, nil
@@ -134,7 +142,13 @@ func (tfs *TorrentFS) MaxMessageSize() uint64 {
 }
 
 func (tfs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
-	log.Info("Handler nas peer")
+	// Create the new peer and start tracking it
+	//tfsPeer := newPeer(tfs, peer, rw)
+
+	defer func() {
+		//
+	}()
+
 	return nil
 }
 
@@ -142,7 +156,36 @@ func (tfs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 func (tfs *TorrentFS) Protocols() []p2p.Protocol { return []p2p.Protocol{tfs.protocol} }
 
 // APIs implements the node.Service interface.
-func (tfs *TorrentFS) APIs() []rpc.API { return nil }
+func (tfs *TorrentFS) APIs() []rpc.API {
+	//return []rpc.API{
+	//	{
+	//		Namespace: ProtocolName,
+	//		Version:   ProtocolVersionStr,
+	//		Service:   NewPublicTorrentAPI(tfs),
+	//		Public: false,
+	//	},
+	//}
+	return nil
+}
+
+func (tfs *TorrentFS) Version() uint {
+	return tfs.protocol.Version
+}
+
+type PublicTorrentAPI struct {
+	w *TorrentFS
+
+	lastUsed map[string]time.Time // keeps track when a filter was polled for the last time.
+}
+
+// NewPublicWhisperAPI create a new RPC whisper service.
+func NewPublicTorrentAPI(w *TorrentFS) *PublicTorrentAPI {
+	api := &PublicTorrentAPI{
+		w:        w,
+		lastUsed: make(map[string]time.Time),
+	}
+	return api
+}
 
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
