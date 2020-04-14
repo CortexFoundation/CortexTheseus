@@ -3,7 +3,6 @@ package torrentfs
 import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	"io/ioutil"
@@ -24,17 +23,12 @@ type CVMStorage interface {
 	Stop() error
 }
 
-type GeneralMessage struct {
-	Version string `json:"version,omitempty"`
-	Commit  string `json:"commit,omitempty"`
-}
-
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
 	protocol p2p.Protocol // Protocol description and parameters
 	config   *Config
-	history  *GeneralMessage
-	monitor  *Monitor
+	//history  *GeneralMessage
+	monitor *Monitor
 
 	fileLock  sync.Mutex
 	fileCache *lru.Cache
@@ -88,12 +82,7 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 	//	versionMeta = fmt.Sprintf(" (%s)", params.VersionMeta)
 	//}
 
-	msg := &GeneralMessage{
-		Commit:  commit,
-		Version: fmt.Sprintf("v%d.%d.%d-%s", params.VersionMajor, params.VersionMinor, params.VersionPatch, params.VersionMeta),
-	}
-
-	log.Info("Fs version info", "version", msg.Version)
+	//log.Info("Fs version info", "version", msg.Version)
 
 	monitor, moErr := NewMonitor(config)
 	if moErr != nil {
@@ -102,8 +91,8 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 	}
 
 	torrentInstance = &TorrentFS{
-		config:  config,
-		history: msg,
+		config: config,
+		//history: msg,
 		monitor: monitor,
 	}
 	torrentInstance.fileCache, _ = lru.New(8)
@@ -143,10 +132,10 @@ func (tfs *TorrentFS) MaxMessageSize() uint64 {
 
 func (tfs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// Create the new peer and start tracking it
-	//tfsPeer := newPeer(tfs, peer, rw)
-
+	tfsPeer := newPeer(tfs, peer, rw)
+	tfsPeer.Start()
 	defer func() {
-		//
+		tfsPeer.Stop()
 	}()
 
 	return nil
