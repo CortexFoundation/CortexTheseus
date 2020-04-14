@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
+	"golang.org/x/time/rate"
 	//"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
@@ -372,27 +373,21 @@ func (t *Torrent) download(p, slot int) {
 	}
 
 	e = s + p
-	progress := ""
-	//base := t.Torrent.NumPieces()/10
+	//progress := t.progressBar(int64(p), int64(t.Torrent.NumPieces()))
+	//log.Trace("[ "+progress+" ]", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "conn", t.currentConns)
+	t.Torrent.DownloadPieces(s, e)
+}
 
-	//if base > 0 {
+func (t *Torrent) progressBar(x, y int64) string {
+	progress := ""
 	for i := 10; i > 0; i-- {
-		if i > (10*p)/t.Torrent.NumPieces() {
-			//progress = progress + "<"
+		if int64(i) > (10*x)/y {
 			progress = progress + " "
 		} else {
-			//progress = progress + " "
 			progress = progress + "<"
 		}
 	}
-	//}else {
-	//	progress = "<<<<<<<<<"
-	//}
-	//if p == t.Torrent.NumPieces() {
-	//	progress = "<<<<<<"
-	//}
-	log.Debug("[ "+progress+" ]", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "conn", t.currentConns)
-	t.Torrent.DownloadPieces(s, e)
+	return progress
 }
 
 func (t *Torrent) Running() bool {
@@ -786,12 +781,18 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableUTP = true //config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
-	//cfg.DisableTCP = config.DisableTCP
+	cfg.DisableTCP = false //config.DisableTCP
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
 
 	cfg.DataDir = config.DataDir
+	if config.UploadRate > 0 {
+		cfg.UploadRateLimiter = rate.NewLimiter(rate.Limit(config.UploadRate), 256<<10)
+	}
+	if config.DownloadRate > 0 {
+		cfg.DownloadRateLimiter = rate.NewLimiter(rate.Limit(config.DownloadRate), 1<<20)
+	}
 	//cfg.DisableEncryption = true
 	//cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
 	//listenAddr := &net.TCPAddr{}
@@ -1257,8 +1258,9 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					}
 				}
 
-				if log_counter%30 == 0 {
-					log.Info("[Downloading]", "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces())
+				if log_counter%60 == 0 && t.bytesCompleted > 0 {
+					bar := t.progressBar(t.bytesCompleted, t.Torrent.Length())
+					log.Info( /*"[Downloading]" + */ "[ "+bar+" ]", "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces())
 				}
 
 				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {

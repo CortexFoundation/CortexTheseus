@@ -23,6 +23,8 @@ type Config struct {
 	FullSeed        bool
 	Boost           bool
 	Quiet           bool
+	UploadRate      int
+	DownloadRate    int
 }
 
 // DefaultConfig contains default settings for the storage.
@@ -39,6 +41,8 @@ var DefaultConfig = Config{
 	FullSeed:        false,
 	Boost:           false,
 	Quiet:           true,
+	UploadRate:      -1,
+	DownloadRate:    -1,
 }
 
 const (
