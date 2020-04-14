@@ -201,13 +201,13 @@ var (
 		Usage: "P2P storage directory",
 		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
-	/*
-		StoragePortFlag = cli.IntFlag{
-			Name:  "storage.port",
-			Usage: "p2p storage listening port",
-			Value: torrentfs.DefaultConfig.Port,
-		}
-	*/
+
+	StoragePortFlag = cli.IntFlag{
+		Name:  "storage.port",
+		Usage: "p2p storage listening port",
+		Value: torrentfs.DefaultConfig.Port,
+	}
+
 	StorageMaxSeedingFlag = cli.IntFlag{
 		Name:  "storage.max_seeding",
 		Usage: "The maximum number of seeding tasks in the same time",
@@ -1416,7 +1416,7 @@ func setDNSDiscoveryDefaults(cfg *ctxc.Config, url string) {
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
 func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	//	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
-	//  cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
+	cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""
