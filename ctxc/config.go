@@ -33,17 +33,18 @@ import (
 
 // DefaultConfig contains default settings for use on the Cortex main net.
 var DefaultConfig = Config{
-	SyncMode:      downloader.FullSync,
-	Cuckoo:        cuckoo.Config{},
-	NetworkId:     21,
-	DatabaseCache: 768,
-	TrieCache:     256,
-	TrieTimeout:   60 * time.Minute,
-	SnapshotCache: 256,
-	MinerGasFloor: params.MinerGasFloor, //8000000,
-	MinerGasCeil:  params.MinerGasCeil,  //8000000,
-	MinerGasPrice: big.NewInt(params.GWei),
-	MinerRecommit: 3 * time.Second,
+	SyncMode:       downloader.FullSync,
+	Cuckoo:         cuckoo.Config{},
+	NetworkId:      21,
+	DatabaseCache:  512,
+	TrieCleanCache: 256,
+	TrieDirtyCache: 256,
+	TrieTimeout:    60 * time.Minute,
+	SnapshotCache:  256,
+	MinerGasFloor:  params.MinerGasFloor, //8000000,
+	MinerGasCeil:   params.MinerGasCeil,  //8000000,
+	MinerGasPrice:  big.NewInt(params.GWei),
+	MinerRecommit:  3 * time.Second,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -73,6 +74,7 @@ type Config struct {
 	SyncMode      downloader.SyncMode
 	DiscoveryURLs []string
 	NoPruning     bool
+	NoPrefetch    bool // Whether to disable prefetching and only load state on demand
 
 	Whitelist map[uint64]common.Hash `toml:"-"`
 
@@ -81,7 +83,8 @@ type Config struct {
 	DatabaseHandles    int  `toml:"-"`
 	DatabaseCache      int
 	DatabaseFreezer    string
-	TrieCache          int
+	TrieCleanCache     int
+	TrieDirtyCache     int
 	TrieTimeout        time.Duration
 	SnapshotCache      int
 
@@ -110,8 +113,8 @@ type Config struct {
 	GPO gasprice.Config
 
 	EnablePreimageRecording bool
-	CWASMInterpreter string
-	CVMInterpreter string
+	CWASMInterpreter        string
+	CVMInterpreter          string
 
 	InferURI   string
 	StorageDir string

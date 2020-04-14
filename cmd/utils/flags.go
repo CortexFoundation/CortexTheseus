@@ -331,17 +331,26 @@ var (
 	CacheDatabaseFlag = cli.IntFlag{
 		Name:  "cache.database",
 		Usage: "Percentage of cache memory allowance to use for database io",
-		Value: 75,
+		Value: 50,
+	}
+	CacheTrieFlag = cli.IntFlag{
+		Name:  "cache.trie",
+		Usage: "Percentage of cache memory allowance to use for trie caching (default = 15% full mode, 30% archive mode)",
+		Value: 15,
 	}
 	CacheGCFlag = cli.IntFlag{
 		Name:  "cache.gc",
-		Usage: "Percentage of cache memory allowance to use for trie pruning 15%",
-		Value: 15,
+		Usage: "Percentage of cache memory allowance to use for trie pruning 25%",
+		Value: 25,
 	}
 	CacheSnapshotFlag = cli.IntFlag{
 		Name:  "cache.snapshot",
 		Usage: "Percentage of cache memory allowance to use for snapshot caching (default = 10% full mode, 20% archive mode)",
 		Value: 10,
+	}
+	CacheNoPrefetchFlag = cli.BoolFlag{
+		Name:  "cache.noprefetch",
+		Usage: "Disable heuristic state prefetch during block import (less CPU and disk IO, more time waiting for data)",
 	}
 	TrieCacheGenFlag = cli.IntFlag{
 		Name:  "trie-cache-gens",
@@ -473,10 +482,10 @@ var (
 		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
 	}
 
-	// VMEnableDebugFlag = cli.BoolFlag{
-	// 	Name:  "vmdebug",
-	// 	Usage: "Record information useful for VM and contract debugging",
-	// }
+	VMEnableDebugFlag = cli.BoolFlag{
+		Name:  "vmdebug",
+		Usage: "Record information useful for VM and contract debugging",
+	}
 	// Logging and debug settings
 	// CortexStatsURLFlag = cli.StringFlag{
 	// 	Name:  "stats",
@@ -1155,41 +1164,41 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 }
 
 func CheckExclusive(ctx *cli.Context, args ...interface{}) {
-        set := make([]string, 0, 1)
-        for i := 0; i < len(args); i++ {
-                // Make sure the next argument is a flag and skip if not set
-                flag, ok := args[i].(cli.Flag)
-                if !ok {
-                        panic(fmt.Sprintf("invalid argument, not cli.Flag type: %T", args[i]))
-                }
-                // Check if next arg extends current and expand its name if so
-                name := flag.GetName()
+	set := make([]string, 0, 1)
+	for i := 0; i < len(args); i++ {
+		// Make sure the next argument is a flag and skip if not set
+		flag, ok := args[i].(cli.Flag)
+		if !ok {
+			panic(fmt.Sprintf("invalid argument, not cli.Flag type: %T", args[i]))
+		}
+		// Check if next arg extends current and expand its name if so
+		name := flag.GetName()
 
-                if i+1 < len(args) {
-                        switch option := args[i+1].(type) {
-                        case string:
-                                // Extended flag check, make sure value set doesn't conflict with passed in option
-                                if ctx.GlobalString(flag.GetName()) == option {
-                                        name += "=" + option
-                                        set = append(set, "--"+name)
-                                }
-                                // shift arguments and continue
-                                i++
-                                continue
+		if i+1 < len(args) {
+			switch option := args[i+1].(type) {
+			case string:
+				// Extended flag check, make sure value set doesn't conflict with passed in option
+				if ctx.GlobalString(flag.GetName()) == option {
+					name += "=" + option
+					set = append(set, "--"+name)
+				}
+				// shift arguments and continue
+				i++
+				continue
 
-                        case cli.Flag:
-                        default:
-                                panic(fmt.Sprintf("invalid argument, not cli.Flag or string extension: %T", args[i+1]))
-                        }
-                }
-                // Mark the flag if it's set
-                if ctx.GlobalIsSet(flag.GetName()) {
-                        set = append(set, "--"+name)
-                }
-        }
-        if len(set) > 1 {
-                Fatalf("Flags %v can't be used at the same time", strings.Join(set, ", "))
-        }
+			case cli.Flag:
+			default:
+				panic(fmt.Sprintf("invalid argument, not cli.Flag or string extension: %T", args[i+1]))
+			}
+		}
+		// Mark the flag if it's set
+		if ctx.GlobalIsSet(flag.GetName()) {
+			set = append(set, "--"+name)
+		}
+	}
+	if len(set) > 1 {
+		Fatalf("Flags %v can't be used at the same time", strings.Join(set, ", "))
+	}
 }
 
 // SetShhConfig applies shh-related command line flags to the config.
@@ -1210,14 +1219,15 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
 	// checkExclusive(ctx, DeveloperFlag, BernardFlag, LazynetFlag)
 
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	var ks *keystore.KeyStore
+	if keystores := stack.AccountManager().Backends(keystore.KeyStoreType); len(keystores) > 0 {
+		ks = keystores[0].(*keystore.KeyStore)
+	}
 	setCoinbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
-		// TODO : Setting sync mode is temporally forbidden.
-		//Fatalf("Setting syncmode is temporally forbidden. The default value is 'full' mode")
 		//cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
@@ -1235,18 +1245,17 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
-	cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
-	//cfg.NoPrefetch = ctx.GlobalBool(CacheNoPrefetchFlag.Name)
-
-	//if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
-	//        cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
-	//}
-
-	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+	if ctx.GlobalIsSet(GCModeFlag.Name) {
+		cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
 	}
-	if ctx.GlobalIsSet(MinerNotifyFlag.Name) {
-		cfg.MinerNotify = strings.Split(ctx.GlobalString(MinerNotifyFlag.Name), ",")
+	if ctx.GlobalIsSet(CacheNoPrefetchFlag.Name) {
+		cfg.NoPrefetch = ctx.GlobalBool(CacheNoPrefetchFlag.Name)
+	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+		cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
+		cfg.TrieDirtyCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheSnapshotFlag.Name) {
 		cfg.SnapshotCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheSnapshotFlag.Name) / 100
@@ -1256,6 +1265,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 	if ctx.GlobalIsSet(DocRootFlag.Name) {
 		cfg.DocRoot = ctx.GlobalString(DocRootFlag.Name)
+	}
+	if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
+		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
 		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
@@ -1560,29 +1572,24 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		//TrieCleanLimit:      ctxc.DefaultConfig.TrieCleanCache,
-		//TrieCleanNoPrefetch: true, //ctx.GlobalBool(CacheNoPrefetchFlag.Name),
-		//TrieDirtyLimit:      ctxc.DefaultConfig.TrieDirtyCache,
-		TrieDirtyDisabled: ctx.GlobalString(GCModeFlag.Name) == "archive",
-		//	TrieNodeLimit: ctxc.DefaultConfig.TrieCache,
-		TrieTimeLimit: ctxc.DefaultConfig.TrieTimeout,
-		SnapshotLimit: ctxc.DefaultConfig.SnapshotCache,
+		TrieCleanLimit:      ctxc.DefaultConfig.TrieCleanCache,
+		TrieCleanNoPrefetch: ctx.GlobalBool(CacheNoPrefetchFlag.Name),
+		TrieDirtyLimit:      ctxc.DefaultConfig.TrieDirtyCache,
+		TrieDirtyDisabled:   ctx.GlobalString(GCModeFlag.Name) == "archive",
+		TrieTimeLimit:       ctxc.DefaultConfig.TrieTimeout,
+		SnapshotLimit:       ctxc.DefaultConfig.SnapshotCache,
 	}
 	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
 		cache.SnapshotLimit = 0 // Disabled
 	}
-	//if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-	//	cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
-	//}
-	// if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
-	//       cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
-	//}
-	//if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-	//        cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
-	//}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+		cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
+		cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+	}
 	vmcfg := vm.Config{
-		// EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
-		// InferURI: ctx.GlobalString(ModelCallInterfaceFlag.Name),
+		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
 	}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)
 	if err != nil {

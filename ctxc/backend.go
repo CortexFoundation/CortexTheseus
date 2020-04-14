@@ -104,6 +104,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		log.Warn("Sanitizing invalid miner gas price", "provided", config.MinerGasPrice, "updated", DefaultConfig.MinerGasPrice)
 		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
 	}
+	if config.NoPruning && config.TrieDirtyCache > 0 {
+		config.TrieCleanCache += config.TrieDirtyCache * 3 / 5
+		config.SnapshotCache += config.TrieDirtyCache * 3 / 5
+		config.TrieDirtyCache = 0
+	}
+	log.Info("Allocated trie memory caches", "clean", common.StorageSize(config.TrieCleanCache)*1024*1024, "dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024, "snapshot", common.StorageSize(config.SnapshotCache)*1024*1024, "NoPruning", config.NoPruning)
+
 	// Assemble the Cortex object
 	chainDb, err := ctx.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/")
 	if err != nil {
@@ -165,11 +172,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 			StorageDir:              config.StorageDir,
 		}
 		cacheConfig = &core.CacheConfig{
-			TrieDirtyDisabled: config.NoPruning,
-			TrieDirtyLimit:    config.TrieCache,
-			TrieTimeLimit:     config.TrieTimeout,
-			SnapshotLimit:     config.SnapshotCache,
-			SnapshotWait:      true,
+			TrieCleanLimit:      config.TrieCleanCache,
+			TrieCleanNoPrefetch: config.NoPrefetch,
+			TrieDirtyDisabled:   config.NoPruning,
+			TrieDirtyLimit:      config.TrieDirtyCache,
+			TrieTimeLimit:       config.TrieTimeout,
+
+			SnapshotLimit: config.SnapshotCache,
 		}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve)
@@ -189,7 +198,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	}
 	ctxc.txPool = core.NewTxPool(config.TxPool, ctxc.chainConfig, ctxc.blockchain)
 
-	cacheLimit := 512 //cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
+	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
 
 	if ctxc.protocolManager, err = NewProtocolManager(ctxc.chainConfig, config.SyncMode, config.NetworkId, ctxc.eventMux, ctxc.txPool, ctxc.engine, ctxc.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
 		return nil, err
@@ -500,6 +509,8 @@ func (s *Cortex) IsListening() bool                  { return true } // Always l
 func (s *Cortex) CortexVersion() int                 { return int(ProtocolVersions[0]) }
 func (s *Cortex) NetVersion() uint64                 { return s.networkID }
 func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
+func (s *Cortex) Synced() bool                       { return atomic.LoadUint32(&s.protocolManager.acceptTxs) == 1 }
+func (s *Cortex) ArchiveMode() bool                  { return s.config.NoPruning }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
