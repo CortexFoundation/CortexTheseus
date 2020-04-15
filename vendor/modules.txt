@@ -264,7 +264,7 @@ github.com/willf/bloom
 github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
+# golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
 golang.org/x/crypto/cast5
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/hkdf
