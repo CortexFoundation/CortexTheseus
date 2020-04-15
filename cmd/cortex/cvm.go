@@ -186,7 +186,7 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
 	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
-	fsCfg.DisableTCP = ctx.GlobalBool(utils.StorageDisableTCPFlag.Name)
+	//fsCfg.DisableTCP = ctx.GlobalBool(utils.StorageDisableTCPFlag.Name)
 	fsCfg.FullSeed = ctx.GlobalBool(utils.StorageFullFlag.Name)
 	fsCfg.Boost = ctx.GlobalBool(utils.StorageBoostFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")

@@ -3,16 +3,17 @@ package torrentfs
 import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
 	"io/ioutil"
 	"path"
 	"sync"
+	"time"
 	//"strings"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common/compress"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -22,15 +23,11 @@ type CVMStorage interface {
 	Stop() error
 }
 
-type GeneralMessage struct {
-	Version string `json:"version,omitempty"`
-	Commit  string `json:"commit,omitempty"`
-}
-
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
-	config  *Config
-	history *GeneralMessage
+	protocol p2p.Protocol // Protocol description and parameters
+	config   *Config
+	//history  *GeneralMessage
 	monitor *Monitor
 
 	fileLock  sync.Mutex
@@ -85,12 +82,7 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 	//	versionMeta = fmt.Sprintf(" (%s)", params.VersionMeta)
 	//}
 
-	msg := &GeneralMessage{
-		Commit:  commit,
-		Version: fmt.Sprintf("v%d.%d.%d-%s", params.VersionMajor, params.VersionMinor, params.VersionPatch, params.VersionMeta),
-	}
-
-	log.Info("Fs version info", "version", msg.Version)
+	//log.Info("Fs version info", "version", msg.Version)
 
 	monitor, moErr := NewMonitor(config)
 	if moErr != nil {
@@ -99,8 +91,8 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 	}
 
 	torrentInstance = &TorrentFS{
-		config:  config,
-		history: msg,
+		config: config,
+		//history: msg,
 		monitor: monitor,
 	}
 	torrentInstance.fileCache, _ = lru.New(8)
@@ -108,14 +100,81 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 	torrentInstance.compress = compress
 	torrentInstance.cache = cache
 
+	torrentInstance.protocol = p2p.Protocol{
+		Name:    ProtocolName,
+		Version: uint(ProtocolVersion),
+		Length:  NumberOfMessageCodes,
+		Run:     torrentInstance.HandlePeer,
+		NodeInfo: func() interface{} {
+			return map[string]interface{}{
+				"version": ProtocolVersionStr,
+				//"maxMessageSize": torrentInstance.MaxMessageSize(),
+				"utp":    !config.DisableUTP,
+				"tcp":    !config.DisableTCP,
+				"dht":    !config.DisableDHT,
+				"listen": config.Port,
+			}
+		},
+		PeerInfo: func(id enode.ID) interface{} {
+			//if p := pm.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
+			//      return p.Info()
+			//}
+			return nil
+		},
+	}
+
 	return torrentInstance, nil
 }
 
+func (tfs *TorrentFS) MaxMessageSize() uint64 {
+	return NumberOfMessageCodes
+}
+
+func (tfs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
+	// Create the new peer and start tracking it
+	tfsPeer := newPeer(tfs, peer, rw)
+	tfsPeer.Start()
+	defer func() {
+		tfsPeer.Stop()
+	}()
+
+	return nil
+}
+
 // Protocols implements the node.Service interface.
-func (tfs *TorrentFS) Protocols() []p2p.Protocol { return nil }
+func (tfs *TorrentFS) Protocols() []p2p.Protocol { return []p2p.Protocol{tfs.protocol} }
 
 // APIs implements the node.Service interface.
-func (tfs *TorrentFS) APIs() []rpc.API { return nil }
+func (tfs *TorrentFS) APIs() []rpc.API {
+	//return []rpc.API{
+	//	{
+	//		Namespace: ProtocolName,
+	//		Version:   ProtocolVersionStr,
+	//		Service:   NewPublicTorrentAPI(tfs),
+	//		Public: false,
+	//	},
+	//}
+	return nil
+}
+
+func (tfs *TorrentFS) Version() uint {
+	return tfs.protocol.Version
+}
+
+type PublicTorrentAPI struct {
+	w *TorrentFS
+
+	lastUsed map[string]time.Time // keeps track when a filter was polled for the last time.
+}
+
+// NewPublicWhisperAPI create a new RPC whisper service.
+func NewPublicTorrentAPI(w *TorrentFS) *PublicTorrentAPI {
+	api := &PublicTorrentAPI{
+		w:        w,
+		lastUsed: make(map[string]time.Time),
+	}
+	return api
+}
 
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
