@@ -179,7 +179,7 @@ func NewPublicTorrentAPI(w *TorrentFS) *PublicTorrentAPI {
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Start(server *p2p.Server) error {
-	log.Info("Fs monitor starting", "torrentfs", tfs)
+	log.Info("Fs monitor starting", "config", tfs)
 	if tfs == nil || tfs.monitor == nil {
 		return nil
 	}

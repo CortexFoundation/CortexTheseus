@@ -854,8 +854,8 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 		pendingChan:   make(chan *Torrent, torrentChanSize),
 		//updateTorrent:       make(chan interface{}),
 		fullSeed: config.FullSeed,
-		boost:    config.Boost,
-		id:       fsid,
+		//boost:    config.Boost,
+		id: fsid,
 		//bucket:1024
 		slot: int(fsid % bucket),
 	}
