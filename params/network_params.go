@@ -29,28 +29,26 @@ const (
 	BloomConfirms = 256
 
 	CHTFrequency = 32768
-	/*Check section:18 622591
-	Check section:19 655359
-	Check section:20 688127
-	Check section:21 720895
-	Check section:22 753663
-	Check section:23 786431
-	Check section:24 819199
-	Check section:25 851967
-	Check section:26 884735
-	Check section:27 917503
-	Check section:28 950271
-	Check section:29 983039
-	Check section:30 1015807
-	Check section:31 1048575
-	Check section:32 1081343
-	Check section:33 1114111
-	Check section:34 1146879
-	Check section:35 1179647
-	Check section:36 1212415
-	Check section:37 1245183
-	Check section:38 1277951
-	Check section:39 1310719
-	Check section:40 1343487*/
+	/*Check section:41 1376255
+	Check section:42 1409023
+	Check section:43 1441791
+	Check section:44 1474559
+	Check section:45 1507327
+	Check section:46 1540095
+	Check section:47 1572863
+	Check section:48 1605631
+	Check section:49 1638399
+	Check section:50 1671167
+	Check section:51 1703935
+	Check section:52 1736703
+	Check section:53 1769471
+	Check section:54 1802239
+	Check section:55 1835007
+	Check section:56 1867775
+	Check section:57 1900543
+	Check section:58 1933311
+	Check section:59 1966079
+	Check section:60 1998847
+	*/
 	ImmutabilityThreshold = 90000
 )
