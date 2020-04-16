@@ -21,6 +21,15 @@ type trackerScraper struct {
 	lastAnnounce trackerAnnounceResult
 }
 
+type torrentTrackerAnnouncer interface {
+	statusLine() string
+	URL() url.URL
+}
+
+func (me trackerScraper) URL() url.URL {
+	return me.u
+}
+
 func (ts *trackerScraper) statusLine() string {
 	var w bytes.Buffer
 	fmt.Fprintf(&w, "%q\t%s\t%s",
@@ -104,10 +113,10 @@ func (me *trackerScraper) announce(event tracker.AnnounceEvent) (ret trackerAnno
 		ret.Err = fmt.Errorf("error getting ip: %s", err)
 		return
 	}
-	me.t.cl.lock()
+	me.t.cl.rLock()
 	req := me.t.announceRequest(event)
-	me.t.cl.unlock()
-	//log.Printf("announcing %s %s to %q", me.t, req.Event, me.u.String())
+	me.t.cl.rUnlock()
+	me.t.logger.Printf("announcing to %q: %#v", me.u.String(), req)
 	res, err := tracker.Announce{
 		HTTPProxy:  me.t.cl.config.HTTPProxy,
 		UserAgent:  me.t.cl.config.HTTPUserAgent,
@@ -142,24 +151,33 @@ func (me *trackerScraper) Run() {
 		me.t.cl.unlock()
 
 	wait:
+		// Make sure we don't announce for at least a minute since the last one.
 		interval := ar.Interval
 		if interval < time.Minute {
 			interval = time.Minute
 		}
-		wantPeers := me.t.wantPeersEvent.LockedChan(me.t.cl.locker())
+
+		me.t.cl.lock()
+		wantPeers := me.t.wantPeersEvent.C()
+		closed := me.t.closed.C()
+		me.t.cl.unlock()
+
+		// If we want peers, reduce the interval to the minimum.
 		select {
 		case <-wantPeers:
 			if interval > time.Minute {
 				interval = time.Minute
 			}
+			// Now we're at the minimum, don't trigger on it anymore.
 			wantPeers = nil
 		default:
 		}
 
 		select {
-		case <-me.t.closed.LockedChan(me.t.cl.locker()):
+		case <-closed:
 			return
 		case <-wantPeers:
+			// Recalculate the interval.
 			goto wait
 		case <-time.After(time.Until(ar.Completed.Add(interval))):
 		}

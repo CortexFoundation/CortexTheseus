@@ -43,6 +43,7 @@ type PeerConn struct {
 	t *Torrent
 	// The actual Conn, used for closing, and setting socket options.
 	conn       net.Conn
+	connString string
 	outgoing   bool
 	network    string
 	remoteAddr net.Addr
@@ -85,13 +86,16 @@ type PeerConn struct {
 	// response.
 	metadataRequests []bool
 	sentHaves        bitmap.Bitmap
+	pex              pexConnState
 
 	// Stuff controlled by the remote peer.
-	PeerID             PeerID
-	peerInterested     bool
-	peerChoking        bool
-	peerRequests       map[request]struct{}
-	PeerExtensionBytes pp.PeerExtensionBits
+	PeerID                PeerID
+	peerInterested        bool
+	peerChoking           bool
+	peerRequests          map[request]struct{}
+	PeerExtensionBytes    pp.PeerExtensionBits
+	PeerPrefersEncryption bool // as indicated by 'e' field in extension handshake
+	PeerListenPort        int
 	// The pieces the peer has claimed to have.
 	_peerPieces bitmap.Bitmap
 	// The peer has everything. This can occur due to a special message, when
@@ -280,7 +284,7 @@ func (cn *PeerConn) downloadRate() float64 {
 
 func (cn *PeerConn) writeStatus(w io.Writer, t *Torrent) {
 	// \t isn't preserved in <pre> blocks?
-	fmt.Fprintf(w, "%+-55q %s %s-%s\n", cn.PeerID, cn.PeerExtensionBytes, cn.localAddr(), cn.remoteAddr)
+	fmt.Fprintf(w, "%+-55q %s %s\n", cn.PeerID, cn.PeerExtensionBytes, cn.connString)
 	fmt.Fprintf(w, "    last msg: %s, connected: %s, last helpful: %s, itime: %s, etime: %s\n",
 		eventAgeString(cn.lastMessageReceived),
 		eventAgeString(cn.completedHandshake),
@@ -317,6 +321,9 @@ func (cn *PeerConn) writeStatus(w io.Writer, t *Torrent) {
 func (cn *PeerConn) close() {
 	if !cn.closed.Set() {
 		return
+	}
+	if cn.pex.IsEnabled() {
+		cn.pex.Close()
 	}
 	cn.tickleWriter()
 	cn.discardPieceInclination()
@@ -556,7 +563,11 @@ func (cn *PeerConn) fillWriteBuffer(msg func(pp.Message) bool) {
 		}
 		cn.requestsLowWater = len(cn.requests) / 2
 	}
-
+	if cn.pex.IsEnabled() {
+		if flow := cn.pex.Share(msg); !flow {
+			return
+		}
+	}
 	cn.upload(msg)
 }
 
@@ -854,6 +865,14 @@ func (c *PeerConn) requestPendingMetadata() {
 
 func (cn *PeerConn) wroteMsg(msg *pp.Message) {
 	torrent.Add(fmt.Sprintf("messages written of type %s", msg.Type.String()), 1)
+	if msg.Type == pp.Extended {
+		for name, id := range cn.PeerExtensionIDs {
+			if id != msg.ExtendedID {
+				continue
+			}
+			torrent.Add(fmt.Sprintf("Extended messages written for protocol %q", name), 1)
+		}
+	}
 	cn.allStats(func(cs *ConnStats) { cs.wroteMsg(msg) })
 }
 
@@ -1115,6 +1134,8 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 		if c.PeerExtensionIDs == nil {
 			c.PeerExtensionIDs = make(map[pp.ExtensionName]pp.ExtensionNumber, len(d.M))
 		}
+		c.PeerListenPort = d.Port
+		c.PeerPrefersEncryption = d.Encryption
 		for name, id := range d.M {
 			if _, ok := c.PeerExtensionIDs[name]; !ok {
 				torrent.Add(fmt.Sprintf("peers supporting extension %q", name), 1)
@@ -1127,6 +1148,10 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 			}
 		}
 		c.requestPendingMetadata()
+		if !t.cl.config.DisablePEX {
+			t.pex.Add(c) // we learnt enough now
+			c.pex.Init(c)
+		}
 		return nil
 	case metadataExtendedId:
 		err := cl.gotMetadataExtensionMsg(payload, t, c)
@@ -1135,22 +1160,10 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 		}
 		return nil
 	case pexExtendedId:
-		if cl.config.DisablePEX {
-			// TODO: Maybe close the connection. Check that we're not
-			// advertising that we support PEX if it's disabled.
-			return nil
+		if !c.pex.IsEnabled() {
+			return nil // or hang-up maybe?
 		}
-		var pexMsg pp.PexMsg
-		err := bencode.Unmarshal(payload, &pexMsg)
-		if err != nil {
-			return fmt.Errorf("error unmarshalling PEX message: %s", err)
-		}
-		torrent.Add("pex added6 peers received", int64(len(pexMsg.Added6)))
-		var peers Peers
-		peers.AppendFromPex(pexMsg.Added6, pexMsg.Added6Flags)
-		peers.AppendFromPex(pexMsg.Added, pexMsg.AddedFlags)
-		t.addPeers(peers)
-		return nil
+		return c.pex.Recv(payload)
 	default:
 		return fmt.Errorf("unexpected extended message ID: %v", id)
 	}
@@ -1455,8 +1468,8 @@ func (c *PeerConn) setTorrent(t *Torrent) {
 	t.reconcileHandshakeStats(c)
 }
 
-func (c *PeerConn) peerPriority() peerPriority {
-	return bep40PriorityIgnoreError(c.remoteIpPort(), c.t.cl.publicAddr(c.remoteIp()))
+func (c *PeerConn) peerPriority() (peerPriority, error) {
+	return bep40Priority(c.remoteIpPort(), c.t.cl.publicAddr(c.remoteIp()))
 }
 
 func (c *PeerConn) remoteIp() net.IP {
@@ -1466,6 +1479,42 @@ func (c *PeerConn) remoteIp() net.IP {
 func (c *PeerConn) remoteIpPort() IpPort {
 	ipa, _ := tryIpPortFromNetAddr(c.remoteAddr)
 	return IpPort{ipa.IP, uint16(ipa.Port)}
+}
+
+func (c *PeerConn) pexPeerFlags() pp.PexPeerFlags {
+	f := pp.PexPeerFlags(0)
+	if c.PeerPrefersEncryption {
+		f |= pp.PexPrefersEncryption
+	}
+	if c.outgoing {
+		f |= pp.PexOutgoingConn
+	}
+	if c.remoteAddr != nil && strings.Contains(c.remoteAddr.Network(), "udp") {
+		f |= pp.PexSupportsUtp
+	}
+	return f
+}
+
+func (c *PeerConn) dialAddr() net.Addr {
+	if !c.outgoing && c.PeerListenPort != 0 {
+		switch addr := c.remoteAddr.(type) {
+		case *net.TCPAddr:
+			dialAddr := *addr
+			dialAddr.Port = c.PeerListenPort
+			return &dialAddr
+		case *net.UDPAddr:
+			dialAddr := *addr
+			dialAddr.Port = c.PeerListenPort
+			return &dialAddr
+		}
+	}
+	return c.remoteAddr
+}
+
+func (c *PeerConn) pexEvent(t pexEventType) pexEvent {
+	f := c.pexPeerFlags()
+	addr := c.dialAddr()
+	return pexEvent{t, addr, f}
 }
 
 func (c *PeerConn) String() string {

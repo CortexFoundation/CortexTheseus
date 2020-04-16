@@ -8,8 +8,8 @@ require (
 	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/anacrolix/log v0.6.1-0.20200211014814-17693f71c449
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200227072623-f02f6484f997
-	github.com/anacrolix/tagflag v1.0.1
-	github.com/anacrolix/torrent v1.15.1-0.20200404225758-692029877097
+	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
+	github.com/anacrolix/torrent v1.15.1-0.20200416020327-730cebf5aa8c
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 	github.com/aws/aws-sdk-go v1.25.48
 	github.com/bitly/go-simplejson v0.5.1-0.20181114203107-9db4a59bd4d8
@@ -60,7 +60,7 @@ require (
 	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect

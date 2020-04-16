@@ -257,7 +257,12 @@ func (cl *Client) AddDhtServer(d DhtServer) {
 // Adds a Dialer for outgoing connections. All Dialers are used when attempting to connect to a
 // given address for any Torrent.
 func (cl *Client) AddDialer(d Dialer) {
+	cl.lock()
+	defer cl.unlock()
 	cl.dialers = append(cl.dialers, d)
+	for _, t := range cl.torrents {
+		t.openNewConns()
+	}
 }
 
 // Registers a Listener, and starts Accepting on it. You must Close Listeners provided this way
@@ -461,12 +466,17 @@ func (cl *Client) acceptConnections(l net.Listener) {
 	}
 }
 
+func regularConnString(nc net.Conn) string {
+	return fmt.Sprintf("%s-%s", nc.LocalAddr(), nc.RemoteAddr())
+}
+
 func (cl *Client) incomingConnection(nc net.Conn) {
 	defer nc.Close()
 	if tc, ok := nc.(*net.TCPConn); ok {
 		tc.SetLinger(0)
 	}
-	c := cl.newConnection(nc, false, nc.RemoteAddr(), nc.RemoteAddr().Network())
+	c := cl.newConnection(nc, false, nc.RemoteAddr(), nc.RemoteAddr().Network(),
+		regularConnString(nc))
 	c.Discovery = PeerSourceIncoming
 	cl.runReceivedConn(c)
 }
@@ -621,10 +631,12 @@ func (cl *Client) noLongerHalfOpen(t *Torrent, addr string) {
 	t.openNewConns()
 }
 
-// Performs initiator handshakes and returns a connection. Returns nil
-// *connection if no connection for valid reasons.
-func (cl *Client) handshakesConnection(ctx context.Context, nc net.Conn, t *Torrent, encryptHeader bool, remoteAddr net.Addr, network string) (c *PeerConn, err error) {
-	c = cl.newConnection(nc, true, remoteAddr, network)
+// Performs initiator handshakes and returns a connection. Returns nil *connection if no connection
+// for valid reasons.
+func (cl *Client) handshakesConnection(ctx context.Context, nc net.Conn, t *Torrent, encryptHeader bool, remoteAddr net.Addr,
+	network, connString string,
+) (c *PeerConn, err error) {
+	c = cl.newConnection(nc, true, remoteAddr, network, connString)
 	c.headerEncrypted = encryptHeader
 	ctx, cancel := context.WithTimeout(ctx, cl.config.HandshakesTimeout)
 	defer cancel()
@@ -640,8 +652,7 @@ func (cl *Client) handshakesConnection(ctx context.Context, nc net.Conn, t *Torr
 	return
 }
 
-// Returns nil connection and nil error if no connection could be established
-// for valid reasons.
+// Returns nil connection and nil error if no connection could be established for valid reasons.
 func (cl *Client) establishOutgoingConnEx(t *Torrent, addr net.Addr, obfuscatedHeader bool) (*PeerConn, error) {
 	dialCtx, cancel := context.WithTimeout(context.Background(), func() time.Duration {
 		cl.rLock()
@@ -657,7 +668,7 @@ func (cl *Client) establishOutgoingConnEx(t *Torrent, addr net.Addr, obfuscatedH
 		}
 		return nil, errors.New("dial failed")
 	}
-	c, err := cl.handshakesConnection(context.Background(), nc, t, obfuscatedHeader, addr, dr.Network)
+	c, err := cl.handshakesConnection(context.Background(), nc, t, obfuscatedHeader, addr, dr.Network, regularConnString(nc))
 	if err != nil {
 		nc.Close()
 	}
@@ -850,6 +861,7 @@ func (cl *Client) runReceivedConn(c *PeerConn) {
 	cl.runHandshookConn(c, t)
 }
 
+// Client lock must be held before entering this.
 func (cl *Client) runHandshookConn(c *PeerConn, t *Torrent) {
 	c.setTorrent(t)
 	if c.PeerID == cl.peerID {
@@ -1227,7 +1239,7 @@ func (cl *Client) banPeerIP(ip net.IP) {
 	cl.badPeerIPs[ip.String()] = struct{}{}
 }
 
-func (cl *Client) newConnection(nc net.Conn, outgoing bool, remoteAddr net.Addr, network string) (c *PeerConn) {
+func (cl *Client) newConnection(nc net.Conn, outgoing bool, remoteAddr net.Addr, network, connString string) (c *PeerConn) {
 	c = &PeerConn{
 		conn:            nc,
 		outgoing:        outgoing,
@@ -1237,6 +1249,7 @@ func (cl *Client) newConnection(nc net.Conn, outgoing bool, remoteAddr net.Addr,
 		writeBuffer:     new(bytes.Buffer),
 		remoteAddr:      remoteAddr,
 		network:         network,
+		connString:      connString,
 	}
 	c.logger = cl.logger.WithValues(c,
 		log.Debug, // I want messages to default to debug, and can set it here as it's only used by new code
@@ -1315,13 +1328,15 @@ func (cl *Client) publicIp(peer net.IP) net.IP {
 }
 
 func (cl *Client) findListenerIp(f func(net.IP) bool) net.IP {
-	return addrIpOrNil(
-		cl.findListener(
-			func(l net.Listener) bool {
-				return f(addrIpOrNil(l.Addr()))
-			},
-		).Addr(),
+	l := cl.findListener(
+		func(l net.Listener) bool {
+			return f(addrIpOrNil(l.Addr()))
+		},
 	)
+	if l == nil {
+		return nil
+	}
+	return addrIpOrNil(l.Addr())
 }
 
 // Our IP as a peer should see it.
