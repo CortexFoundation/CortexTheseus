@@ -1,10 +1,15 @@
 package tagflag
 
 import (
+	"errors"
 	"net"
 	"net/url"
 	"reflect"
+	"strconv"
+	"strings"
 	"time"
+
+	"golang.org/x/xerrors"
 )
 
 var builtinMarshalers = map[reflect.Type]marshaler{}
@@ -45,7 +50,13 @@ func init() {
 		if s == "" {
 			return nil, nil
 		}
-		return net.ResolveTCPAddr("tcp", s)
+		var ret net.TCPAddr
+		retAlt, err := parseIpPortZone(s)
+		if err != nil {
+			return nil, err
+		}
+		ret = net.TCPAddr(retAlt)
+		return &ret, err
 	}, true)
 	addBuiltinDynamicMarshaler(func(s string) (time.Duration, error) {
 		return time.ParseDuration(s)
@@ -53,4 +64,43 @@ func init() {
 	addBuiltinDynamicMarshaler(func(s string) net.IP {
 		return net.ParseIP(s)
 	}, false)
+}
+
+func parseIpAddr(host string) (ret net.IPAddr, err error) {
+	ss := strings.SplitN(host, "%", 2)
+	ret.IP = net.ParseIP(ss[0])
+	if ret.IP == nil && ss[0] != "" {
+		err = errors.New("error parsing IP")
+		return
+	}
+	if len(ss) >= 2 {
+		ret.Zone = ss[1]
+	}
+	return
+}
+
+type ipPortZone struct {
+	IP   net.IP
+	Port int
+	Zone string
+}
+
+func parseIpPortZone(hostport string) (ret ipPortZone, err error) {
+	host, port, err := net.SplitHostPort(hostport)
+	if err != nil {
+		return
+	}
+	portInt64, err := strconv.ParseInt(port, 10, 0)
+	if err != nil {
+		return
+	}
+	ret.Port = int(portInt64)
+	ipAddr, err := parseIpAddr(host)
+	if err != nil {
+		err = xerrors.Errorf("parsing host %q: %w", host, err)
+		return
+	}
+	ret.IP = ipAddr.IP
+	ret.Zone = ipAddr.Zone
+	return
 }

@@ -346,16 +346,24 @@ func getServiceDescriptions(deviceUUID string, localIPAddress net.IP, rootURL st
 	return result, nil
 }
 
-func getIGDServices(deviceUUID string, localIPAddress net.IP, rootURL string, device upnpDevice, wanDeviceURN string, wanConnectionURN string, URNs []string, log levelLogger) []IGDService {
-	var result []IGDService
+func getIGDServices(
+	deviceUUID string,
+	localIPAddress net.IP,
+	rootURL string,
+	device upnpDevice,
+	wanDeviceURN string,
+	wanConnectionURN string,
+	URNs []string,
+	logger levelLogger,
+) (ret []IGDService) {
 
 	devices := getChildDevices(device, wanDeviceURN)
 
 	if len(devices) < 1 {
 		if Debug {
-			log.Debugf("%s - malformed InternetGatewayDevice description: no WANDevices specified.", rootURL)
+			logger.Debugf("%s - malformed InternetGatewayDevice description: no WANDevices specified.", rootURL)
 		}
-		return result
+		return
 	}
 
 	for _, device := range devices {
@@ -363,7 +371,7 @@ func getIGDServices(deviceUUID string, localIPAddress net.IP, rootURL string, de
 
 		if len(connections) < 1 {
 			if Debug {
-				log.Debugf("%s - malformed %s description: no WANConnectionDevices specified.", rootURL, wanDeviceURN)
+				logger.Debugf("%s - malformed %s description: no WANConnectionDevices specified.", rootURL, wanDeviceURN)
 			}
 		}
 
@@ -372,20 +380,20 @@ func getIGDServices(deviceUUID string, localIPAddress net.IP, rootURL string, de
 				services := getChildServices(connection, URN)
 
 				if Debug {
-					log.Debugf("%s - no services of type %s found on connection.", rootURL, URN)
+					logger.Debugf("%s - no services of type %s found on connection.", rootURL, URN)
 				}
 
 				for _, service := range services {
 					if len(service.ControlURL) == 0 {
 						if Debug {
-							log.Debugf("%s- malformed %s description: no control URL.", rootURL, service.Type)
+							logger.Debugf("%s- malformed %s description: no control URL.", rootURL, service.Type)
 						}
 					} else {
 						u, _ := url.Parse(rootURL)
 						replaceRawPath(u, service.ControlURL)
 
 						if Debug {
-							log.Debugf("%s- found %s with URL %s", rootURL, service.Type, u)
+							logger.Debugf("%s- found %s with URL %s", rootURL, service.Type, u)
 						}
 
 						service := IGDService{
@@ -395,17 +403,17 @@ func getIGDServices(deviceUUID string, localIPAddress net.IP, rootURL string, de
 							URL:       u.String(),
 							URN:       service.Type,
 							LocalIP:   localIPAddress,
-							ll:        log,
+							ll:        logger,
 						}
 
-						result = append(result, service)
+						ret = append(ret, service)
 					}
 				}
 			}
 		}
 	}
 
-	return result
+	return
 }
 
 func replaceRawPath(u *url.URL, rp string) {

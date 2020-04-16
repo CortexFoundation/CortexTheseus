@@ -10,12 +10,12 @@ github.com/Azure/azure-storage-blob-go/azblob
 github.com/RoaringBitmap/roaring
 # github.com/VictoriaMetrics/fastcache v1.5.7
 github.com/VictoriaMetrics/fastcache
-# github.com/anacrolix/dht/v2 v2.5.1-0.20200317023935-129f05e9b752
+# github.com/anacrolix/dht/v2 v2.6.1-0.20200416071723-3850fa1b802a
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.2
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.6.1-0.20200211014814-17693f71c449
+# github.com/anacrolix/log v0.6.1-0.20200416071330-f58a030e6149
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.2.1
 github.com/anacrolix/missinggo
@@ -42,7 +42,7 @@ github.com/anacrolix/missinggo/v2/resource
 # github.com/anacrolix/mmsg v1.0.0
 github.com/anacrolix/mmsg
 github.com/anacrolix/mmsg/socket
-# github.com/anacrolix/multiless v0.0.0-20191223025854-070b7994e841
+# github.com/anacrolix/multiless v0.0.0-20200413040533-acfd16f65d5d
 github.com/anacrolix/multiless
 # github.com/anacrolix/stm v0.2.0
 github.com/anacrolix/stm
@@ -50,9 +50,9 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/tagflag v1.0.1
+# github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200404225758-692029877097
+# github.com/anacrolix/torrent v1.15.1-0.20200416075157-48bea90f0a1f
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
@@ -65,7 +65,8 @@ github.com/anacrolix/torrent/mse
 github.com/anacrolix/torrent/peer_protocol
 github.com/anacrolix/torrent/storage
 github.com/anacrolix/torrent/tracker
-# github.com/anacrolix/upnp v0.1.1
+github.com/anacrolix/torrent/webtorrent
+# github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 github.com/anacrolix/utp
@@ -118,6 +119,8 @@ github.com/btcsuite/btcd/btcec
 github.com/cespare/cp
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
+# github.com/cheekybits/genny v1.0.0
+github.com/cheekybits/genny/generic
 # github.com/cloudflare/cloudflare-go v0.11.5
 github.com/cloudflare/cloudflare-go
 # github.com/davecgh/go-spew v1.1.1
@@ -185,6 +188,18 @@ github.com/julienschmidt/httprouter
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
+# github.com/lucas-clemente/quic-go v0.7.1-0.20190401152353-907071221cf9
+github.com/lucas-clemente/quic-go
+github.com/lucas-clemente/quic-go/internal/ackhandler
+github.com/lucas-clemente/quic-go/internal/congestion
+github.com/lucas-clemente/quic-go/internal/flowcontrol
+github.com/lucas-clemente/quic-go/internal/handshake
+github.com/lucas-clemente/quic-go/internal/protocol
+github.com/lucas-clemente/quic-go/internal/qerr
+github.com/lucas-clemente/quic-go/internal/utils
+github.com/lucas-clemente/quic-go/internal/wire
+# github.com/marten-seemann/qtls v0.2.3
+github.com/marten-seemann/qtls
 # github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 github.com/mattn/go-colorable
 # github.com/mattn/go-ieproxy v0.0.0-20190702010315-6dee0af9227d
@@ -210,6 +225,56 @@ github.com/pborman/uuid
 github.com/peterh/liner
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
+# github.com/pion/datachannel v1.4.16
+github.com/pion/datachannel
+# github.com/pion/dtls/v2 v2.0.0-rc.9
+github.com/pion/dtls/v2
+github.com/pion/dtls/v2/internal/closer
+github.com/pion/dtls/v2/internal/net/connctx
+github.com/pion/dtls/v2/internal/net/udp
+github.com/pion/dtls/v2/pkg/crypto/ccm
+github.com/pion/dtls/v2/pkg/crypto/fingerprint
+# github.com/pion/ice v0.7.10
+github.com/pion/ice
+# github.com/pion/logging v0.2.2
+github.com/pion/logging
+# github.com/pion/mdns v0.0.4
+github.com/pion/mdns
+# github.com/pion/quic v0.1.1
+github.com/pion/quic
+github.com/pion/quic/internal/wrapper
+# github.com/pion/rtcp v1.2.1
+github.com/pion/rtcp
+# github.com/pion/rtp v1.3.2
+github.com/pion/rtp
+github.com/pion/rtp/codecs
+# github.com/pion/sctp v1.7.6
+github.com/pion/sctp
+# github.com/pion/sdp/v2 v2.3.4
+github.com/pion/sdp/v2
+# github.com/pion/srtp v1.3.1
+github.com/pion/srtp
+# github.com/pion/stun v0.3.3
+github.com/pion/stun
+github.com/pion/stun/internal/hmac
+# github.com/pion/transport v0.10.0
+github.com/pion/transport/deadline
+github.com/pion/transport/packetio
+github.com/pion/transport/replaydetector
+github.com/pion/transport/vnet
+# github.com/pion/turn/v2 v2.0.3
+github.com/pion/turn/v2
+github.com/pion/turn/v2/internal/allocation
+github.com/pion/turn/v2/internal/client
+github.com/pion/turn/v2/internal/ipnet
+github.com/pion/turn/v2/internal/proto
+github.com/pion/turn/v2/internal/server
+# github.com/pion/webrtc/v2 v2.2.4
+github.com/pion/webrtc/v2
+github.com/pion/webrtc/v2/internal/mux
+github.com/pion/webrtc/v2/internal/util
+github.com/pion/webrtc/v2/pkg/media
+github.com/pion/webrtc/v2/pkg/rtcerr
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
@@ -266,8 +331,15 @@ github.com/wsddn/go-ecdh
 go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
 golang.org/x/crypto/cast5
+golang.org/x/crypto/chacha20
+golang.org/x/crypto/chacha20poly1305
+golang.org/x/crypto/cryptobyte
+golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/hkdf
+golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/openpgp/elgamal
@@ -275,17 +347,23 @@ golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/poly1305
 golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+golang.org/x/net/bpf
 golang.org/x/net/context
+golang.org/x/net/dns/dnsmessage
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/http/httpproxy
 golang.org/x/net/idna
+golang.org/x/net/internal/iana
+golang.org/x/net/internal/socket
+golang.org/x/net/ipv4
 golang.org/x/net/publicsuffix
 golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
@@ -321,7 +399,7 @@ golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
+# gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 gopkg.in/check.v1
 # gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 gopkg.in/natefinch/npipe.v2

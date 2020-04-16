@@ -221,11 +221,11 @@ func (t *Torrent) Files() []*File {
 	return *t.files
 }
 
-func (t *Torrent) AddPeers(pp []Peer) {
+func (t *Torrent) AddPeers(pp []Peer) int {
 	cl := t.cl
 	cl.lock()
 	defer cl.unlock()
-	t.addPeers(pp)
+	return t.addPeers(pp)
 }
 
 // Marks the entire torrent for download. Requires the info first, see
@@ -254,6 +254,8 @@ func (t *Torrent) Piece(i pieceIndex) *Piece {
 }
 
 func (t *Torrent) PeerConns() []*PeerConn {
+	t.cl.rLock()
+	defer t.cl.rUnlock()
 	ret := make([]*PeerConn, 0, len(t.conns))
 	for c := range t.conns {
 		ret = append(ret, c)

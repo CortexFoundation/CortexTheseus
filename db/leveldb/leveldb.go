@@ -62,18 +62,18 @@ type Database struct {
 	fn string      // filename for reporting
 	db *leveldb.DB // LevelDB instance
 
-	compTimeMeter    metrics.Meter // Meter for measuring the total time spent in database compaction
-	compReadMeter    metrics.Meter // Meter for measuring the data read during compaction
-	compWriteMeter   metrics.Meter // Meter for measuring the data written during compaction
-	writeDelayNMeter metrics.Meter // Meter for measuring the write delay number due to database compaction
-	writeDelayMeter  metrics.Meter // Meter for measuring the write delay duration due to database compaction
-	diskSizeGauge    metrics.Gauge // Gauge for tracking the size of all the levels in the database
-	diskReadMeter    metrics.Meter // Meter for measuring the effective amount of data read
-	diskWriteMeter   metrics.Meter // Meter for measuring the effective amount of data written
+	compTimeMeter      metrics.Meter // Meter for measuring the total time spent in database compaction
+	compReadMeter      metrics.Meter // Meter for measuring the data read during compaction
+	compWriteMeter     metrics.Meter // Meter for measuring the data written during compaction
+	writeDelayNMeter   metrics.Meter // Meter for measuring the write delay number due to database compaction
+	writeDelayMeter    metrics.Meter // Meter for measuring the write delay duration due to database compaction
+	diskSizeGauge      metrics.Gauge // Gauge for tracking the size of all the levels in the database
+	diskReadMeter      metrics.Meter // Meter for measuring the effective amount of data read
+	diskWriteMeter     metrics.Meter // Meter for measuring the effective amount of data written
 	memCompGauge       metrics.Gauge // Gauge for tracking the number of memory compaction
 	level0CompGauge    metrics.Gauge // Gauge for tracking the number of table compaction in level0
 	nonlevel0CompGauge metrics.Gauge // Gauge for tracking the number of table compaction in non0 level
-	seekCompGauge     metrics.Gauge // Gauge for tracking the number of table compaction caused by read opt
+	seekCompGauge      metrics.Gauge // Gauge for tracking the number of table compaction caused by read opt
 
 	quitLock sync.Mutex      // Mutex protecting the quit channel access
 	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
@@ -183,23 +183,8 @@ func (db *Database) NewBatch() ctxcdb.Batch {
 	}
 }
 
-// NewIterator creates a binary-alphabetical iterator over the entire keyspace
-// contained within the leveldb database.
-func (db *Database) NewIterator() ctxcdb.Iterator {
-	return db.db.NewIterator(new(util.Range), nil)
-}
-
-// NewIteratorWithStart creates a binary-alphabetical iterator over a subset of
-// database content starting at a particular initial key (or after, if it does
-// not exist).
-func (db *Database) NewIteratorWithStart(start []byte) ctxcdb.Iterator {
-	return db.db.NewIterator(&util.Range{Start: start}, nil)
-}
-
-// NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
-// of database content with a particular key prefix.
-func (db *Database) NewIteratorWithPrefix(prefix []byte) ctxcdb.Iterator {
-	return db.db.NewIterator(util.BytesPrefix(prefix), nil)
+func (db *Database) NewIterator(prefix []byte, start []byte) ctxcdb.Iterator {
+	return db.db.NewIterator(bytesPrefixRange(prefix, start), nil)
 }
 
 // Stat returns a particular internal stat of the database.
@@ -487,4 +472,13 @@ func (r *replayer) Delete(key []byte) {
 		return
 	}
 	r.failure = r.writer.Delete(key)
+}
+
+// bytesPrefixRange returns key range that satisfy
+// - the given prefix, and
+// - the given seek position
+func bytesPrefixRange(prefix, start []byte) *util.Range {
+	r := util.BytesPrefix(prefix)
+	r.Start = append(r.Start, start...)
+	return r
 }

@@ -244,6 +244,10 @@ var (
 		Name:  "storage.full",
 		Usage: "download full file",
 	}
+	StorageDebugFlag = cli.BoolFlag{
+		Name:  "storage.debug",
+		Usage: "debug mod for nas",
+	}
 	// Dashboard settings
 	// DashboardEnabledFlag = cli.BoolFlag{
 	// 	Name:  metrics.DashboardEnabledFlag,

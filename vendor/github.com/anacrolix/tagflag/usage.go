@@ -9,10 +9,9 @@ import (
 	"github.com/anacrolix/missinggo/slices"
 )
 
-func (p *parser) printUsage(w io.Writer) {
-	fmt.Fprintf(w, "Usage:\n  %s", p.program)
-	if p.hasOptions() {
-		fmt.Fprintf(w, " [OPTIONS...]")
+func (p *Parser) printPosArgUsage(w io.Writer) {
+	if p.parent != nil {
+		p.parent.printPosArgUsage(w)
 	}
 	for _, arg := range p.posArgs {
 		fs := func() string {
@@ -36,6 +35,14 @@ func (p *parser) printUsage(w io.Writer) {
 		//  }
 		// }
 	}
+}
+
+func (p *Parser) printUsage(w io.Writer) {
+	fmt.Fprintf(w, "Usage:\n  %s", p.program)
+	if p.hasOptions() {
+		fmt.Fprintf(w, " [OPTIONS...]")
+	}
+	p.printPosArgUsage(w)
 	fmt.Fprintf(w, "\n")
 	if p.description != "" {
 		fmt.Fprintf(w, "\n%s\n", missinggo.Unchomp(p.description))
