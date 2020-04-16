@@ -10,12 +10,12 @@ github.com/Azure/azure-storage-blob-go/azblob
 github.com/RoaringBitmap/roaring
 # github.com/VictoriaMetrics/fastcache v1.5.7
 github.com/VictoriaMetrics/fastcache
-# github.com/anacrolix/dht/v2 v2.5.1-0.20200317023935-129f05e9b752
+# github.com/anacrolix/dht/v2 v2.6.1-0.20200416071723-3850fa1b802a
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.2
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.6.1-0.20200211014814-17693f71c449
+# github.com/anacrolix/log v0.6.1-0.20200416071330-f58a030e6149
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.2.1
 github.com/anacrolix/missinggo
@@ -52,7 +52,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200416041217-e5f7765dfa88
+# github.com/anacrolix/torrent v1.15.1-0.20200416075157-48bea90f0a1f
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
@@ -66,7 +66,7 @@ github.com/anacrolix/torrent/peer_protocol
 github.com/anacrolix/torrent/storage
 github.com/anacrolix/torrent/tracker
 github.com/anacrolix/torrent/webtorrent
-# github.com/anacrolix/upnp v0.1.1
+# github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 github.com/anacrolix/utp

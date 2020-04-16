@@ -6,10 +6,10 @@ require (
 	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/VictoriaMetrics/fastcache v1.5.7
-	github.com/anacrolix/log v0.6.1-0.20200211014814-17693f71c449
+	github.com/anacrolix/log v0.6.1-0.20200416071330-f58a030e6149
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200227072623-f02f6484f997
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200416041217-e5f7765dfa88
+	github.com/anacrolix/torrent v1.15.1-0.20200416075157-48bea90f0a1f
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 	github.com/aws/aws-sdk-go v1.25.48
 	github.com/bitly/go-simplejson v0.5.1-0.20181114203107-9db4a59bd4d8

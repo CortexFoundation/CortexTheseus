@@ -7,7 +7,7 @@ type levelLogger struct {
 }
 
 func (me levelLogger) logf(level log.Level, format string, args ...interface{}) {
-	log.Fmsg(format, args...).AddValue(level).Skip(2).Log(me.Logger)
+	log.Fmsg(format, args...).SetLevel(level).Skip(2).Log(me.Logger)
 }
 
 func (me levelLogger) Infof(format string, args ...interface{}) {

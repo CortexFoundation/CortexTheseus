@@ -60,3 +60,20 @@ func (l Logger) Printf(format string, a ...interface{}) {
 func (l Logger) Print(v ...interface{}) {
 	l.Log(Str(fmt.Sprint(v...)).Skip(1))
 }
+
+func (l Logger) WithDefaultLevel(level Level) Logger {
+	return l.WithMap(func(m Msg) Msg {
+		_, ok := m.GetLevel()
+		if !ok {
+			m = m.SetLevel(level)
+		}
+		return m
+	})
+}
+
+func (l Logger) FilterLevel(minLevel Level) Logger {
+	return l.WithFilter(func(m Msg) bool {
+		level, ok := m.GetLevel()
+		return !ok || !level.LessThan(minLevel)
+	})
+}
