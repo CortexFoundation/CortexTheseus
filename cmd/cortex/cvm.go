@@ -123,7 +123,7 @@ var (
 		CVMCortexDir,
 		StorageMaxSeedingFlag,
 		StorageMaxActiveFlag,
-		StorageBoostNodesFlag,
+		//StorageBoostNodesFlag,
 		StorageTrackerFlag,
 		//StorageDisableDHTFlag,
 		//StorageFullFlag,
