@@ -220,7 +220,7 @@ var (
 	}
 	StorageBoostNodesFlag = cli.StringFlag{
 		Name:  "storage.boostnodes",
-		Usage: "p2p storage boostnodes",
+		Usage: "p2p storage boostnodes (EXPERIMENTAL)",
 		Value: strings.Join(torrentfs.DefaultConfig.BoostNodes, ","),
 	}
 	StorageTrackerFlag = cli.StringFlag{
