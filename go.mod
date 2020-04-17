@@ -19,7 +19,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/cloudflare/cloudflare-go v0.11.5
 	github.com/davecgh/go-spew v1.1.1
-	github.com/deckarep/golang-set v1.7.1
+	github.com/deckarep/golang-set v1.7.2-0.20180927150649-699df6a3acf6
 	github.com/docker/docker v1.13.1
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/elastic/gosigar v0.10.5
@@ -27,7 +27,7 @@ require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
-	github.com/go-resty/resty/v2 v2.2.1-0.20200302084117-a8bb0982c19a
+	github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.4.0 // indirect
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf

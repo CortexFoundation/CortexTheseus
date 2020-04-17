@@ -141,7 +141,7 @@ github.com/cloudflare/cloudflare-go
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/deckarep/golang-set v1.7.1
+# github.com/deckarep/golang-set v1.7.2-0.20180927150649-699df6a3acf6
 ## explicit
 github.com/deckarep/golang-set
 # github.com/docker/docker v1.13.1
@@ -173,7 +173,7 @@ github.com/fsnotify/fsnotify
 github.com/gballet/go-libpcsclite
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
 github.com/glycerine/go-unsnap-stream
-# github.com/go-resty/resty/v2 v2.2.1-0.20200302084117-a8bb0982c19a
+# github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
 ## explicit
 github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
