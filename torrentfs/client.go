@@ -195,6 +195,7 @@ func (t *Torrent) IsAvailable() bool {
 	if t.Seeding() {
 		return true
 	}
+	log.Warn("Not seeding", "hash", t.InfoHash(), "missing", t.bytesMissing, "complete", t.bytesCompleted, "status", t.status)
 	return false
 }
 
@@ -267,7 +268,7 @@ func (t *Torrent) Seed() {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Imported new chain segment", "hash", common.HexToHash(t.InfoHash()), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", common.PrettyDuration(elapsed))
+		log.Info("Imported new chain segment", "hash", common.HexToHash(t.InfoHash()), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		//t.Torrent.Drop()
 	}
 }
