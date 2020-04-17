@@ -70,9 +70,9 @@ type Agent struct {
 	// all queued lock attempts are canceled when .Close() is called
 	muChan chan struct{}
 
-	onConnectionStateChangeHdlr       func(ConnectionState)
-	onSelectedCandidatePairChangeHdlr func(Candidate, Candidate)
-	onCandidateHdlr                   func(Candidate)
+	onConnectionStateChangeHdlr       atomic.Value // func(ConnectionState)
+	onSelectedCandidatePairChangeHdlr atomic.Value // func(Candidate, Candidate)
+	onCandidateHdlr                   atomic.Value // func(Candidate)
 
 	// Used to block double Dial/Accept
 	opened bool
@@ -150,6 +150,9 @@ type Agent struct {
 	// State for closing
 	done chan struct{}
 	err  atomicError
+
+	chanCandidate chan Candidate
+	chanState     chan ConnectionState
 
 	loggerFactory logging.LoggerFactory
 	log           logging.LeveledLogger
@@ -372,6 +375,7 @@ func NewAgent(config *AgentConfig) (*Agent, error) {
 		onConnected:            make(chan struct{}),
 		buffer:                 packetio.NewBuffer(),
 		done:                   make(chan struct{}),
+		chanState:              make(chan ConnectionState, 1),
 		portmin:                config.PortMin,
 		portmax:                config.PortMax,
 		trickle:                config.Trickle,
@@ -423,9 +427,18 @@ func NewAgent(config *AgentConfig) (*Agent, error) {
 		return nil, err
 	}
 
+	go func() {
+		for s := range a.chanState {
+			hdlr, ok := a.onConnectionStateChangeHdlr.Load().(func(ConnectionState))
+			if ok {
+				hdlr(s)
+			}
+		}
+	}()
+
 	// Initialize local candidates
 	if !a.trickle {
-		a.gatherCandidates()
+		<-a.gatherCandidates()
 	}
 	return a, nil
 }
@@ -534,31 +547,28 @@ func (a *Agent) initExtIPMapping(config *AgentConfig) error {
 
 // OnConnectionStateChange sets a handler that is fired when the connection state changes
 func (a *Agent) OnConnectionStateChange(f func(ConnectionState)) error {
-	return a.run(func(agent *Agent) {
-		agent.onConnectionStateChangeHdlr = f
-	})
+	a.onConnectionStateChangeHdlr.Store(f)
+	return nil
 }
 
 // OnSelectedCandidatePairChange sets a handler that is fired when the final candidate
 // pair is selected
 func (a *Agent) OnSelectedCandidatePairChange(f func(Candidate, Candidate)) error {
-	return a.run(func(agent *Agent) {
-		agent.onSelectedCandidatePairChangeHdlr = f
-	})
+	a.onSelectedCandidatePairChangeHdlr.Store(f)
+	return nil
 }
 
 // OnCandidate sets a handler that is fired when new candidates gathered. When
 // the gathering process complete the last candidate is nil.
 func (a *Agent) OnCandidate(f func(Candidate)) error {
-	return a.run(func(agent *Agent) {
-		agent.onCandidateHdlr = f
-	})
+	a.onCandidateHdlr.Store(f)
+	return nil
 }
 
 func (a *Agent) onSelectedCandidatePairChange(p *candidatePair) {
 	if p != nil {
-		if a.onSelectedCandidatePairChangeHdlr != nil {
-			a.onSelectedCandidatePairChangeHdlr(p.local, p.remote)
+		if h, ok := a.onSelectedCandidatePairChangeHdlr.Load().(func(Candidate, Candidate)); ok {
+			h(p.local, p.remote)
 		}
 	}
 }
@@ -626,12 +636,10 @@ func (a *Agent) updateConnectionState(newState ConnectionState) {
 	if a.connectionState != newState {
 		a.log.Infof("Setting new connection state: %s", newState)
 		a.connectionState = newState
-		hdlr := a.onConnectionStateChangeHdlr
-		if hdlr != nil {
-			// Call handler async since we may be holding the agent lock
-			// and the handler may also require it
-			go hdlr(newState)
-		}
+
+		// Call handler in different routine since we may be holding the agent lock
+		// and the handler may also require it
+		a.chanState <- newState
 	}
 }
 
@@ -782,9 +790,15 @@ func (a *Agent) AddRemoteCandidate(c Candidate) error {
 		return nil
 	}
 
-	return a.run(func(agent *Agent) {
-		agent.addRemoteCandidate(c)
-	})
+	go func() {
+		if err := a.run(func(agent *Agent) {
+			agent.addRemoteCandidate(c)
+		}); err != nil {
+			a.log.Warnf("Failed to add remote candidate %s: %v", c.Address(), err)
+			return
+		}
+	}()
+	return nil
 }
 
 func (a *Agent) resolveAndAddMulticastCandidate(c *CandidateHost) {
@@ -867,9 +881,7 @@ func (a *Agent) addCandidate(c Candidate, candidateConn net.PacketConn) error {
 
 		a.requestConnectivityCheck()
 
-		if a.onCandidateHdlr != nil {
-			go a.onCandidateHdlr(c)
-		}
+		a.chanCandidate <- c
 	})
 }
 
@@ -902,6 +914,7 @@ func (a *Agent) Close() error {
 	err := a.run(func(agent *Agent) {
 		defer func() {
 			close(done)
+			close(agent.chanState)
 		}()
 		agent.err.Store(ErrClosed)
 		close(agent.done)

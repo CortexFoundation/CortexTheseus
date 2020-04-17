@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
+	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/utils"
 	"github.com/lucas-clemente/quic-go/internal/wire"
 )
@@ -19,35 +20,6 @@ type cryptoStream interface {
 	io.Writer
 	HasData() bool
 	PopCryptoFrame(protocol.ByteCount) *wire.CryptoFrame
-}
-
-type postHandshakeCryptoStream struct {
-	cryptoStream
-
-	framer framer
-}
-
-func newPostHandshakeCryptoStream(framer framer) cryptoStream {
-	return &postHandshakeCryptoStream{
-		cryptoStream: newCryptoStream(),
-		framer:       framer,
-	}
-}
-
-// Write writes post-handshake messages.
-// For simplicity, post-handshake crypto messages are treated as control frames.
-// The framer functions as a stack (LIFO), so if there are multiple writes,
-// they will be returned in the opposite order.
-// This is acceptable, since post-handshake crypto messages are very rare.
-func (s *postHandshakeCryptoStream) Write(p []byte) (int, error) {
-	n, err := s.cryptoStream.Write(p)
-	if err != nil {
-		return n, err
-	}
-	for s.cryptoStream.HasData() {
-		s.framer.QueueControlFrame(s.PopCryptoFrame(protocol.MaxPostHandshakeCryptoFrameSize))
-	}
-	return n, nil
 }
 
 type cryptoStreamImpl struct {
@@ -68,23 +40,23 @@ func newCryptoStream() cryptoStream {
 func (s *cryptoStreamImpl) HandleCryptoFrame(f *wire.CryptoFrame) error {
 	highestOffset := f.Offset + protocol.ByteCount(len(f.Data))
 	if maxOffset := highestOffset; maxOffset > protocol.MaxCryptoStreamOffset {
-		return fmt.Errorf("received invalid offset %d on crypto stream, maximum allowed %d", maxOffset, protocol.MaxCryptoStreamOffset)
+		return qerr.NewError(qerr.CryptoBufferExceeded, fmt.Sprintf("received invalid offset %d on crypto stream, maximum allowed %d", maxOffset, protocol.MaxCryptoStreamOffset))
 	}
 	if s.finished {
 		if highestOffset > s.highestOffset {
 			// reject crypto data received after this stream was already finished
-			return errors.New("received crypto data after change of encryption level")
+			return qerr.NewError(qerr.ProtocolViolation, "received crypto data after change of encryption level")
 		}
 		// ignore data with a smaller offset than the highest received
 		// could e.g. be a retransmission
 		return nil
 	}
 	s.highestOffset = utils.MaxByteCount(s.highestOffset, highestOffset)
-	if err := s.queue.Push(f.Data, f.Offset); err != nil {
+	if err := s.queue.Push(f.Data, f.Offset, nil); err != nil {
 		return err
 	}
 	for {
-		_, data := s.queue.Pop()
+		_, data, _ := s.queue.Pop()
 		if data == nil {
 			return nil
 		}

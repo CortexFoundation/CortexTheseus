@@ -1,20 +1,26 @@
 package handshake
 
 import (
-	"crypto/aes"
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"sync"
-	"unsafe"
+	"time"
 
+	"github.com/lucas-clemente/quic-go/internal/congestion"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/utils"
+	"github.com/lucas-clemente/quic-go/internal/wire"
+	"github.com/lucas-clemente/quic-go/qlog"
 	"github.com/marten-seemann/qtls"
 )
+
+// TLS unexpected_message alert
+const alertUnexpectedMessage uint8 = 10
 
 type messageType uint8
 
@@ -53,30 +59,27 @@ func (m messageType) String() string {
 	}
 }
 
-// ErrOpenerNotYetAvailable is returned when an opener is requested for an encryption level,
-// but the corresponding opener has not yet been initialized
-// This can happen when packets arrive out of order.
-var ErrOpenerNotYetAvailable = errors.New("CryptoSetup: opener at this encryption level not yet available")
-
 type cryptoSetup struct {
 	tlsConf *qtls.Config
 	conn    *qtls.Conn
 
 	messageChan chan []byte
 
-	paramsChan           <-chan []byte
-	handleParamsCallback func([]byte)
+	ourParams  *wire.TransportParameters
+	peerParams *wire.TransportParameters
+	paramsChan <-chan []byte
+
+	runner handshakeRunner
 
 	alertChan chan uint8
-	// HandleData() sends errors on the messageErrChan
-	messageErrChan chan error
 	// handshakeDone is closed as soon as the go routine running qtls.Handshake() returns
 	handshakeDone chan struct{}
 	// is closed when Close() is called
 	closeChan chan struct{}
 
+	zeroRTTParameters      *wire.TransportParameters
 	clientHelloWritten     bool
-	clientHelloWrittenChan chan struct{}
+	clientHelloWrittenChan chan *wire.TransportParameters
 
 	receivedWriteKey chan struct{}
 	receivedReadKey  chan struct{}
@@ -87,26 +90,34 @@ type cryptoSetup struct {
 	// for clients: to see if a ServerHello is a HelloRetryRequest
 	writeRecord chan struct{}
 
-	logger utils.Logger
+	rttStats *congestion.RTTStats
+
+	qlogger qlog.Tracer
+	logger  utils.Logger
 
 	perspective protocol.Perspective
 
 	mutex sync.Mutex // protects all members below
 
+	handshakeCompleteTime time.Time
+
 	readEncLevel  protocol.EncryptionLevel
 	writeEncLevel protocol.EncryptionLevel
 
+	zeroRTTOpener LongHeaderOpener // only set for the server
+	zeroRTTSealer LongHeaderSealer // only set for the client
+
 	initialStream io.Writer
-	initialOpener Opener
-	initialSealer Sealer
+	initialOpener LongHeaderOpener
+	initialSealer LongHeaderSealer
 
 	handshakeStream io.Writer
-	handshakeOpener Opener
-	handshakeSealer Sealer
+	handshakeOpener LongHeaderOpener
+	handshakeSealer LongHeaderSealer
 
-	oneRTTStream io.Writer
-	opener       Opener
-	sealer       Sealer
+	aead          *updatableAEAD
+	has1RTTSealer bool
+	has1RTTOpener bool
 }
 
 var _ qtls.RecordLayer = &cryptoSetup{}
@@ -116,76 +127,83 @@ var _ CryptoSetup = &cryptoSetup{}
 func NewCryptoSetupClient(
 	initialStream io.Writer,
 	handshakeStream io.Writer,
-	oneRTTStream io.Writer,
 	connID protocol.ConnectionID,
+	localAddr net.Addr,
 	remoteAddr net.Addr,
-	tp *TransportParameters,
-	handleParams func([]byte),
+	tp *wire.TransportParameters,
+	runner handshakeRunner,
 	tlsConf *tls.Config,
+	enable0RTT bool,
+	rttStats *congestion.RTTStats,
+	qlogger qlog.Tracer,
 	logger utils.Logger,
-) (CryptoSetup, <-chan struct{} /* ClientHello written */, error) {
-	cs, clientHelloWritten, err := newCryptoSetup(
+) (CryptoSetup, <-chan *wire.TransportParameters /* ClientHello written. Receive nil for non-0-RTT */) {
+	cs, clientHelloWritten := newCryptoSetup(
 		initialStream,
 		handshakeStream,
-		oneRTTStream,
 		connID,
 		tp,
-		handleParams,
+		runner,
 		tlsConf,
+		enable0RTT,
+		rttStats,
+		qlogger,
 		logger,
 		protocol.PerspectiveClient,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-	cs.conn = qtls.Client(newConn(remoteAddr), cs.tlsConf)
-	return cs, clientHelloWritten, nil
+	cs.conn = qtls.Client(newConn(localAddr, remoteAddr), cs.tlsConf)
+	return cs, clientHelloWritten
 }
 
 // NewCryptoSetupServer creates a new crypto setup for the server
 func NewCryptoSetupServer(
 	initialStream io.Writer,
 	handshakeStream io.Writer,
-	oneRTTStream io.Writer,
 	connID protocol.ConnectionID,
+	localAddr net.Addr,
 	remoteAddr net.Addr,
-	tp *TransportParameters,
-	handleParams func([]byte),
+	tp *wire.TransportParameters,
+	runner handshakeRunner,
 	tlsConf *tls.Config,
+	enable0RTT bool,
+	rttStats *congestion.RTTStats,
+	qlogger qlog.Tracer,
 	logger utils.Logger,
-) (CryptoSetup, error) {
-	cs, _, err := newCryptoSetup(
+) CryptoSetup {
+	cs, _ := newCryptoSetup(
 		initialStream,
 		handshakeStream,
-		oneRTTStream,
 		connID,
 		tp,
-		handleParams,
+		runner,
 		tlsConf,
+		enable0RTT,
+		rttStats,
+		qlogger,
 		logger,
 		protocol.PerspectiveServer,
 	)
-	if err != nil {
-		return nil, err
-	}
-	cs.conn = qtls.Server(newConn(remoteAddr), cs.tlsConf)
-	return cs, nil
+	cs.conn = qtls.Server(newConn(localAddr, remoteAddr), cs.tlsConf)
+	return cs
 }
 
 func newCryptoSetup(
 	initialStream io.Writer,
 	handshakeStream io.Writer,
-	oneRTTStream io.Writer,
 	connID protocol.ConnectionID,
-	tp *TransportParameters,
-	handleParams func([]byte),
+	tp *wire.TransportParameters,
+	runner handshakeRunner,
 	tlsConf *tls.Config,
+	enable0RTT bool,
+	rttStats *congestion.RTTStats,
+	qlogger qlog.Tracer,
 	logger utils.Logger,
 	perspective protocol.Perspective,
-) (*cryptoSetup, <-chan struct{} /* ClientHello written */, error) {
-	initialSealer, initialOpener, err := NewInitialAEAD(connID, perspective)
-	if err != nil {
-		return nil, nil, err
+) (*cryptoSetup, <-chan *wire.TransportParameters /* ClientHello written. Receive nil for non-0-RTT */) {
+	initialSealer, initialOpener := NewInitialAEAD(connID, perspective)
+	if qlogger != nil {
+		qlogger.UpdatedKeyFromTLS(protocol.EncryptionInitial, protocol.PerspectiveClient)
+		qlogger.UpdatedKeyFromTLS(protocol.EncryptionInitial, protocol.PerspectiveServer)
 	}
 	extHandler := newExtensionHandler(tp.Marshal(), perspective)
 	cs := &cryptoSetup{
@@ -193,39 +211,45 @@ func newCryptoSetup(
 		initialSealer:          initialSealer,
 		initialOpener:          initialOpener,
 		handshakeStream:        handshakeStream,
-		oneRTTStream:           oneRTTStream,
+		aead:                   newUpdatableAEAD(rttStats, qlogger, logger),
 		readEncLevel:           protocol.EncryptionInitial,
 		writeEncLevel:          protocol.EncryptionInitial,
-		handleParamsCallback:   handleParams,
+		runner:                 runner,
+		ourParams:              tp,
 		paramsChan:             extHandler.TransportParameters(),
+		rttStats:               rttStats,
+		qlogger:                qlogger,
 		logger:                 logger,
 		perspective:            perspective,
 		handshakeDone:          make(chan struct{}),
 		alertChan:              make(chan uint8),
-		messageErrChan:         make(chan error, 1),
-		clientHelloWrittenChan: make(chan struct{}),
+		clientHelloWrittenChan: make(chan *wire.TransportParameters, 1),
 		messageChan:            make(chan []byte, 100),
 		receivedReadKey:        make(chan struct{}),
 		receivedWriteKey:       make(chan struct{}),
-		writeRecord:            make(chan struct{}),
+		writeRecord:            make(chan struct{}, 1),
 		closeChan:              make(chan struct{}),
 	}
-	qtlsConf := tlsConfigToQtlsConfig(tlsConf, cs, extHandler)
+	qtlsConf := tlsConfigToQtlsConfig(tlsConf, cs, extHandler, rttStats, cs.marshalPeerParamsForSessionState, cs.handlePeerParamsFromSessionState, cs.accept0RTT, cs.rejected0RTT, enable0RTT)
 	cs.tlsConf = qtlsConf
-	return cs, cs.clientHelloWrittenChan, nil
+	return cs, cs.clientHelloWrittenChan
 }
 
-func (h *cryptoSetup) ChangeConnectionID(id protocol.ConnectionID) error {
-	initialSealer, initialOpener, err := NewInitialAEAD(id, h.perspective)
-	if err != nil {
-		return err
-	}
+func (h *cryptoSetup) ChangeConnectionID(id protocol.ConnectionID) {
+	initialSealer, initialOpener := NewInitialAEAD(id, h.perspective)
 	h.initialSealer = initialSealer
 	h.initialOpener = initialOpener
-	return nil
+	if h.qlogger != nil {
+		h.qlogger.UpdatedKeyFromTLS(protocol.EncryptionInitial, protocol.PerspectiveClient)
+		h.qlogger.UpdatedKeyFromTLS(protocol.EncryptionInitial, protocol.PerspectiveServer)
+	}
 }
 
-func (h *cryptoSetup) RunHandshake() error {
+func (h *cryptoSetup) SetLargest1RTTAcked(pn protocol.PacketNumber) {
+	h.aead.SetLargestAcked(pn)
+}
+
+func (h *cryptoSetup) RunHandshake() {
 	// Handle errors that might occur when HandleData() is called.
 	handshakeComplete := make(chan struct{})
 	handshakeErrChan := make(chan error, 1)
@@ -239,26 +263,28 @@ func (h *cryptoSetup) RunHandshake() error {
 	}()
 
 	select {
+	case <-handshakeComplete: // return when the handshake is done
+		h.mutex.Lock()
+		h.handshakeCompleteTime = time.Now()
+		h.mutex.Unlock()
+		h.runner.OnHandshakeComplete()
 	case <-h.closeChan:
 		close(h.messageChan)
 		// wait until the Handshake() go routine has returned
-		return errors.New("Handshake aborted")
-	case <-handshakeComplete: // return when the handshake is done
-		return nil
+		<-h.handshakeDone
 	case alert := <-h.alertChan:
-		err := <-handshakeErrChan
-		return qerr.CryptoError(alert, err.Error())
-	case err := <-h.messageErrChan:
-		// If the handshake errored because of an error that occurred during HandleData(),
-		// that error message will be more useful than the error message generated by Handshake().
-		// Close the message chan that qtls is receiving messages from.
-		// This will make qtls.Handshake() return.
-		// Thereby the go routine running qtls.Handshake() will return.
-		close(h.messageChan)
-		return err
+		handshakeErr := <-handshakeErrChan
+		h.onError(alert, handshakeErr.Error())
 	}
 }
 
+func (h *cryptoSetup) onError(alert uint8, message string) {
+	h.runner.OnError(qerr.NewCryptoError(alert, message))
+}
+
+// Close closes the crypto setup.
+// It aborts the handshake, if it is still running.
+// It must only be called once.
 func (h *cryptoSetup) Close() error {
 	close(h.closeChan)
 	// wait until qtls.Handshake() actually returned
@@ -273,18 +299,26 @@ func (h *cryptoSetup) HandleMessage(data []byte, encLevel protocol.EncryptionLev
 	msgType := messageType(data[0])
 	h.logger.Debugf("Received %s message (%d bytes, encryption level: %s)", msgType, len(data), encLevel)
 	if err := h.checkEncryptionLevel(msgType, encLevel); err != nil {
-		h.messageErrChan <- err
+		h.onError(alertUnexpectedMessage, err.Error())
 		return false
 	}
 	h.messageChan <- data
+	if encLevel == protocol.Encryption1RTT {
+		h.handlePostHandshakeMessage()
+	}
+	var strFinished bool
 	switch h.perspective {
 	case protocol.PerspectiveClient:
-		return h.handleMessageForClient(msgType)
+		strFinished = h.handleMessageForClient(msgType)
 	case protocol.PerspectiveServer:
-		return h.handleMessageForServer(msgType)
+		strFinished = h.handleMessageForServer(msgType)
 	default:
 		panic("")
 	}
+	if strFinished {
+		h.logger.Debugf("Done with encryption level %s.", encLevel)
+	}
+	return strFinished
 }
 
 func (h *cryptoSetup) checkEncryptionLevel(msgType messageType, encLevel protocol.EncryptionLevel) error {
@@ -320,7 +354,7 @@ func (h *cryptoSetup) handleMessageForServer(msgType messageType) bool {
 			h.logger.Debugf("Sending HelloRetryRequest")
 			return false
 		case data := <-h.paramsChan:
-			h.handleParamsCallback(data)
+			h.handleTransportParameters(data)
 		case <-h.handshakeDone:
 			return false
 		}
@@ -355,7 +389,8 @@ func (h *cryptoSetup) handleMessageForServer(msgType messageType) bool {
 		}
 		return true
 	default:
-		panic("unexpected handshake message")
+		// unexpected message
+		return false
 	}
 }
 
@@ -384,7 +419,7 @@ func (h *cryptoSetup) handleMessageForClient(msgType messageType) bool {
 	case typeEncryptedExtensions:
 		select {
 		case data := <-h.paramsChan:
-			h.handleParamsCallback(data)
+			h.handleTransportParameters(data)
 		case <-h.handshakeDone:
 			return false
 		}
@@ -406,12 +441,111 @@ func (h *cryptoSetup) handleMessageForClient(msgType messageType) bool {
 			return false
 		}
 		return true
-	case typeNewSessionTicket:
-		<-h.handshakeDone // don't process session tickets before the handshake has completed
-		h.conn.HandlePostHandshakeMessage()
-		return false
 	default:
-		panic("unexpected handshake message: ")
+		return false
+	}
+}
+
+func (h *cryptoSetup) handleTransportParameters(data []byte) {
+	var tp wire.TransportParameters
+	if err := tp.Unmarshal(data, h.perspective.Opposite()); err != nil {
+		h.runner.OnError(qerr.NewError(qerr.TransportParameterError, err.Error()))
+	}
+	h.peerParams = &tp
+	h.runner.OnReceivedParams(h.peerParams)
+}
+
+// must be called after receiving the transport parameters
+func (h *cryptoSetup) marshalPeerParamsForSessionState() []byte {
+	b := &bytes.Buffer{}
+	h.peerParams.MarshalForSessionTicket(b)
+	return b.Bytes()
+}
+
+func (h *cryptoSetup) handlePeerParamsFromSessionState(data []byte) {
+	tp, err := h.handlePeerParamsFromSessionStateImpl(data)
+	if err != nil {
+		h.logger.Debugf("Restoring of transport parameters from session ticket failed: %s", err.Error())
+		return
+	}
+	h.zeroRTTParameters = tp
+}
+
+func (h *cryptoSetup) handlePeerParamsFromSessionStateImpl(data []byte) (*wire.TransportParameters, error) {
+	var tp wire.TransportParameters
+	if err := tp.UnmarshalFromSessionTicket(data); err != nil {
+		return nil, err
+	}
+	return &tp, nil
+}
+
+// only valid for the server
+func (h *cryptoSetup) GetSessionTicket() ([]byte, error) {
+	var appData []byte
+	// Save transport parameters to the session ticket if we're allowing 0-RTT.
+	if h.tlsConf.MaxEarlyData > 0 {
+		appData = (&sessionTicket{
+			Parameters: h.ourParams,
+			RTT:        h.rttStats.SmoothedRTT(),
+		}).Marshal()
+	}
+	return h.conn.GetSessionTicket(appData)
+}
+
+// accept0RTT is called for the server when receiving the client's session ticket.
+// It decides whether to accept 0-RTT.
+func (h *cryptoSetup) accept0RTT(sessionTicketData []byte) bool {
+	var t sessionTicket
+	if err := t.Unmarshal(sessionTicketData); err != nil {
+		h.logger.Debugf("Unmarshaling transport parameters from session ticket failed: %s", err.Error())
+		return false
+	}
+	valid := h.ourParams.ValidFor0RTT(t.Parameters)
+	if valid {
+		h.logger.Debugf("Accepting 0-RTT. Restoring RTT from session ticket: %s", t.RTT)
+		h.rttStats.SetInitialRTT(t.RTT)
+	} else {
+		h.logger.Debugf("Transport parameters changed. Rejecting 0-RTT.")
+	}
+	return valid
+}
+
+// rejected0RTT is called for the client when the server rejects 0-RTT.
+func (h *cryptoSetup) rejected0RTT() {
+	h.logger.Debugf("0-RTT was rejected. Dropping 0-RTT keys.")
+
+	h.mutex.Lock()
+	had0RTTKeys := h.zeroRTTSealer != nil
+	h.zeroRTTSealer = nil
+	h.mutex.Unlock()
+
+	if had0RTTKeys {
+		h.runner.DropKeys(protocol.Encryption0RTT)
+	}
+}
+
+func (h *cryptoSetup) handlePostHandshakeMessage() {
+	// make sure the handshake has already completed
+	<-h.handshakeDone
+
+	done := make(chan struct{})
+	defer close(done)
+
+	// h.alertChan is an unbuffered channel.
+	// If an error occurs during conn.HandlePostHandshakeMessage,
+	// it will be sent on this channel.
+	// Read it from a go-routine so that HandlePostHandshakeMessage doesn't deadlock.
+	alertChan := make(chan uint8, 1)
+	go func() {
+		select {
+		case alert := <-h.alertChan:
+			alertChan <- alert
+		case <-done:
+		}
+	}()
+
+	if err := h.conn.HandlePostHandshakeMessage(); err != nil {
+		h.onError(<-alertChan, err.Error())
 	}
 }
 
@@ -425,67 +559,94 @@ func (h *cryptoSetup) ReadHandshakeMessage() ([]byte, error) {
 	return msg, nil
 }
 
-func (h *cryptoSetup) SetReadKey(suite *qtls.CipherSuite, trafficSecret []byte) {
-	key := qtls.HkdfExpandLabel(suite.Hash(), trafficSecret, []byte{}, "quic key", suite.KeyLen())
-	iv := qtls.HkdfExpandLabel(suite.Hash(), trafficSecret, []byte{}, "quic iv", suite.IVLen())
-	hpKey := qtls.HkdfExpandLabel(suite.Hash(), trafficSecret, []byte{}, "quic hp", suite.KeyLen())
-	hpDecrypter, err := aes.NewCipher(hpKey)
-	if err != nil {
-		panic(fmt.Sprintf("error creating new AES cipher: %s", err))
-	}
-
+func (h *cryptoSetup) SetReadKey(encLevel qtls.EncryptionLevel, suite *qtls.CipherSuiteTLS13, trafficSecret []byte) {
 	h.mutex.Lock()
-	switch h.readEncLevel {
-	case protocol.EncryptionInitial:
+	switch encLevel {
+	case qtls.Encryption0RTT:
+		if h.perspective == protocol.PerspectiveClient {
+			panic("Received 0-RTT read key for the client")
+		}
+		h.zeroRTTOpener = newLongHeaderOpener(
+			createAEAD(suite, trafficSecret),
+			newHeaderProtector(suite, trafficSecret, true),
+		)
+		h.mutex.Unlock()
+		h.logger.Debugf("Installed 0-RTT Read keys (using %s)", cipherSuiteName(suite.ID))
+		if h.qlogger != nil {
+			h.qlogger.UpdatedKeyFromTLS(protocol.Encryption0RTT, h.perspective.Opposite())
+		}
+		return
+	case qtls.EncryptionHandshake:
 		h.readEncLevel = protocol.EncryptionHandshake
-		h.handshakeOpener = newOpener(suite.AEAD(key, iv), hpDecrypter, false)
-		h.logger.Debugf("Installed Handshake Read keys")
-	case protocol.EncryptionHandshake:
+		h.handshakeOpener = newHandshakeOpener(
+			createAEAD(suite, trafficSecret),
+			newHeaderProtector(suite, trafficSecret, true),
+			h.dropInitialKeys,
+			h.perspective,
+		)
+		h.logger.Debugf("Installed Handshake Read keys (using %s)", cipherSuiteName(suite.ID))
+	case qtls.EncryptionApplication:
 		h.readEncLevel = protocol.Encryption1RTT
-		h.opener = newOpener(suite.AEAD(key, iv), hpDecrypter, true)
-		h.logger.Debugf("Installed 1-RTT Read keys")
+		h.aead.SetReadKey(suite, trafficSecret)
+		h.has1RTTOpener = true
+		h.logger.Debugf("Installed 1-RTT Read keys (using %s)", cipherSuiteName(suite.ID))
 	default:
 		panic("unexpected read encryption level")
 	}
 	h.mutex.Unlock()
+	if h.qlogger != nil {
+		h.qlogger.UpdatedKeyFromTLS(h.readEncLevel, h.perspective.Opposite())
+	}
 	h.receivedReadKey <- struct{}{}
 }
 
-func (h *cryptoSetup) SetWriteKey(suite *qtls.CipherSuite, trafficSecret []byte) {
-	key := qtls.HkdfExpandLabel(suite.Hash(), trafficSecret, []byte{}, "quic key", suite.KeyLen())
-	iv := qtls.HkdfExpandLabel(suite.Hash(), trafficSecret, []byte{}, "quic iv", suite.IVLen())
-	hpKey := qtls.HkdfExpandLabel(suite.Hash(), trafficSecret, []byte{}, "quic hp", suite.KeyLen())
-	hpEncrypter, err := aes.NewCipher(hpKey)
-	if err != nil {
-		panic(fmt.Sprintf("error creating new AES cipher: %s", err))
-	}
-
+func (h *cryptoSetup) SetWriteKey(encLevel qtls.EncryptionLevel, suite *qtls.CipherSuiteTLS13, trafficSecret []byte) {
 	h.mutex.Lock()
-	switch h.writeEncLevel {
-	case protocol.EncryptionInitial:
+	switch encLevel {
+	case qtls.Encryption0RTT:
+		if h.perspective == protocol.PerspectiveServer {
+			panic("Received 0-RTT write key for the server")
+		}
+		h.zeroRTTSealer = newLongHeaderSealer(
+			createAEAD(suite, trafficSecret),
+			newHeaderProtector(suite, trafficSecret, true),
+		)
+		h.mutex.Unlock()
+		h.logger.Debugf("Installed 0-RTT Write keys (using %s)", cipherSuiteName(suite.ID))
+		if h.qlogger != nil {
+			h.qlogger.UpdatedKeyFromTLS(protocol.Encryption0RTT, h.perspective)
+		}
+		return
+	case qtls.EncryptionHandshake:
 		h.writeEncLevel = protocol.EncryptionHandshake
-		h.handshakeSealer = newSealer(suite.AEAD(key, iv), hpEncrypter, false)
-		h.logger.Debugf("Installed Handshake Write keys")
-	case protocol.EncryptionHandshake:
+		h.handshakeSealer = newHandshakeSealer(
+			createAEAD(suite, trafficSecret),
+			newHeaderProtector(suite, trafficSecret, true),
+			h.dropInitialKeys,
+			h.perspective,
+		)
+		h.logger.Debugf("Installed Handshake Write keys (using %s)", cipherSuiteName(suite.ID))
+	case qtls.EncryptionApplication:
 		h.writeEncLevel = protocol.Encryption1RTT
-		h.sealer = newSealer(suite.AEAD(key, iv), hpEncrypter, true)
-		h.logger.Debugf("Installed 1-RTT Write keys")
+		h.aead.SetWriteKey(suite, trafficSecret)
+		h.has1RTTSealer = true
+		h.logger.Debugf("Installed 1-RTT Write keys (using %s)", cipherSuiteName(suite.ID))
+		if h.zeroRTTSealer != nil {
+			h.zeroRTTSealer = nil
+			h.logger.Debugf("Dropping 0-RTT keys.")
+		}
 	default:
 		panic("unexpected write encryption level")
 	}
 	h.mutex.Unlock()
+	if h.qlogger != nil {
+		h.qlogger.UpdatedKeyFromTLS(h.writeEncLevel, h.perspective)
+	}
 	h.receivedWriteKey <- struct{}{}
 }
 
 // WriteRecord is called when TLS writes data
 func (h *cryptoSetup) WriteRecord(p []byte) (int, error) {
-	defer func() {
-		select {
-		case h.writeRecord <- struct{}{}:
-		default:
-		}
-	}()
-
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
@@ -495,13 +656,22 @@ func (h *cryptoSetup) WriteRecord(p []byte) (int, error) {
 		n, err := h.initialStream.Write(p)
 		if !h.clientHelloWritten && h.perspective == protocol.PerspectiveClient {
 			h.clientHelloWritten = true
-			close(h.clientHelloWrittenChan)
+			if h.zeroRTTSealer != nil && h.zeroRTTParameters != nil {
+				h.logger.Debugf("Doing 0-RTT.")
+				h.clientHelloWrittenChan <- h.zeroRTTParameters
+			} else {
+				h.logger.Debugf("Not doing 0-RTT. Has Sealer: %t, has params: %t", h.zeroRTTSealer != nil, h.zeroRTTParameters != nil)
+				h.clientHelloWrittenChan <- nil
+			}
+		} else {
+			// We need additional signaling to properly detect HelloRetryRequests.
+			// For servers: when the ServerHello is written.
+			// For clients: when a reply is sent in response to a ServerHello.
+			h.writeRecord <- struct{}{}
 		}
 		return n, err
 	case protocol.EncryptionHandshake:
 		return h.handshakeStream.Write(p)
-	case protocol.Encryption1RTT:
-		return h.oneRTTStream.Write(p)
 	default:
 		panic(fmt.Sprintf("unexpected write encryption level: %s", h.writeEncLevel))
 	}
@@ -511,71 +681,127 @@ func (h *cryptoSetup) SendAlert(alert uint8) {
 	h.alertChan <- alert
 }
 
-func (h *cryptoSetup) GetSealer() (protocol.EncryptionLevel, Sealer) {
+// used a callback in the handshakeSealer and handshakeOpener
+func (h *cryptoSetup) dropInitialKeys() {
 	h.mutex.Lock()
-	defer h.mutex.Unlock()
-
-	if h.sealer != nil {
-		return protocol.Encryption1RTT, h.sealer
-	}
-	if h.handshakeSealer != nil {
-		return protocol.EncryptionHandshake, h.handshakeSealer
-	}
-	return protocol.EncryptionInitial, h.initialSealer
+	h.initialOpener = nil
+	h.initialSealer = nil
+	h.mutex.Unlock()
+	h.runner.DropKeys(protocol.EncryptionInitial)
+	h.logger.Debugf("Dropping Initial keys.")
 }
 
-func (h *cryptoSetup) GetSealerWithEncryptionLevel(level protocol.EncryptionLevel) (Sealer, error) {
-	errNoSealer := fmt.Errorf("CryptoSetup: no sealer with encryption level %s", level.String())
-
+func (h *cryptoSetup) DropHandshakeKeys() {
+	var dropped bool
 	h.mutex.Lock()
-	defer h.mutex.Unlock()
-
-	switch level {
-	case protocol.EncryptionInitial:
-		return h.initialSealer, nil
-	case protocol.EncryptionHandshake:
-		if h.handshakeSealer == nil {
-			return nil, errNoSealer
-		}
-		return h.handshakeSealer, nil
-	case protocol.Encryption1RTT:
-		if h.sealer == nil {
-			return nil, errNoSealer
-		}
-		return h.sealer, nil
-	default:
-		return nil, errNoSealer
+	if h.handshakeOpener != nil {
+		h.handshakeOpener = nil
+		h.handshakeSealer = nil
+		dropped = true
+	}
+	h.mutex.Unlock()
+	if dropped {
+		h.runner.DropKeys(protocol.EncryptionHandshake)
+		h.logger.Debugf("Dropping Handshake keys.")
 	}
 }
 
-func (h *cryptoSetup) GetOpener(level protocol.EncryptionLevel) (Opener, error) {
+func (h *cryptoSetup) GetInitialSealer() (LongHeaderSealer, error) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
-	switch level {
-	case protocol.EncryptionInitial:
-		return h.initialOpener, nil
-	case protocol.EncryptionHandshake:
-		if h.handshakeOpener == nil {
-			return nil, ErrOpenerNotYetAvailable
-		}
-		return h.handshakeOpener, nil
-	case protocol.Encryption1RTT:
-		if h.opener == nil {
-			return nil, ErrOpenerNotYetAvailable
-		}
-		return h.opener, nil
-	default:
-		return nil, fmt.Errorf("CryptoSetup: no opener with encryption level %s", level)
+	if h.initialSealer == nil {
+		return nil, ErrKeysDropped
 	}
+	return h.initialSealer, nil
 }
 
-func (h *cryptoSetup) ConnectionState() tls.ConnectionState {
-	cs := h.conn.ConnectionState()
-	// h.conn is a qtls.Conn, which returns a qtls.ConnectionState.
-	// qtls.ConnectionState is identical to the tls.ConnectionState.
-	// It contains an unexported field which is used ExportKeyingMaterial().
-	// The only way to return a tls.ConnectionState is to use unsafe.
-	// In unsafe.go we check that the two objects are actually identical.
-	return *(*tls.ConnectionState)(unsafe.Pointer(&cs))
+func (h *cryptoSetup) Get0RTTSealer() (LongHeaderSealer, error) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if h.zeroRTTSealer == nil {
+		return nil, ErrKeysDropped
+	}
+	return h.zeroRTTSealer, nil
+}
+
+func (h *cryptoSetup) GetHandshakeSealer() (LongHeaderSealer, error) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if h.handshakeSealer == nil {
+		if h.initialSealer == nil {
+			return nil, ErrKeysDropped
+		}
+		return nil, ErrKeysNotYetAvailable
+	}
+	return h.handshakeSealer, nil
+}
+
+func (h *cryptoSetup) Get1RTTSealer() (ShortHeaderSealer, error) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if !h.has1RTTSealer {
+		return nil, ErrKeysNotYetAvailable
+	}
+	return h.aead, nil
+}
+
+func (h *cryptoSetup) GetInitialOpener() (LongHeaderOpener, error) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if h.initialOpener == nil {
+		return nil, ErrKeysDropped
+	}
+	return h.initialOpener, nil
+}
+
+func (h *cryptoSetup) Get0RTTOpener() (LongHeaderOpener, error) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if h.zeroRTTOpener == nil {
+		if h.initialOpener != nil {
+			return nil, ErrKeysNotYetAvailable
+		}
+		// if the initial opener is also not available, the keys were already dropped
+		return nil, ErrKeysDropped
+	}
+	return h.zeroRTTOpener, nil
+}
+
+func (h *cryptoSetup) GetHandshakeOpener() (LongHeaderOpener, error) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if h.handshakeOpener == nil {
+		if h.initialOpener != nil {
+			return nil, ErrKeysNotYetAvailable
+		}
+		// if the initial opener is also not available, the keys were already dropped
+		return nil, ErrKeysDropped
+	}
+	return h.handshakeOpener, nil
+}
+
+func (h *cryptoSetup) Get1RTTOpener() (ShortHeaderOpener, error) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if h.zeroRTTOpener != nil && time.Since(h.handshakeCompleteTime) > 3*h.rttStats.PTO(true) {
+		h.zeroRTTOpener = nil
+		h.logger.Debugf("Dropping 0-RTT keys.")
+	}
+
+	if !h.has1RTTOpener {
+		return nil, ErrKeysNotYetAvailable
+	}
+	return h.aead, nil
+}
+
+func (h *cryptoSetup) ConnectionState() ConnectionState {
+	return h.conn.ConnectionState()
 }
