@@ -141,9 +141,6 @@ github.com/cloudflare/cloudflare-go
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/deckarep/golang-set v1.7.2-0.20180927150649-699df6a3acf6
-## explicit
-github.com/deckarep/golang-set
 # github.com/docker/docker v1.13.1
 ## explicit
 github.com/docker/docker/pkg/reexec
@@ -386,6 +383,9 @@ github.com/tinylib/msgp/msgp
 # github.com/ucwong/color v1.9.2-0.20200417101501-cc22dac4ce22
 ## explicit
 github.com/ucwong/color
+# github.com/ucwong/golang-set v1.7.2-0.20200417191315-357d78ae8786
+## explicit
+github.com/ucwong/golang-set
 # github.com/willf/bitset v1.1.10
 github.com/willf/bitset
 # github.com/willf/bloom v2.0.3+incompatible

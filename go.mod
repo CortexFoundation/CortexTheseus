@@ -19,7 +19,6 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/cloudflare/cloudflare-go v0.11.5
 	github.com/davecgh/go-spew v1.1.1
-	github.com/deckarep/golang-set v1.7.2-0.20180927150649-699df6a3acf6
 	github.com/docker/docker v1.13.1
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/elastic/gosigar v0.10.5
@@ -60,6 +59,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/ucwong/color v1.9.2-0.20200417101501-cc22dac4ce22
+	github.com/ucwong/golang-set v1.7.2-0.20200417191315-357d78ae8786
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
