@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/ucwong/color"
 	"github.com/robertkrimen/otto"
 )
 

@@ -22,7 +22,6 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/elastic/gosigar v0.10.5
-	github.com/fatih/color v1.9.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
@@ -52,6 +51,7 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
+	github.com/ucwong/color v1.9.1-0.20200417093849-ebdd98a1f917
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
