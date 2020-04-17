@@ -32,7 +32,7 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 ### centos
 Recommend:
 - cmake 3.11.0+
-- go 1.13.0+
+- go 1.14.x
 - gcc/g++ 5.4+
 - cuda 10.1+ (if u have gpu)
 ```
