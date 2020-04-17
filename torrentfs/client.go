@@ -195,7 +195,7 @@ func (t *Torrent) IsAvailable() bool {
 	if t.Seeding() {
 		return true
 	}
-	log.Warn("Not seeding", "hash", t.InfoHash(), "missing", t.bytesMissing, "complete", t.bytesCompleted, "status", t.status)
+	//log.Warn("Not seeding", "hash", t.InfoHash(), "missing", t.bytesMissing, "complete", t.bytesCompleted, "status", t.status)
 	return false
 }
 
@@ -246,7 +246,7 @@ func (t *Torrent) BoostOff() {
 }
 
 func (t *Torrent) Seed() {
-	if t.status == torrentSeeding {
+	if t.Torrent.Info() == nil || t.status == torrentSeeding {
 		return
 	}
 	//t.status = torrentSeeding
@@ -274,7 +274,7 @@ func (t *Torrent) Seed() {
 }
 
 func (t *Torrent) Seeding() bool {
-	return (t.status == torrentSeeding ||
+	return t.Torrent.Info() != nil && (t.status == torrentSeeding ||
 		t.status == torrentSeedingInQueue) && t.BytesMissing() == 0
 }
 

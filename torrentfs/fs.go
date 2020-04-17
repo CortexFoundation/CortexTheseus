@@ -1,7 +1,7 @@
 package torrentfs
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/anacrolix/torrent/metainfo"
@@ -219,8 +219,8 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 		return false, errors.New("download not completed")
 	} else {
 		if !torrent.IsAvailable() {
-			log.Debug("[Not available] Download not completed", "hash", infohash, "raw", rawSize, "complete", torrent.BytesCompleted())
-			return false, fmt.Errorf("download not completed: %d %d", torrent.BytesCompleted(), rawSize)
+			log.Debug("[Not available] Download not completed", "hash", infohash, "raw", rawSize, "complete", torrent.bytesCompleted)
+			return false, errors.New("download not completed")
 		}
 		//log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
 		//log.Info("download not completed", "complete", torrent.BytesCompleted(), "miss", torrent.BytesMissing(), "raw", rawSize)
