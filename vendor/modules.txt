@@ -383,7 +383,7 @@ github.com/tinylib/msgp/msgp
 # github.com/ucwong/color v1.9.2-0.20200417101501-cc22dac4ce22
 ## explicit
 github.com/ucwong/color
-# github.com/ucwong/golang-set v1.7.2-0.20200417191315-357d78ae8786
+# github.com/ucwong/golang-set v1.7.2-0.20200417193934-1975b5402e9c
 ## explicit
 github.com/ucwong/golang-set
 # github.com/willf/bitset v1.1.10
