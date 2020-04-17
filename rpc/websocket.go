@@ -30,7 +30,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/log"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/ucwong/golang-set"
 	"golang.org/x/net/websocket"
 )
 
