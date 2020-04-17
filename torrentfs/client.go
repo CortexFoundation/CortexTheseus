@@ -195,6 +195,7 @@ func (t *Torrent) IsAvailable() bool {
 	if t.Seeding() {
 		return true
 	}
+	//log.Warn("Not seeding", "hash", t.InfoHash(), "missing", t.bytesMissing, "complete", t.bytesCompleted, "status", t.status)
 	return false
 }
 
@@ -245,7 +246,7 @@ func (t *Torrent) BoostOff() {
 }
 
 func (t *Torrent) Seed() {
-	if t.status == torrentSeeding {
+	if t.Torrent.Info() == nil || t.status == torrentSeeding {
 		return
 	}
 	//t.status = torrentSeeding
@@ -267,13 +268,13 @@ func (t *Torrent) Seed() {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Imported new chain segment", "hash", common.HexToHash(t.InfoHash()), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "elapsed", common.PrettyDuration(elapsed))
+		log.Info("Imported new chain segment", "hash", common.HexToHash(t.InfoHash()), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "conn", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		//t.Torrent.Drop()
 	}
 }
 
 func (t *Torrent) Seeding() bool {
-	return (t.status == torrentSeeding ||
+	return t.Torrent.Info() != nil && (t.status == torrentSeeding ||
 		t.status == torrentSeedingInQueue) && t.BytesMissing() == 0
 }
 
@@ -1265,7 +1266,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				if log_counter%60 == 0 && t.bytesCompleted > 0 {
 					bar := t.progressBar(t.bytesCompleted, t.Torrent.Length())
 					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					log.Info( /*"[Downloading]" + */ bar, "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted) /*"req", common.StorageSize(t.bytesRequested),*/, "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), /*"prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing),*/ "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
+					log.Info( /*"[Downloading]" + */ bar, "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted) /*"req", common.StorageSize(t.bytesRequested),*/, "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()) /*"prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing),*/, "seg", len(t.Torrent.PieceStateRuns()), "conn", t.currentConns, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
 				}
 
 				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
