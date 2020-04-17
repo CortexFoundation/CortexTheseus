@@ -1,12 +1,11 @@
-# Archived project. No maintenance. 
+# Continue maintaining by ucowng. 
 
-This project is not maintained anymore and is archived. Feel free to fork and
-make your own changes if needed. For more detail read my blog post: [Taking an indefinite sabbatical from my projects](https://arslan.io/2018/10/09/taking-an-indefinite-sabbatical-from-my-projects/)
+For more detail read my blog post: [Taking an indefinite sabbatical from my projects](https://arslan.io/2018/10/09/taking-an-indefinite-sabbatical-from-my-projects/)
 
 Thanks to everyone for their valuable feedback and contributions.
 
 
-# Color [![GoDoc](https://godoc.org/github.com/fatih/color?status.svg)](https://godoc.org/github.com/fatih/color) 
+# Color [![GoDoc](https://godoc.org/github.com/ucwong/color?status.svg)](https://godoc.org/github.com/ucwong/color) 
 
 Color lets you use colorized outputs in terms of [ANSI Escape
 Codes](http://en.wikipedia.org/wiki/ANSI_escape_code#Colors) in Go (Golang). It
@@ -20,7 +19,7 @@ suits you.
 ## Install
 
 ```bash
-go get github.com/fatih/color
+go get -u github.com/ucwong/color
 ```
 
 ## Examples
@@ -173,10 +172,10 @@ c.Println("This prints again cyan...")
 
 ## Credits
 
- * [Fatih Arslan](https://github.com/fatih)
+ * [Fatih Arslan](https://github.com/ucwong)
  * Windows support via @mattn: [colorable](https://github.com/mattn/go-colorable)
 
 ## License
 
-The MIT License (MIT) - see [`LICENSE.md`](https://github.com/fatih/color/blob/master/LICENSE.md) for more details
+The MIT License (MIT) - see [`LICENSE.md`](https://github.com/ucwong/color/blob/master/LICENSE.md) for more details
 
