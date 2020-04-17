@@ -27,13 +27,13 @@ sudo apt install gcc
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH
 export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_PATH
 ```
-- nvidia driver 396.37+
+- nvidia driver 396.37+ reference: https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#major-components
 - ubuntu 16.04+
 ### centos
 Recommend:
 - cmake 3.11.0+
 - go 1.14.x
-- gcc/g++ 5.4+
+- gcc/g++ 5.4+ reference: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#system-requirements
 - cuda 10.1+ (if u have gpu)
 ```
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH
