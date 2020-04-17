@@ -52,7 +52,7 @@ github.com/anacrolix/stm/stmutil
 github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200416075157-48bea90f0a1f
+# github.com/anacrolix/torrent v1.15.1-0.20200417014025-013fa1df5a5d
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/fs
