@@ -250,14 +250,10 @@ func initalizeCipherSuite(state *State, cache *handshakeCache, cfg *handshakeCon
 		return nil, nil
 	}
 
-	clientRandom, err := state.localRandom.Marshal()
-	if err != nil {
-		return &alert{alertLevelFatal, alertInternalError}, err
-	}
-	serverRandom, err := state.remoteRandom.Marshal()
-	if err != nil {
-		return &alert{alertLevelFatal, alertInternalError}, err
-	}
+	clientRandom := state.localRandom.marshalFixed()
+	serverRandom := state.remoteRandom.marshalFixed()
+
+	var err error
 
 	if state.extendedMasterSecret {
 		var sessionHash []byte
@@ -271,7 +267,7 @@ func initalizeCipherSuite(state *State, cache *handshakeCache, cfg *handshakeCon
 			return &alert{alertLevelFatal, alertIllegalParameter}, err
 		}
 	} else {
-		state.masterSecret, err = prfMasterSecret(state.preMasterSecret, clientRandom, serverRandom, state.cipherSuite.hashFunc())
+		state.masterSecret, err = prfMasterSecret(state.preMasterSecret, clientRandom[:], serverRandom[:], state.cipherSuite.hashFunc())
 		if err != nil {
 			return &alert{alertLevelFatal, alertInternalError}, err
 		}
@@ -290,24 +286,24 @@ func initalizeCipherSuite(state *State, cache *handshakeCache, cfg *handshakeCon
 			return &alert{alertLevelFatal, alertInsufficientSecurity}, errNoAvailableSignatureSchemes
 		}
 
-		expectedMsg := valueKeyMessage(clientRandom, serverRandom, h.publicKey, h.namedCurve)
-		if err = verifyKeySignature(expectedMsg, h.signature, h.hashAlgorithm, state.remoteCertificate); err != nil {
+		expectedMsg := valueKeyMessage(clientRandom[:], serverRandom[:], h.publicKey, h.namedCurve)
+		if err = verifyKeySignature(expectedMsg, h.signature, h.hashAlgorithm, state.PeerCertificates); err != nil {
 			return &alert{alertLevelFatal, alertBadCertificate}, err
 		}
 		var chains [][]*x509.Certificate
 		if !cfg.insecureSkipVerify {
-			if chains, err = verifyServerCert(state.remoteCertificate, cfg.rootCAs, cfg.serverName); err != nil {
+			if chains, err = verifyServerCert(state.PeerCertificates, cfg.rootCAs, cfg.serverName); err != nil {
 				return &alert{alertLevelFatal, alertBadCertificate}, err
 			}
 		}
 		if cfg.verifyPeerCertificate != nil {
-			if err = cfg.verifyPeerCertificate(state.remoteCertificate, chains); err != nil {
+			if err = cfg.verifyPeerCertificate(state.PeerCertificates, chains); err != nil {
 				return &alert{alertLevelFatal, alertBadCertificate}, err
 			}
 		}
 	}
 
-	if err = state.cipherSuite.init(state.masterSecret, clientRandom, serverRandom, true); err != nil {
+	if err = state.cipherSuite.init(state.masterSecret, clientRandom[:], serverRandom[:], true); err != nil {
 		return &alert{alertLevelFatal, alertInternalError}, err
 	}
 	return nil, nil

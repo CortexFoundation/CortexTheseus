@@ -17,7 +17,7 @@ type State struct {
 	cipherSuite               cipherSuite // nil if a cipherSuite hasn't been chosen
 
 	srtpProtectionProfile SRTPProtectionProfile // Negotiated SRTPProtectionProfile
-	remoteCertificate     [][]byte
+	PeerCertificates      [][]byte
 
 	isClient bool
 
@@ -34,7 +34,7 @@ type State struct {
 	localCertificatesVerify    []byte // cache CertificateVerify
 	localVerifyData            []byte // cached VerifyData
 	localKeySignature          []byte // cached keySignature
-	remoteCertificateVerified  bool
+	peerCertificatesVerified   bool
 
 	replayDetector []replaydetector.ReplayDetector
 }
@@ -42,51 +42,31 @@ type State struct {
 type serializedState struct {
 	LocalEpoch            uint16
 	RemoteEpoch           uint16
-	LocalRandom           []byte
-	RemoteRandom          []byte
+	LocalRandom           [handshakeRandomLength]byte
+	RemoteRandom          [handshakeRandomLength]byte
 	CipherSuiteID         uint16
 	MasterSecret          []byte
 	SequenceNumber        uint64
 	SRTPProtectionProfile uint16
-	RemoteCertificate     []byte
+	PeerCertificates      [][]byte
 	IsClient              bool
 }
 
-func (s *State) clone() (*State, error) {
-	serialized, err := s.serialize()
-	if err != nil {
-		return nil, err
-	}
+func (s *State) clone() *State {
+	serialized := s.serialize()
 	state := &State{}
-	if err := state.deserialize(*serialized); err != nil {
-		return nil, err
-	}
-	return state, nil
+	state.deserialize(*serialized)
+
+	return state
 }
 
-func (s *State) serialize() (*serializedState, error) {
+func (s *State) serialize() *serializedState {
 	// Marshal random values
-	localRnd, err := s.localRandom.Marshal()
-	if err != nil {
-		return nil, err
-	}
-	remoteRnd, err := s.remoteRandom.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	// Marshal remote certificate
-	var cert []byte
-	if s.remoteCertificate != nil {
-		h := &handshakeMessageCertificate{s.remoteCertificate}
-		cert, err = h.Marshal()
-		if err != nil {
-			return nil, err
-		}
-	}
+	localRnd := s.localRandom.marshalFixed()
+	remoteRnd := s.remoteRandom.marshalFixed()
 
 	epoch := s.localEpoch.Load().(uint16)
-	serialized := serializedState{
+	return &serializedState{
 		LocalEpoch:            epoch,
 		RemoteEpoch:           s.remoteEpoch.Load().(uint16),
 		CipherSuiteID:         uint16(s.cipherSuite.ID()),
@@ -95,14 +75,12 @@ func (s *State) serialize() (*serializedState, error) {
 		LocalRandom:           localRnd,
 		RemoteRandom:          remoteRnd,
 		SRTPProtectionProfile: uint16(s.srtpProtectionProfile),
-		RemoteCertificate:     cert,
+		PeerCertificates:      s.PeerCertificates,
 		IsClient:              s.isClient,
 	}
-
-	return &serialized, nil
 }
 
-func (s *State) deserialize(serialized serializedState) error {
+func (s *State) deserialize(serialized serializedState) {
 	// Set epoch values
 	epoch := serialized.LocalEpoch
 	s.localEpoch.Store(serialized.LocalEpoch)
@@ -114,51 +92,51 @@ func (s *State) deserialize(serialized serializedState) error {
 
 	// Set random values
 	localRandom := &handshakeRandom{}
-	if err := localRandom.Unmarshal(serialized.LocalRandom); err != nil {
-		return err
-	}
+	localRandom.unmarshalFixed(serialized.LocalRandom)
 	s.localRandom = *localRandom
+
 	remoteRandom := &handshakeRandom{}
-	if err := remoteRandom.Unmarshal(serialized.RemoteRandom); err != nil {
-		return err
-	}
+	remoteRandom.unmarshalFixed(serialized.RemoteRandom)
 	s.remoteRandom = *remoteRandom
 
 	s.isClient = serialized.IsClient
 
+	// Set master secret
+	s.masterSecret = serialized.MasterSecret
+
 	// Set cipher suite
 	s.cipherSuite = cipherSuiteForID(CipherSuiteID(serialized.CipherSuiteID))
-	var err error
-	if serialized.IsClient {
-		err = s.cipherSuite.init(serialized.MasterSecret, serialized.LocalRandom, serialized.RemoteRandom, true)
-	} else {
-		err = s.cipherSuite.init(serialized.MasterSecret, serialized.RemoteRandom, serialized.LocalRandom, false)
-	}
-	if err != nil {
-		return err
-	}
 
 	atomic.StoreUint64(&s.localSequenceNumber[epoch], serialized.SequenceNumber)
 	s.srtpProtectionProfile = SRTPProtectionProfile(serialized.SRTPProtectionProfile)
 
 	// Set remote certificate
-	if serialized.RemoteCertificate != nil {
-		h := &handshakeMessageCertificate{}
-		if err := h.Unmarshal(serialized.RemoteCertificate); err != nil {
-			return err
-		}
-		s.remoteCertificate = h.certificate
+	s.PeerCertificates = serialized.PeerCertificates
+}
+
+func (s *State) initCipherSuite() error {
+	if s.cipherSuite.isInitialized() {
+		return nil
 	}
 
+	localRandom := s.localRandom.marshalFixed()
+	remoteRandom := s.remoteRandom.marshalFixed()
+
+	var err error
+	if s.isClient {
+		err = s.cipherSuite.init(s.masterSecret, localRandom[:], remoteRandom[:], true)
+	} else {
+		err = s.cipherSuite.init(s.masterSecret, remoteRandom[:], localRandom[:], false)
+	}
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // MarshalBinary is a binary.BinaryMarshaler.MarshalBinary implementation
 func (s *State) MarshalBinary() ([]byte, error) {
-	serialized, err := s.serialize()
-	if err != nil {
-		return nil, err
-	}
+	serialized := s.serialize()
 
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -176,8 +154,34 @@ func (s *State) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
-	if err := s.deserialize(serialized); err != nil {
+	s.deserialize(serialized)
+	if err := s.initCipherSuite(); err != nil {
 		return err
 	}
 	return nil
+}
+
+// ExportKeyingMaterial returns length bytes of exported key material in a new
+// slice as defined in RFC 5705.
+// This allows protocols to use DTLS for key establishment, but
+// then use some of the keying material for their own purposes
+func (s *State) ExportKeyingMaterial(label string, context []byte, length int) ([]byte, error) {
+	if s.localEpoch.Load().(uint16) == 0 {
+		return nil, errHandshakeInProgress
+	} else if len(context) != 0 {
+		return nil, errContextUnsupported
+	} else if _, ok := invalidKeyingLabels[label]; ok {
+		return nil, errReservedExportKeyingMaterial
+	}
+
+	localRandom := s.localRandom.marshalFixed()
+	remoteRandom := s.remoteRandom.marshalFixed()
+
+	seed := []byte(label)
+	if s.isClient {
+		seed = append(append(seed, localRandom[:]...), remoteRandom[:]...)
+	} else {
+		seed = append(append(seed, remoteRandom[:]...), localRandom[:]...)
+	}
+	return prfPHash(s.masterSecret, seed, length, s.cipherSuite.hashFunc())
 }

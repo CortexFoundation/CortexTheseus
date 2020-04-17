@@ -23,11 +23,11 @@ func flight4Parse(ctx context.Context, c flightConn, state *State, cache *handsh
 	}
 
 	if h, hasCert := msgs[handshakeTypeCertificate].(*handshakeMessageCertificate); hasCert {
-		state.remoteCertificate = h.certificate
+		state.PeerCertificates = h.certificate
 	}
 
 	if h, hasCertVerify := msgs[handshakeTypeCertificateVerify].(*handshakeMessageCertificateVerify); hasCertVerify {
-		if state.remoteCertificate == nil {
+		if state.PeerCertificates == nil {
 			return 0, &alert{alertLevelFatal, alertNoCertificate}, errCertificateVerifyNoCertificate
 		}
 
@@ -54,36 +54,31 @@ func flight4Parse(ctx context.Context, c flightConn, state *State, cache *handsh
 			return 0, &alert{alertLevelFatal, alertInsufficientSecurity}, errNoAvailableSignatureSchemes
 		}
 
-		if err := verifyCertificateVerify(plainText, h.hashAlgorithm, h.signature, state.remoteCertificate); err != nil {
+		if err := verifyCertificateVerify(plainText, h.hashAlgorithm, h.signature, state.PeerCertificates); err != nil {
 			return 0, &alert{alertLevelFatal, alertBadCertificate}, err
 		}
 		var chains [][]*x509.Certificate
 		var err error
 		var verified bool
 		if cfg.clientAuth >= VerifyClientCertIfGiven {
-			if chains, err = verifyClientCert(state.remoteCertificate, cfg.clientCAs); err != nil {
+			if chains, err = verifyClientCert(state.PeerCertificates, cfg.clientCAs); err != nil {
 				return 0, &alert{alertLevelFatal, alertBadCertificate}, err
 			}
 			verified = true
 		}
 		if cfg.verifyPeerCertificate != nil {
-			if err := cfg.verifyPeerCertificate(state.remoteCertificate, chains); err != nil {
+			if err := cfg.verifyPeerCertificate(state.PeerCertificates, chains); err != nil {
 				return 0, &alert{alertLevelFatal, alertBadCertificate}, err
 			}
 		}
-		state.remoteCertificateVerified = verified
+		state.peerCertificatesVerified = verified
 	}
 
 	if !state.cipherSuite.isInitialized() {
-		serverRandom, err := state.localRandom.Marshal()
-		if err != nil {
-			return 0, &alert{alertLevelFatal, alertInternalError}, err
-		}
-		clientRandom, err := state.remoteRandom.Marshal()
-		if err != nil {
-			return 0, &alert{alertLevelFatal, alertInternalError}, err
-		}
+		serverRandom := state.localRandom.marshalFixed()
+		clientRandom := state.remoteRandom.marshalFixed()
 
+		var err error
 		var preMasterSecret []byte
 		if cfg.localPSKCallback != nil {
 			var psk []byte
@@ -111,13 +106,13 @@ func flight4Parse(ctx context.Context, c flightConn, state *State, cache *handsh
 				return 0, &alert{alertLevelFatal, alertInternalError}, err
 			}
 		} else {
-			state.masterSecret, err = prfMasterSecret(preMasterSecret, clientRandom, serverRandom, state.cipherSuite.hashFunc())
+			state.masterSecret, err = prfMasterSecret(preMasterSecret, clientRandom[:], serverRandom[:], state.cipherSuite.hashFunc())
 			if err != nil {
 				return 0, &alert{alertLevelFatal, alertInternalError}, err
 			}
 		}
 
-		if err := state.cipherSuite.init(state.masterSecret, clientRandom, serverRandom, false); err != nil {
+		if err := state.cipherSuite.init(state.masterSecret, clientRandom[:], serverRandom[:], false); err != nil {
 			return 0, &alert{alertLevelFatal, alertInternalError}, err
 		}
 	}
@@ -142,18 +137,18 @@ func flight4Parse(ctx context.Context, c flightConn, state *State, cache *handsh
 
 	switch cfg.clientAuth {
 	case RequireAnyClientCert:
-		if state.remoteCertificate == nil {
+		if state.PeerCertificates == nil {
 			return 0, &alert{alertLevelFatal, alertNoCertificate}, errClientCertificateRequired
 		}
 	case VerifyClientCertIfGiven:
-		if state.remoteCertificate != nil && !state.remoteCertificateVerified {
+		if state.PeerCertificates != nil && !state.peerCertificatesVerified {
 			return 0, &alert{alertLevelFatal, alertBadCertificate}, errClientCertificateNotVerified
 		}
 	case RequireAndVerifyClientCert:
-		if state.remoteCertificate == nil {
+		if state.PeerCertificates == nil {
 			return 0, &alert{alertLevelFatal, alertNoCertificate}, errClientCertificateRequired
 		}
-		if !state.remoteCertificateVerified {
+		if !state.peerCertificatesVerified {
 			return 0, &alert{alertLevelFatal, alertBadCertificate}, errClientCertificateNotVerified
 		}
 	}
@@ -221,14 +216,8 @@ func flight4Generate(c flightConn, state *State, cache *handshakeCache, cfg *han
 			},
 		})
 
-		serverRandom, err := state.localRandom.Marshal()
-		if err != nil {
-			return nil, &alert{alertLevelFatal, alertInternalError}, err
-		}
-		clientRandom, err := state.remoteRandom.Marshal()
-		if err != nil {
-			return nil, &alert{alertLevelFatal, alertInternalError}, err
-		}
+		serverRandom := state.localRandom.marshalFixed()
+		clientRandom := state.remoteRandom.marshalFixed()
 
 		// Find compatible signature scheme
 		signatureHashAlgo, err := selectSignatureScheme(cfg.localSignatureSchemes, certificate.PrivateKey)
@@ -236,7 +225,7 @@ func flight4Generate(c flightConn, state *State, cache *handshakeCache, cfg *han
 			return nil, &alert{alertLevelFatal, alertInsufficientSecurity}, err
 		}
 
-		signature, err := generateKeySignature(clientRandom, serverRandom, state.localKeypair.publicKey, state.namedCurve, certificate.PrivateKey, signatureHashAlgo.hash)
+		signature, err := generateKeySignature(clientRandom[:], serverRandom[:], state.localKeypair.publicKey, state.namedCurve, certificate.PrivateKey, signatureHashAlgo.hash)
 		if err != nil {
 			return nil, &alert{alertLevelFatal, alertInternalError}, err
 		}

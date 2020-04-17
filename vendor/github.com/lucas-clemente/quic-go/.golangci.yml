@@ -1,6 +1,6 @@
 run:
   skip-files:
-    - h2quic/response_writer_closenotifier.go
+    - internal/handshake/client_session_state.go
     - internal/handshake/unsafe_test.go
 
 linters-settings:
@@ -17,9 +17,19 @@ linters:
     - gosimple
     - ineffassign
     - misspell
+    - prealloc
+    - scopelint
     - staticcheck
+    - stylecheck
     - structcheck
     - unconvert
+    - unparam
     - unused
     - varcheck
     - vet
+
+issues:
+  exclude-rules:
+    - path: qlog/
+      linters:
+        - goconst

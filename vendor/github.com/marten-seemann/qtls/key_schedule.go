@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build go1.14
+
 package qtls
 
 import (
@@ -126,12 +128,15 @@ type ecdheParameters interface {
 
 func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, error) {
 	if curveID == X25519 {
-		p := &x25519Parameters{}
-		if _, err := io.ReadFull(rand, p.privateKey[:]); err != nil {
+		privateKey := make([]byte, curve25519.ScalarSize)
+		if _, err := io.ReadFull(rand, privateKey); err != nil {
 			return nil, err
 		}
-		curve25519.ScalarBaseMult(&p.publicKey, &p.privateKey)
-		return p, nil
+		publicKey, err := curve25519.X25519(privateKey, curve25519.Basepoint)
+		if err != nil {
+			return nil, err
+		}
+		return &x25519Parameters{privateKey: privateKey, publicKey: publicKey}, nil
 	}
 
 	curve, ok := curveForCurveID(curveID)
@@ -193,8 +198,8 @@ func (p *nistParameters) SharedKey(peerPublicKey []byte) []byte {
 }
 
 type x25519Parameters struct {
-	privateKey [32]byte
-	publicKey  [32]byte
+	privateKey []byte
+	publicKey  []byte
 }
 
 func (p *x25519Parameters) CurveID() CurveID {
@@ -206,11 +211,9 @@ func (p *x25519Parameters) PublicKey() []byte {
 }
 
 func (p *x25519Parameters) SharedKey(peerPublicKey []byte) []byte {
-	if len(peerPublicKey) != 32 {
+	sharedKey, err := curve25519.X25519(p.privateKey, peerPublicKey)
+	if err != nil {
 		return nil
 	}
-	var theirPublicKey, sharedKey [32]byte
-	copy(theirPublicKey[:], peerPublicKey)
-	curve25519.ScalarMult(&sharedKey, &p.privateKey, &theirPublicKey)
-	return sharedKey[:]
+	return sharedKey
 }

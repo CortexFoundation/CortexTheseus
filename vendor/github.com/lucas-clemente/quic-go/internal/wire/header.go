@@ -27,7 +27,7 @@ func ParseConnectionID(data []byte, shortHeaderConnIDLen int) (protocol.Connecti
 	if len(data) < 6 {
 		return nil, io.EOF
 	}
-	destConnIDLen, _ := decodeConnIDLen(data[5])
+	destConnIDLen := int(data[5])
 	if len(data) < 6+destConnIDLen {
 		return nil, io.EOF
 	}
@@ -42,23 +42,23 @@ func IsVersionNegotiationPacket(b []byte) bool {
 	return b[0]&0x80 > 0 && b[1] == 0 && b[2] == 0 && b[3] == 0 && b[4] == 0
 }
 
-var errUnsupportedVersion = errors.New("unsupported version")
+var ErrUnsupportedVersion = errors.New("unsupported version")
 
 // The Header is the version independent part of the header
 type Header struct {
+	IsLongHeader bool
+	typeByte     byte
+	Type         protocol.PacketType
+
 	Version          protocol.VersionNumber
 	SrcConnectionID  protocol.ConnectionID
 	DestConnectionID protocol.ConnectionID
 
-	IsLongHeader bool
-	Type         protocol.PacketType
-	Length       protocol.ByteCount
+	Length protocol.ByteCount
 
-	Token                []byte
-	SupportedVersions    []protocol.VersionNumber // sent in a Version Negotiation Packet
-	OrigDestConnectionID protocol.ConnectionID    // sent in the Retry packet
+	Token             []byte
+	SupportedVersions []protocol.VersionNumber // sent in a Version Negotiation Packet
 
-	typeByte  byte
 	parsedLen protocol.ByteCount // how many bytes were read while parsing this header
 }
 
@@ -69,8 +69,8 @@ type Header struct {
 func ParsePacket(data []byte, shortHeaderConnIDLen int) (*Header, []byte /* packet data */, []byte /* rest */, error) {
 	hdr, err := parseHeader(bytes.NewReader(data), shortHeaderConnIDLen)
 	if err != nil {
-		if err == errUnsupportedVersion {
-			return hdr, nil, nil, nil
+		if err == ErrUnsupportedVersion {
+			return hdr, nil, nil, ErrUnsupportedVersion
 		}
 		return nil, nil, nil, err
 	}
@@ -139,16 +139,19 @@ func (h *Header) parseLongHeader(b *bytes.Reader) error {
 	if h.Version != 0 && h.typeByte&0x40 == 0 {
 		return errors.New("not a QUIC packet")
 	}
-	connIDLenByte, err := b.ReadByte()
+	destConnIDLen, err := b.ReadByte()
 	if err != nil {
 		return err
 	}
-	dcil, scil := decodeConnIDLen(connIDLenByte)
-	h.DestConnectionID, err = protocol.ReadConnectionID(b, dcil)
+	h.DestConnectionID, err = protocol.ReadConnectionID(b, int(destConnIDLen))
 	if err != nil {
 		return err
 	}
-	h.SrcConnectionID, err = protocol.ReadConnectionID(b, scil)
+	srcConnIDLen, err := b.ReadByte()
+	if err != nil {
+		return err
+	}
+	h.SrcConnectionID, err = protocol.ReadConnectionID(b, int(srcConnIDLen))
 	if err != nil {
 		return err
 	}
@@ -157,7 +160,7 @@ func (h *Header) parseLongHeader(b *bytes.Reader) error {
 	}
 	// If we don't understand the version, we have no idea how to interpret the rest of the bytes
 	if !protocol.IsSupportedVersion(protocol.SupportedVersions, h.Version) {
-		return errUnsupportedVersion
+		return ErrUnsupportedVersion
 	}
 
 	switch (h.typeByte & 0x30) >> 4 {
@@ -172,16 +175,16 @@ func (h *Header) parseLongHeader(b *bytes.Reader) error {
 	}
 
 	if h.Type == protocol.PacketTypeRetry {
-		odcil := decodeSingleConnIDLen(h.typeByte & 0xf)
-		h.OrigDestConnectionID, err = protocol.ReadConnectionID(b, odcil)
-		if err != nil {
-			return err
+		tokenLen := b.Len() - 16
+		if tokenLen <= 0 {
+			return io.EOF
 		}
-		h.Token = make([]byte, b.Len())
+		h.Token = make([]byte, tokenLen)
 		if _, err := io.ReadFull(b, h.Token); err != nil {
 			return err
 		}
-		return nil
+		_, err := b.Seek(16, io.SeekCurrent)
+		return err
 	}
 
 	if h.Type == protocol.PacketTypeInitial {
@@ -208,10 +211,12 @@ func (h *Header) parseLongHeader(b *bytes.Reader) error {
 
 func (h *Header) parseVersionNegotiationPacket(b *bytes.Reader) error {
 	if b.Len() == 0 {
-		return errors.New("Version Negoation packet has empty version list")
+		//nolint:stylecheck
+		return errors.New("Version Negotiation packet has empty version list")
 	}
 	if b.Len()%4 != 0 {
-		return errors.New("Version Negotation packet has a version list with an invalid length")
+		//nolint:stylecheck
+		return errors.New("Version Negotiation packet has a version list with an invalid length")
 	}
 	h.SupportedVersions = make([]protocol.VersionNumber, b.Len()/4)
 	for i := 0; b.Len() > 0; i++ {
@@ -232,20 +237,25 @@ func (h *Header) ParsedLen() protocol.ByteCount {
 // ParseExtended parses the version dependent part of the header.
 // The Reader has to be set such that it points to the first byte of the header.
 func (h *Header) ParseExtended(b *bytes.Reader, ver protocol.VersionNumber) (*ExtendedHeader, error) {
-	return h.toExtendedHeader().parse(b, ver)
+	extHdr := h.toExtendedHeader()
+	reservedBitsValid, err := extHdr.parse(b, ver)
+	if err != nil {
+		return nil, err
+	}
+	if !reservedBitsValid {
+		return extHdr, ErrInvalidReservedBits
+	}
+	return extHdr, nil
 }
 
 func (h *Header) toExtendedHeader() *ExtendedHeader {
 	return &ExtendedHeader{Header: *h}
 }
 
-func decodeConnIDLen(enc byte) (int /*dest conn id len*/, int /*src conn id len*/) {
-	return decodeSingleConnIDLen(enc >> 4), decodeSingleConnIDLen(enc & 0xf)
-}
-
-func decodeSingleConnIDLen(enc uint8) int {
-	if enc == 0 {
-		return 0
+// PacketType is the type of the packet, for logging purposes
+func (h *Header) PacketType() string {
+	if h.IsLongHeader {
+		return h.Type.String()
 	}
-	return int(enc) + 3
+	return "1-RTT"
 }

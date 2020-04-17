@@ -43,8 +43,15 @@ type SettingEngine struct {
 		UsernameFragment               string
 		Password                       string
 	}
+	replayProtection struct {
+		DTLS  *uint
+		SRTP  *uint
+		SRTCP *uint
+	}
 	answeringDTLSRole                         DTLSRole
 	disableCertificateFingerprintVerification bool
+	disableSRTPReplayProtection               bool
+	disableSRTCPReplayProtection              bool
 	vnet                                      *vnet.Net
 	LoggerFactory                             logging.LoggerFactory
 }
@@ -204,4 +211,31 @@ func (e *SettingEngine) SetICECredentials(usernameFragment, password string) {
 // DisableCertificateFingerprintVerification disables fingerprint verification after DTLS Handshake has finished
 func (e *SettingEngine) DisableCertificateFingerprintVerification(isDisabled bool) {
 	e.disableCertificateFingerprintVerification = isDisabled
+}
+
+// SetDTLSReplayProtectionWindow sets a replay attack protection window size of DTLS connection.
+func (e *SettingEngine) SetDTLSReplayProtectionWindow(n uint) {
+	e.replayProtection.DTLS = &n
+}
+
+// SetSRTPReplayProtectionWindow sets a replay attack protection window size of SRTP session.
+func (e *SettingEngine) SetSRTPReplayProtectionWindow(n uint) {
+	e.disableSRTPReplayProtection = false
+	e.replayProtection.SRTP = &n
+}
+
+// SetSRTCPReplayProtectionWindow sets a replay attack protection window size of SRTCP session.
+func (e *SettingEngine) SetSRTCPReplayProtectionWindow(n uint) {
+	e.disableSRTCPReplayProtection = false
+	e.replayProtection.SRTCP = &n
+}
+
+// DisableSRTPReplayProtection disables SRTP replay protection.
+func (e *SettingEngine) DisableSRTPReplayProtection(isDisabled bool) {
+	e.disableSRTPReplayProtection = isDisabled
+}
+
+// DisableSRTCPReplayProtection disables SRTCP replay protection.
+func (e *SettingEngine) DisableSRTCPReplayProtection(isDisabled bool) {
+	e.disableSRTCPReplayProtection = isDisabled
 }

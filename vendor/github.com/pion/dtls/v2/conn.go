@@ -335,11 +335,12 @@ func (c *Conn) Close() error {
 	return err
 }
 
-// RemoteCertificate exposes the remote certificate
-func (c *Conn) RemoteCertificate() [][]byte {
+// ConnectionState returns basic DTLS details about the connection.
+// Note that this replaced the `Export` function of v1.
+func (c *Conn) ConnectionState() State {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.state.remoteCertificate
+	return *c.state.clone()
 }
 
 // SelectedSRTPProtectionProfile returns the selected SRTPProtectionProfile
@@ -352,39 +353,6 @@ func (c *Conn) SelectedSRTPProtectionProfile() (SRTPProtectionProfile, bool) {
 	}
 
 	return c.state.srtpProtectionProfile, true
-}
-
-// ExportKeyingMaterial from https://tools.ietf.org/html/rfc5705
-// This allows protocols to use DTLS for key establishment, but
-// then use some of the keying material for their own purposes
-func (c *Conn) ExportKeyingMaterial(label string, context []byte, length int) ([]byte, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	if c.getLocalEpoch() == 0 {
-		return nil, errHandshakeInProgress
-	} else if len(context) != 0 {
-		return nil, errContextUnsupported
-	} else if _, ok := invalidKeyingLabels[label]; ok {
-		return nil, errReservedExportKeyingMaterial
-	}
-
-	localRandom, err := c.state.localRandom.Marshal()
-	if err != nil {
-		return nil, err
-	}
-	remoteRandom, err := c.state.remoteRandom.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	seed := []byte(label)
-	if c.state.isClient {
-		seed = append(append(seed, localRandom...), remoteRandom...)
-	} else {
-		seed = append(append(seed, remoteRandom...), localRandom...)
-	}
-	return prfPHash(c.state.masterSecret, seed, length, c.state.cipherSuite.hashFunc())
 }
 
 func (c *Conn) writePackets(ctx context.Context, pkts []*packet) error {
