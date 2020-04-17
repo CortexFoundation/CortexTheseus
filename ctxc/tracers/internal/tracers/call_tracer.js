@@ -17,7 +17,7 @@
 // callTracer is a full blown transaction tracer that extracts and reports all
 // the internal calls made by a transaction, along with any useful information.
 {
-	// callstack is the current recursive call stack of the EVM execution.
+	// callstack is the current recursive call stack of the CVM execution.
 	callstack: [{}],
 
 	// descended tracks whether we've just descended from an outer transaction into

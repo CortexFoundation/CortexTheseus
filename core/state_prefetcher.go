@@ -86,7 +86,7 @@ func precacheTransaction(config *params.ChainConfig, bc ChainContext, author *co
 	if err != nil {
 		return err
 	}
-	// Create the EVM and execute the transaction
+	// Create the CVM and execute the transaction
 	context := NewCVMContext(msg, header, bc, author)
 	vm := vm.NewCVM(context, statedb, config, cfg)
 	qp := new(big.Int).Sub(header.Quota, header.QuotaUsed)
