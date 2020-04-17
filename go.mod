@@ -1,6 +1,6 @@
 module github.com/CortexFoundation/CortexTheseus
 
-go 1.13
+go 1.14
 
 require (
 	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
