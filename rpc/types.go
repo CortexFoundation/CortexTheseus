@@ -26,7 +26,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/ucwong/golang-set"
 )
 
 // API describes the set of methods offered over the RPC interface

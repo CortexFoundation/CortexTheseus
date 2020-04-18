@@ -2,7 +2,7 @@ package torrentfs
 
 import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/ucwong/golang-set"
 	"sync"
 )
 

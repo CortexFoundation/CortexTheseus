@@ -25,7 +25,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/ucwong/golang-set"
 
 	//"github.com/CortexFoundation/CortexTheseus/consensus/misc"
 	//"github.com/CortexFoundation/CortexTheseus/core/vm"

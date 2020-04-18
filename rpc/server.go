@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 
 	"github.com/CortexFoundation/CortexTheseus/log"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/ucwong/golang-set"
 )
 
 const MetadataApi = "rpc"

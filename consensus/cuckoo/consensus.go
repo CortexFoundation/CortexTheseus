@@ -37,7 +37,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/ucwong/golang-set"
 	"golang.org/x/crypto/sha3"
 	"time"
 	//	"github.com/CortexFoundation/CortexTheseus/solution/miner/libcuckoo"
