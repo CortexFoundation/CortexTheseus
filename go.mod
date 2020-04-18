@@ -47,6 +47,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
+	github.com/pion/sdp/v2 v2.3.7 // indirect
 	github.com/pion/webrtc/v2 v2.2.5 // indirect
 	github.com/prometheus/prometheus v1.8.2-0.20200117201204-669592a2c4d5
 	github.com/rjeczalik/notify v0.9.2
