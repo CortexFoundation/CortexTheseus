@@ -59,8 +59,8 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/tinylib/msgp v1.1.2 // indirect
-	github.com/ucwong/color v1.9.2-0.20200417101501-cc22dac4ce22
-	github.com/ucwong/golang-set v1.8.0
+	github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707
+	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
