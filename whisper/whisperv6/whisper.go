@@ -348,6 +348,7 @@ func (whisper *Whisper) getPeers() []*Peer {
 	arr := make([]*Peer, len(whisper.peers))
 	i := 0
 	whisper.peerMu.Lock()
+	defer whisper.peerMu.Unlock()
 	for p := range whisper.peers {
 		arr[i] = p
 		i++
