@@ -284,7 +284,7 @@ func (m *Monitor) storageInit() error {
 			bytesRequested = file.Meta.RawSize - file.LeftSize
 		}
 		capcity += bytesRequested
-		log.Debug("File storage info", "addr", file.ContractAddr, "hash", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
+		log.Debug("File storage info", "addr", file.ContractAddr, "ih", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
 		m.dl.UpdateTorrent(types.FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
@@ -563,7 +563,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 		return err
 	} else {
 		if update && op == 1 {
-			log.Debug("Create new file", "hash", meta.InfoHash, "op", op)
+			log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
 			m.dl.UpdateTorrent(types.FlowControlMeta{
 				InfoHash:       meta.InfoHash,
 				BytesRequested: 0,
@@ -618,7 +618,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 		var final []types.Transaction
 		for _, tx := range b.Txs {
 			if meta := tx.Parse(); meta != nil {
-				log.Debug("Data encounter", "hash", meta.InfoHash, "number", b.Number, "meta", meta)
+				log.Debug("Data encounter", "ih", meta.InfoHash, "number", b.Number, "meta", meta)
 				if err := m.parseFileMeta(&tx, meta, b); err != nil {
 					log.Error("Parse file meta error", "err", err, "number", b.Number)
 					return false, err
@@ -666,15 +666,15 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 					if _, progress, err := m.fs.UpdateFile(file); err != nil {
 						return false, err
 					} else if progress { // && progress {
-						log.Debug("Update storage success", "hash", file.Meta.InfoHash, "left", file.LeftSize)
+						log.Debug("Update storage success", "ih", file.Meta.InfoHash, "left", file.LeftSize)
 						var bytesRequested uint64
 						if file.Meta.RawSize > file.LeftSize {
 							bytesRequested = file.Meta.RawSize - file.LeftSize
 						}
 						if file.LeftSize == 0 {
-							log.Debug("Data processing completed !!!", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+							log.Debug("Data processing completed !!!", "ih", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						} else {
-							log.Debug("Data processing ...", "hash", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
 
 						m.dl.UpdateTorrent(types.FlowControlMeta{
@@ -685,7 +685,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 					}
 				}
 				//} else {
-				//	log.Debug("Uploading a file", "addr", addr, "hash", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
+				//	log.Debug("Uploading a file", "addr", addr, "ih", file.Meta.InfoHash.String(), "number", b.Number, "left", file.LeftSize, "remain", remainingSize, "raw", file.Meta.RawSize)
 				//}
 
 				record = true
