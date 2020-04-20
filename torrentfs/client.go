@@ -633,7 +633,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 	//log.Info("Get seed from local file", "InfoHash", ih.HexString())
 
 	if t := tm.GetTorrent(ih); t != nil {
-		log.Trace("Seed was already existed. Skip", "InfoHash", ih.HexString())
+		log.Trace("Seed was already existed. Skip", "ih", ih.HexString())
 		return t
 	}
 	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
@@ -641,7 +641,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 
 	useExistDir := false
 	if _, err := os.Stat(ExistDir); err == nil {
-		log.Debug("Seeding from existing file.", "InfoHash", ih.HexString())
+		log.Debug("Seeding from existing file.", "ih", ih.HexString())
 		info, err := mi.UnmarshalInfo()
 		if err != nil {
 			log.Error("error unmarshalling info: ", "info", err)
@@ -707,7 +707,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 		return tm.AddTorrent(torrentPath, BytesRequested)
 	}
 
-	log.Trace("Get file from infohash", "InfoHash", ih.HexString())
+	log.Trace("Get file from infohash", "ih", ih.HexString())
 
 	spec := &torrent.TorrentSpec{
 		Trackers: [][]string{}, //tm.trackers, //[][]string{},
@@ -739,7 +739,7 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 
 // UpdateInfoHash ...
 func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
-	log.Debug("Update seed", "InfoHash", ih, "bytes", BytesRequested)
+	log.Debug("Update seed", "ih", ih, "bytes", BytesRequested)
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
