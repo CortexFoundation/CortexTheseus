@@ -5,12 +5,11 @@ go 1.14
 require (
 	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/RoaringBitmap/roaring v0.4.23 // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/anacrolix/log v0.6.1-0.20200416071330-f58a030e6149
-	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200227072623-f02f6484f997
+	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200417014025-013fa1df5a5d
+	github.com/anacrolix/torrent v1.15.1-0.20200420034225-c074b30d9419
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 	github.com/aws/aws-sdk-go v1.25.48
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
@@ -28,11 +27,9 @@ require (
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/protobuf v1.4.0 // indirect
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.9
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
@@ -41,7 +38,6 @@ require (
 	github.com/lucas-clemente/quic-go v0.15.4 // indirect
 	github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
-	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.4
@@ -58,7 +54,6 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
