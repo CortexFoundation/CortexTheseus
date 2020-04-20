@@ -1025,7 +1025,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
 					} else {
-						log.Trace("A <- P", "ih", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+						//log.Trace("A <- P", "ih", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 					}
 					if err := t.WriteTorrent(); err == nil {
 						delete(tm.pendingTorrents, ih)
