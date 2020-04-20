@@ -124,9 +124,6 @@ type Config struct {
 	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
 	// CheckpointOracle is the configuration for checkpoint oracle.
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
-
-	// Istanbul block override (TODO: remove after the fork)
-	OverrideIstanbul *big.Int `toml:",omitempty"`
 }
 
 type configMarshaling struct {
