@@ -228,6 +228,7 @@ func mainExitCode() int {
 	cfg.SetListenAddr(args.ListenAddr.String())
 	cfg.Logger = xlog.Discard
 	cfg.Seed = true
+	cfg.DropDuplicatePeerIds = true
 	//cfg.EstablishedConnsPerTorrent = 10
 	//cfg.HalfOpenConnsPerTorrent = 10
 	cfg.DisableUTP = true
