@@ -5,6 +5,8 @@ var BadFiles = map[string]bool{
 }
 
 var GoodFiles = map[string]bool{
+	"aea5584d0cd3865e90c80eace3bfcb062473d966": true,
+	"3145ad19228c1cd2d051314e72f26c1ce77b7f02": true,
 	"6dfc52c480a779dd3e2c9dce9772a5131ee1f4d7": true,
 	"d31d1b0f588069aa6f36de5a7025a8d73a9a49f6": true,
 	"9dbde0099a270c23d5dec0acb0ac537b0fb35c27": true,
@@ -22,8 +24,6 @@ var GoodFiles = map[string]bool{
 	"3f1f6c007e8da3e16f7c3378a20a746e70f1c2b0": true,
 	"1f1706fa53ce0723ba1c577418b222acbfa5a200": true,
 	"ec6b1f5b5073c07dd35a53a3a13220c1a21e426d": true,
-	"aea5584d0cd3865e90c80eace3bfcb062473d966": true,
 	"9f222b4afa685d74d82e88972922cc9108a81791": true,
-	"3145ad19228c1cd2d051314e72f26c1ce77b7f02": true,
 	"04615009127a4829d32d22dddb45664a2aee8067": true,
 }
