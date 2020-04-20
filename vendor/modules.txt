@@ -9,7 +9,6 @@ github.com/Azure/azure-pipeline-go/pipeline
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/RoaringBitmap/roaring v0.4.23
-## explicit
 github.com/RoaringBitmap/roaring
 # github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 ## explicit
@@ -37,12 +36,13 @@ github.com/anacrolix/missinggo/slices
 github.com/anacrolix/missinggo/x
 # github.com/anacrolix/missinggo/perf v1.0.0
 github.com/anacrolix/missinggo/perf
-# github.com/anacrolix/missinggo/v2 v2.4.1-0.20200227072623-f02f6484f997
+# github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 ## explicit
 github.com/anacrolix/missinggo/v2
 github.com/anacrolix/missinggo/v2/bitmap
 github.com/anacrolix/missinggo/v2/conntrack
 github.com/anacrolix/missinggo/v2/iter
+github.com/anacrolix/missinggo/v2/pproffd
 github.com/anacrolix/missinggo/v2/prioritybitmap
 github.com/anacrolix/missinggo/v2/resource
 # github.com/anacrolix/mmsg v1.0.0
@@ -59,7 +59,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200417014025-013fa1df5a5d
+# github.com/anacrolix/torrent v1.15.1-0.20200420034225-c074b30d9419
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -177,7 +177,6 @@ github.com/go-resty/resty/v2
 ## explicit
 github.com/go-stack/stack
 # github.com/golang/protobuf v1.4.0
-## explicit
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 ## explicit
@@ -194,7 +193,6 @@ github.com/gorilla/websocket
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/huandu/xstrings v1.3.1
-## explicit
 github.com/huandu/xstrings
 # github.com/huin/goupnp v1.0.0
 ## explicit
@@ -253,7 +251,6 @@ github.com/mattn/go-runewidth
 ## explicit
 github.com/mattn/go-sqlite3
 # github.com/mschoch/smat v0.2.0
-## explicit
 github.com/mschoch/smat
 # github.com/naoina/go-stringutil v0.1.0
 ## explicit
@@ -379,7 +376,6 @@ github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.2
-## explicit
 github.com/tinylib/msgp/msgp
 # github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707
 ## explicit
