@@ -1818,7 +1818,7 @@ func (st *insertStats) report(chain []*types.Block, index int, dirty common.Stor
 		if st.ignored > 0 {
 			context = append(context, []interface{}{"ignored", st.ignored}...)
 		}
-		log.Info("Imported new chain segment", context...)
+		log.Info("Imported new segment", context...)
 
 		*st = insertStats{startTime: now, lastIndex: index + 1}
 	}
