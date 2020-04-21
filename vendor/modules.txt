@@ -18,7 +18,7 @@ github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.2
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.6.1-0.20200416071330-f58a030e6149
+# github.com/anacrolix/log v0.7.0
 ## explicit
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.2.1
