@@ -30,12 +30,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
-	"github.com/CortexFoundation/CortexTheseus/params"
+	//"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
+	//"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	mapset "github.com/ucwong/golang-set"
 	"github.com/syndtr/goleveldb/leveldb/errors"
+	mapset "github.com/ucwong/golang-set"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/sync/syncmap"
 )
@@ -134,11 +134,11 @@ func New(cfg *Config) *Whisper {
 		},
 	}
 	//add dns discovery to whisper
-	client := dnsdisc.NewClient(dnsdisc.Config{})
-	s, err := client.NewIterator([]string{params.KnownDNSNetworks[params.MainnetGenesisHash]}...)
-	if err == nil {
-		whisper.protocol.DialCandidates = s
-	}
+	//client := dnsdisc.NewClient(dnsdisc.Config{})
+	//s, err := client.NewIterator([]string{params.KnownDNSNetworks[params.MainnetGenesisHash]}...)
+	//if err == nil {
+	//	whisper.protocol.DialCandidates = s
+	//}
 
 	return whisper
 }
