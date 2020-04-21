@@ -1471,13 +1471,9 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 
 // RegisterStorageService adds a torrent file system to the stack.
 func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
-	var err error
-	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		storage, err := torrentfs.New(cfg, commit, true, false)
-		return storage, err
-	})
-
-	if err != nil {
+	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+		return torrentfs.New(cfg, commit, true, false)
+	}); err != nil {
 		Fatalf("Failed to register the storage service: %v", err)
 	}
 }
