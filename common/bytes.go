@@ -18,7 +18,7 @@
 package common
 
 import (
-	//"encoding/binary"
+	"encoding/binary"
 	"encoding/hex"
 )
 
@@ -142,44 +142,44 @@ func LeftPadBytes(slice []byte, l int) []byte {
 	return padded
 }
 
-//func Uint32ToHexString(value uint32) string {
-//	buf := make([]byte, 4)
-//	binary.BigEndian.PutUint32(buf, value)
-//	s := hex.EncodeToString(buf)
-//	for len(s) < 8 {
-//		s = s + "0"
-//	}
-//	return "0x" + s
-//}
+func Uint32ToHexString(value uint32) string {
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, value)
+	s := hex.EncodeToString(buf)
+	for len(s) < 8 {
+		s = s + "0"
+	}
+	return "0x" + s
+}
 
-//func Uint64ToHexString(value uint64) string {
-//	buf := make([]byte, 8)
-//	binary.BigEndian.PutUint64(buf, value)
-//	s := hex.EncodeToString(buf)
-//	return "0x" + s
-//}
+func Uint64ToHexString(value uint64) string {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, value)
+	s := hex.EncodeToString(buf)
+	return "0x" + s
+}
 
-//func HexStringToUint64(str string) uint64 {
-//	var s uint64
-//	hexN, hexErr := hex.DecodeString(str[2:])
-//	if hexErr != nil {
-//		return 0
-//	}
-//	s = binary.BigEndian.Uint64([]byte(hexN))
-//	return s
-//}
+func HexStringToUint64(str string) uint64 {
+	var s uint64
+	hexN, hexErr := hex.DecodeString(str[2:])
+	if hexErr != nil {
+		return 0
+	}
+	s = binary.BigEndian.Uint64([]byte(hexN))
+	return s
+}
 
-//func Uint32ArrayToHexString(value []uint32) string {
-//	buf := make([]byte, len(value)*4)
-//	for i := 0; i < len(value); i++ {
-//		binary.BigEndian.PutUint32(buf[i*4:], value[i])
-//	}
-//	return "0x" + hex.EncodeToString(buf)
-//}
+func Uint32ArrayToHexString(value []uint32) string {
+	buf := make([]byte, len(value)*4)
+	for i := 0; i < len(value); i++ {
+		binary.BigEndian.PutUint32(buf[i*4:], value[i])
+	}
+	return "0x" + hex.EncodeToString(buf)
+}
 
-//func BytesArrayToHexString(value []byte) string {
-//	return "0x" + hex.EncodeToString(value)
-//}
+func BytesArrayToHexString(value []byte) string {
+	return "0x" + hex.EncodeToString(value)
+}
 
 // TrimLeftZeroes returns a subslice of s without leading zeroes
 func TrimLeftZeroes(s []byte) []byte {
