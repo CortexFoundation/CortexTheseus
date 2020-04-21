@@ -11,6 +11,10 @@ type Msg struct {
 	MsgImpl
 }
 
+func (me Msg) String() string {
+	return me.Text()
+}
+
 func newMsg(text string) Msg {
 	return Msg{rootMsgImpl{text}}
 }

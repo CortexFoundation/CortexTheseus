@@ -25,8 +25,8 @@ type CVMStorage interface {
 
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
-	protocol p2p.Protocol // Protocol description and parameters
-	config   *Config
+	//protocol p2p.Protocol // Protocol description and parameters
+	config *Config
 	//history  *GeneralMessage
 	monitor *Monitor
 
@@ -35,6 +35,9 @@ type TorrentFS struct {
 	fileCh    chan bool
 	cache     bool
 	compress  bool
+
+	peerMu sync.RWMutex       // Mutex to sync the active peer set
+	peers  map[*Peer]struct{} // Set of currently active peers
 }
 
 func (t *TorrentFS) Config() *Config {
@@ -94,13 +97,14 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 		config: config,
 		//history: msg,
 		monitor: monitor,
+		peers:   make(map[*Peer]struct{}),
 	}
 	torrentInstance.fileCache, _ = lru.New(8)
 	torrentInstance.fileCh = make(chan bool, 4)
 	torrentInstance.compress = compress
 	torrentInstance.cache = cache
 
-	torrentInstance.protocol = p2p.Protocol{
+	/*torrentInstance.protocol = p2p.Protocol{
 		Name:    ProtocolName,
 		Version: uint(ProtocolVersion),
 		Length:  NumberOfMessageCodes,
@@ -108,17 +112,13 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 		NodeInfo: func() interface{} {
 			return map[string]interface{}{
 				"version": ProtocolVersionStr,
-				//"maxMessageSize": torrentInstance.MaxMessageSize(),
 				"utp":    !config.DisableUTP,
 				"tcp":    !config.DisableTCP,
 				"dht":    !config.DisableDHT,
 				"listen": config.Port,
 			}
 		},
-		//PeerInfo: func(id enode.ID) interface{} {
-		//	return nil
-		//},
-	}
+	}*/
 
 	return torrentInstance, nil
 }
@@ -128,18 +128,35 @@ func (tfs *TorrentFS) MaxMessageSize() uint64 {
 }
 
 func (tfs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
-	// Create the new peer and start tracking it
 	tfsPeer := newPeer(tfs, peer, rw)
+
+	tfs.peerMu.Lock()
+	tfs.peers[tfsPeer] = struct{}{}
+	tfs.peerMu.Unlock()
+
+	defer func() {
+		tfs.peerMu.Lock()
+		delete(tfs.peers, tfsPeer)
+		tfs.peerMu.Unlock()
+	}()
+
+	if err := tfsPeer.handshake(); err != nil {
+		return err
+	}
+
 	tfsPeer.Start()
 	defer func() {
 		tfsPeer.Stop()
 	}()
 
+	return tfs.runMessageLoop(tfsPeer, rw)
+}
+func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 	return nil
 }
 
 // Protocols implements the node.Service interface.
-func (tfs *TorrentFS) Protocols() []p2p.Protocol { return []p2p.Protocol{tfs.protocol} }
+func (tfs *TorrentFS) Protocols() []p2p.Protocol { return nil } //return []p2p.Protocol{tfs.protocol} }
 
 // APIs implements the node.Service interface.
 func (tfs *TorrentFS) APIs() []rpc.API {
@@ -155,7 +172,8 @@ func (tfs *TorrentFS) APIs() []rpc.API {
 }
 
 func (tfs *TorrentFS) Version() uint {
-	return tfs.protocol.Version
+	//return tfs.protocol.Version
+	return 0
 }
 
 type PublicTorrentAPI struct {
