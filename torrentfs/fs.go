@@ -13,7 +13,7 @@ import (
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common/compress"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
+	//"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -115,12 +115,9 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 				"listen": config.Port,
 			}
 		},
-		PeerInfo: func(id enode.ID) interface{} {
-			//if p := pm.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
-			//      return p.Info()
-			//}
-			return nil
-		},
+		//PeerInfo: func(id enode.ID) interface{} {
+		//	return nil
+		//},
 	}
 
 	return torrentInstance, nil
@@ -179,7 +176,7 @@ func NewPublicTorrentAPI(w *TorrentFS) *PublicTorrentAPI {
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Start(server *p2p.Server) error {
-	log.Info("Fs monitor starting", "config", tfs)
+	log.Info("Started nas v.1.0", "config", tfs)
 	if tfs == nil || tfs.monitor == nil {
 		return nil
 	}

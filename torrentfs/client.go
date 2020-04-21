@@ -37,7 +37,7 @@ const (
 	group                   = params.Group
 	tier                    = params.TIER
 	updateTorrentChanBuffer = batch
-	torrentChanSize         = 1024
+	torrentChanSize         = 64
 
 	torrentPending = iota //2
 	torrentPaused
@@ -1028,17 +1028,19 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						//log.Trace("A <- P", "ih", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 					}
 					if err := t.WriteTorrent(); err == nil {
-						delete(tm.pendingTorrents, ih)
-						t.loop = 0
-						/*if t.start == 0 {
-							log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
-							t.AddTrackers(tm.trackers)
-							t.start = mclock.Now()
-						} else {
-							log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
-						}*/
-						//t.start = mclock.Now()
-						tm.activeChan <- t
+						if len(tm.activeChan) < cap(tm.activeChan) {
+							delete(tm.pendingTorrents, ih)
+							t.loop = 0
+							/*if t.start == 0 {
+								log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
+								t.AddTrackers(tm.trackers)
+								t.start = mclock.Now()
+							} else {
+								log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+							}*/
+							//t.start = mclock.Now()
+							tm.activeChan <- t
+						}
 					}
 				} else if t.loop > torrentWaitingTime/queryTimeInterval || (t.start == 0 && tm.boost && tm.bytes[ih] > 0) {
 					if !t.isBoosting {
@@ -1237,7 +1239,9 @@ func (tm *TorrentManager) activeTorrentLoop() {
 						}
 						t.Pause()
 						t.isBoosting = true
+						tm.wg.Add(1)
 						go func(t *Torrent) {
+							defer tm.wg.Done()
 							defer t.BoostOff()
 							filepaths := []string{}
 							filedatas := [][]byte{}
@@ -1305,7 +1309,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				//for _, ttt := range tm.client.Torrents() {
 				//	all += len(ttt.KnownSwarm())
 				//}
-				log.Info("Fs status", "pending", len(tm.pendingTorrents) /* "active", len(tm.activeTorrents),*/, "waiting", active_wait, "downloading", active_running, "paused", active_paused /*"boost", active_boost,*/, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent), "slot", tm.slot)
+				log.Info("Fs status", "pending", len(tm.pendingTorrents) /* "active", len(tm.activeTorrents),*/, "waiting", active_wait, "downloading", active_running, "paused", active_paused /*"boost", active_boost,*/, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent)+len(tm.seedingChan)+len(tm.pendingChan)+len(tm.activeChan), "slot", tm.slot)
 				/*tmp := make(map[common.Hash]int)
 				sum := 0
 				for _, ttt := range tm.client.Torrents() {
