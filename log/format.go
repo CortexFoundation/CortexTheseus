@@ -185,10 +185,10 @@ func logfmt(buf *bytes.Buffer, ctx []interface{}, color int, term bool) {
 			fieldPaddingLock.Unlock()
 		}
 		if color > 0 {
-			fmt.Fprintf(buf, "\x1b[%dm%s\x1b[37m ", color, k)
+			fmt.Fprintf(buf, "\x1b[%dm%s=\x1b[37m", color, k)
 		} else {
 			buf.WriteString(k)
-			buf.WriteByte(' ')
+			buf.WriteByte('=')
 		}
 		buf.WriteString(v)
 		//fmt.Fprintf(buf, "\x1b[0m")
