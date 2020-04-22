@@ -681,8 +681,8 @@ github.com/tinylib/msgp v1.1.0/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDW
 github.com/tinylib/msgp v1.1.1/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
 github.com/tinylib/msgp v1.1.2 h1:gWmO7n0Ys2RBEb7GPYB9Ujq8Mk5p2U08lRnmMcGy6BQ=
 github.com/tinylib/msgp v1.1.2/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
-github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707 h1:IasU7mvytaf3R4dvZg9Y4DwbhbXldwPpo9QoI9GMc7Q=
-github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707/go.mod h1:Qqd1VAOQEZ9/M37QFxLdohGl7uqoQIf5Gwjy7/+9AE4=
+github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0 h1:7dJDP6zQE661SUetw1BcdmXneNbYuGwale0CuLqBBjs=
+github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0/go.mod h1:v9H9snT4mmaH6OL3AyoBRTD4R23ENIahfqpFKnDz36c=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43 h1:QpWUJfSB79xRanKUteFBfRz5XlnmjD5mdkfrSVf5AoM=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43/go.mod h1:xu0FaiQFGbBcFZj2o7udZ5rbA8jRTsv47hkPoG5qQNM=
 github.com/urfave/cli v1.22.3/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=

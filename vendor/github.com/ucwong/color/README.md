@@ -1,4 +1,4 @@
-# Continue maintaining by ucowng. 
+# Continue maintaining by ucwong. 
 
 For more detail read my blog post: [Taking an indefinite sabbatical from my projects](https://arslan.io/2018/10/09/taking-an-indefinite-sabbatical-from-my-projects/)
 

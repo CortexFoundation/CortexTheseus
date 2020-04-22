@@ -54,7 +54,7 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707
+	github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5

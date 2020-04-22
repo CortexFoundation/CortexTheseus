@@ -377,7 +377,7 @@ github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.2
 github.com/tinylib/msgp/msgp
-# github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707
+# github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
 ## explicit
 github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
