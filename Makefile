@@ -32,6 +32,8 @@ gpu: cortex_gpu
 
 cpu: cortex_cpu
 
+mine: cortex_mine
+
 cortex: cpu
 
 cortex_cpu: clib_cpu
@@ -39,6 +41,11 @@ cortex_cpu: clib_cpu
 	echo "build cortex_cpu ..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex cpu."
+cortex_mine: clib_mine
+	build/env.sh go run build/ci.go install ./cmd/cortex
+	echo "build cortex..."
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/cortex\" to launch cortex miner."
 cortex_gpu: clib
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
@@ -118,6 +125,8 @@ plugins/cpu_cvm.so:
 clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
 
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
+
+clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
 
 inferServer: clib
 	build/env.sh go run build/ci.go install ./cmd/infer_server
