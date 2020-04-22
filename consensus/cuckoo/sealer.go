@@ -234,6 +234,10 @@ func (cuckoo *Cuckoo) remote() {
 
 	for {
 		select {
+		case <-cuckoo.exitCh:
+			// Exit remote loop if cuckoo is closed and return relevant error.
+			log.Warn("Cuckoo cycle remote sealer is exiting")
+			return
 		case block := <-cuckoo.workCh:
 			//if currentWork != nil && block.ParentHash() != currentWork.ParentHash() {
 			// Start new round mining, throw out all previous work.
@@ -293,12 +297,6 @@ func (cuckoo *Cuckoo) remote() {
 					}
 				}
 			}
-
-		case errc := <-cuckoo.exitCh:
-			// Exit remote loop if cuckoo is closed and return relevant error.
-			errc <- nil
-			log.Trace("Cuckoo remote sealer is exiting")
-			return
 		}
 	}
 }

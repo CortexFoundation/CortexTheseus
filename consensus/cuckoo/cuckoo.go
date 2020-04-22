@@ -107,6 +107,8 @@ type Cuckoo struct {
 	exitCh      chan chan error // Notification channel to exiting backend threads
 	cMutex      sync.Mutex
 	minerPlugin *plugin.Plugin
+
+	wg sync.WaitGroup
 }
 
 func New(config Config) *Cuckoo {
@@ -126,8 +128,12 @@ func New(config Config) *Cuckoo {
 		submitRateCh: make(chan *hashrate),
 		exitCh:       make(chan chan error),
 	}
-	cuckoo.InitPlugin()
-	go cuckoo.remote()
+	log.Info("Cuckoo cycle init", "cuckoo", cuckoo)
+	cuckoo.wg.Add(1)
+	go func() {
+		defer cuckoo.wg.Done()
+		cuckoo.remote()
+	}()
 	return cuckoo
 }
 
@@ -171,7 +177,7 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 	return errc
 }
 
-/*func (cuckoo *Cuckoo) InitOnce() error {
+func (cuckoo *Cuckoo) InitOnce() error {
 	var err error
 	cuckoo.once.Do(func() {
 		errc := cuckoo.InitPlugin()
@@ -192,20 +198,24 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 		}
 	})
 	return err
-}*/
+}
 
 // Close closes the exit channel to notify all backend threads exiting.
 func (cuckoo *Cuckoo) Close() error {
 	close(cuckoo.exitCh)
 
-	if cuckoo.minerPlugin == nil {
-		return nil
-	}
-	m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-	if e != nil {
-		return e
-	}
-	m.(func())()
+	cuckoo.wg.Wait()
+	cuckoo.closeOnce.Do(func() {
+		if cuckoo.minerPlugin == nil {
+			return
+		}
+		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+		if e != nil || m == nil {
+			log.Error("Cuckoo cycle closed error", "error", e)
+			return
+		}
+		m.(func())()
+	})
 	return nil
 	/*
 		var err error
