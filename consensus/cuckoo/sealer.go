@@ -6,7 +6,7 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	"runtime"
+	//"runtime"
 	"sync"
 	"time"
 
@@ -46,7 +46,6 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// Create a runner and the multiple search threads it directs
 	abort := make(chan struct{})
 	cuckoo.lock.Lock()
-	threads := cuckoo.threads
 	if cuckoo.rand == nil {
 		seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 		if err != nil {
@@ -56,19 +55,19 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 		cuckoo.rand = rand.New(rand.NewSource(seed.Int64()))
 	}
 	cuckoo.lock.Unlock()
-	if threads == 0 {
-		threads = runtime.NumCPU()
-	}
-	if threads < 0 {
-		threads = 0 // Allows disabling local mining without extra logic around local/remote
-	}
 
 	// Push new work to remote sealer
 	if cuckoo.workCh != nil {
 		cuckoo.workCh <- block
 	}
+
+	err := cuckoo.InitOnce()
+	if err != nil {
+		log.Error("cuckoo init error", "error", err)
+		return err
+	}
 	var pend sync.WaitGroup
-	for i := 0; i < threads; i++ {
+	for i := 0; i < cuckoo.threads; i++ {
 		pend.Add(1)
 		var err error
 		go func(id int, nonce uint64, err *error) {
