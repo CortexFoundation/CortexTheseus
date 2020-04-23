@@ -77,6 +77,8 @@ type Config struct {
 	StrDeviceIds string
 	Threads      int
 	Algorithm    string
+
+	Mine bool
 }
 
 type Cuckoo struct {
@@ -128,12 +130,14 @@ func New(config Config) *Cuckoo {
 		submitRateCh: make(chan *hashrate),
 		exitCh:       make(chan chan error),
 	}
-	log.Info("Cuckoo cycle init", "cuckoo", cuckoo)
-	cuckoo.wg.Add(1)
-	go func() {
-		defer cuckoo.wg.Done()
-		cuckoo.remote()
-	}()
+	if config.Mine {
+		// miner algorithm use cuckaroo by default.
+		cuckoo.wg.Add(1)
+		go func() {
+			defer cuckoo.wg.Done()
+			cuckoo.remote()
+		}()
+	}
 	return cuckoo
 }
 
@@ -200,18 +204,18 @@ func (cuckoo *Cuckoo) InitOnce() error {
 				return
 			}
 			// miner algorithm use cuckaroo by default.
-			var mem gosigar.Mem
-			if err := mem.Get(); err == nil {
-				allowance := int(mem.Total / 1024 / 1024 / 3)
-				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance)
-			}
 			if cuckoo.config.Threads > 0 && cuckoo.config.UseCuda {
-				errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, "cuckaroo")
+				errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
 			} else {
 				//cuckoo.config.Threads = 0
 				cuckoo.threads = 0
 			}
 			err = errc
+			var mem gosigar.Mem
+			if err := mem.Get(); err == nil {
+				allowance := int(mem.Total / 1024 / 1024 / 3)
+				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance, "cuda", cuckoo.config.UseCuda, "device", cuckoo.config.StrDeviceIds, "threads", cuckoo.config.Threads, "algo", cuckoo.config.Algorithm, "mine", cuckoo.config.Mine)
+			}
 		}
 	})
 	return err

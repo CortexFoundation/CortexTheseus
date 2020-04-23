@@ -1,4 +1,4 @@
-# bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
+# bazil.org/fuse v0.0.0-20200407214033-5883e5a4b512
 bazil.org/fuse
 bazil.org/fuse/fs
 bazil.org/fuse/fuseutil
@@ -59,7 +59,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200422014231-3226dc1ccd92
+# github.com/anacrolix/torrent v1.15.1-0.20200423030927-cad8802e9cf5
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -154,7 +154,6 @@ github.com/edsrzf/mmap-go
 github.com/elastic/gosigar
 github.com/elastic/gosigar/sys/windows
 # github.com/elliotchance/orderedmap v1.2.1
-## explicit
 github.com/elliotchance/orderedmap
 # github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 ## explicit
@@ -162,7 +161,7 @@ github.com/fjl/memsize
 github.com/fjl/memsize/memsizeui
 # github.com/francoispqt/gojay v1.2.13
 github.com/francoispqt/gojay
-# github.com/fsnotify/fsnotify v1.4.7
+# github.com/fsnotify/fsnotify v1.4.9
 ## explicit
 github.com/fsnotify/fsnotify
 # github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
@@ -223,7 +222,6 @@ github.com/kr/text
 # github.com/kylelemons/godebug v1.1.0
 ## explicit
 # github.com/lucas-clemente/quic-go v0.15.4
-## explicit
 github.com/lucas-clemente/quic-go
 github.com/lucas-clemente/quic-go/internal/ackhandler
 github.com/lucas-clemente/quic-go/internal/congestion
@@ -248,7 +246,6 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.7
 github.com/mattn/go-runewidth
 # github.com/mattn/go-sqlite3 v2.0.3+incompatible
-## explicit
 github.com/mattn/go-sqlite3
 # github.com/mschoch/smat v0.2.0
 github.com/mschoch/smat
@@ -296,7 +293,6 @@ github.com/pion/rtp/codecs
 # github.com/pion/sctp v1.7.6
 github.com/pion/sctp
 # github.com/pion/sdp/v2 v2.3.7
-## explicit
 github.com/pion/sdp/v2
 # github.com/pion/srtp v1.3.1
 github.com/pion/srtp
@@ -316,7 +312,6 @@ github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
 # github.com/pion/webrtc/v2 v2.2.5
-## explicit
 github.com/pion/webrtc/v2
 github.com/pion/webrtc/v2/internal/mux
 github.com/pion/webrtc/v2/internal/util
@@ -418,7 +413,6 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
 ## explicit
 golang.org/x/net/bpf
-golang.org/x/net/context
 golang.org/x/net/dns/dnsmessage
 golang.org/x/net/html
 golang.org/x/net/html/atom
