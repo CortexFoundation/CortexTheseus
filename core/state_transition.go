@@ -311,6 +311,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		return nil, 0, big0, false, err
 	}
 
+	if msg.Value().Sign() > 0 && !st.cvm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
+		return nil, 0, big0, false, ErrInsufficientFundsForTransfer
+	}
+
 	var (
 		cvm = st.cvm
 		// vm errors do not effect consensus and are therefor
@@ -319,14 +323,14 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		vmerr error
 	)
 	if contractCreation {
-		ret, _, st.gas, st.modelGas, vmerr = cvm.Create(sender, st.data, st.gas, st.value)
+		ret, _, st.gas, st.modelGas, vmerr = st.cvm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
 		//	fmt.Println("Has INFER operation !!! continue ...")
 		//}
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, st.modelGas, vmerr = cvm.Call(sender, st.to(), st.data, st.gas, st.value)
+		ret, st.gas, st.modelGas, vmerr = st.cvm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 
 	if vmerr != nil {

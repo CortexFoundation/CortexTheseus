@@ -310,7 +310,7 @@ func (cvm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 		return nil, gas, nil, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
-	if !cvm.CanTransfer(cvm.StateDB, caller.Address(), value) {
+	if !cvm.Context.CanTransfer(cvm.StateDB, caller.Address(), value) {
 		return nil, gas, nil, ErrInsufficientBalance
 	}
 
@@ -428,7 +428,7 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, common.Address{}, gas, nil, ErrDepth
 	}
-	if !cvm.CanTransfer(cvm.StateDB, caller.Address(), value) {
+	if !cvm.Context.CanTransfer(cvm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, nil, ErrInsufficientBalance
 	}
 	nonce := cvm.StateDB.GetNonce(caller.Address())

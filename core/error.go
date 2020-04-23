@@ -38,5 +38,6 @@ var (
 	// ErrBuiltInTorrentFs is returned if torrent fs havn't sync done torrent.
 
 	//ErrMetaInfoNotMature     = errors.New("cvm: errMetaInfoNotMature")
-	ErrNoGenesis = errors.New("genesis not found in chain")
+	ErrNoGenesis                    = errors.New("genesis not found in chain")
+	ErrInsufficientFundsForTransfer = errors.New("insufficient funds for transfer")
 )
