@@ -59,7 +59,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200421080843-0ab6d108be82
+# github.com/anacrolix/torrent v1.15.1-0.20200422014231-3226dc1ccd92
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -393,7 +393,7 @@ github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
 ## explicit
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
+# golang.org/x/crypto v0.0.0-20200422194213-44a606286825
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
