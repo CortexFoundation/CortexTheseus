@@ -59,7 +59,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200421080843-0ab6d108be82
+# github.com/anacrolix/torrent v1.15.1-0.20200422014231-3226dc1ccd92
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -377,7 +377,7 @@ github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.2
 github.com/tinylib/msgp/msgp
-# github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707
+# github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
 ## explicit
 github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
@@ -393,7 +393,7 @@ github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
 ## explicit
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
+# golang.org/x/crypto v0.0.0-20200422194213-44a606286825
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20

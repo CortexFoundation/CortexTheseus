@@ -9,7 +9,7 @@ require (
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200421080843-0ab6d108be82
+	github.com/anacrolix/torrent v1.15.1-0.20200422014231-3226dc1ccd92
 	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
 	github.com/aws/aws-sdk-go v1.25.48
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
@@ -54,11 +54,11 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	github.com/ucwong/color v1.9.2-0.20200419152533-3061f4a1c707
+	github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
-	golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
+	golang.org/x/crypto v0.0.0-20200422194213-44a606286825
 	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
