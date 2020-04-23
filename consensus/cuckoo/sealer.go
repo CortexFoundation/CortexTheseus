@@ -28,6 +28,10 @@ const (
 )
 
 func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+	if !cuckoo.config.UseCuda {
+		log.Error("No cuda found")
+		return nil
+	}
 	// If we're running a fake PoW, simply return a 0 nonce immediately
 	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
 		header := block.Header()
