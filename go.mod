@@ -34,6 +34,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/marten-seemann/qtls v0.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416

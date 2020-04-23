@@ -440,8 +440,9 @@ github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329/go.mod h1:C1wdFJiN
 github.com/mailru/easyjson v0.0.0-20190312143242-1de009706dbe/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/marten-seemann/qpack v0.1.0/go.mod h1:LFt1NU/Ptjip0C2CPkhimBz5CGE3WGDAUWqna+CNTrI=
 github.com/marten-seemann/qtls v0.2.3/go.mod h1:xzjG7avBwGGbdZ8dTGxlBnLArsVKLvwmjgmPuiQEcYk=
-github.com/marten-seemann/qtls v0.9.0 h1:8Zguhc72eS+DH5EAb0BpAPIy3HDXYcihQi4xoDZOnjQ=
 github.com/marten-seemann/qtls v0.9.0/go.mod h1:T1MmAdDPyISzxlK6kjRr0pcZFBVd1OZbBb/j3cvzHhk=
+github.com/marten-seemann/qtls v0.9.1 h1:O0YKQxNVPaiFgMng0suWEOY2Sb4LT2sRn9Qimq3Z1IQ=
+github.com/marten-seemann/qtls v0.9.1/go.mod h1:T1MmAdDPyISzxlK6kjRr0pcZFBVd1OZbBb/j3cvzHhk=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e h1:oX32Y8xTUEW84tG0SSg5qSdOCygLjXehj1SX/UPInQA=
 github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
