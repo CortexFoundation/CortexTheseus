@@ -448,6 +448,7 @@ var (
 	//	MinerAlgorithmFlag = cli.StringFlag{
 	//		Name:  "miner.algorithm",
 	//		Usage: "use mining algorithm, --miner.algorithm=cuckoo/cuckaroo",
+	//              Value: "cuckaroo"
 	//	}
 	InferDeviceTypeFlag = cli.StringFlag{
 		Name:  "infer.devicetype",
@@ -1323,7 +1324,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
 	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
-	//cfg.Cuckoo.Algorithm = ctx.GlobalString(MinerAlgorithmFlag.Name)
+	cfg.Cuckoo.Algorithm = "cuckaroo" //ctx.GlobalString(MinerAlgorithmFlag.Name)
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
