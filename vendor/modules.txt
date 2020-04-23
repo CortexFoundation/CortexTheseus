@@ -270,7 +270,8 @@ github.com/peterh/liner
 github.com/philhofer/fwd
 # github.com/pion/datachannel v1.4.16
 github.com/pion/datachannel
-# github.com/pion/dtls/v2 v2.0.0-rc.10
+# github.com/pion/dtls/v2 v2.0.0
+## explicit
 github.com/pion/dtls/v2
 github.com/pion/dtls/v2/internal/closer
 github.com/pion/dtls/v2/internal/net/connctx
