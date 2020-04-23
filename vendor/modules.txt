@@ -59,7 +59,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200421080843-0ab6d108be82
+# github.com/anacrolix/torrent v1.15.1-0.20200422014231-3226dc1ccd92
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
