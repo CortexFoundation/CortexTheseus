@@ -130,14 +130,14 @@ func New(config Config) *Cuckoo {
 		submitRateCh: make(chan *hashrate),
 		exitCh:       make(chan chan error),
 	}
-	if config.Mine {
-		// miner algorithm use cuckaroo by default.
-		cuckoo.wg.Add(1)
-		go func() {
-			defer cuckoo.wg.Done()
-			cuckoo.remote()
-		}()
-	}
+	//if config.Mine {
+	// miner algorithm use cuckaroo by default.
+	cuckoo.wg.Add(1)
+	go func() {
+		defer cuckoo.wg.Done()
+		cuckoo.remote()
+	}()
+	//}
 	return cuckoo
 }
 
