@@ -1257,7 +1257,7 @@ func (m *Monitor) solve(block *types.Block) error {
 		}
 		if i%65536 == 0 {
 			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info("Fs monitor status", "current", uint64(m.currentNumber), "last", m.lastNumber, "progress", float64(i)/float64(m.currentNumber), "bps", float64(i-m.startNumber)*1000*1000*1000/float64(elapsed_a), "duration", common.PrettyDuration(elapsed_a))
+			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", float64(i-m.startNumber)*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope)
 		}
 		m.blockCache.Add(i, block.Hash.Hex())
 	}
