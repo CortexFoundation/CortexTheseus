@@ -76,6 +76,7 @@ type Monitor struct {
 	exitCh        chan struct{}
 	terminated    int32
 	lastNumber    uint64
+	startNumber   uint64
 	scope         uint64
 	currentNumber uint64
 	//dirty      bool
@@ -820,6 +821,7 @@ func (m *Monitor) startWork() error {
 		return rpcErr
 	}
 	m.cl = rpcClient
+	m.startNumber = m.fs.LastListenBlockNumber
 	m.lastNumber = m.fs.LastListenBlockNumber
 	m.currentBlock()
 	//if err := m.validateStorage(); err != nil {
@@ -1170,7 +1172,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 					if maxNumber-minNumber > delay/2 {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Debug("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+						log.Warn("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 					}
 					return 0
 				}
@@ -1191,7 +1193,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 				if maxNumber-minNumber > delay/2 {
 					elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 					elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-					log.Debug("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+					log.Warn("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 				}
 				return 0
 			}
@@ -1223,7 +1225,7 @@ func (m *Monitor) solve(block *types.Block) error {
 				if m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
 					if common.BytesToHash(m.fs.GetRootByNumber(i)) == m.ckp.TfsRoot {
 						//if m.fs.Root() == m.ckp.TfsRoot {
-						log.Info("First milestone", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
+						log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
 					} else {
 						log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot)
 						panic("Fs sync fatal error, removedb to solve it")
@@ -1253,7 +1255,10 @@ func (m *Monitor) solve(block *types.Block) error {
 			log.Trace("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
 			//			}
 		}
-
+		if i%65536 == 0 {
+			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
+			log.Info("Fs monitor status", "current", uint64(m.currentNumber), "last", m.lastNumber, "progress", float64(i)/float64(m.currentNumber), "bps", float64(m.lastNumber-m.startNumber)*1000*1000*1000/float64(elapsed_a), "duration", common.PrettyDuration(elapsed_a))
+		}
 		m.blockCache.Add(i, block.Hash.Hex())
 	}
 	return nil
