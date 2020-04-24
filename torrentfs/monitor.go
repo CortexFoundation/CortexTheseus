@@ -821,9 +821,9 @@ func (m *Monitor) startWork() error {
 		return rpcErr
 	}
 	m.cl = rpcClient
-	m.startNumber = m.fs.LastListenBlockNumber
 	m.lastNumber = m.fs.LastListenBlockNumber
 	m.currentBlock()
+	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber), float64(m.currentNumber))) // ? m.currentNumber:m.fs.LastListenBlockNumber
 	//if err := m.validateStorage(); err != nil {
 	//	log.Error("Starting torrent fs ... ...", "error", err)
 	//	return err
