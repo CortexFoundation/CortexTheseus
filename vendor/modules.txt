@@ -270,7 +270,8 @@ github.com/peterh/liner
 github.com/philhofer/fwd
 # github.com/pion/datachannel v1.4.16
 github.com/pion/datachannel
-# github.com/pion/dtls/v2 v2.0.0-rc.10
+# github.com/pion/dtls/v2 v2.0.0
+## explicit
 github.com/pion/dtls/v2
 github.com/pion/dtls/v2/internal/closer
 github.com/pion/dtls/v2/internal/net/connctx
@@ -386,10 +387,10 @@ github.com/willf/bloom
 # github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 ## explicit
 github.com/wsddn/go-ecdh
-# go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
+# go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 ## explicit
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200422194213-44a606286825
+# golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20

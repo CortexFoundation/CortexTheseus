@@ -41,6 +41,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
+	github.com/pion/dtls/v2 v2.0.0 // indirect
 	github.com/prometheus/prometheus v1.8.2-0.20200117201204-669592a2c4d5
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
@@ -53,8 +54,8 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
-	go.etcd.io/bbolt v1.3.5-0.20200406214616-6dc724cf03d5
-	golang.org/x/crypto v0.0.0-20200422194213-44a606286825
+	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
+	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
 	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
