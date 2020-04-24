@@ -688,8 +688,8 @@ github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0 h1:7dJDP6zQE661SUe
 github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0/go.mod h1:v9H9snT4mmaH6OL3AyoBRTD4R23ENIahfqpFKnDz36c=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43 h1:QpWUJfSB79xRanKUteFBfRz5XlnmjD5mdkfrSVf5AoM=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43/go.mod h1:xu0FaiQFGbBcFZj2o7udZ5rbA8jRTsv47hkPoG5qQNM=
-github.com/ucwong/goleveldb v1.0.2 h1:gAw0CCX8JGaBjf7GuC7qHxOLp4vJsHwpt9Dmvk3eI+s=
-github.com/ucwong/goleveldb v1.0.2/go.mod h1:lcYz713Lg1g594V9UuDF7/SLJa4erT8uoOnOVbA3qDI=
+github.com/ucwong/goleveldb v1.0.3-0.20200424035635-2b12fab540c2 h1:rNxI4BhQZve1LyY9ts8cs8pAMYVSQnXKP7SIInvT27I=
+github.com/ucwong/goleveldb v1.0.3-0.20200424035635-2b12fab540c2/go.mod h1:lcYz713Lg1g594V9UuDF7/SLJa4erT8uoOnOVbA3qDI=
 github.com/urfave/cli v1.22.3/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/urfave/cli/v2 v2.1.1/go.mod h1:SE9GqnLQmjVa0iPEY0f1w3ygNIYcIJ0OKPMoW2caLfQ=
 github.com/viant/assertly v0.4.8/go.mod h1:aGifi++jvCrUaklKEKT0BU95igDNaqkvz+49uaYMPRU=

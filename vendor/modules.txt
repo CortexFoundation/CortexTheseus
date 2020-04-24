@@ -366,7 +366,7 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.2
+# github.com/ucwong/goleveldb v1.0.3-0.20200424035635-2b12fab540c2
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache

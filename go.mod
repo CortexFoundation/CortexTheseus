@@ -52,7 +52,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
-	github.com/ucwong/goleveldb v1.0.2
+	github.com/ucwong/goleveldb v1.0.3-0.20200424035635-2b12fab540c2
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
