@@ -79,6 +79,8 @@ type Database struct {
 	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
 
 	log log.Logger // Contextual logger tracking the database path
+
+	wg sync.WaitGroup
 }
 
 // New returns a wrapped LevelDB object. The namespace is the prefix that the
@@ -129,7 +131,11 @@ func New(file string, cache int, handles int, namespace string) (*Database, erro
 	ldb.seekCompGauge = metrics.NewRegisteredGauge(namespace+"compact/seek", nil)
 
 	// Start up the metrics gathering and return
-	go ldb.meter(metricsGatheringInterval)
+	ldb.wg.Add(1)
+	go func() {
+		defer ldb.wg.Done()
+		ldb.meter(metricsGatheringInterval)
+	}()
 	return ldb, nil
 }
 
@@ -139,14 +145,9 @@ func (db *Database) Close() error {
 	db.quitLock.Lock()
 	defer db.quitLock.Unlock()
 
-	if db.quitChan != nil {
-		errc := make(chan error)
-		db.quitChan <- errc
-		if err := <-errc; err != nil {
-			db.log.Error("Metrics collection failed", "err", err)
-		}
-		db.quitChan = nil
-	}
+	close(db.quitChan)
+
+	db.wg.Wait()
 	return db.db.Close()
 }
 
@@ -183,6 +184,9 @@ func (db *Database) NewBatch() ctxcdb.Batch {
 	}
 }
 
+// NewIterator creates a binary-alphabetical iterator over a subset
+// of database content with a particular key prefix, starting at a particular
+// initial key (or after, if it does not exist).
 func (db *Database) NewIterator(prefix []byte, start []byte) ctxcdb.Iterator {
 	return db.db.NewIterator(bytesPrefixRange(prefix, start), nil)
 }
@@ -239,20 +243,16 @@ func (db *Database) meter(refresh time.Duration) {
 		delaystats      [2]int64
 		lastWritePaused time.Time
 	)
-
-	var (
-		errc chan error
-		merr error
-	)
+	timer := time.NewTimer(refresh)
+	defer timer.Stop()
 
 	// Iterate ad infinitum and collect the stats
-	for i := 1; errc == nil && merr == nil; i++ {
+	for i := 1; ; i++ {
 		// Retrieve the database stats
 		stats, err := db.db.GetProperty("leveldb.stats")
 		if err != nil {
 			db.log.Error("Failed to read database stats", "err", err)
-			merr = err
-			continue
+			return
 		}
 		// Find the compaction table, skip the header
 		lines := strings.Split(stats, "\n")
@@ -261,8 +261,7 @@ func (db *Database) meter(refresh time.Duration) {
 		}
 		if len(lines) <= 3 {
 			db.log.Error("Compaction leveldbTable not found")
-			merr = errors.New("compaction leveldbTable not found")
-			continue
+			return
 		}
 		lines = lines[3:]
 
@@ -279,8 +278,7 @@ func (db *Database) meter(refresh time.Duration) {
 				value, err := strconv.ParseFloat(strings.TrimSpace(counter), 64)
 				if err != nil {
 					db.log.Error("Compaction entry parsing failed", "err", err)
-					merr = err
-					continue
+					return
 				}
 				compactions[i%2][idx] += value
 			}
@@ -302,8 +300,7 @@ func (db *Database) meter(refresh time.Duration) {
 		writedelay, err := db.db.GetProperty("leveldb.writedelay")
 		if err != nil {
 			db.log.Error("Failed to read database write delay statistic", "err", err)
-			merr = err
-			continue
+			return
 		}
 		var (
 			delayN        int64
@@ -313,14 +310,12 @@ func (db *Database) meter(refresh time.Duration) {
 		)
 		if n, err := fmt.Sscanf(writedelay, "DelayN:%d Delay:%s Paused:%t", &delayN, &delayDuration, &paused); n != 3 || err != nil {
 			db.log.Error("Write delay statistic not found")
-			merr = err
-			continue
+			return
 		}
 		duration, err = time.ParseDuration(delayDuration)
 		if err != nil {
 			db.log.Error("Failed to parse delay duration", "err", err)
-			merr = err
-			continue
+			return
 		}
 		if db.writeDelayNMeter != nil {
 			db.writeDelayNMeter.Mark(delayN - delaystats[0])
@@ -341,25 +336,21 @@ func (db *Database) meter(refresh time.Duration) {
 		ioStats, err := db.db.GetProperty("leveldb.iostats")
 		if err != nil {
 			db.log.Error("Failed to read database iostats", "err", err)
-			merr = err
-			continue
+			return
 		}
 		var nRead, nWrite float64
 		parts := strings.Split(ioStats, " ")
 		if len(parts) < 2 {
 			db.log.Error("Bad syntax of ioStats", "ioStats", ioStats)
-			merr = fmt.Errorf("bad syntax of ioStats %s", ioStats)
-			continue
+			return
 		}
 		if n, err := fmt.Sscanf(parts[0], "Read(MB):%f", &nRead); n != 1 || err != nil {
 			db.log.Error("Bad syntax of read entry", "entry", parts[0])
-			merr = err
-			continue
+			return
 		}
 		if n, err := fmt.Sscanf(parts[1], "Write(MB):%f", &nWrite); n != 1 || err != nil {
 			db.log.Error("Bad syntax of write entry", "entry", parts[1])
-			merr = err
-			continue
+			return
 		}
 		if db.diskReadMeter != nil {
 			db.diskReadMeter.Mark(int64((nRead - iostats[0]) * 1024 * 1024))
@@ -372,8 +363,7 @@ func (db *Database) meter(refresh time.Duration) {
 		compCount, err := db.db.GetProperty("leveldb.compcount")
 		if err != nil {
 			db.log.Error("Failed to read database iostats", "err", err)
-			merr = err
-			continue
+			return
 		}
 
 		var (
@@ -384,8 +374,7 @@ func (db *Database) meter(refresh time.Duration) {
 		)
 		if n, err := fmt.Sscanf(compCount, "MemComp:%d Level0Comp:%d NonLevel0Comp:%d SeekComp:%d", &memComp, &level0Comp, &nonLevel0Comp, &seekComp); n != 4 || err != nil {
 			db.log.Error("Compaction count statistic not found")
-			merr = err
-			continue
+			return
 		}
 		db.memCompGauge.Update(int64(memComp))
 		db.level0CompGauge.Update(int64(level0Comp))
@@ -394,17 +383,14 @@ func (db *Database) meter(refresh time.Duration) {
 
 		// Sleep a bit, then repeat the stats collection
 		select {
-		case errc = <-db.quitChan:
+		case <-db.quitChan:
+			return
 			// Quit requesting, stop hammering the database
-		case <-time.After(refresh):
+		case <-timer.C:
+			timer.Reset(refresh)
 			// Timeout, gather a new set of stats
 		}
 	}
-
-	if errc == nil {
-		errc = <-db.quitChan
-	}
-	errc <- merr
 }
 
 // batch is a write-only leveldb batch that commits changes to its host database
