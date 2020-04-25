@@ -25,8 +25,17 @@ func trackDetailsFromSDP(log logging.LeveledLogger, s *sdp.SessionDescription) m
 	rtxRepairFlows := map[uint32]bool{}
 
 	for _, media := range s.MediaDescriptions {
-		trackID := ""
+		// Plan B can have multiple tracks in a signle media section
 		trackLabel := ""
+		trackID := ""
+
+		// If media section is recvonly or inactive skip
+		if _, ok := media.Attribute(sdp.AttrKeyRecvOnly); ok {
+			continue
+		} else if _, ok := media.Attribute(sdp.AttrKeyInactive); ok {
+			continue
+		}
+
 		for _, attr := range media.Attributes {
 			codecType := NewRTPCodecType(media.MediaName.Media)
 			if codecType == 0 {
@@ -86,6 +95,8 @@ func trackDetailsFromSDP(log logging.LeveledLogger, s *sdp.SessionDescription) m
 					trackID = split[2]
 				}
 
+				// Plan B might send multiple a=ssrc lines under a single m= section. This is also why a single trackDetails{}
+				// is not defined at the top of the loop over s.MediaDescriptions.
 				incomingTracks[uint32(ssrc)] = trackDetails{codecType, trackLabel, trackID, uint32(ssrc)}
 			}
 		}
@@ -166,30 +177,28 @@ func addFingerprints(d *sdp.SessionDescription, c Certificate) error {
 	return nil
 }
 
-func populateLocalCandidates(orig *SessionDescription, pendingLocalDescription *SessionDescription, i *ICEGatherer, iceGatheringState ICEGatheringState) *SessionDescription {
-	if orig == nil {
-		return nil
-	} else if i == nil {
-		return orig
+func populateLocalCandidates(sessionDescription *SessionDescription, i *ICEGatherer, iceGatheringState ICEGatheringState) *SessionDescription {
+	if sessionDescription == nil || i == nil {
+		return sessionDescription
 	}
 
 	candidates, err := i.GetLocalCandidates()
 	if err != nil {
-		return orig
+		return sessionDescription
 	}
 
-	parsed := pendingLocalDescription.parsed
+	parsed := sessionDescription.parsed
 	for _, m := range parsed.MediaDescriptions {
 		addCandidatesToMediaDescriptions(candidates, m, iceGatheringState)
 	}
 	sdp, err := parsed.Marshal()
 	if err != nil {
-		return orig
+		return sessionDescription
 	}
 
 	return &SessionDescription{
 		SDP:  string(sdp),
-		Type: pendingLocalDescription.Type,
+		Type: sessionDescription.Type,
 	}
 }
 
