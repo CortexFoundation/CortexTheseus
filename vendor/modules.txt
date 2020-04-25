@@ -271,14 +271,13 @@ github.com/philhofer/fwd
 # github.com/pion/datachannel v1.4.16
 github.com/pion/datachannel
 # github.com/pion/dtls/v2 v2.0.0
-## explicit
 github.com/pion/dtls/v2
 github.com/pion/dtls/v2/internal/closer
 github.com/pion/dtls/v2/internal/net/connctx
 github.com/pion/dtls/v2/internal/net/udp
 github.com/pion/dtls/v2/pkg/crypto/ccm
 github.com/pion/dtls/v2/pkg/crypto/fingerprint
-# github.com/pion/ice v0.7.12
+# github.com/pion/ice v0.7.13
 github.com/pion/ice
 # github.com/pion/logging v0.2.2
 github.com/pion/logging
@@ -313,7 +312,8 @@ github.com/pion/turn/v2/internal/client
 github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
-# github.com/pion/webrtc/v2 v2.2.5
+# github.com/pion/webrtc/v2 v2.2.6
+## explicit
 github.com/pion/webrtc/v2
 github.com/pion/webrtc/v2/internal/mux
 github.com/pion/webrtc/v2/internal/util
