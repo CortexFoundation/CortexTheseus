@@ -7,7 +7,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 	"golang.org/x/time/rate"
-	"strconv"
+	//"strconv"
 	//"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
@@ -381,7 +381,7 @@ func (t *Torrent) download(p, slot int) {
 }
 
 //func (t *Torrent) progressBar(x, y int64) string {
-func ProgressBar(x, y int64, desc string) string {
+/*func ProgressBar(x, y int64, desc string) string {
 	progress := ""
 	for i := 10; i > 0; i-- {
 		if int64(i) > (10*x)/y {
@@ -394,7 +394,7 @@ func ProgressBar(x, y int64, desc string) string {
 	prog := float64(x*100) / float64(y)
 	f := strconv.FormatFloat(prog, 'f', 2, 64)
 	return "[ " + progress + " ] " + f + "% " + desc
-}
+}*/
 
 func (t *Torrent) Running() bool {
 	return t.status == torrentRunning

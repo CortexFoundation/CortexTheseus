@@ -26,8 +26,6 @@ import (
 	"time"
 )
 
-//------------------------------------------------------------------------------
-
 // Errors that are used throughout the Torrent API.
 var (
 //ErrBuildConn      = errors.New("build internal-rpc connection failed")
@@ -41,6 +39,9 @@ var (
 )
 
 const (
+	batch = params.SyncBatch
+	delay = params.Delay
+
 //defaultTimerInterval  = 1
 //connTryTimes          = 300
 //connTryInterval = 2
@@ -1083,12 +1084,6 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 
 	return res, status
 }*/
-
-const (
-	batch = params.SyncBatch
-	delay = params.Delay
-	//scope = runtime.NumCPU()//params.Scope
-)
 
 func (m *Monitor) currentBlock() (uint64, error) {
 	var currentNumber hexutil.Uint64
