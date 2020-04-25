@@ -1206,12 +1206,12 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 func (m *Monitor) solve(block *types.Block) error {
 	i := block.Number
-	defer func() {
-		if i%65536 == 0 {
+	if i%65536 == 0 {
+		defer func() {
 			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
 			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope)
-		}
-	}()
+		}()
+	}
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
