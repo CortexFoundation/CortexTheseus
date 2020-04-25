@@ -366,7 +366,7 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.3-0.20200424035635-2b12fab540c2
+# github.com/ucwong/goleveldb v1.0.3-0.20200425135820-56266f379675
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache
@@ -507,5 +507,5 @@ gopkg.in/sourcemap.v1/base64vlq
 # gopkg.in/urfave/cli.v1 v1.20.0
 ## explicit
 gopkg.in/urfave/cli.v1
-# gopkg.in/yaml.v2 v2.2.7
+# gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
