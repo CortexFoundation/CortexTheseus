@@ -153,7 +153,8 @@ github.com/edsrzf/mmap-go
 ## explicit
 github.com/elastic/gosigar
 github.com/elastic/gosigar/sys/windows
-# github.com/elliotchance/orderedmap v1.2.1
+# github.com/elliotchance/orderedmap v1.2.2
+## explicit
 github.com/elliotchance/orderedmap
 # github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 ## explicit
