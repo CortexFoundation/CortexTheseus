@@ -430,7 +430,7 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
+# golang.org/x/sys v0.0.0-20200427175716-29b57079015a
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
