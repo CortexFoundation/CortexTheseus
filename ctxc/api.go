@@ -106,9 +106,10 @@ func NewPrivateMinerAPI(e *Cortex) *PrivateMinerAPI {
 func (api *PrivateMinerAPI) Start(threads *int) error {
 	if threads == nil {
 		//return api.e.StartMining(runtime.NumCPU())
-		return api.e.StartMining(1)
+		//return api.e.StartMining(1)
 	}
-	return api.e.StartMining(*threads)
+	//return api.e.StartMining(*threads)
+	return api.e.StartMining(1)
 }
 
 // Stop terminates the miner, both at the consensus engine level as well as at
