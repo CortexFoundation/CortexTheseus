@@ -19,19 +19,19 @@ package node
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 const (
@@ -78,7 +78,7 @@ type Config struct {
 	KeyStoreDir string `toml:",omitempty"`
 
 	// ExternalSigner specifies an external URI for a clef-type signer
-        ExternalSigner string `toml:"omitempty"`
+	ExternalSigner string `toml:"omitempty"`
 
 	// UseLightweightKDF lowers the memory and CPU requirements of the key store
 	// scrypt KDF at the expense of security.
