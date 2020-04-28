@@ -261,6 +261,10 @@ github.com/naoina/toml/ast
 # github.com/olekukonko/tablewriter v0.0.4
 ## explicit
 github.com/olekukonko/tablewriter
+# github.com/onsi/ginkgo v1.12.1-0.20200421210249-a14f98eecce4
+## explicit
+# github.com/onsi/gomega v1.9.1-0.20200304171813-6024f5bbe35d
+## explicit
 # github.com/pborman/uuid v1.2.0
 ## explicit
 github.com/pborman/uuid
@@ -508,5 +512,6 @@ gopkg.in/sourcemap.v1/base64vlq
 # gopkg.in/urfave/cli.v1 v1.20.0
 ## explicit
 gopkg.in/urfave/cli.v1
-# gopkg.in/yaml.v2 v2.2.7
+# gopkg.in/yaml.v2 v2.2.8
+## explicit
 gopkg.in/yaml.v2
