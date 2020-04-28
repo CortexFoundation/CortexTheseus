@@ -26,8 +26,6 @@ import (
 	"time"
 )
 
-//------------------------------------------------------------------------------
-
 // Errors that are used throughout the Torrent API.
 var (
 //ErrBuildConn      = errors.New("build internal-rpc connection failed")
@@ -41,6 +39,9 @@ var (
 )
 
 const (
+	batch = params.SyncBatch
+	delay = params.Delay
+
 //defaultTimerInterval  = 1
 //connTryTimes          = 300
 //connTryInterval = 2
@@ -76,6 +77,7 @@ type Monitor struct {
 	exitCh        chan struct{}
 	terminated    int32
 	lastNumber    uint64
+	startNumber   uint64
 	scope         uint64
 	currentNumber uint64
 	//dirty      bool
@@ -822,6 +824,7 @@ func (m *Monitor) startWork() error {
 	m.cl = rpcClient
 	m.lastNumber = m.fs.LastListenBlockNumber
 	m.currentBlock()
+	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber), float64(m.currentNumber))) // ? m.currentNumber:m.fs.LastListenBlockNumber
 	//if err := m.validateStorage(); err != nil {
 	//	log.Error("Starting torrent fs ... ...", "error", err)
 	//	return err
@@ -1082,12 +1085,6 @@ func (m *Monitor) batch_http_healthy(ip string, ports []string) ([]string, bool)
 	return res, status
 }*/
 
-const (
-	batch = params.SyncBatch
-	delay = params.Delay
-	//scope = runtime.NumCPU()//params.Scope
-)
-
 func (m *Monitor) currentBlock() (uint64, error) {
 	var currentNumber hexutil.Uint64
 
@@ -1121,6 +1118,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	if currentNumber < m.lastNumber {
 		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber)
 		m.lastNumber = 0
+		m.startNumber = 0
 	}
 
 	minNumber := m.lastNumber + 1
@@ -1170,7 +1168,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 					if maxNumber-minNumber > delay/2 {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 						elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Debug("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+						log.Warn("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 					}
 					return 0
 				}
@@ -1191,7 +1189,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 				if maxNumber-minNumber > delay/2 {
 					elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 					elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-					log.Debug("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
+					log.Warn("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elasped", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh))
 				}
 				return 0
 			}
@@ -1208,6 +1206,12 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 func (m *Monitor) solve(block *types.Block) error {
 	i := block.Number
+	if i%65536 == 0 {
+		defer func() {
+			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
+			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope)
+		}()
+	}
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
 		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
@@ -1223,7 +1227,7 @@ func (m *Monitor) solve(block *types.Block) error {
 				if m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
 					if common.BytesToHash(m.fs.GetRootByNumber(i)) == m.ckp.TfsRoot {
 						//if m.fs.Root() == m.ckp.TfsRoot {
-						log.Info("First milestone", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
+						log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
 					} else {
 						log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot)
 						panic("Fs sync fatal error, removedb to solve it")
@@ -1253,7 +1257,6 @@ func (m *Monitor) solve(block *types.Block) error {
 			log.Trace("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
 			//			}
 		}
-
 		m.blockCache.Add(i, block.Hash.Hex())
 	}
 	return nil

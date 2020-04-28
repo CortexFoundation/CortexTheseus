@@ -222,7 +222,7 @@ func (cs *chainSyncer) loop() {
 
 		case <-cs.pm.quitSync:
 			if cs.doneCh != nil {
-				cs.pm.downloader.Cancel()
+				cs.pm.downloader.Terminate()
 				<-cs.doneCh
 			}
 			return

@@ -7,7 +7,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
 	"golang.org/x/time/rate"
-	"strconv"
+	//"strconv"
 	//"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
@@ -380,7 +380,8 @@ func (t *Torrent) download(p, slot int) {
 	t.Torrent.DownloadPieces(s, e)
 }
 
-func (t *Torrent) progressBar(x, y int64) string {
+//func (t *Torrent) progressBar(x, y int64) string {
+/*func ProgressBar(x, y int64, desc string) string {
 	progress := ""
 	for i := 10; i > 0; i-- {
 		if int64(i) > (10*x)/y {
@@ -392,8 +393,8 @@ func (t *Torrent) progressBar(x, y int64) string {
 
 	prog := float64(x*100) / float64(y)
 	f := strconv.FormatFloat(prog, 'f', 2, 64)
-	return "[ " + progress + " ] " + f + "%"
-}
+	return "[ " + progress + " ] " + f + "% " + desc
+}*/
 
 func (t *Torrent) Running() bool {
 	return t.status == torrentRunning
@@ -1226,8 +1227,8 @@ func (tm *TorrentManager) activeTorrentLoop() {
 					t.Pause()
 					active_paused += 1
 					if log_counter%45 == 0 {
-						bar := t.progressBar(t.bytesCompleted, t.Torrent.Length())
-						log.Info(bar+" [Paused]", "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
+						bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "[Paused]")
+						log.Info(bar, "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
 					}
 					continue
 				} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
@@ -1269,7 +1270,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				}
 
 				if log_counter%60 == 0 && t.bytesCompleted > 0 {
-					bar := t.progressBar(t.bytesCompleted, t.Torrent.Length())
+					bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "")
 					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 					log.Info( /*"[Downloading]" + */ bar, "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted) /*"req", common.StorageSize(t.bytesRequested),*/, "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()) /*"prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing),*/, "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
 				}
