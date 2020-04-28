@@ -40,6 +40,8 @@ require (
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.4
+	github.com/onsi/ginkgo v1.12.1-0.20200421210249-a14f98eecce4 // indirect
+	github.com/onsi/gomega v1.9.1-0.20200304171813-6024f5bbe35d // indirect
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
 	github.com/pion/webrtc/v2 v2.2.6 // indirect
@@ -67,4 +69,5 @@ require (
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
+	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
