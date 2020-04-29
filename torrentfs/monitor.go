@@ -1117,8 +1117,12 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 	if currentNumber < m.lastNumber {
 		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber)
-		m.lastNumber = 0
-		m.startNumber = 0
+		if currentNumber > 65536 {
+			m.lastNumber = currentNumber - 65536
+		} else {
+			m.lastNumber = 0
+		}
+		m.startNumber = m.lastNumber
 	}
 
 	minNumber := m.lastNumber + 1
