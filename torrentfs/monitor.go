@@ -1116,9 +1116,13 @@ func (m *Monitor) syncLastBlock() uint64 {
 	//}
 
 	if currentNumber < m.lastNumber {
-		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber)
-		m.lastNumber = 0
-		m.startNumber = 0
+		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber, "offset", m.lastNumber-currentNumber)
+		if currentNumber > 65536 {
+			m.lastNumber = currentNumber - 65536
+		} else {
+			m.lastNumber = 0
+		}
+		m.startNumber = m.lastNumber
 	}
 
 	minNumber := m.lastNumber + 1
@@ -1136,12 +1140,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	if maxNumber > batch*8+minNumber {
 		maxNumber = minNumber + batch*8
 	}
-	if maxNumber >= minNumber {
-		/*if minNumber > delay {
-			minNumber = minNumber - delay
-		}*/
-		log.Debug("Fs scanning ... ...", "from", minNumber, "to", maxNumber, "current", uint64(currentNumber), "range", uint64(maxNumber-minNumber), "behind", uint64(currentNumber)-maxNumber, "progress", float64(maxNumber)/float64(currentNumber))
-	} else {
+	if maxNumber < minNumber {
 		return 0
 	}
 	//defer m.fs.Flush()
@@ -1217,45 +1216,24 @@ func (m *Monitor) solve(block *types.Block) error {
 			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
 			return parseErr
 		} else if record {
-			//if storeErr := m.fs.AddBlock(block, true); storeErr != nil {
-			//	log.Error("Store latest block", "number", block.Number, "error", storeErr)
-			//	return storeErr
-			//}
 			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 
-			if m.ckp != nil {
-				if m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
-					if common.BytesToHash(m.fs.GetRootByNumber(i)) == m.ckp.TfsRoot {
-						//if m.fs.Root() == m.ckp.TfsRoot {
-						log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
-					} else {
-						log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot)
-						panic("Fs sync fatal error, removedb to solve it")
-						//m.lastNumber = 0
-						//m.fs.Reset()
-						//return errors.New("Milestone checkpoint error, reloading")
-					}
+			if m.ckp != nil && m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
+				if common.BytesToHash(m.fs.GetRootByNumber(i)) == m.ckp.TfsRoot {
+					log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
 				} else {
-					log.Debug("Fs root version commit", "number", i, "root", m.fs.Root(), "elapsed", common.PrettyDuration(elapsed))
+					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot)
+					panic("Fs sync fatal error, removedb to solve it")
 				}
 			}
 
 			log.Debug("Seal fs record", "number", i, "cap", len(m.taskCh), "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint)
 		} else {
-			//			if i%(batch/8) == 0 {
-			//if storeErr := m.fs.AddBlock(block, false); storeErr != nil {
-			//	log.Error("Store latest block", "number", block.Number, "error", storeErr)
-			//	return storeErr
-			//}
 			if m.fs.LastListenBlockNumber < i {
 				m.fs.LastListenBlockNumber = i
 			}
-			//if i%(batch/delay) == 0 {
-			//m.fs.Flush()
-			//}
 
 			log.Trace("Confirm to seal the fs record", "number", i, "cap", len(m.taskCh))
-			//			}
 		}
 		m.blockCache.Add(i, block.Hash.Hex())
 	}
