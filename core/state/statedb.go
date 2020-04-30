@@ -468,20 +468,18 @@ func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 		stateObject.SetBalance(amount)
 	}
 }
-func (s *StateDB) AddUpload(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.AddUpload(amount)
-	}
-}
+
+//func (s *StateDB) AddUpload(addr common.Address, amount *big.Int) {
+//	stateObject := s.GetOrNewStateObject(addr)
+//	if stateObject != nil {
+//		stateObject.AddUpload(amount)
+//	}
+//}
 
 func (s *StateDB) SubUpload(addr common.Address, amount *big.Int) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SubUpload(amount)
-		//log.Debug("Uploading progress", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
-	} else {
-		//log.Debug("Uploading failed", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
 	}
 }
 
