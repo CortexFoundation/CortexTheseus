@@ -434,7 +434,7 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200428200454-593003d681fa
+# golang.org/x/sys v0.0.0-20200430082407-1f5687305801
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
