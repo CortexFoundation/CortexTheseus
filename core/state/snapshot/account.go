@@ -37,7 +37,7 @@ type Account struct {
 
 // AccountRLP converts a state.Account content into a slim snapshot version RLP
 // encoded.
-func AccountRLP(nonce uint64, balance *big.Int, root common.Hash, codehash []byte, upload *big.Int, num *big.Int) []byte {
+func SlimAccount(nonce uint64, balance *big.Int, root common.Hash, codehash []byte, upload *big.Int, num *big.Int) Account {
 	slim := Account{
 		Nonce:   nonce,
 		Balance: balance,
@@ -50,9 +50,40 @@ func AccountRLP(nonce uint64, balance *big.Int, root common.Hash, codehash []byt
 	if !bytes.Equal(codehash, emptyCode[:]) {
 		slim.CodeHash = codehash
 	}
-	data, err := rlp.EncodeToBytes(slim)
+	return slim
+}
+
+// SlimAccountRLP converts a state.Account content into a slim snapshot
+// version RLP encoded.
+func SlimAccountRLP(nonce uint64, balance *big.Int, root common.Hash, codehash []byte, upload *big.Int, num *big.Int) []byte {
+	data, err := rlp.EncodeToBytes(SlimAccount(nonce, balance, root, codehash, upload, num))
 	if err != nil {
 		panic(err)
 	}
 	return data
+}
+
+// FullAccount decodes the data on the 'slim RLP' format and return
+// the consensus format account.
+func FullAccount(data []byte) (Account, error) {
+	var account Account
+	if err := rlp.DecodeBytes(data, &account); err != nil {
+		return Account{}, err
+	}
+	if len(account.Root) == 0 {
+		account.Root = emptyRoot[:]
+	}
+	if len(account.CodeHash) == 0 {
+		account.CodeHash = emptyCode[:]
+	}
+	return account, nil
+}
+
+// FullAccountRLP converts data on the 'slim RLP' format into the full RLP-format.
+func FullAccountRLP(data []byte) ([]byte, error) {
+	account, err := FullAccount(data)
+	if err != nil {
+		return nil, err
+	}
+	return rlp.EncodeToBytes(account)
 }

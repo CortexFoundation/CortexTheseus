@@ -317,7 +317,7 @@ github.com/pion/turn/v2/internal/client
 github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
-# github.com/pion/webrtc/v2 v2.2.6
+# github.com/pion/webrtc/v2 v2.2.7
 ## explicit
 github.com/pion/webrtc/v2
 github.com/pion/webrtc/v2/internal/mux
@@ -395,7 +395,7 @@ github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 ## explicit
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200427165652-729f1e841bcc
+# golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20

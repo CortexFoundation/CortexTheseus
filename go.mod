@@ -44,7 +44,7 @@ require (
 	github.com/onsi/gomega v1.9.1-0.20200304171813-6024f5bbe35d // indirect
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
-	github.com/pion/webrtc/v2 v2.2.6 // indirect
+	github.com/pion/webrtc/v2 v2.2.7 // indirect
 	github.com/prometheus/prometheus v1.8.2-0.20200117201204-669592a2c4d5
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
@@ -58,7 +58,7 @@ require (
 	github.com/ucwong/goleveldb v1.0.3-0.20200425135820-56266f379675
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
-	golang.org/x/crypto v0.0.0-20200427165652-729f1e841bcc
+	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 	golang.org/x/net v0.0.0-20200425230154-ff2c4b7c35a0
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200428200454-593003d681fa
