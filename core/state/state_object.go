@@ -230,7 +230,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		value.SetBytes(content)
 	}
 	s.originStorage[key] = value
-	log.Trace("Committed state", "value", value, "key", key, "addr", s.address, "s.addrHash", s.addrHash)
+	log.Trace("Committed state", "value", value, "key", key, "addr", s.address, "s.addrHash", s.addrHash, "s.data.Upload", s.data.Upload, "s.data.Num", s.data.Num)
 	return value
 }
 
@@ -374,16 +374,16 @@ func (s *stateObject) setBalance(amount *big.Int) {
 	s.data.Balance = amount
 }
 
-func (s *stateObject) AddUpload(amount *big.Int) {
-	if amount.Sign() == 0 {
-		if s.empty() {
-			s.touch()
-		}
-
-		return
-	}
-	s.SetUpload(new(big.Int).Add(s.Upload(), amount))
-}
+//func (s *stateObject) AddUpload(amount *big.Int) {
+//	if amount.Sign() == 0 {
+//		if s.empty() {
+//			s.touch()
+//		}
+//
+//		return
+//	}
+//	s.SetUpload(new(big.Int).Add(s.Upload(), amount))
+//}
 
 func (s *stateObject) SubUpload(amount *big.Int) {
 	if amount.Sign() == 0 {

@@ -222,7 +222,7 @@ github.com/kr/pretty
 github.com/kr/text
 # github.com/kylelemons/godebug v1.1.0
 ## explicit
-# github.com/lucas-clemente/quic-go v0.15.5
+# github.com/lucas-clemente/quic-go v0.15.6
 ## explicit
 github.com/lucas-clemente/quic-go
 github.com/lucas-clemente/quic-go/internal/ackhandler
@@ -417,7 +417,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200425230154-ff2c4b7c35a0
+# golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
@@ -434,9 +434,10 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200428200454-593003d681fa
+# golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
 ## explicit
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry

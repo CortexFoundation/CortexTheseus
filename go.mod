@@ -35,7 +35,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/lucas-clemente/quic-go v0.15.5 // indirect
+	github.com/lucas-clemente/quic-go v0.15.6 // indirect
 	github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
@@ -59,9 +59,9 @@ require (
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
-	golang.org/x/net v0.0.0-20200425230154-ff2c4b7c35a0
+	golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200428200454-593003d681fa
+	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
