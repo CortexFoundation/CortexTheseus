@@ -59,7 +59,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200503085109-8b6c26b912a2
+# github.com/anacrolix/torrent v1.15.1-0.20200503093120-4eee1ba26184
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -215,7 +215,7 @@ github.com/jmespath/go-jmespath
 # github.com/julienschmidt/httprouter v1.2.0
 ## explicit
 github.com/julienschmidt/httprouter
-# github.com/kr/pretty v0.1.0
+# github.com/kr/pretty v0.2.0
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
