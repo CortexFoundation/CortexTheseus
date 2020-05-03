@@ -42,8 +42,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/util"
+	"github.com/ucwong/goleveldb/leveldb"
+	"github.com/ucwong/goleveldb/leveldb/util"
 )
 
 const (

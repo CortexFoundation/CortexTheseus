@@ -363,20 +363,6 @@ github.com/steakknife/hamming
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-## explicit
-github.com/syndtr/goleveldb/leveldb
-github.com/syndtr/goleveldb/leveldb/cache
-github.com/syndtr/goleveldb/leveldb/comparer
-github.com/syndtr/goleveldb/leveldb/errors
-github.com/syndtr/goleveldb/leveldb/filter
-github.com/syndtr/goleveldb/leveldb/iterator
-github.com/syndtr/goleveldb/leveldb/journal
-github.com/syndtr/goleveldb/leveldb/memdb
-github.com/syndtr/goleveldb/leveldb/opt
-github.com/syndtr/goleveldb/leveldb/storage
-github.com/syndtr/goleveldb/leveldb/table
-github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.2
 github.com/tinylib/msgp/msgp
 # github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
@@ -385,6 +371,20 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
+# github.com/ucwong/goleveldb v1.0.3-0.20200425135820-56266f379675
+## explicit
+github.com/ucwong/goleveldb/leveldb
+github.com/ucwong/goleveldb/leveldb/cache
+github.com/ucwong/goleveldb/leveldb/comparer
+github.com/ucwong/goleveldb/leveldb/errors
+github.com/ucwong/goleveldb/leveldb/filter
+github.com/ucwong/goleveldb/leveldb/iterator
+github.com/ucwong/goleveldb/leveldb/journal
+github.com/ucwong/goleveldb/leveldb/memdb
+github.com/ucwong/goleveldb/leveldb/opt
+github.com/ucwong/goleveldb/leveldb/storage
+github.com/ucwong/goleveldb/leveldb/table
+github.com/ucwong/goleveldb/leveldb/util
 # github.com/willf/bitset v1.1.10
 github.com/willf/bitset
 # github.com/willf/bloom v2.0.3+incompatible
@@ -514,5 +514,4 @@ gopkg.in/sourcemap.v1/base64vlq
 ## explicit
 gopkg.in/urfave/cli.v1
 # gopkg.in/yaml.v2 v2.2.8
-## explicit
 gopkg.in/yaml.v2
