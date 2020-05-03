@@ -59,7 +59,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200427231506-04ff050ecd5f
+# github.com/anacrolix/torrent v1.15.1-0.20200503041046-658422e5843e
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -154,7 +154,6 @@ github.com/edsrzf/mmap-go
 github.com/elastic/gosigar
 github.com/elastic/gosigar/sys/windows
 # github.com/elliotchance/orderedmap v1.2.2
-## explicit
 github.com/elliotchance/orderedmap
 # github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 ## explicit
@@ -223,7 +222,6 @@ github.com/kr/text
 # github.com/kylelemons/godebug v1.1.0
 ## explicit
 # github.com/lucas-clemente/quic-go v0.15.6
-## explicit
 github.com/lucas-clemente/quic-go
 github.com/lucas-clemente/quic-go/internal/ackhandler
 github.com/lucas-clemente/quic-go/internal/congestion
@@ -261,10 +259,6 @@ github.com/naoina/toml/ast
 # github.com/olekukonko/tablewriter v0.0.4
 ## explicit
 github.com/olekukonko/tablewriter
-# github.com/onsi/ginkgo v1.12.1-0.20200421210249-a14f98eecce4
-## explicit
-# github.com/onsi/gomega v1.9.1-0.20200304171813-6024f5bbe35d
-## explicit
 # github.com/pborman/uuid v1.2.0
 ## explicit
 github.com/pborman/uuid
@@ -318,7 +312,6 @@ github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
 # github.com/pion/webrtc/v2 v2.2.7
-## explicit
 github.com/pion/webrtc/v2
 github.com/pion/webrtc/v2/internal/mux
 github.com/pion/webrtc/v2/internal/util
@@ -371,7 +364,7 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.3-0.20200425135820-56266f379675
+# github.com/ucwong/goleveldb v1.0.3-0.20200427013852-5bc1e07c6f4e
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache
