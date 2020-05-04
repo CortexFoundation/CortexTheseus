@@ -18,11 +18,11 @@ type websocketTrackerStatus struct {
 }
 
 func (me websocketTrackerStatus) statusLine() string {
-	return fmt.Sprintf("%q: %+v", me.tc.Url, me.tc.Stats())
+	return fmt.Sprintf("%+v", me.tc.Stats())
 }
 
-func (me websocketTrackerStatus) URL() url.URL {
-	return me.url
+func (me websocketTrackerStatus) URL() *url.URL {
+	return &me.url
 }
 
 type refCountedWebtorrentTrackerClient struct {
@@ -33,7 +33,7 @@ type refCountedWebtorrentTrackerClient struct {
 type websocketTrackers struct {
 	PeerId             [20]byte
 	Logger             log.Logger
-	GetAnnounceRequest func(event tracker.AnnounceEvent, infoHash [20]byte) tracker.AnnounceRequest
+	GetAnnounceRequest func(event tracker.AnnounceEvent, infoHash [20]byte) (tracker.AnnounceRequest, error)
 	OnConn             func(datachannel.ReadWriteCloser, webtorrent.DataChannelContext)
 	mu                 sync.Mutex
 	clients            map[string]*refCountedWebtorrentTrackerClient

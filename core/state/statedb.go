@@ -468,20 +468,18 @@ func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 		stateObject.SetBalance(amount)
 	}
 }
-func (s *StateDB) AddUpload(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.AddUpload(amount)
-	}
-}
+
+//func (s *StateDB) AddUpload(addr common.Address, amount *big.Int) {
+//	stateObject := s.GetOrNewStateObject(addr)
+//	if stateObject != nil {
+//		stateObject.AddUpload(amount)
+//	}
+//}
 
 func (s *StateDB) SubUpload(addr common.Address, amount *big.Int) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SubUpload(amount)
-		//log.Debug("Uploading progress", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
-	} else {
-		//log.Debug("Uploading failed", "address", addr.Hex(), "amount", amount, "pending", stateObject.Upload())
 	}
 }
 
@@ -571,7 +569,7 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	// enough to track account updates at commit time, deletions need tracking
 	// at transaction boundary level to ensure we capture state clearing.
 	if s.snap != nil {
-		s.snapAccounts[obj.addrHash] = snapshot.AccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash, obj.data.Upload, obj.data.Num)
+		s.snapAccounts[obj.addrHash] = snapshot.SlimAccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash, obj.data.Upload, obj.data.Num)
 	}
 }
 

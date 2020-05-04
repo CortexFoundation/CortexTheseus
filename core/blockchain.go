@@ -551,7 +551,6 @@ func (bc *BlockChain) repair(head **types.Block) error {
 			return nil
 		}
 		// Otherwise rewind one block and recheck state availability there
-		//(*head) = bc.GetBlock((*head).ParentHash(), (*head).NumberU64()-1)
 		block := bc.GetBlock((*head).ParentHash(), (*head).NumberU64()-1)
 		if block == nil {
 			return fmt.Errorf("missing block %d [%x]", (*head).NumberU64()-1, (*head).ParentHash())
@@ -1808,7 +1807,7 @@ func (st *insertStats) report(chain []*types.Block, index int, cached common.Sto
 		//	context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
 		//}
 		//context = append(context, []interface{}{"act", common.StorageSize(end.QuotaUsed().Int64())}...)
-		context = append(context, []interface{}{"vol", common.StorageSize(end.Quota().Int64() - end.QuotaUsed().Int64())}...)
+		//context = append(context, []interface{}{"vol", common.StorageSize(end.Quota().Int64() - end.QuotaUsed().Int64())}...)
 		timestamp := time.Unix(int64(end.Time()), 0)
 		context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
 		context = append(context, []interface{}{"cached", cached}...)
