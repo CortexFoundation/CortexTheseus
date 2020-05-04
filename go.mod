@@ -57,7 +57,7 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/ucwong/goleveldb v1.0.3-0.20200427013852-5bc1e07c6f4e
-	github.com/ucwong/tsdb v0.10.2
+	github.com/ucwong/tsdb v0.10.3
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
