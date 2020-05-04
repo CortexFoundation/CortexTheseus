@@ -3,20 +3,23 @@ module github.com/CortexFoundation/CortexTheseus
 go 1.14
 
 require (
+	bazil.org/fuse v0.0.0-20200430160008-602fc2ff4a00 // indirect
+	contrib.go.opencensus.io/exporter/ocagent v0.6.0 // indirect
 	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
+	github.com/Azure/go-autorest v11.2.8+incompatible // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 	github.com/anacrolix/torrent v1.15.1-0.20200503093120-4eee1ba26184
-	github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
-	github.com/aws/aws-sdk-go v1.27.0
+	github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
+	github.com/aws/aws-sdk-go v1.30.19
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
-	github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
+	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/cespare/cp v1.1.1
-	github.com/cloudflare/cloudflare-go v0.11.5
+	github.com/cloudflare/cloudflare-go v0.11.7
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/docker v1.13.1
 	github.com/edsrzf/mmap-go v1.0.0
@@ -28,25 +31,27 @@ require (
 	github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
+	github.com/google/uuid v1.1.1 // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.8.0
-	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
-	github.com/julienschmidt/httprouter v1.2.0
-	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/jackpal/go-nat-pmp v1.0.2
+	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
+	github.com/mattn/go-ieproxy v0.0.1 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
-	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
+	github.com/peterh/liner v1.2.0
 	github.com/pion/webrtc/v2 v2.2.8 // indirect
-	github.com/prometheus/prometheus v1.8.2-0.20200117201204-669592a2c4d5
+	github.com/prometheus/tsdb v0.10.1-0.20190813101244-656e53533ce7
 	github.com/rjeczalik/notify v0.9.2
-	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
+	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0
-	github.com/status-im/keycard-go v0.0.0-20200107115650-f38e9a19958e
+	github.com/status-im/keycard-go v0.0.0-20200402102358-957c09536969
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.5.1

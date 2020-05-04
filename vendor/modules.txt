@@ -1,13 +1,18 @@
-# bazil.org/fuse v0.0.0-20200407214033-5883e5a4b512
+# bazil.org/fuse v0.0.0-20200430160008-602fc2ff4a00
+## explicit
 bazil.org/fuse
 bazil.org/fuse/fs
 bazil.org/fuse/fuseutil
+# contrib.go.opencensus.io/exporter/ocagent v0.6.0
+## explicit
 # github.com/Azure/azure-pipeline-go v0.2.2
 ## explicit
 github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
+# github.com/Azure/go-autorest v11.2.8+incompatible
+## explicit
 # github.com/RoaringBitmap/roaring v0.4.23
 github.com/RoaringBitmap/roaring
 # github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
@@ -78,10 +83,10 @@ github.com/anacrolix/torrent/webtorrent
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 github.com/anacrolix/utp
-# github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015
+# github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
 ## explicit
 github.com/aristanetworks/goarista/monotime
-# github.com/aws/aws-sdk-go v1.27.0
+# github.com/aws/aws-sdk-go v1.30.19
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -101,12 +106,15 @@ github.com/aws/aws-sdk-go/aws/endpoints
 github.com/aws/aws-sdk-go/aws/request
 github.com/aws/aws-sdk-go/aws/session
 github.com/aws/aws-sdk-go/aws/signer/v4
+github.com/aws/aws-sdk-go/internal/context
 github.com/aws/aws-sdk-go/internal/ini
 github.com/aws/aws-sdk-go/internal/sdkio
 github.com/aws/aws-sdk-go/internal/sdkmath
 github.com/aws/aws-sdk-go/internal/sdkrand
 github.com/aws/aws-sdk-go/internal/sdkuri
 github.com/aws/aws-sdk-go/internal/shareddefaults
+github.com/aws/aws-sdk-go/internal/strings
+github.com/aws/aws-sdk-go/internal/sync/singleflight
 github.com/aws/aws-sdk-go/private/protocol
 github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
 github.com/aws/aws-sdk-go/private/protocol/query
@@ -125,7 +133,7 @@ github.com/bitly/go-simplejson
 # github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 ## explicit
 github.com/bradfitz/iter
-# github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
+# github.com/btcsuite/btcd v0.20.1-beta
 ## explicit
 github.com/btcsuite/btcd/btcec
 # github.com/cespare/cp v1.1.1
@@ -135,7 +143,7 @@ github.com/cespare/cp
 github.com/cespare/xxhash/v2
 # github.com/cheekybits/genny v1.0.0
 github.com/cheekybits/genny/generic
-# github.com/cloudflare/cloudflare-go v0.11.5
+# github.com/cloudflare/cloudflare-go v0.11.7
 ## explicit
 github.com/cloudflare/cloudflare-go
 # github.com/davecgh/go-spew v1.1.1
@@ -185,6 +193,7 @@ github.com/golang/snappy
 # github.com/google/btree v1.0.0
 github.com/google/btree
 # github.com/google/uuid v1.1.1
+## explicit
 github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 ## explicit
@@ -209,20 +218,18 @@ github.com/huin/goupnp/ssdp
 github.com/influxdata/influxdb/client
 github.com/influxdata/influxdb/models
 github.com/influxdata/influxdb/pkg/escape
-# github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
+# github.com/jackpal/go-nat-pmp v1.0.2
 ## explicit
 github.com/jackpal/go-nat-pmp
-# github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
+# github.com/jmespath/go-jmespath v0.3.0
 github.com/jmespath/go-jmespath
-# github.com/julienschmidt/httprouter v1.2.0
+# github.com/julienschmidt/httprouter v1.3.0
 ## explicit
 github.com/julienschmidt/httprouter
 # github.com/kr/pretty v0.2.0
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
-# github.com/kylelemons/godebug v1.1.0
-## explicit
 # github.com/lucas-clemente/quic-go v0.15.6
 github.com/lucas-clemente/quic-go
 github.com/lucas-clemente/quic-go/internal/ackhandler
@@ -241,11 +248,13 @@ github.com/marten-seemann/qtls
 # github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
 ## explicit
 github.com/mattn/go-colorable
-# github.com/mattn/go-ieproxy v0.0.0-20190702010315-6dee0af9227d
+# github.com/mattn/go-ieproxy v0.0.1
+## explicit
 github.com/mattn/go-ieproxy
 # github.com/mattn/go-isatty v0.0.13-0.20200128103942-cb30d6282491
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.7
+# github.com/mattn/go-runewidth v0.0.9
+## explicit
 github.com/mattn/go-runewidth
 # github.com/mattn/go-sqlite3 v2.0.3+incompatible
 github.com/mattn/go-sqlite3
@@ -264,7 +273,7 @@ github.com/olekukonko/tablewriter
 # github.com/pborman/uuid v1.2.0
 ## explicit
 github.com/pborman/uuid
-# github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
+# github.com/peterh/liner v1.2.0
 ## explicit
 github.com/peterh/liner
 # github.com/philhofer/fwd v1.0.0
@@ -324,13 +333,13 @@ github.com/pion/webrtc/v2/pkg/rtcerr
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/prometheus/prometheus v1.8.2-0.20200117201204-669592a2c4d5
+# github.com/prometheus/tsdb v0.10.1-0.20190813101244-656e53533ce7
 ## explicit
-github.com/prometheus/prometheus/tsdb/fileutil
+github.com/prometheus/tsdb/fileutil
 # github.com/rjeczalik/notify v0.9.2
 ## explicit
 github.com/rjeczalik/notify
-# github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
+# github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 ## explicit
 github.com/robertkrimen/otto
 github.com/robertkrimen/otto/ast
@@ -346,7 +355,7 @@ github.com/rs/cors
 github.com/ryszard/goskiplist/skiplist
 # github.com/spaolacci/murmur3 v1.1.0
 github.com/spaolacci/murmur3
-# github.com/status-im/keycard-go v0.0.0-20200107115650-f38e9a19958e
+# github.com/status-im/keycard-go v0.0.0-20200402102358-957c09536969
 ## explicit
 github.com/status-im/keycard-go/derivationpath
 # github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
