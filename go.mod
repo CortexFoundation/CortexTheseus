@@ -29,6 +29,7 @@ require (
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
 	github.com/go-stack/stack v1.8.0
+	github.com/golang/protobuf v1.4.1 // indirect
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/gorilla/websocket v1.4.2
