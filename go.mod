@@ -27,7 +27,6 @@ require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
-	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
@@ -47,7 +46,7 @@ require (
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
 	github.com/pion/webrtc/v2 v2.2.8 // indirect
-	github.com/prometheus/tsdb v0.10.1-0.20190813101244-656e53533ce7
+	github.com/prometheus/tsdb v0.10.1-0.20190813101244-656e53533ce7 // indirect
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0
@@ -58,6 +57,7 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/ucwong/goleveldb v1.0.3-0.20200427013852-5bc1e07c6f4e
+	github.com/ucwong/tsdb v0.10.2
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
