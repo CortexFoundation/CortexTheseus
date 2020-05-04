@@ -30,7 +30,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/prometheus/tsdb/fileutil"
+	"github.com/ucwong/tsdb/fileutil"
 )
 
 var (
