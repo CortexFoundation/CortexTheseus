@@ -37,7 +37,7 @@ require (
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/mattn/go-colorable v0.1.7-0.20200504102356-c10454b8be5e
+	github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
