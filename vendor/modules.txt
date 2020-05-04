@@ -243,7 +243,7 @@ github.com/lucas-clemente/quic-go/quictrace
 github.com/lucas-clemente/quic-go/quictrace/pb
 # github.com/marten-seemann/qtls v0.9.1
 github.com/marten-seemann/qtls
-# github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
+# github.com/mattn/go-colorable v0.1.7-0.20200504102356-c10454b8be5e
 ## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-ieproxy v0.0.1
