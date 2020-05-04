@@ -387,7 +387,7 @@ github.com/ucwong/goleveldb/leveldb/opt
 github.com/ucwong/goleveldb/leveldb/storage
 github.com/ucwong/goleveldb/leveldb/table
 github.com/ucwong/goleveldb/leveldb/util
-# github.com/ucwong/tsdb v0.10.2
+# github.com/ucwong/tsdb v0.10.3
 ## explicit
 github.com/ucwong/tsdb/fileutil
 # github.com/willf/bitset v1.1.10
