@@ -184,8 +184,8 @@ func (api *ExternalSigner) SignText(account accounts.Account, text []byte) ([]by
 	}
 	if signature[64] == 27 || signature[64] == 28 {
 		// If clef is used as a backend, it may already have transformed
-		// the signature to ethereum-type signature.
-		signature[64] -= 27 // Transform V from Ethereum-legacy to 0/1
+		// the signature to CortexFoundation-type signature.
+		signature[64] -= 27 // Transform V from Cortex-legacy to 0/1
 	}
 	return signature, nil
 }
