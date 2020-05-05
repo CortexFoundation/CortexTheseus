@@ -14,7 +14,7 @@ require (
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 	github.com/anacrolix/torrent v1.15.1-0.20200503093120-4eee1ba26184
 	github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
-	github.com/aws/aws-sdk-go v1.30.19
+	github.com/aws/aws-sdk-go v1.30.20
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -29,6 +29,7 @@ require (
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
 	github.com/go-stack/stack v1.8.0
+	github.com/golang/protobuf v1.4.1 // indirect
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/gorilla/websocket v1.4.2
@@ -37,7 +38,7 @@ require (
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
+	github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
@@ -53,9 +54,9 @@ require (
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.5.1
-	github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
+	github.com/ucwong/color v1.10.1-0.20200504093835-6ffe517dac74
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
-	github.com/ucwong/goleveldb v1.0.3-0.20200427013852-5bc1e07c6f4e
+	github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338
 	github.com/ucwong/tsdb v0.10.3
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67

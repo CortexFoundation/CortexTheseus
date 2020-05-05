@@ -86,7 +86,7 @@ github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
 ## explicit
 github.com/aristanetworks/goarista/monotime
-# github.com/aws/aws-sdk-go v1.30.19
+# github.com/aws/aws-sdk-go v1.30.20
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -183,7 +183,8 @@ github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
 ## explicit
 github.com/go-stack/stack
-# github.com/golang/protobuf v1.4.0
+# github.com/golang/protobuf v1.4.1
+## explicit
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 ## explicit
@@ -243,7 +244,7 @@ github.com/lucas-clemente/quic-go/quictrace
 github.com/lucas-clemente/quic-go/quictrace/pb
 # github.com/marten-seemann/qtls v0.9.1
 github.com/marten-seemann/qtls
-# github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e
+# github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603
 ## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-ieproxy v0.0.1
@@ -365,13 +366,13 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/tinylib/msgp v1.1.2
 github.com/tinylib/msgp/msgp
-# github.com/ucwong/color v1.10.1-0.20200422134126-da950b59e2d0
+# github.com/ucwong/color v1.10.1-0.20200504093835-6ffe517dac74
 ## explicit
 github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.3-0.20200427013852-5bc1e07c6f4e
+# github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache
@@ -472,7 +473,7 @@ golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/protobuf v1.21.0
+# google.golang.org/protobuf v1.22.0
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
