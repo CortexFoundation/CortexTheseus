@@ -263,10 +263,8 @@ func (cuckoo *Cuckoo) remote() {
 			// Verify submitted PoW solution based on maintained mining blocks.
 			//if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
 			if submitWork(result.nonce, result.hash, result.solution) {
-				//fmt.Println("yes")
 				result.errc <- nil
 			} else {
-				//fmt.Println("no")
 				result.errc <- errInvalidSealResult
 			}
 
