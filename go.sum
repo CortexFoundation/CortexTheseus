@@ -86,8 +86,9 @@ github.com/anacrolix/envpprof v1.0.1/go.mod h1:My7T5oSqVfEn4MD4Meczkw/f5lSIndGAK
 github.com/anacrolix/envpprof v1.1.0 h1:hz8QWMN1fA01YNQsUtVvl9hBXQWWMxSnHHoOK9IdrNY=
 github.com/anacrolix/envpprof v1.1.0/go.mod h1:My7T5oSqVfEn4MD4Meczkw/f5lSIndGAKu/0SM/rkf4=
 github.com/anacrolix/go-libutp v0.0.0-20180522111405-6baeb806518d/go.mod h1:beQSaSxwH2d9Eeu5ijrEnHei5Qhk+J6cDm1QkWFru4E=
-github.com/anacrolix/go-libutp v1.0.2 h1:cL2SfTCO418V+DQRdMEW+RNfO2InLqW6PsSLqHwmGR4=
 github.com/anacrolix/go-libutp v1.0.2/go.mod h1:uIH0A72V++j0D1nnmTjjZUiH/ujPkFxYWkxQ02+7S0U=
+github.com/anacrolix/go-libutp v1.0.3 h1:ei7ie78Usg4cCdUa/GL0J3+RJD86Tp3UwSwY3j7DQvI=
+github.com/anacrolix/go-libutp v1.0.3/go.mod h1:8vSGX5g0b4eebsDBNVQHUXSCwYaN18Lnkse0hUW8/5w=
 github.com/anacrolix/log v0.0.0-20180412014343-2323884b361d/go.mod h1:sf/7c2aTldL6sRQj/4UKyjgVZBu2+M2z9wf7MmwPiew=
 github.com/anacrolix/log v0.3.0/go.mod h1:lWvLTqzAnCWPJA08T2HCstZi0L1y2Wyvm3FJgwU9jwU=
 github.com/anacrolix/log v0.3.1-0.20190913000754-831e4ffe0174/go.mod h1:lWvLTqzAnCWPJA08T2HCstZi0L1y2Wyvm3FJgwU9jwU=
@@ -772,8 +773,8 @@ github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43 h1:QpWUJfSB79x
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43/go.mod h1:xu0FaiQFGbBcFZj2o7udZ5rbA8jRTsv47hkPoG5qQNM=
 github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338 h1:Ei65mbr2VWBtLzEH7MchMUPaZGLbiiAWDm+7xB2p/jc=
 github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338/go.mod h1:Nj1yLUkQHZLvrUHzhgDagzY5dAd66Y1S6D/N6MqPaPc=
-github.com/ucwong/tsdb v0.10.3 h1:ml0YXhilDsq4S75W6ArQrdnXJOQf/dXlzNtnaj/XdrU=
-github.com/ucwong/tsdb v0.10.3/go.mod h1:k294oUw7nHwr6LvkOkYYljzaMyYjvLw8t5tASIEnxbE=
+github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692 h1:LGSth9zgiO6YyYVSDVu/kNuUmv75/StcF6Jk2bwASfU=
+github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692/go.mod h1:dw8qQ+CN0e7UFHI94vvExZ2UJg10jeFhP16PeXPtvsU=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/urfave/cli v1.22.4/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
@@ -902,8 +903,9 @@ golang.org/x/net v0.0.0-20200222125558-5a598a2470a0/go.mod h1:z5CRVTTTmAJ677TzLL
 golang.org/x/net v0.0.0-20200226121028-0de0cce0169b/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
 golang.org/x/net v0.0.0-20200425230154-ff2c4b7c35a0/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
-golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5 h1:WQ8q63x+f/zpC8Ac1s9wLElVoHhm32p6tudrU72n1QA=
 golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
+golang.org/x/net v0.0.0-20200505041828-1ed23360d12c h1:zJ0mtu4jCalhKg6Oaukv6iIkb+cOvDrajDH9DH46Q4M=
+golang.org/x/net v0.0.0-20200505041828-1ed23360d12c/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=

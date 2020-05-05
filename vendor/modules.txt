@@ -21,7 +21,8 @@ github.com/VictoriaMetrics/fastcache
 # github.com/anacrolix/dht/v2 v2.6.1-0.20200416071723-3850fa1b802a
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
-# github.com/anacrolix/go-libutp v1.0.2
+# github.com/anacrolix/go-libutp v1.0.3
+## explicit
 github.com/anacrolix/go-libutp
 # github.com/anacrolix/log v0.7.0
 ## explicit
@@ -184,7 +185,6 @@ github.com/go-resty/resty/v2
 ## explicit
 github.com/go-stack/stack
 # github.com/golang/protobuf v1.4.1
-## explicit
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 ## explicit
@@ -386,7 +386,7 @@ github.com/ucwong/goleveldb/leveldb/opt
 github.com/ucwong/goleveldb/leveldb/storage
 github.com/ucwong/goleveldb/leveldb/table
 github.com/ucwong/goleveldb/leveldb/util
-# github.com/ucwong/tsdb v0.10.3
+# github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692
 ## explicit
 github.com/ucwong/tsdb/fileutil
 # github.com/willf/bitset v1.1.10
@@ -421,7 +421,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5
+# golang.org/x/net v0.0.0-20200505041828-1ed23360d12c
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage

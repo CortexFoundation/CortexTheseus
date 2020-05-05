@@ -9,6 +9,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/Azure/go-autorest v11.2.8+incompatible // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
+	github.com/anacrolix/go-libutp v1.0.3 // indirect
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
@@ -29,7 +30,6 @@ require (
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/protobuf v1.4.1 // indirect
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/gorilla/websocket v1.4.2
@@ -57,11 +57,11 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200504093835-6ffe517dac74
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338
-	github.com/ucwong/tsdb v0.10.3
+	github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
-	golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5
+	golang.org/x/net v0.0.0-20200505041828-1ed23360d12c
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
 	golang.org/x/text v0.3.2
