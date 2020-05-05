@@ -771,8 +771,8 @@ github.com/ucwong/color v1.10.1-0.20200504093835-6ffe517dac74 h1:drBnIcJ2lLfd+yP
 github.com/ucwong/color v1.10.1-0.20200504093835-6ffe517dac74/go.mod h1:ctQ7afqeXK8GlIBVpWYGjC6d/Qmd9mQYFKg0qBHoKjw=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43 h1:QpWUJfSB79xRanKUteFBfRz5XlnmjD5mdkfrSVf5AoM=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43/go.mod h1:xu0FaiQFGbBcFZj2o7udZ5rbA8jRTsv47hkPoG5qQNM=
-github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338 h1:Ei65mbr2VWBtLzEH7MchMUPaZGLbiiAWDm+7xB2p/jc=
-github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338/go.mod h1:Nj1yLUkQHZLvrUHzhgDagzY5dAd66Y1S6D/N6MqPaPc=
+github.com/ucwong/goleveldb v1.0.3-0.20200505121515-7f390ce04a3d h1:5Zy1x4WFkQkEdIm1o8+Yn+yhLNlOB0kRDsZAgOT1PLQ=
+github.com/ucwong/goleveldb v1.0.3-0.20200505121515-7f390ce04a3d/go.mod h1:3AokSVrIbYXQH4vngH0xy8zL3j2IdwRpOqNaTreiBgY=
 github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692 h1:LGSth9zgiO6YyYVSDVu/kNuUmv75/StcF6Jk2bwASfU=
 github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692/go.mod h1:dw8qQ+CN0e7UFHI94vvExZ2UJg10jeFhP16PeXPtvsU=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
