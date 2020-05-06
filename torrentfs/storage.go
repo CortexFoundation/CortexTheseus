@@ -66,6 +66,8 @@ type FileStorage struct {
 	//indexLock sync.RWMutex
 	config      *Config
 	treeUpdates time.Duration
+	//dbUpdates time.Duration
+	metrics bool
 }
 
 //var initConfig *Config = nil
@@ -94,6 +96,8 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 	}
 
 	fs.config = config
+
+	fs.metrics = true
 
 	fs.version = version
 
@@ -196,6 +200,10 @@ func (fs *FileStorage) initMerkleTree() error {
 	return nil
 }
 
+func (fs *FileStorage) Metrics() time.Duration {
+	return fs.treeUpdates
+}
+
 //Make sure the block group is increasing by number
 func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
 	number := block.Number
@@ -209,14 +217,14 @@ func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
 
 	fs.leaves = append(fs.leaves, leaf)
 
-	defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
+	//defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
 
 	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
 		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
 			return err
 		}
 
-		log.Debug("New merkle tree leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks), "time", fs.treeUpdates, "init", init)
+		//log.Debug("New merkle tree leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks), "time", fs.treeUpdates, "init", init)
 
 		return nil
 	} else {
@@ -238,6 +246,9 @@ func (fs *FileStorage) UpdateFile(x *types.FileInfo) (uint64, bool, error) {
 	//if !prog {
 	//	return 0, false, nil
 	//}
+	if fs.metrics {
+		defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
+	}
 
 	addr := *x.ContractAddr
 	if _, ok := fs.filesContractAddr[addr]; ok {
@@ -517,8 +528,12 @@ func (fs *FileStorage) AddBlock(b *types.Block) error {
 		return nil
 	}
 
+	if fs.metrics {
+		defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
+	}
 	//if record && b.Number > fs.CheckPoint {
 	if b.Number > fs.CheckPoint {
+
 		if err := fs.db.Update(func(tx *bolt.Tx) error {
 			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
 			if err != nil {
@@ -775,6 +790,7 @@ func (fs *FileStorage) GetRootByNumber(number uint64) (root []byte) {
 }
 
 func (fs *FileStorage) Flush() error {
+	//defer func(start time.Time) { fs.dbUpdates += time.Since(start) }(time.Now())
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
 		if err != nil {
