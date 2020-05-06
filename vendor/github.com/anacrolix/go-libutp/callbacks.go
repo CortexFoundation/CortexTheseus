@@ -38,16 +38,14 @@ func (a *C.utp_callback_arguments) addressLen() C.socklen_t {
 }
 
 var (
-	sends         int64
-	sendToUdpAddr = net.UDPAddr{
-		IP: make(net.IP, net.IPv6len),
-	}
+	sends int64
 )
 
 //export sendtoCallback
 func sendtoCallback(a *C.utp_callback_arguments) (ret C.uint64) {
 	s := getSocketForLibContext(a.context)
 	b := a.bufBytes()
+	var sendToUdpAddr net.UDPAddr
 	if err := structSockaddrToUDPAddr(a.address(), &sendToUdpAddr); err != nil {
 		panic(err)
 	}
