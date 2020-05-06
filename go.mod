@@ -9,13 +9,14 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/Azure/go-autorest v11.2.8+incompatible // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
+	github.com/anacrolix/dht/v2 v2.6.1 // indirect
 	github.com/anacrolix/go-libutp v1.0.3 // indirect
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200503093120-4eee1ba26184
+	github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
 	github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
-	github.com/aws/aws-sdk-go v1.30.20
+	github.com/aws/aws-sdk-go v1.30.21
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -38,6 +39,7 @@ require (
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/lucas-clemente/quic-go v0.15.7 // indirect
 	github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
@@ -56,7 +58,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/ucwong/color v1.10.1-0.20200504093835-6ffe517dac74
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
-	github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338
+	github.com/ucwong/goleveldb v1.0.3-0.20200505121515-7f390ce04a3d
 	github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67

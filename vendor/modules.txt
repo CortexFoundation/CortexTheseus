@@ -18,7 +18,8 @@ github.com/RoaringBitmap/roaring
 # github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 ## explicit
 github.com/VictoriaMetrics/fastcache
-# github.com/anacrolix/dht/v2 v2.6.1-0.20200416071723-3850fa1b802a
+# github.com/anacrolix/dht/v2 v2.6.1
+## explicit
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.3
@@ -65,7 +66,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200503093120-4eee1ba26184
+# github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -87,7 +88,7 @@ github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
 ## explicit
 github.com/aristanetworks/goarista/monotime
-# github.com/aws/aws-sdk-go v1.30.20
+# github.com/aws/aws-sdk-go v1.30.21
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -229,7 +230,8 @@ github.com/julienschmidt/httprouter
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
-# github.com/lucas-clemente/quic-go v0.15.6
+# github.com/lucas-clemente/quic-go v0.15.7
+## explicit
 github.com/lucas-clemente/quic-go
 github.com/lucas-clemente/quic-go/internal/ackhandler
 github.com/lucas-clemente/quic-go/internal/congestion
@@ -372,7 +374,7 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.3-0.20200504093742-260aea386338
+# github.com/ucwong/goleveldb v1.0.3-0.20200505121515-7f390ce04a3d
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache
