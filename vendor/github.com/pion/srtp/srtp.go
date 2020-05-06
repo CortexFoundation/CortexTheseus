@@ -10,7 +10,7 @@ import (
 )
 
 func (c *Context) decryptRTP(dst, ciphertext []byte, header *rtp.Header) ([]byte, error) {
-	s := c.getSSRCState(header.SSRC)
+	s := c.getSRTPSSRCState(header.SSRC)
 
 	markAsValid, ok := s.replayDetector.Check(uint64(header.SequenceNumber))
 	if !ok {
@@ -86,7 +86,7 @@ func (c *Context) encryptRTP(dst []byte, header *rtp.Header, payload []byte) (ci
 	// authTag = 10 bytes
 	dst = growBufferSize(dst, header.MarshalSize()+len(payload)+10)
 
-	s := c.getSSRCState(header.SSRC)
+	s := c.getSRTPSSRCState(header.SSRC)
 	c.updateRolloverCount(header.SequenceNumber, s)
 
 	// Copy the header unencrypted.
