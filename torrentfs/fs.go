@@ -1,20 +1,17 @@
 package torrentfs
 
 import (
-	//"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/anacrolix/torrent/metainfo"
-	"io/ioutil"
-	"path"
+	//"github.com/anacrolix/torrent/metainfo"
+	//"io/ioutil"
+	//"path"
 	"sync"
 	"time"
-	//"strings"
-	"errors"
-	"github.com/CortexFoundation/CortexTheseus/common/compress"
+	//"errors"
+	//"github.com/CortexFoundation/CortexTheseus/common/compress"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	//"github.com/CortexFoundation/CortexTheseus/p2p/enode"
-	lru "github.com/hashicorp/golang-lru"
+	//lru "github.com/hashicorp/golang-lru"
 )
 
 type CVMStorage interface {
@@ -30,14 +27,17 @@ type TorrentFS struct {
 	//history  *GeneralMessage
 	monitor *Monitor
 
-	fileLock  sync.Mutex
-	fileCache *lru.Cache
-	fileCh    chan bool
-	cache     bool
-	compress  bool
+	//fileLock  sync.Mutex
+	//fileCache *lru.Cache
+	//fileCh    chan bool
+	//cache     bool
+	//compress  bool
 
 	peerMu sync.RWMutex       // Mutex to sync the active peer set
 	peers  map[*Peer]struct{} // Set of currently active peers
+
+	//metrics   bool
+	//fsUpdates time.Duration
 }
 
 func (t *TorrentFS) Config() *Config {
@@ -87,7 +87,7 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 
 	//log.Info("Fs version info", "version", msg.Version)
 
-	monitor, moErr := NewMonitor(config)
+	monitor, moErr := NewMonitor(config, cache, compress)
 	if moErr != nil {
 		log.Error("Failed create monitor")
 		return nil, moErr
@@ -99,10 +99,12 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 		monitor: monitor,
 		peers:   make(map[*Peer]struct{}),
 	}
-	torrentInstance.fileCache, _ = lru.New(8)
-	torrentInstance.fileCh = make(chan bool, 4)
-	torrentInstance.compress = compress
-	torrentInstance.cache = cache
+	//torrentInstance.fileCache, _ = lru.New(8)
+	//torrentInstance.fileCh = make(chan bool, 4)
+	//torrentInstance.compress = compress
+	//torrentInstance.cache = cache
+
+	//torrentInstance.metrics = config.Metrics
 
 	/*torrentInstance.protocol = p2p.Protocol{
 		Name:    ProtocolName,
@@ -209,27 +211,23 @@ func (tfs *TorrentFS) Stop() error {
 	}
 	// Wait until every goroutine terminates.
 	tfs.monitor.Stop()
-	if tfs.cache {
-		tfs.fileCache.Purge()
-	}
+	//if tfs.cache {
+	//	tfs.fileCache.Purge()
+	//}
 	return nil
 }
 
+//func (fs *TorrentFS) Metrics() time.Duration {
+//	return fs.fsUpdates
+//}
+
 func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
-	// modelDir := fs.DataDir + "/" + infoHash
-	// if (os.Stat)
-	//return Available(infohash, rawSize)
-	//log.Info("Available", "infohash", infohash, "RawSize", rawSize)
-	//TorrentAPIAvailable.Lock()
-	//defer TorrentAPIAvailable.Unlock()
-	//if !strings.HasPrefix(infohash, "0x") {
-	//      return false, errors.New("invalid info hash format")
-	//}
+	/*if fs.metrics {
+		defer func(start time.Time) { fs.fsUpdates += time.Since(start) }(time.Now())
+	}
 	ih := metainfo.NewHashFromHex(infohash)
-	tm := fs.monitor.dl //CurrentTorrentManager
-	//log.Debug("storage", "ih", ih)
+	tm := fs.monitor.dl
 	if torrent := tm.GetTorrent(ih); torrent == nil {
-		//log.Debug("storage", "ih", ih, "torrent", torrent)
 		log.Debug("Seed not found", "hash", infohash)
 		return false, errors.New("download not completed")
 	} else {
@@ -237,13 +235,12 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 			log.Debug("[Not available] Download not completed", "hash", infohash, "raw", rawSize, "complete", torrent.bytesCompleted)
 			return false, errors.New("download not completed")
 		}
-		//log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
-		//log.Info("download not completed", "complete", torrent.BytesCompleted(), "miss", torrent.BytesMissing(), "raw", rawSize)
 		return torrent.BytesCompleted() <= rawSize, nil
-	}
+	}*/
+	return fs.monitor.dl.Available(infohash, rawSize)
 }
 
-func (fs *TorrentFS) release() {
+/*func (fs *TorrentFS) release() {
 	<-torrentInstance.fileCh
 }
 
@@ -261,11 +258,15 @@ func (fs *TorrentFS) zip(data []byte, c bool) ([]byte, error) {
 	} else {
 		return data, nil
 	}
-}
+}*/
 
 func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
+	return fs.monitor.dl.GetFile(infohash, subpath)
+	/*if fs.metrics {
+		defer func(start time.Time) { fs.fsUpdates += time.Since(start) }(time.Now())
+	}
 	ih := metainfo.NewHashFromHex(infohash)
-	tm := fs.monitor.dl //CurrentTorrentManager
+	tm := fs.monitor.dl
 	if torrent := tm.GetTorrent(ih); torrent == nil {
 		log.Debug("Torrent not found", "hash", infohash)
 		return nil, errors.New("download not completed")
@@ -280,7 +281,6 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 		var key = infohash + subpath
 		if fs.cache {
 			if cache, ok := fs.fileCache.Get(key); ok {
-				//log.Trace("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len())
 				if c, err := fs.unzip(cache.([]byte), fs.compress); err != nil {
 					return nil, err
 				} else {
@@ -315,37 +315,6 @@ func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
 				}
 			}
 		}
-		/*
-			if subpath == "/data" {
-				if int64(len(data)) != torrent.BytesCompleted() {
-					log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", torrent.BytesCompleted())
-					return nil, errors.New("not a complete file")
-				} else {
-					log.Warn("Read data success", "hash", infohash, "size", len(data), "path", subpath)
-				}
-			} else if subpath == "/data/symbol" {
-				for _, file := range torrent.Files() {
-					if file.Path() == "/data/symbol" {
-						if int64(len(data)) != file.Length() {
-							log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
-							return nil, errors.New("not a complete file")
-						} else {
-							log.Warn("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
-						}
-					}
-				}
-			} else if subpath == "/data/params" {
-				for _, file := range torrent.Files() {
-					if file.Path() == "/data/params" {
-						if int64(len(data)) != file.Length() {
-							log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
-							return nil, errors.New("not a complete file")
-						} else {
-							log.Warn("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
-						}
-					}
-				}
-			}*/
 		return data, err
-	}
+	}*/
 }

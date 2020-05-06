@@ -97,7 +97,7 @@ func NewFileStorage(config *Config) (*FileStorage, error) {
 
 	fs.config = config
 
-	fs.metrics = true
+	fs.metrics = config.Metrics
 
 	fs.version = version
 

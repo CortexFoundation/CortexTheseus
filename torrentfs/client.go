@@ -3,10 +3,14 @@ package torrentfs
 import (
 	"bytes"
 	"crypto/sha1"
+	"errors"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common/compress"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
+	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/time/rate"
+	"io/ioutil"
 	//"strconv"
 	//"github.com/anacrolix/missinggo/slices"
 	"github.com/bradfitz/iter"
@@ -443,6 +447,15 @@ type TorrentManager struct {
 	id       uint64
 	slot     int
 	//bucket int
+
+	fileLock  sync.Mutex
+	fileCache *lru.Cache
+	fileCh    chan struct{}
+	cache     bool
+	compress  bool
+
+	metrics bool
+	Updates time.Duration
 }
 
 func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
@@ -491,6 +504,9 @@ func (tm *TorrentManager) Close() error {
 		tm.dropAll()
 	})
 	tm.wg.Wait()*/
+	if tm.cache {
+		tm.fileCache.Purge()
+	}
 	log.Info("Fs Download Manager Closed")
 	return nil
 }
@@ -772,7 +788,7 @@ func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64)
 //var CurrentTorrentManager *TorrentManager = nil
 
 // NewTorrentManager ...
-func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
+func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (error, *TorrentManager) {
 	//    log.Info("config",
 	//      "port", config.Port,
 	//      "datadir", config.DataDir,
@@ -865,6 +881,13 @@ func NewTorrentManager(config *Config, fsid uint64) (error, *TorrentManager) {
 		//bucket:1024
 		slot: int(fsid % bucket),
 	}
+
+	TorrentManager.fileCache, _ = lru.New(8)
+	TorrentManager.fileCh = make(chan struct{}, 4)
+	TorrentManager.compress = compress
+	TorrentManager.cache = cache
+
+	TorrentManager.metrics = config.Metrics
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
@@ -1310,7 +1333,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				//for _, ttt := range tm.client.Torrents() {
 				//	all += len(ttt.KnownSwarm())
 				//}
-				log.Info("Fs status", "pending", len(tm.pendingTorrents) /* "active", len(tm.activeTorrents),*/, "waiting", active_wait, "downloading", active_running, "paused", active_paused /*"boost", active_boost,*/, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent)+len(tm.seedingChan)+len(tm.pendingChan)+len(tm.activeChan), "slot", tm.slot)
+				log.Info("Fs status", "pending", len(tm.pendingTorrents) /* "active", len(tm.activeTorrents),*/, "waiting", active_wait, "downloading", active_running, "paused", active_paused /*"boost", active_boost,*/, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent)+len(tm.seedingChan)+len(tm.pendingChan)+len(tm.activeChan), "slot", tm.slot, "metrics", common.PrettyDuration(tm.Updates))
 				/*tmp := make(map[common.Hash]int)
 				sum := 0
 				for _, ttt := range tm.client.Torrents() {
@@ -1367,4 +1390,99 @@ func (tm *TorrentManager) graceSeeding(slot int) error {
 		i++
 	}
 	return nil
+}
+
+func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error) {
+	if fs.metrics {
+		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
+	}
+	ih := metainfo.NewHashFromHex(infohash)
+	if torrent := fs.GetTorrent(ih); torrent == nil {
+		return false, errors.New("download not completed")
+	} else {
+		if !torrent.IsAvailable() {
+			return false, errors.New("download not completed")
+		}
+		return torrent.BytesCompleted() <= rawSize, nil
+	}
+}
+
+func (fs *TorrentManager) GetFile(infohash string, subpath string) ([]byte, error) {
+	if fs.metrics {
+		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
+	}
+	ih := metainfo.NewHashFromHex(infohash)
+	//tm := fs.monitor.dl
+	if torrent := fs.GetTorrent(ih); torrent == nil {
+		log.Debug("Torrent not found", "hash", infohash)
+		return nil, errors.New("download not completed")
+	} else {
+		if !torrent.IsAvailable() {
+			log.Error("Read unavailable file", "hash", infohash, "subpath", subpath)
+			return nil, errors.New("download not completed")
+		}
+		fs.fileCh <- struct{}{}
+		defer fs.release()
+		var key = infohash + subpath
+		if fs.cache {
+			if cache, ok := fs.fileCache.Get(key); ok {
+				if c, err := fs.unzip(cache.([]byte), fs.compress); err != nil {
+					return nil, err
+				} else {
+					if fs.compress {
+						log.Info("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len(), "compress", len(cache.([]byte)), "origin", len(c), "compress", fs.compress)
+					}
+					return c, nil
+				}
+			}
+		}
+		fs.fileLock.Lock()
+		defer fs.fileLock.Unlock()
+		fn := path.Join(fs.DataDir, infohash, subpath)
+		data, err := ioutil.ReadFile(fn)
+		for _, file := range torrent.Files() {
+			log.Debug("File path info", "path", file.Path(), "subpath", subpath)
+			if file.Path() == subpath[1:] {
+				if int64(len(data)) != file.Length() {
+					log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
+					return nil, errors.New("not a complete file")
+				} else {
+					log.Debug("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
+					if c, err := fs.zip(data, fs.compress); err != nil {
+						log.Warn("Compress data failed", "hash", infohash, "err", err)
+					} else {
+						if fs.cache {
+							fs.fileCache.Add(key, c)
+						}
+					}
+					break
+				}
+			}
+		}
+		return data, err
+	}
+}
+
+func (fs *TorrentManager) release() {
+	<-fs.fileCh
+}
+
+func (fs *TorrentManager) unzip(data []byte, c bool) ([]byte, error) {
+	if c {
+		return compress.UnzipData(data)
+	} else {
+		return data, nil
+	}
+}
+
+func (fs *TorrentManager) zip(data []byte, c bool) ([]byte, error) {
+	if c {
+		return compress.ZipData(data)
+	} else {
+		return data, nil
+	}
+}
+
+func (fs *TorrentManager) Metrics() time.Duration {
+	return fs.Updates
 }

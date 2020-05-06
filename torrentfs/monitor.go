@@ -60,6 +60,9 @@ type TorrentManagerAPI interface {
 	UpdateTorrent(interface{}) error
 	//UpdateDynamicTrackers(trackers []string)
 	GetTorrent(ih metainfo.Hash) *Torrent
+	Available(ih string, raw int64) (bool, error)
+	GetFile(infohash string, subpath string) ([]byte, error)
+	Metrics() time.Duration
 }
 
 // Monitor observes the data changes on the blockchain and synchronizes.
@@ -103,7 +106,7 @@ type Monitor struct {
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config) (m *Monitor, e error) {
+func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
 	log.Info("Initialising FS")
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
@@ -114,7 +117,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	log.Info("File storage initialized")
 
 	// Torrent Manager
-	err, tMana := NewTorrentManager(flag, fs.ID())
+	err, tMana := NewTorrentManager(flag, fs.ID(), cache, compress)
 	if err != nil || tMana == nil {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")
