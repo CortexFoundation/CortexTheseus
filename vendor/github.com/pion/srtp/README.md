@@ -44,6 +44,7 @@ Check out the **[contributing wiki](https://github.com/pion/webrtc/wiki/Contribu
 * [Hugo Arregui](https://github.com/hugoArregui)
 * [Atsushi Watanabe](https://github.com/at-wat)
 * [Novel Corpse](https://github.com/NovelCorpse)
+* [Jerko Steiner](https://github.com/jeremija)
 
 ### License
 MIT License - see [LICENSE](LICENSE) for full text

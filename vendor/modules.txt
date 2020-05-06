@@ -306,7 +306,8 @@ github.com/pion/rtp/codecs
 github.com/pion/sctp
 # github.com/pion/sdp/v2 v2.3.7
 github.com/pion/sdp/v2
-# github.com/pion/srtp v1.3.1
+# github.com/pion/srtp v1.3.2
+## explicit
 github.com/pion/srtp
 # github.com/pion/stun v0.3.3
 github.com/pion/stun
