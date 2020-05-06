@@ -18,7 +18,8 @@ github.com/RoaringBitmap/roaring
 # github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 ## explicit
 github.com/VictoriaMetrics/fastcache
-# github.com/anacrolix/dht/v2 v2.6.1-0.20200416071723-3850fa1b802a
+# github.com/anacrolix/dht/v2 v2.6.1
+## explicit
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.3
@@ -65,7 +66,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200503093120-4eee1ba26184
+# github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode

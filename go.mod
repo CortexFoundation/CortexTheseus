@@ -9,11 +9,12 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/Azure/go-autorest v11.2.8+incompatible // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
+	github.com/anacrolix/dht/v2 v2.6.1 // indirect
 	github.com/anacrolix/go-libutp v1.0.3 // indirect
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200503093120-4eee1ba26184
+	github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
 	github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
 	github.com/aws/aws-sdk-go v1.30.21
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
