@@ -27,7 +27,9 @@ func (c *Context) decryptRTCP(dst, encrypted []byte) ([]byte, error) {
 	index := binary.BigEndian.Uint32(srtcpIndexBuffer) &^ (1 << 31)
 	ssrc := binary.BigEndian.Uint32(encrypted[4:])
 
-	markAsValid, ok := c.srtcpReplayDetector.Check(uint64(index))
+	s := c.getSRTCPSSRCState(ssrc)
+
+	markAsValid, ok := s.replayDetector.Check(uint64(index))
 	if !ok {
 		return nil, errDuplicated
 	}
@@ -65,20 +67,21 @@ func (c *Context) DecryptRTCP(dst, encrypted []byte, header *rtcp.Header) ([]byt
 func (c *Context) encryptRTCP(dst, decrypted []byte) ([]byte, error) {
 	out := allocateIfMismatch(dst, decrypted)
 	ssrc := binary.BigEndian.Uint32(out[4:])
+	s := c.getSRTCPSSRCState(ssrc)
 
 	// We roll over early because MSB is used for marking as encrypted
-	c.srtcpIndex++
-	if c.srtcpIndex >= maxSRTCPIndex {
-		c.srtcpIndex = 0
+	s.srtcpIndex++
+	if s.srtcpIndex >= maxSRTCPIndex {
+		s.srtcpIndex = 0
 	}
 
 	// Encrypt everything after header
-	stream := cipher.NewCTR(c.srtcpBlock, c.generateCounter(uint16(c.srtcpIndex&0xffff), c.srtcpIndex>>16, ssrc, c.srtcpSessionSalt))
+	stream := cipher.NewCTR(c.srtcpBlock, c.generateCounter(uint16(s.srtcpIndex&0xffff), s.srtcpIndex>>16, ssrc, c.srtcpSessionSalt))
 	stream.XORKeyStream(out[8:], out[8:])
 
 	// Add SRTCP Index and set Encryption bit
 	out = append(out, make([]byte, 4)...)
-	binary.BigEndian.PutUint32(out[len(out)-4:], c.srtcpIndex)
+	binary.BigEndian.PutUint32(out[len(out)-4:], s.srtcpIndex)
 	out[len(out)-4] |= 0x80
 
 	authTag, err := c.generateSrtcpAuthTag(out)

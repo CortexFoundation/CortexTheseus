@@ -60,6 +60,9 @@ type TorrentManagerAPI interface {
 	UpdateTorrent(interface{}) error
 	//UpdateDynamicTrackers(trackers []string)
 	GetTorrent(ih metainfo.Hash) *Torrent
+	Available(ih string, raw int64) (bool, error)
+	GetFile(infohash string, subpath string) ([]byte, error)
+	Metrics() time.Duration
 }
 
 // Monitor observes the data changes on the blockchain and synchronizes.
@@ -103,7 +106,7 @@ type Monitor struct {
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config) (m *Monitor, e error) {
+func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
 	log.Info("Initialising FS")
 	// File Storage
 	fs, fsErr := NewFileStorage(flag)
@@ -114,7 +117,7 @@ func NewMonitor(flag *Config) (m *Monitor, e error) {
 	log.Info("File storage initialized")
 
 	// Torrent Manager
-	err, tMana := NewTorrentManager(flag, fs.ID())
+	err, tMana := NewTorrentManager(flag, fs.ID(), cache, compress)
 	if err != nil || tMana == nil {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")
@@ -1208,7 +1211,7 @@ func (m *Monitor) solve(block *types.Block) error {
 	if i%65536 == 0 {
 		defer func() {
 			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope)
+			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()))
 		}()
 	}
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {

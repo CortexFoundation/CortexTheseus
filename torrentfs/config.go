@@ -25,6 +25,7 @@ type Config struct {
 	Quiet           bool
 	UploadRate      int
 	DownloadRate    int
+	Metrics         bool
 }
 
 // DefaultConfig contains default settings for the storage.
@@ -43,6 +44,7 @@ var DefaultConfig = Config{
 	Quiet:           true,
 	UploadRate:      -1,
 	DownloadRate:    -1,
+	Metrics:         true,
 }
 
 const (
