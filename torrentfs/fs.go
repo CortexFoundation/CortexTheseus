@@ -40,13 +40,13 @@ type TorrentFS struct {
 	//fsUpdates time.Duration
 }
 
-func (t *TorrentFS) Config() *Config {
-	return t.config
-}
+//func (t *TorrentFS) Config() *Config {
+//	return t.config
+//}
 
-func (t *TorrentFS) Monitor() *Monitor {
-	return t.monitor
-}
+//func (t *TorrentFS) Monitor() *Monitor {
+//	return t.monitor
+//}
 
 var torrentInstance *TorrentFS = nil
 
@@ -61,14 +61,14 @@ func GetStorage() CVMStorage {
 	return torrentInstance //GetTorrentInstance()
 }
 
-func GetConfig() *Config {
+/*func GetConfig() *Config {
 	if torrentInstance != nil {
 		return torrentInstance.Config()
 	} else {
 		return &DefaultConfig
 	}
 	return nil
-}
+}*/
 
 // New creates a new dashboard instance with the given configuration.
 //var Torrentfs_handle CVMStorage

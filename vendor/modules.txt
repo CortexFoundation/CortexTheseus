@@ -88,7 +88,7 @@ github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
 ## explicit
 github.com/aristanetworks/goarista/monotime
-# github.com/aws/aws-sdk-go v1.30.21
+# github.com/aws/aws-sdk-go v1.30.22
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -307,7 +307,6 @@ github.com/pion/sctp
 # github.com/pion/sdp/v2 v2.3.7
 github.com/pion/sdp/v2
 # github.com/pion/srtp v1.3.2
-## explicit
 github.com/pion/srtp
 # github.com/pion/stun v0.3.3
 github.com/pion/stun
@@ -324,7 +323,7 @@ github.com/pion/turn/v2/internal/client
 github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
-# github.com/pion/webrtc/v2 v2.2.8
+# github.com/pion/webrtc/v2 v2.2.9
 ## explicit
 github.com/pion/webrtc/v2
 github.com/pion/webrtc/v2/internal/mux
@@ -424,7 +423,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200505041828-1ed23360d12c
+# golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage

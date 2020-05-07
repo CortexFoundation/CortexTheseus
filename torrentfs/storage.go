@@ -1,804 +1,1503 @@
+// Copyright 2020 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
+//
+// The CortexTheseus library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The CortexTheseus library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 package torrentfs
 
 import (
-	"encoding/binary"
-	"encoding/json"
+	"bytes"
+	"crypto/sha1"
 	"errors"
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/params"
+	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common/compress"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
-	"github.com/pborman/uuid"
+	lru "github.com/hashicorp/golang-lru"
+	"golang.org/x/time/rate"
+	"io/ioutil"
+	//"strconv"
+	//"github.com/anacrolix/missinggo/slices"
+	"github.com/bradfitz/iter"
+	"github.com/edsrzf/mmap-go"
+	"io"
+	"math"
+	//"math/rand"
 	"os"
+	"path"
 	"path/filepath"
-	"sort"
-	"strconv"
+	//"sort"
+	"sync"
 	"time"
 
-	"crypto/sha256"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	//bolt "github.com/etcd-io/bbolt"
-	bolt "go.etcd.io/bbolt"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/anacrolix/torrent"
+	//	"net"
+	xlog "github.com/anacrolix/log"
+	"github.com/anacrolix/torrent/metainfo"
+	"github.com/anacrolix/torrent/mmap_span"
+	"github.com/anacrolix/torrent/storage"
 )
 
-//const (
-// Chosen to match the usual chunk size in a torrent client. This way,
-// most chunk writes are to exactly one full item in bolt DB.
-//chunkSize = 1 << 14
-//)
+const (
+	bucket                  = params.Bucket //it is best size is 1/3 full nodes
+	group                   = params.Group
+	tier                    = params.TIER
+	updateTorrentChanBuffer = batch
+	torrentChanSize         = 64
 
-//type MutexCounter int32
+	torrentPending = iota //2
+	torrentPaused
+	torrentRunning
+	torrentSeeding
+	torrentSeedingInQueue
+)
 
-/*func (mc *MutexCounter) Increase() {
-	atomic.AddInt32((*int32)(mc), int32(1))
+type Torrent struct {
+	*torrent.Torrent
+	maxEstablishedConns int
+	minEstablishedConns int
+	currentConns        int
+	bytesRequested      int64
+	bytesLimitation     int64
+	bytesCompleted      int64
+	bytesMissing        int64
+	status              int
+	infohash            string
+	filepath            string
+	cited               int64
+	weight              int
+	loop                int
+	maxPieces           int
+	isBoosting          bool
+	fast                bool
+	start               mclock.AbsTime
 }
 
-func (mc *MutexCounter) Decrease() {
-	atomic.AddInt32((*int32)(mc), int32(-1))
+const block = int64(params.PER_UPLOAD_BYTES)
+
+func (tm *TorrentManager) GetLimitation(value int64) int64 {
+	return ((value + block - 1) / block) * block
+	//return value + block - 1
 }
 
-func (mc *MutexCounter) IsZero() bool {
-	return atomic.LoadInt32((*int32)(mc)) == 0
-}*/
-
-type FileStorage struct {
-	filesContractAddr map[common.Address]*types.FileInfo
-	files             []*types.FileInfo //only storage init files from local storage
-	blocks            []*types.Block    //only storage init ckp blocks from local storage
-	txs               uint64
-	db                *bolt.DB
-	version           string
-
-	id                    uint64
-	CheckPoint            uint64
-	LastListenBlockNumber uint64
-
-	//elements []*BlockContent
-	leaves []types.Content
-	tree   *types.MerkleTree
-	//LastFileIndex         uint64
-
-	//lock      sync.RWMutex
-	//bnLock    sync.Mutex
-	//opCounter MutexCounter
-	dataDir string
-	//tmpCache  *lru.Cache
-	//indexLock sync.RWMutex
-	config      *Config
-	treeUpdates time.Duration
-	//dbUpdates time.Duration
-	metrics bool
+func (t *Torrent) BytesLeft() int64 {
+	if t.bytesRequested < t.bytesCompleted {
+		return 0
+	}
+	return t.bytesRequested - t.bytesCompleted
 }
 
-//var initConfig *Config = nil
-
-func NewFileStorage(config *Config) (*FileStorage, error) {
-
-	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
-		return nil, err
-	}
-
-	db, dbErr := bolt.Open(filepath.Join(config.DataDir,
-		".file.bolt.db"), 0600, &bolt.Options{
-		Timeout: time.Second,
-	})
-	if dbErr != nil {
-		return nil, dbErr
-	}
-	//db.NoSync = true
-
-	fs := &FileStorage{
-		// filesInfoHash:     make(map[metainfo.Hash]*FileInfo),
-		filesContractAddr: make(map[common.Address]*types.FileInfo),
-		db:                db,
-		//opCounter:         0,
-		dataDir: config.DataDir,
-	}
-
-	fs.config = config
-
-	fs.metrics = config.Metrics
-
-	fs.version = version
-
-	if err := fs.initBlockNumber(); err != nil {
-		return nil, err
-	}
-	if err := fs.initCheckPoint(); err != nil {
-		return nil, err
-	}
-	if err := fs.initBlocks(); err != nil {
-		return nil, err
-	}
-	if err := fs.initFiles(); err != nil {
-		return nil, err
-	}
-	if err := fs.initMerkleTree(); err != nil {
-		return nil, err
-	}
-
-	if err := fs.initFsId(); err != nil {
-		return nil, err
-	}
-
-	log.Info("Storage ID generated", "id", fs.id)
-
-	return fs, nil
+func (t *Torrent) InfoHash() string {
+	return t.infohash
 }
 
-type BlockContent struct {
-	x string
-}
-
-func (t BlockContent) CalculateHash() ([]byte, error) {
-	h := sha256.New()
-	if _, err := h.Write([]byte(t.x)); err != nil {
-		return nil, err
+func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager) {
+	if len(files) > 1 {
+		err := os.MkdirAll(filepath.Dir(path.Join(t.filepath, "data")), 0750) //os.ModePerm)
+		if err != nil {
+			return
+		}
 	}
-
-	return h.Sum(nil), nil
-}
-
-//Equals tests for equality of two Contents
-func (t BlockContent) Equals(other types.Content) (bool, error) {
-	return t.x == other.(BlockContent).x, nil
-}
-
-func (fs *FileStorage) Files() []*types.FileInfo {
-	return fs.files
-}
-
-func (fs *FileStorage) Blocks() []*types.Block {
-	return fs.blocks
-}
-
-func (fs *FileStorage) Txs() uint64 {
-	return fs.txs
-}
-
-func (fs *FileStorage) Reset() error {
-	//fs.filesContractAddr = make(map[common.Address]*FileInfo)
-	//fs.files = nil
-	fs.blocks = nil
-	//fs.leaves = nil
-	fs.CheckPoint = 0
-	fs.LastListenBlockNumber = 0
-	err := fs.initMerkleTree()
+	//log.Info("Try to boost files", "files", files)
+	for i, filename := range files {
+		filePath := path.Join(t.filepath, filename)
+		f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0660)
+		if err != nil {
+			return
+		}
+		defer f.Close()
+		log.Debug("Write file (Boost mode)", "path", filePath)
+		if _, err := f.Write(datas[i]); err != nil {
+			log.Error("Error while write data file", "error", err)
+		}
+	}
+	mi, err := metainfo.LoadFromFile(path.Join(t.filepath, "torrent"))
 	if err != nil {
-		errors.New("Storage reset error")
+		log.Error("Error while loading torrent", "Err", err)
+		return
 	}
-	log.Warn("Storage status reset")
-	return nil
+	spec := torrent.TorrentSpecFromMetaInfo(mi)
+	spec.Storage = storage.NewFile(t.filepath)
+	//spec.Trackers = append(spec.Trackers, tm.trackers...)
+	//spec.Trackers = tm.trackers
+	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
+		//var ss []string
+		//slices.MakeInto(&ss, mi.Nodes)
+		//tm.client.AddDHTNodes(ss)
+		//<-torrent.GotInfo()
+		//torrent.VerifyData()
+		t.Torrent = torrent
+		//	t.Pause()
+	}
 }
 
-func (fs *FileStorage) NewFileInfo(Meta *types.FileMeta) *types.FileInfo {
-	//ret := &FileInfo{Meta, nil, nil, Meta.RawSize, 0}
-	ret := &types.FileInfo{Meta, nil, Meta.RawSize, nil}
-	return ret
-}
-
-//func (fs *FileStorage) CurrentTorrentManager() *TorrentManager {
-//	return CurrentTorrentManager
-//}
-
-func (fs *FileStorage) initMerkleTree() error {
-	fs.leaves = nil
-	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
-	tr, err := types.NewTree(fs.leaves)
+func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
+	err := os.Remove(path.Join(t.filepath, ".torrent.bolt.db"))
 	if err != nil {
+		log.Warn("Remove path failed", "path", path.Join(t.filepath, ".torrent.bolt.db"), "err", err)
+	}
+	/*torrentPath := path.Join(t.filepath, "torrent")
+	f, err := os.Create(torrentPath)
+	if err != nil {
+		log.Warn("Create torrent path failed", "path", torrentPath)
+		return
+	}
+	defer f.Close()
+	log.Debug("Write seed file (Boost mode)", "path", torrentPath)
+	if _, err := f.Write(data); err != nil {
+		log.Error("Error while write torrent file", "error", err)
+		return
+	}*/
+	buf := bytes.NewBuffer(data)
+	mi, err := metainfo.Load(buf)
+
+	//mi, err := metainfo.LoadFromFile(torrentPath)
+	if err != nil {
+		log.Error("Error while adding torrent", "Err", err)
 		return err
 	}
-	fs.tree = tr
-	for _, block := range fs.blocks {
-		if err := fs.addLeaf(block, true); err != nil {
-			panic("Storage merkletree construct failed")
-		}
-	}
-
-	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.LastListenBlockNumber, "checkpoint", fs.CheckPoint, "version", fs.version)
-
-	return nil
-}
-
-func (fs *FileStorage) Metrics() time.Duration {
-	return fs.treeUpdates
-}
-
-//Make sure the block group is increasing by number
-func (fs *FileStorage) addLeaf(block *types.Block, init bool) error {
-	number := block.Number
-	leaf := BlockContent{x: block.Hash.String()}
-
-	if len(fs.leaves) >= params.LEAFS {
-		fs.leaves = nil
-		fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
-		log.Debug("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()))
-	}
-
-	fs.leaves = append(fs.leaves, leaf)
-
-	//defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
-
-	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
-		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
-			return err
-		}
-
-		//log.Debug("New merkle tree leaf", "number", number, "root", hexutil.Encode(fs.tree.MerkleRoot()), "leaves", len(fs.leaves), "blocks", len(fs.blocks), "time", fs.treeUpdates, "init", init)
-
-		return nil
+	spec := torrent.TorrentSpecFromMetaInfo(mi)
+	spec.Storage = storage.NewFile(t.filepath)
+	//spec.Trackers = append(spec.Trackers, tm.trackers...)
+	//spec.Trackers = tm.trackers
+	spec.Trackers = nil
+	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
+		//var ss []string
+		//slices.MakeInto(&ss, mi.Nodes)
+		//tm.client.AddDHTNodes(ss)
+		//<-torrent.GotInfo()
+		//torrent.VerifyData()
+		t.Torrent = torrent
+		//tm.torrents[spec.InfoHash] = t
+		//t.Pause()
 	} else {
 		return err
 	}
+	return nil
 }
 
-func (fs *FileStorage) Root() common.Hash {
-	return common.BytesToHash(fs.tree.MerkleRoot())
+/*func (t *Torrent) GetFile(subpath string) ([]byte, error) {
+	if !t.IsAvailable() {
+		return nil, errors.New(fmt.Sprintf("InfoHash %s not Available", t.infohash))
+	}
+	filepath := path.Join(t.filepath, subpath)
+	if _, cfgErr := os.Stat(filepath); os.IsNotExist(cfgErr) {
+		return nil, errors.New(fmt.Sprintf("File %s not Available", filepath))
+	}
+	data, data_err := ioutil.ReadFile(filepath)
+	return data, data_err
+}*/
+
+var maxCited int64 = 1
+
+func (t *Torrent) IsAvailable() bool {
+	if _, ok := BadFiles[t.InfoHash()]; ok {
+		return false
+	}
+	t.cited += 1
+	if t.cited > maxCited {
+		maxCited = t.cited
+	}
+	if t.Seeding() {
+		return true
+	}
+	//log.Warn("Not seeding", "hash", t.InfoHash(), "missing", t.bytesMissing, "complete", t.bytesCompleted, "status", t.status)
+	return false
 }
 
-//func (fs *FileStorage) UpdateFile(x *FileInfo, b *Block, prog bool) (uint64, bool, error) {
-func (fs *FileStorage) UpdateFile(x *types.FileInfo) (uint64, bool, error) {
-	//err := fs.AddBlock(b)
-	//if err != nil {
-	//	return 0, false, nil
-	//}
+//func (t *Torrent) HasTorrent() bool {
+//	return t.status != torrentPending
+//}
 
-	//if !prog {
-	//	return 0, false, nil
-	//}
-	if fs.metrics {
-		defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
+func (t *Torrent) WriteTorrent() error {
+	//log.Info("Write seed", "hash", t.infohash)
+	if _, err := os.Stat(path.Join(t.filepath, "torrent")); err == nil {
+		t.Pause()
+		return nil
 	}
 
-	addr := *x.ContractAddr
-	if _, ok := fs.filesContractAddr[addr]; ok {
-		update, err := fs.progress(x, false)
-		if err != nil {
-			return 0, update, err
+	if f, err := os.OpenFile(path.Join(t.filepath, "torrent"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0660); err == nil {
+		defer f.Close()
+		log.Debug("Write seed file", "path", t.filepath)
+		if err := t.Metainfo().Write(f); err == nil {
+			t.Pause()
+			return f.Close()
+		} else {
+			log.Warn("Write seed error", "err", err)
+			return err
 		}
-
-		fs.filesContractAddr[addr] = x
-		return 0, update, nil
+	} else {
+		log.Warn("Create Path error", "err", err)
+		return err
 	}
-
-	update, err := fs.progress(x, true)
-	if err != nil {
-		return 0, update, err
-	}
-
-	fs.filesContractAddr[addr] = x
-
-	if !update {
-		return 0, update, nil
-	}
-
-	fs.files = append(fs.files, x)
-
-	return 1, update, nil
 }
 
-func (fs *FileStorage) GetFileByAddr(addr common.Address) *types.FileInfo {
-	if f, ok := fs.filesContractAddr[addr]; ok {
-		return f
+func (t *Torrent) SeedInQueue() {
+	if t.status == torrentSeedingInQueue {
+		return
+	}
+	t.status = torrentSeedingInQueue
+	//if t.currentConns != 0 {
+	t.currentConns = t.minEstablishedConns
+	t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
+	log.Info("Mute seeding", "ih", t.InfoHash(), "weight", t.weight, "peers", t.currentConns)
+	//}
+	//t.Torrent.close()
+	//t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+	//t.Torrent.Drop()
+}
+
+func (t *Torrent) BoostOff() {
+	t.isBoosting = false
+}
+
+func (t *Torrent) Seed() {
+	if t.Torrent.Info() == nil || t.status == torrentSeeding {
+		return
+	}
+	//t.status = torrentSeeding
+	//if t.currentConns == 0 {
+	//	t.currentConns = t.maxEstablishedConns
+	//	t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	//}
+
+	//t.Torrent.DownloadAll()
+	if t.currentConns <= t.minEstablishedConns {
+		t.currentConns = t.maxEstablishedConns
+		t.Torrent.SetMaxEstablishedConns(t.currentConns)
+		//if t.currentConns < t.minEstablishedConns {
+		//	t.currentConns = t.minEstablishedConns
+	}
+	//t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	//t.Torrent.SetMaxEstablishedConns(0)
+	//}
+	if t.Torrent.Seeding() {
+		t.status = torrentSeeding
+		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+		log.Info("Imported new segment", "hash", common.HexToHash(t.InfoHash()), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+		//t.Torrent.Drop()
+	}
+}
+
+func (t *Torrent) Seeding() bool {
+	return t.Torrent.Info() != nil && (t.status == torrentSeeding ||
+		t.status == torrentSeedingInQueue) && t.BytesMissing() == 0
+}
+
+func (t *Torrent) Pause() {
+	if t.currentConns > t.minEstablishedConns {
+		t.currentConns = t.minEstablishedConns
+		t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
+	}
+	if t.status != torrentPaused {
+		t.status = torrentPaused
+		t.maxPieces = 0 //t.minEstablishedConns
+		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+		//t.Torrent.Drop()
+	}
+}
+
+func (t *Torrent) Paused() bool {
+	return t.status == torrentPaused
+}
+
+//func (t *Torrent) Length() int64 {
+//	return t.bytesCompleted + t.bytesMissing
+//}
+
+//func (t *Torrent) NumPieces() int {
+//	return t.Torrent.NumPieces()
+//}
+
+func (t *Torrent) Run(slot int) {
+	limitPieces := int((t.bytesRequested*int64(t.Torrent.NumPieces()) + t.Length() - 1) / t.Length())
+	if limitPieces > t.Torrent.NumPieces() {
+		limitPieces = t.Torrent.NumPieces()
+	}
+
+	if limitPieces <= t.maxPieces && t.status == torrentRunning {
+		return
+	}
+
+	if t.fast {
+		if t.currentConns <= t.minEstablishedConns {
+			t.currentConns = t.maxEstablishedConns
+			t.Torrent.SetMaxEstablishedConns(t.currentConns)
+		}
+	} else {
+		if t.currentConns > t.minEstablishedConns {
+			t.currentConns = t.minEstablishedConns
+			t.Torrent.SetMaxEstablishedConns(t.currentConns)
+		}
+	}
+	//log.Info("Limit mode", "hash", t.infohash, "fast", t.fast, "conn", t.currentConns, "request", t.bytesRequested, "limit", limitPieces, "cur", t.maxPieces, "total", t.Torrent.NumPieces())
+	t.status = torrentRunning
+	if limitPieces != t.maxPieces {
+		t.maxPieces = limitPieces
+		//t.Torrent.DownloadPieces(0, limitPieces)
+		t.download(limitPieces, slot)
+	}
+}
+
+func (t *Torrent) download(p, slot int) {
+	//if p >= t.Torrent.NumPieces() {
+	//	t.Torrent.DownloadAll()
+	//	return
+	//}
+
+	var s, e int
+	/*if mod == 0 {
+		e = p
+	} else if mod == 1 {
+		s = (t.Torrent.NumPieces() - p) / 2
+		e = (t.Torrent.NumPieces() + p) / 2
+	} else if mod == 2 {
+		if  t.Torrent.NumPieces() < mod {
+			s = mod - t.Torrent.NumPieces()
+		}
+		if t.Torrent.NumPieces() < mod + p {
+			s = t.Torrent.NumPieces() - p
+		}
+		s = mod
+		e = s + p
+	} else {
+		s = t.Torrent.NumPieces() - p
+		e = t.Torrent.NumPieces()
+	}*/
+	s = (t.Torrent.NumPieces() * slot) / bucket
+	if s < t.Torrent.NumPieces()/3 {
+		s = s - p
+
+	} else if s >= t.Torrent.NumPieces()/3 && s < (t.Torrent.NumPieces()*2)/3 {
+		s = s - p/2
+	}
+
+	if s < 0 {
+		s = 0
+	}
+
+	if t.Torrent.NumPieces() < s+p {
+		s = t.Torrent.NumPieces() - p
+	}
+
+	e = s + p
+	//progress := t.progressBar(int64(p), int64(t.Torrent.NumPieces()))
+	//log.Trace("[ "+progress+" ]", "hash", t.infohash, "b", s, "e", e, "p", p, "t", t.Torrent.NumPieces(), "s", slot, "b", bucket, "conn", t.currentConns)
+	t.Torrent.DownloadPieces(s, e)
+}
+
+//func (t *Torrent) progressBar(x, y int64) string {
+/*func ProgressBar(x, y int64, desc string) string {
+	progress := ""
+	for i := 10; i > 0; i-- {
+		if int64(i) > (10*x)/y {
+			progress = progress + " "
+		} else {
+			progress = progress + "<"
+		}
+	}
+
+	prog := float64(x*100) / float64(y)
+	f := strconv.FormatFloat(prog, 'f', 2, 64)
+	return "[ " + progress + " ] " + f + "% " + desc
+}*/
+
+func (t *Torrent) Running() bool {
+	return t.status == torrentRunning
+}
+
+func (t *Torrent) Finished() bool {
+	//for _, file := range t.Files() {
+	//	if file.BytesCompleted() <= 0 {
+	//		return false
+	//	}
+	//log.Info("File", "hash", t.InfoHash(), "name", file.Path(), "complete", file.BytesCompleted(), "file", file)
+	//}
+	return t.bytesMissing == 0 && t.bytesRequested > 0 && t.bytesCompleted > 0
+}
+
+func (t *Torrent) Pending() bool {
+	return t.status == torrentPending
+}
+
+type TorrentManager struct {
+	client              *torrent.Client
+	bytes               map[metainfo.Hash]int64
+	torrents            map[metainfo.Hash]*Torrent
+	seedingTorrents     map[metainfo.Hash]*Torrent
+	activeTorrents      map[metainfo.Hash]*Torrent
+	pendingTorrents     map[metainfo.Hash]*Torrent
+	maxSeedTask         int
+	maxEstablishedConns int
+	maxActiveTask       int
+	trackers            [][]string
+	boostFetcher        *BoostDataFetcher
+	DataDir             string
+	TmpDataDir          string
+	closeAll            chan struct{}
+	//removeTorrent       chan metainfo.Hash
+	updateTorrent chan interface{}
+	//mu                  sync.Mutex
+	lock        sync.RWMutex
+	wg          sync.WaitGroup
+	seedingChan chan *Torrent
+	activeChan  chan *Torrent
+	pendingChan chan *Torrent
+	//closeOnce sync.Once
+	fullSeed bool
+	boost    bool
+	id       uint64
+	slot     int
+	//bucket int
+
+	fileLock  sync.Mutex
+	fileCache *lru.Cache
+	fileCh    chan struct{}
+	cache     bool
+	compress  bool
+
+	metrics bool
+	Updates time.Duration
+}
+
+func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
+	tt := &Torrent{
+		t,
+		tm.maxEstablishedConns, 5, tm.maxEstablishedConns,
+		requested,
+		//int64(float64(requested) * expansionFactor),
+		tm.GetLimitation(requested),
+		0, 0, status,
+		ih.String(),
+		path.Join(tm.TmpDataDir, ih.String()),
+		0, 1, 0, 0, false, true, 0,
+	}
+	//tm.bytes[ih] = requested
+	tm.SetTorrent(ih, tt)
+	//tm.pendingChan <- tt
+	return tt
+}
+
+func (tm *TorrentManager) GetTorrent(ih metainfo.Hash) *Torrent {
+	tm.lock.RLock()
+	defer tm.lock.RUnlock()
+	if torrent, ok := tm.torrents[ih]; !ok {
+		return nil
+	} else {
+		return torrent
+	}
+}
+
+func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	tm.torrents[ih] = torrent
+	tm.pendingChan <- torrent
+	log.Trace("P <- B", "ih", ih)
+}
+
+func (tm *TorrentManager) Close() error {
+	close(tm.closeAll)
+	tm.wg.Wait()
+	tm.dropAll()
+	/*tm.wg.Add(1)
+	tm.closeOnce.Do(func() {
+		defer tm.wg.Done()
+		tm.dropAll()
+	})
+	tm.wg.Wait()*/
+	if tm.cache {
+		tm.fileCache.Purge()
+	}
+	log.Info("Fs Download Manager Closed")
+	return nil
+}
+
+func (tm *TorrentManager) dropAll() {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+
+	tm.client.Close()
+}
+
+//func (tm *TorrentManager) RemoveTorrent(input metainfo.Hash) error {
+//	tm.removeTorrent <- input
+//	return nil
+//}
+
+func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
+	//go func() { tm.updateTorrent <- input }()
+	tm.updateTorrent <- input
+	return nil
+}
+
+//func isMagnetURI(uri string) bool {
+//	return strings.HasPrefix(uri, "magnet:?xt=urn:btih:")
+//}
+
+//func GetMagnetURI(infohash metainfo.Hash) string {
+//	return "magnet:?xt=urn:btih:" + infohash.String()
+//}
+
+func (tm *TorrentManager) UpdateDynamicTrackers(trackers []string) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	if len(tm.trackers) == 0 {
+		tm.trackers = append(tm.trackers, trackers)
+	} else if len(tm.trackers) == 1 {
+		tm.trackers = append(tm.trackers, trackers)
+	} else {
+		tm.trackers[1] = trackers
+	}
+
+	var newTrackers [][]string = [][]string{trackers}
+	for _, t := range tm.pendingTorrents {
+		t.AddTrackers(newTrackers)
+	}
+}
+
+func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string) {
+	array = make([][]string, tier)
+	for i, tracker := range trackers {
+		array[i%tier] = append(array[i%tier], "udp"+tracker)
+	}
+	/*array = make([][]string, 1)
+	for _, tracker := range trackers {
+		array[0] = append(array[0], "udp"+tracker)
+	}*/
+	return array
+}
+
+func (tm *TorrentManager) buildHttpTrackers(trackers []string) (array [][]string) {
+	array = make([][]string, tier)
+	for i, tracker := range trackers {
+		array[i%tier] = append(array[i%tier], "http"+tracker+"/announce")
+	}
+	return array
+}
+
+func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	/*array := make([][]string, len(trackers))
+	for i, tracker := range trackers {
+		if disableTCP {
+			array[i] = []string{"udp" + tracker}
+		} else {
+			array[i] = []string{"http" + tracker + "/announce"}
+		}
+	}*/
+	tm.trackers = tm.buildUdpTrackers(trackers)
+	if !disableTCP {
+		//tm.trackers = append(tm.trackers, tm.buildHttpTrackers(trackers)...)
+	}
+	log.Debug("Boot trackers", "t", tm.trackers)
+}
+
+func mmapFile(name string) (mm mmap.MMap, err error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return
+	}
+	if fi.Size() == 0 {
+		return
+	}
+	return mmap.MapRegion(f, -1, mmap.RDONLY, mmap.COPY, 0)
+}
+
+func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error {
+	span := new(mmap_span.MMapSpan)
+	for _, file := range info.UpvertedFiles() {
+		filename := filepath.Join(append([]string{root, info.Name}, file.Path...)...)
+		mm, err := mmapFile(filename)
+		if err != nil {
+			return err
+		}
+		if int64(len(mm)) != file.Length {
+			return fmt.Errorf("file %q has wrong length, %d / %d", filename, int64(len(mm)), file.Length)
+		}
+		span.Append(mm)
+	}
+	for i := range iter.N(info.NumPieces()) {
+		p := info.Piece(i)
+		hash := sha1.New()
+		_, err := io.Copy(hash, io.NewSectionReader(span, p.Offset(), p.Length()))
+		if err != nil {
+			return err
+		}
+		good := bytes.Equal(hash.Sum(nil), p.Hash().Bytes())
+		if !good {
+			return fmt.Errorf("hash mismatch at piece %d", i)
+		}
 	}
 	return nil
 }
 
-// func Exist(infohash string) bool {
-// 	TorrentAPIAvailable.Lock()
-// 	defer TorrentAPIAvailable.Unlock()
-// 	ih := metainfo.NewHashFromHex(infohash[2:])
-// 	tm := CurrentTorrentManager
-// 	if torrent := tm.GetTorrent(ih); torrent == nil {
-// 		return false
-// 	} else {
-// 		return torrent.IsAvailable()
-// 	}
-// }
+func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Torrent {
+	if _, err := os.Stat(filePath); err != nil {
+		return nil
+	}
+	mi, err := metainfo.LoadFromFile(filePath)
+	if err != nil {
+		log.Error("Error while adding torrent", "Err", err)
+		return nil
+	}
+	spec := torrent.TorrentSpecFromMetaInfo(mi)
+	ih := spec.InfoHash
+	//log.Info("Get seed from local file", "InfoHash", ih.HexString())
 
-/*func Available(infohash string, rawSize int64) (bool, error) {
-	//log.Info("Available", "infohash", infohash, "RawSize", rawSize)
-	//TorrentAPIAvailable.Lock()
-	//defer TorrentAPIAvailable.Unlock()
-	//if !strings.HasPrefix(infohash, "0x") {
-	//	return false, errors.New("invalid info hash format")
+	if t := tm.GetTorrent(ih); t != nil {
+		log.Trace("Seed was already existed. Skip", "ih", ih.HexString())
+		return t
+	}
+	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
+	ExistDir := path.Join(tm.DataDir, ih.HexString())
+
+	useExistDir := false
+	if _, err := os.Stat(ExistDir); err == nil {
+		log.Debug("Seeding from existing file.", "ih", ih.HexString())
+		info, err := mi.UnmarshalInfo()
+		if err != nil {
+			log.Error("error unmarshalling info: ", "info", err)
+		}
+		if err := tm.verifyTorrent(&info, ExistDir); err != nil {
+			log.Warn("Seed failed verification:", "err", err)
+		} else {
+			useExistDir = true
+		}
+	}
+
+	if useExistDir {
+		log.Trace("existing dir", "dir", ExistDir)
+		spec.Storage = storage.NewFile(ExistDir)
+		//for _, tracker := range tm.trackers {
+		//	spec.Trackers = append(spec.Trackers, tracker)
+		//}
+		//spec.Trackers = tm.trackers
+		spec.Trackers = nil
+		//spec.Trackers = append(spec.Trackers, tm.trackers...)
+		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
+			//var ss []string
+			//slices.MakeInto(&ss, mi.Nodes)
+			//tm.client.AddDHTNodes(ss)
+			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+			return torrent
+		} else {
+			log.Warn("Create error")
+		}
+	} else {
+		spec.Storage = storage.NewFile(TmpDir)
+		/*for _, tracker := range tm.trackers {
+			spec.Trackers = append(spec.Trackers, tracker)
+		}*/
+		//spec.Trackers = tm.trackers
+		spec.Trackers = nil
+		//spec.Trackers = append(spec.Trackers, tm.trackers...)
+		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
+			//var ss []string
+			//slices.MakeInto(&ss, mi.Nodes)
+			//tm.client.AddDHTNodes(ss)
+			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+			return torrent
+		} else {
+			log.Warn("Create error ... ")
+		}
+	}
+	return nil
+}
+
+func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *Torrent {
+	if t := tm.GetTorrent(ih); t != nil {
+		return t
+	}
+
+	dataPath := path.Join(tm.TmpDataDir, ih.HexString())
+	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
+	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
+
+	if _, err := os.Stat(seedTorrentPath); err == nil {
+		return tm.AddTorrent(seedTorrentPath, BytesRequested)
+	} else if _, err := os.Stat(torrentPath); err == nil {
+		return tm.AddTorrent(torrentPath, BytesRequested)
+	}
+
+	log.Trace("Get file from infohash", "ih", ih.HexString())
+
+	spec := &torrent.TorrentSpec{
+		Trackers: [][]string{}, //tm.trackers, //[][]string{},
+		//DisplayName: ih.String(),
+		InfoHash: ih,
+		Storage:  storage.NewFile(dataPath),
+	}
+
+	//for _, tracker := range tm.trackers {
+	//	spec.Trackers = append(spec.Trackers, tracker)
 	//}
+	//spec.Trackers = tm.trackers
+	//spec.Trackers = append(spec.Trackers, tm.trackers...)
+	//log.Info("Torrent specific info", "spec", spec)
+
+	t, _, err := tm.client.AddTorrentSpec(spec)
+	if err != nil {
+		return nil
+	}
+	/*go func() {
+		<-t.GotInfo()
+		t.VerifyData()
+	}()*/
+	tt := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+	//tm.mu.Unlock()
+	//log.Info("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
+	return tt
+}
+
+// UpdateInfoHash ...
+func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
+	log.Debug("Update seed", "ih", ih, "bytes", BytesRequested)
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
+		tm.bytes[ih] = BytesRequested
+	}
+	/*if t := tm.GetTorrent(ih); t != nil {
+		if BytesRequested < t.bytesRequested {
+			return
+		}
+		t.bytesRequested = BytesRequested
+		if t.bytesRequested > t.bytesLimitation {
+			t.bytesLimitation = GetLimitation(BytesRequested)
+		}
+	}*/
+}
+
+// DropInfoHash ...
+/*func (tm *TorrentManager) DropInfoHash(ih metainfo.Hash) bool {
+	if t := tm.GetTorrent(ih); t != nil {
+		t.Torrent.Drop()
+		tm.lock.Lock()
+		delete(tm.torrents, ih)
+		tm.lock.Unlock()
+		return true
+	}
+	return false
+}*/
+
+//var CurrentTorrentManager *TorrentManager = nil
+
+// NewTorrentManager ...
+func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (error, *TorrentManager) {
+	//    log.Info("config",
+	//      "port", config.Port,
+	//      "datadir", config.DataDir,
+	//      "rpcuri", config.RpcURI,
+	//      "ipcuri", config.IpcPath,
+	//      "boostnodes", config.BoostNodes,
+	//      "trackers", config.DefaultTrackers,
+	//      "syncmode", config.SyncMode,
+	//      "max_seedingnum", config.MaxSeedingNum,
+	//      "max_activenum", config.MaxActiveNum,
+	//    )
+	cfg := torrent.NewDefaultClientConfig()
+	cfg.DisableUTP = config.DisableUTP
+	cfg.NoDHT = config.DisableDHT
+	cfg.DisableTCP = config.DisableTCP
+
+	//cfg.HeaderObfuscationPolicy.Preferred = true
+	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
+
+	cfg.DataDir = config.DataDir
+	if config.UploadRate > 0 {
+		cfg.UploadRateLimiter = rate.NewLimiter(rate.Limit(config.UploadRate), 256<<10)
+	}
+	if config.DownloadRate > 0 {
+		cfg.DownloadRateLimiter = rate.NewLimiter(rate.Limit(config.DownloadRate), 1<<20)
+	}
+	//cfg.DisableEncryption = true
+	//cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
+	//listenAddr := &net.TCPAddr{}
+	//log.Info("Torrent client listening on", "addr", listenAddr)
+	//cfg.SetListenAddr(listenAddr.String())
+	//cfg.HTTPUserAgent = "Cortex"
+	cfg.Seed = true
+	//cfg.EstablishedConnsPerTorrent = 25 //len(config.DefaultTrackers)
+	//cfg.HalfOpenConnsPerTorrent = 25
+	cfg.ListenPort = config.Port
+	if config.Quiet {
+		cfg.Logger = xlog.Discard
+	}
+	//cfg.Debug = true
+	cfg.DropDuplicatePeerIds = true
+	//cfg.ListenHost = torrent.LoopbackListenHost
+	//cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs //func() ([]dht.Addr, error) { return nil, nil }
+	//log.Info("Torrent client configuration", "config", cfg)
+	cl, err := torrent.NewClient(cfg)
+	if err != nil {
+		log.Error("Error while create torrent client", "err", err)
+		return err, nil
+	}
+
+	tmpFilePath := path.Join(config.DataDir, defaultTmpFilePath)
+	/*if _, err := os.Stat(tmpFilePath); err == nil {
+		err := os.Remove(tmpFilePath)
+		if err != nil {
+			log.Warn("Purge the current file path failed", "path", tmpFilePath, "err", err)
+		}
+	}*/
+
+	if _, err := os.Stat(tmpFilePath); err != nil {
+		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0750) //os.FileMode(os.ModePerm))
+		if err != nil {
+			log.Error("Mkdir failed", "path", tmpFilePath)
+			return err, nil
+		}
+	}
+
+	TorrentManager := &TorrentManager{
+		client:              cl,
+		torrents:            make(map[metainfo.Hash]*Torrent),
+		pendingTorrents:     make(map[metainfo.Hash]*Torrent),
+		seedingTorrents:     make(map[metainfo.Hash]*Torrent),
+		activeTorrents:      make(map[metainfo.Hash]*Torrent),
+		bytes:               make(map[metainfo.Hash]int64),
+		maxSeedTask:         config.MaxSeedingNum,
+		maxActiveTask:       config.MaxActiveNum,
+		maxEstablishedConns: cfg.EstablishedConnsPerTorrent,
+		DataDir:             config.DataDir,
+		TmpDataDir:          tmpFilePath,
+		boostFetcher:        NewBoostDataFetcher(config.BoostNodes),
+		closeAll:            make(chan struct{}),
+		//removeTorrent:       make(chan metainfo.Hash, removeTorrentChanBuffer),
+		updateTorrent: make(chan interface{}, updateTorrentChanBuffer),
+		seedingChan:   make(chan *Torrent, torrentChanSize),
+		activeChan:    make(chan *Torrent, torrentChanSize),
+		pendingChan:   make(chan *Torrent, torrentChanSize),
+		//updateTorrent:       make(chan interface{}),
+		fullSeed: config.FullSeed,
+		//boost:    config.Boost,
+		id: fsid,
+		//bucket:1024
+		slot: int(fsid % bucket),
+	}
+
+	TorrentManager.fileCache, _ = lru.New(8)
+	TorrentManager.fileCh = make(chan struct{}, 4)
+	TorrentManager.compress = compress
+	TorrentManager.cache = cache
+
+	TorrentManager.metrics = config.Metrics
+
+	if len(config.DefaultTrackers) > 0 {
+		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
+		TorrentManager.SetTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
+	}
+	log.Debug("Fs client initialized", "config", config)
+
+	//CurrentTorrentManager = TorrentManager
+	//cl.WaitAll()
+	return nil, TorrentManager
+}
+
+func (tm *TorrentManager) Start() error {
+	tm.init()
+
+	tm.wg.Add(1)
+	go tm.mainLoop()
+	tm.wg.Add(1)
+	go tm.pendingTorrentLoop()
+	tm.wg.Add(1)
+	go tm.activeTorrentLoop()
+	tm.wg.Add(1)
+	go tm.seedingTorrentLoop()
+
+	return nil
+}
+
+func (tm *TorrentManager) seedingTorrentLoop() {
+	defer tm.wg.Done()
+	//timer := time.NewTimer(time.Second * queryTimeInterval * 60)
+	//defer timer.Stop()
+	for {
+		select {
+		case t := <-tm.seedingChan:
+			tm.seedingTorrents[t.Torrent.InfoHash()] = t
+			t.Seed()
+			if len(tm.seedingTorrents) > tm.maxSeedTask && !tm.fullSeed {
+				tm.graceSeeding(tm.slot)
+			}
+			//	case <- timer.C:
+			//for _, t := range tm.seedingTorrents {
+			//t.SetMaxEstablishedConns(0)
+			//t.SetMaxEstablishedConns(1)
+			//t.Torrent.Drop()
+			//}
+			//log.Info("Seeding status refresh", "len", len(tm.seedingTorrents))
+			//		timer.Reset(time.Second * queryTimeInterval * 60)
+		case <-tm.closeAll:
+			log.Info("Seeding loop closed")
+			return
+		}
+	}
+}
+
+/*func (tm *TorrentManager) Stop() error {
+	close(tm.closeAll)
+	tm.wg.Wait()
+	return nil
+}*/
+func (tm *TorrentManager) init() {
+	for k, ok := range GoodFiles {
+		if ok {
+			tm.SearchAndDownload(k, 0)
+		}
+	}
+}
+
+func (tm *TorrentManager) SearchAndDownload(hex string, request int64) {
+	hash := metainfo.NewHashFromHex(hex)
+	if t := tm.AddInfoHash(hash, request); t != nil {
+		if request > 0 {
+			tm.UpdateInfoHash(hash, request)
+		}
+	}
+}
+
+func (tm *TorrentManager) mainLoop() {
+	defer tm.wg.Done()
+	for {
+		select {
+		case msg := <-tm.updateTorrent:
+			meta := msg.(types.FlowControlMeta)
+			if _, ok := BadFiles[meta.InfoHash.HexString()]; ok {
+				continue
+			}
+
+			if meta.IsCreate {
+				counter := 0
+				for {
+					if t := tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t != nil {
+						log.Debug("Seed [create] success", "ih", meta.InfoHash, "request", meta.BytesRequested)
+						if int64(meta.BytesRequested) > 0 {
+							tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+						}
+						break
+					} else {
+						if counter > 10 {
+							panic("Fail adding file for 10 times")
+						}
+						log.Error("Seed [create] failed", "ih", meta.InfoHash, "request", meta.BytesRequested, "counter", counter)
+						counter++
+					}
+				}
+			} else {
+				log.Debug("Seed [update] success", "ih", meta.InfoHash, "request", meta.BytesRequested)
+				tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+			}
+		case <-tm.closeAll:
+			return
+		}
+	}
+}
+
+const (
+	loops = 30
+)
+
+//type ActiveTorrentList []*Torrent
+
+//func (s ActiveTorrentList) Len() int      { return len(s) }
+//func (s ActiveTorrentList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+//func (s ActiveTorrentList) Less(i, j int) bool {
+//	return s[i].BytesLeft() > s[j].BytesLeft() || (s[i].BytesLeft() == s[j].BytesLeft() && s[i].weight > s[j].weight)
+//}
+
+//type seedingTorrentList []*Torrent
+
+//func (s seedingTorrentList) Len() int           { return len(s) }
+//func (s seedingTorrentList) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+//func (s seedingTorrentList) Less(i, j int) bool { return s[i].weight > s[j].weight }
+
+func (tm *TorrentManager) pendingTorrentLoop() {
+	defer tm.wg.Done()
+	timer := time.NewTimer(time.Second * queryTimeInterval)
+	defer timer.Stop()
+	for {
+		select {
+		case t := <-tm.pendingChan:
+			tm.pendingTorrents[t.Torrent.InfoHash()] = t
+			//if len(tm.pendingTorrents) == 1 {
+			//	ok := timer.Reset(time.Millisecond * 0)
+			//	log.Trace("P -> [ON]", "ok", ok)
+			//}
+		case <-timer.C:
+			for ih, t := range tm.pendingTorrents {
+				//		ih := t.Torrent.InfoHash()
+				if _, ok := BadFiles[ih.String()]; ok {
+					continue
+				}
+				t.loop += 1
+				if t.Torrent.Info() != nil {
+					if t.start == 0 {
+						if t.isBoosting {
+							log.Trace("A <- P (BOOST)", "ih", ih, "boost", t.isBoosting)
+							t.isBoosting = false
+						} else {
+							log.Trace("A <- P (UDP)", "ih", ih, "boost", t.isBoosting)
+						}
+						t.AddTrackers(tm.trackers)
+						t.start = mclock.Now()
+					} else {
+						//log.Trace("A <- P", "ih", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+					}
+					if err := t.WriteTorrent(); err == nil {
+						if len(tm.activeChan) < cap(tm.activeChan) {
+							delete(tm.pendingTorrents, ih)
+							t.loop = 0
+							/*if t.start == 0 {
+								log.Info("A <- P (UDP)", "hash", ih, "pieces", t.Torrent.NumPieces())
+								t.AddTrackers(tm.trackers)
+								t.start = mclock.Now()
+							} else {
+								log.Info("A <- P", "hash", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+							}*/
+							//t.start = mclock.Now()
+							tm.activeChan <- t
+						}
+					}
+				} else if t.loop > torrentWaitingTime/queryTimeInterval || (t.start == 0 && tm.boost && tm.bytes[ih] > 0) {
+					if !t.isBoosting {
+						t.loop = 0
+						t.isBoosting = true
+						//go func(t *Torrent) {
+						//defer t.BoostOff()
+						//log.Info("Try to boost seed", "hash", t.infohash)
+						if data, err := tm.boostFetcher.GetTorrent(ih.String()); err == nil {
+							if t.Torrent.Info() != nil {
+								//log.Warn("Seed already exist", "hash", t.infohash)
+								t.BoostOff()
+								//return
+								continue
+							}
+							//t.Torrent.Drop()
+							if err := t.ReloadTorrent(data, tm); err == nil {
+								tm.lock.Lock()
+								tm.torrents[ih] = t
+								tm.lock.Unlock()
+							} else {
+								t.BoostOff()
+							}
+
+							/*bytesRequested := t.bytesRequested
+							tm.UpdateTorrent(FlowControlMeta{
+								InfoHash:       ih,
+								BytesRequested: uint64(bytesRequested),
+								IsCreate:       true,
+							})*/
+						} else {
+							log.Warn("Boost failed", "ih", ih.String(), "err", err)
+							//boost failed , use the normal way
+							if t.start == 0 && (tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
+								t.AddTrackers(tm.trackers)
+								t.start = mclock.Now()
+							}
+							t.BoostOff()
+						}
+						//t.BoostOff()
+						//}(t)
+					}
+				} else {
+					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && t.loop > 60) {
+					//if (tm.bytes[ih] > 0 && t.start == 0) || (t.start == 0 && tm.fullSeed) || (t.start == 0 && t.loop > 1800) {
+					if _, ok := GoodFiles[t.InfoHash()]; t.start == 0 && (ok || tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) {
+						if ok {
+							log.Debug("Good file found in pending", "ih", common.HexToHash(ih.String()))
+						}
+						t.AddTrackers(tm.trackers)
+						t.start = mclock.Now()
+					}
+				}
+			}
+			//if len(tm.pendingTorrents) > 0 {
+			timer.Reset(time.Second * queryTimeInterval)
+			//} else {
+			//	log.Trace("P -> [OFF]")
+			//}
+		case <-tm.closeAll:
+			log.Info("Pending seed loop closed")
+			return
+		}
+	}
+}
+
+func (tm *TorrentManager) activeTorrentLoop() {
+	defer tm.wg.Done()
+	timer := time.NewTimer(time.Second * queryTimeInterval)
+	defer timer.Stop()
+	var total_size, current_size, log_counter, counter uint64
+	var active_paused, active_wait, active_boost, active_running int
+	for {
+		counter++
+		select {
+		case t := <-tm.activeChan:
+			tm.activeTorrents[t.Torrent.InfoHash()] = t
+			//if len(tm.activeTorrents) == 1 {
+			//	ok := timer.Reset(time.Millisecond * 0)
+			//	log.Trace("A -> [ON]", "ok", ok)
+			//}
+		case <-timer.C:
+			//for _, t := range tm.torrents {
+			//	t.weight = 1 + int(t.cited*10/maxCited)
+			//}
+			log_counter++
+			//var active_paused, active_wait, active_boost, active_running int
+			//var activeTorrents []*Torrent
+
+			for ih, t := range tm.activeTorrents {
+				//ih := t.Torrent.InfoHash()
+				BytesRequested := int64(0)
+				if _, ok := GoodFiles[t.InfoHash()]; ok {
+					if t.Length() != t.bytesRequested || !t.fast {
+						BytesRequested = t.Length()
+						t.fast = true
+						log.Debug("Good file found", "hash", common.HexToHash(ih.String()), "size", common.StorageSize(BytesRequested), "request", common.StorageSize(t.bytesRequested), "len", common.StorageSize(t.Length()), "limit", common.StorageSize(t.bytesLimitation))
+					}
+				} else {
+					tm.lock.RLock()
+					if tm.fullSeed {
+						if tm.bytes[ih] >= t.Length() {
+							BytesRequested = tm.bytes[ih]
+							t.fast = true
+						} else {
+							if t.bytesRequested <= t.BytesCompleted()+block/2 {
+								BytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
+								t.fast = false
+							}
+						}
+					} else {
+						if tm.bytes[ih] >= t.Length() {
+							BytesRequested = tm.bytes[ih]
+							t.fast = true
+						} else {
+							if t.bytesRequested <= t.BytesCompleted()+block/2 {
+								BytesRequested = int64(math.Min(float64(tm.bytes[ih]), float64(t.bytesRequested+block)))
+								t.fast = false
+							}
+						}
+					}
+					tm.lock.RUnlock()
+				}
+
+				if t.bytesRequested < BytesRequested {
+					t.bytesRequested = BytesRequested
+					t.bytesLimitation = tm.GetLimitation(BytesRequested)
+				}
+
+				if t.bytesRequested == 0 {
+					active_wait += 1
+					if log_counter%60 == 0 {
+						log.Debug("[Waiting]", "ih", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.BytesMissing()), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
+					}
+					continue
+				}
+
+				if t.BytesCompleted() > t.bytesCompleted {
+					total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
+					current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
+				}
+
+				t.bytesCompleted = t.BytesCompleted()
+				t.bytesMissing = t.BytesMissing()
+
+				if t.Finished() {
+					tm.lock.Lock()
+					if _, err := os.Stat(path.Join(tm.DataDir, ih.String())); err == nil {
+						if len(tm.seedingChan) < cap(tm.seedingChan) {
+							log.Debug("Path exist", "ih", ih, "path", path.Join(tm.DataDir, ih.String()))
+							delete(tm.activeTorrents, ih)
+							log.Trace("S <- A", "ih", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+							//t.start = mclock.Now()
+							tm.seedingChan <- t
+						}
+					} else {
+						err := os.Symlink(
+							path.Join(defaultTmpFilePath, ih.String()),
+							path.Join(tm.DataDir, ih.String()),
+						)
+						if err != nil {
+							err = os.Remove(
+								path.Join(tm.DataDir, ih.String()),
+							)
+							if err == nil {
+								log.Debug("Fix path success", "ih", ih, "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
+							}
+						} else {
+							if len(tm.seedingChan) < cap(tm.seedingChan) {
+								delete(tm.activeTorrents, ih)
+								log.Trace("S <- A", "ih", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
+								//t.start = mclock.Now()
+								tm.seedingChan <- t
+							}
+						}
+					}
+
+					tm.lock.Unlock()
+					continue
+				}
+
+				if t.bytesCompleted >= t.bytesLimitation {
+					t.Pause()
+					active_paused += 1
+					if log_counter%45 == 0 {
+						bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "[Paused]")
+						log.Info(bar, "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
+					}
+					continue
+				} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
+					t.loop += 1
+					if t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
+						t.loop = 0
+						if t.isBoosting {
+							continue
+						}
+						t.Pause()
+						t.isBoosting = true
+						tm.wg.Add(1)
+						go func(t *Torrent) {
+							defer tm.wg.Done()
+							defer t.BoostOff()
+							filepaths := []string{}
+							filedatas := [][]byte{}
+							for _, file := range t.Files() {
+								if file.BytesCompleted() > 0 {
+									continue
+								}
+								subpath := file.Path()
+								if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
+									filedatas = append(filedatas, data)
+									filepaths = append(filepaths, subpath)
+								} else {
+									return
+								}
+							}
+							t.Torrent.Drop()
+							t.ReloadFile(filepaths, filedatas, tm)
+						}(t)
+						active_boost += 1
+						if log_counter%30 == 0 {
+							log.Debug("[Boosting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.Torrent.NumPieces(), "status", t.status, "boost", t.isBoosting)
+						}
+						continue
+					}
+				}
+
+				if log_counter%60 == 0 && t.bytesCompleted > 0 {
+					bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "")
+					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+					log.Info( /*"[Downloading]" + */ bar, "hash", common.HexToHash(ih.String()), "complete", common.StorageSize(t.bytesCompleted) /*"req", common.StorageSize(t.bytesRequested),*/, "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()) /*"prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing),*/, "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
+				}
+
+				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
+					//activeTorrents = append(activeTorrents, t)
+					t.Run(tm.slot)
+					active_running += 1
+				}
+			}
+
+			/*if len(activeTorrents) <= tm.maxActiveTask {
+				for _, t := range activeTorrents {
+					t.Run(tm.slot)
+					active_running += 1
+				}
+			} else {
+				sort.Slice(activeTorrents, func(i, j int) bool {
+					return activeTorrents[i].BytesLeft() > activeTorrents[j].BytesLeft() || (activeTorrents[i].BytesLeft() == activeTorrents[j].BytesLeft() && activeTorrents[i].weight > activeTorrents[j].weight)
+				})
+				for i := 0; i < tm.maxActiveTask; i++ {
+					activeTorrents[i].Run(tm.slot)
+					active_running += 1
+				}
+				for i := tm.maxActiveTask; i < len(activeTorrents); i++ {
+					if activeTorrents[i].bytesRequested > activeTorrents[i].bytesCompleted {
+						activeTorrents[i].Run(tm.slot)
+						active_running += 1
+					} else {
+						activeTorrents[i].Pause()
+						active_paused += 1
+					}
+				}
+			}*/
+
+			if counter >= 5*loops && (len(tm.pendingTorrents) > 0 || active_running > 0 || active_paused > 0 || counter >= 10*loops) {
+				//for _, ttt := range tm.client.Torrents() {
+				//	all += len(ttt.KnownSwarm())
+				//}
+				log.Info("Fs status", "pending", len(tm.pendingTorrents) /* "active", len(tm.activeTorrents),*/, "waiting", active_wait, "downloading", active_running, "paused", active_paused /*"boost", active_boost,*/, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "channel", len(tm.updateTorrent)+len(tm.seedingChan)+len(tm.pendingChan)+len(tm.activeChan), "slot", tm.slot, "metrics", common.PrettyDuration(tm.Updates))
+				/*tmp := make(map[common.Hash]int)
+				sum := 0
+				for _, ttt := range tm.client.Torrents() {
+					for _, p := range ttt.KnownSwarm() {
+						if common.BytesToHash(p.Id[:]) == common.EmptyHash {
+							continue
+						}
+						k := common.BytesToHash(append(p.Id[:], p.IP[:]...))
+						if v, ok := tmp[k]; !ok {
+							log.Debug("Active peer status", "hash", ttt.InfoHash(), "id", common.BytesToHash(p.Id[:]), "k", k, "ip", p.IP.String(), "port", p.Port, "source", p.Source, "encrypt", p.SupportsEncryption, "flag", p.PexPeerFlags, "buk", len(tmp), "active", sum, "total", len(ttt.KnownSwarm()))
+							tmp[k] = 1
+						} else {
+							tmp[k] = v + 1
+						}
+						sum += tmp[k]
+					}
+				}
+
+				//for k, v := range tmp {
+				//	log.Trace("Storage peers statics", "k", k, "v", v)
+				//}
+
+				for _, ip := range tm.client.BadPeerIPs() {
+					log.Warn("Bad peer", "ip", ip)
+				}*/
+
+				counter = 0
+				current_size = 0
+			}
+			active_paused, active_wait, active_boost, active_running = 0, 0, 0, 0
+			//if len(tm.activeTorrents) > 0 {
+			timer.Reset(time.Second * queryTimeInterval)
+			//} else {
+			//	log.Trace("A -> [OFF]")
+			//}
+		case <-tm.closeAll:
+			log.Info("Active seed loop closed")
+			return
+		}
+	}
+}
+
+func (tm *TorrentManager) graceSeeding(slot int) error {
+	//s := (tm.maxSeedTask * slot) % group
+	g := int(math.Min(float64(group), float64(tm.maxSeedTask)))
+	s := slot % g
+	i := 0
+	for ih, t := range tm.seedingTorrents {
+		if i%group == s {
+			delete(tm.seedingTorrents, ih)
+			log.Info("Grace invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask)
+			t.Torrent.Drop()
+		}
+		i++
+	}
+	return nil
+}
+
+func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error) {
+	if fs.metrics {
+		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
+	}
 	ih := metainfo.NewHashFromHex(infohash)
-	tm := CurrentTorrentManager
-	//log.Debug("storage", "ih", ih)
-	if torrent := tm.GetTorrent(ih); torrent == nil {
-		//log.Debug("storage", "ih", ih, "torrent", torrent)
-		log.Info("Torrent not found", "hash", infohash)
+	if torrent := fs.GetTorrent(ih); torrent == nil {
 		return false, errors.New("download not completed")
 	} else {
 		if !torrent.IsAvailable() {
-			log.Warn("[Not available] Download not completed", "hash", infohash, "raw", rawSize, "complete", torrent.BytesCompleted())
-			return false, errors.New(fmt.Sprintf("download not completed: %d %d", torrent.BytesCompleted(), rawSize))
+			return false, errors.New("download not completed")
 		}
-		//log.Debug("storage", "Available", torrent.IsAvailable(), "torrent.BytesCompleted()", torrent.BytesCompleted(), "rawSize", rawSize)
-		//log.Info("download not completed", "complete", torrent.BytesCompleted(), "miss", torrent.BytesMissing(), "raw", rawSize)
 		return torrent.BytesCompleted() <= rawSize, nil
 	}
-}*/
+}
 
-/*func LoadFile(infohash string, fn string) ([]byte, error) {
-        data, err := ioutil.ReadFile(fn)
-        return data, err
-}*/
-
-/*func GetFile(infohash string, path string) ([]byte, error) {
-	infohash = strings.ToLower(infohash)
-	//TorrentAPIAvailable.Lock()
-	//defer TorrentAPIAvailable.Unlock()
-	if strings.HasPrefix(infohash, "0x") {
-		//infohash = infohash[2:]
-		infohash = infohash[2:]
+func (fs *TorrentManager) GetFile(infohash string, subpath string) ([]byte, error) {
+	if fs.metrics {
+		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	}
 	ih := metainfo.NewHashFromHex(infohash)
-	tm := CurrentTorrentManager
-	var torrent Torrent
-	if torrent := tm.GetTorrent(ih); torrent == nil {
-		log.Debug("storage", "ih", ih, "torrent", torrent)
-		fmt.Println("torrent", torrent)
-		return nil, errors.New("Torrent not Available: " + infohash)
-	}
-	data, err := torrent.GetFile(path)
-	return data, err
-}*/
-
-/*func ExistTorrent(infohash string) bool {
-	//TorrentAPIAvailable.Lock()
-	//defer TorrentAPIAvailable.Unlock()
-	ih := metainfo.NewHashFromHex(infohash[2:])
-	tm := CurrentTorrentManager
-	if torrent := tm.GetTorrent(ih); torrent == nil {
-		return false
+	//tm := fs.monitor.dl
+	if torrent := fs.GetTorrent(ih); torrent == nil {
+		log.Debug("Torrent not found", "hash", infohash)
+		return nil, errors.New("download not completed")
 	} else {
-		return torrent.HasTorrent()
-	}
-}*/
-
-func (fs *FileStorage) Close() error {
-	defer fs.db.Close()
-	// Wait for file storage closed...
-	//for {
-	//	if fs.opCounter.IsZero() {
-	// persist storage block number
-	fs.writeCheckPoint()
-	log.Info("File DB Closed", "database", fs.db.Path())
-	return fs.Flush()
-	//fs.writeLastFileIndex()
-	//	}
-
-	// log.Debug("Waiting for boltdb operating...")
-	//	time.Sleep(time.Microsecond)
-	//}
-}
-
-var (
-	ErrReadDataFromBoltDB = errors.New("bolt DB Read Error")
-)
-
-/*func (fs *FileStorage) GetFileByNumber(index uint64) *FileInfo {
-	var info FileInfo
-
-	fs.opCounter.Increase()
-	defer fs.opCounter.Decrease()
-
-	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("files"))
-		if buk == nil {
-			return ErrReadDataFromBoltDB
+		if !torrent.IsAvailable() {
+			log.Error("Read unavailable file", "hash", infohash, "subpath", subpath)
+			return nil, errors.New("download not completed")
 		}
-		k, err := json.Marshal(index)
-		if err != nil {
-			return ErrReadDataFromBoltDB
-		}
-
-		fs.lock.RLock()
-		v := buk.Get(k)
-		fs.lock.RUnlock()
-
-		if v == nil {
-			return ErrReadDataFromBoltDB
-		}
-		if err := json.Unmarshal(v, &info); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	if err := fs.db.View(cb); err != nil {
-		return nil
-	}
-	log.Debug("Read fileinfo from database", "info", info, "meta", info.Meta)
-	return &info
-}*/
-
-func (fs *FileStorage) GetBlockByNumber(blockNum uint64) *types.Block {
-	var block types.Block
-
-	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("blocks_" + fs.version))
-		if buk == nil {
-			return ErrReadDataFromBoltDB
-		}
-		k, err := json.Marshal(blockNum)
-		if err != nil {
-			return ErrReadDataFromBoltDB
-		}
-
-		v := buk.Get(k)
-
-		if v == nil {
-			return ErrReadDataFromBoltDB
-		}
-		if err := json.Unmarshal(v, &block); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	if err := fs.db.View(cb); err != nil {
-		return nil
-	}
-	return &block
-}
-
-func (fs *FileStorage) progress(f *types.FileInfo, init bool) (bool, error) {
-	update := false
-	err := fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version))
-		if err != nil {
-			return err
-		}
-
-		k, err := json.Marshal(f.Meta.InfoHash)
-		if err != nil {
-			return err
-		}
-		var v []byte
-		bef := buk.Get(k)
-		if bef == nil {
-			update = true
-			v, err = json.Marshal(f)
-			if err != nil {
-				return err
-			}
-			return buk.Put(k, v)
-		} else {
-			var info types.FileInfo
-			if err := json.Unmarshal(bef, &info); err != nil {
-				update = true
-				return buk.Put(k, v)
-				//return err
-			}
-
-			if info.LeftSize > f.LeftSize {
-				update = true
-				if *info.ContractAddr != *f.ContractAddr {
-					var insert = true
-					for _, addr := range info.Relate {
-						if *f.ContractAddr == addr {
-							insert = false
-							break
-						}
+		fs.fileCh <- struct{}{}
+		defer fs.release()
+		var key = infohash + subpath
+		if fs.cache {
+			if cache, ok := fs.fileCache.Get(key); ok {
+				if c, err := fs.unzip(cache.([]byte), fs.compress); err != nil {
+					return nil, err
+				} else {
+					if fs.compress {
+						log.Info("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len(), "compress", len(cache.([]byte)), "origin", len(c), "compress", fs.compress)
 					}
-					if insert {
-						log.Debug("New relate file found and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
-						f.Relate = append(f.Relate, *info.ContractAddr)
+					return c, nil
+				}
+			}
+		}
+		fs.fileLock.Lock()
+		defer fs.fileLock.Unlock()
+		fn := path.Join(fs.DataDir, infohash, subpath)
+		data, err := ioutil.ReadFile(fn)
+		for _, file := range torrent.Files() {
+			log.Debug("File path info", "path", file.Path(), "subpath", subpath)
+			if file.Path() == subpath[1:] {
+				if int64(len(data)) != file.Length() {
+					log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
+					return nil, errors.New("not a complete file")
+				} else {
+					log.Debug("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
+					if c, err := fs.zip(data, fs.compress); err != nil {
+						log.Warn("Compress data failed", "hash", infohash, "err", err)
 					} else {
-						log.Debug("Address changed and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
-					}
-				}
-				v, err = json.Marshal(f)
-				if err != nil {
-					return err
-				}
-				return buk.Put(k, v)
-			} else {
-				if *info.ContractAddr != *f.ContractAddr {
-					for _, addr := range info.Relate {
-						if *f.ContractAddr == addr {
-							return nil
+						if fs.cache {
+							fs.fileCache.Add(key, c)
 						}
 					}
-					info.Relate = append(info.Relate, *f.ContractAddr)
-					v, err = json.Marshal(info)
-					if err != nil {
-						return err
-					}
-					log.Debug("New relate file found", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "r", len(info.Relate), "l", info.LeftSize, "r", len(f.Relate), "l", f.LeftSize, "init", init)
-					f.Relate = info.Relate
-					return buk.Put(k, v)
+					break
 				}
 			}
 		}
-		return nil
-	})
-
-	return update, err
+		return data, err
+	}
 }
 
-//func (fs *FileStorage) addBlock(b *Block, record bool) error {
-func (fs *FileStorage) AddBlock(b *types.Block) error {
-	if b.Number < fs.LastListenBlockNumber {
-		return nil
-	}
-
-	if fs.metrics {
-		defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
-	}
-	//if record && b.Number > fs.CheckPoint {
-	if b.Number > fs.CheckPoint {
-
-		if err := fs.db.Update(func(tx *bolt.Tx) error {
-			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
-			if err != nil {
-				return err
-			}
-			v, err := json.Marshal(b)
-			if err != nil {
-				return err
-			}
-			k, err := json.Marshal(b.Number)
-			if err != nil {
-				return err
-			}
-
-			return buk.Put(k, v)
-		}); err == nil {
-			if err := fs.appendBlock(b); err == nil {
-				fs.txs += uint64(len(b.Txs))
-				if err := fs.addLeaf(b, false); err == nil {
-					if err := fs.writeCheckPoint(); err == nil {
-						fs.CheckPoint = b.Number
-					}
-				}
-			}
-		} else {
-			return err
-		}
-		//fs.LastListenBlockNumber = b.Number
-	}
-
-	fs.LastListenBlockNumber = b.Number
-	return fs.Flush()
-	//return nil
+func (fs *TorrentManager) release() {
+	<-fs.fileCh
 }
 
-func (fs *FileStorage) appendBlock(b *types.Block) error {
-	if len(fs.blocks) == 0 || fs.blocks[len(fs.blocks)-1].Number < b.Number {
-		log.Debug("Append block", "number", b.Number)
-		fs.blocks = append(fs.blocks, b)
+func (fs *TorrentManager) unzip(data []byte, c bool) ([]byte, error) {
+	if c {
+		return compress.UnzipData(data)
 	} else {
-		return errors.New("err block duplicated")
+		return data, nil
 	}
-	return nil
 }
 
-func (fs *FileStorage) Version() string {
-	return fs.version
-}
-
-func (fs *FileStorage) initBlocks() error {
-	return fs.db.Update(func(tx *bolt.Tx) error {
-		if buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version)); err != nil {
-			return err
-		} else {
-			c := buk.Cursor()
-
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-
-				var x types.Block
-
-				if err := json.Unmarshal(v, &x); err != nil {
-					return err
-				}
-				fs.blocks = append(fs.blocks, &x)
-				fs.txs += uint64(len(x.Txs))
-			}
-			sort.Slice(fs.blocks, func(i, j int) bool {
-				return fs.blocks[i].Number < fs.blocks[j].Number
-			})
-			log.Info("Fs blocks initializing ... ...", "blocks", len(fs.blocks), "txs", fs.txs)
-			return nil
-		}
-	})
-}
-
-func (fs *FileStorage) initFiles() error {
-	return fs.db.Update(func(tx *bolt.Tx) error {
-		if buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version)); buk == nil || err != nil {
-			return err
-		} else {
-			c := buk.Cursor()
-
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-
-				var x types.FileInfo
-
-				if err := json.Unmarshal(v, &x); err != nil {
-					return err
-				}
-				fs.filesContractAddr[*x.ContractAddr] = &x
-				fs.files = append(fs.files, &x)
-				if x.Relate == nil {
-					x.Relate = append(x.Relate, *x.ContractAddr)
-				}
-				//log.Warn("Init file with relate addr", "hash", x.Meta.InfoHash.String(), "relate", len(x.Relate))
-				for _, addr := range x.Relate {
-					if _, ok := fs.filesContractAddr[addr]; !ok {
-						tmp := x
-						tmp.ContractAddr = &addr
-						fs.filesContractAddr[addr] = &tmp
-					}
-					//log.Warn("Init file with relate addr", "file", x, "addr", addr)
-				}
-			}
-			log.Info("File init finished", "files", len(fs.files), "total", len(fs.filesContractAddr))
-			return nil
-		}
-	})
-}
-
-func (fs *FileStorage) readFsId() error {
-	return fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("id_" + fs.version))
-		if buk == nil {
-			return ErrReadDataFromBoltDB
-		}
-
-		v := buk.Get([]byte("key"))
-
-		if v == nil {
-			return ErrReadDataFromBoltDB
-		}
-
-		number, err := strconv.ParseUint(string(v), 16, 64)
-		if err != nil {
-			return err
-		}
-		fs.id = number
-
-		return nil
-	})
-}
-
-func (fs *FileStorage) ID() uint64 {
-	return fs.id
-}
-
-func (fs *FileStorage) initFsId() error {
-	err := fs.readFsId()
-	if fs.id > 0 && err == nil {
-		return nil
+func (fs *TorrentManager) zip(data []byte, c bool) ([]byte, error) {
+	if c {
+		return compress.ZipData(data)
+	} else {
+		return data, nil
 	}
-	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("id_" + fs.version))
-		if err != nil {
-			return err
-		}
-		//id := uint64(rand.Int63n(1 << 63 - 1))
-		//id := uint64(rand.Int63n(1000))
-		id := binary.LittleEndian.Uint64([]byte(uuid.NewRandom()))
-		//id := uint64(os.Getuid())
-		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(id, 16)))
-		fs.id = id //binary.LittleEndian.Uint64([]byte(id[:]))//uint64(id[:])
-
-		return e
-	})
-}
-func (fs *FileStorage) initCheckPoint() error {
-	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
-		if err != nil {
-			return err
-		}
-
-		v := buk.Get([]byte("key"))
-
-		if v == nil {
-			//return ErrReadDataFromBoltDB
-			return nil
-		}
-
-		number, err := strconv.ParseUint(string(v), 16, 64)
-		if err != nil {
-			return err
-		}
-
-		fs.CheckPoint = number
-
-		return nil
-	})
 }
 
-func (fs *FileStorage) initBlockNumber() error {
-	return fs.db.Update(func(tx *bolt.Tx) error {
-		//buk := tx.Bucket([]byte("currentBlockNumber_" + fs.version))
-		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
-		if err != nil {
-			return err
-		}
-
-		v := buk.Get([]byte("key"))
-
-		if v == nil {
-			//return ErrReadDataFromBoltDB
-			return nil
-		}
-
-		number, err := strconv.ParseUint(string(v), 16, 64)
-		if err != nil {
-			return err
-		}
-
-		fs.LastListenBlockNumber = number
-
-		return nil
-	})
-}
-
-func (fs *FileStorage) writeCheckPoint() error {
-	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
-		if err != nil {
-			return err
-		}
-		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.CheckPoint, 16)))
-
-		return e
-	})
-}
-
-func (fs *FileStorage) writeRoot(number uint64, root []byte) error {
-	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
-		if err != nil {
-			return err
-		}
-		e := buk.Put([]byte(strconv.FormatUint(number, 16)), root)
-
-		return e
-	})
-}
-
-func (fs *FileStorage) GetRootByNumber(number uint64) (root []byte) {
-	cb := func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
-		if err != nil {
-			return err
-		}
-
-		v := buk.Get([]byte(strconv.FormatUint(number, 16)))
-
-		if v == nil {
-			return nil
-		}
-
-		root = v
-		return nil
-	}
-	if err := fs.db.Update(cb); err != nil {
-		return nil
-	}
-
-	return root
-}
-
-func (fs *FileStorage) Flush() error {
-	//defer func(start time.Time) { fs.dbUpdates += time.Since(start) }(time.Now())
-	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
-		if err != nil {
-			return err
-		}
-		log.Trace("Write block number", "num", fs.LastListenBlockNumber)
-		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastListenBlockNumber, 16)))
-
-		return e
-	})
+func (fs *TorrentManager) Metrics() time.Duration {
+	return fs.Updates
 }

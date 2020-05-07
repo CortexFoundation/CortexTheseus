@@ -16,7 +16,7 @@ require (
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 	github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
 	github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
-	github.com/aws/aws-sdk-go v1.30.21
+	github.com/aws/aws-sdk-go v1.30.22
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -48,8 +48,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
-	github.com/pion/srtp v1.3.2 // indirect
-	github.com/pion/webrtc/v2 v2.2.8 // indirect
+	github.com/pion/webrtc/v2 v2.2.9 // indirect
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0
@@ -64,7 +63,7 @@ require (
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
-	golang.org/x/net v0.0.0-20200505041828-1ed23360d12c
+	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
 	golang.org/x/text v0.3.2
