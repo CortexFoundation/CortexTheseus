@@ -35,12 +35,12 @@ type Config struct {
 	SyncMode        string   `toml:",omitempty"`
 	MaxSeedingNum   int      `toml:",omitempty"`
 	MaxActiveNum    int      `toml:",omitempty"`
-	FullSeed        bool
-	Boost           bool
-	Quiet           bool
-	UploadRate      int
-	DownloadRate    int
-	Metrics         bool
+	FullSeed        bool     `toml:",omitempty"`
+	Boost           bool     `toml:",omitempty"`
+	Quiet           bool     `toml:",omitempty"`
+	UploadRate      int      `toml:",omitempty"`
+	DownloadRate    int      `toml:",omitempty"`
+	Metrics         bool     `toml:",omitempty"`
 }
 
 // DefaultConfig contains default settings for the storage.
