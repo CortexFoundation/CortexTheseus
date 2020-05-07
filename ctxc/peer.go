@@ -719,7 +719,9 @@ func (ps *peerSet) Register(p *peer) error {
 
 	go p.broadcastBlocks()
 	go p.broadcastTransactions()
-	go p.announceTransactions()
+	if p.version >= ctxc65 {
+		go p.announceTransactions()
+	}
 
 	return nil
 }
