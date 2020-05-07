@@ -30,7 +30,7 @@ type PeerConnection struct {
 	mu      sync.RWMutex
 
 	// Negotiations must be processed serially
-	negotationLock sync.Mutex
+	negotiationLock sync.Mutex
 
 	configuration Configuration
 
@@ -50,6 +50,12 @@ type PeerConnection struct {
 
 	lastOffer  string
 	lastAnswer string
+
+	// a value containing the last known greater mid value
+	// we internally generate mids as numbers. Needed since JSEP
+	// requires that when reusing a media section a new unique mid
+	// should be defined (see JSEP 3.4.1).
+	greaterMid int
 
 	rtpTransceivers []*RTPTransceiver
 
@@ -98,6 +104,7 @@ func (api *API) NewPeerConnection(configuration Configuration) (*PeerConnection,
 		nonTrickleCandidatesSignaled: &atomicBool{},
 		lastOffer:                    "",
 		lastAnswer:                   "",
+		greaterMid:                   -1,
 		signalingState:               SignalingStateStable,
 		iceConnectionState:           ICEConnectionStateNew,
 		connectionState:              PeerConnectionStateNew,
@@ -398,6 +405,41 @@ func (pc *PeerConnection) CreateOffer(options *OfferOptions) (SessionDescription
 		return SessionDescription{}, fmt.Errorf("TODO handle identity provider")
 	case pc.isClosed.get():
 		return SessionDescription{}, &rtcerr.InvalidStateError{Err: ErrConnectionClosed}
+	}
+
+	isPlanB := pc.configuration.SDPSemantics == SDPSemanticsPlanB
+	if pc.currentRemoteDescription != nil {
+		isPlanB = descriptionIsPlanB(pc.RemoteDescription())
+	}
+
+	// include unmatched local transceivers
+	if !isPlanB {
+		// update the greater mid if the remote description provides a greater one
+		if pc.currentRemoteDescription != nil {
+			for _, media := range pc.currentRemoteDescription.parsed.MediaDescriptions {
+				mid := getMidValue(media)
+				if mid == "" {
+					continue
+				}
+				numericMid, err := strconv.Atoi(mid)
+				if err != nil {
+					continue
+				}
+				if numericMid > pc.greaterMid {
+					pc.greaterMid = numericMid
+				}
+			}
+		}
+		for _, t := range pc.GetTransceivers() {
+			if t.Mid() != "" {
+				continue
+			}
+			pc.greaterMid++
+			err := t.setMid(strconv.Itoa(pc.greaterMid))
+			if err != nil {
+				return SessionDescription{}, err
+			}
+		}
 	}
 
 	var (
@@ -721,7 +763,6 @@ func (pc *PeerConnection) SetRemoteDescription(desc SessionDescription) error {
 		return &rtcerr.InvalidStateError{Err: ErrConnectionClosed}
 	}
 
-	currentTransceivers := append([]*RTPTransceiver{}, pc.GetTransceivers()...)
 	haveRemoteDescription := pc.currentRemoteDescription != nil
 
 	desc.parsed = &sdp.SessionDescription{}
@@ -732,14 +773,54 @@ func (pc *PeerConnection) SetRemoteDescription(desc SessionDescription) error {
 		return err
 	}
 
-	if haveRemoteDescription {
-		pc.startRenegotation(currentTransceivers)
-		return nil
-	}
-
 	weOffer := true
 	if desc.Type == SDPTypeOffer {
 		weOffer = false
+	}
+
+	var t *RTPTransceiver
+	localTransceivers := append([]*RTPTransceiver{}, pc.GetTransceivers()...)
+	detectedPlanB := descriptionIsPlanB(pc.RemoteDescription())
+
+	if !weOffer && !detectedPlanB {
+		for _, media := range pc.RemoteDescription().parsed.MediaDescriptions {
+			midValue := getMidValue(media)
+			if midValue == "" {
+				return fmt.Errorf("RemoteDescription contained media section without mid value")
+			}
+
+			if media.MediaName.Media == "application" {
+				continue
+			}
+
+			kind := NewRTPCodecType(media.MediaName.Media)
+			direction := getPeerDirection(media)
+			if kind == 0 || direction == RTPTransceiverDirection(Unknown) {
+				continue
+			}
+
+			t, localTransceivers = findByMid(midValue, localTransceivers)
+			if t == nil {
+				t, localTransceivers = satisfyTypeAndDirection(kind, direction, localTransceivers)
+			}
+			if t == nil {
+				receiver, err := pc.api.NewRTPReceiver(kind, pc.dtlsTransport)
+				if err != nil {
+					return err
+				}
+				t = pc.newRTPTransceiver(receiver, nil, RTPTransceiverDirectionRecvonly, kind)
+			}
+			if t.Mid() == "" {
+				_ = t.setMid(midValue)
+			}
+		}
+	}
+
+	currentTransceivers := append([]*RTPTransceiver{}, pc.GetTransceivers()...)
+
+	if haveRemoteDescription {
+		pc.startRenegotation(currentTransceivers)
+		return nil
 	}
 
 	remoteIsLite := false
@@ -854,6 +935,10 @@ func (pc *PeerConnection) startRTPReceivers(incomingTracks map[uint32]trackDetai
 		for i := range localTransceivers {
 			t := localTransceivers[i]
 
+			if t.Mid() != incoming.mid {
+				continue
+			}
+
 			if (incomingTracks[ssrc].kind != t.kind) ||
 				(t.Direction() != RTPTransceiverDirectionRecvonly && t.Direction() != RTPTransceiverDirectionSendrecv) ||
 				(t.Receiver()) == nil ||
@@ -885,7 +970,8 @@ func (pc *PeerConnection) startRTPReceivers(incomingTracks map[uint32]trackDetai
 // startRTPSenders starts all outbound RTP streams
 func (pc *PeerConnection) startRTPSenders(currentTransceivers []*RTPTransceiver) {
 	for _, transceiver := range currentTransceivers {
-		if transceiver.Sender() != nil && !transceiver.Sender().hasSent() {
+		// TODO(sgotti) when in future we'll avoid replacing a transceiver sender just check the transceiver negotiation status
+		if transceiver.Sender() != nil && transceiver.Sender().isNegotiated() && !transceiver.Sender().hasSent() {
 			err := transceiver.Sender().Send(RTPSendParameters{
 				Encodings: RTPEncodingParameters{
 					RTPCodingParameters{
@@ -1566,10 +1652,10 @@ func (pc *PeerConnection) GetStats() StatsReport {
 
 // Start all transports. PeerConnection now has enough state
 func (pc *PeerConnection) startTransports(iceRole ICERole, dtlsRole DTLSRole, remoteUfrag, remotePwd, fingerprint, fingerprintHash string, currentTransceivers []*RTPTransceiver, incomingTracks map[uint32]trackDetails) {
-	pc.negotationLock.Lock()
+	pc.negotiationLock.Lock()
 
 	go func() {
-		defer pc.negotationLock.Unlock()
+		defer pc.negotiationLock.Unlock()
 
 		// Start the ice transport
 		err := pc.iceTransport.Start(
@@ -1605,10 +1691,10 @@ func (pc *PeerConnection) startTransports(iceRole ICERole, dtlsRole DTLSRole, re
 }
 
 func (pc *PeerConnection) startRenegotation(currentTransceivers []*RTPTransceiver) {
-	pc.negotationLock.Lock()
+	pc.negotiationLock.Lock()
 
 	go func() {
-		defer pc.negotationLock.Unlock()
+		defer pc.negotiationLock.Unlock()
 
 		trackDetails := trackDetailsFromSDP(pc.log, pc.RemoteDescription().parsed)
 		for _, t := range currentTransceivers {
@@ -1681,6 +1767,9 @@ func (pc *PeerConnection) generateUnmatchedSDP(useIdentity bool) (*sdp.SessionDe
 			} else if t.kind == RTPCodecTypeAudio {
 				audio = append(audio, t)
 			}
+			if t.Sender() != nil {
+				t.Sender().setNegotiated()
+			}
 		}
 
 		if len(video) > 1 {
@@ -1692,12 +1781,10 @@ func (pc *PeerConnection) generateUnmatchedSDP(useIdentity bool) (*sdp.SessionDe
 		mediaSections = append(mediaSections, mediaSection{id: "data", data: true})
 	} else {
 		for _, t := range pc.GetTransceivers() {
-			mid := strconv.Itoa(len(mediaSections))
-			err := t.setMid(mid)
-			if err != nil {
-				return nil, err
+			if t.Sender() != nil {
+				t.Sender().setNegotiated()
 			}
-			mediaSections = append(mediaSections, mediaSection{id: mid, transceivers: []*RTPTransceiver{t}})
+			mediaSections = append(mediaSections, mediaSection{id: t.Mid(), transceivers: []*RTPTransceiver{t}})
 		}
 
 		mediaSections = append(mediaSections, mediaSection{id: strconv.Itoa(len(mediaSections)), data: true})
@@ -1767,6 +1854,9 @@ func (pc *PeerConnection) generateMatchedSDP(useIdentity bool, includeUnmatched 
 					}
 					break
 				}
+				if t.Sender() != nil {
+					t.Sender().setNegotiated()
+				}
 				mediaTransceivers = append(mediaTransceivers, t)
 			}
 			mediaSections = append(mediaSections, mediaSection{id: midValue, transceivers: mediaTransceivers})
@@ -1776,13 +1866,10 @@ func (pc *PeerConnection) generateMatchedSDP(useIdentity bool, includeUnmatched 
 			}
 			t, localTransceivers = findByMid(midValue, localTransceivers)
 			if t == nil {
-				t, localTransceivers = satisfyTypeAndDirection(kind, direction, localTransceivers)
+				return nil, fmt.Errorf("cannot find transceiver with mid %q", midValue)
 			}
-			if t == nil {
-				t = pc.newRTPTransceiver(nil, nil, RTPTransceiverDirectionInactive, kind)
-			}
-			if t.Mid() == "" {
-				_ = t.setMid(midValue)
+			if t.Sender() != nil {
+				t.Sender().setNegotiated()
 			}
 			mediaTransceivers := []*RTPTransceiver{t}
 			mediaSections = append(mediaSections, mediaSection{id: midValue, transceivers: mediaTransceivers})
@@ -1792,12 +1879,10 @@ func (pc *PeerConnection) generateMatchedSDP(useIdentity bool, includeUnmatched 
 	// If we are offering also include unmatched local transceivers
 	if !detectedPlanB && includeUnmatched {
 		for _, t := range localTransceivers {
-			mid := strconv.Itoa(len(mediaSections))
-			err := t.setMid(mid)
-			if err != nil {
-				return nil, err
+			if t.Sender() != nil {
+				t.Sender().setNegotiated()
 			}
-			mediaSections = append(mediaSections, mediaSection{id: mid, transceivers: []*RTPTransceiver{t}})
+			mediaSections = append(mediaSections, mediaSection{id: t.Mid(), transceivers: []*RTPTransceiver{t}})
 		}
 	}
 
