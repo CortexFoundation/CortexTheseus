@@ -6,6 +6,7 @@ import (
 	//"github.com/anacrolix/torrent/metainfo"
 	//"io/ioutil"
 	//"path"
+	//"github.com/anacrolix/torrent/metainfo"
 	"sync"
 	"time"
 	//"errors"
@@ -18,6 +19,18 @@ type CVMStorage interface {
 	Available(infohash string, rawSize int64) (bool, error)
 	GetFile(infohash string, path string) ([]byte, error)
 	Stop() error
+}
+
+type StorageAPI interface {
+	//Start() error
+	//Close() error
+	//RemoveTorrent(metainfo.Hash) error
+	//UpdateTorrent(interface{}) error
+	//UpdateDynamicTrackers(trackers []string)
+	//GetTorrent(ih metainfo.Hash) *Torrent
+	Available(ih string, raw int64) (bool, error)
+	GetFile(infohash string, subpath string) ([]byte, error)
+	//Metrics() time.Duration
 }
 
 // TorrentFS contains the torrent file system internals.
@@ -47,6 +60,10 @@ type TorrentFS struct {
 //func (t *TorrentFS) Monitor() *Monitor {
 //	return t.monitor
 //}
+
+func (t *TorrentFS) storage() StorageAPI {
+	return t.monitor.dl
+}
 
 var torrentInstance *TorrentFS = nil
 
@@ -237,7 +254,7 @@ func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
 		}
 		return torrent.BytesCompleted() <= rawSize, nil
 	}*/
-	return fs.monitor.dl.Available(infohash, rawSize)
+	return fs.storage().Available(infohash, rawSize)
 }
 
 /*func (fs *TorrentFS) release() {
@@ -261,7 +278,7 @@ func (fs *TorrentFS) zip(data []byte, c bool) ([]byte, error) {
 }*/
 
 func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
-	return fs.monitor.dl.GetFile(infohash, subpath)
+	return fs.storage().GetFile(infohash, subpath)
 	/*if fs.metrics {
 		defer func(start time.Time) { fs.fsUpdates += time.Since(start) }(time.Now())
 	}

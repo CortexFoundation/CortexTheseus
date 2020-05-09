@@ -299,9 +299,12 @@ func (s *StateDB) GetCodeSize(addr common.Address) int {
 	if stateObject.code != nil {
 		return len(stateObject.code)
 	}
+	if bytes.Equal(stateObject.CodeHash(), emptyCode[:]) {
+		return 0
+	}
 	size, err := s.db.ContractCodeSize(stateObject.addrHash, common.BytesToHash(stateObject.CodeHash()))
 	if err != nil {
-		s.setError(err)
+		s.setError(fmt.Errorf("GetCodeSize (%x) error: %v", addr[:], err))
 	}
 	return size
 }
@@ -562,7 +565,9 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	if err != nil {
 		panic(fmt.Errorf("can't encode object at %x: %v", addr[:], err))
 	}
-	s.setError(s.trie.TryUpdate(addr[:], data))
+	if err = s.trie.TryUpdate(addr[:], data); err != nil {
+		s.setError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
+	}
 
 	// If state snapshotting is active, cache the data til commit. Note, this
 	// update mechanism is not symmetric to the deletion, because whereas it is
@@ -577,7 +582,9 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 func (s *StateDB) deleteStateObject(stateObject *stateObject) {
 	//stateObject.deleted = true
 	addr := stateObject.Address()
-	s.setError(s.trie.TryDelete(addr[:]))
+	if err := s.trie.TryDelete(addr[:]); err != nil {
+		s.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
+	}
 }
 
 // getStateObject retrieves a state object given by the address, returning nil if
@@ -626,8 +633,11 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 	// If snapshot unavailable or reading from it failed, load from the database
 	if s.snap == nil || err != nil {
 		enc, err := s.trie.TryGet(addr[:])
+		if err != nil {
+			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr[:], err))
+			return nil
+		}
 		if len(enc) == 0 {
-			s.setError(err)
 			return nil
 		}
 		if err := rlp.DecodeBytes(enc, &data); err != nil {

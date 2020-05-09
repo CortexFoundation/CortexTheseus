@@ -16,7 +16,7 @@ require (
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 	github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
 	github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
-	github.com/aws/aws-sdk-go v1.30.23
+	github.com/aws/aws-sdk-go v1.30.24
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -58,14 +58,14 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/ucwong/color v1.10.1-0.20200504093835-6ffe517dac74
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
-	github.com/ucwong/goleveldb v1.0.3-0.20200505121515-7f390ce04a3d
+	github.com/ucwong/goleveldb v1.0.3-0.20200508074755-578cba616f37
 	github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
+	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
