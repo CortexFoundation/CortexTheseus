@@ -68,25 +68,13 @@ const (
 //maxSyncBlocks = 1024
 )
 
-type StorageAPI interface {
-	Start() error
-	Close() error
-	//RemoveTorrent(metainfo.Hash) error
-	UpdateTorrent(interface{}) error
-	//UpdateDynamicTrackers(trackers []string)
-	GetTorrent(ih metainfo.Hash) *Torrent
-	Available(ih string, raw int64) (bool, error)
-	GetFile(infohash string, subpath string) ([]byte, error)
-	Metrics() time.Duration
-}
-
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
 	config *Config
 	cl     *rpc.Client
 	fs     *ChainIndex
-	dl     StorageAPI
+	dl     *TorrentManager
 
 	//listenID rpc.ID
 
@@ -210,7 +198,7 @@ func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
 	return m, e
 }
 
-func (m *Monitor) storageInit() error {
+func (m *Monitor) indexInit() error {
 	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version(), "current", m.currentNumber)
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
@@ -849,7 +837,7 @@ func (m *Monitor) startWork() error {
 	//}
 
 	//log.Info("Torrent fs validation passed")
-	if err := m.storageInit(); err != nil {
+	if err := m.indexInit(); err != nil {
 		return err
 	}
 	m.wg.Add(1)
