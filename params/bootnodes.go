@@ -76,7 +76,7 @@ var KnownDNSNetworks = map[common.Hash]string{
 }
 
 var MainnetTrackers = []string{
-	"://dht.cortexlabs.ai:5008",
+	//"://dht.cortexlabs.ai:5008",
 	"://tracker.cortexlabs.ai:5008",
 }
 
