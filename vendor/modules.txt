@@ -401,7 +401,7 @@ github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 ## explicit
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
+# golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
