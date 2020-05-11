@@ -1303,7 +1303,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
-		cfg.Cuckoo.Mine = true
+		//cfg.Cuckoo.Mine = true
 	}
 	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
 		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)

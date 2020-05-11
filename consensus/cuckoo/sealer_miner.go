@@ -9,11 +9,11 @@ import (
 )
 
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error) {
-	//err = cuckoo.InitOnce()
-	//if err != nil {
-	//	log.Error("cuckoo init error", "error", err)
-	//	return err
-	//}
+	err = cuckoo.InitPlugin()
+	if err != nil {
+		log.Error("cuckoo init error","error", err)
+		return err
+	}
 
 	var (
 		header = block.Header()
@@ -33,8 +33,9 @@ func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan s
 search:
 	for {
 		select {
-		case <-cuckoo.exitCh:
-			return
+		case errc := <-cuckoo.exitCh:
+			errc <- nil
+			break search
 		case <-abort:
 			//Mining terminated, update stats and abort
 			logger.Trace("Cuckoo solution search aborted", "attempts", nonce-seed)

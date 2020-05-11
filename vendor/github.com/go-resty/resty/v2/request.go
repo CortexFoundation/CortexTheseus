@@ -322,6 +322,16 @@ func (r *Request) SetFileReader(param, fileName string, reader io.Reader) *Reque
 	return r
 }
 
+// SetMultipartFormData method allows simple form data to be attached to the request as `multipart:form-data`
+func (r *Request) SetMultipartFormData(data map[string]string) *Request {
+
+	for k, v := range data {
+		r = r.SetMultipartField(k, "", "", strings.NewReader(v))
+	}
+
+	return r
+}
+
 // SetMultipartField method is to set custom data using io.Reader for multipart upload.
 func (r *Request) SetMultipartField(param, fileName, contentType string, reader io.Reader) *Request {
 	r.isMultiPart = true
@@ -633,6 +643,7 @@ func (r *Request) Send() (*Response, error) {
 // 		resp, err := client.R().Execute(resty.GET, "http://httpbin.org/get")
 func (r *Request) Execute(method, url string) (*Response, error) {
 	var addrs []*net.SRV
+	var resp *Response
 	var err error
 
 	if r.isMultiPart && !(method == MethodPost || method == MethodPut || method == MethodPatch) {
@@ -650,10 +661,10 @@ func (r *Request) Execute(method, url string) (*Response, error) {
 	r.URL = r.selectAddr(addrs, url, 0)
 
 	if r.client.RetryCount == 0 {
-		return r.client.execute(r)
+		resp, err = r.client.execute(r)
+		return resp, unwrapNoRetryErr(err)
 	}
 
-	var resp *Response
 	attempt := 0
 	err = Backoff(
 		func() (*Response, error) {
@@ -674,7 +685,7 @@ func (r *Request) Execute(method, url string) (*Response, error) {
 		RetryConditions(r.client.RetryConditions),
 	)
 
-	return resp, err
+	return resp, unwrapNoRetryErr(err)
 }
 
 //‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
