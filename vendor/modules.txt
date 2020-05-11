@@ -179,7 +179,7 @@ github.com/fsnotify/fsnotify
 github.com/gballet/go-libpcsclite
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
 github.com/glycerine/go-unsnap-stream
-# github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
+# github.com/go-resty/resty/v2 v2.2.1-0.20200510224325-2f5fe959b0c8
 ## explicit
 github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
