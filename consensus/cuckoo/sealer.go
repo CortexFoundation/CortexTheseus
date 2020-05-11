@@ -6,7 +6,7 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	//"runtime"
+	"runtime"
 	"sync"
 	"time"
 
@@ -46,6 +46,7 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	// Create a runner and the multiple search threads it directs
 	abort := make(chan struct{})
 	cuckoo.lock.Lock()
+	threads := cuckoo.threads
 	if cuckoo.rand == nil {
 		seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 		if err != nil {
@@ -55,6 +56,12 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 		cuckoo.rand = rand.New(rand.NewSource(seed.Int64()))
 	}
 	cuckoo.lock.Unlock()
+	if threads == 0 {
+		threads = runtime.NumCPU()
+	}
+	if threads < 0 {
+		threads = 0 // Allows disabling local mining without extra logic around local/remote
+	}
 
 	// Push new work to remote sealer
 	if cuckoo.workCh != nil {
@@ -70,9 +77,9 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 		log.Error("cuckoo init error", "error", err)
 		return err
 	}
-
+  
 	var pend sync.WaitGroup
-	for i := 0; i < cuckoo.threads; i++ {
+	for i := 0; i < threads; i++ {
 		pend.Add(1)
 		var err error
 		go func(id int, nonce uint64, err *error) {
@@ -238,10 +245,6 @@ func (cuckoo *Cuckoo) remote() {
 
 	for {
 		select {
-		case <-cuckoo.exitCh:
-			// Exit remote loop if cuckoo is closed and return relevant error.
-			log.Warn("Cuckoo cycle remote sealer is exiting")
-			return
 		case block := <-cuckoo.workCh:
 			//if currentWork != nil && block.ParentHash() != currentWork.ParentHash() {
 			// Start new round mining, throw out all previous work.
@@ -264,8 +267,10 @@ func (cuckoo *Cuckoo) remote() {
 			// Verify submitted PoW solution based on maintained mining blocks.
 			//if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
 			if submitWork(result.nonce, result.hash, result.solution) {
+				//fmt.Println("yes")
 				result.errc <- nil
 			} else {
+				//fmt.Println("no")
 				result.errc <- errInvalidSealResult
 			}
 
@@ -299,6 +304,12 @@ func (cuckoo *Cuckoo) remote() {
 					}
 				}
 			}
+
+		case errc := <-cuckoo.exitCh:
+			// Exit remote loop if cuckoo is closed and return relevant error.
+			errc <- nil
+			log.Trace("Cuckoo remote sealer is exiting")
+			return
 		}
 	}
 }
