@@ -67,6 +67,17 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	if cuckoo.workCh != nil {
 		cuckoo.workCh <- block
 	}
+
+	if !cuckoo.config.UseCuda {
+		return nil
+	}
+
+	err := cuckoo.InitOnce()
+	if err != nil {
+		log.Error("cuckoo init error", "error", err)
+		return err
+	}
+  
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
 		pend.Add(1)
