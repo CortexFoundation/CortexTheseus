@@ -88,7 +88,7 @@ github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
 ## explicit
 github.com/aristanetworks/goarista/monotime
-# github.com/aws/aws-sdk-go v1.30.24
+# github.com/aws/aws-sdk-go v1.30.25
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -279,7 +279,8 @@ github.com/pborman/uuid
 github.com/peterh/liner
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
-# github.com/pion/datachannel v1.4.16
+# github.com/pion/datachannel v1.4.17
+## explicit
 github.com/pion/datachannel
 # github.com/pion/dtls/v2 v2.0.0
 github.com/pion/dtls/v2

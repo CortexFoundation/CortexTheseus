@@ -16,7 +16,7 @@ require (
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 	github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
 	github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
-	github.com/aws/aws-sdk-go v1.30.24
+	github.com/aws/aws-sdk-go v1.30.25
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -48,6 +48,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
+	github.com/pion/datachannel v1.4.17 // indirect
 	github.com/pion/webrtc/v2 v2.2.9 // indirect
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
