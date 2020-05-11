@@ -179,7 +179,7 @@ github.com/fsnotify/fsnotify
 github.com/gballet/go-libpcsclite
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
 github.com/glycerine/go-unsnap-stream
-# github.com/go-resty/resty/v2 v2.2.1-0.20200306092902-ad527ebb23b1
+# github.com/go-resty/resty/v2 v2.2.1-0.20200510224325-2f5fe959b0c8
 ## explicit
 github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
@@ -401,7 +401,7 @@ github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 ## explicit
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
+# golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
