@@ -2,18 +2,18 @@ package cuckoo
 
 import (
 	"errors"
-	"math/big"
-	"math/rand"
-	"sync"
-	"time"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/elastic/gosigar"
+	"math/big"
+	"math/rand"
 	"plugin"
+	"sync"
+	"time"
 )
 
 var sharedCuckoo = New(Config{PowMode: ModeNormal})
@@ -77,6 +77,8 @@ type Config struct {
 	StrDeviceIds string
 	Threads      int
 	Algorithm    string
+
+	Mine bool
 }
 
 type Cuckoo struct {
@@ -107,6 +109,8 @@ type Cuckoo struct {
 	exitCh      chan chan error // Notification channel to exiting backend threads
 	cMutex      sync.Mutex
 	minerPlugin *plugin.Plugin
+
+	wg sync.WaitGroup
 }
 
 func New(config Config) *Cuckoo {
@@ -126,8 +130,14 @@ func New(config Config) *Cuckoo {
 		submitRateCh: make(chan *hashrate),
 		exitCh:       make(chan chan error),
 	}
-	cuckoo.InitPlugin()
-	go cuckoo.remote()
+	//if config.Mine {
+	// miner algorithm use cuckaroo by default.
+	cuckoo.wg.Add(1)
+	go func() {
+		defer cuckoo.wg.Done()
+		cuckoo.remote()
+	}()
+	//}
 	return cuckoo
 }
 
@@ -151,7 +161,7 @@ func NewShared() *Cuckoo {
 const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_helper_for_node.so"
 
-func (cuckoo *Cuckoo) InitPlugin() error {
+func (cuckoo *Cuckoo) initPlugin() error {
 	var minerName string = "cpu"
 	if cuckoo.config.UseCuda == true {
 		minerName = "cuda"
@@ -168,44 +178,65 @@ func (cuckoo *Cuckoo) InitPlugin() error {
 	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
 		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
 	cuckoo.minerPlugin, errc = plugin.Open(so_path)
+	if errc != nil || cuckoo.minerPlugin == nil {
+		log.Error("Cuckoo Init Plugin", "error", errc)
+		return errors.New("Cuckoo plugins init failed")
+	}
 	return errc
 }
 
-/*func (cuckoo *Cuckoo) InitOnce() error {
+func (cuckoo *Cuckoo) InitOnce() error {
 	var err error
 	cuckoo.once.Do(func() {
-		errc := cuckoo.InitPlugin()
+		if cuckoo.minerPlugin != nil {
+			return
+		}
+		errc := cuckoo.initPlugin()
 		if errc != nil {
 			log.Error("Cuckoo Init Plugin", "error", errc)
-			err = errc
+			err = errc //errors.New("Cuckoo plugins init failed")
 			return
 		} else {
 			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
-			if err != nil {
-				log.Error("Cuckoo Init Plugin", "error", errc)
-				err = errc
+			if errc != nil || m == nil {
+				log.Error("Cuckoo Init Plugin lookup", "error", errc)
+				err = errors.New("Cuckoo plugins CuckooInitialize lookup failed")
 				return
 			}
 			// miner algorithm use cuckaroo by default.
-			errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, "cuckaroo")
+			if cuckoo.config.Threads > 0 && cuckoo.config.UseCuda {
+				errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
+			} else {
+				//cuckoo.config.Threads = 0
+				cuckoo.threads = 0
+			}
 			err = errc
+			var mem gosigar.Mem
+			if err := mem.Get(); err == nil {
+				allowance := int(mem.Total / 1024 / 1024 / 3)
+				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance, "cuda", cuckoo.config.UseCuda, "device", cuckoo.config.StrDeviceIds, "threads", cuckoo.config.Threads, "algo", cuckoo.config.Algorithm, "mine", cuckoo.config.Mine)
+			}
 		}
 	})
 	return err
-}*/
+}
 
 // Close closes the exit channel to notify all backend threads exiting.
 func (cuckoo *Cuckoo) Close() error {
 	close(cuckoo.exitCh)
 
-	if cuckoo.minerPlugin == nil {
-		return nil
-	}
-	m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-	if e != nil {
-		return e
-	}
-	m.(func())()
+	cuckoo.wg.Wait()
+	cuckoo.closeOnce.Do(func() {
+		if cuckoo.minerPlugin == nil {
+			return
+		}
+		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+		if e != nil || m == nil {
+			log.Error("Cuckoo cycle closed error", "error", e)
+			return
+		}
+		m.(func())()
+	})
 	return nil
 	/*
 		var err error
