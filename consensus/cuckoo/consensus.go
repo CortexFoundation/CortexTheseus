@@ -247,7 +247,7 @@ func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 // verifyHeader checks whether a header conforms to the consensus rules of the
 // stock Cortex cuckoo engine.
 // See YP section 4.3.4. "Block Header Validity"
-func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *types.Header, uncle bool, seal bool) error {
+func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *types.Header, uncle, seal bool) error {
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
@@ -867,13 +867,11 @@ func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 }
 
 func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) (ok bool) {
-//	if cuckoo.minerPlugin == nil {
-		err := cuckoo.InitOnce()
-		if err != nil {
-			log.Error("cuckoo init error", "error", err)
-			return false
-		}
-//	}
+	err := cuckoo.InitOnce()
+	if err != nil {
+		log.Error("cuckoo init error", "error", err)
+		return false
+	}
 	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
 	if err != nil {
 		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
