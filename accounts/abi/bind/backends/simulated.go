@@ -70,7 +70,7 @@ func NewSimulatedBackend(alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBac
 	genesis.MustCommit(database)
 	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, ctxcash.NewFaker(), vm.Config{
 		InferURI: "http://localhost:5000/infer",
-	})
+	}, nil, nil)
 
 	backend := &SimulatedBackend{
 		database:   database,

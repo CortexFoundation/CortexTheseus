@@ -1,18 +1,18 @@
 // Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package rawdb
 
@@ -172,11 +172,48 @@ func WriteFastTrieProgress(db ctxcdb.KeyValueWriter, count uint64) {
 	}
 }
 
+// ReadTxIndexTail retrieves the number of oldest indexed block
+// whose transaction indices has been indexed. If the corresponding entry
+// is non-existent in database it means the indexing has been finished.
+func ReadTxIndexTail(db ctxcdb.KeyValueReader) *uint64 {
+	data, _ := db.Get(txIndexTailKey)
+	if len(data) != 8 {
+		return nil
+	}
+	number := binary.BigEndian.Uint64(data)
+	return &number
+}
+
+// WriteTxIndexTail stores the number of oldest indexed block
+// into database.
+func WriteTxIndexTail(db ctxcdb.KeyValueWriter, number uint64) {
+	if err := db.Put(txIndexTailKey, encodeBlockNumber(number)); err != nil {
+		log.Crit("Failed to store the transaction index tail", "err", err)
+	}
+}
+
+// ReadFastTxLookupLimit retrieves the tx lookup limit used in fast sync.
+func ReadFastTxLookupLimit(db ctxcdb.KeyValueReader) *uint64 {
+	data, _ := db.Get(fastTxLookupLimitKey)
+	if len(data) != 8 {
+		return nil
+	}
+	number := binary.BigEndian.Uint64(data)
+	return &number
+}
+
+// WriteFastTxLookupLimit stores the txlookup limit used in fast sync into database.
+func WriteFastTxLookupLimit(db ctxcdb.KeyValueWriter, number uint64) {
+	if err := db.Put(fastTxLookupLimitKey, encodeBlockNumber(number)); err != nil {
+		log.Crit("Failed to store transaction lookup limit for fast sync", "err", err)
+	}
+}
+
 // ReadHeaderRLP retrieves a block header in its raw RLP database encoding.
 func ReadHeaderRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	// First try to look up the data in ancient database. Extra hash
 	// comparison is necessary since ancient database only maintains
-	// the canonical data
+	// the canonical data.
 	data, _ := db.Ancient(freezerHeaderTable, number)
 	if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
 		return data
@@ -194,7 +231,7 @@ func ReadHeaderRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawVal
 	if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
 		return data
 	}
-	return nil
+	return nil // Can't find the data anywhere.
 }
 
 // HasHeader verifies the existence of a block header corresponding to the hash.
@@ -263,7 +300,7 @@ func deleteHeaderWithoutNumber(db ctxcdb.KeyValueWriter, hash common.Hash, numbe
 func ReadBodyRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	// First try to look up the data in ancient database. Extra hash
 	// comparison is necessary since ancient database only maintains
-	// the canonical data
+	// the canonical data.
 	data, _ := db.Ancient(freezerBodiesTable, number)
 	if len(data) > 0 {
 		h, _ := db.Ancient(freezerHashTable, number)
@@ -287,7 +324,26 @@ func ReadBodyRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue
 			return data
 		}
 	}
-	return nil
+	return nil // Can't find the data anywhere.
+}
+
+// ReadCanonicalBodyRLP retrieves the block body (transactions and uncles) for the canonical
+// block at number, in RLP encoding.
+func ReadCanonicalBodyRLP(db ctxcdb.Reader, number uint64) rlp.RawValue {
+	// If it's an ancient one, we don't need the canonical hash
+	data, _ := db.Ancient(freezerBodiesTable, number)
+	if len(data) == 0 {
+		// Need to get the hash
+		data, _ = db.Get(blockBodyKey(number, ReadCanonicalHash(db, number)))
+		// In the background freezer is moving data from leveldb to flatten files.
+		// So during the first check for ancient db, the data is not yet in there,
+		// but when we reach into leveldb, the data was already moved. That would
+		// result in a not found error.
+		if len(data) == 0 {
+			data, _ = db.Ancient(freezerBodiesTable, number)
+		}
+	}
+	return data
 }
 
 // WriteBodyRLP stores an RLP encoded block body into the database.
@@ -322,7 +378,7 @@ func ReadBody(db ctxcdb.Reader, hash common.Hash, number uint64) *types.Body {
 	return body
 }
 
-// WriteBody storea a block body into the database.
+// WriteBody stores a block body into the database.
 func WriteBody(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, body *types.Body) {
 	data, err := rlp.EncodeToBytes(body)
 	if err != nil {
@@ -342,7 +398,7 @@ func DeleteBody(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 func ReadTdRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	// First try to look up the data in ancient database. Extra hash
 	// comparison is necessary since ancient database only maintains
-	// the canonical data
+	// the canonical data.
 	data, _ := db.Ancient(freezerDifficultyTable, number)
 	if len(data) > 0 {
 		h, _ := db.Ancient(freezerHashTable, number)
@@ -366,10 +422,10 @@ func ReadTdRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 			return data
 		}
 	}
-	return nil
+	return nil // Can't find the data anywhere.
 }
 
-// ReadTd retrieves a block's total difficulty corresponding to the hash
+// ReadTd retrieves a block's total difficulty corresponding to the hash.
 func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
 	data := ReadTdRLP(db, hash, number)
 	if len(data) == 0 {
@@ -383,7 +439,7 @@ func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
 	return td
 }
 
-// WriteTd stores the total difficulty of a block into the database
+// WriteTd stores the total difficulty of a block into the database.
 func WriteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, td *big.Int) {
 	data, err := rlp.EncodeToBytes(td)
 	if err != nil {
@@ -394,7 +450,7 @@ func WriteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64, td *big.
 	}
 }
 
-// DeleteTd removes all block total difficulty data associated with a hash
+// DeleteTd removes all block total difficulty data associated with a hash.
 func DeleteTd(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	if err := db.Delete(headerTDKey(number, hash)); err != nil {
 		log.Crit("Failed to delete block total difficulty", "err", err)
@@ -417,7 +473,7 @@ func HasReceipts(db ctxcdb.Reader, hash common.Hash, number uint64) bool {
 func ReadReceiptsRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	// First try to look up the data in ancient database. Extra hash
 	// comparison is necessary since ancient database only maintains
-	// the canonical data
+	// the canonical data.
 	data, _ := db.Ancient(freezerReceiptTable, number)
 	if len(data) > 0 {
 		h, _ := db.Ancient(freezerHashTable, number)
@@ -441,38 +497,7 @@ func ReadReceiptsRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawV
 			return data
 		}
 	}
-	return nil
-}
-
-// WriteAncientBlock writes entire block data into ancient store and returns the total written size.
-func WriteAncientBlock(db ctxcdb.AncientWriter, block *types.Block, receipts types.Receipts, td *big.Int) int {
-	// Encode all block components to RLP format.
-	headerBlob, err := rlp.EncodeToBytes(block.Header())
-	if err != nil {
-		log.Crit("Failed to RLP encode block header", "err", err)
-	}
-	bodyBlob, err := rlp.EncodeToBytes(block.Body())
-	if err != nil {
-		log.Crit("Failed to RLP encode body", "err", err)
-	}
-	storageReceipts := make([]*types.ReceiptForStorage, len(receipts))
-	for i, receipt := range receipts {
-		storageReceipts[i] = (*types.ReceiptForStorage)(receipt)
-	}
-	receiptBlob, err := rlp.EncodeToBytes(storageReceipts)
-	if err != nil {
-		log.Crit("Failed to RLP encode block receipts", "err", err)
-	}
-	tdBlob, err := rlp.EncodeToBytes(td)
-	if err != nil {
-		log.Crit("Failed to RLP encode block total difficulty", "err", err)
-	}
-	// Write all blob to flatten files.
-	err = db.AppendAncient(block.NumberU64(), block.Hash().Bytes(), headerBlob, bodyBlob, receiptBlob, tdBlob)
-	if err != nil {
-		log.Crit("Failed to write block data to ancient store", "err", err)
-	}
-	return len(headerBlob) + len(bodyBlob) + len(receiptBlob) + len(tdBlob) + common.HashLength
+	return nil // Can't find the data anywhere.
 }
 
 // ReadRawReceipts retrieves all the transaction receipts belonging to a block.
@@ -503,7 +528,7 @@ func ReadRawReceipts(db ctxcdb.Reader, hash common.Hash, number uint64) types.Re
 //
 // The current implementation populates these metadata fields by reading the receipts'
 // corresponding block body, so if the block body is not found it will return nil even
-// if the receipt itself is stored
+// if the receipt itself is stored.
 func ReadReceipts(db ctxcdb.Reader, hash common.Hash, number uint64, config *params.ChainConfig) types.Receipts {
 	// We're deriving many fields from the block body, retrieve beside the receipt
 	receipts := ReadRawReceipts(db, hash, number)
@@ -570,6 +595,37 @@ func WriteBlock(db ctxcdb.KeyValueWriter, block *types.Block) {
 	WriteHeader(db, block.Header())
 }
 
+// WriteAncientBlock writes entire block data into ancient store and returns the total written size.
+func WriteAncientBlock(db ctxcdb.AncientWriter, block *types.Block, receipts types.Receipts, td *big.Int) int {
+	// Encode all block components to RLP format.
+	headerBlob, err := rlp.EncodeToBytes(block.Header())
+	if err != nil {
+		log.Crit("Failed to RLP encode block header", "err", err)
+	}
+	bodyBlob, err := rlp.EncodeToBytes(block.Body())
+	if err != nil {
+		log.Crit("Failed to RLP encode body", "err", err)
+	}
+	storageReceipts := make([]*types.ReceiptForStorage, len(receipts))
+	for i, receipt := range receipts {
+		storageReceipts[i] = (*types.ReceiptForStorage)(receipt)
+	}
+	receiptBlob, err := rlp.EncodeToBytes(storageReceipts)
+	if err != nil {
+		log.Crit("Failed to RLP encode block receipts", "err", err)
+	}
+	tdBlob, err := rlp.EncodeToBytes(td)
+	if err != nil {
+		log.Crit("Failed to RLP encode block total difficulty", "err", err)
+	}
+	// Write all blob to flatten files.
+	err = db.AppendAncient(block.NumberU64(), block.Hash().Bytes(), headerBlob, bodyBlob, receiptBlob, tdBlob)
+	if err != nil {
+		log.Crit("Failed to write block data to ancient store", "err", err)
+	}
+	return len(headerBlob) + len(bodyBlob) + len(receiptBlob) + len(tdBlob) + common.HashLength
+}
+
 // DeleteBlock removes all block data associated with a hash.
 func DeleteBlock(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)
@@ -579,7 +635,7 @@ func DeleteBlock(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 }
 
 // DeleteBlockWithoutNumber removes all block data associated with a hash, except
-// the hash to number mapping
+// the hash to number mapping.
 func DeleteBlockWithoutNumber(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)
 	deleteHeaderWithoutNumber(db, hash, number)

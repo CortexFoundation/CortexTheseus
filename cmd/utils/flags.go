@@ -190,6 +190,11 @@ var (
 		Name:  "snapshot",
 		Usage: `Enables snapshot-database mode -- experimental work in progress feature`,
 	}
+	TxLookupLimitFlag = cli.Int64Flag{
+		Name:  "txlookuplimit",
+		Usage: "Number of recent blocks to maintain transactions index by-hash for (default = index all blocks)",
+		Value: 0,
+	}
 
 	// P2P storage settings
 	StorageEnabledFlag = cli.BoolFlag{
@@ -1256,6 +1261,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(CacheNoPrefetchFlag.Name) {
 		cfg.NoPrefetch = ctx.GlobalBool(CacheNoPrefetchFlag.Name)
 	}
+	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) {
+		cfg.TxLookupLimit = ctx.GlobalUint64(TxLookupLimitFlag.Name)
+	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
 		cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
 	}
@@ -1556,7 +1564,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 }
 
 // MakeChain creates a chain manager from set command line flags.
-func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ctxcdb.Database) {
+func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.BlockChain, chainDb ctxcdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
 
@@ -1596,7 +1604,12 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	vmcfg := vm.Config{
 		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
 	}
-	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)
+	var limit *uint64
+	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) && !readOnly {
+		l := ctx.GlobalUint64(TxLookupLimitFlag.Name)
+		limit = &l
+	}
+	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil, limit)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}

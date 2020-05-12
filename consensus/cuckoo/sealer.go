@@ -225,7 +225,7 @@ func (cuckoo *Cuckoo) remote() {
 				//delete(works, hash)
 				return true
 			default:
-				log.Info("Work submitted is stale", "hash", hash)
+				log.Warn("Sealing result is not read by miner", "mode", "remote", "sealhash", hash)
 				return false
 			}
 		}

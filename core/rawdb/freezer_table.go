@@ -94,17 +94,17 @@ type freezerTable struct {
 	// to count how many historic items have gone missing.
 	itemOffset uint32 // Offset (number of discarded items)
 
-	headBytes  uint32          // Number of bytes written to the head file
-	readMeter  metrics.Meter   // Meter for measuring the effective amount of data read
-	writeMeter metrics.Meter   // Meter for measuring the effective amount of data written
-	sizeGauge  metrics.Counter // Counter for tracking the combined size of all freezer tables
+	headBytes  uint32        // Number of bytes written to the head file
+	readMeter  metrics.Meter // Meter for measuring the effective amount of data read
+	writeMeter metrics.Meter // Meter for measuring the effective amount of data written
+	sizeGauge  metrics.Gauge // Gauge for tracking the combined size of all freezer tables
 
 	logger log.Logger   // Logger with database path and table name ambedded
 	lock   sync.RWMutex // Mutex protecting the data file descriptors
 }
 
 // newTable opens a freezer table with default settings - 2G files
-func newTable(path string, name string, readMeter metrics.Meter, writeMeter metrics.Meter, sizeGauge metrics.Counter, disableSnappy bool) (*freezerTable, error) {
+func newTable(path string, name string, readMeter metrics.Meter, writeMeter metrics.Meter, sizeGauge metrics.Gauge, disableSnappy bool) (*freezerTable, error) {
 	return newCustomTable(path, name, readMeter, writeMeter, sizeGauge, 2*1000*1000*1000, disableSnappy)
 }
 
@@ -149,7 +149,7 @@ func truncateFreezerFile(file *os.File, size int64) error {
 // newCustomTable opens a freezer table, creating the data and index files if they are
 // non existent. Both files are truncated to the shortest common length to ensure
 // they don't go out of sync.
-func newCustomTable(path string, name string, readMeter metrics.Meter, writeMeter metrics.Meter, sizeGauge metrics.Counter, maxFilesize uint32, noCompression bool) (*freezerTable, error) {
+func newCustomTable(path string, name string, readMeter metrics.Meter, writeMeter metrics.Meter, sizeGauge metrics.Gauge, maxFilesize uint32, noCompression bool) (*freezerTable, error) {
 	// Ensure the containing directory exists and open the indexEntry file
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return nil, err
