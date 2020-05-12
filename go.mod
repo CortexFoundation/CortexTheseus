@@ -14,7 +14,7 @@ require (
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
+	github.com/anacrolix/torrent v1.15.1-0.20200512013156-533fec840a51
 	github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
 	github.com/aws/aws-sdk-go v1.30.25
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
@@ -29,7 +29,7 @@ require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
-	github.com/go-resty/resty/v2 v2.3.0-rc.1
+	github.com/go-resty/resty/v2 v2.3.0-rc.1.0.20200512013214-e7fae0db8ffc
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/uuid v1.1.1 // indirect
