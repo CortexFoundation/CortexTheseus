@@ -66,7 +66,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5
+# github.com/anacrolix/torrent v1.15.1-0.20200512013156-533fec840a51
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -179,7 +179,7 @@ github.com/fsnotify/fsnotify
 github.com/gballet/go-libpcsclite
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
 github.com/glycerine/go-unsnap-stream
-# github.com/go-resty/resty/v2 v2.3.0-rc.1
+# github.com/go-resty/resty/v2 v2.3.0-rc.1.0.20200512013214-e7fae0db8ffc
 ## explicit
 github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
