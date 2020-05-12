@@ -64,7 +64,7 @@ const (
 // - The append only nature ensures that disk writes are minimized.
 // - The memory mapping ensures we can max out system memory for caching without
 //   reserving it for CortexTheseus. This would also reduce the memory requirements
-//   , and thus also GC overhead.
+//   of Cortex, and thus also GC overhead.
 type freezer struct {
 	// WARNING: The `frozen` field is accessed atomically. On 32 bit platforms, only
 	// 64-bit aligned fields can be atomic. The struct is guaranteed to be so aligned,
@@ -73,6 +73,7 @@ type freezer struct {
 
 	tables       map[string]*freezerTable // Data tables for storing everything
 	instanceLock fileutil.Releaser        // File-system lock to prevent double opens
+	quit         chan struct{}
 }
 
 // newFreezer creates a chain freezer that moves ancient chain data into
@@ -82,7 +83,7 @@ func newFreezer(datadir string, namespace string) (*freezer, error) {
 	var (
 		readMeter  = metrics.NewRegisteredMeter(namespace+"ancient/read", nil)
 		writeMeter = metrics.NewRegisteredMeter(namespace+"ancient/write", nil)
-		sizeGauge  = metrics.NewRegisteredCounter(namespace+"ancient/size", nil)
+		sizeGauge  = metrics.NewRegisteredGauge(namespace+"ancient/size", nil)
 	)
 	// Ensure the datadir is not a symbolic link if it exists.
 	if info, err := os.Lstat(datadir); !os.IsNotExist(err) {
@@ -101,6 +102,7 @@ func newFreezer(datadir string, namespace string) (*freezer, error) {
 	freezer := &freezer{
 		tables:       make(map[string]*freezerTable),
 		instanceLock: lock,
+		quit:         make(chan struct{}),
 	}
 	for name, disableSnappy := range freezerNoSnappy {
 		table, err := newTable(datadir, name, readMeter, writeMeter, sizeGauge, disableSnappy)
@@ -126,6 +128,7 @@ func newFreezer(datadir string, namespace string) (*freezer, error) {
 
 // Close terminates the chain freezer, unmapping all the data files.
 func (f *freezer) Close() error {
+	f.quit <- struct{}{}
 	var errs []error
 	for _, table := range f.tables {
 		if err := table.Close(); err != nil {
@@ -180,7 +183,6 @@ func (f *freezer) AncientSize(kind string) (uint64, error) {
 func (f *freezer) AppendAncient(number uint64, hash, header, body, receipts, td []byte) (err error) {
 	// Ensure the binary blobs we are appending is continuous with freezer.
 	if atomic.LoadUint64(&f.frozen) != number {
-		log.Error("Frozen number", "number", number, "frozen", atomic.LoadUint64(&f.frozen))
 		return errOutOrderInsertion
 	}
 	// Rollback all inserted data if any insertion below failed to ensure
@@ -255,35 +257,50 @@ func (f *freezer) Sync() error {
 func (f *freezer) freeze(db ctxcdb.KeyValueStore) {
 	nfdb := &nofreezedb{KeyValueStore: db}
 
+	backoff := false
 	for {
+		select {
+		case <-f.quit:
+			log.Info("Freezer shutting down")
+			return
+		default:
+		}
+		if backoff {
+			select {
+			case <-time.NewTimer(freezerRecheckInterval).C:
+				backoff = false
+			case <-f.quit:
+				return
+			}
+		}
 		// Retrieve the freezing threshold.
 		hash := ReadHeadBlockHash(nfdb)
 		if hash == (common.Hash{}) {
 			log.Debug("Current full block hash unavailable") // new chain, empty database
-			time.Sleep(freezerRecheckInterval)
+			backoff = true
 			continue
 		}
 		number := ReadHeaderNumber(nfdb, hash)
 		switch {
 		case number == nil:
 			log.Error("Current full block number unavailable", "hash", hash)
-			time.Sleep(freezerRecheckInterval)
+			backoff = true
 			continue
 
 		case *number < params.ImmutabilityThreshold:
 			log.Debug("Current full block not old enough", "number", *number, "hash", hash, "delay", params.ImmutabilityThreshold)
-			time.Sleep(freezerRecheckInterval)
+			backoff = true
 			continue
 
 		case *number-params.ImmutabilityThreshold <= f.frozen:
 			log.Debug("Ancient blocks frozen already", "number", *number, "hash", hash, "frozen", f.frozen)
-			time.Sleep(freezerRecheckInterval)
+			backoff = true
 			continue
 		}
 		head := ReadHeader(nfdb, hash, *number)
 		if head == nil {
 			log.Error("Current full block unavailable", "number", *number, "hash", hash)
-			time.Sleep(freezerRecheckInterval)
+			backoff = true
 			continue
 		}
 		// Seems we have data ready to be frozen, process in usable batches
@@ -366,11 +383,11 @@ func (f *freezer) freeze(db ctxcdb.KeyValueStore) {
 		if n := len(ancients); n > 0 {
 			context = append(context, []interface{}{"hash", ancients[n-1]}...)
 		}
-		log.Debug("Deep froze chain segment", context...)
+		log.Info("Deep froze chain segment", context...)
 
 		// Avoid database thrashing with tiny writes
 		if f.frozen-first < freezerBatchLimit {
-			time.Sleep(freezerRecheckInterval)
+			backoff = true
 		}
 	}
 }

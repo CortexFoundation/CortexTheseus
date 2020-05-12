@@ -61,9 +61,9 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 		cuckoo.workCh <- block
 	}
 
-	if !cuckoo.config.UseCuda || cuckoo.threads <= 0 {
-		return nil
-	}
+	//if !cuckoo.config.UseCuda || cuckoo.threads <= 0 {
+	//	return nil
+	//}
 
 	err := cuckoo.InitOnce()
 	if err != nil {
@@ -225,7 +225,7 @@ func (cuckoo *Cuckoo) remote() {
 				//delete(works, hash)
 				return true
 			default:
-				log.Info("Work submitted is stale", "hash", hash)
+				log.Warn("Sealing result is not read by miner", "mode", "remote", "sealhash", hash)
 				return false
 			}
 		}

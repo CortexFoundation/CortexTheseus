@@ -74,7 +74,8 @@ type Config struct {
 	SyncMode      downloader.SyncMode
 	DiscoveryURLs []string
 	NoPruning     bool
-	NoPrefetch    bool // Whether to disable prefetching and only load state on demand
+	NoPrefetch    bool   // Whether to disable prefetching and only load state on demand
+	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 
 	Whitelist map[uint64]common.Hash `toml:"-"`
 

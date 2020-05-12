@@ -78,6 +78,7 @@ var (
 		utils.SyncModeFlag,
 		utils.GCModeFlag,
 		utils.SnapshotFlag,
+		utils.TxLookupLimitFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
 		utils.CacheTrieFlag,

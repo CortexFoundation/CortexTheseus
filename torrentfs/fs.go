@@ -17,7 +17,7 @@ import (
 
 type CVMStorage interface {
 	Available(infohash string, rawSize int64) (bool, error)
-	GetFile(infohash string, path string) ([]byte, error)
+	GetFile(infohash, path string) ([]byte, error)
 	Stop() error
 }
 
@@ -29,7 +29,7 @@ type StorageAPI interface {
 	//UpdateDynamicTrackers(trackers []string)
 	//GetTorrent(ih metainfo.Hash) *Torrent
 	Available(ih string, raw int64) (bool, error)
-	GetFile(infohash string, subpath string) ([]byte, error)
+	GetFile(infohash, subpath string) ([]byte, error)
 	//Metrics() time.Duration
 }
 
@@ -277,7 +277,7 @@ func (fs *TorrentFS) zip(data []byte, c bool) ([]byte, error) {
 	}
 }*/
 
-func (fs *TorrentFS) GetFile(infohash string, subpath string) ([]byte, error) {
+func (fs *TorrentFS) GetFile(infohash, subpath string) ([]byte, error) {
 	return fs.storage().GetFile(infohash, subpath)
 	/*if fs.metrics {
 		defer func(start time.Time) { fs.fsUpdates += time.Since(start) }(time.Now())

@@ -1422,7 +1422,7 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 	}
 }
 
-func (fs *TorrentManager) GetFile(infohash string, subpath string) ([]byte, error) {
+func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 	if fs.metrics {
 		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	}

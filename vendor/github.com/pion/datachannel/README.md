@@ -39,6 +39,7 @@ Check out the **[contributing wiki](https://github.com/pion/webrtc/wiki/Contribu
 * [Yutaka Takeda](https://github.com/enobufs) - *PR-SCTP*
 * [Hugo Arregui](https://github.com/hugoArregui)
 * [Atsushi Watanabe](https://github.com/at-wat)
+* [Norman Rasmussen](https://github.com/normanr) - *Fix Empty DataChannel messages*
 
 ### License
 MIT License - see [LICENSE](LICENSE) for full text
