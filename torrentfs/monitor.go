@@ -1214,7 +1214,7 @@ func (m *Monitor) solve(block *types.Block) error {
 	if i%65536 == 0 {
 		defer func() {
 			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()))
+			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()))
 		}()
 	}
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
