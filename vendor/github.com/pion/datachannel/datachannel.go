@@ -210,6 +210,10 @@ func (c *DataChannel) ReadDataChannel(p []byte) (int, bool, error) {
 		case sctp.PayloadTypeWebRTCString, sctp.PayloadTypeWebRTCStringEmpty:
 			isString = true
 		}
+		switch ppi {
+		case sctp.PayloadTypeWebRTCBinaryEmpty, sctp.PayloadTypeWebRTCStringEmpty:
+			n = 0
+		}
 
 		atomic.AddUint32(&c.messagesReceived, 1)
 		atomic.AddUint64(&c.bytesReceived, uint64(n))
@@ -297,6 +301,10 @@ func (c *DataChannel) WriteDataChannel(p []byte, isString bool) (n int, err erro
 	atomic.AddUint32(&c.messagesSent, 1)
 	atomic.AddUint64(&c.bytesSent, uint64(len(p)))
 
+	if len(p) == 0 {
+		_, err := c.stream.WriteSCTP([]byte{0}, ppi)
+		return 0, err
+	}
 	return c.stream.WriteSCTP(p, ppi)
 }
 

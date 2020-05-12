@@ -88,7 +88,7 @@ github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20200429182514-19402535e24e
 ## explicit
 github.com/aristanetworks/goarista/monotime
-# github.com/aws/aws-sdk-go v1.30.24
+# github.com/aws/aws-sdk-go v1.30.25
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -198,7 +198,7 @@ github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 ## explicit
 github.com/gorilla/websocket
-# github.com/hashicorp/golang-lru v0.5.4
+# github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
 ## explicit
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
@@ -279,7 +279,8 @@ github.com/pborman/uuid
 github.com/peterh/liner
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
-# github.com/pion/datachannel v1.4.16
+# github.com/pion/datachannel v1.4.17
+## explicit
 github.com/pion/datachannel
 # github.com/pion/dtls/v2 v2.0.0
 github.com/pion/dtls/v2
@@ -440,7 +441,7 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f
+# golang.org/x/sys v0.0.0-20200511232937-7e40ca221e25
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
