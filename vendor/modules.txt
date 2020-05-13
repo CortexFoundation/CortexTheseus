@@ -323,7 +323,7 @@ github.com/pion/turn/v2/internal/client
 github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
-# github.com/pion/webrtc/v2 v2.2.10
+# github.com/pion/webrtc/v2 v2.2.11
 ## explicit
 github.com/pion/webrtc/v2
 github.com/pion/webrtc/v2/internal/mux
