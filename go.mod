@@ -48,10 +48,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
-	github.com/pion/datachannel v1.4.17 // indirect
-	github.com/pion/ice v0.7.15 // indirect
-	github.com/pion/rtp v1.5.0 // indirect
-	github.com/pion/webrtc/v2 v2.2.9 // indirect
+	github.com/pion/webrtc/v2 v2.2.10 // indirect
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0
@@ -66,7 +63,7 @@ require (
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
+	golang.org/x/net v0.0.0-20200513185701-a91f0712d120
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200513112337-417ce2331b5c
 	golang.org/x/text v0.3.2
