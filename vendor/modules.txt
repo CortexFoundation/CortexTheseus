@@ -85,7 +85,7 @@ github.com/anacrolix/torrent/webtorrent
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 github.com/anacrolix/utp
-# github.com/aristanetworks/goarista v0.0.0-20200512164610-baa7c0d340dc
+# github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 ## explicit
 github.com/aristanetworks/goarista/monotime
 # github.com/aws/aws-sdk-go v1.30.26
