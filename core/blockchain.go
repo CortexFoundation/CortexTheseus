@@ -1603,6 +1603,21 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 			}
 
 			if block != nil {
+
+				// Special case. Commit the empty receipt slice if we meet the known
+				// block in the middle. It can only happen in the clique chain. Whenever
+				// we insert blocks via `insertSideChain`, we only commit `td`, `header`
+				// and `body` if it's non-existent. Since we don't have receipts without
+				// reexecution, so nothing to commit. But if the sidechain will be adpoted
+				// as the canonical chain eventually, it needs to be reexecuted for missing
+				// state, but if it's this special case here(skip reexecution) we will lose
+				// the empty receipt entry.
+				if len(block.Transactions()) == 0 {
+					rawdb.WriteReceipts(bc.db, block.Hash(), block.NumberU64(), nil)
+				} else {
+					log.Error("Please file an issue, skip known block execution without receipt",
+						"hash", block.Hash(), "number", block.NumberU64())
+				}
 				if err := bc.writeKnownBlock(block); err != nil {
 					return i, nil, nil, err
 				}
@@ -1860,7 +1875,7 @@ func (st *insertStats) report(chain []*types.Block, index int, cached common.Sto
 		context := []interface{}{
 			"blocks", st.processed, "txs", txs, "mgas", float64(st.usedGas) / 1000000,
 			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed), //"tps", float64(st.usedGas) * 476 / float64(elapsed),
-			"num", end.Number(), "hash", end.Hash(), "cuckoo", common.HashSize(end.Difficulty().Int64()), //"act", common.HashSize(end.QuotaUsed().Int64()), "vol", common.HashSize(end.Quota().Int64()),
+			"num", end.Number(), "hash", end.Hash(), "sol", common.HashSize(end.Difficulty().Int64()), //"act", common.HashSize(end.QuotaUsed().Int64()), "vol", common.HashSize(end.Quota().Int64()),
 		}
 		//if timestamp := time.Unix(end.Time().Int64(), 0); time.Since(timestamp) > time.Minute {
 		//	context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
