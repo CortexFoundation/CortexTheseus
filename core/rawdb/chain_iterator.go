@@ -17,7 +17,6 @@
 package rawdb
 
 import (
-	"math"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -293,7 +292,7 @@ func UnindexTransactions(db ctxcdb.Database, from uint64, to uint64) {
 		}
 		// If we've spent too much time already, notify the user of what we're doing
 		if time.Since(logged) > 8*time.Second {
-			log.Info("Unindexing transactions", "blocks", "txs", txs, int64(math.Abs(float64(delivery.number-from))), "total", to-from, "elapsed", common.PrettyDuration(time.Since(start)))
+			log.Info("Unindexing transactions", "blocks", blocks, "txs", txs, "total", to-from, "elapsed", common.PrettyDuration(time.Since(start)))
 			logged = time.Now()
 		}
 	}
