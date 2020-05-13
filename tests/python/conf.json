@@ -1,0 +1,29 @@
+{
+    "model":
+           {"0":"ssd",
+            "1":"shuffle",
+            "2":"ssd_512_mobilenet",
+            "3":"resnet50_mxg",
+            "4":"mobilenet"
+           },
+    "data": 
+           {"0":"board_camera",
+            "1":"video_file"
+           },
+    "display": 
+           {"0":"original",
+            "1":"scaled"
+           },
+    "font": 
+           {"0":"small", 
+            "1":"larger"
+           },
+    "model_id"   : 1,
+    "data_select": 0,
+    "threshold"  : 0.1,
+    "disp_mode"  : 0,
+    "font_mode"  : 1,
+    "Cython"     : 0,
+    "video_fps"  : 10,
+    "frame_len"  : 100
+}
