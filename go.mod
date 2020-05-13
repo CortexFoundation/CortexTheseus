@@ -49,6 +49,8 @@ require (
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
 	github.com/pion/datachannel v1.4.17 // indirect
+	github.com/pion/ice v0.7.15 // indirect
+	github.com/pion/rtp v1.5.0 // indirect
 	github.com/pion/webrtc/v2 v2.2.9 // indirect
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff

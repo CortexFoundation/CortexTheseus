@@ -289,7 +289,8 @@ github.com/pion/dtls/v2/internal/net/connctx
 github.com/pion/dtls/v2/internal/net/udp
 github.com/pion/dtls/v2/pkg/crypto/ccm
 github.com/pion/dtls/v2/pkg/crypto/fingerprint
-# github.com/pion/ice v0.7.14
+# github.com/pion/ice v0.7.15
+## explicit
 github.com/pion/ice
 # github.com/pion/logging v0.2.2
 github.com/pion/logging
@@ -300,7 +301,8 @@ github.com/pion/quic
 github.com/pion/quic/internal/wrapper
 # github.com/pion/rtcp v1.2.1
 github.com/pion/rtcp
-# github.com/pion/rtp v1.4.0
+# github.com/pion/rtp v1.5.0
+## explicit
 github.com/pion/rtp
 github.com/pion/rtp/codecs
 # github.com/pion/sctp v1.7.6
