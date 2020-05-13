@@ -113,11 +113,13 @@ plugins/cpu_helper_for_node.so:
 
 plugins/cuda_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu
+	@mkdir -p plugins
 	ln -sf ../cvm-runtime/build/gpu/libcvm_runtime_cuda.so $@
 	# build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
 plugins/cpu_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 cpu
+	@mkdir -p plugins
 	ln -sf ../cvm-runtime/build/cpu/libcvm_runtime_cpu.so $@
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
