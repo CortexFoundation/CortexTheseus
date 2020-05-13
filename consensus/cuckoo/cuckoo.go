@@ -3,6 +3,7 @@ package cuckoo
 import (
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -162,6 +163,7 @@ const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_helper_for_node.so"
 
 func (cuckoo *Cuckoo) initPlugin() error {
+	start := mclock.Now()
 	var minerName string = "cpu"
 	if cuckoo.config.UseCuda == true {
 		minerName = "cuda"
@@ -175,13 +177,15 @@ func (cuckoo *Cuckoo) initPlugin() error {
 	}
 	var errc error
 	so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
-	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
-		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
 	cuckoo.minerPlugin, errc = plugin.Open(so_path)
 	if errc != nil || cuckoo.minerPlugin == nil {
 		log.Error("Cuckoo Init Plugin", "error", errc)
 		return errors.New("Cuckoo plugins init failed")
 	}
+
+	elapsed := time.Duration(mclock.Now() - start)
+	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
+		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds, "elapsed", common.PrettyDuration(elapsed))
 	return errc
 }
 
