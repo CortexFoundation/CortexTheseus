@@ -14,7 +14,7 @@ require (
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200512013156-533fec840a51
+	github.com/anacrolix/torrent v1.15.1-0.20200513043326-587f28d2fa30
 	github.com/aristanetworks/goarista v0.0.0-20200512164610-baa7c0d340dc
 	github.com/aws/aws-sdk-go v1.30.26
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
