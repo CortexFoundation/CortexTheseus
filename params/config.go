@@ -48,9 +48,9 @@ var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
 }
 
 type TrustedCheckpoint struct {
-	Name          string      `json:"-"`
-	SectionIndex  uint64      `json:"sectionIndex"`
-	SectionHead   common.Hash `json:"sectionHead"`
+	Name         string      `json:"-"`
+	SectionIndex uint64      `json:"sectionIndex"`
+	SectionHead  common.Hash `json:"sectionHead"`
 }
 
 var (
@@ -61,9 +61,9 @@ var (
 
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
-		Name:          "mainnet",
-		SectionIndex:  45,
-		SectionHead:   common.HexToHash("0xfdd213598bb6b203ce72730768083a3184f5cd6e3864a1e07e448e5081a029df"),
+		Name:         "mainnet",
+		SectionIndex: 47,
+		SectionHead:  common.HexToHash("0x124adbbddac6c6210a8b3802c8eca155990cb3290da45fcee948e014f8ae71aa"),
 	}
 	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
