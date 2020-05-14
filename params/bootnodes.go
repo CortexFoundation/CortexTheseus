@@ -74,16 +74,3 @@ var KnownDNSNetworks = map[common.Hash]string{
 	//MainnetGenesisHash: dnsPrefix + "all.mainnet.cortexlabs.ai",
 	MainnetGenesisHash: dnsPrefix + "all.mainnet.coinbag.org",
 }
-
-var MainnetTrackers = []string{
-	//"://dht.cortexlabs.ai:5008",
-	"://tracker.cortexlabs.ai:5008",
-}
-
-var BernardTrackers = MainnetTrackers //[]string{
-//      MainnetTrackers,
-//}
-
-var TorrentBoostNodes = []string{
-	"http://storage.cortexlabs.ai:7881",
-}
