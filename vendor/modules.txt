@@ -85,10 +85,10 @@ github.com/anacrolix/torrent/webtorrent
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 github.com/anacrolix/utp
-# github.com/aristanetworks/goarista v0.0.0-20200512164610-baa7c0d340dc
+# github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 ## explicit
 github.com/aristanetworks/goarista/monotime
-# github.com/aws/aws-sdk-go v1.30.26
+# github.com/aws/aws-sdk-go v1.30.27
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -280,7 +280,6 @@ github.com/peterh/liner
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
 # github.com/pion/datachannel v1.4.17
-## explicit
 github.com/pion/datachannel
 # github.com/pion/dtls/v2 v2.0.0
 github.com/pion/dtls/v2
@@ -289,7 +288,7 @@ github.com/pion/dtls/v2/internal/net/connctx
 github.com/pion/dtls/v2/internal/net/udp
 github.com/pion/dtls/v2/pkg/crypto/ccm
 github.com/pion/dtls/v2/pkg/crypto/fingerprint
-# github.com/pion/ice v0.7.14
+# github.com/pion/ice v0.7.15
 github.com/pion/ice
 # github.com/pion/logging v0.2.2
 github.com/pion/logging
@@ -300,7 +299,7 @@ github.com/pion/quic
 github.com/pion/quic/internal/wrapper
 # github.com/pion/rtcp v1.2.1
 github.com/pion/rtcp
-# github.com/pion/rtp v1.4.0
+# github.com/pion/rtp v1.5.0
 github.com/pion/rtp
 github.com/pion/rtp/codecs
 # github.com/pion/sctp v1.7.6
@@ -324,7 +323,7 @@ github.com/pion/turn/v2/internal/client
 github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
-# github.com/pion/webrtc/v2 v2.2.9
+# github.com/pion/webrtc/v2 v2.2.11
 ## explicit
 github.com/pion/webrtc/v2
 github.com/pion/webrtc/v2/internal/mux
@@ -424,7 +423,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
+# golang.org/x/net v0.0.0-20200513185701-a91f0712d120
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
