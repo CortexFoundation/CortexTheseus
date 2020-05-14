@@ -25,7 +25,7 @@ import (
 	//"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
+	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
 	//"net"

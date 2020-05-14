@@ -51,7 +51,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/torrentfs"
 )
 
 // Cortex implements the Cortex full node service.

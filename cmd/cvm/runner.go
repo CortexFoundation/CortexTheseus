@@ -41,7 +41,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/torrentfs"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

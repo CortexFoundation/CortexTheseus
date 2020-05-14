@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/compress"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs/types"
+	"github.com/CortexFoundation/torrentfs/types"
 	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/time/rate"
 	"io/ioutil"
