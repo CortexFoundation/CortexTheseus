@@ -51,10 +51,6 @@ type TrustedCheckpoint struct {
 	Name          string      `json:"-"`
 	SectionIndex  uint64      `json:"sectionIndex"`
 	SectionHead   common.Hash `json:"sectionHead"`
-	TfsBlocks     uint64      `json:"tfsBlocks"`
-	TfsCheckPoint uint64      `json:"tfsCheckPoint"`
-	TfsFiles      uint64      `json:"tfsFiles"`
-	TfsRoot       common.Hash `json:"tfsRoot"`
 }
 
 var (
@@ -68,10 +64,6 @@ var (
 		Name:          "mainnet",
 		SectionIndex:  45,
 		SectionHead:   common.HexToHash("0xfdd213598bb6b203ce72730768083a3184f5cd6e3864a1e07e448e5081a029df"),
-		TfsBlocks:     96,
-		TfsFiles:      46,
-		TfsCheckPoint: 395964,
-		TfsRoot:       common.HexToHash("0xb07f9a8a8300db4a82da72d3d024fb86bae3742d24a91a7160d2838a13e2520a"),
 	}
 	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
