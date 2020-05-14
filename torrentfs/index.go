@@ -180,7 +180,7 @@ func (fs *ChainIndex) Reset() error {
 	fs.LastListenBlockNumber = 0
 	err := fs.initMerkleTree()
 	if err != nil {
-		errors.New("Storage reset error")
+		return errors.New("err storage reset")
 	}
 	log.Warn("Storage status reset")
 	return nil
@@ -581,7 +581,6 @@ func (fs *ChainIndex) AddBlock(b *types.Block) error {
 
 	fs.LastListenBlockNumber = b.Number
 	return fs.Flush()
-	//return nil
 }
 
 func (fs *ChainIndex) appendBlock(b *types.Block) error {
