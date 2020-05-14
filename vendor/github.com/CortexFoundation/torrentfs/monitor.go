@@ -225,7 +225,7 @@ func (m *Monitor) indexInit() error {
 
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Fs storage is reloading ...", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
+			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 			if m.lastNumber > checkpoint.TfsCheckPoint {
 				m.lastNumber = 0
 				err := m.fs.Reset()
@@ -244,7 +244,7 @@ func (m *Monitor) indexInit() error {
 			//	}
 			//return nil
 		} else {
-			log.Info("Fs storage version check passed", "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
+			log.Info("Fs storage version check passed", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 		}
 	}
 
