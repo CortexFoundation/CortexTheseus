@@ -120,7 +120,7 @@ func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
 	log.Info("File storage initialized")
 
 	// Torrent Manager
-	err, tMana := NewTorrentManager(flag, fs.ID(), cache, compress)
+	tMana, err := NewTorrentManager(flag, fs.ID(), cache, compress)
 	if err != nil || tMana == nil {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")

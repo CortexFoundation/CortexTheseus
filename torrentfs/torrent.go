@@ -581,13 +581,13 @@ func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string)
 	return array
 }
 
-func (tm *TorrentManager) buildHttpTrackers(trackers []string) (array [][]string) {
-	array = make([][]string, tier)
-	for i, tracker := range trackers {
-		array[i%tier] = append(array[i%tier], "http"+tracker+"/announce")
-	}
-	return array
-}
+//func (tm *TorrentManager) buildHttpTrackers(trackers []string) (array [][]string) {
+//	array = make([][]string, tier)
+//	for i, tracker := range trackers {
+//		array[i%tier] = append(array[i%tier], "http"+tracker+"/announce")
+//	}
+//	return array
+//}
 
 func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool) {
 	tm.lock.Lock()
@@ -601,9 +601,9 @@ func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool)
 		}
 	}*/
 	tm.trackers = tm.buildUdpTrackers(trackers)
-	if !disableTCP {
-		//tm.trackers = append(tm.trackers, tm.buildHttpTrackers(trackers)...)
-	}
+	//if !disableTCP {
+	//tm.trackers = append(tm.trackers, tm.buildHttpTrackers(trackers)...)
+	//}
 	log.Debug("Boot trackers", "t", tm.trackers)
 }
 
@@ -803,7 +803,7 @@ func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64)
 //var CurrentTorrentManager *TorrentManager = nil
 
 // NewTorrentManager ...
-func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (error, *TorrentManager) {
+func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*TorrentManager, error) {
 	//    log.Info("config",
 	//      "port", config.Port,
 	//      "datadir", config.DataDir,
@@ -851,7 +851,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (error
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
-		return err, nil
+		return nil, err
 	}
 
 	tmpFilePath := path.Join(config.DataDir, defaultTmpFilePath)
@@ -866,7 +866,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (error
 		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0750) //os.FileMode(os.ModePerm))
 		if err != nil {
 			log.Error("Mkdir failed", "path", tmpFilePath)
-			return err, nil
+			return nil, err
 		}
 	}
 
@@ -912,7 +912,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (error
 
 	//CurrentTorrentManager = TorrentManager
 	//cl.WaitAll()
-	return nil, TorrentManager
+	return TorrentManager, nil
 }
 
 func (tm *TorrentManager) Start() error {
@@ -1063,9 +1063,8 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						}
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
-					} else {
-						//log.Trace("A <- P", "ih", ih, "pieces", t.Torrent.NumPieces(), "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 					}
+
 					if err := t.WriteTorrent(); err == nil {
 						if len(tm.activeChan) < cap(tm.activeChan) {
 							delete(tm.pendingTorrents, ih)
