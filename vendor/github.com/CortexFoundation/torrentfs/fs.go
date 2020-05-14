@@ -96,14 +96,6 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 		return torrentInstance, nil
 	}
 
-	//versionMeta := ""
-	//TorrentAPIAvailable.Lock()
-	//if len(params.VersionMeta) > 0 {
-	//	versionMeta = fmt.Sprintf(" (%s)", params.VersionMeta)
-	//}
-
-	//log.Info("Fs version info", "version", msg.Version)
-
 	monitor, moErr := NewMonitor(config, cache, compress)
 	if moErr != nil {
 		log.Error("Failed create monitor")

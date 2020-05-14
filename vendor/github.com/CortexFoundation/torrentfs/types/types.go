@@ -23,9 +23,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/CortexFoundation/torrentfs/params"
 )
 
 const (
@@ -89,7 +89,6 @@ func (t *Transaction) Data() []byte {
 
 // IsFlowControl ...
 func (t *Transaction) IsFlowControl() bool {
-	//return t.noPayload() && t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas // && t.Receipt.GasLimit >= params.UploadGas
 	return t.Amount.Sign() == 0 && t.GasLimit >= params.UploadGas
 }
 

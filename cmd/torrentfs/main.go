@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/torrentfs"
 	cli "gopkg.in/urfave/cli.v1"
 	glog "log"
 	"os"

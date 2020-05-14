@@ -21,4 +21,24 @@ const (
 	NumberOfMessageCodes = uint64(0)
 	ProtocolVersionStr   = "1.0"
 	statusCode           = 0
+
+	Bucket    = 1024
+	Group     = 32
+	SyncBatch = 4096
+	Delay     = 12
+	//Scope     = 4
+	TIER  = 3
+	LEAFS = 32768
+)
+
+var (
+	MainnetTrackers = []string{
+		"://tracker.cortexlabs.ai:5008",
+	}
+
+	BernardTrackers = MainnetTrackers
+
+	TorrentBoostNodes = []string{
+		"http://storage.cortexlabs.ai:7881",
+	}
 )
