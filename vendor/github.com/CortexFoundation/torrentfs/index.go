@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/pborman/uuid"
 	"os"

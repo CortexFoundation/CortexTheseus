@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/compress"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/time/rate"
@@ -42,7 +43,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/anacrolix/torrent"
 	//	"net"
 	xlog "github.com/anacrolix/log"
@@ -831,7 +831,6 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		cfg.DownloadRateLimiter = rate.NewLimiter(rate.Limit(config.DownloadRate), 1<<20)
 	}
 	//cfg.DisableEncryption = true
-	//cfg.ExtendedHandshakeClientVersion = params.VersionWithMeta
 	//listenAddr := &net.TCPAddr{}
 	//log.Info("Torrent client listening on", "addr", listenAddr)
 	//cfg.SetListenAddr(listenAddr.String())

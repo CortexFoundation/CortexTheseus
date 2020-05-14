@@ -15,10 +15,6 @@
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 package torrentfs
 
-import (
-	"github.com/CortexFoundation/CortexTheseus/params"
-)
-
 // Config ...
 type Config struct {
 	// Host is the host interface on which to start the storage server. If this
@@ -46,8 +42,8 @@ type Config struct {
 // DefaultConfig contains default settings for the storage.
 var DefaultConfig = Config{
 	Port:            40401,
-	DefaultTrackers: params.MainnetTrackers,
-	BoostNodes:      params.TorrentBoostNodes,
+	DefaultTrackers: MainnetTrackers,
+	BoostNodes:      TorrentBoostNodes,
 	SyncMode:        "full",
 	DisableUTP:      true,
 	DisableDHT:      false,

@@ -30,3 +30,15 @@ const (
 	TIER  = 3
 	LEAFS = 32768
 )
+
+var (
+	MainnetTrackers = []string{
+		"://tracker.cortexlabs.ai:5008",
+	}
+
+	BernardTrackers = MainnetTrackers
+
+	TorrentBoostNodes = []string{
+		"http://storage.cortexlabs.ai:7881",
+	}
+)
