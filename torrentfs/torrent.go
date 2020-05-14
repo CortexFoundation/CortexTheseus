@@ -52,9 +52,9 @@ import (
 )
 
 const (
-	bucket                  = params.Bucket //it is best size is 1/3 full nodes
-	group                   = params.Group
-	tier                    = params.TIER
+	bucket                  = Bucket //it is best size is 1/3 full nodes
+	group                   = Group
+	tier                    = TIER
 	updateTorrentChanBuffer = batch
 	torrentChanSize         = 64
 
