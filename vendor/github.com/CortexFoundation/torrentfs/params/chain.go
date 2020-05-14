@@ -16,8 +16,8 @@
 package params
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 const (
@@ -26,32 +26,27 @@ const (
 )
 
 var (
-        MainnetGenesisHash = common.HexToHash("0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1")
-        BernardGenesisHash = common.HexToHash("0x89df382cf5508d366755f5f00c16666759a3267c1c244a6524bada1901237cd3")
-        DoloresGenesisHash = common.HexToHash("0xe39f1aace1c91078c97e743bd6b7a692ac215e6f9124599cdcabf0a8c7dfeae5")
-)
+	MainnetGenesisHash = common.HexToHash("0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1")
+	BernardGenesisHash = common.HexToHash("0x89df382cf5508d366755f5f00c16666759a3267c1c244a6524bada1901237cd3")
+	DoloresGenesisHash = common.HexToHash("0xe39f1aace1c91078c97e743bd6b7a692ac215e6f9124599cdcabf0a8c7dfeae5")
 
-//It should be empty for first time
-var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
-        MainnetGenesisHash: MainnetTrustedCheckpoint,
-}
+	TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
+		MainnetGenesisHash: MainnetTrustedCheckpoint,
+	}
 
-var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
-                Name:          "mainnet",
-                TfsBlocks:     96,
-                TfsFiles:      46,
-                TfsCheckPoint: 395964,
-                TfsRoot:       common.HexToHash("0xb07f9a8a8300db4a82da72d3d024fb86bae3742d24a91a7160d2838a13e2520a"),
-        }
+		Name:          "mainnet",
+		TfsBlocks:     96,
+		TfsFiles:      46,
+		TfsCheckPoint: 395964,
+		TfsRoot:       common.HexToHash("0xb07f9a8a8300db4a82da72d3d024fb86bae3742d24a91a7160d2838a13e2520a"),
+	}
 )
 
 type TrustedCheckpoint struct {
-        Name          string      `json:"-"`
-        TfsBlocks     uint64      `json:"tfsBlocks"`
-        TfsCheckPoint uint64      `json:"tfsCheckPoint"`
-        TfsFiles      uint64      `json:"tfsFiles"`
-        TfsRoot       common.Hash `json:"tfsRoot"`
+	Name          string      `json:"-"`
+	TfsBlocks     uint64      `json:"tfsBlocks"`
+	TfsCheckPoint uint64      `json:"tfsCheckPoint"`
+	TfsFiles      uint64      `json:"tfsFiles"`
+	TfsRoot       common.Hash `json:"tfsRoot"`
 }
-
-
