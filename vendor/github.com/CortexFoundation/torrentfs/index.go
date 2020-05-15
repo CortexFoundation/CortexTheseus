@@ -225,7 +225,7 @@ func (fs *ChainIndex) addLeaf(block *types.Block, init bool) error {
 	number := block.Number
 	leaf := BlockContent{x: block.Hash.String()}
 
-	if len(fs.leaves) >= LEAFS {
+	if len(fs.leaves) >= params.LEAFS {
 		fs.leaves = nil
 		fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
 		log.Debug("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()))

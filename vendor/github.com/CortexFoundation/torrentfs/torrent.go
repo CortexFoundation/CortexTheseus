@@ -52,10 +52,10 @@ import (
 )
 
 const (
-	bucket                  = Bucket //it is best size is 1/3 full nodes
-	group                   = Group
-	tier                    = TIER
-	updateTorrentChanBuffer = batch
+	bucket                  = params.Bucket //it is best size is 1/3 full nodes
+	group                   = params.Group
+	tier                    = params.TIER
+	updateTorrentChanBuffer = params.SyncBatch
 	torrentChanSize         = 64
 
 	torrentPending = iota //2
