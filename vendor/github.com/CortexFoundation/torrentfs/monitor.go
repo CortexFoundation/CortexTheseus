@@ -53,8 +53,8 @@ var (
 )
 
 const (
-	batch = SyncBatch
-	delay = Delay
+	batch = params.SyncBatch
+	delay = params.Delay
 
 //defaultTimerInterval  = 1
 //connTryTimes          = 300
