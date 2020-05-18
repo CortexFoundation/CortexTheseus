@@ -69,6 +69,7 @@ type Backend interface {
 
 	ChainConfig() *params.ChainConfig
 	CurrentBlock() *types.Block
+	GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error)
 }
 
 func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
@@ -114,27 +115,5 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 			Service:   NewPrivateAccountAPI(apiBackend, nonceLock),
 			Public:    false,
 		},
-
-		// {
-		// 	Namespace: "ctx",
-		// 	Version:   "1.0",
-		// 	Service:   NewPublicCortexAPI(apiBackend),
-		// 	Public:    true,
-		// }, {
-		// 	Namespace: "ctx",
-		// 	Version:   "1.0",
-		// 	Service:   NewPublicBlockChainAPI(apiBackend, vmConfig),
-		// 	Public:    true,
-		// }, {
-		// 	Namespace: "ctx",
-		// 	Version:   "1.0",
-		// 	Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
-		// 	Public:    true,
-		// }, {
-		// 	Namespace: "ctx",
-		// 	Version:   "1.0",
-		// 	Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
-		// 	Public:    true,
-		// },
 	}
 }
