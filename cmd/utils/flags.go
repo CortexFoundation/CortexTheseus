@@ -46,7 +46,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
 	//"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	// "github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"

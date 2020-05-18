@@ -22,7 +22,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
-	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 )
 
 // Tests that given a database with random data content, all parts of a snapshot

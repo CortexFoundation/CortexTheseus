@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 )
 
 // makeTestTrie create a sample test trie to test node-wise reconstruction.

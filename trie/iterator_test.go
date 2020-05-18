@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 )
 
 func TestIterator(t *testing.T) {

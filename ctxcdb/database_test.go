@@ -25,7 +25,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 func newTestLDB() (*ctxcdb.LDBDatabase, func()) {

@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 func TestTableDatabase(t *testing.T)            { testTableDatabase(t, "prefix") }
