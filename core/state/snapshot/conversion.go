@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"

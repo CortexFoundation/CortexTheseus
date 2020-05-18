@@ -23,7 +23,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/VictoriaMetrics/fastcache"
 )
 

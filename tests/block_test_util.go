@@ -32,7 +32,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )

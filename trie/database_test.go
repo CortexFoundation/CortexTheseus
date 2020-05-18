@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 )
 
 // Tests that the trie database returns a missing trie node error if attempting

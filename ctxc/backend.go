@@ -38,7 +38,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/filters"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"

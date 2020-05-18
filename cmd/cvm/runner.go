@@ -36,7 +36,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/core/vm/runtime"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	infer "github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"

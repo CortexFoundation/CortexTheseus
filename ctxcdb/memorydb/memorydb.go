@@ -24,7 +24,7 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 var (

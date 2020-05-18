@@ -32,7 +32,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 // Tests that updating a state trie does not leak any database writes prior to
