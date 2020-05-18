@@ -37,7 +37,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
-	github.com/pion/rtp v1.5.2 // indirect
+	github.com/pion/webrtc/v2 v2.2.12 // indirect
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0
