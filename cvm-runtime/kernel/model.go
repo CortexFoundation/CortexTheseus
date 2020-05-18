@@ -5,6 +5,11 @@ import (
 	"unsafe"
 )
 
+const (
+	CVM_VERSION_ONE = 0
+	CVM_VERSION_TWO = 1
+)
+
 type Model struct {
 	model unsafe.Pointer
 	lib   *LibCVM
@@ -56,21 +61,36 @@ func (m *Model) GetInputLength() uint64 {
 	return m.input_size
 }
 
-func (m *Model) Predict(data []byte) ([]byte, int) {
+func (m *Model) Predict(data []byte, cvmVersion int) ([]byte, int) {
 	var (
 		output []byte
 		status int
 		err    error
 	)
-	if len(data) != int(m.input_size) {
-		log.Warn("input length not matched",
-			"input length", len(data), "expected", m.input_size)
-		return nil, ERROR_LOGIC
+
+	if cvmVersion == CVM_VERSION_ONE {
+		if len(data) < int(m.input_size) {
+			log.Warn("input length less than input size",
+				"input length", len(data), "expected", m.input_size)
+			return nil, ERROR_LOGIC
+		}
+		if data, err = ToAlignedData(data[:m.input_size], int(m.input_byte)); err != nil {
+			log.Warn("input ToAlignedData invalid", "error", err)
+			return nil, ERROR_LOGIC
+		}
+	} else {
+		// TODO(ryt): test it in istanbuer version code
+		if len(data) != int(m.input_size) {
+			log.Warn("input length not matched",
+				"input length", len(data), "expected", m.input_size)
+			return nil, ERROR_LOGIC
+		}
+		if data, err = ToAlignedData(data, int(m.input_byte)); err != nil {
+			log.Warn("input ToAlignedData invalid", "error", err)
+			return nil, ERROR_LOGIC
+		}
 	}
-	if data, err = ToAlignedData(data, int(m.input_byte)); err != nil {
-		log.Warn("input ToAlignedData invalid", "error", err)
-		return nil, ERROR_LOGIC
-	}
+
 	if output, status = m.lib.Inference(m.model, data); status != SUCCEED {
 		return nil, status
 	}

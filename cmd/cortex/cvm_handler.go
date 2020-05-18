@@ -68,7 +68,8 @@ func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 	}
 
 	log.Debug("Infer Task", "Model Hash", inferWork.Model, "Input Hash", inferWork.Input)
-	label, err := synapse.Engine().InferByInfoHash(inferWork.Model, inferWork.Input)
+	label, err := synapse.Engine().InferByInfoHash(
+		inferWork.Model, inferWork.Input, inferWork.CvmVersion)
 
 	if err != nil {
 		RespErrorText(w, err)
@@ -101,7 +102,8 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	// 	return
 	// }
 
-	label, err := synapse.Engine().InferByInputContent(model, input)
+	label, err := synapse.Engine().InferByInputContent(
+		model, input, inferWork.CvmVersion)
 	if err != nil {
 		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, err)

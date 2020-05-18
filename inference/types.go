@@ -19,16 +19,18 @@ const (
 
 // Infer by input info hash
 type IHWork struct {
-	Type  InferType `json:"type"`
-	Model string    `json:"model"`
-	Input string    `json:"input"`
+	Type       InferType `json:"type"`
+	Model      string    `json:"model"`
+	Input      string    `json:"input"`
+	CvmVersion int       `json:"cvm_version"`
 }
 
 // Infer by input content
 type ICWork struct {
-	Type  InferType     `json:"type"`
-	Model string        `json:"model"`
-	Input hexutil.Bytes `json:"input"`
+	Type       InferType     `json:"type"`
+	Model      string        `json:"model"`
+	Input      hexutil.Bytes `json:"input"`
+	CvmVersion int           `json:"cvm_version"`
 }
 
 // Infer gas

@@ -63,7 +63,8 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	return gas, err
 }
 
-func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []byte, err error) {
+func (s *Synapse) inferByInfoHash(
+	modelInfoHash, inputInfoHash string, cvmVersion int) (res []byte, err error) {
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -104,10 +105,12 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 	}
 	log.Trace("data", "data", data, "len", len(data), "hash", inputInfoHash)
 
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, data)
+	return s.inferByInputContent(modelInfoHash, inputInfoHash, data, cvmVersion)
 }
 
-func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) (res []byte, err error) {
+func (s *Synapse) inferByInputContent(
+	modelInfoHash, inputInfoHash string,
+	inputContent []byte, cvmVersion int) (res []byte, err error) {
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -174,7 +177,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		model = model_tmp.(*kernel.Model)
 	}
 	log.Trace("iput content", "input", inputContent, "len", len(inputContent))
-	result, status = model.Predict(inputContent)
+	result, status = model.Predict(inputContent, cvmVersion)
 	// TODO(wlt): all returned runtime_error
 	if _, err := getReturnByStatusCode(result, status); err != nil {
 		return nil, KERNEL_RUNTIME_ERROR
