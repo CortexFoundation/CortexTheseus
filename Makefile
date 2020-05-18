@@ -94,7 +94,7 @@ torrent-test:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
 
-cvm: plugins/cuda_cvm.so plugins/cpu_cvm.so
+cvm: plugins/cpu_cvm.so
 	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
@@ -111,16 +111,11 @@ plugins/cpu_helper_for_node.so:
 	$(MAKE) -C solution cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
-plugins/cuda_cvm.so:
-	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu
-	@mkdir -p plugins
-	ln -sf ../cvm-runtime/build/gpu/libcvm_runtime_cuda.so $@
-	# build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
-
+# TODO(ryt): configure the gpu version
 plugins/cpu_cvm.so:
-	$(MAKE) -C ${INFER_NET_DIR} -j8 cpu
+	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
 	@mkdir -p plugins
-	ln -sf ../cvm-runtime/build/cpu/libcvm_runtime_cpu.so $@
+	ln -sf ../cvm-runtime/build/libcvm_runtime.so $@
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
