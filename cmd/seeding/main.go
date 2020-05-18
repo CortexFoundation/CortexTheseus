@@ -21,7 +21,7 @@ import (
 
 	"github.com/anacrolix/tagflag"
 
-	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/fs"
 )
