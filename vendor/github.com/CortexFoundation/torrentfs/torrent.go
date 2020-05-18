@@ -442,12 +442,12 @@ type TorrentManager struct {
 	pendingTorrents     map[metainfo.Hash]*Torrent
 	maxSeedTask         int
 	maxEstablishedConns int
-	maxActiveTask       int
-	trackers            [][]string
-	boostFetcher        *BoostDataFetcher
-	DataDir             string
-	TmpDataDir          string
-	closeAll            chan struct{}
+	//maxActiveTask       int
+	trackers     [][]string
+	boostFetcher *BoostDataFetcher
+	DataDir      string
+	TmpDataDir   string
+	closeAll     chan struct{}
 	//removeTorrent       chan metainfo.Hash
 	updateTorrent chan interface{}
 	//mu                  sync.Mutex
@@ -836,8 +836,10 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 	//cfg.SetListenAddr(listenAddr.String())
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.EstablishedConnsPerTorrent = 25 //len(config.DefaultTrackers)
-	//cfg.HalfOpenConnsPerTorrent = 25
+
+	cfg.EstablishedConnsPerTorrent = 25 //len(config.DefaultTrackers)
+	cfg.HalfOpenConnsPerTorrent = 25
+
 	cfg.ListenPort = config.Port
 	if config.Quiet {
 		cfg.Logger = xlog.Discard
@@ -870,14 +872,14 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 	}
 
 	TorrentManager := &TorrentManager{
-		client:              cl,
-		torrents:            make(map[metainfo.Hash]*Torrent),
-		pendingTorrents:     make(map[metainfo.Hash]*Torrent),
-		seedingTorrents:     make(map[metainfo.Hash]*Torrent),
-		activeTorrents:      make(map[metainfo.Hash]*Torrent),
-		bytes:               make(map[metainfo.Hash]int64),
-		maxSeedTask:         config.MaxSeedingNum,
-		maxActiveTask:       config.MaxActiveNum,
+		client:          cl,
+		torrents:        make(map[metainfo.Hash]*Torrent),
+		pendingTorrents: make(map[metainfo.Hash]*Torrent),
+		seedingTorrents: make(map[metainfo.Hash]*Torrent),
+		activeTorrents:  make(map[metainfo.Hash]*Torrent),
+		bytes:           make(map[metainfo.Hash]int64),
+		maxSeedTask:     config.MaxSeedingNum,
+		//maxActiveTask:       config.MaxActiveNum,
 		maxEstablishedConns: cfg.EstablishedConnsPerTorrent,
 		DataDir:             config.DataDir,
 		TmpDataDir:          tmpFilePath,
@@ -938,7 +940,10 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 		case t := <-tm.seedingChan:
 			tm.seedingTorrents[t.Torrent.InfoHash()] = t
 			t.Seed()
-			if len(tm.seedingTorrents) > tm.maxSeedTask && !tm.fullSeed {
+			if len(tm.seedingTorrents) > params.LimitSeeding && !tm.fullSeed {
+				tm.dropSeeding(tm.slot)
+			} else if len(tm.seedingTorrents) > tm.maxSeedTask && !tm.fullSeed {
+				tm.maxSeedTask++
 				tm.graceSeeding(tm.slot)
 			}
 			//	case <- timer.C:
@@ -1389,16 +1394,30 @@ func (tm *TorrentManager) activeTorrentLoop() {
 	}
 }
 
-func (tm *TorrentManager) graceSeeding(slot int) error {
-	//s := (tm.maxSeedTask * slot) % group
+func (tm *TorrentManager) dropSeeding(slot int) error {
 	g := int(math.Min(float64(group), float64(tm.maxSeedTask)))
 	s := slot % g
 	i := 0
 	for ih, t := range tm.seedingTorrents {
 		if i%group == s {
 			delete(tm.seedingTorrents, ih)
-			log.Info("Grace invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask)
+			log.Warn("Drop invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask)
 			t.Torrent.Drop()
+		}
+		i++
+	}
+	return nil
+}
+
+func (tm *TorrentManager) graceSeeding(slot int) error {
+	g := int(math.Min(float64(group), float64(tm.maxSeedTask)))
+	s := slot % g
+	i := 0
+	for ih, t := range tm.seedingTorrents {
+		if i%group == s {
+			t.currentConns = t.minEstablishedConns
+			t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
+			log.Warn("Grace invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask)
 		}
 		i++
 	}
