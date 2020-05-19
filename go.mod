@@ -19,12 +19,12 @@ require (
 	github.com/go-resty/resty/v2 v2.3.0-rc.2.0.20200515031036-986808a2a70a
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
-	github.com/gorilla/websocket v1.4.2
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
-	github.com/julienschmidt/httprouter v1.3.0
+	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.4
@@ -38,15 +38,16 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/ucwong/color v1.10.1-0.20200518131954-915014f7ee11
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
-	github.com/ucwong/goleveldb v1.0.3-0.20200519033635-a246e6a765d3
+	github.com/ucwong/goleveldb v1.0.3-0.20200519080156-fe256570fb2f
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200513185701-a91f0712d120
+	golang.org/x/net v0.0.0-20200519113804-d87ec0cfa476
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200515095857-1151b9dac4a9
+	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+	golang.org/x/tools v0.0.0-20200519015757-0d0afa43d58a // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
