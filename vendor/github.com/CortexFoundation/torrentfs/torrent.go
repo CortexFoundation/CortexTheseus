@@ -909,7 +909,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 
 	TorrentManager.metrics = config.Metrics
 
-	TorrentManager.hotCache, _ = lru.New(16)
+	TorrentManager.hotCache, _ = lru.New(32)
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
