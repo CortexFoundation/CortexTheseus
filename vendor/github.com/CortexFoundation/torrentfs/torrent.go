@@ -946,9 +946,9 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 		case t := <-tm.seedingChan:
 			tm.seedingTorrents[t.Torrent.InfoHash()] = t
 			t.Seed()
-			if len(tm.seedingTorrents) > params.LimitSeeding && !tm.fullSeed {
+			if len(tm.seedingTorrents) > params.LimitSeeding {
 				tm.dropSeeding(tm.slot)
-			} else if len(tm.seedingTorrents) > tm.maxSeedTask && !tm.fullSeed {
+			} else if len(tm.seedingTorrents) > tm.maxSeedTask {
 				tm.maxSeedTask++
 				tm.graceSeeding(tm.slot)
 			}
