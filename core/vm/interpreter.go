@@ -23,9 +23,9 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-	torrentfs "github.com/CortexFoundation/torrentfs/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
 	"sync/atomic"
 )
 

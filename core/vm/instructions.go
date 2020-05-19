@@ -26,8 +26,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"golang.org/x/crypto/sha3"
 	torrentfs "github.com/CortexFoundation/torrentfs/types"
+	"golang.org/x/crypto/sha3"
 )
 
 var (

@@ -31,7 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	 torrentfs "github.com/CortexFoundation/torrentfs/types"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
