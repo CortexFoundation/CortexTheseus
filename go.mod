@@ -4,15 +4,10 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.5-0.20200519061101-946d3fe346fc
+	github.com/CortexFoundation/torrentfs v1.0.5-0.20200519070917-c05aad98c0ec
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
-	github.com/anacrolix/log v0.7.0
-	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
-	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200519052258-e33d77339134
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/aws/aws-sdk-go v1.31.0
-	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/cespare/cp v1.1.1
 	github.com/cloudflare/cloudflare-go v0.11.7
@@ -20,7 +15,6 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/elastic/gosigar v0.10.5
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
-	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.3.0-rc.2.0.20200515031036-986808a2a70a
 	github.com/go-stack/stack v1.8.0
@@ -36,7 +30,6 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
-	github.com/pion/webrtc/v2 v2.2.13 // indirect
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0

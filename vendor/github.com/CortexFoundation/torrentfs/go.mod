@@ -9,6 +9,7 @@ require (
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 	github.com/anacrolix/torrent v1.15.1-0.20200519052258-e33d77339134
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4 // indirect
+	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/fsnotify/fsnotify v1.4.9

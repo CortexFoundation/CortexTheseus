@@ -354,10 +354,8 @@ func NewAgent(config *AgentConfig) (*Agent, error) {
 
 	var mDNSConn *mdns.Conn
 	mDNSConn, mDNSMode, err = createMulticastDNS(mDNSMode, mDNSName, log)
-	// Opportunistic mDNS: If we can't open the connection, that's ok: we
-	// can continue without it.
 	if err != nil {
-		log.Warnf("Failed to initialize mDNS %s: %v", mDNSName, err)
+		return nil, err
 	}
 	closeMDNSConn := func() {
 		if mDNSConn != nil {
@@ -810,9 +808,6 @@ func (a *Agent) AddRemoteCandidate(c Candidate) error {
 }
 
 func (a *Agent) resolveAndAddMulticastCandidate(c *CandidateHost) {
-	if a.mDNSConn == nil {
-		return
-	}
 	_, src, err := a.mDNSConn.Query(context.TODO(), c.Address())
 	if err != nil {
 		a.log.Warnf("Failed to discover mDNS candidate %s: %v", c.Address(), err)
