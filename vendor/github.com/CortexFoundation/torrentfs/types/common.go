@@ -22,7 +22,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/anacrolix/torrent/metainfo"
@@ -94,7 +93,7 @@ func (t *Transaction) IsFlowControl() bool {
 
 func (t *Transaction) Parse() *FileMeta {
 	if t.Op() == opCreateInput {
-		var meta types.InputMeta
+		var meta InputMeta
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
@@ -106,7 +105,7 @@ func (t *Transaction) Parse() *FileMeta {
 			//meta.BlockNum.Uint64(),
 		}
 	} else if t.Op() == opCreateModel {
-		var meta types.ModelMeta
+		var meta ModelMeta
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}

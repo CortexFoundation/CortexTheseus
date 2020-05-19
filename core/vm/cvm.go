@@ -27,12 +27,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	 "github.com/CortexFoundation/torrentfs"
+	 torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
