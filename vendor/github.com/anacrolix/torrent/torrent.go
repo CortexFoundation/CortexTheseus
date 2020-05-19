@@ -428,11 +428,14 @@ func (t *Torrent) setInfoBytes(b []byte) error {
 	if err := bencode.Unmarshal(b, &info); err != nil {
 		return fmt.Errorf("error unmarshalling info bytes: %s", err)
 	}
+	t.metadataBytes = b
+	t.metadataCompletedChunks = nil
+	if t.info != nil {
+		return nil
+	}
 	if err := t.setInfo(&info); err != nil {
 		return err
 	}
-	t.metadataBytes = b
-	t.metadataCompletedChunks = nil
 	t.onSetInfo()
 	return nil
 }

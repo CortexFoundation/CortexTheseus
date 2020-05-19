@@ -4,12 +4,12 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.5-0.20200519031313-93fce599d271
+	github.com/CortexFoundation/torrentfs v1.0.5-0.20200519061101-946d3fe346fc
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200519024442-78d14c78d2da
+	github.com/anacrolix/torrent v1.15.1-0.20200519052258-e33d77339134
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/aws/aws-sdk-go v1.31.0
 	github.com/bitly/go-simplejson v0.5.1-0.20200416141419-39a59b1b2866
