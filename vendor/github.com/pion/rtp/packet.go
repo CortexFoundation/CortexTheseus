@@ -6,12 +6,6 @@ import (
 	"io"
 )
 
-// Extension RTP Header extension
-type Extension struct {
-	id      uint8
-	payload []byte
-}
-
 // TODO(@kixelated) Remove Header.PayloadOffset and Packet.Raw
 
 // Header represents an RTP packet header
@@ -28,7 +22,7 @@ type Header struct {
 	SSRC             uint32
 	CSRC             []uint32
 	ExtensionProfile uint16
-	Extensions       []Extension
+	ExtensionPayload []byte
 }
 
 // Packet represents an RTP Packet
@@ -40,28 +34,25 @@ type Packet struct {
 }
 
 const (
-	headerLength            = 4
-	versionShift            = 6
-	versionMask             = 0x3
-	paddingShift            = 5
-	paddingMask             = 0x1
-	extensionShift          = 4
-	extensionMask           = 0x1
-	extensionProfileOneByte = 0xBEDE
-	extensionProfileTwoByte = 0x1000
-	extensionIDReserved     = 0xF
-	ccMask                  = 0xF
-	markerShift             = 7
-	markerMask              = 0x1
-	ptMask                  = 0x7F
-	seqNumOffset            = 2
-	seqNumLength            = 2
-	timestampOffset         = 4
-	timestampLength         = 4
-	ssrcOffset              = 8
-	ssrcLength              = 4
-	csrcOffset              = 12
-	csrcLength              = 4
+	headerLength    = 4
+	versionShift    = 6
+	versionMask     = 0x3
+	paddingShift    = 5
+	paddingMask     = 0x1
+	extensionShift  = 4
+	extensionMask   = 0x1
+	ccMask          = 0xF
+	markerShift     = 7
+	markerMask      = 0x1
+	ptMask          = 0x7F
+	seqNumOffset    = 2
+	seqNumLength    = 2
+	timestampOffset = 4
+	timestampLength = 4
+	ssrcOffset      = 8
+	ssrcLength      = 4
+	csrcOffset      = 12
+	csrcLength      = 4
 )
 
 // String helps with debugging by printing packet information in a readable way
@@ -105,11 +96,6 @@ func (h *Header) Unmarshal(rawPacket []byte) error {
 	h.Extension = (rawPacket[0] >> extensionShift & extensionMask) > 0
 	h.CSRC = make([]uint32, rawPacket[0]&ccMask)
 
-	currOffset := csrcOffset + (len(h.CSRC) * csrcLength)
-	if len(rawPacket) < currOffset {
-		return fmt.Errorf("size %d < %d: %w", len(rawPacket), currOffset, errHeaderSizeInsufficient)
-	}
-
 	h.Marker = (rawPacket[1] >> markerShift & markerMask) > 0
 	h.PayloadType = rawPacket[1] & ptMask
 
@@ -117,17 +103,19 @@ func (h *Header) Unmarshal(rawPacket []byte) error {
 	h.Timestamp = binary.BigEndian.Uint32(rawPacket[timestampOffset : timestampOffset+timestampLength])
 	h.SSRC = binary.BigEndian.Uint32(rawPacket[ssrcOffset : ssrcOffset+ssrcLength])
 
+	currOffset := csrcOffset + (len(h.CSRC) * csrcLength)
+	if len(rawPacket) < currOffset {
+		return fmt.Errorf("RTP header size insufficient; %d < %d", len(rawPacket), currOffset)
+	}
+
 	for i := range h.CSRC {
 		offset := csrcOffset + (i * csrcLength)
 		h.CSRC[i] = binary.BigEndian.Uint32(rawPacket[offset:])
 	}
 
 	if h.Extension {
-		if expected := currOffset + 4; len(rawPacket) < expected {
-			return fmt.Errorf("size %d < %d: %w",
-				len(rawPacket), expected,
-				errHeaderSizeInsufficientForExtension,
-			)
+		if len(rawPacket) < currOffset+4 {
+			return fmt.Errorf("RTP header size insufficient for extension; %d < %d", len(rawPacket), currOffset)
 		}
 
 		h.ExtensionProfile = binary.BigEndian.Uint16(rawPacket[currOffset:])
@@ -135,67 +123,13 @@ func (h *Header) Unmarshal(rawPacket []byte) error {
 		extensionLength := int(binary.BigEndian.Uint16(rawPacket[currOffset:])) * 4
 		currOffset += 2
 
-		if expected := currOffset + extensionLength; len(rawPacket) < expected {
-			return fmt.Errorf("size %d < %d: %w",
-				len(rawPacket), expected,
-				errHeaderSizeInsufficientForExtension,
-			)
+		if len(rawPacket) < currOffset+extensionLength {
+			return fmt.Errorf("RTP header size insufficient for extension length; %d < %d", len(rawPacket), currOffset+extensionLength)
 		}
 
-		switch h.ExtensionProfile {
-		// RFC 8285 RTP One Byte Header Extension
-		case extensionProfileOneByte:
-			end := currOffset + extensionLength
-			for currOffset < end {
-				if rawPacket[currOffset] == 0x00 { // padding
-					currOffset++
-					continue
-				}
-
-				extid := rawPacket[currOffset] >> 4
-				len := int(rawPacket[currOffset]&^0xF0 + 1)
-				currOffset++
-
-				if extid == extensionIDReserved {
-					break
-				}
-
-				extension := Extension{id: extid, payload: rawPacket[currOffset : currOffset+len]}
-				h.Extensions = append(h.Extensions, extension)
-				currOffset += len
-			}
-
-		// RFC 8285 RTP Two Byte Header Extension
-		case extensionProfileTwoByte:
-			end := currOffset + extensionLength
-			for currOffset < end {
-				if rawPacket[currOffset] == 0x00 { // padding
-					currOffset++
-					continue
-				}
-
-				extid := rawPacket[currOffset]
-				currOffset++
-
-				len := int(rawPacket[currOffset])
-				currOffset++
-
-				extension := Extension{id: extid, payload: rawPacket[currOffset : currOffset+len]}
-				h.Extensions = append(h.Extensions, extension)
-				currOffset += len
-			}
-
-		default: // RFC3550 Extension
-			if len(rawPacket) < currOffset+extensionLength {
-				return fmt.Errorf("RTP header size insufficient for extension length; %d < %d", len(rawPacket), currOffset+extensionLength)
-			}
-
-			extension := Extension{id: 0, payload: rawPacket[currOffset : currOffset+extensionLength]}
-			h.Extensions = append(h.Extensions, extension)
-			currOffset += len(h.Extensions[0].payload)
-		}
+		h.ExtensionPayload = rawPacket[currOffset : currOffset+extensionLength]
+		currOffset += len(h.ExtensionPayload)
 	}
-
 	h.PayloadOffset = currOffset
 
 	return nil
@@ -272,52 +206,23 @@ func (h *Header) MarshalTo(buf []byte) (n int, err error) {
 		n += 4
 	}
 
-	if h.Extension {
-		extHeaderPos := n
-		binary.BigEndian.PutUint16(buf[n+0:n+2], h.ExtensionProfile)
-		n += 4
-		startExtensionsPos := n
-
-		switch h.ExtensionProfile {
-		// RFC 8285 RTP One Byte Header Extension
-		case extensionProfileOneByte:
-			for _, extension := range h.Extensions {
-				buf[n] = extension.id<<4 | (uint8(len(extension.payload)) - 1)
-				n++
-				n += copy(buf[n:], extension.payload)
-			}
-		// RFC 8285 RTP Two Byte Header Extension
-		case extensionProfileTwoByte:
-			for _, extension := range h.Extensions {
-				buf[n] = extension.id
-				n++
-				buf[n] = uint8(len(extension.payload))
-				n++
-				n += copy(buf[n:], extension.payload)
-			}
-		default: // RFC3550 Extension
-			extlen := len(h.Extensions[0].payload)
-			if extlen%4 != 0 {
-				//the payload must be in 32-bit words.
-				return 0, io.ErrShortBuffer
-			}
-			n += copy(buf[n:], h.Extensions[0].payload)
-		}
-
-		// calculate extensions size and round to 4 bytes boundaries
-		extSize := n - startExtensionsPos
-		roundedExtSize := ((extSize + 3) / 4) * 4
-
-		binary.BigEndian.PutUint16(buf[extHeaderPos+2:extHeaderPos+4], uint16(roundedExtSize/4))
-
-		// add padding to reach 4 bytes boundaries
-		for i := 0; i < roundedExtSize-extSize; i++ {
-			buf[n] = 0
-			n++
-		}
-	}
-
+	// Calculate the size of the header by seeing how many bytes we're written.
+	// TODO This is a BUG but fixing it causes more issues.
 	h.PayloadOffset = n
+
+	if h.Extension {
+		if len(h.ExtensionPayload)%4 != 0 {
+			//the payload must be in 32-bit words.
+			return 0, io.ErrShortBuffer
+		}
+		extSize := uint16(len(h.ExtensionPayload) / 4)
+
+		binary.BigEndian.PutUint16(buf[n+0:n+2], h.ExtensionProfile)
+		binary.BigEndian.PutUint16(buf[n+2:n+4], extSize)
+		n += 4
+
+		n += copy(buf[n:], h.ExtensionPayload)
+	}
 
 	return n, nil
 }
@@ -328,106 +233,10 @@ func (h *Header) MarshalSize() int {
 	size := 12 + (len(h.CSRC) * csrcLength)
 
 	if h.Extension {
-		extSize := 4
-
-		switch h.ExtensionProfile {
-		// RFC 8285 RTP One Byte Header Extension
-		case extensionProfileOneByte:
-			for _, extension := range h.Extensions {
-				extSize += 1 + len(extension.payload)
-			}
-		// RFC 8285 RTP Two Byte Header Extension
-		case extensionProfileTwoByte:
-			for _, extension := range h.Extensions {
-				extSize += 2 + len(extension.payload)
-			}
-		default:
-			extSize += len(h.Extensions[0].payload)
-		}
-
-		// extensions size must have 4 bytes boundaries
-		size += ((extSize + 3) / 4) * 4
+		size += 4 + len(h.ExtensionPayload)
 	}
 
 	return size
-}
-
-// SetExtension sets an RTP header extension
-func (h *Header) SetExtension(id uint8, payload []byte) error {
-	if h.Extension {
-		switch h.ExtensionProfile {
-		// RFC 8285 RTP One Byte Header Extension
-		case extensionProfileOneByte:
-			if id < 1 || id > 14 {
-				return fmt.Errorf("header extension id must be between 1 and 14 for RFC 5285 extensions")
-			}
-			if len(payload) > 16 {
-				return fmt.Errorf("header extension payload must be 16bytes or less for RFC 5285 one byte extensions")
-			}
-		// RFC 8285 RTP Two Byte Header Extension
-		case extensionProfileTwoByte:
-			if id < 1 || id > 255 {
-				return fmt.Errorf("header extension id must be between 1 and 255 for RFC 5285 extensions")
-			}
-			if len(payload) > 255 {
-				return fmt.Errorf("header extension payload must be 255bytes or less for RFC 5285 two byte extensions")
-			}
-		default: // RFC3550 Extension
-			if id != 0 {
-				return fmt.Errorf("header extension id must be 0 for none RFC 5285 extensions")
-			}
-		}
-
-		// Update existing if it exists else add new extension
-		for i, extension := range h.Extensions {
-			if extension.id == id {
-				h.Extensions[i].payload = payload
-				return nil
-			}
-		}
-		h.Extensions = append(h.Extensions, Extension{id: id, payload: payload})
-		return nil
-	}
-
-	// No existing header extensions
-	h.Extension = true
-
-	switch len := len(payload); {
-	case len < 16:
-		h.ExtensionProfile = extensionProfileOneByte
-	case len > 16 && len < 256:
-		h.ExtensionProfile = extensionProfileTwoByte
-	}
-
-	h.Extensions = append(h.Extensions, Extension{id: id, payload: payload})
-	return nil
-}
-
-// GetExtension returns an RTP header extension
-func (h *Header) GetExtension(id uint8) []byte {
-	if !h.Extension {
-		return nil
-	}
-	for _, extension := range h.Extensions {
-		if extension.id == id {
-			return extension.payload
-		}
-	}
-	return nil
-}
-
-// DelExtension Removes an RTP Header extension
-func (h *Header) DelExtension(id uint8) error {
-	if !h.Extension {
-		return fmt.Errorf("h.Extension not enabled")
-	}
-	for i, extension := range h.Extensions {
-		if extension.id == id {
-			h.Extensions = append(h.Extensions[:i], h.Extensions[i+1:]...)
-			return nil
-		}
-	}
-	return fmt.Errorf("extension not found")
 }
 
 // Marshal serializes the packet into bytes.

@@ -26,6 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -703,8 +704,8 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]b
 	modelAddr := common.BigToAddress(_modelAddr)
 	inputAddr := common.BigToAddress(_inputAddr)
 	var (
-		modelMeta *types.ModelMeta
-		inputMeta *types.InputMeta
+		modelMeta *torrentfs.ModelMeta
+		inputMeta *torrentfs.InputMeta
 	)
 	modelMeta, modelErr := checkModel(interpreter.cvm, callContext.stack, modelAddr)
 	if modelErr != nil {
@@ -795,9 +796,9 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]b
 	return nil, nil
 }
 
-func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*types.ModelMeta, error) {
+func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*torrentfs.ModelMeta, error) {
 	var (
-		modelMeta *types.ModelMeta
+		modelMeta *torrentfs.ModelMeta
 	)
 	var err error
 	if modelMeta, err = cvm.GetModelMeta(modelAddr); err != nil {
@@ -829,9 +830,9 @@ func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*types.ModelM
 	return modelMeta, nil
 }
 
-func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*types.InputMeta, error) {
+func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*torrentfs.InputMeta, error) {
 	var (
-		inputMeta *types.InputMeta
+		inputMeta *torrentfs.InputMeta
 		err       error
 	)
 	if inputMeta, err = cvm.GetInputMeta(inputAddr); err != nil {

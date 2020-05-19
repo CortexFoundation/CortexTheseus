@@ -335,6 +335,10 @@ func (d *DataChannel) Send(data []byte) error {
 		return err
 	}
 
+	if len(data) == 0 {
+		data = []byte{0}
+	}
+
 	_, err = d.dataChannel.WriteDataChannel(data, false)
 	return err
 }
@@ -346,7 +350,12 @@ func (d *DataChannel) SendText(s string) error {
 		return err
 	}
 
-	_, err = d.dataChannel.WriteDataChannel([]byte(s), true)
+	data := []byte(s)
+	if len(data) == 0 {
+		data = []byte{0}
+	}
+
+	_, err = d.dataChannel.WriteDataChannel(data, true)
 	return err
 }
 

@@ -23,9 +23,9 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
 	"sync/atomic"
 )
 
@@ -257,7 +257,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 		//log.Trace(fmt.Sprintf("contract.Code = %v", contract.Code))
 		//log.Info("Contract code", "code", contract.Code)
-		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
+		if modelMeta, err := torrentfs.ParseModelMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
 			log.Debug("Model meta",
@@ -323,7 +323,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, nil
 		}
 
-		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
+		if inputMeta, err := torrentfs.ParseInputMeta(contract.Code); err != nil {
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {

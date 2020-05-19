@@ -9,6 +9,4 @@ const (
 
 	// Equal to UDP MTU
 	receiveMTU = 1460
-
-	mediaSectionApplication = "application"
 )
