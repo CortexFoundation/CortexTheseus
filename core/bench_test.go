@@ -150,7 +150,7 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	// Create the database in memory or in a temporary directory.
 	var db ctxcdb.Database
 	if !disk {
-		db = ctxcdb.NewMemDatabase()
+		db = rawdb.NewMemoryDatabase()
 	} else {
 		dir, err := ioutil.TempDir("", "eth-core-bench")
 		if err != nil {

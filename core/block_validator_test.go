@@ -33,7 +33,7 @@ import (
 func TestHeaderVerification(t *testing.T) {
 	// Create a simple chain to verify
 	var (
-		testdb  = ctxcdb.NewMemDatabase()
+		testdb  = rawdb.NewMemoryDatabase()
 		gspec   = &Genesis{Config: params.TestChainConfig}
 		genesis = gspec.MustCommit(testdb)
 	)
@@ -87,7 +87,7 @@ func TestHeaderConcurrentVerification32(t *testing.T) { testHeaderConcurrentVeri
 func testHeaderConcurrentVerification(t *testing.T, threads int) {
 	// Create a simple chain to verify
 	var (
-		testdb    = ctxcdb.NewMemDatabase()
+		testdb    = rawdb.NewMemoryDatabase()
 		gspec     = &Genesis{Config: params.TestChainConfig}
 		genesis   = gspec.MustCommit(testdb)
 		blocks, _ = GenerateChain(params.TestChainConfig, genesis, cuckoo.NewFaker(), testdb, 8, nil)
@@ -158,7 +158,7 @@ func TestHeaderConcurrentAbortion32(t *testing.T) { testHeaderConcurrentAbortion
 func testHeaderConcurrentAbortion(t *testing.T, threads int) {
 	// Create a simple chain to verify
 	var (
-		testdb    = ctxcdb.NewMemDatabase()
+		testdb    = rawdb.NewMemoryDatabase()
 		gspec     = &Genesis{Config: params.TestChainConfig}
 		genesis   = gspec.MustCommit(testdb)
 		blocks, _ = GenerateChain(params.TestChainConfig, genesis, cuckoo.NewFaker(), testdb, 1024, nil)

@@ -366,7 +366,7 @@ func testGetNodeData(t *testing.T, protocol int) {
 			t.Errorf("data hash mismatch: have %x, want %x", hash, want)
 		}
 	}
-	statedb := ctxcdb.NewMemDatabase()
+	statedb := rawdb.NewMemoryDatabase()
 	for i := 0; i < len(data); i++ {
 		statedb.Put(hashes[i].Bytes(), data[i])
 	}
@@ -468,7 +468,7 @@ func testDAOChallenge(t *testing.T, localForked, remoteForked bool, timeout bool
 	var (
 		cvmux         = new(event.TypeMux)
 		pow           = cuckoo.NewFaker()
-		db            = ctxcdb.NewMemDatabase()
+		db            = rawdb.NewMemoryDatabase()
 		config        = &params.ChainConfig{DAOForkBlock: big.NewInt(1), DAOForkSupport: localForked}
 		gspec         = &core.Genesis{Config: config}
 		genesis       = gspec.MustCommit(db)
