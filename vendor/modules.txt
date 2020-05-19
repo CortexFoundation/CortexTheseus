@@ -63,7 +63,7 @@ github.com/anacrolix/sync
 # github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
 ## explicit
 github.com/anacrolix/tagflag
-# github.com/anacrolix/torrent v1.15.1-0.20200513073216-461403c0f506
+# github.com/anacrolix/torrent v1.15.1-0.20200519024442-78d14c78d2da
 ## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -85,7 +85,7 @@ github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 ## explicit
 github.com/aristanetworks/goarista/monotime
-# github.com/aws/aws-sdk-go v1.30.29
+# github.com/aws/aws-sdk-go v1.31.0
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -290,7 +290,6 @@ github.com/pion/quic/internal/wrapper
 # github.com/pion/rtcp v1.2.1
 github.com/pion/rtcp
 # github.com/pion/rtp v1.5.3
-## explicit
 github.com/pion/rtp
 github.com/pion/rtp/codecs
 # github.com/pion/sctp v1.7.6
@@ -314,7 +313,7 @@ github.com/pion/turn/v2/internal/client
 github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
-# github.com/pion/webrtc/v2 v2.2.12
+# github.com/pion/webrtc/v2 v2.2.13
 ## explicit
 github.com/pion/webrtc/v2
 github.com/pion/webrtc/v2/internal/mux
@@ -364,7 +363,7 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.3-0.20200518131927-78697bdcc3e2
+# github.com/ucwong/goleveldb v1.0.3-0.20200519033635-a246e6a765d3
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache
