@@ -80,10 +80,10 @@ tracker:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/tracker\" to launch tracker."
 
-seeding:
-	build/env.sh go run build/ci.go install ./cmd/seeding
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
+#seeding:
+#	build/env.sh go run build/ci.go install ./cmd/seeding
+#	@echo "Done building."
+#	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
 wnode:
 	build/env.sh go run build/ci.go install ./cmd/wnode
 	@echo "Done building."
