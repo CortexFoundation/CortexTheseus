@@ -94,7 +94,7 @@ torrent-test:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
 
-cvm: plugins/cpu_cvm.so
+cvm: plugins/lib_cvm.so
 	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
@@ -112,18 +112,18 @@ plugins/cpu_helper_for_node.so:
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
 
 # TODO(ryt): configure the gpu version
-plugins/cpu_cvm.so:
+plugins/lib_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
 	@mkdir -p plugins
 	ln -sf ../cvm-runtime/build/libcvm_runtime.so $@
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
-clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
+clib_cpu: plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
-clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
+clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/lib_cvm.so
 
-clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
+clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
 inferServer: clib
 	build/env.sh go run build/ci.go install ./cmd/infer_server

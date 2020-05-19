@@ -592,12 +592,6 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 
 	start := mclock.Now()
 
-	log.Warn("[current code version]",
-		"blockNumber", cvm.BlockNumber,
-		"IsByzantium", cvm.chainRules.IsByzantium,
-		"IsHomestead", cvm.chainRules.IsHomestead,
-		"IsIstanbul", cvm.chainRules.IsIstanbul)
-
 	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.BlockNumber)
 	inferRes, errRes = synapse.Engine().InferByInfoHash(
 		modelInfoHash, inputInfoHash, cvmVersion)

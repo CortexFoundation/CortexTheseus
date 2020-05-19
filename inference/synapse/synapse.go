@@ -15,7 +15,7 @@ import (
 var synapseInstance *Synapse = nil
 
 const PLUGIN_PATH string = "plugins/"
-const PLUGIN_POST_FIX string = "_cvm.so"
+const PLUGIN_POST_FIX string = "lib_cvm.so"
 
 const MinMemoryUsage int64 = 2 * 1024 * 1024 * 1024
 const ReservedMemoryUsage int64 = 512 * 1024 * 1024
@@ -64,7 +64,8 @@ func Engine() *Synapse {
 }
 
 func New(config *Config) *Synapse {
-	path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX
+	// path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX
+	path := PLUGIN_PATH + PLUGIN_POST_FIX
 	if synapseInstance != nil {
 		log.Warn("Synapse Engine has been initalized")
 		if config.Debug {
