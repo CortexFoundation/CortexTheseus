@@ -18,6 +18,8 @@ package state
 
 import (
 	"bytes"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/state/snapshot"
 	"math/big"
 	"testing"
 
@@ -39,10 +41,10 @@ type testAccount struct {
 func makeTestState() (Database, common.Hash, []*testAccount) {
 	// Create an empty state
 	db := NewDatabase(rawdb.NewMemoryDatabase())
-	state, _ := New(common.Hash{}, db)
+	state, _ := New(common.Hash{}, db, &snapshot.Tree{})
 
 	// Fill it with some arbitrary data
-	accounts := []*testAccount{}
+	var accounts []*testAccount
 	for i := byte(0); i < 96; i++ {
 		obj := state.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
 		acc := &testAccount{address: common.BytesToAddress([]byte{i})}
@@ -70,7 +72,7 @@ func makeTestState() (Database, common.Hash, []*testAccount) {
 // account array.
 func checkStateAccounts(t *testing.T, db ctxcdb.Database, root common.Hash, accounts []*testAccount) {
 	// Check root availability and state contents
-	state, err := New(root, NewDatabase(db))
+	state, err := New(root, NewDatabase(db), &snapshot.Tree{})
 	if err != nil {
 		t.Fatalf("failed to create state trie at %x: %v", root, err)
 	}
@@ -95,11 +97,11 @@ func checkTrieConsistency(db ctxcdb.Database, root common.Hash) error {
 	if v, _ := db.Get(root[:]); v == nil {
 		return nil // Consider a non existent state consistent.
 	}
-	trie, err := trie.New(root, trie.NewDatabase(db))
+	newTrie, err := trie.New(root, trie.NewDatabase(db))
 	if err != nil {
 		return err
 	}
-	it := trie.NodeIterator(nil)
+	it := newTrie.NodeIterator(nil)
 	for it.Next(true) {
 	}
 	return it.Error()
@@ -111,7 +113,7 @@ func checkStateConsistency(db ctxcdb.Database, root common.Hash) error {
 	if _, err := db.Get(root.Bytes()); err != nil {
 		return nil // Consider a non existent state consistent.
 	}
-	state, err := New(root, NewDatabase(db))
+	state, err := New(root, NewDatabase(db), &snapshot.Tree{})
 	if err != nil {
 		return err
 	}
@@ -124,7 +126,7 @@ func checkStateConsistency(db ctxcdb.Database, root common.Hash) error {
 // Tests that an empty state is not scheduled for syncing.
 func TestEmptyStateSync(t *testing.T) {
 	empty := common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-	if req := NewStateSync(empty, rawdb.NewMemoryDatabase()).Missing(1); len(req) != 0 {
+	if req := NewStateSync(empty, rawdb.NewMemoryDatabase(), &trie.SyncBloom{}).Missing(1); len(req) != 0 {
 		t.Errorf("content requested for empty state: %v", req)
 	}
 }
@@ -140,7 +142,8 @@ func testIterativeStateSync(t *testing.T, batch int) {
 
 	// Create a destination state and sync with the scheduler
 	dstDb := rawdb.NewMemoryDatabase()
-	sched := NewStateSync(srcRoot, dstDb)
+	dstBatch := dstDb.NewBatch()
+	sched := NewStateSync(srcRoot, dstDb, nil)
 
 	queue := append([]common.Hash{}, sched.Missing(batch)...)
 	for len(queue) > 0 {
@@ -155,8 +158,8 @@ func testIterativeStateSync(t *testing.T, batch int) {
 		if _, index, err := sched.Process(results); err != nil {
 			t.Fatalf("failed to process result #%d: %v", index, err)
 		}
-		if index, err := sched.Commit(dstDb); err != nil {
-			t.Fatalf("failed to commit data #%d: %v", index, err)
+		if err := sched.Commit(dstBatch); err != nil {
+			t.Fatalf("failed to commit data: %v", err)
 		}
 		queue = append(queue[:0], sched.Missing(batch)...)
 	}
@@ -172,7 +175,8 @@ func TestIterativeDelayedStateSync(t *testing.T) {
 
 	// Create a destination state and sync with the scheduler
 	dstDb := rawdb.NewMemoryDatabase()
-	sched := NewStateSync(srcRoot, dstDb)
+	dstBatch := dstDb.NewBatch()
+	sched := NewStateSync(srcRoot, dstDb, nil)
 
 	queue := append([]common.Hash{}, sched.Missing(0)...)
 	for len(queue) > 0 {
@@ -188,8 +192,8 @@ func TestIterativeDelayedStateSync(t *testing.T) {
 		if _, index, err := sched.Process(results); err != nil {
 			t.Fatalf("failed to process result #%d: %v", index, err)
 		}
-		if index, err := sched.Commit(dstDb); err != nil {
-			t.Fatalf("failed to commit data #%d: %v", index, err)
+		if err := sched.Commit(dstBatch); err != nil {
+			t.Fatalf("failed to commit data: %v", err)
 		}
 		queue = append(queue[len(results):], sched.Missing(0)...)
 	}
@@ -209,7 +213,8 @@ func testIterativeRandomStateSync(t *testing.T, batch int) {
 
 	// Create a destination state and sync with the scheduler
 	dstDb := rawdb.NewMemoryDatabase()
-	sched := NewStateSync(srcRoot, dstDb)
+	dstBatch := dstDb.NewBatch()
+	sched := NewStateSync(srcRoot, dstDb, nil)
 
 	queue := make(map[common.Hash]struct{})
 	for _, hash := range sched.Missing(batch) {
@@ -229,8 +234,8 @@ func testIterativeRandomStateSync(t *testing.T, batch int) {
 		if _, index, err := sched.Process(results); err != nil {
 			t.Fatalf("failed to process result #%d: %v", index, err)
 		}
-		if index, err := sched.Commit(dstDb); err != nil {
-			t.Fatalf("failed to commit data #%d: %v", index, err)
+		if err := sched.Commit(dstBatch); err != nil {
+			t.Fatalf("failed to commit data: %v", err)
 		}
 		queue = make(map[common.Hash]struct{})
 		for _, hash := range sched.Missing(batch) {
@@ -249,7 +254,8 @@ func TestIterativeRandomDelayedStateSync(t *testing.T) {
 
 	// Create a destination state and sync with the scheduler
 	dstDb := rawdb.NewMemoryDatabase()
-	sched := NewStateSync(srcRoot, dstDb)
+	dstBatch := dstDb.NewBatch()
+	sched := NewStateSync(srcRoot, dstDb, nil)
 
 	queue := make(map[common.Hash]struct{})
 	for _, hash := range sched.Missing(0) {
@@ -275,8 +281,8 @@ func TestIterativeRandomDelayedStateSync(t *testing.T) {
 		if _, index, err := sched.Process(results); err != nil {
 			t.Fatalf("failed to process result #%d: %v", index, err)
 		}
-		if index, err := sched.Commit(dstDb); err != nil {
-			t.Fatalf("failed to commit data #%d: %v", index, err)
+		if err := sched.Commit(dstBatch); err != nil {
+			t.Fatalf("failed to commit data: %v", err)
 		}
 		for _, hash := range sched.Missing(0) {
 			queue[hash] = struct{}{}
@@ -292,13 +298,14 @@ func TestIncompleteStateSync(t *testing.T) {
 	// Create a random state to copy
 	srcDb, srcRoot, srcAccounts := makeTestState()
 
-	checkTrieConsistency(srcDb.TrieDB().DiskDB().(ctxcdb.Database), srcRoot)
+	_ = checkTrieConsistency(srcDb.TrieDB().DiskDB().(ctxcdb.Database), srcRoot)
 
 	// Create a destination state and sync with the scheduler
 	dstDb := rawdb.NewMemoryDatabase()
-	sched := NewStateSync(srcRoot, dstDb)
+	dstBatch := dstDb.NewBatch()
+	sched := NewStateSync(srcRoot, dstDb, nil)
 
-	added := []common.Hash{}
+	var added []common.Hash
 	queue := append([]common.Hash{}, sched.Missing(1)...)
 	for len(queue) > 0 {
 		// Fetch a batch of state nodes
@@ -314,8 +321,8 @@ func TestIncompleteStateSync(t *testing.T) {
 		if _, index, err := sched.Process(results); err != nil {
 			t.Fatalf("failed to process result #%d: %v", index, err)
 		}
-		if index, err := sched.Commit(dstDb); err != nil {
-			t.Fatalf("failed to commit data #%d: %v", index, err)
+		if err := sched.Commit(dstBatch); err != nil {
+			t.Fatalf("failed to commit data: %v", err)
 		}
 		for _, result := range results {
 			added = append(added, result.Hash)
@@ -342,10 +349,10 @@ func TestIncompleteStateSync(t *testing.T) {
 		key := node.Bytes()
 		value, _ := dstDb.Get(key)
 
-		dstDb.Delete(key)
+		_ = dstDb.Delete(key)
 		if err := checkStateConsistency(dstDb, added[0]); err == nil {
 			t.Fatalf("trie inconsistency not caught, missing: %x", key)
 		}
-		dstDb.Put(key, value)
+		_ = dstDb.Put(key, value)
 	}
 }

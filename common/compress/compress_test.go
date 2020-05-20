@@ -13,7 +13,7 @@ func TestCountValues(t *testing.T) {
 	fmt.Println("original data len:", len(data))
 
 	// compress data
-	compressedData, compressedDataErr := zipData(data)
+	compressedData, compressedDataErr := ZipData(data)
 	if compressedDataErr != nil {
 		log.Fatal(compressedDataErr)
 	}
@@ -22,7 +22,7 @@ func TestCountValues(t *testing.T) {
 	fmt.Println("compressed data len:", len(compressedData))
 
 	// uncompress data
-	uncompressedData, uncompressedDataErr := unzipData(compressedData)
+	uncompressedData, uncompressedDataErr := UnzipData(compressedData)
 	if uncompressedDataErr != nil {
 		log.Fatal(uncompressedDataErr)
 	}
