@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/davecgh/go-spew/spew"
 )
 
