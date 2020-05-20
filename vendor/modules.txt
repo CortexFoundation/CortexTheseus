@@ -389,7 +389,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200519113804-d87ec0cfa476
+# golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
