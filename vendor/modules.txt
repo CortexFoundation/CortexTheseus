@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.5-0.20200519070917-c05aad98c0ec
+# github.com/CortexFoundation/torrentfs v1.0.5-0.20200519135722-9681d5ba27a5
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/params
@@ -173,7 +173,6 @@ github.com/google/btree
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
-## explicit
 github.com/gorilla/websocket
 # github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
 ## explicit
@@ -200,9 +199,6 @@ github.com/influxdata/influxdb/pkg/escape
 github.com/jackpal/go-nat-pmp
 # github.com/jmespath/go-jmespath v0.3.0
 github.com/jmespath/go-jmespath
-# github.com/julienschmidt/httprouter v1.3.0
-## explicit
-github.com/julienschmidt/httprouter
 # github.com/kr/pretty v0.2.0
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
@@ -345,7 +341,7 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.3-0.20200519033635-a246e6a765d3
+# github.com/ucwong/goleveldb v1.0.3-0.20200519080156-fe256570fb2f
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache
@@ -393,7 +389,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200513185701-a91f0712d120
+# golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
@@ -410,7 +406,7 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200515095857-1151b9dac4a9
+# golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

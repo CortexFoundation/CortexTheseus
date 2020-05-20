@@ -11,14 +11,14 @@ import (
 )
 
 var (
-	ErrorCodeTypeMeta      = errors.New("Meta should start with 0x0001 or 0x0002")
-	ErrorCodeTypeModelMeta = errors.New("Model meta should start with 0x0001")
-	ErrorCodeTypeInputMeta = errors.New("Input meta should start with 0x0002")
-	ErrorDecodeModelMeta   = errors.New("Model meta decode error")
-	ErrorDecodeInputMeta   = errors.New("Input meta decode error")
-	ErrorNotMature         = errors.New("Not mature")
-	ErrorExpired           = errors.New("Meta Expired")
-	ErrorInvalidBlockNum   = errors.New("Invalid block number")
+	ErrorCodeTypeMeta      = errors.New("meta should start with 0x0001 or 0x0002")
+	ErrorCodeTypeModelMeta = errors.New("model meta should start with 0x0001")
+	ErrorCodeTypeInputMeta = errors.New("input meta should start with 0x0002")
+	ErrorDecodeModelMeta   = errors.New("model meta decode error")
+	ErrorDecodeInputMeta   = errors.New("input meta decode error")
+	ErrorNotMature         = errors.New("not mature")
+	ErrorExpired           = errors.New("meta Expired")
+	ErrorInvalidBlockNum   = errors.New("invalid block number")
 )
 
 //InferMeta include ModelMeta struct and InputMeta type
