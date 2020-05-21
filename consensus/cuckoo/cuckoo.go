@@ -19,6 +19,8 @@ import (
 
 var sharedCuckoo = New(Config{PowMode: ModeNormal})
 
+var two256 = new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0))
+
 var ErrInvalidDumpMagic = errors.New("invalid dump magic")
 
 var (
