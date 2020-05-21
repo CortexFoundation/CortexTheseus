@@ -531,6 +531,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 // Start implements node.Service, starting all internal goroutines needed by the
 // Cortex protocol implementation.
 func (s *Cortex) Start(srvr *p2p.Server) error {
+	s.startCtxcEntryUpdate(srvr.LocalNode())
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
