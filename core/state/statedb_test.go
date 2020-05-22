@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"math"
 	"math/big"
 	"math/rand"
@@ -32,7 +33,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 // Tests that updating a state trie does not leak any database writes prior to
@@ -40,7 +40,7 @@ import (
 func TestUpdateLeaks(t *testing.T) {
 	// Create an empty state database
 	db := rawdb.NewMemoryDatabase()
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	// Update it with some accounts
 	for i := byte(0); i < 255; i++ {
@@ -55,11 +55,13 @@ func TestUpdateLeaks(t *testing.T) {
 		}
 		state.IntermediateRoot(false)
 	}
+
 	// Ensure that no data was leaked into the database
-	for _, key := range db.Keys() {
-		value, _ := db.Get(key)
-		t.Errorf("State leaked into database: %x -> %x", key, value)
+	it := db.NewIterator(nil, nil)
+	for it.Next() {
+		t.Errorf("State leaked into database: %x -> %x", it.Key(), it.Value())
 	}
+	it.Release()
 }
 
 // Tests that no intermediate state of an object is stored into the database,
@@ -68,8 +70,8 @@ func TestIntermediateLeaks(t *testing.T) {
 	// Create two state databases, one transitioning to the final state, the other final from the beginning
 	transDb := rawdb.NewMemoryDatabase()
 	finalDb := rawdb.NewMemoryDatabase()
-	transState, _ := New(common.Hash{}, NewDatabase(transDb))
-	finalState, _ := New(common.Hash{}, NewDatabase(finalDb))
+	transState, _ := New(common.Hash{}, NewDatabase(transDb), nil)
+	finalState, _ := New(common.Hash{}, NewDatabase(finalDb), nil)
 
 	modify := func(state *StateDB, addr common.Address, i, tweak byte) {
 		state.SetBalance(addr, big.NewInt(int64(11*i)+int64(tweak)))
@@ -85,34 +87,56 @@ func TestIntermediateLeaks(t *testing.T) {
 
 	// Modify the transient state.
 	for i := byte(0); i < 255; i++ {
-		modify(transState, common.Address{byte(i)}, i, 0)
+		modify(transState, common.Address{i}, i, 0)
 	}
 	// Write modifications to trie.
 	transState.IntermediateRoot(false)
 
 	// Overwrite all the data with new values in the transient database.
 	for i := byte(0); i < 255; i++ {
-		modify(transState, common.Address{byte(i)}, i, 99)
-		modify(finalState, common.Address{byte(i)}, i, 99)
+		modify(transState, common.Address{i}, i, 99)
+		modify(finalState, common.Address{i}, i, 99)
 	}
 
 	// Commit and cross check the databases.
-	if _, err := transState.Commit(false); err != nil {
+	transRoot, err := transState.Commit(false)
+	if err != nil {
 		t.Fatalf("failed to commit transition state: %v", err)
 	}
-	if _, err := finalState.Commit(false); err != nil {
+	if err = transState.Database().TrieDB().Commit(transRoot, false); err != nil {
+		t.Errorf("can not commit trie %v to persistent database", transRoot.Hex())
+	}
+
+	finalRoot, err := finalState.Commit(false)
+	if err != nil {
 		t.Fatalf("failed to commit final state: %v", err)
 	}
-	for _, key := range finalDb.Keys() {
-		if _, err := transDb.Get(key); err != nil {
-			val, _ := finalDb.Get(key)
-			t.Errorf("entry missing from the transition database: %x -> %x", key, val)
+	if err = finalState.Database().TrieDB().Commit(finalRoot, false); err != nil {
+		t.Errorf("can not commit trie %v to persistent database", finalRoot.Hex())
+	}
+
+	it := finalDb.NewIterator(nil, nil)
+	for it.Next() {
+		key, fvalue := it.Key(), it.Value()
+		tvalue, err := transDb.Get(key)
+		if err != nil {
+			t.Errorf("entry missing from the transition database: %x -> %x", key, fvalue)
+		}
+		if !bytes.Equal(fvalue, tvalue) {
+			t.Errorf("the value associate key %x is mismatch,: %x in transition database ,%x in final database", key, tvalue, fvalue)
 		}
 	}
-	for _, key := range transDb.Keys() {
-		if _, err := finalDb.Get(key); err != nil {
-			val, _ := transDb.Get(key)
-			t.Errorf("extra entry in the transition database: %x -> %x", key, val)
+	it.Release()
+
+	it = transDb.NewIterator(nil, nil)
+	for it.Next() {
+		key, tvalue := it.Key(), it.Value()
+		fvalue, err := finalDb.Get(key)
+		if err != nil {
+			t.Errorf("extra entry in the transition database: %x -> %x", key, it.Value())
+		}
+		if !bytes.Equal(fvalue, tvalue) {
+			t.Errorf("the value associate key %x is mismatch,: %x in transition database ,%x in final database", key, tvalue, fvalue)
 		}
 	}
 }
@@ -122,7 +146,7 @@ func TestIntermediateLeaks(t *testing.T) {
 // https://github.com/CortexFoundation/CortexTheseus/pull/15549.
 func TestCopy(t *testing.T) {
 	// Create a random state test to copy and modify "independently"
-	orig, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	orig, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
 	for i := byte(0); i < 255; i++ {
 		obj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
@@ -333,7 +357,7 @@ func (test *snapshotTest) String() string {
 func (test *snapshotTest) run() bool {
 	// Run all actions and create snapshots.
 	var (
-		state, _     = New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+		state, _     = New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 		snapshotRevs = make([]int, len(test.snapshots))
 		sindex       = 0
 	)
@@ -347,7 +371,7 @@ func (test *snapshotTest) run() bool {
 	// Revert all snapshots in reverse order. Each revert must yield a state
 	// that is equivalent to fresh state with all actions up the snapshot applied.
 	for sindex--; sindex >= 0; sindex-- {
-		checkstate, _ := New(common.Hash{}, state.Database())
+		checkstate, _ := New(common.Hash{}, state.Database(), nil)
 		for _, action := range test.actions[:test.snapshots[sindex]] {
 			action.fn(action, checkstate)
 		}
@@ -424,14 +448,14 @@ func (s *StateSuite) TestTouchDelete(c *check.C) {
 // TestCopyOfCopy tests that modified objects are carried over to the copy, and the copy of the copy.
 // See https://github.com/CortexFoundation/CortexTheseus/pull/15225#issuecomment-380191512
 func TestCopyOfCopy(t *testing.T) {
-	sdb, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	addr := common.HexToAddress("aaaa")
-	sdb.SetBalance(addr, big.NewInt(42))
+	state.SetBalance(addr, big.NewInt(42))
 
-	if got := sdb.Copy().GetBalance(addr).Uint64(); got != 42 {
+	if got := state.Copy().GetBalance(addr).Uint64(); got != 42 {
 		t.Fatalf("1st copy fail, expected 42, got %v", got)
 	}
-	if got := sdb.Copy().Copy().GetBalance(addr).Uint64(); got != 42 {
+	if got := state.Copy().Copy().GetBalance(addr).Uint64(); got != 42 {
 		t.Fatalf("2nd copy fail, expected 42, got %v", got)
 	}
 }

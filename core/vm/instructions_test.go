@@ -46,7 +46,7 @@ func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64
 		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
 		stack.push(x)
 		stack.push(shift)
-		opFn(&pc, cvmInterpreter, nil, nil, stack)
+		opFn(&pc, cvmInterpreter, &callCtx{nil, stack, nil})
 		actual := stack.pop()
 		if actual.Cmp(expected) != 0 {
 			t.Errorf("Testcase %d, expected  %v, got %v", i, expected, actual)
@@ -100,7 +100,7 @@ func TestByteOp(t *testing.T) {
 		th := new(big.Int).SetUint64(test.th)
 		stack.push(val)
 		stack.push(th)
-		opByte(&pc, cvmInterpreter, nil, nil, stack)
+		opByte(&pc, cvmInterpreter, &callCtx{nil, stack, nil})
 		actual := stack.pop()
 		if actual.Cmp(test.expected) != 0 {
 			t.Fatalf("Expected  [%v] %v:th byte to be %v, was %v.", test.v, test.th, test.expected, actual)
@@ -227,7 +227,7 @@ func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *CVMInterpret
 			a := new(big.Int).SetBytes(arg)
 			stack.push(a)
 		}
-		op(&pc, cvmInterpreter, nil, nil, stack)
+		op(&pc, cvmInterpreter, &callCtx{nil, stack, nil})
 		stack.pop()
 	}
 	poolOfIntPools.put(cvmInterpreter.intPool)
@@ -455,12 +455,12 @@ func TestOpMstore(t *testing.T) {
 	pc := uint64(0)
 	v := "abcdef00000000000000abba000000000deaf000000c0de00100000000133700"
 	stack.pushN(new(big.Int).SetBytes(common.Hex2Bytes(v)), big.NewInt(0))
-	opMstore(&pc, cvmInterpreter, nil, mem, stack)
+	opMstore(&pc, cvmInterpreter, &callCtx{mem, stack, nil})
 	if got := common.Bytes2Hex(mem.Get(0, 32)); got != v {
 		t.Fatalf("Mstore fail, got %v, expected %v", got, v)
 	}
 	stack.pushN(big.NewInt(0x1), big.NewInt(0))
-	opMstore(&pc, cvmInterpreter, nil, mem, stack)
+	opMstore(&pc, cvmInterpreter, &callCtx{mem, stack, nil})
 	if common.Bytes2Hex(mem.Get(0, 32)) != "0000000000000000000000000000000000000000000000000000000000000001" {
 		t.Fatalf("Mstore failed to overwrite previous value")
 	}
@@ -485,7 +485,7 @@ func BenchmarkOpMstore(bench *testing.B) {
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
 		stack.pushN(value, memStart)
-		opMstore(&pc, cvmInterpreter, nil, mem, stack)
+		opMstore(&pc, cvmInterpreter, &callCtx{mem, stack, nil})
 	}
 	poolOfIntPools.put(cvmInterpreter.intPool)
 }

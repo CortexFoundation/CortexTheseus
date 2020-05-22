@@ -17,7 +17,6 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -27,13 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
-	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
-	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
 //Used for testing
@@ -121,26 +116,26 @@ func tmpDirName(t *testing.T) string {
 	return d
 }
 
-func setup(t *testing.T) (*SignerAPI, chan string) {
-
-	controller := make(chan string, 10)
-
-	db, err := NewAbiDBFromFile("../../cmd/clef/4byte.json")
-	if err != nil {
-		utils.Fatalf(err.Error())
-	}
-	var (
-		ui  = &HeadlessUI{controller}
-		api = NewSignerAPI(
-			1,
-			tmpDirName(t),
-			true,
-			ui,
-			db,
-			true)
-	)
-	return api, controller
-}
+//func setup(t *testing.T) (*SignerAPI, chan string) {
+//
+//	controller := make(chan string, 10)
+//
+//	db, err := NewAbiDBFromFile("../../cmd/clef/4byte.json")
+//	if err != nil {
+//		utils.Fatalf(err.Error())
+//	}
+//	var (
+//		ui  = &HeadlessUI{controller}
+//		api = NewSignerAPI(
+//			1,
+//			tmpDirName(t),
+//			true,
+//			ui,
+//			db,
+//			true)
+//	)
+//	return api, controller
+//}
 func createAccount(control chan string, api *SignerAPI, t *testing.T) {
 
 	control <- "Y"
@@ -171,89 +166,89 @@ func list(control chan string, api *SignerAPI, t *testing.T) []Account {
 	return list
 }
 
-func TestNewAcc(t *testing.T) {
-
-	api, control := setup(t)
-	verifyNum := func(num int) {
-		if list := list(control, api, t); len(list) != num {
-			t.Errorf("Expected %d accounts, got %d", num, len(list))
-		}
-	}
-	// Testing create and create-deny
-	createAccount(control, api, t)
-	createAccount(control, api, t)
-	failCreateAccount(control, api, t)
-	failCreateAccount(control, api, t)
-	createAccount(control, api, t)
-	failCreateAccount(control, api, t)
-	createAccount(control, api, t)
-	failCreateAccount(control, api, t)
-	verifyNum(4)
-
-	// Testing listing:
-	// Listing one Account
-	control <- "1"
-	list, err := api.List(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(list) != 1 {
-		t.Fatalf("List should only show one Account")
-	}
-	// Listing denied
-	control <- "Nope"
-	list, err = api.List(context.Background())
-	if len(list) != 0 {
-		t.Fatalf("List should be empty")
-	}
-	if err != ErrRequestDenied {
-		t.Fatal("Expected deny")
-	}
-}
-
-func TestSignData(t *testing.T) {
-
-	api, control := setup(t)
-	//Create two accounts
-	createAccount(control, api, t)
-	createAccount(control, api, t)
-	control <- "1"
-	list, err := api.List(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	a := common.NewMixedcaseAddress(list[0].Address)
-
-	control <- "Y"
-	control <- "wrongpassword"
-	h, err := api.Sign(context.Background(), a, []byte("EHLO world"))
-	if h != nil {
-		t.Errorf("Expected nil-data, got %x", h)
-	}
-	if err != keystore.ErrDecrypt {
-		t.Errorf("Expected ErrLocked! %v", err)
-	}
-
-	control <- "No way"
-	h, err = api.Sign(context.Background(), a, []byte("EHLO world"))
-	if h != nil {
-		t.Errorf("Expected nil-data, got %x", h)
-	}
-	if err != ErrRequestDenied {
-		t.Errorf("Expected ErrRequestDenied! %v", err)
-	}
-
-	control <- "Y"
-	control <- "apassword"
-	h, err = api.Sign(context.Background(), a, []byte("EHLO world"))
-
-	if err != nil {
-		t.Fatal(err)
-	}
-	if h == nil || len(h) != 65 {
-		t.Errorf("Expected 65 byte signature (got %d bytes)", len(h))
-	}
-}
+//func TestNewAcc(t *testing.T) {
+//
+//	api, control := setup(t)
+//	verifyNum := func(num int) {
+//		if list := list(control, api, t); len(list) != num {
+//			t.Errorf("Expected %d accounts, got %d", num, len(list))
+//		}
+//	}
+//	// Testing create and create-deny
+//	createAccount(control, api, t)
+//	createAccount(control, api, t)
+//	failCreateAccount(control, api, t)
+//	failCreateAccount(control, api, t)
+//	createAccount(control, api, t)
+//	failCreateAccount(control, api, t)
+//	createAccount(control, api, t)
+//	failCreateAccount(control, api, t)
+//	verifyNum(4)
+//
+//	// Testing listing:
+//	// Listing one Account
+//	control <- "1"
+//	list, err := api.List(context.Background())
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	if len(list) != 1 {
+//		t.Fatalf("List should only show one Account")
+//	}
+//	// Listing denied
+//	control <- "Nope"
+//	list, err = api.List(context.Background())
+//	if len(list) != 0 {
+//		t.Fatalf("List should be empty")
+//	}
+//	if err != ErrRequestDenied {
+//		t.Fatal("Expected deny")
+//	}
+//}
+//
+//func TestSignData(t *testing.T) {
+//
+//	api, control := setup(t)
+//	//Create two accounts
+//	createAccount(control, api, t)
+//	createAccount(control, api, t)
+//	control <- "1"
+//	list, err := api.List(context.Background())
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	a := common.NewMixedcaseAddress(list[0].Address)
+//
+//	control <- "Y"
+//	control <- "wrongpassword"
+//	h, err := api.Sign(context.Background(), a, []byte("EHLO world"))
+//	if h != nil {
+//		t.Errorf("Expected nil-data, got %x", h)
+//	}
+//	if err != keystore.ErrDecrypt {
+//		t.Errorf("Expected ErrLocked! %v", err)
+//	}
+//
+//	control <- "No way"
+//	h, err = api.Sign(context.Background(), a, []byte("EHLO world"))
+//	if h != nil {
+//		t.Errorf("Expected nil-data, got %x", h)
+//	}
+//	if err != ErrRequestDenied {
+//		t.Errorf("Expected ErrRequestDenied! %v", err)
+//	}
+//
+//	control <- "Y"
+//	control <- "apassword"
+//	h, err = api.Sign(context.Background(), a, []byte("EHLO world"))
+//
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	if h == nil || len(h) != 65 {
+//		t.Errorf("Expected 65 byte signature (got %d bytes)", len(h))
+//	}
+//}
 func mkTestTx(from common.MixedcaseAddress) SendTxArgs {
 	to := common.NewMixedcaseAddress(common.HexToAddress("0x1337"))
 	gas := hexutil.Uint64(21000)
@@ -272,90 +267,90 @@ func mkTestTx(from common.MixedcaseAddress) SendTxArgs {
 	return tx
 }
 
-func TestSignTx(t *testing.T) {
-
-	var (
-		list      Accounts
-		res, res2 *ctxcapi.SignTransactionResult
-		err       error
-	)
-
-	api, control := setup(t)
-	createAccount(control, api, t)
-	control <- "A"
-	list, err = api.List(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	a := common.NewMixedcaseAddress(list[0].Address)
-
-	methodSig := "test(uint)"
-	tx := mkTestTx(a)
-
-	control <- "Y"
-	control <- "wrongpassword"
-	res, err = api.SignTransaction(context.Background(), tx, &methodSig)
-	if res != nil {
-		t.Errorf("Expected nil-response, got %v", res)
-	}
-	if err != keystore.ErrDecrypt {
-		t.Errorf("Expected ErrLocked! %v", err)
-	}
-
-	control <- "No way"
-	res, err = api.SignTransaction(context.Background(), tx, &methodSig)
-	if res != nil {
-		t.Errorf("Expected nil-response, got %v", res)
-	}
-	if err != ErrRequestDenied {
-		t.Errorf("Expected ErrRequestDenied! %v", err)
-	}
-
-	control <- "Y"
-	control <- "apassword"
-	res, err = api.SignTransaction(context.Background(), tx, &methodSig)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-	parsedTx := &types.Transaction{}
-	rlp.Decode(bytes.NewReader(res.Raw), parsedTx)
-	//The tx should NOT be modified by the UI
-	if parsedTx.Value().Cmp(tx.Value.ToInt()) != 0 {
-		t.Errorf("Expected value to be unchanged, expected %v got %v", tx.Value, parsedTx.Value())
-	}
-	control <- "Y"
-	control <- "apassword"
-
-	res2, err = api.SignTransaction(context.Background(), tx, &methodSig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(res.Raw, res2.Raw) {
-		t.Error("Expected tx to be unmodified by UI")
-	}
-
-	//The tx is modified by the UI
-	control <- "M"
-	control <- "apassword"
-
-	res2, err = api.SignTransaction(context.Background(), tx, &methodSig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	parsedTx2 := &types.Transaction{}
-	rlp.Decode(bytes.NewReader(res.Raw), parsedTx2)
-	//The tx should be modified by the UI
-	if parsedTx2.Value().Cmp(tx.Value.ToInt()) != 0 {
-		t.Errorf("Expected value to be unchanged, got %v", parsedTx.Value())
-	}
-
-	if bytes.Equal(res.Raw, res2.Raw) {
-		t.Error("Expected tx to be modified by UI")
-	}
-
-}
+//func TestSignTx(t *testing.T) {
+//
+//	var (
+//		list      Accounts
+//		res, res2 *ctxcapi.SignTransactionResult
+//		err       error
+//	)
+//
+//	api, control := setup(t)
+//	createAccount(control, api, t)
+//	control <- "A"
+//	list, err = api.List(context.Background())
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	a := common.NewMixedcaseAddress(list[0].Address)
+//
+//	methodSig := "test(uint)"
+//	tx := mkTestTx(a)
+//
+//	control <- "Y"
+//	control <- "wrongpassword"
+//	res, err = api.SignTransaction(context.Background(), tx, &methodSig)
+//	if res != nil {
+//		t.Errorf("Expected nil-response, got %v", res)
+//	}
+//	if err != keystore.ErrDecrypt {
+//		t.Errorf("Expected ErrLocked! %v", err)
+//	}
+//
+//	control <- "No way"
+//	res, err = api.SignTransaction(context.Background(), tx, &methodSig)
+//	if res != nil {
+//		t.Errorf("Expected nil-response, got %v", res)
+//	}
+//	if err != ErrRequestDenied {
+//		t.Errorf("Expected ErrRequestDenied! %v", err)
+//	}
+//
+//	control <- "Y"
+//	control <- "apassword"
+//	res, err = api.SignTransaction(context.Background(), tx, &methodSig)
+//
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	parsedTx := &types.Transaction{}
+//	rlp.Decode(bytes.NewReader(res.Raw), parsedTx)
+//	//The tx should NOT be modified by the UI
+//	if parsedTx.Value().Cmp(tx.Value.ToInt()) != 0 {
+//		t.Errorf("Expected value to be unchanged, expected %v got %v", tx.Value, parsedTx.Value())
+//	}
+//	control <- "Y"
+//	control <- "apassword"
+//
+//	res2, err = api.SignTransaction(context.Background(), tx, &methodSig)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	if !bytes.Equal(res.Raw, res2.Raw) {
+//		t.Error("Expected tx to be unmodified by UI")
+//	}
+//
+//	//The tx is modified by the UI
+//	control <- "M"
+//	control <- "apassword"
+//
+//	res2, err = api.SignTransaction(context.Background(), tx, &methodSig)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	parsedTx2 := &types.Transaction{}
+//	rlp.Decode(bytes.NewReader(res.Raw), parsedTx2)
+//	//The tx should be modified by the UI
+//	if parsedTx2.Value().Cmp(tx.Value.ToInt()) != 0 {
+//		t.Errorf("Expected value to be unchanged, got %v", parsedTx.Value())
+//	}
+//
+//	if bytes.Equal(res.Raw, res2.Raw) {
+//		t.Error("Expected tx to be modified by UI")
+//	}
+//
+//}
 
 /*
 func TestAsyncronousResponses(t *testing.T){

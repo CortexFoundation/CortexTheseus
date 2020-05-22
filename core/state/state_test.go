@@ -18,6 +18,7 @@ package state
 
 import (
 	"bytes"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"math/big"
 	"testing"
 
@@ -28,7 +29,7 @@ import (
 )
 
 type StateSuite struct {
-	db    *ctxcdb.MemDatabase
+	db    *ctxcdb.Database
 	state *StateDB
 }
 
@@ -51,7 +52,7 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	s.state.Commit(false)
 
 	// check that dump contains the state objects that are in trie
-	got := string(s.state.Dump())
+	got := string(s.state.Dump(false, false, true))
 	want := `{
     "root": "71edff0130dd2385947095001c73d9e28d862fc286fca2b922ca6f6f3cddfdd2",
     "accounts": {
@@ -86,10 +87,10 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	}
 }
 
-func (s *StateSuite) SetUpTest(c *checker.C) {
-	s.db = rawdb.NewMemoryDatabase()
-	s.state, _ = New(common.Hash{}, NewDatabase(s.db))
-}
+//func (s *StateSuite) SetUpTest(c *checker.C) {
+//	s.db = rawdb.NewMemoryDatabase()
+//	s.state, _ = New(common.Hash{}, NewDatabase(s.db))
+//}
 
 func (s *StateSuite) TestNull(c *checker.C) {
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
@@ -133,7 +134,7 @@ func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
 // use testing instead of checker because checker does not support
 // printing/logging in tests (-check.vv does not work)
 func TestSnapshot2(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
 	stateobjaddr0 := toAddr([]byte("so0"))
 	stateobjaddr1 := toAddr([]byte("so1"))
@@ -208,24 +209,30 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		t.Fatalf("Code mismatch: have %v, want %v", so0.code, so1.code)
 	}
 
-	if len(so1.cachedStorage) != len(so0.cachedStorage) {
-		t.Errorf("Storage size mismatch: have %d, want %d", len(so1.cachedStorage), len(so0.cachedStorage))
+	if len(so1.dirtyStorage) != len(so0.dirtyStorage) {
+		t.Errorf("Dirty storage size mismatch: have %d, want %d", len(so1.dirtyStorage), len(so0.dirtyStorage))
 	}
-	for k, v := range so1.cachedStorage {
-		if so0.cachedStorage[k] != v {
-			t.Errorf("Storage key %x mismatch: have %v, want %v", k, so0.cachedStorage[k], v)
+	for k, v := range so1.dirtyStorage {
+		if so0.dirtyStorage[k] != v {
+			t.Errorf("Dirty storage key %x mismatch: have %v, want %v", k, so0.dirtyStorage[k], v)
 		}
 	}
-	for k, v := range so0.cachedStorage {
-		if so1.cachedStorage[k] != v {
-			t.Errorf("Storage key %x mismatch: have %v, want none.", k, v)
+	for k, v := range so0.dirtyStorage {
+		if so1.dirtyStorage[k] != v {
+			t.Errorf("Dirty storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
-
-	if so0.suicided != so1.suicided {
-		t.Fatalf("suicided mismatch: have %v, want %v", so0.suicided, so1.suicided)
+	if len(so1.originStorage) != len(so0.originStorage) {
+		t.Errorf("Origin storage size mismatch: have %d, want %d", len(so1.originStorage), len(so0.originStorage))
 	}
-	if so0.deleted != so1.deleted {
-		t.Fatalf("Deleted mismatch: have %v, want %v", so0.deleted, so1.deleted)
+	for k, v := range so1.originStorage {
+		if so0.originStorage[k] != v {
+			t.Errorf("Origin storage key %x mismatch: have %v, want %v", k, so0.originStorage[k], v)
+		}
+	}
+	for k, v := range so0.originStorage {
+		if so1.originStorage[k] != v {
+			t.Errorf("Origin storage key %x mismatch: have %v, want none.", k, v)
+		}
 	}
 }

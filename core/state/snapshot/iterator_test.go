@@ -102,13 +102,12 @@ func TestFastIteratorBasics(t *testing.T) {
 			{9, 10}, {10, 13, 15, 16}},
 			expKeys: []byte{0, 1, 2, 7, 8, 9, 10, 13, 14, 15, 16}},
 	} {
-		var iterators []*weightedAccountIterator
+		var iterators []*weightedIterator
 		for i, data := range tc.lists {
 			it := newTestIterator(data...)
-			iterators = append(iterators, &weightedAccountIterator{it, i})
-
+			iterators = append(iterators, &weightedIterator{it, i})
 		}
-		fi := &fastAccountIterator{
+		fi := &fastIterator{
 			iterators: iterators,
 			initiated: false,
 		}
