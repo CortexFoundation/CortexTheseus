@@ -167,10 +167,10 @@ const PLUGIN_POST_FIX string = "_helper_for_node.so"
 func (cuckoo *Cuckoo) initPlugin() error {
 	start := mclock.Now()
 	var minerName string = "cpu"
-	if cuckoo.config.UseCuda == true {
+	if cuckoo.config.UseCuda {
 		minerName = "cuda"
 		cuckoo.threads = 1
-	} else if cuckoo.config.UseOpenCL == true {
+	} else if cuckoo.config.UseOpenCL {
 		minerName = "opencl"
 		cuckoo.threads = 1
 	}
