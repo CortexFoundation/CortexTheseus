@@ -20,7 +20,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/common/compress"
+	"github.com/CortexFoundation/torrentfs/compress"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
@@ -1486,7 +1486,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		var key = infohash + subpath
 		if fs.cache {
 			if cache, ok := fs.fileCache.Get(key); ok {
-				if c, err := fs.unzip(cache.([]byte), fs.compress); err != nil {
+				if c, err := fs.unzip(cache.([]byte)); err != nil {
 					return nil, err
 				} else {
 					if fs.compress {
@@ -1496,10 +1496,13 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 				}
 			}
 		}
+
 		fs.fileLock.Lock()
 		defer fs.fileLock.Unlock()
-		fn := path.Join(fs.DataDir, infohash, subpath)
-		data, err := ioutil.ReadFile(fn)
+
+		data, err := ioutil.ReadFile(path.Join(fs.DataDir, infohash, subpath))
+
+		//data final verification
 		for _, file := range torrent.Files() {
 			log.Debug("File path info", "path", file.Path(), "subpath", subpath)
 			if file.Path() == subpath[1:] {
@@ -1508,15 +1511,15 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 					return nil, errors.New("not a complete file")
 				} else {
 					log.Debug("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
-					if c, err := fs.zip(data, fs.compress); err != nil {
+					if c, err := fs.zip(data); err != nil {
 						log.Warn("Compress data failed", "hash", infohash, "err", err)
 					} else {
 						if fs.cache {
 							fs.fileCache.Add(key, c)
 						}
 					}
-					break
 				}
+				break
 			}
 		}
 
@@ -1528,16 +1531,16 @@ func (fs *TorrentManager) release() {
 	<-fs.fileCh
 }
 
-func (fs *TorrentManager) unzip(data []byte, c bool) ([]byte, error) {
-	if c {
+func (fs *TorrentManager) unzip(data []byte) ([]byte, error) {
+	if fs.compress {
 		return compress.UnzipData(data)
 	} else {
 		return data, nil
 	}
 }
 
-func (fs *TorrentManager) zip(data []byte, c bool) ([]byte, error) {
-	if c {
+func (fs *TorrentManager) zip(data []byte) ([]byte, error) {
+	if fs.compress {
 		return compress.ZipData(data)
 	} else {
 		return data, nil
