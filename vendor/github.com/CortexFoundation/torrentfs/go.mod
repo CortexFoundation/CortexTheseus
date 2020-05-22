@@ -7,7 +7,7 @@ require (
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200521021710-c04f09ee4296
+	github.com/anacrolix/torrent v1.15.1-0.20200521063114-6ea0344efd80
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/edsrzf/mmap-go v1.0.0
