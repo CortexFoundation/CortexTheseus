@@ -62,10 +62,10 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
-		SectionIndex: 47,
-		SectionHead:  common.HexToHash("0x124adbbddac6c6210a8b3802c8eca155990cb3290da45fcee948e014f8ae71aa"),
+		SectionIndex: 48,
+		SectionHead:  common.HexToHash("0xd2251642cc4da39c91ed54c91f77f037dd259ea8d89126fa3a59290cb64e6b0d"),
 	}
-	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
+
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "dolores",
 		SectionIndex: 1,
@@ -137,6 +137,26 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       nil,
 		Cuckoo:              new(CuckooConfig),
+	}
+
+	// TestnetChainConfig contains the chain parameters to run a node on the flood test network.
+	FloodChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(44),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.HexToHash("0x"),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		Clique: &CliqueConfig{
+			Period: 15,
+			Epoch:  30000,
+		},
 	}
 
 	// AllCuckooProtocolChanges contains every protocol change (EIPs) introduced
