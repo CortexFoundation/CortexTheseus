@@ -1,6 +1,7 @@
 package synapse
 
 import (
+	"context"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
@@ -50,6 +51,8 @@ type Synapse struct {
 	lib    *kernel.LibCVM
 	caches map[int]*lru.Cache
 	exitCh chan struct{}
+
+	ctx context.Context
 }
 
 func Engine() *Synapse {
@@ -92,6 +95,8 @@ func New(config *Config) *Synapse {
 		exitCh: make(chan struct{}),
 		caches: make(map[int]*lru.Cache),
 	}
+
+	synapseInstance.ctx = context.Background()
 
 	log.Info("Initialising Synapse Engine", "Cache Disabled", config.IsNotCache)
 	return synapseInstance
