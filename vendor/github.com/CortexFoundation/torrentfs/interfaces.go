@@ -14,3 +14,14 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 package torrentfs
+
+type CortexStorage interface {
+	Available(infohash string, rawSize int64) (bool, error)
+	GetFile(infohash, path string) ([]byte, error)
+	Stop() error
+}
+
+//type StorageAPI interface {
+//      Available(ih string, raw int64) (bool, error)
+//    GetFile(infohash, subpath string) ([]byte, error)
+//}
