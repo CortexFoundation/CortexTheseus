@@ -15,24 +15,6 @@ import (
 	//lru "github.com/hashicorp/golang-lru"
 )
 
-type CVMStorage interface {
-	Available(infohash string, rawSize int64) (bool, error)
-	GetFile(infohash, path string) ([]byte, error)
-	Stop() error
-}
-
-type StorageAPI interface {
-	//Start() error
-	//Close() error
-	//RemoveTorrent(metainfo.Hash) error
-	//UpdateTorrent(interface{}) error
-	//UpdateDynamicTrackers(trackers []string)
-	//GetTorrent(ih metainfo.Hash) *Torrent
-	Available(ih string, raw int64) (bool, error)
-	GetFile(infohash, subpath string) ([]byte, error)
-	//Metrics() time.Duration
-}
-
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
 	//protocol p2p.Protocol // Protocol description and parameters
@@ -61,7 +43,7 @@ type TorrentFS struct {
 //	return t.monitor
 //}
 
-func (t *TorrentFS) storage() StorageAPI {
+func (t *TorrentFS) storage() *TorrentManager {
 	return t.monitor.dl
 }
 
@@ -74,7 +56,7 @@ var torrentInstance *TorrentFS = nil
 //	return torrentInstance
 //}
 
-func GetStorage() CVMStorage {
+func GetStorage() CortexStorage {
 	return torrentInstance //GetTorrentInstance()
 }
 

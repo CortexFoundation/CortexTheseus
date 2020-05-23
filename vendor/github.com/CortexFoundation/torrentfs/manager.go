@@ -111,7 +111,7 @@ type TorrentManager struct {
 }
 
 func (tm *TorrentManager) GetLimitation(value int64) int64 {
-        return ((value + block - 1) / block) * block
+	return ((value + block - 1) / block) * block
 }
 
 func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {

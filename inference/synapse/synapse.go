@@ -27,7 +27,7 @@ type Config struct {
 	InferURI       string `toml:",omitempty"`
 	Debug          bool   `toml:",omitempty"`
 	MaxMemoryUsage int64
-	Storagefs      torrentfs.CVMStorage
+	Storagefs      torrentfs.CortexStorage
 }
 
 var DefaultConfig Config = Config{
