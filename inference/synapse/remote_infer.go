@@ -26,7 +26,7 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash string) (uint64, error) {
 	}
 	log.Debug("remoteGasByModelHash", "request", string(requestBody))
 
-	retArray, err := s.sendRequest(string(requestBody))
+	retArray, err := s.sendRequest(requestBody)
 	if err != nil {
 		return 0, err
 	}
@@ -48,7 +48,7 @@ func (s *Synapse) remoteAvailable(infoHash string, rawSize int64) error {
 	}
 	log.Debug("remoteAvailable", "request", string(requestBody))
 
-	_, err := s.sendRequest(string(requestBody))
+	_, err := s.sendRequest(requestBody)
 	return err
 }
 
@@ -65,7 +65,7 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string) ([]
 	}
 	log.Debug("remoteInferByInfoHash", "request", string(requestBody))
 
-	return s.sendRequest(string(requestBody))
+	return s.sendRequest(requestBody)
 }
 
 func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
@@ -81,12 +81,12 @@ func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent [
 			"body", inferWork, "err", err)
 		return nil, KERNEL_RUNTIME_ERROR
 	}
-	log.Debug("remoteInferByInputContent", "request", string(requestBody)[:20])
+	//log.Debug("remoteInferByInputContent", "request", string(requestBody)[:20])
 
-	return s.sendRequest(string(requestBody))
+	return s.sendRequest(requestBody)
 }
 
-func (s *Synapse) sendRequest(requestBody string) ([]byte, error) {
+func (s *Synapse) sendRequest(requestBody []byte) ([]byte, error) {
 	/*cacheKey := RLPHashString(requestBody)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
