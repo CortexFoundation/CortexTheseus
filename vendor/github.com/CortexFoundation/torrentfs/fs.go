@@ -11,6 +11,7 @@ import (
 	"time"
 	//"errors"
 	//"github.com/CortexFoundation/CortexTheseus/common/compress"
+	"context"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	//lru "github.com/hashicorp/golang-lru"
 )
@@ -212,7 +213,7 @@ func (tfs *TorrentFS) Stop() error {
 //	return fs.fsUpdates
 //}
 
-func (fs *TorrentFS) Available(infohash string, rawSize int64) (bool, error) {
+func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize int64) (bool, error) {
 	/*if fs.metrics {
 		defer func(start time.Time) { fs.fsUpdates += time.Since(start) }(time.Now())
 	}
@@ -251,7 +252,7 @@ func (fs *TorrentFS) zip(data []byte, c bool) ([]byte, error) {
 	}
 }*/
 
-func (fs *TorrentFS) GetFile(infohash, subpath string) ([]byte, error) {
+func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]byte, error) {
 	return fs.storage().GetFile(infohash, subpath)
 	/*if fs.metrics {
 		defer func(start time.Time) { fs.fsUpdates += time.Since(start) }(time.Now())
