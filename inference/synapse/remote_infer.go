@@ -26,7 +26,7 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash string) (uint64, error) {
 	}
 	log.Debug("remoteGasByModelHash", "request", string(requestBody))
 
-	retArray, err := s.sendRequest(string(requestBody), s.config.InferURI)
+	retArray, err := s.sendRequest(string(requestBody))
 	if err != nil {
 		return 0, err
 	}
@@ -48,7 +48,7 @@ func (s *Synapse) remoteAvailable(infoHash string, rawSize int64) error {
 	}
 	log.Debug("remoteAvailable", "request", string(requestBody))
 
-	_, err := s.sendRequest(string(requestBody), s.config.InferURI)
+	_, err := s.sendRequest(string(requestBody))
 	return err
 }
 
@@ -65,7 +65,7 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string) ([]
 	}
 	log.Debug("remoteInferByInfoHash", "request", string(requestBody))
 
-	return s.sendRequest(string(requestBody), s.config.InferURI)
+	return s.sendRequest(string(requestBody))
 }
 
 func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
@@ -83,10 +83,10 @@ func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent [
 	}
 	log.Debug("remoteInferByInputContent", "request", string(requestBody)[:20])
 
-	return s.sendRequest(string(requestBody), s.config.InferURI)
+	return s.sendRequest(string(requestBody))
 }
 
-func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
+func (s *Synapse) sendRequest(requestBody string) ([]byte, error) {
 	/*cacheKey := RLPHashString(requestBody)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
@@ -97,7 +97,7 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 		SetHeader("Content-Type", "application/json; charset=utf-8").
 		SetHeader("Accept", "application/json; charset=utf-8").
 		SetBody(requestBody).
-		Post(uri)
+		Post(s.config.InferURI)
 	if err != nil || resp == nil {
 		log.Warn("remote infer: request response failed", "error", err, "body", requestBody)
 		return nil, KERNEL_RUNTIME_ERROR
@@ -123,13 +123,12 @@ func (s *Synapse) sendRequest(requestBody, uri string) ([]byte, error) {
 	}
 	// res.Info == inference.RES_ERROR
 	err_str := string(res.Data)
-	if err_str == KERNEL_RUNTIME_ERROR.Error() {
-		return nil, KERNEL_RUNTIME_ERROR
-	} else if err_str == KERNEL_LOGIC_ERROR.Error() {
+
+	if err_str == KERNEL_LOGIC_ERROR.Error() {
 		return nil, KERNEL_LOGIC_ERROR
 	}
 
-	log.Error("remote infer: error cannot recognized, set runtime_error by default",
-		"error", err_str)
+	log.Debug("VM runtime error", "err", err_str, "req", requestBody)
+
 	return nil, KERNEL_RUNTIME_ERROR
 }

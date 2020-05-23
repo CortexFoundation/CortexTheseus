@@ -11,13 +11,28 @@ import (
 	"sync"
 )
 
-var synapseInstance *Synapse = nil
+var (
+	synapseInstance *Synapse = nil
 
-const PLUGIN_PATH string = "plugins/"
-const PLUGIN_POST_FIX string = "_cvm.so"
+	DefaultConfig Config = Config{
+		// StorageDir:    "",
+		IsNotCache:     false,
+		DeviceType:     "cpu",
+		DeviceId:       0,
+		IsRemoteInfer:  false,
+		InferURI:       "",
+		Debug:          false,
+		MaxMemoryUsage: 4 * 1024 * 1024 * 1024,
+	}
+)
 
-const MinMemoryUsage int64 = 2 * 1024 * 1024 * 1024
-const ReservedMemoryUsage int64 = 512 * 1024 * 1024
+const (
+	PLUGIN_PATH     string = "plugins/"
+	PLUGIN_POST_FIX string = "_cvm.so"
+
+	MinMemoryUsage      int64 = 2 * 1024 * 1024 * 1024
+	ReservedMemoryUsage int64 = 512 * 1024 * 1024
+)
 
 type Config struct {
 	// StorageDir    string `toml:",omitempty"`
@@ -31,17 +46,6 @@ type Config struct {
 	Storagefs      torrentfs.CortexStorage
 }
 
-var DefaultConfig Config = Config{
-	// StorageDir:    "",
-	IsNotCache:     false,
-	DeviceType:     "cpu",
-	DeviceId:       0,
-	IsRemoteInfer:  false,
-	InferURI:       "",
-	Debug:          false,
-	MaxMemoryUsage: 4 * 1024 * 1024 * 1024,
-}
-
 type Synapse struct {
 	config      *Config
 	simpleCache sync.Map
@@ -50,7 +54,7 @@ type Synapse struct {
 	mutex  sync.Mutex
 	lib    *kernel.LibCVM
 	caches map[int]*lru.Cache
-	exitCh chan struct{}
+	//exitCh chan struct{}
 
 	ctx context.Context
 }
@@ -92,7 +96,7 @@ func New(config *Config) *Synapse {
 	synapseInstance = &Synapse{
 		config: config,
 		lib:    lib,
-		exitCh: make(chan struct{}),
+		//exitCh: make(chan struct{}),
 		caches: make(map[int]*lru.Cache),
 	}
 
@@ -103,7 +107,7 @@ func New(config *Config) *Synapse {
 }
 
 func (s *Synapse) Close() {
-	close(s.exitCh)
+	//close(s.exitCh)
 	if s.config.Storagefs != nil {
 		s.config.Storagefs.Stop()
 	}
