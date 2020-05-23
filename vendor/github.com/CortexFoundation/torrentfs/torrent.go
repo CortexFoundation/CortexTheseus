@@ -148,7 +148,7 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
 	return nil
 }
 
-func (t *Torrent) Ready() bool {
+func (t *Torrent) IsAvailable() bool {
 	if _, ok := BadFiles[t.InfoHash()]; ok {
 		return false
 	}
