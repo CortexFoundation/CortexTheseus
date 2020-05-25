@@ -26,7 +26,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent"
-	//	"net"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
 )
@@ -178,16 +177,6 @@ func (t *Torrent) WriteTorrent() error {
 	}
 }
 
-func (t *Torrent) SeedInQueue() {
-	if t.status == torrentSeedingInQueue {
-		return
-	}
-	t.status = torrentSeedingInQueue
-	t.currentConns = t.minEstablishedConns
-	t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
-	log.Info("Mute seeding", "ih", t.InfoHash(), "weight", t.weight, "peers", t.currentConns)
-}
-
 func (t *Torrent) BoostOff() {
 	t.isBoosting = false
 }
@@ -221,8 +210,7 @@ func (t *Torrent) Seed() {
 }
 
 func (t *Torrent) Seeding() bool {
-	return t.Torrent.Info() != nil && (t.status == torrentSeeding ||
-		t.status == torrentSeedingInQueue) && t.BytesMissing() == 0
+	return t.Torrent.Info() != nil && t.status == torrentSeeding && t.BytesMissing() == 0
 }
 
 func (t *Torrent) Pause() {

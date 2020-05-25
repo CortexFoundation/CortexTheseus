@@ -24,8 +24,3 @@ type CortexStorage interface {
 	GetFile(ctx context.Context, infohash, path string) ([]byte, error)
 	Stop() error
 }
-
-//type StorageAPI interface {
-//      Available(ih string, raw int64) (bool, error)
-//    GetFile(infohash, subpath string) ([]byte, error)
-//}

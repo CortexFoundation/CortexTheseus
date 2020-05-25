@@ -21,7 +21,7 @@ const (
 	SyncBatch = 4096
 	Delay     = 12
 	//Scope     = 4
-	TIER         = 3
+	//TIER         = 3
 	LEAFS        = 32768
 	LimitSeeding = 2048
 )

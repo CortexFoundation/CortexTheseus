@@ -228,8 +228,7 @@ func (m *Monitor) indexInit() error {
 			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 			if m.lastNumber > checkpoint.TfsCheckPoint {
 				m.lastNumber = 0
-				err := m.fs.Reset()
-				if err != nil {
+				if err := m.fs.Reset(); err != nil {
 					return err
 				}
 			}
