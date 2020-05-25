@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2017 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -53,14 +53,14 @@ type ChainIndexerChain interface {
 	// CurrentHeader retrieves the latest locally known header.
 	CurrentHeader() *types.Header
 
-	// SubscribeChainEvent subscribes to new head header notifications.
-	SubscribeChainEvent(ch chan<- ChainEvent) event.Subscription
+	// SubscribeChainHeadEvent subscribes to new head header notifications.
+	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 }
 
 // ChainIndexer does a post-processing job for equally sized sections of the
 // canonical chain (like BlooomBits and CHT structures). A ChainIndexer is
 // connected to the blockchain through the event system by starting a
-// ChainEventLoop in a goroutine.
+// ChainHeadEventLoop in a goroutine.
 //
 // Further child ChainIndexers can be added which use the output of the parent
 // section indexer. These child indexers receive new head notifications only
@@ -97,7 +97,7 @@ type ChainIndexer struct {
 // NewChainIndexer creates a new chain indexer to do background processing on
 // chain segments of a given size after certain number of confirmations passed.
 // The throttling parameter might be used to prevent database thrashing.
-func NewChainIndexer(chainDb, indexDb ctxcdb.Database, backend ChainIndexerBackend, section, confirm uint64, throttling time.Duration, kind string) *ChainIndexer {
+func NewChainIndexer(chainDb ctxcdb.Database, indexDb ctxcdb.Database, backend ChainIndexerBackend, section, confirm uint64, throttling time.Duration, kind string) *ChainIndexer {
 	c := &ChainIndexer{
 		chainDb:     chainDb,
 		indexDb:     indexDb,
@@ -143,8 +143,8 @@ func (c *ChainIndexer) AddCheckpoint(section uint64, shead common.Hash) {
 // cascading background processing. Children do not need to be started, they
 // are notified about new events by their parents.
 func (c *ChainIndexer) Start(chain ChainIndexerChain) {
-	events := make(chan ChainEvent, 10)
-	sub := chain.SubscribeChainEvent(events)
+	events := make(chan ChainHeadEvent, 10)
+	sub := chain.SubscribeChainHeadEvent(events)
 
 	go c.eventLoop(chain.CurrentHeader(), events, sub)
 }
@@ -191,7 +191,7 @@ func (c *ChainIndexer) Close() error {
 // eventLoop is a secondary - optional - event loop of the indexer which is only
 // started for the outermost indexer to push chain head events into a processing
 // queue.
-func (c *ChainIndexer) eventLoop(currentHeader *types.Header, events chan ChainEvent, sub event.Subscription) {
+func (c *ChainIndexer) eventLoop(currentHeader *types.Header, events chan ChainHeadEvent, sub event.Subscription) {
 	// Mark the chain indexer as active, requiring an additional teardown
 	atomic.StoreUint32(&c.active, 1)
 
@@ -220,6 +220,8 @@ func (c *ChainIndexer) eventLoop(currentHeader *types.Header, events chan ChainE
 			}
 			header := ev.Block.Header()
 			if header.ParentHash != prevHash {
+				// Reorg to the common ancestor if needed (might not exist in light sync mode, skip reorg then)
+
 				if rawdb.ReadCanonicalHash(c.chainDb, prevHeader.Number.Uint64()) != prevHash {
 					if h := rawdb.FindCommonAncestor(c.chainDb, prevHeader, header); h != nil {
 						c.newHead(h.Number.Uint64(), true)
@@ -341,7 +343,7 @@ func (c *ChainIndexer) updateLoop() {
 				}
 				c.lock.Lock()
 
-				// If processing succeeded and no reorgs occcurred, mark the section completed
+				// If processing succeeded and no reorgs occurred, mark the section completed
 				if err == nil && (section == 0 || oldHead == c.SectionHead(section-1)) {
 					c.setSectionHead(section, newHead)
 					c.setValidSections(section + 1)
@@ -411,6 +413,9 @@ func (c *ChainIndexer) processSection(section uint64, lastHead common.Hash) (com
 	return lastHead, nil
 }
 
+// verifyLastHead compares last stored section head with the corresponding block hash in the
+// actual canonical chain and rolls back reorged sections if necessary to ensure that stored
+// sections are all valid
 func (c *ChainIndexer) verifyLastHead() {
 	for c.storedSections > 0 && c.storedSections > c.checkpointSections {
 		if c.SectionHead(c.storedSections-1) == rawdb.ReadCanonicalHash(c.chainDb, c.storedSections*c.sectionSize-1) {
@@ -426,8 +431,8 @@ func (c *ChainIndexer) verifyLastHead() {
 func (c *ChainIndexer) Sections() (uint64, uint64, common.Hash) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.verifyLastHead()
 
+	c.verifyLastHead()
 	return c.storedSections, c.storedSections*c.sectionSize - 1, c.SectionHead(c.storedSections - 1)
 }
 

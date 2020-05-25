@@ -77,8 +77,7 @@ func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent [
 
 	requestBody, err := json.Marshal(inferWork)
 	if err != nil {
-		log.Warn("remote infer: marshal json failed",
-			"body", inferWork, "err", err)
+		log.Warn("remote infer: marshal json failed", "body", inferWork, "err", err)
 		return nil, KERNEL_RUNTIME_ERROR
 	}
 	//log.Debug("remoteInferByInputContent", "request", string(requestBody)[:20])
