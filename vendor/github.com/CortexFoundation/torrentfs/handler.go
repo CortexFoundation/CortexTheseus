@@ -109,29 +109,29 @@ type TorrentManager struct {
 	hotCache *lru.Cache
 }
 
-func (tm *TorrentManager) GetLimitation(value int64) int64 {
+func (tm *TorrentManager) getLimitation(value int64) int64 {
 	return ((value + block - 1) / block) * block
 }
 
-func (tm *TorrentManager) CreateTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
+func (tm *TorrentManager) createTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
 	tt := &Torrent{
 		t,
 		tm.maxEstablishedConns, 5, tm.maxEstablishedConns,
 		requested,
 		//int64(float64(requested) * expansionFactor),
-		tm.GetLimitation(requested),
+		tm.getLimitation(requested),
 		0, 0, status,
 		ih.String(),
 		path.Join(tm.TmpDataDir, ih.String()),
 		0, 1, 0, 0, false, true, 0,
 	}
 	//tm.bytes[ih] = requested
-	tm.SetTorrent(ih, tt)
+	tm.setTorrent(ih, tt)
 	//tm.pendingChan <- tt
 	return tt
 }
 
-func (tm *TorrentManager) GetTorrent(ih metainfo.Hash) *Torrent {
+func (tm *TorrentManager) getTorrent(ih metainfo.Hash) *Torrent {
 	tm.lock.RLock()
 	defer tm.lock.RUnlock()
 	if torrent, ok := tm.torrents[ih]; !ok {
@@ -141,7 +141,7 @@ func (tm *TorrentManager) GetTorrent(ih metainfo.Hash) *Torrent {
 	}
 }
 
-func (tm *TorrentManager) SetTorrent(ih metainfo.Hash, torrent *Torrent) {
+func (tm *TorrentManager) setTorrent(ih metainfo.Hash, torrent *Torrent) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 	tm.torrents[ih] = torrent
@@ -181,8 +181,11 @@ func (tm *TorrentManager) dropAll() {
 //}
 
 func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
-	//go func() { tm.updateTorrent <- input }()
-	tm.updateTorrent <- input
+	select {
+	case tm.updateTorrent <- input:
+	case <-tm.closeAll:
+		log.Info("Updating channel closed")
+	}
 	return nil
 }
 
@@ -219,7 +222,7 @@ func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string)
 //	return array
 //}
 
-func (tm *TorrentManager) SetTrackers(trackers []string, disableTCP, boost bool) {
+func (tm *TorrentManager) setTrackers(trackers []string, disableTCP, boost bool) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 	/*array := make([][]string, len(trackers))
@@ -281,7 +284,7 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 	return nil
 }
 
-func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Torrent {
+func (tm *TorrentManager) addTorrent(filePath string, BytesRequested int64) *Torrent {
 	if _, err := os.Stat(filePath); err != nil {
 		return nil
 	}
@@ -294,7 +297,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 	ih := spec.InfoHash
 	//log.Info("Get seed from local file", "InfoHash", ih.HexString())
 
-	if t := tm.GetTorrent(ih); t != nil {
+	if t := tm.getTorrent(ih); t != nil {
 		log.Trace("Seed was already existed. Skip", "ih", ih.HexString())
 		return t
 	}
@@ -328,7 +331,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 			//var ss []string
 			//slices.MakeInto(&ss, mi.Nodes)
 			//tm.client.AddDHTNodes(ss)
-			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+			torrent := tm.createTorrent(t, BytesRequested, torrentPending, ih)
 			return torrent
 		} else {
 			log.Warn("Create error")
@@ -345,7 +348,7 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 			//var ss []string
 			//slices.MakeInto(&ss, mi.Nodes)
 			//tm.client.AddDHTNodes(ss)
-			torrent := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+			torrent := tm.createTorrent(t, BytesRequested, torrentPending, ih)
 			return torrent
 		} else {
 			log.Warn("Create error ... ")
@@ -354,8 +357,8 @@ func (tm *TorrentManager) AddTorrent(filePath string, BytesRequested int64) *Tor
 	return nil
 }
 
-func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *Torrent {
-	if t := tm.GetTorrent(ih); t != nil {
+func (tm *TorrentManager) addInfoHash(ih metainfo.Hash, BytesRequested int64) *Torrent {
+	if t := tm.getTorrent(ih); t != nil {
 		return t
 	}
 
@@ -364,9 +367,9 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
 
 	if _, err := os.Stat(seedTorrentPath); err == nil {
-		return tm.AddTorrent(seedTorrentPath, BytesRequested)
+		return tm.addTorrent(seedTorrentPath, BytesRequested)
 	} else if _, err := os.Stat(torrentPath); err == nil {
-		return tm.AddTorrent(torrentPath, BytesRequested)
+		return tm.addTorrent(torrentPath, BytesRequested)
 	}
 
 	log.Trace("Get file from infohash", "ih", ih.HexString())
@@ -393,14 +396,13 @@ func (tm *TorrentManager) AddInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 		<-t.GotInfo()
 		t.VerifyData()
 	}()*/
-	tt := tm.CreateTorrent(t, BytesRequested, torrentPending, ih)
+	tt := tm.createTorrent(t, BytesRequested, torrentPending, ih)
 	//tm.mu.Unlock()
 	//log.Info("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
 	return tt
 }
 
-// UpdateInfoHash ...
-func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64) {
+func (tm *TorrentManager) updateInfoHash(ih metainfo.Hash, BytesRequested int64) {
 	log.Debug("Update seed", "ih", ih, "bytes", BytesRequested)
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
@@ -413,7 +415,7 @@ func (tm *TorrentManager) UpdateInfoHash(ih metainfo.Hash, BytesRequested int64)
 		}
 		t.bytesRequested = BytesRequested
 		if t.bytesRequested > t.bytesLimitation {
-			t.bytesLimitation = GetLimitation(BytesRequested)
+			t.bytesLimitation = getLimitation(BytesRequested)
 		}
 	}*/
 }
@@ -539,7 +541,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
-		TorrentManager.SetTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
+		TorrentManager.setTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
 	}
 	log.Debug("Fs client initialized", "config", config)
 
@@ -601,16 +603,16 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 func (tm *TorrentManager) init() {
 	for k, ok := range GoodFiles {
 		if ok {
-			tm.SearchAndDownload(k, 0)
+			tm.searchAndDownload(k, 0)
 		}
 	}
 }
 
-func (tm *TorrentManager) SearchAndDownload(hex string, request int64) {
+func (tm *TorrentManager) searchAndDownload(hex string, request int64) {
 	hash := metainfo.NewHashFromHex(hex)
-	if t := tm.AddInfoHash(hash, request); t != nil {
+	if t := tm.addInfoHash(hash, request); t != nil {
 		if request > 0 {
-			tm.UpdateInfoHash(hash, request)
+			tm.updateInfoHash(hash, request)
 		}
 	}
 }
@@ -628,10 +630,10 @@ func (tm *TorrentManager) mainLoop() {
 			if meta.IsCreate {
 				counter := 0
 				for {
-					if t := tm.AddInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t != nil {
+					if t := tm.addInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t != nil {
 						log.Debug("Seed [create] success", "ih", meta.InfoHash, "request", meta.BytesRequested)
 						if int64(meta.BytesRequested) > 0 {
-							tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+							tm.updateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 						}
 						break
 					} else {
@@ -644,7 +646,7 @@ func (tm *TorrentManager) mainLoop() {
 				}
 			} else {
 				log.Debug("Seed [update] success", "ih", meta.InfoHash, "request", meta.BytesRequested)
-				tm.UpdateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+				tm.updateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
 			}
 		case <-tm.closeAll:
 			return
@@ -719,7 +721,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 						//go func(t *Torrent) {
 						//defer t.BoostOff()
 						//log.Info("Try to boost seed", "hash", t.infohash)
-						if data, err := tm.boostFetcher.GetTorrent(ih.String()); err == nil {
+						if data, err := tm.boostFetcher.FetchTorrent(ih.String()); err == nil {
 							if t.Torrent.Info() != nil {
 								//log.Warn("Seed already exist", "hash", t.infohash)
 								t.BoostOff()
@@ -837,7 +839,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 
 				if t.bytesRequested < BytesRequested {
 					t.bytesRequested = BytesRequested
-					t.bytesLimitation = tm.GetLimitation(BytesRequested)
+					t.bytesLimitation = tm.getLimitation(BytesRequested)
 				}
 
 				if t.bytesRequested == 0 {
@@ -1076,7 +1078,7 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 	}
 
 	ih := metainfo.NewHashFromHex(infohash)
-	if torrent := fs.GetTorrent(ih); torrent == nil {
+	if torrent := fs.getTorrent(ih); torrent == nil {
 		return false, errors.New("file not exist")
 	} else {
 		if !torrent.Ready() {
@@ -1092,7 +1094,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 	}
 	ih := metainfo.NewHashFromHex(infohash)
 	//tm := fs.monitor.dl
-	if torrent := fs.GetTorrent(ih); torrent == nil {
+	if torrent := fs.getTorrent(ih); torrent == nil {
 		log.Debug("Torrent not found", "hash", infohash)
 		return nil, errors.New("file not exist")
 	} else {

@@ -40,8 +40,8 @@ github.com/Azure/go-autorest v11.2.8+incompatible/go.mod h1:r+4oMnoxhatjLLJ6zxSW
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/CortexFoundation/CortexTheseus v1.9.56/go.mod h1:MkF8L4FF1jb8K8V6gDDQ3/cFJjNJ8byEp/WEj+4/zdE=
-github.com/CortexFoundation/torrentfs v1.0.6-0.20200525071257-90e4c746cebd h1:wG12yDb8Weu8il5xW8P/AbpUD8/kiNfFTRRwvxsOHq8=
-github.com/CortexFoundation/torrentfs v1.0.6-0.20200525071257-90e4c746cebd/go.mod h1:1FicgKYzIyfSl0LLao8JWBKmQBJzg7xZKQ+H3DEMpMQ=
+github.com/CortexFoundation/torrentfs v1.0.6-0.20200525090700-ffe55084a8bd h1:fYEFgkYyLIpppeRhai0DXBNrlkJXOZ9+MAyDBENKplI=
+github.com/CortexFoundation/torrentfs v1.0.6-0.20200525090700-ffe55084a8bd/go.mod h1:1FicgKYzIyfSl0LLao8JWBKmQBJzg7xZKQ+H3DEMpMQ=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
