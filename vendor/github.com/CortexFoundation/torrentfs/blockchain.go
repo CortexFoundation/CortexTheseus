@@ -178,8 +178,7 @@ func (fs *ChainIndex) Reset() error {
 	//fs.leaves = nil
 	fs.CheckPoint = 0
 	fs.LastListenBlockNumber = 0
-	err := fs.initMerkleTree()
-	if err != nil {
+	if err := fs.initMerkleTree(); err != nil {
 		return errors.New("err storage reset")
 	}
 	log.Warn("Storage status reset")

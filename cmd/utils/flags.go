@@ -807,12 +807,14 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 
 	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
 	for _, url := range urls {
-		node, err := enode.Parse(enode.ValidSchemes, url)
-		if err != nil {
-			log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+		if url != "" {
+			node, err := enode.Parse(enode.ValidSchemes, url)
+			if err != nil {
+				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+				continue
+			}
+			cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 		}
-		//log.Warn("boost", "url", url, "node", node)
-		cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 	}
 }
 
@@ -1103,9 +1105,6 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolNoLocalsFlag.Name) {
 		cfg.NoLocals = ctx.GlobalBool(TxPoolNoLocalsFlag.Name)
 	}
-	//if ctx.GlobalIsSet(TxPoolNoInfersFlag.Name) {
-	//        cfg.NoInfers = ctx.GlobalBool(TxPoolNoInfersFlag.Name)
-	//}
 	if ctx.GlobalIsSet(TxPoolJournalFlag.Name) {
 		cfg.Journal = ctx.GlobalString(TxPoolJournalFlag.Name)
 	}
@@ -1405,7 +1404,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		// 	}
 	default:
 		if cfg.NetworkId == 21 {
-			setDNSDiscoveryDefaults(cfg, params.KnownDNSNetworks[params.MainnetGenesisHash])
+			setDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
 	// TODO(fjl): move trie cache generations into config
@@ -1416,11 +1415,16 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 
 // setDNSDiscoveryDefaults configures DNS discovery with the given URL if
 // no URLs are set.
-func setDNSDiscoveryDefaults(cfg *ctxc.Config, url string) {
+func setDNSDiscoveryDefaults(cfg *ctxc.Config, genesis common.Hash) {
 	if cfg.DiscoveryURLs != nil {
 		return
 	}
-	cfg.DiscoveryURLs = []string{url}
+
+	protocol := "all"
+	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
+		log.Info("Dns found", "url", url)
+		cfg.DiscoveryURLs = []string{url}
+	}
 }
 
 // SetDashboardConfig applies dashboard related command line flags to the config.

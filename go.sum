@@ -40,8 +40,8 @@ github.com/Azure/go-autorest v11.2.8+incompatible/go.mod h1:r+4oMnoxhatjLLJ6zxSW
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/CortexFoundation/CortexTheseus v1.9.56/go.mod h1:MkF8L4FF1jb8K8V6gDDQ3/cFJjNJ8byEp/WEj+4/zdE=
-github.com/CortexFoundation/torrentfs v1.0.5 h1:kNslq9AAqH/4RgdOv2Pi2mPnEd2JMA/XMpfmzMPbUpo=
-github.com/CortexFoundation/torrentfs v1.0.5/go.mod h1:NyZEPvMSouatM01JdIXgnSCAOfRlc8Ezy13R8SBKjfI=
+github.com/CortexFoundation/torrentfs v1.0.6 h1:vdAVwOcbqQ136klufp1EvNtmyHCBaDFX2fGQT+HQNtI=
+github.com/CortexFoundation/torrentfs v1.0.6/go.mod h1:1FicgKYzIyfSl0LLao8JWBKmQBJzg7xZKQ+H3DEMpMQ=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -146,8 +146,8 @@ github.com/anacrolix/torrent v1.9.0/go.mod h1:jJJ6lsd2LD1eLHkUwFOhy7I0FcLYH0tHKw
 github.com/anacrolix/torrent v1.11.0/go.mod h1:FwBai7SyOFlflvfEOaM88ag/jjcBWxTOqD6dVU/lKKA=
 github.com/anacrolix/torrent v1.15.0/go.mod h1:MFc6KcbpAyfwGqOyRkdarUK9QnKA/FkVg0usFk1OQxU=
 github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5/go.mod h1:QlOfgrCz5kbvhOz8M58dUwHY5SfZ9VbIvReZ0z0MdIk=
-github.com/anacrolix/torrent v1.15.1-0.20200521063114-6ea0344efd80 h1:L6HeeLwUlHw4qQAbCjANgVfvOOrKi7kw8Y+m3UqBtpI=
-github.com/anacrolix/torrent v1.15.1-0.20200521063114-6ea0344efd80/go.mod h1:QlOfgrCz5kbvhOz8M58dUwHY5SfZ9VbIvReZ0z0MdIk=
+github.com/anacrolix/torrent v1.15.1-0.20200524074716-c7ea314de0c7 h1:OAvdvhEow8gXJK3vZQAej2ymidNbRsiJf/Q3a9XH6Pg=
+github.com/anacrolix/torrent v1.15.1-0.20200524074716-c7ea314de0c7/go.mod h1:QlOfgrCz5kbvhOz8M58dUwHY5SfZ9VbIvReZ0z0MdIk=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425 h1:/Wi6l2ONI1FUFWN4cBwHOO90V4ylp4ud/eov6GUcVFk=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425/go.mod h1:Pz94W3kl8rf+wxH3IbCa9Sq+DTJr8OSbV2Q3/y51vYs=

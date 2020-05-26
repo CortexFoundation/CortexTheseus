@@ -70,7 +70,11 @@ var BernardBootnodes = []string{
 //const dnsPrefix = "enrtree://AKLET737XA6CY7T4QAPFJCUZRZ46EFAGZIV6LOAGKTG45RRZSUUWI@"
 const dnsPrefix = "enrtree://AKLET737XA6CY7T4QAPFJCUZRZ46EFAGZIV6LOAGKTG45RRZSUUWI@"
 
-var KnownDNSNetworks = map[common.Hash]string{
-	//MainnetGenesisHash: dnsPrefix + "all.mainnet.cortexlabs.ai",
-	MainnetGenesisHash: dnsPrefix + "all.mainnet.coinbag.org",
+func KnownDNSNetwork(genesis common.Hash, protocol string) string {
+	var net string
+	switch genesis {
+	case MainnetGenesisHash:
+		net = "mainnet"
+	}
+	return dnsPrefix + protocol + "." + net + ".coinbag.org"
 }
