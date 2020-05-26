@@ -329,17 +329,21 @@ func (m *Monitor) taskLoop() {
 
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
+
+	log.Info("Building connection", "terminated", m.terminated)
+
 	for {
 		time.Sleep(time.Second * queryTimeInterval)
 		cl, err := rpc.Dial(clientURI)
 		if err != nil {
-			log.Warn("Building internal ipc connection ... ", "uri", clientURI, "error", err)
+			log.Warn("Building internal ipc connection ... ", "uri", clientURI, "error", err, "terminated", m.terminated)
 		} else {
 			log.Info("Internal ipc connection established", "uri", clientURI)
 			return cl, nil
 		}
 
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			log.Info("Connection builder break")
 			break
 		}
 	}
@@ -778,25 +782,9 @@ func (m *Monitor) Start() error {
 		defer m.wg.Done()
 		if err := m.startWork(); err != nil {
 			log.Error("Fs monitor start failed", "err", err)
-			panic("Fs monitor start failed")
+			//panic("Fs monitor start failed")
+			//m.Stop()
 		}
-		/*err := m.startWork()
-		if err != nil {
-			log.Error("Torrent Fs Internal Error", "error", err)
-			p, pErr := os.FindProcess(os.Getpid())
-			if pErr != nil {
-				log.Error("Torrent Fs Internal Error", "error", pErr)
-				panic("boom")
-				return
-			}
-
-			sigErr := p.Signal(os.Interrupt)
-			if sigErr != nil {
-				log.Error("Torrent Fs Internal Error", "error", sigErr)
-				panic("boom")
-				return
-			}
-		}*/
 	}()
 	return nil
 	//return err
