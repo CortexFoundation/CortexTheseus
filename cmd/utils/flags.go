@@ -1405,7 +1405,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		// 	}
 	default:
 		if cfg.NetworkId == 21 {
-			setDNSDiscoveryDefaults(cfg, params.KnownDNSNetworks[params.MainnetGenesisHash])
+			setDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
 	// TODO(fjl): move trie cache generations into config
@@ -1416,11 +1416,16 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 
 // setDNSDiscoveryDefaults configures DNS discovery with the given URL if
 // no URLs are set.
-func setDNSDiscoveryDefaults(cfg *ctxc.Config, url string) {
+func setDNSDiscoveryDefaults(cfg *ctxc.Config, genesis common.Hash) {
 	if cfg.DiscoveryURLs != nil {
 		return
 	}
-	cfg.DiscoveryURLs = []string{url}
+
+	protocol := "all"
+	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
+		log.Info("Dns found", "url", url)
+		cfg.DiscoveryURLs = []string{url}
+	}
 }
 
 // SetDashboardConfig applies dashboard related command line flags to the config.
