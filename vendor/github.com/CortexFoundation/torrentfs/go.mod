@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/CortexFoundation/CortexTheseus v1.9.56
+	github.com/allegro/bigcache/v2 v2.2.1
 	github.com/anacrolix/log v0.7.0
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2

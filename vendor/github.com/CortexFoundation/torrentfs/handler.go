@@ -24,6 +24,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/compress"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
+	"github.com/allegro/bigcache/v2"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	lru "github.com/hashicorp/golang-lru"
@@ -87,7 +88,7 @@ type TorrentManager struct {
 	slot                int
 
 	fileLock  sync.Mutex
-	fileCache *lru.Cache
+	fileCache *bigcache.BigCache
 	fileCh    chan struct{}
 	cache     bool
 	compress  bool
@@ -136,7 +137,7 @@ func (tm *TorrentManager) Close() error {
 	tm.wg.Wait()
 	tm.dropAll()
 	if tm.cache {
-		tm.fileCache.Purge()
+		tm.fileCache.Reset()
 	}
 
 	tm.hotCache.Purge()
@@ -152,11 +153,7 @@ func (tm *TorrentManager) dropAll() {
 }
 
 func (tm *TorrentManager) UpdateTorrent(input interface{}) error {
-	select {
-	case tm.updateTorrent <- input:
-	case <-tm.closeAll:
-		log.Info("Updating channel closed")
-	}
+	tm.updateTorrent <- input
 	return nil
 }
 
@@ -374,7 +371,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		slot:                int(fsid % bucket),
 	}
 
-	TorrentManager.fileCache, _ = lru.New(8)
+	TorrentManager.fileCache, _ = bigcache.NewBigCache(bigcache.DefaultConfig(60 * time.Second)) //lru.New(8)
 	TorrentManager.fileCh = make(chan struct{}, 4)
 	TorrentManager.compress = compress
 	TorrentManager.cache = cache
@@ -823,12 +820,13 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		defer fs.release()
 		var key = infohash + subpath
 		if fs.cache {
-			if cache, ok := fs.fileCache.Get(key); ok {
-				if c, err := fs.unzip(cache.([]byte)); err != nil {
+			if cache, ok := fs.fileCache.Get(key); ok == nil {
+				//if c, err := fs.unzip(cache.([]byte)); err != nil {
+				if c, err := fs.unzip(cache); err != nil {
 					return nil, err
 				} else {
 					if fs.compress {
-						log.Info("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len(), "compress", len(cache.([]byte)), "origin", len(c), "compress", fs.compress)
+						log.Info("File cache", "hash", infohash, "path", subpath, "size", fs.fileCache.Len(), "compress", len(cache), "origin", len(c), "compress", fs.compress)
 					}
 					return c, nil
 				}
@@ -853,7 +851,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 						log.Warn("Compress data failed", "hash", infohash, "err", err)
 					} else {
 						if fs.cache {
-							fs.fileCache.Add(key, c)
+							fs.fileCache.Set(key, c)
 						}
 					}
 				}
