@@ -113,7 +113,7 @@ func (tm *TorrentManager) getLimitation(value int64) int64 {
 	return ((value + block - 1) / block) * block
 }
 
-func (tm *TorrentManager) createTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
+func (tm *TorrentManager) registerTorrent(t *torrent.Torrent, requested int64, status int, ih metainfo.Hash) *Torrent {
 	tt := &Torrent{
 		t,
 		tm.maxEstablishedConns, 5, tm.maxEstablishedConns,
@@ -125,9 +125,11 @@ func (tm *TorrentManager) createTorrent(t *torrent.Torrent, requested int64, sta
 		path.Join(tm.TmpDataDir, ih.String()),
 		0, 1, 0, 0, false, true, 0,
 	}
-	//tm.bytes[ih] = requested
-	tm.setTorrent(ih, tt)
-	//tm.pendingChan <- tt
+	tm.lock.Lock()
+	tm.torrents[ih] = tt
+	tm.lock.Unlock()
+
+	tm.pendingChan <- tt
 	return tt
 }
 
@@ -139,14 +141,6 @@ func (tm *TorrentManager) getTorrent(ih metainfo.Hash) *Torrent {
 	} else {
 		return torrent
 	}
-}
-
-func (tm *TorrentManager) setTorrent(ih metainfo.Hash, torrent *Torrent) {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
-	tm.torrents[ih] = torrent
-	tm.pendingChan <- torrent
-	log.Trace("P <- B", "ih", ih)
 }
 
 func (tm *TorrentManager) Close() error {
@@ -284,7 +278,7 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 	return nil
 }
 
-func (tm *TorrentManager) addTorrent(filePath string, BytesRequested int64) *Torrent {
+func (tm *TorrentManager) loadTorrentSpec(ih metainfo.Hash, filePath string, BytesRequested int64) *torrent.TorrentSpec {
 	if _, err := os.Stat(filePath); err != nil {
 		return nil
 	}
@@ -293,14 +287,7 @@ func (tm *TorrentManager) addTorrent(filePath string, BytesRequested int64) *Tor
 		log.Error("Error while adding torrent", "Err", err)
 		return nil
 	}
-	spec := torrent.TorrentSpecFromMetaInfo(mi)
-	ih := spec.InfoHash
-	//log.Info("Get seed from local file", "InfoHash", ih.HexString())
 
-	if t := tm.getTorrent(ih); t != nil {
-		log.Trace("Seed was already existed. Skip", "ih", ih.HexString())
-		return t
-	}
 	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
 	ExistDir := path.Join(tm.DataDir, ih.HexString())
 
@@ -310,51 +297,30 @@ func (tm *TorrentManager) addTorrent(filePath string, BytesRequested int64) *Tor
 		info, err := mi.UnmarshalInfo()
 		if err != nil {
 			log.Error("error unmarshalling info: ", "info", err)
+			return nil
 		}
-		if err := tm.verifyTorrent(&info, ExistDir); err != nil {
-			log.Warn("Seed failed verification:", "err", err)
-		} else {
+
+		if err := tm.verifyTorrent(&info, ExistDir); err == nil {
 			useExistDir = true
 		}
 	}
 
+	spec := torrent.TorrentSpecFromMetaInfo(mi)
+
+	if ih != spec.InfoHash {
+		log.Warn("Info hash mismatch", "ih", ih.HexString(), "new", spec.InfoHash.HexString())
+		return nil
+	}
+
 	if useExistDir {
-		log.Trace("existing dir", "dir", ExistDir)
 		spec.Storage = storage.NewFile(ExistDir)
-		//for _, tracker := range tm.trackers {
-		//	spec.Trackers = append(spec.Trackers, tracker)
-		//}
-		//spec.Trackers = tm.trackers
-		spec.Trackers = nil
-		//spec.Trackers = append(spec.Trackers, tm.trackers...)
-		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-			//var ss []string
-			//slices.MakeInto(&ss, mi.Nodes)
-			//tm.client.AddDHTNodes(ss)
-			torrent := tm.createTorrent(t, BytesRequested, torrentPending, ih)
-			return torrent
-		} else {
-			log.Warn("Create error")
-		}
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
-		/*for _, tracker := range tm.trackers {
-			spec.Trackers = append(spec.Trackers, tracker)
-		}*/
-		//spec.Trackers = tm.trackers
-		spec.Trackers = nil
-		//spec.Trackers = append(spec.Trackers, tm.trackers...)
-		if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-			//var ss []string
-			//slices.MakeInto(&ss, mi.Nodes)
-			//tm.client.AddDHTNodes(ss)
-			torrent := tm.createTorrent(t, BytesRequested, torrentPending, ih)
-			return torrent
-		} else {
-			log.Warn("Create error ... ")
-		}
 	}
-	return nil
+
+	spec.Trackers = nil
+
+	return spec
 }
 
 func (tm *TorrentManager) addInfoHash(ih metainfo.Hash, BytesRequested int64) *Torrent {
@@ -362,44 +328,30 @@ func (tm *TorrentManager) addInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 		return t
 	}
 
-	dataPath := path.Join(tm.TmpDataDir, ih.HexString())
-	torrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
+	tmpDataPath := path.Join(tm.TmpDataDir, ih.HexString())
+	tmpTorrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
 	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
 
+	var spec *torrent.TorrentSpec
+
 	if _, err := os.Stat(seedTorrentPath); err == nil {
-		return tm.addTorrent(seedTorrentPath, BytesRequested)
-	} else if _, err := os.Stat(torrentPath); err == nil {
-		return tm.addTorrent(torrentPath, BytesRequested)
+		spec = tm.loadTorrentSpec(ih, seedTorrentPath, BytesRequested)
+	} else if _, err := os.Stat(tmpTorrentPath); err == nil {
+		spec = tm.loadTorrentSpec(ih, tmpTorrentPath, BytesRequested)
+	}
+	if spec == nil {
+		spec = &torrent.TorrentSpec{
+			Trackers: [][]string{}, //tm.trackers, //[][]string{},
+			InfoHash: ih,
+			Storage:  storage.NewFile(tmpDataPath),
+		}
 	}
 
-	log.Trace("Get file from infohash", "ih", ih.HexString())
-
-	spec := &torrent.TorrentSpec{
-		Trackers: [][]string{}, //tm.trackers, //[][]string{},
-		//DisplayName: ih.String(),
-		InfoHash: ih,
-		Storage:  storage.NewFile(dataPath),
+	if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
+		return tm.registerTorrent(t, BytesRequested, torrentPending, ih)
 	}
 
-	//for _, tracker := range tm.trackers {
-	//	spec.Trackers = append(spec.Trackers, tracker)
-	//}
-	//spec.Trackers = tm.trackers
-	//spec.Trackers = append(spec.Trackers, tm.trackers...)
-	//log.Info("Torrent specific info", "spec", spec)
-
-	t, _, err := tm.client.AddTorrentSpec(spec)
-	if err != nil {
-		return nil
-	}
-	/*go func() {
-		<-t.GotInfo()
-		t.VerifyData()
-	}()*/
-	tt := tm.createTorrent(t, BytesRequested, torrentPending, ih)
-	//tm.mu.Unlock()
-	//log.Info("Torrent is waiting for gotInfo", "InfoHash", ih.HexString())
-	return tt
+	return nil
 }
 
 func (tm *TorrentManager) updateInfoHash(ih metainfo.Hash, BytesRequested int64) {
