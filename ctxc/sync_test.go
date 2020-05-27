@@ -17,18 +17,20 @@
 package ctxc
 
 import (
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
 )
 
 // Tests that fast sync gets disabled as soon as a real block is successfully
 // imported into the blockchain.
-func TestFastSyncDisabling(t *testing.T) {
+func testFastSyncDisabling(t *testing.T, protocol int) {
+	t.Parallel()
+
 	// Create a pristine protocol manager, check that fast sync is left enabled
 	pmEmpty, _ := newTestProtocolManagerMust(t, downloader.FastSync, 0, nil, nil)
 	if atomic.LoadUint32(&pmEmpty.fastSync) == 0 {
@@ -39,14 +41,17 @@ func TestFastSyncDisabling(t *testing.T) {
 	if atomic.LoadUint32(&pmFull.fastSync) == 1 {
 		t.Fatalf("fast sync not disabled on non-empty blockchain")
 	}
+
 	// Sync up the two peers
 	io1, io2 := p2p.MsgPipe()
-
-	go pmFull.handle(pmFull.newPeer(63, p2p.NewPeer(discover.NodeID{}, "empty", nil), io2))
-	go pmEmpty.handle(pmEmpty.newPeer(63, p2p.NewPeer(discover.NodeID{}, "full", nil), io1))
+	go pmFull.handle(pmFull.newPeer(protocol, p2p.NewPeer(enode.ID{}, "empty", nil), io2, pmFull.txpool.Get))
+	go pmEmpty.handle(pmEmpty.newPeer(protocol, p2p.NewPeer(enode.ID{}, "full", nil), io1, pmEmpty.txpool.Get))
 
 	time.Sleep(250 * time.Millisecond)
-	pmEmpty.synchronise(pmEmpty.peers.BestPeer())
+	op := peerToSyncOp(downloader.FastSync, pmEmpty.peers.BestPeer())
+	if err := pmEmpty.doSync(op); err != nil {
+		t.Fatal("sync failed:", err)
+	}
 
 	// Check that fast sync was disabled
 	if atomic.LoadUint32(&pmEmpty.fastSync) == 1 {

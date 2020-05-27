@@ -62,7 +62,7 @@ func TestReader(t *testing.T) {
 	exp := ABI{
 		Methods: map[string]Method{
 			"balance": NewMethod("balance", "balance", Function, "", true, false, nil, nil),
-			"send": NewMethod("send", "send", Function, "", false, false, []Argument{{"amount", Uint256, false}}, nil),
+			"send":    NewMethod("send", "send", Function, "", false, false, []Argument{{"amount", Uint256, false}}, nil),
 		},
 	}
 

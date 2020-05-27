@@ -17,7 +17,6 @@
 package filters
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"testing"
@@ -146,31 +145,15 @@ func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
 	db.Close()
 }
 
-func forEachKey(db ctxcdb.Database, startPrefix, endPrefix []byte, fn func(key []byte)) {
-	it := db.(*rawdb.LevelDBDatabase).NewIterator()
-	it.Seek(startPrefix)
-	for it.Valid() {
-		key := it.Key()
-		cmpLen := len(key)
-		if len(endPrefix) < cmpLen {
-			cmpLen = len(endPrefix)
-		}
-		if bytes.Compare(key[:cmpLen], endPrefix) == 1 {
-			break
-		}
-		fn(common.CopyBytes(key))
-		it.Next()
-	}
-	it.Release()
-}
-
 var bloomBitsPrefix = []byte("bloomBits-")
 
 func clearBloomBits(db ctxcdb.Database) {
 	fmt.Println("Clearing bloombits data...")
-	forEachKey(db, bloomBitsPrefix, bloomBitsPrefix, func(key []byte) {
-		db.Delete(key)
-	})
+	it := db.NewIterator(bloomBitsPrefix, nil)
+	for it.Next() {
+		db.Delete(it.Key())
+	}
+	it.Release()
 }
 
 func BenchmarkNoBloomBits(b *testing.B) {

@@ -28,13 +28,13 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 var (
@@ -97,7 +97,7 @@ func newTester() *downloadTester {
 	tester.stateDb = rawdb.NewMemoryDatabase()
 	tester.stateDb.Put(genesis.Root().Bytes(), []byte{0x00})
 
-	tester.downloader = New(FullSync, 0, tester.stateDb, new(event.TypeMux), tester, nil, tester.dropPeer)
+	tester.downloader = New(FullSync, 0, tester.stateDb, trie.NewSyncBloom(1, tester.stateDb), new(event.TypeMux), tester, tester.dropPeer)
 
 	return tester
 }
@@ -288,7 +288,7 @@ func (dl *downloadTester) CurrentFastBlock() *types.Block {
 func (dl *downloadTester) FastSyncCommitHead(hash common.Hash) error {
 	// For now only check that the state trie is correct
 	if block := dl.GetBlockByHash(hash); block != nil {
-		_, err := trie.NewSecure(block.Root(), trie.NewDatabase(dl.stateDb), 0)
+		_, err := trie.NewSecure(block.Root(), trie.NewDatabase(dl.stateDb))
 		return err
 	}
 	return fmt.Errorf("non existent block: %x", hash[:4])
@@ -1299,20 +1299,20 @@ func testBlockHeaderAttackerDropping(t *testing.T, protocol int) {
 		{errBadPeer, true},      // Peer was deemed bad for some reason, drop it
 		{errStallingPeer, true}, // Peer was detected to be stalling, drop it
 		{errUnsyncedPeer, true},
-		{errNoPeers, false},                 // No peers to download from, soft race, no issue
-		{errTimeout, true},                  // No hashes received in due time, drop the peer
-		{errEmptyHeaderSet, true},           // No headers were returned as a response, drop as it's a dead end
-		{errPeersUnavailable, true},         // Nobody had the advertised blocks, drop the advertiser
-		{errInvalidAncestor, true},          // Agreed upon ancestor is not acceptable, drop the chain rewriter
-		{errInvalidChain, true},             // Hash chain was detected as invalid, definitely drop
-		{errInvalidBlock, false},            // A bad peer was detected, but not the sync origin
-		{errInvalidBody, false},             // A bad peer was detected, but not the sync origin
-		{errInvalidReceipt, false},          // A bad peer was detected, but not the sync origin
-		{errCancelBlockFetch, false},        // Synchronisation was canceled, origin may be innocent, don't drop
-		{errCancelHeaderFetch, false},       // Synchronisation was canceled, origin may be innocent, don't drop
-		{errCancelBodyFetch, false},         // Synchronisation was canceled, origin may be innocent, don't drop
-		{errCancelReceiptFetch, false},      // Synchronisation was canceled, origin may be innocent, don't drop
-		{errCancelHeaderProcessing, false},  // Synchronisation was canceled, origin may be innocent, don't drop
+		{errNoPeers, false},         // No peers to download from, soft race, no issue
+		{errTimeout, true},          // No hashes received in due time, drop the peer
+		{errEmptyHeaderSet, true},   // No headers were returned as a response, drop as it's a dead end
+		{errPeersUnavailable, true}, // Nobody had the advertised blocks, drop the advertiser
+		{errInvalidAncestor, true},  // Agreed upon ancestor is not acceptable, drop the chain rewriter
+		{errInvalidChain, true},     // Hash chain was detected as invalid, definitely drop
+		//{errInvalidBlock, false},            // A bad peer was detected, but not the sync origin
+		{errInvalidBody, false},    // A bad peer was detected, but not the sync origin
+		{errInvalidReceipt, false}, // A bad peer was detected, but not the sync origin
+		//{errCancelBlockFetch, false},        // Synchronisation was canceled, origin may be innocent, don't drop
+		//{errCancelHeaderFetch, false},       // Synchronisation was canceled, origin may be innocent, don't drop
+		//{errCancelBodyFetch, false},         // Synchronisation was canceled, origin may be innocent, don't drop
+		//{errCancelReceiptFetch, false},      // Synchronisation was canceled, origin may be innocent, don't drop
+		//{errCancelHeaderProcessing, false},  // Synchronisation was canceled, origin may be innocent, don't drop
 		{errCancelContentProcessing, false}, // Synchronisation was canceled, origin may be innocent, don't drop
 	}
 	// Run the tests and check disconnection status

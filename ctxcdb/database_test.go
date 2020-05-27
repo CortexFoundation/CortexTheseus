@@ -19,26 +19,25 @@ package ctxcdb
 import (
 	"bytes"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"sync"
 	"testing"
-
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
-func newTestLDB() (*ctxcdb.LDBDatabase, func()) {
+func newTestLDB() (*Database, func()) {
 	dirname, err := ioutil.TempDir(os.TempDir(), "db_test_")
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
-	db, err := ctxcdb.NewLDBDatabase(dirname, 0, 0)
+	db, err := rawdb.NewLevelDBDatabase(dirname, 0, 0, "")
 	if err != nil {
 		panic("failed to create test database: " + err.Error())
 	}
 
-	return db, func() {
+	return &db, func() {
 		db.Close()
 		os.RemoveAll(dirname)
 	}
