@@ -6,15 +6,15 @@ import "container/list"
 type Cache struct {
 	// MaxWeight is the maximum number of cache entries before
 	// an item is evicted. Zero means no limit.
-	MaxWeight int64
+	MaxWeight     int64
 	CurrentWeight int64
 
 	// OnEvicted optionally specifies a callback function to be
 	// executed when an entry is purged from the cache.
 	OnEvicted func(key Key, value interface{})
 
-	ll    *list.List
-	cache map[interface{}]*list.Element
+	ll          *list.List
+	cache       map[interface{}]*list.Element
 	cacheWeight map[interface{}]int64
 }
 
@@ -31,11 +31,11 @@ type entry struct {
 // that eviction is done by the caller.
 func New(maxWeight int64) *Cache {
 	return &Cache{
-		MaxWeight: maxWeight,
+		MaxWeight:     maxWeight,
 		CurrentWeight: 0,
 		ll:            list.New(),
 		cache:         make(map[interface{}]*list.Element),
-        cacheWeight:   make(map[interface{}]int64),
+		cacheWeight:   make(map[interface{}]int64),
 	}
 }
 
@@ -44,18 +44,18 @@ func (c *Cache) Add(key Key, value interface{}, weight int64) {
 	if c.cache == nil {
 		c.cache = make(map[interface{}]*list.Element)
 		c.cacheWeight = make(map[interface{}]int64)
-        c.ll = list.New()
+		c.ll = list.New()
 	}
 	if ee, ok := c.cache[key]; ok {
 		c.ll.MoveToFront(ee)
 		ee.Value.(*entry).value = value
-        c.cacheWeight[key] = weight
+		c.cacheWeight[key] = weight
 		return
 	}
 	ele := c.ll.PushFront(&entry{key, value})
-    c.CurrentWeight += weight
+	c.CurrentWeight += weight
 	c.cache[key] = ele
-    c.cacheWeight[key] = weight
+	c.cacheWeight[key] = weight
 	if c.MaxWeight != 0 && c.CurrentWeight > c.MaxWeight {
 		c.RemoveOldest()
 	}
@@ -97,9 +97,9 @@ func (c *Cache) RemoveOldest() {
 func (c *Cache) removeElement(e *list.Element) {
 	c.ll.Remove(e)
 	kv := e.Value.(*entry)
-    c.CurrentWeight -= c.cacheWeight[kv.key]
+	c.CurrentWeight -= c.cacheWeight[kv.key]
 	delete(c.cache, kv.key)
-    delete(c.cacheWeight, kv.key)
+	delete(c.cacheWeight, kv.key)
 	if c.OnEvicted != nil {
 		c.OnEvicted(kv.key, kv.value)
 	}
@@ -124,4 +124,3 @@ func (c *Cache) Clear() {
 	c.ll = nil
 	c.cache = nil
 }
-

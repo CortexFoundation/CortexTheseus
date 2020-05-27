@@ -397,10 +397,10 @@ func New(code string) (*Tracer, error) {
 		return 1
 	})
 	tracer.vm.PushGlobalGoFunction("isPrecompiled", func(ctx *duktape.Context) int {
-                _, ok := vm.PrecompiledContractsIstanbul[common.BytesToAddress(popSlice(ctx))]
-                ctx.PushBoolean(ok)
-                return 1
-        })
+		_, ok := vm.PrecompiledContractsIstanbul[common.BytesToAddress(popSlice(ctx))]
+		ctx.PushBoolean(ok)
+		return 1
+	})
 	tracer.vm.PushGlobalGoFunction("slice", func(ctx *duktape.Context) int {
 		start, end := ctx.GetInt(-2), ctx.GetInt(-1)
 		ctx.Pop2()
