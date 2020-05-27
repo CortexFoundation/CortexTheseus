@@ -3,9 +3,10 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.5-0.20200519135722-9681d5ba27a5
+# github.com/CortexFoundation/torrentfs v1.0.6
 ## explicit
 github.com/CortexFoundation/torrentfs
+github.com/CortexFoundation/torrentfs/compress
 github.com/CortexFoundation/torrentfs/params
 github.com/CortexFoundation/torrentfs/types
 # github.com/RoaringBitmap/roaring v0.4.23
@@ -54,7 +55,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.15.1-0.20200519052258-e33d77339134
+# github.com/anacrolix/torrent v1.15.1-0.20200524074716-c7ea314de0c7
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/internal/tmproot
@@ -389,7 +390,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
+# golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
@@ -406,7 +407,7 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
+# golang.org/x/sys v0.0.0-20200523222454-059865788121
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

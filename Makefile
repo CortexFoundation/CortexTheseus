@@ -105,11 +105,11 @@ cvm: plugins/cuda_cvm.so plugins/cpu_cvm.so
 
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C solution cuda-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
 	$(MAKE) -C solution cpu-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu

@@ -19,6 +19,7 @@ package ctxc
 import (
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
@@ -50,9 +51,10 @@ func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
 			select {
 			case <-newHead:
 				ln.Set(ctxc.currentCtxcEntry())
-			case <-sub.Err():
+			case err := <-sub.Err():
 				// Would be nice to sync with ctxc.Stop, but there is no
 				// good way to do that.
+				log.Warn("Local dns discovery quit", "err", err)
 				return
 			}
 		}

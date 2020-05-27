@@ -169,18 +169,22 @@ func (cuckoo *Cuckoo) remote() {
 		if currentWork == nil {
 			return res, errNoMiningWork
 		}
-		res[0] = cuckoo.SealHash(currentWork.Header()).Hex()
-		res[1] = common.BytesToHash(SeedHash(currentWork.NumberU64())).Hex()
+		sealhash := cuckoo.SealHash(currentWork.Header())
+		res[0] = sealhash.Hex()
+		//res[1] = common.BytesToHash(SeedHash(currentWork.NumberU64())).Hex()
+		res[1] = "0x0000000000000000000000000000000000000000000000000000000000000000"
 
 		// Calculate the "target" to be returned to the external sealer.
-		n := big.NewInt(1)
-		n.Lsh(n, 255)
-		n.Div(n, currentWork.Difficulty())
-		n.Lsh(n, 1)
-		res[2] = common.BytesToHash(n.Bytes()).Hex()
+		//n := big.NewInt(1)
+		//n.Lsh(n, 255)
+		//n.Div(n, currentWork.Difficulty())
+		//n.Lsh(n, 1)
+		//res[2] = common.BytesToHash(n.Bytes()).Hex()
+
+		res[2] = common.BytesToHash(new(big.Int).Div(two256, currentWork.Difficulty()).Bytes()).Hex()
 		res[3] = hexutil.EncodeBig(currentWork.Number())
 		// Trace the seal work fetched by remote sealer.
-		works[cuckoo.SealHash(currentWork.Header())] = currentWork
+		works[sealhash] = currentWork
 		return res, nil
 	}
 
