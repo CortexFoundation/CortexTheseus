@@ -1,48 +1,23 @@
 package torrentfs
 
 import (
+	"context"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	//"github.com/anacrolix/torrent/metainfo"
-	//"io/ioutil"
-	//"path"
-	//"github.com/anacrolix/torrent/metainfo"
 	"sync"
 	"time"
-	//"errors"
-	//"github.com/CortexFoundation/CortexTheseus/common/compress"
-	"context"
-	"github.com/CortexFoundation/CortexTheseus/p2p"
-	//lru "github.com/hashicorp/golang-lru"
 )
 
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
 	//protocol p2p.Protocol // Protocol description and parameters
-	config *Config
-	//history  *GeneralMessage
+	config  *Config
 	monitor *Monitor
-
-	//fileLock  sync.Mutex
-	//fileCache *lru.Cache
-	//fileCh    chan bool
-	//cache     bool
-	//compress  bool
 
 	peerMu sync.RWMutex       // Mutex to sync the active peer set
 	peers  map[*Peer]struct{} // Set of currently active peers
-
-	//metrics   bool
-	//fsUpdates time.Duration
 }
-
-//func (t *TorrentFS) Config() *Config {
-//	return t.config
-//}
-
-//func (t *TorrentFS) Monitor() *Monitor {
-//	return t.monitor
-//}
 
 func (t *TorrentFS) storage() *TorrentManager {
 	return t.monitor.dl
@@ -50,28 +25,9 @@ func (t *TorrentFS) storage() *TorrentManager {
 
 var torrentInstance *TorrentFS = nil
 
-//func GetTorrentInstance() *TorrentFS {
-//if torrentInstance == nil {
-//	torrentInstance, _ = New(&DefaultConfig, "")
-//}
-//	return torrentInstance
-//}
-
 func GetStorage() CortexStorage {
 	return torrentInstance //GetTorrentInstance()
 }
-
-/*func GetConfig() *Config {
-	if torrentInstance != nil {
-		return torrentInstance.Config()
-	} else {
-		return &DefaultConfig
-	}
-	return nil
-}*/
-
-// New creates a new dashboard instance with the given configuration.
-//var Torrentfs_handle CVMStorage
 
 // New creates a new torrentfs instance with the given configuration.
 func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error) {
@@ -86,17 +42,10 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 	}
 
 	torrentInstance = &TorrentFS{
-		config: config,
-		//history: msg,
+		config:  config,
 		monitor: monitor,
 		peers:   make(map[*Peer]struct{}),
 	}
-	//torrentInstance.fileCache, _ = lru.New(8)
-	//torrentInstance.fileCh = make(chan bool, 4)
-	//torrentInstance.compress = compress
-	//torrentInstance.cache = cache
-
-	//torrentInstance.metrics = config.Metrics
 
 	/*torrentInstance.protocol = p2p.Protocol{
 		Name:    ProtocolName,
