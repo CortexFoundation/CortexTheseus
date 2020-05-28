@@ -20,9 +20,9 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/elastic/gosigar"
 	"io/ioutil"
 	"os"
-
 	// "math/big"
 
 	"path/filepath"
@@ -1352,8 +1352,21 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
+	var mem gosigar.Mem
+	if err := mem.Get(); err == nil {
+		if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
+			log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
+			mem.Total = 2 * 1024 * 1024 * 1024
+		}
+		allowance := int(mem.Total / 1024 / 1024 / 2)
+		if cache := ctx.GlobalInt(InferMemoryFlag.Name); cache > allowance {
+			log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
+			ctx.GlobalSet(InferMemoryFlag.Name, strconv.Itoa(allowance))
+		}
+	}
 	cfg.InferMemoryUsage = int64(ctx.GlobalInt(InferMemoryFlag.Name))
 	cfg.InferMemoryUsage = cfg.InferMemoryUsage << 20
+	//log.Warn("C MEMORY FOR CVM", "cache", cfg.InferMemoryUsage)
 	// Override any default configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(BernardFlag.Name):
