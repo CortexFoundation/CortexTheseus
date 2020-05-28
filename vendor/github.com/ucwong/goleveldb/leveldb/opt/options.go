@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Suryandaru Triandana <ucwong@gmail.com>
+// Copyright (c) 2012, Suryandaru Triandana <syndtr@gmail.com>
 // All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be
@@ -22,30 +22,29 @@ const (
 )
 
 var (
-	DefaultBlockCacher                        = LRUCacher
-	DefaultBlockCacheCapacity                 = 8 * MiB
-	DefaultMetadataCacher                     = LRUCacher
-	DefaultMetadataCacheCapacity              = 8 * MiB
-	DefaultBlockRestartInterval               = 16
-	DefaultBlockSize                          = 4 * KiB
-	DefaultCompactionExpandLimitFactor        = 25
-	DefaultCompactionGPOverlapsFactor         = 10
-	DefaultCompactionL0Trigger                = 4
-	DefaultCompactionSourceLimitFactor        = 1
-	DefaultCompactionTableSize                = 2 * MiB
-	DefaultCompactionTableSizeMultiplier      = 1.0
-	DefaultCompactionTotalSize                = 10 * MiB
-	DefaultCompactionTotalSizeMultiplier      = 10.0
+	DefaultBlockCacher                   = LRUCacher
+	DefaultBlockCacheCapacity            = 8 * MiB
+	DefaultMetadataCacher                = LRUCacher
+	DefaultMetadataCacheCapacity         = 8 * MiB
+	DefaultOpenFilesCacher               = LRUCacher
+	DefaultOpenFilesCacheCapacity        = 500
+	DefaultBlockRestartInterval          = 16
+	DefaultBlockSize                     = 4 * KiB
+	DefaultCompactionExpandLimitFactor   = 25
+	DefaultCompactionGPOverlapsFactor    = 10
+	DefaultCompactionL0Trigger           = 4
+	DefaultCompactionSourceLimitFactor   = 1
+	DefaultCompactionTableSize           = 2 * MiB
+	DefaultCompactionTableSizeMultiplier = 1.0
+	DefaultCompactionTotalSize           = 10 * MiB
+	DefaultCompactionTotalSizeMultiplier = 10.0
 	DefaultCompactionSeedFileNumber           = 1
 	DefaultCompactionSeedFileNumberMultiplier = 2
-	DefaultCompressionType                    = SnappyCompression
-	DefaultIteratorSamplingRate               = 1 * MiB
-	DefaultOpenFilesCacher                    = LRUCacher
-	DefaultOpenFilesCacheCapacity             = 500
-	DefaultWriteBuffer                        = 4 * MiB
-	DefaultWriteL0PauseTrigger                = 12
-	DefaultWriteL0SlowdownTrigger             = 8
-	DefaultFilterBaseLg                       = 11
+	DefaultCompressionType               = SnappyCompression
+	DefaultIteratorSamplingRate          = 1 * MiB
+	DefaultWriteBuffer                   = 4 * MiB
+	DefaultWriteL0PauseTrigger           = 12
+	DefaultWriteL0SlowdownTrigger        = 8
 )
 
 // Cacher is a caching algorithm.
@@ -428,11 +427,6 @@ type Options struct {
 	//
 	// The default value is 8.
 	WriteL0SlowdownTrigger int
-
-	// FilterBaseLg is the log size for filter block to create a bloom filter.
-	//
-	// The default value is 11(as well as 2KB)
-	FilterBaseLg int
 }
 
 func (o *Options) GetAltFilters() []filter.Filter {
@@ -757,13 +751,6 @@ func (o *Options) GetWriteL0SlowdownTrigger() int {
 		return DefaultWriteL0SlowdownTrigger
 	}
 	return o.WriteL0SlowdownTrigger
-}
-
-func (o *Options) GetFilterBaseLg() int {
-	if o == nil || o.FilterBaseLg == 0 {
-		return DefaultFilterBaseLg
-	}
-	return o.FilterBaseLg
 }
 
 // ReadOptions holds the optional parameters for 'read operation'. The
