@@ -1360,7 +1360,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		}
 		allowance := int(mem.Total / 1024 / 1024 / 2)
 		if cache := ctx.GlobalInt(InferMemoryFlag.Name); cache > allowance {
-			log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
+			log.Warn("Sanitizing cache to C's GC limits", "provided", cache, "updated", allowance)
 			ctx.GlobalSet(InferMemoryFlag.Name, strconv.Itoa(allowance))
 		}
 	}
