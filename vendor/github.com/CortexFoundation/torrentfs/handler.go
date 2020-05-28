@@ -89,9 +89,9 @@ type TorrentManager struct {
 
 	fileLock  sync.Mutex
 	fileCache *bigcache.BigCache
-	fileCh    chan struct{}
-	cache     bool
-	compress  bool
+	//fileCh    chan struct{}
+	cache    bool
+	compress bool
 
 	metrics bool
 	Updates time.Duration
@@ -371,8 +371,8 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		slot:                int(fsid % bucket),
 	}
 
-	TorrentManager.fileCache, _ = bigcache.NewBigCache(bigcache.DefaultConfig(60 * time.Second)) //lru.New(8)
-	TorrentManager.fileCh = make(chan struct{}, 4)
+	TorrentManager.fileCache, _ = bigcache.NewBigCache(bigcache.DefaultConfig(600 * time.Second)) //lru.New(8)
+	//TorrentManager.fileCh = make(chan struct{}, 4)
 	TorrentManager.compress = compress
 	TorrentManager.cache = cache
 
@@ -816,8 +816,8 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 			log.Info("Torrent active", "ih", ih, "peers", torrent.currentConns)
 		}
 
-		fs.fileCh <- struct{}{}
-		defer fs.release()
+		//fs.fileCh <- struct{}{}
+		//defer fs.release()
 		var key = infohash + subpath
 		if fs.cache {
 			if cache, ok := fs.fileCache.Get(key); ok == nil {
@@ -863,9 +863,9 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 	}
 }
 
-func (fs *TorrentManager) release() {
-	<-fs.fileCh
-}
+//func (fs *TorrentManager) release() {
+//	<-fs.fileCh
+//}
 
 func (fs *TorrentManager) unzip(data []byte) ([]byte, error) {
 	if fs.compress {
