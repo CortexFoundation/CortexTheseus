@@ -122,7 +122,7 @@ func (t *Torrent) Ready() bool {
 		return false
 	}
 	t.cited += 1
-	return t.Seeding()
+	return t.IsSeeding()
 }
 
 func (t *Torrent) WriteTorrent() error {
@@ -151,9 +151,12 @@ func (t *Torrent) BoostOff() {
 	t.isBoosting = false
 }
 
-func (t *Torrent) Seed() {
-	if t.Torrent.Info() == nil || t.status == torrentSeeding {
-		return
+func (t *Torrent) Seed() bool {
+	if t.Torrent.Info() == nil {
+		return false
+	}
+	if t.status == torrentSeeding {
+		return true
 	}
 	if t.currentConns <= t.minEstablishedConns {
 		t.currentConns = t.maxEstablishedConns
@@ -163,11 +166,13 @@ func (t *Torrent) Seed() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 		log.Info("Imported new segment", "hash", common.HexToHash(t.InfoHash()), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+		return true
 	}
+	return false
 }
 
-func (t *Torrent) Seeding() bool {
-	return t.Torrent.Info() != nil && t.status == torrentSeeding && t.BytesMissing() == 0
+func (t *Torrent) IsSeeding() bool {
+	return t.status == torrentSeeding && t.Torrent.Seeding()
 }
 
 func (t *Torrent) Pause() {
