@@ -686,7 +686,7 @@ func (tm *TorrentManager) activeTorrentLoop() {
 									continue
 								}
 								subpath := file.Path()
-								if data, err := tm.boostFetcher.GetFile(ih.String(), subpath); err == nil {
+								if data, err := tm.boostFetcher.FetchFile(ih.String(), subpath); err == nil {
 									filedatas = append(filedatas, data)
 									filepaths = append(filepaths, subpath)
 								} else {
@@ -716,8 +716,8 @@ func (tm *TorrentManager) activeTorrentLoop() {
 				}
 			}
 
-			if counter >= 5*loops && (len(tm.pendingTorrents) > 0 || active_running > 0 || active_paused > 0 || counter >= 10*loops) {
-				log.Info("Fs status", "pending", len(tm.pendingTorrents) /* "active", len(tm.activeTorrents),*/, "waiting", active_wait, "downloading", active_running, "paused", active_paused /*"boost", active_boost,*/, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s" /*"channel", len(tm.updateTorrent)+len(tm.seedingChan)+len(tm.pendingChan)+len(tm.activeChan),*/, "slot", tm.slot, "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len())
+			if counter >= 5*loops { //&& (len(tm.pendingTorrents) > 0 || active_running > 0 || active_paused > 0 || counter >= 10*loops) {
+				log.Info("Fs status", "pending", len(tm.pendingTorrents) /* "active", len(tm.activeTorrents),*/, "waiting", active_wait, "downloading", active_running, "paused", active_paused /*"boost", active_boost,*/, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s" /*"channel", len(tm.updateTorrent)+len(tm.seedingChan)+len(tm.pendingChan)+len(tm.activeChan),*/, "slot", tm.slot, "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len(), "stats", tm.fileCache.Stats(), "len", tm.fileCache.Len(), "capacity", common.StorageSize(tm.fileCache.Capacity()).String())
 				counter = 0
 				current_size = 0
 			}
@@ -790,6 +790,10 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 		if !torrent.Ready() {
 			return false, errors.New("download not completed")
 		}
+		//for _, file := range torrent.Files() {
+		//	log.Info("Precache", "ih", infohash, "path", "/"+file.Path())
+		//	go fs.GetFile(infohash, "/"+file.Path())
+		//}
 		return torrent.BytesCompleted() <= rawSize, nil
 	}
 }
@@ -840,7 +844,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 
 		//data final verification
 		for _, file := range torrent.Files() {
-			log.Debug("File path info", "path", file.Path(), "subpath", subpath)
+			log.Debug("File location info", "ih", infohash, "path", file.Path(), "subpath", subpath, "key", key)
 			if file.Path() == subpath[1:] {
 				if int64(len(data)) != file.Length() {
 					log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
