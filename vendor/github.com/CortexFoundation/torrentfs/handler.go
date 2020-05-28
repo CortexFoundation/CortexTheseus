@@ -820,9 +820,9 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		return nil, errors.New("file not exist")
 	} else {
 
-		if strings.HasPrefix(subpath, "/") {
-			subpath = subpath[1:]
-		}
+		subpath = strings.TrimPrefix(subpath, "/")
+		subpath = strings.TrimSuffix(subpath, "/")
+
 		if !torrent.Ready() {
 			log.Error("Read unavailable file", "hash", infohash, "subpath", subpath)
 			return nil, errors.New("download not completed")
