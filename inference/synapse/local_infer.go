@@ -131,8 +131,10 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 			memoryUsage = MinMemoryUsage
 		}
 		memoryUsage -= ReservedMemoryUsage
+		log.Info("Memory alloc", "size", memoryUsage)
 		s.caches[s.config.DeviceId] = lru.New(memoryUsage)
 		s.caches[s.config.DeviceId].OnEvicted = func(key lru.Key, value interface{}) {
+			log.Warn("C FREE On Evicted", "k", key, "size", value.(*kernel.Model).Size(), "max", s.config.MaxMemoryUsage, "min", MinMemoryUsage)
 			value.(*kernel.Model).Free()
 		}
 	}
@@ -150,14 +152,12 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			log.Warn("inferByInputContent: model loaded failed",
-				"model hash", modelHash, "error", modelJson_err)
+			log.Warn("inferByInputContent: model loaded failed", "model hash", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		modelParams, modelParams_err := s.config.Storagefs.GetFile(s.ctx, modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			log.Warn("inferByInputContent: params loaded failed",
-				"model hash", modelHash, "error", modelParams_err)
+			log.Warn("inferByInputContent: params loaded failed", "model hash", modelHash, "error", modelParams_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		var deviceType = 0
