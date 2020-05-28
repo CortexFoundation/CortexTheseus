@@ -17,7 +17,7 @@
 package rawdb
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 // table is a wrapper around a database that prefixes each key access with a pre-
@@ -103,8 +103,9 @@ func (t *table) Delete(key []byte) error {
 	return t.db.Delete(append([]byte(t.prefix), key...))
 }
 
-// NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
-// of database content with a particular key prefix.
+// NewIterator creates a binary-alphabetical iterator over a subset
+// of database content with a particular key prefix, starting at a particular
+// initial key (or after, if it does not exist).
 func (t *table) NewIterator(prefix []byte, start []byte) ctxcdb.Iterator {
 	innerPrefix := append([]byte(t.prefix), prefix...)
 	iter := t.db.NewIterator(innerPrefix, start)

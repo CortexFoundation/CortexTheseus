@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/db"
-	"github.com/CortexFoundation/CortexTheseus/db/leveldb"
-	"github.com/CortexFoundation/CortexTheseus/db/memorydb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/leveldb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/olekukonko/tablewriter"
 )
@@ -41,10 +41,10 @@ type freezerdb struct {
 // the slow ancient tables.
 func (frdb *freezerdb) Close() error {
 	var errs []error
-	if err := frdb.KeyValueStore.Close(); err != nil {
+	if err := frdb.AncientStore.Close(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := frdb.AncientStore.Close(); err != nil {
+	if err := frdb.KeyValueStore.Close(); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) != 0 {
@@ -150,11 +150,10 @@ func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, freezer string, namespace s
 				}
 				// Database contains only older data than the freezer, this happens if the
 				// state was wiped and reinited from an existing freezer.
-			} else {
-				// Key-value store continues where the freezer left off, all is fine. We might
-				// have duplicate blocks (crash after freezer write but before kay-value store
-				// deletion, but that's fine).
 			}
+			// Otherwise, key-value store continues where the freezer left off, all is fine.
+			// We might have duplicate blocks (crash after freezer write but before key-value
+			// store deletion, but that's fine).
 		} else {
 			// If the freezer is empty, ensure nothing was moved yet from the key-value
 			// store, otherwise we'll end up missing data. We check block #1 to decide
@@ -167,9 +166,9 @@ func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, freezer string, namespace s
 					return nil, errors.New("ancient chain segments already extracted, please set --datadir.ancient to the correct path")
 				}
 				// Block #1 is still in the database, we're allowed to init a new feezer
-			} else {
-				// The head header is still the genesis, we're allowed to init a new feezer
 			}
+			// Otherwise, the head header is still the genesis, we're allowed to init a new
+			// feezer.
 		}
 	}
 	// Freezer is consistent with the key-value database, permit combining the two

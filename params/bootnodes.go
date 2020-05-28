@@ -70,20 +70,11 @@ var BernardBootnodes = []string{
 //const dnsPrefix = "enrtree://AKLET737XA6CY7T4QAPFJCUZRZ46EFAGZIV6LOAGKTG45RRZSUUWI@"
 const dnsPrefix = "enrtree://AKLET737XA6CY7T4QAPFJCUZRZ46EFAGZIV6LOAGKTG45RRZSUUWI@"
 
-var KnownDNSNetworks = map[common.Hash]string{
-	//MainnetGenesisHash: dnsPrefix + "all.mainnet.cortexlabs.ai",
-	MainnetGenesisHash: dnsPrefix + "all.mainnet.coinbag.org",
-}
-
-var MainnetTrackers = []string{
-	"://dht.cortexlabs.ai:5008",
-	"://tracker.cortexlabs.ai:5008",
-}
-
-var BernardTrackers = MainnetTrackers //[]string{
-//      MainnetTrackers,
-//}
-
-var TorrentBoostNodes = []string{
-	"http://storage.cortexlabs.ai:7881",
+func KnownDNSNetwork(genesis common.Hash, protocol string) string {
+	var net string
+	switch genesis {
+	case MainnetGenesisHash:
+		net = "mainnet"
+	}
+	return dnsPrefix + protocol + "." + net + ".coinbag.org"
 }

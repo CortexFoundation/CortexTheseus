@@ -38,7 +38,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/filters"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
@@ -51,7 +51,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/torrentfs"
 )
 
 // Cortex implements the Cortex full node service.
@@ -67,7 +67,7 @@ type Cortex struct {
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 
-	dialCandiates enode.Iterator
+	dialCandidates enode.Iterator
 
 	// DB interfaces
 	chainDb ctxcdb.Database // Block chain database
@@ -105,8 +105,12 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
 	}
 	if config.NoPruning && config.TrieDirtyCache > 0 {
-		config.TrieCleanCache += config.TrieDirtyCache * 3 / 5
-		config.SnapshotCache += config.TrieDirtyCache * 3 / 5
+		if config.SnapshotCache > 0 {
+			config.TrieCleanCache += config.TrieDirtyCache * 3 / 5
+			config.SnapshotCache += config.TrieDirtyCache * 2 / 5
+		} else {
+			config.TrieCleanCache += config.TrieDirtyCache
+		}
 		config.TrieDirtyCache = 0
 	}
 	log.Info("Allocated trie memory caches", "clean", common.StorageSize(config.TrieCleanCache)*1024*1024, "dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024, "snapshot", common.StorageSize(config.SnapshotCache)*1024*1024, "NoPruning", config.NoPruning)
@@ -181,7 +185,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 			SnapshotLimit: config.SnapshotCache,
 		}
 	)
-	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve)
+	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve, &config.TxLookupLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +217,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		gpoParams.Default = config.MinerGasPrice
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
-	ctxc.dialCandiates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
+	ctxc.dialCandidates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
 	if err != nil {
 		return nil, err
 	}
@@ -519,7 +523,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 	for i, vsn := range ProtocolVersions {
 		protos[i] = s.protocolManager.makeProtocol(vsn)
 		protos[i].Attributes = []enr.Entry{s.currentCtxcEntry()}
-		protos[i].DialCandidates = s.dialCandiates
+		protos[i].DialCandidates = s.dialCandidates
 	}
 	return protos
 }
@@ -527,6 +531,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 // Start implements node.Service, starting all internal goroutines needed by the
 // Cortex protocol implementation.
 func (s *Cortex) Start(srvr *p2p.Server) error {
+	s.startCtxcEntryUpdate(srvr.LocalNode())
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 

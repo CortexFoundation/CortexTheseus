@@ -230,7 +230,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		value.SetBytes(content)
 	}
 	s.originStorage[key] = value
-	log.Trace("Committed state", "value", value, "key", key, "addr", s.address, "s.addrHash", s.addrHash)
+	log.Trace("Committed state", "value", value, "key", key, "addr", s.address, "s.addrHash", s.addrHash, "s.data.Upload", s.data.Upload, "s.data.Num", s.data.Num)
 	return value
 }
 
@@ -374,16 +374,16 @@ func (s *stateObject) setBalance(amount *big.Int) {
 	s.data.Balance = amount
 }
 
-func (s *stateObject) AddUpload(amount *big.Int) {
-	if amount.Sign() == 0 {
-		if s.empty() {
-			s.touch()
-		}
-
-		return
-	}
-	s.SetUpload(new(big.Int).Add(s.Upload(), amount))
-}
+//func (s *stateObject) AddUpload(amount *big.Int) {
+//	if amount.Sign() == 0 {
+//		if s.empty() {
+//			s.touch()
+//		}
+//
+//		return
+//	}
+//	s.SetUpload(new(big.Int).Add(s.Upload(), amount))
+//}
 
 func (s *stateObject) SubUpload(amount *big.Int) {
 	if amount.Sign() == 0 {
@@ -461,6 +461,23 @@ func (s *stateObject) Code(db Database) []byte {
 	}
 	s.code = code
 	return code
+}
+
+// CodeSize returns the size of the contract code associated with this object,
+// or zero if none. This methos is an almost mirror of Code, but uses a cache
+// inside the database to avoid loading codes seen recently.
+func (s *stateObject) CodeSize(db Database) int {
+	if s.code != nil {
+		return len(s.code)
+	}
+	if bytes.Equal(s.CodeHash(), emptyCodeHash) {
+		return 0
+	}
+	size, err := db.ContractCodeSize(s.addrHash, common.BytesToHash(s.CodeHash()))
+	if err != nil {
+		s.setError(fmt.Errorf("can't load code size %x: %v", s.CodeHash(), err))
+	}
+	return size
 }
 
 func (s *stateObject) SetCode(codeHash common.Hash, code []byte) {

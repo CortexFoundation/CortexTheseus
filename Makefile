@@ -8,7 +8,7 @@
 .PHONY: cortex-darwin cortex-darwin-386 cortex-darwin-amd64
 .PHONY: cortex-windows cortex-windows-386 cortex-windows-amd64
 
-.PHONY: clib inferServer nodekey
+.PHONY: clib
 .PHONY: cortex cortex-remote
 
 GOBIN = $(shell pwd)/build/bin
@@ -80,10 +80,10 @@ tracker:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/tracker\" to launch tracker."
 
-seeding:
-	build/env.sh go run build/ci.go install ./cmd/seeding
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
+#seeding:
+#	build/env.sh go run build/ci.go install ./cmd/seeding
+#	@echo "Done building."
+#	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
 wnode:
 	build/env.sh go run build/ci.go install ./cmd/wnode
 	@echo "Done building."
@@ -98,18 +98,18 @@ cvm: plugins/cuda_cvm.so plugins/cpu_cvm.so
 	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
-nodekey:
-	build/env.sh go run build/ci.go install ./cmd/nodekey
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
+#nodekey:
+#	build/env.sh go run build/ci.go install ./cmd/nodekey
+#	@echo "Done building."
+#	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C solution cuda-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
 	$(MAKE) -C solution cpu-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu
@@ -128,9 +128,9 @@ clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cud
 
 clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
 
-inferServer: clib
-	build/env.sh go run build/ci.go install ./cmd/infer_server
-	build/env.sh go run build/ci.go install ./cmd/infer_client
+#inferServer: clib
+#	build/env.sh go run build/ci.go install ./cmd/infer_server
+#	build/env.sh go run build/ci.go install ./cmd/infer_client
 
 android:
 	build/env.sh go run build/ci.go aar --local

@@ -33,7 +33,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/fetcher"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
@@ -72,6 +72,7 @@ type ProtocolManager struct {
 
 	txpool      txPool
 	blockchain  *core.BlockChain
+	chaindb     ctxcdb.Database
 	chainconfig *params.ChainConfig
 	maxPeers    int
 
@@ -107,6 +108,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		eventMux:   mux,
 		txpool:     txpool,
 		blockchain: blockchain,
+		chaindb:    chaindb,
 		peers:      newPeerSet(),
 		whitelist:  whitelist,
 		txsyncCh:   make(chan *txsync),

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -198,7 +199,6 @@ func (cs *chainSyncer) loop() {
 	cs.pm.txFetcher.Start()
 	defer cs.pm.fetcher.Stop()
 	defer cs.pm.txFetcher.Stop()
-	defer cs.pm.downloader.Terminate()
 
 	// The force timer lowers the peer count threshold down to one when it fires.
 	// This ensures we'll always start sync even if there aren't enough peers.
@@ -221,8 +221,13 @@ func (cs *chainSyncer) loop() {
 			cs.forced = true
 
 		case <-cs.pm.quitSync:
+			// Disable all insertion on the blockchain. This needs to happen before
+			// terminating the downloader because the downloader waits for blockchain
+			// inserts, and these can take a long time to finish.
+			cs.pm.blockchain.StopInsert()
+			cs.pm.downloader.Terminate()
 			if cs.doneCh != nil {
-				cs.pm.downloader.Terminate()
+				// Wait for the current sync to end.
 				<-cs.doneCh
 			}
 			return
@@ -285,6 +290,24 @@ func (cs *chainSyncer) startSync(op *chainSyncOp) {
 
 // doSync synchronizes the local blockchain with a remote peer.
 func (pm *ProtocolManager) doSync(op *chainSyncOp) error {
+	if op.mode == downloader.FastSync {
+		// Before launch the fast sync, we have to ensure user uses the same
+		// txlookup limit.
+		// The main concern here is: during the fast sync Geth won't index the
+		// block(generate tx indices) before the HEAD-limit. But if user changes
+		// the limit in the next fast sync(e.g. user kill Geth manually and
+		// restart) then it will be hard for Geth to figure out the oldest block
+		// has been indexed. So here for the user-experience wise, it's non-optimal
+		// that user can't change limit during the fast sync. If changed, Geth
+		// will just blindly use the original one.
+		limit := pm.blockchain.TxLookupLimit()
+		if stored := rawdb.ReadFastTxLookupLimit(pm.chaindb); stored == nil {
+			rawdb.WriteFastTxLookupLimit(pm.chaindb, limit)
+		} else if *stored != limit {
+			pm.blockchain.SetTxLookupLimit(*stored)
+			log.Warn("Update txLookup limit", "provided", limit, "updated", *stored)
+		}
+	}
 	// Run the sync cycle, and disable fast sync if we're past the pivot block
 	err := pm.downloader.Synchronise(op.peer.id, op.head, op.td, op.mode)
 	if err != nil {

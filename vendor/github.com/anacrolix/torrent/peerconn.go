@@ -329,7 +329,7 @@ func (cn *PeerConn) close() {
 	cn.discardPieceInclination()
 	cn._pieceRequestOrder.Clear()
 	if cn.conn != nil {
-		go cn.conn.Close()
+		cn.conn.Close()
 	}
 }
 
@@ -601,7 +601,9 @@ func (cn *PeerConn) writer(keepAliveTimeout time.Duration) {
 				cn.wroteMsg(&msg)
 				cn.writeBuffer.Write(msg.MustMarshalBinary())
 				torrent.Add(fmt.Sprintf("messages filled of type %s", msg.Type.String()), 1)
-				return cn.writeBuffer.Len() < 1<<16 // 64KiB
+				// 64KiB, but temporarily less to work around an issue with WebRTC. TODO: Update
+				// when https://github.com/pion/datachannel/issues/59 is fixed.
+				return cn.writeBuffer.Len() < 1<<15
 			})
 		}
 		if cn.writeBuffer.Len() == 0 && time.Since(lastWrite) >= keepAliveTimeout {
@@ -623,6 +625,7 @@ func (cn *PeerConn) writer(keepAliveTimeout time.Duration) {
 			keepAliveTimer.Reset(keepAliveTimeout)
 		}
 		if err != nil {
+			cn.logger.Printf("error writing: %v", err)
 			return
 		}
 		if n != frontBuf.Len() {
@@ -1020,7 +1023,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			defer cl.lock()
 			err = decoder.Decode(&msg)
 		}()
-		if t.closed.IsSet() || c.closed.IsSet() || err == io.EOF {
+		if t.closed.IsSet() || c.closed.IsSet() {
 			return nil
 		}
 		if err != nil {

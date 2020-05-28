@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Suryandaru Triandana <syndtr@gmail.com>
+// Copyright (c) 2013, Suryandaru Triandana <ucwong@gmail.com>
 // All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be
@@ -97,6 +97,7 @@ func (db *DB) mpoolGet(n int) *memDB {
 
 func (db *DB) mpoolDrain() {
 	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
@@ -105,7 +106,6 @@ func (db *DB) mpoolDrain() {
 			default:
 			}
 		case <-db.closeC:
-			ticker.Stop()
 			// Make sure the pool is drained.
 			select {
 			case <-db.memPool:

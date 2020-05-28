@@ -27,7 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 // Runs multiple tests with randomized parameters.
@@ -49,7 +49,7 @@ func TestChainIndexerWithChildren(t *testing.T) {
 // multiple backends. The section size and required confirmation count parameters
 // are randomized.
 func testChainIndexer(t *testing.T, count int) {
-	db := ctxcdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	defer db.Close()
 
 	// Create a chain of indexers and ensure they all report empty

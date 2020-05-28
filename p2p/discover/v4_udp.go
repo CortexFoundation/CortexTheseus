@@ -174,7 +174,7 @@ func makeEndpoint(addr *net.UDPAddr, tcpPort uint16) rpcEndpoint {
 
 func (t *UDPv4) nodeFromRPC(sender *net.UDPAddr, rn rpcNode) (*node, error) {
 	if rn.UDP <= 1024 {
-		return nil, errors.New("low port")
+		return nil, errLowPort
 	}
 	if err := netutil.CheckRelayIP(sender.IP, rn.IP); err != nil {
 		return nil, err
@@ -278,20 +278,13 @@ func ListenV4(c UDPConn, ln *enode.LocalNode, cfg Config) (*UDPv4, error) {
 		cancelCloseCtx:  cancel,
 		log:             cfg.Log,
 	}
-	if t.log == nil {
-		t.log = log.Root()
-	}
 
 	tab, err := newTable(t, ln.Database(), cfg.Bootnodes, t.log)
 	if err != nil {
 		return nil, err
 	}
 	t.tab = tab
-	t.wg.Add(1)
-	go func() {
-		defer t.wg.Done()
-		tab.loop()
-	}()
+	go tab.loop()
 
 	t.wg.Add(2)
 	go t.loop()
@@ -309,8 +302,8 @@ func (t *UDPv4) Close() {
 	t.closeOnce.Do(func() {
 		t.cancelCloseCtx()
 		t.conn.Close()
-		t.tab.close()
 		t.wg.Wait()
+		t.tab.close()
 	})
 }
 

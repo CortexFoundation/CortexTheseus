@@ -28,10 +28,6 @@ const (
 )
 
 func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
-	if !cuckoo.config.UseCuda {
-		//log.Error("No cuda found")
-		return nil
-	}
 	// If we're running a fake PoW, simply return a 0 nonce immediately
 	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
 		header := block.Header()
@@ -65,11 +61,16 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 		cuckoo.workCh <- block
 	}
 
+	//if !cuckoo.config.UseCuda || cuckoo.threads <= 0 {
+	//	return nil
+	//}
+
 	err := cuckoo.InitOnce()
 	if err != nil {
 		log.Error("cuckoo init error", "error", err)
 		return err
 	}
+
 	var pend sync.WaitGroup
 	for i := 0; i < cuckoo.threads; i++ {
 		pend.Add(1)
@@ -168,18 +169,22 @@ func (cuckoo *Cuckoo) remote() {
 		if currentWork == nil {
 			return res, errNoMiningWork
 		}
-		res[0] = cuckoo.SealHash(currentWork.Header()).Hex()
-		res[1] = common.BytesToHash(SeedHash(currentWork.NumberU64())).Hex()
+		sealhash := cuckoo.SealHash(currentWork.Header())
+		res[0] = sealhash.Hex()
+		//res[1] = common.BytesToHash(SeedHash(currentWork.NumberU64())).Hex()
+		res[1] = "0x0000000000000000000000000000000000000000000000000000000000000000"
 
 		// Calculate the "target" to be returned to the external sealer.
-		n := big.NewInt(1)
-		n.Lsh(n, 255)
-		n.Div(n, currentWork.Difficulty())
-		n.Lsh(n, 1)
-		res[2] = common.BytesToHash(n.Bytes()).Hex()
+		//n := big.NewInt(1)
+		//n.Lsh(n, 255)
+		//n.Div(n, currentWork.Difficulty())
+		//n.Lsh(n, 1)
+		//res[2] = common.BytesToHash(n.Bytes()).Hex()
+
+		res[2] = common.BytesToHash(new(big.Int).Div(two256, currentWork.Difficulty()).Bytes()).Hex()
 		res[3] = hexutil.EncodeBig(currentWork.Number())
 		// Trace the seal work fetched by remote sealer.
-		works[cuckoo.SealHash(currentWork.Header())] = currentWork
+		works[sealhash] = currentWork
 		return res, nil
 	}
 
@@ -224,7 +229,7 @@ func (cuckoo *Cuckoo) remote() {
 				//delete(works, hash)
 				return true
 			default:
-				log.Info("Work submitted is stale", "hash", hash)
+				log.Warn("Sealing result is not read by miner", "mode", "remote", "sealhash", hash)
 				return false
 			}
 		}
@@ -263,10 +268,8 @@ func (cuckoo *Cuckoo) remote() {
 			// Verify submitted PoW solution based on maintained mining blocks.
 			//if submitWork(result.nonce, result.mixDigest, result.hash, result.solution) {
 			if submitWork(result.nonce, result.hash, result.solution) {
-				//fmt.Println("yes")
 				result.errc <- nil
 			} else {
-				//fmt.Println("no")
 				result.errc <- errInvalidSealResult
 			}
 

@@ -247,7 +247,7 @@ func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 // verifyHeader checks whether a header conforms to the consensus rules of the
 // stock Cortex cuckoo engine.
 // See YP section 4.3.4. "Block Header Validity"
-func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *types.Header, uncle bool, seal bool) error {
+func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *types.Header, uncle, seal bool) error {
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
@@ -624,7 +624,6 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
 	}
-	// cuckoo.InitOnce()
 
 	var (
 		result        = header.Solution
@@ -807,7 +806,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		//	}
 		//}
 
-		if uncles != nil && len(uncles) > 0 {
+		if len(uncles) > 0 {
 
 			for _, uncle := range uncles {
 				r.Add(uncle.Number, big8)
@@ -852,33 +851,24 @@ func toCoin(wei *big.Int) *big.Float {
 
 func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 	buf := make([]byte, 42*4)
-	//for i := 0; i < len(sol); i++ {
-	//	binary.BigEndian.PutUint32(buf[i*4:], sol[i])
-	//}
-
-	//buf := new(bytes.Buffer)
 	for i, s := range sol {
-		//binary.Write(buf, binary.BigEndian, s)
 		binary.BigEndian.PutUint32(buf[i*4:], s)
 	}
 	ret := crypto.Keccak256(buf)
-	//ret := crypto.Keccak256(buf)
 	return ret
 }
 
 func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) (ok bool) {
-//	if cuckoo.minerPlugin == nil {
-		err := cuckoo.InitOnce()
-		if err != nil {
-			log.Error("cuckoo init error", "error", err)
-			return false
-		}
-//	}
-	m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
-	if err != nil {
-		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
+	if err := cuckoo.InitOnce(); err != nil {
+		log.Error("cuckoo init error", "error", err)
 		return false
 	}
-	r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
-	return r
+
+	if m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo"); err != nil {
+		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
+		return false
+	} else {
+		r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
+		return r
+	}
 }

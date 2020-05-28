@@ -48,13 +48,9 @@ var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
 }
 
 type TrustedCheckpoint struct {
-	Name          string      `json:"-"`
-	SectionIndex  uint64      `json:"sectionIndex"`
-	SectionHead   common.Hash `json:"sectionHead"`
-	TfsBlocks     uint64      `json:"tfsBlocks"`
-	TfsCheckPoint uint64      `json:"tfsCheckPoint"`
-	TfsFiles      uint64      `json:"tfsFiles"`
-	TfsRoot       common.Hash `json:"tfsRoot"`
+	Name         string      `json:"-"`
+	SectionIndex uint64      `json:"sectionIndex"`
+	SectionHead  common.Hash `json:"sectionHead"`
 }
 
 var (
@@ -65,15 +61,11 @@ var (
 
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
-		Name:          "mainnet",
-		SectionIndex:  41,
-		SectionHead:   common.HexToHash("0x1e168dbcc596316d6944ef8ec5559f5d875bd106e9b47ad3349a236fbcd7fe6b"),
-		TfsBlocks:     96,
-		TfsFiles:      46,
-		TfsCheckPoint: 395964,
-		TfsRoot:       common.HexToHash("0xb07f9a8a8300db4a82da72d3d024fb86bae3742d24a91a7160d2838a13e2520a"),
+		Name:         "mainnet",
+		SectionIndex: 48,
+		SectionHead:  common.HexToHash("0xd2251642cc4da39c91ed54c91f77f037dd259ea8d89126fa3a59290cb64e6b0d"),
 	}
-	//0x78c5f644c046fb0ea544b50a898ca5d2a926c419863853ac8ba22c10fc380fd6
+
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "dolores",
 		SectionIndex: 1,
@@ -145,6 +137,26 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       nil,
 		Cuckoo:              new(CuckooConfig),
+	}
+
+	// TestnetChainConfig contains the chain parameters to run a node on the flood test network.
+	FloodChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(44),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.HexToHash("0x"),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		Clique: &CliqueConfig{
+			Period: 15,
+			Epoch:  30000,
+		},
 	}
 
 	// AllCuckooProtocolChanges contains every protocol change (EIPs) introduced

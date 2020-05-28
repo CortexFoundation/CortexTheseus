@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Suryandaru Triandana <syndtr@gmail.com>
+// Copyright (c) 2012, Suryandaru Triandana <ucwong@gmail.com>
 // All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be
@@ -172,6 +172,7 @@ func (db *DB) compactionTransact(name string, t compactionTransactInterface) {
 
 		disableBackoff = db.s.o.GetDisableCompactionBackoff()
 	)
+	defer backoffT.Stop()
 	for n := 0; ; n++ {
 		// Check whether the DB is closed.
 		if db.isClosed() {

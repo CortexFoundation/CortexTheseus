@@ -18,6 +18,11 @@ type RTPSender struct {
 
 	transport *DTLSTransport
 
+	// TODO(sgotti) remove this when in future we'll avoid replacing
+	// a transceiver sender since we can just check the
+	// transceiver negotiation status
+	negotiated bool
+
 	// A reference to the associated api object
 	api *API
 
@@ -47,6 +52,18 @@ func (api *API) NewRTPSender(track *Track, transport *DTLSTransport) (*RTPSender
 		sendCalled: make(chan interface{}),
 		stopCalled: make(chan interface{}),
 	}, nil
+}
+
+func (r *RTPSender) isNegotiated() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.negotiated
+}
+
+func (r *RTPSender) setNegotiated() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.negotiated = true
 }
 
 // Transport returns the currently-configured *DTLSTransport or nil
@@ -139,8 +156,13 @@ func (r *RTPSender) ReadRTCP() ([]rtcp.Packet, error) {
 	return rtcp.Unmarshal(b[:i])
 }
 
-// sendRTP should only be called by a track, this only exists so we can keep state in one place
-func (r *RTPSender) sendRTP(header *rtp.Header, payload []byte) (int, error) {
+// SendRTP sends a RTP packet on this RTPSender
+//
+// You should use Track instead to send packets. This is exposed because pion/webrtc currently
+// provides no way for users to send RTP packets directly. This is makes users unable to send
+// retransmissions to a single RTPSender. in /v3 this will go away, only use this API if you really
+// need it.
+func (r *RTPSender) SendRTP(header *rtp.Header, payload []byte) (int, error) {
 	select {
 	case <-r.stopCalled:
 		return 0, fmt.Errorf("RTPSender has been stopped")

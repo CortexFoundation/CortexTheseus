@@ -20,9 +20,9 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/elastic/gosigar"
 	"io/ioutil"
 	"os"
-
 	// "math/big"
 
 	"path/filepath"
@@ -46,7 +46,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
 	//"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	// "github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -58,7 +58,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 	"net/url"
 )
@@ -189,6 +189,11 @@ var (
 	SnapshotFlag = cli.BoolFlag{
 		Name:  "snapshot",
 		Usage: `Enables snapshot-database mode -- experimental work in progress feature`,
+	}
+	TxLookupLimitFlag = cli.Int64Flag{
+		Name:  "txlookuplimit",
+		Usage: "Number of recent blocks to maintain transactions index by-hash for (default = index all blocks)",
+		Value: 0,
 	}
 
 	// P2P storage settings
@@ -802,12 +807,14 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 
 	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
 	for _, url := range urls {
-		node, err := enode.Parse(enode.ValidSchemes, url)
-		if err != nil {
-			log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+		if url != "" {
+			node, err := enode.Parse(enode.ValidSchemes, url)
+			if err != nil {
+				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+				continue
+			}
+			cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 		}
-		//log.Warn("boost", "url", url, "node", node)
-		cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 	}
 }
 
@@ -1098,9 +1105,6 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolNoLocalsFlag.Name) {
 		cfg.NoLocals = ctx.GlobalBool(TxPoolNoLocalsFlag.Name)
 	}
-	//if ctx.GlobalIsSet(TxPoolNoInfersFlag.Name) {
-	//        cfg.NoInfers = ctx.GlobalBool(TxPoolNoInfersFlag.Name)
-	//}
 	if ctx.GlobalIsSet(TxPoolJournalFlag.Name) {
 		cfg.Journal = ctx.GlobalString(TxPoolJournalFlag.Name)
 	}
@@ -1256,6 +1260,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(CacheNoPrefetchFlag.Name) {
 		cfg.NoPrefetch = ctx.GlobalBool(CacheNoPrefetchFlag.Name)
 	}
+	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) {
+		cfg.TxLookupLimit = ctx.GlobalUint64(TxLookupLimitFlag.Name)
+	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
 		cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
 	}
@@ -1303,7 +1310,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
-		cfg.Cuckoo.Mine = true
+		//cfg.Cuckoo.Mine = true
 	}
 	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
 		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
@@ -1345,8 +1352,21 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
+	var mem gosigar.Mem
+	if err := mem.Get(); err == nil {
+		if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
+			log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
+			mem.Total = 2 * 1024 * 1024 * 1024
+		}
+		allowance := int(mem.Total / 1024 / 1024 / 2)
+		if cache := ctx.GlobalInt(InferMemoryFlag.Name); cache > allowance {
+			log.Warn("Sanitizing cache to C's GC limits", "provided", cache, "updated", allowance)
+			ctx.GlobalSet(InferMemoryFlag.Name, strconv.Itoa(allowance))
+		}
+	}
 	cfg.InferMemoryUsage = int64(ctx.GlobalInt(InferMemoryFlag.Name))
 	cfg.InferMemoryUsage = cfg.InferMemoryUsage << 20
+	//log.Warn("C MEMORY FOR CVM", "cache", cfg.InferMemoryUsage)
 	// Override any default configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(BernardFlag.Name):
@@ -1397,7 +1417,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		// 	}
 	default:
 		if cfg.NetworkId == 21 {
-			setDNSDiscoveryDefaults(cfg, params.KnownDNSNetworks[params.MainnetGenesisHash])
+			setDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
 	// TODO(fjl): move trie cache generations into config
@@ -1408,11 +1428,16 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 
 // setDNSDiscoveryDefaults configures DNS discovery with the given URL if
 // no URLs are set.
-func setDNSDiscoveryDefaults(cfg *ctxc.Config, url string) {
+func setDNSDiscoveryDefaults(cfg *ctxc.Config, genesis common.Hash) {
 	if cfg.DiscoveryURLs != nil {
 		return
 	}
-	cfg.DiscoveryURLs = []string{url}
+
+	protocol := "all"
+	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
+		log.Info("Dns found", "url", url)
+		cfg.DiscoveryURLs = []string{url}
+	}
 }
 
 // SetDashboardConfig applies dashboard related command line flags to the config.
@@ -1556,7 +1581,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 }
 
 // MakeChain creates a chain manager from set command line flags.
-func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ctxcdb.Database) {
+func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.BlockChain, chainDb ctxcdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
 
@@ -1596,7 +1621,12 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	vmcfg := vm.Config{
 		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
 	}
-	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)
+	var limit *uint64
+	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) && !readOnly {
+		l := ctx.GlobalUint64(TxLookupLimitFlag.Name)
+		limit = &l
+	}
+	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil, limit)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}
