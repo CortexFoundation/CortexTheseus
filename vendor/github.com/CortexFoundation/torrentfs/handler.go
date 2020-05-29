@@ -371,19 +371,21 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		slot:                int(fsid % bucket),
 	}
 
-	conf := bigcache.Config{
-		Shards:             1024,
-		LifeWindow:         180 * time.Second,
-		CleanWindow:        1 * time.Second,
-		MaxEntriesInWindow: 1000 * 10 * 60,
-		MaxEntrySize:       512,
-		StatsEnabled:       true,
-		Verbose:            true,
-		HardMaxCacheSize:   2048, //MB
+	if cache {
+		conf := bigcache.Config{
+			Shards:             1024,
+			LifeWindow:         600 * time.Second,
+			CleanWindow:        1 * time.Second,
+			MaxEntriesInWindow: 1000 * 10 * 60,
+			MaxEntrySize:       512,
+			StatsEnabled:       true,
+			Verbose:            true,
+			HardMaxCacheSize:   2048, //MB
+		}
+		TorrentManager.fileCache, _ = bigcache.NewBigCache(conf)
+		TorrentManager.cache = cache
+		TorrentManager.compress = compress
 	}
-	TorrentManager.fileCache, _ = bigcache.NewBigCache(conf)
-	TorrentManager.compress = compress
-	TorrentManager.cache = cache
 
 	TorrentManager.metrics = config.Metrics
 
@@ -420,8 +422,9 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 		case t := <-tm.seedingChan:
 			tm.seedingTorrents[t.Torrent.InfoHash()] = t
 			if t.Seed() {
-				if _, ok := GoodFiles[t.InfoHash()]; ok || tm.fullSeed {
+				if active, ok := GoodFiles[t.InfoHash()]; tm.cache && ok && active {
 					for _, file := range t.Files() {
+						log.Trace("Precache file", "ih", t.InfoHash(), "ok", ok, "active", active)
 						go tm.GetFile(t.InfoHash(), file.Path())
 					}
 				}
@@ -441,10 +444,8 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 }
 
 func (tm *TorrentManager) init() {
-	for k, ok := range GoodFiles {
-		if ok {
-			tm.searchAndDownload(k, 0)
-		}
+	for k, _ := range GoodFiles {
+		tm.searchAndDownload(k, 0)
 	}
 }
 
@@ -733,7 +734,11 @@ func (tm *TorrentManager) activeTorrentLoop() {
 			}
 
 			if counter >= 5*loops {
-				log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "slot", tm.slot, "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len(), "stats", tm.fileCache.Stats(), "len", tm.fileCache.Len(), "capacity", common.StorageSize(tm.fileCache.Capacity()).String())
+				if tm.cache {
+					log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "slot", tm.slot, "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len(), "stats", tm.fileCache.Stats(), "len", tm.fileCache.Len(), "capacity", common.StorageSize(tm.fileCache.Capacity()).String())
+				} else {
+					log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "slot", tm.slot, "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len())
+				}
 				counter = 0
 				current_size = 0
 			}
@@ -791,9 +796,9 @@ func (tm *TorrentManager) graceSeeding(slot int) error {
 }
 
 func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error) {
-	if fs.metrics {
-		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
-	}
+	//if fs.metrics {
+	//	defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
+	//}
 
 	if rawSize <= 0 {
 		return false, errors.New("raw size is zero or negative")
