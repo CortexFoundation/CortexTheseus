@@ -1,6 +1,7 @@
 package synapse
 
 import (
+	"context"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
@@ -10,13 +11,28 @@ import (
 	"sync"
 )
 
-var synapseInstance *Synapse = nil
+var (
+	synapseInstance *Synapse = nil
 
-const PLUGIN_PATH string = "plugins/"
-const PLUGIN_POST_FIX string = "_cvm.so"
+	DefaultConfig Config = Config{
+		// StorageDir:    "",
+		IsNotCache:     false,
+		DeviceType:     "cpu",
+		DeviceId:       0,
+		IsRemoteInfer:  false,
+		InferURI:       "",
+		Debug:          false,
+		MaxMemoryUsage: 4 * 1024 * 1024 * 1024,
+	}
+)
 
-const MinMemoryUsage int64 = 2 * 1024 * 1024 * 1024
-const ReservedMemoryUsage int64 = 512 * 1024 * 1024
+const (
+	PLUGIN_PATH     string = "plugins/"
+	PLUGIN_POST_FIX string = "_cvm.so"
+
+	MinMemoryUsage      int64 = 2 * 1024 * 1024 * 1024
+	ReservedMemoryUsage int64 = 512 * 1024 * 1024
+)
 
 type Config struct {
 	// StorageDir    string `toml:",omitempty"`
@@ -27,18 +43,7 @@ type Config struct {
 	InferURI       string `toml:",omitempty"`
 	Debug          bool   `toml:",omitempty"`
 	MaxMemoryUsage int64
-	Storagefs      torrentfs.CVMStorage
-}
-
-var DefaultConfig Config = Config{
-	// StorageDir:    "",
-	IsNotCache:     false,
-	DeviceType:     "cpu",
-	DeviceId:       0,
-	IsRemoteInfer:  false,
-	InferURI:       "",
-	Debug:          false,
-	MaxMemoryUsage: 4 * 1024 * 1024 * 1024,
+	Storagefs      torrentfs.CortexStorage
 }
 
 type Synapse struct {
@@ -49,7 +54,9 @@ type Synapse struct {
 	mutex  sync.Mutex
 	lib    *kernel.LibCVM
 	caches map[int]*lru.Cache
-	exitCh chan struct{}
+	//exitCh chan struct{}
+
+	ctx context.Context
 }
 
 func Engine() *Synapse {
@@ -89,16 +96,18 @@ func New(config *Config) *Synapse {
 	synapseInstance = &Synapse{
 		config: config,
 		lib:    lib,
-		exitCh: make(chan struct{}),
+		//exitCh: make(chan struct{}),
 		caches: make(map[int]*lru.Cache),
 	}
+
+	synapseInstance.ctx = context.Background()
 
 	log.Info("Initialising Synapse Engine", "Cache Disabled", config.IsNotCache)
 	return synapseInstance
 }
 
 func (s *Synapse) Close() {
-	close(s.exitCh)
+	//close(s.exitCh)
 	if s.config.Storagefs != nil {
 		s.config.Storagefs.Stop()
 	}

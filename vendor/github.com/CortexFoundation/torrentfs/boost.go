@@ -89,6 +89,6 @@ func (f *BoostDataFetcher) GetFile(ih, subpath string) ([]byte, error) {
 	return f.getFile(ih, subpath)
 }
 
-func (f *BoostDataFetcher) GetTorrent(ih string) ([]byte, error) {
+func (f *BoostDataFetcher) FetchTorrent(ih string) ([]byte, error) {
 	return f.getTorrentFromBoostNodes(f.nodes, ih)
 }

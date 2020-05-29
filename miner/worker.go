@@ -124,10 +124,10 @@ type intervalAdjust struct {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
-	config *params.ChainConfig
-	engine consensus.Engine
-	ctxc   Backend
-	chain  *core.BlockChain
+	chainConfig *params.ChainConfig
+	engine      consensus.Engine
+	ctxc        Backend
+	chain       *core.BlockChain
 
 	gasFloor uint64
 	gasCeil  uint64
@@ -178,7 +178,7 @@ type worker struct {
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, ctxc Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
 	worker := &worker{
-		config:             config,
+		chainConfig:        config,
 		engine:             engine,
 		ctxc:               ctxc,
 		mux:                mux,
@@ -351,7 +351,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
-			if w.isRunning() && (w.config.Clique == nil || w.config.Clique.Period > 0) {
+			if w.isRunning() && (w.chainConfig.Clique == nil || w.chainConfig.Clique.Period > 0) {
 				// Short circuit if no new transaction arrives.
 				if atomic.LoadInt32(&w.newTxs) == 0 {
 					timer.Reset(recommit)
@@ -461,7 +461,7 @@ func (w *worker) mainLoop() {
 				}
 			} else {
 				// If we're mining, but nothing is being processed, wake on new transactions
-				if w.config.Clique != nil && w.config.Clique.Period == 0 {
+				if w.chainConfig.Clique != nil && w.chainConfig.Clique.Period == 0 {
 					w.commitNewWork(nil, true, time.Now().Unix())
 				}
 			}
@@ -610,7 +610,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		return err
 	}
 	env := &environment{
-		signer:    types.NewEIP155Signer(w.config.ChainID),
+		signer:    types.NewEIP155Signer(w.chainConfig.ChainID),
 		state:     state,
 		ancestors: mapset.NewSet(),
 		family:    mapset.NewSet(),
@@ -687,7 +687,7 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, w.chain.GetVMConfig())
+	receipt, _, err := core.ApplyTransaction(w.chainConfig, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, w.chain.GetVMConfig())
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
 		return nil, err
@@ -748,8 +748,8 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		from, _ := types.Sender(w.current.signer, tx)
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
-		if tx.Protected() && !w.config.IsEIP155(w.current.header.Number) {
-			log.Trace("Ignoring reply protected transaction", "hash", tx.Hash(), "eip155", w.config.EIP155Block)
+		if tx.Protected() && !w.chainConfig.IsEIP155(w.current.header.Number) {
+			log.Trace("Ignoring reply protected transaction", "hash", tx.Hash(), "eip155", w.chainConfig.EIP155Block)
 
 			txs.Pop()
 			continue

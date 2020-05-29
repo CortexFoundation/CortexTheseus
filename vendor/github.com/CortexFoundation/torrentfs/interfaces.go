@@ -14,3 +14,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 package torrentfs
+
+import (
+	"context"
+)
+
+type CortexStorage interface {
+	Available(ctx context.Context, infohash string, rawSize int64) (bool, error)
+	GetFile(ctx context.Context, infohash, path string) ([]byte, error)
+	Stop() error
+}

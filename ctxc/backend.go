@@ -67,7 +67,7 @@ type Cortex struct {
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 
-	dialCandiates enode.Iterator
+	dialCandidates enode.Iterator
 
 	// DB interfaces
 	chainDb ctxcdb.Database // Block chain database
@@ -217,7 +217,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		gpoParams.Default = config.MinerGasPrice
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
-	ctxc.dialCandiates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
+	ctxc.dialCandidates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
 	if err != nil {
 		return nil, err
 	}
@@ -523,7 +523,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 	for i, vsn := range ProtocolVersions {
 		protos[i] = s.protocolManager.makeProtocol(vsn)
 		protos[i].Attributes = []enr.Entry{s.currentCtxcEntry()}
-		protos[i].DialCandidates = s.dialCandiates
+		protos[i].DialCandidates = s.dialCandidates
 	}
 	return protos
 }
@@ -531,6 +531,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 // Start implements node.Service, starting all internal goroutines needed by the
 // Cortex protocol implementation.
 func (s *Cortex) Start(srvr *p2p.Server) error {
+	s.startCtxcEntryUpdate(srvr.LocalNode())
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
