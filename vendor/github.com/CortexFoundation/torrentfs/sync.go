@@ -641,7 +641,7 @@ func (m *Monitor) solve(block *types.Block) error {
 					log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
 				} else {
 					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot)
-					panic("Fs sync fatal error, removedb to solve it")
+					panic("FIRST MILESTONE ERROR, run './cortex removedb' command to solve this problem")
 				}
 			}
 
