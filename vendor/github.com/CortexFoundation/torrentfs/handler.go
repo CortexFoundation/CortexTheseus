@@ -349,7 +349,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		}
 	}
 
-	TorrentManager := &TorrentManager{
+	torrentManager := &TorrentManager{
 		client:              cl,
 		torrents:            make(map[metainfo.Hash]*Torrent),
 		pendingTorrents:     make(map[metainfo.Hash]*Torrent),
@@ -382,22 +382,27 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 			Verbose:            true,
 			HardMaxCacheSize:   2048, //MB
 		}
-		TorrentManager.fileCache, _ = bigcache.NewBigCache(conf)
-		TorrentManager.cache = cache
-		TorrentManager.compress = compress
+
+		torrentManager.fileCache, err = bigcache.NewBigCache(conf)
+		if err != nil {
+			log.Error("File system cache initialized failed", "err", err)
+		} else {
+			torrentManager.cache = cache
+			torrentManager.compress = compress
+		}
 	}
 
-	TorrentManager.metrics = config.Metrics
+	torrentManager.metrics = config.Metrics
 
-	TorrentManager.hotCache, _ = lru.New(32)
+	torrentManager.hotCache, _ = lru.New(32)
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
-		TorrentManager.setTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
+		torrentManager.setTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
 	}
 	log.Debug("Fs client initialized", "config", config)
 
-	return TorrentManager, nil
+	return torrentManager, nil
 }
 
 func (tm *TorrentManager) Start() error {
@@ -444,9 +449,13 @@ func (tm *TorrentManager) seedingTorrentLoop() {
 }
 
 func (tm *TorrentManager) init() {
+	log.Info("Chain files init", "files", len(GoodFiles))
+
 	for k, _ := range GoodFiles {
 		tm.searchAndDownload(k, 0)
 	}
+
+	log.Info("Chain files OK !!!")
 }
 
 func (tm *TorrentManager) searchAndDownload(hex string, request int64) {
