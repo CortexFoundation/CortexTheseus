@@ -63,22 +63,22 @@ func TestMatcherContinuous(t *testing.T) {
 
 // Tests the matcher pipeline on a constantly interrupted and resumed work pattern
 // with the aim of ensuring data items are requested only once.
-//func TestMatcherIntermittent(t *testing.T) {
-//	testMatcherDiffBatches(t, [][]bloomIndexes{{{10, 20, 30}}}, 0, 100000, true, 75)
-//	testMatcherDiffBatches(t, [][]bloomIndexes{{{32, 3125, 100}}, {{40, 50, 10}}}, 0, 100000, true, 81)
-//	testMatcherDiffBatches(t, [][]bloomIndexes{{{4, 8, 11}, {7, 8, 17}}, {{9, 9, 12}, {15, 20, 13}}, {{18, 15, 15}, {12, 10, 4}}}, 0, 10000, true, 36)
-//}
+func TestMatcherIntermittent(t *testing.T) {
+	testMatcherDiffBatches(t, [][]bloomIndexes{{{10, 20, 30}}}, 0, 100000, true, 75)
+	testMatcherDiffBatches(t, [][]bloomIndexes{{{32, 3125, 100}}, {{40, 50, 10}}}, 0, 100000, true, 81)
+	testMatcherDiffBatches(t, [][]bloomIndexes{{{4, 8, 11}, {7, 8, 17}}, {{9, 9, 12}, {15, 20, 13}}, {{18, 15, 15}, {12, 10, 4}}}, 0, 10000, true, 36)
+}
 
 // Tests the matcher pipeline on random input to hopefully catch anomalies.
-//func TestMatcherRandom(t *testing.T) {
-//	for i := 0; i < 10; i++ {
-//		testMatcherBothModes(t, makeRandomIndexes([]int{1}, 50), 0, 10000, 0)
-//		testMatcherBothModes(t, makeRandomIndexes([]int{3}, 50), 0, 10000, 0)
-//		testMatcherBothModes(t, makeRandomIndexes([]int{2, 2, 2}, 20), 0, 10000, 0)
-//		testMatcherBothModes(t, makeRandomIndexes([]int{5, 5, 5}, 50), 0, 10000, 0)
-//		testMatcherBothModes(t, makeRandomIndexes([]int{4, 4, 4}, 20), 0, 10000, 0)
-//	}
-//}
+func TestMatcherRandom(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		testMatcherBothModes(t, makeRandomIndexes([]int{1}, 50), 0, 10000, 0)
+		testMatcherBothModes(t, makeRandomIndexes([]int{3}, 50), 0, 10000, 0)
+		testMatcherBothModes(t, makeRandomIndexes([]int{2, 2, 2}, 20), 0, 10000, 0)
+		testMatcherBothModes(t, makeRandomIndexes([]int{5, 5, 5}, 50), 0, 10000, 0)
+		testMatcherBothModes(t, makeRandomIndexes([]int{4, 4, 4}, 20), 0, 10000, 0)
+	}
+}
 
 // Tests that the matcher can properly find matches if the starting block is
 // shifter from a multiple of 8. This is needed to cover an optimisation with

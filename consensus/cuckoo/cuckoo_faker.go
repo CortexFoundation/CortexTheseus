@@ -10,12 +10,8 @@ import (
 	"time"
 )
 
-func NewFaker() *Cuckoo {
-	return &Cuckoo{
-		config: Config{
-			PowMode: ModeFake,
-		},
-	}
+func NewFaker() *CuckooFake {
+	return &CuckooFake{}
 }
 
 func NewFakeFailer(number uint64) *Cuckoo {

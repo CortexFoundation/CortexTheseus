@@ -761,11 +761,6 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 }
 
 // This is like AddRemotes, but waits for pool reorganization. Tests use this method.
-func (pool *TxPool) AddRemotesSync(txs []*types.Transaction) []error {
-	return pool.addTxs(txs, false, true)
-}
-
-// This is like AddRemotes, but waits for pool reorganization. Tests use this method.
 func (pool *TxPool) addRemotesSync(txs []*types.Transaction) []error {
 	return pool.addTxs(txs, false, true)
 }
