@@ -91,3 +91,4 @@ all-nodes.json
 dnskey.json
 all.mainnet.*
 release/
+coverage.txt
