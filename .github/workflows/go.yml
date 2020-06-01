@@ -38,5 +38,4 @@ jobs:
         go test -race -coverprofile=coverage.txt -covermode=atomic
         if [ -f coverage.txt ]; then
             curl -s https://codecov.io/bash | bash
-            dep ensure
         fi
