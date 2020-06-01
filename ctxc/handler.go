@@ -311,10 +311,6 @@ func (pm *ProtocolManager) runPeer(p *peer) error {
 // handle is the callback invoked to manage the life cycle of an ctxc peer. When
 // this function terminates, the peer is disconnected.
 func (pm *ProtocolManager) handle(p *peer) error {
-	if p.version == 62 {
-		panic(fmt.Sprintf("unsupported protocol version: %d", p.version))
-	}
-
 	// Ignore maxPeers if this is a trusted peer
 	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
 		return p2p.DiscTooManyPeers
