@@ -1,5 +1,6 @@
 codecov:
   require_ci_to_pass: no
+  bot: CortexBot
 
 coverage:
   status:
