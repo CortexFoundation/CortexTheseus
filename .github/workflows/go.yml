@@ -35,7 +35,7 @@ jobs:
       
     - name: CodeCov
       run: |
-        GO111MODULE=on && go test $(go list ./... | grep -v /cvm-runtime/) -mod=vendor -race -coverprofile=coverage.txt -covermode=atomic
+        GO111MODULE=on && go test $(go list ./... | grep -v /cvm-runtime/ | grep -v /solution/) -mod=vendor -race -coverprofile=coverage.txt -covermode=atomic
         if [ -f coverage.txt ]; then
             bash <(curl -s https://codecov.io/bash)
         fi
