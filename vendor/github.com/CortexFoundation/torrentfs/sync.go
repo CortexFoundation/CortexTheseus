@@ -69,7 +69,6 @@ type Monitor struct {
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
 func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
-	log.Info("Initialising FS")
 	fs, fsErr := NewChainIndex(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
