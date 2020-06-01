@@ -33,7 +33,7 @@ jobs:
     - name: Build
       run: go build -v .
       
-    - name: CodeCover
+    - name: CodeCov
       run: |
         go test -race -coverprofile=coverage.txt -covermode=atomic
         if [ -f coverage.txt ]; then
