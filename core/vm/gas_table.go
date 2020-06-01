@@ -42,7 +42,7 @@ func memoryGasCost(mem *Memory, newMemSize uint64) (uint64, error) {
 	// The constant 0xffffffffe0 is the highest number that can be used without
 	// overflowing the gas calculation
 	if newMemSize > 0x1FFFFFFFE0 {
-		return 0, errGasUintOverflow
+		return 0, ErrGasUintOverflow
 	}
 
 	newMemSizeWords := toWordSize(newMemSize)

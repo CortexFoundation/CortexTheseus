@@ -31,21 +31,27 @@ type twoOperandTest struct {
 }
 
 func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error)) {
+
+
 	var (
 		env            = NewCVM(Context{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
-		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = env.interpreter.(*CVMInterpreter)
 	)
-
-	env.interpreter = cvmInterpreter
+	// Stuff a couple of nonzero bigints into pool, to ensure that ops do not rely on pooled integers to be zero
 	cvmInterpreter.intPool = poolOfIntPools.get()
+	cvmInterpreter.intPool.put(big.NewInt(-1337))
+	cvmInterpreter.intPool.put(big.NewInt(-1337))
+	cvmInterpreter.intPool.put(big.NewInt(-1337))
+
 	for i, test := range tests {
 		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
 		shift := new(big.Int).SetBytes(common.Hex2Bytes(test.y))
 		expected := new(big.Int).SetBytes(common.Hex2Bytes(test.expected))
 		stack.push(x)
 		stack.push(shift)
+
 		opFn(&pc, cvmInterpreter, &callCtx{nil, stack, nil})
 		actual := stack.pop()
 		if actual.Cmp(expected) != 0 {

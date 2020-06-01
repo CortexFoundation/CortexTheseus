@@ -33,7 +33,7 @@ var (
 	Big43    = big.NewInt(43)
 	Big97    = big.NewInt(97)
 	Big98    = big.NewInt(98)
-	Big256   = big.NewInt(0xff)
+	Big256   = big.NewInt(256)
 	Big257   = big.NewInt(257)
 	MaxBig   = String2Big("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 )
