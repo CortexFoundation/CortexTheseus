@@ -85,7 +85,7 @@ func (f *BoostDataFetcher) getTorrentFromBoostNodes(nodes []string, ih string) (
 	return nil, errors.New("Torrent Not Found")
 }
 
-func (f *BoostDataFetcher) GetFile(ih, subpath string) ([]byte, error) {
+func (f *BoostDataFetcher) FetchFile(ih, subpath string) ([]byte, error) {
 	return f.getFile(ih, subpath)
 }
 

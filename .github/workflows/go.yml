@@ -32,3 +32,10 @@ jobs:
 
     - name: Build
       run: go build -v .
+      
+    - name: CodeCov
+      run: |
+        GO111MODULE=on && go test ./... -race -coverprofile=coverage.txt -covermode=atomic -mod=vendor
+        if [ -f coverage.txt ]; then
+            curl -s https://codecov.io/bash | bash
+        fi

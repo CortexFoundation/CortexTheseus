@@ -353,7 +353,7 @@ func unset(parent node, child node, key []byte, pos int, removeLeft bool) error 
 
 // hasRightElement returns the indicator whether there exists more elements
 // in the right side of the given path. The given path can point to an existent
-// key or a non-exsitent one. This function has the assumption that the whole
+// key or a non-existent one. This function has the assumption that the whole
 // path should already be resolved.
 func hasRightElement(node node, key []byte) bool {
 	pos, key := 0, keybytesToHex(key)
@@ -368,12 +368,7 @@ func hasRightElement(node node, key []byte) bool {
 			node, pos = rn.Children[key[pos]], pos+1
 		case *shortNode:
 			if len(key)-pos < len(rn.Key) || !bytes.Equal(rn.Key, key[pos:pos+len(rn.Key)]) {
-				if bytes.Compare(rn.Key, key[pos:]) < 0 {
-					node = nil
-					continue
-				} else {
-					return true
-				}
+				return bytes.Compare(rn.Key, key[pos:]) > 0
 			}
 			node, pos = rn.Val, pos+len(rn.Key)
 		case valueNode:
@@ -387,7 +382,7 @@ func hasRightElement(node node, key []byte) bool {
 
 // VerifyRangeProof checks whether the given leaf nodes and edge proofs
 // can prove the given trie leaves range is matched with given root hash
-// and the range is consecutive(no gap inside).
+// and the range is consecutive(no gap inside) and monotonic increasing.
 //
 // Note the given first edge proof can be non-existing proof. For example
 // the first proof is for an non-existent values 0x03. The given batch
@@ -413,7 +408,13 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, keys [][]byte, valu
 		return fmt.Errorf("inconsistent proof data, keys: %d, values: %d", len(keys), len(values)), false
 	}
 	if len(keys) == 0 {
-		return fmt.Errorf("empty proof"), false
+		return errors.New("empty proof"), false
+	}
+	// Ensure the received batch is monotonic increasing.
+	for i := 0; i < len(keys)-1; i++ {
+		if bytes.Compare(keys[i], keys[i+1]) >= 0 {
+			return errors.New("range is not monotonically increasing"), false
+		}
 	}
 	// Special case, there is no edge proof at all. The given range is expected
 	// to be the whole leaf-set in the trie.
