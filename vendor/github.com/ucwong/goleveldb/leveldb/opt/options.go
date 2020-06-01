@@ -22,29 +22,29 @@ const (
 )
 
 var (
-	DefaultBlockCacher                   = LRUCacher
-	DefaultBlockCacheCapacity            = 8 * MiB
-	DefaultMetadataCacher                = LRUCacher
-	DefaultMetadataCacheCapacity         = 8 * MiB
-	DefaultOpenFilesCacher               = LRUCacher
-	DefaultOpenFilesCacheCapacity        = 500
-	DefaultBlockRestartInterval          = 16
-	DefaultBlockSize                     = 4 * KiB
-	DefaultCompactionExpandLimitFactor   = 25
-	DefaultCompactionGPOverlapsFactor    = 10
-	DefaultCompactionL0Trigger           = 4
-	DefaultCompactionSourceLimitFactor   = 1
-	DefaultCompactionTableSize           = 2 * MiB
-	DefaultCompactionTableSizeMultiplier = 1.0
-	DefaultCompactionTotalSize           = 10 * MiB
-	DefaultCompactionTotalSizeMultiplier = 10.0
+	DefaultBlockCacher                        = LRUCacher
+	DefaultBlockCacheCapacity                 = 8 * MiB
+	DefaultMetadataCacher                     = LRUCacher
+	DefaultMetadataCacheCapacity              = 8 * MiB
+	DefaultOpenFilesCacher                    = LRUCacher
+	DefaultOpenFilesCacheCapacity             = 500
+	DefaultBlockRestartInterval               = 16
+	DefaultBlockSize                          = 4 * KiB
+	DefaultCompactionExpandLimitFactor        = 25
+	DefaultCompactionGPOverlapsFactor         = 10
+	DefaultCompactionL0Trigger                = 4
+	DefaultCompactionSourceLimitFactor        = 1
+	DefaultCompactionTableSize                = 2 * MiB
+	DefaultCompactionTableSizeMultiplier      = 1.0
+	DefaultCompactionTotalSize                = 10 * MiB
+	DefaultCompactionTotalSizeMultiplier      = 10.0
 	DefaultCompactionSeedFileNumber           = 1
 	DefaultCompactionSeedFileNumberMultiplier = 2
-	DefaultCompressionType               = SnappyCompression
-	DefaultIteratorSamplingRate          = 1 * MiB
-	DefaultWriteBuffer                   = 4 * MiB
-	DefaultWriteL0PauseTrigger           = 12
-	DefaultWriteL0SlowdownTrigger        = 8
+	DefaultCompressionType                    = SnappyCompression
+	DefaultIteratorSamplingRate               = 1 * MiB
+	DefaultWriteBuffer                        = 4 * MiB
+	DefaultWriteL0PauseTrigger                = 12
+	DefaultWriteL0SlowdownTrigger             = 8
 )
 
 // Cacher is a caching algorithm.
@@ -214,11 +214,14 @@ type Options struct {
 	// The default value is false.
 	DisableBlockCache bool
 
-	// DisableMetadataCache allows disable use of cache.Cache functionality on 'sorted table'
-	// block.
+	// EnableMetadataCache allows enable use of cache.Cache functionality on 'sorted table'
+	// metadata by caching them in a separate metadata cache.
+	//
+	// For compatibility consideration, if the metadata cache is disabled, all metadata
+	// will be cached in block cache with user-data if the block cache is enabled.
 	//
 	// The default value is false.
-	DisableMetadataCache bool
+	EnableMetadataCache bool
 
 	// BlockRestartInterval is the number of keys between restart points for
 	// delta encoding of keys.
@@ -518,11 +521,11 @@ func (o *Options) GetDisableBlockCache() bool {
 	return o.DisableBlockCache
 }
 
-func (o *Options) GetDisableMetadataCache() bool {
+func (o *Options) GetEnableMetadataCache() bool {
 	if o == nil {
 		return false
 	}
-	return o.DisableMetadataCache
+	return o.EnableMetadataCache
 }
 
 func (o *Options) GetBlockRestartInterval() int {
