@@ -165,7 +165,7 @@ func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string)
 	return array
 }
 
-func (tm *TorrentManager) setTrackers(trackers []string, disableTCP, boost bool) {
+func (tm *TorrentManager) setTrackers(trackers []string) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 	tm.trackers = tm.buildUdpTrackers(trackers)
@@ -226,6 +226,13 @@ func (tm *TorrentManager) loadSpec(ih metainfo.Hash, filePath string, BytesReque
 		return nil
 	}
 
+	spec := torrent.TorrentSpecFromMetaInfo(mi)
+
+	if ih != spec.InfoHash {
+		log.Warn("Info hash mismatch", "ih", ih.HexString(), "new", spec.InfoHash.HexString())
+		return nil
+	}
+
 	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
 	ExistDir := path.Join(tm.DataDir, ih.HexString())
 
@@ -243,19 +250,11 @@ func (tm *TorrentManager) loadSpec(ih metainfo.Hash, filePath string, BytesReque
 		}
 	}
 
-	spec := torrent.TorrentSpecFromMetaInfo(mi)
-
-	if ih != spec.InfoHash {
-		log.Warn("Info hash mismatch", "ih", ih.HexString(), "new", spec.InfoHash.HexString())
-		return nil
-	}
-
 	if useExistDir {
 		spec.Storage = storage.NewFile(ExistDir)
 	} else {
 		spec.Storage = storage.NewFile(TmpDir)
 	}
-
 	spec.Trackers = nil
 
 	return spec
@@ -398,7 +397,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
-		torrentManager.setTrackers(config.DefaultTrackers, config.DisableTCP, config.Boost)
+		torrentManager.setTrackers(config.DefaultTrackers)
 	}
 	log.Debug("Fs client initialized", "config", config)
 
@@ -411,16 +410,16 @@ func (tm *TorrentManager) Start() error {
 	tm.wg.Add(1)
 	go tm.mainLoop()
 	tm.wg.Add(1)
-	go tm.pendingTorrentLoop()
+	go tm.pendingLoop()
 	tm.wg.Add(1)
-	go tm.activeTorrentLoop()
+	go tm.activeLoop()
 	tm.wg.Add(1)
-	go tm.seedingTorrentLoop()
+	go tm.seedingLoop()
 
 	return nil
 }
 
-func (tm *TorrentManager) seedingTorrentLoop() {
+func (tm *TorrentManager) seedingLoop() {
 	defer tm.wg.Done()
 	for {
 		select {
@@ -452,13 +451,13 @@ func (tm *TorrentManager) init() {
 	log.Info("Chain files init", "files", len(GoodFiles))
 
 	for k, _ := range GoodFiles {
-		tm.searchAndDownload(k, 0)
+		tm.search(k, 0)
 	}
 
 	log.Info("Chain files OK !!!")
 }
 
-func (tm *TorrentManager) searchAndDownload(hex string, request int64) {
+func (tm *TorrentManager) search(hex string, request int64) {
 	hash := metainfo.NewHashFromHex(hex)
 	if t := tm.addInfoHash(hash, request); t != nil {
 		if request > 0 {
@@ -504,7 +503,7 @@ func (tm *TorrentManager) mainLoop() {
 	}
 }
 
-func (tm *TorrentManager) pendingTorrentLoop() {
+func (tm *TorrentManager) pendingLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
@@ -581,7 +580,7 @@ func (tm *TorrentManager) pendingTorrentLoop() {
 	}
 }
 
-func (tm *TorrentManager) activeTorrentLoop() {
+func (tm *TorrentManager) activeLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()

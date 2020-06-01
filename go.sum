@@ -40,8 +40,8 @@ github.com/Azure/go-autorest v11.2.8+incompatible/go.mod h1:r+4oMnoxhatjLLJ6zxSW
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/CortexFoundation/CortexTheseus v1.9.56/go.mod h1:MkF8L4FF1jb8K8V6gDDQ3/cFJjNJ8byEp/WEj+4/zdE=
-github.com/CortexFoundation/torrentfs v1.0.7-0.20200601020034-21d7d2b22dc2 h1:30dF2pZDgKX0uOovwxXXPvOORj8nzmOfFusFTfkbJ0Q=
-github.com/CortexFoundation/torrentfs v1.0.7-0.20200601020034-21d7d2b22dc2/go.mod h1:ZA5zQWFdzWXpTC0sXHbjA6mHuECDFFyuNJS9cBFobHQ=
+github.com/CortexFoundation/torrentfs v1.0.7-0.20200601063221-a5dfa1ffeb28 h1:qC3yrA5WbGP32ArL1Uk4uOTZ9Vl0MlagPCq+40ni93U=
+github.com/CortexFoundation/torrentfs v1.0.7-0.20200601063221-a5dfa1ffeb28/go.mod h1:9tUIBfyG5JZVCdtbcPwxK25vkvCNHIzOvhd9BLrZM4I=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -304,8 +304,8 @@ github.com/go-logfmt/logfmt v0.4.0/go.mod h1:3RMwSq7FuexP4Kalkev3ejPJsZTpXXBr9+V
 github.com/go-logfmt/logfmt v0.5.0 h1:TrB8swr/68K7m9CcGut2g3UOihhbcbiMAYiuTXdEih4=
 github.com/go-logfmt/logfmt v0.5.0/go.mod h1:wCYkCAKZfumFQihp8CzCvQ3paCTfi41vtzG1KdI/P7A=
 github.com/go-resty/resty/v2 v2.3.0-rc.1/go.mod h1:nYW/8rxqQCmI3bPz9Fsmjbr2FBjGuR2Mzt6kDh3zZ7w=
-github.com/go-resty/resty/v2 v2.3.0-rc.2.0.20200515031036-986808a2a70a h1:kQbD50WA1ECLTUk/yNSNY7gsKgNh+xoRFLnk7m+87Fw=
-github.com/go-resty/resty/v2 v2.3.0-rc.2.0.20200515031036-986808a2a70a/go.mod h1:nYW/8rxqQCmI3bPz9Fsmjbr2FBjGuR2Mzt6kDh3zZ7w=
+github.com/go-resty/resty/v2 v2.3.0 h1:JOOeAvjSlapTT92p8xiS19Zxev1neGikoHsXJeOq8So=
+github.com/go-resty/resty/v2 v2.3.0/go.mod h1:UpN9CgLZNsv4e9XG50UU8xdI0F43UQ4HmxLBDwaroHU=
 github.com/go-sql-driver/mysql v1.4.0/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-sql-driver/mysql v1.4.1/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-sql-driver/mysql v1.5.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
