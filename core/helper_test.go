@@ -18,6 +18,7 @@ package core
 
 import (
 	"container/list"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
