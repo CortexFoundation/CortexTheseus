@@ -9,7 +9,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/elastic/gosigar"
+	gopsutil "github.com/shirou/gopsutil/mem"
 	"math/big"
 	"math/rand"
 	"plugin"
@@ -217,8 +217,8 @@ func (cuckoo *Cuckoo) InitOnce() error {
 				cuckoo.threads = 0
 			}
 			err = errc
-			var mem gosigar.Mem
-			if err := mem.Get(); err == nil {
+			mem, err := gopsutil.VirtualMemory()
+			if err == nil {
 				allowance := int(mem.Total / 1024 / 1024 / 3)
 				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance, "cuda", cuckoo.config.UseCuda, "device", cuckoo.config.StrDeviceIds, "threads", cuckoo.config.Threads, "algo", cuckoo.config.Algorithm, "mine", cuckoo.config.Mine)
 			}
