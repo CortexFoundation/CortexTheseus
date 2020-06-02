@@ -40,8 +40,8 @@ github.com/Azure/go-autorest v11.2.8+incompatible/go.mod h1:r+4oMnoxhatjLLJ6zxSW
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/CortexFoundation/CortexTheseus v1.9.56/go.mod h1:MkF8L4FF1jb8K8V6gDDQ3/cFJjNJ8byEp/WEj+4/zdE=
-github.com/CortexFoundation/torrentfs v1.0.7-0.20200601063221-a5dfa1ffeb28 h1:qC3yrA5WbGP32ArL1Uk4uOTZ9Vl0MlagPCq+40ni93U=
-github.com/CortexFoundation/torrentfs v1.0.7-0.20200601063221-a5dfa1ffeb28/go.mod h1:9tUIBfyG5JZVCdtbcPwxK25vkvCNHIzOvhd9BLrZM4I=
+github.com/CortexFoundation/torrentfs v1.0.7-0.20200602035951-e8c091e7ca4d h1:hfc6gPrPZacbQjAC0lxt21jf7A+GLTaVCBDNZeQsy3k=
+github.com/CortexFoundation/torrentfs v1.0.7-0.20200602035951-e8c091e7ca4d/go.mod h1:9tUIBfyG5JZVCdtbcPwxK25vkvCNHIzOvhd9BLrZM4I=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -790,8 +790,8 @@ github.com/ucwong/color v1.10.1-0.20200518131954-915014f7ee11/go.mod h1:v1b0ANLm
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43 h1:QpWUJfSB79xRanKUteFBfRz5XlnmjD5mdkfrSVf5AoM=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43/go.mod h1:xu0FaiQFGbBcFZj2o7udZ5rbA8jRTsv47hkPoG5qQNM=
 github.com/ucwong/goleveldb v1.0.3-0.20200508074755-578cba616f37/go.mod h1:dgJUTtDxq/ne6/JzZhHzF24OL/uqILz9IWk8HmT4V2g=
-github.com/ucwong/goleveldb v1.0.3-0.20200519080156-fe256570fb2f h1:LvC/w1/BWUDeUkfFhuVitMoC2V+cIeEMRziFYPxLEAU=
-github.com/ucwong/goleveldb v1.0.3-0.20200519080156-fe256570fb2f/go.mod h1:7Sq6w7AfEZuB/a6mrlvHCSXCSkqojCMMrM3Ei12QAT0=
+github.com/ucwong/goleveldb v1.0.3-0.20200601144611-cedccb405d8a h1:Rq/pn4pcXrZi9XL59kHK/TFelmGJER17Yewz1saklRM=
+github.com/ucwong/goleveldb v1.0.3-0.20200601144611-cedccb405d8a/go.mod h1:7Sq6w7AfEZuB/a6mrlvHCSXCSkqojCMMrM3Ei12QAT0=
 github.com/ucwong/tsdb v0.10.4-0.20200505032819-8f9eeea5c692/go.mod h1:dw8qQ+CN0e7UFHI94vvExZ2UJg10jeFhP16PeXPtvsU=
 github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80 h1:F3fo4vLcKvrBBi1whpXJVCXFnOTLgKjoQO/aUOjwGfs=
 github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80/go.mod h1:7uwwGAwwZp039dLF4SLwyB691OcSipsMo5D0ZDlRU5M=

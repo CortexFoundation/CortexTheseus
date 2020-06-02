@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.7-0.20200601063221-a5dfa1ffeb28
+	github.com/CortexFoundation/torrentfs v1.0.7-0.20200602035951-e8c091e7ca4d
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
@@ -38,7 +38,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/ucwong/color v1.10.1-0.20200518131954-915014f7ee11
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
-	github.com/ucwong/goleveldb v1.0.3-0.20200519080156-fe256570fb2f
+	github.com/ucwong/goleveldb v1.0.3-0.20200601144611-cedccb405d8a
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
