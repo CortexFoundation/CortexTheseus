@@ -448,16 +448,18 @@ func (tm *TorrentManager) seedingLoop() {
 }
 
 func (tm *TorrentManager) init() {
-	log.Info("Chain files init", "files", len(GoodFiles))
+	if tm.cache {
+		log.Info("Chain files init", "files", len(GoodFiles))
 
-	for k, _ := range GoodFiles {
-		tm.search(k, 0)
+		for k, _ := range GoodFiles {
+			tm.Search(k, 0)
+		}
+
+		log.Info("Chain files OK !!!")
 	}
-
-	log.Info("Chain files OK !!!")
 }
 
-func (tm *TorrentManager) search(hex string, request int64) {
+func (tm *TorrentManager) Search(hex string, request int64) {
 	hash := metainfo.NewHashFromHex(hex)
 	if t := tm.addInfoHash(hash, request); t != nil {
 		if request > 0 {
@@ -848,7 +850,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 			log.Info("Torrent active", "ih", ih, "peers", torrent.currentConns)
 		}
 
-		var key = infohash + "/" + subpath
+		var key = path.Join(infohash, subpath)
 		if fs.cache {
 			if cache, err := fs.fileCache.Get(key); err == nil {
 				if c, err := fs.unzip(cache); err != nil {
@@ -865,7 +867,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		fs.fileLock.Lock()
 		defer fs.fileLock.Unlock()
 
-		data, err := ioutil.ReadFile(path.Join(fs.DataDir, infohash, subpath))
+		data, err := ioutil.ReadFile(path.Join(fs.DataDir, key))
 
 		//data final verification
 		for _, file := range torrent.Files() {

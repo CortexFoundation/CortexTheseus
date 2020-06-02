@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.7-0.20200601104428-601da0fcb30c
+# github.com/CortexFoundation/torrentfs v1.0.7-0.20200602035951-e8c091e7ca4d
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -345,7 +345,7 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.3-0.20200601110122-23a159bdd625
+# github.com/ucwong/goleveldb v1.0.3-0.20200601144611-cedccb405d8a
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache
