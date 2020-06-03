@@ -629,6 +629,10 @@ var (
 		Name:  "nodiscover",
 		Usage: "Disables the peer discovery mechanism (manual peer addition)",
 	}
+	DiscoveryV5Flag = cli.BoolFlag{
+		Name:  "v5disc",
+		Usage: "Enables the experimental RLPx V5 (Topic Discovery) mechanism",
+	}
 	DNSDiscoveryFlag = cli.StringFlag{
 		Name:  "discovery.dns",
 		Usage: "Sets DNS discovery entry points (use \"\" to disable DNS)",
@@ -1038,6 +1042,16 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	}
 	if ctx.GlobalIsSet(NoDiscoverFlag.Name) {
 		cfg.NoDiscovery = true
+	}
+
+	// if we're running a light client or server, force enable the v5 peer discovery
+	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
+	// --v5disc overrides --nodiscover, in which case the later only disables v4 discovery
+	//forceV5Discovery := (lightClient || lightServer) && !ctx.GlobalBool(NoDiscoverFlag.Name)
+	if ctx.GlobalIsSet(DiscoveryV5Flag.Name) {
+		cfg.DiscoveryV5 = ctx.GlobalBool(DiscoveryV5Flag.Name)
+		//} else if forceV5Discovery {
+		//        cfg.DiscoveryV5 = true
 	}
 
 	if netrestrict := ctx.GlobalString(NetrestrictFlag.Name); netrestrict != "" {
