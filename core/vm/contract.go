@@ -1,23 +1,22 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
 import (
-	_ "fmt"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -38,14 +37,7 @@ type ContractRef interface {
 type AccountRef common.Address
 
 // Address casts AccountRef to a Address
-func (ar AccountRef) Address() common.Address {
-	return (common.Address)(ar)
-}
-
-type ModelAddressGas struct {
-	Addr common.Address
-	MGas uint64
-}
+func (ar AccountRef) Address() common.Address { return (common.Address)(ar) }
 
 // Contract represents an cortex contract in the state database. It contains
 // the contract code, calling arguments. Contract implements ContractRef
@@ -57,8 +49,8 @@ type Contract struct {
 	caller        ContractRef
 	self          ContractRef
 
-	jumpdests destinations // result of JUMPDEST analysis.
-	analysis  bitvec
+	jumpdests map[common.Hash]bitvec // Aggregated result of JUMPDEST analysis.
+	analysis  bitvec                 // Locally cached result of JUMPDEST analysis
 
 	Code     []byte
 	CodeHash common.Hash
@@ -68,9 +60,6 @@ type Contract struct {
 	Gas   uint64
 	value *big.Int
 
-	//Args []byte
-
-	//DelegateCall bool
 	ModelGas map[common.Address]uint64
 }
 
@@ -82,8 +71,7 @@ func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uin
 		// Reuse JUMPDEST analysis from parent context if available.
 		c.jumpdests = parent.jumpdests
 	} else {
-		c.jumpdests = make(destinations)
-		//c.jumpdests = make(map[common.Hash]bitvec)
+		c.jumpdests = make(map[common.Hash]bitvec)
 	}
 
 	// Gas should be a pointer so it can safely be reduced through the run
@@ -97,7 +85,7 @@ func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uin
 
 func (c *Contract) validJumpdest(dest *big.Int) bool {
 	udest := dest.Uint64()
-	// PC cannot go beyond len(code) and certainly can't be bigger than 63bits.
+	// PC cannot go beyond len(code) and certainly can't be bigger than 63 bits.
 	// Don't bother checking for JUMPDEST in that case.
 	if dest.BitLen() >= 63 || udest >= uint64(len(c.Code)) {
 		return false
@@ -106,11 +94,26 @@ func (c *Contract) validJumpdest(dest *big.Int) bool {
 	if OpCode(c.Code[udest]) != JUMPDEST {
 		return false
 	}
-	// Do we have a contract hash already?
-	if c.analysis != nil {
-		return c.analysis.codeSegment(udest)
-	}
+	return c.isCode(udest)
+}
 
+func (c *Contract) validJumpSubdest(udest uint64) bool {
+	// PC cannot go beyond len(code) and certainly can't be bigger than 63 bits.
+	// Don't bother checking for BEGINSUB in that case.
+	if int64(udest) < 0 || udest >= uint64(len(c.Code)) {
+		return false
+	}
+	// Only BEGINSUBs allowed for destinations
+	if OpCode(c.Code[udest]) != BEGINSUB {
+		return false
+	}
+	return c.isCode(udest)
+}
+
+// isCode returns true if the provided PC location is an actual opcode, as
+// opposed to a data-segment following a PUSHN operation.
+func (c *Contract) isCode(udest uint64) bool {
+	// Do we have a contract hash already?
 	if c.CodeHash != (common.Hash{}) {
 		// Does parent context have the analysis?
 		analysis, exist := c.jumpdests[c.CodeHash]
@@ -120,6 +123,7 @@ func (c *Contract) validJumpdest(dest *big.Int) bool {
 			analysis = codeBitmap(c.Code)
 			c.jumpdests[c.CodeHash] = analysis
 		}
+		// Also stash it in current contract for faster access
 		c.analysis = analysis
 		return analysis.codeSegment(udest)
 	}
@@ -127,8 +131,9 @@ func (c *Contract) validJumpdest(dest *big.Int) bool {
 	// in state trie. In that case, we do an analysis, and save it locally, so
 	// we don't have to recalculate it for every JUMP instruction in the execution
 	// However, we don't save it within the parent context
-	c.analysis = codeBitmap(c.Code)
-
+	if c.analysis == nil {
+		c.analysis = codeBitmap(c.Code)
+	}
 	return c.analysis.codeSegment(udest)
 }
 
@@ -175,22 +180,12 @@ func (c *Contract) UseGas(gas uint64) (ok bool) {
 	return true
 }
 
-// Use model Gas attempts the use gas and subtracts it and returns true on success
-// func (c *Contract) UseModelGas(address common.Address, gas uint64) (ok bool) {
-// 	if c.Gas < gas {
-// 		return false
-// 	}
-// 	common.SafeAdd(c.ModelGas[address], gas)
-// 	c.Gas -= gas
-// 	return true
-// }
-
 // Address returns the contracts address
 func (c *Contract) Address() common.Address {
 	return c.self.Address()
 }
 
-// Value returns the contracts value (sent to it from it's caller)
+// Value returns the contract's value (sent to it from it's caller)
 func (c *Contract) Value() *big.Int {
 	return c.value
 }
