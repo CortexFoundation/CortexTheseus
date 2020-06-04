@@ -480,7 +480,7 @@ gopkg.in/check.v1
 # gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 ## explicit
 gopkg.in/natefinch/npipe.v2
-# gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
+# gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200603215123-a4a8cb9d2cbc
 ## explicit
 gopkg.in/olebedev/go-duktape.v3
 # gopkg.in/sourcemap.v1 v1.0.5
