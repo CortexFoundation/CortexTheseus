@@ -37,8 +37,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/torrentfs"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
+	"github.com/CortexFoundation/torrentfs"
 	"github.com/naoina/toml"
 )
 
