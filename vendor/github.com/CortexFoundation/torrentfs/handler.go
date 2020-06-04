@@ -213,7 +213,6 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 		if !good {
 			return fmt.Errorf("hash mismatch at piece %d", i)
 		}
-		fmt.Printf("%d: %v: %v\n", i, p.Hash(), good)
 	}
 	return nil
 }
