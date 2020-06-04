@@ -42,7 +42,6 @@ var (
 	errMetaInfoExpired       = errors.New("cvm: errMetaInfoExpired")
 	errMaxCodeSizeExceeded   = errors.New("cvm: max code size exceeded")
 	errInvalidJump           = errors.New("cvm: invalid jump destination")
-	ErrGasUintOverflow       = errors.New("gas uint64 overflow")
 
 	big0  = big.NewInt(0)
 	big31 = big.NewInt(31)
