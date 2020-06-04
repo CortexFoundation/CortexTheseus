@@ -589,30 +589,30 @@ func benchmarkCommitAfterHash(b *testing.B, onleaf LeafCallback) {
 }
 
 //func TestTinyTrie(t *testing.T) {
-	// Create a realistic account trie to hash
-	//_, accounts := makeAccounts(10000)
-	//trie := newEmpty()
-	//trie.Update(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001337"), accounts[3])
-	//if exp, root := common.HexToHash("e3b54098857e32f2973be97300e61d87d31c026def52aa8ee9e4ba9e383046b0"), trie.Hash(); exp != root {
-	//	t.Fatalf("1: got %x, exp %x", root, exp)
-	//}
-	//trie.Update(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001338"), accounts[4])
-	//if exp, root := common.HexToHash("e5890e6cdb02f1db0f602ee1281dce80f3f5d70a301282ad76bdc0eaed6879e9"), trie.Hash(); exp != root {
-	//	t.Fatalf("2: got %x, exp %x", root, exp)
-	//}
-	//trie.Update(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001339"), accounts[4])
-	//if exp, root := common.HexToHash("bd5aeed32e9c84049adb199c01570ea6884f2a17163a03d4bc64d7dc2e4a7fb3"), trie.Hash(); exp != root {
-	//	t.Fatalf("3: got %x, exp %x", root, exp)
-	//}
-	//
-	//checktr, _ := New(common.Hash{}, trie.db)
-	//it := NewIterator(trie.NodeIterator(nil))
-	//for it.Next() {
-	//	checktr.Update(it.Key, it.Value)
-	//}
-	//if troot, itroot := trie.Hash(), checktr.Hash(); troot != itroot {
-	//	t.Fatalf("hash mismatch in opItercheckhash, trie: %x, check: %x", troot, itroot)
-	//}
+// Create a realistic account trie to hash
+//_, accounts := makeAccounts(10000)
+//trie := newEmpty()
+//trie.Update(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001337"), accounts[3])
+//if exp, root := common.HexToHash("e3b54098857e32f2973be97300e61d87d31c026def52aa8ee9e4ba9e383046b0"), trie.Hash(); exp != root {
+//	t.Fatalf("1: got %x, exp %x", root, exp)
+//}
+//trie.Update(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001338"), accounts[4])
+//if exp, root := common.HexToHash("e5890e6cdb02f1db0f602ee1281dce80f3f5d70a301282ad76bdc0eaed6879e9"), trie.Hash(); exp != root {
+//	t.Fatalf("2: got %x, exp %x", root, exp)
+//}
+//trie.Update(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001339"), accounts[4])
+//if exp, root := common.HexToHash("bd5aeed32e9c84049adb199c01570ea6884f2a17163a03d4bc64d7dc2e4a7fb3"), trie.Hash(); exp != root {
+//	t.Fatalf("3: got %x, exp %x", root, exp)
+//}
+//
+//checktr, _ := New(common.Hash{}, trie.db)
+//it := NewIterator(trie.NodeIterator(nil))
+//for it.Next() {
+//	checktr.Update(it.Key, it.Value)
+//}
+//if troot, itroot := trie.Hash(), checktr.Hash(); troot != itroot {
+//	t.Fatalf("hash mismatch in opItercheckhash, trie: %x, check: %x", troot, itroot)
+//}
 //}
 
 //func TestCommitAfterHash(t *testing.T) {
