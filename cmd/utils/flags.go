@@ -54,6 +54,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discv5"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
@@ -629,6 +630,10 @@ var (
 		Name:  "nodiscover",
 		Usage: "Disables the peer discovery mechanism (manual peer addition)",
 	}
+	DiscoveryV5Flag = cli.BoolFlag{
+		Name:  "v5disc",
+		Usage: "Enables the experimental RLPx V5 (Topic Discovery) mechanism",
+	}
 	DNSDiscoveryFlag = cli.StringFlag{
 		Name:  "discovery.dns",
 		Usage: "Sets DNS discovery entry points (use \"\" to disable DNS)",
@@ -818,35 +823,37 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	}
 }
 
-/*func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
-        urls := params.DiscoveryV5Bootnodes
-        switch {
-        case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV5Flag.Name):
-                if ctx.GlobalIsSet(BootnodesV5Flag.Name) {
-                        urls = splitAndTrim(ctx.GlobalString(BootnodesV5Flag.Name))
-                } else {
-                        urls = splitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
-                }
+// setBootstrapNodesV5 creates a list of bootstrap nodes from the command line
+// flags, reverting to pre-configured ones if none have been specified.
+func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
+	urls := params.MainnetBootnodes
+	switch {
+	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV5Flag.Name):
+		if ctx.GlobalIsSet(BootnodesV5Flag.Name) {
+			urls = splitAndTrim(ctx.GlobalString(BootnodesV5Flag.Name))
+		} else {
+			urls = splitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
+		}
 	case ctx.GlobalBool(BernardFlag.Name):
-                urls = params.BernardBootnodes
-        case ctx.GlobalBool(DoloresFlag.Name):
-                urls = params.BernardBootnodes
-        case cfg.BootstrapNodesV5 != nil:
-                return // already set, don't apply defaults.
-        }
+		urls = params.BernardBootnodes
+	case ctx.GlobalBool(DoloresFlag.Name):
+		urls = params.BernardBootnodes
+	case cfg.BootstrapNodesV5 != nil:
+		return // already set, don't apply defaults.
+	}
 
-        cfg.BootstrapNodesV5 = make([]*discv5.Node, 0, len(urls))
-        for _, url := range urls {
-                if url != "" {
-                        node, err := discv5.ParseNode(url)
-                        if err != nil {
-                                log.Error("Bootstrap URL invalid", "enode", url, "err", err)
-                                continue
-                        }
-                        cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
-                }
-        }
-}*/
+	cfg.BootstrapNodesV5 = make([]*discv5.Node, 0, len(urls))
+	for _, url := range urls {
+		if url != "" {
+			node, err := discv5.ParseNode(url)
+			if err != nil {
+				log.Error("Bootstrap URL invalid", "enode", url, "err", err)
+				continue
+			}
+			cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
+		}
+	}
+}
 
 // setListenAddress creates a TCP listening address string from set command
 // line flags.
@@ -1025,7 +1032,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setNAT(ctx, cfg)
 	setListenAddress(ctx, cfg)
 	setBootstrapNodes(ctx, cfg)
-	//setBootstrapNodesV5(ctx, cfg)
+	setBootstrapNodesV5(ctx, cfg)
 
 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
@@ -1038,6 +1045,16 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	}
 	if ctx.GlobalIsSet(NoDiscoverFlag.Name) {
 		cfg.NoDiscovery = true
+	}
+
+	// if we're running a light client or server, force enable the v5 peer discovery
+	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
+	// --v5disc overrides --nodiscover, in which case the later only disables v4 discovery
+	//forceV5Discovery := (lightClient || lightServer) && !ctx.GlobalBool(NoDiscoverFlag.Name)
+	if ctx.GlobalIsSet(DiscoveryV5Flag.Name) {
+		cfg.DiscoveryV5 = ctx.GlobalBool(DiscoveryV5Flag.Name)
+		//} else if forceV5Discovery {
+		//        cfg.DiscoveryV5 = true
 	}
 
 	if netrestrict := ctx.GlobalString(NetrestrictFlag.Name); netrestrict != "" {

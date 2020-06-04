@@ -109,7 +109,7 @@ var (
 		//utils.MinerAlgorithmFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
-		// utils.DiscoveryV5Flag,
+		utils.DiscoveryV5Flag,
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
