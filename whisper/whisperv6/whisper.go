@@ -353,7 +353,6 @@ func (whisper *Whisper) getPeers() []*Peer {
 		arr[i] = p
 		i++
 	}
-	whisper.peerMu.Unlock()
 	return arr
 }
 
