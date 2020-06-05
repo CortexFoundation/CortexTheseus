@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.7-0.20200604093054-cca8860e13c9
+# github.com/CortexFoundation/torrentfs v1.0.7-0.20200605093215-11a729941cff
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -382,7 +382,7 @@ github.com/willf/bloom
 github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200602180216-279210d13fed
+# golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
