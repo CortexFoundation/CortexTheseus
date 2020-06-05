@@ -36,10 +36,11 @@ var (
 	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
 	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
 	ErrInvalidMetaAuthor       = errors.New("invalid meta author")
-	ErrGasUintOverflow         = errors.New("gas uint64 overflow")
-	ErrInvalidJump             = errors.New("invalid jump destination")
-	ErrInvalidRetsub           = errors.New("invalid retsub")
-	ErrReturnStackExceeded     = errors.New("return stack limit reached")
+
+	ErrGasUintOverflow     = errors.New("gas uint64 overflow")
+	ErrInvalidJump         = errors.New("invalid jump destination")
+	ErrInvalidRetsub       = errors.New("invalid retsub")
+	ErrReturnStackExceeded = errors.New("return stack limit reached")
 
 	ErrDownloading    = errors.New("downloading")
 	ErrFileNotExist   = errors.New("file not exist")

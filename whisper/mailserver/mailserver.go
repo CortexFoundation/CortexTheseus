@@ -69,13 +69,10 @@ func (s *WMailServer) Init(shh *whisper.Whisper, path string, password string, p
 	if len(password) == 0 {
 		return fmt.Errorf("password is not specified")
 	}
-
 	s.db, err = leveldb.OpenFile(path, &opt.Options{OpenFilesCacheCapacity: 32})
 	if _, iscorrupted := err.(*errors.ErrCorrupted); iscorrupted {
 		s.db, err = leveldb.RecoverFile(path, nil)
 	}
-
-	s.db, err = leveldb.OpenFile(path, &opt.Options{OpenFilesCacheCapacity: 32})
 	if err != nil {
 		return fmt.Errorf("open DB file: %s", err)
 	}

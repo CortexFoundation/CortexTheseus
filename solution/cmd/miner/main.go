@@ -3,15 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/solution/config"
+	"github.com/CortexFoundation/CortexTheseus/solution/cortexminer"
 	"log"
 	"os"
-	"time"
-	"strings"
-	"strconv"
-	"sync"
-	"github.com/CortexFoundation/CortexTheseus/solution/cortexminer"
-	"github.com/CortexFoundation/CortexTheseus/solution/config"
 	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 func init() {
@@ -26,24 +26,24 @@ func init() {
 	flag.BoolVar(&cuda, "cuda", false, "use cuda miner")
 	flag.BoolVar(&opencl, "opencl", false, "use opencl miner")
 
-/*
-	cfg, err := goconfig.LoadConfigFile("miner.ini")
-	if err == nil {
-		remote, err = cfg.GetValue("server", "addr")
-		checkError(err, "init()")
-		account, err = cfg.GetValue("mining", "account")
-		checkError(err, "init()")
+	/*
+		cfg, err := goconfig.LoadConfigFile("miner.ini")
+		if err == nil {
+			remote, err = cfg.GetValue("server", "addr")
+			checkError(err, "init()")
+			account, err = cfg.GetValue("mining", "account")
+			checkError(err, "init()")
 
-		useGPU, err = cfg.Bool("mining", "useGPU")
-		checkError(err, "init()")
-		strDeviceId, err = cfg.GetValue("mining", "devices")
-		checkError(err, "init()")
-		verboseLevel, err = cfg.Int("mining", "verboselevel")
-		checkError(err, "init()")
-		algorithm, err = cfg.GetValue("mining", "algorithm")
-		checkError(err, "init()")
-	}
-*/
+			useGPU, err = cfg.Bool("mining", "useGPU")
+			checkError(err, "init()")
+			strDeviceId, err = cfg.GetValue("mining", "devices")
+			checkError(err, "init()")
+			verboseLevel, err = cfg.Int("mining", "verboselevel")
+			checkError(err, "init()")
+			algorithm, err = cfg.GetValue("mining", "algorithm")
+			checkError(err, "init()")
+		}
+	*/
 
 	fmt.Printf("**************************************************************\n")
 	fmt.Printf("**\t\tCortex GPU Miner\t\t\t**\n")
@@ -55,7 +55,7 @@ var remote string = ""
 var account string = ""
 var strDeviceId string = ""
 var verboseLevel int = 0
-var algorithm string  = ""
+var algorithm string = ""
 var miner_algorithm int
 var threads int
 var cpu bool
@@ -70,7 +70,7 @@ func main() {
 	} else if algorithm == "cuckaroo" {
 		miner_algorithm = 1
 	} else {
-		log.Fatalf("no support algorithm: ", algorithm)
+		log.Fatalf("no support algorithm: " + algorithm)
 		os.Exit(1)
 	}
 
@@ -96,7 +96,7 @@ func main() {
 
 	var param config.Param
 	var cortex cortexminer.Cortex
-	cm  := cortex.New(
+	cm := cortex.New(
 		deviceInfos,
 		param.New(remote, account, uint(verboseLevel), miner_algorithm, threads, cpu, cuda, opencl))
 

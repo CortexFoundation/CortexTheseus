@@ -84,7 +84,7 @@ func TestURLComparison(t *testing.T) {
 		{URL{"https", "CortexFoundation.org"}, URL{"https", "CortexFoundation.org"}, 0},
 		{URL{"http", "CortexFoundation.org"}, URL{"https", "CortexFoundation.org"}, -1},
 		{URL{"https", "CortexFoundation.org/a"}, URL{"https", "CortexFoundation.org"}, 1},
-		{URL{"https", "abc.org"}, URL{"https", "CortexFoundation.org"}, -1},
+		{URL{"https", "abc.org"}, URL{"https", "CortexFoundation.org"}, 1},
 	}
 
 	for i, tt := range tests {

@@ -955,7 +955,7 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 	var (
 		value        = callContext.stack.pop()
 		offset, size = callContext.stack.pop(), callContext.stack.pop()
-		input        = callContext.memory.Get(offset.Int64(), size.Int64())
+		input        = callContext.memory.GetCopy(offset.Int64(), size.Int64())
 		gas          = callContext.contract.Gas
 	)
 	if interpreter.cvm.ChainConfig().IsEIP150(interpreter.cvm.BlockNumber) {
@@ -992,7 +992,7 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 		endowment    = callContext.stack.pop()
 		offset, size = callContext.stack.pop(), callContext.stack.pop()
 		salt         = callContext.stack.pop()
-		input        = callContext.memory.Get(offset.Int64(), size.Int64())
+		input        = callContext.memory.GetCopy(offset.Int64(), size.Int64())
 		gas          = callContext.contract.Gas
 	)
 
@@ -1185,7 +1185,7 @@ func makeLog(size int) executionFunc {
 			topics[i] = common.BigToHash(callContext.stack.pop())
 		}
 
-		d := callContext.memory.Get(mStart.Int64(), mSize.Int64())
+		d := callContext.memory.GetCopy(mStart.Int64(), mSize.Int64())
 		interpreter.cvm.StateDB.AddLog(&types.Log{
 			Address: callContext.contract.Address(),
 			Topics:  topics,
