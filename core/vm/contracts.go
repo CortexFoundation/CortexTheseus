@@ -26,9 +26,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/crypto/blake2b"
+	"github.com/CortexFoundation/CortexTheseus/crypto/bls12381"
 	"github.com/CortexFoundation/CortexTheseus/crypto/bn256"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/crypto/bls12381"
 	"golang.org/x/crypto/ripemd160"
 )
 
