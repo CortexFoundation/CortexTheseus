@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.7-0.20200604093054-cca8860e13c9
+	github.com/CortexFoundation/torrentfs v1.0.7-0.20200605093215-11a729941cff
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
@@ -41,7 +41,7 @@ require (
 	github.com/ucwong/goleveldb v1.0.3-0.20200601144611-cedccb405d8a
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
-	golang.org/x/crypto v0.0.0-20200602180216-279210d13fed
+	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
