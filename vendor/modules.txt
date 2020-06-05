@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.7-0.20200602035951-e8c091e7ca4d
+# github.com/CortexFoundation/torrentfs v1.0.7-0.20200604093054-cca8860e13c9
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -17,7 +17,7 @@ github.com/StackExchange/wmi
 # github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 ## explicit
 github.com/VictoriaMetrics/fastcache
-# github.com/allegro/bigcache/v2 v2.2.2-0.20200529163103-fbc49026c776
+# github.com/allegro/bigcache/v2 v2.2.2-0.20200601135632-1c1c59fdbd6d
 github.com/allegro/bigcache/v2
 github.com/allegro/bigcache/v2/queue
 # github.com/anacrolix/dht/v2 v2.6.1
@@ -25,7 +25,7 @@ github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.3
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.7.0
+# github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.2.1
 github.com/anacrolix/missinggo
@@ -61,9 +61,10 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.15.1-0.20200524074716-c7ea314de0c7
+# github.com/anacrolix/torrent v1.15.1-0.20200604015818-12ace9549321
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
+github.com/anacrolix/torrent/common
 github.com/anacrolix/torrent/internal/tmproot
 github.com/anacrolix/torrent/iplist
 github.com/anacrolix/torrent/logonce
@@ -71,8 +72,10 @@ github.com/anacrolix/torrent/metainfo
 github.com/anacrolix/torrent/mmap_span
 github.com/anacrolix/torrent/mse
 github.com/anacrolix/torrent/peer_protocol
+github.com/anacrolix/torrent/segments
 github.com/anacrolix/torrent/storage
 github.com/anacrolix/torrent/tracker
+github.com/anacrolix/torrent/webseed
 github.com/anacrolix/torrent/webtorrent
 # github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425
 github.com/anacrolix/upnp
@@ -379,7 +382,7 @@ github.com/willf/bloom
 github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+# golang.org/x/crypto v0.0.0-20200602180216-279210d13fed
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
@@ -401,7 +404,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200528225125-3c3fba18258b
+# golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
@@ -418,7 +421,7 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200523222454-059865788121
+# golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

@@ -77,3 +77,15 @@ func (l Logger) FilterLevel(minLevel Level) Logger {
 		return !ok || !level.LessThan(minLevel)
 	})
 }
+
+func (l Logger) WithContextValue(v interface{}) Logger {
+	return l.WithText(func(m Msg) string {
+		return fmt.Sprintf("%v: %v", v, m)
+	})
+}
+
+func (l Logger) WithContextText(s string) Logger {
+	return l.WithText(func(m Msg) string {
+		return s + ": " + m.Text()
+	})
+}

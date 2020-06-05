@@ -201,6 +201,7 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 		}
 		span.Append(mm)
 	}
+	span.InitIndex()
 	for i := range iter.N(info.NumPieces()) {
 		p := info.Piece(i)
 		hash := sha1.New()
