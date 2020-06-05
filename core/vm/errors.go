@@ -29,7 +29,7 @@ var (
 	ErrTraceLimitReached        = errors.New("the number of logs reached the specified limit")
 	ErrInsufficientBalance      = errors.New("insufficient balance for transfer")
 	ErrContractAddressCollision = errors.New("contract address collision")
-	ErrGasUintOverflow       = errors.New("gas uint64 overflow")
+	ErrGasUintOverflow          = errors.New("gas uint64 overflow")
 
 	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
 	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")

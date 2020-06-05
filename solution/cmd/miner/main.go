@@ -70,7 +70,7 @@ func main() {
 	} else if algorithm == "cuckaroo" {
 		miner_algorithm = 1
 	} else {
-		log.Fatalf("no support algorithm: "+ algorithm)
+		log.Fatalf("no support algorithm: " + algorithm)
 		os.Exit(1)
 	}
 
