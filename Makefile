@@ -71,38 +71,10 @@ rlpdump:
 	build/env.sh go run build/ci.go install ./cmd/rlpdump
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/rlpdump\" to launch cortex rlpdump."
-torrent:
-	build/env.sh go run build/ci.go install ./cmd/torrentfs
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
-tracker:
-	build/env.sh go run build/ci.go install ./cmd/tracker
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/tracker\" to launch tracker."
-
-#seeding:
-#	build/env.sh go run build/ci.go install ./cmd/seeding
-#	@echo "Done building."
-#	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
 wnode:
 	build/env.sh go run build/ci.go install ./cmd/wnode
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/wnode\" to launch cortex whisper node."
-
-torrent-test:
-	build/env.sh go run build/ci.go install ./cmd/torrent-test
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
-
-cvm: plugins/cuda_cvm.so plugins/cpu_cvm.so
-	build/env.sh go run build/ci.go install ./cmd/cvm
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
-#nodekey:
-#	build/env.sh go run build/ci.go install ./cmd/nodekey
-#	@echo "Done building."
-#	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
-
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C solution cuda-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda_helper_for_node.go
@@ -141,9 +113,6 @@ ios:
 	build/env.sh go run build/ci.go xcode --local
 	@echo "Done building."
 	@echo "Import \"$(GOBIN)/Ctxc.framework\" to use the library."
-
-test: all
-	build/env.sh go run build/ci.go test
 
 lint: ## Run linters.
 	build/env.sh go run build/ci.go lint
