@@ -62,13 +62,15 @@ type Monitor struct {
 	sizeCache   *lru.Cache
 	ckp         *params.TrustedCheckpoint
 	start       mclock.AbsTime
+
+	closeOnce sync.Once
 }
 
 // NewMonitor creates a new instance of monitor.
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
+func NewMonitor(flag *Config, cache, compress bool) (*Monitor, error) {
 	fs, fsErr := NewChainIndex(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -83,7 +85,7 @@ func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
 	}
 	log.Info("Fs manager initialized")
 
-	m = &Monitor{
+	m := &Monitor{
 		config:        flag,
 		cl:            nil,
 		fs:            fs,
@@ -98,12 +100,19 @@ func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
 	}
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
-	e = nil
+	//e = nil
 
-	return m, e
+	if err := m.dl.Start(); err != nil {
+		log.Warn("Fs start error")
+		return nil, err
+	}
+
+	m.IndexInit()
+
+	return m, nil
 }
 
-func (m *Monitor) indexInit() error {
+func (m *Monitor) IndexCheck() error {
 	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version(), "current", m.currentNumber)
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
@@ -128,6 +137,10 @@ func (m *Monitor) indexInit() error {
 		}
 	}
 
+	return nil
+}
+
+func (m *Monitor) IndexInit() error {
 	fileMap := make(map[metainfo.Hash]*types.FileInfo)
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
@@ -399,39 +412,39 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 }
 
 func (m *Monitor) Stop() {
-	log.Info("Fs listener closing")
-	if atomic.LoadInt32(&(m.terminated)) == 1 {
-		return
-	}
-	atomic.StoreInt32(&(m.terminated), 1)
-	close(m.exitCh)
-	log.Info("Monitor is waiting to be closed")
-	m.wg.Wait()
+	m.closeOnce.Do(func() {
+		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			return
+		}
+		atomic.StoreInt32(&(m.terminated), 1)
+		close(m.exitCh)
+		log.Info("Monitor is waiting to be closed")
+		m.wg.Wait()
 
-	m.blockCache.Purge()
-	m.sizeCache.Purge()
+		m.blockCache.Purge()
+		m.sizeCache.Purge()
 
-	log.Info("Fs client listener synchronizing closing")
-	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Fs Manager closed", "error", err)
-	}
-	log.Info("Fs client listener synchronizing closed")
+		log.Info("Fs client listener synchronizing closing")
+		if err := m.dl.Close(); err != nil {
+			log.Error("Monitor Fs Manager closed", "error", err)
+		}
 
-	log.Info("Fs listener synchronizing closing")
-	if err := m.fs.Close(); err != nil {
-		log.Error("Monitor File Storage closed", "error", err)
-	}
-	log.Info("Fs listener synchronizing closed")
-
-	log.Info("Fs listener closed")
+		if err := m.fs.Close(); err != nil {
+			log.Error("Monitor File Storage closed", "error", err)
+		}
+		log.Info("Fs listener synchronizing closed")
+	})
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
-	if err := m.dl.Start(); err != nil {
-		log.Warn("Fs start error")
-		return err
-	}
+	//if err := m.dl.Start(); err != nil {
+	//	log.Warn("Fs start error")
+	//	return err
+	//}
+
+	//m.IndexInit()
+
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
@@ -460,10 +473,12 @@ func (m *Monitor) startWork() error {
 		return rpcErr
 	}
 	m.cl = rpcClient
+
 	m.lastNumber = m.fs.LastListenBlockNumber
 	m.currentBlock()
 	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber), float64(m.currentNumber))) // ? m.currentNumber:m.fs.LastListenBlockNumber
-	if err := m.indexInit(); err != nil {
+
+	if err := m.IndexCheck(); err != nil {
 		return err
 	}
 	m.wg.Add(1)

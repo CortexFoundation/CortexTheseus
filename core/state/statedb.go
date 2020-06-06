@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	"math/big"
 	"sort"
+	"time"
 )
 
 type revision struct {
@@ -101,7 +102,17 @@ type StateDB struct {
 	validRevisions []revision
 	nextRevisionId int
 
-	//lock sync.Mutex
+	AccountReads         time.Duration
+	AccountHashes        time.Duration
+	AccountUpdates       time.Duration
+	AccountCommits       time.Duration
+	StorageReads         time.Duration
+	StorageHashes        time.Duration
+	StorageUpdates       time.Duration
+	StorageCommits       time.Duration
+	SnapshotAccountReads time.Duration
+	SnapshotStorageReads time.Duration
+	SnapshotCommits      time.Duration
 }
 
 // Create a new state from a given trie.
