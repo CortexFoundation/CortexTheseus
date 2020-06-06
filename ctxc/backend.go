@@ -208,7 +208,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		return nil, err
 	}
 
-	ctxc.miner = miner.New(ctxc, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
+	ctxc.miner = miner.New(ctxc, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, ctxc.isLocalBlock, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
 	ctxc.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	ctxc.APIBackend = &CortexAPIBackend{ctxc, nil}
