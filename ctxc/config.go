@@ -28,6 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
+	"github.com/CortexFoundation/CortexTheseus/miner"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
@@ -41,10 +42,16 @@ var DefaultConfig = Config{
 	TrieDirtyCache: 256,
 	TrieTimeout:    60 * time.Minute,
 	SnapshotCache:  256,
-	MinerGasFloor:  params.MinerGasFloor, //8000000,
-	MinerGasCeil:   params.MinerGasCeil,  //8000000,
-	MinerGasPrice:  big.NewInt(params.GWei),
-	MinerRecommit:  3 * time.Second,
+	Miner: miner.Config{
+		GasFloor: params.MinerGasFloor,
+		GasCeil:  params.MinerGasCeil,
+		GasPrice: big.NewInt(params.GWei),
+		Recommit: 3 * time.Second,
+	},
+	//MinerGasFloor:  params.MinerGasFloor, //8000000,
+	//MinerGasCeil:   params.MinerGasCeil,  //8000000,
+	//MinerGasPrice:  big.NewInt(params.GWei),
+	//MinerRecommit:  3 * time.Second,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -88,6 +95,9 @@ type Config struct {
 	TrieDirtyCache     int
 	TrieTimeout        time.Duration
 	SnapshotCache      int
+
+	// Mining options
+	Miner miner.Config
 
 	// Mining-related options
 	Coinbase         common.Address `toml:",omitempty"`

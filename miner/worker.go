@@ -27,15 +27,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	mapset "github.com/ucwong/golang-set"
 
-	//"github.com/CortexFoundation/CortexTheseus/consensus/misc"
-	//"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	//"github.com/CortexFoundation/CortexTheseus/core/vm"
 )
 
 const (
@@ -124,6 +121,7 @@ type intervalAdjust struct {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
+	config      *Config
 	chainConfig *params.ChainConfig
 	engine      consensus.Engine
 	ctxc        Backend
@@ -131,9 +129,6 @@ type worker struct {
 
 	// Feeds
 	pendingLogsFeed event.Feed
-
-	gasFloor uint64
-	gasCeil  uint64
 
 	// Subscriptions
 	mux          *event.TypeMux
@@ -190,15 +185,14 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, ctxc Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool, recommit time.Duration, gasFloor, gasCeil uint64, init bool) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, ctxc Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool, init bool) *worker {
 	worker := &worker{
-		chainConfig:        config,
+		config:             config,
+		chainConfig:        chainConfig,
 		engine:             engine,
 		ctxc:               ctxc,
 		mux:                mux,
 		chain:              ctxc.BlockChain(),
-		gasFloor:           gasFloor,
-		gasCeil:            gasCeil,
 		isLocalBlock:       isLocalBlock,
 		localUncles:        make(map[common.Hash]*types.Block),
 		remoteUncles:       make(map[common.Hash]*types.Block),
@@ -222,6 +216,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, ctxc Backend
 	worker.chainSideSub = ctxc.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
 
 	// Sanitize recommit interval if the user-specified one is too short.
+	recommit := worker.config.Recommit
 	if recommit < minRecommitInterval {
 		log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", minRecommitInterval)
 		recommit = minRecommitInterval
@@ -867,7 +862,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
+		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil),
 		Extra:      w.extra,
 		Time:       uint64(timestamp),
 	}
