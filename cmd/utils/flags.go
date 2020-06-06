@@ -390,7 +390,7 @@ var (
 	MinerGasTargetFlag = cli.Uint64Flag{
 		Name:  "miner.gastarget",
 		Usage: "Target gas floor for mined blocks",
-		Value: ctxc.DefaultConfig.MinerGasFloor,
+		Value: ctxc.DefaultConfig.Miner.GasFloor,
 	}
 	// MinerLegacyGasTargetFlag = cli.Uint64Flag{
 	// 	Name:  "targetgaslimit",
@@ -400,17 +400,17 @@ var (
 	MinerGasLimitFlag = cli.Uint64Flag{
 		Name:  "miner.gaslimit",
 		Usage: "Target gas ceiling for mined blocks",
-		Value: ctxc.DefaultConfig.MinerGasCeil,
+		Value: ctxc.DefaultConfig.Miner.GasCeil,
 	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: ctxc.DefaultConfig.MinerGasPrice,
+		Value: ctxc.DefaultConfig.Miner.GasPrice,
 	}
 	MinerLegacyGasPriceFlag = BigFlag{
 		Name:  "gasprice",
 		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
-		Value: ctxc.DefaultConfig.MinerGasPrice,
+		Value: ctxc.DefaultConfig.Miner.GasPrice,
 	}
 	MinerCoinbaseFlag = cli.StringFlag{
 		Name:  "miner.coinbase",
@@ -433,7 +433,7 @@ var (
 	MinerRecommitIntervalFlag = cli.DurationFlag{
 		Name:  "miner.recommit",
 		Usage: "Time interval to recreate the block being mined",
-		Value: ctxc.DefaultConfig.MinerRecommit,
+		Value: ctxc.DefaultConfig.Miner.Recommit,
 	}
 	MinerNoVerfiyFlag = cli.BoolFlag{
 		Name:  "miner.noverify",
@@ -1299,39 +1299,39 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
-		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
+		cfg.Miner.ExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
 	}
 	if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
-		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
+		cfg.Miner.ExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
 	}
 	// if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
 	//	cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
 	// }
 	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
+		cfg.Miner.GasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerGasLimitFlag.Name) {
-		cfg.MinerGasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
+		cfg.Miner.GasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
+		cfg.Miner.GasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
+		cfg.Miner.GasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
-		cfg.MinerRecommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
+		cfg.Miner.Recommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
-		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
+		cfg.Miner.Noverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
 		//cfg.Cuckoo.Mine = true
 	}
 	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
-		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
-		cfg.Cuckoo.UseCuda = cfg.MinerCuda
+		cfg.Miner.Cuda = ctx.Bool(MinerCudaFlag.Name)
+		cfg.Cuckoo.UseCuda = cfg.Miner.Cuda
 	}
 	//	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
 	//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
@@ -1345,8 +1345,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 			cfg.DiscoveryURLs = splitAndTrim(urls)
 		}
 	}
-	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
-	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
+	cfg.Miner.Devices = ctx.GlobalString(MinerDevicesFlag.Name)
+	cfg.Cuckoo.StrDeviceIds = cfg.Miner.Devices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	cfg.Cuckoo.Algorithm = "cuckaroo" //ctx.GlobalString(MinerAlgorithmFlag.Name)
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)

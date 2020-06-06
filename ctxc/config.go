@@ -48,10 +48,6 @@ var DefaultConfig = Config{
 		GasPrice: big.NewInt(params.GWei),
 		Recommit: 3 * time.Second,
 	},
-	//MinerGasFloor:  params.MinerGasFloor, //8000000,
-	//MinerGasCeil:   params.MinerGasCeil,  //8000000,
-	//MinerGasPrice:  big.NewInt(params.GWei),
-	//MinerRecommit:  3 * time.Second,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -101,16 +97,6 @@ type Config struct {
 
 	// Mining-related options
 	Coinbase         common.Address `toml:",omitempty"`
-	MinerNotify      []string       `toml:",omitempty"`
-	MinerExtraData   []byte         `toml:",omitempty"`
-	MinerGasFloor    uint64
-	MinerGasCeil     uint64
-	MinerGasPrice    *big.Int
-	MinerRecommit    time.Duration
-	MinerNoverify    bool
-	MinerCuda        bool
-	MinerOpenCL      bool
-	MinerDevices     string
 	InferDeviceType  string
 	InferDeviceId    int
 	InferMemoryUsage int64
