@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/golang/snappy"
 
@@ -24,6 +25,28 @@ import (
 	"github.com/ucwong/goleveldb/leveldb/opt"
 	"github.com/ucwong/goleveldb/leveldb/storage"
 	"github.com/ucwong/goleveldb/leveldb/util"
+)
+
+// Global statistics, defined here but also allow retrieval from outside.
+var (
+	// Cache hit rate stats.
+	DataCacheHit uint64 // The cumulative number of data hits in block cache
+	DataDiskHit  uint64 // The cumulative number of data hits in disk
+	MetaCacheHit uint64 // The cumulative number of data hits in metadata cache
+	MetaDiskHit  uint64 // The cumulative number of data hits in disk
+
+	LevelDataCacheHit []uint64 // The cumulative number of data hits in block cache
+	LevelDataDiskHit  []uint64 // The cumulative number of data hits in disk
+	LevelMetaCacheHit []uint64 // The cumulative number of data hits in metadata cache
+	LevelMetaDiskHit  []uint64 // The cumulative number of data hits in disk
+
+	// Bloom filter false positive stats.
+	BloomFilterMiss uint64 // The cumulative number of file hits in file cache
+	BloomFilterHit  uint64 // The cumulative number of file hits in file cache
+
+	//
+	FirstBlockHit  uint64
+	SecondBlockHit uint64
 )
 
 // Reader errors.
@@ -509,6 +532,7 @@ func (i *indexIter) Get() iterator.Iterator {
 
 // Reader is a table reader.
 type Reader struct {
+	level  int
 	mu     sync.RWMutex
 	fd     storage.FileDesc
 	reader io.ReaderAt
@@ -516,6 +540,7 @@ type Reader struct {
 	bcache *cache.NamespaceGetter
 	err    error
 	bpool  *util.BufferPool
+
 	// Options
 	o              *opt.Options
 	cmp            comparer.Comparer
@@ -623,8 +648,9 @@ func (r *Reader) readBlockCached(bh blockHandle, verifyChecksum, fillCache bool,
 	}
 	if rcache != nil {
 		var (
-			err error
-			ch  *cache.Handle
+			err  error
+			ch   *cache.Handle
+			load bool
 		)
 		if fillCache {
 			ch = rcache.Get(bh.offset, func() (size int, value cache.Value) {
@@ -633,6 +659,7 @@ func (r *Reader) readBlockCached(bh blockHandle, verifyChecksum, fillCache bool,
 				if err != nil {
 					return 0, nil
 				}
+				load = true
 				return cap(b.data), b
 			})
 		} else {
@@ -644,13 +671,56 @@ func (r *Reader) readBlockCached(bh blockHandle, verifyChecksum, fillCache bool,
 				ch.Release()
 				return nil, nil, errors.New("leveldb/table: inconsistent block type")
 			}
+			if load {
+				if metadata {
+					atomic.AddUint64(&MetaDiskHit, 1)
+					for len(LevelMetaDiskHit) < r.level+1 {
+						LevelMetaDiskHit = append(LevelMetaDiskHit, 0)
+					}
+					atomic.AddUint64(&LevelMetaDiskHit[r.level], 1)
+				} else {
+					atomic.AddUint64(&DataDiskHit, 1)
+					for len(LevelDataDiskHit) < r.level+1 {
+						LevelDataDiskHit = append(LevelDataDiskHit, 0)
+					}
+					atomic.AddUint64(&LevelDataDiskHit[r.level], 1)
+				}
+			} else {
+				if metadata {
+					atomic.AddUint64(&MetaCacheHit, 1)
+					for len(LevelMetaCacheHit) < r.level+1 {
+						LevelMetaCacheHit = append(LevelMetaCacheHit, 0)
+					}
+					atomic.AddUint64(&LevelMetaCacheHit[r.level], 1)
+				} else {
+					atomic.AddUint64(&DataCacheHit, 1)
+					for len(LevelDataCacheHit) < r.level+1 {
+						LevelDataCacheHit = append(LevelDataCacheHit, 0)
+					}
+					atomic.AddUint64(&LevelDataCacheHit[r.level], 1)
+				}
+			}
 			return b, ch, err
 		} else if err != nil {
 			return nil, nil, err
 		}
 	}
-
 	b, err := r.readBlock(bh, verifyChecksum)
+	if err == nil {
+		if metadata {
+			atomic.AddUint64(&MetaDiskHit, 1)
+			for len(LevelMetaDiskHit) < r.level+1 {
+				LevelMetaDiskHit = append(LevelMetaDiskHit, 0)
+			}
+			atomic.AddUint64(&LevelMetaDiskHit[r.level], 1)
+		} else {
+			atomic.AddUint64(&DataDiskHit, 1)
+			for len(LevelDataDiskHit) < r.level+1 {
+				LevelDataDiskHit = append(LevelDataDiskHit, 0)
+			}
+			atomic.AddUint64(&LevelDataDiskHit[r.level], 1)
+		}
+	}
 	return b, b, err
 }
 
@@ -681,8 +751,9 @@ func (r *Reader) readFilterBlock(bh blockHandle) (*filterBlock, error) {
 func (r *Reader) readFilterBlockCached(bh blockHandle, fillCache bool) (*filterBlock, util.Releaser, error) {
 	if r.mcache != nil {
 		var (
-			err error
-			ch  *cache.Handle
+			err  error
+			ch   *cache.Handle
+			load bool
 		)
 		if fillCache {
 			ch = r.mcache.Get(bh.offset, func() (size int, value cache.Value) {
@@ -691,6 +762,7 @@ func (r *Reader) readFilterBlockCached(bh blockHandle, fillCache bool) (*filterB
 				if err != nil {
 					return 0, nil
 				}
+				load = true
 				return cap(b.data), b
 			})
 		} else {
@@ -702,13 +774,32 @@ func (r *Reader) readFilterBlockCached(bh blockHandle, fillCache bool) (*filterB
 				ch.Release()
 				return nil, nil, errors.New("leveldb/table: inconsistent block type")
 			}
+			if load {
+				atomic.AddUint64(&MetaDiskHit, 1)
+				for len(LevelMetaDiskHit) < r.level+1 {
+					LevelMetaDiskHit = append(LevelMetaDiskHit, 0)
+				}
+				atomic.AddUint64(&LevelMetaDiskHit[r.level], 1)
+			} else {
+				atomic.AddUint64(&MetaCacheHit, 1)
+				for len(LevelMetaCacheHit) < r.level+1 {
+					LevelMetaCacheHit = append(LevelMetaCacheHit, 0)
+				}
+				atomic.AddUint64(&LevelMetaCacheHit[r.level], 1)
+			}
 			return b, ch, err
 		} else if err != nil {
 			return nil, nil, err
 		}
 	}
-
 	b, err := r.readFilterBlock(bh)
+	if err == nil {
+		atomic.AddUint64(&MetaDiskHit, 1)
+		for len(LevelMetaDiskHit) < r.level+1 {
+			LevelMetaDiskHit = append(LevelMetaDiskHit, 0)
+		}
+		atomic.AddUint64(&LevelMetaDiskHit[r.level], 1)
+	}
 	return b, b, err
 }
 
@@ -862,11 +953,22 @@ func (r *Reader) find(key []byte, filtered bool, ro *opt.ReadOptions, noValue bo
 				return nil, nil, ErrNotFound
 			}
 			frel.Release()
+
+			// Bloom filter says the entry exists, update the
+			// 'false positive rate' in the end.
+			defer func() {
+				if len(rkey) > 0 {
+					atomic.AddUint64(&BloomFilterHit, 1)
+				} else {
+					atomic.AddUint64(&BloomFilterMiss, 1)
+				}
+			}()
 		} else if !errors.IsCorrupted(ferr) {
 			return nil, nil, ferr
 		}
 	}
 
+	var second bool
 	data := r.getDataIter(dataBH, nil, r.verifyChecksum, !ro.GetDontFillCache())
 	if !data.Seek(key) {
 		data.Release()
@@ -896,6 +998,7 @@ func (r *Reader) find(key []byte, filtered bool, ro *opt.ReadOptions, noValue bo
 			}
 			return
 		}
+		second = true
 	}
 
 	// Key doesn't use block buffer, no need to copy the buffer.
@@ -910,6 +1013,11 @@ func (r *Reader) find(key []byte, filtered bool, ro *opt.ReadOptions, noValue bo
 		}
 	}
 	data.Release()
+	if !second {
+		atomic.AddUint64(&FirstBlockHit, 1)
+	} else {
+		atomic.AddUint64(&SecondBlockHit, 1)
+	}
 	return
 }
 
@@ -1028,12 +1136,13 @@ func (r *Reader) Release() {
 // The fi, cache and bpool is optional and can be nil.
 //
 // The returned table reader instance is safe for concurrent use.
-func NewReader(f io.ReaderAt, size int64, fd storage.FileDesc, mcache, bcache *cache.NamespaceGetter, bpool *util.BufferPool, o *opt.Options) (*Reader, error) {
+func NewReader(f io.ReaderAt, level int, size int64, fd storage.FileDesc, mcache, bcache *cache.NamespaceGetter, bpool *util.BufferPool, o *opt.Options) (*Reader, error) {
 	if f == nil {
 		return nil, errors.New("leveldb/table: nil file")
 	}
 
 	r := &Reader{
+		level:          level,
 		fd:             fd,
 		reader:         f,
 		mcache:         mcache,
