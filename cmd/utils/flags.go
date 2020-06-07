@@ -20,7 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/elastic/gosigar"
+	gopsutil "github.com/shirou/gopsutil/mem"
 	"io/ioutil"
 	"os"
 	// "math/big"
@@ -54,6 +54,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discv5"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
@@ -389,7 +390,7 @@ var (
 	MinerGasTargetFlag = cli.Uint64Flag{
 		Name:  "miner.gastarget",
 		Usage: "Target gas floor for mined blocks",
-		Value: ctxc.DefaultConfig.MinerGasFloor,
+		Value: ctxc.DefaultConfig.Miner.GasFloor,
 	}
 	// MinerLegacyGasTargetFlag = cli.Uint64Flag{
 	// 	Name:  "targetgaslimit",
@@ -399,17 +400,17 @@ var (
 	MinerGasLimitFlag = cli.Uint64Flag{
 		Name:  "miner.gaslimit",
 		Usage: "Target gas ceiling for mined blocks",
-		Value: ctxc.DefaultConfig.MinerGasCeil,
+		Value: ctxc.DefaultConfig.Miner.GasCeil,
 	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: ctxc.DefaultConfig.MinerGasPrice,
+		Value: ctxc.DefaultConfig.Miner.GasPrice,
 	}
 	MinerLegacyGasPriceFlag = BigFlag{
 		Name:  "gasprice",
 		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
-		Value: ctxc.DefaultConfig.MinerGasPrice,
+		Value: ctxc.DefaultConfig.Miner.GasPrice,
 	}
 	MinerCoinbaseFlag = cli.StringFlag{
 		Name:  "miner.coinbase",
@@ -432,7 +433,7 @@ var (
 	MinerRecommitIntervalFlag = cli.DurationFlag{
 		Name:  "miner.recommit",
 		Usage: "Time interval to recreate the block being mined",
-		Value: ctxc.DefaultConfig.MinerRecommit,
+		Value: ctxc.DefaultConfig.Miner.Recommit,
 	}
 	MinerNoVerfiyFlag = cli.BoolFlag{
 		Name:  "miner.noverify",
@@ -629,6 +630,10 @@ var (
 		Name:  "nodiscover",
 		Usage: "Disables the peer discovery mechanism (manual peer addition)",
 	}
+	DiscoveryV5Flag = cli.BoolFlag{
+		Name:  "v5disc",
+		Usage: "Enables the experimental RLPx V5 (Topic Discovery) mechanism",
+	}
 	DNSDiscoveryFlag = cli.StringFlag{
 		Name:  "discovery.dns",
 		Usage: "Sets DNS discovery entry points (use \"\" to disable DNS)",
@@ -818,35 +823,37 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	}
 }
 
-/*func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
-        urls := params.DiscoveryV5Bootnodes
-        switch {
-        case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV5Flag.Name):
-                if ctx.GlobalIsSet(BootnodesV5Flag.Name) {
-                        urls = splitAndTrim(ctx.GlobalString(BootnodesV5Flag.Name))
-                } else {
-                        urls = splitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
-                }
+// setBootstrapNodesV5 creates a list of bootstrap nodes from the command line
+// flags, reverting to pre-configured ones if none have been specified.
+func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
+	urls := params.MainnetBootnodes
+	switch {
+	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV5Flag.Name):
+		if ctx.GlobalIsSet(BootnodesV5Flag.Name) {
+			urls = splitAndTrim(ctx.GlobalString(BootnodesV5Flag.Name))
+		} else {
+			urls = splitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
+		}
 	case ctx.GlobalBool(BernardFlag.Name):
-                urls = params.BernardBootnodes
-        case ctx.GlobalBool(DoloresFlag.Name):
-                urls = params.BernardBootnodes
-        case cfg.BootstrapNodesV5 != nil:
-                return // already set, don't apply defaults.
-        }
+		urls = params.BernardBootnodes
+	case ctx.GlobalBool(DoloresFlag.Name):
+		urls = params.BernardBootnodes
+	case cfg.BootstrapNodesV5 != nil:
+		return // already set, don't apply defaults.
+	}
 
-        cfg.BootstrapNodesV5 = make([]*discv5.Node, 0, len(urls))
-        for _, url := range urls {
-                if url != "" {
-                        node, err := discv5.ParseNode(url)
-                        if err != nil {
-                                log.Error("Bootstrap URL invalid", "enode", url, "err", err)
-                                continue
-                        }
-                        cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
-                }
-        }
-}*/
+	cfg.BootstrapNodesV5 = make([]*discv5.Node, 0, len(urls))
+	for _, url := range urls {
+		if url != "" {
+			node, err := discv5.ParseNode(url)
+			if err != nil {
+				log.Error("Bootstrap URL invalid", "enode", url, "err", err)
+				continue
+			}
+			cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
+		}
+	}
+}
 
 // setListenAddress creates a TCP listening address string from set command
 // line flags.
@@ -1025,7 +1032,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setNAT(ctx, cfg)
 	setListenAddress(ctx, cfg)
 	setBootstrapNodes(ctx, cfg)
-	//setBootstrapNodesV5(ctx, cfg)
+	setBootstrapNodesV5(ctx, cfg)
 
 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
@@ -1038,6 +1045,16 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	}
 	if ctx.GlobalIsSet(NoDiscoverFlag.Name) {
 		cfg.NoDiscovery = true
+	}
+
+	// if we're running a light client or server, force enable the v5 peer discovery
+	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
+	// --v5disc overrides --nodiscover, in which case the later only disables v4 discovery
+	//forceV5Discovery := (lightClient || lightServer) && !ctx.GlobalBool(NoDiscoverFlag.Name)
+	if ctx.GlobalIsSet(DiscoveryV5Flag.Name) {
+		cfg.DiscoveryV5 = ctx.GlobalBool(DiscoveryV5Flag.Name)
+		//} else if forceV5Discovery {
+		//        cfg.DiscoveryV5 = true
 	}
 
 	if netrestrict := ctx.GlobalString(NetrestrictFlag.Name); netrestrict != "" {
@@ -1282,39 +1299,39 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
-		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
+		cfg.Miner.ExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
 	}
 	if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
-		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
+		cfg.Miner.ExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
 	}
 	// if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
 	//	cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
 	// }
 	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
+		cfg.Miner.GasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerGasLimitFlag.Name) {
-		cfg.MinerGasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
+		cfg.Miner.GasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
+		cfg.Miner.GasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
+		cfg.Miner.GasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
-		cfg.MinerRecommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
+		cfg.Miner.Recommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
-		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
+		cfg.Miner.Noverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
 		//cfg.Cuckoo.Mine = true
 	}
 	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
-		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
-		cfg.Cuckoo.UseCuda = cfg.MinerCuda
+		cfg.Miner.Cuda = ctx.Bool(MinerCudaFlag.Name)
+		cfg.Cuckoo.UseCuda = cfg.Miner.Cuda
 	}
 	//	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
 	//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
@@ -1328,8 +1345,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 			cfg.DiscoveryURLs = splitAndTrim(urls)
 		}
 	}
-	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
-	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
+	cfg.Miner.Devices = ctx.GlobalString(MinerDevicesFlag.Name)
+	cfg.Cuckoo.StrDeviceIds = cfg.Miner.Devices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	cfg.Cuckoo.Algorithm = "cuckaroo" //ctx.GlobalString(MinerAlgorithmFlag.Name)
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
@@ -1352,8 +1369,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
-	var mem gosigar.Mem
-	if err := mem.Get(); err == nil {
+	mem, err := gopsutil.VirtualMemory()
+	if err == nil {
 		if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
 			log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
 			mem.Total = 2 * 1024 * 1024 * 1024

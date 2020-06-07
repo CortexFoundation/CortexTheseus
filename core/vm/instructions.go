@@ -680,6 +680,39 @@ func opJumpdest(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) (
 	return nil, nil
 }
 
+func opBeginSub(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	return nil, ErrInvalidSubroutineEntry
+}
+
+func opJumpSub(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	if len(callContext.rstack.data) >= 1023 {
+		return nil, ErrReturnStackExceeded
+	}
+	pos := callContext.stack.pop()
+	if !pos.IsUint64() {
+		return nil, ErrInvalidJump
+	}
+	posU64 := pos.Uint64()
+	if !callContext.contract.validJumpSubdest(posU64) {
+		return nil, ErrInvalidJump
+	}
+	callContext.rstack.push(*pc)
+	*pc = posU64 + 1
+	interpreter.intPool.put(pos)
+	return nil, nil
+}
+
+func opReturnSub(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	if len(callContext.rstack.data) == 0 {
+		return nil, ErrInvalidRetsub
+	}
+	// Other than the check that the return stack is not empty, there is no
+	// need to validate the pc from 'returns', since we only ever push valid
+	//values onto it via jumpsub.
+	*pc = callContext.rstack.pop() + 1
+	return nil, nil
+}
+
 func opPc(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
 	callContext.stack.push(interpreter.intPool.get().SetUint64(*pc))
 	return nil, nil
@@ -922,7 +955,7 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 	var (
 		value        = callContext.stack.pop()
 		offset, size = callContext.stack.pop(), callContext.stack.pop()
-		input        = callContext.memory.Get(offset.Int64(), size.Int64())
+		input        = callContext.memory.GetCopy(offset.Int64(), size.Int64())
 		gas          = callContext.contract.Gas
 	)
 	if interpreter.cvm.ChainConfig().IsEIP150(interpreter.cvm.BlockNumber) {
@@ -959,7 +992,7 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 		endowment    = callContext.stack.pop()
 		offset, size = callContext.stack.pop(), callContext.stack.pop()
 		salt         = callContext.stack.pop()
-		input        = callContext.memory.Get(offset.Int64(), size.Int64())
+		input        = callContext.memory.GetCopy(offset.Int64(), size.Int64())
 		gas          = callContext.contract.Gas
 	)
 
@@ -1152,7 +1185,7 @@ func makeLog(size int) executionFunc {
 			topics[i] = common.BigToHash(callContext.stack.pop())
 		}
 
-		d := callContext.memory.Get(mStart.Int64(), mSize.Int64())
+		d := callContext.memory.GetCopy(mStart.Int64(), mSize.Int64())
 		interpreter.cvm.StateDB.AddLog(&types.Log{
 			Address: callContext.contract.Address(),
 			Topics:  topics,

@@ -97,7 +97,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
-	receipt, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, bc.GetVMConfig())
+	receipt, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -151,10 +151,10 @@ func (b *BlockGen) PrevBlock(index int) *types.Block {
 // tied to chain length directly.
 func (b *BlockGen) OffsetTime(seconds int64) {
 	b.header.Time += uint64(seconds)
-        if b.header.Time <= b.parent.Header().Time {
-                panic("block time out of range")
-        }
-        b.header.Difficulty = b.engine.CalcDifficulty(b.chainReader, b.header.Time, b.parent.Header())
+	if b.header.Time <= b.parent.Header().Time {
+		panic("block time out of range")
+	}
+	b.header.Difficulty = b.engine.CalcDifficulty(b.chainReader, b.header.Time, b.parent.Header())
 }
 
 // GenerateChain creates a chain of n blocks. The first block's

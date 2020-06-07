@@ -19,11 +19,11 @@ type MsgImpl interface {
 
 // maybe implement finalizer to ensure msgs are sunk
 type rootMsgImpl struct {
-	text string
+	text func() string
 }
 
 func (m rootMsgImpl) Text() string {
-	return m.text
+	return m.text()
 }
 
 func (m rootMsgImpl) Callers(skip int, pc []uintptr) int {

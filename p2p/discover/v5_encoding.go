@@ -46,7 +46,7 @@ import (
 
 // Discovery v5 packet types.
 const (
-	p_pingV5 byte = iota + 11
+	p_pingV5 byte = iota + 1
 	p_pongV5
 	p_findnodeV5
 	p_nodesV5

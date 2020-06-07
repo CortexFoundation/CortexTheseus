@@ -1,48 +1,20 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2014 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
-
-import (
-	"math/big"
-
-	"github.com/CortexFoundation/CortexTheseus/common"
-)
-
-// destinations stores one map per contract (keyed by hash of code).
-// The maps contain an entry for each location of a JUMPDEST
-// instruction.
-type destinations map[common.Hash]bitvec
-
-// has checks whether code has a JUMPDEST at dest.
-func (d destinations) has(codehash common.Hash, code []byte, dest *big.Int) bool {
-	// PC cannot go beyond len(code) and certainly can't be bigger than 63bits.
-	// Don't bother checking for JUMPDEST in that case.
-	udest := dest.Uint64()
-	if dest.BitLen() >= 63 || udest >= uint64(len(code)) {
-		return false
-	}
-
-	m, analysed := d[codehash]
-	if !analysed {
-		m = codeBitmap(code)
-		d[codehash] = m
-	}
-	return OpCode(code[udest]) == JUMPDEST && m.codeSegment(udest)
-}
 
 // bitvec is a bit vector which maps bytes in a program.
 // An unset bit means the byte is an opcode, a set bit means

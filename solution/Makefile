@@ -10,12 +10,12 @@ PLUGINS_DIR = $(shell pwd)/plugins
 
 all:
 	$(MAKE) -C ${LIB_CUCKOO_DIR}
-	build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cuda_helper.so ./miner/libcuckoo/cuda_helper.go
-	build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cpu_helper.so ./miner/libcuckoo/cpu_helper.go
+	#build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cuda_helper.so ./miner/libcuckoo/cuda_helper.go
+	#build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cpu_helper.so ./miner/libcuckoo/cpu_helper.go
 
 cuda-miner:
 	$(MAKE) -C ${LIB_CUCKOO_DIR} cuda
-	build/env.sh  go build -buildmode=plugin -o ${PLUGINS_DIR}/cuda_helper.so ./miner/libcuckoo/cuda_helper.go
+	#build/env.sh  go build -buildmode=plugin -o ${PLUGINS_DIR}/cuda_helper.so ./miner/libcuckoo/cuda_helper.go
 	@echo "Done building."
 
 #opencl-miner: 
@@ -27,7 +27,7 @@ cuda-miner:
 
 cpu-miner: 
 	$(MAKE) -C ${LIB_CUCKOO_DIR} cpu
-	build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cpu_helper.so ./miner/libcuckoo/cpu_helper.go
+	#build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cpu_helper.so ./miner/libcuckoo/cpu_helper.go
 	@echo "Done building."
 
 clean:
