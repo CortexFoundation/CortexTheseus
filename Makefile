@@ -36,17 +36,20 @@ mine: cortex_mine
 
 cortex: cpu
 
-cortex_cpu: clib_cpu
+clean-miner:
+	rm -fr plugins/*_helper_for_node.so
+
+cortex_cpu: clean-miner clib_cpu
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex_cpu ..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex cpu."
-cortex_mine: clib_mine
+cortex_mine: clean-miner clib_mine
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex miner."
-cortex_gpu: clib
+cortex_gpu: clean-miner clib
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
