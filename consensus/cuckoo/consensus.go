@@ -858,15 +858,14 @@ func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 	return ret
 }
 
-func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) (ok bool) {
+func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) bool {
 	if err := cuckoo.InitOnce(); err != nil {
 		log.Error("cuckoo init error", "error", err)
 		return false
 	}
 
 	if m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo"); err != nil {
-		log.Error("cuckoo", "lookup cuckaroo verify error.", err)
-		return false
+		panic(err)
 	} else {
 		r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
 		return r

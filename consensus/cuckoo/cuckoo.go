@@ -12,6 +12,7 @@ import (
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"math/big"
 	"math/rand"
+	"path/filepath"
 	"plugin"
 	"sync"
 	"time"
@@ -178,11 +179,10 @@ func (cuckoo *Cuckoo) initPlugin() error {
 		cuckoo.config.StrDeviceIds = "0" //default gpu device 0
 	}
 	var errc error
-	so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
+	so_path := filepath.Join(PLUGIN_PATH, minerName+PLUGIN_POST_FIX)
 	cuckoo.minerPlugin, errc = plugin.Open(so_path)
-	if errc != nil || cuckoo.minerPlugin == nil {
-		log.Error("Cuckoo Init Plugin", "error", errc)
-		return errors.New("Cuckoo plugins init failed")
+	if errc != nil {
+		panic(errc)
 	}
 
 	elapsed := time.Duration(mclock.Now() - start)
@@ -204,16 +204,13 @@ func (cuckoo *Cuckoo) InitOnce() error {
 			return
 		} else {
 			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
-			if errc != nil || m == nil {
-				log.Error("Cuckoo Init Plugin lookup", "error", errc)
-				err = errors.New("Cuckoo plugins CuckooInitialize lookup failed")
-				return
+			if errc != nil {
+				panic(errc)
 			}
 			// miner algorithm use cuckaroo by default.
 			if cuckoo.config.Threads > 0 && cuckoo.config.UseCuda {
 				errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
 			} else {
-				//cuckoo.config.Threads = 0
 				cuckoo.threads = 0
 			}
 			err = errc
@@ -237,37 +234,12 @@ func (cuckoo *Cuckoo) Close() error {
 			return
 		}
 		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-		if e != nil || m == nil {
-			log.Error("Cuckoo cycle closed error", "error", e)
-			return
+		if e != nil {
+			panic(e)
 		}
 		m.(func())()
 	})
 	return nil
-	/*
-		var err error
-		cuckoo.closeOnce.Do(func() {
-			// Short circuit if the exit channel is not allocated.
-			if cuckoo.exitCh == nil {
-				return
-			}
-			errc := make(chan error)
-			cuckoo.exitCh <- errc
-			err = <-errc
-			close(cuckoo.exitCh)
-
-			if cuckoo.minerPlugin == nil {
-				return
-			}
-			m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-			if e != nil {
-				err = e
-				return
-			}
-			m.(func())()
-		})
-		return err
-	*/
 }
 
 func (cuckoo *Cuckoo) Threads() int {
