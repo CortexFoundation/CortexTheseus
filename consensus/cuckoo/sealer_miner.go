@@ -43,7 +43,7 @@ search:
 
 			m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
 			if err != nil {
-				return err
+				panic(err)
 			}
 			r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
 			if r == 0 {
@@ -54,7 +54,7 @@ search:
 
 			m, err = cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
 			if err != nil {
-				return err
+				panic(err)
 			}
 			ret := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
 			if ret {
