@@ -97,7 +97,7 @@ func NewChainIndex(config *Config) (*ChainIndex, error) {
 		return nil, err
 	}
 
-	if err := fs.initFsId(); err != nil {
+	if err := fs.initID(); err != nil {
 		return nil, err
 	}
 
@@ -475,7 +475,7 @@ func (fs *ChainIndex) initFiles() error {
 	})
 }
 
-func (fs *ChainIndex) readFsId() error {
+func (fs *ChainIndex) getID() error {
 	return fs.db.View(func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("id_" + fs.version))
 		if buk == nil {
@@ -502,8 +502,8 @@ func (fs *ChainIndex) ID() uint64 {
 	return fs.id
 }
 
-func (fs *ChainIndex) initFsId() error {
-	err := fs.readFsId()
+func (fs *ChainIndex) initID() error {
+	err := fs.getID()
 	if fs.id > 0 && err == nil {
 		return nil
 	}
@@ -529,6 +529,7 @@ func (fs *ChainIndex) initCheckPoint() error {
 		v := buk.Get([]byte("key"))
 
 		if v == nil {
+			log.Warn("Start from check point (default:0)")
 			return nil
 		}
 
@@ -538,6 +539,7 @@ func (fs *ChainIndex) initCheckPoint() error {
 		}
 
 		fs.CheckPoint = number
+		log.Info("Start from check point (default:0)", "num", number)
 
 		return nil
 	})
@@ -553,6 +555,7 @@ func (fs *ChainIndex) initBlockNumber() error {
 		v := buk.Get([]byte("key"))
 
 		if v == nil {
+			log.Warn("Start from block number (default:0)")
 			return nil
 		}
 
@@ -562,6 +565,7 @@ func (fs *ChainIndex) initBlockNumber() error {
 		}
 
 		fs.LastListenBlockNumber = number
+		log.Info("Start from block number (default:0)", "num", number)
 
 		return nil
 	})
@@ -593,21 +597,20 @@ func (fs *ChainIndex) writeRoot(number uint64, root []byte) error {
 
 func (fs *ChainIndex) GetRootByNumber(number uint64) (root []byte) {
 	cb := func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
-		if err != nil {
-			return err
+		buk := tx.Bucket([]byte("version_" + fs.version))
+		if buk == nil {
+			return errors.New("root bucket not exist")
 		}
 
 		v := buk.Get([]byte(strconv.FormatUint(number, 16)))
-
 		if v == nil {
-			return nil
+			return errors.New("root value not exist")
 		}
 
 		root = v
 		return nil
 	}
-	if err := fs.db.Update(cb); err != nil {
+	if err := fs.db.View(cb); err != nil {
 		return nil
 	}
 

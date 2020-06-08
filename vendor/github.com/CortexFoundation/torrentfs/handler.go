@@ -33,7 +33,6 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -111,7 +110,7 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, status i
 		tm.getLimitation(requested),
 		0, 0, status,
 		ih.String(),
-		path.Join(tm.TmpDataDir, ih.String()),
+		filepath.Join(tm.TmpDataDir, ih.String()),
 		0, 1, 0, 0, false, true, 0,
 	}
 	tm.lock.Lock()
@@ -234,8 +233,8 @@ func (tm *TorrentManager) loadSpec(ih metainfo.Hash, filePath string, BytesReque
 		return nil
 	}
 
-	TmpDir := path.Join(tm.TmpDataDir, ih.HexString())
-	ExistDir := path.Join(tm.DataDir, ih.HexString())
+	TmpDir := filepath.Join(tm.TmpDataDir, ih.HexString())
+	ExistDir := filepath.Join(tm.DataDir, ih.HexString())
 
 	useExistDir := false
 	if _, err := os.Stat(ExistDir); err == nil {
@@ -266,8 +265,8 @@ func (tm *TorrentManager) addInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 		return t
 	}
 
-	tmpTorrentPath := path.Join(tm.TmpDataDir, ih.HexString(), "torrent")
-	seedTorrentPath := path.Join(tm.DataDir, ih.HexString(), "torrent")
+	tmpTorrentPath := filepath.Join(tm.TmpDataDir, ih.HexString(), "torrent")
+	seedTorrentPath := filepath.Join(tm.DataDir, ih.HexString(), "torrent")
 
 	var spec *torrent.TorrentSpec
 
@@ -278,7 +277,7 @@ func (tm *TorrentManager) addInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	}
 
 	if spec == nil {
-		tmpDataPath := path.Join(tm.TmpDataDir, ih.HexString())
+		tmpDataPath := filepath.Join(tm.TmpDataDir, ih.HexString())
 		spec = &torrent.TorrentSpec{
 			Trackers: [][]string{}, //tm.trackers, //[][]string{},
 			InfoHash: ih,
@@ -339,7 +338,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		return nil, err
 	}
 
-	tmpFilePath := path.Join(config.DataDir, defaultTmpFilePath)
+	tmpFilePath := filepath.Join(config.DataDir, defaultTmpFilePath)
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
 		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0750) //os.FileMode(os.ModePerm))
@@ -654,21 +653,21 @@ func (tm *TorrentManager) activeLoop() {
 
 				if t.Finished() {
 					tm.lock.Lock()
-					if _, err := os.Stat(path.Join(tm.DataDir, ih.String())); err == nil {
+					if _, err := os.Stat(filepath.Join(tm.DataDir, ih.String())); err == nil {
 						if len(tm.seedingChan) < cap(tm.seedingChan) {
-							log.Debug("Path exist", "ih", ih, "path", path.Join(tm.DataDir, ih.String()))
+							log.Debug("Path exist", "ih", ih, "path", filepath.Join(tm.DataDir, ih.String()))
 							delete(tm.activeTorrents, ih)
 							log.Trace("S <- A", "ih", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 							tm.seedingChan <- t
 						}
 					} else {
 						err := os.Symlink(
-							path.Join(defaultTmpFilePath, ih.String()),
-							path.Join(tm.DataDir, ih.String()),
+							filepath.Join(defaultTmpFilePath, ih.String()),
+							filepath.Join(tm.DataDir, ih.String()),
 						)
 						if err != nil {
 							err = os.Remove(
-								path.Join(tm.DataDir, ih.String()),
+								filepath.Join(tm.DataDir, ih.String()),
 							)
 							if err == nil {
 								log.Debug("Fix path success", "ih", ih, "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
@@ -851,7 +850,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 			log.Info("Torrent active", "ih", ih, "peers", torrent.currentConns)
 		}
 
-		var key = path.Join(infohash, subpath)
+		var key = filepath.Join(infohash, subpath)
 		if fs.cache {
 			if cache, err := fs.fileCache.Get(key); err == nil {
 				if c, err := fs.unzip(cache); err != nil {
@@ -868,7 +867,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		fs.fileLock.Lock()
 		defer fs.fileLock.Unlock()
 
-		data, err := ioutil.ReadFile(path.Join(fs.DataDir, key))
+		data, err := ioutil.ReadFile(filepath.Join(fs.DataDir, key))
 
 		//data final verification
 		for _, file := range torrent.Files() {
