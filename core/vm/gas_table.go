@@ -323,11 +323,39 @@ func gasSha3(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem
 		return 0, err
 	}
 
+	if gas, overflow = math.SafeAdd(gas, params.Sha3Gas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
 	wordGas, overflow := stack.Back(1).Uint64WithOverflow()
 	if overflow {
 		return 0, ErrGasUintOverflow
 	}
 	if wordGas, overflow = math.SafeMul(toWordSize(wordGas), params.Sha3WordGas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+	if gas, overflow = math.SafeAdd(gas, wordGas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+	return gas, nil
+}
+
+func gasCodeCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	gas, err := memoryGasCost(mem, memorySize)
+	if err != nil {
+		return 0, err
+	}
+
+	var overflow bool
+	if gas, overflow = math.SafeAdd(gas, GasFastestStep); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	wordGas, overflow := stack.Back(2).Uint64WithOverflow()
+	if overflow {
+		return 0, ErrGasUintOverflow
+	}
+	if wordGas, overflow = math.SafeMul(toWordSize(wordGas), params.CopyGas); overflow {
 		return 0, ErrGasUintOverflow
 	}
 	if gas, overflow = math.SafeAdd(gas, wordGas); overflow {
@@ -356,30 +384,6 @@ func gasExtCodeCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Sta
 		return 0, ErrGasUintOverflow
 	}
 
-	if gas, overflow = math.SafeAdd(gas, wordGas); overflow {
-		return 0, ErrGasUintOverflow
-	}
-	return gas, nil
-}
-
-func gasCodeCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
-	gas, err := memoryGasCost(mem, memorySize)
-	if err != nil {
-		return 0, err
-	}
-
-	var overflow bool
-	if gas, overflow = math.SafeAdd(gas, GasFastestStep); overflow {
-		return 0, ErrGasUintOverflow
-	}
-
-	wordGas, overflow := stack.Back(2).Uint64WithOverflow()
-	if overflow {
-		return 0, ErrGasUintOverflow
-	}
-	if wordGas, overflow = math.SafeMul(toWordSize(wordGas), params.CopyGas); overflow {
-		return 0, ErrGasUintOverflow
-	}
 	if gas, overflow = math.SafeAdd(gas, wordGas); overflow {
 		return 0, ErrGasUintOverflow
 	}
