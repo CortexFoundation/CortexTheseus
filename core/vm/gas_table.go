@@ -636,12 +636,10 @@ func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, me
 	modelAddr := common.Address(stack.Back(0).Bytes20())
 	inputAddr := common.Address(stack.Back(1).Bytes20())
 	_, modelErr := checkModel(cvm, stack, modelAddr)
-	log.Error("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "ModelErr", modelErr, "num", cvm.BlockNumber)
 	if modelErr != nil {
 		return 0, modelErr
 	}
 	_, inputErr := checkInputMeta(cvm, stack, inputAddr)
-	log.Error("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "InputErr", inputErr)
 	if inputErr != nil {
 		return 0, inputErr
 	}
@@ -665,7 +663,6 @@ func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, me
 func gasInferArray(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	modelAddr := common.Address(stack.Back(0).Bytes20())
 	_, modelErr := checkModel(cvm, stack, modelAddr)
-	log.Error("gasInferArray", "modelAddr", modelAddr, "ModelErr", modelErr)
 	if modelErr != nil {
 		return 0, modelErr
 	}
