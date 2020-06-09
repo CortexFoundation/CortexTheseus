@@ -22,7 +22,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	// "github.com/CortexFoundation/CortexTheseus/core/types"
 )
@@ -169,7 +168,6 @@ func gasSStore(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, m
 	// The legacy gas metering only takes into consideration the current state
 	// Legacy rules should be applied if we are in Petersburg (removal of EIP-1283)
 	// OR Constantinople is not active
-	// log.Debug("gas_table", "cvm.chainRules.IsPetersburg", cvm.chainRules.IsPetersburg, "cvm.chainRules.IsConstantinople", cvm.chainRules.IsConstantinople)
 	if cvm.chainRules.IsPetersburg || !cvm.chainRules.IsConstantinople {
 		// This checks for 3 scenario's and calculates gas accordingly:
 		//
