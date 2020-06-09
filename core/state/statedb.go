@@ -614,7 +614,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 	)
 	if s.snap != nil {
 		var acc *snapshot.Account
-		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr[:])); err == nil {
+		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr.Bytes())); err == nil {
 			if acc == nil {
 				log.Trace("acc is nil", "addr", addr)
 				return nil
@@ -633,9 +633,9 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 	// Load the object from the database.
 	// If snapshot unavailable or reading from it failed, load from the database
 	if s.snap == nil || err != nil {
-		enc, err := s.trie.TryGet(addr[:])
+		enc, err := s.trie.TryGet(addr.Bytes())
 		if err != nil {
-			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr[:], err))
+			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr.Bytes(), err))
 			return nil
 		}
 		if len(enc) == 0 {
