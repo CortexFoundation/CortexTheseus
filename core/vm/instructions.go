@@ -776,7 +776,6 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx)
 	var err error
 	output, err = interpreter.cvm.InferArray(modelMeta.Hash.Hex(),
 		inputBuff, modelMeta.RawSize)
-	// output = big.NewInt(2147483647).Bytes()
 	if err != nil {
 		callContext.stack.push(new(uint256.Int).Clear())
 		return nil, err
@@ -1039,29 +1038,6 @@ func makeLog(size int) executionFunc {
 		return nil, nil
 	}
 }
-
-/*func makeAiLog(model common.Hash, input common.Hash, ai uint64, err error, interpreter *CVMInterpreter, contract *Contract) ([]byte, error) {
-	topics := make([]common.Hash, 4)
-	topics[0] = model
-	topics[1] = input
-	topics[2] = common.BigToHash(big.NewInt(0).SetUint64(ai))
-
-	if err != nil && ai == 0{
-		topics[3] = common.BigToHash(big.NewInt(1))
-	} else {
-		topics[3] = common.BigToHash(big.NewInt(0))
-	}
-	interpreter.cvm.StateDB.AddLog(&types.Log{
-		Address: callContext.contract.Address(),
-		Topics:  topics,
-		//Data:    nil,
-		// This is a non-consensus field, but assigned here because
-		// core/state doesn't know the current block number.
-		BlockNumber: interpreter.cvm.BlockNumber.Uint64(),
-		Removed: false,
-	})
-	return nil, nil
-}*/
 
 // opPush1 is a specialized version of pushN
 func opPush1(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
