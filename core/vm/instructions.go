@@ -813,7 +813,6 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
 	// ignore this error and pretend the operation was successful.
-	log.Error("opCreate0", "stackvalue", stackvalue, "gas", callContext.contract.Gas)
 	if interpreter.cvm.chainRules.IsHomestead && suberr == ErrCodeStoreOutOfGas {
 		stackvalue.Clear()
 	} else if suberr != nil && suberr != ErrCodeStoreOutOfGas {
@@ -827,11 +826,9 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 	for addr, mGas := range modelGas {
 		callContext.contract.ModelGas[addr] += mGas
 	}
-	log.Error("opCreate", "stackvalue", stackvalue, "gas", callContext.contract.Gas)
 	if suberr == ErrExecutionReverted {
 		return res, nil
 	}
-	log.Error("opCreate1", "stackvalue", stackvalue, "gas", callContext.contract.Gas)
 	return nil, nil
 }
 
@@ -867,7 +864,6 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 	if suberr == ErrExecutionReverted {
 		return res, nil
 	}
-	log.Error("opCreate2", "stackvalue", stackvalue, "gas", callContext.contract.Gas)
 	return nil, nil
 }
 
