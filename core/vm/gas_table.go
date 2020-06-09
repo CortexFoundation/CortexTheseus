@@ -81,6 +81,10 @@ func memoryCopierGas(stackpos int) gasFunc {
 		if err != nil {
 			return 0, err
 		}
+		var overflow bool
+		if gas, overflow = math.SafeAdd(gas, GasFastestStep); overflow {
+			return 0, ErrGasUintOverflow
+		}
 		// And gas for copying data, charged per word at param.CopyGas
 		words, overflow := stack.Back(stackpos).Uint64WithOverflow()
 		if overflow {
@@ -99,11 +103,113 @@ func memoryCopierGas(stackpos int) gasFunc {
 }
 
 var (
-	gasCallDataCopy   = memoryCopierGas(2)
-	gasCodeCopy       = memoryCopierGas(2)
-	gasExtCodeCopy    = memoryCopierGas(3)
-	gasReturnDataCopy = memoryCopierGas(2)
+//gasCallDataCopy = memoryCopierGas(2)
+//gasCodeCopy     = memoryCopierGas(2)
+//gasExtCodeCopy    = memoryCopierGas(3)
+//gasReturnDataCopy = memoryCopierGas(2)
 )
+
+func gasCallDataCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	gas, err := memoryGasCost(mem, memorySize)
+	if err != nil {
+		return 0, err
+	}
+
+	var overflow bool
+	if gas, overflow = math.SafeAdd(gas, GasFastestStep); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	words, overflow := stack.Back(2).Uint64WithOverflow()
+	if overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	if words, overflow = math.SafeMul(toWordSize(words), params.CopyGas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	if gas, overflow = math.SafeAdd(gas, words); overflow {
+		return 0, ErrGasUintOverflow
+	}
+	return gas, nil
+}
+
+func gasReturnDataCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	gas, err := memoryGasCost(mem, memorySize)
+	if err != nil {
+		return 0, err
+	}
+
+	var overflow bool
+	if gas, overflow = math.SafeAdd(gas, GasFastestStep); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	words, overflow := stack.Back(2).Uint64WithOverflow()
+	if overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	if words, overflow = math.SafeMul(toWordSize(words), params.CopyGas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	if gas, overflow = math.SafeAdd(gas, words); overflow {
+		return 0, ErrGasUintOverflow
+	}
+	return gas, nil
+}
+
+func gasExtCodeCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	gas, err := memoryGasCost(mem, memorySize)
+	if err != nil {
+		return 0, err
+	}
+
+	var overflow bool
+	if gas, overflow = math.SafeAdd(gas, gt.ExtcodeCopy); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	wordGas, overflow := stack.Back(3).Uint64WithOverflow()
+	if overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	if wordGas, overflow = math.SafeMul(toWordSize(wordGas), params.CopyGas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	if gas, overflow = math.SafeAdd(gas, wordGas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+	return gas, nil
+}
+
+func gasCodeCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	gas, err := memoryGasCost(mem, memorySize)
+	if err != nil {
+		return 0, err
+	}
+
+	var overflow bool
+	if gas, overflow = math.SafeAdd(gas, GasFastestStep); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
+	wordGas, overflow := stack.Back(2).Uint64WithOverflow()
+	if overflow {
+		return 0, ErrGasUintOverflow
+	}
+	if wordGas, overflow = math.SafeMul(toWordSize(wordGas), params.CopyGas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+	if gas, overflow = math.SafeAdd(gas, wordGas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+	return gas, nil
+}
 
 func gasSStore(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var (
@@ -339,6 +445,10 @@ func gasCreate2(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, 
 		return 0, err
 	}
 
+	if gas, overflow = math.SafeAdd(gas, params.Create2Gas); overflow {
+		return 0, ErrGasUintOverflow
+	}
+
 	wordGas, overflow := stack.Back(2).Uint64WithOverflow()
 	if overflow {
 		return 0, ErrGasUintOverflow
@@ -522,12 +632,12 @@ func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, me
 	modelAddr := common.Address(stack.Back(0).Bytes20())
 	inputAddr := common.Address(stack.Back(1).Bytes20())
 	_, modelErr := checkModel(cvm, stack, modelAddr)
-	log.Trace("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "ModelErr", modelErr)
+	log.Error("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "ModelErr", modelErr, "num", cvm.BlockNumber)
 	if modelErr != nil {
 		return 0, modelErr
 	}
 	_, inputErr := checkInputMeta(cvm, stack, inputAddr)
-	log.Trace("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "InputErr", inputErr)
+	log.Error("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "InputErr", inputErr)
 	if inputErr != nil {
 		return 0, inputErr
 	}
@@ -551,7 +661,7 @@ func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, me
 func gasInferArray(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	modelAddr := common.Address(stack.Back(0).Bytes20())
 	_, modelErr := checkModel(cvm, stack, modelAddr)
-	log.Trace("gasInfer", "modelAddr", modelAddr, "ModelErr", modelErr)
+	log.Error("gasInferArray", "modelAddr", modelAddr, "ModelErr", modelErr)
 	if modelErr != nil {
 		return 0, modelErr
 	}

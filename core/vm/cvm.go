@@ -286,7 +286,7 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// when we're in homestead this also counts for code storage gas errors.
 	if err != nil {
 		cvm.StateDB.RevertToSnapshot(snapshot)
-		if err != errExecutionReverted {
+		if err != ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
@@ -327,7 +327,7 @@ func (cvm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	ret, err = run(cvm, contract, input, false)
 	if err != nil {
 		cvm.StateDB.RevertToSnapshot(snapshot)
-		if err != errExecutionReverted {
+		if err != ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
@@ -360,7 +360,7 @@ func (cvm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	ret, err = run(cvm, contract, input, false)
 	if err != nil {
 		cvm.StateDB.RevertToSnapshot(snapshot)
-		if err != errExecutionReverted {
+		if err != ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
@@ -402,7 +402,7 @@ func (cvm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	ret, err = run(cvm, contract, input, true)
 	if err != nil {
 		cvm.StateDB.RevertToSnapshot(snapshot)
-		if err != errExecutionReverted {
+		if err != ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
@@ -487,7 +487,7 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// when we're in homestead this also counts for code storage gas errors.
 	if maxCodeSizeExceeded || (err != nil && (cvm.chainRules.IsHomestead || err != ErrCodeStoreOutOfGas)) {
 		cvm.StateDB.RevertToSnapshot(snapshot)
-		if err != errExecutionReverted {
+		if err != ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
