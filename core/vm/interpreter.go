@@ -413,7 +413,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// calculate the new memory size and expand the memory to fit
 		// the operation
 		if operation.memorySize != nil {
-			memSize, overflow := bigUint64(operation.memorySize(stack))
+			memSize, overflow := operation.memorySize(stack)
 			if overflow {
 				return nil, ErrGasUintOverflow
 			}
@@ -437,7 +437,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if op.IsInfer() {
-			modelMeta, err := in.cvm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			modelMeta, err := in.cvm.GetModelMeta(common.Address(stack.Back(0).Bytes20()))
 			if err != nil {
 				return nil, err
 			}

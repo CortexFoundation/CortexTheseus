@@ -105,3 +105,9 @@ func (st *ReturnStack) pop() (ret uint64) {
 	st.data = st.data[:len(st.data)-1]
 	return
 }
+func (st *Stack) require(n int) error {
+	if st.len() < n {
+		return fmt.Errorf("stack underflow (%d <=> %d)", len(st.data), n)
+	}
+	return nil
+}
