@@ -188,7 +188,7 @@ github.com/gorilla/websocket
 ## explicit
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/holiman/uint256 v1.0.1-0.20200605144233-beb0847b61c5
+# github.com/holiman/uint256 v1.0.0
 ## explicit
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.3.1
