@@ -521,9 +521,8 @@ func gasCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem
 		gas            = gt.Calls
 		transfersValue = !stack.Back(2).IsZero()
 		address        = common.Address(stack.Back(1).Bytes20())
-		eip158         = cvm.chainRules.IsEIP158
 	)
-	if eip158 {
+	if cvm.chainRules.IsEIP158 {
 		if transfersValue && cvm.StateDB.Empty(address) {
 			gas += params.CallNewAccountGas
 		}
