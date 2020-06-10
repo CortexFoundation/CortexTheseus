@@ -1,0 +1,52 @@
+package inference
+
+import (
+	"testing"
+    "os"
+    "path"
+)
+
+{{- range . }}
+    func check{{ .TypeU }}(data []{{ .TypeL }}) bool {
+	    for k := 0; k < len(data); k++ {
+	        {{- if eq .TypeCode "c16" }}
+		        if data[k] != complex(float64(k), 0) {
+		    {{- else if eq .TypeCode "c8" }}
+		        if data[k] != complex(float32(k), 0) {
+            {{- else }}
+		        if data[k] != {{ .TypeL }}(k) {
+		    {{- end }}
+			    return false
+		    }
+	    }
+	    return true
+    }
+{{- end }}
+
+{{- range . }}
+    func TestRead{{ .TypeU }}(t *testing.T) {
+
+	    files := getFlist("{{ .TypeCode }}")
+
+	    for _, fname := range files {
+
+		    fid, err := os.Open(path.Join("data", fname))
+		    if err != nil {
+	    		panic(err)
+		    }
+
+		    rdr, err := NewReader(fid)
+		    if err != nil {
+			    panic(err)
+		    }
+		    data, err := rdr.Get{{ .TypeU }}()
+		    if err != nil {
+			    panic(err)
+		    }
+
+    		if !check{{ .TypeU }}(data) {
+	    		t.Fail()
+		    }
+	    }
+    }
+{{ end }}
