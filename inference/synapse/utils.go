@@ -16,7 +16,7 @@ import (
 func ReadData(r *inference.NpyReader) ([]byte, error) {
 	log.Debug("ReadData", "r.Dtype", r.Dtype)
 	if r.Dtype == "i1" {
-		data, err := r.GetBytes()
+		data, err := r.GetByte()
 		if err != nil {
 			return nil, err
 		}
