@@ -15,8 +15,8 @@ var _ = (*receiptMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (r Receipt) MarshalJSON() ([]byte, error) {
 	type Receipt struct {
-		ContractAddr *common.Address `json:"ContractAddress"`
-		TxHash       *common.Hash    `json:"TransactionHash"  gencodec:"required"`
+		ContractAddr *common.Address `json:"contractAddress"`
+		TxHash       *common.Hash    `json:"transactionHash"  gencodec:"required"`
 		GasUsed      hexutil.Uint64  `json:"gasUsed" gencodec:"required"`
 		Status       hexutil.Uint64  `json:"status"`
 	}
@@ -31,8 +31,8 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (r *Receipt) UnmarshalJSON(input []byte) error {
 	type Receipt struct {
-		ContractAddr *common.Address `json:"ContractAddress"`
-		TxHash       *common.Hash    `json:"TransactionHash"  gencodec:"required"`
+		ContractAddr *common.Address `json:"contractAddress"`
+		TxHash       *common.Hash    `json:"transactionHash"  gencodec:"required"`
 		GasUsed      *hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
 		Status       *hexutil.Uint64 `json:"status"`
 	}
@@ -44,7 +44,7 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		r.ContractAddr = dec.ContractAddr
 	}
 	if dec.TxHash == nil {
-		return errors.New("missing required field 'TransactionHash' for Receipt")
+		return errors.New("missing required field 'transactionHash' for Receipt")
 	}
 	r.TxHash = dec.TxHash
 	if dec.GasUsed == nil {
