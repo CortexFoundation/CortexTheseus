@@ -140,7 +140,7 @@ type blockMarshaling struct {
 //go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
 type Receipt struct {
 	// Contract Address
-	ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
+	ContractAddr *common.Address `json:"ContractAddr""`
 	// Transaction Hash
 	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
 	//Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
