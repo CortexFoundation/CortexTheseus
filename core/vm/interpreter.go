@@ -256,9 +256,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, nil
 		}
 
-		//log.Trace(fmt.Sprintf("contract.Code = %v", contract.Code))
-		//log.Info("Contract code", "code", contract.Code)
-		if modelMeta, err := torrentfs.ParseModelMeta(contract.Code); err != nil {
+		var modelMeta torrentfs.ModelMeta
+		if err := modelMeta.DecodeRLP(contract.Code); err != nil {
+			log.Error("Failed decode model meta", "code", contract.Code, "err", err)
 			return nil, err
 		} else {
 			log.Debug("Model meta",
@@ -324,7 +324,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, nil
 		}
 
-		if inputMeta, err := torrentfs.ParseInputMeta(contract.Code); err != nil {
+		var inputMeta torrentfs.InputMeta
+		if err := inputMeta.DecodeRLP(contract.Code); err != nil {
+			log.Error("Failed decode input meta", "code", contract.Code, "err", err)
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {

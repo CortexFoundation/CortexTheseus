@@ -12,8 +12,8 @@ import (
 // MarshalJSON marshals as JSON.
 func (f FileMeta) MarshalJSON() ([]byte, error) {
 	type FileMeta struct {
-		InfoHash metainfo.Hash `json:"InfoHash"         gencodec:"required"`
-		RawSize  uint64        `json:"RawSize"          gencodec:"required"`
+		InfoHash metainfo.Hash `json:"infoHash"         gencodec:"required"`
+		RawSize  uint64        `json:"rawSize"          gencodec:"required"`
 	}
 	var enc FileMeta
 	enc.InfoHash = f.InfoHash
@@ -24,19 +24,19 @@ func (f FileMeta) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (f *FileMeta) UnmarshalJSON(input []byte) error {
 	type FileMeta struct {
-		InfoHash *metainfo.Hash `json:"InfoHash"         gencodec:"required"`
-		RawSize  *uint64        `json:"RawSize"          gencodec:"required"`
+		InfoHash *metainfo.Hash `json:"infoHash"         gencodec:"required"`
+		RawSize  *uint64        `json:"rawSize"          gencodec:"required"`
 	}
 	var dec FileMeta
 	if err := json.Unmarshal(input, &dec); err != nil {
 		return err
 	}
 	if dec.InfoHash == nil {
-		return errors.New("missing required field 'InfoHash' for FileMeta")
+		return errors.New("missing required field 'infoHash' for FileMeta")
 	}
 	f.InfoHash = *dec.InfoHash
 	if dec.RawSize == nil {
-		return errors.New("missing required field 'RawSize' for FileMeta")
+		return errors.New("missing required field 'rawSize' for FileMeta")
 	}
 	f.RawSize = *dec.RawSize
 	return nil

@@ -130,7 +130,7 @@ type Block struct {
 	Number uint64      `json:"number"           gencodec:"required"`
 	Hash   common.Hash `json:"Hash"             gencodec:"required"`
 	//ParentHash common.Hash   `json:"parentHash"       gencodec:"required"`
-	Txs []Transaction `json:"Transactions"     gencodec:"required"`
+	Txs []Transaction `json:"transactions"     gencodec:"required"`
 }
 
 type blockMarshaling struct {
@@ -140,9 +140,9 @@ type blockMarshaling struct {
 //go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
 type Receipt struct {
 	// Contract Address
-	ContractAddr *common.Address `json:"ContractAddress"`
+	ContractAddr *common.Address `json:"contractAddress"`
 	// Transaction Hash
-	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
+	TxHash *common.Hash `json:"transactionHash"  gencodec:"required"`
 	//Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 	GasUsed uint64 `json:"gasUsed" gencodec:"required"`
 	Status  uint64 `json:"status"`
@@ -155,10 +155,10 @@ type receiptMarshaling struct {
 
 //go:generate gencodec -type FileMeta -out gen_filemeta_json.go
 type FileMeta struct {
-	InfoHash metainfo.Hash `json:"InfoHash"         gencodec:"required"`
+	InfoHash metainfo.Hash `json:"infoHash"         gencodec:"required"`
 	//	Name     string        `json:"Name"             gencodec:"required"`
 	// The raw size of the file counted in bytes
-	RawSize uint64 `json:"RawSize"          gencodec:"required"`
+	RawSize uint64 `json:"rawSize"          gencodec:"required"`
 	//BlockNum uint64 `json:"BlockNum"         gencodec:"required"`
 }
 
