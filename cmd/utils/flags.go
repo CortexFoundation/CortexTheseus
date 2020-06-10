@@ -1363,8 +1363,6 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
-	} else if IsCVMIPC(cfg.InferDeviceType) != "" {
-		cfg.InferURI = ("http://127.0.0.1:" + strconv.Itoa(ctx.GlobalInt(InferPortFlag.Name)) + "/infer")
 	} else {
 		panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
@@ -1688,12 +1686,4 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 		}
 		return action(ctx)
 	}
-}
-
-func IsCVMIPC(deviceType string) string {
-	u, err := url.Parse(deviceType)
-	if err == nil && u.Scheme == "ipc" && len(u.Hostname()) > 0 && len(u.Port()) == 0 {
-		return u.Hostname()
-	}
-	return ""
 }
