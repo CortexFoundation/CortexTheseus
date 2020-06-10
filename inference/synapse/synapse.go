@@ -109,6 +109,7 @@ func (s *Synapse) Close() {
 }
 
 func CVMVersion(config *params.ChainConfig, num *big.Int) int {
+	// TODO(ryt): For Istanbul and versions after Istanbul, return CVM_VERSION_TWO
 	version := kernel.CVM_VERSION_ONE
 	if config.IsIstanbul(num) {
 		version = kernel.CVM_VERSION_TWO
