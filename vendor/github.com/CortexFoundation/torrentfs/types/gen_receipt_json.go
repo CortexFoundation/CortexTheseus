@@ -15,7 +15,7 @@ var _ = (*receiptMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (r Receipt) MarshalJSON() ([]byte, error) {
 	type Receipt struct {
-		ContractAddr *common.Address `json:"ContractAddr""`
+		ContractAddr *common.Address `json:"ContractAddress"`
 		TxHash       *common.Hash    `json:"TransactionHash"  gencodec:"required"`
 		GasUsed      hexutil.Uint64  `json:"gasUsed" gencodec:"required"`
 		Status       hexutil.Uint64  `json:"status"`
@@ -31,7 +31,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (r *Receipt) UnmarshalJSON(input []byte) error {
 	type Receipt struct {
-		ContractAddr *common.Address `json:"ContractAddr""`
+		ContractAddr *common.Address `json:"ContractAddress"`
 		TxHash       *common.Hash    `json:"TransactionHash"  gencodec:"required"`
 		GasUsed      *hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
 		Status       *hexutil.Uint64 `json:"status"`
