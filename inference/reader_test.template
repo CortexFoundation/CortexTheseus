@@ -26,7 +26,7 @@ import (
 {{- range . }}
     func TestRead{{ .TypeU }}(t *testing.T) {
 
-	    files := getFlist("{{ .TypeL }}")
+	    files := getFlist("{{ .TypeCode }}")
 
 	    for _, fname := range files {
 

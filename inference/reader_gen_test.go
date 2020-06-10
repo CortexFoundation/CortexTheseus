@@ -114,7 +114,7 @@ func checkByte(data []byte) bool {
 }
 func TestReadComplex128(t *testing.T) {
 
-	files := getFlist("complex128")
+	files := getFlist("c16")
 
 	for _, fname := range files {
 
@@ -140,7 +140,7 @@ func TestReadComplex128(t *testing.T) {
 
 func TestReadComplex64(t *testing.T) {
 
-	files := getFlist("complex64")
+	files := getFlist("c8")
 
 	for _, fname := range files {
 
@@ -166,7 +166,7 @@ func TestReadComplex64(t *testing.T) {
 
 func TestReadFloat64(t *testing.T) {
 
-	files := getFlist("float64")
+	files := getFlist("f8")
 
 	for _, fname := range files {
 
@@ -192,7 +192,7 @@ func TestReadFloat64(t *testing.T) {
 
 func TestReadFloat32(t *testing.T) {
 
-	files := getFlist("float32")
+	files := getFlist("f4")
 
 	for _, fname := range files {
 
@@ -218,7 +218,7 @@ func TestReadFloat32(t *testing.T) {
 
 func TestReadUint64(t *testing.T) {
 
-	files := getFlist("uint64")
+	files := getFlist("u8")
 
 	for _, fname := range files {
 
@@ -244,7 +244,7 @@ func TestReadUint64(t *testing.T) {
 
 func TestReadUint32(t *testing.T) {
 
-	files := getFlist("uint32")
+	files := getFlist("u4")
 
 	for _, fname := range files {
 
@@ -270,7 +270,7 @@ func TestReadUint32(t *testing.T) {
 
 func TestReadUint16(t *testing.T) {
 
-	files := getFlist("uint16")
+	files := getFlist("u2")
 
 	for _, fname := range files {
 
@@ -296,7 +296,7 @@ func TestReadUint16(t *testing.T) {
 
 func TestReadUint8(t *testing.T) {
 
-	files := getFlist("uint8")
+	files := getFlist("u1")
 
 	for _, fname := range files {
 
@@ -322,7 +322,7 @@ func TestReadUint8(t *testing.T) {
 
 func TestReadInt64(t *testing.T) {
 
-	files := getFlist("int64")
+	files := getFlist("i8")
 
 	for _, fname := range files {
 
@@ -348,7 +348,7 @@ func TestReadInt64(t *testing.T) {
 
 func TestReadInt32(t *testing.T) {
 
-	files := getFlist("int32")
+	files := getFlist("i4")
 
 	for _, fname := range files {
 
@@ -374,7 +374,7 @@ func TestReadInt32(t *testing.T) {
 
 func TestReadInt16(t *testing.T) {
 
-	files := getFlist("int16")
+	files := getFlist("i2")
 
 	for _, fname := range files {
 
@@ -400,7 +400,7 @@ func TestReadInt16(t *testing.T) {
 
 func TestReadInt8(t *testing.T) {
 
-	files := getFlist("int8")
+	files := getFlist("i1")
 
 	for _, fname := range files {
 
@@ -426,7 +426,7 @@ func TestReadInt8(t *testing.T) {
 
 func TestReadByte(t *testing.T) {
 
-	files := getFlist("byte")
+	files := getFlist("i1")
 
 	for _, fname := range files {
 

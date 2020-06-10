@@ -8,7 +8,6 @@ import (
 )
 
 func getFlist(dtype string) []string {
-
 	infolist, err := ioutil.ReadDir("data")
 	if err != nil {
 		panic(err)
