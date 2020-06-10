@@ -11,32 +11,26 @@ import (
 // MarshalJSON marshals as JSON.
 func (f FileInfo) MarshalJSON() ([]byte, error) {
 	type FileInfo struct {
-		Meta *FileMeta
-		//		TxHash       *common.Hash
+		Meta         *FileMeta
 		ContractAddr *common.Address
 		LeftSize     uint64
-		//		Index        uint64
-		Relate []common.Address
+		Relate       []common.Address
 	}
 	var enc FileInfo
 	enc.Meta = f.Meta
-	//	enc.TxHash = f.TxHash
 	enc.ContractAddr = f.ContractAddr
 	enc.LeftSize = f.LeftSize
 	enc.Relate = f.Relate
-	//enc.Index = f.Index
 	return json.Marshal(&enc)
 }
 
 // UnmarshalJSON unmarshals from JSON.
 func (f *FileInfo) UnmarshalJSON(input []byte) error {
 	type FileInfo struct {
-		Meta *FileMeta
-		//		TxHash       *common.Hash
+		Meta         *FileMeta
 		ContractAddr *common.Address
 		LeftSize     *uint64
-		//		Index        *uint64
-		Relate []common.Address
+		Relate       []common.Address
 	}
 	var dec FileInfo
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -45,9 +39,6 @@ func (f *FileInfo) UnmarshalJSON(input []byte) error {
 	if dec.Meta != nil {
 		f.Meta = dec.Meta
 	}
-	//	if dec.TxHash != nil {
-	//		f.TxHash = dec.TxHash
-	//	}
 	if dec.ContractAddr != nil {
 		f.ContractAddr = dec.ContractAddr
 	}
@@ -57,8 +48,5 @@ func (f *FileInfo) UnmarshalJSON(input []byte) error {
 	if dec.Relate != nil {
 		f.Relate = dec.Relate
 	}
-	//	if dec.Index != nil {
-	//		f.Index = *dec.Index
-	//	}
 	return nil
 }
