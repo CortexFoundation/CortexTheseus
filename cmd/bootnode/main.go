@@ -128,9 +128,17 @@ func main() {
 
 	db, _ := enode.OpenDB("")
 	ln := enode.NewLocalNode(db, nodeKey)
+
+	var unhandled chan discover.ReadPacket
+	var sconn *sharedUDPConn
+	if *runv5 {
+		unhandled = make(chan discover.ReadPacket, 100)
+		sconn = &sharedUDPConn{conn, unhandled}
+	}
 	cfg := discover.Config{
 		PrivateKey:  nodeKey,
 		NetRestrict: restrictList,
+		Unhandled:   unhandled,
 	}
 
 	if _, err := discover.ListenUDP(conn, ln, cfg); err != nil {
@@ -138,9 +146,6 @@ func main() {
 	}
 
 	if *runv5 {
-		unhandled := make(chan discover.ReadPacket, 100)
-		sconn := &sharedUDPConn{conn, unhandled}
-
 		if _, err = discv5.ListenUDP(nodeKey, sconn, "", restrictList); err != nil {
 			utils.Fatalf("%v", err)
 		}
