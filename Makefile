@@ -101,7 +101,6 @@ plugins/cpu_helper_for_node.so:
 	$(MAKE) -C solution cpu-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
-# TODO(ryt): configure the gpu version
 plugins/lib_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
 	@mkdir -p plugins
