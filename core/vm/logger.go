@@ -1,23 +1,24 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -30,6 +31,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
+var errTraceLimitReached = errors.New("the number of logs reached the specified limit")
+
 // Storage represents a contract's storage.
 type Storage map[common.Hash]common.Hash
 
@@ -39,7 +42,6 @@ func (s Storage) Copy() Storage {
 	for key, value := range s {
 		cpy[key] = value
 	}
-
 	return cpy
 }
 
@@ -101,7 +103,7 @@ func (s *StructLog) ErrorString() string {
 // Note that reference types are actual VM data structures; make copies
 // if you need to retain them beyond the current call.
 type Tracer interface {
-	CaptureStart(from common.Address, to common.Address, call bool, input []byte, gas uint64, value *big.Int) error
+	CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) error
 	CaptureState(env *CVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error
 	CaptureFault(env *CVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error
 	CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error
@@ -115,16 +117,16 @@ type Tracer interface {
 type StructLogger struct {
 	cfg LogConfig
 
-	logs          []StructLog
-	changedValues map[common.Address]Storage
-	output        []byte
-	err           error
+	storage map[common.Address]Storage
+	logs    []StructLog
+	output  []byte
+	err     error
 }
 
 // NewStructLogger returns a new logger
 func NewStructLogger(cfg *LogConfig) *StructLogger {
 	logger := &StructLogger{
-		changedValues: make(map[common.Address]Storage),
+		storage: make(map[common.Address]Storage),
 	}
 	if cfg != nil {
 		logger.cfg = *cfg
@@ -139,29 +141,13 @@ func (l *StructLogger) CaptureStart(from common.Address, to common.Address, crea
 
 // CaptureState logs a new structured log message and pushes it out to the environment
 //
-// CaptureState also tracks SSTORE ops to track dirty values.
+// CaptureState also tracks SLOAD/SSTORE ops to track storage change.
 func (l *StructLogger) CaptureState(env *CVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error {
 	// check if already accumulated the specified number of logs
 	if l.cfg.Limit != 0 && l.cfg.Limit <= len(l.logs) {
-		return ErrTraceLimitReached
+		return errTraceLimitReached
 	}
-
-	// initialise new changed values storage container for this contract
-	// if not present.
-	if l.changedValues[contract.Address()] == nil {
-		l.changedValues[contract.Address()] = make(Storage)
-	}
-
-	// capture SSTORE opcodes and determine the changed value and store
-	// it in the local storage container.
-	if op == SSTORE && stack.len() >= 2 {
-		var (
-			value   = common.BigToHash(stack.data[stack.len()-2])
-			address = common.BigToHash(stack.data[stack.len()-1])
-		)
-		l.changedValues[contract.Address()][address] = value
-	}
-	// Copy a snapstot of the current memory state to a new buffer
+	// Copy a snapshot of the current memory state to a new buffer
 	var mem []byte
 	if !l.cfg.DisableMemory {
 		mem = make([]byte, len(memory.Data()))
@@ -172,22 +158,42 @@ func (l *StructLogger) CaptureState(env *CVM, pc uint64, op OpCode, gas, cost ui
 	if !l.cfg.DisableStack {
 		stck = make([]*big.Int, len(stack.Data()))
 		for i, item := range stack.Data() {
-			stck[i] = new(big.Int).Set(item)
+			stck[i] = new(big.Int).Set(item.ToBig())
 		}
-	}
-	// Copy a snapshot of the current storage to a new container
-	var storage Storage
-	if !l.cfg.DisableStorage {
-		storage = l.changedValues[contract.Address()].Copy()
 	}
 	var rstack []uint64
 	if !l.cfg.DisableStack && rStack != nil {
 		rstck := make([]uint64, len(rStack.data))
 		copy(rstck, rStack.data)
 	}
-	// create a new snaptshot of the CVM.
+	// Copy a snapshot of the current storage to a new container
+	var storage Storage
+	if !l.cfg.DisableStorage {
+		// initialise new changed values storage container for this contract
+		// if not present.
+		if l.storage[contract.Address()] == nil {
+			l.storage[contract.Address()] = make(Storage)
+		}
+		// capture SLOAD opcodes and record the read entry in the local storage
+		if op == SLOAD && stack.len() >= 1 {
+			var (
+				address = common.Hash(stack.data[stack.len()-1].Bytes32())
+				value   = env.StateDB.GetState(contract.Address(), address)
+			)
+			l.storage[contract.Address()][address] = value
+		}
+		// capture SSTORE opcodes and record the written entry in the local storage.
+		if op == SSTORE && stack.len() >= 2 {
+			var (
+				value   = common.Hash(stack.data[stack.len()-2].Bytes32())
+				address = common.Hash(stack.data[stack.len()-1].Bytes32())
+			)
+			l.storage[contract.Address()][address] = value
+		}
+		storage = l.storage[contract.Address()].Copy()
+	}
+	// create a new snapshot of the CVM.
 	log := StructLog{pc, op, gas, cost, mem, memory.Len(), stck, rstack, storage, depth, env.StateDB.GetRefund(), err}
-
 	l.logs = append(l.logs, log)
 	return nil
 }

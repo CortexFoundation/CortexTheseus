@@ -119,7 +119,6 @@ type CVMInterpreter struct {
 	cvm      *CVM
 	cfg      Config
 	gasTable params.GasTable
-	intPool  *intPool
 
 	hasher    keccakState // Keccak256 hasher instance shared across opcodes
 	hasherBuf common.Hash // Keccak256 hasher result array shared aross opcodes
@@ -217,13 +216,6 @@ func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
 func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
-	if in.intPool == nil {
-		in.intPool = poolOfIntPools.get()
-		defer func() {
-			poolOfIntPools.put(in.intPool)
-			in.intPool = nil
-		}()
-	}
 
 	// Increment the call depth which is restricted to 1024
 	in.cvm.depth++
@@ -377,8 +369,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	contract.Input = input
 
 	// Reclaim the stack as an int pool when the execution stops
-	defer func() { in.intPool.put(stack.data...) }()
-
 	if in.cfg.Debug {
 		defer func() {
 			if err != nil {
@@ -425,7 +415,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// calculate the new memory size and expand the memory to fit
 		// the operation
 		if operation.memorySize != nil {
-			memSize, overflow := bigUint64(operation.memorySize(stack))
+			memSize, overflow := operation.memorySize(stack)
 			if overflow {
 				return nil, ErrGasUintOverflow
 			}
@@ -449,7 +439,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if op.IsInfer() {
-			modelMeta, err := in.cvm.GetModelMeta(common.BigToAddress(stack.Back(0)))
+			modelMeta, err := in.cvm.GetModelMeta(common.Address(stack.Back(0).Bytes20()))
 			if err != nil {
 				return nil, err
 			}
@@ -489,11 +479,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			res = ret
 		}
 
-		// verifyPool is a build flag. Pool verification makes sure the integrity
-		// of the integer pool by comparing values to a default value.
-		if verifyPool {
-			verifyIntegerPool(in.intPool)
-		}
 		// if the operation clears the return data (e.g. it has returning data)
 		// set the last return to the result of the operation.
 		if operation.returns {
@@ -503,7 +488,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		case err != nil:
 			return nil, err
 		case operation.reverts:
-			return res, errExecutionReverted
+			return res, ErrExecutionReverted
 		case operation.halts:
 			return res, nil
 		case !operation.jumps:
