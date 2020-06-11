@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ucwong/color"
 	"github.com/robertkrimen/otto"
+	"github.com/ucwong/color"
 )
 
 const (

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"math/big"
 	"reflect"
 	"strings"
@@ -60,14 +61,8 @@ func TestReader(t *testing.T) {
 	Uint256, _ := NewType("uint256", "", nil)
 	exp := ABI{
 		Methods: map[string]Method{
-			"balance": {
-				"balance", "balance", true, nil, nil,
-			},
-			"send": {
-				"send", "send", false, []Argument{
-					{"amount", Uint256, false},
-				}, nil,
-			},
+			"balance": NewMethod("balance", "balance", Function, "", true, false, nil, nil),
+			"send":    NewMethod("send", "send", Function, "", false, false, []Argument{{"amount", Uint256, false}}, nil),
 		},
 	}
 
@@ -173,22 +168,22 @@ func TestTestSlice(t *testing.T) {
 
 func TestMethodSignature(t *testing.T) {
 	String, _ := NewType("string", "", nil)
-	m := Method{"foo", "foo", false, []Argument{{"bar", String, false}, {"baz", String, false}}, nil}
+	m := NewMethod("foo", "foo", Function, "", false, false, []Argument{{"bar", String, false}, {"baz", String, false}}, nil)
 	exp := "foo(string,string)"
-	if m.Sig() != exp {
-		t.Error("signature mismatch", exp, "!=", m.Sig())
+	if m.Sig != exp {
+		t.Error("signature mismatch", exp, "!=", m.Sig)
 	}
 
 	idexp := crypto.Keccak256([]byte(exp))[:4]
-	if !bytes.Equal(m.ID(), idexp) {
-		t.Errorf("expected ids to match %x != %x", m.ID(), idexp)
+	if !bytes.Equal(m.ID, idexp) {
+		t.Errorf("expected ids to match %x != %x", m.ID, idexp)
 	}
 
 	uintt, _ := NewType("uint256", "", nil)
-	m = Method{"foo", "foo", false, []Argument{{"bar", uintt, false}}, nil}
+	m = NewMethod("foo", "foo", Function, "", false, false, []Argument{{"bar", uintt, false}}, nil)
 	exp = "foo(uint256)"
-	if m.Sig() != exp {
-		t.Error("signature mismatch", exp, "!=", m.Sig())
+	if m.Sig != exp {
+		t.Error("signature mismatch", exp, "!=", m.Sig)
 	}
 
 	// Method with tuple arguments
@@ -204,10 +199,10 @@ func TestMethodSignature(t *testing.T) {
 			{Name: "y", Type: "int256"},
 		}},
 	})
-	m = Method{"foo", "foo", false, []Argument{{"s", s, false}, {"bar", String, false}}, nil}
+	m = NewMethod("foo", "foo", Function, "", false, false, []Argument{{"s", s, false}, {"bar", String, false}}, nil)
 	exp = "foo((int256,int256[],(int256,int256)[],(int256,int256)[2]),string)"
-	if m.Sig() != exp {
-		t.Error("signature mismatch", exp, "!=", m.Sig())
+	if m.Sig != exp {
+		t.Error("signature mismatch", exp, "!=", m.Sig)
 	}
 }
 
@@ -219,12 +214,12 @@ func TestOverloadedMethodSignature(t *testing.T) {
 	}
 	check := func(name string, expect string, method bool) {
 		if method {
-			if abi.Methods[name].Sig() != expect {
-				t.Fatalf("The signature of overloaded method mismatch, want %s, have %s", expect, abi.Methods[name].Sig())
+			if abi.Methods[name].Sig != expect {
+				t.Fatalf("The signature of overloaded method mismatch, want %s, have %s", expect, abi.Methods[name].Sig)
 			}
 		} else {
-			if abi.Events[name].Sig() != expect {
-				t.Fatalf("The signature of overloaded event mismatch, want %s, have %s", expect, abi.Events[name].Sig())
+			if abi.Events[name].Sig != expect {
+				t.Fatalf("The signature of overloaded event mismatch, want %s, have %s", expect, abi.Events[name].Sig)
 			}
 		}
 	}
@@ -555,7 +550,7 @@ func TestInputFixedArrayAndVariableInputLength(t *testing.T) {
 	strvalue = common.RightPadBytes([]byte(strin), 32)
 	fixedarrin1value1 = common.LeftPadBytes(fixedarrin1[0].Bytes(), 32)
 	fixedarrin1value2 = common.LeftPadBytes(fixedarrin1[1].Bytes(), 32)
-	dynarroffset = U256(big.NewInt(int64(256 + ((len(strin)/32)+1)*32)))
+	dynarroffset = math.U256Bytes(big.NewInt(int64(256 + ((len(strin)/32)+1)*32)))
 	dynarrlength = make([]byte, 32)
 	dynarrlength[31] = byte(len(dynarrin))
 	dynarrinvalue1 = common.LeftPadBytes(dynarrin[0].Bytes(), 32)
@@ -582,7 +577,7 @@ func TestInputFixedArrayAndVariableInputLength(t *testing.T) {
 }
 
 func TestDefaultFunctionParsing(t *testing.T) {
-	const definition = `[{ "name" : "balance" }]`
+	const definition = `[{ "name" : "balance", "type" : "function" }]`
 
 	abi, err := JSON(strings.NewReader(definition))
 	if err != nil {
@@ -921,13 +916,13 @@ func TestABI_MethodById(t *testing.T) {
 	}
 	for name, m := range abi.Methods {
 		a := fmt.Sprintf("%v", m)
-		m2, err := abi.MethodById(m.ID())
+		m2, err := abi.MethodById(m.ID)
 		if err != nil {
 			t.Fatalf("Failed to look up ABI method: %v", err)
 		}
 		b := fmt.Sprintf("%v", m2)
 		if a != b {
-			t.Errorf("Method %v (id %x) not 'findable' by id in ABI", name, m.ID())
+			t.Errorf("Method %v (id %x) not 'findable' by id in ABI", name, m.ID)
 		}
 	}
 	// Also test empty
@@ -995,8 +990,8 @@ func TestABI_EventById(t *testing.T) {
 			t.Errorf("We should find a event for topic %s, test #%d", topicID.Hex(), testnum)
 		}
 
-		if event.ID() != topicID {
-			t.Errorf("Event id %s does not match topic %s, test #%d", event.ID().Hex(), topicID.Hex(), testnum)
+		if event.ID != topicID {
+			t.Errorf("Event id %s does not match topic %s, test #%d", event.ID.Hex(), topicID.Hex(), testnum)
 		}
 
 		unknowntopicID := crypto.Keccak256Hash([]byte("unknownEvent"))

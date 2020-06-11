@@ -39,7 +39,7 @@ func TestMethodString(t *testing.T) {
 	}{
 		{
 			method:      "balance",
-			expectation: "function balance() constant returns()",
+			expectation: "function balance() returns()",
 		},
 		{
 			method:      "send",
@@ -120,7 +120,7 @@ func TestMethodSig(t *testing.T) {
 	}
 
 	for _, test := range cases {
-		got := abi.Methods[test.method].Sig()
+		got := abi.Methods[test.method].Sig
 		if got != test.expect {
 			t.Errorf("expected string to be %s, got %s", test.expect, got)
 		}

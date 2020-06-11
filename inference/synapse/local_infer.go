@@ -40,7 +40,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		modelJson     []byte
 		modelJson_err error
 	)
-	modelJson, modelJson_err = s.config.Storagefs.GetFile(modelHash, SYMBOL_PATH)
+	modelJson, modelJson_err = s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
 		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
 		return 0, KERNEL_RUNTIME_ERROR
@@ -85,7 +85,7 @@ func (s *Synapse) inferByInfoHash(
 		return v.([]byte), nil
 	}
 
-	inputBytes, dataErr := s.config.Storagefs.GetFile(inputHash, DATA_PATH)
+	inputBytes, dataErr := s.config.Storagefs.GetFile(s.ctx, inputHash, DATA_PATH)
 	if dataErr != nil {
 		log.Warn("inferByInfoHash: get file failed",
 			"input hash", inputHash, "error", dataErr)
@@ -134,8 +134,10 @@ func (s *Synapse) inferByInputContent(
 			memoryUsage = MinMemoryUsage
 		}
 		memoryUsage -= ReservedMemoryUsage
+		log.Info("Memory alloc", "size", memoryUsage)
 		s.caches[s.config.DeviceId] = lru.New(memoryUsage)
 		s.caches[s.config.DeviceId].OnEvicted = func(key lru.Key, value interface{}) {
+			log.Warn("C FREE On Evicted", "k", key, "size", value.(*kernel.Model).Size(), "max", s.config.MaxMemoryUsage, "min", MinMemoryUsage)
 			value.(*kernel.Model).Free()
 		}
 	}
@@ -151,16 +153,14 @@ func (s *Synapse) inferByInputContent(
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
-		modelJson, modelJson_err := s.config.Storagefs.GetFile(modelHash, SYMBOL_PATH)
+		modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			log.Warn("inferByInputContent: model loaded failed",
-				"model hash", modelHash, "error", modelJson_err)
+			log.Warn("inferByInputContent: model loaded failed", "model hash", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-		modelParams, modelParams_err := s.config.Storagefs.GetFile(modelHash, PARAM_PATH)
+		modelParams, modelParams_err := s.config.Storagefs.GetFile(s.ctx, modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			log.Warn("inferByInputContent: params loaded failed",
-				"model hash", modelHash, "error", modelParams_err)
+			log.Warn("inferByInputContent: params loaded failed", "model hash", modelHash, "error", modelParams_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		var deviceType = 0
@@ -202,7 +202,7 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 		return KERNEL_RUNTIME_ERROR
 	}
 	ih := strings.ToLower(infoHash[2:])
-	is_ok, err := s.config.Storagefs.Available(ih, rawSize)
+	is_ok, err := s.config.Storagefs.Available(s.ctx, ih, rawSize)
 	if err != nil {
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR

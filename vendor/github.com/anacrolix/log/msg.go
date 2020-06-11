@@ -15,18 +15,18 @@ func (me Msg) String() string {
 	return me.Text()
 }
 
-func newMsg(text string) Msg {
+func newMsg(text func() string) Msg {
 	return Msg{rootMsgImpl{text}}
 }
 
 func Fmsg(format string, a ...interface{}) Msg {
-	return newMsg(fmt.Sprintf(format, a...))
+	return newMsg(func() string { return fmt.Sprintf(format, a...) })
 }
 
 var Fstr = Fmsg
 
 func Str(s string) (m Msg) {
-	return newMsg(s)
+	return newMsg(func() string { return s })
 }
 
 type msgSkipCaller struct {

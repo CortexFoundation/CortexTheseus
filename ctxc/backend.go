@@ -38,7 +38,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/filters"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
@@ -51,7 +51,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/CortexTheseus/torrentfs"
+	"github.com/CortexFoundation/torrentfs"
 )
 
 // Cortex implements the Cortex full node service.
@@ -67,7 +67,7 @@ type Cortex struct {
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 
-	dialCandiates enode.Iterator
+	dialCandidates enode.Iterator
 
 	// DB interfaces
 	chainDb ctxcdb.Database // Block chain database
@@ -100,9 +100,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
-	if config.MinerGasPrice == nil || config.MinerGasPrice.Cmp(common.Big0) <= 0 {
-		log.Warn("Sanitizing invalid miner gas price", "provided", config.MinerGasPrice, "updated", DefaultConfig.MinerGasPrice)
-		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
+	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) <= 0 {
+		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", DefaultConfig.Miner.GasPrice)
+		config.Miner.GasPrice = new(big.Int).Set(DefaultConfig.Miner.GasPrice)
 	}
 	if config.NoPruning && config.TrieDirtyCache > 0 {
 		if config.SnapshotCache > 0 {
@@ -132,10 +132,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		chainConfig:       chainConfig,
 		eventMux:          ctx.EventMux,
 		accountManager:    ctx.AccountManager,
-		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.MinerNotify, config.MinerNoverify, chainDb),
+		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.Miner.Notify, config.Miner.Noverify, chainDb),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
-		gasPrice:          config.MinerGasPrice,
+		gasPrice:          config.Miner.GasPrice,
 		coinbase:          config.Coinbase,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
@@ -208,16 +208,16 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		return nil, err
 	}
 
-	ctxc.miner = miner.New(ctxc, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
-	ctxc.miner.SetExtra(makeExtraData(config.MinerExtraData))
+	ctxc.miner = miner.New(ctxc, &config.Miner, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, ctxc.isLocalBlock)
+	ctxc.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	ctxc.APIBackend = &CortexAPIBackend{ctxc, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
-		gpoParams.Default = config.MinerGasPrice
+		gpoParams.Default = config.Miner.GasPrice
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
-	ctxc.dialCandiates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
+	ctxc.dialCandidates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
 	if err != nil {
 		return nil, err
 	}
@@ -523,7 +523,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 	for i, vsn := range ProtocolVersions {
 		protos[i] = s.protocolManager.makeProtocol(vsn)
 		protos[i].Attributes = []enr.Entry{s.currentCtxcEntry()}
-		protos[i].DialCandidates = s.dialCandiates
+		protos[i].DialCandidates = s.dialCandidates
 	}
 	return protos
 }
@@ -531,6 +531,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 // Start implements node.Service, starting all internal goroutines needed by the
 // Cortex protocol implementation.
 func (s *Cortex) Start(srvr *p2p.Server) error {
+	s.startCtxcEntryUpdate(srvr.LocalNode())
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 

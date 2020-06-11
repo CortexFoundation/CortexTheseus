@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	"math/big"
 	"sort"
+	"time"
 )
 
 type revision struct {
@@ -101,7 +102,17 @@ type StateDB struct {
 	validRevisions []revision
 	nextRevisionId int
 
-	//lock sync.Mutex
+	AccountReads         time.Duration
+	AccountHashes        time.Duration
+	AccountUpdates       time.Duration
+	AccountCommits       time.Duration
+	StorageReads         time.Duration
+	StorageHashes        time.Duration
+	StorageUpdates       time.Duration
+	StorageCommits       time.Duration
+	SnapshotAccountReads time.Duration
+	SnapshotStorageReads time.Duration
+	SnapshotCommits      time.Duration
 }
 
 // Create a new state from a given trie.
@@ -603,7 +614,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 	)
 	if s.snap != nil {
 		var acc *snapshot.Account
-		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr[:])); err == nil {
+		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr.Bytes())); err == nil {
 			if acc == nil {
 				log.Trace("acc is nil", "addr", addr)
 				return nil
@@ -622,9 +633,9 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 	// Load the object from the database.
 	// If snapshot unavailable or reading from it failed, load from the database
 	if s.snap == nil || err != nil {
-		enc, err := s.trie.TryGet(addr[:])
+		enc, err := s.trie.TryGet(addr.Bytes())
 		if err != nil {
-			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr[:], err))
+			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr.Bytes(), err))
 			return nil
 		}
 		if len(enc) == 0 {

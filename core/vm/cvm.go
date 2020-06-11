@@ -27,11 +27,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -691,23 +691,23 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	return common.EmptyAddress, errors.New("quota limit reached")
 }*/
 
-func (cvm *CVM) GetModelMeta(addr common.Address) (meta *types.ModelMeta, err error) {
+func (cvm *CVM) GetModelMeta(addr common.Address) (meta *torrentfs.ModelMeta, err error) {
 	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
 	modelMetaRaw := cvm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
-	if modelMeta, err := types.ParseModelMeta(modelMetaRaw); err != nil {
-		return &types.ModelMeta{}, err
+	if modelMeta, err := torrentfs.ParseModelMeta(modelMetaRaw); err != nil {
+		return &torrentfs.ModelMeta{}, err
 	} else {
 		return modelMeta, nil
 	}
 }
 
-func (cvm *CVM) GetInputMeta(addr common.Address) (meta *types.InputMeta, err error) {
+func (cvm *CVM) GetInputMeta(addr common.Address) (meta *torrentfs.InputMeta, err error) {
 	inputMetaRaw := cvm.StateDB.GetCode(addr)
 	log.Trace(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
 	// fmt.Println("inputMetaRaw: %v", inputMetaRaw)
-	if inputMeta, err := types.ParseInputMeta(inputMetaRaw); err != nil {
-		return &types.InputMeta{}, err
+	if inputMeta, err := torrentfs.ParseInputMeta(inputMetaRaw); err != nil {
+		return &torrentfs.InputMeta{}, err
 	} else {
 		return inputMeta, nil
 	}

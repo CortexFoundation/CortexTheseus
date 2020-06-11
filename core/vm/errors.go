@@ -23,6 +23,9 @@ import (
 
 // List execution errors
 var (
+	// ErrInvalidSubroutineEntry means that a BEGINSUB was reached via iteration,
+	// as opposed to from a JUMPSUB instruction
+	ErrInvalidSubroutineEntry   = errors.New("invalid subroutine entry")
 	ErrOutOfGas                 = errors.New("out of gas")
 	ErrCodeStoreOutOfGas        = errors.New("contract creation code storage out of gas")
 	ErrDepth                    = errors.New("max call depth exceeded")
@@ -33,6 +36,11 @@ var (
 	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
 	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
 	ErrInvalidMetaAuthor       = errors.New("invalid meta author")
+
+	ErrGasUintOverflow     = errors.New("gas uint64 overflow")
+	ErrInvalidJump         = errors.New("invalid jump destination")
+	ErrInvalidRetsub       = errors.New("invalid retsub")
+	ErrReturnStackExceeded = errors.New("return stack limit reached")
 
 	ErrDownloading    = errors.New("downloading")
 	ErrFileNotExist   = errors.New("file not exist")
