@@ -142,7 +142,7 @@ func (fs *ChainDB) initMerkleTree() error {
 	}
 	fs.tree = tr
 	for _, block := range fs.blocks {
-		if err := fs.addLeaf(block, true); err != nil {
+		if err := fs.addLeaf(block, false); err != nil {
 			panic("Storage merkletree construct failed")
 		}
 	}
@@ -157,17 +157,25 @@ func (fs *ChainDB) Metrics() time.Duration {
 }
 
 //Make sure the block group is increasing by number
-func (fs *ChainDB) addLeaf(block *types.Block, init bool) error {
+func (fs *ChainDB) addLeaf(block *types.Block, mess bool) error {
 	number := block.Number
-	leaf := BlockContent{x: block.Hash.String()}
+	leaf := BlockContent{x: block.Hash.String(), n: number}
 
 	if len(fs.leaves) >= params.LEAFS {
+		if mess {
+			//todo
+		}
 		fs.leaves = nil
 		fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
 		log.Debug("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()))
 	}
 
 	fs.leaves = append(fs.leaves, leaf)
+	if mess {
+		sort.Slice(fs.leaves, func(i, j int) bool {
+			return fs.leaves[i].(BlockContent).n < fs.leaves[j].(BlockContent).n
+		})
+	}
 
 	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
 		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
@@ -339,58 +347,79 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 	return update, err
 }
 
+func (fs *ChainDB) find(b *types.Block) (bool, error) {
+	i := sort.Search(len(fs.blocks), func(i int) bool { return fs.blocks[i].Number >= b.Number })
+	if i < len(fs.blocks) && fs.blocks[i].Number == b.Number {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
 //func (fs *ChainDB) addBlock(b *Block, record bool) error {
 func (fs *ChainDB) AddBlock(b *types.Block) error {
-	if b.Number < fs.LastListenBlockNumber {
-		return nil
-	}
+	//if b.Number < fs.LastListenBlockNumber {
+	//	return nil
+	//}
 
 	if fs.metrics {
 		defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
 	}
-	if b.Number > fs.CheckPoint {
+	//u := false
+	//if b.Number > fs.CheckPoint {
+	//	u = true
+	//} else {
+	//	if exist, _ := fs.find(b); !exist {
+	//		log.Warn("Find a missing ancient block", "number", b.Number)
+	//		u = true
+	//	} else {
+	//		return nil
+	//	}
+	//}
 
-		if err := fs.db.Update(func(tx *bolt.Tx) error {
-			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
-			if err != nil {
-				return err
-			}
-			v, err := json.Marshal(b)
-			if err != nil {
-				return err
-			}
-			k, err := json.Marshal(b.Number)
-			if err != nil {
-				return err
-			}
+	//if u {
+	if fs.GetBlockByNumber(b.Number) != nil {
+		return nil
+	}
 
-			return buk.Put(k, v)
-		}); err == nil {
-			if err := fs.appendBlock(b); err == nil {
-				fs.txs += uint64(len(b.Txs))
-				if err := fs.addLeaf(b, false); err == nil {
-					if err := fs.writeCheckPoint(); err == nil {
-						fs.CheckPoint = b.Number
-					}
-				}
-			}
-		} else {
+	if err := fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
+		if err != nil {
 			return err
 		}
+		v, err := json.Marshal(b)
+		if err != nil {
+			return err
+		}
+		k, err := json.Marshal(b.Number)
+		if err != nil {
+			return err
+		}
+
+		return buk.Put(k, v)
+	}); err == nil {
+		//if err := fs.appendBlock(b); err == nil {
+		fs.blocks = append(fs.blocks, b)
+		fs.txs += uint64(len(b.Txs))
+		mes := false
+		if b.Number <= fs.CheckPoint {
+			mes = true
+		}
+		if err := fs.addLeaf(b, mes); err == nil {
+			if err := fs.writeCheckPoint(); err == nil {
+				if !mes {
+					fs.CheckPoint = b.Number
+				}
+			}
+		}
+		//}
+	} else {
+		return err
 	}
+	//}
 
 	fs.LastListenBlockNumber = b.Number
 	return fs.Flush()
-}
-
-func (fs *ChainDB) appendBlock(b *types.Block) error {
-	if len(fs.blocks) == 0 || fs.blocks[len(fs.blocks)-1].Number < b.Number {
-		log.Debug("Append block", "number", b.Number)
-		fs.blocks = append(fs.blocks, b)
-	} else {
-		return errors.New("err block duplicated")
-	}
-	return nil
 }
 
 func (fs *ChainDB) Version() string {

@@ -7,6 +7,7 @@ import (
 
 type BlockContent struct {
 	x string
+	n uint64
 }
 
 func (t BlockContent) CalculateHash() ([]byte, error) {

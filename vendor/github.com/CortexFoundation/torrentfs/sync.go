@@ -125,13 +125,15 @@ func (m *Monitor) IndexCheck() error {
 
 		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
+			m.lastNumber = 0
 			if m.lastNumber > checkpoint.TfsCheckPoint {
-				m.lastNumber = 0
-				if err := m.fs.Reset(); err != nil {
-					return err
-				}
+				m.fs.LastListenBlockNumber = 0
+				//m.lastNumber = 0
+				//if err := m.fs.Reset(); err != nil {
+				//	return err
+				//}
 			}
+			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "lastNumber", m.lastNumber, "last in db", m.fs.LastListenBlockNumber)
 		} else {
 			log.Info("Fs storage version check passed", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 		}
@@ -338,7 +340,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				record = true
 			} else if tx.IsFlowControl() {
 				if tx.Recipient == nil {
-					log.Trace("Recipient is nil", "num", b.Number)
 					continue
 				}
 				addr := *tx.Recipient
@@ -351,7 +352,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				if err != nil {
 					return false, err
 				}
-
+				//todo
 				if receipt.Status != 1 {
 					continue
 				}
