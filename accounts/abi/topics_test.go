@@ -362,4 +362,3 @@ func TestParseTopicsIntoMap(t *testing.T) {
 		})
 	}
 }
-
