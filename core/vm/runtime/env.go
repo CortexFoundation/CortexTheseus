@@ -17,7 +17,6 @@
 package runtime
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 )

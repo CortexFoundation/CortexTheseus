@@ -9,12 +9,6 @@ import (
 )
 
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error) {
-	//err = cuckoo.InitOnce()
-	//if err != nil {
-	//	log.Error("cuckoo init error", "error", err)
-	//	return err
-	//}
-
 	var (
 		header = block.Header()
 		hash   = cuckoo.SealHash(header).Bytes()
@@ -49,7 +43,7 @@ search:
 
 			m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
 			if err != nil {
-				return err
+				panic(err)
 			}
 			r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
 			if r == 0 {
@@ -60,7 +54,7 @@ search:
 
 			m, err = cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
 			if err != nil {
-				return err
+				panic(err)
 			}
 			ret := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
 			if ret {

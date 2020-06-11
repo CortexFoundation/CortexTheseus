@@ -23,9 +23,9 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
 	"sync/atomic"
 )
 
@@ -102,6 +102,7 @@ type Interpreter interface {
 type callCtx struct {
 	memory   *Memory
 	stack    *Stack
+	rstack   *ReturnStack
 	contract *Contract
 }
 
@@ -255,9 +256,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, nil
 		}
 
-		//log.Trace(fmt.Sprintf("contract.Code = %v", contract.Code))
-		//log.Info("Contract code", "code", contract.Code)
-		if modelMeta, err := types.ParseModelMeta(contract.Code); err != nil {
+		var modelMeta torrentfs.ModelMeta
+		if err := modelMeta.DecodeRLP(contract.Code); err != nil {
+			log.Error("Failed decode model meta", "code", contract.Code, "err", err)
 			return nil, err
 		} else {
 			log.Debug("Model meta",
@@ -323,7 +324,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			return nil, nil
 		}
 
-		if inputMeta, err := types.ParseInputMeta(contract.Code); err != nil {
+		var inputMeta torrentfs.InputMeta
+		if err := inputMeta.DecodeRLP(contract.Code); err != nil {
+			log.Error("Failed decode input meta", "code", contract.Code, "err", err)
 			return nil, err
 		} else {
 			if inputMeta.BlockNum.Sign() == 0 {
@@ -351,12 +354,14 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	var (
-		op          OpCode        // current opcode
-		mem         = NewMemory() // bound memory
-		stack       = newstack()  // local stack
+		op          OpCode             // current opcode
+		mem         = NewMemory()      // bound memory
+		stack       = newstack()       // local stack
+		returns     = newReturnStack() // local returns stack
 		callContext = &callCtx{
 			memory:   mem,
 			stack:    stack,
+			rstack:   returns,
 			contract: contract,
 		}
 		// For optimisation reason we're using uint64 as the program counter.
@@ -378,9 +383,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.cvm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.cvm.depth, err)
+					in.cfg.Tracer.CaptureState(in.cvm, pcCopy, op, gasCopy, cost, mem, stack, returns, contract, in.cvm.depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.cvm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.cvm.depth, err)
+					in.cfg.Tracer.CaptureFault(in.cvm, pcCopy, op, gasCopy, cost, mem, stack, returns, contract, in.cvm.depth, err)
 				}
 			}
 		}()
@@ -422,12 +427,12 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		if operation.memorySize != nil {
 			memSize, overflow := bigUint64(operation.memorySize(stack))
 			if overflow {
-				return nil, errGasUintOverflow
+				return nil, ErrGasUintOverflow
 			}
 			// memory is expanded in words of 32 bytes. Gas
 			// is also calculated in words.
 			if memorySize, overflow = math.SafeMul(toWordSize(memSize), 32); overflow {
-				return nil, errGasUintOverflow
+				return nil, ErrGasUintOverflow
 			}
 		}
 
@@ -456,7 +461,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			var overflow bool
 			if cost, overflow = math.SafeAdd(cost, modelMeta.Gas); overflow {
 				log.Warn("overflow", "cost", cost, "gas", modelMeta.Gas)
-				return nil, errGasUintOverflow
+				return nil, ErrGasUintOverflow
 			}
 		}
 
@@ -470,7 +475,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.cvm, pc, op, gasCopy, cost, mem, stack, contract, in.cvm.depth, err)
+			in.cfg.Tracer.CaptureState(in.cvm, pc, op, gasCopy, cost, mem, stack, returns, contract, in.cvm.depth, err)
 			logged = true
 		}
 

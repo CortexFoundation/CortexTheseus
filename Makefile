@@ -8,7 +8,7 @@
 .PHONY: cortex-darwin cortex-darwin-386 cortex-darwin-amd64
 .PHONY: cortex-windows cortex-windows-386 cortex-windows-amd64
 
-.PHONY: clib inferServer nodekey
+.PHONY: clib
 .PHONY: cortex cortex-remote
 
 GOBIN = $(shell pwd)/build/bin
@@ -36,17 +36,20 @@ mine: cortex_mine
 
 cortex: cpu
 
-cortex_cpu: clib_cpu
+clean-miner:
+	rm -fr plugins/*_helper_for_node.so
+
+cortex_cpu: clean-miner clib_cpu
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex_cpu ..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex cpu."
-cortex_mine: clib_mine
+cortex_mine: clean-miner clib_mine
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex miner."
-cortex_gpu: clib
+cortex_gpu: clean-miner clib
 	build/env.sh go run build/ci.go install ./cmd/cortex
 	echo "build cortex..."
 	@echo "Done building."
@@ -71,45 +74,17 @@ rlpdump:
 	build/env.sh go run build/ci.go install ./cmd/rlpdump
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/rlpdump\" to launch cortex rlpdump."
-torrent:
-	build/env.sh go run build/ci.go install ./cmd/torrentfs
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/torrentfs\" to launch cortex torrentfs."
-tracker:
-	build/env.sh go run build/ci.go install ./cmd/tracker
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/tracker\" to launch tracker."
-
-seeding:
-	build/env.sh go run build/ci.go install ./cmd/seeding
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/seeding\" to launch cortex torrentfs-seeding."
 wnode:
 	build/env.sh go run build/ci.go install ./cmd/wnode
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/wnode\" to launch cortex whisper node."
-
-torrent-test:
-	build/env.sh go run build/ci.go install ./cmd/torrent-test
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
-
-cvm: plugins/lib_cvm.so
-	build/env.sh go run build/ci.go install ./cmd/cvm
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
-nodekey:
-	build/env.sh go run build/ci.go install ./cmd/nodekey
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
-
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C solution cuda-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cuda_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
 	$(MAKE) -C solution cpu-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/cpu_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 # TODO(ryt): configure the gpu version
 plugins/lib_cvm.so:
@@ -125,9 +100,9 @@ clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cud
 
 clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
-inferServer: clib
-	build/env.sh go run build/ci.go install ./cmd/infer_server
-	build/env.sh go run build/ci.go install ./cmd/infer_client
+#inferServer: clib
+#	build/env.sh go run build/ci.go install ./cmd/infer_server
+#	build/env.sh go run build/ci.go install ./cmd/infer_client
 
 android:
 	build/env.sh go run build/ci.go aar --local
@@ -138,9 +113,6 @@ ios:
 	build/env.sh go run build/ci.go xcode --local
 	@echo "Done building."
 	@echo "Import \"$(GOBIN)/Ctxc.framework\" to use the library."
-
-test: all
-	build/env.sh go run build/ci.go test
 
 lint: ## Run linters.
 	build/env.sh go run build/ci.go lint

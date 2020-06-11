@@ -34,8 +34,8 @@ import (
 	//"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/ucwong/goleveldb/leveldb/errors"
 	mapset "github.com/ucwong/golang-set"
+	"github.com/ucwong/goleveldb/leveldb/errors"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/sync/syncmap"
 )
@@ -353,7 +353,6 @@ func (whisper *Whisper) getPeers() []*Peer {
 		arr[i] = p
 		i++
 	}
-	whisper.peerMu.Unlock()
 	return arr
 }
 

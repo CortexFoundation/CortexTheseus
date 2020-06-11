@@ -87,6 +87,10 @@ func (ti *testIterator) Account() []byte {
 	return nil
 }
 
+func (ti *testIterator) Slot() []byte {
+	return nil
+}
+
 func (ti *testIterator) Release() {}
 
 func TestFastIteratorBasics(t *testing.T) {
@@ -102,13 +106,12 @@ func TestFastIteratorBasics(t *testing.T) {
 			{9, 10}, {10, 13, 15, 16}},
 			expKeys: []byte{0, 1, 2, 7, 8, 9, 10, 13, 14, 15, 16}},
 	} {
-		var iterators []*weightedAccountIterator
+		var iterators []*weightedIterator
 		for i, data := range tc.lists {
 			it := newTestIterator(data...)
-			iterators = append(iterators, &weightedAccountIterator{it, i})
-
+			iterators = append(iterators, &weightedIterator{it, i})
 		}
-		fi := &fastAccountIterator{
+		fi := &fastIterator{
 			iterators: iterators,
 			initiated: false,
 		}
@@ -358,15 +361,15 @@ func TestAccountIteratorSeek(t *testing.T) {
 
 	it, _ = snaps.AccountIterator(common.HexToHash("0x02"), common.HexToHash("0xaa"))
 	defer it.Release()
-	verifyIterator(t, 3, it) // expected: ee, f0, ff
+	verifyIterator(t, 4, it) // expected: ee, f0, ff
 
 	it, _ = snaps.AccountIterator(common.HexToHash("0x02"), common.HexToHash("0xff"))
 	defer it.Release()
-	verifyIterator(t, 0, it) // expected: nothing
+	verifyIterator(t, 1, it) // expected: nothing
 
 	it, _ = snaps.AccountIterator(common.HexToHash("0x04"), common.HexToHash("0xbb"))
 	defer it.Release()
-	verifyIterator(t, 5, it) // expected: cc, dd, ee, f0, ff
+	verifyIterator(t, 6, it) // expected: cc, dd, ee, f0, ff
 
 	it, _ = snaps.AccountIterator(common.HexToHash("0x04"), common.HexToHash("0xef"))
 	defer it.Release()
@@ -374,11 +377,11 @@ func TestAccountIteratorSeek(t *testing.T) {
 
 	it, _ = snaps.AccountIterator(common.HexToHash("0x04"), common.HexToHash("0xf0"))
 	defer it.Release()
-	verifyIterator(t, 1, it) // expected: ff
+	verifyIterator(t, 2, it) // expected: ff
 
 	it, _ = snaps.AccountIterator(common.HexToHash("0x04"), common.HexToHash("0xff"))
 	defer it.Release()
-	verifyIterator(t, 0, it) // expected: nothing
+	verifyIterator(t, 1, it) // expected: nothing
 }
 
 // TestIteratorDeletions tests that the iterator behaves correct when there are

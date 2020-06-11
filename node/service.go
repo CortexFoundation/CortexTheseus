@@ -22,7 +22,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
-	"github.com/CortexFoundation/CortexTheseus/db"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
@@ -43,7 +43,7 @@ type ServiceContext struct {
 // node is an ephemeral one, a memory database is returned.
 func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, namespace string) (ctxcdb.Database, error) {
 	if ctx.Config.DataDir == "" {
-		//return ctxcdb.NewMemDatabase(), nil
+		//return rawdb.NewMemoryDatabase(), nil
 		return rawdb.NewMemoryDatabase(), nil
 	}
 	//db, err := ctxcdb.NewLDBDatabase(ctx.config.ResolvePath(name), cache, handles)

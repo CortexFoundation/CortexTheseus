@@ -3,20 +3,24 @@ package cuckoo
 import (
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/elastic/gosigar"
+	gopsutil "github.com/shirou/gopsutil/mem"
 	"math/big"
 	"math/rand"
+	"path/filepath"
 	"plugin"
 	"sync"
 	"time"
 )
 
 var sharedCuckoo = New(Config{PowMode: ModeNormal})
+
+var two256 = new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0))
 
 var ErrInvalidDumpMagic = errors.New("invalid dump magic")
 
@@ -162,11 +166,12 @@ const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_helper_for_node.so"
 
 func (cuckoo *Cuckoo) initPlugin() error {
+	start := mclock.Now()
 	var minerName string = "cpu"
-	if cuckoo.config.UseCuda == true {
+	if cuckoo.config.UseCuda {
 		minerName = "cuda"
 		cuckoo.threads = 1
-	} else if cuckoo.config.UseOpenCL == true {
+	} else if cuckoo.config.UseOpenCL {
 		minerName = "opencl"
 		cuckoo.threads = 1
 	}
@@ -174,14 +179,15 @@ func (cuckoo *Cuckoo) initPlugin() error {
 		cuckoo.config.StrDeviceIds = "0" //default gpu device 0
 	}
 	var errc error
-	so_path := PLUGIN_PATH + minerName + PLUGIN_POST_FIX
-	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
-		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds)
+	so_path := filepath.Join(PLUGIN_PATH, minerName+PLUGIN_POST_FIX)
 	cuckoo.minerPlugin, errc = plugin.Open(so_path)
-	if errc != nil || cuckoo.minerPlugin == nil {
-		log.Error("Cuckoo Init Plugin", "error", errc)
-		return errors.New("Cuckoo plugins init failed")
+	if errc != nil {
+		panic(errc)
 	}
+
+	elapsed := time.Duration(mclock.Now() - start)
+	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
+		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds, "elapsed", common.PrettyDuration(elapsed))
 	return errc
 }
 
@@ -198,21 +204,18 @@ func (cuckoo *Cuckoo) InitOnce() error {
 			return
 		} else {
 			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
-			if errc != nil || m == nil {
-				log.Error("Cuckoo Init Plugin lookup", "error", errc)
-				err = errors.New("Cuckoo plugins CuckooInitialize lookup failed")
-				return
+			if errc != nil {
+				panic(errc)
 			}
 			// miner algorithm use cuckaroo by default.
 			if cuckoo.config.Threads > 0 && cuckoo.config.UseCuda {
 				errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
 			} else {
-				//cuckoo.config.Threads = 0
 				cuckoo.threads = 0
 			}
 			err = errc
-			var mem gosigar.Mem
-			if err := mem.Get(); err == nil {
+			mem, err := gopsutil.VirtualMemory()
+			if err == nil {
 				allowance := int(mem.Total / 1024 / 1024 / 3)
 				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance, "cuda", cuckoo.config.UseCuda, "device", cuckoo.config.StrDeviceIds, "threads", cuckoo.config.Threads, "algo", cuckoo.config.Algorithm, "mine", cuckoo.config.Mine)
 			}
@@ -231,37 +234,12 @@ func (cuckoo *Cuckoo) Close() error {
 			return
 		}
 		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-		if e != nil || m == nil {
-			log.Error("Cuckoo cycle closed error", "error", e)
-			return
+		if e != nil {
+			panic(e)
 		}
 		m.(func())()
 	})
 	return nil
-	/*
-		var err error
-		cuckoo.closeOnce.Do(func() {
-			// Short circuit if the exit channel is not allocated.
-			if cuckoo.exitCh == nil {
-				return
-			}
-			errc := make(chan error)
-			cuckoo.exitCh <- errc
-			err = <-errc
-			close(cuckoo.exitCh)
-
-			if cuckoo.minerPlugin == nil {
-				return
-			}
-			m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-			if e != nil {
-				err = e
-				return
-			}
-			m.(func())()
-		})
-		return err
-	*/
 }
 
 func (cuckoo *Cuckoo) Threads() int {

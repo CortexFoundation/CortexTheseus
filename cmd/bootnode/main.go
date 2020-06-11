@@ -34,6 +34,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 )
 
+type sharedUDPConn struct {
+	*net.UDPConn
+	unhandled chan discover.ReadPacket
+}
+
 func main() {
 	var (
 		listenAddr  = flag.String("addr", ":30301", "listen address")
@@ -121,18 +126,27 @@ func main() {
 
 	printNotice(&nodeKey.PublicKey, *realaddr)
 
+	db, _ := enode.OpenDB("")
+	ln := enode.NewLocalNode(db, nodeKey)
+
+	var unhandled chan discover.ReadPacket
+	var sconn *sharedUDPConn
 	if *runv5 {
-		if _, err := discv5.ListenUDP(nodeKey, conn, "", restrictList); err != nil {
-			utils.Fatalf("%v", err)
-		}
-	} else {
-		db, _ := enode.OpenDB("")
-		ln := enode.NewLocalNode(db, nodeKey)
-		cfg := discover.Config{
-			PrivateKey:  nodeKey,
-			NetRestrict: restrictList,
-		}
-		if _, err := discover.ListenUDP(conn, ln, cfg); err != nil {
+		unhandled = make(chan discover.ReadPacket, 100)
+		sconn = &sharedUDPConn{conn, unhandled}
+	}
+	cfg := discover.Config{
+		PrivateKey:  nodeKey,
+		NetRestrict: restrictList,
+		Unhandled:   unhandled,
+	}
+
+	if _, err := discover.ListenUDP(conn, ln, cfg); err != nil {
+		utils.Fatalf("%v", err)
+	}
+
+	if *runv5 {
+		if _, err = discv5.ListenUDP(nodeKey, sconn, "", restrictList); err != nil {
 			utils.Fatalf("%v", err)
 		}
 	}
