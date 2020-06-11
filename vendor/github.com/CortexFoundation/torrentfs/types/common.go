@@ -125,7 +125,7 @@ type transactionMarshaling struct {
 	Payload  hexutil.Bytes
 }
 
-// gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
+//go:generate gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
 type Block struct {
 	Number uint64      `json:"number"           gencodec:"required"`
 	Hash   common.Hash `json:"Hash"             gencodec:"required"`
@@ -142,7 +142,7 @@ type Receipt struct {
 	// Contract Address
 	ContractAddr *common.Address `json:"contractAddress"`
 	// Transaction Hash
-	TxHash *common.Hash `json:"transactionHash"  gencodec:"required"`
+	//TxHash *common.Hash `json:"transactionHash"  gencodec:"required"`
 	//Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 	GasUsed uint64 `json:"gasUsed" gencodec:"required"`
 	Status  uint64 `json:"status"`
