@@ -123,7 +123,7 @@ func (m *Monitor) IndexCheck() error {
 
 		m.ckp = checkpoint
 
-		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
+		version := m.fs.GetRoot(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
 			m.lastNumber = 0
 			if m.lastNumber > checkpoint.TfsCheckPoint {
@@ -652,10 +652,10 @@ func (m *Monitor) solve(block *types.Block) error {
 			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 
 			if m.ckp != nil && m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
-				if common.BytesToHash(m.fs.GetRootByNumber(i)) == m.ckp.TfsRoot {
+				if common.BytesToHash(m.fs.GetRoot(i)) == m.ckp.TfsRoot {
 					log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
 				} else {
-					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot)
+					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot, "leaves", len(m.fs.Leaves()))
 					panic("FIRST MILESTONE ERROR, run './cortex removedb' command to solve this problem")
 				}
 			}
