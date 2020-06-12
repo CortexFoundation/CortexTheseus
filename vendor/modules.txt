@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.7
+# github.com/CortexFoundation/torrentfs v1.0.10
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -188,6 +188,9 @@ github.com/gorilla/websocket
 ## explicit
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
+# github.com/holiman/uint256 v1.1.0
+## explicit
+github.com/holiman/uint256
 # github.com/huandu/xstrings v1.3.1
 github.com/huandu/xstrings
 # github.com/huin/goupnp v1.0.0

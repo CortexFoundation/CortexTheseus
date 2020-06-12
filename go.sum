@@ -40,8 +40,8 @@ github.com/Azure/go-autorest v11.2.8+incompatible/go.mod h1:r+4oMnoxhatjLLJ6zxSW
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/CortexFoundation/CortexTheseus v1.9.56/go.mod h1:MkF8L4FF1jb8K8V6gDDQ3/cFJjNJ8byEp/WEj+4/zdE=
-github.com/CortexFoundation/torrentfs v1.0.7 h1:MOP8kVycjeeCbg/pj3gb7WwOkQqyYLw4XSZZ7SUNBAk=
-github.com/CortexFoundation/torrentfs v1.0.7/go.mod h1:cES9Vmq1PJR+hPPItA1ZE9iRDtC9MoAtx5dQcO2FoPE=
+github.com/CortexFoundation/torrentfs v1.0.10 h1:TVKMjsKF9yYhuLAFvP3FThCQHTNdlkaNCbyTK+aE7to=
+github.com/CortexFoundation/torrentfs v1.0.10/go.mod h1:cES9Vmq1PJR+hPPItA1ZE9iRDtC9MoAtx5dQcO2FoPE=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -423,6 +423,8 @@ github.com/hashicorp/logutils v1.0.0/go.mod h1:QIAnNjmIWmVIIkWDTG1z5v++HQmx9WQRO
 github.com/hashicorp/mdns v1.0.0/go.mod h1:tL+uN++7HEJ6SQLQ2/p+z2pH24WQKWjBPkE0mNTz8vQ=
 github.com/hashicorp/memberlist v0.1.3/go.mod h1:ajVTdAv/9Im8oMAAj5G31PhhMCZJV2pPBoIllUwCN7I=
 github.com/hashicorp/serf v0.8.2/go.mod h1:6hOLApaqBFA1NXqRQAsxw9QxuDEvNxSQRwA/JwenrHc=
+github.com/holiman/uint256 v1.1.0 h1:Iye6ze0DW9s+7EMn8y6Q4ebegDzpu28JQHEVM1Bq+Wg=
+github.com/holiman/uint256 v1.1.0/go.mod h1:y4ga/t+u+Xwd7CpDgZESaRcWy0I7XMlTMA25ApIH5Jw=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/huandu/xstrings v1.0.0/go.mod h1:4qWG/gcEcfX4z/mBDHJ++3ReCw9ibxbsNJbcucJdbSo=
 github.com/huandu/xstrings v1.2.0/go.mod h1:DvyZB1rfVYsBIigL8HwpZgxHwXozlTgGqn63UyNX5k4=

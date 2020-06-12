@@ -1,5 +1,6 @@
 # Cortex
-
+## File storage
+https://github.com/CortexFoundation/torrentfs
 ## System Requirements
 ### ubuntu
 Cortex node is developed in Ubuntu 18.04 x64 + CUDA 9.2 + NVIDIA Driver 396.37 environment, with CUDA Compute capability >= 6.1. Latest Ubuntu distributions are also compatible, but not fully tested.

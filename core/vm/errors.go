@@ -47,6 +47,8 @@ var (
 	ErrInvalidTorrent = errors.New("invalid torrent")
 	ErrInfer          = errors.New("infer error")
 
-	ErrRuntime = synapse.KERNEL_RUNTIME_ERROR
-	ErrLogic   = synapse.KERNEL_LOGIC_ERROR
+	ErrRuntime               = synapse.KERNEL_RUNTIME_ERROR
+	ErrLogic                 = synapse.KERNEL_LOGIC_ERROR
+	ErrReturnDataOutOfBounds = errors.New("return data out of bounds")
+	ErrExecutionReverted     = errors.New("execution reverted")
 )

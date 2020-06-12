@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.7
+	github.com/CortexFoundation/torrentfs v1.0.10
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
@@ -21,6 +21,7 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
+	github.com/holiman/uint256 v1.1.0
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
