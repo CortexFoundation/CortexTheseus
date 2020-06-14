@@ -84,6 +84,13 @@ github.com/anacrolix/utp
 # github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 ## explicit
 github.com/aristanetworks/goarista/monotime
+# github.com/arsham/figurine v1.0.1
+## explicit
+github.com/arsham/figurine/figurine
+# github.com/arsham/rainbow v1.0.0
+github.com/arsham/rainbow/rainbow
+# github.com/arsham/strings v0.0.0-20181015215346-d1b453ead28d
+github.com/arsham/strings
 # github.com/aws/aws-sdk-go v1.31.0
 ## explicit
 github.com/aws/aws-sdk-go/aws
@@ -140,6 +147,8 @@ github.com/cheekybits/genny/generic
 # github.com/cloudflare/cloudflare-go v0.11.7
 ## explicit
 github.com/cloudflare/cloudflare-go
+# github.com/common-nighthawk/go-figure v0.0.0-20190529165535-67e0ed34491a
+github.com/common-nighthawk/go-figure
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
@@ -315,6 +324,9 @@ github.com/pion/webrtc/v2/pkg/rtcerr
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
+# github.com/rakyll/statik v0.1.7
+## explicit
+github.com/rakyll/statik/fs
 # github.com/rjeczalik/notify v0.9.2
 ## explicit
 github.com/rjeczalik/notify
