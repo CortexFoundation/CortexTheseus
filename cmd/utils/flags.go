@@ -1432,7 +1432,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		// 	}
 	default:
 		if cfg.NetworkId == 21 {
-			setDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+			//setDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
 	// TODO(fjl): move trie cache generations into config

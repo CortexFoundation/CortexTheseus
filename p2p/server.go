@@ -182,7 +182,7 @@ type Server struct {
 	nodedb    *enode.DB
 	localnode *enode.LocalNode
 	ntab      *discover.UDPv4
-	DiscV5    *discv5.Network
+	DiscV5    *discover.UDPv5 //*discv5.Network
 	discmix   *enode.FairMix
 	dialsched *dialScheduler
 
@@ -573,11 +573,11 @@ func (srv *Server) setupDiscovery() error {
 
 	// Discovery V4
 	var unhandled chan discover.ReadPacket
-	var sconn *sharedUDPConn
+	//var sconn *sharedUDPConn
 	if !srv.NoDiscovery {
 		if srv.DiscoveryV5 {
 			unhandled = make(chan discover.ReadPacket, 100)
-			sconn = &sharedUDPConn{conn, unhandled}
+			//		sconn = &sharedUDPConn{conn, unhandled}
 		}
 		cfg := discover.Config{
 			PrivateKey:  srv.PrivateKey,
@@ -596,19 +596,27 @@ func (srv *Server) setupDiscovery() error {
 
 	// Discovery V5
 	if srv.DiscoveryV5 {
-		var ntab *discv5.Network
+		var ntab *discover.UDPv5 //*discv5.Network
 		var err error
-		if sconn != nil {
-			ntab, err = discv5.ListenUDP(srv.PrivateKey, sconn, "", srv.NetRestrict)
-		} else {
-			ntab, err = discv5.ListenUDP(srv.PrivateKey, conn, "", srv.NetRestrict)
+		cfg := discover.Config{
+			PrivateKey:  srv.PrivateKey,
+			NetRestrict: srv.NetRestrict,
+			Bootnodes:   srv.BootstrapNodes,
+			Unhandled:   unhandled,
+			Log:         srv.log,
 		}
+		//if sconn != nil {
+		//ntab, err = discv5.ListenUDP(srv.PrivateKey, sconn, "", srv.NetRestrict)
+		ntab, err = discover.ListenV5(conn, srv.localnode, cfg)
+		//} else {
+		//ntab, err = discv5.ListenUDP(srv.PrivateKey, conn, "", srv.NetRestrict)
+		//}
 		if err != nil {
 			return err
 		}
-		if err := ntab.SetFallbackNodes(srv.BootstrapNodesV5); err != nil {
-			return err
-		}
+		//if err := ntab.SetFallbackNodes(srv.BootstrapNodesV5); err != nil {
+		//	return err
+		//}
 		srv.DiscV5 = ntab
 	}
 	return nil
