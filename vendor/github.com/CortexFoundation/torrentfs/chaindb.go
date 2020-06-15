@@ -200,7 +200,7 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 		if i > len(fs.leaves) {
 			i = len(fs.leaves)
 		}
-		log.Debug("Messing recover", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
+		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
 
 	}
 
@@ -401,7 +401,8 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 	//	log.Warn("Encounter ancient block (dup)", "cur", b.Number, "index", i, "len", len(fs.blocks), "ckp", fs.CheckPoint)
 	//	return nil
 	//}
-	if fs.GetBlockByNumber(b.Number) != nil {
+	ancient := fs.GetBlockByNumber(b.Number)
+	if ancient != nil && ancient.Hash == b.Hash {
 		fs.addLeaf(b, false, true)
 		return nil
 	}
@@ -560,7 +561,8 @@ func (fs *ChainDB) initID() error {
 		return e
 	})
 }
-func (fs *ChainDB) initCheckPoint() error {
+
+/*func (fs *ChainDB) initCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
 		if err != nil {
@@ -584,7 +586,7 @@ func (fs *ChainDB) initCheckPoint() error {
 
 		return nil
 	})
-}
+}*/
 
 func (fs *ChainDB) initBlockNumber() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
@@ -612,7 +614,7 @@ func (fs *ChainDB) initBlockNumber() error {
 	})
 }
 
-func (fs *ChainDB) writeCheckPoint() error {
+/*func (fs *ChainDB) writeCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
 		if err != nil {
@@ -622,7 +624,7 @@ func (fs *ChainDB) writeCheckPoint() error {
 
 		return e
 	})
-}
+}*/
 
 func (fs *ChainDB) writeRoot(number uint64, root []byte) error {
 	//fs.rootCache.Add(number, root)

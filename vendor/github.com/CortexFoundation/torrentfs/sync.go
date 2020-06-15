@@ -204,7 +204,7 @@ func (m *Monitor) taskLoop() {
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 
-	log.Info("Building connection", "terminated", m.terminated)
+	log.Debug("Building connection", "terminated", m.terminated)
 
 	for {
 		time.Sleep(time.Second * queryTimeInterval)
