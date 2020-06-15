@@ -188,46 +188,37 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 		}
 	}
 
-	i := len(fs.leaves)
 	if mes {
 		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
 		sort.Slice(fs.leaves, func(i, j int) bool {
 			return fs.leaves[i].(BlockContent).n < fs.leaves[j].(BlockContent).n
 		})
 
-		i = sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(BlockContent).n > number })
+		i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(BlockContent).n > number })
 
 		if i > len(fs.leaves) {
 			i = len(fs.leaves)
 		}
+
 		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
 
-	}
-
-	//tmp := fs.tree.MerkleRoot()
-	if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err == nil {
-		//if bytes.Equal(tmp, fs.tree.MerkleRoot()){
-		//	log.Warn("Root is not changed", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
-		//}
-		log.Debug("Merkle root", "num", number, "root", common.BytesToHash(fs.tree.MerkleRoot()), "i", i, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
-		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
+		if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err != nil {
 			return err
 		}
 
-		//if i >= params.LEAFS {
-		//	fs.leaves = nil
-		//	fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
-		//	log.Warn("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()), "num", number, "root", common.BytesToHash(fs.tree.MerkleRoot()), "i", i, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
-		//}
-
-		if !mes && number > fs.CheckPoint {
+	} else {
+		if err := fs.tree.AddNodeWithDup(leaf); err != nil {
+			return err
+		}
+		if number > fs.CheckPoint {
 			fs.CheckPoint = number
 		}
+	}
 
-		return nil
-	} else {
+	if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
 		return err
 	}
+	return nil
 }
 
 func (fs *ChainDB) Root() common.Hash {
