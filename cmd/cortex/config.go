@@ -164,7 +164,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 
 	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
 	if storageEnabled {
-		log.Info("FullNode", "storageEnabled", storageEnabled)
+		log.Debug("FullNode", "storageEnabled", storageEnabled)
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
 	}
 

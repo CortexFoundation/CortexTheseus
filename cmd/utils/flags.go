@@ -1450,7 +1450,7 @@ func setDNSDiscoveryDefaults(cfg *ctxc.Config, genesis common.Hash) {
 
 	protocol := "all"
 	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
-		log.Info("Dns found", "url", url)
+		//log.Info("Dns found", "url", url)
 		cfg.DiscoveryURLs = []string{url}
 	}
 }
@@ -1474,8 +1474,8 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		path := MakeDataDir(ctx)
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
-		log.Info("path", "path", path, "ipc", IPCPath)
-		log.Info("FsConfig", "IPCPath", cfg.IpcPath)
+		//log.Info("path", "path", path, "ipc", IPCPath)
+		//log.Info("FsConfig", "IPCPath", cfg.IpcPath)
 	}
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
