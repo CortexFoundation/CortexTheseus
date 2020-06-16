@@ -39,7 +39,8 @@ var (
 		TfsBlocks:     96,
 		TfsFiles:      46,
 		TfsCheckPoint: 395964,
-		TfsRoot:       common.HexToHash("0xb07f9a8a8300db4a82da72d3d024fb86bae3742d24a91a7160d2838a13e2520a"),
+		//TfsRoot:       common.HexToHash("0xb07f9a8a8300db4a82da72d3d024fb86bae3742d24a91a7160d2838a13e2520a"),
+		TfsRoot: common.HexToHash("0xe78706dbcc1f853336a31a3e3f55dcb3d0d082fb8fd4b4b273fe859d657e5dcc"),
 	}
 )
 

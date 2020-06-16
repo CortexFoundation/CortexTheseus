@@ -1,8 +1,8 @@
 package torrentfs
 
 import (
-	"crypto/sha256"
-	"github.com/CortexFoundation/torrentfs/types"
+	"github.com/CortexFoundation/torrentfs/merkletree"
+	"golang.org/x/crypto/sha3"
 )
 
 type BlockContent struct {
@@ -11,7 +11,7 @@ type BlockContent struct {
 }
 
 func (t BlockContent) CalculateHash() ([]byte, error) {
-	h := sha256.New()
+	h := sha3.NewLegacyKeccak256()
 	if _, err := h.Write([]byte(t.x)); err != nil {
 		return nil, err
 	}
@@ -20,6 +20,6 @@ func (t BlockContent) CalculateHash() ([]byte, error) {
 }
 
 //Equals tests for equality of two Contents
-func (t BlockContent) Equals(other types.Content) (bool, error) {
+func (t BlockContent) Equals(other merkletree.Content) (bool, error) {
 	return t.x == other.(BlockContent).x, nil
 }

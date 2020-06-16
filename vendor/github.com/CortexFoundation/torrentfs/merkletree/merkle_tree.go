@@ -1,10 +1,10 @@
-package types
+package merkletree
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"hash"
 )
 
@@ -76,7 +76,7 @@ func (n *Node) calculateNodeHash() ([]byte, error) {
 
 //NewTree creates a new Merkle Tree using the content cs.
 func NewTree(cs []Content) (*MerkleTree, error) {
-	var defaultHashStrategy = sha256.New
+	var defaultHashStrategy = sha3.NewLegacyKeccak256
 	t := &MerkleTree{
 		hashStrategy: defaultHashStrategy,
 	}
@@ -108,98 +108,6 @@ func NewTreeWithHashStrategy(cs []Content, hashStrategy func() hash.Hash) (*Merk
 }
 
 func (m *MerkleTree) AddNode(c Content) error {
-	hash, err := c.CalculateHash()
-	if err != nil {
-		return err
-	}
-
-	n := len(m.Leafs)
-	lastLeaf := m.Leafs[n-1]
-
-	newLeaf := &Node{
-		Hash: hash,
-		C:    c,
-		leaf: true,
-		Tree: m,
-	}
-	m.Leafs = append(m.Leafs, newLeaf)
-
-	// when n is less than 2, it is better to rebuild the tree rather than add node
-	if n < 2 {
-		return m.RebuildTree()
-	}
-
-	currentNode := newLeaf
-	lastNode := lastLeaf
-
-	for ; n > 0; n /= 2 {
-		// n is 1 means the last layer, if the lastNode is the original root, it should create
-		// a new root. Otherwise, the hash of original root should be updated.
-		if n == 1 {
-			// if lastNode is root node, which means lastNode.Parent is nil
-			// the loop should be end and the root node should be updated
-			if lastNode.Parent == nil {
-				newRoot := &Node{
-					Tree:  m,
-					Left:  lastNode,
-					Right: currentNode,
-				}
-				currentNode.Parent = newRoot
-				lastNode.Parent = newRoot
-
-				h := m.hashStrategy()
-				if _, err := h.Write(append(lastNode.Hash, currentNode.Hash...)); err != nil {
-					return err
-				}
-				newRoot.Hash = h.Sum(nil)
-				m.Root = newRoot
-				m.merkleRoot = m.Root.Hash
-			} else {
-				h := m.hashStrategy()
-				if _, err := h.Write(append(lastNode.Hash, currentNode.Hash...)); err != nil {
-					return err
-				}
-				m.Root.Hash = h.Sum(nil)
-				m.merkleRoot = m.Root.Hash
-			}
-			return nil
-		}
-
-		if n%2 == 0 {
-			h := m.hashStrategy()
-			if _, err := h.Write(append(currentNode.Hash, currentNode.Hash...)); err != nil {
-				return err
-			}
-
-			if currentNode.Parent == nil {
-				currentNode.Parent = &Node{
-					Tree:  m,
-					Left:  currentNode,
-					Right: currentNode,
-				}
-			}
-			currentNode.Parent.Hash = h.Sum(nil)
-			currentNode = currentNode.Parent
-			lastNode = lastNode.Parent
-		} else {
-			parentNode := lastNode.Parent
-			parentNode.Right = currentNode
-			currentNode.Parent = parentNode
-
-			h := m.hashStrategy()
-			if _, err := h.Write(append(lastNode.Hash, currentNode.Hash...)); err != nil {
-				return err
-			}
-			parentNode.Hash = h.Sum(nil)
-
-			currentNode = parentNode
-			lastNode = parentNode.Parent.Left
-		}
-	}
-	return nil
-}
-
-func (m *MerkleTree) AddNodeWithDup(c Content) error {
 	hash, err := c.CalculateHash()
 	if err != nil {
 		return err

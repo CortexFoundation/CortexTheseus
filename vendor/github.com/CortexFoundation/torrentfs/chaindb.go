@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/torrentfs/merkletree"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	//lru "github.com/hashicorp/golang-lru"
@@ -46,8 +47,8 @@ type ChainDB struct {
 	id                    uint64
 	CheckPoint            uint64
 	LastListenBlockNumber uint64
-	leaves                []types.Content
-	tree                  *types.MerkleTree
+	leaves                []merkletree.Content
+	tree                  *merkletree.MerkleTree
 	dataDir               string
 	config                *Config
 	treeUpdates           time.Duration
@@ -120,7 +121,7 @@ func (fs *ChainDB) Blocks() []*types.Block {
 	return fs.blocks
 }
 
-func (fs *ChainDB) Leaves() []types.Content {
+func (fs *ChainDB) Leaves() []merkletree.Content {
 	return fs.leaves
 }
 
@@ -151,7 +152,7 @@ func (fs *ChainDB) initMerkleTree() error {
 
 	fs.leaves = nil
 	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
-	tr, err := types.NewTree(fs.leaves)
+	tr, err := merkletree.NewTree(fs.leaves)
 	if err != nil {
 		return err
 	}
@@ -207,7 +208,7 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 		}
 
 	} else {
-		if err := fs.tree.AddNodeWithDup(leaf); err != nil {
+		if err := fs.tree.AddNode(leaf); err != nil {
 			return err
 		}
 		if number > fs.CheckPoint {
