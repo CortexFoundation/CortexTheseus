@@ -31,9 +31,7 @@ jobs:
         fi
         
     - name: submodules-init
-      run: |
-        git submodule init
-        git submodule update --recursive
+      uses: snickerbockers/submodules-init@v4
         
     - name: Build
       run: go build -v .
