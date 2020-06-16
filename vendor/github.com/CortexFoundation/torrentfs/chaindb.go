@@ -151,7 +151,7 @@ func (fs *ChainDB) initMerkleTree() error {
 	}
 
 	fs.leaves = nil
-	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
+	fs.leaves = append(fs.leaves, merkletree.NewContent(params.MainnetGenesisHash.String(), uint64(0))) //BlockContent{X: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
 	tr, err := merkletree.NewTree(fs.leaves)
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ func (fs *ChainDB) Metrics() time.Duration {
 //Make sure the block group is increasing by number
 func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	number := block.Number
-	leaf := BlockContent{x: block.Hash.String(), n: number}
+	leaf := merkletree.NewContent(block.Hash.String(), number)
 
 	l, e := fs.tree.VerifyContent(leaf)
 	if !l {
@@ -192,10 +192,10 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	if mes {
 		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
 		sort.Slice(fs.leaves, func(i, j int) bool {
-			return fs.leaves[i].(BlockContent).n < fs.leaves[j].(BlockContent).n
+			return fs.leaves[i].(merkletree.BlockContent).N() < fs.leaves[j].(merkletree.BlockContent).N()
 		})
 
-		i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(BlockContent).n > number })
+		i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(merkletree.BlockContent).N() > number })
 
 		if i > len(fs.leaves) {
 			i = len(fs.leaves)

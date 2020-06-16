@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.12-0.20200616052009-5891c736758a
+# github.com/CortexFoundation/torrentfs v1.0.12-0.20200616090038-3e2c5f3bdb96
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
