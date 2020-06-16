@@ -31,7 +31,7 @@ jobs:
         fi    
 
     - name: install
-      uses: git submodule update --init
+      run: git submodule update --init
         
     - name: Build
       run: go build -v .
