@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/torrentfs/merkletree"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	//lru "github.com/hashicorp/golang-lru"
@@ -46,8 +47,8 @@ type ChainDB struct {
 	id                    uint64
 	CheckPoint            uint64
 	LastListenBlockNumber uint64
-	leaves                []types.Content
-	tree                  *types.MerkleTree
+	leaves                []merkletree.Content
+	tree                  *merkletree.MerkleTree
 	dataDir               string
 	config                *Config
 	treeUpdates           time.Duration
@@ -120,7 +121,7 @@ func (fs *ChainDB) Blocks() []*types.Block {
 	return fs.blocks
 }
 
-func (fs *ChainDB) Leaves() []types.Content {
+func (fs *ChainDB) Leaves() []merkletree.Content {
 	return fs.leaves
 }
 
@@ -150,8 +151,8 @@ func (fs *ChainDB) initMerkleTree() error {
 	}
 
 	fs.leaves = nil
-	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
-	tr, err := types.NewTree(fs.leaves)
+	fs.leaves = append(fs.leaves, merkletree.NewContent(params.MainnetGenesisHash.String(), uint64(0))) //BlockContent{X: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
+	tr, err := merkletree.NewTree(fs.leaves)
 	if err != nil {
 		return err
 	}
@@ -174,7 +175,7 @@ func (fs *ChainDB) Metrics() time.Duration {
 //Make sure the block group is increasing by number
 func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	number := block.Number
-	leaf := BlockContent{x: block.Hash.String(), n: number}
+	leaf := merkletree.NewContent(block.Hash.String(), number)
 
 	l, e := fs.tree.VerifyContent(leaf)
 	if !l {
@@ -188,46 +189,37 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 		}
 	}
 
-	i := len(fs.leaves)
 	if mes {
 		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
 		sort.Slice(fs.leaves, func(i, j int) bool {
-			return fs.leaves[i].(BlockContent).n < fs.leaves[j].(BlockContent).n
+			return fs.leaves[i].(merkletree.BlockContent).N() < fs.leaves[j].(merkletree.BlockContent).N()
 		})
 
-		i = sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(BlockContent).n > number })
+		i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(merkletree.BlockContent).N() > number })
 
 		if i > len(fs.leaves) {
 			i = len(fs.leaves)
 		}
-		log.Debug("Messing recover", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
 
-	}
+		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
 
-	//tmp := fs.tree.MerkleRoot()
-	if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err == nil {
-		//if bytes.Equal(tmp, fs.tree.MerkleRoot()){
-		//	log.Warn("Root is not changed", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
-		//}
-		log.Debug("Merkle root", "num", number, "root", common.BytesToHash(fs.tree.MerkleRoot()), "i", i, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
-		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
+		if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err != nil {
 			return err
 		}
 
-		//if i >= params.LEAFS {
-		//	fs.leaves = nil
-		//	fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
-		//	log.Warn("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()), "num", number, "root", common.BytesToHash(fs.tree.MerkleRoot()), "i", i, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
-		//}
-
-		if !mes && number > fs.CheckPoint {
+	} else {
+		if err := fs.tree.AddNode(leaf); err != nil {
+			return err
+		}
+		if number > fs.CheckPoint {
 			fs.CheckPoint = number
 		}
+	}
 
-		return nil
-	} else {
+	if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
 		return err
 	}
+	return nil
 }
 
 func (fs *ChainDB) Root() common.Hash {
@@ -401,7 +393,8 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 	//	log.Warn("Encounter ancient block (dup)", "cur", b.Number, "index", i, "len", len(fs.blocks), "ckp", fs.CheckPoint)
 	//	return nil
 	//}
-	if fs.GetBlockByNumber(b.Number) != nil {
+	ancient := fs.GetBlockByNumber(b.Number)
+	if ancient != nil && ancient.Hash == b.Hash {
 		fs.addLeaf(b, false, true)
 		return nil
 	}
@@ -560,7 +553,8 @@ func (fs *ChainDB) initID() error {
 		return e
 	})
 }
-func (fs *ChainDB) initCheckPoint() error {
+
+/*func (fs *ChainDB) initCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
 		if err != nil {
@@ -584,7 +578,7 @@ func (fs *ChainDB) initCheckPoint() error {
 
 		return nil
 	})
-}
+}*/
 
 func (fs *ChainDB) initBlockNumber() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
@@ -612,7 +606,7 @@ func (fs *ChainDB) initBlockNumber() error {
 	})
 }
 
-func (fs *ChainDB) writeCheckPoint() error {
+/*func (fs *ChainDB) writeCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
 		if err != nil {
@@ -622,7 +616,7 @@ func (fs *ChainDB) writeCheckPoint() error {
 
 		return e
 	})
-}
+}*/
 
 func (fs *ChainDB) writeRoot(number uint64, root []byte) error {
 	//fs.rootCache.Add(number, root)
