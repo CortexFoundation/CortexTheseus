@@ -29,7 +29,12 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-
+        
+    - name: submodules-init
+      run: |
+        git submodule init
+        git submodule update --recursive
+        
     - name: Build
       run: go build -v .
       
