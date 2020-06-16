@@ -2,9 +2,9 @@ package merkletree
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"hash"
 )
 
@@ -76,7 +76,7 @@ func (n *Node) calculateNodeHash() ([]byte, error) {
 
 //NewTree creates a new Merkle Tree using the content cs.
 func NewTree(cs []Content) (*MerkleTree, error) {
-	var defaultHashStrategy = sha256.New
+	var defaultHashStrategy = sha3.NewLegacyKeccak256
 	t := &MerkleTree{
 		hashStrategy: defaultHashStrategy,
 	}
