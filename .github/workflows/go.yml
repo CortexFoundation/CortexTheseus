@@ -30,8 +30,8 @@ jobs:
             dep ensure
         fi    
 
-    - name: Checkout submodules
-      uses: textbook/git-checkout-submodule-action@master
+    - name: install
+      uses: git submodule update --init
         
     - name: Build
       run: go build -v .
