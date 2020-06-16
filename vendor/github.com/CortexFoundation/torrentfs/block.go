@@ -2,7 +2,7 @@ package torrentfs
 
 import (
 	"crypto/sha256"
-	"github.com/CortexFoundation/torrentfs/types"
+	"github.com/CortexFoundation/torrentfs/merkletree"
 )
 
 type BlockContent struct {
@@ -20,6 +20,6 @@ func (t BlockContent) CalculateHash() ([]byte, error) {
 }
 
 //Equals tests for equality of two Contents
-func (t BlockContent) Equals(other types.Content) (bool, error) {
+func (t BlockContent) Equals(other merkletree.Content) (bool, error) {
 	return t.x == other.(BlockContent).x, nil
 }

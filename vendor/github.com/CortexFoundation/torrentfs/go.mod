@@ -15,7 +15,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
 	github.com/pborman/uuid v1.2.0
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
-	go.etcd.io/bbolt v1.3.5-0.20200424005604-a8af23b57f67
+	go.etcd.io/bbolt v1.3.5-0.20200615073812-232d8fc87f50
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
