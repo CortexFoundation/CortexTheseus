@@ -4,10 +4,11 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.9-0.20200610110944-4f9dc90ac746
+	github.com/CortexFoundation/torrentfs v1.0.12-0.20200616090038-3e2c5f3bdb96
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
+	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go v1.31.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/cespare/cp v1.1.1
@@ -21,6 +22,7 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
+	github.com/holiman/uint256 v1.1.0
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
@@ -29,6 +31,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
+	github.com/rakyll/statik v0.1.7
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0

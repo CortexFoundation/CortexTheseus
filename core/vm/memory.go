@@ -19,9 +19,7 @@ package vm
 import (
 	"errors"
 	"fmt"
-	"math/big"
-
-	"github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/holiman/uint256"
 )
 
 // Memory implements a simple memory model for the cortex virtual machine.
@@ -51,7 +49,7 @@ func (m *Memory) Set(offset, size uint64, value []byte) {
 
 // Set32 sets the 32 bytes starting at offset to the value of val, left-padded with zeroes to
 // 32 bytes.
-func (m *Memory) Set32(offset uint64, val *big.Int) {
+func (m *Memory) Set32(offset uint64, val *uint256.Int) {
 	// length of store may never be less than offset + size.
 	// The store should be resized PRIOR to setting the memory
 	if offset+32 > uint64(len(m.store)) {
@@ -60,7 +58,7 @@ func (m *Memory) Set32(offset uint64, val *big.Int) {
 	// Zero the memory area
 	copy(m.store[offset:offset+32], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	// Fill in relevant bits
-	math.ReadBits(val, m.store[offset:offset+32])
+	val.WriteToSlice(m.store[offset:])
 }
 
 // Resize resizes the memory to size
@@ -125,10 +123,10 @@ func (m *Memory) Print() {
 }
 
 func (m *Memory) GetSolidityBytes(slot int64) ([]byte, error) {
-	bigLen := big.NewInt(0)
+	bigLen := uint256.NewInt()
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
-	buff := m.GetPtr(slot+32, bigLen.Int64())
+	buff := m.GetPtr(slot+32, int64(bigLen.Uint64()))
 	return buff, nil
 }
 
@@ -147,23 +145,23 @@ func (m* Memory) GetLengthOfSolidityUint256Array(slot int64) (uint64, error) {
 }*/
 
 func (m *Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
-	bigLen := big.NewInt(0)
+	bigLen := uint256.NewInt()
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
 	// uint256 has 32 bytes
-	bigLen.Mul(bigLen, big.NewInt(32))
-	if int64(len(data)) > bigLen.Int64() {
-		return errors.New(fmt.Sprintf("solidity memory bytes length not match %d != %d", len(data), bigLen.Int64()))
+	bigLen.Mul(bigLen, uint256.NewInt().SetUint64(32))
+	if int64(len(data)) > int64(bigLen.Uint64()) {
+		return errors.New(fmt.Sprintf("solidity memory bytes length not match %d != %d", len(data), bigLen.Uint64()))
 	}
 	m.Set(uint64(slot+32), bigLen.Uint64(), data)
 	return nil
 }
 
 func (m *Memory) GetSolidityUint256(slot int64) ([]byte, error) {
-	bigLen := big.NewInt(0)
+	bigLen := uint256.NewInt()
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
-	bigLen.Mul(bigLen, big.NewInt(32))
-	buff := m.GetPtr(slot+32, bigLen.Int64())
+	bigLen.Mul(bigLen, uint256.NewInt().SetUint64(32))
+	buff := m.GetPtr(slot+32, int64(bigLen.Uint64()))
 	return buff, nil
 }

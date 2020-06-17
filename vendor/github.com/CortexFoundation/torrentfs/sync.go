@@ -123,15 +123,18 @@ func (m *Monitor) IndexCheck() error {
 
 		m.ckp = checkpoint
 
-		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
+		version := m.fs.GetRoot(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
+			m.lastNumber = 0
+			m.startNumber = 0
 			if m.lastNumber > checkpoint.TfsCheckPoint {
-				m.lastNumber = 0
-				if err := m.fs.Reset(); err != nil {
-					return err
-				}
+				m.fs.LastListenBlockNumber = 0
+				//m.lastNumber = 0
+				//if err := m.fs.Reset(); err != nil {
+				//	return err
+				//}
 			}
+			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "lastNumber", m.lastNumber, "last in db", m.fs.LastListenBlockNumber)
 		} else {
 			log.Info("Fs storage version check passed", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 		}
@@ -202,7 +205,7 @@ func (m *Monitor) taskLoop() {
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 
-	log.Info("Building connection", "terminated", m.terminated)
+	log.Debug("Building connection", "terminated", m.terminated)
 
 	for {
 		time.Sleep(time.Second * queryTimeInterval)
@@ -338,7 +341,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				record = true
 			} else if tx.IsFlowControl() {
 				if tx.Recipient == nil {
-					log.Trace("Recipient is nil", "num", b.Number)
 					continue
 				}
 				addr := *tx.Recipient
@@ -351,7 +353,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				if err != nil {
 					return false, err
 				}
-
+				//todo
 				if receipt.Status != 1 {
 					continue
 				}
@@ -640,7 +642,7 @@ func (m *Monitor) solve(block *types.Block) error {
 	if i%65536 == 0 {
 		defer func() {
 			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "start", m.startNumber, "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
 		}()
 	}
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
@@ -651,10 +653,10 @@ func (m *Monitor) solve(block *types.Block) error {
 			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 
 			if m.ckp != nil && m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
-				if common.BytesToHash(m.fs.GetRootByNumber(i)) == m.ckp.TfsRoot {
+				if common.BytesToHash(m.fs.GetRoot(i)) == m.ckp.TfsRoot {
 					log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
 				} else {
-					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot)
+					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot, "leaves", len(m.fs.Leaves()))
 					panic("FIRST MILESTONE ERROR, run './cortex removedb' command to solve this problem")
 				}
 			}

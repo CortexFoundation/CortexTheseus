@@ -20,8 +20,10 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/torrentfs/merkletree"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
+	//lru "github.com/hashicorp/golang-lru"
 	"github.com/pborman/uuid"
 	"os"
 	"path/filepath"
@@ -45,12 +47,14 @@ type ChainDB struct {
 	id                    uint64
 	CheckPoint            uint64
 	LastListenBlockNumber uint64
-	leaves                []types.Content
-	tree                  *types.MerkleTree
+	leaves                []merkletree.Content
+	tree                  *merkletree.MerkleTree
 	dataDir               string
 	config                *Config
 	treeUpdates           time.Duration
 	metrics               bool
+
+	//rootCache *lru.Cache
 }
 
 func NewChainDB(config *Config) (*ChainDB, error) {
@@ -80,15 +84,17 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 
 	fs.version = version
 
+	//fs.rootCache, _ = lru.New(8)
+
 	if err := fs.initBlockNumber(); err != nil {
 		return nil, err
 	}
-	if err := fs.initCheckPoint(); err != nil {
-		return nil, err
-	}
-	if err := fs.initBlocks(); err != nil {
-		return nil, err
-	}
+	//if err := fs.initCheckPoint(); err != nil {
+	//	return nil, err
+	//}
+	//if err := fs.initBlocks(); err != nil {
+	//	return nil, err
+	//}
 	if err := fs.initFiles(); err != nil {
 		return nil, err
 	}
@@ -99,6 +105,8 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 	if err := fs.initID(); err != nil {
 		return nil, err
 	}
+
+	//fs.history()
 
 	log.Info("Storage ID generated", "id", fs.id)
 
@@ -111,6 +119,10 @@ func (fs *ChainDB) Files() []*types.FileInfo {
 
 func (fs *ChainDB) Blocks() []*types.Block {
 	return fs.blocks
+}
+
+func (fs *ChainDB) Leaves() []merkletree.Content {
+	return fs.leaves
 }
 
 func (fs *ChainDB) Txs() uint64 {
@@ -134,20 +146,24 @@ func (fs *ChainDB) NewFileInfo(Meta *types.FileMeta) *types.FileInfo {
 }
 
 func (fs *ChainDB) initMerkleTree() error {
+	if err := fs.initBlocks(); err != nil {
+		return err
+	}
+
 	fs.leaves = nil
-	fs.leaves = append(fs.leaves, BlockContent{x: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
-	tr, err := types.NewTree(fs.leaves)
+	fs.leaves = append(fs.leaves, merkletree.NewContent(params.MainnetGenesisHash.String(), uint64(0))) //BlockContent{X: params.MainnetGenesisHash.String()}) //"0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1"})
+	tr, err := merkletree.NewTree(fs.leaves)
 	if err != nil {
 		return err
 	}
 	fs.tree = tr
 	for _, block := range fs.blocks {
-		if err := fs.addLeaf(block, true); err != nil {
+		if err := fs.addLeaf(block, false, false); err != nil {
 			panic("Storage merkletree construct failed")
 		}
 	}
 
-	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.LastListenBlockNumber, "checkpoint", fs.CheckPoint, "version", fs.version)
+	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.LastListenBlockNumber, "checkpoint", fs.CheckPoint, "version", fs.version, "len", len(fs.blocks))
 
 	return nil
 }
@@ -157,27 +173,53 @@ func (fs *ChainDB) Metrics() time.Duration {
 }
 
 //Make sure the block group is increasing by number
-func (fs *ChainDB) addLeaf(block *types.Block, init bool) error {
+func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	number := block.Number
-	leaf := BlockContent{x: block.Hash.String()}
+	leaf := merkletree.NewContent(block.Hash.String(), number)
 
-	if len(fs.leaves) >= params.LEAFS {
-		fs.leaves = nil
-		fs.leaves = append(fs.leaves, BlockContent{x: hexutil.Encode(fs.tree.MerkleRoot())})
-		log.Debug("Next tree level", "leaf", len(fs.leaves), "root", hexutil.Encode(fs.tree.MerkleRoot()))
+	l, e := fs.tree.VerifyContent(leaf)
+	if !l {
+		if !dup {
+			fs.leaves = append(fs.leaves, leaf)
+		}
+	} else {
+		log.Debug("Node is already in the tree", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "err", e)
+		if !mes {
+			return nil
+		}
 	}
 
-	fs.leaves = append(fs.leaves, leaf)
+	if mes {
+		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
+		sort.Slice(fs.leaves, func(i, j int) bool {
+			return fs.leaves[i].(merkletree.BlockContent).N() < fs.leaves[j].(merkletree.BlockContent).N()
+		})
 
-	if err := fs.tree.RebuildTreeWith(fs.leaves); err == nil {
-		if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
+		i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(merkletree.BlockContent).N() > number })
+
+		if i > len(fs.leaves) {
+			i = len(fs.leaves)
+		}
+
+		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
+
+		if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err != nil {
 			return err
 		}
 
-		return nil
 	} else {
+		if err := fs.tree.AddNode(leaf); err != nil {
+			return err
+		}
+		if number > fs.CheckPoint {
+			fs.CheckPoint = number
+		}
+	}
+
+	if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
 		return err
 	}
+	return nil
 }
 
 func (fs *ChainDB) Root() common.Hash {
@@ -225,7 +267,7 @@ func (fs *ChainDB) GetFileByAddr(addr common.Address) *types.FileInfo {
 
 func (fs *ChainDB) Close() error {
 	defer fs.db.Close()
-	fs.writeCheckPoint()
+	//fs.writeCheckPoint()
 	log.Info("File DB Closed", "database", fs.db.Path())
 	return fs.Flush()
 }
@@ -341,54 +383,54 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 
 //func (fs *ChainDB) addBlock(b *Block, record bool) error {
 func (fs *ChainDB) AddBlock(b *types.Block) error {
-	if b.Number < fs.LastListenBlockNumber {
-		return nil
-	}
-
 	if fs.metrics {
 		defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())
 	}
-	if b.Number > fs.CheckPoint {
-
-		if err := fs.db.Update(func(tx *bolt.Tx) error {
-			buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
-			if err != nil {
-				return err
-			}
-			v, err := json.Marshal(b)
-			if err != nil {
-				return err
-			}
-			k, err := json.Marshal(b.Number)
-			if err != nil {
-				return err
-			}
-
-			return buk.Put(k, v)
-		}); err == nil {
-			if err := fs.appendBlock(b); err == nil {
-				fs.txs += uint64(len(b.Txs))
-				if err := fs.addLeaf(b, false); err == nil {
-					if err := fs.writeCheckPoint(); err == nil {
-						fs.CheckPoint = b.Number
-					}
-				}
-			}
-		} else {
-			return err
-		}
+	//i := sort.Search(len(fs.blocks), func(i int) bool { return fs.blocks[i].Number > b.Number })
+	//if i == len(fs.blocks) {
+	//todo
+	//} else {
+	//	log.Warn("Encounter ancient block (dup)", "cur", b.Number, "index", i, "len", len(fs.blocks), "ckp", fs.CheckPoint)
+	//	return nil
+	//}
+	ancient := fs.GetBlockByNumber(b.Number)
+	if ancient != nil && ancient.Hash == b.Hash {
+		fs.addLeaf(b, false, true)
+		return nil
 	}
 
-	fs.LastListenBlockNumber = b.Number
-	return fs.Flush()
-}
+	if err := fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
+		if err != nil {
+			return err
+		}
+		v, err := json.Marshal(b)
+		if err != nil {
+			return err
+		}
+		k, err := json.Marshal(b.Number)
+		if err != nil {
+			return err
+		}
 
-func (fs *ChainDB) appendBlock(b *types.Block) error {
-	if len(fs.blocks) == 0 || fs.blocks[len(fs.blocks)-1].Number < b.Number {
-		log.Debug("Append block", "number", b.Number)
+		return buk.Put(k, v)
+	}); err == nil {
 		fs.blocks = append(fs.blocks, b)
+		fs.txs += uint64(len(b.Txs))
+		mes := false
+		if b.Number < fs.CheckPoint {
+			mes = true
+		}
+
+		fs.addLeaf(b, mes, false)
 	} else {
-		return errors.New("err block duplicated")
+		return err
+	}
+	if b.Number > fs.LastListenBlockNumber {
+		fs.LastListenBlockNumber = b.Number
+		if err := fs.Flush(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -418,6 +460,21 @@ func (fs *ChainDB) initBlocks() error {
 				return fs.blocks[i].Number < fs.blocks[j].Number
 			})
 			log.Info("Fs blocks initializing ... ...", "blocks", len(fs.blocks), "txs", fs.txs)
+			return nil
+		}
+	})
+}
+
+func (fs *ChainDB) history() error {
+	return fs.db.Update(func(tx *bolt.Tx) error {
+		if buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version)); err != nil {
+			return err
+		} else {
+			c := buk.Cursor()
+
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				log.Info("History", "k", string(k), "v", common.BytesToHash(v))
+			}
 			return nil
 		}
 	})
@@ -496,7 +553,8 @@ func (fs *ChainDB) initID() error {
 		return e
 	})
 }
-func (fs *ChainDB) initCheckPoint() error {
+
+/*func (fs *ChainDB) initCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
 		if err != nil {
@@ -520,7 +578,7 @@ func (fs *ChainDB) initCheckPoint() error {
 
 		return nil
 	})
-}
+}*/
 
 func (fs *ChainDB) initBlockNumber() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
@@ -548,7 +606,7 @@ func (fs *ChainDB) initBlockNumber() error {
 	})
 }
 
-func (fs *ChainDB) writeCheckPoint() error {
+/*func (fs *ChainDB) writeCheckPoint() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("checkpoint_" + fs.version))
 		if err != nil {
@@ -558,9 +616,10 @@ func (fs *ChainDB) writeCheckPoint() error {
 
 		return e
 	})
-}
+}*/
 
 func (fs *ChainDB) writeRoot(number uint64, root []byte) error {
+	//fs.rootCache.Add(number, root)
 	return fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
 		if err != nil {
@@ -572,7 +631,10 @@ func (fs *ChainDB) writeRoot(number uint64, root []byte) error {
 	})
 }
 
-func (fs *ChainDB) GetRootByNumber(number uint64) (root []byte) {
+func (fs *ChainDB) GetRoot(number uint64) (root []byte) {
+	//if root, suc := fs.rootCache.Get(number); suc {
+	//	return root.([]byte)
+	//}
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("version_" + fs.version))
 		if buk == nil {

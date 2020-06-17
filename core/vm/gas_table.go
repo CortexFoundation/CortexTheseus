@@ -22,7 +22,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	// "github.com/CortexFoundation/CortexTheseus/core/types"
 )
@@ -67,6 +66,48 @@ func constGasFunc(gas uint64) gasFunc {
 	}
 }
 
+// memoryCopierGas creates the gas functions for the following opcodes, and takes
+// the stack position of the operand which determines the size of the data to copy
+// as argument:
+// CALLDATACOPY (stack position 2)
+// CODECOPY (stack position 2)
+// EXTCODECOPY (stack poition 3)
+// RETURNDATACOPY (stack position 2)
+func memoryCopierGas(stackpos int) gasFunc {
+	return func(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+		// Gas for expanding the memory
+		gas, err := memoryGasCost(mem, memorySize)
+		if err != nil {
+			return 0, err
+		}
+		var overflow bool
+		if gas, overflow = math.SafeAdd(gas, GasFastestStep); overflow {
+			return 0, ErrGasUintOverflow
+		}
+		// And gas for copying data, charged per word at param.CopyGas
+		words, overflow := stack.Back(stackpos).Uint64WithOverflow()
+		if overflow {
+			return 0, ErrGasUintOverflow
+		}
+
+		if words, overflow = math.SafeMul(toWordSize(words), params.CopyGas); overflow {
+			return 0, ErrGasUintOverflow
+		}
+
+		if gas, overflow = math.SafeAdd(gas, words); overflow {
+			return 0, ErrGasUintOverflow
+		}
+		return gas, nil
+	}
+}
+
+var (
+//gasCallDataCopy = memoryCopierGas(2)
+//gasCodeCopy     = memoryCopierGas(2)
+//gasExtCodeCopy    = memoryCopierGas(3)
+//gasReturnDataCopy = memoryCopierGas(2)
+)
+
 func gasCallDataCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
 	if err != nil {
@@ -78,7 +119,7 @@ func gasCallDataCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *St
 		return 0, ErrGasUintOverflow
 	}
 
-	words, overflow := bigUint64(stack.Back(2))
+	words, overflow := stack.Back(2).Uint64WithOverflow()
 	if overflow {
 		return 0, ErrGasUintOverflow
 	}
@@ -104,7 +145,7 @@ func gasReturnDataCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *
 		return 0, ErrGasUintOverflow
 	}
 
-	words, overflow := bigUint64(stack.Back(2))
+	words, overflow := stack.Back(2).Uint64WithOverflow()
 	if overflow {
 		return 0, ErrGasUintOverflow
 	}
@@ -122,12 +163,11 @@ func gasReturnDataCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *
 func gasSStore(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var (
 		y, x    = stack.Back(1), stack.Back(0)
-		current = cvm.StateDB.GetState(contract.Address(), common.BigToHash(x))
+		current = cvm.StateDB.GetState(contract.Address(), common.Hash(x.Bytes32()))
 	)
 	// The legacy gas metering only takes into consideration the current state
 	// Legacy rules should be applied if we are in Petersburg (removal of EIP-1283)
 	// OR Constantinople is not active
-	// log.Debug("gas_table", "cvm.chainRules.IsPetersburg", cvm.chainRules.IsPetersburg, "cvm.chainRules.IsConstantinople", cvm.chainRules.IsConstantinople)
 	if cvm.chainRules.IsPetersburg || !cvm.chainRules.IsConstantinople {
 		// This checks for 3 scenario's and calculates gas accordingly:
 		//
@@ -158,11 +198,11 @@ func gasSStore(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, m
 	// 	  2.2.2. If original value equals new value (this storage slot is reset)
 	//       2.2.2.1. If original value is 0, add 19800 gas to refund counter.
 	// 	     2.2.2.2. Otherwise, add 4800 gas to refund counter.
-	value := common.BigToHash(y)
+	value := common.Hash(y.Bytes32())
 	if current == value { // noop (1)
 		return params.NetSstoreNoopGas, nil
 	}
-	original := cvm.StateDB.GetCommittedState(contract.Address(), common.BigToHash(x))
+	original := cvm.StateDB.GetCommittedState(contract.Address(), common.Hash(x.Bytes32()))
 	if original == current {
 		if original == (common.Hash{}) { // create slot (2.1.1)
 			return params.NetSstoreInitGas, nil
@@ -210,14 +250,14 @@ func gasSStoreEIP2200(gt params.GasTable, cvm *CVM, contract *Contract, stack *S
 	// Gas sentry honoured, do the actual gas calculation based on the stored value
 	var (
 		y, x    = stack.Back(1), stack.Back(0)
-		current = cvm.StateDB.GetState(contract.Address(), common.BigToHash(x))
+		current = cvm.StateDB.GetState(contract.Address(), common.Hash(x.Bytes32()))
 	)
-	value := common.BigToHash(y)
+	value := common.Hash(y.Bytes32())
 
 	if current == value { // noop (1)
 		return params.SstoreNoopGasEIP2200, nil
 	}
-	original := cvm.StateDB.GetCommittedState(contract.Address(), common.BigToHash(x))
+	original := cvm.StateDB.GetCommittedState(contract.Address(), common.Hash(x.Bytes32()))
 	if original == current {
 		if original == (common.Hash{}) { // create slot (2.1.1)
 			return params.SstoreInitGasEIP2200, nil
@@ -246,7 +286,7 @@ func gasSStoreEIP2200(gt params.GasTable, cvm *CVM, contract *Contract, stack *S
 
 func makeGasLog(n uint64) gasFunc {
 	return func(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
-		requestedSize, overflow := bigUint64(stack.Back(1))
+		requestedSize, overflow := stack.Back(1).Uint64WithOverflow()
 		if overflow {
 			return 0, ErrGasUintOverflow
 		}
@@ -285,7 +325,7 @@ func gasSha3(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem
 		return 0, ErrGasUintOverflow
 	}
 
-	wordGas, overflow := bigUint64(stack.Back(1))
+	wordGas, overflow := stack.Back(1).Uint64WithOverflow()
 	if overflow {
 		return 0, ErrGasUintOverflow
 	}
@@ -309,7 +349,7 @@ func gasCodeCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack,
 		return 0, ErrGasUintOverflow
 	}
 
-	wordGas, overflow := bigUint64(stack.Back(2))
+	wordGas, overflow := stack.Back(2).Uint64WithOverflow()
 	if overflow {
 		return 0, ErrGasUintOverflow
 	}
@@ -333,7 +373,7 @@ func gasExtCodeCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Sta
 		return 0, ErrGasUintOverflow
 	}
 
-	wordGas, overflow := bigUint64(stack.Back(3))
+	wordGas, overflow := stack.Back(3).Uint64WithOverflow()
 	if overflow {
 		return 0, ErrGasUintOverflow
 	}
@@ -406,11 +446,12 @@ func gasCreate2(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, 
 	if err != nil {
 		return 0, err
 	}
+
 	if gas, overflow = math.SafeAdd(gas, params.Create2Gas); overflow {
 		return 0, ErrGasUintOverflow
 	}
 
-	wordGas, overflow := bigUint64(stack.Back(2))
+	wordGas, overflow := stack.Back(2).Uint64WithOverflow()
 	if overflow {
 		return 0, ErrGasUintOverflow
 	}
@@ -478,11 +519,10 @@ func gasExp(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem 
 func gasCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var (
 		gas            = gt.Calls
-		transfersValue = stack.Back(2).Sign() != 0
-		address        = common.BigToAddress(stack.Back(1))
-		eip158         = cvm.chainRules.IsEIP158
+		transfersValue = !stack.Back(2).IsZero()
+		address        = common.Address(stack.Back(1).Bytes20())
 	)
-	if eip158 {
+	if cvm.chainRules.IsEIP158 {
 		if transfersValue && cvm.StateDB.Empty(address) {
 			gas += params.CallNewAccountGas
 		}
@@ -501,7 +541,7 @@ func gasCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem
 		return 0, ErrGasUintOverflow
 	}
 
-	cvm.callGasTemp, err = callGas(gt, contract.Gas, gas, stack.Back(0))
+	cvm.callGasTemp, err = callGas(cvm.chainRules.IsEIP150, contract.Gas, gas, stack.Back(0))
 	if err != nil {
 		return 0, err
 	}
@@ -525,7 +565,7 @@ func gasCallCode(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack,
 		return 0, ErrGasUintOverflow
 	}
 
-	cvm.callGasTemp, err = callGas(gt, contract.Gas, gas, stack.Back(0))
+	cvm.callGasTemp, err = callGas(cvm.chainRules.IsEIP150, contract.Gas, gas, stack.Back(0))
 	if err != nil {
 		return 0, err
 	}
@@ -549,7 +589,7 @@ func gasSuicide(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, 
 	if cvm.chainRules.IsEIP150 {
 		gas = gt.Suicide
 		var (
-			address = common.BigToAddress(stack.Back(0))
+			address = common.Address(stack.Back(0).Bytes20())
 			eip158  = cvm.chainRules.IsEIP158
 		)
 
@@ -579,7 +619,7 @@ func gasDelegateCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *St
 		return 0, ErrGasUintOverflow
 	}
 
-	cvm.callGasTemp, err = callGas(gt, contract.Gas, gas, stack.Back(0))
+	cvm.callGasTemp, err = callGas(cvm.chainRules.IsEIP150, contract.Gas, gas, stack.Back(0))
 	if err != nil {
 		return 0, err
 	}
@@ -590,15 +630,13 @@ func gasDelegateCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *St
 }
 
 func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
-	modelAddr := common.BigToAddress(stack.Back(0))
-	inputAddr := common.BigToAddress(stack.Back(1))
+	modelAddr := common.Address(stack.Back(0).Bytes20())
+	inputAddr := common.Address(stack.Back(1).Bytes20())
 	_, modelErr := checkModel(cvm, stack, modelAddr)
-	log.Trace("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "ModelErr", modelErr)
 	if modelErr != nil {
 		return 0, modelErr
 	}
 	_, inputErr := checkInputMeta(cvm, stack, inputAddr)
-	log.Trace("gasInfer", "modelAddr", modelAddr, "inputAddr", inputAddr, "InputErr", inputErr)
 	if inputErr != nil {
 		return 0, inputErr
 	}
@@ -607,7 +645,7 @@ func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, me
 	if err != nil {
 		return 0, err
 	}
-	modelOps, errOps := cvm.OpsInfer(common.BigToAddress(stack.Back(0)))
+	modelOps, errOps := cvm.OpsInfer(modelAddr)
 	if errOps != nil {
 		return 0, errOps
 	}
@@ -620,9 +658,8 @@ func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, me
 }
 
 func gasInferArray(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
-	modelAddr := common.BigToAddress(stack.Back(0))
+	modelAddr := common.Address(stack.Back(0).Bytes20())
 	_, modelErr := checkModel(cvm, stack, modelAddr)
-	log.Trace("gasInfer", "modelAddr", modelAddr, "ModelErr", modelErr)
 	if modelErr != nil {
 		return 0, modelErr
 	}
@@ -630,7 +667,7 @@ func gasInferArray(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stac
 	if err != nil {
 		return 0, err
 	}
-	modelOps, errOps := cvm.OpsInfer(common.BigToAddress(stack.Back(0)))
+	modelOps, errOps := cvm.OpsInfer(modelAddr)
 	if errOps != nil {
 		return 0, errOps
 	}
@@ -655,7 +692,7 @@ func gasStaticCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stac
 		return 0, ErrGasUintOverflow
 	}
 
-	cvm.callGasTemp, err = callGas(gt, contract.Gas, gas, stack.Back(0))
+	cvm.callGasTemp, err = callGas(cvm.chainRules.IsEIP150, contract.Gas, gas, stack.Back(0))
 	if err != nil {
 		return 0, err
 	}

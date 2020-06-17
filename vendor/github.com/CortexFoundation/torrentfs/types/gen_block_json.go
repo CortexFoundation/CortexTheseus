@@ -17,7 +17,7 @@ func (b Block) MarshalJSON() ([]byte, error) {
 	type Block struct {
 		Number hexutil.Uint64 `json:"number"           gencodec:"required"`
 		Hash   common.Hash    `json:"Hash"             gencodec:"required"`
-		Txs    []Transaction  `json:"Transactions"     gencodec:"required"`
+		Txs    []Transaction  `json:"transactions"     gencodec:"required"`
 	}
 	var enc Block
 	enc.Number = hexutil.Uint64(b.Number)
@@ -31,7 +31,7 @@ func (b *Block) UnmarshalJSON(input []byte) error {
 	type Block struct {
 		Number *hexutil.Uint64 `json:"number"           gencodec:"required"`
 		Hash   *common.Hash    `json:"Hash"             gencodec:"required"`
-		Txs    []Transaction   `json:"Transactions"     gencodec:"required"`
+		Txs    []Transaction   `json:"transactions"     gencodec:"required"`
 	}
 	var dec Block
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -46,7 +46,7 @@ func (b *Block) UnmarshalJSON(input []byte) error {
 	}
 	b.Hash = *dec.Hash
 	if dec.Txs == nil {
-		return errors.New("missing required field 'Transactions' for Block")
+		return errors.New("missing required field 'transactions' for Block")
 	}
 	b.Txs = dec.Txs
 	return nil
