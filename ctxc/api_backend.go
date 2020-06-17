@@ -242,6 +242,12 @@ func (b *CortexAPIBackend) EventMux() *event.TypeMux {
 func (b *CortexAPIBackend) AccountManager() *accounts.Manager {
 	return b.ctxc.AccountManager()
 }
+func (b *CortexAPIBackend) RPCGasCap() *big.Int {
+	return b.ctxc.config.RPCGasCap
+}
+func (b *CortexAPIBackend) RPCTxFeeCap() float64 {
+	return b.ctxc.config.RPCTxFeeCap
+}
 
 func (b *CortexAPIBackend) BloomStatus() (uint64, uint64) {
 	sections, _, _ := b.ctxc.bloomIndexer.Sections()

@@ -44,7 +44,8 @@ type Backend interface {
 	ChainDb() ctxcdb.Database
 	EventMux() *event.TypeMux
 	AccountManager() *accounts.Manager
-
+	RPCGasCap() *big.Int  // global gas cap for ctxc_call over rpc: DoS protection
+	RPCTxFeeCap() float64 // global tx fee cap for all transaction related APIs
 	// BlockChain API
 	SetHead(number uint64)
 	HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error)
