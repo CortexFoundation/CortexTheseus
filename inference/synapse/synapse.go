@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
+	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/torrentfs"
