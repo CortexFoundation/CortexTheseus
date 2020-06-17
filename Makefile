@@ -42,17 +42,14 @@ clean-miner:
 
 cortex_cpu: clean-miner clib_cpu
 	build/env.sh go run build/ci.go install ./cmd/cortex
-	echo "build cortex_cpu ..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex cpu."
 cortex_mine: clean-miner clib_mine
 	build/env.sh go run build/ci.go install ./cmd/cortex
-	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex miner."
 cortex_gpu: clean-miner clib
 	build/env.sh go run build/ci.go install ./cmd/cortex
-	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex gpu."
 bootnode:
@@ -80,11 +77,11 @@ wnode:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/wnode\" to launch cortex whisper node."
 plugins/cuda_helper_for_node.so: 
-	$(MAKE) -C solution cuda-miner
+	$(MAKE) -C $(BASE)/solution cuda-miner
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
-	$(MAKE) -C solution cpu-miner
+	$(MAKE) -C $(BASE)/solution cpu-miner
 	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so:

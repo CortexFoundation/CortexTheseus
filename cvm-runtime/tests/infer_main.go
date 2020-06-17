@@ -42,7 +42,7 @@ import (
 	_ "runtime"
 	"unsafe"
 
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
+	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
