@@ -30,6 +30,9 @@ jobs:
             dep ensure
         fi
 
+    - name: install
+      run: git submodule update --init --recursive
+        
     - name: Build
       run: go build -v .
       
