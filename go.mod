@@ -28,7 +28,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
-	github.com/olekukonko/tablewriter v0.0.4
+	github.com/olekukonko/tablewriter v0.0.5-0.20200416053754-163badb3bac6
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.2.0
 	github.com/rakyll/statik v0.1.7
