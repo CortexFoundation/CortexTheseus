@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
@@ -65,8 +64,7 @@ func init() {
 	}
 }
 
-//go:generate gencodec -type Config -field-override configMarshaling -formats toml -out gen_config.go
-
+//go:generate gencodec -type Config -formats toml -out gen_config.go
 type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Cortex main net block is used.
@@ -117,12 +115,12 @@ type Config struct {
 	StorageDir string
 
 	// Miscellaneous options
-	DocRoot    string                    `toml:"-"`
-	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
+	DocRoot   string   `toml:"-"`
+	RPCGasCap *big.Int `toml:",omitempty"`
+	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
+	// send-transction variants. The unit is ctxc.
+	RPCTxFeeCap float64                   `toml:",omitempty"`
+	Checkpoint  *params.TrustedCheckpoint `toml:",omitempty"`
 	// CheckpointOracle is the configuration for checkpoint oracle.
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
-}
-
-type configMarshaling struct {
-	MinerExtraData hexutil.Bytes
 }
