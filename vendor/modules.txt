@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.12
+# github.com/CortexFoundation/torrentfs v1.0.13-0.20200618090828-e94ddbaf3aca
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -260,7 +260,7 @@ github.com/naoina/go-stringutil
 ## explicit
 github.com/naoina/toml
 github.com/naoina/toml/ast
-# github.com/olekukonko/tablewriter v0.0.4
+# github.com/olekukonko/tablewriter v0.0.5-0.20200416053754-163badb3bac6
 ## explicit
 github.com/olekukonko/tablewriter
 # github.com/pborman/uuid v1.2.0
@@ -437,14 +437,14 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
+# golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.3
 ## explicit
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
