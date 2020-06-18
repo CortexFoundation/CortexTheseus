@@ -22,8 +22,8 @@ import (
 	"fmt"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"io/ioutil"
+	"math/big"
 	"os"
-	// "math/big"
 
 	"path/filepath"
 	"runtime"
@@ -491,6 +491,15 @@ var (
 	InsecureUnlockAllowedFlag = cli.BoolFlag{
 		Name:  "allow-insecure-unlock",
 		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
+	}
+	RPCGlobalGasCap = cli.Uint64Flag{
+		Name:  "rpc.gascap",
+		Usage: "Sets a cap on gas that can be used in ctxc_call/estimateGas",
+	}
+	RPCGlobalTxFeeCap = cli.Float64Flag{
+		Name:  "rpc.txfeecap",
+		Usage: "Sets a cap on transaction fee (in ctxc) that can be sent via the RPC APIs (0 = no cap)",
+		Value: ctxc.DefaultConfig.RPCTxFeeCap,
 	}
 
 	VMEnableDebugFlag = cli.BoolFlag{
@@ -1337,6 +1346,12 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
 	//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
 	//	}
+	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
+		cfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
+	}
+	if ctx.GlobalIsSet(RPCGlobalTxFeeCap.Name) {
+		cfg.RPCTxFeeCap = ctx.GlobalFloat64(RPCGlobalTxFeeCap.Name)
+	}
 	if ctx.GlobalIsSet(DNSDiscoveryFlag.Name) {
 		urls := ctx.GlobalString(DNSDiscoveryFlag.Name)
 		if urls == "" {
