@@ -5,7 +5,6 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -15,13 +14,14 @@ import (
 
 var _ = (*genesisAccountMarshaling)(nil)
 
+// MarshalJSON marshals as JSON.
 func (g GenesisAccount) MarshalJSON() ([]byte, error) {
 	type GenesisAccount struct {
 		Code       hexutil.Bytes               `json:"code,omitempty"`
 		Storage    map[storageJSON]storageJSON `json:"storage,omitempty"`
 		Balance    *math.HexOrDecimal256       `json:"balance" gencodec:"required"`
+		BlockNum   *big.Int                    `json:"blocknum"`
 		Nonce      math.HexOrDecimal64         `json:"nonce,omitempty"`
-		BlockNum   math.HexOrDecimal64         `json:"blocknum,omitempty"`
 		PrivateKey hexutil.Bytes               `json:"secretKey,omitempty"`
 	}
 	var enc GenesisAccount
@@ -33,19 +33,20 @@ func (g GenesisAccount) MarshalJSON() ([]byte, error) {
 		}
 	}
 	enc.Balance = (*math.HexOrDecimal256)(g.Balance)
+	enc.BlockNum = g.BlockNum
 	enc.Nonce = math.HexOrDecimal64(g.Nonce)
 	enc.PrivateKey = g.PrivateKey
-	fmt.Println("enc = ", enc)
 	return json.Marshal(&enc)
 }
 
+// UnmarshalJSON unmarshals from JSON.
 func (g *GenesisAccount) UnmarshalJSON(input []byte) error {
 	type GenesisAccount struct {
 		Code       *hexutil.Bytes              `json:"code,omitempty"`
 		Storage    map[storageJSON]storageJSON `json:"storage,omitempty"`
 		Balance    *math.HexOrDecimal256       `json:"balance" gencodec:"required"`
+		BlockNum   *big.Int                    `json:"blocknum"`
 		Nonce      *math.HexOrDecimal64        `json:"nonce,omitempty"`
-		BlockNum   *math.HexOrDecimal64        `json:"blocknum,omitempty"`
 		PrivateKey *hexutil.Bytes              `json:"secretKey,omitempty"`
 	}
 	var dec GenesisAccount
@@ -65,15 +66,14 @@ func (g *GenesisAccount) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'balance' for GenesisAccount")
 	}
 	g.Balance = (*big.Int)(dec.Balance)
+	if dec.BlockNum != nil {
+		g.BlockNum = dec.BlockNum
+	}
 	if dec.Nonce != nil {
 		g.Nonce = uint64(*dec.Nonce)
 	}
 	if dec.PrivateKey != nil {
 		g.PrivateKey = *dec.PrivateKey
 	}
-	if dec.BlockNum != nil {
-		g.BlockNum = big.NewInt(int64(*dec.BlockNum))
-	}
-	fmt.Println("dec: ", dec, *dec.BlockNum, "g.BlockNum = ", g.BlockNum)
 	return nil
 }

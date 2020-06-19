@@ -583,7 +583,7 @@ func TestWriteInt8(t *testing.T) {
 	}
 }
 
-func TestWriteByte(t *testing.T) {
+func TestWriteBytes(t *testing.T) {
 
 	data := []byte{0, 1, 2, 3, 4, 5, 6, 7}
 
@@ -605,7 +605,7 @@ func TestWriteByte(t *testing.T) {
 			wtr.Shape = nil
 		}
 
-		err = wtr.WriteByte(data)
+		err = wtr.WriteBytes(data)
 		if err != nil {
 			panic(err)
 		}
@@ -620,12 +620,12 @@ func TestWriteByte(t *testing.T) {
 			panic(err)
 		}
 
-		data, err = rdr.GetByte()
+		data, err = rdr.GetBytes()
 		if err != nil {
 			panic(err)
 		}
 
-		if !checkByte(data) {
+		if !checkBytes(data) {
 			t.Fail()
 		}
 	}

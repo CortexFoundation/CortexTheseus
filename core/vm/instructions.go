@@ -440,7 +440,6 @@ func opExtCodeHash(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx
 		slot.SetBytes(interpreter.cvm.StateDB.GetCodeHash(address).Bytes())
 	}
 	return nil, nil
-	return nil, nil
 }
 
 func opGasprice(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {

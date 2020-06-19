@@ -248,7 +248,7 @@ func (c *ConfigFile) Reload() (err error) {
 	}
 
 	if err == nil {
-		*c = *cfg
+		c = cfg
 	}
 	return err
 }
@@ -262,7 +262,7 @@ func (c *ConfigFile) ReloadData(in io.Reader) (err error) {
 
 	cfg, err = LoadFromReader(in)
 	if err == nil {
-		*c = *cfg
+		c = cfg
 	}
 	return err
 }

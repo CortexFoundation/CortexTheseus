@@ -30,7 +30,7 @@ var (
 		{"Int32", "int32", "i4"},
 		{"Int16", "int16", "i2"},
 		{"Int8", "int8", "i1"},
-		{"Byte", "byte", "i1"},
+		{"Bytes", "byte", "i1"},
 	}
 )
 
