@@ -18,6 +18,6 @@ parsers:
       macro: no
 
 comment:
-  layout: "reach,diff,flags,tree"
+  layout: "reach,diff,flags,tree,footer"
   behavior: default
   require_changes: no
