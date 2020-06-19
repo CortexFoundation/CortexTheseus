@@ -33,7 +33,7 @@ jobs:
     - name: Static code check
       run: |
           export PATH=$PATH:$(go env GOPATH)/bin
-          go vet $(go list ./... | grep -v /cvm-runtime/tests)
+          go vet $(go list ./... | grep -v /cvm-runtime/)
 
     - name: Get dependencies
       run: |
