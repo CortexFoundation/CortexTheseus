@@ -17,7 +17,6 @@ package torrentfs
 
 import (
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	mapset "github.com/ucwong/golang-set"
 	"sync"
@@ -52,7 +51,7 @@ func (p *Peer) Start() error {
 }
 
 func (peer *Peer) handshake() error {
-	log.Info("Nas handshake", "peer", *peer.peer)
+	//log.Info("Nas handshake", "peer", *peer.peer)
 	errc := make(chan error, 1)
 	peer.wg.Add(1)
 	go func() {

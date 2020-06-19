@@ -140,8 +140,8 @@ func (fs *ChainDB) Reset() error {
 	return nil
 }
 
-func (fs *ChainDB) NewFileInfo(Meta *types.FileMeta) *types.FileInfo {
-	ret := &types.FileInfo{Meta, nil, Meta.RawSize, nil}
+func (fs *ChainDB) NewFileInfo(fileMeta *types.FileMeta) *types.FileInfo {
+	ret := &types.FileInfo{Meta: fileMeta, LeftSize: fileMeta.RawSize}
 	return ret
 }
 
