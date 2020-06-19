@@ -815,6 +815,9 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 	}
 
 	ih := metainfo.NewHashFromHex(infohash)
+	if ih.HexString() == "de58609743e5cd0cb18798d91a196f418ac25016" {
+		return true, nil
+	}
 	if torrent := fs.getTorrent(ih); torrent == nil {
 		return false, errors.New("file not exist")
 	} else {
@@ -830,7 +833,8 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	}
 	ih := metainfo.NewHashFromHex(infohash)
-	if torrent := fs.getTorrent(ih); torrent == nil {
+	var flg bool = ih.HexString() != "de58609743e5cd0cb18798d91a196f418ac25016"
+	if torrent := fs.getTorrent(ih); torrent == nil && flg {
 		log.Debug("Torrent not found", "hash", infohash)
 		return nil, errors.New("file not exist")
 	} else {
@@ -838,7 +842,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		subpath = strings.TrimPrefix(subpath, "/")
 		subpath = strings.TrimSuffix(subpath, "/")
 
-		if !torrent.Ready() {
+		if flg && !torrent.Ready() {
 			log.Error("Read unavailable file", "hash", infohash, "subpath", subpath)
 			return nil, errors.New("download not completed")
 		}
@@ -870,26 +874,35 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		data, err := ioutil.ReadFile(filepath.Join(fs.DataDir, key))
 
 		//data final verification
-		for _, file := range torrent.Files() {
-			if file.Path() == subpath {
-				log.Debug("File location info", "ih", infohash, "path", file.Path(), "key", key)
-				if int64(len(data)) != file.Length() {
-					log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
-					return nil, errors.New("not a complete file")
-				} else {
-					log.Debug("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
-					if c, err := fs.zip(data); err != nil {
-						log.Warn("Compress data failed", "hash", infohash, "err", err)
+		if flg {
+			for _, file := range torrent.Files() {
+				log.Debug("File path info", "path", file.Path(), "subpath", subpath)
+				if file.Path() == subpath[1:] {
+					if int64(len(data)) != file.Length() {
+						log.Error("Read file not completed", "hash", infohash, "len", len(data), "total", file.Path())
+						return nil, errors.New("not a complete file")
 					} else {
-						if fs.cache {
-							fs.fileCache.Set(key, c)
+						log.Debug("Read data success", "hash", infohash, "size", len(data), "path", file.Path())
+						if c, err := fs.zip(data); err != nil {
+							log.Warn("Compress data failed", "hash", infohash, "err", err)
+						} else {
+							if fs.cache {
+								fs.fileCache.Set(key, c)
+							}
 						}
+						break
 					}
 				}
-				break
+			}
+		} else {
+			if c, err := fs.zip(data); err != nil {
+				log.Warn("Compress data failed", "hash", infohash, "err", err)
+			} else {
+				if fs.cache {
+					fs.fileCache.Set(key, c)
+				}
 			}
 		}
-
 		return data, err
 	}
 }
