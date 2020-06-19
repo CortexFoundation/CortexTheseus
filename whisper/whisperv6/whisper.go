@@ -257,7 +257,10 @@ func (whisper *Whisper) SetBloomFilter(bloom []byte) error {
 	go func() {
 		defer whisper.wg.Done()
 		// allow some time before all the peers have processed the notification
-		time.Sleep(time.Duration(whisper.syncAllowance) * time.Second)
+		ticker := time.NewTicker(time.Duration(whisper.syncAllowance) * time.Second)
+		defer ticker.Stop()
+
+		<-ticker.C
 		whisper.settings.Store(bloomFilterToleranceIdx, b)
 	}()
 
@@ -277,7 +280,10 @@ func (whisper *Whisper) SetMinimumPoW(val float64) error {
 	go func() {
 		defer whisper.wg.Done()
 		// allow some time before all the peers have processed the notification
-		time.Sleep(time.Duration(whisper.syncAllowance) * time.Second)
+		ticker := time.NewTicker(time.Duration(whisper.syncAllowance) * time.Second)
+		defer ticker.Stop()
+
+		<-ticker.C
 		whisper.settings.Store(minPowToleranceIdx, val)
 	}()
 

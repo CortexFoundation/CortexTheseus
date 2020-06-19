@@ -86,7 +86,7 @@ func main() {
 			return
 		}
 		var deviceInfo config.DeviceInfo
-		deviceInfos = append(deviceInfos, deviceInfo.New(lock, (uint32)(v), start_time, 0, 0, 0, 0))
+		deviceInfos = append(deviceInfos, deviceInfo.New(&lock, (uint32)(v), start_time, 0, 0, 0, 0))
 	}
 	if help {
 		fmt.Println("Usage:\ngo run miner.go -r remote -a account -c gpu\nexample:go run miner.go -r localhost:8009 -a 0xc3d7a1ef810983847510542edfd5bc5551a6321c")

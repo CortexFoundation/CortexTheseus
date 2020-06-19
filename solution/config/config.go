@@ -36,7 +36,7 @@ type Param struct {
 }
 
 type DeviceInfo struct {
-	Lock           sync.Mutex
+	Lock           *sync.Mutex
 	DeviceId       uint32
 	Start_time     int64
 	Use_time       int64
@@ -56,7 +56,7 @@ func (param Param) New(server string, account string, verboseLevel uint, algorit
 	param.Opencl = opencl
 	return param
 }
-func (deviceInfo DeviceInfo) New(_lock sync.Mutex, _deviceId uint32, _start_time int64, _use_time int64, _solution_count int64, _hash_rate float32, _gps int64) DeviceInfo {
+func (deviceInfo DeviceInfo) New(_lock *sync.Mutex, _deviceId uint32, _start_time int64, _use_time int64, _solution_count int64, _hash_rate float32, _gps int64) DeviceInfo {
 	deviceInfo.Lock = _lock
 	deviceInfo.DeviceId = _deviceId
 	deviceInfo.Start_time = _start_time

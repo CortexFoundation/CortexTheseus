@@ -76,7 +76,7 @@ var (
 		Name:  "cvm.datadir",
 		Usage: "cortex fulllnode dir",
 		//Value: utils.DirectoryString("~/.cortex/" + "cortex.ipc"),
-		Value: utils.DirectoryString{homeDir() + "/.cortex/"},
+		Value: utils.DirectoryString{Value: homeDir() + "/.cortex/"},
 	}
 	StorageMaxSeedingFlag = cli.IntFlag{
 		Name:  "cvm.max_seeding",

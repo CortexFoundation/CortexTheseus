@@ -24,7 +24,7 @@ type Cortex struct {
 	consta          Connection
 	share_accepted  int
 	share_rejected  int
-	param           config.Param
+	param           *config.Param
 }
 
 type ReqObj struct {
@@ -34,8 +34,8 @@ type ReqObj struct {
 	Params  []string `json:"params"`
 }
 
-func (cortex Cortex) New(deviceInfos []config.DeviceInfo, param config.Param) Cortex {
-	cortex.param = param
+func (cortex *Cortex) New(deviceInfos []config.DeviceInfo, param config.Param) *Cortex {
+	cortex.param = &param
 	cortex.deviceInfos = deviceInfos
 	cortex.share_accepted = 0
 	cortex.share_rejected = 0
