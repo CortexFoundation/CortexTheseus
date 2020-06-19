@@ -110,7 +110,7 @@ plugins/lib_cvm.so:
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
-clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/lib_cvm.so
+clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
 clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
