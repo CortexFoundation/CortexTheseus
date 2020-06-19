@@ -95,9 +95,8 @@ func (s *BlockSolution) UnmarshalText(input []byte) error {
 	return nil
 }
 
-//go:generate
-
 // Header represents a block header in the Cortex blockchain.
+//go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
 type Header struct {
 	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
 	UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
@@ -114,9 +113,9 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
-	Solution    BlockSolution  `json:"solution"			gencodec:"required"`
-	Quota       *big.Int       `json:"quota"       gencodec:"required"`
-	QuotaUsed   *big.Int       `json:"quotaUsed"       gencodec:"required"`
+	Solution    BlockSolution  `json:"solution"         gencodec:"required"`
+	Quota       *big.Int       `json:"quota"            gencodec:"required"`
+	QuotaUsed   *big.Int       `json:"quotaUsed"        gencodec:"required"`
 	Supply      *big.Int       `json:"supply"           gencodec:"required"`
 }
 
@@ -126,7 +125,7 @@ type headerMarshaling struct {
 	Number     *hexutil.Big
 	GasLimit   hexutil.Uint64
 	GasUsed    hexutil.Uint64
-	Time       *hexutil.Uint64
+	Time       hexutil.Uint64
 	Extra      hexutil.Bytes
 	Hash       common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 }

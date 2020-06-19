@@ -5,10 +5,10 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"math/big"
 )
 
 var _ = (*receiptMarshaling)(nil)

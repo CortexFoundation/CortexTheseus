@@ -31,11 +31,11 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
 		MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
-		Solution    BlockSolution  `json:"solution"			gencodec:"required"`
+		Solution    BlockSolution  `json:"solution"         gencodec:"required"`
+		Quota       *big.Int       `json:"quota"            gencodec:"required"`
+		QuotaUsed   *big.Int       `json:"quotaUsed"        gencodec:"required"`
+		Supply      *big.Int       `json:"supply"           gencodec:"required"`
 		Hash        common.Hash    `json:"hash"`
-		Quota       *hexutil.Big   `json:"quota"       gencodec:"required"`
-		QuotaUsed   *hexutil.Big   `json:"quotaUsed"       gencodec:"required"`
-		Supply      *hexutil.Big   `json:"supply"           gencodec:"required"`
 	}
 	var enc Header
 	enc.ParentHash = h.ParentHash
@@ -54,10 +54,10 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.MixDigest = h.MixDigest
 	enc.Nonce = h.Nonce
 	enc.Solution = h.Solution
+	enc.Quota = h.Quota
+	enc.QuotaUsed = h.QuotaUsed
+	enc.Supply = h.Supply
 	enc.Hash = h.Hash()
-	enc.Quota = (*hexutil.Big)(h.Quota)
-	enc.QuotaUsed = (*hexutil.Big)(h.QuotaUsed)
-	enc.Supply = (*hexutil.Big)(h.Supply)
 	return json.Marshal(&enc)
 }
 
@@ -79,10 +79,10 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Extra       *hexutil.Bytes  `json:"extraData"        gencodec:"required"`
 		MixDigest   *common.Hash    `json:"mixHash"          gencodec:"required"`
 		Nonce       *BlockNonce     `json:"nonce"            gencodec:"required"`
-		Solution    *BlockSolution  `json:"solution"			gencodec:"required"`
-		Quota       *hexutil.Big    `json:"quota"       gencodec:"required"`
-		QuotaUsed   *hexutil.Big    `json:"quotaUsed"       gencodec:"required"`
-		Supply      *hexutil.Big    `json:"supply"           gencodec:"required"`
+		Solution    *BlockSolution  `json:"solution"         gencodec:"required"`
+		Quota       *big.Int        `json:"quota"            gencodec:"required"`
+		QuotaUsed   *big.Int        `json:"quotaUsed"        gencodec:"required"`
+		Supply      *big.Int        `json:"supply"           gencodec:"required"`
 	}
 	var dec Header
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -124,17 +124,6 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'number' for Header")
 	}
 	h.Number = (*big.Int)(dec.Number)
-
-	if dec.Solution == nil {
-		return errors.New("missing required field 'solution' for Header")
-	}
-	h.Solution = *dec.Solution
-
-	if dec.Supply == nil {
-		return errors.New("missing required field 'supply' for Header")
-	}
-	h.Supply = (*big.Int)(dec.Supply)
-
 	if dec.GasLimit == nil {
 		return errors.New("missing required field 'gasLimit' for Header")
 	}
@@ -143,15 +132,6 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'gasUsed' for Header")
 	}
 	h.GasUsed = uint64(*dec.GasUsed)
-
-	if dec.Quota == nil {
-		return errors.New("missing required field 'quota' for Header")
-	}
-	h.Quota = (*big.Int)(dec.Quota)
-	if dec.QuotaUsed == nil {
-		return errors.New("missing required field 'quotaUsed' for Header")
-	}
-	h.QuotaUsed = (*big.Int)(dec.QuotaUsed)
 	if dec.Time == nil {
 		return errors.New("missing required field 'timestamp' for Header")
 	}
@@ -168,5 +148,21 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'nonce' for Header")
 	}
 	h.Nonce = *dec.Nonce
+	if dec.Solution == nil {
+		return errors.New("missing required field 'solution' for Header")
+	}
+	h.Solution = *dec.Solution
+	if dec.Quota == nil {
+		return errors.New("missing required field 'quota' for Header")
+	}
+	h.Quota = dec.Quota
+	if dec.QuotaUsed == nil {
+		return errors.New("missing required field 'quotaUsed' for Header")
+	}
+	h.QuotaUsed = dec.QuotaUsed
+	if dec.Supply == nil {
+		return errors.New("missing required field 'supply' for Header")
+	}
+	h.Supply = dec.Supply
 	return nil
 }

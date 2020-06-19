@@ -1,5 +1,5 @@
 codecov:
-  require_ci_to_pass: no
+  require_ci_to_pass: yes
 
 coverage:
   precision: 2
@@ -15,8 +15,7 @@ parsers:
       macro: no
 
 comment:
-  layout: "reach, diff, flags, files, footer"
+  layout: "reach, diff, flags, files"
   behavior: default
-  require_base: no
   require_changes: no
-  require_head: yes
+  after_n_builds: 32

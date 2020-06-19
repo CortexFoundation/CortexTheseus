@@ -162,7 +162,7 @@ func (cm *Cortex) Mining() {
 	if err != nil {
 		panic(err)
 	}
-	m.(func([]uint32, uint32, config.Param))(iDeviceIds, (uint32)(len(iDeviceIds)), cm.param)
+	m.(func([]uint32, uint32, config.Param))(iDeviceIds, (uint32)(len(iDeviceIds)), *cm.param)
 	go func() {
 		for {
 			cm.printHashRate()
@@ -273,7 +273,7 @@ func (cm *Cortex) mining(quitCh chan string) {
 	if err != nil {
 		panic(err)
 	}
-	m.(func(int, []config.DeviceInfo, config.Param, chan config.Task, chan config.Task, bool) (uint32, [][]uint32))(THREAD, cm.deviceInfos, cm.param, taskChan, solChan, cm.consta.state)
+	m.(func(int, []config.DeviceInfo, config.Param, chan config.Task, chan config.Task, bool) (uint32, [][]uint32))(THREAD, cm.deviceInfos, *cm.param, taskChan, solChan, cm.consta.state)
 	go func() {
 		for {
 			select {
@@ -324,5 +324,5 @@ func (cm *Cortex) mining(quitCh chan string) {
 			}
 		}
 	}
-	quitCh <- "quit"
+	//quitCh <- "quit"
 }

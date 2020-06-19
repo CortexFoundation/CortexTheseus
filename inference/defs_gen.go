@@ -199,8 +199,8 @@ func (rdr *NpyReader) GetInt8() ([]int8, error) {
 	return data, nil
 }
 
-// GetByte returns the array data as a slice of byte values.
-func (rdr *NpyReader) GetByte() ([]byte, error) {
+// GetBytes returns the array data as a slice of byte values.
+func (rdr *NpyReader) GetBytes() ([]byte, error) {
 
 	if rdr.Dtype != "i1" {
 		return nil, fmt.Errorf("Reader does not contain byte data")
@@ -431,8 +431,8 @@ func (wtr *NpyWriter) WriteInt8(data []int8) error {
 	return nil
 }
 
-// WriteByte writes a slice of byte values in npy format.
-func (wtr *NpyWriter) WriteByte(data []byte) error {
+// WriteBytes writes a slice of byte values in npy format.
+func (wtr *NpyWriter) WriteBytes(data []byte) error {
 
 	err := wtr.writeHeader("i1", len(data))
 	if err != nil {
