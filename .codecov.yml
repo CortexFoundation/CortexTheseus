@@ -5,6 +5,9 @@ coverage:
   precision: 2
   round: down
   range: "70...100"
+  status:
+    project: off
+    patch: off
 
 parsers:
   gcov:
@@ -15,6 +18,6 @@ parsers:
       macro: no
 
 comment:
-  layout: "reach,diff,flags,tree"
+  layout: "reach,diff,flags,tree,footer"
   behavior: default
   require_changes: no
