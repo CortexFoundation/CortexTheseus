@@ -8,7 +8,7 @@ require (
 	github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.15.1-0.20200604015818-12ace9549321
+	github.com/anacrolix/torrent v1.15.1-0.20200619022403-dd51e99b88cc
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/fsnotify/fsnotify v1.4.9
