@@ -42,13 +42,13 @@ search:
 				attempts = 0
 			}
 
-			//m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
-			//if err != nil {
-			//	panic(err)
-			//}
-			//r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
+			m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
+			if err != nil {
+				panic(err)
+			}
+			r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
 
-			r, res := plugins.CuckooFindSolutions(hash, nonce)
+			//r, res := plugins.CuckooFindSolutions(hash, nonce)
 			if r == 0 {
 				nonce++
 				continue

@@ -3,7 +3,7 @@ package cuckoo
 import (
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
-	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -13,8 +13,8 @@ import (
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"math/big"
 	"math/rand"
-	//"path/filepath"
-	//"plugin"
+	"path/filepath"
+	"plugin"
 	"sync"
 	"time"
 )
@@ -108,12 +108,12 @@ type Cuckoo struct {
 	fakeFail  uint64        // Block number which fails PoW check even in fake mode
 	fakeDelay time.Duration // Time delay to sleep for before returning from verify
 
-	lock      sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
-	once      sync.Once       // Ensures cuckoo-cycle algorithm initialize once
-	closeOnce sync.Once       // Ensures exit channel will not be closed twice.
-	exitCh    chan chan error // Notification channel to exiting backend threads
-	cMutex    sync.Mutex
-	//minerPlugin *plugin.Plugin
+	lock        sync.Mutex      // Ensures thread safety for the in-memory caches and mining fields
+	once        sync.Once       // Ensures cuckoo-cycle algorithm initialize once
+	closeOnce   sync.Once       // Ensures exit channel will not be closed twice.
+	exitCh      chan chan error // Notification channel to exiting backend threads
+	cMutex      sync.Mutex
+	minerPlugin *plugin.Plugin
 
 	wg sync.WaitGroup
 }
@@ -168,7 +168,10 @@ const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_helper_for_node.so"
 
 func (cuckoo *Cuckoo) initPlugin() error {
-	/*start := mclock.Now()
+	if !cuckoo.config.UseCuda {
+		return nil
+	}
+	start := mclock.Now()
 	var minerName string = "cpu"
 	if cuckoo.config.UseCuda {
 		minerName = "cuda"
@@ -190,9 +193,7 @@ func (cuckoo *Cuckoo) initPlugin() error {
 	elapsed := time.Duration(mclock.Now() - start)
 	log.Info("Cuckoo Init Plugin", "name", minerName, "library path", so_path,
 		"threads", cuckoo.threads, "device ids", cuckoo.config.StrDeviceIds, "elapsed", common.PrettyDuration(elapsed))
-	return errc*/
-	//cuckoo.minerPlugin = &struct{}{}
-	return nil
+	return errc
 }
 
 func (cuckoo *Cuckoo) InitOnce() error {
@@ -231,6 +232,15 @@ func (cuckoo *Cuckoo) Close() error {
 	cuckoo.wg.Wait()
 	cuckoo.closeOnce.Do(func() {
 		plugins.CuckooFinalize()
+		if cuckoo.config.UseCuda {
+			if cuckoo.minerPlugin == nil {
+				m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+				if e != nil {
+					panic(e)
+				}
+				m.(func())()
+			}
+		}
 	})
 	return nil
 }
