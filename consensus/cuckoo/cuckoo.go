@@ -14,7 +14,7 @@ import (
 	"math/big"
 	"math/rand"
 	//"path/filepath"
-	"plugin"
+	//"plugin"
 	"sync"
 	"time"
 )
@@ -230,14 +230,7 @@ func (cuckoo *Cuckoo) Close() error {
 
 	cuckoo.wg.Wait()
 	cuckoo.closeOnce.Do(func() {
-		if cuckoo.minerPlugin == nil {
-			return
-		}
-		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-		if e != nil {
-			panic(e)
-		}
-		m.(func())()
+		plugins.CuckooFinalize()
 	})
 	return nil
 }
