@@ -22,7 +22,6 @@ fi
 GOPATH="$workspace"
 export GOPATH
 export GO111MODULE=off
-export CGO_ENABLED=1
 
 # Run the command inside the workspace.
 cd "$dir/CortexTheseus"
