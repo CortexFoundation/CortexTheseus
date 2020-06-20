@@ -15,7 +15,9 @@ int32_t FindCycles(
 	uint32_t *solLength,
 	uint32_t *numSol);
 void CuckooInitialize(uint32_t *devices, uint32_t deviceNum, int selected, int printDeviceInfo);
+void CuckooInitializeCPU(uint32_t *devices, uint32_t deviceNum, int selected, int printDeviceInfo);
 void CuckooFinalize();
+void CuckooFinalizeCPU();
 int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *temperatures);
 int32_t RunSolverOnCPU(
         uint8_t *header,
