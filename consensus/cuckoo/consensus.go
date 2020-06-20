@@ -865,5 +865,14 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 	//	return false
 	//}
 
+	if cuckoo.minerPlugin != nil {
+		if m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo"); err != nil {
+			panic(err)
+		} else {
+			r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
+			return r
+		}
+	}
+
 	return plugins.CuckooVerify_cuckaroo(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
 }

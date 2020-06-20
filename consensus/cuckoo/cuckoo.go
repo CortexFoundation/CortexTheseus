@@ -236,15 +236,14 @@ func (cuckoo *Cuckoo) Close() error {
 
 	cuckoo.wg.Wait()
 	cuckoo.closeOnce.Do(func() {
-		plugins.CuckooFinalize()
-		if cuckoo.config.UseCuda {
-			if cuckoo.minerPlugin == nil {
-				m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-				if e != nil {
-					panic(e)
-				}
-				m.(func())()
+		if cuckoo.minerPlugin != nil {
+			m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+			if e != nil {
+				panic(e)
 			}
+			m.(func())()
+		} else {
+			plugins.CuckooFinalize()
 		}
 	})
 	return nil
