@@ -199,9 +199,9 @@ func (cuckoo *Cuckoo) initPlugin() error {
 func (cuckoo *Cuckoo) InitOnce() error {
 	var err error
 	cuckoo.once.Do(func() {
-		//	if cuckoo.minerPlugin != nil {
-		//		return
-		//	}
+		if cuckoo.minerPlugin != nil {
+			return
+		}
 		errc := cuckoo.initPlugin()
 		if errc != nil {
 			log.Error("Cuckoo Init Plugin", "error", errc)
@@ -210,7 +210,11 @@ func (cuckoo *Cuckoo) InitOnce() error {
 		} else {
 			// miner algorithm use cuckaroo by default.
 			if cuckoo.config.Threads > 0 && cuckoo.config.UseCuda {
-				errc = plugins.CuckooInitialize(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
+				//	errc = plugins.CuckooInitialize(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
+				m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
+				if errc != nil {
+					panic(errc)
+				}
 			} else {
 				cuckoo.threads = 0
 			}
