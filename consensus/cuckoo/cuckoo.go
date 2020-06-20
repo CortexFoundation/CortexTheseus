@@ -210,7 +210,6 @@ func (cuckoo *Cuckoo) InitOnce() error {
 		} else {
 			// miner algorithm use cuckaroo by default.
 			if cuckoo.config.Threads > 0 && cuckoo.config.UseCuda {
-				//	errc = plugins.CuckooInitialize(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
 				m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
 				if errc != nil {
 					panic(errc)
