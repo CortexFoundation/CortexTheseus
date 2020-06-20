@@ -215,6 +215,7 @@ func (cuckoo *Cuckoo) InitOnce() error {
 				if errc != nil {
 					panic(errc)
 				}
+				errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
 			} else {
 				cuckoo.threads = 0
 			}
