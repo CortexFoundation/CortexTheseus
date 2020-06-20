@@ -55,18 +55,7 @@ search:
 			}
 			copy(result[:], res[0][0:len(res[0])])
 
-			/*var ret bool
-			if cuckoo.minerPlugin != nil {
-				m, err = cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
-				if err != nil {
-					panic(err)
-				}
-				ret = m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
-			} else {
-				ret = plugins.CuckooVerify_cuckaroo(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
-			}*/
-			ret := cuckoo.CuckooVerifyHeader(hash, nonce, &result, target)
-			if ret {
+			if cuckoo.CuckooVerifyHeader(hash, nonce, &result, target) {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)
 				header.Nonce = types.EncodeNonce(uint64(nonce))
