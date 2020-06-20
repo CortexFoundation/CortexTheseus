@@ -3,6 +3,7 @@
 package cuckoo
 
 import (
+	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"math/big"
@@ -41,22 +42,25 @@ search:
 				attempts = 0
 			}
 
-			m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
-			if err != nil {
-				panic(err)
-			}
-			r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
+			//m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
+			//if err != nil {
+			//	panic(err)
+			//}
+			//r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
+
+			r, res := plugins.CuckooFindSolutions(hash, nonce)
 			if r == 0 {
 				nonce++
 				continue
 			}
 			copy(result[:], res[0][0:len(res[0])])
 
-			m, err = cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
-			if err != nil {
-				panic(err)
-			}
-			ret := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
+			//m, err = cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo")
+			//if err != nil {
+			//	panic(err)
+			//}
+			//ret := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
+			ret := plugins.CuckooVerify_cuckaroo(&hash[0], nonce, result, cuckoo.Sha3Solution(&result), target)
 			if ret {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)

@@ -1,6 +1,4 @@
-// +build cpu_miner
-
-package main
+package plugins
 
 /*
 #cgo LDFLAGS: -L../../../solution/miner/libcuckoo -lcpuminer -lstdc++

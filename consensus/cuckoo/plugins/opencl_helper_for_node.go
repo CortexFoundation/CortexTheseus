@@ -1,6 +1,4 @@
-// +build opencl_miner
-
-package main
+package plugins
 
 /*
 #cgo LDFLAGS: -L../../solution/miner/libcuckoo -lopenclminer -L/usr/local/cuda/lib64 -lOpenCL -lstdc++

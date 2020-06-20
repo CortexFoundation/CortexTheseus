@@ -84,7 +84,7 @@ plugins/cuda_helper_for_node.so:
 
 plugins/cpu_helper_for_node.so:
 	$(MAKE) -C solution cpu-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
+	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu
@@ -98,6 +98,7 @@ plugins/cpu_cvm.so:
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
+#clib_cpu: plugins/cpu_cvm.so
 
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
 
