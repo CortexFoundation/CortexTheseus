@@ -80,7 +80,7 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 
 	return uint32(r), ret
 }
-func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
+/*func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
 
 	if sha3hash.Big().Cmp(diff) <= 0 {
@@ -91,7 +91,7 @@ func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_s
 		return (r == 1)
 	}
 	return false
-}
+}*/
 
 func CuckooVerify_cuckaroo(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
