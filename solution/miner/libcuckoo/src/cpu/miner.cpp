@@ -86,7 +86,7 @@ void create_solver_ctx(SolverParams* params, int selected) {
   }
 }
 
-void CuckooInitializeCPU(uint32_t* devices, uint32_t deviceNum, int selected = 0, int printDeviceInfo = 1) {
+/*void CuckooInitializeCPU(uint32_t* devices, uint32_t deviceNum, int selected = 0, int printDeviceInfo = 1) {
   SolverParams params;
   params.nthreads = deviceNum; //nthreads;
   params.ntrims = 0; //ntrims;
@@ -113,7 +113,7 @@ int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result) {
     setheader(headerBuf, 40, &keys);
     int res = cuckoo_verify(result, &keys);
     return res;
-}
+}*/
 
 int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result) {
     uint64_t littleEndianNonce = htole64(nonce);
