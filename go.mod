@@ -18,7 +18,7 @@ require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-ole/go-ole v1.2.4 // indirect
-	github.com/go-resty/resty/v2 v2.3.0
+	github.com/go-resty/resty/v2 v2.3.1-0.20200619075926-b87f65ce5ed5
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
@@ -41,13 +41,13 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/ucwong/color v1.10.1-0.20200518131954-915014f7ee11
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
-	github.com/ucwong/goleveldb v1.0.3-0.20200601144611-cedccb405d8a
+	github.com/ucwong/goleveldb v1.0.3-0.20200618184106-f1c6bc3a428b
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
+	golang.org/x/sys v0.0.0-20200620081246-981b61492c35
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	google.golang.org/protobuf v1.24.0 // indirect
