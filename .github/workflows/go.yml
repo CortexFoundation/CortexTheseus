@@ -45,7 +45,7 @@ jobs:
         fi
 
     - name: Build
-      run: go build -v .
+      run: make -j$(nproc)
       
     - name: CodeCov
       run: |
