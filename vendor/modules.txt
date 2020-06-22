@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.13-0.20200619045206-83abb631b3a6
+# github.com/CortexFoundation/torrentfs v1.0.13-0.20200622065425-17e59ed65484
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -177,7 +177,7 @@ github.com/glycerine/go-unsnap-stream
 ## explicit
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
-# github.com/go-resty/resty/v2 v2.3.0
+# github.com/go-resty/resty/v2 v2.3.1-0.20200619075926-b87f65ce5ed5
 ## explicit
 github.com/go-resty/resty/v2
 # github.com/go-stack/stack v1.8.0
@@ -372,7 +372,7 @@ github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 ## explicit
 github.com/ucwong/golang-set
-# github.com/ucwong/goleveldb v1.0.3-0.20200601144611-cedccb405d8a
+# github.com/ucwong/goleveldb v1.0.3-0.20200618184106-f1c6bc3a428b
 ## explicit
 github.com/ucwong/goleveldb/leveldb
 github.com/ucwong/goleveldb/leveldb/cache
@@ -437,7 +437,7 @@ golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
+# golang.org/x/sys v0.0.0-20200620081246-981b61492c35
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
