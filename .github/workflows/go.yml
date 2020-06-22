@@ -33,7 +33,7 @@ jobs:
     - name: Static code check
       run: |
           export PATH=$PATH:$(go env GOPATH)/bin
-          make -C solution cpu-miner
+          #make -C solution cpu-miner
           go vet $(go list ./... | grep -v /cvm-runtime/)
 
     - name: Get dependencies
