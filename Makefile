@@ -81,7 +81,7 @@ plugins/cuda_helper_for_node.so:
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
-	$(MAKE) -C $(BASE)/solution cpu-miner
+	#$(MAKE) -C $(BASE)/solution cpu-miner
 	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so:
