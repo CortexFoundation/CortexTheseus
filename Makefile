@@ -11,6 +11,7 @@
 .PHONY: clib
 .PHONY: cortex cortex-remote
 
+BASE = $(shell pwd)
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/solution/
@@ -80,24 +81,27 @@ wnode:
 	@echo "Run \"$(GOBIN)/wnode\" to launch cortex whisper node."
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C solution cuda-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda_helper_for_node.go
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
 	$(MAKE) -C solution cpu-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
+	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/cuda_cvm.so:
-	$(MAKE) -C ${INFER_NET_DIR} -j8 gpu
-	ln -sf ../cvm-runtime/build/gpu/libcvm_runtime_cuda.so $@
+	$(MAKE) -C ${INFER_NET_DIR} -j$(nproc) gpu
+	mkdir -p $(BASE)/plugins
+	ln -sf ../cvm-runtime/build/gpu/libcvm_runtime_cuda.so $(BASE)/plugins/cuda_cvm.so
 	# build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 
 plugins/cpu_cvm.so:
-	$(MAKE) -C ${INFER_NET_DIR} -j8 cpu
-	ln -sf ../cvm-runtime/build/cpu/libcvm_runtime_cpu.so $@
+	$(MAKE) -C ${INFER_NET_DIR} -j$(nproc) cpu
+	mkdir -p $(BASE)/plugins
+	ln -sf ../cvm-runtime/build/cpu/libcvm_runtime_cpu.so $(BASE)/plugins/cpu_cvm.so
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
+#clib_cpu: plugins/cpu_cvm.so
 
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
 

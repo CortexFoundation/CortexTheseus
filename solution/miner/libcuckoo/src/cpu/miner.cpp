@@ -86,7 +86,7 @@ void create_solver_ctx(SolverParams* params, int selected) {
   }
 }
 
-void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0, int printDeviceInfo = 1) {
+/*void CuckooInitializeCPU(uint32_t* devices, uint32_t deviceNum, int selected = 0, int printDeviceInfo = 1) {
   SolverParams params;
   params.nthreads = deviceNum; //nthreads;
   params.ntrims = 0; //ntrims;
@@ -96,27 +96,10 @@ void CuckooInitialize(uint32_t* devices, uint32_t deviceNum, int selected = 0, i
   create_solver_ctx(&params, selected);
 }
 
-int32_t FindSolutionsByGPU(
-        uint8_t *header,
-        uint64_t nonce,
-    uint32_t threadId
-    )
-{
-				return 0;
-}
-
-int32_t FindCycles(
-	uint32_t threadId,
-	uint32_t nedges,
-	uint32_t *result,
-	uint32_t resultBuffSize,
-	uint32_t *solLength,
-	uint32_t *numSol){
-				return 0;
-}
-
 int monitor(unsigned int device_count, unsigned int *fanSpeeds, unsigned int *temperatures){
 				return 0;
+}
+void CuckooFinalizeCPU(){
 }
 void CuckooFinalize(){
 }
@@ -130,7 +113,7 @@ int32_t CuckooVerifyProof(uint8_t *header, uint64_t nonce, result_t *result) {
     setheader(headerBuf, 40, &keys);
     int res = cuckoo_verify(result, &keys);
     return res;
-}
+}*/
 
 int32_t CuckooVerifyProof_cuckaroo(uint8_t *header, uint64_t nonce, result_t *result) {
     uint64_t littleEndianNonce = htole64(nonce);
