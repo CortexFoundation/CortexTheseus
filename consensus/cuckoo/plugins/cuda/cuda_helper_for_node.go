@@ -1,12 +1,12 @@
-// +build opencl_miner
+// +build cuda_miner
 
 package main
 
 /*
-#cgo LDFLAGS: -L../../solution/miner/libcuckoo -lopenclminer -L/usr/local/cuda/lib64 -lOpenCL -lstdc++
+#cgo LDFLAGS: -L../../../../solution/miner/libcuckoo -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
 #cgo CFLAGS: -I./
 
-#include "../../solution/miner/libcuckoo/miner.h"
+#include "../../../../solution/miner/libcuckoo/miner.h"
 */
 import "C"
 import (
@@ -22,17 +22,14 @@ import (
 )
 
 func CuckooInit(threads uint32) {
-	CuckooInitialize(0, "", "cuckoo")
+	CuckooInitialize(0, "", "cuckaroo")
 }
 
 func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error {
 	var arrayDeviceIds []string = strings.Split(strDeviceIds, ",")
 	var deviceNum int = 1
 	var devices []uint32
-	var selected int = 0
-	if algorithm == "cuckaroo" {
-		selected = 1
-	}
+	var selected int = 1
 
 	v, err := strconv.Atoi(arrayDeviceIds[0])
 	if err != nil {
@@ -78,14 +75,14 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 	for solIdx := uint32(0); solIdx < _numSols; solIdx++ {
 		var sol = make([]uint32, _solLength)
 		copy(sol[:], result[solIdx*_solLength:(solIdx+1)*_solLength])
-		//		 log.Println(fmt.Sprintf("Index: %v, Solution: %v", solIdx, sol))
 		ret = append(ret, sol)
 	}
 
 	return uint32(r), ret
 }
-func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
+/*func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
+
 	if sha3hash.Big().Cmp(diff) <= 0 {
 		r := C.CuckooVerifyProof(
 			(*C.uint8_t)(unsafe.Pointer(hash)),
@@ -94,7 +91,7 @@ func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_s
 		return (r == 1)
 	}
 	return false
-}
+}*/
 
 func CuckooVerify_cuckaroo(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)

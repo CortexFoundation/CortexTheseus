@@ -65,11 +65,11 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainReader, block *types.Block, resu
 	//	return nil
 	//}
 
-	err := cuckoo.InitOnce()
-	if err != nil {
-		log.Error("cuckoo init error", "error", err)
-		return err
-	}
+	//err := cuckoo.InitOnce()
+	//if err != nil {
+	//	log.Error("cuckoo init error", "error", err)
+	//	return err
+	//}
 
 	var pend sync.WaitGroup
 	for i := 0; i < cuckoo.threads; i++ {
@@ -130,7 +130,7 @@ func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *bi
 	}
 	//fmt.Println(hashNoNonce, solution, block.NumberU64(), blockDiff, shareDiff, block.Nonce())
 	targetDiff := new(big.Int).Div(maxUint256, shareDiff)
-	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, block.NumberU64(), targetDiff)
+	ok := cuckoo.CuckooVerifyHeader(hashNoNonce.Bytes(), block.Nonce(), solution, targetDiff)
 	if !ok {
 		//fmt.Println("invalid solution")
 		return false, false, 0
