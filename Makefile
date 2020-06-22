@@ -96,7 +96,7 @@ plugins/cuda_cvm.so:
 plugins/cpu_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j$(nproc) cpu
 	mkdir -p $(BASE)/plugins
-	ln -sf ../cvm-runtime/build/cpu/libcvm_runtime_cpu.so $(BASE)/plugins/cuda_cvm.so
+	ln -sf ../cvm-runtime/build/cpu/libcvm_runtime_cpu.so $(BASE)/plugins/cpu_cvm.so
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
