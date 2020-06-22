@@ -128,7 +128,7 @@ clean: clean-clib
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
 clean-clib:
-	$(MAKE) -C $(LIB_MINER_DIR) clean
+	#$(MAKE) -C $(LIB_MINER_DIR) clean
 	$(MAKE) -C $(INFER_NET_DIR) clean
 	
 .PHONY: clean-all
