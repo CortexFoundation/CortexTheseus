@@ -1,36 +1,36 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-// +build freebsd
+// +build freebsd dragonfly
 
 package fdlimit
 
 import "syscall"
 
 // This file is largely identical to fdlimit_unix.go,
-// but Rlimit fields have type int64 on FreeBSD so it needs
+// but Rlimit fields have type int64 on *BSD so it needs
 // an extra conversion.
 
 // Raise tries to maximize the file descriptor allowance of this process
 // to the maximum hard-limit allowed by the OS.
-func Raise(max uint64) error {
+func Raise(max uint64) (uint64, error) {
 	// Get the current limit
 	var limit syscall.Rlimit
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
-		return err
+		return 0, err
 	}
 	// Try to update the limit to the max allowance
 	limit.Cur = limit.Max
@@ -38,9 +38,12 @@ func Raise(max uint64) error {
 		limit.Cur = int64(max)
 	}
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+		return 0, err
+	}
+	return uint64(limit.Cur), nil
 }
 
 // Current retrieves the number of file descriptors allowed to be opened by this
