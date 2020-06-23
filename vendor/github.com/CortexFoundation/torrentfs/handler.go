@@ -815,7 +815,8 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 	}
 
 	ih := metainfo.NewHashFromHex(infohash)
-	if ih.HexString() == "de58609743e5cd0cb18798d91a196f418ac25016" {
+	if ih.HexString() == "de58609743e5cd0cb18798d91a196f418ac25016" ||
+		ih.HexString() == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
 		return true, nil
 	}
 	if torrent := fs.getTorrent(ih); torrent == nil {
@@ -833,7 +834,9 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	}
 	ih := metainfo.NewHashFromHex(infohash)
-	var flg bool = ih.HexString() != "de58609743e5cd0cb18798d91a196f418ac25016"
+	var flg bool = ih.HexString() != "de58609743e5cd0cb18798d91a196f418ac25016" &&
+		ih.HexString() != "31f75c90e8fe1c5b16cbdc466dc6127487a92add"
+	var flg2 bool = ih.HexString() != "31f75c90e8fe1c5b16cbdc466dc6127487a92add"
 	if torrent := fs.getTorrent(ih); torrent == nil && flg {
 		log.Debug("Torrent not found", "hash", infohash)
 		return nil, errors.New("file not exist")
@@ -848,7 +851,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		}
 
 		fs.hotCache.Add(ih, true)
-		if torrent.currentConns < fs.maxEstablishedConns {
+		if flg2 && torrent.currentConns < fs.maxEstablishedConns {
 			torrent.currentConns = fs.maxEstablishedConns
 			torrent.SetMaxEstablishedConns(torrent.currentConns)
 			log.Info("Torrent active", "ih", ih, "peers", torrent.currentConns)
