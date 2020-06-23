@@ -93,7 +93,7 @@ func NewMonitor(flag *Config, cache, compress bool) (*Monitor, error) {
 		exitCh:        make(chan struct{}),
 		terminated:    0,
 		lastNumber:    uint64(0),
-		scope:         uint64(math.Min(float64(runtime.NumCPU()*2), float64(8))),
+		scope:         uint64(math.Min(float64(runtime.NumCPU()*4), float64(8))),
 		currentNumber: uint64(0),
 		taskCh:        make(chan *types.Block, batch),
 		start:         mclock.Now(),
