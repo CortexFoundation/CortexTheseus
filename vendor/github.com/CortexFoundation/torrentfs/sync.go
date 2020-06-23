@@ -228,9 +228,8 @@ func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 
 func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*types.Block, error) {
 	block := &types.Block{}
-	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 
-	err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
+	err := m.cl.Call(block, "ctxc_getBlockByNumber", "0x"+strconv.FormatUint(blockNumber, 16), true)
 	if err == nil {
 		return block, nil
 	}
@@ -542,13 +541,15 @@ func (m *Monitor) currentBlock() (uint64, error) {
 		return 0, err
 	}
 	if m.currentNumber != uint64(currentNumber) {
-		m.currentNumber = uint64(currentNumber)
+		//m.currentNumber = uint64(currentNumber)
+		atomic.StoreUint64(&(m.currentNumber), uint64(currentNumber))
 	}
+
 	return uint64(currentNumber), nil
 }
 
 func (m *Monitor) syncLastBlock() uint64 {
-	currentNumber := m.currentNumber
+	currentNumber := atomic.LoadUint64(&(m.currentNumber)) //m.currentNumber
 
 	if currentNumber < m.lastNumber {
 		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber, "offset", m.lastNumber-currentNumber)
