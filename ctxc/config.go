@@ -53,6 +53,7 @@ var DefaultConfig = Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
+	RPCTxFeeCap: 1, // 1 ctxc
 }
 
 func init() {
