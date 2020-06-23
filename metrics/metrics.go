@@ -59,7 +59,6 @@ func init() {
 func CollectProcessMetrics(refresh time.Duration) {
 	// Short circuit if the metrics system is disabled
 	if !Enabled {
-		log.Info("Metrics is disabled")
 		return
 	}
 	refreshFreq := int64(refresh / time.Second)

@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package build
 
@@ -26,7 +26,7 @@ import (
 )
 
 // AzureBlobstoreConfig is an authentication and configuration struct containing
-// the data needed by the Azure SDK to interact with a speicifc container in the
+// the data needed by the Azure SDK to interact with a specific container in the
 // blobstore.
 type AzureBlobstoreConfig struct {
 	Account   string // Account name to authorize API requests with
@@ -45,7 +45,11 @@ func AzureBlobstoreUpload(path string, name string, config AzureBlobstoreConfig)
 		return nil
 	}
 	// Create an authenticated client against the Azure cloud
-	credential, _ := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	credential, err := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	if err != nil {
+		return err
+	}
+
 	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
 
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))
@@ -67,7 +71,11 @@ func AzureBlobstoreUpload(path string, name string, config AzureBlobstoreConfig)
 
 // AzureBlobstoreList lists all the files contained within an azure blobstore.
 func AzureBlobstoreList(config AzureBlobstoreConfig) ([]azblob.BlobItem, error) {
-	credential, _ := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	credential, err := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	if err != nil {
+		return nil, err
+	}
+
 	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
 
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))
@@ -95,7 +103,11 @@ func AzureBlobstoreDelete(config AzureBlobstoreConfig, blobs []azblob.BlobItem) 
 		return nil
 	}
 	// Create an authenticated client against the Azure cloud
-	credential, _ := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	credential, err := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	if err != nil {
+		return err
+	}
+
 	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
 
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))

@@ -1,32 +1,30 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
-	"reflect"
 	"strings"
-	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	mapset "github.com/ucwong/golang-set"
 )
 
 // API describes the set of methods offered over the RPC interface
@@ -37,85 +35,35 @@ type API struct {
 	Public    bool        // indication if the methods must be considered safe for public use
 }
 
-// callback is a method callback which was registered in the server
-type callback struct {
-	rcvr        reflect.Value  // receiver of method
-	method      reflect.Method // callback
-	argTypes    []reflect.Type // input argument types
-	hasCtx      bool           // method's first argument is a context (not included in argTypes)
-	errPos      int            // err return idx, of -1 when method cannot return error
-	isSubscribe bool           // indication if the callback is a subscription
-}
-
-// service represents a registered object
-type service struct {
-	name          string        // name for service
-	typ           reflect.Type  // receiver type
-	callbacks     callbacks     // registered handlers
-	subscriptions subscriptions // available subscriptions/notifications
-}
-
-// serverRequest is an incoming request
-type serverRequest struct {
-	id            interface{}
-	svcname       string
-	callb         *callback
-	args          []reflect.Value
-	isUnsubscribe bool
-	err           Error
-}
-
-type serviceRegistry map[string]*service // collection of services
-type callbacks map[string]*callback      // collection of RPC callbacks
-type subscriptions map[string]*callback  // collection of subscription callbacks
-
-// Server represents a RPC server
-type Server struct {
-	services serviceRegistry
-
-	run      int32
-	codecsMu sync.Mutex
-	codecs   mapset.Set
-}
-
-// rpcRequest represents a raw incoming RPC request
-type rpcRequest struct {
-	service  string
-	method   string
-	id       interface{}
-	isPubSub bool
-	params   interface{}
-	err      Error // invalid batch element
-}
-
 // Error wraps RPC errors, which contain an error code in addition to the message.
 type Error interface {
 	Error() string  // returns the message
 	ErrorCode() int // returns the code
 }
 
+// A DataError contains some data in addition to the error message.
+type DataError interface {
+	Error() string          // returns the message
+	ErrorData() interface{} // returns the error data
+}
+
 // ServerCodec implements reading, parsing and writing RPC messages for the server side of
 // a RPC session. Implementations must be go-routine safe since the codec can be called in
 // multiple go-routines concurrently.
 type ServerCodec interface {
-	// Read next request
-	ReadRequestHeaders() ([]rpcRequest, bool, Error)
-	// Parse request argument to the given types
-	ParseRequestArguments(argTypes []reflect.Type, params interface{}) ([]reflect.Value, Error)
-	// Assemble success response, expects response id and payload
-	CreateResponse(id interface{}, reply interface{}) interface{}
-	// Assemble error response, expects response id and error
-	CreateErrorResponse(id interface{}, err Error) interface{}
-	// Assemble error response with extra information about the error through info
-	CreateErrorResponseWithInfo(id interface{}, err Error, info interface{}) interface{}
-	// Create notification response
-	CreateNotification(id, namespace string, event interface{}) interface{}
-	// Write msg to client.
-	Write(msg interface{}) error
-	// Close underlying data stream
-	Close()
-	// Closed when underlying connection is closed
-	Closed() <-chan interface{}
+	readBatch() (msgs []*jsonrpcMessage, isBatch bool, err error)
+	close()
+	jsonWriter
+}
+
+// jsonWriter can write JSON messages to its underlying connection.
+// Implementations must be safe for concurrent use.
+type jsonWriter interface {
+	writeJSON(context.Context, interface{}) error
+	// Closed returns a channel which is closed when the connection is closed.
+	closed() <-chan interface{}
+	// RemoteAddr returns the peer address of the connection.
+	remoteAddr() string
 }
 
 type BlockNumber int64
@@ -155,9 +103,8 @@ func (bn *BlockNumber) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if blckNum > math.MaxInt64 {
-		return fmt.Errorf("Blocknumber too high")
+		return fmt.Errorf("block number larger than int64")
 	}
-
 	*bn = BlockNumber(blckNum)
 	return nil
 }
