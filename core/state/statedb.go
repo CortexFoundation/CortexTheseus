@@ -585,13 +585,13 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 }
 
 // deleteStateObject removes the given object from the state trie.
-func (s *StateDB) deleteStateObject(stateObject *stateObject) {
+func (s *StateDB) deleteStateObject(obj *stateObject) {
 	// Track the amount of time wasted on deleting the account from the trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
 	}
 	//stateObject.deleted = true
-	addr := stateObject.Address()
+	addr := obj.Address()
 	if err := s.trie.TryDelete(addr[:]); err != nil {
 		s.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
 	}
@@ -611,7 +611,7 @@ func (s *StateDB) getStateObject(addr common.Address) *stateObject {
 // nil for a deleted state object, it returns the actual object with the deleted
 // flag set. This is needed by the state journal to revert to the correct s-
 // destructed object instead of wiping all knowledge about the state object.
-func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *stateObject) {
+func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 	// Prefer 'live' objects.
 	if obj := s.stateObjects[addr]; obj != nil {
 		return obj
@@ -628,7 +628,6 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 		var acc *snapshot.Account
 		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr.Bytes())); err == nil {
 			if acc == nil {
-				log.Trace("acc is nil", "addr", addr)
 				return nil
 			}
 			data.Nonce, data.Balance, data.CodeHash, data.Upload, data.Num = acc.Nonce, acc.Balance, acc.CodeHash, acc.Upload, acc.Num
@@ -640,9 +639,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 				data.Root = emptyRoot
 			}
 		}
-		log.Trace("Snap account is not nil", "addr", addr, "nonce", data.Nonce, "balance", data.Balance, "upload", data.Upload, "num", data.Num, "err", err)
 	}
-	// Load the object from the database.
 	// If snapshot unavailable or reading from it failed, load from the database
 	if s.snap == nil || err != nil {
 		if metrics.EnabledExpensive {
@@ -660,7 +657,6 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 			log.Error("Failed to decode state object", "addr", addr, "err", err)
 			return nil
 		}
-		log.Trace("snap show is nul", "addr", addr, "err", err)
 	}
 	// Insert into the live set.
 	obj := newObject(s, addr, data)
@@ -685,6 +681,7 @@ func (s *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
 // the given address, it is overwritten and returned as the second return value.
 func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) {
 	prev = s.getStateObject(addr)
+
 	var prevdestruct bool
 	if s.snap != nil && prev != nil {
 		_, prevdestruct = s.snapDestructs[prev.addrHash]
@@ -897,6 +894,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	if len(s.stateObjectsPending) > 0 {
 		s.stateObjectsPending = make(map[common.Address]struct{})
 	}
+	// Track the amount of time wasted on hashing the account trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountHashes += time.Since(start) }(time.Now())
 	}
