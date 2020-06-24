@@ -1,10 +1,10 @@
 package plugins
 
 /*
-#cgo LDFLAGS: -L../../../solution/miner/libcuckoo -lcpuminer -lstdc++
+#cgo LDFLAGS: -L../../../solution -lcpuminer -lstdc++
 #cgo CFLAGS: -I./
 
-#include "../../../solution/miner/libcuckoo/verify.h"
+#include "../../../solution/verify.h"
 */
 import "C"
 import (
