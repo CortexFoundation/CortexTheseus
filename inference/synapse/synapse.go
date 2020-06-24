@@ -131,26 +131,28 @@ func CVMVersion(config *params.ChainConfig, num *big.Int) int {
 }
 
 func (s *Synapse) InferByInfoHash(
-	modelInfoHash, inputInfoHash string, cvmVersion int) ([]byte, error) {
+	modelInfoHash, inputInfoHash string,
+	cvmVersion int, cvmNetworkId int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash)
 	}
-	return s.inferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion)
+	return s.inferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkId)
 }
 
 func (s *Synapse) InferByInputContent(
-	modelInfoHash string, inputContent []byte, cvmVersion int) ([]byte, error) {
+	modelInfoHash string, inputContent []byte,
+	cvmVersion int, cvmNetworkId int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInputContent(modelInfoHash, inputContent)
 	}
 	inputInfoHash := RLPHashString(inputContent)
 	log.Trace("content", "inputContent", inputContent, "inputInfoHash", inputInfoHash, "modelInfoHash", modelInfoHash)
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, cvmVersion)
+	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, cvmVersion, cvmNetworkId)
 }
 
-func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (gas uint64, err error) {
 	if s.config.IsRemoteInfer {
 		return s.remoteGasByModelHash(modelInfoHash)
 	}
-	return s.getGasByInfoHash(modelInfoHash)
+	return s.getGasByInfoHash(modelInfoHash, cvmNetworkId)
 }

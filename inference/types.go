@@ -19,31 +19,35 @@ const (
 
 // Infer by input info hash
 type IHWork struct {
-	Type       InferType `json:"type"`
-	Model      string    `json:"model"`
-	Input      string    `json:"input"`
-	CvmVersion int       `json:"cvm_version"`
+	Type         InferType `json:"type"`
+	Model        string    `json:"model"`
+	Input        string    `json:"input"`
+	CvmVersion   int       `json:"cvm_version"`
+	CvmNetworkId int64     `json:"cvm_networkid"`
 }
 
 // Infer by input content
 type ICWork struct {
-	Type       InferType     `json:"type"`
-	Model      string        `json:"model"`
-	Input      hexutil.Bytes `json:"input"`
-	CvmVersion int           `json:"cvm_version"`
+	Type         InferType     `json:"type"`
+	Model        string        `json:"model"`
+	Input        hexutil.Bytes `json:"input"`
+	CvmVersion   int           `json:"cvm_version"`
+	CvmNetworkId int64         `json:"cvm_networkid"`
 }
 
 // Infer gas
 type GasWork struct {
-	Type  InferType `json:"type"`
-	Model string    `json:"model"`
+	Type         InferType `json:"type"`
+	Model        string    `json:"model"`
+	CvmNetworkId int64     `json:"cvm_networkid"`
 }
 
 // check Available
 type AvailableWork struct {
-	Type     InferType `json:"type"`
-	InfoHash string    `json:"infohash"`
-	RawSize  int64     `json:"rawSize"`
+	Type         InferType `json:"type"`
+	InfoHash     string    `json:"infohash"`
+	RawSize      int64     `json:"rawSize"`
+	CvmNetworkId int64     `json:"cvm_networkid"`
 }
 
 type Work struct {

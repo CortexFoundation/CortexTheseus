@@ -54,7 +54,7 @@ func hackFile(infoHash, rpath string) ([]byte, error) {
 	return bytes, nil
 }
 
-func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (gas uint64, err error) {
 
 	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") {
 		return 0, KERNEL_RUNTIME_ERROR
@@ -67,7 +67,8 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	)
 	modelJson, modelJson_err = s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		if modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
+		if cvmNetworkId == 43 &&
+			modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
 			// TODO(ryt): find ways to get the NetwordId of `dolores`
 			// and append it to the judgment here
 			modelJson, modelJson_err =
@@ -103,7 +104,8 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 }
 
 func (s *Synapse) inferByInfoHash(
-	modelInfoHash, inputInfoHash string, cvmVersion int) (res []byte, err error) {
+	modelInfoHash, inputInfoHash string,
+	cvmVersion int, cvmNetworkId int64) (res []byte, err error) {
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -127,7 +129,8 @@ func (s *Synapse) inferByInfoHash(
 	inputBytes, dataErr := s.config.Storagefs.GetFile(s.ctx, inputHash, DATA_PATH)
 
 	if dataErr != nil {
-		if inputHash == "de58609743e5cd0cb18798d91a196f418ac25016" {
+		if cvmNetworkId == 43 &&
+			inputHash == "de58609743e5cd0cb18798d91a196f418ac25016" {
 			// TODO(ryt): find ways to get the NetworkId of `dolores`
 			// and append it to the judgment here
 			inputBytes, dataErr = hackFile(inputInfoHash, "data")
@@ -156,12 +159,13 @@ func (s *Synapse) inferByInfoHash(
 	}
 	log.Trace("data", "data", data, "len", len(data), "hash", inputInfoHash)
 
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, data, cvmVersion)
+	return s.inferByInputContent(modelInfoHash, inputInfoHash, data, cvmVersion, cvmNetworkId)
 }
 
 func (s *Synapse) inferByInputContent(
 	modelInfoHash, inputInfoHash string,
-	inputContent []byte, cvmVersion int) (res []byte, err error) {
+	inputContent []byte, cvmVersion int,
+	cvmNetworkId int64) (res []byte, err error) {
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -206,7 +210,8 @@ func (s *Synapse) inferByInputContent(
 	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			if modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
+			if cvmNetworkId == 43 &&
+				modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
 				// TODO(ryt): find ways to get the NetworkId of `dolores`
 				// and append it to the judgment here
 				modelJson, modelJson_err =
@@ -225,7 +230,8 @@ func (s *Synapse) inferByInputContent(
 		}
 		modelParams, modelParams_err := s.config.Storagefs.GetFile(s.ctx, modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			if modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
+			if cvmNetworkId == 43 &&
+				modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
 				// TODO(ryt): find ways to get the NetworkId of `dolores`
 				// and append it to the judgment here
 				modelParams, modelParams_err =
@@ -268,7 +274,7 @@ func (s *Synapse) inferByInputContent(
 	return result, nil
 }
 
-func (s *Synapse) Available(infoHash string, rawSize int64) error {
+func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error {
 	if s.config.IsRemoteInfer {
 		errRes := s.remoteAvailable(
 			infoHash,
@@ -282,8 +288,9 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 	ih := strings.ToLower(infoHash[2:])
 	is_ok, err := s.config.Storagefs.Available(s.ctx, ih, rawSize)
 	if err != nil {
-		if ih == "de58609743e5cd0cb18798d91a196f418ac25016" ||
-			ih == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
+		if cvmNetworkId == 43 &&
+			(ih == "de58609743e5cd0cb18798d91a196f418ac25016" ||
+				ih == "31f75c90e8fe1c5b16cbdc466dc6127487a92add") {
 			// TODO(ryt): find ways to get the NetworkId of `dolores`
 			// and append it to the judgment here
 			log.Warn("Available: start hacking...", "ih", ih)
