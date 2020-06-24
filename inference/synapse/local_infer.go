@@ -1,6 +1,9 @@
 package synapse
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	//"sync"
 
@@ -29,6 +32,28 @@ func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 	return nil, KERNEL_RUNTIME_ERROR
 }
 
+func hackFile(infoHash, rpath string) ([]byte, error) {
+	var hash = strings.ToLower(infoHash[2:])
+	log.Warn("start hacking...", "infoHash", infoHash)
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	hackPath := filepath.Join(
+		exPath, "..", "..", "hacks", hash, rpath)
+	bytes, err := ioutil.ReadFile(hackPath)
+	if err != nil {
+		log.Error("inferByInfoHash: hacking failed",
+			"infoHash", infoHash, "error", err)
+		return nil, KERNEL_RUNTIME_ERROR
+	} else {
+		log.Info("inferByInfoHash: successfully hacked",
+			"infohash", infoHash)
+	}
+	return bytes, nil
+}
+
 func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
 
 	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") {
@@ -42,8 +67,22 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	)
 	modelJson, modelJson_err = s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
-		return 0, KERNEL_RUNTIME_ERROR
+		if modelInfoHash == "0x31F75c90E8fE1c5B16CBDc466DC6127487A92AdD" {
+			// TODO(ryt): find ways to get the NetwordId of `dolores`
+			// and append it to the judgment here
+			modelJson, modelJson_err =
+				hackFile(modelInfoHash, "data/symbol")
+			if modelJson_err != nil {
+				log.Error("getGasByInfoHash: symbol hacking failed",
+					"modelInfoHash", modelInfoHash,
+					"error", modelJson_err)
+				return 0, KERNEL_RUNTIME_ERROR
+			}
+		} else {
+			log.Warn("GetGasByInfoHash: get file failed",
+				"error", modelJson_err, "hash", modelInfoHash)
+			return 0, KERNEL_RUNTIME_ERROR
+		}
 	}
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
@@ -86,14 +125,22 @@ func (s *Synapse) inferByInfoHash(
 	}
 
 	inputBytes, dataErr := s.config.Storagefs.GetFile(s.ctx, inputHash, DATA_PATH)
+
 	if dataErr != nil {
 		if inputHash == "de58609743e5cd0cb18798d91a196f418ac25016" {
-			// var infohash string = inputHash
-			// var subpath string = DATA_PATH
+			// TODO(ryt): find ways to get the NetworkId of `dolores`
+			// and append it to the judgment here
+			inputBytes, dataErr = hackFile(inputInfoHash, "data")
+			if dataErr != nil {
+				log.Error("inferByInfoHash: input hacking failed",
+					"inputInfoHash", inputInfoHash, "error", dataErr)
+				return nil, KERNEL_RUNTIME_ERROR
+			}
+		} else {
+			log.Warn("inferByInfoHash: get file failed",
+				"input hash", inputHash, "error", dataErr)
+			return nil, KERNEL_RUNTIME_ERROR
 		}
-		log.Warn("inferByInfoHash: get file failed",
-			"input hash", inputHash, "error", dataErr)
-		return nil, KERNEL_RUNTIME_ERROR
 	}
 	reader, reader_err := inference.NewBytesReader(inputBytes)
 	if reader_err != nil {
@@ -159,13 +206,40 @@ func (s *Synapse) inferByInputContent(
 	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			log.Warn("inferByInputContent: model loaded failed", "model hash", modelHash, "error", modelJson_err)
-			return nil, KERNEL_RUNTIME_ERROR
+			if modelInfoHash == "0x31F75c90E8fE1c5B16CBDc466DC6127487A92AdD" {
+				// TODO(ryt): find ways to get the NetworkId of `dolores`
+				// and append it to the judgment here
+				modelJson, modelJson_err =
+					hackFile(modelInfoHash, "data/symbol")
+				if modelJson_err != nil {
+					log.Error("getGasByInfoHash: symbol hacking failed",
+						"modelInfoHash", modelInfoHash,
+						"error", modelJson_err)
+					return nil, KERNEL_RUNTIME_ERROR
+				}
+			} else {
+				log.Warn("inferByInputContent: model loaded failed",
+					"model hash", modelHash, "error", modelJson_err)
+				return nil, KERNEL_RUNTIME_ERROR
+			}
 		}
 		modelParams, modelParams_err := s.config.Storagefs.GetFile(s.ctx, modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			log.Warn("inferByInputContent: params loaded failed", "model hash", modelHash, "error", modelParams_err)
-			return nil, KERNEL_RUNTIME_ERROR
+			if modelInfoHash == "0x31F75c90E8fE1c5B16CBDc466DC6127487A92AdD" {
+				// TODO(ryt): find ways to get the NetworkId of `dolores`
+				// and append it to the judgment here
+				modelParams, modelParams_err =
+					hackFile(modelInfoHash, "data/params")
+				if modelParams_err != nil {
+					log.Error("getGasByInfoHash: params hacking failed",
+						"modelInfoHash", modelInfoHash, "error", modelParams_err)
+					return nil, KERNEL_RUNTIME_ERROR
+				}
+			} else {
+				log.Warn("inferByInputContent: params loaded failed",
+					"model hash", modelHash, "error", modelParams_err)
+				return nil, KERNEL_RUNTIME_ERROR
+			}
 		}
 		var deviceType = 0
 		if s.config.DeviceType == "cuda" {
@@ -208,7 +282,11 @@ func (s *Synapse) Available(infoHash string, rawSize int64) error {
 	ih := strings.ToLower(infoHash[2:])
 	is_ok, err := s.config.Storagefs.Available(s.ctx, ih, rawSize)
 	if err != nil {
-		if ih == "de58609743e5cd0cb18798d91a196f418ac25016" {
+		if ih == "de58609743e5cd0cb18798d91a196f418ac25016" ||
+			ih == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
+			// TODO(ryt): find ways to get the NetworkId of `dolores`
+			// and append it to the judgment here
+			log.Warn("Available: start hacking...", "ih", ih)
 			return nil
 		}
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
