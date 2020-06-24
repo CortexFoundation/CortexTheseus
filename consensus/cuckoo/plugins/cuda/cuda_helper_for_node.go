@@ -13,9 +13,6 @@ import (
 	"fmt"
 	"log"
 	//	"time"
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"math/big"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -80,6 +77,7 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 
 	return uint32(r), ret
 }
+
 /*func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
 
@@ -91,7 +89,7 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 		return (r == 1)
 	}
 	return false
-}*/
+}
 
 func CuckooVerify_cuckaroo(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
@@ -103,4 +101,4 @@ func CuckooVerify_cuckaroo(hash *byte, nonce uint64, result types.BlockSolution,
 		return (r == 1)
 	}
 	return false
-}
+}*/
