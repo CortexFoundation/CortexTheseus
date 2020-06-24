@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2014 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package event
 
@@ -141,7 +141,7 @@ func TestMuxConcurrent(t *testing.T) {
 	}
 }
 
-func emptySubscriber(mux *TypeMux, types ...interface{}) {
+func emptySubscriber(mux *TypeMux) {
 	s := mux.Subscribe(testEvent(0))
 	go func() {
 		for range s.Chan() {
@@ -182,9 +182,9 @@ func BenchmarkPost1000(b *testing.B) {
 func BenchmarkPostConcurrent(b *testing.B) {
 	var mux = new(TypeMux)
 	defer mux.Stop()
-	emptySubscriber(mux, testEvent(0))
-	emptySubscriber(mux, testEvent(0))
-	emptySubscriber(mux, testEvent(0))
+	emptySubscriber(mux)
+	emptySubscriber(mux)
+	emptySubscriber(mux)
 
 	var wg sync.WaitGroup
 	poster := func() {
@@ -203,6 +203,7 @@ func BenchmarkPostConcurrent(b *testing.B) {
 // for comparison
 func BenchmarkChanSend(b *testing.B) {
 	c := make(chan interface{})
+	defer close(c)
 	closed := make(chan struct{})
 	go func() {
 		for range c {
