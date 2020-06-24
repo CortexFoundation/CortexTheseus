@@ -67,7 +67,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	)
 	modelJson, modelJson_err = s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		if modelInfoHash == "0x31F75c90E8fE1c5B16CBDc466DC6127487A92AdD" {
+		if modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
 			// TODO(ryt): find ways to get the NetwordId of `dolores`
 			// and append it to the judgment here
 			modelJson, modelJson_err =
@@ -206,7 +206,7 @@ func (s *Synapse) inferByInputContent(
 	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			if modelInfoHash == "0x31F75c90E8fE1c5B16CBDc466DC6127487A92AdD" {
+			if modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
 				// TODO(ryt): find ways to get the NetworkId of `dolores`
 				// and append it to the judgment here
 				modelJson, modelJson_err =
@@ -225,7 +225,7 @@ func (s *Synapse) inferByInputContent(
 		}
 		modelParams, modelParams_err := s.config.Storagefs.GetFile(s.ctx, modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			if modelInfoHash == "0x31F75c90E8fE1c5B16CBDc466DC6127487A92AdD" {
+			if modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
 				// TODO(ryt): find ways to get the NetworkId of `dolores`
 				// and append it to the judgment here
 				modelParams, modelParams_err =
