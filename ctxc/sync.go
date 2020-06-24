@@ -293,12 +293,12 @@ func (pm *ProtocolManager) doSync(op *chainSyncOp) error {
 	if op.mode == downloader.FastSync {
 		// Before launch the fast sync, we have to ensure user uses the same
 		// txlookup limit.
-		// The main concern here is: during the fast sync Geth won't index the
+		// The main concern here is: during the fast sync Cortex won't index the
 		// block(generate tx indices) before the HEAD-limit. But if user changes
-		// the limit in the next fast sync(e.g. user kill Geth manually and
-		// restart) then it will be hard for Geth to figure out the oldest block
+		// the limit in the next fast sync(e.g. user kill Cortex manually and
+		// restart) then it will be hard for Cortex to figure out the oldest block
 		// has been indexed. So here for the user-experience wise, it's non-optimal
-		// that user can't change limit during the fast sync. If changed, Geth
+		// that user can't change limit during the fast sync. If changed, Cortex
 		// will just blindly use the original one.
 		limit := pm.blockchain.TxLookupLimit()
 		if stored := rawdb.ReadFastTxLookupLimit(pm.chaindb); stored == nil {

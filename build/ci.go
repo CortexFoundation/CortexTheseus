@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 // +build none
 
@@ -58,6 +58,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cespare/cp"
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
@@ -74,12 +75,12 @@ var (
 		"COPYING",
 		executablePath("abigen"),
 		executablePath("bootnode"),
-		executablePath("torrentfs"),
 		executablePath("cvm"),
-		executablePath("miner"),
 		executablePath("cortex"),
+		executablePath("puppeth"),
 		executablePath("rlpdump"),
 		executablePath("wnode"),
+		executablePath("clef"),
 	}
 
 	// A debian package is created for all executables listed here.
@@ -93,24 +94,16 @@ var (
 			Description: "Cortex bootnode.",
 		},
 		{
-                        BinaryName:  "torrentfs",
-                        Description: "Cortex torrentfs.",
-                },
-		{
 			BinaryName:  "cvm",
 			Description: "Developer utility version of the CVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
-			BinaryName:  "cortex-remote",
-			Description: "Developer utility version of the CVM (Cortex Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
-		},
-		{
-			BinaryName:  "miner",
-			Description: "2 in 1 miner",
-		},
-		{
 			BinaryName:  "cortex",
 			Description: "Cortex CLI client.",
+		},
+		{
+			BinaryName:  "puppeth",
+			Description: "Cortex private network manager.",
 		},
 		{
 			BinaryName:  "rlpdump",
@@ -120,7 +113,13 @@ var (
 			BinaryName:  "wnode",
 			Description: "Cortex Whisper diagnostic tool",
 		},
+		{
+			BinaryName:  "clef",
+			Description: "Cortex account management tool.",
+		},
 	}
+
+	// A debian package is created for all executables listed here.
 
 	debCortex = debPackage{
 		Name:        "cortex",
@@ -133,16 +132,26 @@ var (
 		debCortex,
 	}
 
-	// Packages to be cross-compiled by the xgo command
-	allCrossCompiledArchiveFiles = allToolsArchiveFiles
-
 	// Distros for which packages are created.
 	// Note: vivid is unsupported because there is no golang-1.6 package for it.
-	// Note: wily is unsupported because it was officially deprecated on lanchpad.
-	// Note: yakkety is unsupported because it was officially deprecated on lanchpad.
-	// Note: zesty is unsupported because it was officially deprecated on lanchpad.
-	// Note: artful is unsupported because it was officially deprecated on lanchpad.
-	debDistros = []string{"trusty", "xenial", "bionic", "cosmic"}
+	// Note: wily is unsupported because it was officially deprecated on Launchpad.
+	// Note: yakkety is unsupported because it was officially deprecated on Launchpad.
+	// Note: zesty is unsupported because it was officially deprecated on Launchpad.
+	// Note: artful is unsupported because it was officially deprecated on Launchpad.
+	// Note: cosmic is unsupported because it was officially deprecated on Launchpad.
+	debDistroGoBoots = map[string]string{
+		"trusty": "golang-1.11",
+		"xenial": "golang-go",
+		"bionic": "golang-go",
+		"disco":  "golang-go",
+		"eoan":   "golang-go",
+		"focal":  "golang-go",
+	}
+
+	debGoBootPaths = map[string]string{
+		"golang-1.11": "/usr/lib/go-1.11",
+		"golang-go":   "/usr/lib/go",
+	}
 )
 
 var GOBIN, _ = filepath.Abs(filepath.Join("build", "bin"))
@@ -193,13 +202,8 @@ func main() {
 
 func doInstall(cmdline []string) {
 	var (
-		arch         = flag.String("arch", "", "Architecture to cross build for")
-		cc           = flag.String("cc", "", "C compiler to cross build with")
-		remote_infer = flag.Bool("remote_infer", false, "whether to use remote infer")
-		disable_miner = flag.Bool("disable_miner", false, "whether disable miner")
-		cuda_miner = flag.Bool("cuda_miner", false, "whether to use cuda miner")
-		opencl_miner = flag.Bool("opencl_miner", false, "whether to use opencl miner")
-		cpu_miner = flag.Bool("cpu_miner", false, "whether to use cpu miner")
+		arch = flag.String("arch", "", "Architecture to cross build for")
+		cc   = flag.String("cc", "", "C compiler to cross build with")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -213,7 +217,7 @@ func doInstall(cmdline []string) {
 
 		if minor < 11 {
 			log.Println("You have Go version", runtime.Version())
-			log.Println("CortexFoundation requires at least Go version 1.11 and cannot")
+			log.Println("CortexTheseus requires at least Go version 1.11 and cannot")
 			log.Println("be compiled with an earlier version. Please upgrade your Go installation.")
 			os.Exit(1)
 		}
@@ -223,45 +227,20 @@ func doInstall(cmdline []string) {
 	if flag.NArg() > 0 {
 		packages = flag.Args()
 	}
-	packages = build.ExpandPackagesNoVendor(packages)
 
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
 		if runtime.GOARCH == "arm64" {
 			goinstall.Args = append(goinstall.Args, "-p", "1")
 		}
-		if *remote_infer {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "remote"}...)
-		}
-		if *disable_miner {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "disable_miner"}...)
-		}
-		if *cpu_miner {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "cpu_miner"}...)
-		}
-		if *cuda_miner {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "cuda_miner"}...)
-		}
-		if *opencl_miner {
-			goinstall.Args = append(goinstall.Args, []string{"-tags", "opencl_miner"}...)
-		}
 		goinstall.Args = append(goinstall.Args, "-v")
 		goinstall.Args = append(goinstall.Args, packages...)
 		build.MustRun(goinstall)
 		return
 	}
-	// If we are cross compiling to ARMv5 ARMv6 or ARMv7, clean any previous builds
-	if *arch == "arm" {
-		os.RemoveAll(filepath.Join(runtime.GOROOT(), "pkg", runtime.GOOS+"_arm"))
-		for _, path := range filepath.SplitList(build.GOPATH()) {
-			os.RemoveAll(filepath.Join(path, "pkg", runtime.GOOS+"_arm"))
-		}
-	}
+
 	// Seems we are cross compiling, work around forbidden GOBIN
 	goinstall := goToolArch(*arch, *cc, "install", buildFlags(env)...)
-	if *remote_infer {
-		goinstall.Args = append(goinstall.Args, []string{"-tags", "remote"}...)
-	}
 	goinstall.Args = append(goinstall.Args, "-v")
 	goinstall.Args = append(goinstall.Args, []string{"-buildmode", "archive"}...)
 	goinstall.Args = append(goinstall.Args, packages...)
@@ -291,6 +270,7 @@ func buildFlags(env build.Environment) (flags []string) {
 	var ld []string
 	if env.Commit != "" {
 		ld = append(ld, "-X", "main.gitCommit="+env.Commit)
+		ld = append(ld, "-X", "main.gitDate="+env.Date)
 	}
 	if runtime.GOOS == "darwin" {
 		ld = append(ld, "-s")
@@ -308,7 +288,6 @@ func goTool(subcmd string, args ...string) *exec.Cmd {
 
 func goToolArch(arch string, cc string, subcmd string, args ...string) *exec.Cmd {
 	cmd := build.GoTool(subcmd, args...)
-	cmd.Env = []string{"GOPATH=" + build.GOPATH()}
 	if arch == "" || arch == runtime.GOARCH {
 		cmd.Env = append(cmd.Env, "GOBIN="+GOBIN)
 	} else {
@@ -319,7 +298,7 @@ func goToolArch(arch string, cc string, subcmd string, args ...string) *exec.Cmd
 		cmd.Env = append(cmd.Env, "CC="+cc)
 	}
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "GOPATH=") || strings.HasPrefix(e, "GOBIN=") {
+		if strings.HasPrefix(e, "GOBIN=") {
 			continue
 		}
 		cmd.Env = append(cmd.Env, e)
@@ -332,9 +311,8 @@ func goToolArch(arch string, cc string, subcmd string, args ...string) *exec.Cmd
 // "tests" also includes static analysis tools such as vet.
 
 func doTest(cmdline []string) {
-	var (
-		coverage = flag.Bool("coverage", false, "Whether to record code coverage")
-	)
+	coverage := flag.Bool("coverage", false, "Whether to record code coverage")
+	verbose := flag.Bool("v", false, "Whether to log verbosely")
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
 
@@ -342,57 +320,55 @@ func doTest(cmdline []string) {
 	if len(flag.CommandLine.Args()) > 0 {
 		packages = flag.CommandLine.Args()
 	}
-	packages = build.ExpandPackagesNoVendor(packages)
-
-	// Run analysis tools before the tests.
-	build.MustRun(goTool("vet", packages...))
 
 	// Run the actual tests.
-	gotest := goTool("test", buildFlags(env)...)
 	// Test a single package at a time. CI builders are slow
 	// and some tests run into timeouts under load.
+	gotest := goTool("test", buildFlags(env)...)
 	gotest.Args = append(gotest.Args, "-p", "1")
 	if *coverage {
 		gotest.Args = append(gotest.Args, "-covermode=atomic", "-cover")
+	}
+	if *verbose {
+		gotest.Args = append(gotest.Args, "-v")
 	}
 
 	gotest.Args = append(gotest.Args, packages...)
 	build.MustRun(gotest)
 }
 
-// runs gometalinter on requested packages
+// doLint runs golangci-lint on requested packages.
 func doLint(cmdline []string) {
+	var (
+		cachedir = flag.String("cachedir", "./build/cache", "directory for caching golangci-lint binary.")
+	)
 	flag.CommandLine.Parse(cmdline)
-
 	packages := []string{"./..."}
 	if len(flag.CommandLine.Args()) > 0 {
 		packages = flag.CommandLine.Args()
 	}
-	// Get metalinter and install all supported linters
-	build.MustRun(goTool("get", "gopkg.in/alecthomas/gometalinter.v2"))
-	build.MustRunCommand(filepath.Join(GOBIN, "gometalinter.v2"), "--install")
 
-	// Run fast linters batched tocortexer
-	configs := []string{
-		"--vendor",
-		"--tests",
-		"--deadline=2m",
-		"--disable-all",
-		"--enable=goimports",
-		"--enable=varcheck",
-		"--enable=vet",
-		"--enable=gofmt",
-		"--enable=misspell",
-		"--enable=goconst",
-		"--min-occurrences=6", // for goconst
-	}
-	build.MustRunCommand(filepath.Join(GOBIN, "gometalinter.v2"), append(configs, packages...)...)
+	linter := downloadLinter(*cachedir)
+	lflags := []string{"run", "--config", ".golangci.yml"}
+	build.MustRunCommand(linter, append(lflags, packages...)...)
+	fmt.Println("You have achieved perfection.")
+}
 
-	// Run slow linters one by one
-	for _, linter := range []string{"unconvert", "gosimple"} {
-		configs = []string{"--vendor", "--tests", "--deadline=10m", "--disable-all", "--enable=" + linter}
-		build.MustRunCommand(filepath.Join(GOBIN, "gometalinter.v2"), append(configs, packages...)...)
+// downloadLinter downloads and unpacks golangci-lint.
+func downloadLinter(cachedir string) string {
+	const version = "1.27.0"
+
+	csdb := build.MustLoadChecksums("build/checksums.txt")
+	base := fmt.Sprintf("golangci-lint-%s-%s-%s", version, runtime.GOOS, runtime.GOARCH)
+	url := fmt.Sprintf("https://github.com/golangci/golangci-lint/releases/download/v%s/%s.tar.gz", version, base)
+	archivePath := filepath.Join(cachedir, base+".tar.gz")
+	if err := csdb.DownloadFile(url, archivePath); err != nil {
+		log.Fatal(err)
 	}
+	if err := build.ExtractTarballArchive(archivePath, cachedir); err != nil {
+		log.Fatal(err)
+	}
+	return filepath.Join(cachedir, base, "golangci-lint")
 }
 
 // Release Packaging
@@ -400,8 +376,8 @@ func doArchive(cmdline []string) {
 	var (
 		arch   = flag.String("arch", runtime.GOARCH, "Architecture cross packaging")
 		atype  = flag.String("type", "zip", "Type of archive to write (zip|tar)")
-		//signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
-		//upload = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
+		signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
+		upload = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
 		ext    string
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -420,7 +396,6 @@ func doArchive(cmdline []string) {
 		basecortex = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
 		cortex     = "cortex-" + basecortex + ext
 		alltools = "cortex-alltools-" + basecortex + ext
-
 	)
 	maybeSkipArchive(env)
 	if err := build.WriteArchive(cortex, cortexArchiveFiles); err != nil {
@@ -428,6 +403,11 @@ func doArchive(cmdline []string) {
 	}
 	if err := build.WriteArchive(alltools, allToolsArchiveFiles); err != nil {
 		log.Fatal(err)
+	}
+	for _, archive := range []string{cortex, alltools} {
+		if err := archiveUpload(archive, *upload, *signer); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -448,11 +428,8 @@ func archiveBasename(arch string, archiveVersion string) string {
 func archiveUpload(archive string, blobstore string, signer string) error {
 	// If signing was requested, generate the signature files
 	if signer != "" {
-		pgpkey, err := base64.StdEncoding.DecodeString(os.Getenv(signer))
-		if err != nil {
-			return fmt.Errorf("invalid base64 %s", signer)
-		}
-		if err := build.PGPSignFile(archive, archive+".asc", string(pgpkey)); err != nil {
+		key := getenvBase64(signer)
+		if err := build.PGPSignFile(archive, archive+".asc", string(key)); err != nil {
 			return err
 		}
 	}
@@ -494,10 +471,13 @@ func maybeSkipArchive(env build.Environment) {
 // Debian Packaging
 func doDebianSource(cmdline []string) {
 	var (
-		signer  = flag.String("signer", "", `Signing key name, also used as package author`)
-		upload  = flag.String("upload", "", `Where to upload the source package (usually "ppa:cortex/cortex")`)
-		workdir = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
-		now     = time.Now()
+		goversion = flag.String("goversion", "", `Go version to build with (will be included in the source package)`)
+		cachedir  = flag.String("cachedir", "./build/cache", `Filesystem path to cache the downloaded Go bundles at`)
+		signer    = flag.String("signer", "", `Signing key name, also used as package author`)
+		upload    = flag.String("upload", "", `Where to upload the source package (usually "cortex/cortex")`)
+		sshUser   = flag.String("sftp-user", "", `Username for SFTP upload (usually "cortex-ci")`)
+		workdir   = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
+		now       = time.Now()
 	)
 	flag.CommandLine.Parse(cmdline)
 	*workdir = makeWorkdir(*workdir)
@@ -505,35 +485,105 @@ func doDebianSource(cmdline []string) {
 	maybeSkipArchive(env)
 
 	// Import the signing key.
-	if b64key := os.Getenv("PPA_SIGNING_KEY"); b64key != "" {
-		key, err := base64.StdEncoding.DecodeString(b64key)
-		if err != nil {
-			log.Fatal("invalid base64 PPA_SIGNING_KEY")
-		}
+	if key := getenvBase64("PPA_SIGNING_KEY"); len(key) > 0 {
 		gpg := exec.Command("gpg", "--import")
 		gpg.Stdin = bytes.NewReader(key)
 		build.MustRun(gpg)
 	}
 
-	// Create Debian packages and upload them
+	// Download and verify the Go source package.
+	gobundle := downloadGoSources(*goversion, *cachedir)
+
+	// Download all the dependencies needed to build the sources and run the ci script
+	srcdepfetch := goTool("install", "-n", "./...")
+	srcdepfetch.Env = append(os.Environ(), "GOPATH="+filepath.Join(*workdir, "modgopath"))
+	build.MustRun(srcdepfetch)
+
+	cidepfetch := goTool("run", "./build/ci.go")
+	cidepfetch.Env = append(os.Environ(), "GOPATH="+filepath.Join(*workdir, "modgopath"))
+	cidepfetch.Run() // Command fails, don't care, we only need the deps to start it
+
+	// Create Debian packages and upload them.
 	for _, pkg := range debPackages {
-		for _, distro := range debDistros {
-			meta := newDebMetadata(distro, *signer, env, now, pkg.Name, pkg.Version, pkg.Executables)
+		for distro, goboot := range debDistroGoBoots {
+			// Prepare the debian package with the CortexTheseus sources.
+			meta := newDebMetadata(distro, goboot, *signer, env, now, pkg.Name, pkg.Version, pkg.Executables)
 			pkgdir := stageDebianSource(*workdir, meta)
-			debuild := exec.Command("debuild", "-S", "-sa", "-us", "-uc")
+
+			// Add Go source code
+			if err := build.ExtractTarballArchive(gobundle, pkgdir); err != nil {
+				log.Fatalf("Failed to extract Go sources: %v", err)
+			}
+			if err := os.Rename(filepath.Join(pkgdir, "go"), filepath.Join(pkgdir, ".go")); err != nil {
+				log.Fatalf("Failed to rename Go source folder: %v", err)
+			}
+			// Add all dependency modules in compressed form
+			os.MkdirAll(filepath.Join(pkgdir, ".mod", "cache"), 0755)
+			if err := cp.CopyAll(filepath.Join(pkgdir, ".mod", "cache", "download"), filepath.Join(*workdir, "modgopath", "pkg", "mod", "cache", "download")); err != nil {
+				log.Fatalf("Failed to copy Go module dependencies: %v", err)
+			}
+			// Run the packaging and upload to the PPA
+			debuild := exec.Command("debuild", "-S", "-sa", "-us", "-uc", "-d", "-Zxz", "-nc")
 			debuild.Dir = pkgdir
 			build.MustRun(debuild)
 
-			changes := fmt.Sprintf("%s_%s_source.changes", meta.Name(), meta.VersionString())
-			changes = filepath.Join(*workdir, changes)
+			var (
+				basename = fmt.Sprintf("%s_%s", meta.Name(), meta.VersionString())
+				source   = filepath.Join(*workdir, basename+".tar.xz")
+				dsc      = filepath.Join(*workdir, basename+".dsc")
+				changes  = filepath.Join(*workdir, basename+"_source.changes")
+			)
 			if *signer != "" {
 				build.MustRunCommand("debsign", changes)
 			}
 			if *upload != "" {
-				build.MustRunCommand("dput", *upload, changes)
+				ppaUpload(*workdir, *upload, *sshUser, []string{source, dsc, changes})
 			}
 		}
 	}
+}
+
+func downloadGoSources(version string, cachedir string) string {
+	csdb := build.MustLoadChecksums("build/checksums.txt")
+	file := fmt.Sprintf("go%s.src.tar.gz", version)
+	url := "https://dl.google.com/go/" + file
+	dst := filepath.Join(cachedir, file)
+	if err := csdb.DownloadFile(url, dst); err != nil {
+		log.Fatal(err)
+	}
+	return dst
+}
+
+func ppaUpload(workdir, ppa, sshUser string, files []string) {
+	p := strings.Split(ppa, "/")
+	if len(p) != 2 {
+		log.Fatal("-upload PPA name must contain single /")
+	}
+	if sshUser == "" {
+		sshUser = p[0]
+	}
+	incomingDir := fmt.Sprintf("~%s/ubuntu/%s", p[0], p[1])
+	// Create the SSH identity file if it doesn't exist.
+	var idfile string
+	if sshkey := getenvBase64("PPA_SSH_KEY"); len(sshkey) > 0 {
+		idfile = filepath.Join(workdir, "sshkey")
+		if _, err := os.Stat(idfile); os.IsNotExist(err) {
+			ioutil.WriteFile(idfile, sshkey, 0600)
+		}
+	}
+	// Upload
+	dest := sshUser + "@ppa.launchpad.net"
+	if err := build.UploadSFTP(idfile, dest, incomingDir, files); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func getenvBase64(variable string) []byte {
+	dec, err := base64.StdEncoding.DecodeString(os.Getenv(variable))
+	if err != nil {
+		log.Fatal("invalid base64 " + variable)
+	}
+	return []byte(dec)
 }
 
 func makeWorkdir(wdflag string) string {
@@ -558,16 +608,18 @@ func isUnstableBuild(env build.Environment) bool {
 
 type debPackage struct {
 	Name        string          // the name of the Debian package to produce, e.g. "cortex"
-	Version     string          // the clean version of the debPackage, e.g. 1.8.12 or 0.3.0, without any metadata
+	Version     string          // the clean version of the debPackage, e.g. 1.8.12, without any metadata
 	Executables []debExecutable // executables to be included in the package
 }
 
 type debMetadata struct {
-	Env build.Environment
+	Env           build.Environment
+	GoBootPackage string
+	GoBootPath    string
 
 	PackageName string
 
-	// CortexFoundation version being built. Note that this
+	// CortexTheseus version being built. Note that this
 	// is not the debian package version. The package version
 	// is constructed by VersionString.
 	Version string
@@ -592,19 +644,21 @@ func (d debExecutable) Package() string {
 	return d.BinaryName
 }
 
-func newDebMetadata(distro, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
+func newDebMetadata(distro, goboot, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
 	if author == "" {
 		// No signing key, use default author.
 		author = "Cortex Builds <fjl@cortex.org>"
 	}
 	return debMetadata{
-		PackageName: name,
-		Env:         env,
-		Author:      author,
-		Distro:      distro,
-		Version:     version,
-		Time:        t.Format(time.RFC1123Z),
-		Executables: exes,
+		GoBootPackage: goboot,
+		GoBootPath:    debGoBootPaths[goboot],
+		PackageName:   name,
+		Env:           env,
+		Author:        author,
+		Distro:        distro,
+		Version:       version,
+		Time:          t.Format(time.RFC1123Z),
+		Executables:   exes,
 	}
 }
 
@@ -669,7 +723,6 @@ func stageDebianSource(tmpdir string, meta debMetadata) (pkgdir string) {
 	if err := os.Mkdir(pkgdir, 0755); err != nil {
 		log.Fatal(err)
 	}
-
 	// Copy the source code.
 	build.MustRunCommand("git", "checkout-index", "-a", "--prefix", pkgdir+string(filepath.Separator))
 
@@ -687,7 +740,6 @@ func stageDebianSource(tmpdir string, meta debMetadata) (pkgdir string) {
 		build.Render("build/deb/"+meta.PackageName+"/deb.install", install, 0644, exe)
 		build.Render("build/deb/"+meta.PackageName+"/deb.docs", docs, 0644, exe)
 	}
-
 	return pkgdir
 }
 
@@ -727,7 +779,7 @@ func doWindowsInstaller(cmdline []string) {
 	// first section contains the cortex binary, second section holds the dev tools.
 	templateData := map[string]interface{}{
 		"License":  "COPYING",
-		"Ctxc":     cortexTool,
+		"Geth":     cortexTool,
 		"DevTools": devTools,
 	}
 	build.Render("build/nsis.cortex.nsi", filepath.Join(*workdir, "cortex.nsi"), 0644, nil)
@@ -735,9 +787,12 @@ func doWindowsInstaller(cmdline []string) {
 	build.Render("build/nsis.uninstall.nsh", filepath.Join(*workdir, "uninstall.nsh"), 0644, allTools)
 	build.Render("build/nsis.pathupdate.nsh", filepath.Join(*workdir, "PathUpdate.nsh"), 0644, nil)
 	build.Render("build/nsis.envvarupdate.nsh", filepath.Join(*workdir, "EnvVarUpdate.nsh"), 0644, nil)
-	build.CopyFile(filepath.Join(*workdir, "SimpleFC.dll"), "build/nsis.simplefc.dll", 0755)
-	build.CopyFile(filepath.Join(*workdir, "COPYING"), "COPYING", 0755)
-
+	if err := cp.CopyFile(filepath.Join(*workdir, "SimpleFC.dll"), "build/nsis.simplefc.dll"); err != nil {
+		log.Fatal("Failed to copy SimpleFC.dll: %v", err)
+	}
+	if err := cp.CopyFile(filepath.Join(*workdir, "COPYING"), "COPYING"); err != nil {
+		log.Fatal("Failed to copy copyright note: %v", err)
+	}
 	// Build the installer. This assumes that all the needed files have been previously
 	// built (don't mix building and packaging to keep cross compilation complexity to a
 	// minimum).
@@ -754,7 +809,6 @@ func doWindowsInstaller(cmdline []string) {
 		"/DARCH="+*arch,
 		filepath.Join(*workdir, "cortex.nsi"),
 	)
-
 	// Sign and publish installer.
 	if err := archiveUpload(installer, *upload, *signer); err != nil {
 		log.Fatal(err)
@@ -777,12 +831,8 @@ func doAndroidArchive(cmdline []string) {
 	if os.Getenv("ANDROID_HOME") == "" {
 		log.Fatal("Please ensure ANDROID_HOME points to your Android SDK")
 	}
-	if os.Getenv("ANDROID_NDK") == "" {
-		log.Fatal("Please ensure ANDROID_NDK points to your Android NDK")
-	}
 	// Build the Android archive and Maven resources
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
-	build.MustRun(gomobileTool("init", "--ndk", os.Getenv("ANDROID_NDK")))
 	build.MustRun(gomobileTool("bind", "-ldflags", "-s -w", "--target", "android", "--javapkg", "org.cortex", "-v", "github.com/CortexFoundation/CortexTheseus/mobile"))
 
 	if *local {
@@ -807,15 +857,10 @@ func doAndroidArchive(cmdline []string) {
 	os.Rename(archive, meta.Package+".aar")
 	if *signer != "" && *deploy != "" {
 		// Import the signing key into the local GPG instance
-		b64key := os.Getenv(*signer)
-		key, err := base64.StdEncoding.DecodeString(b64key)
-		if err != nil {
-			log.Fatalf("invalid base64 %s", *signer)
-		}
+		key := getenvBase64(*signer)
 		gpg := exec.Command("gpg", "--import")
 		gpg.Stdin = bytes.NewReader(key)
 		build.MustRun(gpg)
-
 		keyID, err := build.PGPKeyID(string(key))
 		if err != nil {
 			log.Fatal(err)
@@ -836,7 +881,6 @@ func gomobileTool(subcmd string, args ...string) *exec.Cmd {
 	cmd := exec.Command(filepath.Join(GOBIN, "gomobile"), subcmd)
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Env = []string{
-		"GOPATH=" + build.GOPATH(),
 		"PATH=" + GOBIN + string(os.PathListSeparator) + os.Getenv("PATH"),
 	}
 	for _, e := range os.Environ() {
@@ -909,7 +953,7 @@ func doXCodeFramework(cmdline []string) {
 	// Build the iOS XCode framework
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 	build.MustRun(gomobileTool("init"))
-	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "--tags", "ios", "-v", "github.com/CortexFoundation/CortexTheseus/mobile")
+	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/CortexFoundation/CortexTheseus/mobile")
 
 	if *local {
 		// If we're building locally, use the build folder and stop afterwards
@@ -935,8 +979,8 @@ func doXCodeFramework(cmdline []string) {
 	// Prepare and upload a PodSpec to CocoaPods
 	if *deploy != "" {
 		meta := newPodMetadata(env, archive)
-		build.Render("build/pod.podspec", "Ctxc.podspec", 0755, meta)
-		build.MustRunCommand("pod", *deploy, "push", "Ctxc.podspec", "--allow-warnings", "--verbose")
+		build.Render("build/pod.podspec", "Geth.podspec", 0755, meta)
+		build.MustRunCommand("pod", *deploy, "push", "Geth.podspec", "--allow-warnings", "--verbose")
 	}
 }
 
@@ -1003,7 +1047,7 @@ func doXgo(cmdline []string) {
 
 	if *alltools {
 		args = append(args, []string{"--dest", GOBIN}...)
-		for _, res := range allCrossCompiledArchiveFiles {
+		for _, res := range allToolsArchiveFiles {
 			if strings.HasPrefix(res, GOBIN) {
 				// Binary tool found, cross build it explicitly
 				args = append(args, "./"+filepath.Join("cmd", filepath.Base(res)))
@@ -1024,16 +1068,10 @@ func doXgo(cmdline []string) {
 
 func xgoTool(args []string) *exec.Cmd {
 	cmd := exec.Command(filepath.Join(GOBIN, "xgo"), args...)
-	cmd.Env = []string{
-		"GOPATH=" + build.GOPATH(),
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, []string{
 		"GOBIN=" + GOBIN,
-	}
-	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "GOPATH=") || strings.HasPrefix(e, "GOBIN=") {
-			continue
-		}
-		cmd.Env = append(cmd.Env, e)
-	}
+	}...)
 	return cmd
 }
 
@@ -1042,7 +1080,7 @@ func xgoTool(args []string) *exec.Cmd {
 func doPurge(cmdline []string) {
 	var (
 		store = flag.String("store", "", `Destination from where to purge archives (usually "cortexstore/builds")`)
-		limit = flag.Int("days", 30, `Age threshold above which to delete unstalbe archives`)
+		limit = flag.Int("days", 30, `Age threshold above which to delete unstable archives`)
 	)
 	flag.CommandLine.Parse(cmdline)
 

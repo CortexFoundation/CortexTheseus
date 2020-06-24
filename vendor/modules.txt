@@ -193,6 +193,7 @@ github.com/google/btree
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
+## explicit
 github.com/gorilla/websocket
 # github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
 ## explicit
@@ -222,6 +223,9 @@ github.com/influxdata/influxdb/pkg/escape
 github.com/jackpal/go-nat-pmp
 # github.com/jmespath/go-jmespath v0.3.0
 github.com/jmespath/go-jmespath
+# github.com/julienschmidt/httprouter v1.3.0
+## explicit
+github.com/julienschmidt/httprouter
 # github.com/kr/pretty v0.2.0
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
@@ -247,6 +251,7 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-ieproxy v0.0.1
 github.com/mattn/go-ieproxy
 # github.com/mattn/go-isatty v0.0.13-0.20200128103942-cb30d6282491
+## explicit
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.9
 github.com/mattn/go-runewidth
@@ -433,7 +438,6 @@ golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 golang.org/x/net/ipv4
 golang.org/x/net/publicsuffix
-golang.org/x/net/websocket
 # golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 ## explicit
 golang.org/x/sync/syncmap

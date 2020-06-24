@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package build
 
@@ -182,4 +182,49 @@ func (a *TarballArchive) Close() error {
 		return err
 	}
 	return a.file.Close()
+}
+
+func ExtractTarballArchive(archive string, dest string) error {
+	// We're only interested in gzipped archives, wrap the reader now
+	ar, err := os.Open(archive)
+	if err != nil {
+		return err
+	}
+	defer ar.Close()
+
+	gzr, err := gzip.NewReader(ar)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+
+	// Iterate over all the files in the tarball
+	tr := tar.NewReader(gzr)
+	for {
+		// Fetch the next tarball header and abort if needed
+		header, err := tr.Next()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+		// Figure out the target and create it
+		target := filepath.Join(dest, header.Name)
+
+		switch header.Typeflag {
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				return err
+			}
+			file, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(file, tr); err != nil {
+				return err
+			}
+			file.Close()
+		}
+	}
 }

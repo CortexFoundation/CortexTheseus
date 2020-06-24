@@ -1,46 +1,46 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc_test
 
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"time"
 
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
-// In this example, our client whishes to track the latest 'block number'
+// In this example, our client wishes to track the latest 'block number'
 // known to the server. The server supports two methods:
 //
 // ctxc_getBlockByNumber("latest", {})
 //    returns the latest block object.
 //
-// ctxc_subscribe("newBlocks")
+// ctxc_subscribe("newHeads")
 //    creates a subscription which fires block objects when new blocks arrive.
 
 type Block struct {
-	Number *big.Int
+	Number *hexutil.Big
 }
 
 func ExampleClientSubscription() {
 	// Connect the client.
-	client, _ := rpc.Dial("ws://127.0.0.1:8485")
+	client, _ := rpc.Dial("ws://127.0.0.1:8545")
 	subch := make(chan Block)
 
 	// Ensure that subch receives the latest block.
@@ -75,7 +75,8 @@ func subscribeBlocks(client *rpc.Client, subch chan Block) {
 	// The connection is established now.
 	// Update the channel with the current block.
 	var lastBlock Block
-	if err := client.CallContext(ctx, &lastBlock, "ctxc_getBlockByNumber", "latest"); err != nil {
+	err = client.CallContext(ctx, &lastBlock, "ctxc_getBlockByNumber", "latest", false)
+	if err != nil {
 		fmt.Println("can't get latest block:", err)
 		return
 	}
