@@ -4,7 +4,7 @@ package plugins
 #cgo LDFLAGS: -L../../../solution/miner/libcuckoo -lcpuminer -lstdc++
 #cgo CFLAGS: -I./
 
-#include "../../../solution/miner/libcuckoo/miner.h"
+#include "../../../solution/miner/libcuckoo/verify.h"
 */
 import "C"
 import (
