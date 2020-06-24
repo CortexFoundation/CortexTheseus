@@ -1,24 +1,25 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package node
 
 import (
 	"errors"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"reflect"
 	"testing"
@@ -27,6 +28,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -46,6 +49,8 @@ func TestNodeLifeCycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Ensure that a stopped node can be stopped again
 	for i := 0; i < 3; i++ {
 		if err := stack.Stop(); err != ErrNodeStopped {
@@ -88,6 +93,8 @@ func TestNodeUsedDataDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create original protocol stack: %v", err)
 	}
+	defer original.Close()
+
 	if err := original.Start(); err != nil {
 		t.Fatalf("failed to start original protocol stack: %v", err)
 	}
@@ -98,6 +105,8 @@ func TestNodeUsedDataDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create duplicate protocol stack: %v", err)
 	}
+	defer duplicate.Close()
+
 	if err := duplicate.Start(); err != ErrDatadirUsed {
 		t.Fatalf("duplicate datadir failure mismatch: have %v, want %v", err, ErrDatadirUsed)
 	}
@@ -109,6 +118,8 @@ func TestServiceRegistry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Register a batch of unique services and ensure they start successfully
 	services := []ServiceConstructor{NewNoopServiceA, NewNoopServiceB, NewNoopServiceC}
 	for i, constructor := range services {
@@ -141,6 +152,8 @@ func TestServiceLifeCycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Register a batch of life-cycle instrumented services
 	services := map[string]InstrumentingWrapper{
 		"A": InstrumentedServiceMakerA,
@@ -191,6 +204,8 @@ func TestServiceRestarts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Define a service that does not support restarts
 	var (
 		running bool
@@ -239,6 +254,8 @@ func TestServiceConstructionAbortion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Define a batch of good services
 	services := map[string]InstrumentingWrapper{
 		"A": InstrumentedServiceMakerA,
@@ -286,6 +303,8 @@ func TestServiceStartupAbortion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Register a batch of good services
 	services := map[string]InstrumentingWrapper{
 		"A": InstrumentedServiceMakerA,
@@ -333,12 +352,14 @@ func TestServiceStartupAbortion(t *testing.T) {
 }
 
 // Tests that even if a registered service fails to shut down cleanly, it does
-// not influece the rest of the shutdown invocations.
+// not influence the rest of the shutdown invocations.
 func TestServiceTerminationGuarantee(t *testing.T) {
 	stack, err := New(testNodeConfig())
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Register a batch of good services
 	services := map[string]InstrumentingWrapper{
 		"A": InstrumentedServiceMakerA,
@@ -414,6 +435,8 @@ func TestServiceRetrieval(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	if err := stack.Register(NewNoopService); err != nil {
 		t.Fatalf("noop service registration failed: %v", err)
 	}
@@ -449,14 +472,16 @@ func TestProtocolGather(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Register a batch of services with some configured number of protocols
 	services := map[string]struct {
 		Count int
 		Maker InstrumentingWrapper
 	}{
-		"Zero Protocols":  {0, InstrumentedServiceMakerA},
-		"Single Protocol": {1, InstrumentedServiceMakerB},
-		"Many Protocols":  {25, InstrumentedServiceMakerC},
+		"zero": {0, InstrumentedServiceMakerA},
+		"one":  {1, InstrumentedServiceMakerB},
+		"many": {10, InstrumentedServiceMakerC},
 	}
 	for id, config := range services {
 		protocols := make([]p2p.Protocol, config.Count)
@@ -480,7 +505,7 @@ func TestProtocolGather(t *testing.T) {
 	defer stack.Stop()
 
 	protocols := stack.Server().Protocols
-	if len(protocols) != 26 {
+	if len(protocols) != 11 {
 		t.Fatalf("mismatching number of protocols launched: have %d, want %d", len(protocols), 26)
 	}
 	for id, config := range services {
@@ -505,6 +530,8 @@ func TestAPIGather(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create protocol stack: %v", err)
 	}
+	defer stack.Close()
+
 	// Register a batch of services with some configured APIs
 	calls := make(chan string, 1)
 	makeAPI := func(result string) *OneMethodAPI {
@@ -572,4 +599,59 @@ func TestAPIGather(t *testing.T) {
 			t.Fatalf("test %d: rpc execution timeout", i)
 		}
 	}
+}
+
+func TestWebsocketHTTPOnSamePort_WebsocketRequest(t *testing.T) {
+	node := startHTTP(t)
+	defer node.stopHTTP()
+
+	wsReq, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:7453", nil)
+	if err != nil {
+		t.Error("could not issue new http request ", err)
+	}
+	wsReq.Header.Set("Connection", "upgrade")
+	wsReq.Header.Set("Upgrade", "websocket")
+	wsReq.Header.Set("Sec-WebSocket-Version", "13")
+	wsReq.Header.Set("Sec-Websocket-Key", "SGVsbG8sIHdvcmxkIQ==")
+
+	resp := doHTTPRequest(t, wsReq)
+	assert.Equal(t, "websocket", resp.Header.Get("Upgrade"))
+}
+
+func TestWebsocketHTTPOnSamePort_HTTPRequest(t *testing.T) {
+	node := startHTTP(t)
+	defer node.stopHTTP()
+
+	httpReq, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:7453", nil)
+	if err != nil {
+		t.Error("could not issue new http request ", err)
+	}
+	httpReq.Header.Set("Accept-Encoding", "gzip")
+
+	resp := doHTTPRequest(t, httpReq)
+	assert.Equal(t, "gzip", resp.Header.Get("Content-Encoding"))
+}
+
+func startHTTP(t *testing.T) *Node {
+	conf := &Config{HTTPPort: 7453, WSPort: 7453}
+	node, err := New(conf)
+	if err != nil {
+		t.Error("could not create a new node ", err)
+	}
+
+	err = node.startHTTP("127.0.0.1:7453", []rpc.API{}, []string{}, []string{}, []string{}, rpc.HTTPTimeouts{}, []string{})
+	if err != nil {
+		t.Error("could not start http service on node ", err)
+	}
+
+	return node
+}
+
+func doHTTPRequest(t *testing.T, req *http.Request) *http.Response {
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Error("could not issue a GET request to the given endpoint", err)
+	}
+	return resp
 }
