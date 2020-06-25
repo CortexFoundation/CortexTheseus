@@ -18,10 +18,6 @@ import (
 	"unsafe"
 )
 
-func CuckooInit(threads uint32) {
-	CuckooInitialize(0, "", "cuckaroo")
-}
-
 func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error {
 	var arrayDeviceIds []string = strings.Split(strDeviceIds, ",")
 	var deviceNum int = 1
