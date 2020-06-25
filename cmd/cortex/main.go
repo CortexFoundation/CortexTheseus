@@ -142,6 +142,7 @@ var (
 
 	storageFlags = []cli.Flag{
 		utils.StorageDirFlag,
+		utils.StorageRpcFlag,
 		utils.StoragePortFlag,
 		//utils.StorageEnabledFlag,
 		utils.StorageMaxSeedingFlag,

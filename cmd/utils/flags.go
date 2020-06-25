@@ -208,6 +208,12 @@ var (
 		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
 
+	StorageRpcFlag = cli.StringFlag{
+		Name:  "storage.rpc",
+		Usage: "P2P storage status sync from blockchain rpc link",
+		Value: "http://127.0.0.1:8545",
+	}
+
 	StoragePortFlag = cli.IntFlag{
 		Name:  "storage.port",
 		Usage: "p2p storage listening port",
@@ -1366,6 +1372,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.Cuckoo.Algorithm = "cuckaroo" //ctx.GlobalString(MinerAlgorithmFlag.Name)
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
+	//cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
 	if cfg.InferDeviceType == "cpu" {
 	} else if cfg.InferDeviceType == "gpu" {
@@ -1484,14 +1491,14 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""
-		cfg.RpcURI = "http://" + ctx.GlobalString(RPCListenAddrFlag.Name) + ":" + string(ctx.GlobalInt(RPCPortFlag.Name))
+		//cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)//"http://" + ctx.GlobalString(RPCListenAddrFlag.Name) + ":" + string(ctx.GlobalInt(RPCPortFlag.Name))
 	} else {
 		path := MakeDataDir(ctx)
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
-		//log.Info("path", "path", path, "ipc", IPCPath)
-		//log.Info("FsConfig", "IPCPath", cfg.IpcPath)
 	}
+	cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)
+
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
 	cfg.DefaultTrackers = strings.Split(trackers, ",")

@@ -4,7 +4,12 @@ import (
 	"hash"
 	"sync"
 
+	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"golang.org/x/crypto/sha3"
+)
+
+var (
+	hashSumMeter = metrics.NewRegisteredMeter("torrent/hash/summary", nil)
 )
 
 type keccakState interface {
@@ -27,6 +32,7 @@ var hasherPool = sync.Pool{
 }
 
 func (h *hasher) sum(data []byte) []byte {
+	hashSumMeter.Mark(1)
 	n := make([]byte, 32)
 	h.sha.Reset()
 	h.sha.Write(data)
