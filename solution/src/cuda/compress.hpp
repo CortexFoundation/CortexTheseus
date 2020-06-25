@@ -65,7 +65,7 @@ public:
       word_t cu = nodes[ui];
       if (cu == NIL) {
         if (nnodes >= SIZE) {
-          print_log("NODE OVERFLOW at %x\n", u);
+          //print_log("NODE OVERFLOW at %x\n", u);
           return 0;
         }
         nodes[ui] = u << SIZEBITS | nnodes;
