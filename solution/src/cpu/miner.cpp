@@ -1,7 +1,7 @@
 #include "cuckoo_mean.hpp"
 #include "cuckaroo_mean.hpp"
 
-#include "../../miner.h"
+#include "../../verify.h"
 #include <vector>
 #include <algorithm>
 using namespace std;

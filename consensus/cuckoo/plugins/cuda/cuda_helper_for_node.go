@@ -3,27 +3,20 @@
 package main
 
 /*
-#cgo LDFLAGS: -L../../../../solution/miner/libcuckoo -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
+#cgo LDFLAGS: -L../../../../solution -lcudaminer -L/usr/local/cuda/lib64 -lcudart -lstdc++ -lnvidia-ml
 #cgo CFLAGS: -I./
 
-#include "../../../../solution/miner/libcuckoo/miner.h"
+#include "../../../../solution/miner.h"
 */
 import "C"
 import (
 	"fmt"
 	"log"
 	//	"time"
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"math/big"
 	"strconv"
 	"strings"
 	"unsafe"
 )
-
-func CuckooInit(threads uint32) {
-	CuckooInitialize(0, "", "cuckaroo")
-}
 
 func CuckooInitialize(threads int, strDeviceIds string, algorithm string) error {
 	var arrayDeviceIds []string = strings.Split(strDeviceIds, ",")
@@ -80,6 +73,7 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 
 	return uint32(r), ret
 }
+
 /*func CuckooVerify(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
 
@@ -91,7 +85,7 @@ func CuckooFindSolutions(hash []byte, nonce uint64) (status_code uint32, ret [][
 		return (r == 1)
 	}
 	return false
-}*/
+}
 
 func CuckooVerify_cuckaroo(hash *byte, nonce uint64, result types.BlockSolution, result_sha3 []byte, diff *big.Int) bool {
 	sha3hash := common.BytesToHash(result_sha3)
@@ -103,4 +97,4 @@ func CuckooVerify_cuckaroo(hash *byte, nonce uint64, result types.BlockSolution,
 		return (r == 1)
 	}
 	return false
-}
+}*/

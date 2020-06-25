@@ -77,7 +77,7 @@ wnode:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/wnode\" to launch cortex whisper node."
 plugins/cuda_helper_for_node.so: 
-	$(MAKE) -C $(BASE)/solution cuda-miner
+	$(MAKE) -C $(BASE)/solution cuda
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
