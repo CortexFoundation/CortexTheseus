@@ -62,6 +62,7 @@ var (
 		// utils.BootnodesV5Flag,
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
+		utils.ExternalSignerFlag,
 		// utils.NoUSBFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,

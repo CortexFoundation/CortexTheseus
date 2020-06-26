@@ -462,7 +462,7 @@ func (c *Config) AccountConfig() (int, int, string, error) {
 }
 
 func makeAccountManager(conf *Config) (*accounts.Manager, string, error) {
-	_, _, keydir, err := conf.AccountConfig()
+	scryptN, scryptP, keydir, err := conf.AccountConfig()
 	var ephemeral string
 	if keydir == "" {
 		// There is no datadir.
@@ -485,6 +485,9 @@ func makeAccountManager(conf *Config) (*accounts.Manager, string, error) {
 		} else {
 			return nil, "", fmt.Errorf("error connecting to external signer: %v", err)
 		}
+	}
+	if len(backends) == 0 {
+		backends = append(backends, keystore.NewKeyStore(keydir, scryptN, scryptP))
 	}
 
 	return accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: conf.InsecureUnlockAllowed}, backends...), ephemeral, nil

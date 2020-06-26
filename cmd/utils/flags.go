@@ -494,6 +494,11 @@ var (
 		Usage: "Password file to use for non-interactive password input",
 		Value: "",
 	}
+	ExternalSignerFlag = cli.StringFlag{
+		Name:  "signer",
+		Usage: "External signer (url or path to ipc file)",
+		Value: "",
+	}
 	InsecureUnlockAllowedFlag = cli.BoolFlag{
 		Name:  "allow-insecure-unlock",
 		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
@@ -1100,6 +1105,10 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
 	// }
 
+	if ctx.GlobalIsSet(ExternalSignerFlag.Name) {
+		cfg.ExternalSigner = ctx.GlobalString(ExternalSignerFlag.Name)
+	}
+
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.GlobalString(KeyStoreDirFlag.Name)
 	}
@@ -1259,6 +1268,8 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
 	// checkExclusive(ctx, DeveloperFlag, BernardFlag, LazynetFlag)
+	//CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
+	CheckExclusive(ctx, GCModeFlag, "archive", TxLookupLimitFlag)
 
 	var ks *keystore.KeyStore
 	if keystores := stack.AccountManager().Backends(keystore.KeyStoreType); len(keystores) > 0 {
