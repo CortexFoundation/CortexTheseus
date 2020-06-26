@@ -577,7 +577,7 @@ func (m *Monitor) currentBlock() (uint64, error) {
 func (m *Monitor) Skip(i uint64) bool {
 	for _, skip := range m.ckp.Skips {
 		if i > skip.From && i < skip.To {
-			m.lastNumber = i - 1
+			//m.lastNumber = i - 1
 			return true
 		}
 	}
@@ -624,7 +624,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		}
 
 		if m.ckp != nil && m.Skip(i) {
-			m.lastNumber = i - 1
+			//m.lastNumber = i - 1
 			i++
 			continue
 		}
