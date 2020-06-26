@@ -436,10 +436,10 @@ golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 golang.org/x/net/ipv4
 golang.org/x/net/publicsuffix
-# golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+# golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200622214017-ed371f2e16b4
+# golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
