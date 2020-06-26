@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.13-0.20200626033107-aa8b21789c17
+	github.com/CortexFoundation/torrentfs v1.0.13-0.20200626140737-70120568c234
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1
@@ -26,7 +26,7 @@ require (
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603
+	github.com/mattn/go-colorable v0.1.7
 	github.com/mattn/go-isatty v0.0.13-0.20200128103942-cb30d6282491
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.5-0.20200416053754-163badb3bac6

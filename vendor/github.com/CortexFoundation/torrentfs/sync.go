@@ -575,6 +575,10 @@ func (m *Monitor) currentBlock() (uint64, error) {
 }
 
 func (m *Monitor) Skip(i uint64) bool {
+	if len(m.ckp.Skips) == 0 || i > m.ckp.Skips[len(m.ckp.Skips)-1].To || i < m.ckp.Skips[0].From {
+		return false
+	}
+
 	for _, skip := range m.ckp.Skips {
 		if i > skip.From && i < skip.To {
 			//m.lastNumber = i - 1

@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.13-0.20200626033107-aa8b21789c17
+# github.com/CortexFoundation/torrentfs v1.0.13-0.20200626140737-70120568c234
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -243,7 +243,7 @@ github.com/lucas-clemente/quic-go/quictrace
 github.com/lucas-clemente/quic-go/quictrace/pb
 # github.com/marten-seemann/qtls v0.9.1
 github.com/marten-seemann/qtls
-# github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603
+# github.com/mattn/go-colorable v0.1.7
 ## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-ieproxy v0.0.1
