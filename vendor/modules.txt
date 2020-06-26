@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.13-0.20200624035229-b172fc564e47
+# github.com/CortexFoundation/torrentfs v1.0.13-0.20200626033107-aa8b21789c17
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -369,7 +369,7 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/tinylib/msgp v1.1.2
 github.com/tinylib/msgp/msgp
-# github.com/ucwong/color v1.10.1-0.20200518131954-915014f7ee11
+# github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 ## explicit
 github.com/ucwong/color
 # github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
@@ -423,7 +423,8 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200602114024-627f9648deb9
+# golang.org/x/net v0.0.0-20200625001655-4c5254603344
+## explicit
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
 golang.org/x/net/html
@@ -435,10 +436,10 @@ golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 golang.org/x/net/ipv4
 golang.org/x/net/publicsuffix
-# golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+# golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200622214017-ed371f2e16b4
+# golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -473,7 +474,8 @@ golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/protobuf v1.24.0
+# google.golang.org/protobuf v1.25.0
+## explicit
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -484,12 +486,11 @@ google.golang.org/protobuf/internal/encoding/messageset
 google.golang.org/protobuf/internal/encoding/tag
 google.golang.org/protobuf/internal/encoding/text
 google.golang.org/protobuf/internal/errors
-google.golang.org/protobuf/internal/fieldnum
 google.golang.org/protobuf/internal/fieldsort
 google.golang.org/protobuf/internal/filedesc
 google.golang.org/protobuf/internal/filetype
 google.golang.org/protobuf/internal/flags
-google.golang.org/protobuf/internal/genname
+google.golang.org/protobuf/internal/genid
 google.golang.org/protobuf/internal/impl
 google.golang.org/protobuf/internal/mapsort
 google.golang.org/protobuf/internal/pragma

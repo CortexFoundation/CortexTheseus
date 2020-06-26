@@ -187,6 +187,7 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
 	fsCfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
+	fsCfg.RpcURI = ctx.GlobalString(utils.StorageRpcFlag.Name)
 	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
 	//fsCfg.DisableTCP = ctx.GlobalBool(utils.StorageDisableTCPFlag.Name)
 	fsCfg.FullSeed = ctx.GlobalBool(utils.StorageFullFlag.Name)

@@ -40,6 +40,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
 	xlog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
@@ -60,6 +61,12 @@ const (
 
 	block = int64(params.PER_UPLOAD_BYTES)
 	loops = 30
+)
+
+var (
+	getfileMeter   = metrics.NewRegisteredMeter("torrent/getfile/call", nil)
+	availableMeter = metrics.NewRegisteredMeter("torrent/available/call", nil)
+	diskReadMeter  = metrics.NewRegisteredMeter("torrent/disk/read", nil)
 )
 
 type TorrentManager struct {
@@ -809,7 +816,7 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 	//if fs.metrics {
 	//	defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	//}
-
+	availableMeter.Mark(1)
 	if rawSize <= 0 {
 		return false, errors.New("raw size is zero or negative")
 	}
@@ -826,6 +833,7 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 }
 
 func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
+	getfileMeter.Mark(1)
 	if fs.metrics {
 		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	}
@@ -866,7 +874,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 
 		fs.fileLock.Lock()
 		defer fs.fileLock.Unlock()
-
+		diskReadMeter.Mark(1)
 		data, err := ioutil.ReadFile(filepath.Join(fs.DataDir, key))
 
 		//data final verification

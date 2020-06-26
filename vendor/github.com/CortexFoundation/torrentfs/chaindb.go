@@ -24,16 +24,16 @@ import (
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	//lru "github.com/hashicorp/golang-lru"
+	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/pborman/uuid"
+	bolt "go.etcd.io/bbolt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
-
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/log"
-	bolt "go.etcd.io/bbolt"
 )
 
 type ChainDB struct {
@@ -268,7 +268,7 @@ func (fs *ChainDB) GetFileByAddr(addr common.Address) *types.FileInfo {
 func (fs *ChainDB) Close() error {
 	defer fs.db.Close()
 	//fs.writeCheckPoint()
-	log.Info("File DB Closed", "database", fs.db.Path())
+	log.Info("File DB Closed", "database", fs.db.Path(), "last", fs.LastListenBlockNumber)
 	return fs.Flush()
 }
 
@@ -627,6 +627,10 @@ func (fs *ChainDB) writeRoot(number uint64, root []byte) error {
 		}
 		e := buk.Put([]byte(strconv.FormatUint(number, 16)), root)
 
+		if e == nil {
+			log.Debug("Root update", "number", number, "root", common.BytesToHash(root))
+		}
+
 		return e
 	})
 }
@@ -667,4 +671,27 @@ func (fs *ChainDB) Flush() error {
 
 		return e
 	})
+}
+
+func (fs *ChainDB) SkipPrint() {
+	var str string
+	var from uint64
+	for _, b := range fs.blocks {
+		//		if b.Number < 395964 {
+		//			continue
+		//		}
+		//Skip{From: 160264, To: 395088},
+		if b.Number-from > 1000 {
+			str = str + "Skip{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(b.Number, 10) + "},"
+		}
+		from = b.Number
+		//fmt.Println(b.Number, ":true,")
+	}
+
+	if fs.LastListenBlockNumber-from > 1000 {
+		str = str + "Skip{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(fs.LastListenBlockNumber, 10) + "},"
+	}
+
+	//log.Info("Skip chart", "skips", str)
+	fmt.Println(str)
 }
