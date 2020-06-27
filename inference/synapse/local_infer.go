@@ -16,6 +16,14 @@ const (
 	PARAM_PATH  string = "/data/params"
 )
 
+var (
+	gasCacheHitMeter  = metrics.NewRegisteredMeter("synapse/gascache/hit", nil)
+	gasCacheMissMeter = metrics.NewRegisteredMeter("synapse/gascache/miss", nil)
+
+	simpleCacheHitMeter  = metrics.NewRegisteredMeter("synapse/simplecache/hit", nil)
+	simpleCacheMissMeter = metrics.NewRegisteredMeter("synapse/simplecache/miss", nil)
+)
+
 func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 	switch status {
 	case kernel.ERROR_RUNTIME:
