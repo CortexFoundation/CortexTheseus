@@ -76,52 +76,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (uint64, error) {
 	return gas, err
 }
 
-func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
-	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
-		return nil, KERNEL_RUNTIME_ERROR
-	}
-
-	var (
-		modelHash = strings.ToLower(modelInfoHash[2:])
-		inputHash = strings.ToLower(inputInfoHash[2:])
-	)
-
-	cacheKey := RLPHashString(modelHash + "_" + inputHash)
-
-	if hash, ok := CvmFixHashes[cacheKey]; ok {
-		return hash, nil
-	}
-
-	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
-		log.Debug("Infer Success via Cache", "result", v.([]byte))
-		simpleCacheHitMeter.Mark(1)
-		return v.([]byte), nil
-	}
-
-	inputBytes, dataErr := s.config.Storagefs.GetFile(s.ctx, inputHash, DATA_PATH)
-	if dataErr != nil {
-		log.Warn("inferByInfoHash: get file failed",
-			"input hash", inputHash, "error", dataErr)
-		return nil, KERNEL_RUNTIME_ERROR
-	}
-	reader, reader_err := inference.NewBytesReader(inputBytes)
-	if reader_err != nil {
-		log.Warn("inferByInfoHash: read data failed",
-			"input hash", inputHash, "error", reader_err)
-		return nil, KERNEL_LOGIC_ERROR
-	}
-	data, read_data_err := ReadData(reader)
-	if read_data_err != nil {
-		log.Warn("inferByInfoHash: read data failed",
-			"input hash", inputHash, "error", read_data_err)
-		return nil, KERNEL_LOGIC_ERROR
-	}
-	log.Trace("data", "data", data, "len", len(data), "hash", inputInfoHash)
-
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, data)
-}
-
-func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) ([]byte, error) {
+func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte) ([]byte, error) {
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -132,14 +87,31 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	)
 	// Inference Cache
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
+
+	if hash, ok := CvmFixHashes[cacheKey]; ok {
+		return hash, nil
+	}
+
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
 		simpleCacheHitMeter.Mark(1)
 		return v.([]byte), nil
 	}
+
 	if inputContent == nil {
-		//todo
-		log.Warn("Input content is nil")
+		inputBytes, dataErr := s.config.Storagefs.GetFile(s.ctx, inputHash, DATA_PATH)
+		if dataErr != nil {
+			return nil, KERNEL_RUNTIME_ERROR
+		}
+		reader, reader_err := inference.NewBytesReader(inputBytes)
+		if reader_err != nil {
+			return nil, KERNEL_LOGIC_ERROR
+		}
+		var read_data_err error
+		inputContent, read_data_err = ReadData(reader)
+		if read_data_err != nil {
+			return nil, KERNEL_LOGIC_ERROR
+		}
 	}
 
 	s.mutex.Lock()
