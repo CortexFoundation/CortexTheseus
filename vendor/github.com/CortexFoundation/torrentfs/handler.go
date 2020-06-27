@@ -67,6 +67,12 @@ var (
 	getfileMeter   = metrics.NewRegisteredMeter("torrent/getfile/call", nil)
 	availableMeter = metrics.NewRegisteredMeter("torrent/available/call", nil)
 	diskReadMeter  = metrics.NewRegisteredMeter("torrent/disk/read", nil)
+
+	memcacheHitMeter  = metrics.NewRegisteredMeter("torrent/memcache/hit", nil)
+	memcacheReadMeter = metrics.NewRegisteredMeter("torrent/memcache/read", nil)
+
+	memcacheMissMeter  = metrics.NewRegisteredMeter("torrent/memcache/miss", nil)
+	memcacheWriteMeter = metrics.NewRegisteredMeter("torrent/memcache/write", nil)
 )
 
 type TorrentManager struct {
@@ -142,7 +148,7 @@ func (tm *TorrentManager) Close() error {
 	close(tm.closeAll)
 	tm.wg.Wait()
 	tm.dropAll()
-	if tm.cache {
+	if tm.fileCache != nil {
 		tm.fileCache.Reset()
 	}
 
@@ -859,8 +865,10 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		}
 
 		var key = filepath.Join(infohash, subpath)
-		if fs.cache {
+		if fs.fileCache != nil {
 			if cache, err := fs.fileCache.Get(key); err == nil {
+				memcacheHitMeter.Mark(1)
+				memcacheReadMeter.Mark(int64(len(cache)))
 				if c, err := fs.unzip(cache); err != nil {
 					return nil, err
 				} else {
@@ -889,8 +897,10 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 					if c, err := fs.zip(data); err != nil {
 						log.Warn("Compress data failed", "hash", infohash, "err", err)
 					} else {
-						if fs.cache {
+						if fs.fileCache != nil {
 							fs.fileCache.Set(key, c)
+							memcacheMissMeter.Mark(1)
+							memcacheWriteMeter.Mark(int64(len(c)))
 						}
 					}
 				}
