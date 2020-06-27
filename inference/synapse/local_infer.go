@@ -8,6 +8,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
 )
 
 const (
@@ -51,6 +52,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
 	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
+		gasCacheHitMeter.Mark(1)
 		return v.(uint64), nil
 	}
 
@@ -67,6 +69,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	}
 
 	if !s.config.IsNotCache {
+		gasCacheMissMeter.Mark(1)
 		s.gasCache.Store(cacheKey, gas)
 	}
 	return gas, err
@@ -90,6 +93,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.([]byte))
+		simpleCacheHitMeter.Mark(1)
 		return v.([]byte), nil
 	}
 
@@ -129,6 +133,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
+		simpleCacheHitMeter.Mark(1)
 		return v.([]byte), nil
 	}
 	s.mutex.Lock()
@@ -190,6 +195,7 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 	}
 
 	if !s.config.IsNotCache {
+		simpleCacheMissMeter.Mark(1)
 		s.simpleCache.Store(cacheKey, result)
 	}
 
