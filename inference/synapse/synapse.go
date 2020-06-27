@@ -131,7 +131,7 @@ func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte)
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInputContent(modelInfoHash, inputContent)
 	}
-	return s.infer(modelInfoHash, RLPHashString(inputContent), inputContent)
+	return s.infer(modelInfoHash, "", inputContent)
 }
 
 func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {

@@ -77,6 +77,10 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (uint64, error) {
 }
 
 func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte) ([]byte, error) {
+	if inputInfoHash == "" {
+		inputInfoHash = RLPHashString(inputContent)
+	}
+
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
