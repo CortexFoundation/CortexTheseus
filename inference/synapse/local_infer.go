@@ -38,7 +38,7 @@ func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 	return nil, KERNEL_RUNTIME_ERROR
 }
 
-func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+func (s *Synapse) getGasByInfoHash(modelInfoHash string) (uint64, error) {
 
 	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") {
 		return 0, KERNEL_RUNTIME_ERROR
@@ -62,9 +62,10 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
-	var status int
-	gas, status = kernel.GetModelGasFromGraphFile(s.lib, modelJson)
-	if _, err := getReturnByStatusCode(gas, status); err != nil {
+	//var status int
+	gas, status := kernel.GetModelGasFromGraphFile(s.lib, modelJson)
+	_, err := getReturnByStatusCode(gas, status)
+	if err != nil {
 		return 0, err
 	}
 
@@ -75,7 +76,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 	return gas, err
 }
 
-func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []byte, err error) {
+func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -120,7 +121,7 @@ func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) (res []by
 	return s.inferByInputContent(modelInfoHash, inputInfoHash, data)
 }
 
-func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) (res []byte, err error) {
+func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, inputContent []byte) ([]byte, error) {
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -136,6 +137,11 @@ func (s *Synapse) inferByInputContent(modelInfoHash, inputInfoHash string, input
 		simpleCacheHitMeter.Mark(1)
 		return v.([]byte), nil
 	}
+	if inputContent == nil {
+		//todo
+		log.Warn("Input content is nil")
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	// lazy initialization of model cache

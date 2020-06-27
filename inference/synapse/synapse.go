@@ -130,9 +130,7 @@ func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte)
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInputContent(modelInfoHash, inputContent)
 	}
-	inputInfoHash := RLPHashString(inputContent)
-	log.Trace("content", "inputContent", inputContent, "inputInfoHash", inputInfoHash, "modelInfoHash", modelInfoHash)
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
+	return s.inferByInputContent(modelInfoHash, RLPHashString(inputContent), inputContent)
 }
 
 func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
