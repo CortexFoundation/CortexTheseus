@@ -48,17 +48,18 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (gas uint64, err error)
 		modelJson     []byte
 		modelJson_err error
 	)
+	cacheKey := RLPHashString("estimate_ops_" + modelHash)
+	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
+		log.Debug("Infer Success via Cache", "result", v.(uint64))
+		return v.(uint64), nil
+	}
+
 	modelJson, modelJson_err = s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
 		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
-	cacheKey := RLPHashString("estimate_ops_" + modelHash)
-	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
-		log.Debug("Infer Success via Cache", "result", v.(uint64))
-		return v.(uint64), nil
-	}
 	var status int
 	gas, status = kernel.GetModelGasFromGraphFile(s.lib, modelJson)
 	if _, err := getReturnByStatusCode(gas, status); err != nil {
