@@ -123,7 +123,6 @@ func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, 
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash)
 	}
-	//return s.inferByInfoHash(modelInfoHash, inputInfoHash)
 	return s.inferByInfoHash(modelInfoHash, inputInfoHash)
 }
 
