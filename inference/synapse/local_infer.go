@@ -76,6 +76,14 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (uint64, error) {
 	return gas, err
 }
 
+func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
+	return s.infer(modelInfoHash, inputInfoHash, nil)
+}
+
+func (s *Synapse) inferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
+	return s.infer(modelInfoHash, "", inputContent)
+}
+
 func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte) ([]byte, error) {
 	if inputInfoHash == "" {
 		inputInfoHash = RLPHashString(inputContent)
