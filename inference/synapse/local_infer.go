@@ -44,11 +44,8 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (uint64, error) {
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
-	var (
-		modelHash     = strings.ToLower(modelInfoHash[2:])
-		modelJson     []byte
-		modelJson_err error
-	)
+	modelHash := strings.ToLower(modelInfoHash[2:])
+
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
 	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
@@ -56,7 +53,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string) (uint64, error) {
 		return v.(uint64), nil
 	}
 
-	modelJson, modelJson_err = s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
+	modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
 		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
 		return 0, KERNEL_RUNTIME_ERROR
