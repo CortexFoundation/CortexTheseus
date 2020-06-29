@@ -79,4 +79,3 @@ func TestChainIterator(t *testing.T) {
 		}
 	}
 }
-

@@ -117,8 +117,8 @@ type Context struct {
 	Coinbase    common.Address // Provides information for COINBASE
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int // Provides information for TIME
-	Difficulty  *big.Int // Provides information for DIFFICULTY
+	Time        *big.Int       // Provides information for TIME
+	Difficulty  *big.Int       // Provides information for DIFFICULTY
 }
 
 // CVM is the Cortex Virtual Machine base object and provides

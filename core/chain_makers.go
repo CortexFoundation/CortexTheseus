@@ -182,7 +182,6 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 
 		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
 		b.header = makeHeader(b.chainReader, parent, statedb, b.engine)
-
 		// Execute any user modifications to the block and finalize it
 		if gen != nil {
 			gen(i, b)
@@ -234,9 +233,11 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 			Difficulty: parent.Difficulty(),
 			UncleHash:  parent.UncleHash(),
 		}),
-		GasLimit: CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
-		Number:   new(big.Int).Add(parent.Number(), common.Big1),
-		Time:     time,
+		GasLimit:  CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
+		Number:    new(big.Int).Add(parent.Number(), common.Big1),
+		Time:      time,
+		Quota:     big.NewInt(0),
+		QuotaUsed: big.NewInt(0),
 	}
 }
 

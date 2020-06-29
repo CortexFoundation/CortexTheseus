@@ -28,8 +28,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"math/big"
+	"testing"
 )
-
 
 type CuckooFakeForTest struct {
 }
@@ -51,6 +51,9 @@ func (cuckoo *CuckooFakeForTest) Close() error {
 }
 
 func (cuckoo *CuckooFakeForTest) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	// No block rewards in PoA, so the state remains as is and uncles are dropped
+	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, uncles, receipts), nil
 }
 
@@ -89,8 +92,7 @@ func (cuckoo *CuckooFakeForTest) VerifyUncles(chain consensus.ChainReader, block
 	return nil
 }
 
-
-func ExampleGenerateChain() {
+func TestExampleGenerateChain(t *testing.T) {
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
@@ -103,7 +105,7 @@ func ExampleGenerateChain() {
 
 	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{ChainID: big0, HomesteadBlock: new(big.Int)},
 		Alloc:  GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
 	}
 	genesis := gspec.MustCommit(db)
@@ -118,25 +120,25 @@ func ExampleGenerateChain() {
 			// In block 1, addr1 sends addr2 some ether.
 			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 			gen.AddTx(tx)
-		case 1:
-			// In block 2, addr1 sends some more ether to addr2.
-			// addr2 passes it on to addr3.
-			tx1, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(1000), params.TxGas, nil, nil), signer, key1)
-			tx2, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, big.NewInt(1000), params.TxGas, nil, nil), signer, key2)
-			gen.AddTx(tx1)
-			gen.AddTx(tx2)
-		case 2:
-			// Block 3 is empty but was mined by addr3.
-			gen.SetCoinbase(addr3)
-			gen.SetExtra([]byte("yeehaw"))
-		case 3:
-			// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
-			b2 := gen.PrevBlock(1).Header()
-			b2.Extra = []byte("foo")
-			gen.AddUncle(b2)
-			b3 := gen.PrevBlock(2).Header()
-			b3.Extra = []byte("foo")
-			gen.AddUncle(b3)
+			//case 1:
+			//	// In block 2, addr1 sends some more ether to addr2.
+			//	// addr2 passes it on to addr3.
+			//	tx1, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(1000), params.TxGas, nil, nil), signer, key1)
+			//	gen.AddTx(tx1)
+			//	tx2, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, big.NewInt(1000), params.TxGas, nil, nil), signer, key2)
+			//	gen.AddTx(tx2)
+			//case 2:
+			//	// Block 3 is empty but was mined by addr3.
+			//	gen.SetCoinbase(addr3)
+			//	gen.SetExtra([]byte("yeehaw"))
+			//case 3:
+			//	// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
+			//	b2 := gen.PrevBlock(1).Header()
+			//	b2.Extra = []byte("foo")
+			//	gen.AddUncle(b2)
+			//	b3 := gen.PrevBlock(2).Header()
+			//	b3.Extra = []byte("foo")
+			//	gen.AddUncle(b3)
 		}
 	})
 
