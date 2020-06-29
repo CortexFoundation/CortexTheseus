@@ -1,57 +1,61 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 /*
-Package rpc provides access to the exported methods of an object across a network
-or other I/O connection. After creating a server instance objects can be registered,
-making it visible from the outside. Exported methods that follow specific
-conventions can be called remotely. It also has support for the publish/subscribe
-pattern.
+
+Package rpc implements bi-directional JSON-RPC 2.0 on multiple transports.
+
+It provides access to the exported methods of an object across a network or other I/O
+connection. After creating a server or client instance, objects can be registered to make
+them visible as 'services'. Exported methods that follow specific conventions can be
+called remotely. It also has support for the publish/subscribe pattern.
+
+RPC Methods
 
 Methods that satisfy the following criteria are made available for remote access:
- - object must be exported
+
  - method must be exported
  - method returns 0, 1 (response or error) or 2 (response and error) values
- - method argument(s) must be exported or builtin types
- - method returned value(s) must be exported or builtin types
 
 An example method:
+
  func (s *CalcService) Add(a, b int) (int, error)
 
-When the returned error isn't nil the returned integer is ignored and the error is
-send back to the client. Otherwise the returned integer is send back to the client.
+When the returned error isn't nil the returned integer is ignored and the error is sent
+back to the client. Otherwise the returned integer is sent back to the client.
 
-Optional arguments are supported by accepting pointer values as arguments. E.g.
-if we want to do the addition in an optional finite field we can accept a mod
-argument as pointer value.
+Optional arguments are supported by accepting pointer values as arguments. E.g. if we want
+to do the addition in an optional finite field we can accept a mod argument as pointer
+value.
 
- func (s *CalService) Add(a, b int, mod *int) (int, error)
+ func (s *CalcService) Add(a, b int, mod *int) (int, error)
 
-This RPC method can be called with 2 integers and a null value as third argument.
-In that case the mod argument will be nil. Or it can be called with 3 integers,
-in that case mod will be pointing to the given third argument. Since the optional
-argument is the last argument the RPC package will also accept 2 integers as
-arguments. It will pass the mod argument as nil to the RPC method.
+This RPC method can be called with 2 integers and a null value as third argument. In that
+case the mod argument will be nil. Or it can be called with 3 integers, in that case mod
+will be pointing to the given third argument. Since the optional argument is the last
+argument the RPC package will also accept 2 integers as arguments. It will pass the mod
+argument as nil to the RPC method.
 
-The server offers the ServeCodec method which accepts a ServerCodec instance. It will
-read requests from the codec, process the request and sends the response back to the
-client using the codec. The server can execute requests concurrently. Responses
-can be sent back to the client out of order.
+The server offers the ServeCodec method which accepts a ServerCodec instance. It will read
+requests from the codec, process the request and sends the response back to the client
+using the codec. The server can execute requests concurrently. Responses can be sent back
+to the client out of order.
 
 An example server which uses the JSON codec:
+
  type CalculatorService struct {}
 
  func (s *CalculatorService) Add(a, b int) int {
@@ -67,32 +71,40 @@ An example server which uses the JSON codec:
 
  calculator := new(CalculatorService)
  server := NewServer()
- server.RegisterName("calculator", calculator")
-
+ server.RegisterName("calculator", calculator)
  l, _ := net.ListenUnix("unix", &net.UnixAddr{Net: "unix", Name: "/tmp/calculator.sock"})
- for {
-	c, _ := l.AcceptUnix()
-	codec := v2.NewJSONCodec(c)
-	go server.ServeCodec(codec)
- }
+ server.ServeListener(l)
+
+Subscriptions
 
 The package also supports the publish subscribe pattern through the use of subscriptions.
-A method that is considered eligible for notifications must satisfy the following criteria:
- - object must be exported
+A method that is considered eligible for notifications must satisfy the following
+criteria:
+
  - method must be exported
  - first method argument type must be context.Context
- - method argument(s) must be exported or builtin types
- - method must return the tuple Subscription, error
+ - method must have return types (rpc.Subscription, error)
 
 An example method:
- func (s *BlockChainService) NewBlocks(ctx context.Context) (Subscription, error) {
+
+ func (s *BlockChainService) NewBlocks(ctx context.Context) (rpc.Subscription, error) {
  	...
  }
 
-Subscriptions are deleted when:
- - the user sends an unsubscribe request
- - the connection which was used to create the subscription is closed. This can be initiated
-   by the client and server. The server will close the connection on a write error or when
-   the queue of buffered notifications gets too big.
+When the service containing the subscription method is registered to the server, for
+example under the "blockchain" namespace, a subscription is created by calling the
+"blockchain_subscribe" method.
+
+Subscriptions are deleted when the user sends an unsubscribe request or when the
+connection which was used to create the subscription is closed. This can be initiated by
+the client and server. The server will close the connection for any write error.
+
+For more information about subscriptions, see https://github.com/CortexFoundation/CortexTheseus/wiki/RPC-PUB-SUB.
+
+Reverse Calls
+
+In any method handler, an instance of rpc.Client can be accessed through the
+ClientFromContext method. Using this client instance, server-to-client method calls can be
+performed on the RPC connection.
 */
 package rpc

@@ -1,37 +1,56 @@
-# This Makefile is meant to be used by people that do not usually work
-# with Go source code. If you know what GOPATH is then you probably
-# don't need to bother with make.
+.POSIX:
+.SUFFIXES:
 
-CBIN = $(shell pwd)/build/bin
-GO ?= latest
-LIB_CUCKOO_DIR = $(shell pwd)/miner/libcuckoo
-PLUGINS_DIR = $(shell pwd)/plugins
-#CORTEXPATH = $(shell pwd)/../build/_workspace
+OPT ?= -O3
 
-all:
-	$(MAKE) -C ${LIB_CUCKOO_DIR}
-	build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cuda_helper.so ./miner/libcuckoo/cuda_helper.go
-	build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cpu_helper.so ./miner/libcuckoo/cpu_helper.go
+GCC_ARCH_FLAGS ?= -march=native
+GPP_ARCH_FLAGS ?= -march=native
 
-cuda-miner:
-	$(MAKE) -C ${LIB_CUCKOO_DIR} cuda
-	build/env.sh  go build -buildmode=plugin -o ${PLUGINS_DIR}/cuda_helper.so ./miner/libcuckoo/cuda_helper.go
-	@echo "Done building."
+# -Wno-deprecated-declarations shuts up Apple OSX clang
+FLAGS ?= -O3 -Wall -Wno-format -Wno-deprecated-declarations -D_POSIX_C_SOURCE=200112L $(OPT) -DPREFETCH -I. $(CPPFLAGS) -pthread -fPIC
+GPP ?= g++ $(GPP_ARCH_FLAGS) -std=c++11 $(FLAGS)
+CFLAGS ?= -Wall -Wno-format -fomit-frame-pointer $(OPT)
+GCC ?= gcc $(GCC_ARCH_FLAGS) -std=gnu11 $(CFLAGS)
+CUDA_FLAGS ?= -gencode arch=compute_35,code=sm_35 -gencode arch=compute_37,code=sm_37 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_52,code=sm_52 \
+			  -gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 
+NVCC ?= nvcc $(CUDA_FLAGS) 
 
-#opencl-miner: 
-#	build/env.sh go get -tags remote -v ./...
-#	$(MAKE) -C ${LIB_CUCKOO_DIR} opencl
-#	build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/opencl_helper.so ./miner/libcuckoo/opencl_helper.go
-	#build/env.sh go build -o build/bin/cortex_miner ./cmd/miner
-#	@echo "Done building."
+PROOFSIZE=42
+EDGEBITS=30
 
-cpu-miner: 
-	$(MAKE) -C ${LIB_CUCKOO_DIR} cpu
-	build/env.sh go build -buildmode=plugin -o ${PLUGINS_DIR}/cpu_helper.so ./miner/libcuckoo/cpu_helper.go
-	@echo "Done building."
+all: cuda cpu
 
+cuda : libcudaminer.a
+
+cpu : libcpuminer.a
+	
+blake2b.o: src/blake2.h src/blake2-impl.h src/blake2b-ref.cpp
+	$(GPP) -c -o blake2b.o src/blake2b-ref.cpp
+
+cuckoo.o: src/cuckoo.cc src/cuckoo.h
+	$(GPP) -c -o $@ -DPROOFSIZE=$(PROOFSIZE) -DEDGEBITS=$(EDGEBITS) $<
+
+siphash.o: src/siphash.cc src/siphash.h
+	$(GPP) -c -o $@ $<
+
+
+cudaN31L14.o.trimmer.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/cuda/miner.cu src/cuda/trimmer.cu src/cuda/monitor.hpp Makefile
+	$(NVCC) -Xcompiler="-fPIC" -std=c++11 -O3 -c -o $@ -rdc=true -DEDGEBITS=${EDGEBITS} -DPROOFSIZE=${PROOFSIZE} -arch sm_35 -D_FORCE_INLINES src/cuda/trimmer.cu $(LIBS)
+
+cudaN31L14.o.mean.o: src/siphash.cuh src/cuda/cuckoo_solver.hpp src/cuda/cuckaroo_solver.hpp src/cuda/miner.cu src/cuda/trimmer.cu src/cuda/monitor.hpp Makefile
+	$(NVCC) -Xcompiler="-fPIC" -std=c++11 -O3 -c -o $@ -rdc=true -DEDGEBITS=${EDGEBITS} -DPROOFSIZE=${PROOFSIZE} -arch sm_35 -D_FORCE_INLINES src/cuda/miner.cu $(LIBS) -lnvidia-ml
+
+cudaN31L14.o: cudaN31L14.o.trimmer.o cudaN31L14.o.mean.o
+	@echo 'NVCC '$@
+	$(NVCC) -Xcompiler="-fPIC" -ccbin g++ -O3 -std=c++11 -m64 -Xcompiler \
+		-fpermissive -D_FORCE_INLINES -rdc=true -dlink -o $@ $^ 
+
+libcudaminer.a: cudaN31L14.o cudaN31L14.o.trimmer.o cudaN31L14.o.mean.o blake2b.o siphash.o cuckoo.o
+	ar cr $@ $^ # $<.trimmer.o $<.miner.o 
+cpuminer.o:  src/cpu/bitmap.hpp src/cpu/graph.hpp src/cpu/barrier.hpp src/cpu/siphash.hpp src/cpu/cuckaroo_mean.hpp src/cpu/cuckoo_mean.hpp src/cpu/miner.cpp  Makefile
+	$(GPP) -c -o $@.temp.o -mavx2 -DNSIPHASH=8 -DEDGEBITS=${EDGEBITS} -DPROOFSIZE=${PROOFSIZE} src/cpu/miner.cpp 
+	ld -r -o $@ $@.temp.o
+libcpuminer.a: cpuminer.o blake2b.o siphash.o cuckoo.o
+	ar cr $@ $^
 clean:
-	$(MAKE) -C ${LIB_CUCKOO_DIR} clean
-	rm -fr build/_workspace/pkg $(CBIN)/* $(PLUGINS_DIR)/*
-	build/env.sh go clean -cache
-
+	rm -rf *.o *.a

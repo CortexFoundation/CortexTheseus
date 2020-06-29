@@ -12,46 +12,32 @@ import (
 // MarshalJSON marshals as JSON.
 func (f FileMeta) MarshalJSON() ([]byte, error) {
 	type FileMeta struct {
-		InfoHash metainfo.Hash `json:"InfoHash"         gencodec:"required"`
-		//		Name     string        `json:"Name"             gencodec:"required"`
-		RawSize uint64 `json:"RawSize"          gencodec:"required"`
-		//		BlockNum uint64        `json:"BlockNum"         gencodec:"required"`
+		InfoHash metainfo.Hash `json:"infoHash"         gencodec:"required"`
+		RawSize  uint64        `json:"rawSize"          gencodec:"required"`
 	}
 	var enc FileMeta
 	enc.InfoHash = f.InfoHash
-	//	enc.Name = f.Name
 	enc.RawSize = f.RawSize
-	//	enc.BlockNum = f.BlockNum
 	return json.Marshal(&enc)
 }
 
 // UnmarshalJSON unmarshals from JSON.
 func (f *FileMeta) UnmarshalJSON(input []byte) error {
 	type FileMeta struct {
-		InfoHash *metainfo.Hash `json:"InfoHash"         gencodec:"required"`
-		//		Name     *string        `json:"Name"             gencodec:"required"`
-		RawSize uint64 `json:"RawSize"          gencodec:"required"`
-		//		BlockNum *uint64        `json:"BlockNum"         gencodec:"required"`
+		InfoHash *metainfo.Hash `json:"infoHash"         gencodec:"required"`
+		RawSize  *uint64        `json:"rawSize"          gencodec:"required"`
 	}
 	var dec FileMeta
 	if err := json.Unmarshal(input, &dec); err != nil {
 		return err
 	}
 	if dec.InfoHash == nil {
-		return errors.New("missing required field 'InfoHash' for FileMeta")
+		return errors.New("missing required field 'infoHash' for FileMeta")
 	}
 	f.InfoHash = *dec.InfoHash
-	//	if dec.Name == nil {
-	//		return errors.New("missing required field 'Name' for FileMeta")
-	//	}
-	//	f.Name = *dec.Name
-	//if dec.RawSize == nil {
-	//	return errors.New("missing required field 'RawSize' for FileMeta")
-	//}
-	f.RawSize = dec.RawSize
-	//if dec.BlockNum == nil {
-	//	return errors.New("missing required field 'BlockNum' for FileMeta")
-	//}
-	//	f.BlockNum = *dec.BlockNum
+	if dec.RawSize == nil {
+		return errors.New("missing required field 'rawSize' for FileMeta")
+	}
+	f.RawSize = *dec.RawSize
 	return nil
 }

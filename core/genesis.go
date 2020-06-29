@@ -99,7 +99,7 @@ type genesisSpecMarshaling struct {
 	Number     math.HexOrDecimal64
 	Difficulty *math.HexOrDecimal256
 	Alloc      map[common.UnprefixedAddress]GenesisAccount
-	Supply     math.HexOrDecimal64
+	Supply     *math.HexOrDecimal256
 }
 
 type genesisAccountMarshaling struct {

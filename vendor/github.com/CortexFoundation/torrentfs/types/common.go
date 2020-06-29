@@ -34,6 +34,8 @@ const (
 	opNoInput     = 3
 )
 
+//go:generate gencodec -type FileInfo -out gen_fileinfo_json.go
+
 type FileInfo struct {
 	Meta *FileMeta
 	// Transaction hash
@@ -44,11 +46,7 @@ type FileInfo struct {
 	Relate       []common.Address
 }
 
-//var (
-//	errWrongOpCode = errors.New("unexpected opCode")
-//)
-
-// Transaction ... Tx struct
+//go:generate gencodec -type Transaction -field-override transactionMarshaling -out gen_tx_json.go
 type Transaction struct {
 	//Price     *big.Int        `json:"gasPrice" gencodec:"required"`
 	Amount   *big.Int `json:"value"    gencodec:"required"`
@@ -121,43 +119,46 @@ func (t *Transaction) Parse() *FileMeta {
 	}
 }
 
-//type transactionMarshaling struct {
-//Price    *hexutil.Big
-//	Amount   *hexutil.Big
-//	GasLimit hexutil.Uint64
-//	Payload  hexutil.Bytes
-//}
+type transactionMarshaling struct {
+	Amount   *hexutil.Big
+	GasLimit hexutil.Uint64
+	Payload  hexutil.Bytes
+}
 
-// gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
-// Block ... block struct
+//go:generate gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
 type Block struct {
 	Number uint64      `json:"number"           gencodec:"required"`
 	Hash   common.Hash `json:"Hash"             gencodec:"required"`
 	//ParentHash common.Hash   `json:"parentHash"       gencodec:"required"`
-	Txs []Transaction `json:"Transactions"     gencodec:"required"`
+	Txs []Transaction `json:"transactions"     gencodec:"required"`
 }
 
 type blockMarshaling struct {
 	Number hexutil.Uint64
 }
 
-// TxReceipt ...
-type TxReceipt struct {
+//go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
+type Receipt struct {
 	// Contract Address
-	ContractAddr *common.Address `json:"ContractAddress"  gencodec:"required"`
+	ContractAddr *common.Address `json:"contractAddress"`
 	// Transaction Hash
-	TxHash *common.Hash `json:"TransactionHash"  gencodec:"required"`
+	//TxHash *common.Hash `json:"transactionHash"  gencodec:"required"`
 	//Receipt   *TxReceipt      `json:"receipt"  rlp:"nil"`
 	GasUsed uint64 `json:"gasUsed" gencodec:"required"`
 	Status  uint64 `json:"status"`
 }
 
-// FileMeta ...
+type receiptMarshaling struct {
+	Status  hexutil.Uint64
+	GasUsed hexutil.Uint64
+}
+
+//go:generate gencodec -type FileMeta -out gen_filemeta_json.go
 type FileMeta struct {
-	InfoHash metainfo.Hash `json:"InfoHash"         gencodec:"required"`
+	InfoHash metainfo.Hash `json:"infoHash"         gencodec:"required"`
 	//	Name     string        `json:"Name"             gencodec:"required"`
 	// The raw size of the file counted in bytes
-	RawSize uint64 `json:"RawSize"          gencodec:"required"`
+	RawSize uint64 `json:"rawSize"          gencodec:"required"`
 	//BlockNum uint64 `json:"BlockNum"         gencodec:"required"`
 }
 

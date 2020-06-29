@@ -1,18 +1,18 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package node
 
@@ -32,10 +32,10 @@ import (
 // the protocol stack, that is passed to all constructors to be optionally used;
 // as well as utility methods to operate on the service environment.
 type ServiceContext struct {
-	Config         Config
 	services       map[reflect.Type]Service // Index of the already constructed services
-	EventMux       *event.TypeMux           // Event multiplexer used for decoupled notifications
-	AccountManager *accounts.Manager        // Account manager created by the node.
+	Config         Config
+	EventMux       *event.TypeMux    // Event multiplexer used for decoupled notifications
+	AccountManager *accounts.Manager // Account manager created by the node.
 }
 
 // OpenDatabase opens an existing database with the given name (or creates one
@@ -43,15 +43,9 @@ type ServiceContext struct {
 // node is an ephemeral one, a memory database is returned.
 func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, namespace string) (ctxcdb.Database, error) {
 	if ctx.Config.DataDir == "" {
-		//return rawdb.NewMemoryDatabase(), nil
 		return rawdb.NewMemoryDatabase(), nil
 	}
-	//db, err := ctxcdb.NewLDBDatabase(ctx.config.ResolvePath(name), cache, handles)
 	return rawdb.NewLevelDBDatabase(ctx.Config.ResolvePath(name), cache, handles, namespace)
-	/*if err != nil {
-		return nil, err
-	}
-	return db, nil*/
 }
 
 // OpenDatabaseWithFreezer opens an existing database with the given name (or
@@ -89,6 +83,12 @@ func (ctx *ServiceContext) Service(service interface{}) error {
 		return nil
 	}
 	return ErrServiceUnknown
+}
+
+// ExtRPCEnabled returns the indicator whether node enables the external
+// RPC(http, ws or graphql).
+func (ctx *ServiceContext) ExtRPCEnabled() bool {
+	return ctx.Config.ExtRPCEnabled()
 }
 
 // ServiceConstructor is the function signature of the constructors needed to be

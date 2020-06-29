@@ -21,7 +21,6 @@ var (
 	ErrorInvalidBlockNum   = errors.New("invalid block number")
 )
 
-//InferMeta include ModelMeta struct and InputMeta type
 type InferMeta interface {
 	TypeCode() []byte
 	RawSize() uint64
@@ -31,34 +30,38 @@ type InferMeta interface {
 	Comment() string
 }
 
+//go:generate gencodec -type Meta -out gen_meta_json.go
 type Meta struct {
-	Comment  string         `json:"Comment"`
-	Hash     common.Address `json:"Hash"`
-	RawSize  uint64         `json:"RawSize"`
-	Shape    []uint64       `json:"Shape"`
-	BlockNum big.Int        `json:"BlockNum"`
+	Comment  string         `json:"comment"`
+	Hash     common.Address `json:"hash"`
+	RawSize  uint64         `json:"rawSize"`
+	Shape    []uint64       `json:"shape"`
+	BlockNum big.Int        `json:"blockNum"`
 }
 
+//go:generate gencodec -type ModelMeta -out gen_model_json.go
+
 type ModelMeta struct {
-	Comment       string         `json:"Comment"`
-	Hash          common.Address `json:"Hash"`
-	RawSize       uint64         `json:"RawSize"`
-	InputShape    []uint64       `json:"InputShape"`
-	OutputShape   []uint64       `json:"OutputShape"`
-	Gas           uint64         `json:"Gas"`
-	AuthorAddress common.Address `json:"AuthorAddress"`
-	BlockNum      big.Int        `json:"BlockNum"`
+	Comment       string         `json:"comment"`
+	Hash          common.Address `json:"hash"`
+	RawSize       uint64         `json:"rawSize"`
+	InputShape    []uint64       `json:"inputShape"`
+	OutputShape   []uint64       `json:"outputShape"`
+	Gas           uint64         `json:"gas"`
+	AuthorAddress common.Address `json:"authorAddress"`
+	BlockNum      big.Int        `json:"blockNum"`
 
 	//RawBytes []byte `json:"RawBytes"`
 }
 
+//go:generate gencodec -type InputMeta -out gen_input_json.go
 type InputMeta struct {
-	Comment string         `json:"Comment"`
-	Hash    common.Address `json:"Hash"`
-	RawSize uint64         `json:"RawSize"`
-	Shape   []uint64       `json:"Shape"`
+	Comment string         `json:"comment"`
+	Hash    common.Address `json:"hash"`
+	RawSize uint64         `json:"rawSize"`
+	Shape   []uint64       `json:"shape"`
 	//AuthorAddress common.Address `json:"AuthorAddress"`
-	BlockNum big.Int `json:"BlockNum"`
+	BlockNum big.Int `json:"blockNum"`
 
 	//RawBytes []byte `json:"RawBytes"`
 }
@@ -116,7 +119,7 @@ func (im *InputMeta) DecodeJSON(s string) error {
 	return err
 }
 
-func (mm ModelMeta) ToBytes() ([]byte, error) {
+func (mm *ModelMeta) ToBytes() ([]byte, error) {
 	if array, err := rlp.EncodeToBytes(mm); err != nil {
 		return nil, err
 	} else {
@@ -124,7 +127,7 @@ func (mm ModelMeta) ToBytes() ([]byte, error) {
 	}
 }
 
-func (im InputMeta) ToBytes() ([]byte, error) {
+func (im *InputMeta) ToBytes() ([]byte, error) {
 	if array, err := rlp.EncodeToBytes(im); err != nil {
 		return nil, err
 	} else {
@@ -145,6 +148,34 @@ func ParseModelMeta(code []byte) (*ModelMeta, error) {
 		return nil, err
 	}
 	return &modelMeta, nil
+}
+
+func (mm *ModelMeta) DecodeRLP(code []byte) error {
+	if len(code) < 2 {
+		return ErrorCodeTypeModelMeta
+	}
+	if !(code[0] == 0x0 && code[1] == 0x1) {
+		return ErrorCodeTypeModelMeta
+	}
+	err := rlp.DecodeBytes(code[2:], mm)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (im *InputMeta) DecodeRLP(code []byte) error {
+	if len(code) < 2 {
+		return ErrorCodeTypeInputMeta
+	}
+	if !(code[0] == 0x0 && code[1] == 0x2) {
+		return ErrorCodeTypeInputMeta
+	}
+	err := rlp.DecodeBytes(code[2:], im)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func ParseInputMeta(code []byte) (*InputMeta, error) {

@@ -18,14 +18,14 @@ package main
 
 import (
 	"bufio"
-	"bytes"
+	//"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
+	//"os/exec"
 	"reflect"
-	"strconv"
+	//"strconv"
 	"strings"
 	//"time"
 	"unicode"
@@ -163,73 +163,9 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
 	storageEnabled := ctx.GlobalBool(utils.StorageEnabledFlag.Name) || !strings.HasPrefix(ctx.GlobalString(utils.InferDeviceTypeFlag.Name), "remote")
-	if utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)) != "" {
-		storageEnabled = false
-	}
 	if storageEnabled {
-		log.Info("FullNode", "storageEnabled", storageEnabled)
+		log.Debug("FullNode", "storageEnabled", storageEnabled)
 		utils.RegisterStorageService(stack, &cfg.TorrentFs, gitCommit)
-	}
-	if deviceType := utils.IsCVMIPC(ctx.GlobalString(utils.InferDeviceTypeFlag.Name)); deviceType != "" {
-		//wg.Add(1)
-		go func() {
-			//defer wg.Done()
-			cmd := os.Args[0]
-			log.Info("RegisterCVMService", "cmd", cmd)
-			args := []string{"cvm",
-				"--cvm.port", strconv.Itoa(ctx.GlobalInt(utils.InferPortFlag.Name)),
-				"--storage.dir", utils.MakeStorageDir(ctx),
-				"--cvm.datadir", utils.MakeDataDir(ctx),
-				"--infer.devicetype", deviceType,
-				"--cvm.max_seeding", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxSeedingFlag.Name)),
-				"--cvm.max_active", strconv.Itoa(ctx.GlobalInt(utils.StorageMaxActiveFlag.Name)),
-				"--cvm.boostnodes", ctx.GlobalString(utils.StorageBoostNodesFlag.Name),
-				"--cvm.tracker", ctx.GlobalString(utils.StorageTrackerFlag.Name),
-			}
-			if ctx.GlobalBool(utils.StorageDisableDHTFlag.Name) {
-				args = append(args, "--storage.disable_dht")
-			}
-
-			if ctx.GlobalBool(utils.StorageDisableTCPFlag.Name) {
-				args = append(args, "--storage.disable_tcp")
-			}
-
-			if ctx.GlobalBool(utils.StorageFullFlag.Name) {
-				args = append(args, "--storage.full")
-			}
-			if ctx.GlobalBool(utils.StorageBoostFlag.Name) {
-				args = append(args, "--storage.boost")
-			}
-			log.Debug("RegisterCVMService", "cmd", cmd, "args", args)
-			prg := exec.Command(cmd, args...)
-			var stdoutBuf, stderrBuf bytes.Buffer
-			stdoutIn, _ := prg.StdoutPipe()
-			stderrIn, _ := prg.StderrPipe()
-			stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
-			stderr := io.MultiWriter(os.Stderr, &stderrBuf)
-			if err := prg.Start(); err != nil {
-				panic(err)
-			}
-			log.Debug("Cvm service register success", "config", cfg)
-			run_result := prg.Start()
-			//wg.Add(1)
-			go func() {
-				//	defer wg.Done()
-				_, _ = io.Copy(stdout, stdoutIn)
-			}()
-			//wg.Add(1)
-			go func() {
-				//	defer wg.Done()
-				_, _ = io.Copy(stderr, stderrIn)
-			}()
-			//wg.Wait()
-			if err := prg.Wait(); err != nil {
-				log.Error("RegisterCVMService", "err", err)
-			}
-			log.Debug("RegisterCVMService", "deviceType", deviceType, "Exited", run_result)
-			// outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
-			// log.Debug("RegisterCVMService", "out", outStr, "err", errStr)
-		}()
 	}
 
 	utils.RegisterCortexService(stack, &cfg.Cortex)

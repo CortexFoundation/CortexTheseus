@@ -1,0 +1,44 @@
+package inference
+
+import (
+	"fmt"
+	"encoding/binary"
+)
+
+{{- range . }}
+    // Get{{ .TypeU }} returns the array data as a slice of {{ .TypeL }} values.
+    func (rdr *NpyReader) Get{{ .TypeU }}() ([]{{ .TypeL }}, error) {
+
+    	if rdr.Dtype != "{{ .TypeCode }}" {
+	    	return nil, fmt.Errorf("Reader does not contain {{ .TypeL }} data")
+	    }
+
+    	data := make([]{{ .TypeL }}, rdr.nElt)
+		err := binary.Read(rdr.r, rdr.Endian, &data)
+		if err != nil {
+		    return nil, err
+		}
+
+	    return data, nil
+    }
+{{ end }}
+
+{{- range . }}
+    // Write{{ .TypeU }} writes a slice of {{ .TypeL }} values in npy format.
+    func (wtr *NpyWriter) Write{{ .TypeU }}(data []{{ .TypeL }}) error {
+
+	    err := wtr.writeHeader("{{ .TypeCode }}", len(data))
+	    if err != nil {
+		    return err
+	    }
+
+		err = binary.Write(wtr.w, wtr.Endian, data)
+		if err != nil {
+			return err
+		}
+
+	    wtr.w.Close()
+
+	    return nil
+    }
+{{ end }}

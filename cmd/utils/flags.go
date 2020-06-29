@@ -22,8 +22,8 @@ import (
 	"fmt"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"io/ioutil"
+	"math/big"
 	"os"
-	// "math/big"
 
 	"path/filepath"
 	"runtime"
@@ -208,6 +208,12 @@ var (
 		Value: DirectoryString{node.DefaultStorageDir("")},
 	}
 
+	StorageRpcFlag = cli.StringFlag{
+		Name:  "storage.rpc",
+		Usage: "P2P storage status sync from blockchain rpc link",
+		Value: "http://127.0.0.1:8545",
+	}
+
 	StoragePortFlag = cli.IntFlag{
 		Name:  "storage.port",
 		Usage: "p2p storage listening port",
@@ -390,7 +396,7 @@ var (
 	MinerGasTargetFlag = cli.Uint64Flag{
 		Name:  "miner.gastarget",
 		Usage: "Target gas floor for mined blocks",
-		Value: ctxc.DefaultConfig.MinerGasFloor,
+		Value: ctxc.DefaultConfig.Miner.GasFloor,
 	}
 	// MinerLegacyGasTargetFlag = cli.Uint64Flag{
 	// 	Name:  "targetgaslimit",
@@ -400,17 +406,17 @@ var (
 	MinerGasLimitFlag = cli.Uint64Flag{
 		Name:  "miner.gaslimit",
 		Usage: "Target gas ceiling for mined blocks",
-		Value: ctxc.DefaultConfig.MinerGasCeil,
+		Value: ctxc.DefaultConfig.Miner.GasCeil,
 	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: ctxc.DefaultConfig.MinerGasPrice,
+		Value: ctxc.DefaultConfig.Miner.GasPrice,
 	}
 	MinerLegacyGasPriceFlag = BigFlag{
 		Name:  "gasprice",
 		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
-		Value: ctxc.DefaultConfig.MinerGasPrice,
+		Value: ctxc.DefaultConfig.Miner.GasPrice,
 	}
 	MinerCoinbaseFlag = cli.StringFlag{
 		Name:  "miner.coinbase",
@@ -433,7 +439,7 @@ var (
 	MinerRecommitIntervalFlag = cli.DurationFlag{
 		Name:  "miner.recommit",
 		Usage: "Time interval to recreate the block being mined",
-		Value: ctxc.DefaultConfig.MinerRecommit,
+		Value: ctxc.DefaultConfig.Miner.Recommit,
 	}
 	MinerNoVerfiyFlag = cli.BoolFlag{
 		Name:  "miner.noverify",
@@ -488,9 +494,23 @@ var (
 		Usage: "Password file to use for non-interactive password input",
 		Value: "",
 	}
+	ExternalSignerFlag = cli.StringFlag{
+		Name:  "signer",
+		Usage: "External signer (url or path to ipc file)",
+		Value: "",
+	}
 	InsecureUnlockAllowedFlag = cli.BoolFlag{
 		Name:  "allow-insecure-unlock",
 		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
+	}
+	RPCGlobalGasCap = cli.Uint64Flag{
+		Name:  "rpc.gascap",
+		Usage: "Sets a cap on gas that can be used in ctxc_call/estimateGas",
+	}
+	RPCGlobalTxFeeCap = cli.Float64Flag{
+		Name:  "rpc.txfeecap",
+		Usage: "Sets a cap on transaction fee (in ctxc) that can be sent via the RPC APIs (0 = no cap)",
+		Value: ctxc.DefaultConfig.RPCTxFeeCap,
 	}
 
 	VMEnableDebugFlag = cli.BoolFlag{
@@ -684,7 +704,7 @@ var (
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
-		Name:  "metrics.MetricsEnabledFlag",
+		Name:  "metrics",
 		Usage: "Enable metrics collection and reporting",
 	}
 	MetricsEnabledExpensiveFlag = cli.BoolFlag{
@@ -719,11 +739,11 @@ var (
 	// It is used so that we can group all nodes and average a measurement across all of them, but also so
 	// that we can select a specific node and inspect its measurements.
 	// https://docs.influxdata.com/influxdb/v1.4/concepts/key_concepts/#tag-key
-	MetricsInfluxDBHostTagFlag = cli.StringFlag{
-		Name:  "metrics.influxdb.host.tag",
-		Usage: "InfluxDB `host` tag attached to all measurements",
-		Value: "localhost",
-	}
+	//MetricsInfluxDBHostTagFlag = cli.StringFlag{
+	//	Name:  "metrics.influxdb.host.tag",
+	//	Usage: "InfluxDB `host` tag attached to all measurements",
+	//	Value: "localhost",
+	//}
 	MetricsInfluxDBTagsFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.tags",
 		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
@@ -1032,7 +1052,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setNAT(ctx, cfg)
 	setListenAddress(ctx, cfg)
 	setBootstrapNodes(ctx, cfg)
-	//setBootstrapNodesV5(ctx, cfg)
+	setBootstrapNodesV5(ctx, cfg)
 
 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
@@ -1084,6 +1104,10 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	// case ctx.GlobalBool(LazynetFlag.Name):
 	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
 	// }
+
+	if ctx.GlobalIsSet(ExternalSignerFlag.Name) {
+		cfg.ExternalSigner = ctx.GlobalString(ExternalSignerFlag.Name)
+	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.GlobalString(KeyStoreDirFlag.Name)
@@ -1244,6 +1268,8 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
 	// checkExclusive(ctx, DeveloperFlag, BernardFlag, LazynetFlag)
+	//CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
+	CheckExclusive(ctx, GCModeFlag, "archive", TxLookupLimitFlag)
 
 	var ks *keystore.KeyStore
 	if keystores := stack.AccountManager().Backends(keystore.KeyStoreType); len(keystores) > 0 {
@@ -1299,44 +1325,50 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
-		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
+		cfg.Miner.ExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
 	}
 	if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
-		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
+		cfg.Miner.ExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
 	}
 	// if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
 	//	cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
 	// }
 	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
+		cfg.Miner.GasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerGasLimitFlag.Name) {
-		cfg.MinerGasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
+		cfg.Miner.GasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
+		cfg.Miner.GasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
+		cfg.Miner.GasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
-		cfg.MinerRecommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
+		cfg.Miner.Recommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
-		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
+		cfg.Miner.Noverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
 		//cfg.Cuckoo.Mine = true
 	}
 	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
-		cfg.MinerCuda = ctx.Bool(MinerCudaFlag.Name)
-		cfg.Cuckoo.UseCuda = cfg.MinerCuda
+		cfg.Miner.Cuda = ctx.Bool(MinerCudaFlag.Name)
+		cfg.Cuckoo.UseCuda = cfg.Miner.Cuda
 	}
 	//	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
 	//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
 	//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
 	//	}
+	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
+		cfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
+	}
+	if ctx.GlobalIsSet(RPCGlobalTxFeeCap.Name) {
+		cfg.RPCTxFeeCap = ctx.GlobalFloat64(RPCGlobalTxFeeCap.Name)
+	}
 	if ctx.GlobalIsSet(DNSDiscoveryFlag.Name) {
 		urls := ctx.GlobalString(DNSDiscoveryFlag.Name)
 		if urls == "" {
@@ -1345,12 +1377,13 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 			cfg.DiscoveryURLs = splitAndTrim(urls)
 		}
 	}
-	cfg.MinerDevices = ctx.GlobalString(MinerDevicesFlag.Name)
-	cfg.Cuckoo.StrDeviceIds = cfg.MinerDevices
+	cfg.Miner.Devices = ctx.GlobalString(MinerDevicesFlag.Name)
+	cfg.Cuckoo.StrDeviceIds = cfg.Miner.Devices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	cfg.Cuckoo.Algorithm = "cuckaroo" //ctx.GlobalString(MinerAlgorithmFlag.Name)
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
+	//cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
 	if cfg.InferDeviceType == "cpu" {
 	} else if cfg.InferDeviceType == "gpu" {
@@ -1363,8 +1396,6 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		} else {
 			panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 		}
-	} else if IsCVMIPC(cfg.InferDeviceType) != "" {
-		cfg.InferURI = ("http://127.0.0.1:" + strconv.Itoa(ctx.GlobalInt(InferPortFlag.Name)) + "/infer")
 	} else {
 		panic(fmt.Sprintf("invalid device: %s", cfg.InferDeviceType))
 	}
@@ -1452,7 +1483,7 @@ func setDNSDiscoveryDefaults(cfg *ctxc.Config, genesis common.Hash) {
 
 	protocol := "all"
 	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
-		log.Info("Dns found", "url", url)
+		//log.Info("Dns found", "url", url)
 		cfg.DiscoveryURLs = []string{url}
 	}
 }
@@ -1471,14 +1502,14 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""
-		cfg.RpcURI = "http://" + ctx.GlobalString(RPCListenAddrFlag.Name) + ":" + string(ctx.GlobalInt(RPCPortFlag.Name))
+		//cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)//"http://" + ctx.GlobalString(RPCListenAddrFlag.Name) + ":" + string(ctx.GlobalInt(RPCPortFlag.Name))
 	} else {
 		path := MakeDataDir(ctx)
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
-		log.Info("path", "path", path, "ipc", IPCPath)
-		log.Info("FsConfig", "IPCPath", cfg.IpcPath)
 	}
+	cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)
+
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
 	cfg.DefaultTrackers = strings.Split(trackers, ",")
@@ -1555,16 +1586,31 @@ func SetupMetrics(ctx *cli.Context) {
 			database     = ctx.GlobalString(MetricsInfluxDBDatabaseFlag.Name)
 			username     = ctx.GlobalString(MetricsInfluxDBUsernameFlag.Name)
 			password     = ctx.GlobalString(MetricsInfluxDBPasswordFlag.Name)
-			hosttag      = ctx.GlobalString(MetricsInfluxDBHostTagFlag.Name)
 		)
 
 		if enableExport {
-			log.Info("Enabling metrics export to InfluxDB")
-			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "cortex.", map[string]string{
-				"host": hosttag,
-			})
+			tagsMap := SplitTagsFlag(ctx.GlobalString(MetricsInfluxDBTagsFlag.Name))
+			log.Info("Enabling metrics export to InfluxDB", "tags", tagsMap)
+			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "cortex.", tagsMap)
 		}
 	}
+}
+
+func SplitTagsFlag(tagsFlag string) map[string]string {
+	tags := strings.Split(tagsFlag, ",")
+	tagsMap := map[string]string{}
+
+	for _, t := range tags {
+		if t != "" {
+			kv := strings.Split(t, "=")
+
+			if len(kv) == 2 {
+				tagsMap[kv[0]] = kv[1]
+			}
+		}
+	}
+
+	return tagsMap
 }
 
 // MakeChainDatabase open an LevelDB using the flags passed to the client and will hard crash if it fails.
@@ -1688,12 +1734,4 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 		}
 		return action(ctx)
 	}
-}
-
-func IsCVMIPC(deviceType string) string {
-	u, err := url.Parse(deviceType)
-	if err == nil && u.Scheme == "ipc" && len(u.Hostname()) > 0 && len(u.Port()) == 0 {
-		return u.Hostname()
-	}
-	return ""
 }

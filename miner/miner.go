@@ -19,10 +19,12 @@ package miner
 
 import (
 	"fmt"
+	"math/big"
 	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
@@ -39,6 +41,22 @@ type Backend interface {
 	TxPool() *core.TxPool
 }
 
+// Config is the configuration parameters of mining.
+type Config struct {
+	Coinbase  common.Address `toml:",omitempty"` // Public address for block mining rewards (default = first account)
+	Notify    []string       `toml:",omitempty"` // HTTP URL list to be notified of new work packages(only useful in ethash).
+	ExtraData hexutil.Bytes  `toml:",omitempty"` // Block extra data set by the miner
+	GasFloor  uint64         // Target gas floor for mined blocks.
+	GasCeil   uint64         // Target gas ceiling for mined blocks.
+	GasPrice  *big.Int       // Minimum gas price for mining a transaction
+	Recommit  time.Duration  // The time interval for miner to re-create mining work.
+	Noverify  bool           // Disable remote mining solution verification(only useful in ethash).
+
+	Cuda    bool
+	OpenCL  bool
+	Devices string
+}
+
 // Miner creates blocks and searches for proof-of-work values.
 type Miner struct {
 	mux      *event.TypeMux
@@ -52,13 +70,13 @@ type Miner struct {
 	shouldStart int32 // should start indicates whether we should start after sync
 }
 
-func New(ctxc Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64) *Miner {
+func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, isLocalBlock func(block *types.Block) bool) *Miner {
 	miner := &Miner{
 		ctxc:     ctxc,
 		mux:      mux,
 		engine:   engine,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, engine, ctxc, mux, recommit, gasFloor, gasCeil),
+		worker:   newWorker(config, chainConfig, engine, ctxc, mux, isLocalBlock, true),
 		canStart: 1,
 	}
 	go miner.update()
@@ -167,4 +185,27 @@ func (miner *Miner) Start(coinbase common.Address) {
 		return
 	}
 	miner.worker.start()
+}
+
+// EnablePreseal turns on the preseal mining feature. It's enabled by default.
+// Note this function shouldn't be exposed to API, it's unnecessary for users
+// (miners) to actually know the underlying detail. It's only for outside project
+// which uses this library.
+func (miner *Miner) EnablePreseal() {
+	miner.worker.enablePreseal()
+}
+
+// DisablePreseal turns off the preseal mining feature. It's necessary for some
+// fake consensus engine which can seal blocks instantaneously.
+// Note this function shouldn't be exposed to API, it's unnecessary for users
+// (miners) to actually know the underlying detail. It's only for outside project
+// which uses this library.
+func (miner *Miner) DisablePreseal() {
+	miner.worker.disablePreseal()
+}
+
+// SubscribePendingLogs starts delivering logs from pending transactions
+// to the given channel.
+func (miner *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription {
+	return miner.worker.pendingLogsFeed.Subscribe(ch)
 }

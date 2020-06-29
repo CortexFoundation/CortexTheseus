@@ -1,25 +1,33 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2014 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package node
 
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/accounts/external"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -27,11 +35,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
 )
 
 const (
@@ -78,7 +81,7 @@ type Config struct {
 	KeyStoreDir string `toml:",omitempty"`
 
 	// ExternalSigner specifies an external URI for a clef-type signer
-	ExternalSigner string `toml:"omitempty"`
+	ExternalSigner string `toml:",omitempty"`
 
 	// UseLightweightKDF lowers the memory and CPU requirements of the key store
 	// scrypt KDF at the expense of security.
@@ -89,6 +92,9 @@ type Config struct {
 
 	// NoUSB disables hardware wallet monitoring and connectivity.
 	NoUSB bool `toml:",omitempty"`
+
+	// SmartCardDaemonPath is the path to the smartcard daemon's socket
+	SmartCardDaemonPath string `toml:",omitempty"`
 
 	// IPCPath is the requested location to place the IPC endpoint. If the path is
 	// a simple file name, it is placed inside the data directory (or on the root
@@ -154,8 +160,35 @@ type Config struct {
 	// private APIs to untrusted users is a major security risk.
 	WSExposeAll bool `toml:",omitempty"`
 
+	// GraphQLHost is the host interface on which to start the GraphQL server. If this
+	// field is empty, no GraphQL API endpoint will be started.
+	GraphQLHost string `toml:",omitempty"`
+
+	// GraphQLPort is the TCP port number on which to start the GraphQL server. The
+	// default zero value is/ valid and will pick a port number randomly (useful
+	// for ephemeral nodes).
+	GraphQLPort int `toml:",omitempty"`
+
+	// GraphQLCors is the Cross-Origin Resource Sharing header to send to requesting
+	// clients. Please be aware that CORS is a browser enforced security, it's fully
+	// useless for custom HTTP clients.
+	GraphQLCors []string `toml:",omitempty"`
+
+	// GraphQLVirtualHosts is the list of virtual hostnames which are allowed on incoming requests.
+	// This is by default {'localhost'}. Using this prevents attacks like
+	// DNS rebinding, which bypasses SOP by simply masquerading as being within the same
+	// origin. These attacks do not utilize CORS, since they are not cross-domain.
+	// By explicitly checking the Host-header, the server will not allow requests
+	// made against the server with a malicious host domain.
+	// Requests using ip address directly are not affected
+	GraphQLVirtualHosts []string `toml:",omitempty"`
+
 	// Logger is a custom logger to use with the p2p.Server.
 	Logger log.Logger `toml:",omitempty"`
+
+	staticNodesWarning       bool
+	trustedNodesWarning      bool
+	oldCortexResourceWarning bool
 }
 
 // IPCEndpoint resolves an IPC endpoint based on a configured value, taking into
@@ -212,6 +245,15 @@ func (c *Config) HTTPEndpoint() string {
 	return fmt.Sprintf("%s:%d", c.HTTPHost, c.HTTPPort)
 }
 
+// GraphQLEndpoint resolves a GraphQL endpoint based on the configured host interface
+// and port parameters.
+func (c *Config) GraphQLEndpoint() string {
+	if c.GraphQLHost == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s:%d", c.GraphQLHost, c.GraphQLPort)
+}
+
 // DefaultHTTPEndpoint returns the HTTP endpoint used by default.
 func DefaultHTTPEndpoint() string {
 	config := &Config{HTTPHost: DefaultHTTPHost, HTTPPort: DefaultHTTPPort}
@@ -233,10 +275,16 @@ func DefaultWSEndpoint() string {
 	return config.WSEndpoint()
 }
 
+// ExtRPCEnabled returns the indicator whether node enables the external
+// RPC(http, ws or graphql).
+func (c *Config) ExtRPCEnabled() bool {
+	return c.HTTPHost != "" || c.WSHost != "" || c.GraphQLHost != ""
+}
+
 // NodeName returns the devp2p node identifier.
 func (c *Config) NodeName() string {
 	name := c.name()
-	// Backwards compatibility: previous versions used title-cased "Ctxc", keep that.
+	// Backwards compatibility: previous versions used title-cased "Cortex", keep that.
 	if name == "cortex" || name == "cortex-testnet" {
 		name = "Cortex"
 	}
@@ -263,12 +311,12 @@ func (c *Config) name() string {
 }
 
 // These resources are resolved differently for "cortex" instances.
-var isOldCtxcResource = map[string]bool{
+var isOldCortexResource = map[string]bool{
 	"chaindata":          true,
 	"nodes":              true,
 	"nodekey":            true,
-	"static-nodes.json":  true,
-	"trusted-nodes.json": true,
+	"static-nodes.json":  false, // no warning for these because they have their
+	"trusted-nodes.json": false, // own separate warning.
 }
 
 // ResolvePath resolves path in the instance directory.
@@ -281,12 +329,15 @@ func (c *Config) ResolvePath(path string) string {
 	}
 	// Backwards-compatibility: ensure that data directory files created
 	// by cortex 1.4 are used if they exist.
-	if c.name() == "cortex" && isOldCtxcResource[path] {
+	if warn, isOld := isOldCortexResource[path]; isOld {
 		oldpath := ""
-		if c.Name == "cortex" {
+		if c.name() == "cortex" {
 			oldpath = filepath.Join(c.DataDir, path)
 		}
 		if oldpath != "" && common.FileExist(oldpath) {
+			if warn {
+				c.warnOnce(&c.oldCortexResourceWarning, "Using deprecated resource file %s, please move this file to the 'cortex' subdirectory of datadir.", oldpath)
+			}
 			return oldpath
 		}
 	}
@@ -340,17 +391,17 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 
 // StaticNodes returns a list of node enode URLs configured as static nodes.
 func (c *Config) StaticNodes() []*enode.Node {
-	return c.parsePersistentNodes(c.ResolvePath(datadirStaticNodes))
+	return c.parsePersistentNodes(&c.staticNodesWarning, c.ResolvePath(datadirStaticNodes))
 }
 
 // TrustedNodes returns a list of node enode URLs configured as trusted nodes.
 func (c *Config) TrustedNodes() []*enode.Node {
-	return c.parsePersistentNodes(c.ResolvePath(datadirTrustedNodes))
+	return c.parsePersistentNodes(&c.trustedNodesWarning, c.ResolvePath(datadirTrustedNodes))
 }
 
 // parsePersistentNodes parses a list of discovery node URLs loaded from a .json
 // file from within the data directory.
-func (c *Config) parsePersistentNodes(path string) []*enode.Node {
+func (c *Config) parsePersistentNodes(w *bool, path string) []*enode.Node {
 	// Short circuit if no node config is present
 	if c.DataDir == "" {
 		return nil
@@ -358,10 +409,12 @@ func (c *Config) parsePersistentNodes(path string) []*enode.Node {
 	if _, err := os.Stat(path); err != nil {
 		return nil
 	}
+	c.warnOnce(w, "Found deprecated node list file %s, please use the TOML config file instead.", path)
+
 	// Load the nodes from the config file.
 	var nodelist []string
 	if err := common.LoadJSON(path, &nodelist); err != nil {
-		log.Error(fmt.Sprintf("Can't load node file %s: %v", path, err))
+		log.Error(fmt.Sprintf("Can't load node list file: %v", err))
 		return nil
 	}
 	// Interpret the list as a discovery node array
@@ -413,7 +466,7 @@ func makeAccountManager(conf *Config) (*accounts.Manager, string, error) {
 	var ephemeral string
 	if keydir == "" {
 		// There is no datadir.
-		keydir, err = ioutil.TempDir("", "CortexFoundation-keystore")
+		keydir, err = ioutil.TempDir("", "CortexTheseus-keystore")
 		ephemeral = keydir
 	}
 
@@ -424,9 +477,35 @@ func makeAccountManager(conf *Config) (*accounts.Manager, string, error) {
 		return nil, "", err
 	}
 	// Assemble the account manager and supported backends
-	backends := []accounts.Backend{
-		keystore.NewKeyStore(keydir, scryptN, scryptP),
+	var backends []accounts.Backend
+	if len(conf.ExternalSigner) > 0 {
+		log.Info("Using external signer", "url", conf.ExternalSigner)
+		if extapi, err := external.NewExternalBackend(conf.ExternalSigner); err == nil {
+			backends = append(backends, extapi)
+		} else {
+			return nil, "", fmt.Errorf("error connecting to external signer: %v", err)
+		}
 	}
-	//return accounts.NewManager(backends...), ephemeral, nil
+	if len(backends) == 0 {
+		backends = append(backends, keystore.NewKeyStore(keydir, scryptN, scryptP))
+	}
+
 	return accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: conf.InsecureUnlockAllowed}, backends...), ephemeral, nil
+}
+
+var warnLock sync.Mutex
+
+func (c *Config) warnOnce(w *bool, format string, args ...interface{}) {
+	warnLock.Lock()
+	defer warnLock.Unlock()
+
+	if *w {
+		return
+	}
+	l := c.Logger
+	if l == nil {
+		l = log.Root()
+	}
+	l.Warn(fmt.Sprintf(format, args...))
+	*w = true
 }

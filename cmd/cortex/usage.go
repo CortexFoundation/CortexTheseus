@@ -132,6 +132,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.UnlockedAccountFlag,
 			utils.PasswordFileFlag,
+			utils.ExternalSignerFlag,
 			utils.InsecureUnlockAllowedFlag,
 		},
 	},
@@ -151,6 +152,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.IPCPathFlag,
 			utils.RPCCORSDomainFlag,
 			utils.RPCVirtualHostsFlag,
+			utils.RPCGlobalGasCap,
+			utils.RPCGlobalTxFeeCap,
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
@@ -206,6 +209,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			//utils.StorageEnabledFlag,
 			utils.StorageDirFlag,
+			utils.StorageRpcFlag,
 			utils.StoragePortFlag,
 			utils.StorageMaxSeedingFlag,
 			utils.StorageMaxActiveFlag,
@@ -237,18 +241,6 @@ var AppHelpFlagGroups = []flagGroup{
 	// 		utils.FakePoWFlag,
 	// 		utils.NoCompactionFlag,
 	// 	}, debug.threadsFlags...),
-	// },
-	// {
-	// 	Name: "METRICS AND STATS",
-	// 	Flags: []cli.Flag{
-	// 		utils.MetricsEnabledFlag,
-	// 		utils.MetricsEnableInfluxDBFlag,
-	// 		utils.MetricsInfluxDBEndpointFlag,
-	// 		utils.MetricsInfluxDBDatabaseFlag,
-	// 		utils.MetricsInfluxDBUsernameFlag,
-	// 		utils.MetricsInfluxDBPasswordFlag,
-	// 		utils.MetricsInfluxDBHostTagFlag,
-	// 	},
 	// },
 	{
 		Name:  "METRICS AND STATS",

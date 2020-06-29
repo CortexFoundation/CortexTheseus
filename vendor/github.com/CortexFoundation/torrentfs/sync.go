@@ -21,6 +21,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
@@ -39,12 +40,19 @@ const (
 	delay = params.Delay
 )
 
+var (
+	rpcBlockMeter   = metrics.NewRegisteredMeter("torrent/block/call", nil)
+	rpcCurrentMeter = metrics.NewRegisteredMeter("torrent/current/call", nil)
+	rpcUploadMeter  = metrics.NewRegisteredMeter("torrent/upload/call", nil)
+	rpcReceiptMeter = metrics.NewRegisteredMeter("torrent/receipt/call", nil)
+)
+
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
 	config *Config
 	cl     *rpc.Client
-	fs     *ChainIndex
+	fs     *ChainDB
 	dl     *TorrentManager
 
 	exitCh        chan struct{}
@@ -62,14 +70,18 @@ type Monitor struct {
 	sizeCache   *lru.Cache
 	ckp         *params.TrustedCheckpoint
 	start       mclock.AbsTime
+
+	local bool
+
+	closeOnce sync.Once
 }
 
 // NewMonitor creates a new instance of monitor.
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
-	fs, fsErr := NewChainIndex(flag)
+func NewMonitor(flag *Config, cache, compress bool) (*Monitor, error) {
+	fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
 		return nil, fsErr
@@ -83,7 +95,7 @@ func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
 	}
 	log.Info("Fs manager initialized")
 
-	m = &Monitor{
+	m := &Monitor{
 		config:        flag,
 		cl:            nil,
 		fs:            fs,
@@ -91,19 +103,26 @@ func NewMonitor(flag *Config, cache, compress bool) (m *Monitor, e error) {
 		exitCh:        make(chan struct{}),
 		terminated:    0,
 		lastNumber:    uint64(0),
-		scope:         uint64(math.Min(float64(runtime.NumCPU()*2), float64(8))),
+		scope:         uint64(math.Min(float64(runtime.NumCPU()*4), float64(8))),
 		currentNumber: uint64(0),
 		taskCh:        make(chan *types.Block, batch),
 		start:         mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
-	e = nil
+	//e = nil
 
-	return m, e
+	if err := m.dl.Start(); err != nil {
+		log.Warn("Fs start error")
+		return nil, err
+	}
+
+	m.IndexInit()
+
+	return m, nil
 }
 
-func (m *Monitor) indexInit() error {
+func (m *Monitor) IndexCheck() error {
 	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version(), "current", m.currentNumber)
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
@@ -114,20 +133,27 @@ func (m *Monitor) indexInit() error {
 
 		m.ckp = checkpoint
 
-		version := m.fs.GetRootByNumber(checkpoint.TfsCheckPoint)
+		version := m.fs.GetRoot(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
+			m.lastNumber = 0
+			m.startNumber = 0
 			if m.lastNumber > checkpoint.TfsCheckPoint {
-				m.lastNumber = 0
-				if err := m.fs.Reset(); err != nil {
-					return err
-				}
+				m.fs.LastListenBlockNumber = 0
+				//m.lastNumber = 0
+				//if err := m.fs.Reset(); err != nil {
+				//	return err
+				//}
 			}
+			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "lastNumber", m.lastNumber, "last in db", m.fs.LastListenBlockNumber)
 		} else {
 			log.Info("Fs storage version check passed", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 		}
 	}
 
+	return nil
+}
+
+func (m *Monitor) IndexInit() error {
 	fileMap := make(map[metainfo.Hash]*types.FileInfo)
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
@@ -187,24 +213,37 @@ func (m *Monitor) taskLoop() {
 }
 
 // SetConnection method builds connection to remote or local communicator.
-func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
+func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, error) {
 
-	log.Info("Building connection", "terminated", m.terminated)
+	log.Debug("Building connection", "terminated", m.terminated)
 
-	for {
-		time.Sleep(time.Second * queryTimeInterval)
-		cl, err := rpc.Dial(clientURI)
-		if err != nil {
-			log.Warn("Building internal ipc connection ... ", "uri", clientURI, "error", err, "terminated", m.terminated)
-		} else {
-			log.Info("Internal ipc connection established", "uri", clientURI)
-			return cl, nil
+	if len(ipcpath) > 0 {
+		for i := 0; i < 30; i++ {
+			time.Sleep(time.Second * queryTimeInterval * 2)
+			cl, err := rpc.Dial(ipcpath)
+			if err != nil {
+				log.Warn("Building internal ipc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated)
+			} else {
+				m.local = true
+				log.Info("Internal ipc connection established", "ipc", ipcpath, "rpc", rpcuri, "local", m.local)
+				return cl, nil
+			}
+
+			if atomic.LoadInt32(&(m.terminated)) == 1 {
+				log.Info("Connection builder break")
+				return nil, errors.New("ipc connection terminated")
+			}
 		}
+	} else {
+		log.Warn("IPC is emptyl")
+	}
 
-		if atomic.LoadInt32(&(m.terminated)) == 1 {
-			log.Info("Connection builder break")
-			break
-		}
+	cl, err := rpc.Dial(rpcuri)
+	if err != nil {
+		log.Warn("Building internal rpc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated)
+	} else {
+		log.Info("Internal rpc connection established", "ipc", ipcpath, "rpc", rpcuri, "local", m.local)
+		return cl, nil
 	}
 
 	return nil, errors.New("building internal ipc connection failed")
@@ -212,9 +251,9 @@ func (m *Monitor) buildConnection(clientURI string) (*rpc.Client, error) {
 
 func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*types.Block, error) {
 	block := &types.Block{}
-	blockNumberHex := "0x" + strconv.FormatUint(blockNumber, 16)
 
-	err := m.cl.Call(block, "ctxc_getBlockByNumber", blockNumberHex, true)
+	rpcBlockMeter.Mark(1)
+	err := m.cl.Call(block, "ctxc_getBlockByNumber", "0x"+strconv.FormatUint(blockNumber, 16), true)
 	if err == nil {
 		return block, nil
 	}
@@ -247,6 +286,7 @@ func (m *Monitor) getRemainingSize(address string) (uint64, error) {
 		return size.(uint64), nil
 	}
 	var remainingSize hexutil.Uint64
+	rpcUploadMeter.Mark(1)
 	if err := m.cl.Call(&remainingSize, "ctxc_getUpload", address, "latest"); err != nil {
 		return 0, err
 	}
@@ -257,7 +297,8 @@ func (m *Monitor) getRemainingSize(address string) (uint64, error) {
 	return remain, nil
 }
 
-func (m *Monitor) getReceipt(tx string) (receipt types.TxReceipt, err error) {
+func (m *Monitor) getReceipt(tx string) (receipt types.Receipt, err error) {
+	rpcReceiptMeter.Mark(1)
 	if err = m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx); err != nil {
 		log.Warn("R is nil", "R", tx, "err", err)
 		return receipt, err
@@ -292,7 +333,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
 	info.Relate = append(info.Relate, *info.ContractAddr)
-	op, update, err := m.fs.UpdateFile(info)
+	op, update, err := m.fs.AddFile(info)
 	if err != nil {
 		log.Warn("Create file failed", "err", err)
 		return err
@@ -325,11 +366,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				record = true
 			} else if tx.IsFlowControl() {
 				if tx.Recipient == nil {
-					log.Trace("Recipient is nil", "num", b.Number)
 					continue
 				}
-				addr := *tx.Recipient
-				file := m.fs.GetFileByAddr(addr)
+				file := m.fs.GetFileByAddr(*tx.Recipient)
 				if file == nil {
 					continue
 				}
@@ -338,23 +377,19 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				if err != nil {
 					return false, err
 				}
-
-				if receipt.Status != 1 {
+				//todo
+				if receipt.Status != 1 || receipt.GasUsed != params.UploadGas {
 					continue
 				}
 
-				if receipt.GasUsed != params.UploadGas {
-					continue
-				}
-
-				remainingSize, err := m.getRemainingSize(addr.String())
+				remainingSize, err := m.getRemainingSize((*tx.Recipient).String())
 				if err != nil {
-					log.Error("Get remain failed", "err", err, "addr", addr.String())
+					log.Error("Get remain failed", "err", err, "addr", (*tx.Recipient).String())
 					return false, err
 				}
 				if file.LeftSize > remainingSize {
 					file.LeftSize = remainingSize
-					if _, progress, err := m.fs.UpdateFile(file); err != nil {
+					if _, progress, err := m.fs.AddFile(file); err != nil {
 						return false, err
 					} else if progress { // && progress {
 						log.Debug("Update storage success", "ih", file.Meta.InfoHash, "left", file.LeftSize)
@@ -363,9 +398,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 							bytesRequested = file.Meta.RawSize - file.LeftSize
 						}
 						if file.LeftSize == 0 {
-							log.Debug("Data processing completed !!!", "ih", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+							log.Debug("Data processing completed !!!", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						} else {
-							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", addr.String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
 
 						m.dl.UpdateTorrent(types.FlowControlMeta{
@@ -399,39 +434,39 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 }
 
 func (m *Monitor) Stop() {
-	log.Info("Fs listener closing")
-	if atomic.LoadInt32(&(m.terminated)) == 1 {
-		return
-	}
-	atomic.StoreInt32(&(m.terminated), 1)
-	close(m.exitCh)
-	log.Info("Monitor is waiting to be closed")
-	m.wg.Wait()
+	m.closeOnce.Do(func() {
+		if atomic.LoadInt32(&(m.terminated)) == 1 {
+			return
+		}
+		atomic.StoreInt32(&(m.terminated), 1)
+		close(m.exitCh)
+		log.Info("Monitor is waiting to be closed")
+		m.wg.Wait()
 
-	m.blockCache.Purge()
-	m.sizeCache.Purge()
+		m.blockCache.Purge()
+		m.sizeCache.Purge()
 
-	log.Info("Fs client listener synchronizing closing")
-	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Fs Manager closed", "error", err)
-	}
-	log.Info("Fs client listener synchronizing closed")
+		log.Info("Fs client listener synchronizing closing")
+		if err := m.dl.Close(); err != nil {
+			log.Error("Monitor Fs Manager closed", "error", err)
+		}
 
-	log.Info("Fs listener synchronizing closing")
-	if err := m.fs.Close(); err != nil {
-		log.Error("Monitor File Storage closed", "error", err)
-	}
-	log.Info("Fs listener synchronizing closed")
-
-	log.Info("Fs listener closed")
+		if err := m.fs.Close(); err != nil {
+			log.Error("Monitor File Storage closed", "error", err)
+		}
+		log.Info("Fs listener synchronizing closed")
+	})
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
-	if err := m.dl.Start(); err != nil {
-		log.Warn("Fs start error")
-		return err
-	}
+	//if err := m.dl.Start(); err != nil {
+	//	log.Warn("Fs start error")
+	//	return err
+	//}
+
+	//m.IndexInit()
+
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
@@ -443,27 +478,29 @@ func (m *Monitor) Start() error {
 }
 
 func (m *Monitor) startWork() error {
-	var clientURI string
+	var ipcpath string
 	if runtime.GOOS != "windows" && m.config.IpcPath != "" {
-		clientURI = m.config.IpcPath
-	} else {
-		if m.config.RpcURI == "" {
-			log.Warn("Fs rpc uri is empty")
-			return errors.New("fs RpcURI is empty")
-		}
-		clientURI = m.config.RpcURI
+		ipcpath = m.config.IpcPath
+		//} else {
+		//	if m.config.RpcURI == "" {
+		//		log.Warn("Fs rpc uri is empty")
+		//		return errors.New("fs RpcURI is empty")
+		//	}
+		//	clientURI = m.config.RpcURI
 	}
 
-	rpcClient, rpcErr := m.buildConnection(clientURI)
+	rpcClient, rpcErr := m.buildConnection(ipcpath, m.config.RpcURI)
 	if rpcErr != nil {
-		log.Error("Fs rpc client is wrong", "uri", clientURI, "error", rpcErr, "config", m.config)
+		log.Error("Fs rpc client is wrong", "uri", ipcpath, "error", rpcErr, "config", m.config)
 		return rpcErr
 	}
 	m.cl = rpcClient
+
 	m.lastNumber = m.fs.LastListenBlockNumber
 	m.currentBlock()
 	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber), float64(m.currentNumber))) // ? m.currentNumber:m.fs.LastListenBlockNumber
-	if err := m.indexInit(); err != nil {
+
+	if err := m.IndexCheck(); err != nil {
 		return err
 	}
 	m.wg.Add(1)
@@ -484,7 +521,11 @@ func (m *Monitor) listenLatestBlock() {
 		select {
 		case <-timer.C:
 			m.currentBlock()
-			timer.Reset(time.Second * queryTimeInterval)
+			if m.local {
+				timer.Reset(time.Second * queryTimeInterval)
+			} else {
+				timer.Reset(time.Second * queryTimeInterval * 10)
+			}
 		case <-m.exitCh:
 			log.Info("Block listener stopped")
 			return
@@ -520,18 +561,35 @@ func (m *Monitor) syncLatestBlock() {
 func (m *Monitor) currentBlock() (uint64, error) {
 	var currentNumber hexutil.Uint64
 
+	rpcCurrentMeter.Mark(1)
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
 		log.Error("Call ipc method ctxc_blockNumber failed", "error", err)
 		return 0, err
 	}
 	if m.currentNumber != uint64(currentNumber) {
-		m.currentNumber = uint64(currentNumber)
+		//m.currentNumber = uint64(currentNumber)
+		atomic.StoreUint64(&(m.currentNumber), uint64(currentNumber))
 	}
+
 	return uint64(currentNumber), nil
 }
 
+func (m *Monitor) Skip(i uint64) bool {
+	if len(m.ckp.Skips) == 0 || i > m.ckp.Skips[len(m.ckp.Skips)-1].To || i < m.ckp.Skips[0].From {
+		return false
+	}
+
+	for _, skip := range m.ckp.Skips {
+		if i > skip.From && i < skip.To {
+			//m.lastNumber = i - 1
+			return true
+		}
+	}
+	return false
+}
+
 func (m *Monitor) syncLastBlock() uint64 {
-	currentNumber := m.currentNumber
+	currentNumber := atomic.LoadUint64(&(m.currentNumber)) //m.currentNumber
 
 	if currentNumber < m.lastNumber {
 		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber, "offset", m.lastNumber-currentNumber)
@@ -568,6 +626,13 @@ func (m *Monitor) syncLastBlock() uint64 {
 			maxNumber = i - 1
 			break
 		}
+
+		if m.ckp != nil && m.Skip(i) {
+			//m.lastNumber = i - 1
+			i++
+			continue
+		}
+
 		if maxNumber-i >= m.scope {
 			blocks, rpcErr := m.rpcBatchBlockByNumber(i, i+m.scope)
 			if rpcErr != nil {
@@ -625,7 +690,8 @@ func (m *Monitor) solve(block *types.Block) error {
 	if i%65536 == 0 {
 		defer func() {
 			elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "start", m.startNumber, "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsed_a), "elapsed", common.PrettyDuration(elapsed_a), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			m.fs.SkipPrint()
 		}()
 	}
 	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
@@ -636,10 +702,10 @@ func (m *Monitor) solve(block *types.Block) error {
 			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 
 			if m.ckp != nil && m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
-				if common.BytesToHash(m.fs.GetRootByNumber(i)) == m.ckp.TfsRoot {
+				if common.BytesToHash(m.fs.GetRoot(i)) == m.ckp.TfsRoot {
 					log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
 				} else {
-					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot)
+					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot, "leaves", len(m.fs.Leaves()))
 					panic("FIRST MILESTONE ERROR, run './cortex removedb' command to solve this problem")
 				}
 			}

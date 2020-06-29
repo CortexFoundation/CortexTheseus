@@ -1,5 +1,5 @@
-github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e h1:oX32Y8xTUEW84tG0SSg5qSdOCygLjXehj1SX/UPInQA=
-github.com/mattn/go-colorable v0.1.7-0.20200228033015-4e32bdb9fe4e/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
+github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603 h1:zEYj2wXL3r8GWosyljcYSMaDMBeKh68V/MiDFfqvTTk=
+github.com/mattn/go-colorable v0.1.7-0.20200504132758-f1b5a0ed4603/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
 github.com/mattn/go-isatty v0.0.13-0.20200128103942-cb30d6282491 h1:jygFUAtCyqjM5JGFNAWcXLqlXArQqxDZ3DqQer1BIik=
 github.com/mattn/go-isatty v0.0.13-0.20200128103942-cb30d6282491/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=

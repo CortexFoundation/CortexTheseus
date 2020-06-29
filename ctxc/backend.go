@@ -100,9 +100,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
-	if config.MinerGasPrice == nil || config.MinerGasPrice.Cmp(common.Big0) <= 0 {
-		log.Warn("Sanitizing invalid miner gas price", "provided", config.MinerGasPrice, "updated", DefaultConfig.MinerGasPrice)
-		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
+	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) <= 0 {
+		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", DefaultConfig.Miner.GasPrice)
+		config.Miner.GasPrice = new(big.Int).Set(DefaultConfig.Miner.GasPrice)
 	}
 	if config.NoPruning && config.TrieDirtyCache > 0 {
 		if config.SnapshotCache > 0 {
@@ -132,10 +132,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		chainConfig:       chainConfig,
 		eventMux:          ctx.EventMux,
 		accountManager:    ctx.AccountManager,
-		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.MinerNotify, config.MinerNoverify, chainDb),
+		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.Miner.Notify, config.Miner.Noverify, chainDb),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
-		gasPrice:          config.MinerGasPrice,
+		gasPrice:          config.Miner.GasPrice,
 		coinbase:          config.Coinbase,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
@@ -208,13 +208,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		return nil, err
 	}
 
-	ctxc.miner = miner.New(ctxc, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
-	ctxc.miner.SetExtra(makeExtraData(config.MinerExtraData))
+	ctxc.miner = miner.New(ctxc, &config.Miner, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, ctxc.isLocalBlock)
+	ctxc.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	ctxc.APIBackend = &CortexAPIBackend{ctxc, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
-		gpoParams.Default = config.MinerGasPrice
+		gpoParams.Default = config.Miner.GasPrice
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
 	ctxc.dialCandidates, err = ctxc.setupDiscovery(&ctx.Config.P2P)

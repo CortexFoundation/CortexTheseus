@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse/kernel"
+	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/torrentfs"
 	"strconv"
@@ -130,9 +130,7 @@ func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte)
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInputContent(modelInfoHash, inputContent)
 	}
-	inputInfoHash := RLPHashString(inputContent)
-	log.Trace("content", "inputContent", inputContent, "inputInfoHash", inputInfoHash, "modelInfoHash", modelInfoHash)
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent)
+	return s.inferByInputContent(modelInfoHash, inputContent)
 }
 
 func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {

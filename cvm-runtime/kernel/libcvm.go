@@ -2,7 +2,7 @@ package kernel
 
 /*
 #cgo LDFLAGS: -ldl -lstdc++
-#cgo CFLAGS: -I../../../cvm-runtime/include -O2
+#cgo CFLAGS: -I../include -O2
 #cgo CFLAGS: -Wall -Wno-unused-result -Wno-unknown-pragmas -Wno-unused-variable
 
 #include "dlopen.h"

@@ -23,11 +23,11 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
+	"github.com/CortexFoundation/CortexTheseus/miner"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
@@ -41,16 +41,19 @@ var DefaultConfig = Config{
 	TrieDirtyCache: 256,
 	TrieTimeout:    60 * time.Minute,
 	SnapshotCache:  256,
-	MinerGasFloor:  params.MinerGasFloor, //8000000,
-	MinerGasCeil:   params.MinerGasCeil,  //8000000,
-	MinerGasPrice:  big.NewInt(params.GWei),
-	MinerRecommit:  3 * time.Second,
+	Miner: miner.Config{
+		GasFloor: params.MinerGasFloor,
+		GasCeil:  params.MinerGasCeil,
+		GasPrice: big.NewInt(params.GWei),
+		Recommit: 3 * time.Second,
+	},
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
+	RPCTxFeeCap: 1, // 1 ctxc
 }
 
 func init() {
@@ -62,8 +65,7 @@ func init() {
 	}
 }
 
-//go:generate gencodec -type Config -field-override configMarshaling -formats toml -out gen_config.go
-
+//go:generate gencodec -type Config -formats toml -out gen_config.go
 type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Cortex main net block is used.
@@ -89,18 +91,11 @@ type Config struct {
 	TrieTimeout        time.Duration
 	SnapshotCache      int
 
+	// Mining options
+	Miner miner.Config
+
 	// Mining-related options
 	Coinbase         common.Address `toml:",omitempty"`
-	MinerNotify      []string       `toml:",omitempty"`
-	MinerExtraData   []byte         `toml:",omitempty"`
-	MinerGasFloor    uint64
-	MinerGasCeil     uint64
-	MinerGasPrice    *big.Int
-	MinerRecommit    time.Duration
-	MinerNoverify    bool
-	MinerCuda        bool
-	MinerOpenCL      bool
-	MinerDevices     string
 	InferDeviceType  string
 	InferDeviceId    int
 	InferMemoryUsage int64
@@ -121,12 +116,12 @@ type Config struct {
 	StorageDir string
 
 	// Miscellaneous options
-	DocRoot    string                    `toml:"-"`
-	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
+	DocRoot   string   `toml:"-"`
+	RPCGasCap *big.Int `toml:",omitempty"`
+	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
+	// send-transction variants. The unit is ctxc.
+	RPCTxFeeCap float64                   `toml:",omitempty"`
+	Checkpoint  *params.TrustedCheckpoint `toml:",omitempty"`
 	// CheckpointOracle is the configuration for checkpoint oracle.
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
-}
-
-type configMarshaling struct {
-	MinerExtraData hexutil.Bytes
 }

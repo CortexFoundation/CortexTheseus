@@ -7,17 +7,6 @@ import (
 	"fmt"
 )
 
-func (rdr *NpyReader) GetBytes() ([]byte, error) {
-
-	data := make([]byte, rdr.nElt)
-	err := binary.Read(rdr.r, rdr.Endian, &data)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
 // GetComplex128 returns the array data as a slice of complex128 values.
 func (rdr *NpyReader) GetComplex128() ([]complex128, error) {
 
@@ -202,6 +191,22 @@ func (rdr *NpyReader) GetInt8() ([]int8, error) {
 	}
 
 	data := make([]int8, rdr.nElt)
+	err := binary.Read(rdr.r, rdr.Endian, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// GetBytes returns the array data as a slice of byte values.
+func (rdr *NpyReader) GetBytes() ([]byte, error) {
+
+	if rdr.Dtype != "i1" {
+		return nil, fmt.Errorf("Reader does not contain byte data")
+	}
+
+	data := make([]byte, rdr.nElt)
 	err := binary.Read(rdr.r, rdr.Endian, &data)
 	if err != nil {
 		return nil, err
@@ -410,6 +415,24 @@ func (wtr *NpyWriter) WriteInt16(data []int16) error {
 
 // WriteInt8 writes a slice of int8 values in npy format.
 func (wtr *NpyWriter) WriteInt8(data []int8) error {
+
+	err := wtr.writeHeader("i1", len(data))
+	if err != nil {
+		return err
+	}
+
+	err = binary.Write(wtr.w, wtr.Endian, data)
+	if err != nil {
+		return err
+	}
+
+	wtr.w.Close()
+
+	return nil
+}
+
+// WriteBytes writes a slice of byte values in npy format.
+func (wtr *NpyWriter) WriteBytes(data []byte) error {
 
 	err := wtr.writeHeader("i1", len(data))
 	if err != nil {

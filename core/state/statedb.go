@@ -27,10 +27,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	"math/big"
 	"sort"
+	"time"
 )
 
 type revision struct {
@@ -101,7 +103,17 @@ type StateDB struct {
 	validRevisions []revision
 	nextRevisionId int
 
-	//lock sync.Mutex
+	AccountReads         time.Duration
+	AccountHashes        time.Duration
+	AccountUpdates       time.Duration
+	AccountCommits       time.Duration
+	StorageReads         time.Duration
+	StorageHashes        time.Duration
+	StorageUpdates       time.Duration
+	StorageCommits       time.Duration
+	SnapshotAccountReads time.Duration
+	SnapshotStorageReads time.Duration
+	SnapshotCommits      time.Duration
 }
 
 // Create a new state from a given trie.
@@ -549,7 +561,11 @@ func (s *StateDB) Suicide(addr common.Address) bool {
 
 // updateStateObject writes the given object to the trie.
 func (s *StateDB) updateStateObject(obj *stateObject) {
-
+	// Track the amount of time wasted on updating the account from the trie
+	if metrics.EnabledExpensive {
+		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
+	}
+	// Encode the account and update the account trie
 	addr := obj.Address()
 	data, err := rlp.EncodeToBytes(obj)
 	if err != nil {
@@ -569,9 +585,13 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 }
 
 // deleteStateObject removes the given object from the state trie.
-func (s *StateDB) deleteStateObject(stateObject *stateObject) {
+func (s *StateDB) deleteStateObject(obj *stateObject) {
+	// Track the amount of time wasted on deleting the account from the trie
+	if metrics.EnabledExpensive {
+		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
+	}
 	//stateObject.deleted = true
-	addr := stateObject.Address()
+	addr := obj.Address()
 	if err := s.trie.TryDelete(addr[:]); err != nil {
 		s.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
 	}
@@ -591,7 +611,7 @@ func (s *StateDB) getStateObject(addr common.Address) *stateObject {
 // nil for a deleted state object, it returns the actual object with the deleted
 // flag set. This is needed by the state journal to revert to the correct s-
 // destructed object instead of wiping all knowledge about the state object.
-func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *stateObject) {
+func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 	// Prefer 'live' objects.
 	if obj := s.stateObjects[addr]; obj != nil {
 		return obj
@@ -602,10 +622,12 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 		err  error
 	)
 	if s.snap != nil {
+		if metrics.EnabledExpensive {
+			defer func(start time.Time) { s.SnapshotAccountReads += time.Since(start) }(time.Now())
+		}
 		var acc *snapshot.Account
-		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr[:])); err == nil {
+		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr.Bytes())); err == nil {
 			if acc == nil {
-				log.Trace("acc is nil", "addr", addr)
 				return nil
 			}
 			data.Nonce, data.Balance, data.CodeHash, data.Upload, data.Num = acc.Nonce, acc.Balance, acc.CodeHash, acc.Upload, acc.Num
@@ -617,14 +639,15 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 				data.Root = emptyRoot
 			}
 		}
-		log.Trace("Snap account is not nil", "addr", addr, "nonce", data.Nonce, "balance", data.Balance, "upload", data.Upload, "num", data.Num, "err", err)
 	}
-	// Load the object from the database.
 	// If snapshot unavailable or reading from it failed, load from the database
 	if s.snap == nil || err != nil {
-		enc, err := s.trie.TryGet(addr[:])
+		if metrics.EnabledExpensive {
+			defer func(start time.Time) { s.AccountReads += time.Since(start) }(time.Now())
+		}
+		enc, err := s.trie.TryGet(addr.Bytes())
 		if err != nil {
-			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr[:], err))
+			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr.Bytes(), err))
 			return nil
 		}
 		if len(enc) == 0 {
@@ -634,7 +657,6 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) (stateObject *state
 			log.Error("Failed to decode state object", "addr", addr, "err", err)
 			return nil
 		}
-		log.Trace("snap show is nul", "addr", addr, "err", err)
 	}
 	// Insert into the live set.
 	obj := newObject(s, addr, data)
@@ -659,6 +681,7 @@ func (s *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
 // the given address, it is overwritten and returned as the second return value.
 func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) {
 	prev = s.getStateObject(addr)
+
 	var prevdestruct bool
 	if s.snap != nil && prev != nil {
 		_, prevdestruct = s.snapDestructs[prev.addrHash]
@@ -871,6 +894,10 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	if len(s.stateObjectsPending) > 0 {
 		s.stateObjectsPending = make(map[common.Address]struct{})
 	}
+	// Track the amount of time wasted on hashing the account trie
+	if metrics.EnabledExpensive {
+		defer func(start time.Time) { s.AccountHashes += time.Since(start) }(time.Now())
+	}
 	return s.trie.Hash()
 }
 
@@ -915,6 +942,11 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	if len(s.stateObjectsDirty) > 0 {
 		s.stateObjectsDirty = make(map[common.Address]struct{})
 	}
+	// Write the account trie changes, measuing the amount of wasted time
+	var start time.Time
+	if metrics.EnabledExpensive {
+		start = time.Now()
+	}
 	// The onleaf func is called _serially_, so we can reuse the same account
 	// for unmarshalling every time.
 	var account Account
@@ -931,8 +963,14 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		}
 		return nil
 	})
+	if metrics.EnabledExpensive {
+		s.AccountCommits += time.Since(start)
+	}
 	// If snapshotting is enabled, update the snapshot tree with this new version
 	if s.snap != nil {
+		if metrics.EnabledExpensive {
+			defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
+		}
 		// Only update if there's a state transition (skip empty Clique blocks)
 		if parent := s.snap.Root(); parent != root {
 			if err := s.snaps.Update(root, parent, s.snapDestructs, s.snapAccounts, s.snapStorage); err != nil {

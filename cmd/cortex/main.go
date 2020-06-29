@@ -19,15 +19,6 @@ package main
 
 import (
 	"fmt"
-	"math"
-	"math/big"
-	"os"
-	godebug "runtime/debug"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/client"
@@ -38,8 +29,18 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/node"
+	_ "github.com/CortexFoundation/CortexTheseus/statik"
+	"github.com/arsham/figurine/figurine"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	cli "gopkg.in/urfave/cli.v1"
+	"math"
+	"math/big"
+	"os"
+	godebug "runtime/debug"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 const (
@@ -61,6 +62,7 @@ var (
 		// utils.BootnodesV5Flag,
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
+		utils.ExternalSignerFlag,
 		// utils.NoUSBFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
@@ -141,6 +143,7 @@ var (
 
 	storageFlags = []cli.Flag{
 		utils.StorageDirFlag,
+		utils.StorageRpcFlag,
 		utils.StoragePortFlag,
 		//utils.StorageEnabledFlag,
 		utils.StorageMaxSeedingFlag,
@@ -166,6 +169,8 @@ var (
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
+		utils.RPCGlobalGasCap,
+		utils.RPCGlobalTxFeeCap,
 	}
 
 	whisperFlags = []cli.Flag{
@@ -235,7 +240,7 @@ func init() {
 	app.Flags = append(app.Flags, inferFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
-		return debug.Setup(ctx, "")
+		return debug.Setup(ctx)
 	}
 
 	app.After = func(ctx *cli.Context) error {
@@ -259,6 +264,11 @@ func main() {
 func cortex(ctx *cli.Context) error {
 	if args := ctx.Args(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
+	}
+
+	err := figurine.Write(os.Stdout, "CORTEX", "3d.flf")
+	if err != nil {
+		log.Error("", "err", err)
 	}
 	prepare(ctx)
 	node := makeFullNode(ctx)
