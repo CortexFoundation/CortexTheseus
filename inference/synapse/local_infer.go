@@ -114,7 +114,6 @@ func (s *Synapse) inferByInfoHash(
 		inputHash = strings.ToLower(inputInfoHash[2:])
 	)
 	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
-
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
 
 	if hash, ok := CvmFixHashes[cacheKey]; ok {
