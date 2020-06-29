@@ -54,6 +54,17 @@ func hackFile(infoHash, rpath string) ([]byte, error) {
 	return bytes, nil
 }
 
+func fixTorrentHash(ih string, cvmNetworkId int64) string {
+	if cvmNetworkId == 43 {
+		if ch, ok := CvmDolFixTorrHashes[ih]; ok {
+			log.Warn("start hacking hash", "ih", ih,
+				"ch", ch, "cvmNetworkId", cvmNetworkId)
+			return ch
+		}
+	}
+	return ih
+}
+
 func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (gas uint64, err error) {
 
 	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") {
@@ -65,25 +76,13 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (ga
 		modelJson     []byte
 		modelJson_err error
 	)
+	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
+
 	modelJson, modelJson_err = s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		if cvmNetworkId == 43 &&
-			modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
-			// TODO(ryt): find ways to get the NetwordId of `dolores`
-			// and append it to the judgment here
-			modelJson, modelJson_err =
-				hackFile(modelInfoHash, "data/symbol")
-			if modelJson_err != nil {
-				log.Error("getGasByInfoHash: symbol hacking failed",
-					"modelInfoHash", modelInfoHash,
-					"error", modelJson_err)
-				return 0, KERNEL_RUNTIME_ERROR
-			}
-		} else {
-			log.Warn("GetGasByInfoHash: get file failed",
-				"error", modelJson_err, "hash", modelInfoHash)
-			return 0, KERNEL_RUNTIME_ERROR
-		}
+		log.Warn("GetGasByInfoHash: get file failed",
+			"error", modelJson_err, "hash", modelInfoHash)
+		return 0, KERNEL_RUNTIME_ERROR
 	}
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
@@ -114,6 +113,7 @@ func (s *Synapse) inferByInfoHash(
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
 	)
+	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
 
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
 
@@ -131,8 +131,7 @@ func (s *Synapse) inferByInfoHash(
 	if dataErr != nil {
 		if cvmNetworkId == 43 &&
 			inputHash == "de58609743e5cd0cb18798d91a196f418ac25016" {
-			// TODO(ryt): find ways to get the NetworkId of `dolores`
-			// and append it to the judgment here
+			// TODO(ryt): this part should be deprecated using hashFix maps
 			inputBytes, dataErr = hackFile(inputInfoHash, "data")
 			if dataErr != nil {
 				log.Error("inferByInfoHash: input hacking failed",
@@ -174,6 +173,8 @@ func (s *Synapse) inferByInputContent(
 		modelHash = strings.ToLower(modelInfoHash[2:])
 		inputHash = strings.ToLower(inputInfoHash[2:])
 	)
+	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
+
 	// Inference Cache
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
@@ -210,42 +211,15 @@ func (s *Synapse) inferByInputContent(
 	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			if cvmNetworkId == 43 &&
-				modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
-				// TODO(ryt): find ways to get the NetworkId of `dolores`
-				// and append it to the judgment here
-				modelJson, modelJson_err =
-					hackFile(modelInfoHash, "data/symbol")
-				if modelJson_err != nil {
-					log.Error("getGasByInfoHash: symbol hacking failed",
-						"modelInfoHash", modelInfoHash,
-						"error", modelJson_err)
-					return nil, KERNEL_RUNTIME_ERROR
-				}
-			} else {
-				log.Warn("inferByInputContent: model loaded failed",
-					"model hash", modelHash, "error", modelJson_err)
-				return nil, KERNEL_RUNTIME_ERROR
-			}
+			log.Warn("inferByInputContent: model loaded failed",
+				"model hash", modelHash, "error", modelJson_err)
+			return nil, KERNEL_RUNTIME_ERROR
 		}
 		modelParams, modelParams_err := s.config.Storagefs.GetFile(s.ctx, modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			if cvmNetworkId == 43 &&
-				modelHash == "31f75c90e8fe1c5b16cbdc466dc6127487a92add" {
-				// TODO(ryt): find ways to get the NetworkId of `dolores`
-				// and append it to the judgment here
-				modelParams, modelParams_err =
-					hackFile(modelInfoHash, "data/params")
-				if modelParams_err != nil {
-					log.Error("getGasByInfoHash: params hacking failed",
-						"modelInfoHash", modelInfoHash, "error", modelParams_err)
-					return nil, KERNEL_RUNTIME_ERROR
-				}
-			} else {
-				log.Warn("inferByInputContent: params loaded failed",
-					"model hash", modelHash, "error", modelParams_err)
-				return nil, KERNEL_RUNTIME_ERROR
-			}
+			log.Warn("inferByInputContent: params loaded failed",
+				"model hash", modelHash, "error", modelParams_err)
+			return nil, KERNEL_RUNTIME_ERROR
 		}
 		var deviceType = 0
 		if s.config.DeviceType == "cuda" {
@@ -286,16 +260,22 @@ func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error 
 		return KERNEL_RUNTIME_ERROR
 	}
 	ih := strings.ToLower(infoHash[2:])
+	if cvmNetworkId == 43 {
+		if _, ok := CvmDolFixTorrHashes[ih]; ok {
+			log.Warn("Available: start hacking...",
+				"ih", ih, "cvmNetworkId", cvmNetworkId)
+			return nil
+		}
+	}
 	is_ok, err := s.config.Storagefs.Available(s.ctx, ih, rawSize)
 	if err != nil {
 		if cvmNetworkId == 43 &&
-			(ih == "de58609743e5cd0cb18798d91a196f418ac25016" ||
-				ih == "31f75c90e8fe1c5b16cbdc466dc6127487a92add") {
-			// TODO(ryt): find ways to get the NetworkId of `dolores`
-			// and append it to the judgment here
+			ih == "de58609743e5cd0cb18798d91a196f418ac25016" {
+			// TODO(ryt): this part should be deprecated using hashFix maps
 			log.Warn("Available: start hacking...", "ih", ih)
 			return nil
 		}
+
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
 	} else if !is_ok {
