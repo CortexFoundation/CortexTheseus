@@ -250,8 +250,7 @@ func (s *Synapse) inferByInputContent(
 func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error {
 	if s.config.IsRemoteInfer {
 		errRes := s.remoteAvailable(
-			infoHash,
-			rawSize)
+			infoHash, rawSize, cvmNetworkId)
 		//s.config.InferURI)
 		return errRes
 	}
