@@ -23,4 +23,3 @@ var BadHashes = map[common.Hash]bool{
 	//common.HexToHash("aa12c632067adcc8acbda5dbb524687f81ece0526b9f7eb246caaadbd5ddd206"): true,
 	//common.HexToHash("7d05d08cbc596a2e5e4f13b80a743e53e09221b5323c3a61946b20873e58583f"): true,
 }
-

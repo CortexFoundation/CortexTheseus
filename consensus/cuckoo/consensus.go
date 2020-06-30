@@ -50,7 +50,7 @@ var (
 	ConstantinopleBlockReward          = big.NewInt(7e+18)
 	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime             = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
-	FixHashes = map[common.Hash]bool{
+	FixHashes                          = map[common.Hash]bool{
 		common.HexToHash("0x367e111f0f274d54f357ed3dc2d16107b39772c3a767138b857f5c02b5c30607"): true,
 		common.HexToHash("0xbde83a87b6d526ada5a02e394c5f21327acb080568f7cc6f8fff423620f0eec3"): true,
 	}
