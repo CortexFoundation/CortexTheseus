@@ -31,7 +31,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/consensus/misc"
-	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -51,7 +50,10 @@ var (
 	ConstantinopleBlockReward          = big.NewInt(7e+18)
 	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime             = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
-
+	FixHashes = map[common.Hash]bool{
+		common.HexToHash("0x367e111f0f274d54f357ed3dc2d16107b39772c3a767138b857f5c02b5c30607"): true,
+		common.HexToHash("0xbde83a87b6d526ada5a02e394c5f21327acb080568f7cc6f8fff423620f0eec3"): true,
+	}
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
 	// It returns the difficulty that a new block should have when created at time given the
 	// parent block's time and difficulty. The calculation uses the Byzantium rules, but with
@@ -312,7 +314,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	bigMaxReward := big.NewInt(0).Add(big.NewInt(0).Mul(big2, big.NewInt(0).Add(uncleMaxReward, nephewReward)), bigInitReward)
 
 	if header.UncleHash == types.EmptyUncleHash {
-		if _, ok := core.FixHashes[header.Hash()]; ok {
+		if _, ok := FixHashes[header.Hash()]; ok {
 		} else {
 			if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) > 0 {
 				return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number, bigInitReward)
@@ -826,7 +828,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
 
-		//for hash := range core.FixHashes {
+		//for hash := range FixHashes {
 		//	if hash == headerInitialHash {
 		//		header.Supply.Add(header.Supply, bigFix)
 		//	}
@@ -862,7 +864,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			}
 		} else {
 
-			if _, ok := core.FixHashes[headerInitialHash]; ok {
+			if _, ok := FixHashes[headerInitialHash]; ok {
 				header.Supply.Add(header.Supply, bigFix)
 			}
 		}
