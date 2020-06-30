@@ -71,8 +71,7 @@ var (
 // codebase, inherently breaking if the engine is swapped out. Please put common
 // error types into the consensus package.
 var (
-	errLargeBlockTime    = errors.New("timestamp too big")
-	errZeroBlockTime     = errors.New("timestamp equals parent's")
+	errOlderBlockTime    = errors.New("timestamp older than parent")
 	errTooManyUncles     = errors.New("too many uncles")
 	errDuplicateUncle    = errors.New("duplicate uncle")
 	errUncleIsAncestor   = errors.New("uncle is ancestor")
@@ -260,7 +259,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		}
 	}
 	if header.Time <= parent.Time {
-		return errZeroBlockTime
+		return errOlderBlockTime
 	}
 	// Verify the block's difficulty based in it's timestamp and parent's difficulty
 	expected := cuckoo.CalcDifficulty(chain, header.Time, parent)
