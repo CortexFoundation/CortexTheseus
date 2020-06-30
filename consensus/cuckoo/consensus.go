@@ -277,7 +277,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 
-	validate := core.CheckGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit)
+	validate := checkGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit)
 	if !validate {
 		return fmt.Errorf("invalid gas limit trend: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
 	}
@@ -361,6 +361,31 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	default:
 		return calcDifficultyFrontier(time, parent)
 	}
+}
+
+//important add gas limit to consensus
+func checkGasLimit(gasUsed, gasLimit, currentGasLimit uint64) bool {
+	contrib := (gasUsed + gasUsed/2) / params.GasLimitBoundDivisor
+	decay := gasLimit/params.GasLimitBoundDivisor - 1
+	limit := gasLimit - decay + contrib
+
+	if limit < params.MinGasLimit {
+		limit = params.MinGasLimit
+	}
+
+	if limit < params.MinerGasFloor {
+		limit = gasLimit + decay
+		if limit > params.MinerGasFloor {
+			limit = params.MinerGasFloor
+		}
+	} else if limit > params.MinerGasCeil {
+		limit = gasLimit - decay
+		if limit < params.MinerGasCeil {
+			limit = params.MinerGasCeil
+		}
+	}
+
+	return limit == currentGasLimit
 }
 
 // Some weird constants to avoid constant memory allocs for them.
