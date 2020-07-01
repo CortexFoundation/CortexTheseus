@@ -515,6 +515,7 @@ func (s *Cortex) NetVersion() uint64                 { return s.networkID }
 func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
 func (s *Cortex) Synced() bool                       { return atomic.LoadUint32(&s.protocolManager.acceptTxs) == 1 }
 func (s *Cortex) ArchiveMode() bool                  { return s.config.NoPruning }
+func (s *Cortex) CheckPoint() uint64                 { return s.protocolManager.checkpointNumber }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
