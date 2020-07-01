@@ -47,10 +47,12 @@ cudaN31L14.o: cudaN31L14.o.trimmer.o cudaN31L14.o.mean.o
 
 libcudaminer.a: cudaN31L14.o cudaN31L14.o.trimmer.o cudaN31L14.o.mean.o blake2b.o siphash.o cuckoo.o
 	ar cr $@ $^ # $<.trimmer.o $<.miner.o 
+	rm -rf *.o
 cpuminer.o:  src/cpu/bitmap.hpp src/cpu/graph.hpp src/cpu/barrier.hpp src/cpu/siphash.hpp src/cpu/cuckaroo_mean.hpp src/cpu/cuckoo_mean.hpp src/cpu/miner.cpp  Makefile
 	$(GPP) -c -o $@.temp.o -mavx2 -DNSIPHASH=8 -DEDGEBITS=${EDGEBITS} -DPROOFSIZE=${PROOFSIZE} src/cpu/miner.cpp 
 	ld -r -o $@ $@.temp.o
 libcpuminer.a: cpuminer.o blake2b.o siphash.o cuckoo.o
 	ar cr $@ $^
+	rm -rf *.o
 clean:
 	rm -rf *.o *.a
