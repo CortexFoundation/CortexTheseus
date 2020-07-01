@@ -348,7 +348,7 @@ github.com/robertkrimen/otto/token
 github.com/rs/cors
 # github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46
 github.com/ryszard/goskiplist/skiplist
-# github.com/shirou/gopsutil v2.20.5+incompatible
+# github.com/shirou/gopsutil v2.20.6-0.20200630120421-10a398abdd2d+incompatible
 ## explicit
 github.com/shirou/gopsutil/cpu
 github.com/shirou/gopsutil/internal/common

@@ -36,7 +36,7 @@ require (
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0
-	github.com/shirou/gopsutil v2.20.5+incompatible
+	github.com/shirou/gopsutil v2.20.6-0.20200630120421-10a398abdd2d+incompatible
 	github.com/status-im/keycard-go v0.0.0-20200402102358-957c09536969
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
 	github.com/stretchr/testify v1.5.1
