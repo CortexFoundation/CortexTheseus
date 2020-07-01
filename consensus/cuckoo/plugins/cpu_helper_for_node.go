@@ -1,7 +1,7 @@
 package plugins
 
 /*
-#cgo LDFLAGS: -L../../../solution -lcpuminer -lstdc++
+#cgo LDFLAGS: -L../../../libs -lcpuminer -lstdc++
 #cgo CFLAGS: -I./
 
 #include "../../../solution/verify.h"
