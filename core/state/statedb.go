@@ -322,7 +322,6 @@ func (s *StateDB) GetCodeHash(addr common.Address) common.Hash {
 // GetState retrieves a value from the given account's storage trie
 func (s *StateDB) GetState(addr common.Address, bhash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
-	log.Trace("GetState", "addr", addr, "bhash", bhash, "obj", stateObject)
 	if stateObject != nil {
 		return stateObject.GetState(s.db, bhash)
 	}
