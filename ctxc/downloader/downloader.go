@@ -113,9 +113,6 @@ type Downloader struct {
 	stateDB    ctxcdb.Database
 	stateBloom *trie.SyncBloom
 
-	rttEstimate   uint64 // Round trip time to target for download requests
-	rttConfidence uint64 // Confidence in the estimated RTT (unit: millionths to allow atomic ops)
-
 	// Statistics
 	syncStatsChainOrigin uint64 // Origin block number where syncing started at
 	syncStatsChainHeight uint64 // Highest block number known when syncing started
@@ -207,10 +204,9 @@ type BlockChain interface {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(mode SyncMode, checkpoint uint64, stateDb ctxcdb.Database, stateBloom *trie.SyncBloom, mux *event.TypeMux, chain BlockChain, dropPeer peerDropFn) *Downloader {
+func New(checkpoint uint64, stateDb ctxcdb.Database, stateBloom *trie.SyncBloom, mux *event.TypeMux, chain BlockChain, dropPeer peerDropFn) *Downloader {
 
 	dl := &Downloader{
-		mode:           mode,
 		stateDB:        stateDb,
 		stateBloom:     stateBloom,
 		mux:            mux,
@@ -260,7 +256,7 @@ func (d *Downloader) Progress() cortex.SyncProgress {
 	case d.blockchain != nil && mode == FastSync:
 		current = d.blockchain.CurrentFastBlock().NumberU64()
 	default:
-		log.Error("Unknown downloader chain/mode combo", "full", d.blockchain != nil, "mode", d.mode)
+		log.Error("Unknown downloader chain/mode combo", "full", d.blockchain != nil, "mode", mode)
 	}
 	return cortex.SyncProgress{
 		StartingBlock: d.syncStatsChainOrigin,
@@ -913,7 +909,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 	ancestor := from
 	getHeaders(from)
 
-	mode := d.getMode()
+	//mode := d.getMode()
 	for {
 		select {
 		case <-d.cancelCh:
