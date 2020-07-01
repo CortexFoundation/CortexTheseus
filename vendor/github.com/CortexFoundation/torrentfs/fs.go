@@ -64,7 +64,7 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 				"status": map[string]interface{}{
 					"dht":            !config.DisableDHT,
 					"listen":         inst.LocalPort(),
-					"root":           monitor.fs.Root(),
+					"root":           monitor.fs.Root().Hex(),
 					"files":          inst.Congress(),
 					"active":         inst.Candidate(),
 					"leafs":          len(monitor.fs.Blocks()),
@@ -80,7 +80,7 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 				return map[string]interface{}{
 					"version": p.version,
 					"listen":  p.Info().Listen,
-					"root":    p.Info().Root,
+					"root":    p.Info().Root.Hex(),
 					"files":   p.Info().Files,
 					"leafs":   p.Info().Leafs,
 				}
