@@ -351,6 +351,8 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		return nil, err
 	}
 
+	log.Info("Listening local", "port", cl.LocalPort())
+
 	tmpFilePath := filepath.Join(config.DataDir, defaultTmpFilePath)
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
@@ -930,4 +932,20 @@ func (fs *TorrentManager) zip(data []byte) ([]byte, error) {
 
 func (fs *TorrentManager) Metrics() time.Duration {
 	return fs.Updates
+}
+
+func (fs *TorrentManager) LocalPort() int {
+	return fs.client.LocalPort()
+}
+
+func (fs *TorrentManager) Congress() int {
+	return len(fs.seedingTorrents)
+}
+
+func (fs *TorrentManager) Candidate() int {
+	return len(fs.activeTorrents)
+}
+
+func (fs *TorrentManager) Nominee() int {
+	return len(fs.pendingTorrents)
 }

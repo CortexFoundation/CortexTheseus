@@ -2,37 +2,43 @@ package torrentfs
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"sync"
-	"time"
 )
 
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
-	//protocol p2p.Protocol // Protocol description and parameters
-	config  *Config
-	monitor *Monitor
+	protocol p2p.Protocol // Protocol description and parameters
+	config   *Config
+	monitor  *Monitor
 
-	peerMu sync.RWMutex       // Mutex to sync the active peer set
-	peers  map[*Peer]struct{} // Set of currently active peers
+	peerMu sync.RWMutex     // Mutex to sync the active peer set
+	peers  map[string]*Peer // Set of currently active peers
 }
 
 func (t *TorrentFS) storage() *TorrentManager {
 	return t.monitor.dl
 }
 
-var torrentInstance *TorrentFS = nil
+func (t *TorrentFS) chain() *ChainDB {
+	return t.monitor.fs
+}
+
+var inst *TorrentFS = nil
 
 func GetStorage() CortexStorage {
-	return torrentInstance //GetTorrentInstance()
+	return inst //GetTorrentInstance()
 }
 
 // New creates a new torrentfs instance with the given configuration.
 func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error) {
-	if torrentInstance != nil {
-		return torrentInstance, nil
+	if inst != nil {
+		return inst, nil
 	}
 
 	monitor, moErr := NewMonitor(config, cache, compress)
@@ -41,45 +47,65 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 		return nil, moErr
 	}
 
-	torrentInstance = &TorrentFS{
+	inst = &TorrentFS{
 		config:  config,
 		monitor: monitor,
-		peers:   make(map[*Peer]struct{}),
+		peers:   make(map[string]*Peer),
 	}
 
-	/*torrentInstance.protocol = p2p.Protocol{
+	inst.protocol = p2p.Protocol{
 		Name:    ProtocolName,
 		Version: uint(ProtocolVersion),
 		Length:  NumberOfMessageCodes,
-		Run:     torrentInstance.HandlePeer,
+		Run:     inst.HandlePeer,
 		NodeInfo: func() interface{} {
 			return map[string]interface{}{
-				"version": ProtocolVersionStr,
-				"utp":    !config.DisableUTP,
-				"tcp":    !config.DisableTCP,
-				"dht":    !config.DisableDHT,
-				"listen": config.Port,
+				"version": ProtocolVersion,
+				"status": map[string]interface{}{
+					"dht":            !config.DisableDHT,
+					"listen":         inst.LocalPort(),
+					"root":           monitor.fs.Root(),
+					"files":          inst.Congress(),
+					"active":         inst.Candidate(),
+					"leafs":          len(monitor.fs.Blocks()),
+					"number":         monitor.currentNumber,
+					"maxMessageSize": inst.MaxMessageSize(),
+				},
 			}
 		},
-	}*/
+		PeerInfo: func(id enode.ID) interface{} {
+			inst.peerMu.Lock()
+			defer inst.peerMu.Unlock()
+			if p := inst.peers[fmt.Sprintf("%x", id[:8])]; p != nil {
+				return map[string]interface{}{
+					"version": p.version,
+					"listen":  p.Info().Listen,
+					"root":    p.Info().Root,
+					"files":   p.Info().Files,
+					"leafs":   p.Info().Leafs,
+				}
+			}
+			return nil
+		},
+	}
 
-	return torrentInstance, nil
+	return inst, nil
 }
 
-func (tfs *TorrentFS) MaxMessageSize() uint64 {
-	return NumberOfMessageCodes
+func (tfs *TorrentFS) MaxMessageSize() uint32 {
+	return DefaultMaxMessageSize
 }
 
 func (tfs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
-	tfsPeer := newPeer(tfs, peer, rw)
+	tfsPeer := newPeer(fmt.Sprintf("%x", peer.ID().Bytes()[:8]), tfs, peer, rw)
 
 	tfs.peerMu.Lock()
-	tfs.peers[tfsPeer] = struct{}{}
+	tfs.peers[tfsPeer.id] = tfsPeer
 	tfs.peerMu.Unlock()
 
 	defer func() {
 		tfs.peerMu.Lock()
-		delete(tfs.peers, tfsPeer)
+		delete(tfs.peers, tfsPeer.id)
 		tfs.peerMu.Unlock()
 	}()
 
@@ -87,51 +113,63 @@ func (tfs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 		return err
 	}
 
-	tfsPeer.Start()
+	tfsPeer.start()
 	defer func() {
-		tfsPeer.Stop()
+		tfsPeer.stop()
 	}()
 
 	return tfs.runMessageLoop(tfsPeer, rw)
 }
 func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
-	return nil
+	for {
+		// fetch the next packet
+		packet, err := rw.ReadMsg()
+		if err != nil {
+			log.Debug("message loop", "peer", p.peer.ID(), "err", err)
+			return err
+		}
+
+		if packet.Size > tfs.MaxMessageSize() {
+			log.Warn("oversized message received", "peer", p.peer.ID())
+			packet.Discard()
+			return errors.New("oversized message received")
+		}
+
+		log.Debug("Nas package", "size", packet.Size)
+
+		switch packet.Code {
+		case statusCode:
+			var info *PeerInfo
+			if err := packet.Decode(&info); err != nil {
+				log.Warn("failed to decode peer state, peer will be disconnected", "peer", p.peer.ID(), "err", err)
+				return errors.New("invalid peer state")
+			}
+			p.peerInfo = info
+		case messagesCode:
+			//
+		default:
+		}
+		packet.Discard()
+	}
 }
 
 // Protocols implements the node.Service interface.
-func (tfs *TorrentFS) Protocols() []p2p.Protocol { return nil } //return []p2p.Protocol{tfs.protocol} }
+func (tfs *TorrentFS) Protocols() []p2p.Protocol { return []p2p.Protocol{tfs.protocol} }
 
 // APIs implements the node.Service interface.
 func (tfs *TorrentFS) APIs() []rpc.API {
-	//return []rpc.API{
-	//	{
-	//		Namespace: ProtocolName,
-	//		Version:   ProtocolVersionStr,
-	//		Service:   NewPublicTorrentAPI(tfs),
-	//		Public: false,
-	//	},
-	//}
-	return nil
+	return []rpc.API{
+		{
+			Namespace: ProtocolName,
+			Version:   ProtocolVersionStr,
+			Service:   NewPublicTorrentAPI(tfs),
+			Public:    false,
+		},
+	}
 }
 
 func (tfs *TorrentFS) Version() uint {
-	//return tfs.protocol.Version
-	return 0
-}
-
-type PublicTorrentAPI struct {
-	w *TorrentFS
-
-	lastUsed map[string]time.Time // keeps track when a filter was polled for the last time.
-}
-
-// NewPublicWhisperAPI create a new RPC whisper service.
-func NewPublicTorrentAPI(w *TorrentFS) *PublicTorrentAPI {
-	api := &PublicTorrentAPI{
-		w:        w,
-		lastUsed: make(map[string]time.Time),
-	}
-	return api
+	return tfs.protocol.Version
 }
 
 // Start starts the data collection thread and the listening server of the dashboard.
@@ -161,4 +199,16 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize int
 
 func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]byte, error) {
 	return fs.storage().GetFile(infohash, subpath)
+}
+
+func (fs *TorrentFS) LocalPort() int {
+	return fs.storage().LocalPort()
+}
+
+func (fs *TorrentFS) Congress() int {
+	return fs.storage().Congress()
+}
+
+func (fs *TorrentFS) Candidate() int {
+	return fs.storage().Candidate()
 }

@@ -15,10 +15,23 @@
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 package torrentfs
 
+import (
+	"time"
+)
+
 const (
 	ProtocolName         = "nas"
 	ProtocolVersion      = uint64(1)
-	NumberOfMessageCodes = uint64(1024)
+	NumberOfMessageCodes = 128
 	ProtocolVersionStr   = "1.0"
-	statusCode           = 0
+
+	DefaultMaxMessageSize = uint32(1024)
+
+	statusCode   = 0
+	messagesCode = 1
+
+	peerStateCycle    = time.Second * 60
+	expirationCycle   = time.Second
+	transmissionCycle = 300 * time.Millisecond
+	handshakeTimeout  = 60 * time.Second
 )
