@@ -64,10 +64,10 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 				"status": map[string]interface{}{
 					"dht":            !config.DisableDHT,
 					"listen":         inst.LocalPort(),
-					"root":           monitor.fs.Root().Hex(),
+					"root":           inst.chain().Root().Hex(),
 					"files":          inst.Congress(),
 					"active":         inst.Candidate(),
-					"leafs":          len(monitor.fs.Blocks()),
+					"leafs":          len(inst.chain().Blocks()),
 					"number":         monitor.currentNumber,
 					"maxMessageSize": inst.MaxMessageSize(),
 				},
