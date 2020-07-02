@@ -50,10 +50,10 @@ type Peer struct {
 }
 
 type PeerInfo struct {
-	Listen uint64 `json:"listen"`
+	Listen uint64      `json:"listen"`
 	Root   common.Hash `json:"root"` // SHA3 hash of the peer's best owned block
-	Files  uint64 `json:"files"`
-	Leafs  uint64 `json:"leafs"`
+	Files  uint64      `json:"files"`
+	Leafs  uint64      `json:"leafs"`
 }
 
 func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter) *Peer {

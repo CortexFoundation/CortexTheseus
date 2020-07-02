@@ -142,6 +142,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 			var info *PeerInfo
 			if err := packet.Decode(&info); err != nil {
 				log.Warn("failed to decode peer state, peer will be disconnected", "peer", p.peer.ID(), "err", err)
+				packet.Discard()
 				return errors.New("invalid peer state")
 			}
 			p.peerInfo = info
