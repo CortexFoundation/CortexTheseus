@@ -3,7 +3,6 @@
 package ctxc
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -48,7 +47,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		InferURI                string
 		StorageDir              string
 		DocRoot                 string                         `toml:"-"`
-		RPCGasCap               *big.Int                       `toml:",omitempty"`
+		RPCGasCap               uint64                         `toml:",omitempty"`
 		RPCTxFeeCap             float64                        `toml:",omitempty"`
 		Checkpoint              *params.TrustedCheckpoint      `toml:",omitempty"`
 		CheckpointOracle        *params.CheckpointOracleConfig `toml:",omitempty"`
@@ -124,7 +123,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		InferURI                *string
 		StorageDir              *string
 		DocRoot                 *string                        `toml:"-"`
-		RPCGasCap               *big.Int                       `toml:",omitempty"`
+		RPCGasCap               *uint64                        `toml:",omitempty"`
 		RPCTxFeeCap             *float64                       `toml:",omitempty"`
 		Checkpoint              *params.TrustedCheckpoint      `toml:",omitempty"`
 		CheckpointOracle        *params.CheckpointOracleConfig `toml:",omitempty"`
@@ -224,7 +223,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		c.DocRoot = *dec.DocRoot
 	}
 	if dec.RPCGasCap != nil {
-		c.RPCGasCap = dec.RPCGasCap
+		c.RPCGasCap = *dec.RPCGasCap
 	}
 	if dec.RPCTxFeeCap != nil {
 		c.RPCTxFeeCap = *dec.RPCTxFeeCap
