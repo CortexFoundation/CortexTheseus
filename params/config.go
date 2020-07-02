@@ -33,7 +33,7 @@ var (
 //It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
-	BernardGenesisHash: BernardTrustedCheckpoint,
+	//BernardGenesisHash: BernardTrustedCheckpoint,
 	DoloresGenesisHash: DoloresTrustedCheckpoint,
 }
 
