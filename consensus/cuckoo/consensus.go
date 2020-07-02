@@ -648,6 +648,14 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 // the PoW difficulty requirements.
 
 func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+	// If we're running a fake PoW, accept any seal as valid
+	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
+		time.Sleep(cuckoo.fakeDelay)
+		if cuckoo.fakeFail == header.Number.Uint64() {
+			return errInvalidPoW
+		}
+		return nil
+	}
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
 	}
