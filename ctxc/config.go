@@ -48,7 +48,8 @@ var DefaultConfig = Config{
 		Recommit: 3 * time.Second,
 	},
 
-	TxPool: core.DefaultTxPoolConfig,
+	TxPool:    core.DefaultTxPoolConfig,
+	RPCGasCap: 25000000,
 	GPO: gasprice.Config{
 		Blocks:     20,
 		Percentile: 60,
@@ -116,8 +117,8 @@ type Config struct {
 	StorageDir string
 
 	// Miscellaneous options
-	DocRoot   string   `toml:"-"`
-	RPCGasCap *big.Int `toml:",omitempty"`
+	DocRoot   string `toml:"-"`
+	RPCGasCap uint64 `toml:",omitempty"`
 	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
 	// send-transction variants. The unit is ctxc.
 	RPCTxFeeCap float64                   `toml:",omitempty"`
