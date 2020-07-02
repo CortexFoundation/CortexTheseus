@@ -223,7 +223,7 @@ func TestCache_Remove(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt.ca.Remove(tt.key)
-		if tt.ca.ll != tt.cll {
+		if !reflect.DeepEqual(tt.ca.ll, tt.cll) {
 			t.Errorf("there is sonething wrong happend when remove")
 		}
 	}
