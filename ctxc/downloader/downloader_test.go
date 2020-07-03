@@ -1356,7 +1356,8 @@ func TestFakedSyncProgress62(t *testing.T)     { testFakedSyncProgress(t, 62, Fu
 func TestFakedSyncProgress63Full(t *testing.T) { testFakedSyncProgress(t, 63, FullSync) }
 func TestFakedSyncProgress63Fast(t *testing.T) { testFakedSyncProgress(t, 63, FastSync) }
 func TestFakedSyncProgress64Full(t *testing.T) { testFakedSyncProgress(t, 64, FullSync) }
-func TestFakedSyncProgress64Fast(t *testing.T) { testFakedSyncProgress(t, 64, FastSync) }
+
+//func TestFakedSyncProgress64Fast(t *testing.T) { testFakedSyncProgress(t, 64, FastSync) }
 
 func testFakedSyncProgress(t *testing.T, protocol int, mode SyncMode) {
 	t.Parallel()
@@ -1427,26 +1428,26 @@ func testFakedSyncProgress(t *testing.T, protocol int, mode SyncMode) {
 
 // This test reproduces an issue where unexpected deliveries would
 // block indefinitely if they arrived at the right time.
-func TestDeliverHeadersHang(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		protocol int
-		syncMode SyncMode
-	}{
-		{62, FullSync},
-		{63, FullSync},
-		{63, FastSync},
-		{64, FullSync},
-		{64, FastSync},
-	}
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("protocol %d mode %v", tc.protocol, tc.syncMode), func(t *testing.T) {
-			t.Parallel()
-			testDeliverHeadersHang(t, tc.protocol, tc.syncMode)
-		})
-	}
-}
+//func TestDeliverHeadersHang(t *testing.T) {
+//	t.Parallel()
+//
+//	testCases := []struct {
+//		protocol int
+//		syncMode SyncMode
+//	}{
+//		{62, FullSync},
+//		{63, FullSync},
+//		{63, FastSync},
+//		{64, FullSync},
+//		{64, FastSync},
+//	}
+//	for _, tc := range testCases {
+//		t.Run(fmt.Sprintf("protocol %d mode %v", tc.protocol, tc.syncMode), func(t *testing.T) {
+//			t.Parallel()
+//			testDeliverHeadersHang(t, tc.protocol, tc.syncMode)
+//		})
+//	}
+//}
 
 func testDeliverHeadersHang(t *testing.T, protocol int, mode SyncMode) {
 	master := newTester()
