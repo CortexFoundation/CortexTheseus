@@ -5,7 +5,7 @@ import (
 )
 
 
-func TestLRUAdd(t *testing.T)  {
+func TestLRUAdd(t *testing.T) {
 	evictCounter := 0
 	onEvicted := func(k Key, v interface{}) {
 		evictCounter++
