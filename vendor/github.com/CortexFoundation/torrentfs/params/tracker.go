@@ -19,8 +19,7 @@ var (
 	MainnetTrackers = []string{
 		"udp://tracker.cortexlabs.ai:5008",
 		"udp://tracker.openbittorrent.com:80",
-		"udp://tracker.publicbt.com:80",
-		"udp://tracker.istole.it:6969",
+		"udp://tracker.opentrackr.org:1337/announce",
 	}
 	/*MainnetTrackers = [][]string{
 	        {"udp://tracker.cortexlabs.ai:5008"},
