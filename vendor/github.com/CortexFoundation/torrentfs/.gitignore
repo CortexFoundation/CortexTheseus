@@ -92,3 +92,6 @@ dnskey.json
 all.mainnet.*
 release/
 coverage.txt
+*.bolt.db
+main
+*.torrent
