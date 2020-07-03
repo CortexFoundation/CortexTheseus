@@ -90,7 +90,7 @@ func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *eve
 // the loop is exited. This to prevent a major security vuln where external parties can DOS you with blocks
 // and halt your mining operation for as long as the DOS continues.
 func (miner *Miner) update() {
-	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{}, downloader.FailedEvent{})
+	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -127,8 +127,6 @@ func (miner *Miner) update() {
 				}
 				// stop immediately and ignore all further pending events
 				return
-			case downloader.FailedEvent:
-				//todo is there something to do here?
 			}
 		case <-miner.exitCh:
 			return
