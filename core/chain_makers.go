@@ -188,8 +188,10 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts)
-
+			block, err := b.engine.FinalizeWithoutParent(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts)
+			if block == nil {
+				panic(err)
+			}
 			// Write state changes to db
 			root, err := statedb.Commit(config.IsEIP158(b.header.Number))
 			if err != nil {
@@ -236,7 +238,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		GasLimit:  CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
 		Number:    new(big.Int).Add(parent.Number(), common.Big1),
 		Time:      time,
-		Quota:     big.NewInt(params.BLOCK_QUOTA),
+		Quota:     big.NewInt(0).Add(parent.Quota(), big.NewInt(params.BLOCK_QUOTA)),
 		QuotaUsed: big.NewInt(0),
 	}
 }

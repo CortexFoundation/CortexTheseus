@@ -715,6 +715,17 @@ func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header
 	return types.NewBlock(header, txs, uncles, receipts), nil
 }
 
+// FinalizeAndAssemble implements consensus.Engine, accumulating the block and
+// uncle rewards, setting the final state and assembling the block.
+func (cuckoo *Cuckoo) FinalizeWithoutParent(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	// Accumulate any block and uncle rewards and commit the final state root
+	accumulateRewardsWithoutParent(chain.Config(), state, header, uncles)
+	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+
+	// Header seems complete, assemble into a block and return
+	return types.NewBlock(header, txs, uncles, receipts), nil
+}
+
 // SealHash returns the hash of a block prior to it being sealed.
 func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 	hasher := sha3.NewLegacyKeccak256()
@@ -832,6 +843,91 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		}
 
 		log.Trace("Block mining reward", "parent", toCoin(parent.Supply), "current", toCoin(header.Supply), "number", header.Number, "reward", toCoin(blockReward))
+		// Accumulate the rewards for the miner and any included uncles
+		reward := new(big.Int).Set(blockReward)
+		r := new(big.Int)
+
+		//for hash := range FixHashes {
+		//	if hash == headerInitialHash {
+		//		header.Supply.Add(header.Supply, bigFix)
+		//	}
+		//}
+
+		if len(uncles) > 0 {
+
+			for _, uncle := range uncles {
+				r.Add(uncle.Number, big8)
+				r.Sub(r, header.Number)
+				r.Mul(r, blockReward)
+				r.Div(r, big8)
+
+				header.Supply.Add(header.Supply, r)
+				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+					header.Supply.Sub(header.Supply, r)
+					r.Set(big0)
+					break
+				}
+				state.AddBalance(uncle.Coinbase, r)
+				log.Trace("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
+
+				r.Div(blockReward, big32)
+				header.Supply.Add(header.Supply, r)
+				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+					header.Supply.Sub(header.Supply, r)
+					r.Set(big0)
+					break
+				}
+
+				log.Trace("Nephew mining reward", "reward", toCoin(r), "total", toCoin(header.Supply))
+				reward.Add(reward, r)
+			}
+		} else {
+
+			if _, ok := FixHashes[headerInitialHash]; ok {
+				header.Supply.Add(header.Supply, bigFix)
+			}
+		}
+
+		state.AddBalance(header.Coinbase, reward)
+	}
+}
+
+// AccumulateRewards credits the coinbase of the given block with the mining
+// reward. The total reward consists of the static block reward and rewards for
+// included uncles. The coinbase of each uncle block is also rewarded.
+func accumulateRewardsWithoutParent(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+	headerInitialHash := header.Hash()
+
+	blockReward := calculateRewardByNumber(header.Number, config.ChainID.Uint64())
+
+	if header.Supply == nil {
+		header.Supply = new(big.Int)
+	}
+	header.Supply.Set(params.CTXC_INIT)
+
+	if header.Supply.Cmp(params.CTXC_INIT) < 0 && config.ChainID.Uint64() != 42 {
+		header.Supply.Set(params.CTXC_INIT)
+	}
+
+	if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
+		blockReward.Set(big0)
+		header.Supply.Set(params.CTXC_TOP)
+	}
+
+	if blockReward.Cmp(big0) > 0 {
+		remain := new(big.Int).Sub(params.CTXC_TOP, header.Supply)
+		header.Supply.Add(header.Supply, blockReward)
+		if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
+			blockReward.Set(remain)
+			header.Supply.Set(params.CTXC_TOP)
+			log.Warn("Congratulations!!! We have mined all cortex", "number", header.Number, "last reward", toCoin(remain))
+		}
+
+		if blockReward.Cmp(big0) <= 0 {
+			//should never happend
+			return
+		}
+
 		// Accumulate the rewards for the miner and any included uncles
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)

@@ -65,6 +65,10 @@ func (cuckoo *CuckooFake) Finalize(chain consensus.ChainReader, header *types.He
 	return types.NewBlock(header, txs, uncles, receipts), nil
 }
 
+func (cuckoo *CuckooFake) FinalizeWithoutParent(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	return types.NewBlock(header, txs, uncles, receipts), nil
+}
+
 func (cuckoo *CuckooFake) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	return nil
 }
