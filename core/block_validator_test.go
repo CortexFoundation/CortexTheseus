@@ -114,9 +114,9 @@ func testHeaderConcurrentVerification(t *testing.T, threads int) {
 			chain.Stop()
 		} else {
 			continue
-			chain, _ := NewBlockChain(testdb, nil, params.TestChainConfig, cuckoo.NewFakeFailer(uint64(len(headers)-1)), vm.Config{}, nil, nil)
-			_, results = chain.engine.VerifyHeaders(chain, headers, seals)
-			chain.Stop()
+			//chain, _ := NewBlockChain(testdb, nil, params.TestChainConfig, cuckoo.NewFakeFailer(uint64(len(headers)-1)), vm.Config{}, nil, nil)
+			//_, results = chain.engine.VerifyHeaders(chain, headers, seals)
+			//chain.Stop()
 		}
 		// Wait for all the verification results
 		checks := make(map[int]error)
