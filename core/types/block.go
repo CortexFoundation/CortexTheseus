@@ -19,20 +19,20 @@ package types
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/big"
-	//"sort"
-	//"bytes"
-	"fmt"
+	"reflect"
+	"sync"
 	"sync/atomic"
 	"time"
 	//"unsafe"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"golang.org/x/crypto/sha3"
-	"reflect"
 )
 
 var (
@@ -160,10 +160,19 @@ func (h *Header) SanityCheck() error {
 	return nil
 }
 
+// hasherPool holds LegacyKeccak hashers.
+var hasherPool = sync.Pool{
+	New: func() interface{} {
+		return sha3.NewLegacyKeccak256()
+	},
+}
+
 func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewLegacyKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
+	sha := hasherPool.Get().(crypto.KeccakState)
+	defer hasherPool.Put(sha)
+	sha.Reset()
+	rlp.Encode(sha, x)
+	sha.Read(h[:])
 	return h
 }
 

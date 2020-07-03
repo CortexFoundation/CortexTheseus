@@ -22,6 +22,7 @@ source ~/.bashrc
 - gcc/g++ 5.4+
 ```
 sudo apt install gcc
+sudo apt install g++
 ```
 - cuda 9.2+ (if u have gpu)
 ```

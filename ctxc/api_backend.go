@@ -242,7 +242,7 @@ func (b *CortexAPIBackend) EventMux() *event.TypeMux {
 func (b *CortexAPIBackend) AccountManager() *accounts.Manager {
 	return b.ctxc.AccountManager()
 }
-func (b *CortexAPIBackend) RPCGasCap() *big.Int {
+func (b *CortexAPIBackend) RPCGasCap() uint64 {
 	return b.ctxc.config.RPCGasCap
 }
 func (b *CortexAPIBackend) RPCTxFeeCap() float64 {

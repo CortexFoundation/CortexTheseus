@@ -22,7 +22,6 @@ import (
 	"fmt"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"io/ioutil"
-	"math/big"
 	"os"
 
 	"path/filepath"
@@ -506,6 +505,7 @@ var (
 	RPCGlobalGasCap = cli.Uint64Flag{
 		Name:  "rpc.gascap",
 		Usage: "Sets a cap on gas that can be used in ctxc_call/estimateGas",
+		Value: ctxc.DefaultConfig.RPCGasCap,
 	}
 	RPCGlobalTxFeeCap = cli.Float64Flag{
 		Name:  "rpc.txfeecap",
@@ -1346,10 +1346,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.Miner.GasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
-		cfg.Miner.Recommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
+		cfg.Miner.Recommit = ctx.GlobalDuration(MinerRecommitIntervalFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
-		cfg.Miner.Noverify = ctx.Bool(MinerNoVerfiyFlag.Name)
+		cfg.Miner.Noverify = ctx.GlobalBool(MinerNoVerfiyFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
@@ -1364,7 +1364,12 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
 	//	}
 	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
-		cfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
+		cfg.RPCGasCap = ctx.GlobalUint64(RPCGlobalGasCap.Name)
+	}
+	if cfg.RPCGasCap != 0 {
+		log.Info("Set global gas cap", "cap", cfg.RPCGasCap)
+	} else {
+		log.Info("Global gas cap disabled")
 	}
 	if ctx.GlobalIsSet(RPCGlobalTxFeeCap.Name) {
 		cfg.RPCTxFeeCap = ctx.GlobalFloat64(RPCGlobalTxFeeCap.Name)

@@ -39,6 +39,7 @@ import (
 type Backend interface {
 	BlockChain() *core.BlockChain
 	TxPool() *core.TxPool
+	CheckPoint() uint64
 }
 
 // Config is the configuration parameters of mining.
@@ -107,6 +108,16 @@ func (miner *Miner) update() {
 					log.Info("Mining aborted due to sync")
 				}
 			case downloader.DoneEvent, downloader.FailedEvent:
+				done, ok := ev.Data.(downloader.DoneEvent)
+				if !ok {
+					continue
+				}
+				if timestamp := time.Unix(int64(done.Latest.Time), 0); time.Since(timestamp) < 10*time.Minute {
+					log.Info("Synchronisation completed, start mining", "latestnum", done.Latest.Number, "latesthash", done.Latest.Hash(),
+						"age", common.PrettyAge(timestamp))
+				} else {
+					continue
+				}
 				shouldStart := atomic.LoadInt32(&miner.shouldStart) == 1
 
 				atomic.StoreInt32(&miner.canStart, 1)
