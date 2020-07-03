@@ -1,230 +1,131 @@
 package lru
 
 import (
-	"container/list"
-	"reflect"
 	"testing"
 )
 
-func (c *Cache) Keys() []interface{} {
-	keys := make([]interface{}, len(c.cache))
-	i := 0
-	for ent := c.ll.Back(); ent != nil; ent = ent.Prev() {
-		keys[i] = ent.Value.(*entry).key
-		i++
+
+func TestLRUAdd(t *testing.T)  {
+	evictCounter := 0
+	onEvicted := func(k Key, v interface{}) {
+		evictCounter++
 	}
-	return keys
+	l := New(7)
+	l.OnEvicted = onEvicted
+
+	//test :when the weight is overflow after add
+	l.Add(1,1,1)
+	if evictCounter != 0 {
+		t.Errorf("should not have an eviction")
+	}
+	l.Add(2,2,1)
+	l.Add(3,3,7)
+	if evictCounter != 1{
+		t.Errorf("should have an eviction")
+	}
+	//test : add the same key but different value and weight
+	l.Add(1,2,3)
+	if ee,ok := l.cache[1];ok {
+		if  ee.Value.(*entry).value != 2 || l.cacheWeight[1] != 3{
+			t.Errorf("update the value of the key %v failed", 1)
+		}
+	}
+	//test : add the exactly same key and value
+	l.Add(1,2,3)
+	if l.CurrentWeight != 10{
+		t.Errorf("deal with the same entry wrong")
+	}
 }
 
-func TestLRU(t *testing.T) {
+func TestLRUGet(t *testing.T) {
+	l := New(7)
+	//test : get from empty
+	if  _, ok := l.Get(1);ok{
+		t.Errorf("empty cache should not get anything")
+	}
+	tests := []struct{
+		key Key
+		wantValue interface{}
+		wantOK bool
+	}{
+		{1,2,true},
+		{2,nil,false},
+	}
+	l.Add(1,2,1)
+	for _,tt := range tests {
+		value, ok := l.Get(tt.key)
+		if value != tt.wantValue {
+			t.Errorf("get the value wrong")
+		}
+		if ok != tt.wantOK{
+			t.Errorf("dont't get the value in right way")
+		}
+	}
+}
+
+func TestLRURemove(t *testing.T) {
 	evictCounter := 0
 	onEvicted := func(k Key, v interface{}) {
 		evictCounter++
 	}
 	l := New(128)
 	l.OnEvicted = onEvicted
-	for i := 0; i < 256; i++ {
-		l.Add(i, i, 1)
+	l.Remove(1)
+	l.RemoveOldest()
+	if evictCounter != 0 {
+		t.Errorf("cant remove from empty cache")
+	}
+	for i := 0;i < 256;i++ {
+		l.Add(i,i,1)
+	}
+	evictCounter = 0
+	l.Remove(1)
+	if l.Len() != 128 {
+		t.Errorf("remove the element that dont't exited ")
+	}
+	l.Remove(255)
+	_,ok := l.Get(255)
+	if l.Len() != 127 && ok{
+		t.Errorf("don't remove")
+	}
+	l.RemoveOldest()
+	_,ok = l.Get(128)
+	if l.Len() != 126 {
+		t.Errorf("don't remove")
+	} else if ok {
+			t.Errorf("remove the wrong entry")
+	}
+
+}
+
+func TestLRULen(t *testing.T){
+	l := New(128)
+	if l.Len() != 0 {
+		t.Errorf("bad len")
+	}
+	for i := 0;i < 128;i++ {
+		l.Add(i,i,1)
 	}
 	if l.Len() != 128 {
-		t.Fatalf("bad len: %v", l.Len())
+		t.Errorf("bad len")
 	}
+}
 
-	if evictCounter != 128 {
-		t.Fatalf("bad evict count: %v", evictCounter)
+func TestLRUClear(t *testing.T) {
+	evictCounter := 0
+	onEvicted := func(k Key, v interface{}) {
+		evictCounter++
 	}
-
-	for i, k := range l.Keys() {
-		if v, ok := l.Get(k); !ok || v != k || v != i+128 {
-			t.Fatalf("bad key: %v", k)
-		}
+	l := New(128)
+	l.OnEvicted = onEvicted
+	for i := 0;i < 128;i++ {
+		l.Add(i,i,1)
 	}
-	for i := 0; i < 128; i++ {
-		_, ok := l.Get(i)
-		if ok {
-			t.Fatalf("should be evicted")
-		}
-	}
-	for i := 128; i < 256; i++ {
-		_, ok := l.Get(i)
-		if !ok {
-			t.Fatalf("should not be evicted")
-		}
-	}
-	for i := 128; i < 192; i++ {
-		l.Remove(i)
-		l.Remove(i)
-		_, ok := l.Get(i)
-		if ok {
-			t.Fatalf("should be deleted")
-		}
-	}
-
-	l.Get(192) // expect 192 to be last key in l.Keys()
-
-	for i, k := range l.Keys() {
-		if (i < 63 && k != i+193) || (i == 63 && k != 192) {
-			t.Fatalf("out of order key: %v", k)
-		}
-	}
-
 	l.Clear()
-	if l.Len() != 0 {
-		t.Fatalf("bad len: %v", l.Len())
+	if evictCounter != 128{
+		t.Errorf("don't clear completely")
 	}
-	if _, ok := l.Get(200); ok {
-		t.Fatalf("should contain nothing")
-	}
-}
-
-func TestLRU_RemoveOldest(t *testing.T) {
-	l := New(128)
-	for i := 0; i < 256; i++ {
-		l.Add(i, i, 1)
-	}
-}
-
-// Test that Add returns true/false if an eviction occurred
-func TestLRU_Add(t *testing.T) {
-
-	l := New(2)
-	l.Add(1, 1, 1)
-	l.Add(1, 1, 1)
-	if l.Len() > 1 {
-		t.Fatalf("the same cache should not add again")
-	}
-
-	l.Add(1, 1, 1)
-	l.Add(2, 2, 2)
-}
-func TestCache_Add(t *testing.T) {
-	type fields struct {
-		MaxWeight     int64
-		CurrentWeight int64
-		OnEvicted     func(key Key, value interface{})
-		ll            *list.List
-		cache         map[interface{}]*list.Element
-		cacheWeight   map[interface{}]int64
-	}
-	type args struct {
-		key    Key
-		value  interface{}
-		weight int64
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-	}{
-		{"case1",
-			fields{MaxWeight: 4},
-			args{1, 1, 1},
-		},
-		{"case2",
-			fields{},
-			args{1, 1, 1},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Cache{
-				MaxWeight:     tt.fields.MaxWeight,
-				CurrentWeight: tt.fields.CurrentWeight,
-				OnEvicted:     tt.fields.OnEvicted,
-				ll:            tt.fields.ll,
-				cache:         tt.fields.cache,
-				cacheWeight:   tt.fields.cacheWeight,
-			}
-			c.Add(tt.args.key, tt.args.value, tt.args.weight)
-		})
-	}
-}
-
-func TestCache_Get(t *testing.T) {
-
-	l := New(128)
-	l.Add(1, 2, 1)
-	l.Add(2, 4, 2)
-
-	type fields struct {
-		MaxWeight     int64
-		CurrentWeight int64
-		OnEvicted     func(key Key, value interface{})
-		ll            *list.List
-		cache         map[interface{}]*list.Element
-		cacheWeight   map[interface{}]int64
-	}
-	type args struct {
-		key Key
-	}
-	tests := []struct {
-		name      string
-		fields    fields
-		args      args
-		wantValue interface{}
-		wantOk    bool
-	}{
-		{
-			"case1",
-			fields{l.MaxWeight, l.CurrentWeight, l.OnEvicted, l.ll, l.cache, l.cacheWeight},
-			args{1},
-			2,
-			true,
-		},
-		{
-			"case2",
-			fields{l.MaxWeight, l.CurrentWeight, l.OnEvicted, l.ll, l.cache, l.cacheWeight},
-			args{4},
-			nil,
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Cache{
-				MaxWeight:     tt.fields.MaxWeight,
-				CurrentWeight: tt.fields.CurrentWeight,
-				OnEvicted:     tt.fields.OnEvicted,
-				ll:            tt.fields.ll,
-				cache:         tt.fields.cache,
-				cacheWeight:   tt.fields.cacheWeight,
-			}
-			gotValue, gotOk := c.Get(tt.args.key)
-			if !reflect.DeepEqual(gotValue, tt.wantValue) {
-				t.Errorf("Cache.Get() gotValue = %v, want %v", gotValue, tt.wantValue)
-			}
-			if gotOk != tt.wantOk {
-				t.Errorf("Cache.Get() gotOk = %v, want %v", gotOk, tt.wantOk)
-			}
-		})
-	}
-}
-
-func TestCache_Remove(t *testing.T) {
-	//the start of the cache before remove
-
-	l1 := New(128)
-	l1.Add(1, 11, 1)
-	l1.Add(2, 22, 2)
-	l1.Add(3, 33, 3)
-
-	l1r := New(128)
-	l1r.Add(1, 11, 1)
-	l1r.Add(3, 33, 3)
-	l2 := New(128)
-	l2.cache = nil
-	tests := []struct {
-		ca  *Cache
-		key Key
-		cll *list.List
-	}{
-		{l1, 2, l1r.ll},
-		{l2, 2, l2.ll},
-	}
-	for _, tt := range tests {
-		tt.ca.Remove(tt.key)
-		if !reflect.DeepEqual(tt.ca.ll, tt.cll) {
-			t.Errorf("there is sonething wrong happend when remove")
-		}
+	if l.ll != nil || l.cache != nil {
+		t.Errorf("bad clear")
 	}
 }
