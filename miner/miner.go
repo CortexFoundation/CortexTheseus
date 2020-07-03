@@ -107,7 +107,7 @@ func (miner *Miner) update() {
 					atomic.StoreInt32(&miner.shouldStart, 1)
 					log.Info("Mining aborted due to sync")
 				}
-			case downloader.DoneEvent, downloader.FailedEvent:
+			case downloader.DoneEvent:
 				done, ok := ev.Data.(downloader.DoneEvent)
 				if !ok {
 					continue
@@ -127,6 +127,8 @@ func (miner *Miner) update() {
 				}
 				// stop immediately and ignore all further pending events
 				return
+			case downloader.FailedEvent:
+				//todo is there something to do here?
 			}
 		case <-miner.exitCh:
 			return
