@@ -180,8 +180,9 @@ func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string)
 func (tm *TorrentManager) setTrackers(trackers []string) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	tm.trackers = tm.buildUdpTrackers(trackers)
-	log.Debug("Boot trackers", "t", tm.trackers)
+	//tm.trackers = tm.buildUdpTrackers(trackers)
+	tm.trackers = [][]string{trackers}
+	log.Info("Boot trackers", "t", tm.trackers)
 }
 
 func mmapFile(name string) (mm mmap.MMap, err error) {
@@ -351,6 +352,8 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		return nil, err
 	}
 
+	log.Info("Listening local", "port", cl.LocalPort())
+
 	tmpFilePath := filepath.Join(config.DataDir, defaultTmpFilePath)
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
@@ -411,6 +414,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
 		torrentManager.setTrackers(config.DefaultTrackers)
+		//torrentManager.trackers = config.DefaultTrackers
 	}
 	log.Debug("Fs client initialized", "config", config)
 
@@ -930,4 +934,20 @@ func (fs *TorrentManager) zip(data []byte) ([]byte, error) {
 
 func (fs *TorrentManager) Metrics() time.Duration {
 	return fs.Updates
+}
+
+func (fs *TorrentManager) LocalPort() int {
+	return fs.client.LocalPort()
+}
+
+func (fs *TorrentManager) Congress() int {
+	return len(fs.seedingTorrents)
+}
+
+func (fs *TorrentManager) Candidate() int {
+	return len(fs.activeTorrents)
+}
+
+func (fs *TorrentManager) Nominee() int {
+	return len(fs.pendingTorrents)
 }
