@@ -14,12 +14,18 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
-package common
+package memorydb
 
 import (
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/dbtest"
 	"testing"
-
-	checker "gopkg.in/check.v1"
 )
 
-func Test(t *testing.T) { checker.TestingT(t) }
+func TestMemoryDB(t *testing.T) {
+	t.Run("DatabaseSuite", func(t *testing.T) {
+		dbtest.TestDatabaseSuite(t, func() ctxcdb.KeyValueStore {
+			return New()
+		})
+	})
+}

@@ -86,6 +86,8 @@ type Engine interface {
 	Finalize(chain ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
 		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
 
+	FinalizeWithoutParent(chain ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
+		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
 	// Seal generates a new sealing request for the given input block and pushes
 	// the result into the given channel.
 	//

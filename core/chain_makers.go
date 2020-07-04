@@ -182,27 +182,16 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 
 		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
 		b.header = makeHeader(b.chainReader, parent, statedb, b.engine)
-
-		// Mutate the state and block according to any hard-fork specs
-		//if daoBlock := config.DAOForkBlock; daoBlock != nil {
-		//	limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
-		//	if b.header.Number.Cmp(daoBlock) >= 0 && b.header.Number.Cmp(limit) < 0 {
-		//		if config.DAOForkSupport {
-		//			b.header.Extra = common.CopyBytes(params.DAOForkBlockExtra)
-		//		}
-		//	}
-		//}
-		//if config.DAOForkSupport && config.DAOForkBlock != nil && config.DAOForkBlock.Cmp(b.header.Number) == 0 {
-		//	misc.ApplyDAOHardFork(statedb)
-		//}
 		// Execute any user modifications to the block and finalize it
 		if gen != nil {
 			gen(i, b)
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts)
-
+			block, err := b.engine.FinalizeWithoutParent(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts)
+			if block == nil {
+				panic(err)
+			}
 			// Write state changes to db
 			root, err := statedb.Commit(config.IsEIP158(b.header.Number))
 			if err != nil {
@@ -246,9 +235,11 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 			Difficulty: parent.Difficulty(),
 			UncleHash:  parent.UncleHash(),
 		}),
-		GasLimit: CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
-		Number:   new(big.Int).Add(parent.Number(), common.Big1),
-		Time:     time,
+		GasLimit:  CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
+		Number:    new(big.Int).Add(parent.Number(), common.Big1),
+		Time:      time,
+		Quota:     big.NewInt(0).Add(parent.Quota(), big.NewInt(params.BLOCK_QUOTA)),
+		QuotaUsed: big.NewInt(0),
 	}
 }
 
