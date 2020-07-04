@@ -18,6 +18,8 @@ package core
 
 import (
 	"errors"
+	math2 "github.com/CortexFoundation/CortexTheseus/common/math"
+
 	//	"fmt"
 	"math"
 	"math/big"
@@ -60,7 +62,7 @@ var (
 
 type StateTransition struct {
 	gp         *GasPool
-	qp         *big.Int
+	qp         *QuotaPool
 	msg        Message
 	gas        uint64
 	gasPrice   *big.Int
@@ -129,7 +131,7 @@ func IntrinsicGas(data []byte, contractCreation, upload, homestead bool, isEIP20
 }
 
 // NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(cvm *vm.CVM, msg Message, gp *GasPool, qp *big.Int) *StateTransition {
+func NewStateTransition(cvm *vm.CVM, msg Message, gp *GasPool, qp *QuotaPool) *StateTransition {
 	return &StateTransition{
 		gp:       gp,
 		qp:       qp,
@@ -149,7 +151,7 @@ func NewStateTransition(cvm *vm.CVM, msg Message, gp *GasPool, qp *big.Int) *Sta
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(cvm *vm.CVM, msg Message, gp *GasPool, qp *big.Int) ([]byte, uint64, *big.Int, bool, error) {
+func ApplyMessage(cvm *vm.CVM, msg Message, gp *GasPool, qp *QuotaPool) ([]byte, uint64, uint64, bool, error) {
 	return NewStateTransition(cvm, msg, gp, qp).TransitionDb()
 }
 
@@ -208,13 +210,12 @@ func (st *StateTransition) preCheck() error {
 			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "seeding", params.SeedingBlks)
 			return ErrUnhandleTx
 		}
-
-		cost := Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		cost := math2.Uint64Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
 		// log.Debug("state_transition",
 		// 				  "new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)", new(big.Int).SetUint64(params.PER_UPLOAD_BYTES),
 		// 					"st.state.Upload(st.to())", st.state.Upload(st.to()), "cost", cost, "st.qp", st.qp)
-		if st.qp.Cmp(cost) < 0 {
-			log.Warn("Quota waiting ... ...", "quotapool", st.qp, "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
+		if err := st.qp.SubQuota(cost); err != nil {
+			log.Warn("Quota waiting ... ...", "quotapool", st.qp.String(), "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
 			return ErrQuotaLimitReached
 		}
 
@@ -284,7 +285,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
 
-func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed *big.Int, failed bool, err error) {
+func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed uint64, failed bool, err error) {
 	if err = st.preCheck(); err != nil {
 		return
 	}
@@ -305,14 +306,14 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	// Pay intrinsic gas
 	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead, istanbul)
 	if err != nil {
-		return nil, 0, big0, false, err
+		return nil, 0, 0, false, err
 	}
 	if err = st.useGas(gas); err != nil {
-		return nil, 0, big0, false, err
+		return nil, 0, 0, false, err
 	}
 
 	if msg.Value().Sign() > 0 && !st.cvm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
-		return nil, 0, big0, false, ErrInsufficientFundsForTransfer
+		return nil, 0, 0, false, ErrInsufficientFundsForTransfer
 	}
 
 	var (
@@ -339,7 +340,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		//log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
 
 		if vmerr == vm.ErrRuntime {
-			return nil, 0, big0, false, vmerr
+			return nil, 0, 0, false, vmerr
 		}
 
 		log.Debug("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
@@ -348,7 +349,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
 		if vmerr == vm.ErrInsufficientBalance {
-			return nil, 0, big0, false, vmerr
+			return nil, 0, 0, false, vmerr
 		}
 
 		//if vmerr == vm.ErrMetaInfoNotMature {
@@ -374,7 +375,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 				//	st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
 				//}
 
-				return nil, 0, big0, false, vm.ErrInsufficientBalance
+				return nil, 0, 0, false, vm.ErrInsufficientBalance
 			}
 			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
 			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward, "number", cvm.BlockNumber)
@@ -385,11 +386,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	//normal gas
 	st.state.AddBalance(st.cvm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 
-	quota := big.NewInt(0) //default used 4 k quota every tx for testing
+	quota := uint64(0) //default used 4 k quota every tx for testing
 	if vmerr == nil && st.uploading() {
-		quota = Min(new(big.Int).SetUint64(params.PER_UPLOAD_BYTES), st.state.Upload(st.to()))
+		quota = math2.Uint64Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
 
-		st.state.SubUpload(st.to(), quota) //64 ~ 1024 bytes
+		st.state.SubUpload(st.to(), big.NewInt(int64(quota))) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.cvm.BlockNumber)
 			log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber)

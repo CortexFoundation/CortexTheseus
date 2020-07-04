@@ -24,7 +24,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"math/big"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -104,18 +103,18 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewCVM(context, statedb, config, cfg)
 
-	qp := new(big.Int).Sub(header.Quota, header.QuotaUsed)
+	qp := new(QuotaPool).AddQuota(header.Quota - header.QuotaUsed)
 	// Apply the transaction to the current state (included in the env)
 	_, gas, quota, failed, err := ApplyMessage(vmenv, msg, gp, qp)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	if quota.Cmp(big0) > 0 {
-		header.QuotaUsed.Add(header.QuotaUsed, quota)
+	if quota > 0 {
+		header.QuotaUsed += quota
 
-		if header.Quota.Cmp(header.QuotaUsed) < 0 {
-			header.QuotaUsed.Sub(header.QuotaUsed, quota)
+		if header.Quota < header.QuotaUsed {
+			header.QuotaUsed -= quota
 			return nil, 0, ErrQuotaLimitReached //errors.New("quota")
 		}
 	}

@@ -238,8 +238,8 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		GasLimit:  CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
 		Number:    new(big.Int).Add(parent.Number(), common.Big1),
 		Time:      time,
-		Quota:     big.NewInt(0).Add(parent.Quota(), big.NewInt(params.BLOCK_QUOTA)),
-		QuotaUsed: big.NewInt(0),
+		Quota:     parent.Quota() + params.BLOCK_QUOTA,
+		QuotaUsed: 0,
 	}
 }
 

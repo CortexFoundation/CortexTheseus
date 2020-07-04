@@ -17,7 +17,6 @@
 package core
 
 import (
-	"math/big"
 	"sync/atomic"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -89,7 +88,7 @@ func precacheTransaction(config *params.ChainConfig, bc ChainContext, author *co
 	// Create the CVM and execute the transaction
 	context := NewCVMContext(msg, header, bc, author)
 	vm := vm.NewCVM(context, statedb, config, cfg)
-	qp := new(big.Int).Sub(header.Quota, header.QuotaUsed)
+	qp := new(QuotaPool).AddQuota(header.Quota - header.QuotaUsed)
 
 	_, _, _, _, err = ApplyMessage(vm, msg, gaspool, qp)
 	return err
