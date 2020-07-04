@@ -61,7 +61,10 @@ func (b *BlockGen) SetCoinbase(addr common.Address) {
 	}
 	b.header.Coinbase = addr
 	b.gasPool = new(GasPool).AddGas(b.header.GasLimit)
-	b.quotaPool = new(QuotaPool).AddQuota(b.header.Quota - b.header.QuotaUsed)
+	b.quotaPool = NewQuotaPool(b.header.Quota)
+	if err := b.quotaPool.SubQuota(b.header.QuotaUsed); err != nil {
+		panic("quota pool overflow")
+	}
 }
 
 // SetExtra sets the extra data field of the generated block.

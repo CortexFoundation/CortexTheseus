@@ -742,7 +742,10 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	}
 
 	if w.current.quotaPool == nil {
-		w.current.quotaPool = new(core.QuotaPool).AddQuota(w.current.header.Quota - w.current.header.QuotaUsed)
+		w.current.quotaPool = core.NewQuotaPool(w.current.header.Quota)
+		if err := w.current.quotaPool.SubQuota(w.current.header.QuotaUsed); err != nil {
+			return true
+		}
 	}
 
 	var coalescedLogs []*types.Log

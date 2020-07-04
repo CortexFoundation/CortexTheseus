@@ -52,3 +52,9 @@ func (qp *QuotaPool) Quota() uint64 {
 func (qp *QuotaPool) String() string {
 	return fmt.Sprintf("%d", *qp)
 }
+
+func NewQuotaPool(x uint64) *QuotaPool {
+	var qp = new(QuotaPool)
+	*(*uint64)(qp) = x
+	return qp
+}

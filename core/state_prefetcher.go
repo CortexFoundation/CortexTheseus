@@ -88,7 +88,10 @@ func precacheTransaction(config *params.ChainConfig, bc ChainContext, author *co
 	// Create the CVM and execute the transaction
 	context := NewCVMContext(msg, header, bc, author)
 	vm := vm.NewCVM(context, statedb, config, cfg)
-	qp := new(QuotaPool).AddQuota(header.Quota - header.QuotaUsed)
+	qp := NewQuotaPool(header.Quota)
+	if err = qp.SubQuota(header.QuotaUsed); err != nil {
+		return err
+	}
 
 	_, _, _, _, err = ApplyMessage(vm, msg, gaspool, qp)
 	return err

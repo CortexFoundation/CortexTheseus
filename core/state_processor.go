@@ -60,8 +60,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		header  = block.Header()
 		allLogs []*types.Log
 		gp      = new(GasPool).AddGas(block.GasLimit())
-		qp      = new(QuotaPool).AddQuota(header.Quota - header.QuotaUsed)
+		qp      = NewQuotaPool(header.Quota)
 	)
+	if err := qp.SubQuota(header.QuotaUsed); err != nil {
+		return nil, nil, 0, err
+	}
 	//*usedQuota = quotaUsed
 	// Mutate the the block and state according to any hard-fork specs
 	//if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
