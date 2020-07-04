@@ -40,10 +40,11 @@ type BlockGen struct {
 	header      *types.Header
 	statedb     *state.StateDB
 
-	gasPool  *GasPool
-	txs      []*types.Transaction
-	receipts []*types.Receipt
-	uncles   []*types.Header
+	gasPool   *GasPool
+	quotaPool *QuotaPool
+	txs       []*types.Transaction
+	receipts  []*types.Receipt
+	uncles    []*types.Header
 
 	config *params.ChainConfig
 	engine consensus.Engine
@@ -60,6 +61,7 @@ func (b *BlockGen) SetCoinbase(addr common.Address) {
 	}
 	b.header.Coinbase = addr
 	b.gasPool = new(GasPool).AddGas(b.header.GasLimit)
+	b.quotaPool = new(QuotaPool).AddQuota(b.header.Quota - b.header.QuotaUsed)
 }
 
 // SetExtra sets the extra data field of the generated block.
@@ -97,7 +99,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
-	receipt, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
+	receipt, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.quotaPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
 	if err != nil {
 		panic(err)
 	}
