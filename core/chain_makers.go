@@ -261,3 +261,7 @@ func makeBlockChain(parent *types.Block, n int, engine consensus.Engine, db ctxc
 	})
 	return blocks
 }
+
+func (b *BlockGen) AddUncheckedTx(tx *types.Transaction) {
+	b.txs = append(b.txs, tx)
+}

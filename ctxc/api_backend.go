@@ -166,6 +166,10 @@ func (b *CortexAPIBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.
 	return b.ctxc.BlockChain().SubscribeChainEvent(ch)
 }
 
+func (b *CortexAPIBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
+	return b.ctxc.miner.SubscribePendingLogs(ch)
+}
+
 func (b *CortexAPIBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	return b.ctxc.BlockChain().SubscribeChainHeadEvent(ch)
 }

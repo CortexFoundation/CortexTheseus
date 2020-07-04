@@ -1,18 +1,18 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package filters
 
@@ -29,7 +29,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
@@ -50,18 +49,13 @@ func BenchmarkFilters(b *testing.B) {
 	defer os.RemoveAll(dir)
 
 	var (
-		db, _      = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
-		mux        = new(event.TypeMux)
-		txFeed     = new(event.Feed)
-		rmLogsFeed = new(event.Feed)
-		logsFeed   = new(event.Feed)
-		chainFeed  = new(event.Feed)
-		backend    = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
-		key1, _    = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		addr1      = crypto.PubkeyToAddress(key1.PublicKey)
-		addr2      = common.BytesToAddress([]byte("jeff"))
-		addr3      = common.BytesToAddress([]byte("cortex"))
-		addr4      = common.BytesToAddress([]byte("random addresses please"))
+		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
+		backend = &testBackend{db: db}
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2   = common.BytesToAddress([]byte("jeff"))
+		addr3   = common.BytesToAddress([]byte("cortex"))
+		addr4   = common.BytesToAddress([]byte("random addresses please"))
 	)
 	defer db.Close()
 
@@ -109,13 +103,8 @@ func TestFilters(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	var (
-		db, _ = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
-		//mux        = new(event.TypeMux)
-		//txFeed     = new(event.Feed)
-		//rmLogsFeed = new(event.Feed)
-		//logsFeed   = new(event.Feed)
-		//chainFeed  = new(event.Feed)
-		//backend    = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
+		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
+		backend = &testBackend{db: db}
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr    = crypto.PubkeyToAddress(key1.PublicKey)
 
@@ -138,6 +127,7 @@ func TestFilters(t *testing.T) {
 				},
 			}
 			gen.AddUncheckedReceipt(receipt)
+			gen.AddUncheckedTx(types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil))
 		case 2:
 			receipt := types.NewReceipt(nil, false, 0)
 			receipt.Logs = []*types.Log{
@@ -147,6 +137,8 @@ func TestFilters(t *testing.T) {
 				},
 			}
 			gen.AddUncheckedReceipt(receipt)
+			gen.AddUncheckedTx(types.NewTransaction(2, common.HexToAddress("0x2"), big.NewInt(2), 2, big.NewInt(2), nil))
+
 		case 998:
 			receipt := types.NewReceipt(nil, false, 0)
 			receipt.Logs = []*types.Log{
@@ -156,6 +148,7 @@ func TestFilters(t *testing.T) {
 				},
 			}
 			gen.AddUncheckedReceipt(receipt)
+			gen.AddUncheckedTx(types.NewTransaction(998, common.HexToAddress("0x998"), big.NewInt(998), 998, big.NewInt(998), nil))
 		case 999:
 			receipt := types.NewReceipt(nil, false, 0)
 			receipt.Logs = []*types.Log{
@@ -165,6 +158,7 @@ func TestFilters(t *testing.T) {
 				},
 			}
 			gen.AddUncheckedReceipt(receipt)
+			gen.AddUncheckedTx(types.NewTransaction(999, common.HexToAddress("0x999"), big.NewInt(999), 999, big.NewInt(999), nil))
 		}
 	})
 	for i, block := range chain {
@@ -174,58 +168,58 @@ func TestFilters(t *testing.T) {
 		rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), receipts[i])
 	}
 
-	//filter := NewRangeFilter(backend, 0, -1, []common.Address{addr}, [][]common.Hash{{hash1, hash2, hash3, hash4}})
+	filter := NewRangeFilter(backend, 0, -1, []common.Address{addr}, [][]common.Hash{{hash1, hash2, hash3, hash4}})
 
-	//logs, _ := filter.Logs(context.Background())
-	//if len(logs) != 4 {
-	//	t.Error("expected 4 log, got", len(logs))
-	//}
-	//
-	//filter = NewRangeFilter(backend, 900, 999, []common.Address{addr}, [][]common.Hash{{hash3}})
-	//logs, _ = filter.Logs(context.Background())
-	//if len(logs) != 1 {
-	//	t.Error("expected 1 log, got", len(logs))
-	//}
-	//if len(logs) > 0 && logs[0].Topics[0] != hash3 {
-	//	t.Errorf("expected log[0].Topics[0] to be %x, got %x", hash3, logs[0].Topics[0])
-	//}
-	//
-	//filter = NewRangeFilter(backend, 990, -1, []common.Address{addr}, [][]common.Hash{{hash3}})
-	//logs, _ = filter.Logs(context.Background())
-	//if len(logs) != 1 {
-	//	t.Error("expected 1 log, got", len(logs))
-	//}
-	//if len(logs) > 0 && logs[0].Topics[0] != hash3 {
-	//	t.Errorf("expected log[0].Topics[0] to be %x, got %x", hash3, logs[0].Topics[0])
-	//}
-	//
-	//filter = NewRangeFilter(backend, 1, 10, nil, [][]common.Hash{{hash1, hash2}})
-	//
-	//logs, _ = filter.Logs(context.Background())
-	//if len(logs) != 2 {
-	//	t.Error("expected 2 log, got", len(logs))
-	//}
-	//
-	//failHash := common.BytesToHash([]byte("fail"))
-	//filter = NewRangeFilter(backend, 0, -1, nil, [][]common.Hash{{failHash}})
-	//
-	//logs, _ = filter.Logs(context.Background())
-	//if len(logs) != 0 {
-	//	t.Error("expected 0 log, got", len(logs))
-	//}
-	//
-	//failAddr := common.BytesToAddress([]byte("failmenow"))
-	//filter = NewRangeFilter(backend, 0, -1, []common.Address{failAddr}, nil)
-	//
-	//logs, _ = filter.Logs(context.Background())
-	//if len(logs) != 0 {
-	//	t.Error("expected 0 log, got", len(logs))
-	//}
-	//
-	//filter = NewRangeFilter(backend, 0, -1, nil, [][]common.Hash{{failHash}, {hash1}})
-	//
-	//logs, _ = filter.Logs(context.Background())
-	//if len(logs) != 0 {
-	//	t.Error("expected 0 log, got", len(logs))
-	//}
+	logs, _ := filter.Logs(context.Background())
+	if len(logs) != 4 {
+		t.Error("expected 4 log, got", len(logs))
+	}
+
+	filter = NewRangeFilter(backend, 900, 999, []common.Address{addr}, [][]common.Hash{{hash3}})
+	logs, _ = filter.Logs(context.Background())
+	if len(logs) != 1 {
+		t.Error("expected 1 log, got", len(logs))
+	}
+	if len(logs) > 0 && logs[0].Topics[0] != hash3 {
+		t.Errorf("expected log[0].Topics[0] to be %x, got %x", hash3, logs[0].Topics[0])
+	}
+
+	filter = NewRangeFilter(backend, 990, -1, []common.Address{addr}, [][]common.Hash{{hash3}})
+	logs, _ = filter.Logs(context.Background())
+	if len(logs) != 1 {
+		t.Error("expected 1 log, got", len(logs))
+	}
+	if len(logs) > 0 && logs[0].Topics[0] != hash3 {
+		t.Errorf("expected log[0].Topics[0] to be %x, got %x", hash3, logs[0].Topics[0])
+	}
+
+	filter = NewRangeFilter(backend, 1, 10, nil, [][]common.Hash{{hash1, hash2}})
+
+	logs, _ = filter.Logs(context.Background())
+	if len(logs) != 2 {
+		t.Error("expected 2 log, got", len(logs))
+	}
+
+	failHash := common.BytesToHash([]byte("fail"))
+	filter = NewRangeFilter(backend, 0, -1, nil, [][]common.Hash{{failHash}})
+
+	logs, _ = filter.Logs(context.Background())
+	if len(logs) != 0 {
+		t.Error("expected 0 log, got", len(logs))
+	}
+
+	failAddr := common.BytesToAddress([]byte("failmenow"))
+	filter = NewRangeFilter(backend, 0, -1, []common.Address{failAddr}, nil)
+
+	logs, _ = filter.Logs(context.Background())
+	if len(logs) != 0 {
+		t.Error("expected 0 log, got", len(logs))
+	}
+
+	filter = NewRangeFilter(backend, 0, -1, nil, [][]common.Hash{{failHash}, {hash1}})
+
+	logs, _ = filter.Logs(context.Background())
+	if len(logs) != 0 {
+		t.Error("expected 0 log, got", len(logs))
+	}
 }
