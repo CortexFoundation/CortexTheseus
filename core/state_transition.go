@@ -390,7 +390,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if vmerr == nil && st.uploading() {
 		quota = math2.Uint64Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
 
-		st.state.SubUpload(st.to(), big.NewInt(int64(quota))) //64 ~ 1024 bytes
+		st.state.SubUpload(st.to(), new(big.Int).SetUint64(quota)) //64 ~ 1024 bytes
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.cvm.BlockNumber)
 			log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber)
