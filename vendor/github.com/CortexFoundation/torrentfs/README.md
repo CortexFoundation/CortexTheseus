@@ -1,30 +1,37 @@
 # P2P file system of cortex full node
+
+## Import
 ```
 go get github.com/CortexFoundation/torrentfs
-
-or
-
+```
+## Build
+```
+https://github.com/CortexFoundation/torrentfs.git
+cd torrentfs
 make
 ```
-```cd build/bin```
-
-```mkdir -p store/0803be8fc7309d155dfcee65a92a6254bd55a3d2```
-
-```echo "Hello torrent" > store/0803be8fc7309d155dfcee65a92a6254bd55a3d2/data ```
-
-#### torrent-create : to create torrent file
-```./torrent-create store/0803be8fc7309d155dfcee65a92a6254bd55a3d2/data > store/0803be8fc7309d155dfcee65a92a6254bd55a3d2/torrent```
-#### torrent-magnet : load info hash from torrent file
-```./torrent-magnet < store/0803be8fc7309d155dfcee65a92a6254bd55a3d2/torrent```
-
+## How to use
 ```
+cd build/bin
+mkdir -p store/0803be8fc7309d155dfcee65a92a6254bd55a3d2
+echo "Hello torrent" > store/0803be8fc7309d155dfcee65a92a6254bd55a3d2/data
+```
+#### Create torrent file
+```
+./torrent-create store/0803be8fc7309d155dfcee65a92a6254bd55a3d2/data > store/0803be8fc7309d155dfcee65a92a6254bd55a3d2/torrent
+```
+#### Load info hash from torrent file
+```
+./torrent-magnet < store/0803be8fc7309d155dfcee65a92a6254bd55a3d2/torrent
 tree store
-
 0803be8fc7309d155dfcee65a92a6254bd55a3d2
 ├── data
 └── torrent
 ```
-#### seeding : to seed file to dht
+#### Seed file to dht
 ```./seeding -dataDir=store```
-#### torrent : to download file
-```./torrent download 'infohash:0803be8fc7309d155dfcee65a92a6254bd55a3d2' ```
+#### Download file
+```
+./torrent download 'infohash:0803be8fc7309d155dfcee65a92a6254bd55a3d2'
+ls -alt data && md5sum data && cat data
+```
