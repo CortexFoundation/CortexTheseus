@@ -36,6 +36,7 @@ func (qp *QuotaPool) AddQuota(amount uint64) *QuotaPool {
 
 // SubGas deducts the given amount from the pool if enough gas is
 // available and returns an error otherwise.
+func (qp *QuotaPool) SubQuota(amount uint64) error {
 	if uint64(*qp) < amount {
 		return ErrQuotaLimitReached
 	}
