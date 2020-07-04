@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274
+	github.com/CortexFoundation/torrentfs v1.0.14
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1
@@ -46,12 +46,10 @@ require (
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
-	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6
