@@ -90,7 +90,7 @@ func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *eve
 // the loop is exited. This to prevent a major security vuln where external parties can DOS you with blocks
 // and halt your mining operation for as long as the DOS continues.
 func (miner *Miner) update() {
-	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{}, downloader.FailedEvent{})
+	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -107,7 +107,7 @@ func (miner *Miner) update() {
 					atomic.StoreInt32(&miner.shouldStart, 1)
 					log.Info("Mining aborted due to sync")
 				}
-			case downloader.DoneEvent, downloader.FailedEvent:
+			case downloader.DoneEvent:
 				done, ok := ev.Data.(downloader.DoneEvent)
 				if !ok {
 					continue
