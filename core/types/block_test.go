@@ -26,6 +26,10 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 func TestBlockEncoding(t *testing.T) {
@@ -116,4 +120,68 @@ func TestBlockDecoding(t *testing.T) {
 	if !bytes.Equal(ourBlockEnc, blockEnc) {
 		t.Errorf("encoded block mismatch:\ngot:  %x\nwant: %x", ourBlockEnc, blockEnc)
 	}
+}
+
+func TestUncleHash(t *testing.T) {
+	uncles := make([]*Header, 0)
+	h := CalcUncleHash(uncles)
+	exp := common.HexToHash("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")
+	if h != exp {
+		t.Fatalf("empty uncle hash is wrong, got %x != %x", h, exp)
+	}
+}
+
+var benchBuffer = bytes.NewBuffer(make([]byte, 0, 32000))
+
+func BenchmarkEncodeBlock(b *testing.B) {
+	block := makeBenchBlock()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		benchBuffer.Reset()
+		if err := rlp.Encode(benchBuffer, block); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func makeBenchBlock() *Block {
+	var (
+		key, _   = crypto.GenerateKey()
+		txs      = make([]*Transaction, 70)
+		receipts = make([]*Receipt, len(txs))
+		signer   = NewEIP155Signer(params.TestChainConfig.ChainID)
+		uncles   = make([]*Header, 3)
+	)
+	header := &Header{
+		Difficulty: math.BigPow(11, 11),
+		Number:     math.BigPow(2, 9),
+		GasLimit:   12345678,
+		GasUsed:    1476322,
+		Time:       9876543,
+		Extra:      []byte("coolest block on chain"),
+	}
+	for i := range txs {
+		amount := math.BigPow(2, int64(i))
+		price := big.NewInt(300000)
+		data := make([]byte, 100)
+		tx := NewTransaction(uint64(i), common.Address{}, amount, 123457, price, data)
+		signedTx, err := SignTx(tx, signer, key)
+		if err != nil {
+			panic(err)
+		}
+		txs[i] = signedTx
+		receipts[i] = NewReceipt(make([]byte, 32), false, tx.Gas())
+	}
+	for i := range uncles {
+		uncles[i] = &Header{
+			Difficulty: math.BigPow(11, 11),
+			Number:     math.BigPow(2, 9),
+			GasLimit:   12345678,
+			GasUsed:    1476322,
+			Time:       9876543,
+			Extra:      []byte("benchmark uncle"),
+		}
+	}
+	return NewBlock(header, txs, uncles, receipts)
 }
