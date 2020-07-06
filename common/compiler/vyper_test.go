@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package core implements the Cortex consensus protocol.
 package compiler
 
 import (
