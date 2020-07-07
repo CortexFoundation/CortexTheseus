@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"math/big"
 	"runtime"
 	"sync"
 	"time"
@@ -457,7 +456,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 		vmctx := core.NewCVMContext(msg, block.Header(), api.ctxc.blockchain, nil)
 
 		vmenv := vm.NewCVM(vmctx, statedb, api.config, vm.Config{})
-		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas()), new(big.Int).SetUint64(math.MaxUint64)); err != nil {
+		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas()), new(core.QuotaPool).AddQuota(math.MaxUint64)); err != nil {
 			failed = err
 			break
 		}
@@ -602,7 +601,7 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message core.Message, v
 	// Run the transaction with tracing enabled.
 	vmenv := vm.NewCVM(vmctx, statedb, api.config, vm.Config{Debug: true, Tracer: tracer})
 
-	ret, gas, _, failed, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()), new(big.Int).SetUint64(math.MaxUint64))
+	ret, gas, _, failed, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()), new(core.QuotaPool).AddQuota(math.MaxUint64))
 	if err != nil {
 		return nil, fmt.Errorf("tracing failed: %v", err)
 	}
@@ -656,7 +655,7 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, ree
 		}
 		// Not yet the searched for transaction, execute on top of the current state
 		vmenv := vm.NewCVM(context, statedb, api.config, vm.Config{})
-		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas()), new(big.Int).SetUint64(math.MaxUint64)); err != nil {
+		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas()), new(core.QuotaPool).AddQuota(math.MaxUint64)); err != nil {
 			return nil, vm.Context{}, nil, fmt.Errorf("tx %x failed: %v", tx.Hash(), err)
 		}
 		// Ensure any modifications are committed to the state

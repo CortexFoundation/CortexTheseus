@@ -301,7 +301,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		return consensus.ErrInvalidNumber
 	}
 
-	if header.Quota.Cmp(new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))) != 0 {
+	if header.Quota < parent.Quota || header.Quota != parent.Quota+chain.Config().GetBlockQuota(header.Number) {
 		return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
 	}
 
@@ -693,8 +693,11 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time, parent)
 	header.Supply = new(big.Int).Set(parent.Supply)
-	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))
-	header.QuotaUsed = new(big.Int).Set(parent.QuotaUsed)
+	header.Quota = parent.Quota + chain.Config().GetBlockQuota(header.Number)
+	if header.Quota < parent.Quota {
+		panic("quota reaches the upper limit of uint64")
+	}
+	header.QuotaUsed = parent.QuotaUsed
 	return nil
 }
 

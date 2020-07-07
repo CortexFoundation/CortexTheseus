@@ -40,10 +40,11 @@ type BlockGen struct {
 	header      *types.Header
 	statedb     *state.StateDB
 
-	gasPool  *GasPool
-	txs      []*types.Transaction
-	receipts []*types.Receipt
-	uncles   []*types.Header
+	gasPool   *GasPool
+	quotaPool *QuotaPool
+	txs       []*types.Transaction
+	receipts  []*types.Receipt
+	uncles    []*types.Header
 
 	config *params.ChainConfig
 	engine consensus.Engine
@@ -60,6 +61,10 @@ func (b *BlockGen) SetCoinbase(addr common.Address) {
 	}
 	b.header.Coinbase = addr
 	b.gasPool = new(GasPool).AddGas(b.header.GasLimit)
+	b.quotaPool = NewQuotaPool(b.header.Quota)
+	if err := b.quotaPool.SubQuota(b.header.QuotaUsed); err != nil {
+		panic("quota pool overflow")
+	}
 }
 
 // SetExtra sets the extra data field of the generated block.
@@ -97,7 +102,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
-	receipt, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
+	receipt, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.quotaPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -238,8 +243,8 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		GasLimit:  CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
 		Number:    new(big.Int).Add(parent.Number(), common.Big1),
 		Time:      time,
-		Quota:     big.NewInt(0).Add(parent.Quota(), big.NewInt(params.BLOCK_QUOTA)),
-		QuotaUsed: big.NewInt(0),
+		Quota:     parent.Quota() + params.BLOCK_QUOTA,
+		QuotaUsed: 0,
 	}
 }
 
