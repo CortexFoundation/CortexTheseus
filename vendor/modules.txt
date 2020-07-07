@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.14
+# github.com/CortexFoundation/torrentfs v1.0.15-0.20200707022010-74b1618ca668
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -17,7 +17,7 @@ github.com/StackExchange/wmi
 # github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 ## explicit
 github.com/VictoriaMetrics/fastcache
-# github.com/allegro/bigcache/v2 v2.2.3-0.20200701155413-48f0a543146a
+# github.com/allegro/bigcache/v2 v2.2.3
 github.com/allegro/bigcache/v2
 github.com/allegro/bigcache/v2/queue
 # github.com/anacrolix/dht/v2 v2.6.1
