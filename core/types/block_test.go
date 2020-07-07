@@ -30,7 +30,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 func TestBlockEncoding(t *testing.T) {
