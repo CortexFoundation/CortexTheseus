@@ -218,12 +218,13 @@ func (cuckoo *Cuckoo) InitOnce() error {
 			} else {
 				cuckoo.threads = 0
 			}
-			err = errc
-			mem, err := gopsutil.VirtualMemory()
-			if err == nil {
+
+			if mem, err := gopsutil.VirtualMemory(); err == nil {
 				allowance := int(mem.Total / 1024 / 1024 / 3)
 				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance, "cuda", cuckoo.config.UseCuda, "device", cuckoo.config.StrDeviceIds, "threads", cuckoo.config.Threads, "algo", cuckoo.config.Algorithm, "mine", cuckoo.config.Mine)
 			}
+
+			err = errc
 		}
 	})
 	return err
