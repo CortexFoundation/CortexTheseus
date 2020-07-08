@@ -77,8 +77,8 @@ type Config struct {
 
 	PowMode Mode
 
-	UseCuda      bool
-	UseOpenCL    bool
+	UseCuda bool
+	//UseOpenCL    bool
 	StrDeviceIds string
 	Threads      int
 	Algorithm    string
@@ -176,9 +176,9 @@ func (cuckoo *Cuckoo) initPlugin() error {
 	if cuckoo.config.UseCuda {
 		minerName = "cuda"
 		cuckoo.threads = 1
-	} else if cuckoo.config.UseOpenCL {
-		minerName = "opencl"
-		cuckoo.threads = 1
+		//} else if cuckoo.config.UseOpenCL {
+		//	minerName = "opencl"
+		//	cuckoo.threads = 1
 	}
 	if cuckoo.config.StrDeviceIds == "" {
 		cuckoo.config.StrDeviceIds = "0" //default gpu device 0

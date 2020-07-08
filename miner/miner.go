@@ -54,7 +54,6 @@ type Config struct {
 	Noverify  bool           // Disable remote mining solution verification(only useful in ethash).
 
 	Cuda    bool
-	OpenCL  bool
 	Devices string
 }
 
