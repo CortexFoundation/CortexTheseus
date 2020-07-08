@@ -114,8 +114,8 @@ type Header struct {
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 	Solution    BlockSolution  `json:"solution"         gencodec:"required"`
-	Quota       *big.Int       `json:"quota"            gencodec:"required"`
-	QuotaUsed   *big.Int       `json:"quotaUsed"        gencodec:"required"`
+	Quota       uint64         `json:"quota"            gencodec:"required"`
+	QuotaUsed   uint64         `json:"quotaUsed"        gencodec:"required"`
 	Supply      *big.Int       `json:"supply"           gencodec:"required"`
 }
 
@@ -128,6 +128,8 @@ type headerMarshaling struct {
 	Time       hexutil.Uint64
 	Extra      hexutil.Bytes
 	Hash       common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
+	Quota      hexutil.Uint64
+	QuotaUsed  hexutil.Uint64
 }
 
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
@@ -295,13 +297,6 @@ func CopyHeader(h *Header) *Header {
 		cpy.Extra = make([]byte, len(h.Extra))
 		copy(cpy.Extra, h.Extra)
 	}
-	if cpy.Quota = new(big.Int); h.Quota != nil {
-		cpy.Quota.Set(h.Quota)
-	}
-	if cpy.QuotaUsed = new(big.Int); h.QuotaUsed != nil {
-		cpy.QuotaUsed.Set(h.QuotaUsed)
-	}
-
 	if cpy.Supply = new(big.Int); h.Supply != nil {
 		cpy.Supply.Set(h.Supply)
 	}
@@ -371,8 +366,8 @@ func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }
 func (b *Block) UncleHash() common.Hash   { return b.header.UncleHash }
 func (b *Block) Extra() []byte            { return common.CopyBytes(b.header.Extra) }
-func (b *Block) Quota() *big.Int          { return new(big.Int).Set(b.header.Quota) }
-func (b *Block) QuotaUsed() *big.Int      { return new(big.Int).Set(b.header.QuotaUsed) }
+func (b *Block) Quota() uint64            { return b.header.Quota }
+func (b *Block) QuotaUsed() uint64        { return b.header.QuotaUsed }
 func (b *Block) Supply() *big.Int         { return new(big.Int).Set(b.header.Supply) }
 func (b *Block) Header() *Header          { return CopyHeader(b.header) }
 

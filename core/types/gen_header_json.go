@@ -32,8 +32,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 		Solution    BlockSolution  `json:"solution"         gencodec:"required"`
-		Quota       *big.Int       `json:"quota"            gencodec:"required"`
-		QuotaUsed   *big.Int       `json:"quotaUsed"        gencodec:"required"`
+		Quota       hexutil.Uint64 `json:"quota"            gencodec:"required"`
+		QuotaUsed   hexutil.Uint64 `json:"quotaUsed"        gencodec:"required"`
 		Supply      *big.Int       `json:"supply"           gencodec:"required"`
 		Hash        common.Hash    `json:"hash"`
 	}
@@ -54,8 +54,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.MixDigest = h.MixDigest
 	enc.Nonce = h.Nonce
 	enc.Solution = h.Solution
-	enc.Quota = h.Quota
-	enc.QuotaUsed = h.QuotaUsed
+	enc.Quota = hexutil.Uint64(h.Quota)
+	enc.QuotaUsed = hexutil.Uint64(h.QuotaUsed)
 	enc.Supply = h.Supply
 	enc.Hash = h.Hash()
 	return json.Marshal(&enc)
@@ -80,8 +80,8 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		MixDigest   *common.Hash    `json:"mixHash"          gencodec:"required"`
 		Nonce       *BlockNonce     `json:"nonce"            gencodec:"required"`
 		Solution    *BlockSolution  `json:"solution"         gencodec:"required"`
-		Quota       *big.Int        `json:"quota"            gencodec:"required"`
-		QuotaUsed   *big.Int        `json:"quotaUsed"        gencodec:"required"`
+		Quota       *hexutil.Uint64 `json:"quota"            gencodec:"required"`
+		QuotaUsed   *hexutil.Uint64 `json:"quotaUsed"        gencodec:"required"`
 		Supply      *big.Int        `json:"supply"           gencodec:"required"`
 	}
 	var dec Header
@@ -155,11 +155,11 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Quota == nil {
 		return errors.New("missing required field 'quota' for Header")
 	}
-	h.Quota = dec.Quota
+	h.Quota = uint64(*dec.Quota)
 	if dec.QuotaUsed == nil {
 		return errors.New("missing required field 'quotaUsed' for Header")
 	}
-	h.QuotaUsed = dec.QuotaUsed
+	h.QuotaUsed = uint64(*dec.QuotaUsed)
 	if dec.Supply == nil {
 		return errors.New("missing required field 'supply' for Header")
 	}

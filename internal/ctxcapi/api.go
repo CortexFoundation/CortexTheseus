@@ -635,6 +635,7 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		return nil, nil // TODO(tian) error
 	}
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
+	qp := new(core.QuotaPool).AddQuota(math.MaxUint64)
 
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr-1)
 	if state == nil || err != nil {
@@ -657,7 +658,7 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		if err != nil {
 			return nil, err
 		}
-		_, _, _, failed, err := core.ApplyMessage(cvm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
+		_, _, _, failed, err := core.ApplyMessage(cvm, msg, gp, qp)
 		if err != nil || failed {
 			return nil, err
 		}
@@ -743,7 +744,8 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	// Setup the gas pool (also for unmetered requests)
 	// and apply the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
-	res, gas, _, failed, err := core.ApplyMessage(cvm, msg, gp, new(big.Int).SetUint64(math.MaxUint64))
+	qp := new(core.QuotaPool).AddQuota(math.MaxUint64)
+	res, gas, _, failed, err := core.ApplyMessage(cvm, msg, gp, qp)
 	if err := vmError(); err != nil {
 		return nil, 0, false, err
 	}
@@ -760,7 +762,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 // It doesn't make and changes in the state/blockchain and is useful to execute and retrieve values.
 func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{}, 5*time.Second)
-	return (hexutil.Bytes)(result), err
+	return result, err
 }
 
 // same as Call, except for RPC_GetInternalTransaction flag with overwritten returns.

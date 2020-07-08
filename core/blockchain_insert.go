@@ -29,6 +29,7 @@ import (
 type insertStats struct {
 	queued, processed, ignored int
 	usedGas                    uint64
+	usedQuota                  uint64
 	lastIndex                  int
 	startTime                  mclock.AbsTime
 }
