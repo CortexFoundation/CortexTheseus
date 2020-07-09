@@ -116,6 +116,7 @@ func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainReader, headers []*type
 	// If we're running a full engine faking, accept any input as valid
 	if cuckoo.config.PowMode == ModeFullFake || len(headers) == 0 {
 		abort, results := make(chan struct{}), make(chan error, len(headers))
+		fmt.Println("ModeFullFake or no headers")
 		for i := 0; i < len(headers); i++ {
 			results <- nil
 		}
@@ -652,6 +653,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
 		time.Sleep(cuckoo.fakeDelay)
 		if cuckoo.fakeFail == header.Number.Uint64() {
+			fmt.Println("fakeFail vs number: ", cuckoo.fakeFail, header.Number.Uint64())
 			return errInvalidPoW
 		}
 		return nil

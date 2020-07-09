@@ -23,6 +23,7 @@ func NewFakeFailer(number uint64) *Cuckoo {
 		config: Config{
 			PowMode: ModeFake,
 		},
+		fakeFail: number,
 	}
 }
 
