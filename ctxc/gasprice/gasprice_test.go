@@ -89,14 +89,6 @@ func newTestBackend(t *testing.T) *testBackend {
 	return &testBackend{chain: chain}
 }
 
-func (b *testBackend) CurrentHeader() *types.Header {
-	return b.chain.CurrentHeader()
-}
-
-func (b *testBackend) GetBlockByNumber(number uint64) *types.Block {
-	return b.chain.GetBlockByNumber(number)
-}
-
 func TestSuggestPrice(t *testing.T) {
 	config := Config{
 		Blocks:     3,
