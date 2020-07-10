@@ -19,6 +19,7 @@ package ctxc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
@@ -124,6 +125,7 @@ func (b *CortexAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr r
 		return nil, nil, err
 	}
 	stateDb, err := b.ctxc.BlockChain().StateAt(header.Root)
+	fmt.Println("StateAndHeaderByNumber error: ", err)
 	return stateDb, header, err
 }
 

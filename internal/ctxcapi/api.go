@@ -905,9 +905,9 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"timestamp":        hexutil.Uint64(head.Time),
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
-		"supply":           head.Supply,
-		"quota":            head.Quota,
-		"quotaUsed":        head.QuotaUsed,
+		"supply":           (*hexutil.Big)(head.Supply),
+		"quota":            hexutil.Uint64(head.Quota),
+		"quotaUsed":        hexutil.Uint64(head.QuotaUsed),
 	}
 
 	if inclTx {

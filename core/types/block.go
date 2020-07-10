@@ -95,6 +95,14 @@ func (s *BlockSolution) UnmarshalText(input []byte) error {
 	return nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler.
+func (s *BlockSolution) UnmarshalJSON(input []byte) error {
+	for i := 0; i < 42; i++ {
+		s[i] = uint32(input[i])
+	}
+	return nil
+}
+
 // Header represents a block header in the Cortex blockchain.
 //go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
 type Header struct {
@@ -130,6 +138,7 @@ type headerMarshaling struct {
 	Hash       common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 	Quota      hexutil.Uint64
 	QuotaUsed  hexutil.Uint64
+	Supply     *hexutil.Big
 }
 
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
