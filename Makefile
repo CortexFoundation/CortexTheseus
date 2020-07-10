@@ -11,6 +11,7 @@
 .PHONY: clib
 .PHONY: cortex cortex-remote
 
+BASE = $(shell pwd)
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/solution/
@@ -41,17 +42,14 @@ clean-miner:
 
 cortex_cpu: clean-miner clib_cpu
 	build/env.sh go run build/ci.go install ./cmd/cortex
-	echo "build cortex_cpu ..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex cpu."
 cortex_mine: clean-miner clib_mine
 	build/env.sh go run build/ci.go install ./cmd/cortex
-	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex miner."
 cortex_gpu: clean-miner clib
 	build/env.sh go run build/ci.go install ./cmd/cortex
-	echo "build cortex..."
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cortex\" to launch cortex gpu."
 bootnode:
@@ -94,12 +92,12 @@ nodekey:
 	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
 
 plugins/cuda_helper_for_node.so: 
-	$(MAKE) -C solution cuda-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda_helper_for_node.go
+	$(MAKE) -C $(BASE)/solution cuda
+	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
-	$(MAKE) -C solution cpu-miner
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
+	#$(MAKE) -C $(BASE)/solution cpu-miner
+	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/lib_cvm.so:
 	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
@@ -138,7 +136,7 @@ clean: clean-clib
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
 clean-clib:
-	$(MAKE) -C $(LIB_MINER_DIR) clean
+	#$(MAKE) -C $(LIB_MINER_DIR) clean
 	$(MAKE) -C $(INFER_NET_DIR) clean
 	
 .PHONY: clean-all

@@ -11,12 +11,21 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
 )
 
 const (
 	DATA_PATH   string = "/data"
 	SYMBOL_PATH string = "/data/symbol"
 	PARAM_PATH  string = "/data/params"
+)
+
+var (
+	gasCacheHitMeter  = metrics.NewRegisteredMeter("synapse/gascache/hit", nil)
+	gasCacheMissMeter = metrics.NewRegisteredMeter("synapse/gascache/miss", nil)
+
+	simpleCacheHitMeter  = metrics.NewRegisteredMeter("synapse/simplecache/hit", nil)
+	simpleCacheMissMeter = metrics.NewRegisteredMeter("synapse/simplecache/miss", nil)
 )
 
 func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
@@ -65,46 +74,55 @@ func fixTorrentHash(ih string, cvmNetworkId int64) string {
 	return ih
 }
 
-func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (gas uint64, err error) {
+func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (uint64, error) {
 
 	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") {
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
-	var (
-		modelHash     = strings.ToLower(modelInfoHash[2:])
-		modelJson     []byte
-		modelJson_err error
-	)
+	modelHash := strings.ToLower(modelInfoHash[2:])
 	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
-
-	modelJson, modelJson_err = s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
-	if modelJson_err != nil || modelJson == nil {
-		log.Warn("GetGasByInfoHash: get file failed",
-			"error", modelJson_err, "hash", modelInfoHash)
-		return 0, KERNEL_RUNTIME_ERROR
-	}
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
 	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
 		log.Debug("Infer Success via Cache", "result", v.(uint64))
+		gasCacheHitMeter.Mark(1)
 		return v.(uint64), nil
 	}
-	var status int
-	gas, status = kernel.GetModelGasFromGraphFile(s.lib, modelJson)
-	if _, err := getReturnByStatusCode(gas, status); err != nil {
+
+	modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
+	if modelJson_err != nil || modelJson == nil {
+		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
+		return 0, KERNEL_RUNTIME_ERROR
+	}
+
+	//var status int
+	gas, status := kernel.GetModelGasFromGraphFile(s.lib, modelJson)
+	_, err := getReturnByStatusCode(gas, status)
+	if err != nil {
 		return 0, err
 	}
 
 	if !s.config.IsNotCache {
+		gasCacheMissMeter.Mark(1)
 		s.gasCache.Store(cacheKey, gas)
 	}
 	return gas, err
 }
 
-func (s *Synapse) inferByInfoHash(
-	modelInfoHash, inputInfoHash string,
-	cvmVersion int, cvmNetworkId int64) (res []byte, err error) {
+func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+	return s.infer(modelInfoHash, inputInfoHash, nil, cvmVersion, cvmNetworkId)
+}
+
+func (s *Synapse) inferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+	return s.infer(modelInfoHash, "", inputContent, cvmVersion, cvmNetworkId)
+}
+
+func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+	if inputInfoHash == "" {
+		inputInfoHash = RLPHashString(inputContent)
+	}
+
 	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -114,6 +132,7 @@ func (s *Synapse) inferByInfoHash(
 		inputHash = strings.ToLower(inputInfoHash[2:])
 	)
 	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
+	// Inference Cache
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
 
 	if hash, ok := CvmFixHashes[cacheKey]; ok {
@@ -121,65 +140,27 @@ func (s *Synapse) inferByInfoHash(
 	}
 
 	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
-		log.Debug("Infer Success via Cache", "result", v.([]byte))
+		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
+		simpleCacheHitMeter.Mark(1)
 		return v.([]byte), nil
 	}
 
-	inputBytes, dataErr := s.config.Storagefs.GetFile(s.ctx, inputHash, DATA_PATH)
-
-	if dataErr != nil {
-		if cvmNetworkId == 43 &&
-			inputHash == "de58609743e5cd0cb18798d91a196f418ac25016" {
-			// TODO(ryt): this part should be deprecated using hashFix maps
-			inputBytes, dataErr = hackFile(inputInfoHash, "data")
-			if dataErr != nil {
-				log.Error("inferByInfoHash: input hacking failed",
-					"inputInfoHash", inputInfoHash, "error", dataErr)
-				return nil, KERNEL_RUNTIME_ERROR
-			}
-		} else {
-			log.Warn("inferByInfoHash: get file failed",
-				"input hash", inputHash, "error", dataErr)
+	if inputContent == nil {
+		inputBytes, dataErr := s.config.Storagefs.GetFile(s.ctx, inputHash, DATA_PATH)
+		if dataErr != nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-	}
-	reader, reader_err := inference.NewBytesReader(inputBytes)
-	if reader_err != nil {
-		log.Warn("inferByInfoHash: read data failed",
-			"input hash", inputHash, "error", reader_err)
-		return nil, KERNEL_LOGIC_ERROR
-	}
-	data, read_data_err := ReadData(reader)
-	if read_data_err != nil {
-		log.Warn("inferByInfoHash: read data failed",
-			"input hash", inputHash, "error", read_data_err)
-		return nil, KERNEL_LOGIC_ERROR
-	}
-	log.Trace("data", "data", data, "len", len(data), "hash", inputInfoHash)
-
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, data, cvmVersion, cvmNetworkId)
-}
-
-func (s *Synapse) inferByInputContent(
-	modelInfoHash, inputInfoHash string,
-	inputContent []byte, cvmVersion int,
-	cvmNetworkId int64) (res []byte, err error) {
-	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
-		return nil, KERNEL_RUNTIME_ERROR
+		reader, reader_err := inference.NewBytesReader(inputBytes)
+		if reader_err != nil {
+			return nil, KERNEL_LOGIC_ERROR
+		}
+		var read_data_err error
+		inputContent, read_data_err = ReadData(reader)
+		if read_data_err != nil {
+			return nil, KERNEL_LOGIC_ERROR
+		}
 	}
 
-	var (
-		modelHash = strings.ToLower(modelInfoHash[2:])
-		inputHash = strings.ToLower(inputInfoHash[2:])
-	)
-	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
-
-	// Inference Cache
-	cacheKey := RLPHashString(modelHash + "_" + inputHash)
-	if v, ok := s.simpleCache.Load(cacheKey); ok && !s.config.IsNotCache {
-		log.Debug("Infer Succeed via Cache", "result", v.([]byte))
-		return v.([]byte), nil
-	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	// lazy initialization of model cache
@@ -241,6 +222,7 @@ func (s *Synapse) inferByInputContent(
 	}
 
 	if !s.config.IsNotCache {
+		simpleCacheMissMeter.Mark(1)
 		s.simpleCache.Store(cacheKey, result)
 	}
 

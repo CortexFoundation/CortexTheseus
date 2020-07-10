@@ -62,6 +62,7 @@ var (
 		// utils.BootnodesV5Flag,
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
+		utils.ExternalSignerFlag,
 		// utils.NoUSBFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
@@ -142,6 +143,7 @@ var (
 
 	storageFlags = []cli.Flag{
 		utils.StorageDirFlag,
+		utils.StorageRpcFlag,
 		utils.StoragePortFlag,
 		//utils.StorageEnabledFlag,
 		utils.StorageMaxSeedingFlag,
@@ -167,6 +169,8 @@ var (
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
+		utils.RPCGlobalGasCap,
+		utils.RPCGlobalTxFeeCap,
 	}
 
 	whisperFlags = []cli.Flag{
@@ -178,6 +182,8 @@ var (
 	metricsFlags = []cli.Flag{
 		utils.MetricsEnabledFlag,
 		utils.MetricsEnabledExpensiveFlag,
+		utils.MetricsHTTPFlag,
+		utils.MetricsPortFlag,
 		utils.MetricsEnableInfluxDBFlag,
 		utils.MetricsInfluxDBEndpointFlag,
 		utils.MetricsInfluxDBDatabaseFlag,
@@ -236,7 +242,7 @@ func init() {
 	app.Flags = append(app.Flags, inferFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
-		return debug.Setup(ctx, "")
+		return debug.Setup(ctx)
 	}
 
 	app.After = func(ctx *cli.Context) error {

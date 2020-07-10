@@ -10,7 +10,7 @@ import (
 
 type onRemoveCallback func(wrappedEntry []byte, reason RemoveReason)
 
-// Metadata contains information of a spesific entry
+// Metadata contains information of a specific entry
 type Metadata struct {
 	RequestCount uint32
 }
@@ -264,20 +264,25 @@ func (s *cacheShard) cleanUp(currentTimestamp uint64) {
 	s.lock.Unlock()
 }
 
-func (s *cacheShard) getEntry(index int) ([]byte, error) {
+func (s *cacheShard) getEntry(hashedKey uint64) ([]byte, error) {
 	s.lock.RLock()
-	entry, err := s.entries.Get(index)
+
+	entry, err := s.getWrappedEntry(hashedKey)
+	// copy entry
+	newEntry := make([]byte, len(entry))
+	copy(newEntry, entry)
+
 	s.lock.RUnlock()
 
-	return entry, err
+	return newEntry, err
 }
 
-func (s *cacheShard) copyKeys() (keys []uint32, next int) {
+func (s *cacheShard) copyHashedKeys() (keys []uint64, next int) {
 	s.lock.RLock()
-	keys = make([]uint32, len(s.hashmap))
+	keys = make([]uint64, len(s.hashmap))
 
-	for _, index := range s.hashmap {
-		keys[next] = index
+	for key := range s.hashmap {
+		keys[next] = key
 		next++
 	}
 
@@ -334,6 +339,15 @@ func (s *cacheShard) getStats() Stats {
 		Collisions: atomic.LoadInt64(&s.stats.Collisions),
 	}
 	return stats
+}
+
+func (s *cacheShard) getKeyMetadataWithLock(key uint64) Metadata {
+	s.lock.RLock()
+	c := s.hashmapStats[key]
+	s.lock.RUnlock()
+	return Metadata{
+		RequestCount: c,
+	}
 }
 
 func (s *cacheShard) getKeyMetadata(key uint64) Metadata {

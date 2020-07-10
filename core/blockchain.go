@@ -1789,8 +1789,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 			}
 		}
 
-		block.Header().Quota.Add(parent.Quota, new(big.Int).SetUint64(bc.chainConfig.GetBlockQuota(block.Number())))
-		block.Header().QuotaUsed.Set(parent.QuotaUsed)
+		block.Header().Quota = parent.Quota + bc.chainConfig.GetBlockQuota(block.Number())
+		block.Header().QuotaUsed = parent.QuotaUsed
 		// Process block using the parent state as reference point
 		substart := time.Now()
 		receipts, logs, usedGas, err := bc.processor.Process(block, statedb, bc.vmConfig)

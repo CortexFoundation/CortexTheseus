@@ -29,8 +29,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
+	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/consensus/misc"
-	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -50,7 +50,10 @@ var (
 	ConstantinopleBlockReward          = big.NewInt(7e+18)
 	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
 	allowedFutureBlockTime             = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
-
+	FixHashes                          = map[common.Hash]bool{
+		common.HexToHash("0x367e111f0f274d54f357ed3dc2d16107b39772c3a767138b857f5c02b5c30607"): true,
+		common.HexToHash("0xbde83a87b6d526ada5a02e394c5f21327acb080568f7cc6f8fff423620f0eec3"): true,
+	}
 	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
 	// It returns the difficulty that a new block should have when created at time given the
 	// parent block's time and difficulty. The calculation uses the Byzantium rules, but with
@@ -70,8 +73,7 @@ var (
 // codebase, inherently breaking if the engine is swapped out. Please put common
 // error types into the consensus package.
 var (
-	errLargeBlockTime    = errors.New("timestamp too big")
-	errZeroBlockTime     = errors.New("timestamp equals parent's")
+	errOlderBlockTime    = errors.New("timestamp older than parent")
 	errTooManyUncles     = errors.New("too many uncles")
 	errDuplicateUncle    = errors.New("duplicate uncle")
 	errUncleIsAncestor   = errors.New("uncle is ancestor")
@@ -259,7 +261,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		}
 	}
 	if header.Time <= parent.Time {
-		return errZeroBlockTime
+		return errOlderBlockTime
 	}
 	// Verify the block's difficulty based in it's timestamp and parent's difficulty
 	expected := cuckoo.CalcDifficulty(chain, header.Time, parent)
@@ -277,7 +279,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 
-	validate := core.CheckGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit)
+	validate := checkGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit)
 	if !validate {
 		return fmt.Errorf("invalid gas limit trend: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
 	}
@@ -299,7 +301,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 		return consensus.ErrInvalidNumber
 	}
 
-	if header.Quota.Cmp(new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))) != 0 {
+	if header.Quota < parent.Quota || header.Quota != parent.Quota+chain.Config().GetBlockQuota(header.Number) {
 		return fmt.Errorf("invalid quota %v, %v, %v", header.Quota, parent.Quota, chain.Config().GetBlockQuota(header.Number))
 	}
 
@@ -312,7 +314,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 	bigMaxReward := big.NewInt(0).Add(big.NewInt(0).Mul(big2, big.NewInt(0).Add(uncleMaxReward, nephewReward)), bigInitReward)
 
 	if header.UncleHash == types.EmptyUncleHash {
-		if _, ok := core.FixHashes[header.Hash()]; ok {
+		if _, ok := FixHashes[header.Hash()]; ok {
 		} else {
 			if header.Supply.Cmp(new(big.Int).Add(parent.Supply, bigInitReward)) > 0 {
 				return fmt.Errorf("invalid supply without uncle %v, %v, %v, %v, %v", header.Supply, parent.Supply, header.Hash().Hex(), header.Number, bigInitReward)
@@ -361,6 +363,31 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	default:
 		return calcDifficultyFrontier(time, parent)
 	}
+}
+
+//important add gas limit to consensus
+func checkGasLimit(gasUsed, gasLimit, currentGasLimit uint64) bool {
+	contrib := (gasUsed + gasUsed/2) / params.GasLimitBoundDivisor
+	decay := gasLimit/params.GasLimitBoundDivisor - 1
+	limit := gasLimit - decay + contrib
+
+	if limit < params.MinGasLimit {
+		limit = params.MinGasLimit
+	}
+
+	if limit < params.MinerGasFloor {
+		limit = gasLimit + decay
+		if limit > params.MinerGasFloor {
+			limit = params.MinerGasFloor
+		}
+	} else if limit > params.MinerGasCeil {
+		limit = gasLimit - decay
+		if limit < params.MinerGasCeil {
+			limit = params.MinerGasCeil
+		}
+	}
+
+	return limit == currentGasLimit
 }
 
 // Some weird constants to avoid constant memory allocs for them.
@@ -621,6 +648,14 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 // the PoW difficulty requirements.
 
 func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+	// If we're running a fake PoW, accept any seal as valid
+	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
+		time.Sleep(cuckoo.fakeDelay)
+		if cuckoo.fakeFail == header.Number.Uint64() {
+			return errInvalidPoW
+		}
+		return nil
+	}
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
 	}
@@ -639,7 +674,8 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
 	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
 	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
-	r := cuckoo.CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64(), targetDiff)
+	//r := cuckoo.CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64(), targetDiff)
+	r := cuckoo.CuckooVerifyHeader(hash, nonce, &result, targetDiff)
 	if !r {
 		log.Trace(fmt.Sprintf("VerifySeal: %v, %v", r, targetDiff))
 		return errInvalidPoW
@@ -657,8 +693,11 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 	}
 	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time, parent)
 	header.Supply = new(big.Int).Set(parent.Supply)
-	header.Quota = new(big.Int).Add(parent.Quota, new(big.Int).SetUint64(chain.Config().GetBlockQuota(header.Number)))
-	header.QuotaUsed = new(big.Int).Set(parent.QuotaUsed)
+	header.Quota = parent.Quota + chain.Config().GetBlockQuota(header.Number)
+	if header.Quota < parent.Quota {
+		panic("quota reaches the upper limit of uint64")
+	}
+	header.QuotaUsed = parent.QuotaUsed
 	return nil
 }
 
@@ -673,6 +712,17 @@ func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header
 	//log.Info(fmt.Sprintf("parent: %v, current: %v, number: %v, total: %v, epoch: %v", parent.Number, header.Hash(), header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
 	// Accumulate any block and uncle rewards and commit the final state root
 	accumulateRewards(chain.Config(), state, header, parent, uncles)
+	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+
+	// Header seems complete, assemble into a block and return
+	return types.NewBlock(header, txs, uncles, receipts), nil
+}
+
+// FinalizeAndAssemble implements consensus.Engine, accumulating the block and
+// uncle rewards, setting the final state and assembling the block.
+func (cuckoo *Cuckoo) FinalizeWithoutParent(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	// Accumulate any block and uncle rewards and commit the final state root
+	accumulateRewardsWithoutParent(chain.Config(), state, header, uncles)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
@@ -800,7 +850,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
 
-		//for hash := range core.FixHashes {
+		//for hash := range FixHashes {
 		//	if hash == headerInitialHash {
 		//		header.Supply.Add(header.Supply, bigFix)
 		//	}
@@ -836,7 +886,92 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			}
 		} else {
 
-			if _, ok := core.FixHashes[headerInitialHash]; ok {
+			if _, ok := FixHashes[headerInitialHash]; ok {
+				header.Supply.Add(header.Supply, bigFix)
+			}
+		}
+
+		state.AddBalance(header.Coinbase, reward)
+	}
+}
+
+// AccumulateRewards credits the coinbase of the given block with the mining
+// reward. The total reward consists of the static block reward and rewards for
+// included uncles. The coinbase of each uncle block is also rewarded.
+func accumulateRewardsWithoutParent(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+	headerInitialHash := header.Hash()
+
+	blockReward := calculateRewardByNumber(header.Number, config.ChainID.Uint64())
+
+	if header.Supply == nil {
+		header.Supply = new(big.Int)
+	}
+	header.Supply.Set(params.CTXC_INIT)
+
+	if header.Supply.Cmp(params.CTXC_INIT) < 0 && config.ChainID.Uint64() != 42 {
+		header.Supply.Set(params.CTXC_INIT)
+	}
+
+	if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
+		blockReward.Set(big0)
+		header.Supply.Set(params.CTXC_TOP)
+	}
+
+	if blockReward.Cmp(big0) > 0 {
+		remain := new(big.Int).Sub(params.CTXC_TOP, header.Supply)
+		header.Supply.Add(header.Supply, blockReward)
+		if header.Supply.Cmp(params.CTXC_TOP) >= 0 {
+			blockReward.Set(remain)
+			header.Supply.Set(params.CTXC_TOP)
+			log.Warn("Congratulations!!! We have mined all cortex", "number", header.Number, "last reward", toCoin(remain))
+		}
+
+		if blockReward.Cmp(big0) <= 0 {
+			//should never happend
+			return
+		}
+
+		// Accumulate the rewards for the miner and any included uncles
+		reward := new(big.Int).Set(blockReward)
+		r := new(big.Int)
+
+		//for hash := range FixHashes {
+		//	if hash == headerInitialHash {
+		//		header.Supply.Add(header.Supply, bigFix)
+		//	}
+		//}
+
+		if len(uncles) > 0 {
+
+			for _, uncle := range uncles {
+				r.Add(uncle.Number, big8)
+				r.Sub(r, header.Number)
+				r.Mul(r, blockReward)
+				r.Div(r, big8)
+
+				header.Supply.Add(header.Supply, r)
+				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+					header.Supply.Sub(header.Supply, r)
+					r.Set(big0)
+					break
+				}
+				state.AddBalance(uncle.Coinbase, r)
+				log.Trace("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
+
+				r.Div(blockReward, big32)
+				header.Supply.Add(header.Supply, r)
+				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
+					header.Supply.Sub(header.Supply, r)
+					r.Set(big0)
+					break
+				}
+
+				log.Trace("Nephew mining reward", "reward", toCoin(r), "total", toCoin(header.Supply))
+				reward.Add(reward, r)
+			}
+		} else {
+
+			if _, ok := FixHashes[headerInitialHash]; ok {
 				header.Supply.Add(header.Supply, bigFix)
 			}
 		}
@@ -858,16 +993,6 @@ func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 	return ret
 }
 
-func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, number uint64, targetDiff *big.Int) bool {
-	if err := cuckoo.InitOnce(); err != nil {
-		log.Error("cuckoo init error", "error", err)
-		return false
-	}
-
-	if m, err := cuckoo.minerPlugin.Lookup("CuckooVerify_cuckaroo"); err != nil {
-		panic(err)
-	} else {
-		r := m.(func(*byte, uint64, types.BlockSolution, []byte, *big.Int) bool)(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
-		return r
-	}
+func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
+	return plugins.CuckooVerify_cuckaroo(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
 }

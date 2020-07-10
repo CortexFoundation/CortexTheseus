@@ -166,6 +166,10 @@ func (b *CortexAPIBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.
 	return b.ctxc.BlockChain().SubscribeChainEvent(ch)
 }
 
+func (b *CortexAPIBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
+	return b.ctxc.miner.SubscribePendingLogs(ch)
+}
+
 func (b *CortexAPIBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	return b.ctxc.BlockChain().SubscribeChainHeadEvent(ch)
 }
@@ -241,6 +245,12 @@ func (b *CortexAPIBackend) EventMux() *event.TypeMux {
 
 func (b *CortexAPIBackend) AccountManager() *accounts.Manager {
 	return b.ctxc.AccountManager()
+}
+func (b *CortexAPIBackend) RPCGasCap() uint64 {
+	return b.ctxc.config.RPCGasCap
+}
+func (b *CortexAPIBackend) RPCTxFeeCap() float64 {
+	return b.ctxc.config.RPCTxFeeCap
 }
 
 func (b *CortexAPIBackend) BloomStatus() (uint64, uint64) {

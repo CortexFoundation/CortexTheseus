@@ -1,18 +1,18 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
@@ -25,7 +25,7 @@ import (
 )
 
 // ServeListener accepts connections on l, serving JSON-RPC on them.
-func (srv *Server) ServeListener(l net.Listener) error {
+func (s *Server) ServeListener(l net.Listener) error {
 	for {
 		conn, err := l.Accept()
 		if netutil.IsTemporaryError(err) {
@@ -34,8 +34,8 @@ func (srv *Server) ServeListener(l net.Listener) error {
 		} else if err != nil {
 			return err
 		}
-		log.Trace("Accepted connection", "addr", conn.RemoteAddr())
-		go srv.ServeCodec(NewJSONCodec(conn), OptionMethodInvocation|OptionSubscriptions)
+		log.Trace("Accepted RPC connection", "conn", conn.RemoteAddr())
+		go s.ServeCodec(NewCodec(conn), 0)
 	}
 }
 
@@ -46,7 +46,11 @@ func (srv *Server) ServeListener(l net.Listener) error {
 // The context is used for the initial connection establishment. It does not
 // affect subsequent interactions with the client.
 func DialIPC(ctx context.Context, endpoint string) (*Client, error) {
-	return newClient(ctx, func(ctx context.Context) (net.Conn, error) {
-		return newIPCConnection(ctx, endpoint)
+	return newClient(ctx, func(ctx context.Context) (ServerCodec, error) {
+		conn, err := newIPCConnection(ctx, endpoint)
+		if err != nil {
+			return nil, err
+		}
+		return NewCodec(conn), err
 	})
 }

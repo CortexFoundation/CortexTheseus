@@ -5,6 +5,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
+	//"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
@@ -76,8 +77,8 @@ type Config struct {
 
 	PowMode Mode
 
-	UseCuda      bool
-	UseOpenCL    bool
+	UseCuda bool
+	//UseOpenCL    bool
 	StrDeviceIds string
 	Threads      int
 	Algorithm    string
@@ -142,6 +143,7 @@ func New(config Config) *Cuckoo {
 		cuckoo.remote()
 	}()
 	//}
+	cuckoo.InitOnce()
 	return cuckoo
 }
 
@@ -166,14 +168,17 @@ const PLUGIN_PATH string = "plugins/"
 const PLUGIN_POST_FIX string = "_helper_for_node.so"
 
 func (cuckoo *Cuckoo) initPlugin() error {
+	if !cuckoo.config.UseCuda {
+		return nil
+	}
 	start := mclock.Now()
 	var minerName string = "cpu"
 	if cuckoo.config.UseCuda {
 		minerName = "cuda"
 		cuckoo.threads = 1
-	} else if cuckoo.config.UseOpenCL {
-		minerName = "opencl"
-		cuckoo.threads = 1
+		//} else if cuckoo.config.UseOpenCL {
+		//	minerName = "opencl"
+		//	cuckoo.threads = 1
 	}
 	if cuckoo.config.StrDeviceIds == "" {
 		cuckoo.config.StrDeviceIds = "0" //default gpu device 0
@@ -203,22 +208,23 @@ func (cuckoo *Cuckoo) InitOnce() error {
 			err = errc //errors.New("Cuckoo plugins init failed")
 			return
 		} else {
-			m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
-			if errc != nil {
-				panic(errc)
-			}
 			// miner algorithm use cuckaroo by default.
 			if cuckoo.config.Threads > 0 && cuckoo.config.UseCuda {
+				m, errc := cuckoo.minerPlugin.Lookup("CuckooInitialize")
+				if errc != nil {
+					panic(errc)
+				}
 				errc = m.(func(int, string, string) error)(cuckoo.config.Threads, cuckoo.config.StrDeviceIds, cuckoo.config.Algorithm)
 			} else {
 				cuckoo.threads = 0
 			}
-			err = errc
-			mem, err := gopsutil.VirtualMemory()
-			if err == nil {
+
+			if mem, err := gopsutil.VirtualMemory(); err == nil {
 				allowance := int(mem.Total / 1024 / 1024 / 3)
 				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance, "cuda", cuckoo.config.UseCuda, "device", cuckoo.config.StrDeviceIds, "threads", cuckoo.config.Threads, "algo", cuckoo.config.Algorithm, "mine", cuckoo.config.Mine)
 			}
+
+			err = errc
 		}
 	})
 	return err
@@ -230,14 +236,15 @@ func (cuckoo *Cuckoo) Close() error {
 
 	cuckoo.wg.Wait()
 	cuckoo.closeOnce.Do(func() {
-		if cuckoo.minerPlugin == nil {
-			return
+		if cuckoo.minerPlugin != nil {
+			m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
+			if e != nil {
+				panic(e)
+			}
+			m.(func())()
+			//		} else {
+			//			plugins.CuckooFinalize()
 		}
-		m, e := cuckoo.minerPlugin.Lookup("CuckooFinalize")
-		if e != nil {
-			panic(e)
-		}
-		m.(func())()
 	})
 	return nil
 }

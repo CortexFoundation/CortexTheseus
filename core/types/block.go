@@ -19,20 +19,20 @@ package types
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/big"
-	//"sort"
-	//"bytes"
-	"fmt"
+	"reflect"
+	"sync"
 	"sync/atomic"
 	"time"
 	//"unsafe"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"golang.org/x/crypto/sha3"
-	"reflect"
 )
 
 var (
@@ -95,9 +95,8 @@ func (s *BlockSolution) UnmarshalText(input []byte) error {
 	return nil
 }
 
-//go:generate
-
 // Header represents a block header in the Cortex blockchain.
+//go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
 type Header struct {
 	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
 	UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
@@ -114,9 +113,9 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
-	Solution    BlockSolution  `json:"solution"			gencodec:"required"`
-	Quota       *big.Int       `json:"quota"       gencodec:"required"`
-	QuotaUsed   *big.Int       `json:"quotaUsed"       gencodec:"required"`
+	Solution    BlockSolution  `json:"solution"         gencodec:"required"`
+	Quota       uint64         `json:"quota"            gencodec:"required"`
+	QuotaUsed   uint64         `json:"quotaUsed"        gencodec:"required"`
 	Supply      *big.Int       `json:"supply"           gencodec:"required"`
 }
 
@@ -126,9 +125,11 @@ type headerMarshaling struct {
 	Number     *hexutil.Big
 	GasLimit   hexutil.Uint64
 	GasUsed    hexutil.Uint64
-	Time       *hexutil.Uint64
+	Time       hexutil.Uint64
 	Extra      hexutil.Bytes
 	Hash       common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
+	Quota      hexutil.Uint64
+	QuotaUsed  hexutil.Uint64
 }
 
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
@@ -161,10 +162,19 @@ func (h *Header) SanityCheck() error {
 	return nil
 }
 
+// hasherPool holds LegacyKeccak hashers.
+var hasherPool = sync.Pool{
+	New: func() interface{} {
+		return sha3.NewLegacyKeccak256()
+	},
+}
+
 func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewLegacyKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
+	sha := hasherPool.Get().(crypto.KeccakState)
+	defer hasherPool.Put(sha)
+	sha.Reset()
+	rlp.Encode(sha, x)
+	sha.Read(h[:])
 	return h
 }
 
@@ -287,13 +297,6 @@ func CopyHeader(h *Header) *Header {
 		cpy.Extra = make([]byte, len(h.Extra))
 		copy(cpy.Extra, h.Extra)
 	}
-	if cpy.Quota = new(big.Int); h.Quota != nil {
-		cpy.Quota.Set(h.Quota)
-	}
-	if cpy.QuotaUsed = new(big.Int); h.QuotaUsed != nil {
-		cpy.QuotaUsed.Set(h.QuotaUsed)
-	}
-
 	if cpy.Supply = new(big.Int); h.Supply != nil {
 		cpy.Supply.Set(h.Supply)
 	}
@@ -363,8 +366,8 @@ func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }
 func (b *Block) UncleHash() common.Hash   { return b.header.UncleHash }
 func (b *Block) Extra() []byte            { return common.CopyBytes(b.header.Extra) }
-func (b *Block) Quota() *big.Int          { return new(big.Int).Set(b.header.Quota) }
-func (b *Block) QuotaUsed() *big.Int      { return new(big.Int).Set(b.header.QuotaUsed) }
+func (b *Block) Quota() uint64            { return b.header.Quota }
+func (b *Block) QuotaUsed() uint64        { return b.header.QuotaUsed }
 func (b *Block) Supply() *big.Int         { return new(big.Int).Set(b.header.Supply) }
 func (b *Block) Header() *Header          { return CopyHeader(b.header) }
 

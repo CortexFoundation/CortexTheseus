@@ -40,6 +40,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/metrics"
 	xlog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
@@ -60,6 +61,18 @@ const (
 
 	block = int64(params.PER_UPLOAD_BYTES)
 	loops = 30
+)
+
+var (
+	getfileMeter   = metrics.NewRegisteredMeter("torrent/getfile/call", nil)
+	availableMeter = metrics.NewRegisteredMeter("torrent/available/call", nil)
+	diskReadMeter  = metrics.NewRegisteredMeter("torrent/disk/read", nil)
+
+	memcacheHitMeter  = metrics.NewRegisteredMeter("torrent/memcache/hit", nil)
+	memcacheReadMeter = metrics.NewRegisteredMeter("torrent/memcache/read", nil)
+
+	memcacheMissMeter  = metrics.NewRegisteredMeter("torrent/memcache/miss", nil)
+	memcacheWriteMeter = metrics.NewRegisteredMeter("torrent/memcache/write", nil)
 )
 
 type TorrentManager struct {
@@ -135,7 +148,7 @@ func (tm *TorrentManager) Close() error {
 	close(tm.closeAll)
 	tm.wg.Wait()
 	tm.dropAll()
-	if tm.cache {
+	if tm.fileCache != nil {
 		tm.fileCache.Reset()
 	}
 
@@ -167,8 +180,9 @@ func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string)
 func (tm *TorrentManager) setTrackers(trackers []string) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	tm.trackers = tm.buildUdpTrackers(trackers)
-	log.Debug("Boot trackers", "t", tm.trackers)
+	//tm.trackers = tm.buildUdpTrackers(trackers)
+	tm.trackers = [][]string{trackers}
+	log.Info("Boot trackers", "t", tm.trackers)
 }
 
 func mmapFile(name string) (mm mmap.MMap, err error) {
@@ -338,7 +352,9 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		return nil, err
 	}
 
-	tmpFilePath := filepath.Join(config.DataDir, defaultTmpFilePath)
+	log.Info("Listening local", "port", cl.LocalPort())
+
+	tmpFilePath := filepath.Join(config.DataDir, defaultTmpPath)
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
 		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0750) //os.FileMode(os.ModePerm))
@@ -398,6 +414,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
 		torrentManager.setTrackers(config.DefaultTrackers)
+		//torrentManager.trackers = config.DefaultTrackers
 	}
 	log.Debug("Fs client initialized", "config", config)
 
@@ -662,7 +679,7 @@ func (tm *TorrentManager) activeLoop() {
 						}
 					} else {
 						err := os.Symlink(
-							filepath.Join(defaultTmpFilePath, ih.String()),
+							filepath.Join(defaultTmpPath, ih.String()),
 							filepath.Join(tm.DataDir, ih.String()),
 						)
 						if err != nil {
@@ -809,7 +826,7 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 	//if fs.metrics {
 	//	defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	//}
-
+	availableMeter.Mark(1)
 	if rawSize <= 0 {
 		return false, errors.New("raw size is zero or negative")
 	}
@@ -826,6 +843,7 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 }
 
 func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
+	getfileMeter.Mark(1)
 	if fs.metrics {
 		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	}
@@ -851,8 +869,10 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 		}
 
 		var key = filepath.Join(infohash, subpath)
-		if fs.cache {
+		if fs.fileCache != nil {
 			if cache, err := fs.fileCache.Get(key); err == nil {
+				memcacheHitMeter.Mark(1)
+				memcacheReadMeter.Mark(int64(len(cache)))
 				if c, err := fs.unzip(cache); err != nil {
 					return nil, err
 				} else {
@@ -866,7 +886,7 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 
 		fs.fileLock.Lock()
 		defer fs.fileLock.Unlock()
-
+		diskReadMeter.Mark(1)
 		data, err := ioutil.ReadFile(filepath.Join(fs.DataDir, key))
 
 		//data final verification
@@ -881,8 +901,10 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 					if c, err := fs.zip(data); err != nil {
 						log.Warn("Compress data failed", "hash", infohash, "err", err)
 					} else {
-						if fs.cache {
+						if fs.fileCache != nil {
 							fs.fileCache.Set(key, c)
+							memcacheMissMeter.Mark(1)
+							memcacheWriteMeter.Mark(int64(len(c)))
 						}
 					}
 				}
@@ -912,4 +934,20 @@ func (fs *TorrentManager) zip(data []byte) ([]byte, error) {
 
 func (fs *TorrentManager) Metrics() time.Duration {
 	return fs.Updates
+}
+
+func (fs *TorrentManager) LocalPort() int {
+	return fs.client.LocalPort()
+}
+
+func (fs *TorrentManager) Congress() int {
+	return len(fs.seedingTorrents)
+}
+
+func (fs *TorrentManager) Candidate() int {
+	return len(fs.activeTorrents)
+}
+
+func (fs *TorrentManager) Nominee() int {
+	return len(fs.pendingTorrents)
 }

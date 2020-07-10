@@ -158,7 +158,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	if atomic.LoadUint32(&manager.fastSync) == 1 {
 		stateBloom = trie.NewSyncBloom(uint64(cacheLimit), chaindb)
 	}
-	manager.downloader = downloader.New(mode, manager.checkpointNumber, chaindb, stateBloom, manager.eventMux, blockchain, manager.removePeer)
+	manager.downloader = downloader.New(manager.checkpointNumber, chaindb, stateBloom, manager.eventMux, blockchain, manager.removePeer)
 
 	// Construct the fetcher (short sync)
 	validator := func(header *types.Header) error {
@@ -330,7 +330,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		return err
 	}
 	// Register the peer locally
-	if err := pm.peers.Register(p); err != nil {
+	if err := pm.peers.Register(p, pm.removePeer); err != nil {
 		p.Log().Error("Cortex peer registration failed", "err", err)
 		return err
 	}

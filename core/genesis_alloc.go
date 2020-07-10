@@ -19,3 +19,4 @@ package core
 // Constants containing the genesis allocation of built-in genesis blocks.
 // Their content is an RLP-encoded list of (address, balance) tuples.
 // Use mkalloc.go to create/update them.
+const allocData = "\xe2\u1538@A\xd0d9{\u0621\x03r \u0656\xc1d\x10\xc2\x0f\x11\x8b{\xe7\xc9kU\xbf\xe0\xec\xe8\x00\x00"

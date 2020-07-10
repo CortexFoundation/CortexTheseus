@@ -33,7 +33,7 @@ var (
 //It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
-	BernardGenesisHash: BernardTrustedCheckpoint,
+	//BernardGenesisHash: BernardTrustedCheckpoint,
 	DoloresGenesisHash: DoloresTrustedCheckpoint,
 }
 
@@ -62,8 +62,8 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
-		SectionIndex: 51,
-		SectionHead:  common.HexToHash("0x51c753c3db97a48a686caf84f82d245b9cda02d1593e97d3e8417dd709e2ec0a"),
+		SectionIndex: 57,
+		SectionHead:  common.HexToHash("0x082fff6a801f0e6ec5355ece1b2406a03f6cd1a7447f297e72b79877860a2d5e"),
 	}
 
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
@@ -168,11 +168,11 @@ var (
 		ChainID: big.NewInt(1337),
 		//HomesteadBlock: big.NewInt(0),
 		//DAOForkBlock: nil,
-		DAOForkSupport: false,
-		//EIP150Block: big.NewInt(0),
-		//EIP150Hash: common.Hash{},
-		//EIP155Block: big.NewInt(0),
-		//EIP158Block: big.NewInt(0),
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.Hash{},
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
 		ByzantiumBlock:      nil,
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),

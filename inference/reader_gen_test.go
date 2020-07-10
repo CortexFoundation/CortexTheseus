@@ -104,7 +104,7 @@ func checkInt8(data []int8) bool {
 	}
 	return true
 }
-func checkByte(data []byte) bool {
+func checkBytes(data []byte) bool {
 	for k := 0; k < len(data); k++ {
 		if data[k] != byte(k) {
 			return false
@@ -424,7 +424,7 @@ func TestReadInt8(t *testing.T) {
 	}
 }
 
-func TestReadByte(t *testing.T) {
+func TestReadBytes(t *testing.T) {
 
 	files := getFlist("i1")
 
@@ -439,12 +439,12 @@ func TestReadByte(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		data, err := rdr.GetByte()
+		data, err := rdr.GetBytes()
 		if err != nil {
 			panic(err)
 		}
 
-		if !checkByte(data) {
+		if !checkBytes(data) {
 			t.Fail()
 		}
 	}

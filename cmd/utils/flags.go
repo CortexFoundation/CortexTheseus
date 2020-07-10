@@ -23,7 +23,6 @@ import (
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"io/ioutil"
 	"os"
-	// "math/big"
 
 	"path/filepath"
 	"runtime"
@@ -51,6 +50,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
+	"github.com/CortexFoundation/CortexTheseus/metrics/exp"
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
@@ -206,6 +206,12 @@ var (
 		Name:  "storage.dir",
 		Usage: "P2P storage directory",
 		Value: DirectoryString{node.DefaultStorageDir("")},
+	}
+
+	StorageRpcFlag = cli.StringFlag{
+		Name:  "storage.rpc",
+		Usage: "P2P storage status sync from blockchain rpc link",
+		Value: "http://127.0.0.1:8545",
 	}
 
 	StoragePortFlag = cli.IntFlag{
@@ -488,9 +494,24 @@ var (
 		Usage: "Password file to use for non-interactive password input",
 		Value: "",
 	}
+	ExternalSignerFlag = cli.StringFlag{
+		Name:  "signer",
+		Usage: "External signer (url or path to ipc file)",
+		Value: "",
+	}
 	InsecureUnlockAllowedFlag = cli.BoolFlag{
 		Name:  "allow-insecure-unlock",
 		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
+	}
+	RPCGlobalGasCap = cli.Uint64Flag{
+		Name:  "rpc.gascap",
+		Usage: "Sets a cap on gas that can be used in ctxc_call/estimateGas",
+		Value: ctxc.DefaultConfig.RPCGasCap,
+	}
+	RPCGlobalTxFeeCap = cli.Float64Flag{
+		Name:  "rpc.txfeecap",
+		Usage: "Sets a cap on transaction fee (in ctxc) that can be sent via the RPC APIs (0 = no cap)",
+		Value: ctxc.DefaultConfig.RPCTxFeeCap,
 	}
 
 	VMEnableDebugFlag = cli.BoolFlag{
@@ -691,6 +712,20 @@ var (
 		Name:  "metrics.expensive",
 		Usage: "Enable expensive metrics collection and reporting",
 	}
+	// MetricsHTTPFlag defines the endpoint for a stand-alone metrics HTTP endpoint.
+	// Since the pprof service enables sensitive/vulnerable behavior, this allows a user
+	// to enable a public-OK metrics endpoint without having to worry about ALSO exposing
+	// other profiling behavior or information.
+	MetricsHTTPFlag = cli.StringFlag{
+		Name:  "metrics.addr",
+		Usage: "Enable stand-alone metrics HTTP server listening interface",
+		Value: "127.0.0.1",
+	}
+	MetricsPortFlag = cli.IntFlag{
+		Name:  "metrics.port",
+		Usage: "Metrics HTTP server listening port",
+		Value: 6060,
+	}
 	MetricsEnableInfluxDBFlag = cli.BoolFlag{
 		Name:  "metrics.influxdb",
 		Usage: "Enable metrics export/push to an external InfluxDB database",
@@ -880,12 +915,15 @@ func setNAT(ctx *cli.Context, cfg *p2p.Config) {
 
 // splitAndTrim splits input separated by a comma
 // and trims excessive white space from the substrings.
-func splitAndTrim(input string) []string {
-	result := strings.Split(input, ",")
-	for i, r := range result {
-		result[i] = strings.TrimSpace(r)
+func splitAndTrim(input string) (ret []string) {
+	l := strings.Split(input, ",")
+	for _, r := range l {
+		r = strings.TrimSpace(r)
+		if len(r) > 0 {
+			ret = append(ret, r)
+		}
 	}
-	return result
+	return ret
 }
 
 // setHTTP creates the HTTP RPC listener interface string from the set
@@ -1085,6 +1123,10 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	// 	cfg.DataDir = filepath.Join(node.DefaultDataDir(), "lazynet")
 	// }
 
+	if ctx.GlobalIsSet(ExternalSignerFlag.Name) {
+		cfg.ExternalSigner = ctx.GlobalString(ExternalSignerFlag.Name)
+	}
+
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.GlobalString(KeyStoreDirFlag.Name)
 	}
@@ -1244,6 +1286,8 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	// Avoid conflicting network flags
 	// checkExclusive(ctx, DeveloperFlag, BernardFlag, LazynetFlag)
+	//CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
+	CheckExclusive(ctx, GCModeFlag, "archive", TxLookupLimitFlag)
 
 	var ks *keystore.KeyStore
 	if keystores := stack.AccountManager().Backends(keystore.KeyStoreType); len(keystores) > 0 {
@@ -1320,10 +1364,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.Miner.GasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
-		cfg.Miner.Recommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
+		cfg.Miner.Recommit = ctx.GlobalDuration(MinerRecommitIntervalFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
-		cfg.Miner.Noverify = ctx.Bool(MinerNoVerfiyFlag.Name)
+		cfg.Miner.Noverify = ctx.GlobalBool(MinerNoVerfiyFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
@@ -1337,6 +1381,17 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
 	//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
 	//	}
+	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
+		cfg.RPCGasCap = ctx.GlobalUint64(RPCGlobalGasCap.Name)
+	}
+	if cfg.RPCGasCap != 0 {
+		log.Info("Set global gas cap", "cap", cfg.RPCGasCap)
+	} else {
+		log.Info("Global gas cap disabled")
+	}
+	if ctx.GlobalIsSet(RPCGlobalTxFeeCap.Name) {
+		cfg.RPCTxFeeCap = ctx.GlobalFloat64(RPCGlobalTxFeeCap.Name)
+	}
 	if ctx.GlobalIsSet(DNSDiscoveryFlag.Name) {
 		urls := ctx.GlobalString(DNSDiscoveryFlag.Name)
 		if urls == "" {
@@ -1351,6 +1406,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	cfg.Cuckoo.Algorithm = "cuckaroo" //ctx.GlobalString(MinerAlgorithmFlag.Name)
 	// cfg.InferURI = ctx.GlobalString(ModelCallInterfaceFlag.Name)
 	cfg.StorageDir = MakeStorageDir(ctx)
+	//cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)
 	cfg.InferDeviceType = ctx.GlobalString(InferDeviceTypeFlag.Name)
 	if cfg.InferDeviceType == "cpu" {
 	} else if cfg.InferDeviceType == "gpu" {
@@ -1469,14 +1525,14 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
 	if runtime.GOOS == "windows" || IPCDisabled {
 		cfg.IpcPath = ""
-		cfg.RpcURI = "http://" + ctx.GlobalString(RPCListenAddrFlag.Name) + ":" + string(ctx.GlobalInt(RPCPortFlag.Name))
+		//cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)//"http://" + ctx.GlobalString(RPCListenAddrFlag.Name) + ":" + string(ctx.GlobalInt(RPCPortFlag.Name))
 	} else {
 		path := MakeDataDir(ctx)
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
-		//log.Info("path", "path", path, "ipc", IPCPath)
-		//log.Info("FsConfig", "IPCPath", cfg.IpcPath)
 	}
+	cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)
+
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
 	cfg.DefaultTrackers = strings.Split(trackers, ",")
@@ -1559,6 +1615,11 @@ func SetupMetrics(ctx *cli.Context) {
 			tagsMap := SplitTagsFlag(ctx.GlobalString(MetricsInfluxDBTagsFlag.Name))
 			log.Info("Enabling metrics export to InfluxDB", "tags", tagsMap)
 			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "cortex.", tagsMap)
+		}
+		if ctx.GlobalIsSet(MetricsHTTPFlag.Name) {
+			address := fmt.Sprintf("%s:%d", ctx.GlobalString(MetricsHTTPFlag.Name), ctx.GlobalInt(MetricsPortFlag.Name))
+			log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
+			exp.Setup(address)
 		}
 	}
 }

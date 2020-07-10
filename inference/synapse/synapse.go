@@ -145,9 +145,7 @@ func (s *Synapse) InferByInputContent(
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkId)
 	}
-	inputInfoHash := RLPHashString(inputContent)
-	log.Trace("content", "inputContent", inputContent, "inputInfoHash", inputInfoHash, "modelInfoHash", modelInfoHash)
-	return s.inferByInputContent(modelInfoHash, inputInfoHash, inputContent, cvmVersion, cvmNetworkId)
+	return s.inferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkId)
 }
 
 func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (gas uint64, err error) {

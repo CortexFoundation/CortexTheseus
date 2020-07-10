@@ -39,6 +39,7 @@ import (
 type Backend interface {
 	BlockChain() *core.BlockChain
 	TxPool() *core.TxPool
+	CheckPoint() uint64
 }
 
 // Config is the configuration parameters of mining.
@@ -53,7 +54,6 @@ type Config struct {
 	Noverify  bool           // Disable remote mining solution verification(only useful in ethash).
 
 	Cuda    bool
-	OpenCL  bool
 	Devices string
 }
 
@@ -89,7 +89,7 @@ func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *eve
 // the loop is exited. This to prevent a major security vuln where external parties can DOS you with blocks
 // and halt your mining operation for as long as the DOS continues.
 func (miner *Miner) update() {
-	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{}, downloader.FailedEvent{})
+	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -106,7 +106,17 @@ func (miner *Miner) update() {
 					atomic.StoreInt32(&miner.shouldStart, 1)
 					log.Info("Mining aborted due to sync")
 				}
-			case downloader.DoneEvent, downloader.FailedEvent:
+			case downloader.DoneEvent:
+				done, ok := ev.Data.(downloader.DoneEvent)
+				if !ok {
+					continue
+				}
+				if timestamp := time.Unix(int64(done.Latest.Time), 0); time.Since(timestamp) < 10*time.Minute {
+					log.Info("Synchronisation completed, start mining", "latestnum", done.Latest.Number, "latesthash", done.Latest.Hash(),
+						"age", common.PrettyAge(timestamp))
+				} else {
+					continue
+				}
 				shouldStart := atomic.LoadInt32(&miner.shouldStart) == 1
 
 				atomic.StoreInt32(&miner.canStart, 1)
@@ -185,4 +195,27 @@ func (miner *Miner) Start(coinbase common.Address) {
 		return
 	}
 	miner.worker.start()
+}
+
+// EnablePreseal turns on the preseal mining feature. It's enabled by default.
+// Note this function shouldn't be exposed to API, it's unnecessary for users
+// (miners) to actually know the underlying detail. It's only for outside project
+// which uses this library.
+func (miner *Miner) EnablePreseal() {
+	miner.worker.enablePreseal()
+}
+
+// DisablePreseal turns off the preseal mining feature. It's necessary for some
+// fake consensus engine which can seal blocks instantaneously.
+// Note this function shouldn't be exposed to API, it's unnecessary for users
+// (miners) to actually know the underlying detail. It's only for outside project
+// which uses this library.
+func (miner *Miner) DisablePreseal() {
+	miner.worker.disablePreseal()
+}
+
+// SubscribePendingLogs starts delivering logs from pending transactions
+// to the given channel.
+func (miner *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription {
+	return miner.worker.pendingLogsFeed.Subscribe(ch)
 }
