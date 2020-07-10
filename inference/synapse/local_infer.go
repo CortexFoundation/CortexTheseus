@@ -44,7 +44,7 @@ func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 func fixTorrentHash(ih string, cvmNetworkId int64) string {
 	if cvmNetworkId == 43 {
 		if ch, ok := CvmDolFixTorrHashes[ih]; ok {
-			log.Warn("start hacking hash", "ih", ih,
+			log.Debug("start hacking hash", "ih", ih,
 				"ch", ch, "cvmNetworkId", cvmNetworkId)
 			return ch
 		}
@@ -220,7 +220,7 @@ func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error 
 	ih := strings.ToLower(infoHash[2:])
 	if cvmNetworkId == 43 {
 		if _, ok := CvmDolFixTorrHashes[ih]; ok {
-			log.Warn("Available: start hacking...",
+			log.Debug("Available: start hacking...",
 				"ih", ih, "cvmNetworkId", cvmNetworkId)
 			return nil
 		}
