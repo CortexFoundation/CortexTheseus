@@ -354,7 +354,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 
 	log.Info("Listening local", "port", cl.LocalPort())
 
-	tmpFilePath := filepath.Join(config.DataDir, defaultTmpFilePath)
+	tmpFilePath := filepath.Join(config.DataDir, defaultTmpPath)
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
 		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0750) //os.FileMode(os.ModePerm))
@@ -679,7 +679,7 @@ func (tm *TorrentManager) activeLoop() {
 						}
 					} else {
 						err := os.Symlink(
-							filepath.Join(defaultTmpFilePath, ih.String()),
+							filepath.Join(defaultTmpPath, ih.String()),
 							filepath.Join(tm.DataDir, ih.String()),
 						)
 						if err != nil {
