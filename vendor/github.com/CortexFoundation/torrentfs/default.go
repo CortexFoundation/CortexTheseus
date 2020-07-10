@@ -69,6 +69,6 @@ const (
 	torrentWaitingTime             = 1800
 	downloadWaitingTime            = 2700
 	defaultBytesLimitation         = 512 * 1024
-	defaultTmpFilePath             = ".tmp"
+	defaultTmpPath             = ".tmp"
 	version                        = "1"
 )
