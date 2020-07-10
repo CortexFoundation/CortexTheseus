@@ -1,9 +1,9 @@
 package synapse
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	// "io/ioutil"
+	// "os"
+	// "path/filepath"
 	"strings"
 	//"sync"
 
@@ -39,28 +39,6 @@ func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 	}
 	log.Warn("status code invalid", "code", status)
 	return nil, KERNEL_RUNTIME_ERROR
-}
-
-func hackFile(infoHash, rpath string) ([]byte, error) {
-	var hash = strings.ToLower(infoHash[2:])
-	log.Warn("start hacking...", "infoHash", infoHash)
-	ex, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-	exPath := filepath.Dir(ex)
-	hackPath := filepath.Join(
-		exPath, "..", "..", "hacks", hash, rpath)
-	bytes, err := ioutil.ReadFile(hackPath)
-	if err != nil {
-		log.Error("inferByInfoHash: hacking failed",
-			"infoHash", infoHash, "error", err)
-		return nil, KERNEL_RUNTIME_ERROR
-	} else {
-		log.Info("inferByInfoHash: successfully hacked",
-			"infohash", infoHash)
-	}
-	return bytes, nil
 }
 
 func fixTorrentHash(ih string, cvmNetworkId int64) string {
@@ -249,13 +227,6 @@ func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error 
 	}
 	is_ok, err := s.config.Storagefs.Available(s.ctx, ih, rawSize)
 	if err != nil {
-		if cvmNetworkId == 43 &&
-			ih == "de58609743e5cd0cb18798d91a196f418ac25016" {
-			// TODO(ryt): this part should be deprecated using hashFix maps
-			log.Warn("Available: start hacking...", "ih", ih)
-			return nil
-		}
-
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
 	} else if !is_ok {
