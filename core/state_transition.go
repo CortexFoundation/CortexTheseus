@@ -369,14 +369,18 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 				continue
 			}
 
-			gu -= mgas
-			if gu < 0 { //should never happen
-				//if mgas+gu > 0 {
-				//	st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
-				//}
-
+			if gu < mgas {
 				return nil, 0, 0, false, vm.ErrInsufficientBalance
 			}
+
+			gu -= mgas
+			//if gu < 0 { //should never happen
+			//if mgas+gu > 0 {
+			//	st.state.AddBalance(addr, new(big.Int).Mul(new(big.Int).SetUint64(mgas+gu), st.gasPrice))
+			//}
+
+			//	return nil, 0, 0, false, vm.ErrInsufficientBalance
+			//}
 			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
 			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward, "number", cvm.BlockNumber)
 			st.state.AddBalance(addr, reward)
