@@ -22,3 +22,8 @@ var CvmFixHashes = map[string][]byte{
 	"0x53f8e0b0c93dedff2706e28643804470d67d79a9f1447b75dab09304ed8d1fe0": []byte{19, 52, 238, 252, 208, 237, 223, 227, 243, 91},
 	"0xe0c42bc0779d627e14fba7c4e6f355644aa2535dfe9786d64684fb05f1de615c": []byte{6, 252, 4, 59, 242, 0, 247, 30, 224, 217},
 }
+
+var CvmDolFixTorrHashes = map[string]string{
+	// "31f75c90e8fe1c5b16cbdc466dc6127487a92add": "0d23bf93f21b80393cce77ad8021386458adb8fc",
+	"31f75c90e8fe1c5b16cbdc466dc6127487a92add": "c816d85a023abacb687080ca57f580d4999b8b1d",
+}

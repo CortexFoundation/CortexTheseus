@@ -6,7 +6,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/torrentfs"
+	"math/big"
 	"strconv"
 	"sync"
 )
@@ -26,10 +28,9 @@ var (
 	}
 )
 
+const PLUGIN_PATH string = "plugins/"
+const PLUGIN_POST_FIX string = "lib_cvm.so"
 const (
-	PLUGIN_PATH     string = "plugins/"
-	PLUGIN_POST_FIX string = "_cvm.so"
-
 	MinMemoryUsage      int64 = 2 * 1024 * 1024 * 1024
 	ReservedMemoryUsage int64 = 512 * 1024 * 1024
 )
@@ -69,7 +70,8 @@ func Engine() *Synapse {
 }
 
 func New(config *Config) *Synapse {
-	path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX
+	// path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX
+	path := PLUGIN_PATH + PLUGIN_POST_FIX
 	if synapseInstance != nil {
 		log.Warn("Synapse Engine has been initalized")
 		if config.Debug {
@@ -119,23 +121,36 @@ func (s *Synapse) Close() {
 	log.Info("Synapse Engine Closed")
 }
 
-func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
-	if s.config.IsRemoteInfer {
-		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash)
+func CVMVersion(config *params.ChainConfig, num *big.Int) int {
+	// TODO(ryt): For Istanbul and versions after Istanbul, return CVM_VERSION_TWO
+	version := kernel.CVM_VERSION_ONE
+	if config.IsIstanbul(num) {
+		version = kernel.CVM_VERSION_TWO
 	}
-	return s.inferByInfoHash(modelInfoHash, inputInfoHash)
+	return version
 }
 
-func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
+func (s *Synapse) InferByInfoHash(
+	modelInfoHash, inputInfoHash string,
+	cvmVersion int, cvmNetworkId int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInputContent(modelInfoHash, inputContent)
+		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkId)
 	}
-	return s.inferByInputContent(modelInfoHash, inputContent)
+	return s.inferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkId)
 }
 
-func (s *Synapse) GetGasByInfoHash(modelInfoHash string) (gas uint64, err error) {
+func (s *Synapse) InferByInputContent(
+	modelInfoHash string, inputContent []byte,
+	cvmVersion int, cvmNetworkId int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteGasByModelHash(modelInfoHash)
+		return s.remoteInferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkId)
 	}
-	return s.getGasByInfoHash(modelInfoHash)
+	return s.inferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkId)
+}
+
+func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (gas uint64, err error) {
+	if s.config.IsRemoteInfer {
+		return s.remoteGasByModelHash(modelInfoHash, cvmNetworkId)
+	}
+	return s.getGasByInfoHash(modelInfoHash, cvmNetworkId)
 }

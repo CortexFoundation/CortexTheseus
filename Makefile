@@ -76,6 +76,21 @@ wnode:
 	build/env.sh go run build/ci.go install ./cmd/wnode
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/wnode\" to launch cortex whisper node."
+
+torrent-test:
+	build/env.sh go run build/ci.go install ./cmd/torrent-test
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
+
+cvm: plugins/lib_cvm.so
+	build/env.sh go run build/ci.go install ./cmd/cvm
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
+nodekey:
+	build/env.sh go run build/ci.go install ./cmd/nodekey
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/nodekey\" to launch nodekey."
+
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C $(BASE)/solution cuda
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
@@ -84,25 +99,18 @@ plugins/cpu_helper_for_node.so:
 	#$(MAKE) -C $(BASE)/solution cpu-miner
 	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
-plugins/cuda_cvm.so:
-	$(MAKE) -C ${INFER_NET_DIR} -j$(nproc) gpu
-	mkdir -p $(BASE)/plugins
-	ln -sf ../cvm-runtime/build/gpu/libcvm_runtime_cuda.so $(BASE)/plugins/cuda_cvm.so
-	# build/env.sh go build -v -tags gpu -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
-
-plugins/cpu_cvm.so:
-	$(MAKE) -C ${INFER_NET_DIR} -j$(nproc) cpu
-	mkdir -p $(BASE)/plugins
-	ln -sf ../cvm-runtime/build/cpu/libcvm_runtime_cpu.so $(BASE)/plugins/cpu_cvm.so
+plugins/lib_cvm.so:
+	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
+	@mkdir -p plugins
+	ln -sf ../cvm-runtime/build/libcvm_runtime.so $@
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
-clib_cpu: plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
-#clib_cpu: plugins/cpu_cvm.so
+clib_cpu: plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
-clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cuda_cvm.so plugins/cpu_cvm.so
+clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
-clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/cpu_cvm.so
+clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/lib_cvm.so
 
 #inferServer: clib
 #	build/env.sh go run build/ci.go install ./cmd/infer_server

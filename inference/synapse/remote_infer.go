@@ -13,10 +13,11 @@ import (
 
 var client = resty.New()
 
-func (s *Synapse) remoteGasByModelHash(modelInfoHash string) (uint64, error) {
+func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkId int64) (uint64, error) {
 	inferWork := &inference.GasWork{
-		Type:  inference.GAS_BY_H,
-		Model: modelInfoHash,
+		Type:         inference.GAS_BY_H,
+		Model:        modelInfoHash,
+		CvmNetworkId: cvmNetworkId,
 	}
 
 	requestBody, errMarshal := json.Marshal(inferWork)
@@ -34,11 +35,12 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash string) (uint64, error) {
 }
 
 //func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
-func (s *Synapse) remoteAvailable(infoHash string, rawSize int64) error {
+func (s *Synapse) remoteAvailable(infoHash string, rawSize, cvmNetworkId int64) error {
 	inferWork := &inference.AvailableWork{
-		Type:     inference.AVAILABLE_BY_H,
-		InfoHash: infoHash,
-		RawSize:  rawSize,
+		Type:         inference.AVAILABLE_BY_H,
+		InfoHash:     infoHash,
+		RawSize:      rawSize,
+		CvmNetworkId: cvmNetworkId,
 	}
 
 	requestBody, errMarshal := json.Marshal(inferWork)
@@ -52,11 +54,13 @@ func (s *Synapse) remoteAvailable(infoHash string, rawSize int64) error {
 	return err
 }
 
-func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string) ([]byte, error) {
+func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
 	inferWork := &inference.IHWork{
-		Type:  inference.INFER_BY_IH,
-		Model: modelInfoHash,
-		Input: inputInfoHash,
+		Type:         inference.INFER_BY_IH,
+		Model:        modelInfoHash,
+		Input:        inputInfoHash,
+		CvmVersion:   cvmVersion,
+		CvmNetworkId: cvmNetworkId,
 	}
 
 	requestBody, err := json.Marshal(inferWork)
@@ -68,11 +72,13 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string) ([]
 	return s.sendRequest(requestBody)
 }
 
-func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent []byte) ([]byte, error) {
+func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
 	inferWork := &inference.ICWork{
-		Type:  inference.INFER_BY_IC,
-		Model: modelInfoHash,
-		Input: hexutil.Bytes(inputContent),
+		Type:         inference.INFER_BY_IC,
+		Model:        modelInfoHash,
+		Input:        hexutil.Bytes(inputContent),
+		CvmVersion:   cvmVersion,
+		CvmNetworkId: cvmNetworkId,
 	}
 
 	requestBody, err := json.Marshal(inferWork)
