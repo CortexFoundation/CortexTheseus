@@ -42,4 +42,6 @@ var GoodFiles = map[string]bool{
 	"ad3d77101866c0c7520aa41a5c41eee92500f809": false,
 	"67b315aac2fbdbaf97ac8d40df0b9c435b65c4aa": false,
 	"b08e2c6103157ab99040cdc9ddfee05e93763f6c": false,
+
+	"de58609743e5cd0cb18798d91a196f418ac25016": true,
 }
