@@ -50,6 +50,7 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 1. git clone --recursive https://github.com/CortexFoundation/CortexTheseus.git
 2. cd CortexTheseus
 3. make clean && make -j$(nproc)
+
 (If failed, run ```git submodule init && git submodule update``` and try again)
 
 ### Running Bash
