@@ -18,6 +18,7 @@ package ctxcclient
 
 import (
 	"context"
+	"errors"
 	"github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
@@ -252,51 +253,51 @@ func TestHeader(t *testing.T) {
 	}
 }
 
-//func TestBalanceAt(t *testing.T) {
-//	backend, _ := newTestBackend(t)
-//	client, _ := backend.Attach()
-//	defer backend.Stop()
-//	defer client.Close()
-//
-//	tests := map[string]struct {
-//		account common.Address
-//		block   *big.Int
-//		want    *big.Int
-//		wantErr error
-//	}{
-//		"valid_account": {
-//			account: testAddr,
-//			block:   big.NewInt(1),
-//			want:    testBalance,
-//		},
-//		"non_existent_account": {
-//			account: common.Address{1},
-//			block:   big.NewInt(1),
-//			want:    big.NewInt(0),
-//		},
-//		"future_block": {
-//			account: testAddr,
-//			block:   big.NewInt(1000000000),
-//			want:    big.NewInt(0),
-//			wantErr: errors.New("header not found"),
-//		},
-//	}
-//	for name, tt := range tests {
-//		t.Run(name, func(t *testing.T) {
-//			ec := NewClient(client)
-//			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-//			defer cancel()
-//
-//			got, err := ec.BalanceAt(ctx, tt.account, tt.block)
-//			if tt.wantErr != nil && (err == nil || err.Error() != tt.wantErr.Error()) {
-//				t.Fatalf("BalanceAt(%x, %v) error = %q, want %q", tt.account, tt.block, err, tt.wantErr)
-//			}
-//			if got.Cmp(tt.want) != 0 {
-//				t.Fatalf("BalanceAt(%x, %v) = %v, want %v", tt.account, tt.block, got, tt.want)
-//			}
-//		})
-//	}
-//}
+func TestBalanceAt(t *testing.T) {
+	backend, _ := newTestBackend(t)
+	client, _ := backend.Attach()
+	defer backend.Stop()
+	defer client.Close()
+
+	tests := map[string]struct {
+		account common.Address
+		block   *big.Int
+		want    *big.Int
+		wantErr error
+	}{
+		"valid_account": {
+			account: testAddr,
+			block:   big.NewInt(1),
+			want:    testBalance,
+		},
+		"non_existent_account": {
+			account: common.Address{1},
+			block:   big.NewInt(1),
+			want:    big.NewInt(0),
+		},
+		"future_block": {
+			account: testAddr,
+			block:   big.NewInt(1000000000),
+			want:    big.NewInt(0),
+			wantErr: errors.New("header not found"),
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			ec := NewClient(client)
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			defer cancel()
+
+			got, err := ec.BalanceAt(ctx, tt.account, tt.block)
+			if tt.wantErr != nil && (err == nil || err.Error() != tt.wantErr.Error()) {
+				t.Fatalf("BalanceAt(%x, %v) error = %q, want %q", tt.account, tt.block, err, tt.wantErr)
+			}
+			if got.Cmp(tt.want) != 0 {
+				t.Fatalf("BalanceAt(%x, %v) = %v, want %v", tt.account, tt.block, got, tt.want)
+			}
+		})
+	}
+}
 
 func TestTransactionInBlockInterrupted(t *testing.T) {
 	backend, _ := newTestBackend(t)
