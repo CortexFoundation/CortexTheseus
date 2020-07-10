@@ -1,28 +1,31 @@
 // Copyright 2018 The CortexTheseus Authors
 // This file is part of CortexFoundation.
 //
-// CortexFoundation is free software: you can redistribute it and/or modify
+// CortexTheseus is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// CortexFoundation is distributed in the hope that it will be useful,
+// CortexTheseus is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with CortexFoundation. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexTheseus. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/internal/cmdtest"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/docker/docker/pkg/reexec"
 )
 
@@ -43,7 +46,7 @@ type testcortex struct {
 }
 
 func init() {
-	// Run the app if we've been exec'd as "cortex-test" in runCtxc.
+	// Run the app if we've been exec'd as "cortex-test" in runCortex.
 	reexec.Register("cortex-test", func() {
 		if err := app.Run(os.Args); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -95,4 +98,29 @@ func runCtxc(t *testing.T, args ...string) *testcortex {
 	tt.Run("cortex-test", args...)
 
 	return tt
+}
+
+// waitForEndpoint attempts to connect to an RPC endpoint until it succeeds.
+func waitForEndpoint(t *testing.T, endpoint string, timeout time.Duration) {
+	probe := func() bool {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		c, err := rpc.DialContext(ctx, endpoint)
+		if c != nil {
+			_, err = c.SupportedModules()
+			c.Close()
+		}
+		return err == nil
+	}
+
+	start := time.Now()
+	for {
+		if probe() {
+			return
+		}
+		if time.Since(start) > timeout {
+			t.Fatal("endpoint", endpoint, "did not open within", timeout)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
 }
