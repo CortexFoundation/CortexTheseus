@@ -30,6 +30,9 @@ jobs:
     #      go get -u golang.org/x/lint/golint
     #      golint ./...
 
+    - name: submodule
+      run: git submodule update --init --recursive
+
     - name: Static code check
       run: |
           export PATH=$PATH:$(go env GOPATH)/bin
@@ -42,9 +45,6 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-
-    - name: install
-      run: git submodule update --init --recursive
         
     - name: Build
       run: make clean && make -j$(nproc)
