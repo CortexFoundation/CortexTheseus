@@ -52,11 +52,9 @@ func TestHeaderVerification(t *testing.T) {
 			var results <-chan error
 
 			if valid {
-				t.Log("verify header for true: ", i)
 				engine := cuckoo.NewFaker()
 				_, results = engine.VerifyHeaders(chain, []*types.Header{headers[i]}, []bool{true})
 			} else {
-				t.Log("verify header for false: ", i)
 				engine := cuckoo.NewFakeFailer(headers[i].Number.Uint64())
 				_, results = engine.VerifyHeaders(chain, []*types.Header{headers[i]}, []bool{true})
 			}
@@ -131,7 +129,7 @@ func testHeaderConcurrentVerification(t *testing.T, threads int) {
 		}
 		// Check nonce check validity
 		for j := 0; j < len(blocks); j++ {
-			want := valid // || (j < len(blocks)-2) // We chose the last-but-one nonce in the chain to fail
+			want := valid || (j < len(blocks)-2) // We chose the last-but-one nonce in the chain to fail
 			if (checks[j] == nil) != want {
 				t.Errorf("test %d.%d: validity mismatch: have %v, want %v", i, j, checks[j], want)
 			}

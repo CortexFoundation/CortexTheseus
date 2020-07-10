@@ -170,7 +170,6 @@ var (
 func newTestBackend(t *testing.T) (*node.Node, []*types.Block) {
 	// Generate test chain.
 	genesis, blocks := generateTestChain()
-	fmt.Println("len of blocks: ", len(blocks))
 	// Start Cortex service.
 	var ctxcservice *ctxc.Cortex
 	n, err := node.New(&node.Config{})
@@ -206,8 +205,6 @@ func generateTestChain() (*core.Genesis, []*types.Block) {
 	}
 	gblock := genesis.ToBlock(db)
 	engine := cuckoo.NewFaker()
-	fmt.Println("gblock: ", gblock)
-	fmt.Println(rawdb.ReadCanonicalHash(db, 0).Hex())
 	blocks, _ := core.GenerateChain(config, gblock, engine, db, 1, generate)
 	blocks = append([]*types.Block{gblock}, blocks...)
 	return genesis, blocks

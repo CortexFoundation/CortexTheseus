@@ -159,7 +159,8 @@ func (b *BlockGen) OffsetTime(seconds int64) {
 	if b.header.Time <= b.parent.Header().Time {
 		panic("block time out of range")
 	}
-	b.header.Difficulty = b.engine.CalcDifficulty(b.chainReader, b.header.Time, b.parent.Header())
+	chainreader := &fakeChainReader{config: b.config}
+	b.header.Difficulty = b.engine.CalcDifficulty(chainreader, b.header.Time, b.parent.Header())
 }
 
 // GenerateChain creates a chain of n blocks. The first block's
@@ -179,6 +180,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		config = params.TestChainConfig
 	}
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
+	chainreader := &fakeChainReader{config: config}
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		// TODO(karalabe): This is needed for clique, which depends on multiple blocks.
 		// It's nonetheless ugly to spin up a blockchain here. Get rid of this somehow.
@@ -186,14 +188,14 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		defer blockchain.Stop()
 
 		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
-		b.header = makeHeader(b.chainReader, parent, statedb, b.engine)
+		b.header = makeHeader(chainreader, parent, statedb, b.engine)
 		// Execute any user modifications to the block and finalize it
 		if gen != nil {
 			gen(i, b)
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, err := b.engine.FinalizeWithoutParent(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts)
+			block, err := b.engine.FinalizeWithoutParent(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts)
 			if block == nil {
 				panic(err)
 			}
@@ -270,3 +272,18 @@ func makeBlockChain(parent *types.Block, n int, engine consensus.Engine, db ctxc
 func (b *BlockGen) AddUncheckedTx(tx *types.Transaction) {
 	b.txs = append(b.txs, tx)
 }
+
+type fakeChainReader struct {
+	config *params.ChainConfig
+}
+
+// Config returns the chain configuration.
+func (cr *fakeChainReader) Config() *params.ChainConfig {
+	return cr.config
+}
+
+func (cr *fakeChainReader) CurrentHeader() *types.Header                            { return nil }
+func (cr *fakeChainReader) GetHeaderByNumber(number uint64) *types.Header           { return nil }
+func (cr *fakeChainReader) GetHeaderByHash(hash common.Hash) *types.Header          { return nil }
+func (cr *fakeChainReader) GetHeader(hash common.Hash, number uint64) *types.Header { return nil }
+func (cr *fakeChainReader) GetBlock(hash common.Hash, number uint64) *types.Block   { return nil }
