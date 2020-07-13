@@ -14,13 +14,13 @@ import (
 var client = resty.New()
 
 func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkId int64) (uint64, error) {
-	inferWork := &inference.GasWork{
+	inferWork := inference.GasWork{
 		Type:         inference.GAS_BY_H,
 		Model:        modelInfoHash,
 		CvmNetworkId: cvmNetworkId,
 	}
 
-	requestBody, errMarshal := json.Marshal(inferWork)
+	requestBody, errMarshal := inferWork.MarshalJSON() //json.Marshal(inferWork)
 	if errMarshal != nil {
 		log.Warn("remote infer: marshal json failed", "body", inferWork, "error", errMarshal)
 		return 0, KERNEL_RUNTIME_ERROR
@@ -36,14 +36,14 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkId int64)
 
 //func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
 func (s *Synapse) remoteAvailable(infoHash string, rawSize, cvmNetworkId int64) error {
-	inferWork := &inference.AvailableWork{
+	inferWork := inference.AvailableWork{
 		Type:         inference.AVAILABLE_BY_H,
 		InfoHash:     infoHash,
 		RawSize:      rawSize,
 		CvmNetworkId: cvmNetworkId,
 	}
 
-	requestBody, errMarshal := json.Marshal(inferWork)
+	requestBody, errMarshal := inferWork.MarshalJSON() //json.Marshal(inferWork)
 	if errMarshal != nil {
 		log.Warn("remote infer: marshal json failed", "error", errMarshal)
 		return KERNEL_RUNTIME_ERROR
@@ -55,7 +55,7 @@ func (s *Synapse) remoteAvailable(infoHash string, rawSize, cvmNetworkId int64) 
 }
 
 func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
-	inferWork := &inference.IHWork{
+	inferWork := inference.IHWork{
 		Type:         inference.INFER_BY_IH,
 		Model:        modelInfoHash,
 		Input:        inputInfoHash,
@@ -63,7 +63,7 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvm
 		CvmNetworkId: cvmNetworkId,
 	}
 
-	requestBody, err := json.Marshal(inferWork)
+	requestBody, err := inferWork.MarshalJSON() //json.Marshal(inferWork)
 	if err != nil {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -73,7 +73,7 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvm
 }
 
 func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
-	inferWork := &inference.ICWork{
+	inferWork := inference.ICWork{
 		Type:         inference.INFER_BY_IC,
 		Model:        modelInfoHash,
 		Input:        hexutil.Bytes(inputContent),
@@ -81,7 +81,7 @@ func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent [
 		CvmNetworkId: cvmNetworkId,
 	}
 
-	requestBody, err := json.Marshal(inferWork)
+	requestBody, err := inferWork.MarshalJSON() //json.Marshal(inferWork)
 	if err != nil {
 		log.Warn("remote infer: marshal json failed", "body", inferWork, "err", err)
 		return nil, KERNEL_RUNTIME_ERROR
