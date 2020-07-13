@@ -80,8 +80,24 @@ func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error
 	consoleObj.Set("error", consoleOutput)
 	vm.Set("console", consoleObj)
 
+	storageObj := vm.NewObject()
+	storageObj.Set("Put", func(call goja.FunctionCall) goja.Value {
+		key, val := call.Argument(0).String(), call.Argument(1).String()
+		if val == "" {
+			r.storage.Del(key)
+		} else {
+			r.storage.Put(key, val)
+		}
+		return goja.Null()
+	})
+	storageObj.Set("Get", func(call goja.FunctionCall) goja.Value {
+		goval := r.storage.Get(call.Argument(0).String())
+		jsval := vm.ToValue(goval)
+		return jsval
+	})
+	vm.Set("storage", storageObj)
 	// Load bootstrap libraries
-	script, err := goja.Compile("bignumber.js", string(BigNumber_JS),true)
+	script, err := goja.Compile("bignumber.js", string(BigNumber_JS), true)
 	if err != nil {
 		log.Warn("Failed loading libraries", "err", err)
 		return goja.Undefined(), err
