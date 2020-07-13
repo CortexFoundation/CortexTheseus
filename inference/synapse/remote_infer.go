@@ -8,10 +8,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	resty "github.com/go-resty/resty/v2" //"gopkg.in/resty.v1"
 )
-
-var client = resty.New()
 
 func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkId int64) (uint64, error) {
 	inferWork := inference.GasWork{
@@ -98,7 +95,7 @@ func (s *Synapse) sendRequest(requestBody []byte) ([]byte, error) {
 		return v.([]byte), nil
 	}*/
 
-	resp, err := client.SetTimeout(time.Duration(15*time.Second)).R().
+	resp, err := s.client.SetTimeout(time.Duration(15*time.Second)).R().
 		SetHeader("Content-Type", "application/json; charset=utf-8").
 		SetHeader("Accept", "application/json; charset=utf-8").
 		SetBody(requestBody).
