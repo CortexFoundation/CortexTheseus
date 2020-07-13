@@ -7,6 +7,7 @@ import (
 	"strings"
 	//"sync"
 
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/inference"
@@ -44,8 +45,7 @@ func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 func fixTorrentHash(ih string, cvmNetworkId int64) string {
 	if cvmNetworkId == 43 {
 		if ch, ok := CvmDolFixTorrHashes[ih]; ok {
-			log.Debug("start hacking hash", "ih", ih,
-				"ch", ch, "cvmNetworkId", cvmNetworkId)
+			log.Debug("start hacking hash", "ih", ih, "ch", ch, "cvmNetworkId", cvmNetworkId)
 			return ch
 		}
 	}
@@ -54,11 +54,11 @@ func fixTorrentHash(ih string, cvmNetworkId int64) string {
 
 func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (uint64, error) {
 
-	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") {
+	if len(modelInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, common.Prefix) {
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
-	modelHash := strings.ToLower(modelInfoHash[2:])
+	modelHash := strings.ToLower(strings.TrimPrefix(modelInfoHash, common.Prefix))
 	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
@@ -101,13 +101,13 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 		inputInfoHash = RLPHashString(inputContent)
 	}
 
-	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, "0x") || !strings.HasPrefix(inputInfoHash, "0x") {
+	if len(modelInfoHash) < 2 || len(inputInfoHash) < 2 || !strings.HasPrefix(modelInfoHash, common.Prefix) || !strings.HasPrefix(inputInfoHash, common.Prefix) {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
 
 	var (
-		modelHash = strings.ToLower(modelInfoHash[2:])
-		inputHash = strings.ToLower(inputInfoHash[2:])
+		modelHash = strings.ToLower(strings.TrimPrefix(modelInfoHash, common.Prefix))
+		inputHash = strings.ToLower(strings.TrimPrefix(inputInfoHash, common.Prefix))
 	)
 	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
 	// Inference Cache
@@ -169,14 +169,12 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			log.Warn("inferByInputContent: model loaded failed",
-				"model hash", modelHash, "error", modelJson_err)
+			log.Warn("inferByInputContent: model loaded failed", "model hash", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		modelParams, modelParams_err := s.config.Storagefs.GetFile(s.ctx, modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			log.Warn("inferByInputContent: params loaded failed",
-				"model hash", modelHash, "error", modelParams_err)
+			log.Warn("inferByInputContent: params loaded failed", "model hash", modelHash, "error", modelParams_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		var deviceType = 0
@@ -184,7 +182,6 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 			deviceType = 1
 		}
 		model, status = kernel.New(s.lib, modelJson, modelParams, deviceType, s.config.DeviceId)
-		// TODO(wlt): all returned runtime_error
 		if _, err := getReturnByStatusCode(model, status); err != nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
@@ -194,7 +191,6 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	}
 	log.Trace("iput content", "input", inputContent, "len", len(inputContent))
 	result, status = model.Predict(inputContent, cvmVersion)
-	// TODO(wlt): all returned runtime_error
 	if _, err := getReturnByStatusCode(result, status); err != nil {
 		return nil, KERNEL_RUNTIME_ERROR
 	}
@@ -211,17 +207,15 @@ func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error 
 	if s.config.IsRemoteInfer {
 		errRes := s.remoteAvailable(
 			infoHash, rawSize, cvmNetworkId)
-		//s.config.InferURI)
 		return errRes
 	}
-	if len(infoHash) < 2 || !strings.HasPrefix(infoHash, "0x") {
+	if len(infoHash) < 2 || !strings.HasPrefix(infoHash, common.Prefix) {
 		return KERNEL_RUNTIME_ERROR
 	}
-	ih := strings.ToLower(infoHash[2:])
+	ih := strings.ToLower(strings.TrimPrefix(infoHash, common.Prefix))
 	if cvmNetworkId == 43 {
 		if _, ok := CvmDolFixTorrHashes[ih]; ok {
-			log.Debug("Available: start hacking...",
-				"ih", ih, "cvmNetworkId", cvmNetworkId)
+			log.Debug("Available: start hacking...", "ih", ih, "cvmNetworkId", cvmNetworkId)
 			return nil
 		}
 	}
@@ -230,8 +224,7 @@ func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error 
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
 	} else if !is_ok {
-		log.Warn("File is unavailable",
-			"info hash", infoHash, "error", KERNEL_LOGIC_ERROR)
+		log.Warn("File is unavailable", "info hash", infoHash, "error", KERNEL_LOGIC_ERROR)
 		return KERNEL_LOGIC_ERROR
 	}
 	log.Debug("File available", "info hash", infoHash)
