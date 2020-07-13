@@ -81,11 +81,7 @@ func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error
 	vm.Set("console", consoleObj)
 
 	// Load bootstrap libraries
-<<<<<<< HEAD
 	script, err := goja.Compile("bignumber.js", string(BigNumber_JS),true)
-=======
-	script, err := goja.Compile("bignumber.js", BigNumber_JS, true)
->>>>>>> 31fd36fa3c7bc122a3c5e48db900ee7a8e7c9b73
 	if err != nil {
 		log.Warn("Failed loading libraries", "err", err)
 		return goja.Undefined(), err
