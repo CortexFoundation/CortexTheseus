@@ -343,7 +343,7 @@ func TestStorage(t *testing.T) {
 		t.Errorf("Unexpected error %v", err)
 	}
 
-	retval:= v.ToString().String()
+	retval := v.ToString().String()
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
