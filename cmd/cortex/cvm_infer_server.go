@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	//"sync"
@@ -28,28 +27,28 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	switch inference.RetriveType(body) {
 	case inference.INFER_BY_IH:
 		var iw inference.IHWork
-		if err := json.Unmarshal(body, &iw); err != nil {
+		if err := iw.UnmarshalJSON(body); err != nil {
 			RespErrorText(w, ErrDataParse)
 		}
 		infoHashHandler(w, &iw)
 
 	case inference.INFER_BY_IC:
 		var iw inference.ICWork
-		if err := json.Unmarshal(body, &iw); err != nil {
+		if err := iw.UnmarshalJSON(body); err != nil {
 			RespErrorText(w, ErrDataParse)
 		}
 		inputContentHandler(w, &iw)
 
 	case inference.GAS_BY_H:
 		var iw inference.GasWork
-		if err := json.Unmarshal(body, &iw); err != nil {
+		if err := iw.UnmarshalJSON(body); err != nil {
 			RespErrorText(w, ErrDataParse)
 		}
 		gasHandler(w, &iw)
 
 	case inference.AVAILABLE_BY_H:
 		var iw inference.AvailableWork
-		if err := json.Unmarshal(body, &iw); err != nil {
+		if err := iw.UnmarshalJSON(body); err != nil {
 			RespErrorText(w, ErrDataParse)
 		}
 		AvailableHandler(w, &iw)
