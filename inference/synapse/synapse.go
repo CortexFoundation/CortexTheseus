@@ -101,7 +101,10 @@ func New(config *Config) *Synapse {
 		lib:    lib,
 		//exitCh: make(chan struct{}),
 		caches: make(map[int]*lru.Cache),
-		client: resty.New(),
+	}
+
+	if synapseInstance.config.IsRemoteInfer {
+		synapseInstance.client = resty.New()
 	}
 
 	synapseInstance.ctx = context.Background()
