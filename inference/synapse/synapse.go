@@ -8,6 +8,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/torrentfs"
+	resty "github.com/go-resty/resty/v2"
 	"math/big"
 	"strconv"
 	"sync"
@@ -56,8 +57,8 @@ type Synapse struct {
 	lib    *kernel.LibCVM
 	caches map[int]*lru.Cache
 	//exitCh chan struct{}
-
-	ctx context.Context
+	client *resty.Client
+	ctx    context.Context
 }
 
 func Engine() *Synapse {
@@ -100,6 +101,10 @@ func New(config *Config) *Synapse {
 		lib:    lib,
 		//exitCh: make(chan struct{}),
 		caches: make(map[int]*lru.Cache),
+	}
+
+	if synapseInstance.config.IsRemoteInfer {
+		synapseInstance.client = resty.New()
 	}
 
 	synapseInstance.ctx = context.Background()

@@ -147,7 +147,7 @@ func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*
 	return logs, nil
 }
 
-func (b *CortexAPIBackend) GetTd(blockHash common.Hash) *big.Int {
+func (b *CortexAPIBackend) GetTd(ctx context.Context, blockHash common.Hash) *big.Int {
 	return b.ctxc.blockchain.GetTdByHash(blockHash)
 }
 
