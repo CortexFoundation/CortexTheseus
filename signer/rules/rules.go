@@ -28,7 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/signer/core"
 	"github.com/CortexFoundation/CortexTheseus/signer/rules/deps"
 	"github.com/CortexFoundation/CortexTheseus/signer/storage"
-	"github.com/robertkrimen/otto"
+	"github.com/dop251/goja"
 )
 
 var (
@@ -37,13 +37,13 @@ var (
 
 // consoleOutput is an override for the console.log and console.error methods to
 // stream the output into the configured output stream instead of stdout.
-func consoleOutput(call otto.FunctionCall) otto.Value {
+func consoleOutput(call goja.FunctionCall) goja.Value {
 	output := []string{"JS:> "}
-	for _, argument := range call.ArgumentList {
+	for _, argument := range call.Arguments {
 		output = append(output, fmt.Sprintf("%v", argument))
 	}
 	fmt.Fprintln(os.Stdout, strings.Join(output, " "))
-	return otto.Value{}
+	return goja.Undefined()
 }
 
 // rulesetUI provides an implementation of SignerUI that evaluates a javascript
@@ -70,29 +70,45 @@ func (r *rulesetUI) Init(javascriptRules string) error {
 	r.jsRules = javascriptRules
 	return nil
 }
-func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (otto.Value, error) {
+func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error) {
 
 	// Instantiate a fresh vm engine every time
-	vm := otto.New()
+	vm := goja.New()
 	// Set the native callbacks
-	consoleObj, _ := vm.Get("console")
-	consoleObj.Object().Set("log", consoleOutput)
-	consoleObj.Object().Set("error", consoleOutput)
-	vm.Set("storage", r.storage)
+	consoleObj := vm.NewObject()
+	consoleObj.Set("log", consoleOutput)
+	consoleObj.Set("error", consoleOutput)
+	vm.Set("console", consoleObj)
 
+	storageObj := vm.NewObject()
+	storageObj.Set("Put", func(call goja.FunctionCall) goja.Value {
+		key, val := call.Argument(0).String(), call.Argument(1).String()
+		if val == "" {
+			r.storage.Del(key)
+		} else {
+			r.storage.Put(key, val)
+		}
+		return goja.Null()
+	})
+	storageObj.Set("Get", func(call goja.FunctionCall) goja.Value {
+		goval := r.storage.Get(call.Argument(0).String())
+		jsval := vm.ToValue(goval)
+		return jsval
+	})
+	vm.Set("storage", storageObj)
 	// Load bootstrap libraries
-	script, err := vm.Compile("bignumber.js", BigNumber_JS)
+	script, err := goja.Compile("bignumber.js", string(BigNumber_JS), true)
 	if err != nil {
 		log.Warn("Failed loading libraries", "err", err)
-		return otto.UndefinedValue(), err
+		return goja.Undefined(), err
 	}
-	vm.Run(script)
+	vm.RunProgram(script)
 
 	// Run the actual rule implementation
-	_, err = vm.Run(r.jsRules)
+	_, err = vm.RunString(r.jsRules)
 	if err != nil {
 		log.Warn("Execution failed", "err", err)
-		return otto.UndefinedValue(), err
+		return goja.Undefined(), err
 	}
 
 	// And the actual call
@@ -103,7 +119,7 @@ func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (otto.Value, error
 	jsonbytes, err := json.Marshal(jsarg)
 	if err != nil {
 		log.Warn("failed marshalling data", "data", jsarg)
-		return otto.UndefinedValue(), err
+		return goja.Undefined(), err
 	}
 	// Now, we call foobar(JSON.parse(<jsondata>)).
 	var call string
@@ -112,7 +128,7 @@ func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (otto.Value, error
 	} else {
 		call = fmt.Sprintf("%v()", jsfunc)
 	}
-	return vm.Run(call)
+	return vm.RunString(call)
 }
 
 func (r *rulesetUI) checkApproval(jsfunc string, jsarg []byte, err error) (bool, error) {
@@ -124,11 +140,7 @@ func (r *rulesetUI) checkApproval(jsfunc string, jsarg []byte, err error) (bool,
 		log.Info("error occurred during execution", "error", err)
 		return false, err
 	}
-	result, err := v.ToString()
-	if err != nil {
-		log.Info("error occurred during response unmarshalling", "error", err)
-		return false, err
-	}
+	result := v.ToString().String()
 	if result == "Approve" {
 		log.Info("Op approved")
 		return true, nil
