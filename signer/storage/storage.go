@@ -26,6 +26,8 @@ type Storage interface {
 	Put(key, value string)
 	// Get returns the previously stored value, or the empty string if it does not exist or key is of 0-length
 	Get(key string) string
+	//Del removes a key-value pair. If the key doesn't exist, the method is a noop.
+	Del(key string)
 }
 
 // EphemeralStorage is an in-memory storage that does
@@ -52,6 +54,11 @@ func (s *EphemeralStorage) Get(key string) string {
 		return v
 	}
 	return ""
+}
+
+// Del removes a key-value pair. If the key doesn't exist, the method is a noop.
+func (s *EphemeralStorage) Del(key string) {
+	delete(s.data, key)
 }
 
 func NewEphemeralStorage() Storage {

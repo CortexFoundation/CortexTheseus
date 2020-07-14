@@ -13,10 +13,13 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/cloudflare/cloudflare-go v0.11.7
 	github.com/davecgh/go-spew v1.1.1
+	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/docker/docker v1.13.1
+	github.com/dop251/goja v0.0.0-20200629185240-bfd59704b500
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.3.1-0.20200619075926-b87f65ce5ed5
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
 	github.com/gorilla/websocket v1.4.2
