@@ -346,7 +346,7 @@ func (s *PrivateAccountAPI) LockAccount(addr common.Address) bool {
 // signTransactions sets defaults and signs the given transaction
 // NOTE: the caller needs to ensure that the nonceLock is held, if applicable,
 // and release it after the transaction has been submitted to the tx pool
-func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs, passwd string) (*types.Transaction, error) {
+func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args *SendTxArgs, passwd string) (*types.Transaction, error) {
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: args.From}
 	wallet, err := s.am.Find(account)
@@ -377,8 +377,9 @@ func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args SendTxArgs
 		s.nonceLock.LockAddr(args.From)
 		defer s.nonceLock.UnlockAddr(args.From)
 	}
-	signed, err := s.signTransaction(ctx, args, passwd)
+	signed, err := s.signTransaction(ctx, &args, passwd)
 	if err != nil {
+		log.Warn("Failed transaction send attempt", "from", args.From, "to", args.To, "value", args.Value.ToInt(), "err", err)
 		return common.Hash{}, err
 	}
 	return submitTransaction(ctx, s.b, signed)
@@ -400,8 +401,13 @@ func (s *PrivateAccountAPI) SignTransaction(ctx context.Context, args SendTxArgs
 	if args.Nonce == nil {
 		return nil, fmt.Errorf("nonce not specified")
 	}
-	signed, err := s.signTransaction(ctx, args, passwd)
+	// Before actually sign the transaction, ensure the transaction fee is reasonable.
+	if err := checkTxFee(args.GasPrice.ToInt(), uint64(*args.Gas), s.b.RPCTxFeeCap()); err != nil {
+		return nil, err
+	}
+	signed, err := s.signTransaction(ctx, &args, passwd)
 	if err != nil {
+		log.Warn("Failed transaction sign attempt", "from", args.From, "to", args.To, "value", args.Value.ToInt(), "err", err)
 		return nil, err
 	}
 	data, err := rlp.EncodeToBytes(signed)
@@ -1293,10 +1299,8 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
 	// If the transaction fee cap is already specified, ensure the
 	// fee of the given transaction is _reasonable_.
-	fee := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))), new(big.Float).SetInt(big.NewInt(params.Cortex)))
-	feeFloat, _ := fee.Float64()
-	if b.RPCTxFeeCap() != 0 && feeFloat > b.RPCTxFeeCap() {
-		return common.Hash{}, fmt.Errorf("tx fee (%.2f ctxc) exceeds the configured cap (%.2f ctxc)", feeFloat, b.RPCTxFeeCap())
+	if err := checkTxFee(tx.GasPrice(), tx.Gas(), b.RPCTxFeeCap()); err != nil {
+		return common.Hash{}, err
 	}
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
@@ -1410,6 +1414,10 @@ func (s *PublicTransactionPoolAPI) SignTransaction(ctx context.Context, args Sen
 	if err := args.setDefaults(ctx, s.b); err != nil {
 		return nil, err
 	}
+	// Before actually sign the transaction, ensure the transaction fee is reasonable.
+	if err := checkTxFee(args.GasPrice.ToInt(), uint64(*args.Gas), s.b.RPCTxFeeCap()); err != nil {
+		return nil, err
+	}
 	tx, err := s.sign(args.From, args.toTransaction())
 	if err != nil {
 		return nil, err
@@ -1458,11 +1466,24 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 		return common.Hash{}, err
 	}
 	matchTx := sendArgs.toTransaction()
+
+	// Before replacing the old transaction, ensure the _new_ transaction fee is reasonable.
+	var price = matchTx.GasPrice()
+	if gasPrice != nil {
+		price = gasPrice.ToInt()
+	}
+	var gas = matchTx.Gas()
+	if gasLimit != nil {
+		gas = uint64(*gasLimit)
+	}
+	if err := checkTxFee(price, gas, s.b.RPCTxFeeCap()); err != nil {
+		return common.Hash{}, err
+	}
+	// Iterate the pending list for replacement
 	pending, err := s.b.GetPoolTransactions()
 	if err != nil {
 		return common.Hash{}, err
 	}
-
 	for _, p := range pending {
 		var signer types.Signer = types.HomesteadSigner{}
 		if p.Protected() {
@@ -1599,4 +1620,19 @@ func (s *PublicNetAPI) PeerCount() hexutil.Uint {
 // Version returns the current cortex protocol version.
 func (s *PublicNetAPI) Version() string {
 	return fmt.Sprintf("%d", s.networkVersion)
+}
+
+// checkTxFee is an internal function used to check whether the fee of
+// the given transaction is _reasonable_(under the cap).
+func checkTxFee(gasPrice *big.Int, gas uint64, cap float64) error {
+	// Short circuit if there is no cap for transaction fee at all.
+	if cap == 0 {
+		return nil
+	}
+	feeEth := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gas))), new(big.Float).SetInt(big.NewInt(params.Cortex)))
+	feeFloat, _ := feeEth.Float64()
+	if feeFloat > cap {
+		return fmt.Errorf("tx fee (%.2f ctxc) exceeds the configured cap (%.2f ctxc)", feeFloat, cap)
+	}
+	return nil
 }
