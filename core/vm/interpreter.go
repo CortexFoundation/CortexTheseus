@@ -48,10 +48,6 @@ type Config struct {
 	NoRecursion bool
 	// Enable recording of SHA3/keccak preimages
 	EnablePreimageRecording bool
-	// JumpTable contains the CVM instruction table. This
-	// may be left uninitialised and will be set to the default
-	// table.
-	JumpTable [256]operation
 	// uri for remote infer service
 	// InferURI string
 	// rpc getInternalTransaction flag
@@ -62,6 +58,7 @@ type Config struct {
 	DebugInferVM bool
 	StorageDir   string
 	// Storagefs    torrentfs.CVMStorage
+	JumpTable [256]*operation // EVM instruction table, automatically populated if unset
 
 	CWASMInterpreter string // External CWASM interpreter options
 	CVMInterpreter   string // External CVM interpreter options
@@ -137,8 +134,7 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	// We use the STOP instruction whether to see
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
-	// log.Debug("NewCVMInterpreter", "cvm.ChainConfig().IsByzantium(cvm.BlockNumber)", cvm.ChainConfig().IsByzantium(cvm.BlockNumber), "cvm.ChainConfig().IsConstantinople(cvm.BlockNumber)", cvm.ChainConfig().IsConstantinople(cvm.BlockNumber))
-	if !cfg.JumpTable[STOP].valid {
+	if cfg.JumpTable[STOP] == nil {
 		var jt JumpTable
 		switch {
 		case cvm.chainRules.IsIstanbul:
@@ -173,7 +169,7 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	}
 }
 
-func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
+func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation *operation, stack *Stack) error {
 	if in.cvm.chainRules.IsByzantium {
 		if in.readOnly {
 			// If the interpreter is operating in readonly mode, make sure no
@@ -405,7 +401,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
 		operation := in.cfg.JumpTable[op]
-		if !operation.valid {
+		if operation == nil {
 			return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
 		}
 		if err := operation.validateStack(stack); err != nil {
