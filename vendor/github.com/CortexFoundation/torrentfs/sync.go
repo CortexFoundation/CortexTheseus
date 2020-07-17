@@ -439,19 +439,25 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 	return record, nil
 }
 
+func (m *Monitor) exit() {
+	if m.exitCh != nil {
+		close(m.exitCh)
+		log.Info("Monitor is waiting to be closed")
+		m.wg.Wait()
+		m.exitCh = nil
+	} else {
+		log.Warn("Listener has already been stopped")
+	}
+}
+
 func (m *Monitor) Stop() {
 	m.closeOnce.Do(func() {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			return
 		}
 		atomic.StoreInt32(&(m.terminated), 1)
-		if m.exitCh != nil {
-			close(m.exitCh)
-			log.Info("Monitor is waiting to be closed")
-			m.wg.Wait()
-		} else {
-			log.Warn("Listener has already been stopped")
-		}
+
+		m.exit()
 
 		m.blockCache.Purge()
 		m.sizeCache.Purge()
@@ -558,9 +564,9 @@ func (m *Monitor) syncLatestBlock() {
 			} else {
 				if !m.listen {
 					if m.currentNumber != 0 {
+						m.fs.Flush()
+						go m.exit()
 						log.Warn("Finish sync, listener will be stopped", "current", m.currentNumber)
-						close(m.exitCh)
-						m.wg.Wait()
 						return
 					}
 				}
