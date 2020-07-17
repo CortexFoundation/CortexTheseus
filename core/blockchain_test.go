@@ -972,7 +972,7 @@ func TestLastBlock(t *testing.T) {
 //	}
 //}
 //
-//// This EVM code generates a log when the contract is created.
+//// This CVM code generates a log when the contract is created.
 //var logCode = common.Hex2Bytes("60606040525b7f24ec1d3ff24c2f6ff210738839dbc339cd45a5294d85c79361016243157aae7b60405180905060405180910390a15b600a8060416000396000f360606040526008565b00")
 //
 //// This test checks that log events and RemovedLogsEvent are sent
@@ -1416,7 +1416,7 @@ func TestLastBlock(t *testing.T) {
 //// tests that under weird reorg conditions the blockchain and its internal header-
 //// chain return the same latest block/header.
 ////
-//// https://github.com/ethereum/go-ethereum/pull/15941
+//// https://github.com/CortexFoundation/CortexTheseus/pull/15941
 //func TestBlockchainHeaderchainReorgConsistency(t *testing.T) {
 //	// Generate a canonical chain to act as the main dataset
 //	engine := cuckoo.NewFaker()
@@ -1677,8 +1677,8 @@ func TestLastBlock(t *testing.T) {
 //// overtake the 'canon' chain until after it's passed canon by about 200 blocks.
 ////
 //// Details at:
-////  - https://github.com/ethereum/go-ethereum/issues/18977
-////  - https://github.com/ethereum/go-ethereum/pull/18988
+////  - https://github.com/CortexFoundation/CortexTheseus/issues/18977
+////  - https://github.com/CortexFoundation/CortexTheseus/pull/18988
 //func TestLowDiffLongChain(t *testing.T) {
 //	// Generate a canonical chain to act as the main dataset
 //	engine := cuckoo.NewFaker()

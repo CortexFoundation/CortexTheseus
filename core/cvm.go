@@ -34,8 +34,6 @@ type ChainContext interface {
 
 	// GetHeader returns the hash corresponding to their hash.
 	GetHeader(common.Hash, uint64) *types.Header
-
-	CurrentHeader() *types.Header
 }
 
 // NewCVMContext creates a new context for use in the CVM.
