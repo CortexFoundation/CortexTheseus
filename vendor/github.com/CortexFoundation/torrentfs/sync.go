@@ -445,7 +445,7 @@ func (m *Monitor) Stop() {
 			return
 		}
 		atomic.StoreInt32(&(m.terminated), 1)
-		if m.exitCh == nil {
+		if m.exitCh != nil {
 			close(m.exitCh)
 			log.Info("Monitor is waiting to be closed")
 			m.wg.Wait()
