@@ -617,7 +617,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 	}
 	// If no live objects are available, attempt to use snapshots
 	var (
-		data Account
+		data *Account
 		err  error
 	)
 	if s.snap != nil {
@@ -629,11 +629,17 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 			if acc == nil {
 				return nil
 			}
-			data.Nonce, data.Balance, data.CodeHash, data.Upload, data.Num = acc.Nonce, acc.Balance, acc.CodeHash, acc.Upload, acc.Num
+			data = &Account{
+				Nonce:    acc.Nonce,
+				Balance:  acc.Balance,
+				CodeHash: acc.CodeHash,
+				Root:     common.BytesToHash(acc.Root),
+				Upload:   acc.Upload,
+				Num:      acc.Num,
+			}
 			if len(data.CodeHash) == 0 {
 				data.CodeHash = emptyCodeHash
 			}
-			data.Root = common.BytesToHash(acc.Root)
 			if data.Root == (common.Hash{}) {
 				data.Root = emptyRoot
 			}
@@ -652,13 +658,14 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 		if len(enc) == 0 {
 			return nil
 		}
-		if err := rlp.DecodeBytes(enc, &data); err != nil {
+		data = new(Account)
+		if err := rlp.DecodeBytes(enc, data); err != nil {
 			log.Error("Failed to decode state object", "addr", addr, "err", err)
 			return nil
 		}
 	}
-	// Insert into the live set.
-	obj := newObject(s, addr, data)
+	// Insert into the live set
+	obj := newObject(s, addr, *data)
 	s.setStateObject(obj)
 	return obj
 }

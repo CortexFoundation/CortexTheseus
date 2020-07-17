@@ -32,6 +32,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	torrentfs "github.com/CortexFoundation/torrentfs/types"
+	"github.com/holiman/uint256"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -65,23 +66,24 @@ func (in *CVM) IsInput(code []byte) bool {
 }
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
-func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
-	if contract.CodeAddr != nil {
-		precompiles := PrecompiledContractsHomestead
-		if cvm.chainRules.IsByzantium {
-			precompiles = PrecompiledContractsByzantium
-		}
-		if cvm.chainRules.IsIstanbul {
-			precompiles = PrecompiledContractsIstanbul
-		}
-		if p := precompiles[*contract.CodeAddr]; p != nil {
-			return RunPrecompiledContract(p, input, contract)
-		}
+func (cvm *CVM) precompile(addr common.Address) (PrecompiledContract, bool) {
+	var precompiles map[common.Address]PrecompiledContract
+	switch {
+	case cvm.chainRules.IsIstanbul:
+		precompiles = PrecompiledContractsIstanbul
+	case cvm.chainRules.IsByzantium:
+		precompiles = PrecompiledContractsByzantium
+	default:
+		precompiles = PrecompiledContractsHomestead
 	}
+	p, ok := precompiles[addr]
+	return p, ok
+}
 
+// run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
+func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	cvm.category = Category{}
 	cvm.category.IsCode, cvm.category.IsModel, cvm.category.IsInput = cvm.IsCode(contract.Code), cvm.IsModel(contract.Code), cvm.IsInput(contract.Code)
-
 	for _, interpreter := range cvm.interpreters {
 		if interpreter.CanRun(contract.Code) {
 			if cvm.interpreter != interpreter {
@@ -231,23 +233,14 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		return nil, gas, nil, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
-	if !cvm.Context.CanTransfer(cvm.StateDB, caller.Address(), value) {
+	if value.Sign() != 0 && !cvm.Context.CanTransfer(cvm.StateDB, caller.Address(), value) {
 		return nil, gas, nil, ErrInsufficientBalance
 	}
+	snapshot := cvm.StateDB.Snapshot()
+	p, isPrecompile := cvm.precompile(addr)
 
-	var (
-		to       = AccountRef(addr)
-		snapshot = cvm.StateDB.Snapshot()
-	)
 	if !cvm.StateDB.Exist(addr) {
-		precompiles := PrecompiledContractsHomestead
-		if cvm.chainRules.IsByzantium {
-			precompiles = PrecompiledContractsByzantium
-		}
-		if cvm.chainRules.IsIstanbul {
-			precompiles = PrecompiledContractsIstanbul
-		}
-		if precompiles[addr] == nil && cvm.chainRules.IsEIP158 && value.Sign() == 0 {
+		if !isPrecompile && cvm.chainRules.IsEIP158 && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if cvm.vmConfig.Debug && cvm.depth == 0 {
 				cvm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
@@ -257,39 +250,51 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}
 		cvm.StateDB.CreateAccount(addr)
 	}
-	cvm.Transfer(cvm.StateDB, caller.Address(), to.Address(), value)
-
-	// Initialise a new contract and set the code that is to be used by the CVM.
-	// The contract is a scoped environment for this execution context only.
-	contract := NewContract(caller, to, value, gas)
-	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
-
-	start := time.Now()
+	cvm.Transfer(cvm.StateDB, caller.Address(), addr, value)
 
 	// Capture the tracer start/end events in debug mode
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
 		cvm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
-
-		defer func() { // Lazy evaluation of the parameters
-			cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
-		}()
-	}
-	ret, err = run(cvm, contract, input, false)
-
-	if cvm.vmConfig.RPC_GetInternalTransaction {
-		ret = append(ret, []byte(caller.Address().String()+"-"+to.Address().String()+"-"+value.String()+",")...)
+		defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
+			cvm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, time.Since(startTime), err)
+		}(gas, time.Now())
 	}
 
+	if isPrecompile {
+		ret, gas, err = RunPrecompiledContract(p, input, gas)
+	} else {
+		// Initialise a new contract and set the code that is to be used by the CVM.
+		// The contract is a scoped environment for this execution context only.
+		code := cvm.StateDB.GetCode(addr)
+		if len(code) == 0 {
+			ret, err = nil, nil // gas is unchanged
+		} else {
+			addrCopy := addr
+			// If the account has no code, we can abort here
+			// The depth-check is already done, and precompiles handled above
+			contract := NewContract(caller, AccountRef(addrCopy), value, gas)
+			contract.SetCallCode(&addrCopy, cvm.StateDB.GetCodeHash(addrCopy), code)
+			ret, err = run(cvm, contract, input, false)
+			gas = contract.Gas
+			modelGas = contract.ModelGas
+			if cvm.vmConfig.RPC_GetInternalTransaction {
+				ret = append(ret, []byte(caller.Address().String()+"-"+addr.String()+"-"+value.String()+",")...)
+			}
+		}
+	}
 	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
 	if err != nil {
 		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != ErrExecutionReverted {
-			contract.UseGas(contract.Gas)
+			gas = 0
 		}
+		// TODO: consider clearing up unused snapshots:
+		//} else {
+		//	cvm.StateDB.DiscardSnapshot(snapshot)
 	}
-	return ret, contract.Gas, contract.ModelGas, err
+	return ret, gas, modelGas, err
 }
 
 // CallCode executes the contract associated with the addr with the given input
@@ -312,25 +317,28 @@ func (cvm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	if !cvm.Context.CanTransfer(cvm.StateDB, caller.Address(), value) {
 		return nil, gas, nil, ErrInsufficientBalance
 	}
+	var snapshot = cvm.StateDB.Snapshot()
 
-	var (
-		snapshot = cvm.StateDB.Snapshot()
-		to       = AccountRef(caller.Address())
-	)
-	// initialise a new contract and set the code that is to be used by the
-	// CVM. The contract is a scoped environment for this execution context
-	// only.
-	contract := NewContract(caller, to, value, gas)
-	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
-
-	ret, err = run(cvm, contract, input, false)
+	// It is allowed to call precompiles, even via delegatecall
+	if p, isPrecompile := cvm.precompile(addr); isPrecompile {
+		ret, gas, err = RunPrecompiledContract(p, input, gas)
+	} else {
+		addrCopy := addr
+		// Initialise a new contract and set the code that is to be used by the CVM.
+		// The contract is a scoped environment for this execution context only.
+		contract := NewContract(caller, AccountRef(caller.Address()), value, gas)
+		contract.SetCallCode(&addrCopy, cvm.StateDB.GetCodeHash(addrCopy), cvm.StateDB.GetCode(addrCopy))
+		ret, err = run(cvm, contract, input, false)
+		gas = contract.Gas
+		modelGas = contract.ModelGas
+	}
 	if err != nil {
 		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != ErrExecutionReverted {
-			contract.UseGas(contract.Gas)
+			gas = 0
 		}
 	}
-	return ret, contract.Gas, contract.ModelGas, err
+	return ret, gas, modelGas, err
 }
 
 // DelegateCall executes the contract associated with the addr with the given input
@@ -346,24 +354,27 @@ func (cvm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
 	}
+	var snapshot = cvm.StateDB.Snapshot()
 
-	var (
-		snapshot = cvm.StateDB.Snapshot()
-		to       = AccountRef(caller.Address())
-	)
-
-	// Initialise a new contract and make initialise the delegate values
-	contract := NewContract(caller, to, nil, gas).AsDelegate()
-	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
-
-	ret, err = run(cvm, contract, input, false)
+	// It is allowed to call precompiles, even via delegatecall
+	if p, isPrecompile := cvm.precompile(addr); isPrecompile {
+		ret, gas, err = RunPrecompiledContract(p, input, gas)
+	} else {
+		addrCopy := addr
+		// Initialise a new contract and make initialise the delegate values
+		contract := NewContract(caller, AccountRef(caller.Address()), nil, gas).AsDelegate()
+		contract.SetCallCode(&addrCopy, cvm.StateDB.GetCodeHash(addrCopy), cvm.StateDB.GetCode(addrCopy))
+		ret, err = run(cvm, contract, input, false)
+		gas = contract.Gas
+		modelGas = contract.ModelGas
+	}
 	if err != nil {
 		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != ErrExecutionReverted {
-			contract.UseGas(contract.Gas)
+			gas = 0
 		}
 	}
-	return ret, contract.Gas, contract.ModelGas, err
+	return ret, gas, modelGas, err
 }
 
 // StaticCall executes the contract associated with the addr with the given input
@@ -378,34 +389,44 @@ func (cvm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
 	}
-
-	var (
-		to       = AccountRef(addr)
-		snapshot = cvm.StateDB.Snapshot()
-	)
-	// Initialise a new contract and set the code that is to be used by the
-	// CVM. The contract is a scoped environment for this execution context
-	// only.
-	contract := NewContract(caller, to, new(big.Int), gas)
-	contract.SetCallCode(&addr, cvm.StateDB.GetCodeHash(addr), cvm.StateDB.GetCode(addr))
+	// We take a snapshot here. This is a bit counter-intuitive, and could probably be skipped.
+	// However, even a staticcall is considered a 'touch'. On mainnet, static calls were introduced
+	// after all empty accounts were deleted, so this is not required. However, if we omit this,
+	// then certain tests start failing; stRevertTest/RevertPrecompiledTouchExactOOG.json.
+	// We could change this, but for now it's left for legacy reasons
+	var snapshot = cvm.StateDB.Snapshot()
 
 	// We do an AddBalance of zero here, just in order to trigger a touch.
 	// This doesn't matter on Mainnet, where all empties are gone at the time of Byzantium,
 	// but is the correct thing to do and matters on other networks, in tests, and potential
 	// future scenarios
-	cvm.StateDB.AddBalance(addr, big.NewInt(0))
+	cvm.StateDB.AddBalance(addr, big0)
 
-	// When an error was returned by the CVM or when setting the creation code
-	// above we revert to the snapshot and consume any gas remaining. Additionally
-	// when we're in Homestead this also counts for code storage gas errors.
-	ret, err = run(cvm, contract, input, true)
+	if p, isPrecompile := cvm.precompile(addr); isPrecompile {
+		ret, gas, err = RunPrecompiledContract(p, input, gas)
+	} else {
+		// At this point, we use a copy of address. If we don't, the go compiler will
+		// leak the 'contract' to the outer scope, and make allocation for 'contract'
+		// even if the actual execution ends on RunPrecompiled above.
+		addrCopy := addr
+		// Initialise a new contract and set the code that is to be used by the CVM.
+		// The contract is a scoped environment for this execution context only.
+		contract := NewContract(caller, AccountRef(addrCopy), new(big.Int), gas)
+		contract.SetCallCode(&addrCopy, cvm.StateDB.GetCodeHash(addrCopy), cvm.StateDB.GetCode(addrCopy))
+		// When an error was returned by the CVM or when setting the creation code
+		// above we revert to the snapshot and consume any gas remaining. Additionally
+		// when we're in Homestead this also counts for code storage gas errors.
+		ret, err = run(cvm, contract, input, true)
+		gas = contract.Gas
+		modelGas = contract.ModelGas
+	}
 	if err != nil {
 		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != ErrExecutionReverted {
-			contract.UseGas(contract.Gas)
+			gas = 0
 		}
 	}
-	return ret, contract.Gas, contract.ModelGas, err
+	return ret, gas, modelGas, err
 }
 
 type codeAndHash struct {
@@ -513,11 +534,11 @@ func (cvm *CVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 //
 // The different between Create2 with Create is Create2 uses sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code))[12:]
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
-func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
+func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *uint256.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	//contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
 	//	return cvm.create(caller, code, gas, endowment, contractAddr)
 	codeAndHash := &codeAndHash{code: code}
-	contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), codeAndHash.Hash().Bytes())
+	contractAddr = crypto.CreateAddress2(caller.Address(), common.Hash(salt.Bytes32()), codeAndHash.Hash().Bytes())
 	return cvm.create(caller, codeAndHash, gas, endowment, contractAddr)
 }
 

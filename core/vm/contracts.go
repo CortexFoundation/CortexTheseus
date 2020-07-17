@@ -99,13 +99,40 @@ var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{18}): &bls12381MapG2{},
 }
 
+var PrecompiledContractsYoloV1 = map[common.Address]PrecompiledContract{
+	common.BytesToAddress([]byte{1}):  &ecrecover{},
+	common.BytesToAddress([]byte{2}):  &sha256hash{},
+	common.BytesToAddress([]byte{3}):  &ripemd160hash{},
+	common.BytesToAddress([]byte{4}):  &dataCopy{},
+	common.BytesToAddress([]byte{5}):  &bigModExp{},
+	common.BytesToAddress([]byte{6}):  &bn256AddIstanbul{},
+	common.BytesToAddress([]byte{7}):  &bn256ScalarMulIstanbul{},
+	common.BytesToAddress([]byte{8}):  &bn256PairingIstanbul{},
+	common.BytesToAddress([]byte{9}):  &blake2F{},
+	common.BytesToAddress([]byte{10}): &bls12381G1Add{},
+	common.BytesToAddress([]byte{11}): &bls12381G1Mul{},
+	common.BytesToAddress([]byte{12}): &bls12381G1MultiExp{},
+	common.BytesToAddress([]byte{13}): &bls12381G2Add{},
+	common.BytesToAddress([]byte{14}): &bls12381G2Mul{},
+	common.BytesToAddress([]byte{15}): &bls12381G2MultiExp{},
+	common.BytesToAddress([]byte{16}): &bls12381Pairing{},
+	common.BytesToAddress([]byte{17}): &bls12381MapG1{},
+	common.BytesToAddress([]byte{18}): &bls12381MapG2{},
+}
+
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
-func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
-	gas := p.RequiredGas(input)
-	if contract.UseGas(gas) {
-		return p.Run(input)
+// It returns
+// - the returned bytes,
+// - the _remaining_ gas,
+// - any error that occurred
+func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uint64) (ret []byte, remainingGas uint64, err error) {
+	gasCost := p.RequiredGas(input)
+	if suppliedGas < gasCost {
+		return nil, 0, ErrOutOfGas
 	}
-	return nil, ErrOutOfGas
+	suppliedGas -= gasCost
+	output, err := p.Run(input)
+	return output, suppliedGas, err
 }
 
 // ECRECOVER implemented as a native contract.
@@ -193,6 +220,7 @@ func (c *dataCopy) Run(in []byte) ([]byte, error) {
 type bigModExp struct{}
 
 var (
+	big0      = big.NewInt(0)
 	big1      = big.NewInt(1)
 	big4      = big.NewInt(4)
 	big8      = big.NewInt(8)

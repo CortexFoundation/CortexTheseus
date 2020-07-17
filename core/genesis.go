@@ -392,7 +392,7 @@ func DefaultDoloresGenesisBlock() *Genesis {
 // 	return &Genesis{
 // 		Config:     &config,
 // 		ExtraData:  append(append(make([]byte, 32), faucet[:]...), make([]byte, 65)...),
-// 		GasLimit:   6283185,
+// 		GasLimit:   11500000,
 // 		Difficulty: big.NewInt(1),
 // 		Alloc: map[common.Address]GenesisAccount{
 // 			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
@@ -403,6 +403,7 @@ func DefaultDoloresGenesisBlock() *Genesis {
 // 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 // 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 // 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
+//common.BytesToAddress([]byte{9}): {Balance: big.NewInt(1)}, // BLAKE2b
 // 			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 // 		},
 // 	}
