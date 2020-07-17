@@ -28,6 +28,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre/deps"
+	"github.com/dop251/goja"
 	"github.com/robertkrimen/otto"
 )
 
@@ -50,6 +51,12 @@ type JSRE struct {
 	evalQueue     chan *evalReq
 	stopEventLoop chan bool
 	closed        chan struct{}
+}
+
+// Call is the argument type of Go functions which are callable from JS.
+type Call struct {
+	goja.FunctionCall
+	VM *goja.Runtime
 }
 
 // jsTimer is a single timer instance with a callback function
