@@ -19,19 +19,15 @@ package core
 import (
 	"errors"
 	math2 "github.com/CortexFoundation/CortexTheseus/common/math"
-
-	//	"fmt"
 	"math"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	//"github.com/CortexFoundation/CortexTheseus/core/asm"
-	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	//"github.com/CortexFoundation/CortexTheseus/torrentfs"
-	//"time"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
 var (
@@ -388,34 +384,55 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		quota = math2.Uint64Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
 
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(quota)) //64 ~ 1024 bytes
+
+		var (
+			ih      string
+			request int64
+		)
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.cvm.BlockNumber)
-			log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber)
-			//todo vote for model
+
+			raw := st.state.GetCode(st.to())
+			if cvm.IsModel(raw) {
+				if meta, err := torrentfs.ParseModelMeta(raw); err == nil {
+					ih = meta.Hash.Hex()
+					request = int64(meta.RawSize)
+				}
+			} else if cvm.IsInput(raw) {
+				if meta, err := torrentfs.ParseInputMeta(raw); err == nil {
+					ih = meta.Hash.Hex()
+					request = int64(meta.RawSize)
+				}
+			} else {
+				return nil, 0, 0, false, vm.ErrRuntime
+			}
+
+			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber, "ih", ih)
 		} else {
-			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex(), "number", cvm.BlockNumber)
+			raw := st.state.GetCode(st.to())
+			if cvm.IsModel(raw) {
+				if meta, err := torrentfs.ParseModelMeta(raw); err == nil {
+					ih = meta.Hash.Hex()
+					request = int64(meta.RawSize - st.state.Upload(st.to()).Uint64())
+				}
+			} else if cvm.IsInput(raw) {
+				if meta, err := torrentfs.ParseInputMeta(raw); err == nil {
+					ih = meta.Hash.Hex()
+					request = int64(meta.RawSize - st.state.Upload(st.to()).Uint64())
+				}
+			} else {
+				return nil, 0, 0, false, vm.ErrRuntime
+			}
+
+			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex(), "number", cvm.BlockNumber, "request", request, "ih", ih)
+		}
+
+		if err := synapse.Engine().Download(ih, request); err != nil {
+			return nil, 0, 0, false, err
 		}
 	}
 
-	//if quota.Cmp(big0) > 0 {
-	//	log.Info("Quota consumption", "address", st.to().Hex(), "amount", quota)
-	//}
-
 	return ret, st.gasUsed(), quota, vmerr != nil, err
-}
-
-func Min(x, y *big.Int) *big.Int {
-	if x.Cmp(y) < 0 {
-		return x
-	}
-	return y
-}
-
-func Max(x, y *big.Int) *big.Int {
-	if x.Cmp(y) > 0 {
-		return x
-	}
-	return y
 }
 
 //vote to model

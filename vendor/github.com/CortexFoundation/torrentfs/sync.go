@@ -71,7 +71,8 @@ type Monitor struct {
 	ckp         *params.TrustedCheckpoint
 	start       mclock.AbsTime
 
-	local bool
+	local  bool
+	listen bool
 
 	closeOnce sync.Once
 }
@@ -80,7 +81,7 @@ type Monitor struct {
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config, cache, compress bool) (*Monitor, error) {
+func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 	fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -110,11 +111,16 @@ func NewMonitor(flag *Config, cache, compress bool) (*Monitor, error) {
 	}
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
-	//e = nil
+	m.listen = listen
 
 	if err := m.dl.Start(); err != nil {
 		log.Warn("Fs start error")
 		return nil, err
+	}
+
+	torrents, _ := fs.initTorrents()
+	for k, v := range torrents {
+		tMana.Search(k, int64(v), true)
 	}
 
 	m.IndexInit()
@@ -439,9 +445,13 @@ func (m *Monitor) Stop() {
 			return
 		}
 		atomic.StoreInt32(&(m.terminated), 1)
-		close(m.exitCh)
-		log.Info("Monitor is waiting to be closed")
-		m.wg.Wait()
+		if m.exitCh == nil {
+			close(m.exitCh)
+			log.Info("Monitor is waiting to be closed")
+			m.wg.Wait()
+		} else {
+			log.Warn("Listener has already been stopped")
+		}
 
 		m.blockCache.Purge()
 		m.sizeCache.Purge()
@@ -460,12 +470,10 @@ func (m *Monitor) Stop() {
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
 func (m *Monitor) Start() error {
-	//if err := m.dl.Start(); err != nil {
-	//	log.Warn("Fs start error")
-	//	return err
+	//if !m.listen {
+	//log.Info("Disable listener")
+	//return nil
 	//}
-
-	//m.IndexInit()
 
 	m.wg.Add(1)
 	go func() {
@@ -548,6 +556,14 @@ func (m *Monitor) syncLatestBlock() {
 			} else if progress > 1 {
 				timer.Reset(time.Millisecond * 1000)
 			} else {
+				if !m.listen {
+					if m.currentNumber != 0 {
+						log.Warn("Finish sync, listener will be stopped", "current", m.currentNumber)
+						close(m.exitCh)
+						m.wg.Wait()
+						return
+					}
+				}
 				timer.Reset(time.Millisecond * 2000)
 			}
 			m.fs.Flush()
@@ -677,10 +693,10 @@ func (m *Monitor) syncLastBlock() uint64 {
 		}
 	}
 	m.lastNumber = maxNumber
-	if maxNumber-minNumber > delay/2 {
+	if maxNumber-minNumber > batch-1 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsed_a := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "elapsed", common.PrettyDuration(elapsed), "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", common.PrettyDuration(elapsed_a))
+		log.Info("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "elapsed", common.PrettyDuration(elapsed), "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsed_a), "cap", len(m.taskCh), "duration", common.PrettyDuration(elapsed_a))
 	}
 	return uint64(maxNumber - minNumber)
 }

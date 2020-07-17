@@ -23,6 +23,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	torrentfs "github.com/CortexFoundation/torrentfs/types"
@@ -260,16 +261,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				"params.MODEL_MIN_UPLOAD_BYTES", params.MODEL_MIN_UPLOAD_BYTES)
 			if modelMeta.BlockNum.Sign() == 0 {
 				if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
-
-					//must in rawbytes if it is too small
-					//if modelMeta.RawSize <= params.MaxRawSize {
-					//if modelMeta.RawSize != uint64(len(modelMeta.RawBytes)) {
-					//return nil, ErrInvalidMetaRawSize
-					//}
-					//} else {
-					//deal with the big model
-					//}
-
 					if modelMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
 						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 					}
@@ -300,6 +291,10 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				log.Debug("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 			} else {
 				log.Debug("Invalid model meta", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
+			}
+
+			if err := synapse.Engine().Download(modelMeta.Hash.Hex(), 0); err != nil {
+				return nil, err
 			}
 			return contract.Code, nil
 		}
@@ -340,6 +335,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
 			} else {
 				log.Warn("Invalid input meta", "size", inputMeta.RawSize, "hash", inputMeta.Hash.Hex(), "birth", inputMeta.BlockNum.Uint64())
+			}
+			if err := synapse.Engine().Download(inputMeta.Hash.Hex(), 0); err != nil {
+				return nil, err
 			}
 			return contract.Code, nil
 		}
