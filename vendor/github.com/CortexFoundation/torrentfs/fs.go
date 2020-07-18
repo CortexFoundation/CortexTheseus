@@ -191,7 +191,7 @@ func (tfs *TorrentFS) Stop() error {
 		return nil
 	}
 	// Wait until every goroutine terminates.
-	tfs.monitor.Stop()
+	tfs.monitor.stop()
 	return nil
 }
 
