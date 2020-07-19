@@ -55,7 +55,6 @@ func fixTorrentHash(ih string, cvmNetworkId int64) string {
 func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (uint64, error) {
 
 	if !common.IsHexAddress(modelInfoHash) {
-		log.Warn("..")
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
@@ -107,7 +106,6 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	}
 
 	if !common.IsHexAddress(modelInfoHash) {
-		log.Warn("..", "inputInfoHash", inputInfoHash, "modelInfoHash", modelInfoHash)
 		return nil, KERNEL_RUNTIME_ERROR
 	}
 
@@ -216,7 +214,6 @@ func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error 
 		return errRes
 	}
 	if !common.IsHexAddress(infoHash) {
-		log.Warn("..")
 		return KERNEL_RUNTIME_ERROR
 	}
 	ih := strings.ToLower(strings.TrimPrefix(infoHash, common.Prefix))
