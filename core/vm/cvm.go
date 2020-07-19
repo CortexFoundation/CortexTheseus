@@ -675,7 +675,7 @@ func (cvm *CVM) GetModelMeta(addr common.Address) (meta *torrentfs.ModelMeta, er
 	modelMetaRaw := cvm.StateDB.GetCode(addr)
 	var modelMeta torrentfs.ModelMeta
 	if err := modelMeta.DecodeRLP(modelMetaRaw); err != nil {
-		return &torrentfs.ModelMeta{}, err
+		return nil, err
 	} else {
 		return &modelMeta, nil
 	}
@@ -685,7 +685,7 @@ func (cvm *CVM) GetInputMeta(addr common.Address) (meta *torrentfs.InputMeta, er
 	inputMetaRaw := cvm.StateDB.GetCode(addr)
 	var inputMeta torrentfs.InputMeta
 	if err := inputMeta.DecodeRLP(inputMetaRaw); err != nil {
-		return &torrentfs.InputMeta{}, err
+		return nil, err
 	} else {
 		return &inputMeta, nil
 	}
