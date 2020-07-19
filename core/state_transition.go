@@ -399,20 +399,26 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		}
 		raw := st.state.GetCode(st.to())
 		if cvm.IsModel(raw) {
-			if meta, err := torrentfs.ParseModelMeta(raw); err == nil {
-				ih = meta.Hash.Hex()
-				request = int64(meta.RawSize - remain)
+			var modelMeta torrentfs.ModelMeta
+			if err = modelMeta.DecodeRLP(raw); err == nil {
+				ih = modelMeta.Hash.Hex()
+				request = int64(modelMeta.RawSize - remain)
 			}
 		} else if cvm.IsInput(raw) {
-			if meta, err := torrentfs.ParseInputMeta(raw); err == nil {
-				ih = meta.Hash.Hex()
-				request = int64(meta.RawSize - remain)
+			var inputMeta torrentfs.InputMeta
+			if err = inputMeta.DecodeRLP(raw); err == nil {
+				ih = inputMeta.Hash.Hex()
+				request = int64(inputMeta.RawSize - remain)
 			}
 		} else {
 			return nil, 0, 0, false, vm.ErrRuntime
 		}
 
-		if err := synapse.Engine().Download(ih, request); err != nil {
+		if err != nil {
+			return nil, 0, 0, false, vm.ErrRuntime
+		}
+
+		if err = synapse.Engine().Download(ih, request); err != nil {
 			return nil, 0, 0, false, err
 		}
 	}

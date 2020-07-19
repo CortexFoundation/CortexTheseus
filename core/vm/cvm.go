@@ -672,23 +672,21 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 }
 
 func (cvm *CVM) GetModelMeta(addr common.Address) (meta *torrentfs.ModelMeta, err error) {
-	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
 	modelMetaRaw := cvm.StateDB.GetCode(addr)
-	log.Trace(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
-	if modelMeta, err := torrentfs.ParseModelMeta(modelMetaRaw); err != nil {
+	var modelMeta torrentfs.ModelMeta
+	if err := modelMeta.DecodeRLP(modelMetaRaw); err != nil {
 		return &torrentfs.ModelMeta{}, err
 	} else {
-		return modelMeta, nil
+		return &modelMeta, nil
 	}
 }
 
 func (cvm *CVM) GetInputMeta(addr common.Address) (meta *torrentfs.InputMeta, err error) {
 	inputMetaRaw := cvm.StateDB.GetCode(addr)
-	log.Trace(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
-	// fmt.Println("inputMetaRaw: %v", inputMetaRaw)
-	if inputMeta, err := torrentfs.ParseInputMeta(inputMetaRaw); err != nil {
+	var inputMeta torrentfs.InputMeta
+	if err := inputMeta.DecodeRLP(inputMetaRaw); err != nil {
 		return &torrentfs.InputMeta{}, err
 	} else {
-		return inputMeta, nil
+		return &inputMeta, nil
 	}
 }
