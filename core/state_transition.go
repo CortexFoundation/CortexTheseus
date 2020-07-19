@@ -56,6 +56,7 @@ var (
 	big0 = big.NewInt(0)
 )
 
+// StateTransition is the state of current tx in vm
 type StateTransition struct {
 	gp         *GasPool
 	qp         *QuotaPool
@@ -280,7 +281,6 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed uint64, failed bool, err error) {
 	if err = st.preCheck(); err != nil {
 		return
@@ -388,43 +388,28 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		var (
 			ih      string
 			request int64
+			remain  uint64
 		)
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.cvm.BlockNumber)
-
-			raw := st.state.GetCode(st.to())
-			if cvm.IsModel(raw) {
-				if meta, err := torrentfs.ParseModelMeta(raw); err == nil {
-					ih = meta.Hash.Hex()
-					request = int64(meta.RawSize)
-				}
-			} else if cvm.IsInput(raw) {
-				if meta, err := torrentfs.ParseInputMeta(raw); err == nil {
-					ih = meta.Hash.Hex()
-					request = int64(meta.RawSize)
-				}
-			} else {
-				return nil, 0, 0, false, vm.ErrRuntime
-			}
-
 			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber, "ih", ih)
 		} else {
-			raw := st.state.GetCode(st.to())
-			if cvm.IsModel(raw) {
-				if meta, err := torrentfs.ParseModelMeta(raw); err == nil {
-					ih = meta.Hash.Hex()
-					request = int64(meta.RawSize - st.state.Upload(st.to()).Uint64())
-				}
-			} else if cvm.IsInput(raw) {
-				if meta, err := torrentfs.ParseInputMeta(raw); err == nil {
-					ih = meta.Hash.Hex()
-					request = int64(meta.RawSize - st.state.Upload(st.to()).Uint64())
-				}
-			} else {
-				return nil, 0, 0, false, vm.ErrRuntime
-			}
-
+			remain = st.state.Upload(st.to()).Uint64()
 			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex(), "number", cvm.BlockNumber, "request", request, "ih", ih)
+		}
+		raw := st.state.GetCode(st.to())
+		if cvm.IsModel(raw) {
+			if meta, err := torrentfs.ParseModelMeta(raw); err == nil {
+				ih = meta.Hash.Hex()
+				request = int64(meta.RawSize - remain)
+			}
+		} else if cvm.IsInput(raw) {
+			if meta, err := torrentfs.ParseInputMeta(raw); err == nil {
+				ih = meta.Hash.Hex()
+				request = int64(meta.RawSize - remain)
+			}
+		} else {
+			return nil, 0, 0, false, vm.ErrRuntime
 		}
 
 		if err := synapse.Engine().Download(ih, request); err != nil {
