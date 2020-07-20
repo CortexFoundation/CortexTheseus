@@ -68,6 +68,9 @@ var (
 	availableMeter = metrics.NewRegisteredMeter("torrent/available/call", nil)
 	diskReadMeter  = metrics.NewRegisteredMeter("torrent/disk/read", nil)
 
+	downloadMeter = metrics.NewRegisteredMeter("torrent/download/call", nil)
+	updateMeter   = metrics.NewRegisteredMeter("torrent/update/call", nil)
+
 	memcacheHitMeter  = metrics.NewRegisteredMeter("torrent/memcache/hit", nil)
 	memcacheReadMeter = metrics.NewRegisteredMeter("torrent/memcache/read", nil)
 
@@ -293,7 +296,7 @@ func (tm *TorrentManager) addInfoHash(ih metainfo.Hash, BytesRequested int64) *T
 	if spec == nil {
 		tmpDataPath := filepath.Join(tm.TmpDataDir, ih.HexString())
 		spec = &torrent.TorrentSpec{
-			Trackers: [][]string{}, //tm.trackers, //[][]string{},
+			//		Trackers: [][]string{}, //tm.trackers, //[][]string{},
 			InfoHash: ih,
 			Storage:  storage.NewFile(tmpDataPath),
 		}
@@ -426,6 +429,7 @@ func (tm *TorrentManager) Start() error {
 
 	tm.wg.Add(1)
 	go tm.mainLoop()
+
 	tm.wg.Add(1)
 	go tm.pendingLoop()
 	tm.wg.Add(1)
@@ -469,20 +473,50 @@ func (tm *TorrentManager) init() {
 		log.Debug("Chain files init", "files", len(GoodFiles))
 
 		for k, _ := range GoodFiles {
-			tm.Search(k, 0)
+			tm.Search(k, 0, false)
 		}
 
 		log.Debug("Chain files OK !!!")
 	}
 }
 
-func (tm *TorrentManager) Search(hex string, request int64) {
-	hash := metainfo.NewHashFromHex(hex)
-	if t := tm.addInfoHash(hash, request); t != nil {
-		if request > 0 {
-			tm.updateInfoHash(hash, request)
-		}
+//Search and donwload files from torrent
+func (tm *TorrentManager) Search(hex string, request int64, resume bool) error {
+	if !common.IsHexAddress(hex) {
+		return errors.New("Invalid infohash format")
 	}
+
+	hex = strings.TrimPrefix(strings.ToLower(hex), common.Prefix)
+	if _, ok := BadFiles[hex]; ok {
+		return nil
+	}
+
+	hash := metainfo.NewHashFromHex(hex)
+	if request == 0 || resume {
+
+		tm.UpdateTorrent(types.FlowControlMeta{
+			InfoHash:       hash,
+			BytesRequested: uint64(request),
+			IsCreate:       true,
+		})
+		//if t := tm.addInfoHash(hash, request); t == nil {
+		//	return errors.New("Failed to add info hash")
+		//}
+	} else if request > 0 {
+		updateMeter.Mark(1)
+		tm.UpdateTorrent(types.FlowControlMeta{
+			InfoHash:       hash,
+			BytesRequested: uint64(request),
+			IsCreate:       false,
+		})
+		//tm.updateInfoHash(hash, request)
+	} else {
+		return errors.New("Request can't be negative")
+	}
+
+	downloadMeter.Mark(1)
+
+	return nil
 }
 
 func (tm *TorrentManager) mainLoop() {
@@ -573,7 +607,7 @@ func (tm *TorrentManager) pendingLoop() {
 							}
 
 						} else {
-							log.Warn("Boost failed", "ih", ih.String(), "err", err)
+							log.Debug("Boost failed", "ih", ih.String(), "err", err)
 							if t.start == 0 && (tm.bytes[ih] > 0 || tm.fullSeed || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
 								t.AddTrackers(tm.trackers)
 								t.start = mclock.Now()
@@ -831,7 +865,11 @@ func (fs *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 		return false, errors.New("raw size is zero or negative")
 	}
 
-	ih := metainfo.NewHashFromHex(infohash)
+	if !common.IsHexAddress(infohash) {
+		return false, errors.New("Invalid infohash format")
+	}
+
+	ih := metainfo.NewHashFromHex(strings.TrimPrefix(strings.ToLower(infohash), common.Prefix))
 	if torrent := fs.getTorrent(ih); torrent == nil {
 		return false, errors.New("file not exist")
 	} else {
@@ -847,9 +885,22 @@ func (fs *TorrentManager) GetFile(infohash, subpath string) ([]byte, error) {
 	if fs.metrics {
 		defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	}
-	ih := metainfo.NewHashFromHex(infohash)
+
+	if !common.IsHexAddress(infohash) {
+		return nil, errors.New("Invalid infohash format")
+	}
+	ih := metainfo.NewHashFromHex(strings.TrimPrefix(strings.ToLower(infohash), common.Prefix))
+
 	if torrent := fs.getTorrent(ih); torrent == nil {
-		log.Debug("Torrent not found", "hash", infohash)
+		//defer func() {
+		//	if active, ok := GoodFiles[infohash]; !ok {
+		//		GoodFiles[infohash] = true
+		//	} else {
+		//		if !active {
+		//			GoodFiles[infohash] = true
+		//		}
+		//	}
+		//}()
 		return nil, errors.New("file not exist")
 	} else {
 

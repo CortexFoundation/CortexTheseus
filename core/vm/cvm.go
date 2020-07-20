@@ -22,7 +22,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	//"errors"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -693,45 +692,22 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	return opsRes, errRes
 }
 
-/*func (cvm *CVM) GetMetaHash(addr common.Address) (meta common.Address, err error) {
-	metaRaw := cvm.StateDB.GetCode(addr)
-	if cvm.category.IsModel {
-		if modelMeta, err := types.ParseModelMeta(metaRaw); err != nil {
-			return common.EmptyAddress, err
-		} else {
-			return modelMeta.Hash, nil
-		}
-	}
-
-	if cvm.category.IsInput {
-		if inputMeta, err := types.ParseInputMeta(metaRaw); err != nil {
-			return common.EmptyAddress, err
-		} else {
-			return inputMeta.Hash, nil
-		}
-	}
-
-	return common.EmptyAddress, errors.New("quota limit reached")
-}*/
-
 func (cvm *CVM) GetModelMeta(addr common.Address) (meta *torrentfs.ModelMeta, err error) {
-	log.Trace(fmt.Sprintf("GeteModelMeta = %v", addr))
 	modelMetaRaw := cvm.StateDB.GetCode(addr)
-	log.Trace(fmt.Sprintf("modelMetaRaw: %v", modelMetaRaw))
-	if modelMeta, err := torrentfs.ParseModelMeta(modelMetaRaw); err != nil {
-		return &torrentfs.ModelMeta{}, err
+	var modelMeta torrentfs.ModelMeta
+	if err := modelMeta.DecodeRLP(modelMetaRaw); err != nil {
+		return nil, err
 	} else {
-		return modelMeta, nil
+		return &modelMeta, nil
 	}
 }
 
 func (cvm *CVM) GetInputMeta(addr common.Address) (meta *torrentfs.InputMeta, err error) {
 	inputMetaRaw := cvm.StateDB.GetCode(addr)
-	log.Trace(fmt.Sprintf("inputMetaRaw: %v", inputMetaRaw))
-	// fmt.Println("inputMetaRaw: %v", inputMetaRaw)
-	if inputMeta, err := torrentfs.ParseInputMeta(inputMetaRaw); err != nil {
-		return &torrentfs.InputMeta{}, err
+	var inputMeta torrentfs.InputMeta
+	if err := inputMeta.DecodeRLP(inputMetaRaw); err != nil {
+		return nil, err
 	} else {
-		return inputMeta, nil
+		return &inputMeta, nil
 	}
 }

@@ -2,7 +2,9 @@ package synapse
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -11,6 +13,7 @@ import (
 	resty "github.com/go-resty/resty/v2"
 	"math/big"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -135,18 +138,14 @@ func CVMVersion(config *params.ChainConfig, num *big.Int) int {
 	return version
 }
 
-func (s *Synapse) InferByInfoHash(
-	modelInfoHash, inputInfoHash string,
-	cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkId)
 	}
 	return s.inferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkId)
 }
 
-func (s *Synapse) InferByInputContent(
-	modelInfoHash string, inputContent []byte,
-	cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
 		return s.remoteInferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkId)
 	}
@@ -158,4 +157,20 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (ga
 		return s.remoteGasByModelHash(modelInfoHash, cvmNetworkId)
 	}
 	return s.getGasByInfoHash(modelInfoHash, cvmNetworkId)
+}
+
+func (s *Synapse) Download(infohash string, request int64) error {
+	if s.config.IsRemoteInfer {
+		return nil
+	}
+	if !common.IsHexAddress(infohash) {
+		return errors.New("Invalid infohash format")
+	}
+	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
+	err := s.config.Storagefs.Download(s.ctx, ih, request)
+	if err != nil {
+		return KERNEL_RUNTIME_ERROR
+	}
+
+	return nil
 }
