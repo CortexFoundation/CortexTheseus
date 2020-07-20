@@ -70,6 +70,7 @@ type Miner struct {
 	shouldStart int32 // should start indicates whether we should start after sync
 }
 
+//New create an instance of Miner
 func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, isLocalBlock func(block *types.Block) bool) *Miner {
 	miner := &Miner{
 		ctxc:     ctxc,
@@ -186,6 +187,7 @@ func (miner *Miner) SetCoinbase(addr common.Address) {
 	miner.worker.setCoinbase(addr)
 }
 
+//Start mining when not sync the network
 func (miner *Miner) Start(coinbase common.Address) {
 	atomic.StoreInt32(&miner.shouldStart, 1)
 	miner.SetCoinbase(coinbase)
