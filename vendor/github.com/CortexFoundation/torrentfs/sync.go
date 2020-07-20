@@ -445,7 +445,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 func (m *Monitor) exit() {
 	if m.exitCh != nil {
 		close(m.exitCh)
-		log.Info("Monitor is waiting to be closed")
 		m.wg.Wait()
 		m.exitCh = nil
 	} else {
@@ -461,7 +460,7 @@ func (m *Monitor) stop() {
 		atomic.StoreInt32(&(m.terminated), 1)
 
 		m.exit()
-
+		log.Info("Monitor is waiting to be closed")
 		m.blockCache.Purge()
 		m.sizeCache.Purge()
 
@@ -544,7 +543,7 @@ func (m *Monitor) listenLatestBlock() {
 				timer.Reset(time.Second * queryTimeInterval * 10)
 			}
 		case <-m.exitCh:
-			log.Info("Block listener stopped")
+			log.Debug("Block listener stopped")
 			return
 		}
 	}
@@ -566,7 +565,7 @@ func (m *Monitor) syncLatestBlock() {
 				timer.Reset(time.Millisecond * 1000)
 			} else {
 				if !m.listen {
-					if m.currentNumber != 0 {
+					if (m.ckp != nil && m.currentNumber >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber > 0) {
 						m.fs.Flush()
 						go m.exit()
 						log.Warn("Finish sync, listener will be stopped", "current", m.currentNumber)
@@ -577,7 +576,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			m.fs.Flush()
 		case <-m.exitCh:
-			log.Info("Block syncer stopped")
+			log.Debug("Block syncer stopped")
 			return
 		}
 	}
@@ -644,7 +643,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	if maxNumber < minNumber {
 		return 0
 	}
-	start := mclock.Now()
+	//start := mclock.Now()
 	for i := minNumber; i <= maxNumber; { // i++ {
 		if atomic.LoadInt32(&(m.terminated)) == 1 {
 			log.Warn("Fs scan terminated", "number", i)
@@ -714,9 +713,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 	m.lastNumber = maxNumber
 	//if maxNumber-minNumber > batch-1 {
 	if maxNumber-minNumber > delay {
-		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Info("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "elapsed", common.PrettyDuration(elapsed), "bps", float64(maxNumber-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "duration", common.PrettyDuration(elapsedA))
+		log.Info("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
 	}
 	return uint64(maxNumber - minNumber)
 }

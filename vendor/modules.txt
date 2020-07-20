@@ -3,7 +3,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.15
+# github.com/CortexFoundation/torrentfs v1.0.16-0.20200720025206-32b49c7a86f4
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -186,7 +186,7 @@ github.com/glycerine/go-unsnap-stream
 # github.com/go-ole/go-ole v1.2.4
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
-# github.com/go-resty/resty/v2 v2.3.1-0.20200619075926-b87f65ce5ed5
+# github.com/go-resty/resty/v2 v2.3.1-0.20200717071130-ca7661ad51fe
 ## explicit
 github.com/go-resty/resty/v2
 # github.com/go-sourcemap/sourcemap v2.1.3+incompatible

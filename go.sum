@@ -45,8 +45,8 @@ github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200704025058-f0885ec2bd83/
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8 h1:tdddGS9QxQxI1c+svSyJ5IX9pvN3BK9DYYQ50E7mEWI=
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
-github.com/CortexFoundation/torrentfs v1.0.15 h1:/QZw7xGgdto8opamOtDwYEZf0pZCFPIKv1pMIfTkx6c=
-github.com/CortexFoundation/torrentfs v1.0.15/go.mod h1:J6d+1RXSxpzFrUYdCfsiEX5DpDjCYSgYC8zkuich9as=
+github.com/CortexFoundation/torrentfs v1.0.16-0.20200720025206-32b49c7a86f4 h1:dvoXsDw3DGcBGJ8E0YRRq+FMNEZUXXaxM9uvrajgbL4=
+github.com/CortexFoundation/torrentfs v1.0.16-0.20200720025206-32b49c7a86f4/go.mod h1:J6d+1RXSxpzFrUYdCfsiEX5DpDjCYSgYC8zkuich9as=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -340,6 +340,8 @@ github.com/go-ole/go-ole v1.2.4/go.mod h1:XCwSNxSkXRo4vlyPy93sltvi/qJq0jqQhjqQNI
 github.com/go-resty/resty/v2 v2.3.0-rc.1/go.mod h1:nYW/8rxqQCmI3bPz9Fsmjbr2FBjGuR2Mzt6kDh3zZ7w=
 github.com/go-resty/resty/v2 v2.3.1-0.20200619075926-b87f65ce5ed5 h1:YoSgv9FoJzoKixy842sZLsR0ImftVRRt/r0uiBDFm7I=
 github.com/go-resty/resty/v2 v2.3.1-0.20200619075926-b87f65ce5ed5/go.mod h1:UpN9CgLZNsv4e9XG50UU8xdI0F43UQ4HmxLBDwaroHU=
+github.com/go-resty/resty/v2 v2.3.1-0.20200717071130-ca7661ad51fe h1:kB/ivBrdeerfRDwa85FNnTXsrKMQuMRYVByvIpzivwU=
+github.com/go-resty/resty/v2 v2.3.1-0.20200717071130-ca7661ad51fe/go.mod h1:UpN9CgLZNsv4e9XG50UU8xdI0F43UQ4HmxLBDwaroHU=
 github.com/go-sourcemap/sourcemap v2.1.3+incompatible h1:W1iEw64niKVGogNgBN3ePyLFfuisuzeidWPMPWmECqU=
 github.com/go-sourcemap/sourcemap v2.1.3+incompatible/go.mod h1:F8jJfvm2KbVjc5NqelyYJmf/v5J0dwNLS2mL4sNA1Jg=
 github.com/go-sql-driver/mysql v1.4.0/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
