@@ -47,7 +47,7 @@ jobs:
         fi
         
     - name: Build
-      run: make clean && make -j$(nproc)
+      run: make clean && make all -j$(nproc)
       
     - name: CodeCov
       run: |
