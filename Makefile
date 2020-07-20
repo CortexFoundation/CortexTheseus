@@ -27,7 +27,7 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-all: cortex
+all: cortex bootnode abigen devp2p keytools rlpdump wnode
 
 gpu: cortex_gpu
 
