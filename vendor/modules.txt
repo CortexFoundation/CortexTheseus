@@ -1,9 +1,13 @@
+# crawshaw.io/sqlite v0.3.2
+crawshaw.io/sqlite
+crawshaw.io/sqlite/c
+crawshaw.io/sqlite/sqlitex
 # github.com/Azure/azure-pipeline-go v0.2.2
 github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.16-0.20200720025206-32b49c7a86f4
+# github.com/CortexFoundation/torrentfs v1.0.16-0.20200720072602-12296f4907c8
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -61,7 +65,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.15.1-0.20200710032408-8a98866d06a7
+# github.com/anacrolix/torrent v1.15.1-0.20200715061614-dd906f8fa72e
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -268,8 +272,6 @@ github.com/mattn/go-ieproxy
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.9
 github.com/mattn/go-runewidth
-# github.com/mattn/go-sqlite3 v2.0.3+incompatible
-github.com/mattn/go-sqlite3
 # github.com/mschoch/smat v0.2.0
 github.com/mschoch/smat
 # github.com/naoina/go-stringutil v0.1.0
