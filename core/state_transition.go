@@ -19,19 +19,15 @@ package core
 import (
 	"errors"
 	math2 "github.com/CortexFoundation/CortexTheseus/common/math"
-
-	//	"fmt"
 	"math"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
+	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	//"github.com/CortexFoundation/CortexTheseus/core/asm"
-	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	//"github.com/CortexFoundation/CortexTheseus/torrentfs"
-	//"time"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
 var (
@@ -60,6 +56,7 @@ var (
 	big0 = big.NewInt(0)
 )
 
+// StateTransition is the state of current tx in vm
 type StateTransition struct {
 	gp         *GasPool
 	qp         *QuotaPool
@@ -284,7 +281,6 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed uint64, failed bool, err error) {
 	if err = st.preCheck(); err != nil {
 		return
@@ -388,34 +384,46 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		quota = math2.Uint64Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
 
 		st.state.SubUpload(st.to(), new(big.Int).SetUint64(quota)) //64 ~ 1024 bytes
+
+		var (
+			ih      string
+			request int64
+			remain  uint64
+		)
 		if !st.state.Uploading(st.to()) {
 			st.state.SetNum(st.to(), st.cvm.BlockNumber)
-			log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber)
-			//todo vote for model
+			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber)
 		} else {
-			log.Debug("Waiting ...", "ticket", st.state.Upload(st.to()).Uint64(), "address", st.to().Hex(), "number", cvm.BlockNumber)
+			remain = st.state.Upload(st.to()).Uint64()
+			log.Debug("Waiting ...", "address", st.to().Hex(), "number", cvm.BlockNumber)
+		}
+		raw := st.state.GetCode(st.to())
+		if cvm.IsModel(raw) {
+			var modelMeta torrentfs.ModelMeta
+			if err = modelMeta.DecodeRLP(raw); err == nil {
+				ih = modelMeta.Hash.Hex()
+				request = int64(modelMeta.RawSize - remain)
+			}
+		} else if cvm.IsInput(raw) {
+			var inputMeta torrentfs.InputMeta
+			if err = inputMeta.DecodeRLP(raw); err == nil {
+				ih = inputMeta.Hash.Hex()
+				request = int64(inputMeta.RawSize - remain)
+			}
+		} else {
+			return nil, 0, 0, false, vm.ErrRuntime
+		}
+
+		if err != nil {
+			return nil, 0, 0, false, vm.ErrRuntime
+		}
+
+		if err = synapse.Engine().Download(ih, request); err != nil {
+			return nil, 0, 0, false, err
 		}
 	}
 
-	//if quota.Cmp(big0) > 0 {
-	//	log.Info("Quota consumption", "address", st.to().Hex(), "amount", quota)
-	//}
-
 	return ret, st.gasUsed(), quota, vmerr != nil, err
-}
-
-func Min(x, y *big.Int) *big.Int {
-	if x.Cmp(y) < 0 {
-		return x
-	}
-	return y
-}
-
-func Max(x, y *big.Int) *big.Int {
-	if x.Cmp(y) > 0 {
-		return x
-	}
-	return y
 }
 
 //vote to model

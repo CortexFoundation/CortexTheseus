@@ -23,6 +23,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/merkletree"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
+	"sync"
 	//lru "github.com/hashicorp/golang-lru"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -54,6 +55,8 @@ type ChainDB struct {
 	treeUpdates           time.Duration
 	metrics               bool
 
+	torrents map[string]uint64
+	lock     sync.Mutex
 	//rootCache *lru.Cache
 }
 
@@ -83,6 +86,8 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 	fs.metrics = config.Metrics
 
 	fs.version = version
+
+	fs.torrents = make(map[string]uint64)
 
 	//fs.rootCache, _ = lru.New(8)
 
@@ -119,6 +124,10 @@ func (fs *ChainDB) Files() []*types.FileInfo {
 
 func (fs *ChainDB) Blocks() []*types.Block {
 	return fs.blocks
+}
+
+func (fs *ChainDB) Torrents() map[string]uint64 {
+	return fs.torrents
 }
 
 func (fs *ChainDB) Leaves() []merkletree.Content {
@@ -694,4 +703,54 @@ func (fs *ChainDB) SkipPrint() {
 
 	//log.Info("Skip chart", "skips", str)
 	fmt.Println(str)
+}
+
+func (fs *ChainDB) AddTorrent(ih string, size uint64) (bool, error) {
+	fs.lock.Lock()
+	defer fs.lock.Unlock()
+
+	if s, ok := fs.torrents[ih]; ok {
+		if s >= size {
+			return false, nil
+		}
+	}
+	if err := fs.db.Update(func(tx *bolt.Tx) error {
+		buk, err := tx.CreateBucketIfNotExists([]byte("torrent_" + fs.version))
+		if err != nil {
+			return err
+		}
+		e := buk.Put([]byte(ih), []byte(strconv.FormatUint(size, 16)))
+
+		return e
+	}); err != nil {
+		return false, err
+	}
+
+	fs.torrents[ih] = size
+
+	return true, nil
+}
+
+func (fs *ChainDB) initTorrents() (map[string]uint64, error) {
+	//torrents := make(map[string]uint64)
+	err := fs.db.Update(func(tx *bolt.Tx) error {
+		if buk, err := tx.CreateBucketIfNotExists([]byte("torrent_" + fs.version)); err != nil {
+			return err
+		} else {
+			c := buk.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				size, err := strconv.ParseUint(string(v), 16, 64)
+				if err != nil {
+					return err
+				}
+				fs.torrents[string(k)] = size
+			}
+			log.Info("Torrent initializing ... ...", "torrents", len(fs.torrents))
+			return nil
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+	return fs.torrents, nil
 }

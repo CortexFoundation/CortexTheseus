@@ -1,5 +1,5 @@
 // Copyright 2020 The CortexTheseus Authors
-// This file is part of the CortexTheseus library.
+// This file is part of the CortexFoundation library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -13,16 +13,35 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
-package torrentfs
+package console
 
 import (
-	"context"
+	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/internal/jsre"
+	"github.com/dop251/goja"
 )
 
-type CortexStorage interface {
-	Available(ctx context.Context, infohash string, rawSize int64) (bool, error)
-	GetFile(ctx context.Context, infohash, path string) ([]byte, error)
-	Stop() error
+// TestUndefinedAsParam ensures that personal functions can receive
+// `undefined` as a parameter.
+func TestUndefinedAsParam(t *testing.T) {
+	b := bridge{}
+	call := jsre.Call{}
+	call.Arguments = []goja.Value{goja.Undefined()}
 
-	Download(ctx context.Context, ih string, request int64) error
+	b.UnlockAccount(call)
+	b.Sign(call)
+	b.Sleep(call)
+}
+
+// TestNullAsParam ensures that personal functions can receive
+// `null` as a parameter.
+func TestNullAsParam(t *testing.T) {
+	b := bridge{}
+	call := jsre.Call{}
+	call.Arguments = []goja.Value{goja.Null()}
+
+	b.UnlockAccount(call)
+	b.Sign(call)
+	b.Sleep(call)
 }

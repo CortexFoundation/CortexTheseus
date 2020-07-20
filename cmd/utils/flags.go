@@ -43,7 +43,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
-	//"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	// "github.com/CortexFoundation/CortexTheseus/stats"
@@ -1298,7 +1298,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	setTxPool(ctx, &cfg.TxPool)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
-		//cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
+		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
@@ -1571,9 +1571,11 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 }
 
 // RegisterStorageService adds a torrent file system to the stack.
-func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, commit string) {
+//func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, mode downloader.SyncMode) {
+func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return torrentfs.New(cfg, commit, true, false)
+		//return torrentfs.New(cfg, true, false, downloader.FastSync == mode)
+		return torrentfs.New(cfg, true, false, false)
 	}); err != nil {
 		Fatalf("Failed to register the storage service: %v", err)
 	}

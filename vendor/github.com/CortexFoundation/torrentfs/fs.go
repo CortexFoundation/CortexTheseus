@@ -36,12 +36,12 @@ func GetStorage() CortexStorage {
 }
 
 // New creates a new torrentfs instance with the given configuration.
-func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error) {
+func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 	if inst != nil {
 		return inst, nil
 	}
 
-	monitor, moErr := NewMonitor(config, cache, compress)
+	monitor, moErr := NewMonitor(config, cache, compress, listen)
 	if moErr != nil {
 		log.Error("Failed create monitor")
 		return nil, moErr
@@ -63,13 +63,14 @@ func New(config *Config, commit string, cache, compress bool) (*TorrentFS, error
 				"version": ProtocolVersion,
 				"status": map[string]interface{}{
 					"dht":            !config.DisableDHT,
-					"listen":         inst.LocalPort(),
+					"port":           inst.LocalPort(),
 					"root":           inst.chain().Root().Hex(),
 					"files":          inst.Congress(),
 					"active":         inst.Candidate(),
 					"leafs":          len(inst.chain().Blocks()),
 					"number":         monitor.currentNumber,
 					"maxMessageSize": inst.MaxMessageSize(),
+					//					"listen":         monitor.listen,
 				},
 			}
 		},
@@ -190,7 +191,7 @@ func (tfs *TorrentFS) Stop() error {
 		return nil
 	}
 	// Wait until every goroutine terminates.
-	tfs.monitor.Stop()
+	tfs.monitor.stop()
 	return nil
 }
 
@@ -200,6 +201,25 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize int
 
 func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]byte, error) {
 	return fs.storage().GetFile(infohash, subpath)
+}
+
+func (fs *TorrentFS) Download(ctx context.Context, ih string, request int64) error {
+
+	//if fs.monitor.listen {
+	//return nil
+	//}
+
+	if update, err := fs.chain().AddTorrent(ih, uint64(request)); err != nil {
+		return err
+	} else {
+		if update {
+			if err := fs.storage().Search(ih, request, false); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (fs *TorrentFS) LocalPort() int {
