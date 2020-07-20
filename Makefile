@@ -27,6 +27,8 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
+cortex: cpu
+
 all: cortex bootnode abigen devp2p keytools rlpdump wnode
 
 gpu: cortex_gpu
@@ -34,8 +36,6 @@ gpu: cortex_gpu
 cpu: cortex_cpu
 
 mine: cortex_mine
-
-cortex: cpu
 
 clean-miner:
 	rm -fr plugins/*_helper_for_node.so
