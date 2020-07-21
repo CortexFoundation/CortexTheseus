@@ -124,13 +124,13 @@ func (s *Synapse) sendRequest(requestBody []byte) ([]byte, error) {
 		return data, nil
 	}
 	// res.Info == inference.RES_ERROR
-	err_str := string(res.Data)
+	errStr := string(res.Data)
 
-	if err_str == KERNEL_LOGIC_ERROR.Error() {
+	if errStr == KERNEL_LOGIC_ERROR.Error() {
 		return nil, KERNEL_LOGIC_ERROR
 	}
 
-	log.Debug("VM runtime error", "err", err_str, "req", requestBody)
+	log.Debug("VM runtime error", "err", errStr, "req", requestBody)
 
 	return nil, KERNEL_RUNTIME_ERROR
 }
