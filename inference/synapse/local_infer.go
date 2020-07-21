@@ -43,24 +43,24 @@ func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
 	return nil, KERNEL_RUNTIME_ERROR
 }
 
-func fixTorrentHash(ih string, cvmNetworkId int64) string {
-	if cvmNetworkId == 43 {
+func fixTorrentHash(ih string, cvmNetworkID int64) string {
+	if cvmNetworkID == 43 {
 		if ch, ok := CvmDolFixTorrHashes[ih]; ok {
-			log.Debug("start hacking hash", "ih", ih, "ch", ch, "cvmNetworkId", cvmNetworkId)
+			log.Debug("start hacking hash", "ih", ih, "ch", ch, "cvmNetworkID", cvmNetworkID)
 			return ch
 		}
 	}
 	return ih
 }
 
-func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (uint64, error) {
+func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkID int64) (uint64, error) {
 
 	if !common.IsHexAddress(modelInfoHash) {
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
 	modelHash := strings.ToLower(strings.TrimPrefix(modelInfoHash, common.Prefix))
-	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
+	modelHash = fixTorrentHash(modelHash, cvmNetworkID)
 
 	cacheKey := RLPHashString("estimate_ops_" + modelHash)
 	if v, ok := s.gasCache.Load(cacheKey); ok && !s.config.IsNotCache {
@@ -89,15 +89,15 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (ui
 	return gas, err
 }
 
-func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
-	return s.infer(modelInfoHash, inputInfoHash, nil, cvmVersion, cvmNetworkId)
+func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+	return s.infer(modelInfoHash, inputInfoHash, nil, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) inferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
-	return s.infer(modelInfoHash, "", inputContent, cvmVersion, cvmNetworkId)
+func (s *Synapse) inferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+	return s.infer(modelInfoHash, "", inputContent, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if inputInfoHash == "" {
 		inputInfoHash = RLPHashString(inputContent)
 	} else {
@@ -114,7 +114,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 		modelHash = strings.ToLower(strings.TrimPrefix(modelInfoHash, common.Prefix))
 		inputHash = strings.ToLower(strings.TrimPrefix(inputInfoHash, common.Prefix))
 	)
-	modelHash = fixTorrentHash(modelHash, cvmNetworkId)
+	modelHash = fixTorrentHash(modelHash, cvmNetworkID)
 	// Inference Cache
 	cacheKey := RLPHashString(modelHash + "_" + inputHash)
 
@@ -208,30 +208,38 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	return result, nil
 }
 
-func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error {
-	if s.config.IsRemoteInfer {
-		errRes := s.remoteAvailable(
-			infoHash, rawSize, cvmNetworkId)
-		return errRes
-	}
+func (s *Synapse) available(infoHash string, rawSize, cvmNetworkID int64) error {
 	if !common.IsHexAddress(infoHash) {
 		return KERNEL_RUNTIME_ERROR
 	}
 	ih := strings.ToLower(strings.TrimPrefix(infoHash, common.Prefix))
-	if cvmNetworkId == 43 {
+	if cvmNetworkID == 43 {
 		if _, ok := CvmDolFixTorrHashes[ih]; ok {
-			log.Debug("Available: start hacking...", "ih", ih, "cvmNetworkId", cvmNetworkId)
+			log.Debug("Available: start hacking...", "ih", ih, "cvmNetworkID", cvmNetworkID)
 			return nil
 		}
 	}
-	is_ok, err := s.config.Storagefs.Available(context.Background(), ih, rawSize)
+	isOK, err := s.config.Storagefs.Available(context.Background(), ih, rawSize)
 	if err != nil {
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
-	} else if !is_ok {
+	} else if !isOK {
 		log.Warn("File is unavailable", "info hash", infoHash, "error", KERNEL_LOGIC_ERROR)
 		return KERNEL_LOGIC_ERROR
 	}
 	log.Debug("File available", "info hash", infoHash)
+	return nil
+}
+
+func (s *Synapse) download(infohash string, request int64) error {
+	if !common.IsHexAddress(infohash) {
+		return KERNEL_RUNTIME_ERROR //errors.New("Invalid infohash format")
+	}
+	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
+	err := s.config.Storagefs.Download(context.Background(), ih, request)
+	if err != nil {
+		return KERNEL_RUNTIME_ERROR
+	}
+
 	return nil
 }

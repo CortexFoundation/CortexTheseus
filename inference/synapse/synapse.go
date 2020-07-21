@@ -1,10 +1,7 @@
 package synapse
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -13,7 +10,6 @@ import (
 	resty "github.com/go-resty/resty/v2"
 	"math/big"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -32,11 +28,11 @@ var (
 	}
 )
 
-const PLUGIN_PATH string = "plugins/"
-const PLUGIN_POST_FIX string = "lib_cvm.so"
 const (
-	MinMemoryUsage      int64 = 2 * 1024 * 1024 * 1024
-	ReservedMemoryUsage int64 = 512 * 1024 * 1024
+	PLUGIN_PATH         string = "plugins/"
+	PLUGIN_POST_FIX     string = "lib_cvm.so"
+	MinMemoryUsage      int64  = 2 * 1024 * 1024 * 1024
+	ReservedMemoryUsage int64  = 512 * 1024 * 1024
 )
 
 type Config struct {
@@ -138,39 +134,38 @@ func CVMVersion(config *params.ChainConfig, num *big.Int) int {
 	return version
 }
 
-func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkId)
+		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkID)
 	}
-	return s.inferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkId)
+	return s.inferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkId)
+		return s.remoteInferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkID)
 	}
-	return s.inferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkId)
+	return s.inferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (gas uint64, err error) {
+func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkID int64) (gas uint64, err error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteGasByModelHash(modelInfoHash, cvmNetworkId)
+		return s.remoteGasByModelHash(modelInfoHash, cvmNetworkID)
 	}
-	return s.getGasByInfoHash(modelInfoHash, cvmNetworkId)
+	return s.getGasByInfoHash(modelInfoHash, cvmNetworkID)
 }
 
+func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkID int64) error {
+	if s.config.IsRemoteInfer {
+		return s.remoteAvailable(infoHash, rawSize, cvmNetworkID)
+	}
+	return s.available(infoHash, rawSize, cvmNetworkID)
+}
+
+// Download is used to control the torrentfs, not for remote invoked now
 func (s *Synapse) Download(infohash string, request int64) error {
 	if s.config.IsRemoteInfer {
 		return nil
 	}
-	if !common.IsHexAddress(infohash) {
-		return errors.New("Invalid infohash format")
-	}
-	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
-	err := s.config.Storagefs.Download(context.Background(), ih, request)
-	if err != nil {
-		return KERNEL_RUNTIME_ERROR
-	}
-
-	return nil
+	return s.download(infohash, request)
 }

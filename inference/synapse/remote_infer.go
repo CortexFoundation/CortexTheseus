@@ -10,11 +10,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
-func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkId int64) (uint64, error) {
+func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkID int64) (uint64, error) {
 	inferWork := inference.GasWork{
 		Type:         inference.GAS_BY_H,
 		Model:        modelInfoHash,
-		CvmNetworkId: cvmNetworkId,
+		CvmNetworkId: cvmNetworkID,
 	}
 
 	requestBody, errMarshal := inferWork.MarshalJSON() //json.Marshal(inferWork)
@@ -32,12 +32,12 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkId int64)
 }
 
 //func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
-func (s *Synapse) remoteAvailable(infoHash string, rawSize, cvmNetworkId int64) error {
+func (s *Synapse) remoteAvailable(infoHash string, rawSize, cvmNetworkID int64) error {
 	inferWork := inference.AvailableWork{
 		Type:         inference.AVAILABLE_BY_H,
 		InfoHash:     infoHash,
 		RawSize:      rawSize,
-		CvmNetworkId: cvmNetworkId,
+		CvmNetworkId: cvmNetworkID,
 	}
 
 	requestBody, errMarshal := inferWork.MarshalJSON() //json.Marshal(inferWork)
@@ -51,13 +51,13 @@ func (s *Synapse) remoteAvailable(infoHash string, rawSize, cvmNetworkId int64) 
 	return err
 }
 
-func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	inferWork := inference.IHWork{
 		Type:         inference.INFER_BY_IH,
 		Model:        modelInfoHash,
 		Input:        inputInfoHash,
 		CvmVersion:   cvmVersion,
-		CvmNetworkId: cvmNetworkId,
+		CvmNetworkId: cvmNetworkID,
 	}
 
 	requestBody, err := inferWork.MarshalJSON() //json.Marshal(inferWork)
@@ -69,13 +69,13 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvm
 	return s.sendRequest(requestBody)
 }
 
-func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkId int64) ([]byte, error) {
+func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	inferWork := inference.ICWork{
 		Type:         inference.INFER_BY_IC,
 		Model:        modelInfoHash,
 		Input:        hexutil.Bytes(inputContent),
 		CvmVersion:   cvmVersion,
-		CvmNetworkId: cvmNetworkId,
+		CvmNetworkId: cvmNetworkID,
 	}
 
 	requestBody, err := inferWork.MarshalJSON() //json.Marshal(inferWork)
@@ -124,13 +124,13 @@ func (s *Synapse) sendRequest(requestBody []byte) ([]byte, error) {
 		return data, nil
 	}
 	// res.Info == inference.RES_ERROR
-	err_str := string(res.Data)
+	errStr := string(res.Data)
 
-	if err_str == KERNEL_LOGIC_ERROR.Error() {
+	if errStr == KERNEL_LOGIC_ERROR.Error() {
 		return nil, KERNEL_LOGIC_ERROR
 	}
 
-	log.Debug("VM runtime error", "err", err_str, "req", requestBody)
+	log.Debug("VM runtime error", "err", errStr, "req", requestBody)
 
 	return nil, KERNEL_RUNTIME_ERROR
 }
