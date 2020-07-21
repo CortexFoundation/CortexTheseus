@@ -208,12 +208,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	return result, nil
 }
 
-func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error {
-	if s.config.IsRemoteInfer {
-		errRes := s.remoteAvailable(
-			infoHash, rawSize, cvmNetworkId)
-		return errRes
-	}
+func (s *Synapse) available(infoHash string, rawSize, cvmNetworkId int64) error {
 	if !common.IsHexAddress(infoHash) {
 		return KERNEL_RUNTIME_ERROR
 	}
@@ -233,5 +228,18 @@ func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error 
 		return KERNEL_LOGIC_ERROR
 	}
 	log.Debug("File available", "info hash", infoHash)
+	return nil
+}
+
+func (s *Synapse) download(infohash string, request int64) error {
+	if !common.IsHexAddress(infohash) {
+		return KERNEL_RUNTIME_ERROR //errors.New("Invalid infohash format")
+	}
+	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
+	err := s.config.Storagefs.Download(context.Background(), ih, request)
+	if err != nil {
+		return KERNEL_RUNTIME_ERROR
+	}
+
 	return nil
 }

@@ -1,10 +1,7 @@
 package synapse
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -13,7 +10,6 @@ import (
 	resty "github.com/go-resty/resty/v2"
 	"math/big"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -159,18 +155,17 @@ func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (ga
 	return s.getGasByInfoHash(modelInfoHash, cvmNetworkId)
 }
 
+func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error {
+	if s.config.IsRemoteInfer {
+		return s.remoteAvailable(infoHash, rawSize, cvmNetworkId)
+	}
+	return s.available(infoHash, rawSize, cvmNetworkId)
+}
+
+// Download is used to control the torrentfs, not for remote invoked now
 func (s *Synapse) Download(infohash string, request int64) error {
 	if s.config.IsRemoteInfer {
 		return nil
 	}
-	if !common.IsHexAddress(infohash) {
-		return errors.New("Invalid infohash format")
-	}
-	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
-	err := s.config.Storagefs.Download(context.Background(), ih, request)
-	if err != nil {
-		return KERNEL_RUNTIME_ERROR
-	}
-
-	return nil
+	return s.download(infohash, request)
 }
