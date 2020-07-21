@@ -61,7 +61,7 @@ type Synapse struct {
 	caches map[int]*lru.Cache
 	//exitCh chan struct{}
 	client *resty.Client
-	ctx    context.Context
+	//ctx    context.Context
 }
 
 func Engine() *Synapse {
@@ -110,7 +110,7 @@ func New(config *Config) *Synapse {
 		synapseInstance.client = resty.New()
 	}
 
-	synapseInstance.ctx = context.Background()
+	//synapseInstance.ctx = context.Background()
 
 	log.Info("Initialising Synapse Engine", "Cache Disabled", config.IsNotCache)
 	return synapseInstance
@@ -167,7 +167,7 @@ func (s *Synapse) Download(infohash string, request int64) error {
 		return errors.New("Invalid infohash format")
 	}
 	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
-	err := s.config.Storagefs.Download(s.ctx, ih, request)
+	err := s.config.Storagefs.Download(context.Background(), ih, request)
 	if err != nil {
 		return KERNEL_RUNTIME_ERROR
 	}

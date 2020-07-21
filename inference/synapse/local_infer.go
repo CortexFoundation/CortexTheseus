@@ -6,6 +6,7 @@ import (
 	// "path/filepath"
 	"strings"
 	//"sync"
+	"context"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
@@ -68,7 +69,7 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkId int64) (ui
 		return v.(uint64), nil
 	}
 
-	modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
+	modelJson, modelJson_err := s.config.Storagefs.GetFile(context.Background(), modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
 		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
 		return 0, KERNEL_RUNTIME_ERROR
@@ -128,7 +129,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	}
 
 	if inputContent == nil {
-		inputBytes, dataErr := s.config.Storagefs.GetFile(s.ctx, inputHash, DATA_PATH)
+		inputBytes, dataErr := s.config.Storagefs.GetFile(context.Background(), inputHash, DATA_PATH)
 		if dataErr != nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
@@ -171,12 +172,12 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
-		modelJson, modelJson_err := s.config.Storagefs.GetFile(s.ctx, modelHash, SYMBOL_PATH)
+		modelJson, modelJson_err := s.config.Storagefs.GetFile(context.Background(), modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
 			log.Warn("inferByInputContent: model loaded failed", "model hash", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-		modelParams, modelParams_err := s.config.Storagefs.GetFile(s.ctx, modelHash, PARAM_PATH)
+		modelParams, modelParams_err := s.config.Storagefs.GetFile(context.Background(), modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
 			log.Warn("inferByInputContent: params loaded failed", "model hash", modelHash, "error", modelParams_err)
 			return nil, KERNEL_RUNTIME_ERROR
@@ -223,7 +224,7 @@ func (s *Synapse) Available(infoHash string, rawSize, cvmNetworkId int64) error 
 			return nil
 		}
 	}
-	is_ok, err := s.config.Storagefs.Available(s.ctx, ih, rawSize)
+	is_ok, err := s.config.Storagefs.Available(context.Background(), ih, rawSize)
 	if err != nil {
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
