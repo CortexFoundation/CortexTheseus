@@ -21,6 +21,7 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"github.com/dop251/goja"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -50,6 +51,12 @@ type JSRE struct {
 	evalQueue     chan *evalReq
 	stopEventLoop chan bool
 	closed        chan struct{}
+}
+
+// Call is the argument type of Go functions which are callable from JS.
+type Call struct {
+	goja.FunctionCall
+	VM *goja.Runtime
 }
 
 // jsTimer is a single timer instance with a callback function
