@@ -130,9 +130,7 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, status i
 		filepath.Join(tm.TmpDataDir, ih.String()),
 		0, 1, 0, 0, false, true, 0,
 	}
-	tm.lock.Lock()
-	tm.torrents[ih] = tt
-	tm.lock.Unlock()
+	tm.setTorrent(ih, tt)
 
 	tm.pendingChan <- tt
 	return tt
@@ -141,11 +139,16 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, status i
 func (tm *TorrentManager) getTorrent(ih metainfo.Hash) *Torrent {
 	tm.lock.RLock()
 	defer tm.lock.RUnlock()
-	if torrent, ok := tm.torrents[ih]; !ok {
-		return nil
-	} else {
+	if torrent, ok := tm.torrents[ih]; ok {
 		return torrent
 	}
+	return nil
+}
+
+func (tm *TorrentManager) setTorrent(ih metainfo.Hash, t *Torrent) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	tm.torrents[ih] = t
 }
 
 func (tm *TorrentManager) Close() error {
@@ -325,6 +328,7 @@ func (tm *TorrentManager) updateInfoHash(ih metainfo.Hash, BytesRequested int64)
 	if t, ok := tm.bytes[ih]; !ok || t < BytesRequested {
 		tm.bytes[ih] = BytesRequested
 	}
+	updateMeter.Mark(1)
 }
 
 func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*TorrentManager, error) {
@@ -434,16 +438,15 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 }
 
 func (tm *TorrentManager) Start() error {
-
 	tm.wg.Add(1)
-	go tm.mainLoop()
-
-	tm.wg.Add(1)
-	go tm.pendingLoop()
+	go tm.seedingLoop()
 	tm.wg.Add(1)
 	go tm.activeLoop()
 	tm.wg.Add(1)
-	go tm.seedingLoop()
+	go tm.pendingLoop()
+
+	tm.wg.Add(1)
+	go tm.mainLoop()
 
 	tm.init()
 
@@ -479,15 +482,15 @@ func (tm *TorrentManager) seedingLoop() {
 }
 
 func (tm *TorrentManager) init() {
-	if tm.cache {
-		log.Debug("Chain files init", "files", len(GoodFiles))
+	//if tm.cache {
+	log.Debug("Chain files init", "files", len(GoodFiles))
 
-		for k, _ := range GoodFiles {
-			tm.Search(context.Background(), k, 0)
-		}
-
-		log.Debug("Chain files OK !!!")
+	for k, _ := range GoodFiles {
+		tm.Search(context.Background(), k, 0)
 	}
+
+	log.Debug("Chain files OK !!!")
+	//}
 }
 
 //Search and donwload files from torrent
@@ -529,14 +532,13 @@ func (tm *TorrentManager) mainLoop() {
 			if _, ok := BadFiles[meta.InfoHash.HexString()]; ok {
 				continue
 			}
-
-			if t := tm.addInfoHash(meta.InfoHash, int64(meta.BytesRequested)); t == nil {
-				log.Error("Seed [create] failed", "ih", meta.InfoHash, "request", meta.BytesRequested)
+			bytes := int64(meta.BytesRequested)
+			if t := tm.addInfoHash(meta.InfoHash, bytes); t == nil {
+				log.Error("Seed [create] failed", "ih", meta.InfoHash, "request", bytes)
 				continue
 			}
-			if int64(meta.BytesRequested) > 0 {
-				updateMeter.Mark(1)
-				tm.updateInfoHash(meta.InfoHash, int64(meta.BytesRequested))
+			if bytes > 0 {
+				tm.updateInfoHash(meta.InfoHash, bytes)
 			}
 		case <-tm.closeAll:
 			return
@@ -587,9 +589,7 @@ func (tm *TorrentManager) pendingLoop() {
 								continue
 							}
 							if err := t.ReloadTorrent(data, tm); err == nil {
-								tm.lock.Lock()
-								tm.torrents[ih] = t
-								tm.lock.Unlock()
+								tm.setTorrent(ih, t)
 							} else {
 								t.BoostOff()
 							}
