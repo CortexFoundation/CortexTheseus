@@ -82,7 +82,7 @@ func newTester(t *testing.T, confOverride func(*ctxc.Config)) *tester {
 	}
 	ctxcConf := &ctxc.Config{
 		//TODO:change to devloper
-		Genesis: core.DefaultBernardGenesisBlock(),
+		Genesis: core.DefaultGenesisBlock(),
 		Miner: miner.Config{
 			Coinbase: common.HexToAddress(testAddress),
 		},

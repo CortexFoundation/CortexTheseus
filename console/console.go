@@ -299,7 +299,6 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 // console's available modules.
 func (c *Console) Welcome() {
 	message := "Welcome to the Cortex JavaScript console!\n\n"
-
 	// Print some generic Cortex metadata
 	if res, err := c.jsre.Run(`
 		var message = "instance: " + web3.version.node + "\n";
@@ -314,7 +313,6 @@ func (c *Console) Welcome() {
 	`); err == nil {
 		message += res.String()
 	}
-	//fmt.Println(message)
 	// List all the supported modules for the user to call
 	if apis, err := c.client.SupportedModules(); err == nil {
 		modules := make([]string, 0, len(apis))

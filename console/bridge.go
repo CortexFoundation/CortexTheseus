@@ -48,12 +48,12 @@ func newBridge(client *rpc.Client, prompter UserPrompter, printer io.Writer) *br
 	}
 }
 
-func getJcxtc(vm *goja.Runtime) *goja.Object {
-	jcxtc := vm.Get("jcxtc")
-	if jcxtc == nil {
-		panic(vm.ToValue("jcxtc object does not exist"))
+func getJctxc(vm *goja.Runtime) *goja.Object {
+	jctxc := vm.Get("jctxc")
+	if jctxc == nil {
+		panic(vm.ToValue("jctxc object does not exist"))
 	}
-	return jcxtc.ToObject(vm)
+	return jctxc.ToObject(vm)
 }
 
 // NewAccount is a wrapper around the personal.newAccount RPC method that uses a
@@ -87,9 +87,9 @@ func (b *bridge) NewAccount(call jsre.Call) (goja.Value, error) {
 		return nil, fmt.Errorf("expected 0 or 1 string argument")
 	}
 	// Password acquired, execute the call and return
-	newAccount, callable := goja.AssertFunction(getJcxtc(call.VM).Get("newAccount"))
+	newAccount, callable := goja.AssertFunction(getJctxc(call.VM).Get("newAccount"))
 	if !callable {
-		return nil, fmt.Errorf("jcxtc.newAccount is not callable")
+		return nil, fmt.Errorf("jctxc.newAccount is not callable")
 	}
 	ret, err := newAccount(goja.Null(), call.VM.ToValue(password))
 	if err != nil {
@@ -114,9 +114,9 @@ func (b *bridge) OpenWallet(call jsre.Call) (goja.Value, error) {
 		passwd = call.Argument(1)
 	}
 	// Open the wallet and return if successful in itself
-	openWallet, callable := goja.AssertFunction(getJcxtc(call.VM).Get("openWallet"))
+	openWallet, callable := goja.AssertFunction(getJctxc(call.VM).Get("openWallet"))
 	if !callable {
-		return nil, fmt.Errorf("jcxtc.openWallet is not callable")
+		return nil, fmt.Errorf("jctxc.openWallet is not callable")
 	}
 	val, err := openWallet(goja.Null(), wallet, passwd)
 	if err == nil {
@@ -134,9 +134,9 @@ func (b *bridge) OpenWallet(call jsre.Call) (goja.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	openWallet, callable = goja.AssertFunction(getJcxtc(call.VM).Get("openWallet"))
+	openWallet, callable = goja.AssertFunction(getJctxc(call.VM).Get("openWallet"))
 	if !callable {
-		return nil, fmt.Errorf("jcxtc.openWallet is not callable")
+		return nil, fmt.Errorf("jctxc.openWallet is not callable")
 	}
 	return openWallet(goja.Null(), wallet, call.VM.ToValue(input))
 }
@@ -182,9 +182,9 @@ func (b *bridge) UnlockAccount(call jsre.Call) (goja.Value, error) {
 	}
 
 	// Send the request to the backend and return.
-	unlockAccount, callable := goja.AssertFunction(getJcxtc(call.VM).Get("unlockAccount"))
+	unlockAccount, callable := goja.AssertFunction(getJctxc(call.VM).Get("unlockAccount"))
 	if !callable {
-		return nil, fmt.Errorf("jcxtc.unlockAccount is not callable")
+		return nil, fmt.Errorf("jctxc.unlockAccount is not callable")
 	}
 	return unlockAccount(goja.Null(), account, passwd, duration)
 }
@@ -222,9 +222,9 @@ func (b *bridge) Sign(call jsre.Call) (goja.Value, error) {
 	}
 
 	// Send the request to the backend and return
-	sign, callable := goja.AssertFunction(getJcxtc(call.VM).Get("unlockAccount"))
+	sign, callable := goja.AssertFunction(getJctxc(call.VM).Get("unlockAccount"))
 	if !callable {
-		return nil, fmt.Errorf("jcxtc.unlockAccount is not callable")
+		return nil, fmt.Errorf("jctxc.unlockAccount is not callable")
 	}
 	return sign(goja.Null(), message, account, passwd)
 }
@@ -274,7 +274,7 @@ func (b *bridge) SleepBlocks(call jsre.Call) (goja.Value, error) {
 	)
 	for time.Now().Before(deadline) {
 		var number hexutil.Uint64
-		err := b.client.Call(&number, "cxtc_blockNumber")
+		err := b.client.Call(&number, "ctxc_blockNumber")
 		if err != nil {
 			return nil, err
 		}
