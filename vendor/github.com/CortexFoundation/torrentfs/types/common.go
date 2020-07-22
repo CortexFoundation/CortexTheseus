@@ -170,5 +170,5 @@ type FileMeta struct {
 type FlowControlMeta struct {
 	InfoHash       metainfo.Hash
 	BytesRequested uint64
-	IsCreate       bool
+	//IsCreate       bool
 }

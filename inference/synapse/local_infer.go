@@ -14,6 +14,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
+	"time"
 )
 
 const (
@@ -236,7 +237,9 @@ func (s *Synapse) download(infohash string, request int64) error {
 		return KERNEL_RUNTIME_ERROR //errors.New("Invalid infohash format")
 	}
 	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
-	err := s.config.Storagefs.Download(context.Background(), ih, request)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	err := s.config.Storagefs.Download(ctx, ih, request)
 	if err != nil {
 		return KERNEL_RUNTIME_ERROR
 	}

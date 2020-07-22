@@ -213,7 +213,7 @@ func (fs *TorrentFS) Download(ctx context.Context, ih string, request int64) err
 		return err
 	} else {
 		if update {
-			if err := fs.storage().Search(ih, request, false); err != nil {
+			if err := fs.storage().Search(ctx, ih, request); err != nil {
 				return err
 			}
 		}

@@ -381,45 +381,48 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 	quota := uint64(0) //default used 4 k quota every tx for testing
 	if vmerr == nil && st.uploading() {
-		quota = math2.Uint64Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
+		cur := st.state.Upload(st.to()).Uint64()
+		if cur > 0 {
+			quota = math2.Uint64Min(params.PER_UPLOAD_BYTES, cur)
 
-		st.state.SubUpload(st.to(), new(big.Int).SetUint64(quota)) //64 ~ 1024 bytes
+			st.state.SubUpload(st.to(), new(big.Int).SetUint64(quota)) //64 ~ 1024 bytes
 
-		var (
-			ih      string
-			request int64
-			remain  uint64
-		)
-		if !st.state.Uploading(st.to()) {
-			st.state.SetNum(st.to(), st.cvm.BlockNumber)
-			log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber)
-		} else {
-			remain = st.state.Upload(st.to()).Uint64()
-			log.Debug("Waiting ...", "address", st.to().Hex(), "number", cvm.BlockNumber)
-		}
-		raw := st.state.GetCode(st.to())
-		if cvm.IsModel(raw) {
-			var modelMeta torrentfs.ModelMeta
-			if err = modelMeta.DecodeRLP(raw); err == nil {
-				ih = modelMeta.Hash.Hex()
-				request = int64(modelMeta.RawSize - remain)
+			var (
+				ih      string
+				request int64
+				remain  uint64
+			)
+			if !st.state.Uploading(st.to()) {
+				st.state.SetNum(st.to(), st.cvm.BlockNumber)
+				log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber, "nonce", st.msg.Nonce())
+			} else {
+				remain = st.state.Upload(st.to()).Uint64()
+				log.Debug("Waiting ...", "address", st.to().Hex(), "number", cvm.BlockNumber)
 			}
-		} else if cvm.IsInput(raw) {
-			var inputMeta torrentfs.InputMeta
-			if err = inputMeta.DecodeRLP(raw); err == nil {
-				ih = inputMeta.Hash.Hex()
-				request = int64(inputMeta.RawSize - remain)
+			raw := st.state.GetCode(st.to())
+			if cvm.IsModel(raw) {
+				var modelMeta torrentfs.ModelMeta
+				if err = modelMeta.DecodeRLP(raw); err == nil {
+					ih = modelMeta.Hash.Hex()
+					request = int64(modelMeta.RawSize - remain)
+				}
+			} else if cvm.IsInput(raw) {
+				var inputMeta torrentfs.InputMeta
+				if err = inputMeta.DecodeRLP(raw); err == nil {
+					ih = inputMeta.Hash.Hex()
+					request = int64(inputMeta.RawSize - remain)
+				}
+			} else {
+				return nil, 0, 0, false, vm.ErrRuntime
 			}
-		} else {
-			return nil, 0, 0, false, vm.ErrRuntime
-		}
 
-		if err != nil {
-			return nil, 0, 0, false, vm.ErrRuntime
-		}
+			if err != nil {
+				return nil, 0, 0, false, vm.ErrRuntime
+			}
 
-		if err = synapse.Engine().Download(ih, request); err != nil {
-			return nil, 0, 0, false, err
+			if err = synapse.Engine().Download(ih, request); err != nil {
+				return nil, 0, 0, false, err
+			}
 		}
 	}
 
@@ -428,7 +431,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 //vote to model
 func (st *StateTransition) uploading() bool {
-	log.Trace("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
+	//log.Trace("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
 	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 

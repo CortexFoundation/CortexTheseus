@@ -17,6 +17,7 @@ package torrentfs
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 import (
+	"context"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -121,7 +122,9 @@ func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 
 	torrents, _ := fs.initTorrents()
 	for k, v := range torrents {
-		tMana.Search(k, int64(v), true)
+		if err := tMana.Search(context.Background(), k, int64(v)); err != nil {
+			return nil, err
+		}
 	}
 
 	m.indexInit()
@@ -183,10 +186,9 @@ func (m *Monitor) indexInit() error {
 		}
 		capcity += bytesRequested
 		log.Debug("File storage info", "addr", file.ContractAddr, "ih", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
-		m.dl.UpdateTorrent(types.FlowControlMeta{
+		m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 			InfoHash:       file.Meta.InfoHash,
 			BytesRequested: bytesRequested,
-			IsCreate:       true,
 		})
 		if file.LeftSize == 0 {
 			seed++
@@ -350,10 +352,9 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	}
 	if update && op == 1 {
 		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
-		m.dl.UpdateTorrent(types.FlowControlMeta{
+		m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 			InfoHash:       meta.InfoHash,
 			BytesRequested: 0,
-			IsCreate:       true,
 		})
 	}
 	return nil
@@ -412,10 +413,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
 
-						m.dl.UpdateTorrent(types.FlowControlMeta{
+						m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 							InfoHash:       file.Meta.InfoHash,
 							BytesRequested: bytesRequested,
-							IsCreate:       false,
 						})
 					}
 				}
