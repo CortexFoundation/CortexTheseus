@@ -51,7 +51,7 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 2. cd CortexTheseus
 3. make clean && make -j$(nproc)
 
-(If failed, run ```git submodule init && git submodule update``` and try again)
+(If failed, run ```rm -rf cvm-runtime && git submodule init && git submodule update``` and try again)
 
 ### Running Bash
 
