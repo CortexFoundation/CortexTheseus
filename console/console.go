@@ -190,7 +190,7 @@ func (c *Console) initExtensions() error {
 	if err != nil {
 		return fmt.Errorf("api modules: %v", err)
 	}
-	aliases := map[string]struct{}{"cxtc": {}, "personal": {}}
+	aliases := map[string]struct{}{"ctxc": {}, "personal": {}}
 	for api := range apis {
 		if api == "web3" {
 			continue
@@ -228,19 +228,19 @@ func (c *Console) initAdmin(vm *goja.Runtime, bridge *bridge) {
 //
 // If the console is in interactive mode and the 'personal' API is available, override
 // the openWallet, unlockAccount, newAccount and sign methods since these require user
-// interaction. The original web3 callbacks are stored in 'jcxtc'. These will be called
+// interaction. The original web3 callbacks are stored in 'jctxc'. These will be called
 // by the bridge after the prompt and send the original web3 request to the backend.
 func (c *Console) initPersonal(vm *goja.Runtime, bridge *bridge) {
 	personal := getObject(vm, "personal")
 	if personal == nil || c.prompter == nil {
 		return
 	}
-	jcxtc := vm.NewObject()
-	vm.Set("jcxtc", jcxtc)
-	jcxtc.Set("openWallet", personal.Get("openWallet"))
-	jcxtc.Set("unlockAccount", personal.Get("unlockAccount"))
-	jcxtc.Set("newAccount", personal.Get("newAccount"))
-	jcxtc.Set("sign", personal.Get("sign"))
+	jctxc := vm.NewObject()
+	vm.Set("jctxc", jctxc)
+	jctxc.Set("openWallet", personal.Get("openWallet"))
+	jctxc.Set("unlockAccount", personal.Get("unlockAccount"))
+	jctxc.Set("newAccount", personal.Get("newAccount"))
+	jctxc.Set("sign", personal.Get("sign"))
 	personal.Set("openWallet", jsre.MakeCallback(vm, bridge.OpenWallet))
 	personal.Set("unlockAccount", jsre.MakeCallback(vm, bridge.UnlockAccount))
 	personal.Set("newAccount", jsre.MakeCallback(vm, bridge.NewAccount))
@@ -276,7 +276,7 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 		return "", nil, ""
 	}
 	// Chunck data to relevant part for autocompletion
-	// E.g. in case of nested lines cxtc.getBalance(cxtc.coinb<tab><tab>
+	// E.g. in case of nested lines ctxc.getBalance(ctxc.coinb<tab><tab>
 	start := pos - 1
 	for ; start > 0; start-- {
 		// Skip all methods and namespaces (i.e. including the dot)
@@ -304,9 +304,9 @@ func (c *Console) Welcome() {
 	if res, err := c.jsre.Run(`
 		var message = "instance: " + web3.version.node + "\n";
 		try {
-			message += "coinbase: " + cxtc.coinbase + "\n";
+			message += "coinbase: " + ctxc.coinbase + "\n";
 		} catch (err) {}
-		message += "at block: " + cxtc.blockNumber + " (" + new Date(1000 * cxtc.getBlock(cxtc.blockNumber).timestamp) + ")\n";
+		message += "at block: " + ctxc.blockNumber + " (" + new Date(1000 * ctxc.getBlock(ctxc.blockNumber).timestamp) + ")\n";
 		try {
 			message += " datadir: " + admin.datadir + "\n";
 		} catch (err) {}
@@ -314,6 +314,7 @@ func (c *Console) Welcome() {
 	`); err == nil {
 		message += res.String()
 	}
+	//fmt.Println(message)
 	// List all the supported modules for the user to call
 	if apis, err := c.client.SupportedModules(); err == nil {
 		modules := make([]string, 0, len(apis))

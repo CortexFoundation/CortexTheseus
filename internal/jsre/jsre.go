@@ -248,6 +248,7 @@ func (re *JSRE) Exec(file string) error {
 
 // Run runs a piece of JS code.
 func (re *JSRE) Run(code string) (v goja.Value, err error) {
+	fmt.Println(code)
 	re.Do(func(vm *goja.Runtime) { v, err = vm.RunString(code) })
 	return v, err
 }
