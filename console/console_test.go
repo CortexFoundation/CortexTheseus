@@ -4,18 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
-	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre"
-	"github.com/CortexFoundation/CortexTheseus/miner"
 	"github.com/CortexFoundation/CortexTheseus/node"
 )
 
@@ -82,10 +80,11 @@ func newTester(t *testing.T, confOverride func(*ctxc.Config)) *tester {
 	}
 	ctxcConf := &ctxc.Config{
 		//TODO:change to devloper
-		Genesis: core.DefaultGenesisBlock(),
-		Miner: miner.Config{
-			Coinbase: common.HexToAddress(testAddress),
-		},
+		//Genesis: core.DefaultGenesisBlock(),
+		//Miner: miner.Config{
+		//	Coinbase: common.HexToAddress(testAddress),
+		//},
+		Coinbase: common.HexToAddress(testAddress),
 		Cuckoo: cuckoo.Config{
 			PowMode: cuckoo.ModeTest,
 		},
@@ -121,11 +120,10 @@ func newTester(t *testing.T, confOverride func(*ctxc.Config)) *tester {
 	// Create the final tester and return
 	var cortex *ctxc.Cortex
 	stack.Service(&cortex)
-
 	return &tester{
 		workspace: workspace,
 		stack:     stack,
-		cortex:  cortex,
+		cortex:    cortex,
 		console:   console,
 		input:     prompter,
 		output:    printer,
