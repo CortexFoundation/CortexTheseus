@@ -39,7 +39,7 @@ import (
 )
 
 var (
-	passwordRegexp = regexp.MustCompile(`personal.[nus]`)
+	passwordRegexp = regexp.MustCompile(`personal.[nusi]`)
 	onlyWhitespace = regexp.MustCompile(`^\s*$`)
 	exit           = regexp.MustCompile(`^\s*exit\s*;*\s*$`)
 )
