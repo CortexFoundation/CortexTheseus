@@ -140,7 +140,7 @@ var (
 	// Note: artful is unsupported because it was officially deprecated on Launchpad.
 	// Note: cosmic is unsupported because it was officially deprecated on Launchpad.
 	debDistroGoBoots = map[string]string{
-		"trusty": "golang-1.11",
+		"trusty": "golang-1.13",
 		"xenial": "golang-go",
 		"bionic": "golang-go",
 		"disco":  "golang-go",
@@ -149,7 +149,7 @@ var (
 	}
 
 	debGoBootPaths = map[string]string{
-		"golang-1.11": "/usr/lib/go-1.11",
+		"golang-1.13": "/usr/lib/go-1.13",
 		"golang-go":   "/usr/lib/go",
 	}
 )
@@ -215,9 +215,9 @@ func doInstall(cmdline []string) {
 		var minor int
 		fmt.Sscanf(strings.TrimPrefix(runtime.Version(), "go1."), "%d", &minor)
 
-		if minor < 11 {
+		if minor < 13 {
 			log.Println("You have Go version", runtime.Version())
-			log.Println("CortexTheseus requires at least Go version 1.11 and cannot")
+			log.Println("CortexTheseus requires at least Go version 1.13 and cannot")
 			log.Println("be compiled with an earlier version. Please upgrade your Go installation.")
 			os.Exit(1)
 		}
@@ -647,7 +647,7 @@ func (d debExecutable) Package() string {
 func newDebMetadata(distro, goboot, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
 	if author == "" {
 		// No signing key, use default author.
-		author = "Cortex Builds <fjl@cortex.org>"
+		author = "Cortex"
 	}
 	return debMetadata{
 		GoBootPackage: goboot,
