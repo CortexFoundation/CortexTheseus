@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -80,10 +81,8 @@ func newTester(t *testing.T, confOverride func(*ctxc.Config)) *tester {
 	}
 	ctxcConf := &ctxc.Config{
 		//TODO:change to devloper
-		//Genesis: core.DefaultGenesisBlock(),
-		//Miner: miner.Config{
-		//	Coinbase: common.HexToAddress(testAddress),
-		//},
+		Genesis: core.DefaultGenesisBlock(),
+		//the ctxc.New() use config.Coinbase to init the coinbase of new node
 		Coinbase: common.HexToAddress(testAddress),
 		Cuckoo: cuckoo.Config{
 			PowMode: cuckoo.ModeTest,
