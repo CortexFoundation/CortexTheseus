@@ -579,7 +579,7 @@ func (tm *TorrentManager) pendingLoop() {
 							tm.activeChan <- t
 						}
 					}
-				} else if t.loop > torrentWaitingTime/queryTimeInterval || (t.start == 0 && tm.boost && tm.bytes[ih] > 0) {
+				} else if tm.boost && (t.loop > torrentWaitingTime/queryTimeInterval || (t.start == 0 && tm.bytes[ih] > 0)) {
 					if !t.isBoosting {
 						t.loop = 0
 						t.isBoosting = true
@@ -734,7 +734,7 @@ func (tm *TorrentManager) activeLoop() {
 					continue
 				} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
 					t.loop += 1
-					if t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
+					if tm.boost && t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
 						t.loop = 0
 						if t.isBoosting {
 							continue
