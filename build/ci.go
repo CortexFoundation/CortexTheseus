@@ -1035,7 +1035,7 @@ func doXgo(cmdline []string) {
 	env := build.Env()
 
 	// Make sure xgo is available for cross compilation
-	gogetxgo := goTool("get", "github.com/karalabe/xgo")
+	gogetxgo := goTool("get", "src.techknowlogick.com/xgo")
 	build.MustRun(gogetxgo)
 
 	// If all tools building is requested, build everything the builder wants
