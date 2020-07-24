@@ -1,18 +1,18 @@
 // Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package console
 
@@ -28,16 +28,17 @@ import (
 	"strings"
 	"syscall"
 
-	//  "github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre"
+	"github.com/CortexFoundation/CortexTheseus/internal/jsre/deps"
 	"github.com/CortexFoundation/CortexTheseus/internal/web3ext"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/dop251/goja"
 	"github.com/mattn/go-colorable"
 	"github.com/peterh/liner"
-	"github.com/robertkrimen/otto"
 )
 
 var (
+	// u: unlock, s: signXX, sendXX, n: newAccount, i: importXX
 	passwordRegexp = regexp.MustCompile(`personal.[nusi]`)
 	onlyWhitespace = regexp.MustCompile(`^\s*$`)
 	exit           = regexp.MustCompile(`^\s*exit\s*;*\s*$`)
@@ -87,6 +88,7 @@ func New(config Config) (*Console, error) {
 	if config.Printer == nil {
 		config.Printer = colorable.NewColorableStdout()
 	}
+
 	// Initialize the console and return
 	console := &Console{
 		client:   config.Client,
@@ -108,110 +110,35 @@ func New(config Config) (*Console, error) {
 // init retrieves the available APIs from the remote RPC provider and initializes
 // the console's JavaScript namespaces based on the exposed modules.
 func (c *Console) init(preload []string) error {
-	// Initialize the JavaScript <-> Go RPC bridge
+	c.initConsoleObject()
+
+	// Initialize the JavaScript <-> Go RPC bridge.
 	bridge := newBridge(c.client, c.prompter, c.printer)
-	c.jsre.Set("jctxc", struct{}{})
-
-	jctxcObj, _ := c.jsre.Get("jctxc")
-	jctxcObj.Object().Set("send", bridge.Send)
-	jctxcObj.Object().Set("sendAsync", bridge.Send)
-
-	consoleObj, _ := c.jsre.Get("console")
-	consoleObj.Object().Set("log", c.consoleOutput)
-	consoleObj.Object().Set("error", c.consoleOutput)
-
-	// Load all the internal utility JavaScript libraries
-	if err := c.jsre.Compile("bignumber.js", jsre.BigNumber_JS); err != nil {
-		return fmt.Errorf("bignumber.js: %v", err)
-	}
-	if err := c.jsre.Compile("web3.js", jsre.Web3_JS); err != nil {
-		return fmt.Errorf("web3.js: %v", err)
-	}
-	if _, err := c.jsre.Run("var Web3 = require('web3');"); err != nil {
-		return fmt.Errorf("web3 require: %v", err)
-	}
-	if _, err := c.jsre.Run("var web3 = new Web3(jctxc);"); err != nil {
-		return fmt.Errorf("web3 provider: %v", err)
-	}
-	// Load the supported APIs into the JavaScript runtime environment
-	apis, err := c.client.SupportedModules()
-	if err != nil {
-		return fmt.Errorf("api modules: %v", err)
-	}
-	flatten := "var ctxc = web3.ctxc; var personal = web3.personal; "
-	for api := range apis {
-		if api == "web3" {
-			continue // manually mapped or ignore
-		}
-		if file, ok := web3ext.Modules[api]; ok {
-			// Load our extension for the module.
-			if err = c.jsre.Compile(fmt.Sprintf("%s.js", api), file); err != nil {
-				return fmt.Errorf("%s.js: %v", api, err)
-			}
-			flatten += fmt.Sprintf("var %s = web3.%s; ", api, api)
-		} else if obj, err := c.jsre.Run("web3." + api); err == nil && obj.IsObject() {
-			// Enable web3.js built-in extension if available.
-			flatten += fmt.Sprintf("var %s = web3.%s; ", api, api)
-		}
-	}
-	if _, err = c.jsre.Run(flatten); err != nil {
-		return fmt.Errorf("namespace flattening: %v", err)
-	}
-	// Initialize the global name register (disabled for now)
-	//c.jsre.Run(`var GlobalRegistrar = ctxc.contract(` + registrar.GlobalRegistrarAbi + `);   registrar = GlobalRegistrar.at("` + registrar.GlobalRegistrarAddr + `");`)
-
-	// If the console is in interactive mode, instrument password related methods to query the user
-	if c.prompter != nil {
-		// Retrieve the account management object to instrument
-		personal, err := c.jsre.Get("personal")
-		if err != nil {
-			return err
-		}
-		// Override the openWallet, unlockAccount, newAccount and sign methods since
-		// these require user interaction. Assign these method in the Console the
-		// original web3 callbacks. These will be called by the jctxc.* methods after
-		// they got the password from the user and send the original web3 request to
-		// the backend.
-		if obj := personal.Object(); obj != nil { // make sure the personal api is enabled over the interface
-			if _, err = c.jsre.Run(`jctxc.openWallet = personal.openWallet;`); err != nil {
-				return fmt.Errorf("personal.openWallet: %v", err)
-			}
-			if _, err = c.jsre.Run(`jctxc.unlockAccount = personal.unlockAccount;`); err != nil {
-				return fmt.Errorf("personal.unlockAccount: %v", err)
-			}
-			if _, err = c.jsre.Run(`jctxc.newAccount = personal.newAccount;`); err != nil {
-				return fmt.Errorf("personal.newAccount: %v", err)
-			}
-			if _, err = c.jsre.Run(`jctxc.sign = personal.sign;`); err != nil {
-				return fmt.Errorf("personal.sign: %v", err)
-			}
-			obj.Set("openWallet", bridge.OpenWallet)
-			obj.Set("unlockAccount", bridge.UnlockAccount)
-			obj.Set("newAccount", bridge.NewAccount)
-			obj.Set("sign", bridge.Sign)
-		}
-	}
-	// The admin.sleep and admin.sleepBlocks are offered by the console and not by the RPC layer.
-	admin, err := c.jsre.Get("admin")
-	if err != nil {
+	if err := c.initWeb3(bridge); err != nil {
 		return err
 	}
-	if obj := admin.Object(); obj != nil { // make sure the admin api is enabled over the interface
-		obj.Set("sleepBlocks", bridge.SleepBlocks)
-		obj.Set("sleep", bridge.Sleep)
-		obj.Set("clearHistory", c.clearHistory)
+	if err := c.initExtensions(); err != nil {
+		return err
 	}
-	// Preload any JavaScript files before starting the console
+
+	// Add bridge overrides for web3.js functionality.
+	c.jsre.Do(func(vm *goja.Runtime) {
+		c.initAdmin(vm, bridge)
+		c.initPersonal(vm, bridge)
+	})
+
+	// Preload JavaScript files.
 	for _, path := range preload {
 		if err := c.jsre.Exec(path); err != nil {
 			failure := err.Error()
-			if ottoErr, ok := err.(*otto.Error); ok {
-				failure = ottoErr.String()
+			if gojaErr, ok := err.(*goja.Exception); ok {
+				failure = gojaErr.String()
 			}
 			return fmt.Errorf("%s: %v", path, failure)
 		}
 	}
-	// Configure the console's input prompter for scrollback and tab completion
+
+	// Configure the input prompter for history and tab completion.
 	if c.prompter != nil {
 		if content, err := ioutil.ReadFile(c.histPath); err != nil {
 			c.prompter.SetHistory(nil)
@@ -222,6 +149,102 @@ func (c *Console) init(preload []string) error {
 		c.prompter.SetWordCompleter(c.AutoCompleteInput)
 	}
 	return nil
+}
+
+func (c *Console) initConsoleObject() {
+	c.jsre.Do(func(vm *goja.Runtime) {
+		console := vm.NewObject()
+		console.Set("log", c.consoleOutput)
+		console.Set("error", c.consoleOutput)
+		vm.Set("console", console)
+	})
+}
+
+func (c *Console) initWeb3(bridge *bridge) error {
+	bnJS := string(deps.MustAsset("bignumber.js"))
+	web3JS := string(deps.MustAsset("web3.js"))
+	if err := c.jsre.Compile("bignumber.js", bnJS); err != nil {
+		return fmt.Errorf("bignumber.js: %v", err)
+	}
+	if err := c.jsre.Compile("web3.js", web3JS); err != nil {
+		return fmt.Errorf("web3.js: %v", err)
+	}
+	if _, err := c.jsre.Run("var Web3 = require('web3');"); err != nil {
+		return fmt.Errorf("web3 require: %v", err)
+	}
+	var err error
+	c.jsre.Do(func(vm *goja.Runtime) {
+		transport := vm.NewObject()
+		transport.Set("send", jsre.MakeCallback(vm, bridge.Send))
+		transport.Set("sendAsync", jsre.MakeCallback(vm, bridge.Send))
+		vm.Set("_consoleWeb3Transport", transport)
+		_, err = vm.RunString("var web3 = new Web3(_consoleWeb3Transport)")
+	})
+	return err
+}
+
+// initExtensions loads and registers web3.js extensions.
+func (c *Console) initExtensions() error {
+	// Compute aliases from server-provided modules.
+	apis, err := c.client.SupportedModules()
+	if err != nil {
+		return fmt.Errorf("api modules: %v", err)
+	}
+	aliases := map[string]struct{}{"ctxc": {}, "personal": {}}
+	for api := range apis {
+		if api == "web3" {
+			continue
+		}
+		aliases[api] = struct{}{}
+		if file, ok := web3ext.Modules[api]; ok {
+			if err = c.jsre.Compile(api+".js", file); err != nil {
+				return fmt.Errorf("%s.js: %v", api, err)
+			}
+		}
+	}
+
+	// Apply aliases.
+	c.jsre.Do(func(vm *goja.Runtime) {
+		web3 := getObject(vm, "web3")
+		for name := range aliases {
+			if v := web3.Get(name); v != nil {
+				vm.Set(name, v)
+			}
+		}
+	})
+	return nil
+}
+
+// initAdmin creates additional admin APIs implemented by the bridge.
+func (c *Console) initAdmin(vm *goja.Runtime, bridge *bridge) {
+	if admin := getObject(vm, "admin"); admin != nil {
+		admin.Set("sleepBlocks", jsre.MakeCallback(vm, bridge.SleepBlocks))
+		admin.Set("sleep", jsre.MakeCallback(vm, bridge.Sleep))
+		admin.Set("clearHistory", c.clearHistory)
+	}
+}
+
+// initPersonal redirects account-related API methods through the bridge.
+//
+// If the console is in interactive mode and the 'personal' API is available, override
+// the openWallet, unlockAccount, newAccount and sign methods since these require user
+// interaction. The original web3 callbacks are stored in 'jctxc'. These will be called
+// by the bridge after the prompt and send the original web3 request to the backend.
+func (c *Console) initPersonal(vm *goja.Runtime, bridge *bridge) {
+	personal := getObject(vm, "personal")
+	if personal == nil || c.prompter == nil {
+		return
+	}
+	jctxc := vm.NewObject()
+	vm.Set("jctxc", jctxc)
+	jctxc.Set("openWallet", personal.Get("openWallet"))
+	jctxc.Set("unlockAccount", personal.Get("unlockAccount"))
+	jctxc.Set("newAccount", personal.Get("newAccount"))
+	jctxc.Set("sign", personal.Get("sign"))
+	personal.Set("openWallet", jsre.MakeCallback(vm, bridge.OpenWallet))
+	personal.Set("unlockAccount", jsre.MakeCallback(vm, bridge.UnlockAccount))
+	personal.Set("newAccount", jsre.MakeCallback(vm, bridge.NewAccount))
+	personal.Set("sign", jsre.MakeCallback(vm, bridge.Sign))
 }
 
 func (c *Console) clearHistory() {
@@ -236,13 +259,13 @@ func (c *Console) clearHistory() {
 
 // consoleOutput is an override for the console.log and console.error methods to
 // stream the output into the configured output stream instead of stdout.
-func (c *Console) consoleOutput(call otto.FunctionCall) otto.Value {
-	output := []string{}
-	for _, argument := range call.ArgumentList {
+func (c *Console) consoleOutput(call goja.FunctionCall) goja.Value {
+	var output []string
+	for _, argument := range call.Arguments {
 		output = append(output, fmt.Sprintf("%v", argument))
 	}
 	fmt.Fprintln(c.printer, strings.Join(output, " "))
-	return otto.Value{}
+	return goja.Null()
 }
 
 // AutoCompleteInput is a pre-assembled word completer to be used by the user
@@ -253,7 +276,7 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 		return "", nil, ""
 	}
 	// Chunck data to relevant part for autocompletion
-	// E.g. in case of nested lines ctxc.getBalance(ctxc.coinb<tab><tab>
+	// E.g. in case of nested lines ctxc.getBalance(ctxc.coinbase)
 	start := pos - 1
 	for ; start > 0; start-- {
 		// Skip all methods and namespaces (i.e. including the dot)
@@ -272,17 +295,25 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 	return line[:start], c.jsre.CompleteKeywords(line[start:pos]), line[pos:]
 }
 
-// Welcome show summary of current Ctxc instance and some metadata about the
+// Welcome show summary of current Cortex instance and some metadata about the
 // console's available modules.
 func (c *Console) Welcome() {
-	// Print some generic Ctxc metadata
-	fmt.Fprintf(c.printer, "Welcome to the Cortex JavaScript console!\n\n")
-	c.jsre.Run(`
-		console.log("Instance: " + web3.version.node);
-		console.log("Coinbase: " + ctxc.coinbase);
-		console.log("   Block: " + ctxc.blockNumber + " (" + new Date(1000 * ctxc.getBlock(ctxc.blockNumber).timestamp) + ")");
-		console.log(" Datadir: " + admin.datadir);
-	`)
+	message := "Welcome to the Cortex JavaScript console!\n\n"
+
+	// Print some generic Cortex metadata
+	if res, err := c.jsre.Run(`
+		var message = "instance: " + web3.version.node + "\n";
+		try {
+			message += "coinbase: " + ctxc.coinbase + "\n";
+		} catch (err) {}
+		message += "at block: " + ctxc.blockNumber + " (" + new Date(1000 * ctxc.getBlock(ctxc.blockNumber).timestamp) + ")\n";
+		try {
+			message += " datadir: " + admin.datadir + "\n";
+		} catch (err) {}
+		message
+	`); err == nil {
+		message += res.String()
+	}
 	// List all the supported modules for the user to call
 	if apis, err := c.client.SupportedModules(); err == nil {
 		modules := make([]string, 0, len(apis))
@@ -290,82 +321,81 @@ func (c *Console) Welcome() {
 			modules = append(modules, fmt.Sprintf("%s:%s", api, version))
 		}
 		sort.Strings(modules)
-		fmt.Fprintln(c.printer, " modules:", strings.Join(modules, " "))
+		message += " modules: " + strings.Join(modules, " ") + "\n"
 	}
-	fmt.Fprintln(c.printer)
+	fmt.Fprintln(c.printer, message)
 }
 
 // Evaluate executes code and pretty prints the result to the specified output
 // stream.
-func (c *Console) Evaluate(statement string) error {
+func (c *Console) Evaluate(statement string) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(c.printer, "[native] error: %v\n", r)
 		}
 	}()
-	return c.jsre.Evaluate(statement, c.printer)
+	c.jsre.Evaluate(statement, c.printer)
 }
 
 // Interactive starts an interactive user session, where input is propted from
 // the configured user prompter.
 func (c *Console) Interactive() {
 	var (
-		prompt    = c.prompt          // Current prompt line (used for multi-line inputs)
-		indents   = 0                 // Current number of input indents (used for multi-line inputs)
-		input     = ""                // Current user input
-		scheduler = make(chan string) // Channel to send the next prompt on and receive the input
+		prompt      = c.prompt             // the current prompt line (used for multi-line inputs)
+		indents     = 0                    // the current number of input indents (used for multi-line inputs)
+		input       = ""                   // the current user input
+		inputLine   = make(chan string, 1) // receives user input
+		inputErr    = make(chan error, 1)  // receives liner errors
+		requestLine = make(chan string)    // requests a line of input
+		interrupt   = make(chan os.Signal, 1)
 	)
-	// Start a goroutine to listen for prompt requests and send back inputs
-	go func() {
-		for {
-			// Read the next user input
-			line, err := c.prompter.PromptInput(<-scheduler)
-			if err != nil {
-				// In case of an error, either clear the prompt or fail
-				if err == liner.ErrPromptAborted { // ctrl-C
-					prompt, indents, input = c.prompt, 0, ""
-					scheduler <- ""
-					continue
-				}
-				close(scheduler)
-				return
-			}
-			// User input retrieved, send for interpretation and loop
-			scheduler <- line
-		}
-	}()
-	// Monitor Ctrl-C too in case the input is empty and we need to bail
-	abort := make(chan os.Signal, 1)
-	signal.Notify(abort, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start sending prompts to the user and reading back inputs
+	// Monitor Ctrl-C. While liner does turn on the relevant terminal mode bits to avoid
+	// the signal, a signal can still be received for unsupported terminals. Unfortunately
+	// there is no way to cancel the line reader when this happens. The readLines
+	// goroutine will be leaked in this case.
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(interrupt)
+
+	// The line reader runs in a separate goroutine.
+	go c.readLines(inputLine, inputErr, requestLine)
+	defer close(requestLine)
+
 	for {
-		// Send the next prompt, triggering an input read and process the result
-		scheduler <- prompt
+		// Send the next prompt, triggering an input read.
+		requestLine <- prompt
+
 		select {
-		case <-abort:
-			// User forcefully quite the console
+		case <-interrupt:
 			fmt.Fprintln(c.printer, "caught interrupt, exiting")
 			return
 
-		case line, ok := <-scheduler:
-			// User input was returned by the prompter, handle special cases
-			if !ok || (indents <= 0 && exit.MatchString(line)) {
+		case err := <-inputErr:
+			if err == liner.ErrPromptAborted && indents > 0 {
+				// When prompting for multi-line input, the first Ctrl-C resets
+				// the multi-line state.
+				prompt, indents, input = c.prompt, 0, ""
+				continue
+			}
+			return
+
+		case line := <-inputLine:
+			// User input was returned by the prompter, handle special cases.
+			if indents <= 0 && exit.MatchString(line) {
 				return
 			}
 			if onlyWhitespace.MatchString(line) {
 				continue
 			}
-			// Append the line to the input and check for multi-line interpretation
+			// Append the line to the input and check for multi-line interpretation.
 			input += line + "\n"
-
 			indents = countIndents(input)
 			if indents <= 0 {
 				prompt = c.prompt
 			} else {
 				prompt = strings.Repeat(".", indents*3) + " "
 			}
-			// If all the needed lines are present, save the command and run
+			// If all the needed lines are present, save the command and run it.
 			if indents <= 0 {
 				if len(input) > 0 && input[0] != ' ' && !passwordRegexp.MatchString(input) {
 					if command := strings.TrimSpace(input); len(c.history) == 0 || command != c.history[len(c.history)-1] {
@@ -378,6 +408,18 @@ func (c *Console) Interactive() {
 				c.Evaluate(input)
 				input = ""
 			}
+		}
+	}
+}
+
+// readLines runs in its own goroutine, prompting for input.
+func (c *Console) readLines(input chan<- string, errc chan<- error, prompt <-chan string) {
+	for p := range prompt {
+		line, err := c.prompter.PromptInput(p)
+		if err != nil {
+			errc <- err
+		} else {
+			input <- line
 		}
 	}
 }
