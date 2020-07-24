@@ -32,8 +32,8 @@ jobs:
 
     - name: submodule
       run: git submodule update --init --recursive
+
       # Check the format of code
-        
     - name: Check code formatting using gofmt
       uses: Jerome1337/gofmt-action@v1.0.3
 
@@ -60,6 +60,3 @@ jobs:
         if [ -f coverage.txt ]; then
             bash <(curl -s https://codecov.io/bash)
         fi
-    # Check the format of code
-    - name: Go Fmt
-      uses: Jerome1337/gofmt-action@v1.0.2
