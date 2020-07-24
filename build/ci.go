@@ -58,9 +58,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cespare/cp"
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/cespare/cp"
 )
 
 var (
@@ -390,7 +390,7 @@ func doArchive(cmdline []string) {
 
 		basecortex = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
 		cortex     = "cortex-" + basecortex + ext
-		alltools = "cortex-alltools-" + basecortex + ext
+		alltools   = "cortex-alltools-" + basecortex + ext
 	)
 	maybeSkipArchive(env)
 	if err := build.WriteArchive(cortex, cortexArchiveFiles); err != nil {
@@ -754,8 +754,8 @@ func doWindowsInstaller(cmdline []string) {
 
 	// Aggregate binaries that are included in the installer
 	var (
-		devTools []string
-		allTools []string
+		devTools   []string
+		allTools   []string
 		cortexTool string
 	)
 	for _, file := range allToolsArchiveFiles {
@@ -774,7 +774,7 @@ func doWindowsInstaller(cmdline []string) {
 	// first section contains the cortex binary, second section holds the dev tools.
 	templateData := map[string]interface{}{
 		"License":  "COPYING",
-		"Cortex":     cortexTool,
+		"Cortex":   cortexTool,
 		"DevTools": devTools,
 	}
 	build.Render("build/nsis.cortex.nsi", filepath.Join(*workdir, "cortex.nsi"), 0644, nil)
