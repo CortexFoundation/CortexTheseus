@@ -40,4 +40,6 @@ var (
 
 	stateInMeter   = metrics.NewRegisteredMeter("ctxc/downloader/states/in", nil)
 	stateDropMeter = metrics.NewRegisteredMeter("ctxc/downloader/states/drop", nil)
+
+	throttleCounter = metrics.NewRegisteredCounter("ctxc/downloader/throttle", nil)
 )
