@@ -58,4 +58,4 @@ jobs:
         fi
     # Check the format of code
     - name: Go Fmt
-        uses: Jerome1337/gofmt-action@v1.0.2
+      uses: Jerome1337/gofmt-action@v1.0.2
