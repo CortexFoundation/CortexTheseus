@@ -568,7 +568,8 @@ func (m *Monitor) syncLatestBlock() {
 					if (m.ckp != nil && m.currentNumber >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber > 0) {
 						m.fs.Flush()
 						go m.exit()
-						log.Warn("Finish sync, listener will be stopped", "current", m.currentNumber)
+						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
+						log.Warn("Finish sync, listener will be stopped", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed))
 						return
 					}
 				}

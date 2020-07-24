@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/torrentfs v1.0.16
+	github.com/CortexFoundation/torrentfs v1.0.17-0.20200724110932-b0c3650bdc8f
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1
@@ -24,7 +24,7 @@ require (
 	github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
-	github.com/holiman/uint256 v1.1.0
+	github.com/holiman/uint256 v1.1.1
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
@@ -37,7 +37,6 @@ require (
 	github.com/peterh/liner v1.2.0
 	github.com/rakyll/statik v0.1.7
 	github.com/rjeczalik/notify v0.9.2
-	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.7.0
 	github.com/shirou/gopsutil v2.20.6-0.20200630120421-10a398abdd2d+incompatible
 	github.com/status-im/keycard-go v0.0.0-20200402102358-957c09536969
