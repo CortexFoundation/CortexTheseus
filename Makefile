@@ -9,15 +9,13 @@
 .PHONY: cortex-windows cortex-windows-386 cortex-windows-amd64
 
 .PHONY: clib
-.PHONY: cortex cortex-remote
+.PHONY: cortex
 
 BASE = $(shell pwd)
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/solution/
-LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/cvm-runtime/
-LIB_CUCKOO_DIR = $(shell pwd)/solution/miner/libcuckoo
 
 # Curkoo algorithm dynamic library path
 OS = $(shell uname)
@@ -96,7 +94,7 @@ plugins/cuda_helper_for_node.so:
 	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
-	#$(MAKE) -C $(BASE)/solution cpu-miner
+	$(MAKE) -C $(BASE)/solution cpu
 	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/lib_cvm.so:
@@ -131,7 +129,7 @@ lint: ## Run linters.
 
 clean: clean-clib
 	./build/clean_go_build_cache.sh
-	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/* build/_workspace/src/
+	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/* build/_workspace/src/ solution/*.a solution/*.o
 	# rm -rf inference/synapse/kernel
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
