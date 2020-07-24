@@ -32,6 +32,10 @@ jobs:
 
     - name: submodule
       run: git submodule update --init --recursive
+      # Check the format of code
+        
+    - name: Check code formatting using gofmt
+      uses: Jerome1337/gofmt-action@v1.0.3
 
     - name: Static code check
       run: |
@@ -46,7 +50,7 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-        
+
     - name: Build
       run: make clean && make all -j$(nproc)
       
