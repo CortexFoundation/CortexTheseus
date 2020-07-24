@@ -1,7 +1,7 @@
 # Build Cortex in a stock Go builder container
 FROM golang:1.14-alpine as builder
 
-RUN apk add --no-cache make gcc musl-dev linux-headers git
+RUN apk add --no-cache make gcc g++ musl-dev linux-headers git
 
 ADD . /CortexTheseus
 RUN cd /CortexTheseus && make all
