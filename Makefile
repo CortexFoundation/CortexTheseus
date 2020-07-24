@@ -9,15 +9,13 @@
 .PHONY: cortex-windows cortex-windows-386 cortex-windows-amd64
 
 .PHONY: clib
-.PHONY: cortex cortex-remote
+.PHONY: cortex
 
 BASE = $(shell pwd)
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 LIB_MINER_DIR = $(shell pwd)/solution/
-LIB_CUDA_MINER_DIR = $(shell pwd)/miner/cuckoocuda
 INFER_NET_DIR = $(shell pwd)/cvm-runtime/
-LIB_CUCKOO_DIR = $(shell pwd)/solution/miner/libcuckoo
 
 # Curkoo algorithm dynamic library path
 OS = $(shell uname)
