@@ -216,7 +216,7 @@ github.com/gorilla/websocket
 ## explicit
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/holiman/uint256 v1.1.0
+# github.com/holiman/uint256 v1.1.1
 ## explicit
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.3.1

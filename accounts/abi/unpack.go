@@ -61,7 +61,7 @@ func ReadInteger(typ Type, b []byte) interface{} {
 	default:
 		// the only case left for integer is int256
 		// big.SetBytes can't tell if a number is negative or positive in itself.
-		// On EVM, if the returned number > max int256, it is negative.
+		// On CVM, if the returned number > max int256, it is negative.
 		// A number is > max int256 if the bit at position 255 is set.
 		ret := new(big.Int).SetBytes(b)
 		if ret.Bit(255) == 1 {
