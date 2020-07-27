@@ -109,7 +109,7 @@ func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 		scope:         uint64(math.Min(float64(runtime.NumCPU()*4), float64(8))),
 		currentNumber: uint64(0),
 		//taskCh:        make(chan *types.Block, batch),
-		start: mclock.Now(),
+		//start: mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
@@ -354,8 +354,9 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	if update && op == 1 {
 		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
 
-		m.fs.AddTorrent(meta.InfoHash.HexString(), 0)
-		m.dl.Search(context.Background(), meta.InfoHash.HexString(), 0)
+		if u, err := m.fs.AddTorrent(meta.InfoHash.HexString(), 0); u && err == nil {
+			m.dl.Search(context.Background(), meta.InfoHash.HexString(), 0)
+		}
 		//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 		//	InfoHash:       meta.InfoHash,
 		//	BytesRequested: 0,
@@ -416,8 +417,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 						} else {
 							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
-						m.fs.AddTorrent(file.Meta.InfoHash.HexString(), bytesRequested)
-						m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), bytesRequested)
+						if u, err := m.fs.AddTorrent(file.Meta.InfoHash.HexString(), bytesRequested); u && err == nil {
+							m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), bytesRequested)
+						}
 						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 						//	InfoHash:       file.Meta.InfoHash,
 						//	BytesRequested: bytesRequested,
@@ -648,6 +650,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 	if maxNumber < minNumber {
 		return 0
+	}
+	if m.start == 0 {
+		m.start = mclock.Now()
 	}
 	//start := mclock.Now()
 	for i := minNumber; i <= maxNumber; { // i++ {

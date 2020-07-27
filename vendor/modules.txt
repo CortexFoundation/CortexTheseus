@@ -7,7 +7,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/torrentfs v1.0.17-0.20200727055706-de87fde4adc3
+# github.com/CortexFoundation/torrentfs v1.0.17-0.20200727073306-97d6e83cf662
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -447,7 +447,7 @@ golang.org/x/net/publicsuffix
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200722175500-76b94024e4b6
+# golang.org/x/sys v0.0.0-20200724161237-0e2f3a69832c
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
