@@ -389,7 +389,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 			var (
 				ih      string
-				request int64
+				request uint64
 				remain  uint64
 			)
 			if !st.state.Uploading(st.to()) {
@@ -404,13 +404,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 				var modelMeta torrentfs.ModelMeta
 				if err = modelMeta.DecodeRLP(raw); err == nil {
 					ih = modelMeta.Hash.Hex()
-					request = int64(modelMeta.RawSize - remain)
+					request = modelMeta.RawSize - remain
 				}
 			} else if cvm.IsInput(raw) {
 				var inputMeta torrentfs.InputMeta
 				if err = inputMeta.DecodeRLP(raw); err == nil {
 					ih = inputMeta.Hash.Hex()
-					request = int64(inputMeta.RawSize - remain)
+					request = inputMeta.RawSize - remain
 				}
 			} else {
 				return nil, 0, 0, false, vm.ErrRuntime

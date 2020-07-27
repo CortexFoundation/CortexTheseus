@@ -209,7 +209,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	return result, nil
 }
 
-func (s *Synapse) available(infoHash string, rawSize, cvmNetworkID int64) error {
+func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64) error {
 	if !common.IsHexAddress(infoHash) {
 		return KERNEL_RUNTIME_ERROR
 	}
@@ -232,7 +232,7 @@ func (s *Synapse) available(infoHash string, rawSize, cvmNetworkID int64) error 
 	return nil
 }
 
-func (s *Synapse) download(infohash string, request int64) error {
+func (s *Synapse) download(infohash string, request uint64) error {
 	if !common.IsHexAddress(infohash) {
 		return KERNEL_RUNTIME_ERROR //errors.New("Invalid infohash format")
 	}
