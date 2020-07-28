@@ -494,7 +494,7 @@ func (tm *TorrentManager) init() {
 }
 
 //Search and donwload files from torrent
-func (tm *TorrentManager) Search(ctx context.Context, hex string, request int64) (err error) {
+func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64) (err error) {
 	if !common.IsHexAddress(hex) {
 		return errors.New("Invalid infohash format")
 	}
@@ -511,7 +511,7 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request int64)
 	hash := metainfo.NewHashFromHex(hex)
 	err = tm.UpdateTorrent(ctx, types.FlowControlMeta{
 		InfoHash:       hash,
-		BytesRequested: uint64(request),
+		BytesRequested: request,
 	})
 
 	downloadMeter.Mark(1)
@@ -844,7 +844,7 @@ func (tm *TorrentManager) graceSeeding(slot int) error {
 	return nil
 }
 
-func (tm *TorrentManager) Available(infohash string, rawSize int64) (bool, error) {
+func (tm *TorrentManager) Available(infohash string, rawSize uint64) (bool, error) {
 	//if fs.metrics {
 	//	defer func(start time.Time) { fs.Updates += time.Since(start) }(time.Now())
 	//}
@@ -864,7 +864,7 @@ func (tm *TorrentManager) Available(infohash string, rawSize int64) (bool, error
 		if !torrent.Ready() {
 			return false, errors.New("download not completed")
 		}
-		return torrent.BytesCompleted() <= rawSize, nil
+		return torrent.BytesCompleted() <= int64(rawSize), nil
 	}
 }
 

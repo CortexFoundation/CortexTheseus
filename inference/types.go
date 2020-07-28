@@ -50,7 +50,7 @@ type GasWork struct {
 type AvailableWork struct {
 	Type         InferType `json:"type" gencodec:"required"`
 	InfoHash     string    `json:"infohash" gencodec:"required"`
-	RawSize      int64     `json:"rawSize" gencodec:"required"`
+	RawSize      uint64    `json:"rawSize" gencodec:"required"`
 	CvmNetworkId int64     `json:"cvm_networkid"`
 }
 

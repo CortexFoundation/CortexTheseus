@@ -32,7 +32,7 @@ func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkID int64)
 }
 
 //func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
-func (s *Synapse) remoteAvailable(infoHash string, rawSize, cvmNetworkID int64) error {
+func (s *Synapse) remoteAvailable(infoHash string, rawSize uint64, cvmNetworkID int64) error {
 	inferWork := inference.AvailableWork{
 		Type:         inference.AVAILABLE_BY_H,
 		InfoHash:     infoHash,

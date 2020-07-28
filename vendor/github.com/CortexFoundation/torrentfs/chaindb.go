@@ -720,9 +720,23 @@ func (fs *ChainDB) AddTorrent(ih string, size uint64) (bool, error) {
 		if err != nil {
 			return err
 		}
-		e := buk.Put([]byte(ih), []byte(strconv.FormatUint(size, 16)))
+		v := buk.Get([]byte(ih))
 
-		return e
+		if v == nil {
+			err = buk.Put([]byte(ih), []byte(strconv.FormatUint(size, 16)))
+		} else {
+			s, err := strconv.ParseUint(string(v), 16, 64)
+			if err != nil {
+				return err
+			}
+			if size > s {
+				err = buk.Put([]byte(ih), []byte(strconv.FormatUint(size, 16)))
+			} else {
+				size = s
+			}
+		}
+
+		return err
 	}); err != nil {
 		return false, err
 	}

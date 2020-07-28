@@ -109,7 +109,7 @@ func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 		scope:         uint64(math.Min(float64(runtime.NumCPU()*4), float64(8))),
 		currentNumber: uint64(0),
 		//taskCh:        make(chan *types.Block, batch),
-		start: mclock.Now(),
+		//start: mclock.Now(),
 	}
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
@@ -122,12 +122,12 @@ func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 
 	torrents, _ := fs.initTorrents()
 	for k, v := range torrents {
-		if err := tMana.Search(context.Background(), k, int64(v)); err != nil {
+		if err := tMana.Search(context.Background(), k, v); err != nil {
 			return nil, err
 		}
 	}
 
-	m.indexInit()
+	//m.indexInit()
 
 	return m, nil
 }
@@ -186,10 +186,11 @@ func (m *Monitor) indexInit() error {
 		}
 		capcity += bytesRequested
 		log.Debug("File storage info", "addr", file.ContractAddr, "ih", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
-		m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
-			InfoHash:       file.Meta.InfoHash,
-			BytesRequested: bytesRequested,
-		})
+		//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
+		//	InfoHash:       file.Meta.InfoHash,
+		//	BytesRequested: bytesRequested,
+		//})
+		m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), bytesRequested)
 		if file.LeftSize == 0 {
 			seed++
 		} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
@@ -352,10 +353,14 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	}
 	if update && op == 1 {
 		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
-		m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
-			InfoHash:       meta.InfoHash,
-			BytesRequested: 0,
-		})
+
+		if u, err := m.fs.AddTorrent(meta.InfoHash.HexString(), 0); u && err == nil {
+			m.dl.Search(context.Background(), meta.InfoHash.HexString(), 0)
+		}
+		//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
+		//	InfoHash:       meta.InfoHash,
+		//	BytesRequested: 0,
+		//})
 	}
 	return nil
 }
@@ -412,11 +417,13 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 						} else {
 							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
-
-						m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
-							InfoHash:       file.Meta.InfoHash,
-							BytesRequested: bytesRequested,
-						})
+						if u, err := m.fs.AddTorrent(file.Meta.InfoHash.HexString(), bytesRequested); u && err == nil {
+							m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), bytesRequested)
+						}
+						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
+						//	InfoHash:       file.Meta.InfoHash,
+						//	BytesRequested: bytesRequested,
+						//})
 					}
 				}
 
@@ -643,6 +650,9 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 	if maxNumber < minNumber {
 		return 0
+	}
+	if m.start == 0 {
+		m.start = mclock.Now()
 	}
 	//start := mclock.Now()
 	for i := minNumber; i <= maxNumber; { // i++ {

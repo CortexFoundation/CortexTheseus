@@ -47,17 +47,16 @@ func EnableEIP(eipNum int, jt *JumpTable) error {
 // - Increase cost of EXTCODEHASH to 700
 // - Increase cost of SLOAD to 800
 // - Define SELFBALANCE, with cost GasFastStep (5)
-func enable1884(instructionSet *JumpTable) {
-	instructionSet[BALANCE].gasCost = constGasFunc(params.BalanceGasEIP1884)
-	instructionSet[EXTCODEHASH].gasCost = constGasFunc(params.ExtcodeHashGasEIP1884)
-	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP1884)
+func enable1884(jt *JumpTable) {
+	jt[BALANCE].gasCost = constGasFunc(params.BalanceGasEIP1884)
+	jt[EXTCODEHASH].gasCost = constGasFunc(params.ExtcodeHashGasEIP1884)
+	jt[SLOAD].gasCost = constGasFunc(params.SloadGasEIP1884)
 
 	// New opcode
-	instructionSet[SELFBALANCE] = operation{
+	jt[SELFBALANCE] = &operation{
 		execute:       opSelfBalance,
 		gasCost:       constGasFunc(GasFastestStep),
 		validateStack: makeStackFunc(0, 1),
-		valid:         true,
 	}
 }
 
@@ -69,15 +68,14 @@ func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx
 
 // enable1344 applies EIP-1344 (ChainID Opcode)
 // - Adds an opcode that returns the current chain’s EIP-155 unique identifier
-func enable1344(instructionSet *JumpTable) {
+func enable1344(jt *JumpTable) {
 	// New opcode
-	instructionSet[CHAINID] = operation{
+	jt[CHAINID] = &operation{
 		execute: opChainID,
 		gasCost: constGasFunc(GasQuickStep),
 		//minStack:    minStack(0, 1),
 		//maxStack:    maxStack(0, 1),
 		validateStack: makeStackFunc(0, 1),
-		valid:         true,
 	}
 }
 
@@ -89,41 +87,38 @@ func opChainID(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 }
 
 // enable2200 applies EIP-2200 (Rebalance net-metered SSTORE)
-func enable2200(instructionSet *JumpTable) {
-	instructionSet[SLOAD].gasCost = constGasFunc(params.SloadGasEIP2200)
-	instructionSet[SSTORE].gasCost = gasSStoreEIP2200
+func enable2200(jt *JumpTable) {
+	jt[SLOAD].gasCost = constGasFunc(params.SloadGasEIP2200)
+	jt[SSTORE].gasCost = gasSStoreEIP2200
 }
 
 // enable2315 applies EIP-2315 (Simple Subroutines)
 // - Adds opcodes that jump to and return from subroutines
 func enable2315(jt *JumpTable) {
 	// New opcode
-	jt[BEGINSUB] = operation{
+	jt[BEGINSUB] = &operation{
 		execute: opBeginSub,
 		gasCost: constGasFunc(GasQuickStep),
 		//minStack:    minStack(0, 0),
 		//maxStack:    maxStack(0, 0),
 		validateStack: makeStackFunc(0, 0),
-		valid:         true,
 	}
 	// New opcode
-	jt[JUMPSUB] = operation{
+	jt[JUMPSUB] = &operation{
 		execute: opJumpSub,
 		gasCost: constGasFunc(GasSlowStep),
 		//minStack:    minStack(1, 0),
 		//maxStack:    maxStack(1, 0),
 		validateStack: makeStackFunc(1, 0),
 		jumps:         true,
-		valid:         true,
 	}
 	// New opcode
-	jt[RETURNSUB] = operation{
+	jt[RETURNSUB] = &operation{
 		execute: opReturnSub,
 		gasCost: constGasFunc(GasFastStep),
 		//minStack:    minStack(0, 0),
 		//maxStack:    maxStack(0, 0),
 		validateStack: makeStackFunc(0, 0),
-		valid:         true,
 		jumps:         true,
 	}
 }

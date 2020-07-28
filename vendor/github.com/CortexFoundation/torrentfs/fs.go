@@ -195,7 +195,7 @@ func (tfs *TorrentFS) Stop() error {
 	return nil
 }
 
-func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize int64) (bool, error) {
+func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uint64) (bool, error) {
 	return fs.storage().Available(infohash, rawSize)
 }
 
@@ -203,8 +203,8 @@ func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]b
 	return fs.storage().GetFile(infohash, subpath)
 }
 
-func (fs *TorrentFS) Download(ctx context.Context, ih string, request int64) error {
-	if update, err := fs.chain().AddTorrent(ih, uint64(request)); err != nil {
+func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
+	if update, err := fs.chain().AddTorrent(ih, request); err != nil {
 		return err
 	} else {
 		if update {

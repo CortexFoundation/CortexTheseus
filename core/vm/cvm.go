@@ -594,12 +594,12 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	//log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 	cvmNetworkId := cvm.chainConfig.ChainID.Int64()
 	if !cvm.vmConfig.DebugInferVM {
-		if err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize), cvmNetworkId); err != nil {
+		if err := synapse.Engine().Available(modelInfoHash, modelRawSize, cvmNetworkId); err != nil {
 			log.Warn("Infer", "Torrent file model not available, blockchain and torrent not match, modelInfoHash", modelInfoHash, "err", err)
 			return nil, err
 		}
 
-		if err := synapse.Engine().Available(inputInfoHash, int64(inputRawSize), cvmNetworkId); err != nil {
+		if err := synapse.Engine().Available(inputInfoHash, inputRawSize, cvmNetworkId); err != nil {
 			//log.Warn("File non available", "inputInfoHash:", inputInfoHash, "err", err)
 			return nil, err
 		}
@@ -637,7 +637,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	}
 	cvmNetworkId := cvm.chainConfig.ChainID.Int64()
 	if !cvm.vmConfig.DebugInferVM {
-		if err := synapse.Engine().Available(modelInfoHash, int64(modelRawSize), cvmNetworkId); err != nil {
+		if err := synapse.Engine().Available(modelInfoHash, modelRawSize, cvmNetworkId); err != nil {
 			log.Warn("InferArray", "modelInfoHash", modelInfoHash, "not Available", err)
 			return nil, err
 		}
@@ -673,7 +673,7 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	cvmNetworkId := cvm.chainConfig.ChainID.Int64()
 
 	if !cvm.vmConfig.DebugInferVM {
-		if err := synapse.Engine().Available(modelMeta.Hash.Hex(), int64(modelRawSize), cvmNetworkId); err != nil {
+		if err := synapse.Engine().Available(modelMeta.Hash.Hex(), modelRawSize, cvmNetworkId); err != nil {
 			log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize, "err", err)
 			return 0, err
 		}
