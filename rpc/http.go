@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-type contextKey string
+type httpContextKey string
 
 const (
 	maxRequestContentLength = 1024 * 1024 * 5
@@ -221,14 +221,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// until EOF, writes the response to w, and orders the server to process a
 	// single request.
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, contextKey("remote"), r.RemoteAddr)
-	ctx = context.WithValue(ctx, contextKey("scheme"), r.Proto)
-	ctx = context.WithValue(ctx, contextKey("local"), r.Host)
+	ctx = context.WithValue(ctx, httpContextKey("remote"), r.RemoteAddr)
+	ctx = context.WithValue(ctx, httpContextKey("scheme"), r.Proto)
+	ctx = context.WithValue(ctx, httpContextKey("local"), r.Host)
 	if ua := r.Header.Get("User-Agent"); ua != "" {
-		ctx = context.WithValue(ctx, contextKey("User-Agent"), ua)
+		ctx = context.WithValue(ctx, httpContextKey("User-Agent"), ua)
 	}
 	if origin := r.Header.Get("Origin"); origin != "" {
-		ctx = context.WithValue(ctx, contextKey("Origin"), origin)
+		ctx = context.WithValue(ctx, httpContextKey("Origin"), origin)
 	}
 
 	w.Header().Set("content-type", contentType)
