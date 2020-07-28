@@ -93,8 +93,8 @@ func (s *testService) Rets() (string, error) {
 }
 
 //lint:ignore ST1008 returns error first on purpose.
-func (s *testService) InvalidRets1() (string, error) {
-	return "", nil
+func (s *testService) InvalidRets1() (error, string) {
+	return nil, ""
 }
 
 func (s *testService) InvalidRets2() (string, string) {
