@@ -388,7 +388,7 @@ func (s *stateObject) setBalance(amount *big.Int) {
 
 func (s *stateObject) SubUpload(amount *big.Int) *big.Int {
 	if amount.Sign() == 0 {
-		return big0
+		return s.Upload()
 	}
 	var ret *big.Int = big0
 	if s.Upload().Cmp(amount) > 0 {
