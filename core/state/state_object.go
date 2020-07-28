@@ -29,6 +29,7 @@ import (
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
+var big0 = big.NewInt(0)
 
 type Code []byte
 
@@ -385,15 +386,16 @@ func (s *stateObject) setBalance(amount *big.Int) {
 //	s.SetUpload(new(big.Int).Add(s.Upload(), amount))
 //}
 
-func (s *stateObject) SubUpload(amount *big.Int) {
+func (s *stateObject) SubUpload(amount *big.Int) *big.Int {
 	if amount.Sign() == 0 {
-		return
+		return big0
 	}
+	var ret *big.Int = big0
 	if s.Upload().Cmp(amount) > 0 {
-		s.SetUpload(new(big.Int).Sub(s.Upload(), amount))
-	} else {
-		s.SetUpload(big.NewInt(0))
+		ret = new(big.Int).Sub(s.Upload(), amount)
 	}
+	s.SetUpload(ret)
+	return ret
 }
 
 func (s *stateObject) SetUpload(amount *big.Int) {

@@ -45,11 +45,11 @@ func (NoopCVMCallContext) DelegateCall(me ContractRef, addr common.Address, data
 
 type NoopStateDB struct{}
 
-func (NoopStateDB) CreateAccount(common.Address)        {}
-func (NoopStateDB) SubBalance(common.Address, *big.Int) {}
-func (NoopStateDB) AddBalance(common.Address, *big.Int) {}
-func (NoopStateDB) GetBalance(common.Address) *big.Int  { return nil }
-func (NoopStateDB) SubUpload(common.Address, *big.Int)  {}
+func (NoopStateDB) CreateAccount(common.Address)                {}
+func (NoopStateDB) SubBalance(common.Address, *big.Int)         {}
+func (NoopStateDB) AddBalance(common.Address, *big.Int)         {}
+func (NoopStateDB) GetBalance(common.Address) *big.Int          { return nil }
+func (NoopStateDB) SubUpload(common.Address, *big.Int) *big.Int { return nil }
 
 //func (NoopStateDB) AddUpload(common.Address, *big.Int)                                 {}
 func (NoopStateDB) GetUpload(common.Address) *big.Int                                  { return nil }

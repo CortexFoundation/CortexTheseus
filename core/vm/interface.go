@@ -32,7 +32,7 @@ type StateDB interface {
 	GetBalance(common.Address) *big.Int
 
 	SetUpload(common.Address, *big.Int)
-	SubUpload(common.Address, *big.Int)
+	SubUpload(common.Address, *big.Int) *big.Int
 	//AddUpload(common.Address, *big.Int)
 	//GetUpload(common.Address) *big.Int
 	Uploading(common.Address) bool
