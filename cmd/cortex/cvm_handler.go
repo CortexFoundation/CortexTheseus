@@ -29,9 +29,9 @@ func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork)
 	if err := synapse.Engine().Available(inferWork.InfoHash, inferWork.RawSize, inferWork.CvmNetworkId); err != nil {
 		RespErrorText(w, err)
 	} else {
-		ret_arr := Uint64ToBytes(1)
+		retArr := Uint64ToBytes(1)
 		log.Debug("File avaiable", "hash", inferWork.InfoHash)
-		RespInfoText(w, ret_arr)
+		RespInfoText(w, retArr)
 	}
 }
 
@@ -51,8 +51,8 @@ func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 	}
 
 	log.Debug("Gas calculate Succeed", "result", ret)
-	ret_arr := Uint64ToBytes(ret)
-	RespInfoText(w, ret_arr)
+	retArr := Uint64ToBytes(ret)
+	RespInfoText(w, retArr)
 }
 
 func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {

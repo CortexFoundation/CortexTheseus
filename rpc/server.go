@@ -25,7 +25,7 @@ import (
 	mapset "github.com/ucwong/golang-set"
 )
 
-const MetadataApi = "rpc"
+const MetadataAPI = "rpc"
 
 // CodecOption specifies which type of messages a codec supports.
 //
@@ -54,7 +54,7 @@ func NewServer() *Server {
 	// Register the default service providing meta information about the RPC service such
 	// as the services and methods it offers.
 	rpcService := &RPCService{server}
-	server.RegisterName(MetadataApi, rpcService)
+	server.RegisterName(MetadataAPI, rpcService)
 	return server
 }
 
