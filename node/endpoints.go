@@ -75,7 +75,7 @@ func checkModuleAvailability(modules []string, apis []rpc.API) (bad, available [
 		}
 	}
 	for _, name := range modules {
-		if _, ok := availableSet[name]; !ok && name != rpc.MetadataApi {
+		if _, ok := availableSet[name]; !ok && name != rpc.MetadataAPI {
 			bad = append(bad, name)
 		}
 	}

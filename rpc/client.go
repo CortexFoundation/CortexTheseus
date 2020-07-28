@@ -391,12 +391,11 @@ func (c *Client) Notify(ctx context.Context, method string, args ...interface{})
 
 	if c.isHTTP {
 		return c.sendHTTP(ctx, op, msg)
-	} else {
-		return c.send(ctx, op, msg)
 	}
+	return c.send(ctx, op, msg)
 }
 
-// CortexSubscribe registers a subscripion under the "eth" namespace.
+// CortexSubscribe registers a subscripion under the "ctxc" namespace.
 func (c *Client) CortexSubscribe(ctx context.Context, channel interface{}, args ...interface{}) (*ClientSubscription, error) {
 	return c.Subscribe(ctx, "ctxc", channel, args...)
 }
