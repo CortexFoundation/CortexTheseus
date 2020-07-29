@@ -38,6 +38,8 @@ var DefaultConfig = Config{
 	NetworkId:      21,
 	DatabaseCache:  512,
 	TrieCleanCache: 256,
+	TrieCleanCacheJournal:   "triecache",
+	TrieCleanCacheRejournal: 60 * time.Minute,
 	TrieDirtyCache: 256,
 	TrieTimeout:    60 * time.Minute,
 	SnapshotCache:  256,
@@ -88,6 +90,8 @@ type Config struct {
 	DatabaseCache      int
 	DatabaseFreezer    string
 	TrieCleanCache     int
+	TrieCleanCacheJournal   string        `toml:",omitempty"` // Disk journal directory for trie cache to survive node restarts
+	TrieCleanCacheRejournal time.Duration `toml:",omitempty"` // Time interval to regenerate the journal for clean cache
 	TrieDirtyCache     int
 	TrieTimeout        time.Duration
 	SnapshotCache      int

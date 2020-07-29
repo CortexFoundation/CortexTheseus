@@ -177,6 +177,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		}
 		cacheConfig = &core.CacheConfig{
 			TrieCleanLimit:      config.TrieCleanCache,
+			TrieCleanJournal:    ctx.ResolvePath(config.TrieCleanCacheJournal),
+			TrieCleanRejournal:  config.TrieCleanCacheRejournal,
 			TrieCleanNoPrefetch: config.NoPrefetch,
 			TrieDirtyDisabled:   config.NoPruning,
 			TrieDirtyLimit:      config.TrieDirtyCache,
