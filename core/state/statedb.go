@@ -480,11 +480,12 @@ func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 //	}
 //}
 
-func (s *StateDB) SubUpload(addr common.Address, amount *big.Int) {
+func (s *StateDB) SubUpload(addr common.Address, amount *big.Int) *big.Int {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SubUpload(amount)
+		return stateObject.SubUpload(amount)
 	}
+	return big0
 }
 
 func (s *StateDB) SetUpload(addr common.Address, amount *big.Int) {
