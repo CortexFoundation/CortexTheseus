@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-		"runtime"
+	"runtime"
 	"sync"
 	"time"
 
@@ -277,7 +277,7 @@ func expandNode(hash hashNode, n node) node {
 // its written out to disk or garbage collected. No read cache is created, so all
 // data retrievals will hit the underlying disk database.
 func NewDatabase(diskdb ctxcdb.KeyValueStore) *Database {
-	return NewDatabaseWithCache(diskdb, 0,"")
+	return NewDatabaseWithCache(diskdb, 0, "")
 }
 
 // NewDatabaseWithCache creates a new trie database to store ephemeral trie content
