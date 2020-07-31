@@ -33,14 +33,16 @@ import (
 
 // DefaultConfig contains default settings for use on the Cortex main net.
 var DefaultConfig = Config{
-	SyncMode:       downloader.FullSync,
-	Cuckoo:         cuckoo.Config{},
-	NetworkId:      21,
-	DatabaseCache:  512,
-	TrieCleanCache: 256,
-	TrieDirtyCache: 256,
-	TrieTimeout:    60 * time.Minute,
-	SnapshotCache:  256,
+	SyncMode:                downloader.FullSync,
+	Cuckoo:                  cuckoo.Config{},
+	NetworkId:               21,
+	DatabaseCache:           512,
+	TrieCleanCache:          256,
+	TrieCleanCacheJournal:   "triecache",
+	TrieCleanCacheRejournal: 60 * time.Minute,
+	TrieDirtyCache:          256,
+	TrieTimeout:             60 * time.Minute,
+	SnapshotCache:           256,
 	Miner: miner.Config{
 		GasFloor: params.MinerGasFloor,
 		GasCeil:  params.MinerGasCeil,
@@ -83,14 +85,16 @@ type Config struct {
 	Whitelist map[uint64]common.Hash `toml:"-"`
 
 	// Database options
-	SkipBcVersionCheck bool `toml:"-"`
-	DatabaseHandles    int  `toml:"-"`
-	DatabaseCache      int
-	DatabaseFreezer    string
-	TrieCleanCache     int
-	TrieDirtyCache     int
-	TrieTimeout        time.Duration
-	SnapshotCache      int
+	SkipBcVersionCheck      bool `toml:"-"`
+	DatabaseHandles         int  `toml:"-"`
+	DatabaseCache           int
+	DatabaseFreezer         string
+	TrieCleanCache          int
+	TrieCleanCacheJournal   string        `toml:",omitempty"` // Disk journal directory for trie cache to survive node restarts
+	TrieCleanCacheRejournal time.Duration `toml:",omitempty"` // Time interval to regenerate the journal for clean cache
+	TrieDirtyCache          int
+	TrieTimeout             time.Duration
+	SnapshotCache           int
 
 	// Mining options
 	Miner miner.Config
