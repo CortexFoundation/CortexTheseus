@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
+
 package torrentfs
 
 import (
@@ -80,25 +81,17 @@ func (peer *Peer) start() error {
 
 func (peer *Peer) update() {
 	defer peer.wg.Done()
-	// Start the tickers for the updates
-	//expire := time.NewTicker(expirationCycle)
-	//defer expire.Stop()
-	//transmit := time.NewTicker(transmissionCycle)
-	//defer transmit.Stop()
 	stateTicker := time.NewTicker(peerStateCycle)
 	defer stateTicker.Stop()
 
 	// Loop and transmit until termination is requested
 	for {
 		select {
-		//	case <-expire.C:
-		//		peer.expire()
-
-		//	case <-transmit.C:
-		//		if err := peer.broadcast(); err != nil {
-		//			log.Trace("broadcast failed", "reason", err, "peer", peer.ID())
-		//			return
-		//		}
+		case query := <-peer.host.queryChan:
+			if err := peer.broadcast(query); err != nil {
+				log.Trace("broadcast failed", "reason", err, "peer", peer.ID())
+				return
+			}
 		case <-stateTicker.C:
 			if err := peer.state(); err != nil {
 				log.Trace("broadcast failed", "reason", err, "peer", peer.ID())
@@ -112,13 +105,28 @@ func (peer *Peer) update() {
 }
 
 func (peer *Peer) state() error {
-	if err := p2p.Send(peer.ws, statusCode, &PeerInfo{Listen: uint64(peer.host.LocalPort()), Root: peer.host.chain().Root(), Files: uint64(peer.host.Congress()), Leafs: uint64(len(peer.host.chain().Blocks()))}); err != nil {
+	state := PeerInfo{
+		Listen: uint64(peer.host.LocalPort()),
+		Root:   peer.host.chain().Root(),
+		Files:  uint64(peer.host.Congress()),
+		Leafs:  uint64(len(peer.host.chain().Blocks())),
+	}
+	if err := p2p.Send(peer.ws, statusCode, &state); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (peer *Peer) broadcast() error {
+type Query struct {
+	Hash string `json:"hash"`
+	Size uint64 `json:"size"`
+}
+
+func (peer *Peer) broadcast(query Query) error {
+	//filter
+	if err := p2p.Send(peer.ws, messagesCode, &query); err != nil {
+		return err
+	}
 	return nil
 }
 

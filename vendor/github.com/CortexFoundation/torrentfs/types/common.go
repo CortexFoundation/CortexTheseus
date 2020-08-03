@@ -171,4 +171,5 @@ type FlowControlMeta struct {
 	InfoHash       metainfo.Hash
 	BytesRequested uint64
 	//IsCreate       bool
+	Ch chan bool
 }

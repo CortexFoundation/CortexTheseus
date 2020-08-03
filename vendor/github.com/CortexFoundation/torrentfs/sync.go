@@ -119,11 +119,12 @@ func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 		log.Warn("Fs start error")
 		return nil, err
 	}
-
-	torrents, _ := fs.initTorrents()
-	for k, v := range torrents {
-		if err := tMana.Search(context.Background(), k, v); err != nil {
-			return nil, err
+	if flag.Mode != LAZY {
+		torrents, _ := fs.initTorrents()
+		for k, v := range torrents {
+			if err := tMana.Search(context.Background(), k, v, nil); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -190,7 +191,7 @@ func (m *Monitor) indexInit() error {
 		//	InfoHash:       file.Meta.InfoHash,
 		//	BytesRequested: bytesRequested,
 		//})
-		m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), bytesRequested)
+		m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), bytesRequested, nil)
 		if file.LeftSize == 0 {
 			seed++
 		} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
@@ -354,8 +355,9 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	if update && op == 1 {
 		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
 
-		if u, err := m.fs.AddTorrent(meta.InfoHash.HexString(), 0); u && err == nil {
-			m.dl.Search(context.Background(), meta.InfoHash.HexString(), 0)
+		if u, p, err := m.fs.SetTorrent(meta.InfoHash.HexString(), 0); u && err == nil {
+			log.Debug("Search in sync parse create", "ih", meta.InfoHash.HexString(), "request", p)
+			m.dl.Search(context.Background(), meta.InfoHash.HexString(), p, nil)
 		}
 		//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 		//	InfoHash:       meta.InfoHash,
@@ -417,8 +419,9 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 						} else {
 							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
-						if u, err := m.fs.AddTorrent(file.Meta.InfoHash.HexString(), bytesRequested); u && err == nil {
-							m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), bytesRequested)
+						if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash.HexString(), bytesRequested); u && err == nil {
+							log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash.HexString(), "request", p)
+							m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), p, nil)
 						}
 						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 						//	InfoHash:       file.Meta.InfoHash,
@@ -450,37 +453,39 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 }
 
 func (m *Monitor) exit() {
-	if m.exitCh != nil {
-		close(m.exitCh)
-		m.wg.Wait()
-		m.exitCh = nil
-	} else {
-		log.Warn("Listener has already been stopped")
-	}
+	m.closeOnce.Do(func() {
+		if m.exitCh != nil {
+			close(m.exitCh)
+			m.wg.Wait()
+			m.exitCh = nil
+		} else {
+			log.Warn("Listener has already been stopped")
+		}
+	})
 }
 
 func (m *Monitor) stop() {
-	m.closeOnce.Do(func() {
-		if atomic.LoadInt32(&(m.terminated)) == 1 {
-			return
-		}
-		atomic.StoreInt32(&(m.terminated), 1)
+	//m.closeOnce.Do(func() {
+	if atomic.LoadInt32(&(m.terminated)) == 1 {
+		return
+	}
+	atomic.StoreInt32(&(m.terminated), 1)
 
-		m.exit()
-		log.Info("Monitor is waiting to be closed")
-		m.blockCache.Purge()
-		m.sizeCache.Purge()
+	m.exit()
+	log.Info("Monitor is waiting to be closed")
+	m.blockCache.Purge()
+	m.sizeCache.Purge()
 
-		log.Info("Fs client listener synchronizing closing")
-		if err := m.dl.Close(); err != nil {
-			log.Error("Monitor Fs Manager closed", "error", err)
-		}
+	log.Info("Fs client listener synchronizing closing")
+	if err := m.dl.Close(); err != nil {
+		log.Error("Monitor Fs Manager closed", "error", err)
+	}
 
-		if err := m.fs.Close(); err != nil {
-			log.Error("Monitor File Storage closed", "error", err)
-		}
-		log.Info("Fs listener synchronizing closed")
-	})
+	if err := m.fs.Close(); err != nil {
+		log.Error("Monitor File Storage closed", "error", err)
+	}
+	log.Info("Fs listener synchronizing closed")
+	//})
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
@@ -725,7 +730,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	//if maxNumber-minNumber > batch-1 {
 	if maxNumber-minNumber > delay {
 		elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Info("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
+		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
 	}
 	return uint64(maxNumber - minNumber)
 }

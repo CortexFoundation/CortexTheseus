@@ -57,7 +57,7 @@ type ChainDB struct {
 	metrics               bool
 
 	torrents map[string]uint64
-	lock     sync.Mutex
+	lock     sync.RWMutex
 	//rootCache *lru.Cache
 }
 
@@ -706,13 +706,14 @@ func (fs *ChainDB) SkipPrint() {
 	fmt.Println(str)
 }
 
-func (fs *ChainDB) AddTorrent(ih string, size uint64) (bool, error) {
+// SetTorrent is for recording torrent latest status
+func (fs *ChainDB) SetTorrent(ih string, size uint64) (bool, uint64, error) {
 	fs.lock.Lock()
 	defer fs.lock.Unlock()
 
 	if s, ok := fs.torrents[ih]; ok {
 		if s >= size {
-			return false, nil
+			return false, s, nil
 		}
 	}
 	if err := fs.db.Update(func(tx *bolt.Tx) error {
@@ -738,12 +739,50 @@ func (fs *ChainDB) AddTorrent(ih string, size uint64) (bool, error) {
 
 		return err
 	}); err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	fs.torrents[ih] = size
 
-	return true, nil
+	return true, size, nil
+}
+
+// GetTorrent return the torrent status by uint64, if return 0 for torrent not exist
+func (fs *ChainDB) GetTorrent(ih string) (progress uint64, err error) {
+	fs.lock.RLock()
+	defer fs.lock.RUnlock()
+
+	if s, ok := fs.torrents[ih]; ok {
+		return s, nil
+	}
+	cb := func(tx *bolt.Tx) error {
+		buk := tx.Bucket([]byte("torrent_" + fs.version))
+		if buk == nil {
+			return errors.New("root bucket not exist")
+		}
+
+		v := buk.Get([]byte(ih))
+
+		if v == nil {
+			return errors.New("Not torrent record found")
+		}
+
+		s, err := strconv.ParseUint(string(v), 16, 64)
+		if err != nil {
+			return err
+		}
+
+		progress = s
+
+		return nil
+	}
+	if err := fs.db.View(cb); err != nil {
+		return 0, err
+	}
+
+	fs.torrents[ih] = progress
+
+	return progress, nil
 }
 
 func (fs *ChainDB) initTorrents() (map[string]uint64, error) {
