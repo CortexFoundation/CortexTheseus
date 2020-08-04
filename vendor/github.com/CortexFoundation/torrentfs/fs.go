@@ -39,7 +39,7 @@ type TorrentFS struct {
 	peerMu sync.RWMutex     // Mutex to sync the active peer set
 	peers  map[string]*Peer // Set of currently active peers
 
-	queryChan chan Query
+	//queryChan chan Query
 
 	nasCache *lru.Cache
 }
@@ -71,13 +71,13 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 	}
 
 	inst = &TorrentFS{
-		config:    config,
-		monitor:   monitor,
-		peers:     make(map[string]*Peer),
-		queryChan: make(chan Query, 128),
+		config:  config,
+		monitor: monitor,
+		peers:   make(map[string]*Peer),
+		//queryChan: make(chan Query, 128),
 	}
 
-	inst.nasCache, _ = lru.New(25)
+	inst.nasCache, _ = lru.New(8)
 
 	inst.protocol = p2p.Protocol{
 		Name:    ProtocolName,
@@ -179,7 +179,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					return errors.New("invalid msg")
 				}
 				if _, suc := tfs.nasCache.Get(info.Hash); !suc {
-					log.Error("Nas msg received", "msg", info)
+					log.Error("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
 					if progress, e := tfs.chain().GetTorrent(info.Hash); e == nil && progress >= info.Size {
 						if err := tfs.storage().Search(context.Background(), info.Hash, info.Size, nil); err != nil {
 							log.Error("Nas 2.0 error", "err", err)
@@ -252,20 +252,20 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 			}
 		}
 	} else if errors.Is(err, ErrUnfinished) {
-		//if _, suc := fs.nasCache.Get(infohash); !suc {
-		var speed float64
-		if cost > 0 {
-			t := float64(cost) / (1000 * 1000 * 1000)
-			speed = float64(f) / t
-		}
-		invoke := time.Duration(cost) > time.Second*60 || (time.Duration(cost) > time.Second*30 && f == 0) || (time.Duration(cost) > time.Second*15 && f == 0 && cost == 0)
-		if ProtocolVersion == 2 && f < rawSize && invoke && speed < 256*1024 {
-			go func() {
-				log.Error("Nas 2.0 query", "ih", infohash, "queue", len(fs.queryChan), "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
-				fs.queryChan <- Query{Hash: infohash, Size: rawSize}
-			}()
-			fs.nasCache.Add(infohash, rawSize)
-			//	}
+		if _, suc := fs.nasCache.Get(infohash); !suc {
+			var speed float64
+			if cost > 0 {
+				t := float64(cost) / (1000 * 1000 * 1000)
+				speed = float64(f) / t
+			}
+			invoke := time.Duration(cost) > time.Second*60 || (time.Duration(cost) > time.Second*30 && f == 0) || (time.Duration(cost) > time.Second*15 && f == 0 && cost == 0)
+			if ProtocolVersion == 2 && f < rawSize && invoke && speed < 256*1024 {
+				//go func() {
+				//	log.Error("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
+				//fs.queryChan <- Query{Hash: infohash, Size: rawSize}
+				//}()
+				fs.nasCache.Add(infohash, rawSize)
+			}
 		}
 		log.Debug("Torrent sync downloading", "ih", infohash, "available", ret, "raw", rawSize, "finish", f, "err", err)
 	}

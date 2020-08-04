@@ -22,7 +22,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	lru "github.com/hashicorp/golang-lru"
+	mapset "github.com/ucwong/golang-set"
 	"sync"
 	"time"
 )
@@ -35,7 +35,7 @@ type Peer struct {
 
 	trusted bool
 
-	known *lru.Cache // Messages already known by the peer to avoid wasting bandwidth
+	known mapset.Set
 	quit  chan struct{}
 
 	wg sync.WaitGroup
@@ -58,10 +58,10 @@ func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter)
 		host:    host,
 		peer:    remote,
 		ws:      rw,
+		known:   mapset.NewSet(),
 		trusted: false,
 		quit:    make(chan struct{}),
 	}
-	p.known, _ = lru.New(25)
 	return &p
 }
 
@@ -75,16 +75,40 @@ func (peer *Peer) start() error {
 	return nil
 }
 
+func (peer *Peer) expire() {
+	unmark := make(map[string]struct{})
+	peer.known.Each(func(k interface{}) bool {
+		if _, ok := peer.host.nasCache.Get(k.(string)); !ok {
+			unmark[k.(string)] = struct{}{}
+		}
+		return true
+	})
+	// Dump all known but no longer cached
+	for hash := range unmark {
+		peer.known.Remove(hash)
+		log.Warn("Peer msg expire", "ih", hash, "know", peer.known.Cardinality(), "cache", peer.host.nasCache.Len())
+	}
+}
+
 func (peer *Peer) update() {
 	defer peer.wg.Done()
 	stateTicker := time.NewTicker(peerStateCycle)
 	defer stateTicker.Stop()
 
+	transmit := time.NewTicker(transmissionCycle)
+	defer transmit.Stop()
+
+	expire := time.NewTicker(expirationCycle)
+	defer expire.Stop()
+
 	// Loop and transmit until termination is requested
 	for {
 		select {
-		case query := <-peer.host.queryChan:
-			if err := peer.broadcast(query); err != nil {
+		case <-expire.C:
+			peer.expire()
+		//case query := <-peer.host.queryChan:
+		case <-transmit.C:
+			if err := peer.broadcast(); err != nil {
 				log.Trace("broadcast failed", "reason", err, "peer", peer.ID())
 				return
 			}
@@ -118,16 +142,30 @@ type Query struct {
 	Size uint64 `json:"size"`
 }
 
-func (peer *Peer) broadcast(query Query) error {
-	if _, ok := peer.known.Get(query.Hash); ok {
-		return nil
-	}
-	//filter
-	if err := p2p.Send(peer.ws, messagesCode, &query); err != nil {
-		return err
+func (peer *Peer) mark(hash string) {
+	peer.known.Add(hash)
+}
+
+func (peer *Peer) marked(hash string) bool {
+	return peer.known.Contains(hash)
+}
+
+func (peer *Peer) broadcast() error {
+	for _, k := range peer.host.nasCache.Keys() {
+		if v, ok := peer.host.nasCache.Get(k.(string)); ok {
+			if !peer.marked(k.(string)) {
+				query := Query{
+					Hash: k.(string),
+					Size: v.(uint64),
+				}
+				if err := p2p.Send(peer.ws, messagesCode, &query); err != nil {
+					return err
+				}
+				peer.mark(k.(string))
+			}
+		}
 	}
 
-	peer.known.Add(query.Hash, query.Size)
 	return nil
 }
 
@@ -138,7 +176,13 @@ func (peer *Peer) handshake() error {
 	go func() {
 		defer peer.wg.Done()
 		log.Debug("Nas send items", "status", statusCode, "version", ProtocolVersion)
-		errc <- p2p.SendItems(peer.ws, statusCode, ProtocolVersion, &PeerInfo{Listen: uint64(peer.host.LocalPort()), Root: peer.host.chain().Root(), Files: uint64(peer.host.Congress()), Leafs: uint64(len(peer.host.chain().Blocks()))})
+		info := PeerInfo{
+			Listen: uint64(peer.host.LocalPort()),
+			Root:   peer.host.chain().Root(),
+			Files:  uint64(peer.host.Congress()),
+			Leafs:  uint64(len(peer.host.chain().Blocks())),
+		}
+		errc <- p2p.SendItems(peer.ws, statusCode, ProtocolVersion, &info)
 		log.Debug("Nas send items OK", "status", statusCode, "version", ProtocolVersion, "len", len(errc))
 	}()
 	// Fetch the remote status packet and verify protocol match
