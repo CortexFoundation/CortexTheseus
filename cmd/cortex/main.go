@@ -132,6 +132,8 @@ var (
 		utils.GpoPercentileFlag,
 		configFileFlag,
 		// utils.ModelCallInterfaceFlag,
+		utils.CWASMInterpreterFlag,
+		utils.CVMInterpreterFlag,
 	}
 
 	inferFlags = []cli.Flag{

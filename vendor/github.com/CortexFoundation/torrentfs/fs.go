@@ -244,33 +244,33 @@ func (tfs *TorrentFS) Stop() error {
 // Available is used to check the file status
 func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uint64) (bool, error) {
 	ret, f, cost, err := fs.storage().available(infohash, rawSize)
-	if fs.config.Mode == LAZY {
-		if errors.Is(err, ErrInactiveTorrent) {
-			if progress, e := fs.chain().GetTorrent(infohash); e == nil {
-				log.Debug("Lazy mode starting", "ih", infohash, "request", progress)
-				if e := fs.storage().Search(ctx, infohash, progress, nil); e == nil {
-					log.Warn("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
-				}
+	//if fs.config.Mode == LAZY {
+	if errors.Is(err, ErrInactiveTorrent) {
+		if progress, e := fs.chain().GetTorrent(infohash); e == nil {
+			log.Debug("Lazy mode starting", "ih", infohash, "request", progress)
+			if e := fs.storage().Search(ctx, infohash, progress, nil); e == nil {
+				log.Warn("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
 			}
-		} else if errors.Is(err, ErrUnfinished) {
-			if _, suc := fs.nasCache.Get(infohash); !suc {
-				var speed float64
-				if cost > 0 {
-					t := float64(cost) / (1000 * 1000 * 1000)
-					speed = float64(f) / t
-				}
-				invoke := time.Duration(cost) > time.Second*60 || (time.Duration(cost) > time.Second*30 && f == 0) || (time.Duration(cost) > time.Second*15 && f == 0 && cost == 0)
-				if ProtocolVersion == 2 && f < rawSize && invoke && speed < 256*1024 {
-					go func() {
-						log.Error("Nas 2.0 query", "ih", infohash, "queue", len(fs.queryChan), "raw", rawSize, "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
-						fs.queryChan <- Query{Hash: infohash, Size: rawSize}
-					}()
-					fs.nasCache.Add(infohash, rawSize)
-				}
-			}
-			log.Debug("Torrent sync downloading", "ih", infohash, "available", ret, "raw", rawSize, "finish", f, "err", err)
 		}
+	} else if errors.Is(err, ErrUnfinished) {
+		if _, suc := fs.nasCache.Get(infohash); !suc {
+			var speed float64
+			if cost > 0 {
+				t := float64(cost) / (1000 * 1000 * 1000)
+				speed = float64(f) / t
+			}
+			invoke := time.Duration(cost) > time.Second*60 || (time.Duration(cost) > time.Second*30 && f == 0) || (time.Duration(cost) > time.Second*15 && f == 0 && cost == 0)
+			if ProtocolVersion == 2 && f < rawSize && invoke && speed < 256*1024 {
+				go func() {
+					log.Error("Nas 2.0 query", "ih", infohash, "queue", len(fs.queryChan), "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
+					fs.queryChan <- Query{Hash: infohash, Size: rawSize}
+				}()
+				fs.nasCache.Add(infohash, rawSize)
+			}
+		}
+		log.Debug("Torrent sync downloading", "ih", infohash, "available", ret, "raw", rawSize, "finish", f, "err", err)
 	}
+	//}
 	return ret, err
 }
 

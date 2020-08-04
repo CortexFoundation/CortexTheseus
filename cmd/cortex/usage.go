@@ -230,10 +230,12 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name:  "VIRTUAL MACHINE",
+		Name: "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
 			// utils.ModelCallInterfaceFlag,
-			//		utils.VMEnableDebugFlag,
+			utils.VMEnableDebugFlag,
+			utils.CVMInterpreterFlag,
+			utils.CWASMInterpreterFlag,
 		},
 	},
 	// {

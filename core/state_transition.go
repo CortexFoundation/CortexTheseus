@@ -395,7 +395,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			//if !st.state.Uploading(st.to()) {
 			if remain == 0 {
 				st.state.SetNum(st.to(), st.cvm.BlockNumber)
-				log.Info("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber, "nonce", st.msg.Nonce())
+				log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber, "nonce", st.msg.Nonce())
 			} else {
 				//remain = st.state.Upload(st.to()).Uint64()
 				log.Debug("Waiting ...", "address", st.to().Hex(), "number", cvm.BlockNumber, "remain", remain)
