@@ -22,7 +22,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	mapset "github.com/ucwong/golang-set"
+	lru "github.com/hashicorp/golang-lru"
 	"sync"
 	"time"
 )
@@ -35,7 +35,7 @@ type Peer struct {
 
 	trusted bool
 
-	known mapset.Set // Messages already known by the peer to avoid wasting bandwidth
+	known *lru.Cache // Messages already known by the peer to avoid wasting bandwidth
 	quit  chan struct{}
 
 	wg sync.WaitGroup
@@ -43,11 +43,6 @@ type Peer struct {
 	version uint64
 
 	peerInfo *PeerInfo
-
-	//listen uint64
-	//root   string
-	//files  uint64
-	//leafs  uint64
 }
 
 type PeerInfo struct {
@@ -58,15 +53,16 @@ type PeerInfo struct {
 }
 
 func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
-	return &Peer{
+	p := Peer{
 		id:      id,
 		host:    host,
 		peer:    remote,
 		ws:      rw,
 		trusted: false,
-		known:   mapset.NewSet(),
 		quit:    make(chan struct{}),
 	}
+	p.known, _ = lru.New(25)
+	return &p
 }
 
 func (peer *Peer) Info() *PeerInfo {
@@ -123,22 +119,16 @@ type Query struct {
 }
 
 func (peer *Peer) broadcast(query Query) error {
+	if _, ok := peer.known.Get(query.Hash); ok {
+		return nil
+	}
 	//filter
 	if err := p2p.Send(peer.ws, messagesCode, &query); err != nil {
 		return err
 	}
-	return nil
-}
 
-func (peer *Peer) expire() {
-	unmark := make(map[common.Hash]struct{})
-	peer.known.Each(func(v interface{}) bool {
-		return true
-	})
-	// Dump all known but no longer cached
-	for hash := range unmark {
-		peer.known.Remove(hash)
-	}
+	peer.known.Add(query.Hash, query.Size)
+	return nil
 }
 
 func (peer *Peer) handshake() error {
