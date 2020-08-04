@@ -264,7 +264,7 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 				log.Error("Nas 2.0 query", "ih", infohash, "queue", len(fs.queryChan), "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
 				fs.queryChan <- Query{Hash: infohash, Size: rawSize}
 			}()
-			//		fs.nasCache.Add(infohash, rawSize)
+			fs.nasCache.Add(infohash, rawSize)
 			//	}
 		}
 		log.Debug("Torrent sync downloading", "ih", infohash, "available", ret, "raw", rawSize, "finish", f, "err", err)
