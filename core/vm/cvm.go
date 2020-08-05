@@ -594,15 +594,14 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	//log.Info("Inference Information", "Model Hash", modelInfoHash, "Input Hash", inputInfoHash)
 	cvmNetworkId := cvm.chainConfig.ChainID.Int64()
 	if !cvm.vmConfig.DebugInferVM {
-		if err := synapse.Engine().Available(modelInfoHash, modelRawSize, cvmNetworkId); err != nil {
-			log.Warn("Infer", "Torrent file model not available, blockchain and torrent not match, modelInfoHash", modelInfoHash, "err", err)
-			return nil, err
-		}
+		//if err := synapse.Engine().Available(modelInfoHash, modelRawSize, cvmNetworkId); err != nil {
+		//	log.Warn("Infer", "Torrent file model not available, blockchain and torrent not match, modelInfoHash", modelInfoHash, "err", err)
+		//	return nil, err
+		//}
 
-		if err := synapse.Engine().Available(inputInfoHash, inputRawSize, cvmNetworkId); err != nil {
-			//log.Warn("File non available", "inputInfoHash:", inputInfoHash, "err", err)
-			return nil, err
-		}
+		//if err := synapse.Engine().Available(inputInfoHash, inputRawSize, cvmNetworkId); err != nil {
+			//return nil, err
+		//}
 	}
 
 	var (
@@ -613,8 +612,8 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	start := mclock.Now()
 
 	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.BlockNumber)
-	inferRes, errRes = synapse.Engine().InferByInfoHash(
-		modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkId)
+	inferRes, errRes = synapse.Engine().InferByInfoHashWithSize(
+		modelInfoHash, inputInfoHash,modelRawSize, inputRawSize,  cvmVersion, cvmNetworkId)
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
@@ -637,10 +636,10 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	}
 	cvmNetworkId := cvm.chainConfig.ChainID.Int64()
 	if !cvm.vmConfig.DebugInferVM {
-		if err := synapse.Engine().Available(modelInfoHash, modelRawSize, cvmNetworkId); err != nil {
-			log.Warn("InferArray", "modelInfoHash", modelInfoHash, "not Available", err)
-			return nil, err
-		}
+		//if err := synapse.Engine().Available(modelInfoHash, modelRawSize, cvmNetworkId); err != nil {
+		//	log.Warn("InferArray", "modelInfoHash", modelInfoHash, "not Available", err)
+		//	return nil, err
+		//}
 	}
 
 	var (
@@ -651,8 +650,8 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	start := mclock.Now()
 
 	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.BlockNumber)
-	inferRes, errRes = synapse.Engine().InferByInputContent(
-		modelInfoHash, inputArray, cvmVersion, cvmNetworkId)
+	inferRes, errRes = synapse.Engine().InferByInputContentWithSize(
+		modelInfoHash, inputArray, modelRawSize, cvmVersion, cvmNetworkId)
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
@@ -673,15 +672,15 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	cvmNetworkId := cvm.chainConfig.ChainID.Int64()
 
 	if !cvm.vmConfig.DebugInferVM {
-		if err := synapse.Engine().Available(modelMeta.Hash.Hex(), modelRawSize, cvmNetworkId); err != nil {
-			log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize, "err", err)
-			return 0, err
-		}
+		//if err := synapse.Engine().Available(modelMeta.Hash.Hex(), modelRawSize, cvmNetworkId); err != nil {
+		//	log.Debug("cvm", "modelMeta", modelMeta, "modelRawSize", modelRawSize, "err", err)
+		//	return 0, err
+		//}
 	}
 
 	start := mclock.Now()
 
-	opsRes, errRes = synapse.Engine().GetGasByInfoHash(modelMeta.Hash.Hex(), cvmNetworkId)
+	opsRes, errRes = synapse.Engine().GetGasByInfoHashWithSize(modelMeta.Hash.Hex(), modelRawSize, cvmNetworkId)
 
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 

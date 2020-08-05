@@ -43,7 +43,7 @@ func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 		return
 	}
 
-	ret, err := synapse.Engine().GetGasByInfoHash(inferWork.Model, inferWork.CvmNetworkId)
+	ret, err := synapse.Engine().GetGasByInfoHashWithSize(inferWork.Model, inferWork.ModelSize, inferWork.CvmNetworkId)
 	if err != nil {
 		log.Warn("Gas calculate Failed", "error", err)
 		RespErrorText(w, err)
@@ -68,8 +68,8 @@ func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 	}
 
 	log.Debug("Infer Task", "Model Hash", inferWork.Model, "Input Hash", inferWork.Input)
-	label, err := synapse.Engine().InferByInfoHash(
-		inferWork.Model, inferWork.Input, inferWork.CvmVersion, inferWork.CvmNetworkId)
+	label, err := synapse.Engine().InferByInfoHashWithSize(
+		inferWork.Model, inferWork.Input, inferWork.ModelSize, inferWork.InputSize, inferWork.CvmVersion, inferWork.CvmNetworkId)
 
 	if err != nil {
 		RespErrorText(w, err)
@@ -102,8 +102,8 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	// 	return
 	// }
 
-	label, err := synapse.Engine().InferByInputContent(
-		model, input, inferWork.CvmVersion, inferWork.CvmNetworkId)
+	label, err := synapse.Engine().InferByInputContentWithSize(
+		model, input, inferWork.ModelSize, inferWork.CvmVersion,inferWork.CvmNetworkId)
 	if err != nil {
 		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, err)

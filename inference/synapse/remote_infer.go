@@ -10,10 +10,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
-func (s *Synapse) remoteGasByModelHash(modelInfoHash string, cvmNetworkID int64) (uint64, error) {
+func (s *Synapse) remoteGasByModelHashWithSize(modelInfoHash string, modelSize uint64, cvmNetworkID int64) (uint64, error) {
 	inferWork := inference.GasWork{
 		Type:         inference.GAS_BY_H,
 		Model:        modelInfoHash,
+		ModelSize:    modelSize,
 		CvmNetworkId: cvmNetworkID,
 	}
 
@@ -51,11 +52,13 @@ func (s *Synapse) remoteAvailable(infoHash string, rawSize uint64, cvmNetworkID 
 	return err
 }
 
-func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) remoteInferByInfoHashWithSize(modelInfoHash, inputInfoHash string, modelSize uint64, inputSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	inferWork := inference.IHWork{
 		Type:         inference.INFER_BY_IH,
 		Model:        modelInfoHash,
 		Input:        inputInfoHash,
+		ModelSize:    modelSize,
+		InputSize:    inputSize,
 		CvmVersion:   cvmVersion,
 		CvmNetworkId: cvmNetworkID,
 	}
@@ -69,11 +72,12 @@ func (s *Synapse) remoteInferByInfoHash(modelInfoHash, inputInfoHash string, cvm
 	return s.sendRequest(requestBody)
 }
 
-func (s *Synapse) remoteInferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) remoteInferByInputContentWithSize(modelInfoHash string, inputContent []byte, modelSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	inferWork := inference.ICWork{
 		Type:         inference.INFER_BY_IC,
 		Model:        modelInfoHash,
 		Input:        hexutil.Bytes(inputContent),
+		ModelSize:    modelSize,
 		CvmVersion:   cvmVersion,
 		CvmNetworkId: cvmNetworkID,
 	}

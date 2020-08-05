@@ -13,6 +13,8 @@ func (i IHWork) MarshalJSON() ([]byte, error) {
 		Type         InferType `json:"type"  gencodec:"required"`
 		Model        string    `json:"model" gencodec:"required"`
 		Input        string    `json:"input" gencodec:"required"`
+		ModelSize    uint64    `json:"modelSize"`
+		InputSize    uint64    `json:"inputSize"`
 		CvmVersion   int       `json:"cvm_version"`
 		CvmNetworkId int64     `json:"cvm_networkid"`
 	}
@@ -20,6 +22,8 @@ func (i IHWork) MarshalJSON() ([]byte, error) {
 	enc.Type = i.Type
 	enc.Model = i.Model
 	enc.Input = i.Input
+	enc.ModelSize = i.ModelSize
+	enc.InputSize = i.InputSize
 	enc.CvmVersion = i.CvmVersion
 	enc.CvmNetworkId = i.CvmNetworkId
 	return json.Marshal(&enc)
@@ -31,6 +35,8 @@ func (i *IHWork) UnmarshalJSON(input []byte) error {
 		Type         *InferType `json:"type"  gencodec:"required"`
 		Model        *string    `json:"model" gencodec:"required"`
 		Input        *string    `json:"input" gencodec:"required"`
+		ModelSize    *uint64    `json:"modelSize"`
+		InputSize    *uint64    `json:"inputSize"`
 		CvmVersion   *int       `json:"cvm_version"`
 		CvmNetworkId *int64     `json:"cvm_networkid"`
 	}
@@ -50,6 +56,12 @@ func (i *IHWork) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'input' for IHWork")
 	}
 	i.Input = *dec.Input
+	if dec.ModelSize != nil {
+		i.ModelSize = *dec.ModelSize
+	}
+	if dec.InputSize != nil {
+		i.InputSize = *dec.InputSize
+	}
 	if dec.CvmVersion != nil {
 		i.CvmVersion = *dec.CvmVersion
 	}

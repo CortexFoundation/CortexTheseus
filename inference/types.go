@@ -23,6 +23,8 @@ type IHWork struct {
 	Type         InferType `json:"type"  gencodec:"required"`
 	Model        string    `json:"model" gencodec:"required"`
 	Input        string    `json:"input" gencodec:"required"`
+	ModelSize    uint64    `json:"modelSize"`
+	InputSize    uint64    `json:"inputSize"`
 	CvmVersion   int       `json:"cvm_version"`
 	CvmNetworkId int64     `json:"cvm_networkid"`
 }
@@ -33,6 +35,7 @@ type ICWork struct {
 	Type         InferType     `json:"type" gencodec:"required"`
 	Model        string        `json:"model" gencodec:"required"`
 	Input        hexutil.Bytes `json:"input" gencodec:"required"`
+	ModelSize    uint64        `json:"modelSize"`
 	CvmVersion   int           `json:"cvm_version"`
 	CvmNetworkId int64         `json:"cvm_networkid"`
 }
@@ -42,6 +45,7 @@ type ICWork struct {
 type GasWork struct {
 	Type         InferType `json:"type" gencodec:"required"`
 	Model        string    `json:"model" gencodec:"required"`
+	ModelSize    uint64    `json:"modelSize"`
 	CvmNetworkId int64     `json:"cvm_networkid"`
 }
 

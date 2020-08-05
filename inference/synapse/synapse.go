@@ -134,25 +134,25 @@ func CVMVersion(config *params.ChainConfig, num *big.Int) int {
 	return version
 }
 
-func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) InferByInfoHashWithSize(modelInfoHash, inputInfoHash string, modelSize uint64, inputSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkID)
+		return s.remoteInferByInfoHashWithSize(modelInfoHash, inputInfoHash, modelSize, inputSize, cvmVersion, cvmNetworkID)
 	}
-	return s.inferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkID)
+	return s.inferByInfoHashWithSize(modelInfoHash, inputInfoHash, modelSize, inputSize, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) InferByInputContentWithSize(modelInfoHash string, inputContent []byte, modelSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkID)
+		return s.remoteInferByInputContentWithSize(modelInfoHash, inputContent, modelSize, cvmVersion, cvmNetworkID)
 	}
-	return s.inferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkID)
+	return s.inferByInputContentWithSize(modelInfoHash, inputContent, modelSize, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkID int64) (gas uint64, err error) {
+func (s *Synapse) GetGasByInfoHashWithSize(modelInfoHash string, modelSize uint64, cvmNetworkID int64) (gas uint64, err error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteGasByModelHash(modelInfoHash, cvmNetworkID)
+		return s.remoteGasByModelHashWithSize(modelInfoHash, modelSize, cvmNetworkID)
 	}
-	return s.getGasByInfoHash(modelInfoHash, cvmNetworkID)
+	return s.getGasByInfoHashWithSize(modelInfoHash, modelSize, cvmNetworkID)
 }
 
 func (s *Synapse) Available(infoHash string, rawSize uint64, cvmNetworkID int64) error {
