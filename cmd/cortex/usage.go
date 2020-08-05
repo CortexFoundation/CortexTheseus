@@ -220,6 +220,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.StorageDisableDHTFlag,
 			utils.StorageDisableTCPFlag,
 			utils.StorageFullFlag,
+			utils.StorageModeFlag,
 			//utils.StorageBoostFlag,
 		},
 	},
@@ -231,10 +232,12 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name:  "VIRTUAL MACHINE",
+		Name: "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
 			// utils.ModelCallInterfaceFlag,
-			//		utils.VMEnableDebugFlag,
+			utils.VMEnableDebugFlag,
+			utils.CVMInterpreterFlag,
+			utils.CWASMInterpreterFlag,
 		},
 	},
 	// {

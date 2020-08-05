@@ -134,6 +134,8 @@ var (
 		utils.GpoPercentileFlag,
 		configFileFlag,
 		// utils.ModelCallInterfaceFlag,
+		utils.CWASMInterpreterFlag,
+		utils.CVMInterpreterFlag,
 	}
 
 	inferFlags = []cli.Flag{
@@ -155,6 +157,7 @@ var (
 		utils.StorageDisableDHTFlag,
 		utils.StorageDisableTCPFlag,
 		utils.StorageFullFlag,
+		utils.StorageModeFlag,
 		//utils.StorageBoostFlag,
 	}
 

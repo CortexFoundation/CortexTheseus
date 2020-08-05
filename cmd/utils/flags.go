@@ -256,6 +256,11 @@ var (
 		Name:  "storage.full",
 		Usage: "download full file",
 	}
+	StorageModeFlag = cli.StringFlag{
+		Name:  "storage.mode",
+		Usage: "P2P storage tracker list",
+		Value: "normal",
+	}
 	StorageDebugFlag = cli.BoolFlag{
 		Name:  "storage.debug",
 		Usage: "debug mod for nas",
@@ -773,6 +778,17 @@ var (
 		Name:  "metrics.influxdb.tags",
 		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
 		Value: "host=localhost",
+	}
+
+	CWASMInterpreterFlag = cli.StringFlag{
+		Name:  "vm.cwasm",
+		Usage: "External cwasm configuration (default = built-in interpreter)",
+		Value: "",
+	}
+	CVMInterpreterFlag = cli.StringFlag{
+		Name:  "vm.cvm",
+		Usage: "External CVM configuration (default = built-in interpreter)",
+		Value: "",
 	}
 )
 
@@ -1358,6 +1374,13 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
 	}
+	if ctx.GlobalIsSet(CWASMInterpreterFlag.Name) {
+		cfg.CWASMInterpreter = ctx.GlobalString(CWASMInterpreterFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(CVMInterpreterFlag.Name) {
+		cfg.CVMInterpreter = ctx.GlobalString(CVMInterpreterFlag.Name)
+	}
 	if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
 		cfg.Miner.ExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
 	}
@@ -1557,10 +1580,13 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	log.Debug("FsConfig", "MaxSeedingNum", ctx.GlobalInt(StorageMaxSeedingFlag.Name),
 		"MaxActiveNum", ctx.GlobalInt(StorageMaxActiveFlag.Name))
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
-	cfg.SyncMode = ctx.GlobalString(SyncModeFlag.Name)
+	cfg.Mode = ctx.GlobalString(StorageModeFlag.Name)
 	cfg.DisableDHT = ctx.GlobalBool(StorageDisableDHTFlag.Name)
 	//cfg.DisableTCP = ctx.GlobalBool(StorageDisableTCPFlag.Name)
-	cfg.FullSeed = ctx.GlobalBool(StorageFullFlag.Name)
+	//cfg.FullSeed = ctx.GlobalBool(StorageFullFlag.Name)
+	//if cfg.Mode == "full" {
+	//	cfg.FullSeed = true
+	//}
 	cfg.Boost = ctx.GlobalBool(StorageBoostFlag.Name)
 	cfg.DataDir = MakeStorageDir(ctx)
 }

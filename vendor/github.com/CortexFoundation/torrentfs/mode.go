@@ -14,15 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package torrentfs
 
 const (
-	Bucket    = 1024
-	Group     = 32
-	SyncBatch = 4096
-	Delay     = 6
-	//Scope     = 4
-	//TIER         = 3
-	//LEAFS        = 32768
-	LimitSeeding = 2048
+	FULL    = "full"
+	DEFAULT = "default"
+	LAZY    = "lazy"
 )

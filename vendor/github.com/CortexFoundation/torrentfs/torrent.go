@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
+
 package torrentfs
 
 import (
@@ -48,6 +49,7 @@ type Torrent struct {
 	isBoosting          bool
 	fast                bool
 	start               mclock.AbsTime
+	ch                  chan bool
 }
 
 func (t *Torrent) BytesLeft() int64 {
@@ -121,7 +123,12 @@ func (t *Torrent) Ready() bool {
 		return false
 	}
 	t.cited += 1
-	return t.IsSeeding()
+	ret := t.IsSeeding()
+	if !ret {
+		log.Debug("Not ready", "ih", t.InfoHash(), "status", t.status, "seed", t.Torrent.Seeding(), "seeding", torrentSeeding)
+	}
+
+	return ret
 }
 
 func (t *Torrent) WriteTorrent() error {
@@ -152,9 +159,11 @@ func (t *Torrent) BoostOff() {
 
 func (t *Torrent) Seed() bool {
 	if t.Torrent.Info() == nil {
+		log.Debug("Torrent info is nil", "ih", t.InfoHash())
 		return false
 	}
 	if t.status == torrentSeeding {
+		log.Debug("Torrent status is", "status", t.status, "ih", t.InfoHash())
 		return true
 	}
 	if t.currentConns <= t.minEstablishedConns {
@@ -164,9 +173,10 @@ func (t *Torrent) Seed() bool {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Imported new segment", "hash", common.HexToHash(t.InfoHash()), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+		log.Info("Imported new segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		return true
 	}
+
 	return false
 }
 

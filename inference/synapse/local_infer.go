@@ -69,8 +69,9 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkID int64) (ui
 		gasCacheHitMeter.Mark(1)
 		return v.(uint64), nil
 	}
-
-	modelJson, modelJson_err := s.config.Storagefs.GetFile(context.Background(), modelHash, SYMBOL_PATH)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	modelJson, modelJson_err := s.config.Storagefs.GetFile(ctx, modelHash, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
 		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
 		return 0, KERNEL_RUNTIME_ERROR
@@ -129,8 +130,11 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 		return v.([]byte), nil
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	if inputContent == nil {
-		inputBytes, dataErr := s.config.Storagefs.GetFile(context.Background(), inputHash, DATA_PATH)
+		inputBytes, dataErr := s.config.Storagefs.GetFile(ctx, inputHash, DATA_PATH)
 		if dataErr != nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
@@ -173,12 +177,12 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
-		modelJson, modelJson_err := s.config.Storagefs.GetFile(context.Background(), modelHash, SYMBOL_PATH)
+		modelJson, modelJson_err := s.config.Storagefs.GetFile(ctx, modelHash, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
 			log.Warn("inferByInputContent: model loaded failed", "model hash", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-		modelParams, modelParams_err := s.config.Storagefs.GetFile(context.Background(), modelHash, PARAM_PATH)
+		modelParams, modelParams_err := s.config.Storagefs.GetFile(ctx, modelHash, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
 			log.Warn("inferByInputContent: params loaded failed", "model hash", modelHash, "error", modelParams_err)
 			return nil, KERNEL_RUNTIME_ERROR
@@ -195,7 +199,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	} else {
 		model = model_tmp.(*kernel.Model)
 	}
-	log.Trace("iput content", "input", inputContent, "len", len(inputContent))
+
 	result, status = model.Predict(inputContent, cvmVersion)
 	if _, err := getReturnByStatusCode(result, status); err != nil {
 		return nil, KERNEL_RUNTIME_ERROR
@@ -220,7 +224,9 @@ func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64)
 			return nil
 		}
 	}
-	isOK, err := s.config.Storagefs.Available(context.Background(), ih, rawSize)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	isOK, err := s.config.Storagefs.Available(ctx, ih, rawSize)
 	if err != nil {
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR

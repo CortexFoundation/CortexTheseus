@@ -190,7 +190,11 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.RpcURI = ctx.GlobalString(utils.StorageRpcFlag.Name)
 	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
 	//fsCfg.DisableTCP = ctx.GlobalBool(utils.StorageDisableTCPFlag.Name)
-	fsCfg.FullSeed = ctx.GlobalBool(utils.StorageFullFlag.Name)
+	fsCfg.Mode = ctx.GlobalString(utils.StorageModeFlag.Name)
+	//fsCfg.FullSeed = ctx.GlobalBool(utils.StorageFullFlag.Name)
+	//if fsCfg.Mode == "full" {
+	//	fsCfg.FullSeed = true
+	//}
 	fsCfg.Boost = ctx.GlobalBool(utils.StorageBoostFlag.Name)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Debug("Cvm Server", "fs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
@@ -237,20 +241,19 @@ func cvmServer(ctx *cli.Context) error {
 			ReadTimeout:  15 * time.Second,
 			Handler:      mux,
 		}
-		s1 := &http.Server{
-			Addr:    ":6060",
-			Handler: nil,
-		}
-		if fsCfg.FullSeed {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				//runtime.GOMAXPROCS(1)
-				runtime.SetMutexProfileFraction(1)
-				runtime.SetBlockProfileRate(1)
-				s1.ListenAndServe()
-			}()
-		}
+		//s1 := &http.Server{
+		//	Addr:    ":6060",
+		//	Handler: nil,
+		//}
+		//if fsCfg.FullSeed {
+		//	wg.Add(1)
+		//	go func() {
+		//		defer wg.Done()
+		//		runtime.SetMutexProfileFraction(1)
+		//		runtime.SetBlockProfileRate(1)
+		//		s1.ListenAndServe()
+		//	}()
+		//}
 
 		wg.Add(1)
 		go func() {
@@ -260,13 +263,13 @@ func cvmServer(ctx *cli.Context) error {
 		//		select {
 		//		case <-c:
 		<-c
-		if fsCfg.FullSeed {
-			if err := s1.Close(); err != nil {
-				log.Info("Close resource server failed", "err", err)
-			} else {
-				log.Info("CVM resource server closed")
-			}
-		}
+		//if fsCfg.FullSeed {
+		//	if err := s1.Close(); err != nil {
+		//		log.Info("Close resource server failed", "err", err)
+		//	} else {
+		//		log.Info("CVM resource server closed")
+		//	}
+		//}
 		if err := server.Close(); err != nil {
 			log.Info("Close http server failed", "err", err)
 		} else {
