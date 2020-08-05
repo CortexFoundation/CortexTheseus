@@ -748,12 +748,12 @@ func (fs *ChainDB) SetTorrent(ih string, size uint64) (bool, uint64, error) {
 }
 
 // GetTorrent return the torrent status by uint64, if return 0 for torrent not exist
-func (fs *ChainDB) GetTorrent(ih string) (status bool, progress uint64, err error) {
+func (fs *ChainDB) GetTorrent(ih string) (progress uint64, err error) {
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
 
 	if s, ok := fs.torrents[ih]; ok {
-		return true, s, nil
+		return s, nil
 	}
 	cb := func(tx *bolt.Tx) error {
 		buk := tx.Bucket([]byte("torrent_" + fs.version))
@@ -777,12 +777,12 @@ func (fs *ChainDB) GetTorrent(ih string) (status bool, progress uint64, err erro
 		return nil
 	}
 	if err := fs.db.View(cb); err != nil {
-		return false, 0, err
+		return 0, err
 	}
 
 	fs.torrents[ih] = progress
 
-	return true, progress, nil
+	return progress, nil
 }
 
 func (fs *ChainDB) initTorrents() (map[string]uint64, error) {

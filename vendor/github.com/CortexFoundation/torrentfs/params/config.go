@@ -23,6 +23,6 @@ const (
 	Delay     = 6
 	//Scope     = 4
 	//TIER         = 3
-	LEAFS        = 32768
+	//LEAFS        = 32768
 	LimitSeeding = 2048
 )
