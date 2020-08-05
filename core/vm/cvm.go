@@ -600,7 +600,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 		//}
 
 		//if err := synapse.Engine().Available(inputInfoHash, inputRawSize, cvmNetworkId); err != nil {
-			//return nil, err
+		//return nil, err
 		//}
 	}
 
@@ -613,7 +613,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 
 	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.BlockNumber)
 	inferRes, errRes = synapse.Engine().InferByInfoHashWithSize(
-		modelInfoHash, inputInfoHash,modelRawSize, inputRawSize,  cvmVersion, cvmNetworkId)
+		modelInfoHash, inputInfoHash, modelRawSize, inputRawSize, cvmVersion, cvmNetworkId)
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {

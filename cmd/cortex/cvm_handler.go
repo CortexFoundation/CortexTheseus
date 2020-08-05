@@ -103,7 +103,7 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	// }
 
 	label, err := synapse.Engine().InferByInputContentWithSize(
-		model, input, inferWork.ModelSize, inferWork.CvmVersion,inferWork.CvmNetworkId)
+		model, input, inferWork.ModelSize, inferWork.CvmVersion, inferWork.CvmNetworkId)
 	if err != nil {
 		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, err)
