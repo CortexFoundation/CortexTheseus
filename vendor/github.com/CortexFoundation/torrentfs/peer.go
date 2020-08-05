@@ -154,7 +154,7 @@ func (peer *Peer) broadcast() error {
 					Size: v.(uint64),
 				}
 				//log.Debug("Broadcast", "ih", k.(string), "size", v.(uint64))
-				if err := p2p.Send(peer.ws, messagesCode, &query); err != nil {
+				if err := p2p.Send(peer.ws, queryCode, &query); err != nil {
 					return err
 				}
 				peer.mark(k.(string))

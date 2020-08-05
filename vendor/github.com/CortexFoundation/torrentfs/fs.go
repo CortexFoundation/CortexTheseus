@@ -173,8 +173,8 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				return errors.New("invalid peer state")
 			}
 			p.peerInfo = info
-		case messagesCode:
-			if ProtocolVersion == 2 {
+		case queryCode:
+			if ProtocolVersion > 1 {
 				var info *Query
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
@@ -191,8 +191,10 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					tfs.queryCache.Add(info.Hash, info.Size)
 				}
 			}
+		case msgCode:
 		default:
-			//return errors.New("invalid code")
+			log.Warn("Encounter package code", "code", packet.Code)
+			return errors.New("invalid code")
 		}
 		packet.Discard()
 	}
@@ -265,7 +267,7 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 				speed = float64(f) / t
 			}
 			invoke := time.Duration(cost) > time.Second*60 || (time.Duration(cost) > time.Second*30 && f == 0) || (time.Duration(cost) > time.Second*15 && f == 0 && cost == 0)
-			if ProtocolVersion == 2 && f < rawSize && invoke && speed < 256*1024 {
+			if ProtocolVersion > 1 && f < rawSize && invoke && speed < 256*1024 {
 				//go func() {
 				log.Info("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
 				//fs.queryChan <- Query{Hash: infohash, Size: rawSize}

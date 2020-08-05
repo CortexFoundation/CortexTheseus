@@ -28,8 +28,9 @@ const (
 
 	DefaultMaxMessageSize = uint32(1024)
 
-	statusCode   = 0
-	messagesCode = 1
+	statusCode = 0
+	queryCode  = 1
+	msgCode    = 2
 
 	peerStateCycle    = time.Second * 60
 	expirationCycle   = time.Second
