@@ -447,7 +447,7 @@ golang.org/x/net/publicsuffix
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200803210538-64077c9b5642
+# golang.org/x/sys v0.0.0-20200805065543-0cf7623e9dbd
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
