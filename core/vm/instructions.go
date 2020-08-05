@@ -648,7 +648,7 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]b
 	}
 	log.Debug("interpreter check shape 2", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	for idx, modelShape := range modelMeta.InputShape {
-		if modelShape != inputMeta.Shape[idx] || modelShape <= 0 || inputMeta.Shape[idx] <= 0 {
+		if modelShape != inputMeta.Shape[idx] || modelShape == 0 || inputMeta.Shape[idx] == 0 {
 			callContext.stack.push(new(uint256.Int).Clear())
 			if interpreter.cvm.vmConfig.DebugInferVM {
 				fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)

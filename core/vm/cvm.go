@@ -52,15 +52,15 @@ type (
 	GetHashFunc func(uint64) common.Hash
 )
 
-func (in *CVM) IsCode(code []byte) bool {
+func (cvm *CVM) IsCode(code []byte) bool {
 	return len(code) >= 2 && code[0] == 0 && code[1] == 0
 }
 
-func (in *CVM) IsModel(code []byte) bool {
+func (cvm *CVM) IsModel(code []byte) bool {
 	return len(code) >= 2 && code[0] == 0 && code[1] == 1
 }
 
-func (in *CVM) IsInput(code []byte) bool {
+func (cvm *CVM) IsInput(code []byte) bool {
 	return len(code) >= 2 && code[0] == 0 && code[1] == 2
 }
 
