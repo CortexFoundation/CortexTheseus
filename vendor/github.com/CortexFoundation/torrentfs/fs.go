@@ -181,7 +181,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					return errors.New("invalid msg")
 				}
 				if suc := tfs.queryCache.Contains(info.Hash); !suc {
-					log.Error("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
+					log.Info("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
 					if progress, e := tfs.chain().GetTorrent(info.Hash); e == nil && progress >= info.Size {
 						if err := tfs.storage().Search(context.Background(), info.Hash, info.Size, nil); err != nil {
 							log.Error("Nas 2.0 error", "err", err)
@@ -267,7 +267,7 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 			invoke := time.Duration(cost) > time.Second*60 || (time.Duration(cost) > time.Second*30 && f == 0) || (time.Duration(cost) > time.Second*15 && f == 0 && cost == 0)
 			if ProtocolVersion == 2 && f < rawSize && invoke && speed < 256*1024 {
 				//go func() {
-				log.Error("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
+				log.Info("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
 				//fs.queryChan <- Query{Hash: infohash, Size: rawSize}
 				//}()
 				fs.nasCache.Add(infohash, rawSize)

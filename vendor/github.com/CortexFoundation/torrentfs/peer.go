@@ -28,20 +28,15 @@ import (
 )
 
 type Peer struct {
-	id   string
-	host *TorrentFS
-	peer *p2p.Peer
-	ws   p2p.MsgReadWriter
-
-	trusted bool
-
-	known mapset.Set
-	quit  chan struct{}
-
-	wg sync.WaitGroup
-
-	version uint64
-
+	id       string
+	host     *TorrentFS
+	peer     *p2p.Peer
+	ws       p2p.MsgReadWriter
+	trusted  bool
+	known    mapset.Set
+	quit     chan struct{}
+	wg       sync.WaitGroup
+	version  uint64
 	peerInfo *PeerInfo
 }
 
@@ -86,7 +81,7 @@ func (peer *Peer) expire() {
 	// Dump all known but no longer cached
 	for hash := range unmark {
 		peer.known.Remove(hash)
-		log.Warn("Peer msg expire", "ih", hash, "know", peer.known.Cardinality(), "cache", peer.host.nasCache.Len())
+		//log.Warn("Peer msg expire", "ih", hash, "know", peer.known.Cardinality(), "cache", peer.host.nasCache.Len())
 	}
 }
 
@@ -158,7 +153,7 @@ func (peer *Peer) broadcast() error {
 					Hash: k.(string),
 					Size: v.(uint64),
 				}
-				log.Error("Broadcast", "ih", k.(string), "size", v.(uint64))
+				//log.Debug("Broadcast", "ih", k.(string), "size", v.(uint64))
 				if err := p2p.Send(peer.ws, messagesCode, &query); err != nil {
 					return err
 				}
