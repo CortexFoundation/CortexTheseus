@@ -26,8 +26,11 @@ func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork)
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
-
-	if err := synapse.Engine().Available(inferWork.InfoHash, inferWork.RawSize, inferWork.CvmNetworkId); err != nil {
+	info := common.StorageEntry{
+		Hash: inferWork.InfoHash,
+		Size: inferWork.RawSize,
+	}
+	if err := synapse.Engine().Available(info, inferWork.CvmNetworkId); err != nil {
 		RespErrorText(w, err)
 	} else {
 		retArr := Uint64ToBytes(1)
