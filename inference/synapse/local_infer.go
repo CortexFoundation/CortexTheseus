@@ -73,7 +73,7 @@ func (s *Synapse) getGasByInfoHashWithSize(modelInfoHash string, modelSize uint6
 	defer cancel()
 	modelJson, modelJson_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		log.Warn("Searching file for gas", "error", modelJson_err, "ih", modelInfoHash)
+		log.Warn("Searching file for gas", "ih", modelInfoHash, "error", modelJson_err)
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
@@ -231,7 +231,7 @@ func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64)
 		log.Debug("File verification failed", "infoHash", infoHash, "error", err)
 		return KERNEL_RUNTIME_ERROR
 	} else if !isOK {
-		log.Warn("File is unavailable", "info hash", infoHash, "error", KERNEL_LOGIC_ERROR)
+		log.Warn("File is unavailable", "ih", infoHash, "error", KERNEL_LOGIC_ERROR)
 		return KERNEL_LOGIC_ERROR
 	}
 	log.Debug("File available", "info hash", infoHash)
