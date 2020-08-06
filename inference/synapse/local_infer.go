@@ -73,7 +73,7 @@ func (s *Synapse) getGasByInfoHashWithSize(modelInfoHash string, modelSize uint6
 	defer cancel()
 	modelJson, modelJson_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
+		log.Warn("Searching file for gas", "error", modelJson_err, "ih", modelInfoHash)
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
@@ -179,12 +179,12 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			log.Warn("inferByInputContent: model loaded failed", "model hash", modelHash, "error", modelJson_err)
+			log.Warn("Searching symbol", "ih", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		modelParams, modelParams_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			log.Warn("inferByInputContent: params loaded failed", "model hash", modelHash, "error", modelParams_err)
+			log.Warn("Searching params", "ih", modelHash, "error", modelParams_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		var deviceType = 0
