@@ -135,7 +135,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 
 	if inputContent == nil {
 		inputBytes, dataErr := s.config.Storagefs.GetFileWithSize(ctx, inputHash, inputSize, DATA_PATH)
-		if dataErr != nil {
+		if dataErr != nil || inputBytes == nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		reader, reader_err := inference.NewBytesReader(inputBytes)
