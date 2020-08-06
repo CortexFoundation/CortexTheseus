@@ -269,7 +269,7 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 					t := float64(cost) / (1000 * 1000 * 1000)
 					speed = float64(f) / t
 				}
-				log.Info("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
+				log.Info("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err)
 				fs.nasCache.Add(infohash, rawSize)
 			}
 		}
