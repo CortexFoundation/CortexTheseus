@@ -290,11 +290,6 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 
 // GetFile is used to get file from storage, current this will not be call after available passed
 func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]byte, error) {
-	//func (fs *TorrentFS) GetFile(ctx context.Context, infohash string, rawSize uint64,  subpath string) ([]byte, error) {
-	//if available, err := fs.Available(ctx, infohash, rawSize); err != nil || !available{
-	//	return nil, err
-	//}
-
 	ret, f, err := fs.storage().getFile(infohash, subpath)
 
 	if err != nil {
