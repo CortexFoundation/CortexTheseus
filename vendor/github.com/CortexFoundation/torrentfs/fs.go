@@ -27,7 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	lru "github.com/hashicorp/golang-lru"
 	"sync"
-	"time"
+	//"time"
 )
 
 // TorrentFS contains the torrent file system internals.
@@ -258,36 +258,38 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 			if e := fs.storage().Search(ctx, infohash, progress, nil); e == nil {
 				log.Warn("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
 			}
+		} else {
+			//todo
 		}
 	} else if errors.Is(err, ErrUnfinished) {
 		if suc := fs.nasCache.Contains(infohash); !suc {
-			var speed float64
-			if cost > 0 {
-				t := float64(cost) / (1000 * 1000 * 1000)
-				speed = float64(f) / t
-			}
-			invoke := time.Duration(cost) > time.Second*60 || (time.Duration(cost) > time.Second*30 && f == 0) || (time.Duration(cost) > time.Second*15 && f == 0 && cost == 0)
-			if ProtocolVersion > 1 && f < rawSize && invoke && speed < 256*1024 {
-				//go func() {
-				log.Info("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "cache", fs.nasCache.Len(), "err", err)
-				//fs.queryChan <- Query{Hash: infohash, Size: rawSize}
-				//}()
+			if f < rawSize {
+				var speed float64
+				if cost > 0 {
+					t := float64(cost) / (1000 * 1000 * 1000)
+					speed = float64(f) / t
+				}
+				log.Info("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err)
 				fs.nasCache.Add(infohash, rawSize)
 			}
 		}
+
 		log.Debug("Torrent sync downloading", "ih", infohash, "available", ret, "raw", rawSize, "finish", f, "err", err)
 	}
 	//}
 	return ret, err
 }
 
+func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
+	if available, err := fs.Available(ctx, infohash, rawSize); err != nil || !available {
+		return nil, err
+	}
+
+	return fs.GetFile(ctx, infohash, subpath)
+}
+
 // GetFile is used to get file from storage, current this will not be call after available passed
 func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]byte, error) {
-	//func (fs *TorrentFS) GetFile(ctx context.Context, infohash string, rawSize uint64,  subpath string) ([]byte, error) {
-	//if available, err := fs.Available(ctx, infohash, rawSize); err != nil || !available{
-	//	return nil, err
-	//}
-
 	ret, f, err := fs.storage().getFile(infohash, subpath)
 
 	if err != nil {

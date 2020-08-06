@@ -54,7 +54,7 @@ func fixTorrentHash(ih string, cvmNetworkID int64) string {
 	return ih
 }
 
-func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkID int64) (uint64, error) {
+func (s *Synapse) getGasByInfoHashWithSize(modelInfoHash string, modelSize uint64, cvmNetworkID int64) (uint64, error) {
 
 	if !common.IsHexAddress(modelInfoHash) {
 		return 0, KERNEL_RUNTIME_ERROR
@@ -71,9 +71,9 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkID int64) (ui
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	modelJson, modelJson_err := s.config.Storagefs.GetFile(ctx, modelHash, SYMBOL_PATH)
+	modelJson, modelJson_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
-		log.Warn("GetGasByInfoHash: get file failed", "error", modelJson_err, "hash", modelInfoHash)
+		log.Warn("Searching file for gas", "error", modelJson_err, "ih", modelInfoHash)
 		return 0, KERNEL_RUNTIME_ERROR
 	}
 
@@ -91,15 +91,15 @@ func (s *Synapse) getGasByInfoHash(modelInfoHash string, cvmNetworkID int64) (ui
 	return gas, err
 }
 
-func (s *Synapse) inferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
-	return s.infer(modelInfoHash, inputInfoHash, nil, cvmVersion, cvmNetworkID)
+func (s *Synapse) inferByInfoHashWithSize(modelInfoHash, inputInfoHash string, modelSize uint64, inputSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+	return s.infer(modelInfoHash, inputInfoHash, nil, modelSize, inputSize, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) inferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
-	return s.infer(modelInfoHash, "", inputContent, cvmVersion, cvmNetworkID)
+func (s *Synapse) inferByInputContentWithSize(modelInfoHash string, inputContent []byte, modelSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+	return s.infer(modelInfoHash, "", inputContent, modelSize, 0, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte, modelSize uint64, inputSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if inputInfoHash == "" {
 		inputInfoHash = RLPHashString(inputContent)
 	} else {
@@ -134,8 +134,8 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	defer cancel()
 
 	if inputContent == nil {
-		inputBytes, dataErr := s.config.Storagefs.GetFile(ctx, inputHash, DATA_PATH)
-		if dataErr != nil {
+		inputBytes, dataErr := s.config.Storagefs.GetFileWithSize(ctx, inputHash, inputSize, DATA_PATH)
+		if dataErr != nil || inputBytes == nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		reader, reader_err := inference.NewBytesReader(inputBytes)
@@ -177,14 +177,14 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 
 	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
 	if !has_model {
-		modelJson, modelJson_err := s.config.Storagefs.GetFile(ctx, modelHash, SYMBOL_PATH)
+		modelJson, modelJson_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			log.Warn("inferByInputContent: model loaded failed", "model hash", modelHash, "error", modelJson_err)
+			log.Warn("Searching symbol", "ih", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-		modelParams, modelParams_err := s.config.Storagefs.GetFile(ctx, modelHash, PARAM_PATH)
+		modelParams, modelParams_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			log.Warn("inferByInputContent: params loaded failed", "model hash", modelHash, "error", modelParams_err)
+			log.Warn("Searching params", "ih", modelHash, "error", modelParams_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
 		var deviceType = 0

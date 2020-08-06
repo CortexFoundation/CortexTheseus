@@ -2,6 +2,7 @@ package synapse
 
 import (
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -134,38 +135,38 @@ func CVMVersion(config *params.ChainConfig, num *big.Int) int {
 	return version
 }
 
-func (s *Synapse) InferByInfoHash(modelInfoHash, inputInfoHash string, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) InferByInfoHashWithSize(model, input common.StorageEntry, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkID)
+		return s.remoteInferByInfoHashWithSize(model.Hash, input.Hash, model.Size, input.Size, cvmVersion, cvmNetworkID)
 	}
-	return s.inferByInfoHash(modelInfoHash, inputInfoHash, cvmVersion, cvmNetworkID)
+	return s.inferByInfoHashWithSize(model.Hash, input.Hash, model.Size, input.Size, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) InferByInputContent(modelInfoHash string, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) InferByInputContentWithSize(model common.StorageEntry, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkID)
+		return s.remoteInferByInputContentWithSize(model.Hash, inputContent, model.Size, cvmVersion, cvmNetworkID)
 	}
-	return s.inferByInputContent(modelInfoHash, inputContent, cvmVersion, cvmNetworkID)
+	return s.inferByInputContentWithSize(model.Hash, inputContent, model.Size, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) GetGasByInfoHash(modelInfoHash string, cvmNetworkID int64) (gas uint64, err error) {
+func (s *Synapse) GetGasByInfoHashWithSize(model common.StorageEntry, cvmNetworkID int64) (gas uint64, err error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteGasByModelHash(modelInfoHash, cvmNetworkID)
+		return s.remoteGasByModelHashWithSize(model.Hash, model.Size, cvmNetworkID)
 	}
-	return s.getGasByInfoHash(modelInfoHash, cvmNetworkID)
+	return s.getGasByInfoHashWithSize(model.Hash, model.Size, cvmNetworkID)
 }
 
-func (s *Synapse) Available(infoHash string, rawSize uint64, cvmNetworkID int64) error {
+func (s *Synapse) Available(entry common.StorageEntry, cvmNetworkID int64) error {
 	if s.config.IsRemoteInfer {
-		return s.remoteAvailable(infoHash, rawSize, cvmNetworkID)
+		return s.remoteAvailable(entry.Hash, entry.Size, cvmNetworkID)
 	}
-	return s.available(infoHash, rawSize, cvmNetworkID)
+	return s.available(entry.Hash, entry.Size, cvmNetworkID)
 }
 
 // Download is used to control the torrentfs, not for remote invoked now
-func (s *Synapse) Download(infohash string, request uint64) error {
+func (s *Synapse) Download(info common.StorageEntry) error {
 	if s.config.IsRemoteInfer {
 		return nil
 	}
-	return s.download(infohash, request)
+	return s.download(info.Hash, info.Size)
 }

@@ -288,8 +288,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			} else {
 				log.Debug("Invalid model meta", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 			}
-
-			if err := synapse.Engine().Download(modelMeta.Hash.Hex(), 0); err != nil {
+			info := common.StorageEntry{
+				Hash: modelMeta.Hash.Hex(),
+				Size: 0,
+			}
+			if err := synapse.Engine().Download(info); err != nil {
 				return nil, err
 			}
 			return contract.Code, nil
@@ -332,7 +335,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			} else {
 				log.Warn("Invalid input meta", "size", inputMeta.RawSize, "hash", inputMeta.Hash.Hex(), "birth", inputMeta.BlockNum.Uint64())
 			}
-			if err := synapse.Engine().Download(inputMeta.Hash.Hex(), 0); err != nil {
+			info := common.StorageEntry{
+				Hash: inputMeta.Hash.Hex(),
+				Size: 0,
+			}
+			if err := synapse.Engine().Download(info); err != nil {
 				return nil, err
 			}
 			return contract.Code, nil

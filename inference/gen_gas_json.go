@@ -12,11 +12,13 @@ func (g GasWork) MarshalJSON() ([]byte, error) {
 	type GasWork struct {
 		Type         InferType `json:"type" gencodec:"required"`
 		Model        string    `json:"model" gencodec:"required"`
+		ModelSize    uint64    `json:"modelSize"`
 		CvmNetworkId int64     `json:"cvm_networkid"`
 	}
 	var enc GasWork
 	enc.Type = g.Type
 	enc.Model = g.Model
+	enc.ModelSize = g.ModelSize
 	enc.CvmNetworkId = g.CvmNetworkId
 	return json.Marshal(&enc)
 }
@@ -26,6 +28,7 @@ func (g *GasWork) UnmarshalJSON(input []byte) error {
 	type GasWork struct {
 		Type         *InferType `json:"type" gencodec:"required"`
 		Model        *string    `json:"model" gencodec:"required"`
+		ModelSize    *uint64    `json:"modelSize"`
 		CvmNetworkId *int64     `json:"cvm_networkid"`
 	}
 	var dec GasWork
@@ -40,6 +43,9 @@ func (g *GasWork) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'model' for GasWork")
 	}
 	g.Model = *dec.Model
+	if dec.ModelSize != nil {
+		g.ModelSize = *dec.ModelSize
+	}
 	if dec.CvmNetworkId != nil {
 		g.CvmNetworkId = *dec.CvmNetworkId
 	}

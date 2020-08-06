@@ -420,8 +420,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			if err != nil {
 				return nil, 0, 0, false, vm.ErrRuntime
 			}
-
-			if err = synapse.Engine().Download(ih, request); err != nil {
+			info := common.StorageEntry{
+				Hash: ih,
+				Size: request,
+			}
+			if err = synapse.Engine().Download(info); err != nil {
 				return nil, 0, 0, false, err
 			}
 		}
