@@ -5,6 +5,7 @@ import (
 	//"fmt"
 	"net/http"
 
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -42,8 +43,11 @@ func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
-
-	ret, err := synapse.Engine().GetGasByInfoHashWithSize(inferWork.Model, inferWork.ModelSize, inferWork.CvmNetworkId)
+	model := common.StorageEntry{
+		Hash: inferWork.Model,
+		Size: inferWork.ModelSize,
+	}
+	ret, err := synapse.Engine().GetGasByInfoHashWithSize(model, inferWork.CvmNetworkId)
 	if err != nil {
 		log.Warn("Gas calculate Failed", "error", err)
 		RespErrorText(w, err)
@@ -68,8 +72,15 @@ func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 	}
 
 	log.Debug("Infer Task", "Model Hash", inferWork.Model, "Input Hash", inferWork.Input)
-	label, err := synapse.Engine().InferByInfoHashWithSize(
-		inferWork.Model, inferWork.Input, inferWork.ModelSize, inferWork.InputSize, inferWork.CvmVersion, inferWork.CvmNetworkId)
+	model := common.StorageEntry{
+		Hash: inferWork.Model,
+		Size: inferWork.ModelSize,
+	}
+	input := common.StorageEntry{
+		Hash: inferWork.Input,
+		Size: inferWork.InputSize,
+	}
+	label, err := synapse.Engine().InferByInfoHashWithSize(model, input, inferWork.CvmVersion, inferWork.CvmNetworkId)
 
 	if err != nil {
 		RespErrorText(w, err)
@@ -85,9 +96,6 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 		return
 	}
 
-	model, input := inferWork.Model, inferWork.Input
-
-	log.Debug("Infer Work", "Model Hash", model)
 	/*var cacheKey = synapse.RLPHashString(fmt.Sprintf("%s:%x", model, input))
 	if v, ok := simpleCache.Load(cacheKey); ok && !(IsNotCache) {
 		log.Debug("Infer succeed via cache", "cache key", cacheKey, "label", v.([]byte))
@@ -102,8 +110,13 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	// 	return
 	// }
 
+	model := common.StorageEntry{
+		Hash: inferWork.Model,
+		Size: inferWork.ModelSize,
+	}
+
 	label, err := synapse.Engine().InferByInputContentWithSize(
-		model, input, inferWork.ModelSize, inferWork.CvmVersion, inferWork.CvmNetworkId)
+		model, inferWork.Input, inferWork.CvmVersion, inferWork.CvmNetworkId)
 	if err != nil {
 		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, err)

@@ -2,6 +2,7 @@ package synapse
 
 import (
 	"fmt"
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -134,25 +135,25 @@ func CVMVersion(config *params.ChainConfig, num *big.Int) int {
 	return version
 }
 
-func (s *Synapse) InferByInfoHashWithSize(modelInfoHash, inputInfoHash string, modelSize uint64, inputSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) InferByInfoHashWithSize(model, input common.StorageEntry, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInfoHashWithSize(modelInfoHash, inputInfoHash, modelSize, inputSize, cvmVersion, cvmNetworkID)
+		return s.remoteInferByInfoHashWithSize(model.Hash, input.Hash, model.Size, input.Size, cvmVersion, cvmNetworkID)
 	}
-	return s.inferByInfoHashWithSize(modelInfoHash, inputInfoHash, modelSize, inputSize, cvmVersion, cvmNetworkID)
+	return s.inferByInfoHashWithSize(model.Hash, input.Hash, model.Size, input.Size, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) InferByInputContentWithSize(modelInfoHash string, inputContent []byte, modelSize uint64, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
+func (s *Synapse) InferByInputContentWithSize(model common.StorageEntry, inputContent []byte, cvmVersion int, cvmNetworkID int64) ([]byte, error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteInferByInputContentWithSize(modelInfoHash, inputContent, modelSize, cvmVersion, cvmNetworkID)
+		return s.remoteInferByInputContentWithSize(model.Hash, inputContent, model.Size, cvmVersion, cvmNetworkID)
 	}
-	return s.inferByInputContentWithSize(modelInfoHash, inputContent, modelSize, cvmVersion, cvmNetworkID)
+	return s.inferByInputContentWithSize(model.Hash, inputContent, model.Size, cvmVersion, cvmNetworkID)
 }
 
-func (s *Synapse) GetGasByInfoHashWithSize(modelInfoHash string, modelSize uint64, cvmNetworkID int64) (gas uint64, err error) {
+func (s *Synapse) GetGasByInfoHashWithSize(model common.StorageEntry, cvmNetworkID int64) (gas uint64, err error) {
 	if s.config.IsRemoteInfer {
-		return s.remoteGasByModelHashWithSize(modelInfoHash, modelSize, cvmNetworkID)
+		return s.remoteGasByModelHashWithSize(model.Hash, model.Size, cvmNetworkID)
 	}
-	return s.getGasByInfoHashWithSize(modelInfoHash, modelSize, cvmNetworkID)
+	return s.getGasByInfoHashWithSize(model.Hash, model.Size, cvmNetworkID)
 }
 
 func (s *Synapse) Available(infoHash string, rawSize uint64, cvmNetworkID int64) error {

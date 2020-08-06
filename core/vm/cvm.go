@@ -612,8 +612,16 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	start := mclock.Now()
 
 	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.BlockNumber)
+	model := common.StorageEntry{
+		Hash: modelInfoHash,
+		Size: modelRawSize,
+	}
+	input := common.StorageEntry{
+		Hash: inputInfoHash,
+		Size: inputRawSize,
+	}
 	inferRes, errRes = synapse.Engine().InferByInfoHashWithSize(
-		modelInfoHash, inputInfoHash, modelRawSize, inputRawSize, cvmVersion, cvmNetworkId)
+		model, input, cvmVersion, cvmNetworkId)
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
@@ -650,8 +658,11 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	start := mclock.Now()
 
 	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.BlockNumber)
-	inferRes, errRes = synapse.Engine().InferByInputContentWithSize(
-		modelInfoHash, inputArray, modelRawSize, cvmVersion, cvmNetworkId)
+	model := common.StorageEntry{
+		Hash: modelInfoHash,
+		Size: modelRawSize,
+	}
+	inferRes, errRes = synapse.Engine().InferByInputContentWithSize(model, inputArray, cvmVersion, cvmNetworkId)
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
@@ -679,8 +690,11 @@ func (cvm *CVM) OpsInfer(addr common.Address) (opsRes uint64, errRes error) {
 	}
 
 	start := mclock.Now()
-
-	opsRes, errRes = synapse.Engine().GetGasByInfoHashWithSize(modelMeta.Hash.Hex(), modelRawSize, cvmNetworkId)
+	model := common.StorageEntry{
+		Hash: modelMeta.Hash.Hex(),
+		Size: modelRawSize,
+	}
+	opsRes, errRes = synapse.Engine().GetGasByInfoHashWithSize(model, cvmNetworkId)
 
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
