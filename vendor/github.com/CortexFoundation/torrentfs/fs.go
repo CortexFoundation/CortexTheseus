@@ -254,16 +254,16 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 	if fs.config.Mode == LAZY {
 		if errors.Is(err, ErrInactiveTorrent) {
 			if progress, e := fs.chain().GetTorrent(infohash); e == nil {
-				log.Debug("Lazy mode starting", "ih", infohash, "request", progress)
+				log.Debug("Lazy mode, restarting", "ih", infohash, "request", progress)
 				if e := fs.storage().Search(ctx, infohash, progress, nil); e == nil {
 					log.Warn("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
 				}
 			} else {
-				//todo
+				log.Warn("Unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)))
 			}
 		} else if errors.Is(err, ErrUnfinished) {
 			if suc := fs.nasCache.Contains(infohash); !suc {
-				if f < rawSize {
+				if f == 0 {
 					var speed float64
 					if cost > 0 {
 						t := float64(cost) / (1000 * 1000 * 1000)
