@@ -651,7 +651,7 @@ func (tm *TorrentManager) activeLoop() {
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
 	var total_size, current_size, log_counter, counter uint64
-	var active_paused, active_wait, active_boost, active_running int
+	var active_paused, active_wait, active_running int
 	for {
 		counter++
 		select {
@@ -751,7 +751,7 @@ func (tm *TorrentManager) activeLoop() {
 						log.Info(bar, "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
 					}
 					continue
-				} else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
+				} /*else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
 					t.loop++
 					if tm.boost && t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
 						t.loop = 0
@@ -787,7 +787,7 @@ func (tm *TorrentManager) activeLoop() {
 						}
 						continue
 					}
-				}
+				}*/
 
 				if log_counter%60 == 0 && t.bytesCompleted > 0 {
 					bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "")
@@ -810,7 +810,7 @@ func (tm *TorrentManager) activeLoop() {
 				counter = 0
 				current_size = 0
 			}
-			active_paused, active_wait, active_boost, active_running = 0, 0, 0, 0
+			active_paused, active_wait, active_running = 0, 0, 0
 			timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
