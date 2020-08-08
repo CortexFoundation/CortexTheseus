@@ -15,7 +15,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/docker/docker v1.13.1
-	github.com/dop251/goja v0.0.0-20200629185240-bfd59704b500
+	github.com/dop251/goja v0.0.0-20200721192441-a695b0cdd498
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.3.1-0.20200717071130-ca7661ad51fe
