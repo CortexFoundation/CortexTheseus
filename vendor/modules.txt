@@ -163,7 +163,7 @@ github.com/dlclark/regexp2/syntax
 # github.com/docker/docker v1.13.1
 ## explicit
 github.com/docker/docker/pkg/reexec
-# github.com/dop251/goja v0.0.0-20200629185240-bfd59704b500
+# github.com/dop251/goja v0.0.0-20200721192441-a695b0cdd498
 ## explicit
 github.com/dop251/goja
 github.com/dop251/goja/ast
