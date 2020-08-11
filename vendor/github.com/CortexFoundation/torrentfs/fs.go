@@ -301,14 +301,15 @@ func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]b
 
 //Download is used to download file with request
 func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
-	if update, p, err := fs.chain().SetTorrent(ih, request); err != nil {
+	update, p, err := fs.chain().SetTorrent(ih, request)
+	if err != nil {
 		return err
-	} else {
-		if update {
-			log.Debug("Search in fs download", "ih", ih, "request", p)
-			if err := fs.storage().Search(ctx, ih, p, nil); err != nil {
-				return err
-			}
+	}
+
+	if update {
+		log.Debug("Search in fs download", "ih", ih, "request", p)
+		if err := fs.storage().Search(ctx, ih, p, nil); err != nil {
+			return err
 		}
 	}
 
