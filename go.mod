@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/cvm-runtime v0.0.0-20200811093958-831688fa2dfe
+	github.com/CortexFoundation/cvm-runtime v0.0.0-20200812064319-bc655259537c
 	github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
@@ -14,13 +14,11 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/cloudflare/cloudflare-go v0.11.7
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/docker/docker v1.13.1
 	github.com/dop251/goja v0.0.0-20200721192441-a695b0cdd498
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.3.1-0.20200717071130-ca7661ad51fe
-	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
 	github.com/gorilla/websocket v1.4.2
@@ -49,7 +47,6 @@ require (
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200808120158-1030fc2bf1d9
 	golang.org/x/text v0.3.3
