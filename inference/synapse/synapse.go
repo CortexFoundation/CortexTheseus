@@ -31,7 +31,7 @@ var (
 
 const (
 	PLUGIN_PATH         string = "plugins/"
-	PLUGIN_POST_FIX     string = "lib_cvm.so"
+	PLUGIN_POST_FIX     string = "libcvm_runtime.so"
 	MinMemoryUsage      int64  = 2 * 1024 * 1024 * 1024
 	ReservedMemoryUsage int64  = 512 * 1024 * 1024
 )
