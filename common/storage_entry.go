@@ -17,6 +17,6 @@
 package common
 
 type StorageEntry struct {
-	Hash string `json:"hash"    gencodec:"required"`
-	Size uint64 `json:"size"    gencodec:"required"`
+	Hash string
+	Size uint64
 }
