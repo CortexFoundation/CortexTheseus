@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
-	"github.com/CortexFoundation/CortexTheseus/cvm-runtime/kernel"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/cvm-runtime/kernel"
 	"github.com/CortexFoundation/torrentfs"
 	resty "github.com/go-resty/resty/v2"
 	"math/big"
@@ -31,7 +31,7 @@ var (
 
 const (
 	PLUGIN_PATH         string = "plugins/"
-	PLUGIN_POST_FIX     string = "lib_cvm.so"
+	PLUGIN_POST_FIX     string = "libcvm_runtime.so"
 	MinMemoryUsage      int64  = 2 * 1024 * 1024 * 1024
 	ReservedMemoryUsage int64  = 512 * 1024 * 1024
 )
