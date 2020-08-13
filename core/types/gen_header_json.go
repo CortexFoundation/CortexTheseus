@@ -34,7 +34,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Solution    BlockSolution  `json:"solution"         gencodec:"required"`
 		Quota       hexutil.Uint64 `json:"quota"            gencodec:"required"`
 		QuotaUsed   hexutil.Uint64 `json:"quotaUsed"        gencodec:"required"`
-		Supply      *big.Int       `json:"supply"           gencodec:"required"`
+		Supply      *hexutil.Big   `json:"supply"           gencodec:"required"`
 		Hash        common.Hash    `json:"hash"`
 	}
 	var enc Header
@@ -53,10 +53,10 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Extra = h.Extra
 	enc.MixDigest = h.MixDigest
 	enc.Nonce = h.Nonce
-	enc.Solution = h.Solution
+	//enc.Solution = h.Solution
 	enc.Quota = hexutil.Uint64(h.Quota)
 	enc.QuotaUsed = hexutil.Uint64(h.QuotaUsed)
-	enc.Supply = h.Supply
+	enc.Supply = (*hexutil.Big)(h.Supply)
 	enc.Hash = h.Hash()
 	return json.Marshal(&enc)
 }
@@ -82,7 +82,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Solution    *BlockSolution  `json:"solution"         gencodec:"required"`
 		Quota       *hexutil.Uint64 `json:"quota"            gencodec:"required"`
 		QuotaUsed   *hexutil.Uint64 `json:"quotaUsed"        gencodec:"required"`
-		Supply      *big.Int        `json:"supply"           gencodec:"required"`
+		Supply      *hexutil.Big    `json:"supply"           gencodec:"required"`
 	}
 	var dec Header
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -151,7 +151,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Solution == nil {
 		return errors.New("missing required field 'solution' for Header")
 	}
-	h.Solution = *dec.Solution
+	//h.Solution = *dec.Solution
 	if dec.Quota == nil {
 		return errors.New("missing required field 'quota' for Header")
 	}
@@ -163,6 +163,6 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Supply == nil {
 		return errors.New("missing required field 'supply' for Header")
 	}
-	h.Supply = dec.Supply
+	h.Supply = (*big.Int)(dec.Supply)
 	return nil
 }

@@ -19,6 +19,7 @@ package ctxc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
@@ -120,10 +121,16 @@ func (b *CortexAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr r
 	}
 	// Otherwise resolve the block number and return its state
 	header, err := b.HeaderByNumber(ctx, blockNr)
-	if header == nil || err != nil {
+	if err != nil {
 		return nil, nil, err
 	}
+	if header == nil {
+		return nil, nil, errors.New("header not found")
+	}
 	stateDb, err := b.ctxc.BlockChain().StateAt(header.Root)
+	if err != nil {
+		fmt.Println("StateAndHeaderByNumber error: ", err)
+	}
 	return stateDb, header, err
 }
 

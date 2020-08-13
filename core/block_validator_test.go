@@ -55,9 +55,8 @@ func TestHeaderVerification(t *testing.T) {
 				engine := cuckoo.NewFaker()
 				_, results = engine.VerifyHeaders(chain, []*types.Header{headers[i]}, []bool{true})
 			} else {
-				continue
-				//engine := cuckoo.NewFakeFailer(headers[i].Number.Uint64())
-				//_, results = engine.VerifyHeaders(chain, []*types.Header{headers[i]}, []bool{true})
+				engine := cuckoo.NewFakeFailer(headers[i].Number.Uint64())
+				_, results = engine.VerifyHeaders(chain, []*types.Header{headers[i]}, []bool{true})
 			}
 			// Wait for the verification result
 			select {
@@ -113,10 +112,9 @@ func testHeaderConcurrentVerification(t *testing.T, threads int) {
 			_, results = chain.engine.VerifyHeaders(chain, headers, seals)
 			chain.Stop()
 		} else {
-			continue
-			//chain, _ := NewBlockChain(testdb, nil, params.TestChainConfig, cuckoo.NewFakeFailer(uint64(len(headers)-1)), vm.Config{}, nil, nil)
-			//_, results = chain.engine.VerifyHeaders(chain, headers, seals)
-			//chain.Stop()
+			chain, _ := NewBlockChain(testdb, nil, params.TestChainConfig, cuckoo.NewFakeFailer(uint64(len(headers)-1)), vm.Config{}, nil, nil)
+			_, results = chain.engine.VerifyHeaders(chain, headers, seals)
+			chain.Stop()
 		}
 		// Wait for all the verification results
 		checks := make(map[int]error)
@@ -131,7 +129,7 @@ func testHeaderConcurrentVerification(t *testing.T, threads int) {
 		}
 		// Check nonce check validity
 		for j := 0; j < len(blocks); j++ {
-			want := valid // || (j < len(blocks)-2) // We chose the last-but-one nonce in the chain to fail
+			want := valid || (j < len(blocks)-2) // We chose the last-but-one nonce in the chain to fail
 			if (checks[j] == nil) != want {
 				t.Errorf("test %d.%d: validity mismatch: have %v, want %v", i, j, checks[j], want)
 			}

@@ -232,7 +232,9 @@ func (cuckoo *Cuckoo) InitOnce() error {
 
 // Close closes the exit channel to notify all backend threads exiting.
 func (cuckoo *Cuckoo) Close() error {
-	close(cuckoo.exitCh)
+	if cuckoo.exitCh != nil {
+		close(cuckoo.exitCh)
+	}
 
 	cuckoo.wg.Wait()
 	cuckoo.closeOnce.Do(func() {
