@@ -128,7 +128,9 @@ func (b *CortexAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr r
 		return nil, nil, errors.New("header not found")
 	}
 	stateDb, err := b.ctxc.BlockChain().StateAt(header.Root)
-	fmt.Println("StateAndHeaderByNumber error: ", err)
+	if err != nil {
+		fmt.Println("StateAndHeaderByNumber error: ", err)
+	}
 	return stateDb, header, err
 }
 
