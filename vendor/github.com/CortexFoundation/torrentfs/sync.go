@@ -120,8 +120,11 @@ func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 		log.Warn("Fs start error")
 		return nil, err
 	}
-	if flag.Mode != LAZY {
-		torrents, _ := fs.initTorrents()
+
+	m.mode = flag.Mode
+
+	torrents, _ := fs.initTorrents()
+	if m.mode != LAZY {
 		for k, v := range torrents {
 			if err := tMana.Search(context.Background(), k, v, nil); err != nil {
 				return nil, err
@@ -129,9 +132,10 @@ func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 		}
 	}
 
-	m.mode = flag.Mode
-
-	//m.indexInit()
+	if len(torrents) == 0 {
+		log.Warn("Data reloading", "mode", m.mode)
+		m.indexInit()
+	}
 
 	return m, nil
 }
@@ -190,11 +194,12 @@ func (m *Monitor) indexInit() error {
 		}
 		capcity += bytesRequested
 		log.Debug("File storage info", "addr", file.ContractAddr, "ih", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
-		//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
-		//	InfoHash:       file.Meta.InfoHash,
-		//	BytesRequested: bytesRequested,
-		//})
-		m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), bytesRequested, nil)
+		if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash.HexString(), bytesRequested); u && err == nil {
+			if m.mode != LAZY {
+				log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash.HexString(), "request", p)
+				m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), p, nil)
+			}
+		}
 		if file.LeftSize == 0 {
 			seed++
 		} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
