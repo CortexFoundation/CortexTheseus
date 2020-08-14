@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/inference"
 )
 
 func (s *Synapse) remoteGasByModelHashWithSize(modelInfoHash string, modelSize uint64, cvmNetworkID int64) (uint64, error) {

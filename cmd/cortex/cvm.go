@@ -32,9 +32,9 @@ import (
 
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/inference/synapse"
 	"github.com/CortexFoundation/torrentfs"
 	"gopkg.in/urfave/cli.v1"
 	"net/http"

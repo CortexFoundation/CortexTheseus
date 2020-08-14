@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/inference"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/inference"
+	"github.com/CortexFoundation/inference/synapse"
 )
 
 var IsNotCache bool = false

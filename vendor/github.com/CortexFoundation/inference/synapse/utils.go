@@ -7,9 +7,9 @@ import (
 	//"bytes"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/inference"
 	"golang.org/x/crypto/sha3"
 )
 
