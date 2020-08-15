@@ -27,12 +27,12 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"github.com/ucwong/goleveldb/leveldb"
-	"github.com/ucwong/goleveldb/leveldb/errors"
-	"github.com/ucwong/goleveldb/leveldb/iterator"
-	"github.com/ucwong/goleveldb/leveldb/opt"
-	"github.com/ucwong/goleveldb/leveldb/storage"
-	"github.com/ucwong/goleveldb/leveldb/util"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/storage"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // Keys in the node database.

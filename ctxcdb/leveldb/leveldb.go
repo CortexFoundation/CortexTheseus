@@ -30,11 +30,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
-	"github.com/ucwong/goleveldb/leveldb"
-	"github.com/ucwong/goleveldb/leveldb/errors"
-	"github.com/ucwong/goleveldb/leveldb/filter"
-	"github.com/ucwong/goleveldb/leveldb/opt"
-	"github.com/ucwong/goleveldb/leveldb/util"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 const (
