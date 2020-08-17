@@ -5,7 +5,7 @@ import (
 	"net/http"
 	//"sync"
 
-	"github.com/CortexFoundation/CortexTheseus/inference"
+	"github.com/CortexFoundation/inference"
 	//"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 

@@ -19,8 +19,8 @@ package leveldb
 import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/dbtest"
-	"github.com/ucwong/goleveldb/leveldb"
-	"github.com/ucwong/goleveldb/leveldb/storage"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/storage"
 	"testing"
 )
 

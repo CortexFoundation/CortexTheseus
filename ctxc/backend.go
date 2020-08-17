@@ -40,7 +40,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/miner"
@@ -51,6 +50,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/inference/synapse"
 	"github.com/CortexFoundation/torrentfs"
 )
 

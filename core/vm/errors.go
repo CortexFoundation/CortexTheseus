@@ -18,7 +18,7 @@ package vm
 
 import (
 	"errors"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
+	"github.com/CortexFoundation/inference/synapse"
 )
 
 // List execution errors

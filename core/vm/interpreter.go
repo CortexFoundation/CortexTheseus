@@ -23,9 +23,9 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-	"github.com/CortexFoundation/CortexTheseus/inference/synapse"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/inference/synapse"
 	torrentfs "github.com/CortexFoundation/torrentfs/types"
 	"sync/atomic"
 )

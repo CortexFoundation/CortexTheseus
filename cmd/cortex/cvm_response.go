@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/inference"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/inference"
 )
 
 const (
