@@ -378,7 +378,7 @@ github.com/steakknife/hamming
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/syndtr/goleveldb v1.0.1-0.20200815071216-d9e9293bd0f7
+# github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 ## explicit
 github.com/syndtr/goleveldb/leveldb
 github.com/syndtr/goleveldb/leveldb/cache
