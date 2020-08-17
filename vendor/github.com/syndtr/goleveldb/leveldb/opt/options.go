@@ -37,7 +37,6 @@ var (
 	DefaultCompressionType               = SnappyCompression
 	DefaultIteratorSamplingRate          = 1 * MiB
 	DefaultOpenFilesCacher               = LRUCacher
-	DefaultOpenFilesCacheCapacity        = 500
 	DefaultWriteBuffer                   = 4 * MiB
 	DefaultWriteL0PauseTrigger           = 12
 	DefaultWriteL0SlowdownTrigger        = 8
@@ -54,13 +53,11 @@ type CacherFunc struct {
 }
 
 func (f *CacherFunc) New(capacity int) cache.Cacher {
-	if f.NewFunc != nil {
+	if f != nil && f.NewFunc != nil {
 		return f.NewFunc(capacity)
 	}
 	return nil
 }
-
-func noCacher(int) cache.Cacher { return nil }
 
 var (
 	// LRUCacher is the LRU-cache algorithm.
@@ -343,7 +340,7 @@ type Options struct {
 	// OpenFilesCacheCapacity defines the capacity of the open files caching.
 	// Use -1 for zero, this has same effect as specifying NoCacher to OpenFilesCacher.
 	//
-	// The default value is 500.
+	// The default value is 200 on MacOS and 500 on other.
 	OpenFilesCacheCapacity int
 
 	// If true then opens DB in read-only mode.
@@ -391,8 +388,6 @@ func (o *Options) GetAltFilters() []filter.Filter {
 func (o *Options) GetBlockCacher() Cacher {
 	if o == nil || o.BlockCacher == nil {
 		return DefaultBlockCacher
-	} else if o.BlockCacher == NoCacher {
-		return nil
 	}
 	return o.BlockCacher
 }
@@ -597,9 +592,6 @@ func (o *Options) GetOpenFilesCacher() Cacher {
 	if o == nil || o.OpenFilesCacher == nil {
 		return DefaultOpenFilesCacher
 	}
-	if o.OpenFilesCacher == NoCacher {
-		return nil
-	}
 	return o.OpenFilesCacher
 }
 
@@ -648,7 +640,7 @@ func (o *Options) GetWriteL0SlowdownTrigger() int {
 }
 
 func (o *Options) GetFilterBaseLg() int {
-	if o == nil || o.FilterBaseLg == 0 {
+	if o == nil || o.FilterBaseLg <= 0 {
 		return DefaultFilterBaseLg
 	}
 	return o.FilterBaseLg
