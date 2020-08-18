@@ -69,6 +69,7 @@ type ProtocolManager struct {
 
 	checkpointNumber uint64      // Block number for the sync progress validator to cross reference
 	checkpointHash   common.Hash // Block hash for the sync progress validator to cross reference
+	checkpointName   string
 
 	txpool      txPool
 	blockchain  *core.BlockChain
@@ -149,6 +150,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	if checkpoint, ok := params.TrustedCheckpoints[blockchain.Genesis().Hash()]; ok {
 		manager.checkpointNumber = (checkpoint.SectionIndex+1)*params.CHTFrequency - 1
 		manager.checkpointHash = checkpoint.SectionHead
+		manager.checkpointName = checkpoint.Name
 		log.Info("Check point", "section", checkpoint.SectionIndex, "number", manager.checkpointNumber, "hash", manager.checkpointHash, "genesis", blockchain.Genesis().Hash(), "ok", ok)
 	} else {
 		log.Warn("No check point found", "genesis", blockchain.Genesis().Hash())
