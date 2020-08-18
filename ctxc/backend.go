@@ -518,6 +518,7 @@ func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.
 func (s *Cortex) Synced() bool                       { return atomic.LoadUint32(&s.protocolManager.acceptTxs) == 1 }
 func (s *Cortex) ArchiveMode() bool                  { return s.config.NoPruning }
 func (s *Cortex) CheckPoint() uint64                 { return s.protocolManager.checkpointNumber }
+func (s *Cortex) CheckPointName() string             { return s.protocolManager.checkpointName }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
