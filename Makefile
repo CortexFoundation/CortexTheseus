@@ -29,15 +29,14 @@ cortex: cpu
 
 all: cortex bootnode abigen devp2p keytools rlpdump wnode
 
-gpu: submodule cortex_gpu
+gpu: cortex_gpu
 
-cpu: submodule cortex_cpu
+cpu: cortex_cpu
 
-mine: submodule cortex_mine
+mine: cortex_mine
 
 submodule:
-	git submodule init
-	git submodule update
+	build/env.sh
 
 clean-miner:
 	rm -fr plugins/*_helper_for_node.so
@@ -101,7 +100,7 @@ plugins/cpu_helper_for_node.so:
 	$(MAKE) -C $(BASE)/solution cpu
 	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
-plugins/libcvm_runtime.so:
+plugins/libcvm_runtime.so: submodule
 	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
 	@mkdir -p plugins
 	ln -sf ../cvm-runtime/build/libcvm_runtime.so $@
