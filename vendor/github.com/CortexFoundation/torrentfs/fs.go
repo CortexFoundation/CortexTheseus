@@ -56,9 +56,9 @@ func (t *TorrentFS) chain() *ChainDB {
 var inst *TorrentFS = nil
 
 func GetStorage() CortexStorage {
-	if inst == nil {
-		inst, _ = New(&DefaultConfig, true, false, false)
-	}
+	//if inst == nil {
+	//inst, _ = New(&DefaultConfig, true, false, false)
+	//}
 	return inst //GetTorrentInstance()
 }
 

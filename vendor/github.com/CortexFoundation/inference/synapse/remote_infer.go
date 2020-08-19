@@ -2,7 +2,7 @@ package synapse
 
 import (
 	"encoding/binary"
-	"encoding/json"
+	//"encoding/json"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -115,7 +115,8 @@ func (s *Synapse) sendRequest(requestBody []byte) ([]byte, error) {
 	log.Debug("Remote Inference", "response", resp.String())
 
 	var res inference.InferResult
-	if jsErr := json.Unmarshal(resp.Body(), &res); jsErr != nil {
+	if jsErr := res.UnmarshalJSON(resp.Body()); jsErr != nil {
+		//if jsErr := json.Unmarshal(resp.Body(), &res); jsErr != nil {
 		log.Warn("remote infer: response json parsed failed", "error", jsErr)
 		return nil, KERNEL_RUNTIME_ERROR
 	}
