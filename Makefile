@@ -27,13 +27,17 @@ endif
 
 cortex: cpu
 
-all: cortex bootnode abigen devp2p keytools rlpdump wnode
+all: cortex bootnode abigen devp2p keytools rlpdump wnode submodule
 
-gpu: cortex_gpu
+gpu: cortex_gpu submodule
 
-cpu: cortex_cpu
+cpu: cortex_cpu submodule
 
-mine: cortex_mine
+mine: cortex_mine submodule
+
+submodule:
+	git submodule init
+	git submodule update
 
 clean-miner:
 	rm -fr plugins/*_helper_for_node.so
