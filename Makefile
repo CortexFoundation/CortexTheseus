@@ -27,13 +27,13 @@ endif
 
 cortex: cpu
 
-all: cortex bootnode abigen devp2p keytools rlpdump wnode submodule
+all: cortex bootnode abigen devp2p keytools rlpdump wnode
 
-gpu: cortex_gpu submodule
+gpu: submodule cortex_gpu
 
-cpu: cortex_cpu submodule
+cpu: submodule cortex_cpu
 
-mine: cortex_mine submodule
+mine: submodule cortex_mine
 
 submodule:
 	git submodule init
