@@ -27,5 +27,8 @@ export GO111MODULE=off
 cd "$dir/CortexTheseus"
 PWD="$dir/CortexTheseus"
 
+git submodule init
+git submodule update
+
 # Launch the arguments with the configured environment.
 exec "$@"
