@@ -58,7 +58,7 @@ type Config struct {
 	DebugInferVM bool
 	StorageDir   string
 	// Storagefs    torrentfs.CVMStorage
-	JumpTable [256]*operation // EVM instruction table, automatically populated if unset
+	JumpTable [256]*operation // CVM instruction table, automatically populated if unset
 
 	CWASMInterpreter string // External CWASM interpreter options
 	CVMInterpreter   string // External CVM interpreter options

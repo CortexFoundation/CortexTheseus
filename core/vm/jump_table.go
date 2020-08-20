@@ -56,7 +56,7 @@ var (
 	istanbulInstructionSet         = newIstanbulInstructionSet()
 )
 
-// JumpTable contains the EVM opcodes supported at a given fork.
+// JumpTable contains the CVM opcodes supported at a given fork.
 type JumpTable [256]*operation
 
 // newIstanbulInstructionSet returns the frontier, homestead
