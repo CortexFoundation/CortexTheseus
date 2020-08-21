@@ -1,4 +1,3 @@
-# Cortex
 ## CVM runtime
 https://github.com/CortexFoundation/cvm-runtime
 ## File storage
