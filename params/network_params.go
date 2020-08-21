@@ -70,5 +70,6 @@ const (
 		Check section:97 3211263
 		Check section:98 3244031
 	*/
-	ImmutabilityThreshold = 90000
+	ImmutabilityThreshold     = 90000
+	FullImmutabilityThreshold = 90000
 )

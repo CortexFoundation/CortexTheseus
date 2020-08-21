@@ -61,7 +61,7 @@ var (
 	maxQueuedHeaders         = 32 * 1024 // [ctxc/62] Maximum number of headers to queue for import (DOS protection)
 	maxHeadersProcess        = 2048      // Number of header download results to import at once into the chain
 	maxResultsProcess        = 2048      // Number of content download results to import at once into the chain
-	maxForkAncestry   uint64 = params.ImmutabilityThreshold
+	maxForkAncestry   uint64 = params.FullImmutabilityThreshold
 
 	reorgProtThreshold   = 48 // Threshold number of recent blocks to disable mini reorg protection
 	reorgProtHeaderDelay = 2  // Number of headers to delay delivering to cover mini reorgs
@@ -1327,15 +1327,15 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 	defer func() {
 		if rollback > 0 {
 			lastHeader, lastFastBlock, lastBlock := d.blockchain.CurrentHeader().Number, common.Big0, common.Big0
+			lastFastBlock = d.blockchain.CurrentFastBlock().Number()
+			lastBlock = d.blockchain.CurrentBlock().Number()
 			if err := d.blockchain.SetHead(rollback - 1); err != nil { // -1 to target the parent of the first uncertain block
 				// We're already unwinding the stack, only print the error to make it more visible
 				log.Error("Failed to roll back chain segment", "head", rollback-1, "err", err)
 			}
 			curFastBlock, curBlock := common.Big0, common.Big0
-			if mode != LightSync {
-				curFastBlock = d.blockchain.CurrentFastBlock().Number()
-				curBlock = d.blockchain.CurrentBlock().Number()
-			}
+			curFastBlock = d.blockchain.CurrentFastBlock().Number()
+			curBlock = d.blockchain.CurrentBlock().Number()
 			log.Warn("Rolled back chain segment",
 				"header", fmt.Sprintf("%d->%d", lastHeader, d.blockchain.CurrentHeader().Number),
 				"fast", fmt.Sprintf("%d->%d", lastFastBlock, curFastBlock),
