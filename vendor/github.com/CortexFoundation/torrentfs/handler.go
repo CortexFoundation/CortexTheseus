@@ -834,10 +834,10 @@ func (tm *TorrentManager) dropSeeding(slot int) error {
 			}
 
 			if tm.mode == LAZY {
-				t.currentConns = 0
+				t.currentConns = 1
 				log.Debug("Lazy mode dropped", "ih", ih, "seeding", len(tm.seedingTorrents), "torrents", len(tm.torrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
 			} else {
-				t.currentConns = 1
+				t.currentConns = 2
 			}
 			t.Torrent.SetMaxEstablishedConns(t.currentConns)
 			log.Debug("Drop seeding invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
