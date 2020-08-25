@@ -37,6 +37,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 	mapset "github.com/ucwong/golang-set"
 	"golang.org/x/crypto/sha3"
 	"time"
@@ -715,7 +716,7 @@ func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
-	return types.NewBlock(header, txs, uncles, receipts), nil
+	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
 }
 
 // FinalizeAndAssemble implements consensus.Engine, accumulating the block and
@@ -726,7 +727,7 @@ func (cuckoo *Cuckoo) FinalizeWithoutParent(chain consensus.ChainReader, header 
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
-	return types.NewBlock(header, txs, uncles, receipts), nil
+	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
 }
 
 // SealHash returns the hash of a block prior to it being sealed.

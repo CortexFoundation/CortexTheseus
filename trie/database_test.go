@@ -31,11 +31,3 @@ func TestDatabaseMetarootFetch(t *testing.T) {
 		t.Fatalf("metaroot retrieval succeeded")
 	}
 }
-
-//func TestCacheSaved(t *testing.T) {
-//	db := NewDatabaseWithCache(memorydb.New(),1,"testCache")
-//	if err := db.SaveCache("testCache");err != nil {
-//		t.Fatalf("wrong with SaveCache")
-//	}
-//	db2 := NewDatabaseWithCache(memorydb.New(),1,"testCache")
-//}

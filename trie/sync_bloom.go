@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
@@ -41,8 +42,8 @@ var (
 )
 
 // syncBloomHasher is a wrapper around a byte blob to satisfy the interface API
-// requirements of the bloom library used. It's used to convert a trie hash into
-// a 64 bit mini hash.
+// requirements of the bloom library used. It's used to convert a trie hash or
+// contract code hash into a 64 bit mini hash.
 type syncBloomHasher []byte
 
 func (f syncBloomHasher) Write(p []byte) (n int, err error) { panic("not implemented") }
@@ -53,9 +54,9 @@ func (f syncBloomHasher) Size() int                         { return 8 }
 func (f syncBloomHasher) Sum64() uint64                     { return binary.BigEndian.Uint64(f) }
 
 // SyncBloom is a bloom filter used during fast sync to quickly decide if a trie
-// node already exists on disk or not. It self populates from the provided disk
-// database on creation in a background thread and will only start returning live
-// results once that's finished.
+// node or contract code already exists on disk or not. It self populates from the
+// provided disk database on creation in a background thread and will only start
+// returning live results once that's finished.
 type SyncBloom struct {
 	bloom  *bloomfilter.Filter
 	inited uint32
@@ -100,14 +101,21 @@ func (b *SyncBloom) init(database ctxcdb.Iteratee) {
 	// also pushed into the bloom directly, so we're not missing anything when the
 	// iterator is swapped out for a new one.
 	it := database.NewIterator(nil, nil)
+
 	var (
 		start = time.Now()
 		swap  = time.Now()
 	)
 	for it.Next() && atomic.LoadUint32(&b.closed) == 0 {
 		// If the database entry is a trie node, add it to the bloom
-		if key := it.Key(); len(key) == common.HashLength {
+		key := it.Key()
+		if len(key) == common.HashLength {
 			b.bloom.Add(syncBloomHasher(key))
+			bloomLoadMeter.Mark(1)
+		}
+		// If the database entry is a contract code, add it to the bloom
+		if ok, hash := rawdb.IsCodeKey(key); ok {
+			b.bloom.Add(syncBloomHasher(hash))
 			bloomLoadMeter.Mark(1)
 		}
 		// If enough time elapsed since the last iterator swap, restart
@@ -179,7 +187,7 @@ func (b *SyncBloom) Add(hash []byte) {
 func (b *SyncBloom) Contains(hash []byte) bool {
 	bloomTestMeter.Mark(1)
 	if atomic.LoadUint32(&b.inited) == 0 {
-		// We didn't load all the trie nodes from the previous run of Cortex yet. As
+		// We didn't load all the trie nodes from the previous run of Geth yet. As
 		// such, we can't say for sure if a hash is not present for anything. Until
 		// the init is done, we're faking "possible presence" for everything.
 		return true
