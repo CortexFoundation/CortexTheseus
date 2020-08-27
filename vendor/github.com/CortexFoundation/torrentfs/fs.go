@@ -64,9 +64,14 @@ func GetStorage() CortexStorage {
 	return inst //GetTorrentInstance()
 }
 
+var mut sync.Mutex
+
 // New creates a new torrentfs instance with the given configuration.
 func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
+	mut.Lock()
+	defer mut.Unlock()
 	if inst != nil {
+		log.Warn("Storage has been already inited", "storage", inst, "config", config, "cache", cache, "compress", compress, "listen", listen)
 		return inst, nil
 	}
 
