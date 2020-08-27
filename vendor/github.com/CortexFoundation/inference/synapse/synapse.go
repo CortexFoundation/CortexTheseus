@@ -63,7 +63,7 @@ type Synapse struct {
 
 func Engine() *Synapse {
 	if synapseInstance == nil {
-		log.Error("Synapse Engine has not been initalized")
+		log.Warn("Synapse Engine has not been initalized, should new it first")
 		//synapseInstance = New(&DefaultConfig)
 	}
 

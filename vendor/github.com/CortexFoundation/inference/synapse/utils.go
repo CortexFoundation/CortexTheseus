@@ -22,7 +22,7 @@ func ReadData(r *inference.NpyReader) ([]byte, error) {
 		}
 		return data, nil
 	} else if r.Dtype == "i4" {
-		i4_data, err := r.GetInt32()
+		i4Data, err := r.GetInt32()
 
 		if err != nil {
 			return nil, err
@@ -31,9 +31,9 @@ func ReadData(r *inference.NpyReader) ([]byte, error) {
 		//	binary.LittleEndian.PutUint32(data[i:i+4], uint32(i4_data[i]))
 		//}
 		//buf := new(bytes.Buffer)
-		buf := make([]byte, len(i4_data)*4)
+		buf := make([]byte, len(i4Data)*4)
 		//for i := 0; i < len(i4_data); i++ {
-		for i, d := range i4_data {
+		for i, d := range i4Data {
 			//binary.Write(buf, binary.LittleEndian, d)
 			binary.LittleEndian.PutUint32(buf[i*4:], uint32(d))
 		}
