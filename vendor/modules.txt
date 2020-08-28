@@ -13,7 +13,7 @@ github.com/CortexFoundation/cvm-runtime/kernel
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.20-0.20200827040943-6b9151aba7cc
+# github.com/CortexFoundation/torrentfs v1.0.20-0.20200828025543-32c292b1302b
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -27,7 +27,7 @@ github.com/StackExchange/wmi
 # github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 ## explicit
 github.com/VictoriaMetrics/fastcache
-# github.com/allegro/bigcache/v2 v2.2.3
+# github.com/allegro/bigcache/v2 v2.2.4
 github.com/allegro/bigcache/v2
 github.com/allegro/bigcache/v2/queue
 # github.com/anacrolix/dht/v2 v2.6.1
