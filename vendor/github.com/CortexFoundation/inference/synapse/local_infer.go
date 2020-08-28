@@ -55,7 +55,6 @@ func fixTorrentHash(ih string, cvmNetworkID int64) string {
 }
 
 func (s *Synapse) getGasByInfoHashWithSize(modelInfoHash string, modelSize uint64, cvmNetworkID int64) (uint64, error) {
-
 	if !common.IsHexAddress(modelInfoHash) {
 		return 0, KERNEL_RUNTIME_ERROR
 	}

@@ -63,26 +63,25 @@ type Synapse struct {
 
 func Engine() *Synapse {
 	if synapseInstance == nil {
-		log.Error("Synapse Engine has not been initalized")
-		//synapseInstance = New(&DefaultConfig)
+		log.Warn("Synapse Engine has not been initalized, should new it first")
 	}
 
 	return synapseInstance
 }
 
+var mut sync.Mutex
+
 func New(config *Config) *Synapse {
-	// path := PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX
-	path := PLUGIN_PATH + PLUGIN_POST_FIX
+	mut.Lock()
+	defer mut.Unlock()
 	if synapseInstance != nil {
-		log.Warn("Synapse Engine has been initalized")
-		if config.Debug {
-			fmt.Println("Synapse Engine has been initalized")
-		}
+		log.Warn("Synapse Engine has been initalized", "synapse", synapseInstance, "config", config)
 		return synapseInstance
 	}
 	var lib *kernel.LibCVM
 	var status int
 	if !config.IsRemoteInfer {
+		path := PLUGIN_PATH + PLUGIN_POST_FIX
 		lib, status = kernel.LibOpen(path)
 		if status != kernel.SUCCEED {
 			log.Error("infer helper", "init cvm plugin error", "")

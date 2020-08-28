@@ -57,15 +57,21 @@ func (t *TorrentFS) chain() *ChainDB {
 var inst *TorrentFS = nil
 
 func GetStorage() CortexStorage {
-	//if inst == nil {
-	//inst, _ = New(&DefaultConfig, true, false, false)
-	//}
+	if inst == nil {
+		//inst, _ = New(&DefaultConfig, true, false, false)
+		log.Warn("Storage instance get failed, should new it first")
+	}
 	return inst //GetTorrentInstance()
 }
 
+var mut sync.Mutex
+
 // New creates a new torrentfs instance with the given configuration.
 func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
+	mut.Lock()
+	defer mut.Unlock()
 	if inst != nil {
+		log.Warn("Storage has been already inited", "storage", inst, "config", config, "cache", cache, "compress", compress, "listen", listen)
 		return inst, nil
 	}
 
