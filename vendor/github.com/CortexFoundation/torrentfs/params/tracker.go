@@ -31,6 +31,6 @@ var (
 	//BernardTrackers = MainnetTrackers
 
 	TorrentBoostNodes = []string{
-		"http://storage.cortexlabs.ai:7881",
+		"http://share.cortexlabs.ai:7881",
 	}
 )

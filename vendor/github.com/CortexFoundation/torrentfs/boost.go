@@ -55,7 +55,8 @@ func NewBoostDataFetcher(nodes []string) *BoostDataFetcher {
 
 func (f *BoostDataFetcher) getFileFromBoostNodes(nodes []string, ih, name string) ([]byte, error) {
 	for _, node := range nodes {
-		ret, err := f.getFileFromURI(node + "/files/" + ih + "/" + name)
+		link := node + "/" + ih + "/" + name
+		ret, err := f.getFileFromURI(link)
 		if err == nil {
 			return ret, nil
 		}
@@ -69,7 +70,7 @@ func (f *BoostDataFetcher) getFile(ih, name string) ([]byte, error) {
 
 func (f *BoostDataFetcher) getTorrentFromBoostNodes(nodes []string, ih string) ([]byte, error) {
 	for _, node := range nodes {
-		ret, err := f.getFileFromURI(node + "/files/" + ih + "/torrent")
+		ret, err := f.getFileFromURI(node + "/" + ih + "/torrent")
 		if err == nil {
 			buf := bytes.NewBuffer(ret)
 			mi, err2 := metainfo.Load(buf)

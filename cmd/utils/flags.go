@@ -1574,9 +1574,9 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)
 
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
-	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
+	//boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)
 	cfg.DefaultTrackers = strings.Split(trackers, ",")
-	cfg.BoostNodes = strings.Split(boostnodes, ",")
+	//cfg.BoostNodes = strings.Split(boostnodes, ",")
 	cfg.MaxSeedingNum = ctx.GlobalInt(StorageMaxSeedingFlag.Name)
 	log.Debug("FsConfig", "MaxSeedingNum", ctx.GlobalInt(StorageMaxSeedingFlag.Name),
 		"MaxActiveNum", ctx.GlobalInt(StorageMaxActiveFlag.Name))

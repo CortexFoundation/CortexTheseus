@@ -221,7 +221,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.StorageDisableTCPFlag,
 			utils.StorageFullFlag,
 			utils.StorageModeFlag,
-			//utils.StorageBoostFlag,
+			utils.StorageBoostFlag,
 		},
 	},
 	{

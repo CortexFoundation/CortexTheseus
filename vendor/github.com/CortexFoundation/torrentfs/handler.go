@@ -320,11 +320,60 @@ func (tm *TorrentManager) addInfoHash(ih metainfo.Hash, BytesRequested int64, ch
 	}
 
 	if spec == nil {
-		tmpDataPath := filepath.Join(tm.TmpDataDir, ih.HexString())
-		spec = &torrent.TorrentSpec{
-			InfoHash: ih,
-			Storage:  storage.NewFile(tmpDataPath),
-			//Storage: storage.NewFileWithCompletion(tmpDataPath, storage.NewMapPieceCompletion()),
+		if tm.boost {
+			if data, err := tm.boostFetcher.FetchTorrent(ih.String()); err == nil {
+				buf := bytes.NewBuffer(data)
+				mi, err := metainfo.Load(buf)
+
+				if err != nil {
+					log.Error("Error while adding torrent", "Err", err)
+					return nil
+				}
+				spec = torrent.TorrentSpecFromMetaInfo(mi)
+				tmpDataPath := filepath.Join(tm.TmpDataDir, ih.HexString())
+				spec.Storage = storage.NewFile(tmpDataPath)
+
+				if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
+					for _, file := range t.Files() {
+						subpath := file.Path()
+						if data, err := tm.boostFetcher.FetchFile(ih.String(), subpath); err == nil {
+							log.Debug("Boost download file", "ih", ih, "path", subpath)
+
+							p := filepath.Join(tmpDataPath, subpath)
+							if subpath != "data" {
+								dir := filepath.Join(tmpDataPath, "data")
+								log.Trace("mkdir", "tmpDataPath", tmpDataPath, "subpath", subpath, "dir", dir)
+								if err := os.MkdirAll(dir, 0750); err != nil {
+									log.Error("mkdir", "err", err)
+								}
+							}
+							f, e := os.OpenFile(p, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+							if e != nil {
+								log.Error("openfile failed", "err", e, "filePath", p)
+								continue
+							}
+							defer f.Close()
+							if _, err := f.Write(data); err != nil {
+								log.Error("write data failed", "data", len(data), "err", err, "path", p)
+							}
+						} else {
+							log.Warn("Boost download file failed", "ih", ih, "path", subpath)
+						}
+					}
+
+					return tm.register(t, BytesRequested, torrentPending, ih, ch)
+					//return nil
+				}
+
+			}
+		}
+		if spec == nil {
+			tmpDataPath := filepath.Join(tm.TmpDataDir, ih.HexString())
+			spec = &torrent.TorrentSpec{
+				InfoHash: ih,
+				Storage:  storage.NewFile(tmpDataPath),
+				//Storage: storage.NewFileWithCompletion(tmpDataPath, storage.NewMapPieceCompletion()),
+			}
 		}
 	}
 
@@ -412,6 +461,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		activeChan:          make(chan *Torrent, torrentChanSize),
 		pendingChan:         make(chan *Torrent, torrentChanSize),
 		mode:                config.Mode,
+		boost:               config.Boost,
 		id:                  fsid,
 		slot:                int(fsid % bucket),
 	}
@@ -606,6 +656,7 @@ func (tm *TorrentManager) pendingLoop() {
 					}
 					/*} else if tm.boost && (t.loop > torrentWaitingTime/queryTimeInterval || (t.start == 0 && t.bytesRequested > 0)) {
 					if !t.isBoosting {
+						log.Info("Boost download seed", "ih", ih)
 						t.loop = 0
 						t.isBoosting = true
 						if data, err := tm.boostFetcher.FetchTorrent(ih.String()); err == nil {
@@ -753,38 +804,34 @@ func (tm *TorrentManager) activeLoop() {
 					continue
 				} /*else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
 					t.loop++
-					if tm.boost && t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
+					if tm.boost && t.bytesCompleted == 0 { //t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
+						log.Info("Boost status", "request", t.bytesRequested, "complete", t.bytesCompleted, "missing", t.bytesMissing)
 						t.loop = 0
 						if t.isBoosting {
 							continue
 						}
 						t.Pause()
 						t.isBoosting = true
-						tm.wg.Add(1)
-						go func(t *Torrent) {
-							defer tm.wg.Done()
-							defer t.BoostOff()
-							filepaths := []string{}
-							filedatas := [][]byte{}
-							for _, file := range t.Files() {
-								if file.BytesCompleted() > 0 {
-									continue
-								}
-								subpath := file.Path()
-								if data, err := tm.boostFetcher.FetchFile(ih.String(), subpath); err == nil {
-									filedatas = append(filedatas, data)
-									filepaths = append(filepaths, subpath)
-								} else {
-									return
-								}
+						//tm.wg.Add(1)
+						filepaths := []string{}
+						filedatas := [][]byte{}
+						for _, file := range t.Files() {
+							if file.BytesCompleted() > 0 {
+								continue
 							}
-							t.Torrent.Drop()
-							t.ReloadFile(filepaths, filedatas, tm)
-						}(t)
-						active_boost++
-						if log_counter%30 == 0 {
-							log.Debug("[Boosting]", "hash", ih.String(), "complete", common.StorageSize(t.bytesCompleted), "quota", common.StorageSize(t.bytesRequested), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "max", t.Torrent.NumPieces(), "status", t.status, "boost", t.isBoosting)
+							subpath := file.Path()
+							if data, err := tm.boostFetcher.FetchFile(ih.String(), subpath); err == nil {
+								log.Info("Boost download file", "ih", ih, "path", subpath)
+								filedatas = append(filedatas, data)
+								filepaths = append(filepaths, subpath)
+							} else {
+								log.Warn("Boost download file failed", "ih", ih, "path", subpath)
+								//return
+							}
 						}
+						t.Torrent.Drop()
+						t.ReloadFile(filepaths, filedatas, tm)
+						t.BoostOff()
 						continue
 					}
 				}*/
