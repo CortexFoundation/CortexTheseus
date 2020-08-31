@@ -158,7 +158,7 @@ var (
 		utils.StorageDisableTCPFlag,
 		utils.StorageFullFlag,
 		utils.StorageModeFlag,
-		//utils.StorageBoostFlag,
+		utils.StorageBoostFlag,
 	}
 
 	rpcFlags = []cli.Flag{

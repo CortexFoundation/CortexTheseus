@@ -110,6 +110,7 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
 	spec.Storage = storage.NewFile(t.filepath)
 	spec.Trackers = nil
+	t.Drop()
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 		t.Torrent = torrent
 	} else {
