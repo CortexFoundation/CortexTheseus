@@ -95,10 +95,10 @@ func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager)
 }
 
 func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
-	err := os.Remove(filepath.Join(t.filepath, ".torrent.bolt.db"))
-	if err != nil {
-		log.Warn("Remove path failed", "path", filepath.Join(t.filepath, ".torrent.bolt.db"), "err", err)
-	}
+	//err := os.Remove(filepath.Join(t.filepath, ".torrent.bolt.db"))
+	//if err != nil {
+	//	log.Warn("Remove path failed", "path", filepath.Join(t.filepath, ".torrent.bolt.db"), "err", err)
+	//}
 
 	buf := bytes.NewBuffer(data)
 	mi, err := metainfo.Load(buf)
@@ -108,9 +108,9 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
 		return err
 	}
 	spec := torrent.TorrentSpecFromMetaInfo(mi)
-	spec.Storage = storage.NewFile(t.filepath)
-	spec.Trackers = nil
-	t.Drop()
+	//spec.Storage = storage.NewFile(t.filepath)
+	//spec.Trackers = nil
+	//t.Drop()
 	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 		t.Torrent = torrent
 	} else {
