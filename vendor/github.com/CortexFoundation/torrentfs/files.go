@@ -18,7 +18,7 @@ package torrentfs
 
 var BadFiles = map[string]bool{
 	"3edcb8a793887d92db12d53124955681d5c20a43": true,
-	"7c6ff2ae3b9dfc654c5dec61cc950b70a16431c4": true,
+	//"7c6ff2ae3b9dfc654c5dec61cc950b70a16431c4": true,
 }
 
 var GoodFiles = map[string]bool{
