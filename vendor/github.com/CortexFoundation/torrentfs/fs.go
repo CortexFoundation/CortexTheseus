@@ -268,7 +268,7 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 			if progress, e := fs.chain().GetTorrent(infohash); e == nil {
 				log.Debug("Lazy mode, restarting", "ih", infohash, "request", progress)
 				if e := fs.storage().Search(ctx, infohash, progress, nil); e == nil {
-					log.Warn("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
+					log.Debug("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
 				}
 			} else {
 				log.Warn("Unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)))
