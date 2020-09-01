@@ -62,8 +62,8 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
-		SectionIndex: 65,
-		SectionHead:  common.HexToHash("0x1fd10e27c53d2e11b42b408409c40f5c88eec32740944cc964c179aded01d17d"),
+		SectionIndex: 69,
+		SectionHead:  common.HexToHash("0xbf7464c3741576d3feeebeda8fc645db1ae5f2acfbb61c300cdbd5e7076749f5"),
 	}
 
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
