@@ -58,10 +58,10 @@ var (
 	qosConfidenceCap = 10   // Number of peers above which not to modify RTT confidence
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
-	maxQueuedHeaders         = 32 * 1024 // [ctxc/62] Maximum number of headers to queue for import (DOS protection)
-	maxHeadersProcess        = 2048      // Number of header download results to import at once into the chain
-	maxResultsProcess        = 2048      // Number of content download results to import at once into the chain
-	maxForkAncestry   uint64 = params.FullImmutabilityThreshold
+	maxQueuedHeaders           = 32 * 1024 // [ctxc/62] Maximum number of headers to queue for import (DOS protection)
+	maxHeadersProcess          = 2048      // Number of header download results to import at once into the chain
+	maxResultsProcess          = 2048      // Number of content download results to import at once into the chain
+	fullMaxForkAncestry uint64 = params.FullImmutabilityThreshold
 
 	reorgProtThreshold   = 48 // Threshold number of recent blocks to disable mini reorg protection
 	reorgProtHeaderDelay = 2  // Number of headers to delay delivering to cover mini reorgs
@@ -484,10 +484,10 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 		// The peer would start to feed us valid blocks until head, resulting in all of
 		// the blocks might be written into the ancient store. A following mini-reorg
 		// could cause issues.
-		if d.checkpoint != 0 && d.checkpoint > maxForkAncestry+1 {
+		if d.checkpoint != 0 && d.checkpoint > fullMaxForkAncestry+1 {
 			d.ancientLimit = d.checkpoint
-		} else if height > maxForkAncestry+1 {
-			d.ancientLimit = height - maxForkAncestry - 1
+		} else if height > fullMaxForkAncestry+1 {
+			d.ancientLimit = height - fullMaxForkAncestry - 1
 		}
 		frozen, _ := d.stateDB.Ancients() // Ignore the error here since light client can also hit here.
 
@@ -708,9 +708,9 @@ func (d *Downloader) findAncestor(p *peerConnection, remoteHeader *types.Header)
 	p.log.Debug("Looking for common ancestor", "local", localHeight, "remote", remoteHeight)
 
 	// Recap floor value for binary search
-	if localHeight >= maxForkAncestry {
+	if localHeight >= fullMaxForkAncestry {
 		// We're above the max reorg threshold, find the earliest fork point
-		floor = int64(localHeight - maxForkAncestry)
+		floor = int64(localHeight - fullMaxForkAncestry)
 	}
 
 	from, count, skip, max := calculateRequestSpan(remoteHeight, localHeight)
