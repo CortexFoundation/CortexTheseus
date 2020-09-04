@@ -13,7 +13,7 @@ github.com/CortexFoundation/cvm-runtime/kernel
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.21-0.20200903041552-20b60fab79fa
+# github.com/CortexFoundation/torrentfs v1.0.21-0.20200903061104-28e5d089d3a4
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -71,7 +71,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.15.1-0.20200715061614-dd906f8fa72e
+# github.com/anacrolix/torrent v1.15.1-0.20200903043406-4dee11efe95b
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
