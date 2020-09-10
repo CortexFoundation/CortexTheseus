@@ -3,7 +3,7 @@ https://github.com/CortexFoundation/cvm-runtime
 ## File storage
 https://github.com/CortexFoundation/torrentfs
 ```
-./build/bin/torrent download 'ih:5a49fed84aaf368cbf472cc06e42f93a93d92db5'
+make && ./build/bin/torrent download 'ih:5a49fed84aaf368cbf472cc06e42f93a93d92db5'
 ```
 #### * Make sure you can download the file successfully
 ## AI wrapper
