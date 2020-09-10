@@ -24,16 +24,18 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
-var maxPrice = big.NewInt(500 * params.GWei)
+var DefaultMaxPrice = big.NewInt(500 * params.GWei)
 
 type Config struct {
 	Blocks     int
 	Percentile int
 	Default    *big.Int `toml:",omitempty"`
+	MaxPrice   *big.Int `toml:",omitempty"`
 }
 
 // OracleBackend includes all necessary background APIs for oracle.
@@ -49,6 +51,7 @@ type Oracle struct {
 	backend   OracleBackend
 	lastHead  common.Hash
 	lastPrice *big.Int
+	maxPrice  *big.Int
 	cacheLock sync.RWMutex
 	fetchLock sync.Mutex
 
@@ -61,17 +64,26 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 	blocks := params.Blocks
 	if blocks < 1 {
 		blocks = 1
+		log.Warn("Sanitizing invalid gasprice oracle sample blocks", "provided", params.Blocks, "updated", blocks)
 	}
 	percent := params.Percentile
 	if percent < 0 {
 		percent = 0
+		log.Warn("Sanitizing invalid gasprice oracle sample percentile", "provided", params.Percentile, "updated", percent)
 	}
 	if percent > 100 {
 		percent = 100
+		log.Warn("Sanitizing invalid gasprice oracle sample percentile", "provided", params.Percentile, "updated", percent)
+	}
+	maxPrice := params.MaxPrice
+	if maxPrice == nil || maxPrice.Int64() <= 0 {
+		maxPrice = DefaultMaxPrice
+		log.Warn("Sanitizing invalid gasprice oracle price cap", "provided", params.MaxPrice, "updated", maxPrice)
 	}
 	return &Oracle{
 		backend:     backend,
 		lastPrice:   params.Default,
+		maxPrice:    maxPrice,
 		checkBlocks: blocks,
 		maxEmpty:    blocks / 2,
 		maxBlocks:   blocks * 5,
@@ -142,8 +154,8 @@ func (gpo *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 		sort.Sort(bigIntArray(blockPrices))
 		price = blockPrices[(len(blockPrices)-1)*gpo.percentile/100]
 	}
-	if price.Cmp(maxPrice) > 0 {
-		price = new(big.Int).Set(maxPrice)
+	if price.Cmp(gpo.maxPrice) > 0 {
+		price = new(big.Int).Set(gpo.maxPrice)
 	}
 
 	gpo.cacheLock.Lock()
