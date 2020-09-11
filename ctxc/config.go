@@ -31,6 +31,20 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
+// DefaultFullGPOConfig contains default gasprice oracle settings for full node.
+var DefaultFullGPOConfig = gasprice.Config{
+	Blocks:     20,
+	Percentile: 60,
+	MaxPrice:   gasprice.DefaultMaxPrice,
+}
+
+// DefaultLightGPOConfig contains default gasprice oracle settings for light client.
+var DefaultLightGPOConfig = gasprice.Config{
+	Blocks:     2,
+	Percentile: 60,
+	MaxPrice:   gasprice.DefaultMaxPrice,
+}
+
 // DefaultConfig contains default settings for use on the Cortex main net.
 var DefaultConfig = Config{
 	SyncMode:                downloader.FullSync,
@@ -50,12 +64,9 @@ var DefaultConfig = Config{
 		Recommit: 3 * time.Second,
 	},
 
-	TxPool:    core.DefaultTxPoolConfig,
-	RPCGasCap: 25000000,
-	GPO: gasprice.Config{
-		Blocks:     20,
-		Percentile: 60,
-	},
+	TxPool:      core.DefaultTxPoolConfig,
+	RPCGasCap:   25000000,
+	GPO:         DefaultFullGPOConfig,
 	RPCTxFeeCap: 1, // 1 ctxc
 }
 
