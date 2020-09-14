@@ -9,11 +9,11 @@ github.com/Azure/azure-pipeline-go/pipeline
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51
 github.com/CortexFoundation/cvm-runtime/kernel
-# github.com/CortexFoundation/inference v0.0.0-20200901072521-dee75ecfc9c1
+# github.com/CortexFoundation/inference v1.0.1-0.20200912011914-f523c40a423e
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.21-0.20200903061104-28e5d089d3a4
+# github.com/CortexFoundation/torrentfs v1.0.21-0.20200911102118-d8282115a26d
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -195,7 +195,8 @@ github.com/glycerine/go-unsnap-stream
 # github.com/go-ole/go-ole v1.2.4
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
-# github.com/go-resty/resty/v2 v2.3.1-0.20200717071130-ca7661ad51fe
+# github.com/go-resty/resty/v2 v2.3.1-0.20200910235519-3c6c188461e8
+## explicit
 github.com/go-resty/resty/v2
 # github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 github.com/go-sourcemap/sourcemap
