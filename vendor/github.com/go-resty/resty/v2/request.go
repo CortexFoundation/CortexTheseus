@@ -375,7 +375,7 @@ func (r *Request) SetMultipartFields(fields ...*MultipartField) *Request {
 // See `Client.SetContentLength`
 // 		client.R().SetContentLength(true)
 func (r *Request) SetContentLength(l bool) *Request {
-	r.setContentLength = true
+	r.setContentLength = l
 	return r
 }
 
@@ -490,7 +490,8 @@ func (r *Request) ExpectContentType(contentType string) *Request {
 }
 
 // ForceContentType method provides a strong sense of response `Content-Type` for automatic unmarshalling.
-// Resty will respect it with higher priority; even response `Content-Type` response header value is available.
+// Resty gives this a higher priority than the `Content-Type` response header.  This means that if both
+// `Request.ForceContentType` is set and the response `Content-Type` is available, `ForceContentType` will win.
 func (r *Request) ForceContentType(contentType string) *Request {
 	r.forceContentType = contentType
 	return r
@@ -589,17 +590,17 @@ func (r *Request) TraceInfo() TraceInfo {
 		ti.TotalTime = ct.endTime.Sub(ct.dnsStart)
 	}
 
-	// Only calcuate on successful connections
+	// Only calculate on successful connections
 	if !ct.connectDone.IsZero() {
 		ti.TCPConnTime = ct.connectDone.Sub(ct.dnsDone)
 	}
 
-	// Only calcuate on successful connections
+	// Only calculate on successful connections
 	if !ct.gotConn.IsZero() {
 		ti.ConnTime = ct.gotConn.Sub(ct.getConn)
 	}
 
-	// Only calcuate on successful connections
+	// Only calculate on successful connections
 	if !ct.gotFirstResponseByte.IsZero() {
 		ti.ResponseTime = ct.endTime.Sub(ct.gotFirstResponseByte)
 	}
