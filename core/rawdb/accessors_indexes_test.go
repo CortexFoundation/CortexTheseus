@@ -62,7 +62,7 @@ func TestLookupStorage(t *testing.T) {
 		{
 			"DatabaseV6",
 			func(db ctxcdb.Writer, block *types.Block) {
-				WriteTxLookupEntries(db, block)
+				WriteTxLookupEntriesByBlock(db, block)
 			},
 		},
 		{
@@ -109,7 +109,7 @@ func TestLookupStorage(t *testing.T) {
 			// Insert all the transactions into the database, and verify contents
 			WriteCanonicalHash(db, block.Hash(), block.NumberU64())
 			WriteBlock(db, block)
-			tc.writeTxLookupEntries(db, block)
+			tc.writeTxLookupEntriesByBlock(db, block)
 
 			for i, tx := range txs {
 				if txn, hash, number, index := ReadTransaction(db, tx.Hash()); txn == nil {
