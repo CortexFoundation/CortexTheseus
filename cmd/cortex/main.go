@@ -215,6 +215,7 @@ func init() {
 		removedbCommand,
 		// dumpCommand,
 		dumpGenesisCommand,
+		inspectCommand,
 		// See monitorcmd.go:
 		// monitorCommand,
 		// See accountcmd.go:
