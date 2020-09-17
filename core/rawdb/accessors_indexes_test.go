@@ -56,13 +56,13 @@ func (h *testHasher) Hash() common.Hash {
 // Tests that positional lookup metadata can be stored and retrieved.
 func TestLookupStorage(t *testing.T) {
 	tests := []struct {
-		name                 string
-		writeTxLookupEntries func(ctxcdb.Writer, *types.Block)
+		name                        string
+		writeTxLookupEntriesByBlock func(ctxcdb.Writer, *types.Block)
 	}{
 		{
 			"DatabaseV6",
 			func(db ctxcdb.Writer, block *types.Block) {
-				WriteTxLookupEntries(db, block)
+				WriteTxLookupEntriesByBlock(db, block)
 			},
 		},
 		{
@@ -109,7 +109,7 @@ func TestLookupStorage(t *testing.T) {
 			// Insert all the transactions into the database, and verify contents
 			WriteCanonicalHash(db, block.Hash(), block.NumberU64())
 			WriteBlock(db, block)
-			tc.writeTxLookupEntries(db, block)
+			tc.writeTxLookupEntriesByBlock(db, block)
 
 			for i, tx := range txs {
 				if txn, hash, number, index := ReadTransaction(db, tx.Hash()); txn == nil {
