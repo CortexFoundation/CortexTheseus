@@ -174,7 +174,7 @@ func (t *Torrent) Seed() bool {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Imported new segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+		log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		return true
 	}
 

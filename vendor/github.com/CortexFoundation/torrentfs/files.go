@@ -50,3 +50,24 @@ var GoodFiles = map[string]bool{
 	//dolores
 	"de58609743e5cd0cb18798d91a196f418ac25016": true,
 }
+
+func IsGood(hash string) bool {
+	if _, ok := GoodFiles[hash]; ok {
+		return true
+	}
+	return false
+}
+
+func IsBad(hash string) bool {
+	if _, ok := BadFiles[hash]; ok {
+		return true
+	}
+	return false
+}
+
+func IsActive(hash string) bool {
+	if active, ok := GoodFiles[hash]; ok && active {
+		return true
+	}
+	return false
+}
