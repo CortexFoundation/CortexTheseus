@@ -13,7 +13,7 @@ github.com/CortexFoundation/cvm-runtime/kernel
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.21-0.20200911102118-d8282115a26d
+# github.com/CortexFoundation/torrentfs v1.0.20-0.20200918104426-463ba812c3dd
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress

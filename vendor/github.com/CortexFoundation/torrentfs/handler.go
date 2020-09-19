@@ -559,8 +559,8 @@ func (tm *TorrentManager) init() {
 	//if tm.cache {
 	log.Debug("Chain files init", "files", len(GoodFiles))
 
-	for k, ok := range GoodFiles {
-		if tm.mode != LAZY || ok {
+	for k, _ := range GoodFiles {
+		if tm.mode != LAZY { //|| ok {
 			tm.Search(context.Background(), k, 0, nil)
 		}
 	}
@@ -580,8 +580,10 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 	}
 
 	hex = strings.TrimPrefix(strings.ToLower(hex), common.Prefix)
-	if _, ok := BadFiles[hex]; ok {
-		//return errors.New("Bad files")
+	//if _, ok := BadFiles[hex]; ok {
+	//	return nil
+	//}
+	if IsBad(hex) {
 		return nil
 	}
 
@@ -596,7 +598,10 @@ func (tm *TorrentManager) mainLoop() {
 		select {
 		case msg := <-tm.taskChan:
 			meta := msg.(types.FlowControlMeta)
-			if _, ok := BadFiles[meta.InfoHash.HexString()]; ok {
+			//if _, ok := BadFiles[meta.InfoHash.HexString()]; ok {
+			//	continue
+			//}
+			if IsBad(meta.InfoHash.HexString()) {
 				continue
 			}
 			bytes := int64(meta.BytesRequested)
@@ -729,7 +734,8 @@ func (tm *TorrentManager) activeLoop() {
 
 			for ih, t := range tm.activeTorrents {
 				//BytesRequested := int64(0)
-				if _, ok := GoodFiles[t.InfoHash()]; ok {
+				//if _, ok := GoodFiles[t.InfoHash()]; ok {
+				if IsGood(t.InfoHash()) {
 					tm.lock.Lock()
 					t.bytesRequested = t.Length()
 					t.bytesLimitation = tm.getLimitation(t.bytesRequested)
