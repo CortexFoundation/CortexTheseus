@@ -20,7 +20,7 @@ require (
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-resty/resty/v2 v2.3.1-0.20200910235519-3c6c188461e8 // indirect
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
+	github.com/golang/snappy v0.0.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
 	github.com/holiman/uint256 v1.1.1
@@ -48,7 +48,7 @@ require (
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f
+	golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
 	golang.org/x/text v0.3.4-0.20200826142016-a8b467125457
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
