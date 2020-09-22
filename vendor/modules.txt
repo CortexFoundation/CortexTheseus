@@ -206,7 +206,7 @@ github.com/go-sourcemap/sourcemap/internal/base64vlq
 github.com/go-stack/stack
 # github.com/golang/protobuf v1.4.2
 github.com/golang/protobuf/proto
-# github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
+# github.com/golang/snappy v0.0.2
 ## explicit
 github.com/golang/snappy
 # github.com/google/btree v1.0.0
@@ -450,7 +450,7 @@ golang.org/x/net/publicsuffix
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 ## explicit
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f
+# golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
