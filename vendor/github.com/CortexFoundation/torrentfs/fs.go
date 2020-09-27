@@ -185,7 +185,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 			}
 			p.peerInfo = info
 		case queryCode:
-			if ProtocolVersion > 1 {
+			if ProtocolVersion > 1 && tfs.config.Mode == LAZY {
 				var info *Query
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
