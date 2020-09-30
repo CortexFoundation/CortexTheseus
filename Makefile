@@ -121,6 +121,8 @@ android:
 	build/env.sh go run build/ci.go aar --local
 	@echo "Done building."
 	@echo "Import \"$(GOBIN)/cortex.aar\" to use the library."
+	@echo "Import \"$(GOBIN)/cortex-sources.jar\" to add javadocs"
+	@echo "For more info see https://stackoverflow.com/questions/20994336/android-studio-how-to-attach-javadoc"
 
 ios:
 	build/env.sh go run build/ci.go xcode --local
