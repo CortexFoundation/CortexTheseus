@@ -1075,7 +1075,7 @@ func (t *Torrent) maxHalfOpen() int {
 	return int(min(max(5, extraIncoming)+establishedHeadroom, int64(t.cl.config.HalfOpenConnsPerTorrent)))
 }
 
-func (t *Torrent) openNewConns() {
+func (t *Torrent) openNewConns() (initiated int) {
 	defer t.updateWantPeersEvent()
 	for t.peers.Len() != 0 {
 		if !t.wantConns() {
@@ -1087,9 +1087,14 @@ func (t *Torrent) openNewConns() {
 		if len(t.cl.dialers) == 0 {
 			return
 		}
+		if t.cl.numHalfOpen >= t.cl.config.TotalHalfOpenConns {
+			return
+		}
 		p := t.peers.PopMax()
 		t.initiateConn(p)
+		initiated++
 	}
+	return
 }
 
 func (t *Torrent) getConnPieceInclination() []int {
@@ -1406,9 +1411,32 @@ func (t *Torrent) startScrapingTracker(_url string) {
 				return nil
 			}
 		}
+		urlString := (*u).String()
+		cl := t.cl
 		newAnnouncer := &trackerScraper{
 			u: *u,
 			t: t,
+			allow: func() {
+				cl.lock()
+				defer cl.unlock()
+				if cl.activeAnnounces == nil {
+					cl.activeAnnounces = make(map[string]struct{})
+				}
+				for {
+					if _, ok := cl.activeAnnounces[urlString]; ok {
+						cl.event.Wait()
+					} else {
+						break
+					}
+				}
+				cl.activeAnnounces[urlString] = struct{}{}
+			},
+			done: func(slowdown bool) {
+				cl.lock()
+				defer cl.unlock()
+				delete(cl.activeAnnounces, urlString)
+				cl.event.Broadcast()
+			},
 		}
 		go newAnnouncer.Run()
 		return newAnnouncer
@@ -1889,7 +1917,6 @@ func (t *Torrent) initiateConn(peer PeerInfo) {
 	if peer.Id == t.cl.peerID {
 		return
 	}
-
 	if t.cl.badPeerAddr(peer.Addr) && !peer.Trusted {
 		return
 	}
@@ -1897,6 +1924,7 @@ func (t *Torrent) initiateConn(peer PeerInfo) {
 	if t.addrActive(addr.String()) {
 		return
 	}
+	t.cl.numHalfOpen++
 	t.halfOpen[addr.String()] = peer
 	go t.cl.outgoingConnection(t, addr, peer.Source, peer.Trusted)
 }
@@ -2036,7 +2064,6 @@ func (t *Torrent) addWebSeed(url string) {
 	ws := webseedPeer{
 		peer: peer{
 			t:                        t,
-			connString:               url,
 			outgoing:                 true,
 			network:                  "http",
 			reconciledHandshakeStats: true,

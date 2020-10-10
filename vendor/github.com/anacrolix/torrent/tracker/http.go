@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/anacrolix/dht/v2/krpc"
 	"github.com/anacrolix/missinggo/httptoo"
@@ -70,6 +69,7 @@ func (me *Peers) UnmarshalBencode(b []byte) (err error) {
 func setAnnounceParams(_url *url.URL, ar *AnnounceRequest, opts Announce) {
 	q := _url.Query()
 
+	q.Set("key", strconv.FormatInt(int64(ar.Key), 10))
 	q.Set("info_hash", string(ar.InfoHash[:]))
 	q.Set("peer_id", string(ar.PeerId[:]))
 	// AFAICT, port is mandatory, and there's no implied port key.
@@ -94,12 +94,18 @@ func setAnnounceParams(_url *url.URL, ar *AnnounceRequest, opts Announce) {
 	// According to https://wiki.vuze.com/w/Message_Stream_Encryption. TODO:
 	// Take EncryptionPolicy or something like it as a parameter.
 	q.Set("supportcrypto", "1")
-	if opts.ClientIp4.IP != nil {
-		q.Set("ipv4", opts.ClientIp4.String())
+	doIp := func(versionKey string, ip net.IP) {
+		if ip == nil {
+			return
+		}
+		ipString := ip.String()
+		q.Set(versionKey, ipString)
+		// Let's try listing them. BEP 3 mentions having an "ip" param, and BEP 7 says we can list
+		// addresses for other address-families, although it's not encouraged.
+		q.Add("ip", ipString)
 	}
-	if opts.ClientIp6.IP != nil {
-		q.Set("ipv6", opts.ClientIp6.String())
-	}
+	doIp("ipv4", opts.ClientIp4.IP)
+	doIp("ipv6", opts.ClientIp6.IP)
 	_url.RawQuery = q.Encode()
 }
 
@@ -113,17 +119,18 @@ func announceHTTP(opt Announce, _url *url.URL) (ret AnnounceResponse, err error)
 		req = req.WithContext(opt.Context)
 	}
 	resp, err := (&http.Client{
-		Timeout: time.Second * 15,
+		//Timeout: time.Second * 15,
 		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout: 15 * time.Second,
-			}).Dial,
-			Proxy:               opt.HTTPProxy,
-			TLSHandshakeTimeout: 15 * time.Second,
+			//Dial: (&net.Dialer{
+			//	Timeout: 15 * time.Second,
+			//}).Dial,
+			Proxy: opt.HTTPProxy,
+			//TLSHandshakeTimeout: 15 * time.Second,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 				ServerName:         opt.ServerName,
 			},
+			// This is for S3 trackers that hold connections open.
 			DisableKeepAlives: true,
 		},
 	}).Do(req)
