@@ -1037,7 +1037,7 @@ func (cl *Client) gotMetadataExtensionMsg(payload []byte, t *Torrent, c *PeerCon
 			return nil
 		}
 		start := (1 << 14) * piece
-		c.logger.Printf("sending metadata piece %d", piece)
+		c.logger.WithDefaultLevel(log.Debug).Printf("sending metadata piece %d", piece)
 		c.post(t.newMetadataExtensionMessage(c, pp.DataMetadataExtensionMsgType, piece, t.metadataBytes[start:start+t.metadataPieceSize(piece)]))
 		return nil
 	case pp.RejectMetadataExtensionMsgType:
@@ -1350,14 +1350,14 @@ func (cl *Client) newConnection(nc net.Conn, outgoing bool, remoteAddr net.Addr,
 		writeBuffer: new(bytes.Buffer),
 	}
 	c.peerImpl = c
-	c.logger = cl.logger.WithDefaultLevel(log.Debug).WithContextValue(c)
+	c.logger = cl.logger.WithDefaultLevel(log.Warning).WithContextValue(c)
 	c.writerCond.L = cl.locker()
 	c.setRW(connStatsReadWriter{nc, c})
 	c.r = &rateLimitedReader{
 		l: cl.config.DownloadRateLimiter,
 		r: c.r,
 	}
-	c.logger.Printf("initialized with remote %v over network %v (outgoing=%t)", remoteAddr, network, outgoing)
+	c.logger.WithDefaultLevel(log.Debug).Printf("initialized with remote %v over network %v (outgoing=%t)", remoteAddr, network, outgoing)
 	return
 }
 

@@ -82,7 +82,6 @@ type peer struct {
 	// response.
 	metadataRequests []bool
 	sentHaves        bitmap.Bitmap
-	pex              pexConnState
 
 	// Stuff controlled by the remote peer.
 	peerInterested        bool
@@ -135,6 +134,8 @@ type PeerConn struct {
 	writeBuffer *bytes.Buffer
 	uploadTimer *time.Timer
 	writerCond  sync.Cond
+
+	pex pexConnState
 }
 
 func (cn *PeerConn) connStatusString() string {
@@ -355,6 +356,9 @@ func (cn *PeerConn) _close() {
 	if cn.conn != nil {
 		cn.conn.Close()
 	}
+	if cb := cn.t.cl.config.Callbacks.PeerConnClosed; cb != nil {
+		cb(cn)
+	}
 }
 
 func (cn *peer) peerHasPiece(piece pieceIndex) bool {
@@ -392,7 +396,7 @@ func (cn *PeerConn) requestMetadataPiece(index int) {
 	if index < len(cn.metadataRequests) && cn.metadataRequests[index] {
 		return
 	}
-	cn.logger.Printf("requesting metadata piece %d", index)
+	cn.logger.WithDefaultLevel(log.Debug).Printf("requesting metadata piece %d", index)
 	cn.post(pp.Message{
 		Type:       pp.Extended,
 		ExtendedID: eID,
@@ -670,7 +674,7 @@ func (cn *PeerConn) writer(keepAliveTimeout time.Duration) {
 			keepAliveTimer.Reset(keepAliveTimeout)
 		}
 		if err != nil {
-			cn.logger.Printf("error writing: %v", err)
+			cn.logger.WithDefaultLevel(log.Debug).Printf("error writing: %v", err)
 			return
 		}
 		if n != frontBuf.Len() {
@@ -1341,7 +1345,7 @@ func (c *peer) receiveChunk(msg *pp.Message) error {
 	piece.decrementPendingWrites()
 
 	if err != nil {
-		c.logger.Printf("error writing received chunk %v: %v", req, err)
+		c.logger.WithDefaultLevel(log.Error).Printf("writing received chunk %v: %v", req, err)
 		t.pendRequest(req)
 		//t.updatePieceCompletion(pieceIndex(msg.Index))
 		t.onWriteChunkErr(err)
@@ -1429,20 +1433,23 @@ another:
 			}
 			more, err := c.sendChunk(r, msg)
 			if err != nil {
+				c.logger.WithDefaultLevel(log.Warning).Printf("sending chunk to peer: %v", err)
 				i := pieceIndex(r.Index)
 				if c.t.pieceComplete(i) {
+					// There used to be more code here that just duplicated the following break.
+					// Piece completions are currently cached, so I'm not sure how helpful this
+					// update is, except to pull any completion changes pushed to the storage
+					// backend in failed reads that got us here.
 					c.t.updatePieceCompletion(i)
-					if !c.t.pieceComplete(i) {
-						// We had the piece, but not anymore.
-						break another
-					}
 				}
-				log.Str("error sending chunk to peer").AddValues(c, r, err).Log(c.t.logger)
-				// If we failed to send a chunk, choke the peer to ensure they
-				// flush all their requests. We've probably dropped a piece,
-				// but there's no way to communicate this to the peer. If they
-				// ask for it again, we'll kick them to allow us to send them
-				// an updated bitfield.
+				// If we failed to send a chunk, choke the peer by breaking out of the loop here to
+				// ensure they flush all their requests. We've probably dropped a piece from
+				// storage, but there's no way to communicate this to the peer. If they ask for it
+				// again, we'll kick them to allow us to send them an updated bitfield on the next
+				// connect.
+				if c.choking {
+					c.logger.WithDefaultLevel(log.Warning).Printf("already choking peer, requests might not be rejected correctly")
+				}
 				break another
 			}
 			delete(c.peerRequests, r)
@@ -1553,7 +1560,7 @@ func (c *PeerConn) setTorrent(t *Torrent) {
 		panic("connection already associated with a torrent")
 	}
 	c.t = t
-	c.logger.Printf("torrent=%v", t)
+	c.logger.WithDefaultLevel(log.Debug).Printf("set torrent=%v", t)
 	t.reconcileHandshakeStats(c)
 }
 
