@@ -91,15 +91,21 @@ func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *eve
 // and halt your mining operation for as long as the DOS continues.
 func (miner *Miner) update() {
 	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{})
-	defer events.Unsubscribe()
+	defer func() {
+		if !events.Closed() {
+			events.Unsubscribe()
+		}
+	}()
 
 	shouldStart := false
 	canStart := true
+	dlEventCh := events.Chan()
 	for {
 		select {
-		case ev := <-events.Chan():
+		case ev := <-dlEventCh:
 			if ev == nil {
-				return
+				dlEventCh = nil
+				continue
 			}
 			switch ev.Data.(type) {
 			case downloader.StartEvent:
@@ -111,12 +117,19 @@ func (miner *Miner) update() {
 					shouldStart = true
 					log.Info("Mining aborted due to sync")
 				}
-			case downloader.DoneEvent, downloader.FailedEvent:
+			case downloader.FailedEvent:
 				canStart = true
 				if shouldStart {
 					miner.SetCoinbase(miner.coinbase)
 					miner.worker.start()
 				}
+			case downloader.DoneEvent:
+				canStart = true
+				if shouldStart {
+					miner.SetCoinbase(miner.coinbase)
+					miner.worker.start()
+				}
+				events.Unsubscribe()
 			}
 		case addr := <-miner.startCh:
 			if canStart {
