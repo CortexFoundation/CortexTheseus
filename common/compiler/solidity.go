@@ -1,20 +1,20 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2015 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package compiler wraps the Solidity compiler executable (solc).
+// Package compiler wraps the Solidity and Vyper compiler executables (solc; vyper).
 package compiler
 
 import (
@@ -36,18 +36,22 @@ type Solidity struct {
 // --combined-output format
 type solcOutput struct {
 	Contracts map[string]struct {
-		Bin, Abi, Devdoc, Userdoc, Metadata string
+		BinRuntime                                  string `json:"bin-runtime"`
+		SrcMapRuntime                               string `json:"srcmap-runtime"`
+		Bin, SrcMap, Abi, Devdoc, Userdoc, Metadata string
+		Hashes                                      map[string]string
 	}
 	Version string
 }
 
 func (s *Solidity) makeArgs() []string {
 	p := []string{
-		"--combined-json", "bin,abi,userdoc,devdoc",
-		"--optimize", // code optimizer switched on
+		"--combined-json", "bin,bin-runtime,srcmap,srcmap-runtime,abi,userdoc,devdoc",
+		"--optimize",                  // code optimizer switched on
+		"--allow-paths", "., ./, ../", // default to support relative paths
 	}
 	if s.Major > 0 || s.Minor > 4 || s.Patch > 6 {
-		p[1] += ",metadata"
+		p[1] += ",metadata,hashes"
 	}
 	return p
 }
@@ -130,7 +134,7 @@ func (s *Solidity) run(cmd *exec.Cmd, source string) (map[string]*Contract, erro
 // provided source, language and compiler version, and compiler options are all
 // passed through into the Contract structs.
 //
-// The solc output is expected to contain ABI, user docs, and dev docs.
+// The solc output is expected to contain ABI, source mapping, user docs, and dev docs.
 //
 // Returns an error if the JSON is malformed or missing data, or if the JSON
 // embedded within the JSON is malformed.
@@ -139,7 +143,6 @@ func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion strin
 	if err := json.Unmarshal(combinedJSON, &output); err != nil {
 		return nil, err
 	}
-
 	// Compilation succeeded, assemble and return the contracts.
 	contracts := make(map[string]*Contract)
 	for name, info := range output.Contracts {
@@ -148,22 +151,22 @@ func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion strin
 		if err := json.Unmarshal([]byte(info.Abi), &abi); err != nil {
 			return nil, fmt.Errorf("solc: error reading abi definition (%v)", err)
 		}
-		var userdoc interface{}
-		if err := json.Unmarshal([]byte(info.Userdoc), &userdoc); err != nil {
-			return nil, fmt.Errorf("solc: error reading user doc: %v", err)
-		}
-		var devdoc interface{}
-		if err := json.Unmarshal([]byte(info.Devdoc), &devdoc); err != nil {
-			return nil, fmt.Errorf("solc: error reading dev doc: %v", err)
-		}
+		var userdoc, devdoc interface{}
+		json.Unmarshal([]byte(info.Userdoc), &userdoc)
+		json.Unmarshal([]byte(info.Devdoc), &devdoc)
+
 		contracts[name] = &Contract{
-			Code: "0x" + info.Bin,
+			Code:        "0x" + info.Bin,
+			RuntimeCode: "0x" + info.BinRuntime,
+			Hashes:      info.Hashes,
 			Info: ContractInfo{
 				Source:          source,
 				Language:        "Solidity",
 				LanguageVersion: languageVersion,
 				CompilerVersion: compilerVersion,
 				CompilerOptions: compilerOptions,
+				SrcMap:          info.SrcMap,
+				SrcMapRuntime:   info.SrcMapRuntime,
 				AbiDefinition:   abi,
 				UserDoc:         userdoc,
 				DeveloperDoc:    devdoc,

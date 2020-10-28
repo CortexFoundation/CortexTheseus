@@ -20,6 +20,10 @@ type webseedPeer struct {
 
 var _ peerImpl = (*webseedPeer)(nil)
 
+func (me *webseedPeer) connStatusString() string {
+	return me.client.Url
+}
+
 func (ws *webseedPeer) String() string {
 	return fmt.Sprintf("webseed peer for %q", ws.client.Url)
 }
@@ -72,7 +76,11 @@ func (ws *webseedPeer) requestResultHandler(r request, webseedRequest webseed.Re
 	defer ws.peer.t.cl.unlock()
 	if result.Err != nil {
 		ws.peer.logger.Printf("request %v rejected: %v", r, result.Err)
-		if strings.Contains(errors.Cause(result.Err).Error(), "unsupported protocol scheme") {
+		// Always close for now. We need to filter out temporary errors, but this is a nightmare in
+		// Go. Currently a bad webseed URL can starve out the good ones due to the chunk selection
+		// algorithm.
+		const closeOnAllErrors = false
+		if closeOnAllErrors || strings.Contains(errors.Cause(result.Err).Error(), "unsupported protocol scheme") {
 			ws.peer.close()
 		} else {
 			ws.peer.remoteRejectedRequest(r)

@@ -134,6 +134,7 @@ var (
 		utils.GpoPercentileFlag,
 		configFileFlag,
 		// utils.ModelCallInterfaceFlag,
+		utils.GpoMaxGasPriceFlag,
 		utils.CWASMInterpreterFlag,
 		utils.CVMInterpreterFlag,
 	}
@@ -158,7 +159,7 @@ var (
 		utils.StorageDisableTCPFlag,
 		utils.StorageFullFlag,
 		utils.StorageModeFlag,
-		//utils.StorageBoostFlag,
+		utils.StorageBoostFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -174,8 +175,8 @@ var (
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
-		utils.RPCGlobalGasCap,
-		utils.RPCGlobalTxFeeCap,
+		utils.RPCGlobalGasCapFlag,
+		utils.RPCGlobalTxFeeCapFlag,
 	}
 
 	whisperFlags = []cli.Flag{
@@ -214,6 +215,7 @@ func init() {
 		removedbCommand,
 		// dumpCommand,
 		dumpGenesisCommand,
+		inspectCommand,
 		// See monitorcmd.go:
 		// monitorCommand,
 		// See accountcmd.go:

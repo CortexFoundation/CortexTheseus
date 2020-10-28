@@ -196,6 +196,7 @@ func cvmServer(ctx *cli.Context) error {
 	//	fsCfg.FullSeed = true
 	//}
 	fsCfg.Boost = ctx.GlobalBool(utils.StorageBoostFlag.Name)
+	log.Warn("fsCfg.DataDir", "fsCfg.DataDir", fsCfg.DataDir)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Debug("Cvm Server", "fs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
 	storagefs, fsErr := torrentfs.New(&fsCfg, true, false, true)

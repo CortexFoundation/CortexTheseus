@@ -222,9 +222,9 @@ func (b *bridge) Sign(call jsre.Call) (goja.Value, error) {
 	}
 
 	// Send the request to the backend and return
-	sign, callable := goja.AssertFunction(getJctxc(call.VM).Get("unlockAccount"))
+	sign, callable := goja.AssertFunction(getJctxc(call.VM).Get("sign"))
 	if !callable {
-		return nil, fmt.Errorf("jctxc.unlockAccount is not callable")
+		return nil, fmt.Errorf("jctxc.sign is not callable")
 	}
 	return sign(goja.Null(), message, account, passwd)
 }
@@ -267,15 +267,15 @@ func (b *bridge) SleepBlocks(call jsre.Call) (goja.Value, error) {
 		}
 		sleep = call.Argument(1).ToInteger()
 	}
-	// Poll the current block number until either it ot a timeout is reached
-	var (
-		deadline   = time.Now().Add(time.Duration(sleep) * time.Second)
-		lastNumber = ^hexutil.Uint64(0)
-	)
+	// Poll the current block number until either it or a timeout is reached.
+	deadline := time.Now().Add(time.Duration(sleep) * time.Second)
+	var lastNumber hexutil.Uint64
+	if err := b.client.Call(&lastNumber, "ctxc_blockNumber"); err != nil {
+		return nil, err
+	}
 	for time.Now().Before(deadline) {
 		var number hexutil.Uint64
-		err := b.client.Call(&number, "ctxc_blockNumber")
-		if err != nil {
+		if err := b.client.Call(&number, "ctxc_blockNumber"); err != nil {
 			return nil, err
 		}
 		if number != lastNumber {

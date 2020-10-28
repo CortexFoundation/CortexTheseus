@@ -62,8 +62,8 @@ type ChainDB struct {
 }
 
 func NewChainDB(config *Config) (*ChainDB, error) {
-
 	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
+		log.Error("Make data dir failed", "err", err, "dir", config.DataDir)
 		return nil, err
 	}
 
@@ -72,6 +72,7 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 		Timeout: time.Second,
 	})
 	if dbErr != nil {
+		log.Error("Open database file failed", "err", dbErr, "dir", config.DataDir)
 		return nil, dbErr
 	}
 	//db.NoSync = true

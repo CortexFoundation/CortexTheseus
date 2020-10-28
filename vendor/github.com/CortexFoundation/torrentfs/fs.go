@@ -43,6 +43,7 @@ type TorrentFS struct {
 
 	nasCache   *lru.Cache
 	queryCache *lru.Cache
+	nasCounter uint64
 }
 
 func (t *TorrentFS) storage() *TorrentManager {
@@ -57,14 +58,20 @@ var inst *TorrentFS = nil
 
 func GetStorage() CortexStorage {
 	if inst == nil {
-		inst, _ = New(&DefaultConfig, true, false, false)
+		//inst, _ = New(&DefaultConfig, true, false, false)
+		log.Warn("Storage instance get failed, should new it first")
 	}
 	return inst //GetTorrentInstance()
 }
 
+var mut sync.Mutex
+
 // New creates a new torrentfs instance with the given configuration.
 func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
+	mut.Lock()
+	defer mut.Unlock()
 	if inst != nil {
+		log.Warn("Storage has been already inited", "storage", inst, "config", config, "cache", cache, "compress", compress, "listen", listen)
 		return inst, nil
 	}
 
@@ -102,6 +109,7 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 					"number":         monitor.currentNumber,
 					"maxMessageSize": inst.MaxMessageSize(),
 					//					"listen":         monitor.listen,
+					"metrics": inst.NasCounter(),
 				},
 			}
 		},
@@ -177,7 +185,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 			}
 			p.peerInfo = info
 		case queryCode:
-			if ProtocolVersion > 1 {
+			if ProtocolVersion > 1 && tfs.config.Mode == LAZY {
 				var info *Query
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
@@ -191,6 +199,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 							return err
 						}
 					}
+					tfs.nasCounter++
 					tfs.queryCache.Add(info.Hash, info.Size)
 				}
 			}
@@ -259,7 +268,7 @@ func (fs *TorrentFS) Available(ctx context.Context, infohash string, rawSize uin
 			if progress, e := fs.chain().GetTorrent(infohash); e == nil {
 				log.Debug("Lazy mode, restarting", "ih", infohash, "request", progress)
 				if e := fs.storage().Search(ctx, infohash, progress, nil); e == nil {
-					log.Warn("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
+					log.Debug("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
 				}
 			} else {
 				log.Warn("Unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)))
@@ -329,4 +338,8 @@ func (fs *TorrentFS) Congress() int {
 
 func (fs *TorrentFS) Candidate() int {
 	return fs.storage().Candidate()
+}
+
+func (fs *TorrentFS) NasCounter() uint64 {
+	return fs.nasCounter
 }

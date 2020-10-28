@@ -47,8 +47,8 @@ import (
 // Clients contain zero or more Torrents. A Client manages a blocklist, the
 // TCP/UDP protocol ports, and DHT as desired.
 type Client struct {
-	// An aggregate of stats over all connections. First in struct to ensure
-	// 64-bit alignment of fields. See #262.
+	// An aggregate of stats over all connections. First in struct to ensure 64-bit alignment of
+	// fields. See #262.
 	stats ConnStats
 
 	_mu    lockWithDeferreds
@@ -75,8 +75,10 @@ type Client struct {
 
 	acceptLimiter   map[ipStr]int
 	dialRateLimiter *rate.Limiter
+	numHalfOpen     int
 
 	websocketTrackers websocketTrackers
+	activeAnnounces   map[string]struct{}
 }
 
 type ipStr string
@@ -495,7 +497,8 @@ func (cl *Client) acceptConnections(l net.Listener) {
 	}
 }
 
-func regularConnString(nc net.Conn) string {
+// Creates the PeerConn.connString for a regular net.Conn PeerConn.
+func regularNetConnPeerConnConnString(nc net.Conn) string {
 	return fmt.Sprintf("%s-%s", nc.LocalAddr(), nc.RemoteAddr())
 }
 
@@ -505,7 +508,8 @@ func (cl *Client) incomingConnection(nc net.Conn) {
 		tc.SetLinger(0)
 	}
 	c := cl.newConnection(nc, false, nc.RemoteAddr(), nc.RemoteAddr().Network(),
-		regularConnString(nc))
+		regularNetConnPeerConnConnString(nc))
+	defer c.close()
 	c.Discovery = PeerSourceIncoming
 	cl.runReceivedConn(c)
 }
@@ -657,7 +661,10 @@ func (cl *Client) noLongerHalfOpen(t *Torrent, addr string) {
 		panic("invariant broken")
 	}
 	delete(t.halfOpen, addr)
-	t.openNewConns()
+	cl.numHalfOpen--
+	for _, t := range cl.torrents {
+		t.openNewConns()
+	}
 }
 
 // Performs initiator handshakes and returns a connection. Returns nil *connection if no connection
@@ -704,7 +711,7 @@ func (cl *Client) establishOutgoingConnEx(t *Torrent, addr net.Addr, obfuscatedH
 		}
 		return nil, errors.New("dial failed")
 	}
-	c, err := cl.initiateProtocolHandshakes(context.Background(), nc, t, true, obfuscatedHeader, addr, dr.Network, regularConnString(nc))
+	c, err := cl.initiateProtocolHandshakes(context.Background(), nc, t, true, obfuscatedHeader, addr, dr.Network, regularNetConnPeerConnConnString(nc))
 	if err != nil {
 		nc.Close()
 	}
@@ -1031,7 +1038,7 @@ func (cl *Client) gotMetadataExtensionMsg(payload []byte, t *Torrent, c *PeerCon
 			return nil
 		}
 		start := (1 << 14) * piece
-		c.logger.Printf("sending metadata piece %d", piece)
+		c.logger.WithDefaultLevel(log.Debug).Printf("sending metadata piece %d", piece)
 		c.post(t.newMetadataExtensionMessage(c, pp.DataMetadataExtensionMsgType, piece, t.metadataBytes[start:start+t.metadataPieceSize(piece)]))
 		return nil
 	case pp.RejectMetadataExtensionMsgType:
@@ -1143,6 +1150,9 @@ func (cl *Client) AddTorrentInfoHashWithStorage(infoHash metainfo.Hash, specStor
 func (cl *Client) AddTorrentSpec(spec *TorrentSpec) (t *Torrent, new bool, err error) {
 	t, new = cl.AddTorrentInfoHashWithStorage(spec.InfoHash, spec.Storage)
 	err = t.MergeSpec(spec)
+	if err != nil && new {
+		t.Drop()
+	}
 	return
 }
 
@@ -1338,20 +1348,21 @@ func (cl *Client) newConnection(nc net.Conn, outgoing bool, remoteAddr net.Addr,
 
 			RemoteAddr: remoteAddr,
 			network:    network,
-			connString: connString,
 		},
+		connString:  connString,
 		conn:        nc,
 		writeBuffer: new(bytes.Buffer),
+		callbacks:   &cl.config.Callbacks,
 	}
 	c.peerImpl = c
-	c.logger = cl.logger.WithDefaultLevel(log.Debug).WithContextValue(c)
+	c.logger = cl.logger.WithDefaultLevel(log.Warning).WithContextValue(c)
 	c.writerCond.L = cl.locker()
 	c.setRW(connStatsReadWriter{nc, c})
 	c.r = &rateLimitedReader{
 		l: cl.config.DownloadRateLimiter,
 		r: c.r,
 	}
-	c.logger.Printf("initialized with remote %v over network %v (outgoing=%t)", remoteAddr, network, outgoing)
+	c.logger.WithDefaultLevel(log.Debug).Printf("initialized with remote %v over network %v (outgoing=%t)", remoteAddr, network, outgoing)
 	return
 }
 
@@ -1509,4 +1520,10 @@ func (cl *Client) locker() *lockWithDeferreds {
 
 func (cl *Client) String() string {
 	return fmt.Sprintf("<%[1]T %[1]p>", cl)
+}
+
+// Returns connection-level aggregate stats at the Client level. See the comment on
+// TorrentStats.ConnStats.
+func (cl *Client) ConnStats() ConnStats {
+	return cl.stats.Copy()
 }

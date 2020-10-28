@@ -4,8 +4,8 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/inference v0.0.0-20200818033615-078a64a6da58
-	github.com/CortexFoundation/torrentfs v1.0.20-0.20200818033559-d76bd8f4a9f8
+	github.com/CortexFoundation/inference v1.0.1-0.20200912011914-f523c40a423e
+	github.com/CortexFoundation/torrentfs v1.0.20-0.20201015063835-234218da3c6e
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1
@@ -18,8 +18,9 @@ require (
 	github.com/dop251/goja v0.0.0-20200721192441-a695b0cdd498
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
+	github.com/go-resty/resty/v2 v2.3.1-0.20200910235519-3c6c188461e8 // indirect
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
+	github.com/golang/snappy v0.0.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
 	github.com/holiman/uint256 v1.1.1
@@ -45,10 +46,10 @@ require (
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
-	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200814200057-3d37ad5750ed
-	golang.org/x/text v0.3.3
+	golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
+	golang.org/x/text v0.3.4-0.20200826142016-a8b467125457
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce

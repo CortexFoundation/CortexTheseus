@@ -18,6 +18,7 @@ package torrentfs
 
 var BadFiles = map[string]bool{
 	"3edcb8a793887d92db12d53124955681d5c20a43": true,
+	//"7c6ff2ae3b9dfc654c5dec61cc950b70a16431c4": true,
 }
 
 var GoodFiles = map[string]bool{
@@ -30,6 +31,8 @@ var GoodFiles = map[string]bool{
 	"a83dc64f96494b6b6c4f5291196d0ddd2f1a0769": true, //
 	"3f1f6c007e8da3e16f7c3378a20a746e70f1c2b0": true, //
 	"1f1706fa53ce0723ba1c577418b222acbfa5a200": true, //
+
+	"5a49fed84aaf368cbf472cc06e42f93a93d92db5": true,
 
 	"ec6b1f5b5073c07dd35a53a3a13220c1a21e426d": false,
 	"9f222b4afa685d74d82e88972922cc9108a81791": false,
@@ -46,4 +49,25 @@ var GoodFiles = map[string]bool{
 
 	//dolores
 	"de58609743e5cd0cb18798d91a196f418ac25016": true,
+}
+
+func IsGood(hash string) bool {
+	if _, ok := GoodFiles[hash]; ok {
+		return true
+	}
+	return false
+}
+
+func IsBad(hash string) bool {
+	if _, ok := BadFiles[hash]; ok {
+		return true
+	}
+	return false
+}
+
+func IsActive(hash string) bool {
+	if active, ok := GoodFiles[hash]; ok && active {
+		return true
+	}
+	return false
 }

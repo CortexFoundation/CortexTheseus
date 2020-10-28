@@ -35,6 +35,9 @@ cpu: cortex_cpu
 
 mine: cortex_mine
 
+submodule:
+	build/env.sh
+
 clean-miner:
 	rm -fr plugins/*_helper_for_node.so
 
@@ -97,16 +100,16 @@ plugins/cpu_helper_for_node.so:
 	$(MAKE) -C $(BASE)/solution cpu
 	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
-cvm_runtime:
+plugins/libcvm_runtime.so: submodule
 	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
 	@mkdir -p plugins
 	ln -sf ../cvm-runtime/build/libcvm_runtime.so plugins/
 
-clib_cpu: plugins/cpu_helper_for_node.so cvm_runtime
+clib_cpu: plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
-clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so cvm_runtime
+clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_rutime.so
 
-clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so cvm_runtime
+clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
 #inferServer: clib
 #	build/env.sh go run build/ci.go install ./cmd/infer_server
@@ -116,6 +119,8 @@ android:
 	build/env.sh go run build/ci.go aar --local
 	@echo "Done building."
 	@echo "Import \"$(GOBIN)/cortex.aar\" to use the library."
+	@echo "Import \"$(GOBIN)/cortex-sources.jar\" to add javadocs"
+	@echo "For more info see https://stackoverflow.com/questions/20994336/android-studio-how-to-attach-javadoc"
 
 ios:
 	build/env.sh go run build/ci.go xcode --local

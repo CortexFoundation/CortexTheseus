@@ -20,6 +20,10 @@ type trackerScraper struct {
 	u            url.URL
 	t            *Torrent
 	lastAnnounce trackerAnnounceResult
+	allow        func()
+	// The slowdown argument lets us indicate if we think there should be some backpressure on
+	// access to the tracker. It doesn't necessarily have to be used.
+	done func(slowdown bool)
 }
 
 type torrentTrackerAnnouncer interface {
@@ -108,6 +112,11 @@ func (me *trackerScraper) announce(event tracker.AnnounceEvent) (ret trackerAnno
 		ret.Completed = time.Now()
 	}()
 	ret.Interval = time.Minute
+	me.allow()
+	// We might pass true if we got an error. Currently we don't because timing out with a
+	// reasonably long timeout is its own form of backpressure (it remains to be seen if it's
+	// enough).
+	defer me.done(false)
 	ip, err := me.getIp()
 	if err != nil {
 		ret.Err = fmt.Errorf("error getting ip: %s", err)
@@ -116,8 +125,13 @@ func (me *trackerScraper) announce(event tracker.AnnounceEvent) (ret trackerAnno
 	me.t.cl.rLock()
 	req := me.t.announceRequest(event)
 	me.t.cl.rUnlock()
+	// The default timeout is currently 15s, and that works well as backpressure on concurrent
+	// access to the tracker.
+	//ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	//defer cancel()
 	me.t.logger.WithDefaultLevel(log.Debug).Printf("announcing to %q: %#v", me.u.String(), req)
 	res, err := tracker.Announce{
+		//Context:    ctx,
 		HTTPProxy:  me.t.cl.config.HTTPProxy,
 		UserAgent:  me.t.cl.config.HTTPUserAgent,
 		TrackerUrl: me.trackerUrl(ip),
@@ -129,7 +143,7 @@ func (me *trackerScraper) announce(event tracker.AnnounceEvent) (ret trackerAnno
 		ClientIp6:  krpc.NodeAddr{IP: me.t.cl.config.PublicIp6},
 	}.Do()
 	if err != nil {
-		ret.Err = fmt.Errorf("error announcing: %s", err)
+		ret.Err = fmt.Errorf("announcing: %w", err)
 		return
 	}
 	me.t.AddPeers(peerInfos(nil).AppendFromTracker(res.Peers))

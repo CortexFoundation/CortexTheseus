@@ -22,7 +22,6 @@ func Uint64ToBytes(i uint64) []byte {
 func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork) {
 	log.Debug("Available", "Model Hash", inferWork.InfoHash, "rawSize", inferWork.RawSize)
 	if inferWork.InfoHash == "" {
-		log.Warn("info hash is empty")
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
@@ -42,7 +41,6 @@ func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork)
 func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 	log.Debug("Gas Task", "Model Hash", inferWork.Model)
 	if inferWork.Model == "" {
-		log.Warn("model info hash is empty")
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
@@ -52,7 +50,6 @@ func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 	}
 	ret, err := synapse.Engine().GetGasByInfoHashWithSize(model, inferWork.CvmNetworkId)
 	if err != nil {
-		log.Warn("Gas calculate Failed", "error", err)
 		RespErrorText(w, err)
 		return
 	}
@@ -64,12 +61,10 @@ func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 
 func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 	if inferWork.Model == "" {
-		log.Warn("model info hash is empty")
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
 	if inferWork.Input == "" {
-		log.Warn("input info hash is empty")
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
@@ -94,7 +89,6 @@ func infoHashHandler(w http.ResponseWriter, inferWork *inference.IHWork) {
 
 func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	if inferWork.Model == "" {
-		log.Warn("model info hash is empty")
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
 		return
 	}
@@ -121,7 +115,6 @@ func inputContentHandler(w http.ResponseWriter, inferWork *inference.ICWork) {
 	label, err := synapse.Engine().InferByInputContentWithSize(
 		model, inferWork.Input, inferWork.CvmVersion, inferWork.CvmNetworkId)
 	if err != nil {
-		log.Warn("Infer Failed", "error", err)
 		RespErrorText(w, err)
 		return
 	}

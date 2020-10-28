@@ -44,7 +44,6 @@ type peer struct {
 
 	peerImpl
 
-	connString string
 	outgoing   bool
 	network    string
 	RemoteAddr net.Addr
@@ -83,14 +82,11 @@ type peer struct {
 	// response.
 	metadataRequests []bool
 	sentHaves        bitmap.Bitmap
-	pex              pexConnState
 
 	// Stuff controlled by the remote peer.
-	PeerID                PeerID
 	peerInterested        bool
 	peerChoking           bool
 	peerRequests          map[request]struct{}
-	PeerExtensionBytes    pp.PeerExtensionBits
 	PeerPrefersEncryption bool // as indicated by 'e' field in extension handshake
 	PeerListenPort        int
 	// The pieces the peer has claimed to have.
@@ -116,9 +112,17 @@ type peer struct {
 	logger log.Logger
 }
 
-// Maintains the state of a connection with a peer.
+// Maintains the state of a BitTorrent-protocol based connection with a peer.
 type PeerConn struct {
 	peer
+
+	// A string that should identify the PeerConn's net.Conn endpoints. The net.Conn could
+	// be wrapping WebRTC, uTP, or TCP etc. Used in writing the conn status for peers.
+	connString string
+
+	// See BEP 3 etc.
+	PeerID             PeerID
+	PeerExtensionBytes pp.PeerExtensionBits
 
 	// The actual Conn, used for closing, and setting socket options.
 	conn net.Conn
@@ -130,6 +134,14 @@ type PeerConn struct {
 	writeBuffer *bytes.Buffer
 	uploadTimer *time.Timer
 	writerCond  sync.Cond
+
+	pex pexConnState
+
+	callbacks *Callbacks
+}
+
+func (cn *PeerConn) connStatusString() string {
+	return fmt.Sprintf("%+-55q %s %s", cn.PeerID, cn.PeerExtensionBytes, cn.connString)
 }
 
 func (cn *peer) updateExpectingChunks() {
@@ -295,7 +307,7 @@ func (cn *peer) downloadRate() float64 {
 
 func (cn *peer) writeStatus(w io.Writer, t *Torrent) {
 	// \t isn't preserved in <pre> blocks?
-	fmt.Fprintf(w, "%+-55q %s %s\n", cn.PeerID, cn.PeerExtensionBytes, cn.connString)
+	fmt.Fprintln(w, cn.connStatusString())
 	fmt.Fprintf(w, "    last msg: %s, connected: %s, last helpful: %s, itime: %s, etime: %s\n",
 		eventAgeString(cn.lastMessageReceived),
 		eventAgeString(cn.completedHandshake),
@@ -346,6 +358,9 @@ func (cn *PeerConn) _close() {
 	if cn.conn != nil {
 		cn.conn.Close()
 	}
+	if cb := cn.callbacks.PeerConnClosed; cb != nil {
+		cb(cn)
+	}
 }
 
 func (cn *peer) peerHasPiece(piece pieceIndex) bool {
@@ -383,7 +398,7 @@ func (cn *PeerConn) requestMetadataPiece(index int) {
 	if index < len(cn.metadataRequests) && cn.metadataRequests[index] {
 		return
 	}
-	cn.logger.Printf("requesting metadata piece %d", index)
+	cn.logger.WithDefaultLevel(log.Debug).Printf("requesting metadata piece %d", index)
 	cn.post(pp.Message{
 		Type:       pp.Extended,
 		ExtendedID: eID,
@@ -661,7 +676,7 @@ func (cn *PeerConn) writer(keepAliveTimeout time.Duration) {
 			keepAliveTimer.Reset(keepAliveTimeout)
 		}
 		if err != nil {
-			cn.logger.Printf("error writing: %v", err)
+			cn.logger.WithDefaultLevel(log.Debug).Printf("error writing: %v", err)
 			return
 		}
 		if n != frontBuf.Len() {
@@ -1059,7 +1074,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			defer cl.lock()
 			err = decoder.Decode(&msg)
 		}()
-		if cb := cl.config.Callbacks.ReadMessage; cb != nil && err == nil {
+		if cb := c.callbacks.ReadMessage; cb != nil && err == nil {
 			cb(c, &msg)
 		}
 		if t.closed.IsSet() || c.closed.IsSet() {
@@ -1160,8 +1175,9 @@ func (c *PeerConn) mainReadLoop() (err error) {
 }
 
 func (c *peer) remoteRejectedRequest(r request) {
-	c.deleteRequest(r)
-	c.decExpectedChunkReceive(r)
+	if c.deleteRequest(r) {
+		c.decExpectedChunkReceive(r)
+	}
 }
 
 func (c *peer) decExpectedChunkReceive(r request) {
@@ -1195,7 +1211,7 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 			c.logger.Printf("error parsing extended handshake message %q: %s", payload, err)
 			return errors.Wrap(err, "unmarshalling extended handshake payload")
 		}
-		if cb := cl.config.Callbacks.ReadExtendedHandshake; cb != nil {
+		if cb := c.callbacks.ReadExtendedHandshake; cb != nil {
 			cb(c, &d)
 		}
 		//c.logger.WithDefaultLevel(log.Debug).Printf("received extended handshake message:\n%s", spew.Sdump(d))
@@ -1331,7 +1347,7 @@ func (c *peer) receiveChunk(msg *pp.Message) error {
 	piece.decrementPendingWrites()
 
 	if err != nil {
-		c.logger.Printf("error writing received chunk %v: %v", req, err)
+		c.logger.WithDefaultLevel(log.Error).Printf("writing received chunk %v: %v", req, err)
 		t.pendRequest(req)
 		//t.updatePieceCompletion(pieceIndex(msg.Index))
 		t.onWriteChunkErr(err)
@@ -1419,20 +1435,23 @@ another:
 			}
 			more, err := c.sendChunk(r, msg)
 			if err != nil {
+				c.logger.WithDefaultLevel(log.Warning).Printf("sending chunk to peer: %v", err)
 				i := pieceIndex(r.Index)
 				if c.t.pieceComplete(i) {
+					// There used to be more code here that just duplicated the following break.
+					// Piece completions are currently cached, so I'm not sure how helpful this
+					// update is, except to pull any completion changes pushed to the storage
+					// backend in failed reads that got us here.
 					c.t.updatePieceCompletion(i)
-					if !c.t.pieceComplete(i) {
-						// We had the piece, but not anymore.
-						break another
-					}
 				}
-				log.Str("error sending chunk to peer").AddValues(c, r, err).Log(c.t.logger)
-				// If we failed to send a chunk, choke the peer to ensure they
-				// flush all their requests. We've probably dropped a piece,
-				// but there's no way to communicate this to the peer. If they
-				// ask for it again, we'll kick them to allow us to send them
-				// an updated bitfield.
+				// If we failed to send a chunk, choke the peer by breaking out of the loop here to
+				// ensure they flush all their requests. We've probably dropped a piece from
+				// storage, but there's no way to communicate this to the peer. If they ask for it
+				// again, we'll kick them to allow us to send them an updated bitfield on the next
+				// connect.
+				if c.choking {
+					c.logger.WithDefaultLevel(log.Warning).Printf("already choking peer, requests might not be rejected correctly")
+				}
 				break another
 			}
 			delete(c.peerRequests, r)
@@ -1478,7 +1497,12 @@ func (c *peer) deleteRequest(r request) bool {
 	if n < 0 {
 		panic(n)
 	}
-	c.updateRequests()
+	// If a request is rejected, updating the requests for the current peer first will miss the
+	// opportunity to try other peers for that request instead. I'm not sure about the interested
+	// check in the following loop however.
+	if false {
+		c.updateRequests()
+	}
 	c.t.iterPeers(func(_c *peer) {
 		if !_c.interested && _c != c && c.peerHasPiece(pieceIndex(r.Index)) {
 			_c.updateRequests()
@@ -1543,7 +1567,7 @@ func (c *PeerConn) setTorrent(t *Torrent) {
 		panic("connection already associated with a torrent")
 	}
 	c.t = t
-	c.logger.Printf("torrent=%v", t)
+	c.logger.WithDefaultLevel(log.Debug).Printf("set torrent=%v", t)
 	t.reconcileHandshakeStats(c)
 }
 

@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CortexFoundation/CortexTheseus/cmd/devp2p/internal/v4test"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
@@ -97,6 +98,20 @@ var (
 		Name:  "timeout",
 		Usage: "Time limit for the crawl.",
 		Value: 30 * time.Minute,
+	}
+	testPatternFlag = cli.StringFlag{
+		Name:  "run",
+		Usage: "Pattern of test suite(s) to run",
+	}
+	testListen1Flag = cli.StringFlag{
+		Name:  "listen1",
+		Usage: "IP address of the first tester",
+		Value: v4test.Listen1,
+	}
+	testListen2Flag = cli.StringFlag{
+		Name:  "listen2",
+		Usage: "IP address of the second tester",
+		Value: v4test.Listen2,
 	}
 )
 
@@ -235,7 +250,11 @@ func listen(ln *enode.LocalNode, addr string) *net.UDPConn {
 	}
 	usocket := socket.(*net.UDPConn)
 	uaddr := socket.LocalAddr().(*net.UDPAddr)
-	ln.SetFallbackIP(net.IP{127, 0, 0, 1})
+	if uaddr.IP.IsUnspecified() {
+		ln.SetFallbackIP(net.IP{127, 0, 0, 1})
+	} else {
+		ln.SetFallbackIP(uaddr.IP)
+	}
 	ln.SetFallbackUDP(uaddr.Port)
 	return usocket
 }
@@ -243,7 +262,11 @@ func listen(ln *enode.LocalNode, addr string) *net.UDPConn {
 func parseBootnodes(ctx *cli.Context) ([]*enode.Node, error) {
 	s := params.MainnetBootnodes
 	if ctx.IsSet(bootnodesFlag.Name) {
-		s = strings.Split(ctx.String(bootnodesFlag.Name), ",")
+		input := ctx.String(bootnodesFlag.Name)
+		if input == "" {
+			return nil, nil
+		}
+		s = strings.Split(input, ",")
 	}
 	nodes := make([]*enode.Node, len(s))
 	var err error

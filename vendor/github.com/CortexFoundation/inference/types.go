@@ -82,7 +82,8 @@ const (
 	RES_ERROR = "error"
 )
 
+//go:generate gencodec -type InferResult -out gen_result_json.go
 type InferResult struct {
-	Data hexutil.Bytes `json:"data"`
-	Info string        `json:"info"`
+	Data hexutil.Bytes `json:"data" gencodec:"required"`
+	Info string        `json:"info" gencodec:"required"`
 }

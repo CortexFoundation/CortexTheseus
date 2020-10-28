@@ -154,8 +154,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.IPCPathFlag,
 			utils.RPCCORSDomainFlag,
 			utils.RPCVirtualHostsFlag,
-			utils.RPCGlobalGasCap,
-			utils.RPCGlobalTxFeeCap,
+			utils.RPCGlobalGasCapFlag,
+			utils.RPCGlobalTxFeeCapFlag,
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
@@ -221,7 +221,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.StorageDisableTCPFlag,
 			utils.StorageFullFlag,
 			utils.StorageModeFlag,
-			//utils.StorageBoostFlag,
+			utils.StorageBoostFlag,
 		},
 	},
 	{
@@ -229,6 +229,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.GpoBlocksFlag,
 			utils.GpoPercentileFlag,
+			utils.GpoMaxGasPriceFlag,
 		},
 	},
 	{

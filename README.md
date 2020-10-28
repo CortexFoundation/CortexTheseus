@@ -1,6 +1,18 @@
-# Cortex
+## CVM runtime
+https://github.com/CortexFoundation/cvm-runtime
 ## File storage
 https://github.com/CortexFoundation/torrentfs
+```
+git clone https://github.com/CortexFoundation/torrentfs.git
+cd torrentfs
+make && ./build/bin/torrent download 'ih:5a49fed84aaf368cbf472cc06e42f93a93d92db5'
+```
+#### * Make sure you can download the file successfully
+## AI wrapper
+https://github.com/CortexFoundation/inference
+## PoW
+https://github.com/CortexFoundation/solution
+
 ## System Requirements
 ### ubuntu
 Cortex node is developed in Ubuntu 18.04 x64 + CUDA 9.2 + NVIDIA Driver 396.37 environment, with CUDA Compute capability >= 6.1. Latest Ubuntu distributions are also compatible, but not fully tested.

@@ -33,6 +33,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 )
 
 const (
@@ -305,6 +306,7 @@ func (w *worker) isRunning() bool {
 // close terminates all background threads maintained by the worker.
 // Note the worker does not support being closed multiple times.
 func (w *worker) close() {
+	atomic.StoreInt32(&w.running, 0)
 	close(w.exitCh)
 }
 
@@ -714,6 +716,7 @@ func (w *worker) updateSnapshot() {
 		w.current.txs,
 		uncles,
 		w.current.receipts,
+		new(trie.Trie),
 	)
 
 	w.snapshotState = w.current.state.Copy()

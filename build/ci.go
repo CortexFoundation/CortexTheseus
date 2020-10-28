@@ -138,9 +138,9 @@ var (
 		"trusty": "golang-1.14",
 		"xenial": "golang-go",
 		"bionic": "golang-go",
-		"disco":  "golang-go",
 		"eoan":   "golang-go",
 		"focal":  "golang-go",
+		"groovy": "golang-go",
 	}
 
 	debGoBootPaths = map[string]string{
@@ -833,6 +833,7 @@ func doAndroidArchive(cmdline []string) {
 	if *local {
 		// If we're building locally, copy bundle to build dir and skip Maven
 		os.Rename("cortex.aar", filepath.Join(GOBIN, "cortex.aar"))
+		os.Rename("cortex-sources.jar", filepath.Join(GOBIN, "cortex-sources.jar"))
 		return
 	}
 	meta := newMavenMetadata(env)
