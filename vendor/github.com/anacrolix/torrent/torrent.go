@@ -1147,9 +1147,19 @@ func (t *Torrent) updatePieceCompletion(piece pieceIndex) bool {
 
 // Non-blocking read. Client lock is not required.
 func (t *Torrent) readAt(b []byte, off int64) (n int, err error) {
-	p := &t.pieces[off/t.info.PieceLength]
-	p.waitNoPendingWrites()
-	return p.Storage().ReadAt(b, off-p.Info().Offset())
+	for len(b) != 0 {
+		p := &t.pieces[off/t.info.PieceLength]
+		p.waitNoPendingWrites()
+		var n1 int
+		n1, err = p.Storage().ReadAt(b, off-p.Info().Offset())
+		if n1 == 0 {
+			break
+		}
+		off += int64(n1)
+		n += n1
+		b = b[n1:]
+	}
+	return
 }
 
 // Returns an error if the metadata was completed, but couldn't be set for
@@ -1250,8 +1260,12 @@ func (t *Torrent) deleteConnection(c *PeerConn) (ret bool) {
 	}
 	_, ret = t.conns[c]
 	delete(t.conns, c)
-	if !t.cl.config.DisablePEX {
-		t.pex.Drop(c)
+	// Avoid adding a drop event more than once. Probably we should track whether we've generated
+	// the drop event against the PexConnState instead.
+	if ret {
+		if !t.cl.config.DisablePEX {
+			t.pex.Drop(c)
+		}
 	}
 	torrent.Add("deleted connections", 1)
 	c.deleteAllRequests()
@@ -2010,6 +2024,7 @@ func (t *Torrent) onWriteChunkErr(err error) {
 		go t.userOnWriteChunkErr(err)
 		return
 	}
+	t.logger.WithDefaultLevel(log.Critical).Printf("default chunk write error handler: disabling data download")
 	t.disallowDataDownloadLocked()
 }
 
@@ -2024,12 +2039,14 @@ func (t *Torrent) disallowDataDownloadLocked() {
 	t.iterPeers(func(c *peer) {
 		c.updateRequests()
 	})
+	t.tickleReaders()
 }
 
 func (t *Torrent) AllowDataDownload() {
 	t.cl.lock()
 	defer t.cl.unlock()
 	t.dataDownloadDisallowed = false
+	t.tickleReaders()
 	t.iterPeers(func(c *peer) {
 		c.updateRequests()
 	})

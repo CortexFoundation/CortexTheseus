@@ -73,26 +73,15 @@ func (r *reader) SetReadahead(readahead int64) {
 	r.posChanged()
 }
 
-func (r *reader) readable(off int64) (ret bool) {
-	if r.t.closed.IsSet() {
-		return true
-	}
-	req, ok := r.t.offsetRequest(r.torrentOffset(off))
-	if !ok {
-		panic(off)
-	}
-	if r.responsive {
-		return r.t.haveChunk(req)
-	}
-	return r.t.pieceComplete(pieceIndex(req.Index))
-}
-
 // How many bytes are available to read. Max is the most we could require.
 func (r *reader) available(off, max int64) (ret int64) {
 	off += r.offset
 	for max > 0 {
 		req, ok := r.t.offsetRequest(off)
 		if !ok {
+			break
+		}
+		if !r.responsive && !r.t.pieceComplete(pieceIndex(req.Index)) {
 			break
 		}
 		if !r.t.haveChunk(req) {
@@ -137,7 +126,9 @@ func (r *reader) Read(b []byte) (n int, err error) {
 }
 
 func (r *reader) ReadContext(ctx context.Context, b []byte) (n int, err error) {
-	// This is set under the Client lock if the Context is canceled.
+	// This is set under the Client lock if the Context is canceled. I think we coordinate on a
+	// separate variable so as to avoid false negatives with race conditions due to Contexts being
+	// synchronized.
 	var ctxErr error
 	if ctx.Done() != nil {
 		ctx, cancel := context.WithCancel(ctx)
@@ -155,22 +146,19 @@ func (r *reader) ReadContext(ctx context.Context, b []byte) (n int, err error) {
 	// other purposes. That seems reasonable, but unusual.
 	r.opMu.Lock()
 	defer r.opMu.Unlock()
-	for len(b) != 0 {
-		var n1 int
-		n1, err = r.readOnceAt(b, r.pos, &ctxErr)
-		if n1 == 0 {
-			if err == nil {
-				panic("expected error")
-			}
-			break
+	n, err = r.readOnceAt(b, r.pos, &ctxErr)
+	if n == 0 {
+		if err == nil {
+			panic("expected error")
+		} else {
+			return
 		}
-		b = b[n1:]
-		n += n1
-		r.mu.Lock()
-		r.pos += int64(n1)
-		r.posChanged()
-		r.mu.Unlock()
 	}
+
+	r.mu.Lock()
+	r.pos += int64(n)
+	r.posChanged()
+	r.mu.Unlock()
 	if r.pos >= r.length {
 		err = io.EOF
 	} else if err == io.EOF {
@@ -181,15 +169,35 @@ func (r *reader) ReadContext(ctx context.Context, b []byte) (n int, err error) {
 
 // Wait until some data should be available to read. Tickles the client if it
 // isn't. Returns how much should be readable without blocking.
-func (r *reader) waitAvailable(pos, wanted int64, ctxErr *error) (avail int64) {
+func (r *reader) waitAvailable(pos, wanted int64, ctxErr *error, wait bool) (avail int64, err error) {
 	r.t.cl.lock()
 	defer r.t.cl.unlock()
-	for !r.readable(pos) && *ctxErr == nil {
+	for {
+		avail = r.available(pos, wanted)
+		if avail != 0 {
+			return
+		}
+		if r.t.closed.IsSet() {
+			err = errors.New("torrent closed")
+			return
+		}
+		if *ctxErr != nil {
+			err = *ctxErr
+			return
+		}
+		if r.t.dataDownloadDisallowed || !r.t.networkingEnabled {
+			err = errors.New("downloading disabled and data not already available")
+			return
+		}
+		if !wait {
+			return
+		}
 		r.waitReadable(pos)
 	}
-	return r.available(pos, wanted)
 }
 
+// Adds the reader's torrent offset to the reader object offset (for example the reader might be
+// constrainted to a particular file within the torrent).
 func (r *reader) torrentOffset(readerPos int64) int64 {
 	return r.offset + readerPos
 }
@@ -201,21 +209,14 @@ func (r *reader) readOnceAt(b []byte, pos int64, ctxErr *error) (n int, err erro
 		return
 	}
 	for {
-		avail := r.waitAvailable(pos, int64(len(b)), ctxErr)
+		var avail int64
+		avail, err = r.waitAvailable(pos, int64(len(b)), ctxErr, n == 0)
 		if avail == 0 {
-			if r.t.closed.IsSet() {
-				err = errors.New("torrent closed")
-				return
-			}
-			if *ctxErr != nil {
-				err = *ctxErr
-				return
-			}
+			return
 		}
-		pi := pieceIndex(r.torrentOffset(pos) / r.t.info.PieceLength)
-		ip := r.t.info.Piece(pi)
-		po := r.torrentOffset(pos) % r.t.info.PieceLength
-		b1 := missinggo.LimitLen(b, ip.Length()-po, avail)
+		firstPieceIndex := pieceIndex(r.torrentOffset(pos) / r.t.info.PieceLength)
+		firstPieceOffset := r.torrentOffset(pos) % r.t.info.PieceLength
+		b1 := missinggo.LimitLen(b, avail)
 		n, err = r.t.readAt(b1, r.torrentOffset(pos))
 		if n != 0 {
 			err = nil
@@ -225,9 +226,9 @@ func (r *reader) readOnceAt(b []byte, pos int64, ctxErr *error) (n int, err erro
 		// TODO: Just reset pieces in the readahead window. This might help
 		// prevent thrashing with small caches and file and piece priorities.
 		r.log(log.Fstr("error reading torrent %s piece %d offset %d, %d bytes: %v",
-			r.t.infoHash.HexString(), pi, po, len(b1), err))
-		if !r.t.updatePieceCompletion(pi) {
-			r.log(log.Fstr("piece %d completion unchanged", pi))
+			r.t.infoHash.HexString(), firstPieceIndex, firstPieceOffset, len(b1), err))
+		if !r.t.updatePieceCompletion(firstPieceIndex) {
+			r.log(log.Fstr("piece %d completion unchanged", firstPieceIndex))
 		}
 		r.t.cl.unlock()
 	}
