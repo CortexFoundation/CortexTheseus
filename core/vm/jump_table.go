@@ -138,6 +138,7 @@ func newByzantiumInstructionSet() JumpTable {
 		reverts:       true,
 		returns:       true,
 	}
+
 	return instructionSet
 }
 
@@ -145,6 +146,21 @@ func newByzantiumInstructionSet() JumpTable {
 func newSpuriousDragonInstructionSet() JumpTable {
 	instructionSet := newTangerineWhistleInstructionSet()
 	//instructionSet[EXP].gasCost = gasExpEIP158
+
+	instructionSet[INFER] = &operation{
+		execute:       opInfer,
+		gasCost:       gasInfer,
+		validateStack: makeStackFunc(2, 1),
+		writes:        true,
+		returns:       true,
+	}
+	instructionSet[INFERARRAY] = &operation{
+		execute:       opInferArray,
+		gasCost:       gasInferArray,
+		validateStack: makeStackFunc(2, 1),
+		writes:        true,
+		returns:       true,
+	}
 	return instructionSet
 
 }
@@ -821,27 +837,6 @@ func newFrontierInstructionSet() JumpTable {
 			memorySize:    memoryLog,
 			writes:        true,
 		},
-		INFER: {
-			execute:       opInfer,
-			gasCost:       gasInfer,
-			validateStack: makeStackFunc(2, 1),
-			writes:        true,
-			returns:       true,
-		},
-		INFERARRAY: {
-			execute:       opInferArray,
-			gasCost:       gasInferArray,
-			validateStack: makeStackFunc(2, 1),
-			writes:        true,
-			returns:       true,
-		},
-		// NNFORWARD: {
-		// 	execute:       opNNForward,
-		// 	gasCost:       gasInferArray,
-		// 	validateStack: makeStackFunc(3, 1),
-		// 	writes:        true,
-		// 	returns:       true,
-		// },
 		CREATE: {
 			execute:       opCreate,
 			gasCost:       gasCreate,
