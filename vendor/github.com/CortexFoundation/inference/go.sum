@@ -322,8 +322,8 @@ github.com/go-ole/go-ole v1.2.4/go.mod h1:XCwSNxSkXRo4vlyPy93sltvi/qJq0jqQhjqQNI
 github.com/go-resty/resty/v2 v2.3.0-rc.1/go.mod h1:nYW/8rxqQCmI3bPz9Fsmjbr2FBjGuR2Mzt6kDh3zZ7w=
 github.com/go-resty/resty/v2 v2.3.1-0.20200619075926-b87f65ce5ed5/go.mod h1:UpN9CgLZNsv4e9XG50UU8xdI0F43UQ4HmxLBDwaroHU=
 github.com/go-resty/resty/v2 v2.3.1-0.20200717071130-ca7661ad51fe/go.mod h1:UpN9CgLZNsv4e9XG50UU8xdI0F43UQ4HmxLBDwaroHU=
-github.com/go-resty/resty/v2 v2.3.1-0.20200904223602-d2ba00f5a573 h1:+oN+KS1glExF6KCSdHeirKZMkYX81skNJUxX4cckCVM=
-github.com/go-resty/resty/v2 v2.3.1-0.20200904223602-d2ba00f5a573/go.mod h1:UpN9CgLZNsv4e9XG50UU8xdI0F43UQ4HmxLBDwaroHU=
+github.com/go-resty/resty/v2 v2.3.1-0.20201101194733-0de0d7e3240b h1:riGjvvg0wzSPK5P4+M7rWC+Bnk+lS2aaAkvJ/ehDLi4=
+github.com/go-resty/resty/v2 v2.3.1-0.20201101194733-0de0d7e3240b/go.mod h1:UpN9CgLZNsv4e9XG50UU8xdI0F43UQ4HmxLBDwaroHU=
 github.com/go-sourcemap/sourcemap v2.1.3+incompatible/go.mod h1:F8jJfvm2KbVjc5NqelyYJmf/v5J0dwNLS2mL4sNA1Jg=
 github.com/go-sql-driver/mysql v1.4.0/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-sql-driver/mysql v1.4.1/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=

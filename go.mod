@@ -4,8 +4,8 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/inference v1.0.1-0.20200912011914-f523c40a423e
-	github.com/CortexFoundation/torrentfs v1.0.22-0.20201027083059-e279bf02ba7e
+	github.com/CortexFoundation/inference v0.0.0-20201102080229-073cad2812bc
+	github.com/CortexFoundation/torrentfs v1.0.22-0.20201102075250-0b8f8af1a7f8
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1
@@ -20,7 +20,6 @@ require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
-	github.com/go-resty/resty/v2 v2.3.1-0.20200910235519-3c6c188461e8 // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.2
 	github.com/gorilla/websocket v1.4.2
