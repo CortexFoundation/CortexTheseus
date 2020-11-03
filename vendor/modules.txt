@@ -9,11 +9,11 @@ github.com/Azure/azure-pipeline-go/pipeline
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51
 github.com/CortexFoundation/cvm-runtime/kernel
-# github.com/CortexFoundation/inference v1.0.1-0.20200912011914-f523c40a423e
+# github.com/CortexFoundation/inference v0.0.0-20201102080229-073cad2812bc
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.22-0.20201027083059-e279bf02ba7e
+# github.com/CortexFoundation/torrentfs v1.0.22-0.20201102075250-0b8f8af1a7f8
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -27,7 +27,7 @@ github.com/StackExchange/wmi
 # github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 ## explicit
 github.com/VictoriaMetrics/fastcache
-# github.com/allegro/bigcache/v2 v2.2.5-0.20201008072407-d615854748c4
+# github.com/allegro/bigcache/v2 v2.2.5-0.20201027152310-9949a06bb3c9
 github.com/allegro/bigcache/v2
 github.com/allegro/bigcache/v2/queue
 # github.com/anacrolix/dht/v2 v2.6.1
@@ -71,7 +71,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.18.1-0.20201027065655-845d3fbe8f76
+# github.com/anacrolix/torrent v1.18.1-0.20201030084651-17e22516ff59
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -203,8 +203,7 @@ github.com/glycerine/go-unsnap-stream
 # github.com/go-ole/go-ole v1.2.4
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
-# github.com/go-resty/resty/v2 v2.3.1-0.20200910235519-3c6c188461e8
-## explicit
+# github.com/go-resty/resty/v2 v2.3.1-0.20201101194733-0de0d7e3240b
 github.com/go-resty/resty/v2
 # github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 github.com/go-sourcemap/sourcemap
