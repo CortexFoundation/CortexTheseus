@@ -9,7 +9,8 @@ make && ./build/bin/torrent download 'ih:5a49fed84aaf368cbf472cc06e42f93a93d92db
 downloaded ALL the torrents !!!!!!!!!!!!!!!!!!!
 
 *** Make sure you can download the file successfully
-*** Accept in/out traffic of fw settings as possible (40401 40404 5008 both in and out(tcp udp) traffic accepted at least)
+*** Accept in/out traffic of fw settings as possible for stable and fast downloading speed
+(40401 40404 5008 both in and out(tcp udp) traffic accepted at least)
 ```
 ## AI wrapper
 https://github.com/CortexFoundation/inference
