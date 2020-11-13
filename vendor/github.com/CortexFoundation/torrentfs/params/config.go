@@ -25,4 +25,5 @@ const (
 	//TIER         = 3
 	//LEAFS        = 32768
 	LimitSeeding = 2048
+	NEED         = 10
 )

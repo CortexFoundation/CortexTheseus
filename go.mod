@@ -4,8 +4,8 @@ go 1.14
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/inference v0.0.0-20201102080229-073cad2812bc
-	github.com/CortexFoundation/torrentfs v1.0.22-0.20201106032155-4ad4f4e71f52
+	github.com/CortexFoundation/inference v1.0.1-0.20201112093807-daff422741d3
+	github.com/CortexFoundation/torrentfs v1.0.22-0.20201113005907-15fcb186ecf0
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1

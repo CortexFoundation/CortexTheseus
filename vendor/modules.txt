@@ -9,11 +9,11 @@ github.com/Azure/azure-pipeline-go/pipeline
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51
 github.com/CortexFoundation/cvm-runtime/kernel
-# github.com/CortexFoundation/inference v0.0.0-20201102080229-073cad2812bc
+# github.com/CortexFoundation/inference v1.0.1-0.20201112093807-daff422741d3
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.22-0.20201106032155-4ad4f4e71f52
+# github.com/CortexFoundation/torrentfs v1.0.22-0.20201113005907-15fcb186ecf0
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -71,7 +71,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.18.1-0.20201105214402-81224de76217
+# github.com/anacrolix/torrent v1.18.1-0.20201112112517-0c1a506e04a0
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common

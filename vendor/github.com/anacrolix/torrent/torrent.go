@@ -795,10 +795,10 @@ func (t *Torrent) hashPiece(piece pieceIndex) (ret metainfo.Hash, err error) {
 	const logPieceContents = false
 	if logPieceContents {
 		var examineBuf bytes.Buffer
-		err = storagePiece.WriteIncompleteTo(io.MultiWriter(hash, &examineBuf))
+		_, err = storagePiece.WriteTo(io.MultiWriter(hash, &examineBuf))
 		log.Printf("hashed %q with copy err %v", examineBuf.Bytes(), err)
 	} else {
-		err = storagePiece.WriteIncompleteTo(hash)
+		_, err = storagePiece.WriteTo(hash)
 	}
 	missinggo.CopyExact(&ret, hash.Sum(nil))
 	return
@@ -2043,6 +2043,7 @@ func (t *Torrent) AllowDataDownload() {
 	})
 }
 
+// Enables uploading data, if it was disabled.
 func (t *Torrent) AllowDataUpload() {
 	t.cl.lock()
 	defer t.cl.unlock()
@@ -2052,6 +2053,7 @@ func (t *Torrent) AllowDataUpload() {
 	}
 }
 
+// Disables uploading data, if it was enabled.
 func (t *Torrent) DisallowDataUpload() {
 	t.cl.lock()
 	defer t.cl.unlock()
@@ -2061,6 +2063,8 @@ func (t *Torrent) DisallowDataUpload() {
 	}
 }
 
+// Sets a handler that is called if there's an error writing a chunk to local storage. By default,
+// or if nil, a critical message is logged, and data download is disabled.
 func (t *Torrent) SetOnWriteChunkError(f func(error)) {
 	t.cl.lock()
 	defer t.cl.unlock()
