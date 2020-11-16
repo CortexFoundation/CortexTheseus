@@ -90,8 +90,9 @@ func precacheTransaction(config *params.ChainConfig, bc ChainContext, author *co
 		return err
 	}
 	// Create the CVM and execute the transaction
-	context := NewCVMContext(msg, header, bc, author)
-	vm := vm.NewCVM(context, statedb, config, cfg)
+	context := NewCVMBlockContext(header, bc, author)
+	txContext := NewCVMTxContext(msg)
+	vm := vm.NewCVM(context, txContext, statedb, config, cfg)
 
 	_, _, _, _, err = ApplyMessage(vm, msg, gaspool, quotaPool)
 	return err

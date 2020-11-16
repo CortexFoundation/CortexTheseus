@@ -199,12 +199,12 @@ func (st *StateTransition) preCheck() error {
 	if st.uploading() {
 		// log.Debug("state_transition", "uploading", st.uploading(), "st.state.GetNum(st.to())", st.state.GetNum(st.to()))
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
-			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
+			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.Context.BlockNumber)
 			return ErrUnhandleTx
 		}
 
-		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.cvm.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
-			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber, "seeding", params.SeedingBlks)
+		if st.state.GetNum(st.to()).Cmp(new(big.Int).Sub(st.cvm.Context.BlockNumber, big.NewInt(params.SeedingBlks))) > 0 {
+			log.Warn("Not ready for seeding", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.Context.BlockNumber, "seeding", params.SeedingBlks)
 			return ErrUnhandleTx
 		}
 		cost := math2.Uint64Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
@@ -212,7 +212,7 @@ func (st *StateTransition) preCheck() error {
 		// 				  "new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)", new(big.Int).SetUint64(params.PER_UPLOAD_BYTES),
 		// 					"st.state.Upload(st.to())", st.state.Upload(st.to()), "cost", cost, "st.qp", st.qp)
 		if err := st.qp.SubQuota(cost); err != nil {
-			log.Warn("Quota waiting ... ...", "quotapool", st.qp.String(), "cost", st.state.Upload(st.to()), "current", st.cvm.BlockNumber)
+			log.Warn("Quota waiting ... ...", "quotapool", st.qp.String(), "cost", st.state.Upload(st.to()), "current", st.cvm.Context.BlockNumber)
 			return ErrQuotaLimitReached
 		}
 
@@ -287,8 +287,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
-	homestead := st.cvm.ChainConfig().IsHomestead(st.cvm.BlockNumber)
-	istanbul := st.cvm.ChainConfig().IsIstanbul(st.cvm.BlockNumber)
+	homestead := st.cvm.ChainConfig().IsHomestead(st.cvm.Context.BlockNumber)
+	istanbul := st.cvm.ChainConfig().IsIstanbul(st.cvm.Context.BlockNumber)
 	//matureBlockNumber := st.cvm.ChainConfig().GetMatureBlock()
 	contractCreation := msg.To() == nil
 
@@ -338,7 +338,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			return nil, 0, 0, false, vmerr
 		}
 
-		log.Debug("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
+		log.Debug("VM returned with error", "err", vmerr, "number", cvm.Context.BlockNumber, "from", msg.From().Hex())
 
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
@@ -358,7 +358,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	//model gas
 	gu := st.gasUsed()
 	//if (vmerr == nil || vmerr == vm.ErrOutOfGas) && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
-	if vmerr == nil || (st.cvm.ChainConfig().ChainID.Uint64() == 21 && st.cvm.BlockNumber.Cmp(big.NewInt(16000)) < 0 && vmerr == vm.ErrOutOfGas) {
+	if vmerr == nil || (st.cvm.ChainConfig().ChainID.Uint64() == 21 && st.cvm.Context.BlockNumber.Cmp(big.NewInt(16000)) < 0 && vmerr == vm.ErrOutOfGas) {
 		for addr, mgas := range st.modelGas {
 			if mgas > params.MODEL_GAS_UP_LIMIT {
 				continue
@@ -370,13 +370,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 			gu -= mgas
 			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
-			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward, "number", cvm.BlockNumber)
+			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward, "number", cvm.Context.BlockNumber)
 			st.state.AddBalance(addr, reward)
 		}
 	}
 
 	//normal gas
-	st.state.AddBalance(st.cvm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
+	st.state.AddBalance(st.cvm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
 
 	quota := uint64(0) //default used 4 k quota every tx for testing
 	if vmerr == nil && st.uploading() {
@@ -393,13 +393,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			)
 			//if !st.state.Uploading(st.to()) {
 			if remain == 0 {
-				st.state.SetNum(st.to(), st.cvm.BlockNumber)
-				//log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber, "nonce", st.msg.Nonce())
-				log.Debug("Upload OK", "address", st.to().Hex(), "number", cvm.BlockNumber, "nonce", st.msg.Nonce())
+				st.state.SetNum(st.to(), st.cvm.Context.BlockNumber)
+				log.Debug("Upload OK", "address", st.to().Hex(), "number", cvm.Context.BlockNumber, "nonce", st.msg.Nonce())
 				//todo block maturing log
 			} else {
 				//remain = st.state.Upload(st.to()).Uint64()
-				log.Debug("Waiting ...", "address", st.to().Hex(), "number", cvm.BlockNumber, "remain", remain)
+				log.Debug("Waiting ...", "address", st.to().Hex(), "number", cvm.Context.BlockNumber, "remain", remain)
 			}
 			raw := st.state.GetCode(st.to())
 			if cvm.IsModel(raw) {

@@ -70,10 +70,16 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	//if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 	//	misc.ApplyDAOHardFork(statedb)
 	//}
+	blockContext := NewCVMBlockContext(header, p.bc, nil)
+	vmenv := vm.NewCVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
+		msg, err := tx.AsMessage(types.MakeSigner(p.config, header.Number))
+		if err != nil {
+			return nil, nil, 0, err
+		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, qp, statedb, header, tx, usedGas, cfg)
+		receipt, _, err := applyTransaction(msg, p.config, p.bc, nil, gp, qp, statedb, header, tx, usedGas, vmenv)
 		if err != nil {
 			return nil, nil, 0, err
 		}
@@ -95,19 +101,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
-	msg, err := tx.AsMessage(types.MakeSigner(config, header.Number))
-	if err != nil {
-		return nil, 0, err
-	}
+func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cvm *vm.CVM) (*types.Receipt, uint64, error) {
 	// Create a new context to be used in the CVM environment
-	context := NewCVMContext(msg, header, bc, author)
-	// Create a new environment which holds all relevant information
-	// about the transaction and calling mechanisms.
-	vmenv := vm.NewCVM(context, statedb, config, cfg)
-
+	txContext := NewCVMTxContext(msg)
+	// Update the evm with the new transaction context.
+	cvm.Reset(txContext, statedb)
 	// Apply the transaction to the current state (included in the env)
-	_, gas, quota, failed, err := ApplyMessage(vmenv, msg, gp, qp)
+	_, gas, quota, failed, err := ApplyMessage(cvm, msg, gp, qp)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -138,7 +138,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt.GasUsed = gas
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
-		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
+		receipt.ContractAddress = crypto.CreateAddress(cvm.TxContext.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
@@ -148,4 +148,19 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 
 	return receipt, gas, err
+}
+
+// ApplyTransaction attempts to apply a transaction to the given state database
+// and uses the input parameters for its environment. It returns the receipt
+// for the transaction, gas used and an error if the transaction failed,
+// indicating the block was invalid.
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+	msg, err := tx.AsMessage(types.MakeSigner(config, header.Number))
+	if err != nil {
+		return nil, 0, err
+	}
+	// Create a new context to be used in the CVM environment
+	blockContext := NewCVMBlockContext(header, bc, author)
+	vmenv := vm.NewCVM(blockContext, vm.TxContext{}, statedb, config, cfg)
+	return applyTransaction(msg, config, bc, author, gp, qp, statedb, header, tx, usedGas, vmenv)
 }
