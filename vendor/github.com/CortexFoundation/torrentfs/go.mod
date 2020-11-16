@@ -5,7 +5,7 @@ go 1.14
 require (
 	bazil.org/fuse v0.0.0-20200430160008-602fc2ff4a00
 	github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200704025058-f0885ec2bd83
-	github.com/allegro/bigcache/v2 v2.2.5-0.20201027152310-9949a06bb3c9
+	github.com/allegro/bigcache/v2 v2.2.5
 	github.com/anacrolix/envpprof v1.1.0
 	github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d
 	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6

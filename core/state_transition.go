@@ -277,7 +277,6 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		return
 	}
 }*/
-
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
@@ -290,7 +289,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	sender := vm.AccountRef(msg.From())
 	homestead := st.cvm.ChainConfig().IsHomestead(st.cvm.BlockNumber)
 	istanbul := st.cvm.ChainConfig().IsIstanbul(st.cvm.BlockNumber)
-	matureBlockNumber := st.cvm.ChainConfig().GetMatureBlock()
+	//matureBlockNumber := st.cvm.ChainConfig().GetMatureBlock()
 	contractCreation := msg.To() == nil
 
 	/*if st.uploading() {
@@ -395,7 +394,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			//if !st.state.Uploading(st.to()) {
 			if remain == 0 {
 				st.state.SetNum(st.to(), st.cvm.BlockNumber)
-				log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber, "nonce", st.msg.Nonce())
+				//log.Debug("Upload OK", "address", st.to().Hex(), "waiting", matureBlockNumber, "number", cvm.BlockNumber, "nonce", st.msg.Nonce())
+				log.Debug("Upload OK", "address", st.to().Hex(), "number", cvm.BlockNumber, "nonce", st.msg.Nonce())
+				//todo block maturing log
 			} else {
 				//remain = st.state.Upload(st.to()).Uint64()
 				log.Debug("Waiting ...", "address", st.to().Hex(), "number", cvm.BlockNumber, "remain", remain)
