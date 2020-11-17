@@ -1,6 +1,7 @@
-## CVM runtime (AI container)
+## Related projects
+### CVM runtime (AI container)
 https://github.com/CortexFoundation/cvm-runtime
-## File storage
+### File storage
 https://github.com/CortexFoundation/torrentfs
 ```
 git clone https://github.com/CortexFoundation/torrentfs.git
@@ -12,9 +13,9 @@ downloaded ALL the torrents !!!!!!!!!!!!!!!!!!!
 *** Accept in/out traffic of fw settings as possible for stable and fast downloading speed
 (40401 40404 5008 both in and out(tcp udp) traffic accepted at least)
 ```
-## AI wrapper (Fixed API for inference and file storage)
+### AI wrapper (Fixed API for inference and file storage)
 https://github.com/CortexFoundation/inference
-## PoW (Cortex Cuckoo cycle)
+### PoW (Cortex Cuckoo cycle)
 https://github.com/CortexFoundation/solution
 
 ## System Requirements
