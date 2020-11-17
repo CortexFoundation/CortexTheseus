@@ -1,6 +1,6 @@
 ## CVM runtime (AI container)
 https://github.com/CortexFoundation/cvm-runtime
-## File storage (Cortex p2p file storage)
+## File storage
 https://github.com/CortexFoundation/torrentfs
 ```
 git clone https://github.com/CortexFoundation/torrentfs.git
