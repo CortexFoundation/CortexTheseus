@@ -456,14 +456,14 @@ func opBlockhash(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) 
 		return nil, nil
 	}
 	var upper, lower uint64
-	upper = interpreter.cvm.BlockNumber.Uint64()
+	upper = interpreter.cvm.Context.BlockNumber.Uint64()
 	if upper < 257 {
 		lower = 0
 	} else {
 		lower = upper - 256
 	}
 	if num64 >= lower && num64 < upper {
-		num.SetBytes(interpreter.cvm.GetHash(num64).Bytes())
+		num.SetBytes(interpreter.cvm.Context.GetHash(num64).Bytes())
 	} else {
 		num.Clear()
 	}
@@ -471,30 +471,30 @@ func opBlockhash(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) 
 }
 
 func opCoinbase(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	callContext.stack.push(new(uint256.Int).SetBytes(interpreter.cvm.Coinbase.Bytes()))
+	callContext.stack.push(new(uint256.Int).SetBytes(interpreter.cvm.Context.Coinbase.Bytes()))
 	return nil, nil
 }
 
 func opTimestamp(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	v, _ := uint256.FromBig(interpreter.cvm.Time)
+	v, _ := uint256.FromBig(interpreter.cvm.Context.Time)
 	callContext.stack.push(v)
 	return nil, nil
 }
 
 func opNumber(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	v, _ := uint256.FromBig(interpreter.cvm.BlockNumber)
+	v, _ := uint256.FromBig(interpreter.cvm.Context.BlockNumber)
 	callContext.stack.push(v)
 	return nil, nil
 }
 
 func opDifficulty(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	v, _ := uint256.FromBig(interpreter.cvm.Difficulty)
+	v, _ := uint256.FromBig(interpreter.cvm.Context.Difficulty)
 	callContext.stack.push(v)
 	return nil, nil
 }
 
 func opGasLimit(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	callContext.stack.push(new(uint256.Int).SetUint64(interpreter.cvm.GasLimit))
+	callContext.stack.push(new(uint256.Int).SetUint64(interpreter.cvm.Context.GasLimit))
 	return nil, nil
 }
 
@@ -693,12 +693,12 @@ func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*torrentfs.Mo
 	if cvm.StateDB.GetNum(modelAddr).Int64() <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
-	if cvm.StateDB.GetNum(modelAddr).Int64() > cvm.BlockNumber.Int64()-matureBlockNumber {
-		log.Debug("instructions", "modelAddr", modelAddr, "modelAddrBlkNum", cvm.StateDB.GetNum(modelAddr), "Current", cvm.BlockNumber, "MB", matureBlockNumber)
+	if cvm.StateDB.GetNum(modelAddr).Int64() > cvm.Context.BlockNumber.Int64()-matureBlockNumber {
+		log.Debug("instructions", "modelAddr", modelAddr, "modelAddrBlkNum", cvm.StateDB.GetNum(modelAddr), "Current", cvm.Context.BlockNumber, "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 
-	if cvm.StateDB.GetNum(modelAddr).Int64() < cvm.BlockNumber.Int64()-params.ExpiredBlks {
+	if cvm.StateDB.GetNum(modelAddr).Int64() < cvm.Context.BlockNumber.Int64()-params.ExpiredBlks {
 		return nil, errMetaInfoExpired
 	}
 
@@ -728,12 +728,12 @@ func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*torrentf
 	}
 
 	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
-	if cvm.StateDB.GetNum(inputAddr).Int64() > cvm.BlockNumber.Int64()-matureBlockNumber {
-		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.BlockNumber, "Uploading", cvm.StateDB.Uploading(inputAddr), "MB", matureBlockNumber)
+	if cvm.StateDB.GetNum(inputAddr).Int64() > cvm.Context.BlockNumber.Int64()-matureBlockNumber {
+		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.Context.BlockNumber, "Uploading", cvm.StateDB.Uploading(inputAddr), "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 
-	if cvm.StateDB.GetNum(inputAddr).Int64() < cvm.BlockNumber.Int64()-params.ExpiredBlks {
+	if cvm.StateDB.GetNum(inputAddr).Int64() < cvm.Context.BlockNumber.Int64()-params.ExpiredBlks {
 		return nil, errMetaInfoExpired
 	}
 
@@ -1049,7 +1049,7 @@ func makeLog(size int) executionFunc {
 			Data:    d,
 			// This is a non-consensus field, but assigned here because
 			// core/state doesn't know the current block number.
-			BlockNumber: interpreter.cvm.BlockNumber.Uint64(),
+			BlockNumber: interpreter.cvm.Context.BlockNumber.Uint64(),
 		})
 
 		return nil, nil

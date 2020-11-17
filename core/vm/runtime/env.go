@@ -22,18 +22,20 @@ import (
 )
 
 func NewEnv(cfg *Config) *vm.CVM {
-	context := vm.Context{
+	txContext := vm.TxContext{
+		Origin:   cfg.Origin,
+		GasPrice: cfg.GasPrice,
+	}
+	blockContext := vm.BlockContext{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		GetHash:     cfg.GetHashFn,
-		Origin:      cfg.Origin,
 		Coinbase:    cfg.Coinbase,
 		BlockNumber: cfg.BlockNumber,
 		Time:        cfg.Time,
 		Difficulty:  cfg.Difficulty,
 		GasLimit:    cfg.GasLimit,
-		GasPrice:    cfg.GasPrice,
 	}
 
-	return vm.NewCVM(context, cfg.State, cfg.ChainConfig, cfg.CVMConfig)
+	return vm.NewCVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.CVMConfig)
 }
