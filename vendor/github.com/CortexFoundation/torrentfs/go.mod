@@ -8,9 +8,9 @@ require (
 	github.com/allegro/bigcache/v2 v2.2.5
 	github.com/anacrolix/envpprof v1.1.0
 	github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d
-	github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
+	github.com/anacrolix/missinggo/v2 v2.4.1-0.20201115225934-0b235ba7a31c
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.18.1-0.20201112112517-0c1a506e04a0
+	github.com/anacrolix/torrent v1.18.1-0.20201116053711-8ef37cb2e682
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dustin/go-humanize v1.0.0

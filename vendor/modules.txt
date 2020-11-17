@@ -13,7 +13,7 @@ github.com/CortexFoundation/cvm-runtime/kernel
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.22-0.20201113100646-5c9babd3001a
+# github.com/CortexFoundation/torrentfs v1.0.22-0.20201116065915-46a2780ff0cf
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -49,10 +49,9 @@ github.com/anacrolix/missinggo/orderedmap
 github.com/anacrolix/missinggo/pproffd
 github.com/anacrolix/missinggo/pubsub
 github.com/anacrolix/missinggo/slices
-github.com/anacrolix/missinggo/x
 # github.com/anacrolix/missinggo/perf v1.0.0
 github.com/anacrolix/missinggo/perf
-# github.com/anacrolix/missinggo/v2 v2.4.1-0.20200419051441-747d9d7544c6
+# github.com/anacrolix/missinggo/v2 v2.4.1-0.20201115225934-0b235ba7a31c
 github.com/anacrolix/missinggo/v2
 github.com/anacrolix/missinggo/v2/bitmap
 github.com/anacrolix/missinggo/v2/conntrack
@@ -71,7 +70,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.18.1-0.20201112112517-0c1a506e04a0
+# github.com/anacrolix/torrent v1.18.1-0.20201116053711-8ef37cb2e682
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
