@@ -959,8 +959,11 @@ func (cl *Client) sendInitialMessages(conn *PeerConn, torrent *Torrent) {
 					M: map[pp.ExtensionName]pp.ExtensionNumber{
 						pp.ExtensionNameMetadata: metadataExtendedId,
 					},
-					V:            cl.config.ExtendedHandshakeClientVersion,
-					Reqq:         64, // TODO: Really?
+					V: cl.config.ExtendedHandshakeClientVersion,
+					// If peer requests are buffered on read, this instructs the amount of memory
+					// that might be used to cache pending writes. Assuming 512KiB cached for
+					// sending, for 16KiB chunks.
+					Reqq:         1 << 5,
 					YourIp:       pp.CompactIp(addrIpOrNil(conn.RemoteAddr)),
 					Encryption:   cl.config.HeaderObfuscationPolicy.Preferred || !cl.config.HeaderObfuscationPolicy.RequirePreferred,
 					Port:         cl.incomingPeerPort(),
@@ -1164,6 +1167,13 @@ func (cl *Client) AddTorrentSpec(spec *TorrentSpec) (t *Torrent, new bool, err e
 	return
 }
 
+type stringAddr string
+
+var _ net.Addr = stringAddr("")
+
+func (stringAddr) Network() string   { return "" }
+func (me stringAddr) String() string { return string(me) }
+
 // The trackers will be merged with the existing ones. If the Info isn't yet known, it will be set.
 // spec.DisallowDataDownload/Upload will be read and applied
 // The display name is replaced if the new spec provides one. Note that any `Storage` is ignored.
@@ -1184,6 +1194,13 @@ func (t *Torrent) MergeSpec(spec *TorrentSpec) error {
 	useTorrentSources(spec.Sources, t)
 	for _, url := range spec.Webseeds {
 		t.addWebSeed(url)
+	}
+	for _, peerAddr := range spec.PeerAddrs {
+		t.addPeer(PeerInfo{
+			Addr:    stringAddr(peerAddr),
+			Source:  PeerSourceDirect,
+			Trusted: true,
+		})
 	}
 	if spec.ChunkSize != 0 {
 		t.setChunkSize(pp.Integer(spec.ChunkSize))
