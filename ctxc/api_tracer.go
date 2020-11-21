@@ -139,7 +139,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 
 	// Ensure we have a valid starting state before doing any work
 	origin := start.NumberU64()
-	database := state.NewDatabaseWithCache(api.ctxc.ChainDb(), 16, "") // Chain tracing will probably start at genesis
+	database := state.NewDatabaseWithConfig(api.ctxc.ChainDb(), &trie.Config{Cache: 16, Preimages: true})
 
 	if number := start.NumberU64(); number > 0 {
 		start = api.ctxc.blockchain.GetBlock(start.ParentHash(), start.NumberU64()-1)
@@ -482,7 +482,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 	}
 	// Otherwise try to reexec blocks until we find a state or reach our limit
 	origin := block.NumberU64()
-	database := state.NewDatabaseWithCache(api.ctxc.ChainDb(), 16, "")
+	database := state.NewDatabaseWithConfig(api.ctxc.ChainDb(), &trie.Config{Cache: 16, Preimages: true})
 
 	for i := uint64(0); i < reexec; i++ {
 		block = api.ctxc.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1)
