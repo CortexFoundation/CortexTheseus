@@ -6,7 +6,7 @@ https://github.com/CortexFoundation/torrentfs
 ```
 git clone https://github.com/CortexFoundation/torrentfs.git
 cd torrentfs
-make && ./build/bin/torrent download 'ih:5a49fed84aaf368cbf472cc06e42f93a93d92db5'
+make && ./build/bin/torrent download 'ih:6b75cc1354495ec763a6b295ee407ea864a0c292'
 downloaded ALL the torrents !!!!!!!!!!!!!!!!!!!
 
 *** Make sure you can download the file successfully
