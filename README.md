@@ -78,7 +78,7 @@ And then, run any command to start full node `cortex`:
 
 ```Bash
 1. cd CortexTheseus
-2. export LD_LIBRARY_PATH=$PWD/plugins:$LD_LIBRARY_PATH
+2. export LD_LIBRARY_PATH=$PWD:$PWD/plugins:$LD_LIBRARY_PATH
 3. ./build/bin/cortex
 
 It is easy for you to view the help document by running ./build/bin/cortex --help
