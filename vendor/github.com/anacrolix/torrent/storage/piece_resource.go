@@ -6,6 +6,7 @@ import (
 	"path"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/anacrolix/missinggo/v2/resource"
 
@@ -61,10 +62,14 @@ func (s piecePerResourcePiece) WriteTo(w io.Writer) (int64, error) {
 		if s.mustIsComplete() {
 			return ccw.WriteConsecutiveChunks(s.completedInstancePath(), w)
 		} else {
-			return ccw.WriteConsecutiveChunks(s.incompleteDirPath()+"/", w)
+			return s.writeConsecutiveIncompleteChunks(ccw, w)
 		}
 	}
 	return io.Copy(w, io.NewSectionReader(s, 0, s.mp.Length()))
+}
+
+func (s piecePerResourcePiece) writeConsecutiveIncompleteChunks(ccw ConsecutiveChunkWriter, w io.Writer) (int64, error) {
+	return ccw.WriteConsecutiveChunks(s.incompleteDirPath()+"/", w)
 }
 
 // Returns if the piece is complete. Ok should be true, because we are the definitive source of
@@ -87,11 +92,27 @@ func (s piecePerResourcePiece) Completion() Completion {
 
 func (s piecePerResourcePiece) MarkComplete() error {
 	incompleteChunks := s.getChunks()
-	err := s.completed().Put(io.NewSectionReader(incompleteChunks, 0, s.mp.Length()))
-	if err == nil {
-		for _, c := range incompleteChunks {
-			c.instance.Delete()
+	r, w := io.Pipe()
+	go func() {
+		var err error
+		if ccw, ok := s.rp.(ConsecutiveChunkWriter); ok {
+			_, err = s.writeConsecutiveIncompleteChunks(ccw, w)
+		} else {
+			_, err = io.Copy(w, io.NewSectionReader(incompleteChunks, 0, s.mp.Length()))
 		}
+		w.CloseWithError(err)
+	}()
+	err := s.completed().Put(r)
+	if err == nil {
+		var wg sync.WaitGroup
+		for _, c := range incompleteChunks {
+			wg.Add(1)
+			go func(c chunk) {
+				defer wg.Done()
+				c.instance.Delete()
+			}(c)
+		}
+		wg.Wait()
 	}
 	return err
 }
