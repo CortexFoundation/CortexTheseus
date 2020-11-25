@@ -549,6 +549,11 @@ func (tm *TorrentManager) seedingLoop() {
 					tm.graceSeeding(tm.slot)
 				}
 			}
+
+			if active, ok := GoodFiles[t.InfoHash()]; !ok {
+				log.Warn("New active nas found", "ih", t.InfoHash(), "ok", ok, "active", active)
+			}
+
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
 			return
@@ -871,8 +876,8 @@ func (tm *TorrentManager) activeLoop() {
 			}
 
 			if counter >= 5*loops {
-				if len(tm.seedingTorrents) < params.NEED {
-					log.Warn(ProgressBar(int64(len(tm.seedingTorrents)), params.NEED, "Network scanning"), "mode", tm.mode, "open needed ports", "40401,5008,40404")
+				if len(tm.seedingTorrents) < len(GoodFiles) && tm.mode != LAZY {
+					log.Warn(ProgressBar(int64(len(tm.seedingTorrents)), int64(len(GoodFiles)), "Network scanning"), "mode", tm.mode, "ports", "40401,5008,40404", "seeding", len(tm.seedingTorrents), "expected", len(GoodFiles))
 				} else {
 					if tm.cache {
 						log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "slot", tm.slot, "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len(), "stats", tm.fileCache.Stats(), "len", tm.fileCache.Len(), "capacity", common.StorageSize(tm.fileCache.Capacity()).String())
