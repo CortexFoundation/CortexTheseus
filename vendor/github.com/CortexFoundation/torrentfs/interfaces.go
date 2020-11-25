@@ -21,8 +21,8 @@ import (
 )
 
 type CortexStorage interface {
-	Available(ctx context.Context, infohash string, rawSize uint64) (bool, error)
-	GetFile(ctx context.Context, infohash, path string) ([]byte, error)
+	//Available(ctx context.Context, infohash string, rawSize uint64) (bool, error)
+	//GetFile(ctx context.Context, infohash, path string) ([]byte, error)
 	GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, path string) ([]byte, error)
 	Stop() error
 
