@@ -9,7 +9,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51
 github.com/CortexFoundation/cvm-runtime/kernel
-# github.com/CortexFoundation/inference v1.0.1-0.20201112093807-daff422741d3
+# github.com/CortexFoundation/inference v0.0.0-20201125090415-73e69f3d0ef4
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
