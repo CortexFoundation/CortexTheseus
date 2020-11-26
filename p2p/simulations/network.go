@@ -454,9 +454,8 @@ func (net *Network) getNodeIDs(excludeIDs []enode.ID) []enode.ID {
 	if len(excludeIDs) > 0 {
 		// Return the difference of nodeIDs and excludeIDs
 		return filterIDs(nodeIDs, excludeIDs)
-	} else {
-		return nodeIDs
 	}
+	return nodeIDs
 }
 
 // GetNodes returns the existing nodes.
