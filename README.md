@@ -49,7 +49,7 @@ export LD_LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LD_LI
 export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_PATH
 ```
 - nvidia driver 396.37+ reference: https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#major-components
-- ubuntu 16.04+
+- ubuntu 18.04+
 ### centos
 Recommend:
 - cmake 3.11.0+
