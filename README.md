@@ -31,10 +31,10 @@ tar zxvf cmake-3.11.0-rc4-Linux-x86_64.tar.gz
 sudo mv cmake-3.11.0-rc4-Linux-x86_64  /opt/cmake-3.11
 sudo ln -sf /opt/cmake-3.11/bin/*  /usr/bin/
  ```
-- go 1.14.x
+- go 1.15.5+
 ```
-wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.14.2.linux-amd64.tar.gz
+wget https://dl.google.com/go/go1.15.5.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.15.5.linux-amd64.tar.gz
 echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
 source ~/.bashrc
 ```
@@ -53,7 +53,7 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 ### centos
 Recommend:
 - cmake 3.11.0+
-- go 1.14.x
+- go 1.15.5+
 - gcc/g++ 5.4+ reference: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#system-requirements
 - cuda 10.1+ (if u have gpu)
 ```
