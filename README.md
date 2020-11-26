@@ -49,7 +49,7 @@ export LD_LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LD_LI
 export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_PATH
 ```
 - nvidia driver 396.37+ reference: https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#major-components
-- ubuntu 16.04+
+- ubuntu 18.04+
 ### centos
 Recommend:
 - cmake 3.11.0+
@@ -78,7 +78,7 @@ And then, run any command to start full node `cortex`:
 
 ```Bash
 1. cd CortexTheseus
-2. export LD_LIBRARY_PATH=$PWD/cvm-runtime/build/cpu/:$PWD/cvm-runtime/build/gpu:$LD_LIBRARY_PATH
+2. export LD_LIBRARY_PATH=$PWD:$PWD/plugins:$LD_LIBRARY_PATH
 3. ./build/bin/cortex
 
 It is easy for you to view the help document by running ./build/bin/cortex --help
