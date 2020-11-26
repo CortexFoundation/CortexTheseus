@@ -454,9 +454,17 @@ func (t *UDPv5) call(node *enode.Node, responseType byte, packet v5wire.Packet) 
 
 // callDone tells dispatch that the active call is done.
 func (t *UDPv5) callDone(c *callV5) {
-	select {
-	case t.callDoneCh <- c:
-	case <-t.closeCtx.Done():
+	for {
+		select {
+		case <-c.ch:
+			// late response, discard.
+		case <-c.err:
+			// late error, discard.
+		case t.callDoneCh <- c:
+			return
+		case <-t.closeCtx.Done():
+			return
+		}
 	}
 }
 
