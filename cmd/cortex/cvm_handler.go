@@ -19,7 +19,7 @@ func Uint64ToBytes(i uint64) []byte {
 	return buf
 }
 
-func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork) {
+/*func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork) {
 	log.Debug("Available", "Model Hash", inferWork.InfoHash, "rawSize", inferWork.RawSize)
 	if inferWork.InfoHash == "" {
 		RespErrorText(w, synapse.KERNEL_RUNTIME_ERROR)
@@ -36,7 +36,7 @@ func AvailableHandler(w http.ResponseWriter, inferWork *inference.AvailableWork)
 		log.Debug("File avaiable", "hash", inferWork.InfoHash)
 		RespInfoText(w, retArr)
 	}
-}
+}*/
 
 func gasHandler(w http.ResponseWriter, inferWork *inference.GasWork) {
 	log.Debug("Gas Task", "Model Hash", inferWork.Model)

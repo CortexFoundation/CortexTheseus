@@ -212,7 +212,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	return result, nil
 }
 
-func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64) error {
+/*func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64) error {
 	if !common.IsHexAddress(infoHash) {
 		return KERNEL_RUNTIME_ERROR
 	}
@@ -235,7 +235,7 @@ func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64)
 	}
 	log.Debug("File available", "info hash", infoHash)
 	return nil
-}
+}*/
 
 func (s *Synapse) download(infohash string, request uint64) error {
 	if !common.IsHexAddress(infohash) {
