@@ -550,7 +550,7 @@ func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 	//contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
 	//	return cvm.create(caller, code, gas, endowment, contractAddr)
 	codeAndHash := &codeAndHash{code: code}
-	contractAddr = crypto.CreateAddress2(caller.Address(), common.Hash(salt.Bytes32()), codeAndHash.Hash().Bytes())
+	contractAddr = crypto.CreateAddress2(caller.Address(), salt.Bytes32(), codeAndHash.Hash().Bytes())
 	return cvm.create(caller, codeAndHash, gas, endowment, contractAddr)
 }
 

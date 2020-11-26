@@ -391,7 +391,7 @@ func (s *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byt
 func (s *StateDB) GetProof(a common.Address) ([][]byte, error) {
 	var proof proofList
 	err := s.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
-	return [][]byte(proof), err
+	return proof, err
 }
 
 // GetProof returns the StorageProof for given key
@@ -402,7 +402,7 @@ func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, 
 		return proof, errors.New("storage trie for requested address does not exist")
 	}
 	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
-	return [][]byte(proof), err
+	return proof, err
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
