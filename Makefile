@@ -14,8 +14,8 @@
 BASE = $(shell pwd)
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
-LIB_MINER_DIR = $(shell pwd)/solution/
-INFER_NET_DIR = $(shell pwd)/cvm-runtime/
+LIB_MINER_DIR = $(shell pwd)/solution
+INFER_NET_DIR = $(shell pwd)/cvm-runtime
 
 # Curkoo algorithm dynamic library path
 OS = $(shell uname)
@@ -103,7 +103,7 @@ plugins/cpu_helper_for_node.so:
 plugins/libcvm_runtime.so: submodule
 	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
 	@mkdir -p plugins
-	ln -sf ../cvm-runtime/build/libcvm_runtime.so $@
+	ln -sf ${INFER_NET_DIR}/build/libcvm_runtime.so $@
 	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
