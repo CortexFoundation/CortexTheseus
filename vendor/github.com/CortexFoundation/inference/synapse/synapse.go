@@ -88,7 +88,7 @@ func New(config *Config) *Synapse {
 			if config.Debug {
 				fmt.Println("infer helper", "init cvm plugin error", "")
 			}
-			return nil
+			//return nil
 		}
 		if lib == nil {
 			panic("lib_path = " + PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX + " config.IsRemoteInfer = " + strconv.FormatBool(config.IsRemoteInfer))
