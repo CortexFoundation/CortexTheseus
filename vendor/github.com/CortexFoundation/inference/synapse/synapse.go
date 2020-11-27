@@ -10,7 +10,7 @@ import (
 	"github.com/CortexFoundation/torrentfs"
 	resty "github.com/go-resty/resty/v2"
 	"math/big"
-	"strconv"
+	//"strconv"
 	"sync"
 )
 
@@ -83,15 +83,24 @@ func New(config *Config) *Synapse {
 	if !config.IsRemoteInfer {
 		path := PLUGIN_PATH + PLUGIN_POST_FIX
 		lib, status = kernel.LibOpen(path)
-		if status != kernel.SUCCEED {
-			log.Error("infer helper", "init cvm plugin error", "")
-			if config.Debug {
-				fmt.Println("infer helper", "init cvm plugin error", "")
-			}
-			//return nil
-		}
-		if lib == nil {
-			panic("lib_path = " + PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX + " config.IsRemoteInfer = " + strconv.FormatBool(config.IsRemoteInfer))
+		//if status != kernel.SUCCEED {
+		//	log.Error("infer helper", "init cvm plugin error", "")
+		//	if config.Debug {
+		//		fmt.Println("infer helper", "init cvm plugin error", "")
+		//	}
+		//}
+		if lib == nil || status != kernel.SUCCEED {
+			//panic("lib_path = " + PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX + " config.IsRemoteInfer = " + strconv.FormatBool(config.IsRemoteInfer))
+			//log.Error("lib_path = " + PLUGIN_PATH + config.DeviceType + PLUGIN_POST_FIX + " config.IsRemoteInfer = " + strconv.FormatBool(config.IsRemoteInfer))
+			log.Error(fmt.Sprintf(`
+########## LIBRARY LOADING FAILED #########
+Path: %v
+
+Device: %v
+
+Error: %v
+##############################
+`, path, config.DeviceType, status))
 		}
 	}
 

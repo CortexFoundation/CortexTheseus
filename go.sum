@@ -49,8 +49,8 @@ github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200704025058-f0885ec2bd83/
 github.com/CortexFoundation/CortexTheseus v1.10.8/go.mod h1:BxMcNBe5UuA9WWMLBdHP5JqpFKyCBZza+6FLSMx7Nhk=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51 h1:JL/iwqos57UPfrYHjC5d4c4LPAyOVLFltubwFf8R12Q=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51/go.mod h1:oLEQaJbHT0SAIVjY90BYPYVikGylXHrPyf1yTPS7HZg=
-github.com/CortexFoundation/inference v1.0.1-0.20201127040800-c192d07234ee h1:GW06R692flrvh4TuaGL2Z/9T4Amxq9Tr/7zI0mvArJg=
-github.com/CortexFoundation/inference v1.0.1-0.20201127040800-c192d07234ee/go.mod h1:bKLa2c/igsJUjrXqkt+layTakQND+YHL832AOyKzVuQ=
+github.com/CortexFoundation/inference v1.0.1-0.20201127090211-70e88bac3700 h1:7kIXrf1u+ztMA7CRMue1hzSczsNMd/z6FinJ+BVV/gw=
+github.com/CortexFoundation/inference v1.0.1-0.20201127090211-70e88bac3700/go.mod h1:bKLa2c/igsJUjrXqkt+layTakQND+YHL832AOyKzVuQ=
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
