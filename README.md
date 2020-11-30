@@ -79,6 +79,17 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 1. git clone --recursive https://github.com/CortexFoundation/CortexTheseus.git
 2. cd CortexTheseus
 3. make clean && make -j$(nproc)
+4. ldd plugins/libcvm_runtime.so
+```
+ linux-vdso.so.1 =>  (0x00007ffe107fa000)
+	libstdc++.so.6 => /lib64/libstdc++.so.6 (0x00007f250e6a8000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f250e3a6000)
+	libgomp.so.1 => /lib64/libgomp.so.1 (0x00007f250e180000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f250df6a000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f250dd4e000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f250d980000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f250ed35000)
+```
 
 (If failed, run ```rm -rf cvm-runtime && git submodule init && git submodule update``` and try again)
 
