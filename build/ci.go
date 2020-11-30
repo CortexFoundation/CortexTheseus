@@ -58,10 +58,10 @@ import (
 	"strings"
 	"time"
 
+	signifyPkg "github.com/CortexFoundation/CortexTheseus/crypto/signify"
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/cespare/cp"
-	signifyPkg "github.com/CortexFoundation/CortexTheseus/crypto/signify"
 )
 
 var (
