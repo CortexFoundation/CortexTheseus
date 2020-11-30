@@ -55,6 +55,13 @@ Recommend:
 - cmake 3.11.0+
 - go 1.15.5+
 - gcc/g++ 5.4+ reference: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#system-requirements
+```
+sudo yum install centos-release-scl
+sudo yum install devtoolset-7-gcc*
+scl enable devtoolset-7 bash
+which gcc
+gcc --version
+```
 - cuda 10.1+ (if u have gpu)
 ```
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH
