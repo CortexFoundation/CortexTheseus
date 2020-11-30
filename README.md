@@ -53,6 +53,9 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 ### centos
 Recommend:
 - cmake 3.11.0+
+```
+yum install cmake3
+```
 - go 1.15.5+
 - gcc/g++ 5.4+ reference: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#system-requirements
 ```
