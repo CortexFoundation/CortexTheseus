@@ -66,8 +66,8 @@ func (ctxc *Cortex) currentCtxcEntry() *ctxcEntry {
 }
 
 // setupDiscovery creates the node discovery source for the ctxc protocol.
-func (ctxc *Cortex) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error) {
-	if cfg.NoDiscovery || len(ctxc.config.DiscoveryURLs) == 0 {
+func (ctxc *Cortex) setupDiscovery() (enode.Iterator, error) {
+	if len(ctxc.config.DiscoveryURLs) == 0 {
 		return nil, nil
 	}
 	client := dnsdisc.NewClient(dnsdisc.Config{})

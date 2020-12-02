@@ -220,7 +220,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		gpoParams.Default = config.Miner.GasPrice
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
-	ctxc.dialCandidates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
+	ctxc.dialCandidates, err = ctxc.setupDiscovery()
 	if err != nil {
 		return nil, err
 	}
