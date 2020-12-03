@@ -285,7 +285,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				break
 			}
 			// Finalize the state so any modifications are written to the trie
-			root, err := statedb.Commit(true)
+			root, err := statedb.Commit(api.ctxc.blockchain.Config().IsEIP158(block.Number()))
 			if err != nil {
 				failed = err
 				break
@@ -522,7 +522,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 			return nil, err
 		}
 		// Finalize the state so any modifications are written to the trie
-		root, err := statedb.Commit(true)
+		root, err := statedb.Commit(api.ctxc.blockchain.Config().IsEIP158(block.Number()))
 		if err != nil {
 			return nil, err
 		}
