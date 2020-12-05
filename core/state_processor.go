@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
@@ -81,7 +82,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := applyTransaction(msg, p.config, p.bc, nil, gp, qp, statedb, header, tx, usedGas, vmenv)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
