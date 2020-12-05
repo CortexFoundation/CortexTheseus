@@ -22,6 +22,7 @@ import (
 	"math"
 	"math/big"
 
+	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -160,19 +161,19 @@ func (st *StateTransition) to() common.Address {
 	return *st.msg.To()
 }
 
-func (st *StateTransition) useGas(amount uint64) error {
-	if st.gas < amount {
-		return vm.ErrOutOfGas
-	}
-	st.gas -= amount
-
-	return nil
-}
+//func (st *StateTransition) useGas(amount uint64) error {
+//	if st.gas < amount {
+//		return vm.ErrOutOfGas
+//	}
+//	st.gas -= amount
+//
+//	return nil
+//}
 
 func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
-		return errInsufficientBalanceForGas
+	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
+		return fmt.Errorf("%w: address %v have %v want %v", errInsufficientBalanceForGas, st.msg.From().Hex(), have, want)
 	}
 	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
 		return err
@@ -188,11 +189,11 @@ func (st *StateTransition) buyGas() error {
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
-		nonce := st.state.GetNonce(st.msg.From())
-		if nonce < st.msg.Nonce() {
-			return ErrNonceTooHigh
-		} else if nonce > st.msg.Nonce() {
-			return ErrNonceTooLow
+		stNonce := st.state.GetNonce(st.msg.From())
+		if msgNonce := st.msg.Nonce(); stNonce < msgNonce {
+			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh, st.msg.From().Hex(), msgNonce, stNonce)
+		} else if stNonce > msgNonce {
+			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow, st.msg.From().Hex(), msgNonce, stNonce)
 		}
 	}
 
@@ -303,12 +304,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	if err != nil {
 		return nil, 0, 0, false, err
 	}
-	if err = st.useGas(gas); err != nil {
-		return nil, 0, 0, false, err
+	if st.gas < gas {
+		return nil, 0, 0, false, fmt.Errorf("%w: have %d, want %d", vm.ErrOutOfGas, st.gas, gas)
 	}
+	st.gas -= gas
 
 	if msg.Value().Sign() > 0 && !st.cvm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
-		return nil, 0, 0, false, ErrInsufficientFundsForTransfer
+		return nil, 0, 0, false, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
 
 	var (
