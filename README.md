@@ -14,12 +14,13 @@ make
 ./build/bin/torrent download 'ih:5a49fed84aaf368cbf472cc06e42f93a93d92db5'
 ./build/bin/torrent download 'ih:1f1706fa53ce0723ba1c577418b222acbfa5a200'
 ./build/bin/torrent download 'ih:3f1f6c007e8da3e16f7c3378a20a746e70f1c2b0'
+```
 downloaded ALL the torrents !!!!!!!!!!!!!!!!!!!
 
 *** Make sure you can download the file successfully
 *** Accept in/out traffic of fw settings as possible for stable and fast downloading speed
 (40401 40404 5008 both in and out(tcp udp) traffic accepted at least)
-```
+
 ### AI wrapper (Fixed API for inference and file storage)
 https://github.com/CortexFoundation/inference
 ### PoW (Cortex Cuckoo cycle)
