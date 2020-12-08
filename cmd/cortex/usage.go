@@ -77,6 +77,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.SyncModeFlag,
 			utils.GCModeFlag,
 			utils.TxLookupLimitFlag,
+			utils.WhitelistFlag,
 			// utils.CortexStatsURLFlag,
 			utils.IdentityFlag,
 		},
