@@ -160,7 +160,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 		log.Info("Memory alloc", "size", memoryUsage)
 		s.caches[s.config.DeviceId] = lru.New(memoryUsage)
 		s.caches[s.config.DeviceId].OnEvicted = func(key lru.Key, value interface{}) {
-			log.Warn("C FREE On Evicted", "k", key, "size", value.(*kernel.Model).Size(), "max", s.config.MaxMemoryUsage, "min", MinMemoryUsage)
+			log.Warn("C FREE On Evicted", "k", key, "size", common.StorageSize(value.(*kernel.Model).Size()), "max", common.StorageSize(s.config.MaxMemoryUsage), "min", common.StorageSize(MinMemoryUsage))
 			value.(*kernel.Model).Free()
 		}
 	}
