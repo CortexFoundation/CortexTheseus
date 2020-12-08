@@ -53,7 +53,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Extra = h.Extra
 	enc.MixDigest = h.MixDigest
 	enc.Nonce = h.Nonce
-	//enc.Solution = h.Solution
+	enc.Solution = h.Solution
 	enc.Quota = hexutil.Uint64(h.Quota)
 	enc.QuotaUsed = hexutil.Uint64(h.QuotaUsed)
 	enc.Supply = (*hexutil.Big)(h.Supply)
@@ -151,7 +151,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Solution == nil {
 		return errors.New("missing required field 'solution' for Header")
 	}
-	//h.Solution = *dec.Solution
+	h.Solution = *dec.Solution
 	if dec.Quota == nil {
 		return errors.New("missing required field 'quota' for Header")
 	}
