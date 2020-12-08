@@ -29,9 +29,9 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
 		Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 		Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
-		MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
-		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
-		Solution    BlockSolution  `json:"solution"         gencodec:"required"`
+		MixDigest   common.Hash    `json:"mixHash"`
+		Nonce       BlockNonce     `json:"nonce"`
+		Solution    BlockSolution  `json:"solution"`
 		Quota       hexutil.Uint64 `json:"quota"            gencodec:"required"`
 		QuotaUsed   hexutil.Uint64 `json:"quotaUsed"        gencodec:"required"`
 		Supply      *hexutil.Big   `json:"supply"           gencodec:"required"`
@@ -77,9 +77,9 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		GasUsed     *hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
 		Time        *hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 		Extra       *hexutil.Bytes  `json:"extraData"        gencodec:"required"`
-		MixDigest   *common.Hash    `json:"mixHash"          gencodec:"required"`
-		Nonce       *BlockNonce     `json:"nonce"            gencodec:"required"`
-		Solution    *BlockSolution  `json:"solution"         gencodec:"required"`
+		MixDigest   *common.Hash    `json:"mixHash"`
+		Nonce       *BlockNonce     `json:"nonce"`
+		Solution    *BlockSolution  `json:"solution"`
 		Quota       *hexutil.Uint64 `json:"quota"            gencodec:"required"`
 		QuotaUsed   *hexutil.Uint64 `json:"quotaUsed"        gencodec:"required"`
 		Supply      *hexutil.Big    `json:"supply"           gencodec:"required"`
@@ -140,18 +140,15 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'extraData' for Header")
 	}
 	h.Extra = *dec.Extra
-	if dec.MixDigest == nil {
-		return errors.New("missing required field 'mixHash' for Header")
+	if dec.MixDigest != nil {
+		h.MixDigest = *dec.MixDigest
 	}
-	h.MixDigest = *dec.MixDigest
-	if dec.Nonce == nil {
-		return errors.New("missing required field 'nonce' for Header")
+	if dec.Nonce != nil {
+		h.Nonce = *dec.Nonce
 	}
-	h.Nonce = *dec.Nonce
-	if dec.Solution == nil {
-		return errors.New("missing required field 'solution' for Header")
+	if dec.Solution != nil {
+		h.Solution = *dec.Solution
 	}
-	h.Solution = *dec.Solution
 	if dec.Quota == nil {
 		return errors.New("missing required field 'quota' for Header")
 	}

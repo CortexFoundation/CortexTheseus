@@ -121,9 +121,9 @@ type Header struct {
 	GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
 	Time        uint64         `json:"timestamp"        gencodec:"required"`
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
-	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
-	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
-	Solution    BlockSolution  `json:"solution"         gencodec:"required"`
+	MixDigest   common.Hash    `json:"mixHash"`
+	Nonce       BlockNonce     `json:"nonce"`
+	Solution    BlockSolution  `json:"solution"`
 	Quota       uint64         `json:"quota"            gencodec:"required"`
 	QuotaUsed   uint64         `json:"quotaUsed"        gencodec:"required"`
 	Supply      *big.Int       `json:"supply"           gencodec:"required"`
