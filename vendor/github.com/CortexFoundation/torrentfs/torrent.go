@@ -229,16 +229,17 @@ func (t *Torrent) Run(slot int) {
 	}
 }
 
+// Find out the start and end
 func (t *Torrent) download(p, slot int) {
 	var s, e int
 	s = (t.Torrent.NumPieces() * slot) / bucket
-	if s < t.Torrent.NumPieces()/3 {
+	/*if s < t.Torrent.NumPieces()/n {
 		s = s - p
 
-	} else if s >= t.Torrent.NumPieces()/3 && s < (t.Torrent.NumPieces()*2)/3 {
+	} else if s >= t.Torrent.NumPieces()/n && s < (t.Torrent.NumPieces()*(n-1))/n {
 		s = s - p/2
-	}
-
+	}*/
+	s = s - p/2
 	if s < 0 {
 		s = 0
 	}
@@ -248,6 +249,7 @@ func (t *Torrent) download(p, slot int) {
 	}
 
 	e = s + p
+	log.Info("Donwloaded pieces", "ih", t.Torrent.InfoHash(), "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 	t.Torrent.DownloadPieces(s, e)
 }
 
