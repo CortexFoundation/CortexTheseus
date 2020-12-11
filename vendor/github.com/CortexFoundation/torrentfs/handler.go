@@ -549,11 +549,6 @@ func (tm *TorrentManager) seedingLoop() {
 					tm.graceSeeding(tm.slot)
 				}
 			}
-
-			if active, ok := GoodFiles[t.InfoHash()]; !ok {
-				log.Warn("New active nas found", "ih", t.InfoHash(), "ok", ok, "active", active)
-			}
-
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
 			return
