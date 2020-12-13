@@ -17,9 +17,9 @@ make
 ```
 downloaded ALL the torrents !!!!!!!!!!!!!!!!!!!
 
-*** Make sure you can download the file successfully
-*** Accept in/out traffic of fw settings as possible for stable and fast downloading speed
-(40401 40404 5008 both in and out(tcp udp) traffic accepted at least)
+##### *** Make sure you can download the file successfully
+##### *** Accept in/out traffic of fw settings as possible for stable and fast downloading speed
+##### (40401 40404 5008 both in and out(tcp udp) traffic accepted at least)
 
 ### AI wrapper (Fixed API for inference and file storage)
 https://github.com/CortexFoundation/inference
