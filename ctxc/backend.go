@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -223,6 +224,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	ctxc.dialCandidates, err = ctxc.setupDiscovery()
 	if err != nil {
 		return nil, err
+	}
+
+	// Check for unclean shutdown
+	if uncleanShutdowns, discards, err := rawdb.PushUncleanShutdownMarker(chainDb); err != nil {
+		log.Error("Could not update unclean-shutdown-marker list", "error", err)
+	} else {
+		if discards > 0 {
+			log.Warn("Old unclean shutdowns found", "count", discards)
+		}
+		for _, tstamp := range uncleanShutdowns {
+			t := time.Unix(int64(tstamp), 0)
+			log.Warn("Unclean shutdown detected", "booted", t,
+				"age", common.PrettyAge(t))
+		}
 	}
 
 	return ctxc, nil
@@ -564,7 +579,7 @@ func (s *Cortex) Stop() error {
 	s.miner.Stop()
 	s.blockchain.Stop()
 	s.engine.Close()
-
+	rawdb.PopUncleanShutdownMarker(s.chainDb)
 	s.chainDb.Close()
 	s.eventMux.Stop()
 	return nil
