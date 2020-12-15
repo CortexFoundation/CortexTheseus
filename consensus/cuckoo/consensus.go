@@ -92,7 +92,7 @@ func (cuckoo *Cuckoo) Author(header *types.Header) (common.Address, error) {
 
 // VerifyHeader checks whether a header conforms to the consensus rules of the
 // stock Cortex cuckoo engine.
-func (cuckoo *Cuckoo) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+func (cuckoo *Cuckoo) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
 	// If we're running a full engine faking, accept any input as valid
 	if cuckoo.config.PowMode == ModeFullFake {
 		return nil
@@ -113,7 +113,7 @@ func (cuckoo *Cuckoo) VerifyHeader(chain consensus.ChainReader, header *types.He
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
 // concurrently. The method returns a quit channel to abort the operations and
 // a results channel to retrieve the async verifications.
-func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	// If we're running a full engine faking, accept any input as valid
 	if cuckoo.config.PowMode == ModeFullFake || len(headers) == 0 {
 		abort, results := make(chan struct{}), make(chan error, len(headers))
@@ -175,7 +175,7 @@ func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainReader, headers []*type
 	return abort, errorsOut
 }
 
-func (cuckoo *Cuckoo) verifyHeaderWorker(chain consensus.ChainReader, headers []*types.Header, seals []bool, index int) error {
+func (cuckoo *Cuckoo) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int) error {
 	var parent *types.Header
 	if index == 0 {
 		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
@@ -250,7 +250,7 @@ func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 // verifyHeader checks whether a header conforms to the consensus rules of the
 // stock Cortex cuckoo engine.
 // See YP section 4.3.4. "Block Header Validity"
-func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *types.Header, uncle, seal bool) error {
+func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle, seal bool) error {
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
@@ -345,7 +345,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainReader, header, parent *
 // CalcDifficulty is the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time
 // given the parent block's time and difficulty.
-func (cuckoo *Cuckoo) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
+func (cuckoo *Cuckoo) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
 	return CalcDifficulty(chain.Config(), time, parent)
 }
 
@@ -648,7 +648,7 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
 
-func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainHeaderReader, header *types.Header) error {
 	// If we're running a fake PoW, accept any seal as valid
 	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
 		time.Sleep(cuckoo.fakeDelay)
@@ -687,7 +687,7 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainReader, header *types.Head
 
 // Prepare implements consensus.Engine, initializing the difficulty field of a
 // header to conform to the cuckoo protocol. The changes are done inline.
-func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header) error {
+func (cuckoo *Cuckoo) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
 	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
@@ -703,17 +703,28 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainReader, header *types.Header)
 }
 
 // Finalize implements consensus.Engine, accumulating the block and uncle rewards,
-// setting the final state and assembling the block.
-func (cuckoo *Cuckoo) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	//log.Info(fmt.Sprintf("parent: %v, current: %v, number: %v, total: %v, epoch: %v", header.ParentHash, header.Supply, header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
+// setting the final state on the header
+func (cuckoo *Cuckoo) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) error {
+	// Always need parent to caculate the reward of current block
 	parent := chain.GetHeaderByHash(header.ParentHash)
 	if parent == nil {
-		return nil, consensus.ErrUnknownAncestor
+		return consensus.ErrUnknownAncestor
 	}
-	//log.Info(fmt.Sprintf("parent: %v, current: %v, number: %v, total: %v, epoch: %v", parent.Number, header.Hash(), header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
 	// Accumulate any block and uncle rewards and commit the final state root
 	accumulateRewards(chain.Config(), state, header, parent, uncles)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	return nil
+}
+
+// Finalize implements consensus.Engine, accumulating the block and uncle rewards,
+// setting the final state and assembling the block.
+func (cuckoo *Cuckoo) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	//log.Info(fmt.Sprintf("parent: %v, current: %v, number: %v, total: %v, epoch: %v", parent.Number, header.Hash(), header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
+	// Accumulate any block and uncle rewards and commit the final state root
+	err := cuckoo.Finalize(chain, header, state, txs, uncles)
+	if err != nil {
+		return nil, err
+	}
 
 	// Header seems complete, assemble into a block and return
 	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
