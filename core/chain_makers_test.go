@@ -35,7 +35,7 @@ import (
 type CuckooFakeForTest struct {
 }
 
-func (cuckoo *CuckooFakeForTest) APIs(chain consensus.ChainReader) []rpc.API {
+func (cuckoo *CuckooFakeForTest) APIs(chain consensus.ChainHeaderReader) []rpc.API {
 	return []rpc.API{}
 }
 
@@ -43,7 +43,7 @@ func (cuckoo *CuckooFakeForTest) Author(header *types.Header) (common.Address, e
 	return header.Coinbase, nil
 }
 
-func (cuckoo *CuckooFakeForTest) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
+func (cuckoo *CuckooFakeForTest) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
 	return big.NewInt(0)
 }
 
@@ -51,25 +51,34 @@ func (cuckoo *CuckooFakeForTest) Close() error {
 	return nil
 }
 
-func (cuckoo *CuckooFakeForTest) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+// Finalize implements consensus.Engine, ensuring no uncles are set, nor block
+// rewards given.
+func (cuckoo *CuckooFakeForTest) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) error {
 	// No block rewards in PoA, so the state remains as is and uncles are dropped
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
-	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
-}
-
-func (cuckoo *CuckooFakeForTest) FinalizeWithoutParent(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	// No block rewards in PoA, so the state remains as is and uncles are dropped
-	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
-	header.UncleHash = types.CalcUncleHash(nil)
-	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
-}
-
-func (cuckoo *CuckooFakeForTest) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	return nil
 }
 
-func (cuckoo *CuckooFakeForTest) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (cuckoo *CuckooFakeForTest) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	// No block rewards in PoA, so the state remains as is and uncles are dropped
+	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	header.UncleHash = types.CalcUncleHash(nil)
+	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
+}
+
+func (cuckoo *CuckooFakeForTest) FinalizeWithoutParent(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	// No block rewards in PoA, so the state remains as is and uncles are dropped
+	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	header.UncleHash = types.CalcUncleHash(nil)
+	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
+}
+
+func (cuckoo *CuckooFakeForTest) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
+	return nil
+}
+
+func (cuckoo *CuckooFakeForTest) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	return nil
 }
 
@@ -77,11 +86,11 @@ func (cuckoo *CuckooFakeForTest) SealHash(header *types.Header) (hash common.Has
 	return common.Hash{}
 }
 
-func (cuckoo *CuckooFakeForTest) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+func (cuckoo *CuckooFakeForTest) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
 	return nil
 }
 
-func (cuckoo *CuckooFakeForTest) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+func (cuckoo *CuckooFakeForTest) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	abort := make(chan struct{})
 	errorsOut := make(chan error, len(headers))
 	go func() {
@@ -92,7 +101,7 @@ func (cuckoo *CuckooFakeForTest) VerifyHeaders(chain consensus.ChainReader, head
 	return abort, errorsOut
 }
 
-func (cuckoo *CuckooFakeForTest) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+func (cuckoo *CuckooFakeForTest) VerifySeal(chain consensus.ChainHeaderReader, header *types.Header) error {
 	return nil
 }
 
