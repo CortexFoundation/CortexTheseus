@@ -221,7 +221,7 @@ func (pm *ProtocolManager) makeProtocol(version uint) p2p.Protocol {
 		Version: version,
 		Length:  length,
 		Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-			return pm.runPeer(pm.newPeer(int(version), p, rw, pm.txpool.Get))
+			return pm.runPeer(pm.newPeer(version, p, rw, pm.txpool.Get))
 		},
 		NodeInfo: func() interface{} {
 			return pm.NodeInfo()
@@ -297,7 +297,7 @@ func (pm *ProtocolManager) Stop() {
 	log.Info("Cortex protocol stopped")
 }
 
-func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(hash common.Hash) *types.Transaction) *peer {
+func (pm *ProtocolManager) newPeer(pv uint, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(hash common.Hash) *types.Transaction) *peer {
 	return newPeer(pv, p, rw, getPooledTx)
 }
 
@@ -327,7 +327,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
 	)
-	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkid.NewID(pm.blockchain), pm.forkFilter); err != nil {
+	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkid.NewID(pm.blockchain.Config(), genesis.Hash(), number), pm.forkFilter); err != nil {
 		p.Log().Debug("Cortex handshake failed", "err", err)
 		return err
 	}
