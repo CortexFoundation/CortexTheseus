@@ -102,6 +102,16 @@ func (d *Downloader) runStateSync(s *stateSync) *stateSync {
 	)
 	// Run the state sync.
 	log.Trace("State sync starting", "root", s.root)
+
+	defer func() {
+		// Cancel active request timers on exit. Also set peers to idle so they're
+		// available for the next sync.
+		for _, req := range active {
+			req.timer.Stop()
+			req.peer.SetNodeDataIdle(int(req.nItems), time.Now())
+		}
+	}()
+
 	go s.run()
 	defer s.Cancel()
 
@@ -305,6 +315,7 @@ func newStateSync(d *Downloader, root common.Hash) *stateSync {
 // it finishes, and finally notifying any goroutines waiting for the loop to
 // finish.
 func (s *stateSync) run() {
+	close(s.started)
 	s.err = s.loop()
 	close(s.done)
 }
@@ -328,7 +339,6 @@ func (s *stateSync) Cancel() error {
 // pushed here async. The reason is to decouple processing from data receipt
 // and timeouts.
 func (s *stateSync) loop() (err error) {
-	close(s.started)
 	// Listen for new peer events to assign tasks to them
 	newPeer := make(chan *peerConnection, 1024)
 	peerSub := s.d.peers.SubscribeNewPeers(newPeer)

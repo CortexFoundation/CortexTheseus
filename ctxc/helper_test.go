@@ -173,7 +173,7 @@ func newTestPeer(name string, version int, pm *ProtocolManager, shake bool) (*te
 	// Start the peer on a new thread
 	var id enode.ID
 	rand.Read(id[:])
-	peer := pm.newPeer(version, p2p.NewPeer(id, name, nil), net, pm.txpool.Get)
+	peer := pm.newPeer(uint(version), p2p.NewPeer(id, name, nil), net, pm.txpool.Get)
 	errc := make(chan error, 1)
 	go func() { errc <- pm.runPeer(peer) }()
 	tp := &testPeer{app: app, net: net, peer: peer}
@@ -185,7 +185,7 @@ func newTestPeer(name string, version int, pm *ProtocolManager, shake bool) (*te
 			head    = pm.blockchain.CurrentHeader()
 			td      = pm.blockchain.GetTd(head.Hash(), head.Number.Uint64())
 		)
-		tp.handshake(nil, td, head.Hash(), genesis.Hash(), forkid.NewID(pm.blockchain), forkid.NewFilter(pm.blockchain))
+		tp.handshake(nil, td, head.Hash(), genesis.Hash(), forkid.NewID(pm.blockchain.Config(), genesis.Hash(), head.Number.Uint64()), forkid.NewFilter(pm.blockchain))
 	}
 	return tp, errc
 }

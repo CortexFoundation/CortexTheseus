@@ -61,7 +61,8 @@ func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
 }
 
 func (ctxc *Cortex) currentCtxcEntry() *ctxcEntry {
-	return &ctxcEntry{ForkID: forkid.NewID(ctxc.blockchain)}
+	return &ctxcEntry{ForkID: forkid.NewID(ctxc.blockchain.Config(), ctxc.blockchain.Genesis().Hash(),
+		ctxc.blockchain.CurrentHeader().Number.Uint64())}
 }
 
 // setupDiscovery creates the node discovery source for the ctxc protocol.
