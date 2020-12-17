@@ -47,6 +47,10 @@ func (q *retransmissionQueue) HasHandshakeData() bool {
 	return len(q.handshakeCryptoData) > 0 || len(q.handshake) > 0
 }
 
+func (q *retransmissionQueue) HasAppData() bool {
+	return len(q.appData) > 0
+}
+
 func (q *retransmissionQueue) AddAppData(f wire.Frame) {
 	if _, ok := f.(*wire.StreamFrame); ok {
 		panic("STREAM frames are handled with their respective streams.")
@@ -113,6 +117,7 @@ func (q *retransmissionQueue) GetAppDataFrame(maxLen protocol.ByteCount) wire.Fr
 }
 
 func (q *retransmissionQueue) DropPackets(encLevel protocol.EncryptionLevel) {
+	//nolint:exhaustive // Can only drop Initial and Handshake packet number space.
 	switch encLevel {
 	case protocol.EncryptionInitial:
 		q.initial = nil

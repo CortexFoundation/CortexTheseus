@@ -6,6 +6,10 @@ linters-settings:
 
 linters:
   enable-all: true
+  disable:
+    - funlen
+    - godox
+    - typecheck
 
 issues:
   exclude-use-default: false

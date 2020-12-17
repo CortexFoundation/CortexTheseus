@@ -1,8 +1,6 @@
 package srtp
 
 import (
-	"errors"
-	"fmt"
 	"net"
 
 	"github.com/pion/logging"
@@ -21,11 +19,11 @@ type SessionSRTCP struct {
 }
 
 // NewSessionSRTCP creates a SRTCP session using conn as the underlying transport.
-func NewSessionSRTCP(conn net.Conn, config *Config) (*SessionSRTCP, error) {
+func NewSessionSRTCP(conn net.Conn, config *Config) (*SessionSRTCP, error) { //nolint:dupl
 	if config == nil {
-		return nil, errors.New("no config provided")
+		return nil, errNoConfig
 	} else if conn == nil {
-		return nil, errors.New("no conn provided")
+		return nil, errNoConn
 	}
 
 	loggerFactory := config.LoggerFactory
@@ -78,25 +76,25 @@ func (s *SessionSRTCP) OpenWriteStream() (*WriteStreamSRTCP, error) {
 
 // OpenReadStream opens a read stream for the given SSRC, it can be used
 // if you want a certain SSRC, but don't want to wait for AcceptStream
-func (s *SessionSRTCP) OpenReadStream(SSRC uint32) (*ReadStreamSRTCP, error) {
-	r, _ := s.session.getOrCreateReadStream(SSRC, s, newReadStreamSRTCP)
+func (s *SessionSRTCP) OpenReadStream(ssrc uint32) (*ReadStreamSRTCP, error) {
+	r, _ := s.session.getOrCreateReadStream(ssrc, s, newReadStreamSRTCP)
 
 	if readStream, ok := r.(*ReadStreamSRTCP); ok {
 		return readStream, nil
 	}
-	return nil, fmt.Errorf("failed to open ReadStreamSRCTP, type assertion failed")
+	return nil, errFailedTypeAssertion
 }
 
 // AcceptStream returns a stream to handle RTCP for a single SSRC
 func (s *SessionSRTCP) AcceptStream() (*ReadStreamSRTCP, uint32, error) {
 	stream, ok := <-s.newStream
 	if !ok {
-		return nil, 0, fmt.Errorf("SessionSRTCP has been closed")
+		return nil, 0, errStreamAlreadyClosed
 	}
 
 	readStream, ok := stream.(*ReadStreamSRTCP)
 	if !ok {
-		return nil, 0, fmt.Errorf("newStream was found, but failed type assertion")
+		return nil, 0, errFailedTypeAssertion
 	}
 
 	return readStream, stream.GetSSRC(), nil
@@ -111,21 +109,21 @@ func (s *SessionSRTCP) Close() error {
 
 func (s *SessionSRTCP) write(buf []byte) (int, error) {
 	if _, ok := <-s.session.started; ok {
-		return 0, fmt.Errorf("started channel used incorrectly, should only be closed")
+		return 0, errStartedChannelUsedIncorrectly
 	}
 
 	s.session.localContextMutex.Lock()
-	defer s.session.localContextMutex.Unlock()
-
 	encrypted, err := s.localContext.EncryptRTCP(nil, buf, nil)
+	s.session.localContextMutex.Unlock()
+
 	if err != nil {
 		return 0, err
 	}
 	return s.session.nextConn.Write(encrypted)
 }
 
-//create a list of Destination SSRCs
-//that's a superset of all Destinations in the slice.
+// create a list of Destination SSRCs
+// that's a superset of all Destinations in the slice.
 func destinationSSRC(pkts []rtcp.Packet) []uint32 {
 	ssrcSet := make(map[uint32]struct{})
 	for _, p := range pkts {
@@ -163,7 +161,7 @@ func (s *SessionSRTCP) decrypt(buf []byte) error {
 
 		readStream, ok := r.(*ReadStreamSRTCP)
 		if !ok {
-			return fmt.Errorf("failed to get/create ReadStreamSRTP")
+			return errFailedTypeAssertion
 		}
 
 		_, err = readStream.write(decrypted)

@@ -2,7 +2,6 @@ package ice
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"sync/atomic"
 	"time"
@@ -26,7 +25,7 @@ func (a *atomicError) Load() error {
 // https://tools.ietf.org/html/rfc8445#section-5.1.1.1
 func isSupportedIPv6(ip net.IP) bool {
 	if len(ip) != net.IPv6len ||
-		!isZeros(ip[0:12]) || // !(IPv4-compatible IPv6)
+		isZeros(ip[0:12]) || // !(IPv4-compatible IPv6)
 		ip[0] == 0xfe && ip[1]&0xc0 == 0xc0 || // !(IPv6 site-local unicast)
 		ip.IsLinkLocalUnicast() ||
 		ip.IsLinkLocalMulticast() {
@@ -42,17 +41,6 @@ func isZeros(ip net.IP) bool {
 		}
 	}
 	return true
-}
-
-// RandSeq generates a random alpha numeric sequence of the requested length
-func randSeq(n int) string {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[r.Intn(len(letters))]
-	}
-	return string(b)
 }
 
 func parseAddr(in net.Addr) (net.IP, int, NetworkType, bool) {
@@ -77,19 +65,6 @@ func addrEqual(a, b net.Addr) bool {
 	}
 
 	return aType == bType && aIP.Equal(bIP) && aPort == bPort
-}
-
-func generateCandidateID() (string, error) {
-	return generateRandString("candidate:", "")
-}
-
-func generateRandString(prefix, sufix string) (string, error) {
-	b := make([]byte, 16)
-	if _, err := rand.New(rand.NewSource(time.Now().UnixNano())).Read(b); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%s%X-%X-%X-%X-%X%s", prefix, b[0:4], b[4:6], b[6:8], b[8:10], b[10:], sufix), nil
 }
 
 // getXORMappedAddr initiates a stun requests to serverAddr using conn, reads the response and returns
@@ -227,7 +202,7 @@ func listenUDPInPortRange(vnet *vnet.Net, log logging.LeveledLogger, portMax, po
 		return nil, ErrPort
 	}
 
-	portStart := rand.Intn(j-i+1) + i
+	portStart := globalMathRandomGenerator.Intn(j-i+1) + i
 	portCurrent := portStart
 	for {
 		laddr = &net.UDPAddr{IP: laddr.IP, Port: portCurrent}

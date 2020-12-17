@@ -4,11 +4,5 @@ linters-settings:
   misspell:
     locale: US
 
-linters:
-  enable-all: true
-  disable:
-    - funlen
-    - godox
-
-issues:
-  exclude-use-default: false
+run:
+  skip-dirs-use-default: false
