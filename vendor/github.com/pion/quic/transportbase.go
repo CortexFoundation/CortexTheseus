@@ -4,10 +4,10 @@ import (
 	"crypto"
 	"crypto/x509"
 	"errors"
-	"fmt"
 	"net"
 	"sync"
 
+	"github.com/pion/logging"
 	"github.com/pion/quic/internal/wrapper"
 )
 
@@ -18,19 +18,27 @@ type TransportBase struct {
 	lock                      sync.RWMutex
 	onBidirectionalStreamHdlr func(*BidirectionalStream)
 	session                   *wrapper.Session
+	log                       logging.LeveledLogger
 }
 
 // Config is used to hold the configuration of StartBase
 type Config struct {
-	Client      bool
-	Certificate *x509.Certificate
-	PrivateKey  crypto.PrivateKey
+	Client        bool
+	Certificate   *x509.Certificate
+	PrivateKey    crypto.PrivateKey
+	LoggerFactory logging.LoggerFactory
 }
 
 // StartBase is used to start the TransportBase. Most implementations
 // should instead use the methods on quic.Transport or
 // webrtc.QUICTransport to setup a Quic connection.
 func (b *TransportBase) StartBase(conn net.Conn, config *Config) error {
+	lf := config.LoggerFactory
+	if lf == nil {
+		lf = logging.NewDefaultLoggerFactory()
+	}
+	b.log = lf.NewLogger("quic-wrapper")
+
 	cfg := config.clone()
 	cfg.SkipVerify = true // Using self signed certificates; WebRTC will check the fingerprint
 
@@ -109,8 +117,13 @@ func (b *TransportBase) acceptStreams() {
 	for {
 		s, err := b.session.AcceptStream()
 		if err != nil {
-			fmt.Println("Failed to accept stream:", err)
-			// TODO: Kill TransportBase?
+			b.log.Errorf("Failed to accept stream: %v", err)
+			stopErr := b.Stop(TransportStopInfo{
+				Reason: err.Error(),
+			})
+			if stopErr != nil {
+				b.log.Errorf("Failed to stop transport: %v", stopErr)
+			}
 			return
 		}
 

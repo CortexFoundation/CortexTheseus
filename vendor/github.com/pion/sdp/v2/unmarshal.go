@@ -86,9 +86,13 @@ import (
 // |   s16  |    |    14 |    |     |    |  15 |   |    | 12 |   |   |     |   |   |    |   |    |
 // +--------+----+-------+----+-----+----+-----+---+----+----+---+---+-----+---+---+----+---+----+
 func (s *SessionDescription) Unmarshal(value []byte) error {
+	bufsz := 4096
+	if len(value) < bufsz {
+		bufsz = len(value)
+	}
 	l := &lexer{
 		desc:  s,
-		input: bufio.NewReader(bytes.NewReader(value)),
+		input: bufio.NewReaderSize(bytes.NewReader(value), bufsz),
 	}
 	for state := s1; state != nil; {
 		var err error
@@ -601,9 +605,9 @@ func unmarshalConnectionInformation(value string) (*ConnectionInformation, error
 		return nil, fmt.Errorf("sdp: invalid value `%v`", fields[1])
 	}
 
-	var connAddr *Address
+	connAddr := new(Address)
 	if len(fields) > 2 {
-		connAddr = &Address{Address: fields[2]}
+		connAddr.Address = fields[2]
 	}
 
 	return &ConnectionInformation{

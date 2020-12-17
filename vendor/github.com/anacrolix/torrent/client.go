@@ -24,6 +24,7 @@ import (
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/missinggo/v2/pproffd"
 	"github.com/anacrolix/sync"
+	"github.com/anacrolix/torrent/internal/string-limiter"
 	"github.com/anacrolix/torrent/tracker"
 	"github.com/anacrolix/torrent/webtorrent"
 	"github.com/davecgh/go-spew/spew"
@@ -78,7 +79,8 @@ type Client struct {
 	numHalfOpen     int
 
 	websocketTrackers websocketTrackers
-	activeAnnounces   map[string]struct{}
+
+	activeAnnounceLimiter string_limiter.Instance
 }
 
 type ipStr string
@@ -185,6 +187,7 @@ func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 		torrents:          make(map[metainfo.Hash]*Torrent),
 		dialRateLimiter:   rate.NewLimiter(10, 10),
 	}
+	cl.activeAnnounceLimiter.SlotsPerKey = 2
 	go cl.acceptLimitClearer()
 	cl.initLogger()
 	defer func() {

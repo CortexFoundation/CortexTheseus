@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v1.0.2-0.20201207080139-4cbe4856d997
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20201211054958-b4b73763e85e
+	github.com/CortexFoundation/torrentfs v1.0.23-0.20201217020639-7f4fd5ad4f26
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1
@@ -46,17 +46,17 @@ require (
 	github.com/shirou/gopsutil v2.20.6-0.20200630120421-10a398abdd2d+incompatible
 	github.com/status-im/keycard-go v0.0.0-20200402102358-957c09536969
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634
+	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d
 	golang.org/x/text v0.3.4-0.20200826142016-a8b467125457
-	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6

@@ -21,7 +21,7 @@ func SRTPReplayProtection(windowSize uint) ContextOption { // nolint:golint
 func SRTCPReplayProtection(windowSize uint) ContextOption {
 	return func(c *Context) error {
 		c.newSRTCPReplayDetector = func() replaydetector.ReplayDetector {
-			return replaydetector.WithWrap(windowSize, maxSequenceNumber)
+			return replaydetector.WithWrap(windowSize, maxSRTCPIndex)
 		}
 		return nil
 	}

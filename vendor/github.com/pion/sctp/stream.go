@@ -70,6 +70,8 @@ func (s *Stream) SetReliabilityParams(unordered bool, relType byte, relVal uint3
 // setReliabilityParams sets reliability parameters for this stream.
 // The caller should hold the lock.
 func (s *Stream) setReliabilityParams(unordered bool, relType byte, relVal uint32) {
+	s.log.Debugf("[%s] reliability params: ordered=%v type=%d value=%d",
+		s.name, !unordered, relType, relVal)
 	s.unordered = unordered
 	s.reliabilityType = relType
 	s.reliabilityValue = relVal
@@ -95,7 +97,7 @@ func (s *Stream) ReadSCTP(p []byte) (int, PayloadProtocolIdentifier, error) {
 		n, ppi, err := s.reassemblyQueue.read(p)
 		if err == nil {
 			return n, ppi, nil
-		} else if err == io.ErrShortBuffer {
+		} else if errors.Is(err, io.ErrShortBuffer) {
 			return 0, PayloadProtocolIdentifier(0), err
 		}
 
@@ -124,7 +126,7 @@ func (s *Stream) handleData(pd *chunkPayloadData) {
 	}
 }
 
-func (s *Stream) handleForwardTSNForOrdered(newCumulativeTSN uint32, ssn uint16) {
+func (s *Stream) handleForwardTSNForOrdered(ssn uint16) {
 	var readable bool
 
 	func() {
@@ -137,7 +139,7 @@ func (s *Stream) handleForwardTSNForOrdered(newCumulativeTSN uint32, ssn uint16)
 
 		// Remove all chunks older than or equal to the new TSN from
 		// the reassemblyQueue.
-		s.reassemblyQueue.forwardTSNForOrdered(newCumulativeTSN, ssn)
+		s.reassemblyQueue.forwardTSNForOrdered(ssn)
 		readable = s.reassemblyQueue.isReadable()
 	}()
 
@@ -177,7 +179,8 @@ func (s *Stream) Write(p []byte) (n int, err error) {
 
 // WriteSCTP writes len(p) bytes from p to the DTLS connection
 func (s *Stream) WriteSCTP(p []byte, ppi PayloadProtocolIdentifier) (n int, err error) {
-	if len(p) > math.MaxUint16 {
+	maxMessageSize := s.association.MaxMessageSize()
+	if len(p) > int(maxMessageSize) {
 		return 0, errors.Errorf("Outbound packet larger than maximum message size %v", math.MaxUint16)
 	}
 

@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.14
-
 package qtls
 
 import (
@@ -14,7 +12,6 @@ import (
 	"crypto/rsa"
 	"crypto/subtle"
 	"crypto/x509"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -22,7 +19,11 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/crypto/cryptobyte"
 )
+
+const clientSessionStateVersion = 1
 
 type clientHandshakeState struct {
 	c            *Conn
@@ -260,6 +261,33 @@ func (c *Conn) clientHandshake() (err error) {
 	return nil
 }
 
+// extract the app data saved in the session.nonce,
+// and set the session.nonce to the actual nonce value
+func (c *Conn) decodeSessionState(session *ClientSessionState) (uint32 /* max early data */, []byte /* app data */, bool /* ok */) {
+	s := cryptobyte.String(session.nonce)
+	var version uint16
+	if !s.ReadUint16(&version) {
+		return 0, nil, false
+	}
+	if version != clientSessionStateVersion {
+		return 0, nil, false
+	}
+	var maxEarlyData uint32
+	if !s.ReadUint32(&maxEarlyData) {
+		return 0, nil, false
+	}
+	var appData []byte
+	if !readUint16LengthPrefixed(&s, &appData) {
+		return 0, nil, false
+	}
+	var nonce []byte
+	if !readUint16LengthPrefixed(&s, &nonce) {
+		return 0, nil, false
+	}
+	session.nonce = nonce
+	return maxEarlyData, appData, true
+}
+
 func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	session *ClientSessionState, earlySecret, binderKey []byte) {
 	if c.config.SessionTicketsDisabled || c.config.ClientSessionCache == nil {
@@ -286,6 +314,16 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	session, ok := c.config.ClientSessionCache.Get(cacheKey)
 	if !ok || session == nil {
 		return cacheKey, nil, nil, nil
+	}
+	var appData []byte
+	var maxEarlyData uint32
+	if session.vers == VersionTLS13 {
+		var ok bool
+		maxEarlyData, appData, ok = c.decodeSessionState(session)
+		if !ok { // delete it, if parsing failed
+			c.config.ClientSessionCache.Put(cacheKey, nil)
+			return cacheKey, nil, nil, nil
+		}
 	}
 
 	// Check that version used for the previous session is still valid.
@@ -329,14 +367,6 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 		hello.sessionTicket = session.sessionTicket
 		return
 	}
-
-	// In TLS 1.3, we abuse the nonce field to save the max_early_data_size.
-	// See Conn.handleNewSessionTicket for an explanation of this hack.
-	if len(session.nonce) < 4 {
-		return cacheKey, nil, nil, nil
-	}
-	maxEarlyData := binary.BigEndian.Uint32(session.nonce[:4])
-	session.nonce = session.nonce[4:]
 
 	// Check that the session ticket is not expired.
 	if c.config.time().After(session.useBy) {
@@ -382,6 +412,9 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	pskBinders := [][]byte{cipherSuite.finishedHash(binderKey, transcript)}
 	hello.updateBinders(pskBinders)
 
+	if session.vers == VersionTLS13 && c.config.SetAppDataFromSessionState != nil {
+		c.config.SetAppDataFromSessionState(appData)
+	}
 	return
 }
 

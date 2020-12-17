@@ -5,26 +5,18 @@ import (
 )
 
 const (
-	absSendTimeExtensionSize = 4
+	absSendTimeExtensionSize = 3
 )
 
 // AbsSendTimeExtension is a extension payload format in
 // http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
-//  0 1 2 3 4 5 6 7
-// +-+-+-+-+-+-+-+-+
-// |  ID   |  len  |
-// +-+-+-+-+-+-+-+-+
-// per RFC 5285
-// Len is the number of bytes in the extension - 1.
 type AbsSendTimeExtension struct {
-	ID        uint8
 	Timestamp uint64
 }
 
 // Marshal serializes the members to buffer.
 func (t *AbsSendTimeExtension) Marshal() ([]byte, error) {
 	return []byte{
-		(t.ID << 4) | 2,
 		byte(t.Timestamp & 0xFF0000 >> 16),
 		byte(t.Timestamp & 0xFF00 >> 8),
 		byte(t.Timestamp & 0xFF),
@@ -36,8 +28,7 @@ func (t *AbsSendTimeExtension) Unmarshal(rawData []byte) error {
 	if len(rawData) < absSendTimeExtensionSize {
 		return errTooSmall
 	}
-	t.ID = rawData[0] >> 4
-	t.Timestamp = uint64(rawData[1])<<16 | uint64(rawData[2])<<8 | uint64(rawData[3])
+	t.Timestamp = uint64(rawData[0])<<16 | uint64(rawData[1])<<8 | uint64(rawData[2])
 	return nil
 }
 
@@ -54,12 +45,19 @@ func (t *AbsSendTimeExtension) Estimate(receive time.Time) time.Time {
 	return toTime(ntp)
 }
 
+// NewAbsSendTimeExtension makes new AbsSendTimeExtension from time.Time.
+func NewAbsSendTimeExtension(sendTime time.Time) *AbsSendTimeExtension {
+	return &AbsSendTimeExtension{
+		Timestamp: toNtpTime(sendTime) >> 14,
+	}
+}
+
 func toNtpTime(t time.Time) uint64 {
 	var s uint64
 	var f uint64
 	u := uint64(t.UnixNano())
 	s = u / 1e9
-	s += 0x83AA7E80 //offset in seconds between unix epoch and ntp epoch
+	s += 0x83AA7E80 // offset in seconds between unix epoch and ntp epoch
 	f = u % 1e9
 	f <<= 32
 	f /= 1e9
