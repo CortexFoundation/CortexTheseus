@@ -81,7 +81,7 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 
 ## Cortex Full Node
 
-### Compile Source Code (4G+ Memory needed)
+### Compile Source Code (8G+ Memory suggested)
 1. git clone --recursive https://github.com/CortexFoundation/CortexTheseus.git
 2. cd CortexTheseus
 3. make clean && make -j$(nproc)
