@@ -13,7 +13,7 @@ github.com/CortexFoundation/cvm-runtime/kernel
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20201217020639-7f4fd5ad4f26
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20201221051208-242a67758c4f
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -70,11 +70,12 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.19.0
+# github.com/anacrolix/torrent v1.19.3-0.20201221081250-6e43db6a89fb
+## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
-github.com/anacrolix/torrent/internal/string-limiter
+github.com/anacrolix/torrent/internal/limiter
 github.com/anacrolix/torrent/internal/tmproot
 github.com/anacrolix/torrent/iplist
 github.com/anacrolix/torrent/logonce
@@ -441,9 +442,9 @@ github.com/willf/bloom
 # github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 ## explicit
 github.com/wsddn/go-ecdh
-# go.etcd.io/bbolt v1.3.5
+# go.etcd.io/bbolt v1.3.6-0.20200807205753-f6be82302843
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9
+# golang.org/x/crypto v0.0.0-20201217014255-9d1352758620
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20

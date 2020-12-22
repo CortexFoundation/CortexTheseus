@@ -5,8 +5,9 @@ go 1.15
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v1.0.2-0.20201207080139-4cbe4856d997
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20201217020639-7f4fd5ad4f26
+	github.com/CortexFoundation/torrentfs v1.0.23-0.20201221051208-242a67758c4f
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
+	github.com/anacrolix/torrent v1.19.3-0.20201221081250-6e43db6a89fb // indirect
 	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go v1.31.0
@@ -52,7 +53,7 @@ require (
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
-	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9
+	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d
 	golang.org/x/text v0.3.4-0.20200826142016-a8b467125457
