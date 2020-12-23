@@ -46,12 +46,12 @@ import (
 
 // Cuckoo proof-of-work protocol constants.
 var (
-	FrontierBlockReward           *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward          *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	ConstantinopleBlockReward              = big.NewInt(7e+18)
-	maxUncles                              = 2 // Maximum number of uncles allowed in a single block
-	allowedFutureBlockTimeSeconds          = int64(15)
-	FixHashes                              = map[common.Hash]bool{
+	FrontierBlockReward       *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block
+	ByzantiumBlockReward      *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	ConstantinopleBlockReward          = big.NewInt(7e+18)
+	maxUncles                          = 2                // Maximum number of uncles allowed in a single block
+	allowedFutureBlockTime             = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
+	FixHashes                          = map[common.Hash]bool{
 		common.HexToHash("0x367e111f0f274d54f357ed3dc2d16107b39772c3a767138b857f5c02b5c30607"): true,
 		common.HexToHash("0xbde83a87b6d526ada5a02e394c5f21327acb080568f7cc6f8fff423620f0eec3"): true,
 	}
@@ -107,7 +107,7 @@ func (cuckoo *Cuckoo) VerifyHeader(chain consensus.ChainHeaderReader, header *ty
 		return consensus.ErrUnknownAncestor
 	}
 	// Sanity checks passed, do a proper verification
-	return cuckoo.verifyHeader(chain, header, parent, false, seal, time.Now().Unix())
+	return cuckoo.verifyHeader(chain, header, parent, false, seal)
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
@@ -135,12 +135,11 @@ func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainHeaderReader, headers [
 		done   = make(chan int, workers)
 		errors = make([]error, len(headers))
 		abort  = make(chan struct{})
-		utcNow = time.Now().Unix()
 	)
 	for i := 0; i < workers; i++ {
 		go func() {
 			for index := range inputs {
-				errors[index] = cuckoo.verifyHeaderWorker(chain, headers, seals, index, utcNow)
+				errors[index] = cuckoo.verifyHeaderWorker(chain, headers, seals, index)
 				done <- index
 			}
 		}()
@@ -176,7 +175,7 @@ func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainHeaderReader, headers [
 	return abort, errorsOut
 }
 
-func (cuckoo *Cuckoo) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int, utcNow int64) error {
+func (cuckoo *Cuckoo) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int) error {
 	var parent *types.Header
 	if index == 0 {
 		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
@@ -186,7 +185,10 @@ func (cuckoo *Cuckoo) verifyHeaderWorker(chain consensus.ChainHeaderReader, head
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
-	return cuckoo.verifyHeader(chain, headers[index], parent, false, seals[index], utcNow)
+	if chain.GetHeader(headers[index].Hash(), headers[index].Number.Uint64()) != nil {
+		return nil // known block
+	}
+	return cuckoo.verifyHeader(chain, headers[index], parent, false, seals[index])
 }
 
 // VerifyUncles verifies that the given block's uncles conform to the consensus
@@ -238,7 +240,7 @@ func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 		if ancestors[uncle.ParentHash] == nil || uncle.ParentHash == block.ParentHash() {
 			return errDanglingUncle
 		}
-		if err := cuckoo.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true, time.Now().Unix()); err != nil {
+		if err := cuckoo.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true); err != nil {
 			return err
 		}
 	}
@@ -248,14 +250,14 @@ func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 // verifyHeader checks whether a header conforms to the consensus rules of the
 // stock Cortex cuckoo engine.
 // See YP section 4.3.4. "Block Header Validity"
-func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle, seal bool, utcNow int64) error {
+func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle, seal bool) error {
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
 	}
 	// Verify the header's timestamp
 	if !uncle {
-		if header.Time > uint64(utcNow+allowedFutureBlockTimeSeconds) {
+		if header.Time > uint64(time.Now().Add(allowedFutureBlockTime).Unix()) {
 			return consensus.ErrFutureBlock
 		}
 	}
