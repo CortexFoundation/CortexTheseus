@@ -49,14 +49,14 @@ github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200704025058-f0885ec2bd83/
 github.com/CortexFoundation/CortexTheseus v1.10.8/go.mod h1:BxMcNBe5UuA9WWMLBdHP5JqpFKyCBZza+6FLSMx7Nhk=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51 h1:JL/iwqos57UPfrYHjC5d4c4LPAyOVLFltubwFf8R12Q=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51/go.mod h1:oLEQaJbHT0SAIVjY90BYPYVikGylXHrPyf1yTPS7HZg=
-github.com/CortexFoundation/inference v1.0.2-0.20201207080139-4cbe4856d997 h1:oDUlC+1vJ1tIc+6bUbWGVbdjzGseJIFSKD1z4BtrJSg=
-github.com/CortexFoundation/inference v1.0.2-0.20201207080139-4cbe4856d997/go.mod h1:bKLa2c/igsJUjrXqkt+layTakQND+YHL832AOyKzVuQ=
+github.com/CortexFoundation/inference v1.0.2-0.20201224021922-b0ffbeb3641a h1:IcVqm6qFO+EPrtMs1sxlKkHQxXGvA+QY4u3ICpxdve8=
+github.com/CortexFoundation/inference v1.0.2-0.20201224021922-b0ffbeb3641a/go.mod h1:IhNRTb1zyLWApuV6qFJok0PWcHE6NaAN0zd3BEE0JYY=
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
 github.com/CortexFoundation/torrentfs v1.0.22-0.20201126093427-f455d2481b9b/go.mod h1:lcAYtGEoWAeIhWH/JpXno34eNA17xslgwg6UBBd769U=
-github.com/CortexFoundation/torrentfs v1.0.23-0.20201221051208-242a67758c4f h1:Ul/TBC9QSnLV4YPBrsyhUlgCG38ZsKMNfsxEO/IU+tQ=
-github.com/CortexFoundation/torrentfs v1.0.23-0.20201221051208-242a67758c4f/go.mod h1:yL4YfxSBQno+mYM05wuxOBG0J/iOAT79VQ4B8d+IYO4=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20201222031859-a5745703dc8f h1:uAHOhbzkLfj0G/3gwWWpOI4FdCgS/gjj0TNLiiKqBs0=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20201222031859-a5745703dc8f/go.mod h1:vXfiYosNfs4zrfbbaVIho+CP8zN7hYAG2jTd9yPxUhU=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -174,7 +174,6 @@ github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5/go.mod h1:QlO
 github.com/anacrolix/torrent v1.15.1-0.20200619022403-dd51e99b88cc/go.mod h1:wuopQPC5+/M+zHYvhcA2vp5UCTm9rUc+VqjyBa882Q8=
 github.com/anacrolix/torrent v1.15.1-0.20200715061614-dd906f8fa72e/go.mod h1:XWo/fJN1oKgcjgxM+pUZpvalHfqHDs27BY5mBZjIQWo=
 github.com/anacrolix/torrent v1.18.1-0.20201121024423-388e6899a15b/go.mod h1:nhOLTTTOcr5WnvNKJzHGKzyz5D8mujPIgdbRU2818v8=
-github.com/anacrolix/torrent v1.19.1-0.20201220230444-f3d3fd37244f/go.mod h1:WjA5XIOm/3qWM8DUEhd5ACfD771/wsddW90nCAhCUOQ=
 github.com/anacrolix/torrent v1.19.3-0.20201221081250-6e43db6a89fb h1:gcGCBwHXhYywpeIUUN6TfRvmBxgtnyOzDMh50Kce9Hs=
 github.com/anacrolix/torrent v1.19.3-0.20201221081250-6e43db6a89fb/go.mod h1:WjA5XIOm/3qWM8DUEhd5ACfD771/wsddW90nCAhCUOQ=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
@@ -850,6 +849,8 @@ github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAm
 github.com/shirou/gopsutil v2.20.5+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
 github.com/shirou/gopsutil v2.20.6-0.20200630120421-10a398abdd2d+incompatible h1:T7WwsWAkkt3iKpFYBPHZ71EwiLtQKVUhaQ+pT9FaXg8=
 github.com/shirou/gopsutil v2.20.6-0.20200630120421-10a398abdd2d+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
+github.com/shirou/gopsutil v3.20.12-0.20201210134652-afe0c04c5d5a+incompatible h1:uvFOXu1W/nsxgfbLu0jGTad6j0PbFDsXkwxK/rqT/AA=
+github.com/shirou/gopsutil v3.20.12-0.20201210134652-afe0c04c5d5a+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
 github.com/shurcooL/component v0.0.0-20170202220835-f88ec8f54cc4/go.mod h1:XhFIlyj5a1fBNx5aJTbKoIq0mNaPvOagO+HjB3EtxrY=
 github.com/shurcooL/events v0.0.0-20181021180414-410e4ca65f48/go.mod h1:5u70Mqkb5O5cxEA8nxTsgrgLehJeAw6Oc4Ab1c/P1HM=
 github.com/shurcooL/github_flavored_markdown v0.0.0-20181002035957-2122de532470/go.mod h1:2dOwnU2uBioM+SGy2aZoq1f/Sd1l9OkAeAUvjSyvgU0=
@@ -1033,6 +1034,8 @@ golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9 h1:sYNJzB4J8toYPQTM6pAkcm
 golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
 golang.org/x/crypto v0.0.0-20201217014255-9d1352758620 h1:3wPMTskHO3+O6jqTEXyFcsnuxMQOqYSaHsDxcbUXpqA=
 golang.org/x/crypto v0.0.0-20201217014255-9d1352758620/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
+golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad h1:DN0cp81fZ3njFcrLCytUHRSUkqBjfTo4Tx9RJTWs0EY=
+golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20180807140117-3d87b88a115f/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
