@@ -9,11 +9,11 @@ github.com/Azure/azure-pipeline-go/pipeline
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51
 github.com/CortexFoundation/cvm-runtime/kernel
-# github.com/CortexFoundation/inference v1.0.2-0.20201207080139-4cbe4856d997
+# github.com/CortexFoundation/inference v1.0.2-0.20201224021922-b0ffbeb3641a
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20201221051208-242a67758c4f
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20201222031859-a5745703dc8f
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -71,7 +71,6 @@ github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
 # github.com/anacrolix/torrent v1.19.3-0.20201221081250-6e43db6a89fb
-## explicit
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -391,7 +390,7 @@ github.com/rs/cors
 github.com/rs/dnscache
 # github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46
 github.com/ryszard/goskiplist/skiplist
-# github.com/shirou/gopsutil v2.20.6-0.20200630120421-10a398abdd2d+incompatible
+# github.com/shirou/gopsutil v3.20.12-0.20201210134652-afe0c04c5d5a+incompatible
 ## explicit
 github.com/shirou/gopsutil/cpu
 github.com/shirou/gopsutil/internal/common
@@ -444,7 +443,7 @@ github.com/willf/bloom
 github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.6-0.20200807205753-f6be82302843
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20201217014255-9d1352758620
+# golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
