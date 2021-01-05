@@ -85,7 +85,9 @@ export LIBRARY_PATH=/usr/local/cuda/lib64/:/usr/local/cuda/lib64/stubs:$LIBRARY_
 1. git clone --recursive https://github.com/CortexFoundation/CortexTheseus.git
 2. cd CortexTheseus
 3. make clean && make -j$(nproc)
-4. ldd plugins/libcvm_runtime.so
+
+### It is important to pass this check of libcvm_runtime.so
+ldd plugins/libcvm_runtime.so
 ```
 linux-vdso.so.1 =>  (0x00007ffe107fa000)
 libstdc++.so.6 => /lib64/libstdc++.so.6 (0x00007f250e6a8000)
