@@ -224,7 +224,7 @@ github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 ## explicit
 github.com/gorilla/websocket
-# github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
+# github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 ## explicit
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
