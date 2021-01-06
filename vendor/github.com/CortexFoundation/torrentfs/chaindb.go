@@ -94,6 +94,7 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 	//fs.rootCache, _ = lru.New(8)
 
 	if err := fs.initBlockNumber(); err != nil {
+		log.Error("Init block error", "err", err)
 		return nil, err
 	}
 	//if err := fs.initCheckPoint(); err != nil {
@@ -103,13 +104,16 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 	//	return nil, err
 	//}
 	if err := fs.initFiles(); err != nil {
+		log.Error("Init files error", "err", err)
 		return nil, err
 	}
 	if err := fs.initMerkleTree(); err != nil {
+		log.Error("Init mkt error", "err", err)
 		return nil, err
 	}
 
 	if err := fs.initID(); err != nil {
+		log.Error("Init node id error", "err", err)
 		return nil, err
 	}
 
@@ -501,8 +505,8 @@ func (fs *ChainDB) initFiles() error {
 			for k, v := c.First(); k != nil; k, v = c.Next() {
 
 				var x types.FileInfo
-
 				if err := json.Unmarshal(v, &x); err != nil {
+					log.Error("Json unmarshal error", "err", err)
 					return err
 				}
 				fs.filesContractAddr[*x.ContractAddr] = &x
