@@ -7,7 +7,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"github.com/anacrolix/torrent/metainfo"
 )
 
 var (
@@ -26,7 +25,7 @@ type InferMeta interface {
 	RawSize() uint64
 	// Gas() uint64
 	AuthorAddress() common.Address
-	InfoHash() metainfo.Hash
+	InfoHash() string
 	Comment() string
 }
 
@@ -66,18 +65,18 @@ type InputMeta struct {
 	//RawBytes []byte `json:"RawBytes"`
 }
 
-func (mm *ModelMeta) InfoHash() metainfo.Hash {
-	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+func (mm *ModelMeta) InfoHash() string {
+	ih := mm.Hash.String()[2:]
 	return ih
 }
 
-func (mm *InputMeta) InfoHash() metainfo.Hash {
-	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+func (mm *InputMeta) InfoHash() string {
+	ih := mm.Hash.String()[2:]
 	return ih
 }
 
-func (mm *Meta) InfoHash() metainfo.Hash {
-	ih := metainfo.NewHashFromHex(mm.Hash.String()[2:])
+func (mm *Meta) InfoHash() string {
+	ih := mm.Hash.String()[2:]
 	return ih
 }
 

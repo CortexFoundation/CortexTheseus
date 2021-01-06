@@ -291,6 +291,12 @@ var (
 	ErrReadDataFromBoltDB = errors.New("bolt DB Read Error")
 )
 
+func uint64ToBytes(i uint64) []byte {
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], i)
+	return buf[:]
+}
+
 func (fs *ChainDB) GetBlockByNumber(blockNum uint64) *types.Block {
 	var block types.Block
 
@@ -299,10 +305,11 @@ func (fs *ChainDB) GetBlockByNumber(blockNum uint64) *types.Block {
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
-		k, err := json.Marshal(blockNum)
-		if err != nil {
-			return ErrReadDataFromBoltDB
-		}
+		//k, err := json.Marshal(blockNum)
+		//if err != nil {
+		//	return ErrReadDataFromBoltDB
+		//}
+		k := uint64ToBytes(blockNum)
 
 		v := buk.Get(k)
 
@@ -327,19 +334,22 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version))
 		if err != nil {
+			log.Error("Progress bucket failed", "err", err)
 			return err
 		}
 
-		k, err := json.Marshal(f.Meta.InfoHash)
-		if err != nil {
-			return err
-		}
+		//k, err := json.Marshal(f.Meta.InfoHash)
+		//if err != nil {
+		//	return err
+		//}
+		k := []byte(f.Meta.InfoHash)
 		var v []byte
 		bef := buk.Get(k)
 		if bef == nil {
 			update = true
 			v, err = json.Marshal(f)
 			if err != nil {
+				log.Error("Progress json failed", "err", err)
 				return err
 			}
 			return buk.Put(k, v)
@@ -423,10 +433,11 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 		if err != nil {
 			return err
 		}
-		k, err := json.Marshal(b.Number)
-		if err != nil {
-			return err
-		}
+		//k, err := json.Marshal(b.Number)
+		//if err != nil {
+		//	return err
+		//}
+		k := uint64ToBytes(b.Number)
 
 		return buk.Put(k, v)
 	}); err == nil {

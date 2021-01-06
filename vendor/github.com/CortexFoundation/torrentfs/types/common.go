@@ -94,7 +94,7 @@ func (t *Transaction) Parse() *FileMeta {
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
-		var InfoHash = "" //meta.InfoHash()
+		var InfoHash = meta.InfoHash()
 		return &FileMeta{
 			InfoHash,
 			//	meta.Comment,
@@ -106,7 +106,7 @@ func (t *Transaction) Parse() *FileMeta {
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
-		var InfoHash = "" //meta.InfoHash()
+		var InfoHash = meta.InfoHash()
 		return &FileMeta{
 			InfoHash,
 			//	meta.Comment,
