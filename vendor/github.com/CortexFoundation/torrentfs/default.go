@@ -71,5 +71,5 @@ const (
 	downloadWaitingTime            = 2700
 	defaultBytesLimitation         = 512 * 1024
 	defaultTmpPath                 = ".tmp"
-	version                        = "1"
+	version                        = "2"
 )

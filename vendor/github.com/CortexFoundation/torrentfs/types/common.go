@@ -24,7 +24,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/torrentfs/params"
-	"github.com/anacrolix/torrent/metainfo"
 )
 
 const (
@@ -95,7 +94,7 @@ func (t *Transaction) Parse() *FileMeta {
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
-		var InfoHash = meta.InfoHash()
+		var InfoHash = "" //meta.InfoHash()
 		return &FileMeta{
 			InfoHash,
 			//	meta.Comment,
@@ -107,7 +106,7 @@ func (t *Transaction) Parse() *FileMeta {
 		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
 			return nil
 		}
-		var InfoHash = meta.InfoHash()
+		var InfoHash = "" //meta.InfoHash()
 		return &FileMeta{
 			InfoHash,
 			//	meta.Comment,
@@ -155,7 +154,7 @@ type receiptMarshaling struct {
 
 //go:generate gencodec -type FileMeta -out gen_filemeta_json.go
 type FileMeta struct {
-	InfoHash metainfo.Hash `json:"infoHash"         gencodec:"required"`
+	InfoHash string `json:"infoHash"         gencodec:"required"`
 	//	Name     string        `json:"Name"             gencodec:"required"`
 	// The raw size of the file counted in bytes
 	RawSize uint64 `json:"rawSize"          gencodec:"required"`
@@ -168,7 +167,7 @@ type FileMeta struct {
 //}
 
 type FlowControlMeta struct {
-	InfoHash       metainfo.Hash
+	InfoHash       string
 	BytesRequested uint64
 	//IsCreate       bool
 	Ch chan bool

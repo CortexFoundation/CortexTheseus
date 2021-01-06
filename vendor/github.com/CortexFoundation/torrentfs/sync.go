@@ -27,7 +27,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
-	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
 	"math"
 	"runtime"
@@ -172,7 +171,7 @@ func (m *Monitor) indexCheck() error {
 }
 
 func (m *Monitor) indexInit() error {
-	fileMap := make(map[metainfo.Hash]*types.FileInfo)
+	fileMap := make(map[string]*types.FileInfo)
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
 			if f.LeftSize > file.LeftSize {
@@ -194,10 +193,10 @@ func (m *Monitor) indexInit() error {
 		}
 		capcity += bytesRequested
 		log.Debug("File storage info", "addr", file.ContractAddr, "ih", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
-		if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash.HexString(), bytesRequested); u && err == nil {
+		if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash, bytesRequested); u && err == nil {
 			if m.mode != LAZY {
-				log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash.HexString(), "request", p)
-				m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), p, nil)
+				log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
+				m.dl.Search(context.Background(), file.Meta.InfoHash, p, nil)
 			}
 		}
 		if file.LeftSize == 0 {
@@ -363,10 +362,10 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	if update && op == 1 {
 		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
 
-		if u, p, err := m.fs.SetTorrent(meta.InfoHash.HexString(), 0); u && err == nil {
+		if u, p, err := m.fs.SetTorrent(meta.InfoHash, 0); u && err == nil {
 			if m.mode != LAZY {
-				log.Debug("Search in sync parse create", "ih", meta.InfoHash.HexString(), "request", p)
-				m.dl.Search(context.Background(), meta.InfoHash.HexString(), p, nil)
+				log.Debug("Search in sync parse create", "ih", meta.InfoHash, "request", p)
+				m.dl.Search(context.Background(), meta.InfoHash, p, nil)
 			}
 		}
 		//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
@@ -429,10 +428,10 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 						} else {
 							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
-						if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash.HexString(), bytesRequested); u && err == nil {
+						if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash, bytesRequested); u && err == nil {
 							if m.mode != LAZY {
-								log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash.HexString(), "request", p)
-								m.dl.Search(context.Background(), file.Meta.InfoHash.HexString(), p, nil)
+								log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
+								m.dl.Search(context.Background(), file.Meta.InfoHash, p, nil)
 							}
 						}
 						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{

@@ -5,15 +5,13 @@ package types
 import (
 	"encoding/json"
 	"errors"
-
-	"github.com/anacrolix/torrent/metainfo"
 )
 
 // MarshalJSON marshals as JSON.
 func (f FileMeta) MarshalJSON() ([]byte, error) {
 	type FileMeta struct {
-		InfoHash metainfo.Hash `json:"infoHash"         gencodec:"required"`
-		RawSize  uint64        `json:"rawSize"          gencodec:"required"`
+		InfoHash string `json:"infoHash"         gencodec:"required"`
+		RawSize  uint64 `json:"rawSize"          gencodec:"required"`
 	}
 	var enc FileMeta
 	enc.InfoHash = f.InfoHash
@@ -24,8 +22,8 @@ func (f FileMeta) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (f *FileMeta) UnmarshalJSON(input []byte) error {
 	type FileMeta struct {
-		InfoHash *metainfo.Hash `json:"infoHash"         gencodec:"required"`
-		RawSize  *uint64        `json:"rawSize"          gencodec:"required"`
+		InfoHash *string `json:"infoHash"         gencodec:"required"`
+		RawSize  *uint64 `json:"rawSize"          gencodec:"required"`
 	}
 	var dec FileMeta
 	if err := json.Unmarshal(input, &dec); err != nil {

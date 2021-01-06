@@ -361,10 +361,10 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 						}
 					}
 					if insert {
-						log.Debug("New relate file found and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
+						log.Debug("New relate file found and progressing", "hash", info.Meta.InfoHash, "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 						f.Relate = append(f.Relate, *info.ContractAddr)
 					} else {
-						log.Debug("Address changed and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
+						log.Debug("Address changed and progressing", "hash", info.Meta.InfoHash, "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 					}
 				}
 				v, err = json.Marshal(f)
@@ -384,7 +384,7 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 					if err != nil {
 						return err
 					}
-					log.Debug("New relate file found", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "r", len(info.Relate), "l", info.LeftSize, "r", len(f.Relate), "l", f.LeftSize, "init", init)
+					log.Debug("New relate file found", "hash", info.Meta.InfoHash, "old", info.ContractAddr, "new", f.ContractAddr, "r", len(info.Relate), "l", info.LeftSize, "r", len(f.Relate), "l", f.LeftSize, "init", init)
 					f.Relate = info.Relate
 					return buk.Put(k, v)
 				}

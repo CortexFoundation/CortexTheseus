@@ -2,7 +2,7 @@ package metainfo
 
 import (
 	"crypto/sha1"
-//	"encoding"
+	"encoding"
 	"encoding/hex"
 	"fmt"
 )
@@ -14,7 +14,7 @@ type Hash [HashSize]byte
 
 var (
 	_ fmt.Formatter            = (*Hash)(nil)
-//	_ encoding.TextUnmarshaler = (*Hash)(nil)
+	_ encoding.TextUnmarshaler = (*Hash)(nil)
 )
 
 func (h Hash) Format(f fmt.State, c rune) {
@@ -54,9 +54,9 @@ func (h *Hash) FromHexString(s string) (err error) {
 	return
 }
 
-//func (h *Hash) UnmarshalText(b []byte) error {
-//	return h.FromHexString(string(b))
-//}
+func (h *Hash) UnmarshalText(b []byte) error {
+	return h.FromHexString(string(b))
+}
 
 func NewHashFromHex(s string) (h Hash) {
 	err := h.FromHexString(s)
