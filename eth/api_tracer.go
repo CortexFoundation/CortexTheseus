@@ -290,7 +290,8 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				failed = err
 				break
 			}
-			if err := statedb.Reset(root); err != nil {
+			statedb, err = state.New(root, database, nil)
+			if err != nil {
 				failed = err
 				break
 			}
@@ -526,8 +527,9 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if err != nil {
 			return nil, err
 		}
-		if err := statedb.Reset(root); err != nil {
-			return nil, err
+		statedb, err = state.New(root, database, nil)
+		if err != nil {
+			return nil, fmt.Errorf("state reset after block %d failed: %v", block.NumberU64(), err)
 		}
 		database.TrieDB().Reference(root, common.Hash{})
 		if proot != (common.Hash{}) {
