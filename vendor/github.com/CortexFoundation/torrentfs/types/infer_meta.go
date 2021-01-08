@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -65,19 +66,31 @@ type InputMeta struct {
 	//RawBytes []byte `json:"RawBytes"`
 }
 
-func (mm *ModelMeta) InfoHash() string {
-	ih := mm.Hash.String()[2:]
-	return ih
+func (mm *ModelMeta) InfoHash() (ih string) {
+	if strings.HasPrefix(mm.Hash.String(), "0x") {
+		ih = mm.Hash.String()[2:]
+	} else {
+		ih = mm.Hash.String()
+	}
+	return
 }
 
-func (mm *InputMeta) InfoHash() string {
-	ih := mm.Hash.String()[2:]
-	return ih
+func (mm *InputMeta) InfoHash() (ih string) {
+	if strings.HasPrefix(mm.Hash.String(), "0x") {
+		ih = mm.Hash.String()[2:]
+	} else {
+		ih = mm.Hash.String()
+	}
+	return
 }
 
-func (mm *Meta) InfoHash() string {
-	ih := mm.Hash.String()[2:]
-	return ih
+func (mm *Meta) InfoHash() (ih string) {
+	if strings.HasPrefix(mm.Hash.String(), "0x") {
+		ih = mm.Hash.String()[2:]
+	} else {
+		ih = mm.Hash.String()
+	}
+	return
 }
 
 func (mm *ModelMeta) SetBlockNum(num big.Int) error {

@@ -305,10 +305,6 @@ func (fs *ChainDB) GetBlockByNumber(blockNum uint64) *types.Block {
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
-		//k, err := json.Marshal(blockNum)
-		//if err != nil {
-		//	return ErrReadDataFromBoltDB
-		//}
 		k := uint64ToBytes(blockNum)
 
 		v := buk.Get(k)
@@ -338,10 +334,6 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 			return err
 		}
 
-		//k, err := json.Marshal(f.Meta.InfoHash)
-		//if err != nil {
-		//	return err
-		//}
 		k := []byte(f.Meta.InfoHash)
 		var v []byte
 		bef := buk.Get(k)
@@ -433,10 +425,6 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 		if err != nil {
 			return err
 		}
-		//k, err := json.Marshal(b.Number)
-		//if err != nil {
-		//	return err
-		//}
 		k := uint64ToBytes(b.Number)
 
 		return buk.Put(k, v)
