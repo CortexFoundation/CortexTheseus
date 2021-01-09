@@ -18,12 +18,12 @@ package torrentfs
 
 import (
 	"bytes"
-	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"

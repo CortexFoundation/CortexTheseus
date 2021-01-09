@@ -10,14 +10,14 @@ require (
 	github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d
 	github.com/anacrolix/missinggo/v2 v2.5.0
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.19.3-0.20201230004348-29cc20ede998
+	github.com/anacrolix/torrent v1.20.1-0.20210106225046-69a419882b51
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dustin/go-humanize v1.0.0
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3
-	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
+	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/pborman/uuid v1.2.0
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	go.etcd.io/bbolt v1.3.6-0.20200807205753-f6be82302843

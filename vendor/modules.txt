@@ -13,7 +13,7 @@ github.com/CortexFoundation/cvm-runtime/kernel
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20201231051304-82ddc94679e2
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210107061014-4ce882e6c1af
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -70,7 +70,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.19.3-0.20201230004348-29cc20ede998
+# github.com/anacrolix/torrent v1.20.1-0.20210106225046-69a419882b51
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -224,7 +224,7 @@ github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 ## explicit
 github.com/gorilla/websocket
-# github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
+# github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 ## explicit
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
@@ -258,7 +258,7 @@ github.com/jmespath/go-jmespath
 # github.com/julienschmidt/httprouter v1.3.0
 ## explicit
 github.com/julienschmidt/httprouter
-# github.com/kr/pretty v0.2.0
+# github.com/kr/pretty v0.2.1
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
