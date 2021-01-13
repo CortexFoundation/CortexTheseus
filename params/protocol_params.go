@@ -170,6 +170,9 @@ var (
 	CTXC_INIT = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
 	// |CTXC_MINING|: For mining
 	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
+
+	CTXC_F1 = big.NewInt(0).Mul(big.NewInt(20486540), big.NewInt(1000000000000000000))
+	CTXC_F2 = big.NewInt(0).Mul(big.NewInt(21285544), big.NewInt(1000000000000000000))
 )
 
 const (
