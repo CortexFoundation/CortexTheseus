@@ -2062,6 +2062,8 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 	if localTd.Cmp(externTd) > 0 {
 		log.Info("Sidechain written to disk", "start", it.first().NumberU64(), "end", it.previous().Number, "sidetd", externTd, "localtd", localTd)
 		return it.index, err
+	} else {
+		log.Warn("Regenerate the required state", "start", it.first().NumberU64(), "end", it.previous().Number, "sidetd", externTd, "localtd", localTd)
 	}
 	// Gather all the sidechain hashes (full blocks may be memory heavy)
 	var (
@@ -2077,6 +2079,15 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 	}
 	if parent == nil {
 		return it.index, errors.New("missing parent")
+	}
+
+	if len(hashes) > 2048 {
+		log.Warn("Heavy side chain deteced, manual operation is needed", "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
+		return it.index, errors.New("Heavy side chain deteced")
+	}
+
+	if len(hashes) > 0 {
+		log.Info("Sidechain will be imported", "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
 	}
 	// Import all the pruned blocks to make the state available
 	var (
