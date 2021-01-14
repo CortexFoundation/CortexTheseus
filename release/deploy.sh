@@ -29,7 +29,7 @@ git checkout $version
 
 commit=$(git rev-parse HEAD | cut -c 1-8)
 
-prefix=cortex-$(uname -s)-$1-$(uname -p)
+prefix=cortex-$(uname -s)-$(uname -p)
 name=${prefix}-${version}-${commit}
 
 echo "... ... Building release ${name}"
