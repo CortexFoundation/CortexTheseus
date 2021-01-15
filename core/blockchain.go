@@ -968,6 +968,7 @@ func (bc *BlockChain) GetUnclesInChain(block *types.Block, length int) []*types.
 // TrieNode retrieves a blob of data associated with a trie node
 // either from ephemeral in-memory cache, or from persistent storage.
 func (bc *BlockChain) TrieNode(hash common.Hash) ([]byte, error) {
+	log.Warn("TrieNode update", "hash", hash)
 	return bc.stateCache.TrieDB().Node(hash)
 }
 
@@ -2077,13 +2078,14 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 
 		parent = bc.GetHeader(parent.ParentHash, parent.Number.Uint64()-1)
 	}
+
 	if parent == nil {
 		return it.index, errors.New("missing parent")
 	}
 
-	if len(hashes) > 2048 {
+	if len(hashes) > 256 {
 		log.Warn("Heavy side chain deteced, manual operation is needed", "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
-		return it.index, errors.New("Heavy side chain deteced")
+		return it.index, errors.New("Heavy side chain detected")
 	}
 
 	if len(hashes) > 0 {
