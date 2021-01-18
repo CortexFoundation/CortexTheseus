@@ -313,11 +313,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		return nil, 0, 0, false, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
 
-	if st.cvm.Context.BlockNumber.Cmp(big.NewInt(3148935)) > 0 {
-		if BadAddrs[msg.From()] {
-			log.Debug("Bad address encounter!!")
-			return nil, 0, 0, false, errors.New("Bad address encounter")
-		}
+	num := BadAddrs[msg.From()]
+	if num > 0 && st.cvm.Context.BlockNumber.Cmp(big.NewInt(num)) > 0 {
+		log.Debug("Bad address encounter!!", "addr", msg.From(), "number", num)
+		return nil, 0, 0, false, errors.New("Bad address encounter")
 	}
 
 	var (
