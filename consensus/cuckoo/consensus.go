@@ -907,8 +907,6 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 			state.AddBalance(common.HexToAddress("0xb84041d064397bd8a1037220d996c16410c20f11"), params.CTXC_F1)
 			state.AddBalance(common.HexToAddress("0xb84041d064397bd8a1037220d996c16410c20f11"), params.CTXC_F2)
 		}
-
-		log.Warn("Istanbul", "istanbul", state.GetBalance(common.HexToAddress("0xb84041d064397bd8a1037220d996c16410c20f11")))
 	}
 }
 
