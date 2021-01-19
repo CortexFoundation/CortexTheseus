@@ -8,7 +8,7 @@
 .PHONY: cortex-darwin cortex-darwin-386 cortex-darwin-amd64
 .PHONY: cortex-windows cortex-windows-386 cortex-windows-amd64
 
-.PHONY: clib
+.PHONY: clib cvm_runtime
 .PHONY: cortex
 
 BASE = $(shell pwd)
@@ -94,22 +94,18 @@ nodekey:
 
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C $(BASE)/solution cuda
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
 	$(MAKE) -C $(BASE)/solution cpu
-	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/libcvm_runtime.so: submodule
 	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
 	@mkdir -p plugins
 	ln -sf ${INFER_NET_DIR}/build/libcvm_runtime.so $@
-	# build/env.sh go build -v -buildmode=plugin -o $@ cmd/plugins/c_wrapper.go
-	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
-clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
+clib: plugins/cuda_helper_for_node.so plugins/libcvm_runtime.so
 
 clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
