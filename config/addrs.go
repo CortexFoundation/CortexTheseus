@@ -14,12 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package config
 
 import "github.com/CortexFoundation/CortexTheseus/common"
 
-// BadHashes represent a set of manually tracked bad hashes (usually hard forks)
-var BadHashes = map[common.Hash]bool{
-	//common.HexToHash("aa12c632067adcc8acbda5dbb524687f81ece0526b9f7eb246caaadbd5ddd206"): true,
-	//common.HexToHash("7d05d08cbc596a2e5e4f13b80a743e53e09221b5323c3a61946b20873e58583f"): true,
+var BadAddrs = map[common.Address]int64{
+	common.HexToAddress("b251ef622230a6572c5d0ef98fdfadaa8af24890"): 3140021,
+	common.HexToAddress("2f5e73677634eb2dc531785ffc306811525d8c74"): 3148935,
+}
+
+func IsBlocked(addr common.Address) (bool, int64) {
+	return BadAddrs[addr] > 0, BadAddrs[addr]
 }
