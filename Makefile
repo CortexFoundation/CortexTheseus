@@ -94,11 +94,9 @@ nodekey:
 
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C $(BASE)/solution cuda
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
 	$(MAKE) -C $(BASE)/solution cpu
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cpu_helper_for_node.go
 
 plugins/libcvm_runtime.so: submodule
 	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
