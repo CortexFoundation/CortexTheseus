@@ -61,43 +61,74 @@ func (m *Model) GetInputLength() uint64 {
 	return m.input_size
 }
 
+func (m *Model) preProcessInputData(data []byte) ([]byte, int) {
+	var err error
+
+	if len(data) < int(m.input_size) {
+		log.Warn("input length less than input size",
+			"input length", len(data), "expected", m.input_size)
+		return nil, ERROR_LOGIC
+	}
+
+	if data, err = ToAlignedData(data[:m.input_size], int(m.input_byte)); err != nil {
+		log.Warn("input ToAlignedData invalid", "error", err)
+		return nil, ERROR_LOGIC
+	}
+
+	return data, SUCCEED
+}
+
+// TODO(ryt): test it in istanbul version code
+// The process logic need more considerations since the contract inference API, aka
+//	`INFER` and `INFERARRAY`, accepts the memory aligned size bytes array as input,
+//	which may cause `ERROR_LOGIC` all the time.
+func (m *Model) preProcessInputDataV2(data []byte) ([]byte, int) {
+	var err error
+
+	if len(data) != int(m.input_size) {
+		log.Warn("input length not matched",
+			"input length", len(data), "expected", m.input_size)
+		return nil, ERROR_LOGIC
+	}
+
+	if data, err = ToAlignedData(data, int(m.input_byte)); err != nil {
+		log.Warn("input ToAlignedData invalid", "error", err)
+		return nil, ERROR_LOGIC
+	}
+
+	return data, SUCCEED
+}
+
 func (m *Model) Predict(data []byte, cvmVersion int) ([]byte, int) {
 	var (
-		output []byte
-		status int
-		err    error
+		output   []byte
+		status   int
+		err      error
+		err_code int
 	)
+
 	if cvmVersion == CVM_VERSION_ONE {
-		if len(data) < int(m.input_size) {
-			log.Warn("input length less than input size",
-				"input length", len(data), "expected", m.input_size)
-			return nil, ERROR_LOGIC
-		}
-		if data, err = ToAlignedData(data[:m.input_size], int(m.input_byte)); err != nil {
-			log.Warn("input ToAlignedData invalid", "error", err)
-			return nil, ERROR_LOGIC
-		}
+		data, err_code = m.preProcessInputData(data)
 	} else {
-		// TODO(ryt): test it in istanbuer version code
-		if len(data) != int(m.input_size) {
-			log.Warn("input length not matched",
-				"input length", len(data), "expected", m.input_size)
-			return nil, ERROR_LOGIC
-		}
-		if data, err = ToAlignedData(data, int(m.input_byte)); err != nil {
-			log.Warn("input ToAlignedData invalid", "error", err)
-			return nil, ERROR_LOGIC
-		}
+		data, err_code = m.preProcessInputData(data)
+		// data, err_code = m.preProcessInputDataV2(data)
 	}
+
+	if err_code != SUCCEED {
+		return nil, err_code
+	}
+
 	if output, status = m.lib.Inference(m.model, data); status != SUCCEED {
 		return nil, status
 	}
+
 	if m.output_byte > 1 {
 		if output, err = SwitchEndian(output, int(m.output_byte)); err != nil {
 			log.Warn("output SwitchEndian invalid", "error", err)
 			return nil, ERROR_LOGIC
 		}
 	}
+
 	return output, status
 }
 

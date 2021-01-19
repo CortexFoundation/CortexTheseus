@@ -101,7 +101,7 @@ var (
 		//CortexBlock:	     big.NewInt(8409600),
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(2800000),
+		IstanbulBlock:       big.NewInt(3230000),
 		Cuckoo:              new(CuckooConfig),
 	}
 
