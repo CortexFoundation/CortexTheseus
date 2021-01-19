@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "c_api.h"
+#include "cvm/c_api.h"
 
 void* plugin_open(const char* path, char** err) {
 	void* lib = dlopen(path, RTLD_NOW|RTLD_GLOBAL);
