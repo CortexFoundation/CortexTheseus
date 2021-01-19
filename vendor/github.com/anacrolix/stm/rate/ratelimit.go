@@ -37,7 +37,7 @@ func Every(interval time.Duration) Limit {
 func NewLimiter(rate Limit, burst numTokens) *Limiter {
 	rl := &Limiter{
 		max:     stm.NewVar(burst),
-		cur:     stm.NewVar(burst),
+		cur:     stm.NewBuiltinEqVar(burst),
 		lastAdd: stm.NewVar(time.Now()),
 		rate:    rate,
 	}

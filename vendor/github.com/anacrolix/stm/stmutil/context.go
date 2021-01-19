@@ -23,7 +23,7 @@ func ContextDoneVar(ctx context.Context) (*stm.Var, func()) {
 	if ctx.Err() != nil {
 		// TODO: What if we had read-only Vars? Then we could have a global one for this that we
 		// just reuse.
-		v := stm.NewVar(true)
+		v := stm.NewBuiltinEqVar(true)
 		return v, func() {}
 	}
 	v := stm.NewVar(false)

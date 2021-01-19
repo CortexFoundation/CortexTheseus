@@ -401,6 +401,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 	cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
 	cfg.DisableTCP = config.DisableTCP
+	cfg.DisableIPv6 = config.DisableIPv6
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true

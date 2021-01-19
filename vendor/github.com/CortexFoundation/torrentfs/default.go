@@ -31,6 +31,7 @@ type Config struct {
 	DisableUTP      bool     `toml:",omitempty"`
 	DisableTCP      bool     `toml:",omitempty"`
 	DisableDHT      bool     `toml:",omitempty"`
+	DisableIPv6     bool     `toml:",omitempty"`
 	DefaultTrackers []string `toml:",omitempty"`
 	BoostNodes      []string `toml:",omitempty"`
 	Mode            string   `toml:",omitempty"`
@@ -53,6 +54,7 @@ var DefaultConfig = Config{
 	DisableUTP:      true,
 	DisableDHT:      false,
 	DisableTCP:      false,
+	DisableIPv6:     false,
 	MaxSeedingNum:   params.LimitSeeding / 2,
 	MaxActiveNum:    params.LimitSeeding / 2,
 	//FullSeed:        false,
