@@ -20,7 +20,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -62,12 +61,13 @@ func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
 }
 
 func (ctxc *Cortex) currentCtxcEntry() *ctxcEntry {
-	return &ctxcEntry{ForkID: forkid.NewID(ctxc.blockchain)}
+	return &ctxcEntry{ForkID: forkid.NewID(ctxc.blockchain.Config(), ctxc.blockchain.Genesis().Hash(),
+		ctxc.blockchain.CurrentHeader().Number.Uint64())}
 }
 
 // setupDiscovery creates the node discovery source for the ctxc protocol.
-func (ctxc *Cortex) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error) {
-	if cfg.NoDiscovery || len(ctxc.config.DiscoveryURLs) == 0 {
+func (ctxc *Cortex) setupDiscovery() (enode.Iterator, error) {
+	if len(ctxc.config.DiscoveryURLs) == 0 {
 		return nil, nil
 	}
 	client := dnsdisc.NewClient(dnsdisc.Config{})

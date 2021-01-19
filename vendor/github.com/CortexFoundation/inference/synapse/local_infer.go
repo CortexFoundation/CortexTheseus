@@ -15,6 +15,8 @@ import (
 	"github.com/CortexFoundation/cvm-runtime/kernel"
 	"github.com/CortexFoundation/inference"
 	"time"
+
+	gopsutil "github.com/shirou/gopsutil/mem"
 )
 
 const (
@@ -153,14 +155,24 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	// lazy initialization of model cache
 	if _, ok := s.caches[s.config.DeviceId]; !ok {
 		memoryUsage := s.config.MaxMemoryUsage
+		if mem, err := gopsutil.VirtualMemory(); err == nil {
+			allowance := int64(mem.Total / 2)
+			log.Warn("Memory detected", "allowance", common.StorageSize(allowance))
+			if memoryUsage > allowance {
+				memoryUsage = allowance
+			}
+		}
+
 		if memoryUsage < MinMemoryUsage {
+			log.Warn("8G+ Memory is suggested to run the full node fluently")
 			memoryUsage = MinMemoryUsage
 		}
+
 		memoryUsage -= ReservedMemoryUsage
-		log.Info("Memory alloc", "size", memoryUsage)
+		log.Info("Memory alloc", "size", common.StorageSize(memoryUsage))
 		s.caches[s.config.DeviceId] = lru.New(memoryUsage)
 		s.caches[s.config.DeviceId].OnEvicted = func(key lru.Key, value interface{}) {
-			log.Warn("C FREE On Evicted", "k", key, "size", value.(*kernel.Model).Size(), "max", s.config.MaxMemoryUsage, "min", MinMemoryUsage)
+			log.Warn("C FREE On Evicted", "k", key, "size", common.StorageSize(value.(*kernel.Model).Size()), "free", common.StorageSize(memoryUsage), "max", common.StorageSize(s.config.MaxMemoryUsage), "min", common.StorageSize(MinMemoryUsage))
 			value.(*kernel.Model).Free()
 		}
 	}
@@ -194,6 +206,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 		if _, err := getReturnByStatusCode(model, status); err != nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
+		log.Info("AI memory used", "size", common.StorageSize(int64(model.Size())))
 		s.caches[s.config.DeviceId].Add(modelHash, model, int64(model.Size()))
 	} else {
 		model = model_tmp.(*kernel.Model)
@@ -212,7 +225,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	return result, nil
 }
 
-func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64) error {
+/*func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64) error {
 	if !common.IsHexAddress(infoHash) {
 		return KERNEL_RUNTIME_ERROR
 	}
@@ -235,7 +248,7 @@ func (s *Synapse) available(infoHash string, rawSize uint64, cvmNetworkID int64)
 	}
 	log.Debug("File available", "info hash", infoHash)
 	return nil
-}
+}*/
 
 func (s *Synapse) download(infohash string, request uint64) error {
 	if !common.IsHexAddress(infohash) {

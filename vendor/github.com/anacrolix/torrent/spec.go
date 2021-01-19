@@ -16,6 +16,7 @@ type TorrentSpec struct {
 	DisplayName string
 	Webseeds    []string
 	DhtNodes    []string
+	PeerAddrs   []string
 	// The combination of the "xs" and "as" fields in magnet links, for now.
 	Sources []string
 
@@ -28,8 +29,8 @@ type TorrentSpec struct {
 	DisallowDataDownload bool
 }
 
-func TorrentSpecFromMagnetURI(uri string) (spec *TorrentSpec, err error) {
-	m, err := metainfo.ParseMagnetURI(uri)
+func TorrentSpecFromMagnetUri(uri string) (spec *TorrentSpec, err error) {
+	m, err := metainfo.ParseMagnetUri(uri)
 	if err != nil {
 		return
 	}
@@ -39,7 +40,8 @@ func TorrentSpecFromMagnetURI(uri string) (spec *TorrentSpec, err error) {
 		InfoHash:    m.InfoHash,
 		Webseeds:    m.Params["ws"],
 		Sources:     append(m.Params["xs"], m.Params["as"]...),
-		// TODO: What's the parameter for DHT nodes or bootstrap peers in a magnet link?
+		PeerAddrs:   m.Params["x.pe"], // BEP 9
+		// TODO: What's the parameter for DHT nodes?
 	}
 	return
 }

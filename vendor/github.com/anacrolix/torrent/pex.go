@@ -2,6 +2,7 @@ package torrent
 
 import (
 	"net"
+	"sync"
 
 	"github.com/anacrolix/dht/v2/krpc"
 	pp "github.com/anacrolix/torrent/peer_protocol"
@@ -28,19 +29,144 @@ type pexEvent struct {
 	f    pp.PexPeerFlags
 }
 
-// records the event into the peer protocol PEX message
-func (e *pexEvent) put(m *pp.PexMsg) {
-	switch e.t {
+// facilitates efficient de-duplication while generating PEX messages
+type pexMsgFactory struct {
+	msg     pp.PexMsg
+	added   map[addrKey]struct{}
+	dropped map[addrKey]struct{}
+}
+
+func (me *pexMsgFactory) DeltaLen() int {
+	return int(max(
+		int64(len(me.added)),
+		int64(len(me.dropped))))
+}
+
+type addrKey string
+
+// Returns the key to use to identify a given addr in the factory.
+func (me *pexMsgFactory) addrKey(addr net.Addr) addrKey {
+	return addrKey(addr.String())
+}
+
+func addrEqual(a, b *krpc.NodeAddr) bool {
+	return a.IP.Equal(b.IP) && a.Port == b.Port
+}
+
+func addrIndex(v []krpc.NodeAddr, a *krpc.NodeAddr) int {
+	for i := range v {
+		if addrEqual(&v[i], a) {
+			return i
+		}
+	}
+	return -1
+}
+
+// Returns whether the entry was added (we can check if we're cancelling out another entry and so
+// won't hit the limit consuming this event).
+func (me *pexMsgFactory) add(e pexEvent) {
+	key := me.addrKey(e.addr)
+	if _, ok := me.added[key]; ok {
+		return
+	}
+	if me.added == nil {
+		me.added = make(map[addrKey]struct{}, pexMaxDelta)
+	}
+	addr, ok := nodeAddr(e.addr)
+	if !ok {
+		return
+	}
+	m := &me.msg
+	switch {
+	case addr.IP.To4() != nil:
+		if _, ok := me.dropped[key]; ok {
+			if i := addrIndex(m.Dropped.NodeAddrs(), &addr); i >= 0 {
+				m.Dropped = append(m.Dropped[:i], m.Dropped[i+1:]...)
+			}
+			delete(me.dropped, key)
+			return
+		}
+		m.Added = append(m.Added, addr)
+		m.AddedFlags = append(m.AddedFlags, e.f)
+	case len(addr.IP) == net.IPv6len:
+		if _, ok := me.dropped[key]; ok {
+			if i := addrIndex(m.Dropped6.NodeAddrs(), &addr); i >= 0 {
+				m.Dropped6 = append(m.Dropped6[:i], m.Dropped6[i+1:]...)
+			}
+			delete(me.dropped, key)
+			return
+		}
+		m.Added6 = append(m.Added6, addr)
+		m.Added6Flags = append(m.Added6Flags, e.f)
+	default:
+		panic(addr)
+	}
+	me.added[key] = struct{}{}
+}
+
+// Returns whether the entry was added (we can check if we're cancelling out another entry and so
+// won't hit the limit consuming this event).
+func (me *pexMsgFactory) drop(e pexEvent) {
+	addr, ok := nodeAddr(e.addr)
+	if !ok {
+		return
+	}
+	key := me.addrKey(e.addr)
+	if me.dropped == nil {
+		me.dropped = make(map[addrKey]struct{}, pexMaxDelta)
+	}
+	if _, ok := me.dropped[key]; ok {
+		return
+	}
+	m := &me.msg
+	switch {
+	case addr.IP.To4() != nil:
+		if _, ok := me.added[key]; ok {
+			if i := addrIndex(m.Added.NodeAddrs(), &addr); i >= 0 {
+				m.Added = append(m.Added[:i], m.Added[i+1:]...)
+				m.AddedFlags = append(m.AddedFlags[:i], m.AddedFlags[i+1:]...)
+			}
+			delete(me.added, key)
+			return
+		}
+		m.Dropped = append(m.Dropped, addr)
+	case len(addr.IP) == net.IPv6len:
+		if _, ok := me.added[key]; ok {
+			if i := addrIndex(m.Added6.NodeAddrs(), &addr); i >= 0 {
+				m.Added6 = append(m.Added6[:i], m.Added6[i+1:]...)
+				m.Added6Flags = append(m.Added6Flags[:i], m.Added6Flags[i+1:]...)
+			}
+			delete(me.added, key)
+			return
+		}
+		m.Dropped6 = append(m.Dropped6, addr)
+	}
+	me.dropped[key] = struct{}{}
+}
+
+func (me *pexMsgFactory) addEvent(event pexEvent) {
+	switch event.t {
 	case pexAdd:
-		m.Add(nodeAddr(e.addr), e.f)
+		me.add(event)
 	case pexDrop:
-		m.Drop(nodeAddr(e.addr))
+		me.drop(event)
+	default:
+		panic(event.t)
 	}
 }
 
-func nodeAddr(addr net.Addr) krpc.NodeAddr {
-	ipport, _ := tryIpPortFromNetAddr(addr)
-	return krpc.NodeAddr{IP: shortestIP(ipport.IP), Port: ipport.Port}
+func (me *pexMsgFactory) PexMsg() pp.PexMsg {
+	return me.msg
+}
+
+// Convert an arbitrary torrent peer Addr into one that can be represented by the compact addr
+// format.
+func nodeAddr(addr net.Addr) (_ krpc.NodeAddr, ok bool) {
+	ipport, ok := tryIpPortFromNetAddr(addr)
+	if !ok {
+		return
+	}
+	return krpc.NodeAddr{IP: shortestIP(ipport.IP), Port: ipport.Port}, true
 }
 
 // mainly for the krpc marshallers
@@ -53,15 +179,23 @@ func shortestIP(ip net.IP) net.IP {
 
 // Per-torrent PEX state
 type pexState struct {
-	ev   []pexEvent // event feed, append-only
-	hold []pexEvent // delayed drops
-	nc   int        // net number of alive conns
+	ev        []pexEvent    // event feed, append-only
+	hold      []pexEvent    // delayed drops
+	nc        int           // net number of alive conns
+	initCache pexMsgFactory // last generated initial message
+	initSeq   int           // number of events which went into initCache
+	initLock  sync.RWMutex  // serialise access to initCache and initSeq
 }
 
+// Reset wipes the state clean, releasing resources. Called from Torrent.Close().
 func (s *pexState) Reset() {
 	s.ev = nil
 	s.hold = nil
 	s.nc = 0
+	s.initLock.Lock()
+	s.initCache = pexMsgFactory{}
+	s.initSeq = 0
+	s.initLock.Unlock()
 }
 
 func (s *pexState) Add(c *PeerConn) {
@@ -89,17 +223,35 @@ func (s *pexState) Drop(c *PeerConn) {
 	}
 }
 
-// Generate a PEX message based on the event feed.
-// Also returns an index to pass to the subsequent calls, producing incremental deltas.
-func (s *pexState) Genmsg(start int) (*pp.PexMsg, int) {
-	m := new(pp.PexMsg)
+// Generate a PEX message based on the event feed. Also returns an index to pass to the subsequent
+// calls, producing incremental deltas.
+func (s *pexState) Genmsg(start int) (pp.PexMsg, int) {
+	if start == 0 {
+		return s.genmsg0()
+	}
+
+	var factory pexMsgFactory
 	n := start
 	for _, e := range s.ev[start:] {
-		if start > 0 && m.DeltaLen() >= pexMaxDelta {
+		if start > 0 && factory.DeltaLen() >= pexMaxDelta {
 			break
 		}
-		e.put(m)
+		factory.addEvent(e)
 		n++
 	}
-	return m, n
+	return factory.PexMsg(), n
+}
+
+func (s *pexState) genmsg0() (pp.PexMsg, int) {
+	s.initLock.Lock()
+	for _, e := range s.ev[s.initSeq:] {
+		s.initCache.addEvent(e)
+		s.initSeq++
+	}
+	s.initLock.Unlock()
+	s.initLock.RLock()
+	n := s.initSeq
+	msg := s.initCache.PexMsg()
+	s.initLock.RUnlock()
+	return msg, n
 }

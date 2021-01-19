@@ -262,7 +262,7 @@ func (cuckoo *Cuckoo) Hashrate() float64 {
 	return cuckoo.hashrate.Rate1()
 }
 
-func (cuckoo *Cuckoo) APIs(chain consensus.ChainReader) []rpc.API {
+func (cuckoo *Cuckoo) APIs(chain consensus.ChainHeaderReader) []rpc.API {
 	// In order to ensure backward compatibility, we exposes cuckoo RPC APIs
 	// to both ctxc and cuckoo namespaces.
 	return []rpc.API{

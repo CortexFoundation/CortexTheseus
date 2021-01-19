@@ -38,6 +38,19 @@ type Piece struct {
 	mip metainfo.Piece
 }
 
+var _ io.WriterTo = Piece{}
+
+// Why do we have this wrapper? Well PieceImpl doesn't implement io.Reader, so we can't let io.Copy
+// and friends check for io.WriterTo and fallback for us since they expect an io.Reader.
+func (p Piece) WriteTo(w io.Writer) (int64, error) {
+	if i, ok := p.PieceImpl.(io.WriterTo); ok {
+		return i.WriteTo(w)
+	}
+	n := p.mip.Length()
+	r := io.NewSectionReader(p, 0, n)
+	return io.CopyN(w, r, n)
+}
+
 func (p Piece) WriteAt(b []byte, off int64) (n int, err error) {
 	// Callers should not be writing to completed pieces, but it's too
 	// expensive to be checking this on every single write using uncached

@@ -2,6 +2,9 @@ package protocol
 
 import "time"
 
+// DesiredReceiveBufferSize is the kernel UDP receive buffer size that we'd like to use.
+const DesiredReceiveBufferSize = (1 << 20) * 2 // 2 MB
+
 // MaxPacketSizeIPv4 is the maximum packet size that we use for sending IPv4 packets.
 const MaxPacketSizeIPv4 = 1252
 
@@ -43,13 +46,10 @@ const DefaultMaxIncomingUniStreams = 100
 const MaxServerUnprocessedPackets = 1024
 
 // MaxSessionUnprocessedPackets is the max number of packets stored in each session that are not yet processed.
-const MaxSessionUnprocessedPackets = MaxCongestionWindowPackets
+const MaxSessionUnprocessedPackets = 256
 
 // SkipPacketAveragePeriodLength is the average period length in which one packet number is skipped to prevent an Optimistic ACK attack
 const SkipPacketAveragePeriodLength PacketNumber = 500
-
-// MaxTrackedSkippedPackets is the maximum number of skipped packet numbers the SentPacketHandler keep track of for Optimistic ACK attack mitigation
-const MaxTrackedSkippedPackets = 10
 
 // MaxAcceptQueueSize is the maximum number of sessions that the server queues for accepting.
 // If the queue is full, new connection attempts will be rejected.
@@ -132,8 +132,8 @@ const MaxNumAckRanges = 500
 
 // MinPacingDelay is the minimum duration that is used for packet pacing
 // If the packet packing frequency is higher, multiple packets might be sent at once.
-// Example: For a packet pacing delay of 20 microseconds, we would send 5 packets at once, wait for 100 microseconds, and so forth.
-const MinPacingDelay time.Duration = 100 * time.Microsecond
+// Example: For a packet pacing delay of 200μs, we would send 5 packets at once, wait for 1ms, and so forth.
+const MinPacingDelay = time.Millisecond
 
 // DefaultConnectionIDLength is the connection ID length that is used for multiplexed connections
 // if no other value is configured.
@@ -163,7 +163,7 @@ const MaxAckDelay = 25 * time.Millisecond
 // This is the value that should be advertised to the peer.
 const MaxAckDelayInclGranularity = MaxAckDelay + TimerGranularity
 
-// KeyUpdateInterval is the maximum number of packets we send or receive before initiating a key udpate.
+// KeyUpdateInterval is the maximum number of packets we send or receive before initiating a key update.
 const KeyUpdateInterval = 100 * 1000
 
 // Max0RTTQueueingDuration is the maximum time that we store 0-RTT packets in order to wait for the corresponding Initial to be received.

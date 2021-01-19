@@ -50,11 +50,13 @@ type Piece struct {
 
 	numVerifies         int64
 	hashing             bool
+	marking             bool
 	storageCompletionOk bool
 
 	publicPieceState PieceState
 	priority         piecePriority
 
+	// This can be locked when the Client lock is taken, but probably not vice versa.
 	pendingWritesMutex sync.Mutex
 	pendingWrites      int
 	noPendingWrites    sync.Cond
@@ -239,6 +241,8 @@ func (p *Piece) uncachedPriority() (ret piecePriority) {
 	return
 }
 
+// Tells the Client to refetch the completion status from storage, updating priority etc. if
+// necessary. Might be useful if you know the state of the piece data has changed externally.
 func (p *Piece) UpdateCompletion() {
 	p.t.cl.lock()
 	defer p.t.cl.unlock()

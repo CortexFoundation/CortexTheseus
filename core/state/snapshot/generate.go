@@ -112,6 +112,7 @@ func generateSnapshot(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, cache 
 		genAbort:   make(chan chan *generatorStats),
 	}
 	go base.generate(&generatorStats{wiping: wiper, start: time.Now()})
+	log.Debug("Start snapshot generation", "root", root)
 	return base
 }
 
@@ -205,7 +206,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		if acc.Root != emptyRoot {
 			storeTrie, err := trie.NewSecure(acc.Root, dl.triedb)
 			if err != nil {
-				log.Error("Generator failed to access storage trie", "accroot", dl.root, "acchash", common.BytesToHash(accIt.Key), "stroot", acc.Root, "err", err)
+				log.Error("Generator failed to access storage trie", "root", dl.root, "hash", common.BytesToHash(accIt.Key), "root", acc.Root, "err", err)
 				abort := <-dl.genAbort
 				abort <- stats
 				return
@@ -240,6 +241,10 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 						stats.Log("Aborting state snapshot generation", dl.root, append(accountHash[:], storeIt.Key...))
 						abort <- stats
 						return
+					}
+					if time.Since(logged) > 8*time.Second {
+						stats.Log("Generating state snapshot", dl.root, append(accountHash[:], storeIt.Key...))
+						logged = time.Now()
 					}
 				}
 			}

@@ -94,6 +94,7 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 	//fs.rootCache, _ = lru.New(8)
 
 	if err := fs.initBlockNumber(); err != nil {
+		log.Error("Init block error", "err", err)
 		return nil, err
 	}
 	//if err := fs.initCheckPoint(); err != nil {
@@ -103,13 +104,16 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 	//	return nil, err
 	//}
 	if err := fs.initFiles(); err != nil {
+		log.Error("Init files error", "err", err)
 		return nil, err
 	}
 	if err := fs.initMerkleTree(); err != nil {
+		log.Error("Init mkt error", "err", err)
 		return nil, err
 	}
 
 	if err := fs.initID(); err != nil {
+		log.Error("Init node id error", "err", err)
 		return nil, err
 	}
 
@@ -287,6 +291,12 @@ var (
 	ErrReadDataFromBoltDB = errors.New("bolt DB Read Error")
 )
 
+func uint64ToBytes(i uint64) []byte {
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], i)
+	return buf[:]
+}
+
 func (fs *ChainDB) GetBlockByNumber(blockNum uint64) *types.Block {
 	var block types.Block
 
@@ -295,10 +305,7 @@ func (fs *ChainDB) GetBlockByNumber(blockNum uint64) *types.Block {
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
-		k, err := json.Marshal(blockNum)
-		if err != nil {
-			return ErrReadDataFromBoltDB
-		}
+		k := uint64ToBytes(blockNum)
 
 		v := buk.Get(k)
 
@@ -323,19 +330,18 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version))
 		if err != nil {
+			log.Error("Progress bucket failed", "err", err)
 			return err
 		}
 
-		k, err := json.Marshal(f.Meta.InfoHash)
-		if err != nil {
-			return err
-		}
+		k := []byte(f.Meta.InfoHash)
 		var v []byte
 		bef := buk.Get(k)
 		if bef == nil {
 			update = true
 			v, err = json.Marshal(f)
 			if err != nil {
+				log.Error("Progress json failed", "err", err)
 				return err
 			}
 			return buk.Put(k, v)
@@ -357,10 +363,10 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 						}
 					}
 					if insert {
-						log.Debug("New relate file found and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
+						log.Debug("New relate file found and progressing", "hash", info.Meta.InfoHash, "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 						f.Relate = append(f.Relate, *info.ContractAddr)
 					} else {
-						log.Debug("Address changed and progressing", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
+						log.Debug("Address changed and progressing", "hash", info.Meta.InfoHash, "old", info.ContractAddr, "new", f.ContractAddr, "relate", len(info.Relate), "init", init)
 					}
 				}
 				v, err = json.Marshal(f)
@@ -380,7 +386,7 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 					if err != nil {
 						return err
 					}
-					log.Debug("New relate file found", "hash", info.Meta.InfoHash.String(), "old", info.ContractAddr, "new", f.ContractAddr, "r", len(info.Relate), "l", info.LeftSize, "r", len(f.Relate), "l", f.LeftSize, "init", init)
+					log.Debug("New relate file found", "hash", info.Meta.InfoHash, "old", info.ContractAddr, "new", f.ContractAddr, "r", len(info.Relate), "l", info.LeftSize, "r", len(f.Relate), "l", f.LeftSize, "init", init)
 					f.Relate = info.Relate
 					return buk.Put(k, v)
 				}
@@ -419,10 +425,7 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 		if err != nil {
 			return err
 		}
-		k, err := json.Marshal(b.Number)
-		if err != nil {
-			return err
-		}
+		k := uint64ToBytes(b.Number)
 
 		return buk.Put(k, v)
 	}); err == nil {
@@ -501,8 +504,8 @@ func (fs *ChainDB) initFiles() error {
 			for k, v := c.First(); k != nil; k, v = c.Next() {
 
 				var x types.FileInfo
-
 				if err := json.Unmarshal(v, &x); err != nil {
+					log.Error("Json unmarshal error", "err", err)
 					return err
 				}
 				fs.filesContractAddr[*x.ContractAddr] = &x

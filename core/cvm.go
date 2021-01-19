@@ -37,7 +37,7 @@ type ChainContext interface {
 }
 
 // NewCVMContext creates a new context for use in the CVM.
-func NewCVMContext(msg Message, header *types.Header, chain ChainContext, author *common.Address) vm.Context {
+func NewCVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
 	// If we don't have an explicit author (i.e. not mining), extract from the header
 	var beneficiary common.Address
 	if author == nil {
@@ -45,17 +45,23 @@ func NewCVMContext(msg Message, header *types.Header, chain ChainContext, author
 	} else {
 		beneficiary = *author
 	}
-	return vm.Context{
+	return vm.BlockContext{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(header, chain),
-		Origin:      msg.From(),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
 		Time:        new(big.Int).SetUint64(header.Time),
 		Difficulty:  new(big.Int).Set(header.Difficulty),
 		GasLimit:    header.GasLimit,
-		GasPrice:    new(big.Int).Set(msg.GasPrice()),
+	}
+}
+
+// NewCVMTxContext creates a new transaction context for a single transaction.
+func NewCVMTxContext(msg Message) vm.TxContext {
+	return vm.TxContext{
+		Origin:   msg.From(),
+		GasPrice: new(big.Int).Set(msg.GasPrice()),
 	}
 }
 

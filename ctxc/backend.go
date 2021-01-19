@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -185,6 +186,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 			TrieTimeLimit:       config.TrieTimeout,
 
 			SnapshotLimit: config.SnapshotCache,
+			Preimages:     config.Preimages,
 		}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve, &config.TxLookupLimit)
@@ -219,9 +221,23 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		gpoParams.Default = config.Miner.GasPrice
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
-	ctxc.dialCandidates, err = ctxc.setupDiscovery(&ctx.Config.P2P)
+	ctxc.dialCandidates, err = ctxc.setupDiscovery()
 	if err != nil {
 		return nil, err
+	}
+
+	// Check for unclean shutdown
+	if uncleanShutdowns, discards, err := rawdb.PushUncleanShutdownMarker(chainDb); err != nil {
+		log.Error("Could not update unclean-shutdown-marker list", "error", err)
+	} else {
+		if discards > 0 {
+			log.Warn("Old unclean shutdowns found", "count", discards)
+		}
+		for _, tstamp := range uncleanShutdowns {
+			t := time.Unix(int64(tstamp), 0)
+			log.Warn("Unclean shutdown detected", "booted", t,
+				"age", common.PrettyAge(t))
+		}
 	}
 
 	return ctxc, nil
@@ -560,10 +576,10 @@ func (s *Cortex) Stop() error {
 	s.bloomIndexer.Close()
 	close(s.closeBloomHandler)
 	s.txPool.Stop()
-	s.miner.Stop()
+	s.miner.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
-
+	rawdb.PopUncleanShutdownMarker(s.chainDb)
 	s.chainDb.Close()
 	s.eventMux.Stop()
 	return nil

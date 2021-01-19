@@ -500,9 +500,10 @@ func (t *Torrent) pieceState(index pieceIndex) (ret PieceState) {
 	p := &t.pieces[index]
 	ret.Priority = t.piecePriority(index)
 	ret.Completion = p.completion()
-	if p.queuedForHash() || p.hashing {
-		ret.Checking = true
-	}
+	ret.QueuedForHash = p.queuedForHash()
+	ret.Hashing = p.hashing
+	ret.Checking = ret.QueuedForHash || ret.Hashing
+	ret.Marking = p.marking
 	if !ret.Complete && t.piecePartiallyDownloaded(index) {
 		ret.Partial = true
 	}
@@ -562,8 +563,14 @@ func (psr PieceStateRun) String() (ret string) {
 			return ""
 		}
 	}()
-	if psr.Checking {
+	if psr.Hashing {
 		ret += "H"
+	}
+	if psr.QueuedForHash {
+		ret += "Q"
+	}
+	if psr.Marking {
+		ret += "M"
 	}
 	if psr.Partial {
 		ret += "P"
@@ -787,27 +794,18 @@ func (t *Torrent) pieceLength(piece pieceIndex) pp.Integer {
 	return pp.Integer(t.info.PieceLength)
 }
 
-func (t *Torrent) hashPiece(piece pieceIndex) (ret metainfo.Hash, copyErr error) {
+func (t *Torrent) hashPiece(piece pieceIndex) (ret metainfo.Hash, err error) {
 	hash := pieceHash.New()
 	p := t.piece(piece)
 	p.waitNoPendingWrites()
-	ip := t.info.Piece(int(piece))
-	pl := ip.Length()
-	pieceReader := io.NewSectionReader(t.pieces[piece].Storage(), 0, pl)
-	var hashSource io.Reader
-	doCopy := func() {
-		// Return no error iff pl bytes are copied.
-		_, copyErr = io.CopyN(hash, hashSource, pl)
-	}
+	storagePiece := t.pieces[piece].Storage()
 	const logPieceContents = false
 	if logPieceContents {
 		var examineBuf bytes.Buffer
-		hashSource = io.TeeReader(pieceReader, &examineBuf)
-		doCopy()
-		log.Printf("hashed %q with copy err %v", examineBuf.Bytes(), copyErr)
+		_, err = storagePiece.WriteTo(io.MultiWriter(hash, &examineBuf))
+		log.Printf("hashed %q with copy err %v", examineBuf.Bytes(), err)
 	} else {
-		hashSource = pieceReader
-		doCopy()
+		_, err = storagePiece.WriteTo(hash)
 	}
 	missinggo.CopyExact(&ret, hash.Sum(nil))
 	return
@@ -826,6 +824,26 @@ func (t *Torrent) haveAllPieces() bool {
 
 func (t *Torrent) havePiece(index pieceIndex) bool {
 	return t.haveInfo() && t.pieceComplete(index)
+}
+
+func (t *Torrent) maybeDropMutuallyCompletePeer(
+	// I'm not sure about taking peer here, not all peer implementations actually drop. Maybe that's okay?
+	p *peer,
+) {
+	if !t.cl.config.DropMutuallyCompletePeers {
+		return
+	}
+	if !t.haveAllPieces() {
+		return
+	}
+	if all, known := p.peerHasAllPieces(); !(known && all) {
+		return
+	}
+	if p.useful() {
+		return
+	}
+	t.logger.WithDefaultLevel(log.Debug).Printf("dropping %v, which is mutually complete", p)
+	p.drop()
 }
 
 func (t *Torrent) haveChunk(r request) (ret bool) {
@@ -1147,9 +1165,19 @@ func (t *Torrent) updatePieceCompletion(piece pieceIndex) bool {
 
 // Non-blocking read. Client lock is not required.
 func (t *Torrent) readAt(b []byte, off int64) (n int, err error) {
-	p := &t.pieces[off/t.info.PieceLength]
-	p.waitNoPendingWrites()
-	return p.Storage().ReadAt(b, off-p.Info().Offset())
+	for len(b) != 0 {
+		p := &t.pieces[off/t.info.PieceLength]
+		p.waitNoPendingWrites()
+		var n1 int
+		n1, err = p.Storage().ReadAt(b, off-p.Info().Offset())
+		if n1 == 0 {
+			break
+		}
+		off += int64(n1)
+		n += n1
+		b = b[n1:]
+	}
+	return
 }
 
 // Returns an error if the metadata was completed, but couldn't be set for
@@ -1250,8 +1278,12 @@ func (t *Torrent) deleteConnection(c *PeerConn) (ret bool) {
 	}
 	_, ret = t.conns[c]
 	delete(t.conns, c)
-	if !t.cl.config.DisablePEX {
-		t.pex.Drop(c)
+	// Avoid adding a drop event more than once. Probably we should track whether we've generated
+	// the drop event against the PexConnState instead.
+	if ret {
+		if !t.cl.config.DisablePEX {
+			t.pex.Drop(c)
+		}
 	}
 	torrent.Add("deleted connections", 1)
 	c.deleteAllRequests()
@@ -1426,32 +1458,9 @@ func (t *Torrent) startScrapingTracker(_url string) {
 				return nil
 			}
 		}
-		urlString := (*u).String()
-		cl := t.cl
 		newAnnouncer := &trackerScraper{
 			u: *u,
 			t: t,
-			allow: func() {
-				cl.lock()
-				defer cl.unlock()
-				if cl.activeAnnounces == nil {
-					cl.activeAnnounces = make(map[string]struct{})
-				}
-				for {
-					if _, ok := cl.activeAnnounces[urlString]; ok {
-						cl.event.Wait()
-					} else {
-						break
-					}
-				}
-				cl.activeAnnounces[urlString] = struct{}{}
-			},
-			done: func(slowdown bool) {
-				cl.lock()
-				defer cl.unlock()
-				delete(cl.activeAnnounces, urlString)
-				cl.event.Broadcast()
-			},
 		}
 		go newAnnouncer.Run()
 		return newAnnouncer
@@ -1734,6 +1743,13 @@ func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
 		}
 	}
 
+	p.marking = true
+	t.publishPieceChange(piece)
+	defer func() {
+		p.marking = false
+		t.publishPieceChange(piece)
+	}()
+
 	if passed {
 		if len(p.dirtiers) != 0 {
 			// Don't increment stats above connection-level for every involved connection.
@@ -1743,9 +1759,15 @@ func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
 			c._stats.incrementPiecesDirtiedGood()
 		}
 		t.clearPieceTouchers(piece)
+		t.cl.unlock()
 		err := p.Storage().MarkComplete()
 		if err != nil {
 			t.logger.Printf("%T: error marking piece complete %d: %s", t.storage, piece, err)
+		}
+		t.cl.lock()
+
+		if t.closed.IsSet() {
+			return
 		}
 		t.pendAllChunkSpecs(piece)
 	} else {
@@ -1806,6 +1828,7 @@ func (t *Torrent) onPieceCompleted(piece pieceIndex) {
 	t.cancelRequestsForPiece(piece)
 	for conn := range t.conns {
 		conn.have(piece)
+		t.maybeDropMutuallyCompletePeer(&conn.peer)
 	}
 }
 
@@ -2010,6 +2033,7 @@ func (t *Torrent) onWriteChunkErr(err error) {
 		go t.userOnWriteChunkErr(err)
 		return
 	}
+	t.logger.WithDefaultLevel(log.Critical).Printf("default chunk write error handler: disabling data download")
 	t.disallowDataDownloadLocked()
 }
 
@@ -2024,17 +2048,20 @@ func (t *Torrent) disallowDataDownloadLocked() {
 	t.iterPeers(func(c *peer) {
 		c.updateRequests()
 	})
+	t.tickleReaders()
 }
 
 func (t *Torrent) AllowDataDownload() {
 	t.cl.lock()
 	defer t.cl.unlock()
 	t.dataDownloadDisallowed = false
+	t.tickleReaders()
 	t.iterPeers(func(c *peer) {
 		c.updateRequests()
 	})
 }
 
+// Enables uploading data, if it was disabled.
 func (t *Torrent) AllowDataUpload() {
 	t.cl.lock()
 	defer t.cl.unlock()
@@ -2044,6 +2071,7 @@ func (t *Torrent) AllowDataUpload() {
 	}
 }
 
+// Disables uploading data, if it was enabled.
 func (t *Torrent) DisallowDataUpload() {
 	t.cl.lock()
 	defer t.cl.unlock()
@@ -2053,6 +2081,8 @@ func (t *Torrent) DisallowDataUpload() {
 	}
 }
 
+// Sets a handler that is called if there's an error writing a chunk to local storage. By default,
+// or if nil, a critical message is logged, and data download is disabled.
 func (t *Torrent) SetOnWriteChunkError(f func(error)) {
 	t.cl.lock()
 	defer t.cl.unlock()

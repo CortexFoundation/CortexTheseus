@@ -46,13 +46,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		gasHandler(w, &iw)
 
-	case inference.AVAILABLE_BY_H:
-		var iw inference.AvailableWork
-		if err := iw.UnmarshalJSON(body); err != nil {
-			RespErrorText(w, ErrDataParse)
-		}
-		AvailableHandler(w, &iw)
-
 	default:
 		RespErrorText(w, ErrInvalidInferTaskType)
 	}

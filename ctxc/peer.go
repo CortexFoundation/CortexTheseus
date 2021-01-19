@@ -72,7 +72,7 @@ func max(a, b int) int {
 // PeerInfo represents a short summary of the Cortex sub-protocol metadata known
 // about a connected peer.
 type PeerInfo struct {
-	Version    int      `json:"version"`    // Cortex protocol version negotiated
+	Version    uint     `json:"version"`    // Cortex protocol version negotiated
 	Difficulty *big.Int `json:"difficulty"` // Total difficulty of the peer's blockchain
 	Head       string   `json:"head"`       // SHA3 hash of the peer's best owned block
 }
@@ -89,7 +89,7 @@ type peer struct {
 	*p2p.Peer
 	rw p2p.MsgReadWriter
 
-	version  int         // Protocol version negotiated
+	version  uint        // Protocol version negotiated
 	syncDrop *time.Timer // Timed connection dropper if sync progress isn't validated in time
 
 	head common.Hash
@@ -108,7 +108,7 @@ type peer struct {
 	term chan struct{} // Termination channel to stop the broadcaster
 }
 
-func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(hash common.Hash) *types.Transaction) *peer {
+func newPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(hash common.Hash) *types.Transaction) *peer {
 	return &peer{
 		Peer:            p,
 		rw:              rw,
@@ -261,7 +261,7 @@ func (p *peer) announceTransactions(removePeer func(string)) {
 			queue = append(queue, hashes...)
 			if len(queue) > maxQueuedTxAnns {
 				// Fancy copy and resize to ensure buffer doesn't grow indefinitely
-				queue = queue[:copy(queue, queue[len(queue)-maxQueuedTxs:])]
+				queue = queue[:copy(queue, queue[len(queue)-maxQueuedTxAnns:])]
 			}
 
 		case <-done:
@@ -280,6 +280,11 @@ func (p *peer) announceTransactions(removePeer func(string)) {
 // close signals the broadcast goroutine to terminate.
 func (p *peer) close() {
 	close(p.term)
+}
+
+// Version retrieves the peer's negoatiated `eth` protocol version.
+func (p *peer) Version() uint {
+	return p.version
 }
 
 // Info gathers and returns a collection of metadata known about a peer.
@@ -649,7 +654,7 @@ func (p *peer) readStatusLegacy(network uint64, status *statusData63, genesis co
 	if status.NetworkId != network {
 		return errResp(ErrNetworkIDMismatch, "%d (!= %d)", status.NetworkId, network)
 	}
-	if int(status.ProtocolVersion) != p.version {
+	if uint(status.ProtocolVersion) != p.version {
 		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
 	return nil
@@ -673,7 +678,7 @@ func (p *peer) readStatus(network uint64, status *statusData, genesis common.Has
 	if status.NetworkID != network {
 		return errResp(ErrNetworkIDMismatch, "%d (!= %d)", status.NetworkID, network)
 	}
-	if int(status.ProtocolVersion) != p.version {
+	if uint(status.ProtocolVersion) != p.version {
 		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
 	if status.Genesis != genesis {

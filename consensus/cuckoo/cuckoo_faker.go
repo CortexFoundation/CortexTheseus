@@ -47,7 +47,7 @@ func NewFullFaker() *Cuckoo {
 type CuckooFake struct {
 }
 
-func (cuckoo *CuckooFake) APIs(chain consensus.ChainReader) []rpc.API {
+func (cuckoo *CuckooFake) APIs(chain consensus.ChainHeaderReader) []rpc.API {
 	return []rpc.API{}
 }
 
@@ -55,7 +55,7 @@ func (cuckoo *CuckooFake) Author(header *types.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
-func (cuckoo *CuckooFake) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
+func (cuckoo *CuckooFake) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
 	return big.NewInt(0)
 }
 
@@ -63,7 +63,7 @@ func (cuckoo *CuckooFake) Close() error {
 	return nil
 }
 
-func (cuckoo *CuckooFake) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (cuckoo *CuckooFake) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
 }
 
@@ -71,11 +71,11 @@ func (cuckoo *CuckooFake) FinalizeWithoutParent(chain consensus.ChainReader, hea
 	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie)), nil
 }
 
-func (cuckoo *CuckooFake) Prepare(chain consensus.ChainReader, header *types.Header) error {
+func (cuckoo *CuckooFake) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
 	return nil
 }
 
-func (cuckoo *CuckooFake) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (cuckoo *CuckooFake) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	return nil
 }
 
@@ -83,11 +83,11 @@ func (cuckoo *CuckooFake) SealHash(header *types.Header) (hash common.Hash) {
 	return common.Hash{}
 }
 
-func (cuckoo *CuckooFake) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+func (cuckoo *CuckooFake) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
 	return nil
 }
 
-func (cuckoo *CuckooFake) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+func (cuckoo *CuckooFake) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	abort := make(chan struct{})
 	errorsOut := make(chan error, len(headers))
 	go func() {
@@ -98,7 +98,7 @@ func (cuckoo *CuckooFake) VerifyHeaders(chain consensus.ChainReader, headers []*
 	return abort, errorsOut
 }
 
-func (cuckoo *CuckooFake) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+func (cuckoo *CuckooFake) VerifySeal(chain consensus.ChainHeaderReader, header *types.Header) error {
 	return nil
 }
 

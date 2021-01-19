@@ -101,7 +101,7 @@ func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 
 // Context provides the CVM with auxiliary information. Once provided
 // it shouldn't be modified.
-type Context struct {
+type BlockContext struct {
 	// CanTransfer returns whether the account contains
 	// sufficient ctxcer to transfer the value
 	CanTransfer CanTransferFunc
@@ -110,16 +110,20 @@ type Context struct {
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
 
-	// Message information
-	Origin   common.Address // Provides information for ORIGIN
-	GasPrice *big.Int       // Provides information for GASPRICE
-
 	// Block information
 	Coinbase    common.Address // Provides information for COINBASE
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
+}
+
+// TxContext provides the CVM with information about a transaction.
+// All fields can change between transactions.
+type TxContext struct {
+	// Message information
+	Origin   common.Address // Provides information for ORIGIN
+	GasPrice *big.Int       // Provides information for GASPRICE
 }
 
 // CVM is the Cortex Virtual Machine base object and provides
@@ -133,7 +137,8 @@ type Context struct {
 // The CVM should never be reused and is not thread safe.
 type CVM struct {
 	// Context provides auxiliary blockchain related information
-	Context
+	Context BlockContext
+	TxContext
 	// StateDB gives access to the underlying state
 	StateDB StateDB
 	// Depth is the current call stack
@@ -164,20 +169,21 @@ type CVM struct {
 
 // NewCVM returns a new CVM. The returned CVM is not thread safe and should
 // only ever be used *once*.
-func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *CVM {
+func NewCVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *CVM {
 
 	cvm := &CVM{
-		Context:      ctx,
+		Context:      blockCtx,
+		TxContext:    txCtx,
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
 		category:     Category{},
-		chainRules:   chainConfig.Rules(ctx.BlockNumber),
+		chainRules:   chainConfig.Rules(blockCtx.BlockNumber),
 		interpreters: make([]Interpreter, 1),
 		//Fs:           fileFs,
 	}
 
-	if chainConfig.IsEWASM(ctx.BlockNumber) {
+	if chainConfig.IsEWASM(blockCtx.BlockNumber) {
 		// to be implemented by CVM-C and Wagon PRs.
 		// if vmConfig.EWASMInterpreter != "" {
 		//  extIntOpts := strings.Split(vmConfig.EWASMInterpreter, ":")
@@ -197,6 +203,13 @@ func NewCVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 	cvm.interpreter = cvm.interpreters[0]
 
 	return cvm
+}
+
+// Reset resets the CVM with a new transaction context.Reset
+// This is not threadsafe and should only be done very cautiously.
+func (cvm *CVM) Reset(txCtx TxContext, statedb StateDB) {
+	cvm.TxContext = txCtx
+	cvm.StateDB = statedb
 }
 
 // Cancel cancels any running CVM operation. This may be called concurrently and
@@ -249,7 +262,7 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}
 		cvm.StateDB.CreateAccount(addr)
 	}
-	cvm.Transfer(cvm.StateDB, caller.Address(), addr, value)
+	cvm.Context.Transfer(cvm.StateDB, caller.Address(), addr, value)
 
 	// Capture the tracer start/end events in debug mode
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
@@ -464,7 +477,7 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if cvm.chainRules.IsEIP158 {
 		cvm.StateDB.SetNonce(address, 1)
 	}
-	cvm.Transfer(cvm.StateDB, caller.Address(), address, value)
+	cvm.Context.Transfer(cvm.StateDB, caller.Address(), address, value)
 
 	// initialise a new contract and set the code that is to be used by the
 	// CVM. The contract is a scoped environment for this execution contex only.
@@ -537,7 +550,7 @@ func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 	//contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
 	//	return cvm.create(caller, code, gas, endowment, contractAddr)
 	codeAndHash := &codeAndHash{code: code}
-	contractAddr = crypto.CreateAddress2(caller.Address(), common.Hash(salt.Bytes32()), codeAndHash.Hash().Bytes())
+	contractAddr = crypto.CreateAddress2(caller.Address(), salt.Bytes32(), codeAndHash.Hash().Bytes())
 	return cvm.create(caller, codeAndHash, gas, endowment, contractAddr)
 }
 
@@ -598,7 +611,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 
 	start := mclock.Now()
 
-	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.BlockNumber)
+	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.Context.BlockNumber)
 	model := common.StorageEntry{
 		Hash: modelInfoHash,
 		Size: modelRawSize,
@@ -612,7 +625,7 @@ func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRa
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Debug("[hash ] succeed", "label", inferRes, "model", modelInfoHash, "input", inputInfoHash, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("[hash ] succeed", "label", inferRes, "model", modelInfoHash, "input", inputInfoHash, "number", cvm.Context.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	// ret := synapse.ArgMax(inferRes)
 	if cvm.vmConfig.DebugInferVM {
@@ -626,7 +639,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	log.Trace("Detail", "Input Content", hexutil.Encode(inputArray))
 
 	if cvm.vmConfig.DebugInferVM {
-		fmt.Println("Model Hash", modelInfoHash, "number", cvm.BlockNumber, "Input Content", hexutil.Encode(inputArray))
+		fmt.Println("Model Hash", modelInfoHash, "number", cvm.Context.BlockNumber, "Input Content", hexutil.Encode(inputArray))
 	}
 
 	var (
@@ -636,7 +649,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 
 	start := mclock.Now()
 
-	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.BlockNumber)
+	cvmVersion := synapse.CVMVersion(cvm.chainConfig, cvm.Context.BlockNumber)
 	model := common.StorageEntry{
 		Hash: modelInfoHash,
 		Size: modelRawSize,
@@ -645,7 +658,7 @@ func (cvm *CVM) InferArray(modelInfoHash string, inputArray []byte, modelRawSize
 	elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 
 	if errRes == nil {
-		log.Debug("[array] succeed", "label", inferRes, "model", modelInfoHash, "array", inputArray, "number", cvm.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
+		log.Debug("[array] succeed", "label", inferRes, "model", modelInfoHash, "array", inputArray, "number", cvm.Context.BlockNumber, "elapsed", common.PrettyDuration(elapsed))
 	}
 	return inferRes, errRes
 }

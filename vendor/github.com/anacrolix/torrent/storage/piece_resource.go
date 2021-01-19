@@ -6,6 +6,7 @@ import (
 	"path"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/anacrolix/missinggo/v2/resource"
 
@@ -13,10 +14,10 @@ import (
 )
 
 type piecePerResource struct {
-	p resource.Provider
+	p PieceProvider
 }
 
-func NewResourcePieces(p resource.Provider) ClientImpl {
+func NewResourcePieces(p PieceProvider) ClientImpl {
 	return &piecePerResource{
 		p: p,
 	}
@@ -41,9 +42,44 @@ func (s piecePerResource) Piece(p metainfo.Piece) PieceImpl {
 	}
 }
 
+type PieceProvider interface {
+	resource.Provider
+}
+
+type ConsecutiveChunkWriter interface {
+	WriteConsecutiveChunks(prefix string, _ io.Writer) (int64, error)
+}
+
 type piecePerResourcePiece struct {
 	mp metainfo.Piece
 	rp resource.Provider
+}
+
+var _ io.WriterTo = piecePerResourcePiece{}
+
+func (s piecePerResourcePiece) WriteTo(w io.Writer) (int64, error) {
+	if ccw, ok := s.rp.(ConsecutiveChunkWriter); ok {
+		if s.mustIsComplete() {
+			return ccw.WriteConsecutiveChunks(s.completedInstancePath(), w)
+		} else {
+			return s.writeConsecutiveIncompleteChunks(ccw, w)
+		}
+	}
+	return io.Copy(w, io.NewSectionReader(s, 0, s.mp.Length()))
+}
+
+func (s piecePerResourcePiece) writeConsecutiveIncompleteChunks(ccw ConsecutiveChunkWriter, w io.Writer) (int64, error) {
+	return ccw.WriteConsecutiveChunks(s.incompleteDirPath()+"/", w)
+}
+
+// Returns if the piece is complete. Ok should be true, because we are the definitive source of
+// truth here.
+func (s piecePerResourcePiece) mustIsComplete() bool {
+	completion := s.Completion()
+	if !completion.Ok {
+		panic("must know complete definitively")
+	}
+	return completion.Complete
 }
 
 func (s piecePerResourcePiece) Completion() Completion {
@@ -56,11 +92,27 @@ func (s piecePerResourcePiece) Completion() Completion {
 
 func (s piecePerResourcePiece) MarkComplete() error {
 	incompleteChunks := s.getChunks()
-	err := s.completed().Put(io.NewSectionReader(incompleteChunks, 0, s.mp.Length()))
-	if err == nil {
-		for _, c := range incompleteChunks {
-			c.instance.Delete()
+	r, w := io.Pipe()
+	go func() {
+		var err error
+		if ccw, ok := s.rp.(ConsecutiveChunkWriter); ok {
+			_, err = s.writeConsecutiveIncompleteChunks(ccw, w)
+		} else {
+			_, err = io.Copy(w, io.NewSectionReader(incompleteChunks, 0, s.mp.Length()))
 		}
+		w.CloseWithError(err)
+	}()
+	err := s.completed().Put(r)
+	if err == nil {
+		var wg sync.WaitGroup
+		for _, c := range incompleteChunks {
+			wg.Add(1)
+			go func(c chunk) {
+				defer wg.Done()
+				c.instance.Delete()
+			}(c)
+		}
+		wg.Wait()
 	}
 	return err
 }
@@ -70,7 +122,7 @@ func (s piecePerResourcePiece) MarkNotComplete() error {
 }
 
 func (s piecePerResourcePiece) ReadAt(b []byte, off int64) (int, error) {
-	if s.Completion().Complete {
+	if s.mustIsComplete() {
 		return s.completed().ReadAt(b, off)
 	}
 	return s.getChunks().ReadAt(b, off)
@@ -137,8 +189,12 @@ func (s piecePerResourcePiece) getChunks() (chunks chunks) {
 	return
 }
 
+func (s piecePerResourcePiece) completedInstancePath() string {
+	return path.Join("completed", s.mp.Hash().HexString())
+}
+
 func (s piecePerResourcePiece) completed() resource.Instance {
-	i, err := s.rp.NewInstance(path.Join("completed", s.mp.Hash().HexString()))
+	i, err := s.rp.NewInstance(s.completedInstancePath())
 	if err != nil {
 		panic(err)
 	}

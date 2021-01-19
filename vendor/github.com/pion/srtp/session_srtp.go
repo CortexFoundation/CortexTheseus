@@ -1,8 +1,6 @@
 package srtp
 
 import (
-	"errors"
-	"fmt"
 	"net"
 
 	"github.com/pion/logging"
@@ -21,11 +19,11 @@ type SessionSRTP struct {
 }
 
 // NewSessionSRTP creates a SRTP session using conn as the underlying transport.
-func NewSessionSRTP(conn net.Conn, config *Config) (*SessionSRTP, error) {
+func NewSessionSRTP(conn net.Conn, config *Config) (*SessionSRTP, error) { //nolint:dupl
 	if config == nil {
-		return nil, errors.New("no config provided")
+		return nil, errNoConfig
 	} else if conn == nil {
-		return nil, errors.New("no conn provided")
+		return nil, errNoConn
 	}
 
 	loggerFactory := config.LoggerFactory
@@ -78,26 +76,26 @@ func (s *SessionSRTP) OpenWriteStream() (*WriteStreamSRTP, error) {
 
 // OpenReadStream opens a read stream for the given SSRC, it can be used
 // if you want a certain SSRC, but don't want to wait for AcceptStream
-func (s *SessionSRTP) OpenReadStream(SSRC uint32) (*ReadStreamSRTP, error) {
-	r, _ := s.session.getOrCreateReadStream(SSRC, s, newReadStreamSRTP)
+func (s *SessionSRTP) OpenReadStream(ssrc uint32) (*ReadStreamSRTP, error) {
+	r, _ := s.session.getOrCreateReadStream(ssrc, s, newReadStreamSRTP)
 
 	if readStream, ok := r.(*ReadStreamSRTP); ok {
 		return readStream, nil
 	}
 
-	return nil, fmt.Errorf("failed to open ReadStreamSRCTP, type assertion failed")
+	return nil, errFailedTypeAssertion
 }
 
 // AcceptStream returns a stream to handle RTCP for a single SSRC
 func (s *SessionSRTP) AcceptStream() (*ReadStreamSRTP, uint32, error) {
 	stream, ok := <-s.newStream
 	if !ok {
-		return nil, 0, fmt.Errorf("SessionSRTP has been closed")
+		return nil, 0, errStreamAlreadyClosed
 	}
 
 	readStream, ok := stream.(*ReadStreamSRTP)
 	if !ok {
-		return nil, 0, fmt.Errorf("newStream was found, but failed type assertion")
+		return nil, 0, errFailedTypeAssertion
 	}
 
 	return readStream, stream.GetSSRC(), nil
@@ -121,13 +119,13 @@ func (s *SessionSRTP) write(b []byte) (int, error) {
 
 func (s *SessionSRTP) writeRTP(header *rtp.Header, payload []byte) (int, error) {
 	if _, ok := <-s.session.started; ok {
-		return 0, fmt.Errorf("started channel used incorrectly, should only be closed")
+		return 0, errStartedChannelUsedIncorrectly
 	}
 
 	s.session.localContextMutex.Lock()
-	defer s.session.localContextMutex.Unlock()
-
 	encrypted, err := s.localContext.encryptRTP(nil, header, payload)
+	s.session.localContextMutex.Unlock()
+
 	if err != nil {
 		return 0, err
 	}
@@ -150,7 +148,7 @@ func (s *SessionSRTP) decrypt(buf []byte) error {
 
 	readStream, ok := r.(*ReadStreamSRTP)
 	if !ok {
-		return fmt.Errorf("failed to get/create ReadStreamSRTP")
+		return errFailedTypeAssertion
 	}
 
 	decrypted, err := s.remoteContext.decryptRTP(buf, buf, h)

@@ -390,7 +390,7 @@ func (dl *downloadTester) newPeer(id string, version int, chain *testChain) erro
 
 	peer := &downloadTesterPeer{dl: dl, id: id, chain: chain}
 	dl.peers[id] = peer
-	return dl.downloader.RegisterPeer(id, version, peer)
+	return dl.downloader.RegisterPeer(id, uint(version), peer)
 }
 
 // dropPeer simulates a hard peer removal from the connection pool.
@@ -555,7 +555,7 @@ func testThrottling(t *testing.T, protocol int, mode SyncMode) {
 		<-proceed
 	}
 	// Start a synchronisation concurrently
-	errc := make(chan error)
+	errc := make(chan error, 1)
 	go func() {
 		errc <- tester.sync("peer", nil, mode)
 	}()

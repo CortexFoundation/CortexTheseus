@@ -124,7 +124,6 @@ const (
 	Ripemd160PerWordGas uint64 = 120  // Per-word price for a RIPEMD160 operation
 	IdentityBaseGas     uint64 = 15   // Base price for a data copy operation
 	IdentityPerWordGas  uint64 = 3    // Per-work price for a data copy operation
-	ModExpQuadCoeffDiv  uint64 = 20   // Divisor for the quadratic particle of the big int modular exponentiation
 
 	Bn256AddGasByzantium             uint64 = 500    // Byzantium gas needed for an elliptic curve addition
 	Bn256AddGasIstanbul              uint64 = 150    // Gas needed for an elliptic curve addition
@@ -171,6 +170,9 @@ var (
 	CTXC_INIT = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
 	// |CTXC_MINING|: For mining
 	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
+
+	CTXC_F1 = big.NewInt(0).Mul(big.NewInt(20486540), big.NewInt(1000000000000000000))
+	CTXC_F2 = big.NewInt(0).Mul(big.NewInt(21285544), big.NewInt(1000000000000000000))
 )
 
 const (

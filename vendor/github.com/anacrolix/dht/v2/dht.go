@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"context"
 	"crypto"
 	crand "crypto/rand"
 	_ "crypto/sha1"
@@ -8,6 +9,8 @@ import (
 	"math/rand"
 	"net"
 	"time"
+
+	"github.com/rs/dnscache"
 
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
@@ -91,6 +94,21 @@ func jitterDuration(average time.Duration, plusMinus time.Duration) time.Duratio
 
 type Peer = krpc.NodeAddr
 
+var dnsResolver = &dnscache.Resolver{}
+
+func dnsResolverRefresher() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+		dnsResolver.Refresh(false)
+	}
+}
+
+func init() {
+	go dnsResolverRefresher()
+}
+
 func GlobalBootstrapAddrs(network string) (addrs []Addr, err error) {
 	for _, s := range []string{
 		"router.utorrent.com:6881",
@@ -104,9 +122,9 @@ func GlobalBootstrapAddrs(network string) (addrs []Addr, err error) {
 		if err != nil {
 			panic(err)
 		}
-		hostAddrs, err := net.LookupHost(host)
+		hostAddrs, err := dnsResolver.LookupHost(context.Background(), host)
 		if err != nil {
-			log.Printf("error looking up %q: %v", s, err)
+			//log.Default.WithDefaultLevel(log.Debug).Printf("error looking up %q: %v", s, err)
 			continue
 		}
 		for _, a := range hostAddrs {

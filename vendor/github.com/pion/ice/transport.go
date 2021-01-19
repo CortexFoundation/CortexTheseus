@@ -93,7 +93,17 @@ func (c *Conn) Write(p []byte) (int, error) {
 
 	pair := c.agent.getSelectedPair()
 	if pair == nil {
-		return 0, err
+		bestValidPair := make(chan *candidatePair, 1)
+		if err = c.agent.run(func(a *Agent) {
+			bestValidPair <- a.getBestValidCandidatePair()
+		}); err != nil {
+			return 0, err
+		}
+
+		pair = <-bestValidPair
+		if pair == nil {
+			return 0, err
+		}
 	}
 
 	atomic.AddUint64(&c.bytesSent, uint64(len(p)))
@@ -108,14 +118,24 @@ func (c *Conn) Close() error {
 
 // TODO: Maybe just switch to using io.ReadWriteCloser?
 
-// LocalAddr is a stub
+// LocalAddr returns the local address of the current selected pair or nil if there is none.
 func (c *Conn) LocalAddr() net.Addr {
-	return nil
+	pair := c.agent.getSelectedPair()
+	if pair == nil {
+		return nil
+	}
+
+	return pair.local.addr()
 }
 
-// RemoteAddr is a stub
+// RemoteAddr returns the remote address of the current selected pair or nil if there is none.
 func (c *Conn) RemoteAddr() net.Addr {
-	return nil
+	pair := c.agent.getSelectedPair()
+	if pair == nil {
+		return nil
+	}
+
+	return pair.remote.addr()
 }
 
 // SetDeadline is a stub

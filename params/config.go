@@ -62,8 +62,8 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
-		SectionIndex: 69,
-		SectionHead:  common.HexToHash("0xbf7464c3741576d3feeebeda8fc645db1ae5f2acfbb61c300cdbd5e7076749f5"),
+		SectionIndex: 88,
+		SectionHead:  common.HexToHash("0xda8524c3f007b45d3c3b456ae1a5f792f84e7dc27a2964e6e42b16b15aaedad0"),
 	}
 
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
@@ -511,7 +511,7 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
-	return Rules{ChainID: new(big.Int).Set(chainID), IsHomestead: c.IsHomestead(num), IsEIP150: c.IsEIP150(num), IsEIP155: c.IsEIP155(num), IsEIP158: c.IsEIP158(num), IsByzantium: c.IsByzantium(num), IsPetersburg: c.IsPetersburg(num)}
+	return Rules{ChainID: new(big.Int).Set(chainID), IsHomestead: c.IsHomestead(num), IsEIP150: c.IsEIP150(num), IsEIP155: c.IsEIP155(num), IsEIP158: c.IsEIP158(num), IsByzantium: c.IsByzantium(num), IsPetersburg: c.IsPetersburg(num), IsIstanbul: c.IsIstanbul(num)}
 }
 
 // Get Mature Block

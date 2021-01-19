@@ -46,8 +46,11 @@ func (m Magnet) String() string {
 	return u.String()
 }
 
-// ParseMagnetURI parses Magnet-formatted URIs into a Magnet instance
-func ParseMagnetURI(uri string) (m Magnet, err error) {
+// Deprecated: Use ParseMagnetUri.
+var ParseMagnetURI = ParseMagnetUri
+
+// ParseMagnetUri parses Magnet-formatted URIs into a Magnet instance
+func ParseMagnetUri(uri string) (m Magnet, err error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		err = fmt.Errorf("error parsing uri: %w", err)

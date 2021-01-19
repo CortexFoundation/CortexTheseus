@@ -42,12 +42,12 @@ func trackDetailsFromSDP(log logging.LeveledLogger, s *sdp.SessionDescription) m
 			continue
 		}
 
-		for _, attr := range media.Attributes {
-			codecType := NewRTPCodecType(media.MediaName.Media)
-			if codecType == 0 {
-				continue
-			}
+		codecType := NewRTPCodecType(media.MediaName.Media)
+		if codecType == 0 {
+			continue
+		}
 
+		for _, attr := range media.Attributes {
 			switch attr.Key {
 			case sdp.AttrKeySSRCGroup:
 				split := strings.Split(attr.Value, " ")
@@ -148,7 +148,7 @@ func addCandidatesToMediaDescriptions(candidates []ICECandidate, m *sdp.MediaDes
 func addDataMediaSection(d *sdp.SessionDescription, midValue string, iceParams ICEParameters, candidates []ICECandidate, dtlsRole sdp.ConnectionRole, iceGatheringState ICEGatheringState) {
 	media := (&sdp.MediaDescription{
 		MediaName: sdp.MediaName{
-			Media:   "application",
+			Media:   mediaSectionApplication,
 			Port:    sdp.RangedPort{Value: 9},
 			Protos:  []string{"DTLS", "SCTP"},
 			Formats: []string{"5000"},
@@ -370,13 +370,26 @@ func extractFingerprint(desc *sdp.SessionDescription) (string, string, error) {
 
 func extractICEDetails(desc *sdp.SessionDescription) (string, string, []ICECandidate, error) {
 	candidates := []ICECandidate{}
-	remotePwd := ""
-	remoteUfrag := ""
+	remotePwds := []string{}
+	remoteUfrags := []string{}
+
+	if ufrag, haveUfrag := desc.Attribute("ice-ufrag"); haveUfrag {
+		remoteUfrags = append(remoteUfrags, ufrag)
+	}
+	if pwd, havePwd := desc.Attribute("ice-pwd"); havePwd {
+		remotePwds = append(remotePwds, pwd)
+	}
 
 	for _, m := range desc.MediaDescriptions {
+		if ufrag, haveUfrag := m.Attribute("ice-ufrag"); haveUfrag {
+			remoteUfrags = append(remoteUfrags, ufrag)
+		}
+		if pwd, havePwd := m.Attribute("ice-pwd"); havePwd {
+			remotePwds = append(remotePwds, pwd)
+		}
+
 		for _, a := range m.Attributes {
-			switch {
-			case a.IsICECandidate():
+			if a.IsICECandidate() {
 				sdpCandidate, err := a.ToICECandidate()
 				if err != nil {
 					return "", "", nil, err
@@ -388,19 +401,37 @@ func extractICEDetails(desc *sdp.SessionDescription) (string, string, []ICECandi
 				}
 
 				candidates = append(candidates, candidate)
-			case strings.HasPrefix(*a.String(), "ice-ufrag"):
-				remoteUfrag = (*a.String())[len("ice-ufrag:"):]
-			case strings.HasPrefix(*a.String(), "ice-pwd"):
-				remotePwd = (*a.String())[len("ice-pwd:"):]
 			}
 		}
 	}
 
-	if remoteUfrag == "" {
+	if len(remoteUfrags) == 0 {
 		return "", "", nil, ErrSessionDescriptionMissingIceUfrag
-	} else if remotePwd == "" {
+	} else if len(remotePwds) == 0 {
 		return "", "", nil, ErrSessionDescriptionMissingIcePwd
 	}
 
-	return remoteUfrag, remotePwd, candidates, nil
+	for _, m := range remoteUfrags {
+		if m != remoteUfrags[0] {
+			return "", "", nil, ErrSessionDescriptionConflictingIceUfrag
+		}
+	}
+
+	for _, m := range remotePwds {
+		if m != remotePwds[0] {
+			return "", "", nil, ErrSessionDescriptionConflictingIcePwd
+		}
+	}
+
+	return remoteUfrags[0], remotePwds[0], candidates, nil
+}
+
+func haveApplicationMediaSection(desc *sdp.SessionDescription) bool {
+	for _, m := range desc.MediaDescriptions {
+		if m.MediaName.Media == mediaSectionApplication {
+			return true
+		}
+	}
+
+	return false
 }

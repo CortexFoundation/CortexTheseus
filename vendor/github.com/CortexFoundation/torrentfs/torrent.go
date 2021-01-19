@@ -18,12 +18,12 @@ package torrentfs
 
 import (
 	"bytes"
-	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
@@ -174,7 +174,11 @@ func (t *Torrent) Seed() bool {
 	if t.Torrent.Seeding() {
 		t.status = torrentSeeding
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+		if active, ok := GoodFiles[t.InfoHash()]; !ok {
+			log.Warn("New active nas found", "ih", t.InfoHash(), "ok", ok, "active", active, "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+		} else {
+			log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+		}
 		return true
 	}
 
@@ -229,16 +233,17 @@ func (t *Torrent) Run(slot int) {
 	}
 }
 
+// Find out the start and end
 func (t *Torrent) download(p, slot int) {
 	var s, e int
 	s = (t.Torrent.NumPieces() * slot) / bucket
-	if s < t.Torrent.NumPieces()/3 {
+	/*if s < t.Torrent.NumPieces()/n {
 		s = s - p
 
-	} else if s >= t.Torrent.NumPieces()/3 && s < (t.Torrent.NumPieces()*2)/3 {
+	} else if s >= t.Torrent.NumPieces()/n && s < (t.Torrent.NumPieces()*(n-1))/n {
 		s = s - p/2
-	}
-
+	}*/
+	s = s - p/2
 	if s < 0 {
 		s = 0
 	}
@@ -248,6 +253,7 @@ func (t *Torrent) download(p, slot int) {
 	}
 
 	e = s + p
+	log.Info("Donwloaded pieces", "ih", t.Torrent.InfoHash(), "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 	t.Torrent.DownloadPieces(s, e)
 }
 

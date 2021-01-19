@@ -165,7 +165,7 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	return &CVMInterpreter{
 		cvm:      cvm,
 		cfg:      cfg,
-		gasTable: cvm.ChainConfig().GasTable(cvm.BlockNumber),
+		gasTable: cvm.ChainConfig().GasTable(cvm.Context.BlockNumber),
 	}
 }
 
@@ -277,8 +277,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					modelMeta.SetGas(0)
 				}
 
-				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
-				modelMeta.SetBlockNum(*in.cvm.BlockNumber)
+				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
+				modelMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
 				if tmpCode, err := modelMeta.ToBytes(); err != nil {
 					return nil, err
 				} else {
@@ -324,8 +324,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 					return nil, ErrInvalidMetaRawSize
 				}
 
-				inputMeta.SetBlockNum(*in.cvm.BlockNumber)
-				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.BlockNumber)
+				inputMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
+				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
 				if tmpCode, err := inputMeta.ToBytes(); err != nil {
 					return nil, err
 				} else {

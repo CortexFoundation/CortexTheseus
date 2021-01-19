@@ -1,7 +1,7 @@
 package srtp
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 
 	"github.com/pion/rtp"
@@ -36,9 +36,9 @@ func (r *ReadStreamSRTP) init(child streamSession, ssrc uint32) error {
 	defer r.mu.Unlock()
 
 	if !ok {
-		return fmt.Errorf("ReadStreamSRTP init failed type assertion")
+		return errFailedTypeAssertion
 	} else if r.isInited {
-		return fmt.Errorf("ReadStreamSRTP has already been inited")
+		return errStreamAlreadyInited
 	}
 
 	r.session = sessionSRTP
@@ -56,7 +56,7 @@ func (r *ReadStreamSRTP) init(child streamSession, ssrc uint32) error {
 func (r *ReadStreamSRTP) write(buf []byte) (n int, err error) {
 	n, err = r.buffer.Write(buf)
 
-	if err == packetio.ErrFull {
+	if errors.Is(err, packetio.ErrFull) {
 		// Silently drop data when the buffer is full.
 		return len(buf), nil
 	}
@@ -92,12 +92,12 @@ func (r *ReadStreamSRTP) Close() error {
 	defer r.mu.Unlock()
 
 	if !r.isInited {
-		return fmt.Errorf("ReadStreamSRTP has not been inited")
+		return errStreamNotInited
 	}
 
 	select {
 	case <-r.isClosed:
-		return fmt.Errorf("ReadStreamSRTP is already closed")
+		return errStreamAlreadyClosed
 	default:
 		err := r.buffer.Close()
 		if err != nil {

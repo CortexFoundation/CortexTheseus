@@ -130,13 +130,13 @@ func (s *session) start(localMasterKey, localMasterSalt, remoteMasterKey, remote
 			i, err = s.nextConn.Read(b)
 			if err != nil {
 				if err != io.EOF {
-					s.log.Errorf("srtp: %s", err.Error())
+					s.log.Error(err.Error())
 				}
 				return
 			}
 
 			if err = child.decrypt(b[:i]); err != nil {
-				s.log.Infof("%v \n", err)
+				s.log.Info(err.Error())
 			}
 		}
 	}()

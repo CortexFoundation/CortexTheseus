@@ -34,7 +34,13 @@ const (
 	PeerSourceDhtGetPeers     = "Hg" // Peers we found by searching a DHT.
 	PeerSourceDhtAnnouncePeer = "Ha" // Peers that were announced to us by a DHT.
 	PeerSourcePex             = "X"
+	// The peer was given directly, such as through a magnet link.
+	PeerSourceDirect = "M"
 )
+
+type peerRequestState struct {
+	data []byte
+}
 
 type peer struct {
 	// First to ensure 64-bit alignment for atomics. See #262.
@@ -86,7 +92,7 @@ type peer struct {
 	// Stuff controlled by the remote peer.
 	peerInterested        bool
 	peerChoking           bool
-	peerRequests          map[request]struct{}
+	peerRequests          map[request]*peerRequestState
 	PeerPrefersEncryption bool // as indicated by 'e' field in extension handshake
 	PeerListenPort        int
 	// The pieces the peer has claimed to have.
@@ -195,7 +201,7 @@ func (cn *peer) cumInterest() time.Duration {
 	return ret
 }
 
-func (cn *PeerConn) peerHasAllPieces() (all bool, known bool) {
+func (cn *peer) peerHasAllPieces() (all bool, known bool) {
 	if cn.peerSentHaveAll {
 		return true, true
 	}
@@ -207,10 +213,6 @@ func (cn *PeerConn) peerHasAllPieces() (all bool, known bool) {
 
 func (cn *PeerConn) locker() *lockWithDeferreds {
 	return cn.t.cl.locker()
-}
-
-func (cn *PeerConn) localAddr() net.Addr {
-	return cn.conn.LocalAddr()
 }
 
 func (cn *peer) supportsExtension(ext pp.ExtensionName) bool {
@@ -347,10 +349,10 @@ func (cn *peer) close() {
 	}
 	cn.discardPieceInclination()
 	cn._pieceRequestOrder.Clear()
-	cn.peerImpl._close()
+	cn.peerImpl.onClose()
 }
 
-func (cn *PeerConn) _close() {
+func (cn *PeerConn) onClose() {
 	if cn.pex.IsEnabled() {
 		cn.pex.Close()
 	}
@@ -367,17 +369,23 @@ func (cn *peer) peerHasPiece(piece pieceIndex) bool {
 	return cn.peerSentHaveAll || cn._peerPieces.Contains(bitmap.BitIndex(piece))
 }
 
-// Writes a message into the write buffer.
-func (cn *PeerConn) post(msg pp.Message) {
+// 64KiB, but temporarily less to work around an issue with WebRTC. TODO: Update when
+// https://github.com/pion/datachannel/issues/59 is fixed.
+const writeBufferHighWaterLen = 1 << 15
+
+// Writes a message into the write buffer. Returns whether it's okay to keep writing. Posting is
+// done asynchronously, so it may be that we're not able to honour backpressure from this method. It
+// might be possible to merge this with PeerConn.write down the track? They seem to be very similar.
+func (cn *PeerConn) post(msg pp.Message) bool {
 	torrent.Add(fmt.Sprintf("messages posted of type %s", msg.Type.String()), 1)
-	// We don't need to track bytes here because a connection.w Writer wrapper
-	// takes care of that (although there's some delay between us recording
-	// the message, and the connection writer flushing it out.).
+	// We don't need to track bytes here because a connection.w Writer wrapper takes care of that
+	// (although there's some delay between us recording the message, and the connection writer
+	// flushing it out.).
 	cn.writeBuffer.Write(msg.MustMarshalBinary())
-	// Last I checked only Piece messages affect stats, and we don't post
-	// those.
+	// Last I checked only Piece messages affect stats, and we don't post those.
 	cn.wroteMsg(&msg)
 	cn.tickleWriter()
+	return cn.writeBuffer.Len() < writeBufferHighWaterLen
 }
 
 // Returns true if there's room to write more.
@@ -385,9 +393,7 @@ func (cn *PeerConn) write(msg pp.Message) bool {
 	cn.wroteMsg(&msg)
 	cn.writeBuffer.Write(msg.MustMarshalBinary())
 	torrent.Add(fmt.Sprintf("messages filled of type %s", msg.Type.String()), 1)
-	// 64KiB, but temporarily less to work around an issue with WebRTC. TODO: Update
-	// when https://github.com/pion/datachannel/issues/59 is fixed.
-	return cn.writeBuffer.Len() < 1<<15
+	return cn.writeBuffer.Len() < writeBufferHighWaterLen
 }
 
 func (cn *PeerConn) requestMetadataPiece(index int) {
@@ -657,7 +663,7 @@ func (cn *PeerConn) writer(keepAliveTimeout time.Duration) {
 		if cn.writeBuffer.Len() == 0 {
 			cn.fillWriteBuffer()
 		}
-		if cn.writeBuffer.Len() == 0 && time.Since(lastWrite) >= keepAliveTimeout {
+		if cn.writeBuffer.Len() == 0 && time.Since(lastWrite) >= keepAliveTimeout && cn.useful() {
 			cn.writeBuffer.Write(pp.Message{Keepalive: true}.MustMarshalBinary())
 			postedKeepalives.Add(1)
 		}
@@ -837,6 +843,7 @@ func (cn *PeerConn) peerPiecesChanged() {
 			cn.updateRequests()
 		}
 	}
+	cn.t.maybeDropMutuallyCompletePeer(&cn.peer)
 }
 
 func (cn *PeerConn) raisePeerMinPieces(newMin pieceIndex) {
@@ -854,6 +861,7 @@ func (cn *PeerConn) peerSentHave(piece pieceIndex) error {
 	}
 	cn.raisePeerMinPieces(piece + 1)
 	cn._peerPieces.Set(bitmap.BitIndex(piece), true)
+	cn.t.maybeDropMutuallyCompletePeer(&cn.peer)
 	if cn.updatePiecePriority(piece) {
 		cn.updateRequests()
 	}
@@ -1034,11 +1042,66 @@ func (c *PeerConn) onReadRequest(r request) error {
 		return errors.New("bad request")
 	}
 	if c.peerRequests == nil {
-		c.peerRequests = make(map[request]struct{}, maxRequests)
+		c.peerRequests = make(map[request]*peerRequestState, maxRequests)
 	}
-	c.peerRequests[r] = struct{}{}
-	c.tickleWriter()
+	value := &peerRequestState{}
+	c.peerRequests[r] = value
+	go c.peerRequestDataReader(r, value)
+	//c.tickleWriter()
 	return nil
+}
+
+func (c *PeerConn) peerRequestDataReader(r request, prs *peerRequestState) {
+	b, err := readPeerRequestData(r, c)
+	c.locker().Lock()
+	defer c.locker().Unlock()
+	if err != nil {
+		c.peerRequestDataReadFailed(err, r)
+	} else {
+		if b == nil {
+			panic("data must be non-nil to trigger send")
+		}
+		prs.data = b
+		c.tickleWriter()
+	}
+}
+
+// If this is maintained correctly, we might be able to support optional synchronous reading for
+// chunk sending, the way it used to work.
+func (c *PeerConn) peerRequestDataReadFailed(err error, r request) {
+	c.logger.WithDefaultLevel(log.Warning).Printf("error reading chunk for peer request %v: %v", r, err)
+	i := pieceIndex(r.Index)
+	if c.t.pieceComplete(i) {
+		// There used to be more code here that just duplicated the following break. Piece
+		// completions are currently cached, so I'm not sure how helpful this update is, except to
+		// pull any completion changes pushed to the storage backend in failed reads that got us
+		// here.
+		c.t.updatePieceCompletion(i)
+	}
+	// If we failed to send a chunk, choke the peer to ensure they flush all their requests. We've
+	// probably dropped a piece from storage, but there's no way to communicate this to the peer. If
+	// they ask for it again, we'll kick them to allow us to send them an updated bitfield on the
+	// next connect. TODO: Support rejecting here too.
+	if c.choking {
+		c.logger.WithDefaultLevel(log.Warning).Printf("already choking peer, requests might not be rejected correctly")
+	}
+	c.choke(c.post)
+}
+
+func readPeerRequestData(r request, c *PeerConn) ([]byte, error) {
+	b := make([]byte, r.Length)
+	p := c.t.info.Piece(int(r.Index))
+	n, err := c.t.readAt(b, p.Offset()+int64(r.Begin))
+	if n == len(b) {
+		if err == io.EOF {
+			err = nil
+		}
+	} else {
+		if err == nil {
+			panic("expected error")
+		}
+	}
+	return b, err
 }
 
 func runSafeExtraneous(f func()) {
@@ -1293,14 +1356,16 @@ func (c *peer) receiveChunk(msg *pp.Message) error {
 		torrent.Add("chunks received due to allowed fast", 1)
 	}
 
-	// Request has been satisfied.
-	if c.deleteRequest(req) {
-		if c.expectingChunks() {
-			c._chunksReceivedWhileExpecting++
+	defer func() {
+		// Request has been satisfied.
+		if c.deleteRequest(req) {
+			if c.expectingChunks() {
+				c._chunksReceivedWhileExpecting++
+			}
+		} else {
+			torrent.Add("chunks received unwanted", 1)
 		}
-	} else {
-		torrent.Add("chunks received unwanted", 1)
-	}
+	}()
 
 	// Do we actually want this chunk?
 	if t.haveChunk(req) {
@@ -1356,7 +1421,8 @@ func (c *peer) receiveChunk(msg *pp.Message) error {
 
 	c.onDirtiedPiece(pieceIndex(req.Index))
 
-	if t.pieceAllDirty(pieceIndex(req.Index)) {
+	// We need to ensure the piece is only queued once, so only the last chunk writer gets this job.
+	if t.pieceAllDirty(pieceIndex(req.Index)) && piece.pendingWrites == 0 {
 		t.queuePieceCheck(pieceIndex(req.Index))
 		// We don't pend all chunks here anymore because we don't want code dependent on the dirty
 		// chunk status (such as the haveChunk call above) to have to check all the various other
@@ -1421,7 +1487,10 @@ another:
 		if !c.unchoke(msg) {
 			return false
 		}
-		for r := range c.peerRequests {
+		for r, state := range c.peerRequests {
+			if state.data == nil {
+				continue
+			}
 			res := c.t.cl.config.UploadRateLimiter.ReserveN(time.Now(), int(r.Length))
 			if !res.OK() {
 				panic(fmt.Sprintf("upload rate limiter burst size < %d", r.Length))
@@ -1433,27 +1502,7 @@ another:
 				// Hard to say what to return here.
 				return true
 			}
-			more, err := c.sendChunk(r, msg)
-			if err != nil {
-				c.logger.WithDefaultLevel(log.Warning).Printf("sending chunk to peer: %v", err)
-				i := pieceIndex(r.Index)
-				if c.t.pieceComplete(i) {
-					// There used to be more code here that just duplicated the following break.
-					// Piece completions are currently cached, so I'm not sure how helpful this
-					// update is, except to pull any completion changes pushed to the storage
-					// backend in failed reads that got us here.
-					c.t.updatePieceCompletion(i)
-				}
-				// If we failed to send a chunk, choke the peer by breaking out of the loop here to
-				// ensure they flush all their requests. We've probably dropped a piece from
-				// storage, but there's no way to communicate this to the peer. If they ask for it
-				// again, we'll kick them to allow us to send them an updated bitfield on the next
-				// connect.
-				if c.choking {
-					c.logger.WithDefaultLevel(log.Warning).Printf("already choking peer, requests might not be rejected correctly")
-				}
-				break another
-			}
+			more := c.sendChunk(r, msg, state)
 			delete(c.peerRequests, r)
 			if !more {
 				return false
@@ -1497,17 +1546,26 @@ func (c *peer) deleteRequest(r request) bool {
 	if n < 0 {
 		panic(n)
 	}
-	// If a request is rejected, updating the requests for the current peer first will miss the
-	// opportunity to try other peers for that request instead. I'm not sure about the interested
-	// check in the following loop however.
-	if false {
+	// If a request fails, updating the requests for the current peer first may miss the opportunity
+	// to try other peers for that request instead, depending on the request strategy. This might
+	// only affect webseed peers though, since they synchronously issue new requests: PeerConns do
+	// it in the writer routine.
+	const updateCurrentConnRequestsFirst = false
+	if updateCurrentConnRequestsFirst {
 		c.updateRequests()
 	}
+	// Give other conns a chance to pick up the request.
 	c.t.iterPeers(func(_c *peer) {
-		if !_c.interested && _c != c && c.peerHasPiece(pieceIndex(r.Index)) {
+		// We previously checked that the peer wasn't interested to to only wake connections that
+		// were unable to issue requests due to starvation by the request strategy. There could be
+		// performance ramifications.
+		if _c != c && c.peerHasPiece(pieceIndex(r.Index)) {
 			_c.updateRequests()
 		}
 	})
+	if !updateCurrentConnRequestsFirst {
+		c.updateRequests()
+	}
 	return true
 }
 
@@ -1523,6 +1581,8 @@ func (c *peer) deleteAllRequests() {
 	// }
 }
 
+// This is called when something has changed that should wake the writer, such as putting stuff into
+// the writeBuffer, or changing some state that the writer can act on.
 func (c *PeerConn) tickleWriter() {
 	c.writerCond.Broadcast()
 }
@@ -1539,27 +1599,14 @@ func (c *PeerConn) _postCancel(r request) {
 	c.post(makeCancelMessage(r))
 }
 
-func (c *PeerConn) sendChunk(r request, msg func(pp.Message) bool) (more bool, err error) {
-	// Count the chunk being sent, even if it isn't.
-	b := make([]byte, r.Length)
-	p := c.t.info.Piece(int(r.Index))
-	n, err := c.t.readAt(b, p.Offset()+int64(r.Begin))
-	if n != len(b) {
-		if err == nil {
-			panic("expected error")
-		}
-		return
-	} else if err == io.EOF {
-		err = nil
-	}
-	more = msg(pp.Message{
+func (c *PeerConn) sendChunk(r request, msg func(pp.Message) bool, state *peerRequestState) (more bool) {
+	c.lastChunkSent = time.Now()
+	return msg(pp.Message{
 		Type:  pp.Piece,
 		Index: r.Index,
 		Begin: r.Begin,
-		Piece: b,
+		Piece: state.data,
 	})
-	c.lastChunkSent = time.Now()
-	return
 }
 
 func (c *PeerConn) setTorrent(t *Torrent) {
@@ -1598,6 +1645,8 @@ func (c *PeerConn) pexPeerFlags() pp.PexPeerFlags {
 	return f
 }
 
+// This returns the address to use if we want to dial the peer again. It incorporates the peer's
+// advertised listen port.
 func (c *PeerConn) dialAddr() net.Addr {
 	if !c.outgoing && c.PeerListenPort != 0 {
 		switch addr := c.RemoteAddr.(type) {

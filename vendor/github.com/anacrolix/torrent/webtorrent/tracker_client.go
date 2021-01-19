@@ -35,6 +35,7 @@ type TrackerClient struct {
 	wsConn         *websocket.Conn
 	closed         bool
 	stats          TrackerClientStats
+	pingTicker     *time.Ticker
 }
 
 func (me *TrackerClient) Stats() TrackerClientStats {
@@ -72,20 +73,37 @@ func (tc *TrackerClient) doWebsocket() error {
 		return fmt.Errorf("dialing tracker: %w", err)
 	}
 	defer c.Close()
-	tc.Logger.WithDefaultLevel(log.Debug).Printf("dialed tracker %q", tc.Url)
+	tc.Logger.WithDefaultLevel(log.Info).Printf("connected")
 	tc.mu.Lock()
 	tc.wsConn = c
 	tc.cond.Broadcast()
 	tc.mu.Unlock()
+	tc.announceOffers()
+	closeChan := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-tc.pingTicker.C:
+				err := c.WriteMessage(websocket.PingMessage, []byte{})
+				if err != nil {
+					return
+				}
+			case <-closeChan:
+				return
+			default:
+			}
+		}
+	}()
 	err = tc.trackerReadLoop(tc.wsConn)
+	close(closeChan)
 	tc.mu.Lock()
-	tc.closeUnusedOffers()
 	c.Close()
 	tc.mu.Unlock()
 	return err
 }
 
 func (tc *TrackerClient) Run() error {
+	tc.pingTicker = time.NewTicker(60 * time.Second)
 	tc.cond.L = &tc.mu
 	tc.mu.Lock()
 	for !tc.closed {
@@ -111,9 +129,35 @@ func (tc *TrackerClient) Close() error {
 	if tc.wsConn != nil {
 		tc.wsConn.Close()
 	}
+	tc.closeUnusedOffers()
+	tc.pingTicker.Stop()
 	tc.mu.Unlock()
 	tc.cond.Broadcast()
 	return nil
+}
+
+func (tc *TrackerClient) announceOffers() {
+
+	// tc.Announce grabs a lock on tc.outboundOffers. It also handles the case where outboundOffers
+	// is nil. Take ownership of outboundOffers here.
+	tc.mu.Lock()
+	offers := tc.outboundOffers
+	tc.outboundOffers = nil
+	tc.mu.Unlock()
+
+	if offers == nil {
+		return
+	}
+
+	// Iterate over our locally-owned offers, close any existing "invalid" ones from before the
+	// socket reconnected, reannounce the infohash, adding it back into the tc.outboundOffers.
+	tc.Logger.WithDefaultLevel(log.Info).Printf("reannouncing %d infohashes after restart", len(offers))
+	for _, offer := range offers {
+		// TODO: Capture the errors? Are we even in a position to do anything with them?
+		offer.peerConnection.Close()
+		// Use goroutine here to allow read loop to start and ensure the buffer drains.
+		go tc.Announce(tracker.Started, offer.infoHash)
+	}
 }
 
 func (tc *TrackerClient) closeUnusedOffers() {
@@ -139,6 +183,7 @@ func (tc *TrackerClient) Announce(event tracker.AnnounceEvent, infoHash [20]byte
 
 	request, err := tc.GetAnnounceRequest(event, infoHash)
 	if err != nil {
+		pc.Close()
 		return fmt.Errorf("getting announce parameters: %w", err)
 	}
 
@@ -159,6 +204,7 @@ func (tc *TrackerClient) Announce(event tracker.AnnounceEvent, infoHash [20]byte
 
 	data, err := json.Marshal(req)
 	if err != nil {
+		pc.Close()
 		return fmt.Errorf("marshalling request: %w", err)
 	}
 

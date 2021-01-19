@@ -4,7 +4,6 @@ package ice
 
 import (
 	"context"
-	"math/rand"
 	"net"
 	"strings"
 	"sync"
@@ -50,7 +49,7 @@ const (
 	maxBufferSize = 1000 * 1000 // 1MB
 
 	// wait time before binding requests can be deleted
-	maxBindingRequestTimeout = 500 * time.Millisecond
+	maxBindingRequestTimeout = 4000 * time.Millisecond
 )
 
 var (
@@ -311,8 +310,14 @@ func NewAgent(config *AgentConfig) (*Agent, error) {
 	}
 
 	// local username fragment and password
-	localUfrag := randSeq(16)
-	localPwd := randSeq(32)
+	localUfrag, err := generateUFrag()
+	if err != nil {
+		return nil, err
+	}
+	localPwd, err := generatePwd()
+	if err != nil {
+		return nil, err
+	}
 
 	if config.LocalUfrag != "" {
 		if len([]rune(config.LocalUfrag))*8 < 24 {
@@ -354,8 +359,10 @@ func NewAgent(config *AgentConfig) (*Agent, error) {
 
 	var mDNSConn *mdns.Conn
 	mDNSConn, mDNSMode, err = createMulticastDNS(mDNSMode, mDNSName, log)
+	// Opportunistic mDNS: If we can't open the connection, that's ok: we
+	// can continue without it.
 	if err != nil {
-		return nil, err
+		log.Warnf("Failed to initialize mDNS %s: %v", mDNSName, err)
 	}
 	closeMDNSConn := func() {
 		if mDNSConn != nil {
@@ -366,7 +373,7 @@ func NewAgent(config *AgentConfig) (*Agent, error) {
 	}
 
 	a := &Agent{
-		tieBreaker:             rand.New(rand.NewSource(time.Now().UnixNano())).Uint64(),
+		tieBreaker:             globalMathRandomGenerator.Uint64(),
 		lite:                   config.Lite,
 		gatheringState:         GatheringStateNew,
 		connectionState:        ConnectionStateNew,
@@ -751,11 +758,10 @@ func (a *Agent) validateSelectedPair() bool {
 		return false
 	}
 
-	if (a.connectionTimeout != 0) &&
-		(time.Since(selectedPair.remote.LastReceived()) > a.connectionTimeout) {
-		a.setSelectedPair(nil)
+	if (a.connectionTimeout != 0) && (time.Since(selectedPair.remote.LastReceived()) > a.connectionTimeout) {
 		a.updateConnectionState(ConnectionStateDisconnected)
-		return false
+	} else {
+		a.updateConnectionState(ConnectionStateConnected)
 	}
 
 	return true
@@ -808,6 +814,9 @@ func (a *Agent) AddRemoteCandidate(c Candidate) error {
 }
 
 func (a *Agent) resolveAndAddMulticastCandidate(c *CandidateHost) {
+	if a.mDNSConn == nil {
+		return
+	}
 	_, src, err := a.mDNSConn.Query(context.TODO(), c.Address())
 	if err != nil {
 		a.log.Warnf("Failed to discover mDNS candidate %s: %v", c.Address(), err)

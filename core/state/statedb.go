@@ -388,10 +388,15 @@ func (s *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byt
 //}
 
 // GetProof returns the MerkleProof for a given Account
-func (s *StateDB) GetProof(a common.Address) ([][]byte, error) {
+func (s *StateDB) GetProof(addr common.Address) ([][]byte, error) {
+	return s.GetProofByHash(crypto.Keccak256Hash(addr.Bytes()))
+}
+
+// GetProofByHash returns the Merkle proof for a given account.
+func (s *StateDB) GetProofByHash(addrHash common.Hash) ([][]byte, error) {
 	var proof proofList
-	err := s.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
-	return [][]byte(proof), err
+	err := s.trie.Prove(addrHash[:], 0, &proof)
+	return proof, err
 }
 
 // GetProof returns the StorageProof for given key
@@ -402,7 +407,18 @@ func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, 
 		return proof, errors.New("storage trie for requested address does not exist")
 	}
 	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
-	return [][]byte(proof), err
+	return proof, err
+}
+
+// GetStorageProofByHash returns the Merkle proof for given storage slot.
+func (s *StateDB) GetStorageProofByHash(a common.Address, key common.Hash) ([][]byte, error) {
+	var proof proofList
+	trie := s.StorageTrie(a)
+	if trie == nil {
+		return proof, errors.New("storage trie for requested address does not exist")
+	}
+	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
+	return proof, err
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
@@ -989,8 +1005,12 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 			if err := s.snaps.Update(root, parent, s.snapDestructs, s.snapAccounts, s.snapStorage); err != nil {
 				log.Warn("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
 			}
-			if err := s.snaps.Cap(root, 127); err != nil { // Persistent layer is 128th, the last available trie
-				log.Warn("Failed to cap snapshot tree", "root", root, "layers", 127, "err", err)
+			// Keep 128 diff layers in the memory, persistent layer is 129th.
+			// - head layer is paired with HEAD state
+			// - head-1 layer is paired with HEAD-1 state
+			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
+			if err := s.snaps.Cap(root, 128); err != nil {
+				log.Warn("Failed to cap snapshot tree", "root", root, "layers", 128, "err", err)
 			}
 		}
 		s.snap, s.snapDestructs, s.snapAccounts, s.snapStorage = nil, nil, nil, nil

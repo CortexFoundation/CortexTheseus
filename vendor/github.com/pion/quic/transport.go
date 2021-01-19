@@ -3,6 +3,10 @@
 package quic
 
 import (
+	"fmt"
+	"io"
+
+	"github.com/pion/logging"
 	"github.com/pion/quic/internal/wrapper"
 )
 
@@ -13,6 +17,10 @@ type Transport struct {
 
 // NewTransport creates a new Transport
 func NewTransport(url string, config *Config) (*Transport, error) {
+	if config.LoggerFactory == nil {
+		config.LoggerFactory = logging.NewDefaultLoggerFactory()
+	}
+
 	cfg := config.clone()
 	cfg.SkipVerify = true // Using self signed certificates for now
 
@@ -22,23 +30,34 @@ func NewTransport(url string, config *Config) (*Transport, error) {
 	}
 
 	t := &Transport{}
+	t.TransportBase.log = config.LoggerFactory.NewLogger("quic")
 	return t, t.TransportBase.startBase(s)
 }
 
-func newServer(url string, config *Config) (*Transport, error) {
+// single accept listen for testing
+func newServer(url string, config *Config) (*Transport, io.Closer, error) {
+	loggerFactory := config.LoggerFactory
+	if loggerFactory == nil {
+		loggerFactory = logging.NewDefaultLoggerFactory()
+	}
+
 	cfg := config.clone()
 	cfg.SkipVerify = true // Using self signed certificates for now
 
 	l, err := wrapper.Listen(url, cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	s, err := l.Accept()
 	if err != nil {
-		return nil, err
+		if cerr := l.Close(); cerr != nil {
+			err = fmt.Errorf("failed to close listener (%s) after accept failed: %w", cerr, err)
+		}
+		return nil, nil, err
 	}
 
 	t := &Transport{}
-	return t, t.TransportBase.startBase(s)
+	t.TransportBase.log = loggerFactory.NewLogger("quic")
+	return t, l, t.TransportBase.startBase(s)
 }

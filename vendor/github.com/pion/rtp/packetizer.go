@@ -1,7 +1,6 @@
 package rtp
 
 import (
-	"math/rand"
 	"time"
 )
 
@@ -24,24 +23,21 @@ type packetizer struct {
 	Sequencer        Sequencer
 	Timestamp        uint32
 	ClockRate        uint32
-	extensionNumbers struct { //put extension numbers in here. If they're 0, the extension is disabled (0 is not a legal extension number)
-		AbsSendTime int //http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+	extensionNumbers struct { // put extension numbers in here. If they're 0, the extension is disabled (0 is not a legal extension number)
+		AbsSendTime int // http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
 	}
 	timegen func() time.Time
 }
 
 // NewPacketizer returns a new instance of a Packetizer for a specific payloader
 func NewPacketizer(mtu int, pt uint8, ssrc uint32, payloader Payloader, sequencer Sequencer, clockRate uint32) Packetizer {
-	rs := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(rs)
-
 	return &packetizer{
 		MTU:         mtu,
 		PayloadType: pt,
 		SSRC:        ssrc,
 		Payloader:   payloader,
 		Sequencer:   sequencer,
-		Timestamp:   r.Uint32(),
+		Timestamp:   globalMathRandomGenerator.Uint32(),
 		ClockRate:   clockRate,
 		timegen:     time.Now,
 	}
@@ -79,18 +75,16 @@ func (p *packetizer) Packetize(payload []byte, samples uint32) []*Packet {
 	p.Timestamp += samples
 
 	if len(packets) != 0 && p.extensionNumbers.AbsSendTime != 0 {
-		t := toNtpTime(p.timegen()) >> 14
-		//apply http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
-		packets[len(packets)-1].Header.Extension = true
-		packets[len(packets)-1].ExtensionProfile = 0xBEDE
-		b, err := (&AbsSendTimeExtension{
-			ID:        uint8(p.extensionNumbers.AbsSendTime),
-			Timestamp: t,
-		}).Marshal()
+		sendTime := NewAbsSendTimeExtension(p.timegen())
+		// apply http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+		b, err := sendTime.Marshal()
 		if err != nil {
 			return nil // never happens
 		}
-		packets[len(packets)-1].ExtensionPayload = b
+		err = packets[len(packets)-1].SetExtension(uint8(p.extensionNumbers.AbsSendTime), b)
+		if err != nil {
+			return nil // never happens
+		}
 	}
 
 	return packets

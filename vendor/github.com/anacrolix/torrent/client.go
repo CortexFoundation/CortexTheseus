@@ -24,6 +24,7 @@ import (
 	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/missinggo/v2/pproffd"
 	"github.com/anacrolix/sync"
+	"github.com/anacrolix/torrent/internal/limiter"
 	"github.com/anacrolix/torrent/tracker"
 	"github.com/anacrolix/torrent/webtorrent"
 	"github.com/davecgh/go-spew/spew"
@@ -78,7 +79,8 @@ type Client struct {
 	numHalfOpen     int
 
 	websocketTrackers websocketTrackers
-	activeAnnounces   map[string]struct{}
+
+	activeAnnounceLimiter limiter.Instance
 }
 
 type ipStr string
@@ -185,6 +187,7 @@ func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 		torrents:          make(map[metainfo.Hash]*Torrent),
 		dialRateLimiter:   rate.NewLimiter(10, 10),
 	}
+	cl.activeAnnounceLimiter.SlotsPerKey = 2
 	go cl.acceptLimitClearer()
 	cl.initLogger()
 	defer func() {
@@ -455,7 +458,7 @@ func (cl *Client) rejectAccepted(conn net.Conn) error {
 	return nil
 }
 
-func (cl *Client) acceptConnections(l net.Listener) {
+func (cl *Client) acceptConnections(l Listener) {
 	for {
 		conn, err := l.Accept()
 		torrent.Add("client listener accepts", 1)
@@ -798,10 +801,11 @@ func (cl *Client) initiateHandshakes(c *PeerConn, t *Torrent) error {
 	return nil
 }
 
-// Calls f with any secret keys.
+// Calls f with any secret keys. Note that it takes the Client lock, and so must be used from code
+// that won't also try to take the lock. This saves us copying all the infohashes everytime.
 func (cl *Client) forSkeys(f func([]byte) bool) {
-	cl.lock()
-	defer cl.unlock()
+	cl.rLock()
+	defer cl.rUnlock()
 	if false { // Emulate the bug from #114
 		var firstIh InfoHash
 		for ih := range cl.torrents {
@@ -822,11 +826,18 @@ func (cl *Client) forSkeys(f func([]byte) bool) {
 	}
 }
 
+func (cl *Client) handshakeReceiverSecretKeys() mse.SecretKeyIter {
+	if ret := cl.config.Callbacks.ReceiveEncryptedHandshakeSkeys; ret != nil {
+		return ret
+	}
+	return cl.forSkeys
+}
+
 // Do encryption and bittorrent handshakes as receiver.
 func (cl *Client) receiveHandshakes(c *PeerConn) (t *Torrent, err error) {
 	defer perf.ScopeTimerErr(&err)()
 	var rw io.ReadWriter
-	rw, c.headerEncrypted, c.cryptoMethod, err = handleEncryption(c.rw(), cl.forSkeys, cl.config.HeaderObfuscationPolicy, cl.config.CryptoSelector)
+	rw, c.headerEncrypted, c.cryptoMethod, err = handleEncryption(c.rw(), cl.handshakeReceiverSecretKeys(), cl.config.HeaderObfuscationPolicy, cl.config.CryptoSelector)
 	c.setRW(rw)
 	if err == nil || err == mse.ErrNoSecretKeyMatch {
 		if c.headerEncrypted {
@@ -844,7 +855,7 @@ func (cl *Client) receiveHandshakes(c *PeerConn) (t *Torrent, err error) {
 		return
 	}
 	if cl.config.HeaderObfuscationPolicy.RequirePreferred && c.headerEncrypted != cl.config.HeaderObfuscationPolicy.Preferred {
-		err = errors.New("connection not have required header obfuscation")
+		err = errors.New("connection does not have required header obfuscation")
 		return
 	}
 	ih, err := cl.connBtHandshake(c, nil)
@@ -951,8 +962,11 @@ func (cl *Client) sendInitialMessages(conn *PeerConn, torrent *Torrent) {
 					M: map[pp.ExtensionName]pp.ExtensionNumber{
 						pp.ExtensionNameMetadata: metadataExtendedId,
 					},
-					V:            cl.config.ExtendedHandshakeClientVersion,
-					Reqq:         64, // TODO: Really?
+					V: cl.config.ExtendedHandshakeClientVersion,
+					// If peer requests are buffered on read, this instructs the amount of memory
+					// that might be used to cache pending writes. Assuming 512KiB cached for
+					// sending, for 16KiB chunks.
+					Reqq:         1 << 5,
 					YourIp:       pp.CompactIp(addrIpOrNil(conn.RemoteAddr)),
 					Encryption:   cl.config.HeaderObfuscationPolicy.Preferred || !cl.config.HeaderObfuscationPolicy.RequirePreferred,
 					Port:         cl.incomingPeerPort(),
@@ -1156,6 +1170,13 @@ func (cl *Client) AddTorrentSpec(spec *TorrentSpec) (t *Torrent, new bool, err e
 	return
 }
 
+type stringAddr string
+
+var _ net.Addr = stringAddr("")
+
+func (stringAddr) Network() string   { return "" }
+func (me stringAddr) String() string { return string(me) }
+
 // The trackers will be merged with the existing ones. If the Info isn't yet known, it will be set.
 // spec.DisallowDataDownload/Upload will be read and applied
 // The display name is replaced if the new spec provides one. Note that any `Storage` is ignored.
@@ -1170,12 +1191,19 @@ func (t *Torrent) MergeSpec(spec *TorrentSpec) error {
 		}
 	}
 	cl := t.cl
-	cl.AddDHTNodes(spec.DhtNodes)
+	cl.AddDhtNodes(spec.DhtNodes)
 	cl.lock()
 	defer cl.unlock()
 	useTorrentSources(spec.Sources, t)
 	for _, url := range spec.Webseeds {
 		t.addWebSeed(url)
+	}
+	for _, peerAddr := range spec.PeerAddrs {
+		t.addPeer(PeerInfo{
+			Addr:    stringAddr(peerAddr),
+			Source:  PeerSourceDirect,
+			Trusted: true,
+		})
 	}
 	if spec.ChunkSize != 0 {
 		t.setChunkSize(pp.Integer(spec.ChunkSize))
@@ -1285,7 +1313,7 @@ func (cl *Client) torrentsAsSlice() (ret []*Torrent) {
 }
 
 func (cl *Client) AddMagnet(uri string) (T *Torrent, err error) {
-	spec, err := TorrentSpecFromMagnetURI(uri)
+	spec, err := TorrentSpecFromMagnetUri(uri)
 	if err != nil {
 		return
 	}
@@ -1310,7 +1338,7 @@ func (cl *Client) DhtServers() []DhtServer {
 	return cl.dhtServers
 }
 
-func (cl *Client) AddDHTNodes(nodes []string) {
+func (cl *Client) AddDhtNodes(nodes []string) {
 	for _, n := range nodes {
 		hmp := missinggo.SplitHostMaybePort(n)
 		ip := net.ParseIP(hmp.Host)
@@ -1404,7 +1432,7 @@ func (cl *Client) eachListener(f func(Listener) bool) {
 	}
 }
 
-func (cl *Client) findListener(f func(net.Listener) bool) (ret net.Listener) {
+func (cl *Client) findListener(f func(Listener) bool) (ret Listener) {
 	cl.eachListener(func(l Listener) bool {
 		ret = l
 		return !f(l)
@@ -1429,7 +1457,7 @@ func (cl *Client) publicIp(peer net.IP) net.IP {
 
 func (cl *Client) findListenerIp(f func(net.IP) bool) net.IP {
 	l := cl.findListener(
-		func(l net.Listener) bool {
+		func(l Listener) bool {
 			return f(addrIpOrNil(l.Addr()))
 		},
 	)
