@@ -83,7 +83,7 @@ torrent-test:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/torrent-test\" to launch cortex torrentfs-test."
 
-cvm: plugins/libcvm_rutime.so
+cvm: plugins/libcvm_runtime.so
 	build/env.sh go run build/ci.go install ./cmd/cvm
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/cvm\" to launch cortex vm."
@@ -94,7 +94,7 @@ nodekey:
 
 plugins/cuda_helper_for_node.so: 
 	$(MAKE) -C $(BASE)/solution cuda
-	build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
+	#build/env.sh go build -buildmode=plugin -o $@ consensus/cuckoo/plugins/cuda/cuda_helper_for_node.go
 
 plugins/cpu_helper_for_node.so:
 	$(MAKE) -C $(BASE)/solution cpu
