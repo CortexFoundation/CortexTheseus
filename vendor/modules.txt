@@ -7,13 +7,13 @@ github.com/Azure/azure-pipeline-go/pipeline
 # github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 ## explicit
 github.com/Azure/azure-storage-blob-go/azblob
-# github.com/CortexFoundation/cvm-runtime v0.0.0-20200812085857-abd157d76a51
+# github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a
 github.com/CortexFoundation/cvm-runtime/kernel
-# github.com/CortexFoundation/inference v1.0.2-0.20201224021922-b0ffbeb3641a
+# github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210107061014-4ce882e6c1af
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210119015245-ae2a4c2c966c
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -30,7 +30,7 @@ github.com/VictoriaMetrics/fastcache
 # github.com/allegro/bigcache/v2 v2.2.5
 github.com/allegro/bigcache/v2
 github.com/allegro/bigcache/v2/queue
-# github.com/anacrolix/dht/v2 v2.7.0
+# github.com/anacrolix/dht/v2 v2.7.1
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
 # github.com/anacrolix/go-libutp v1.0.3
@@ -64,13 +64,13 @@ github.com/anacrolix/mmsg
 github.com/anacrolix/mmsg/socket
 # github.com/anacrolix/multiless v0.0.0-20200413040533-acfd16f65d5d
 github.com/anacrolix/multiless
-# github.com/anacrolix/stm v0.2.0
+# github.com/anacrolix/stm v0.2.1-0.20201002073511-c35a2c748c6a
 github.com/anacrolix/stm
 github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.20.1-0.20210106225046-69a419882b51
+# github.com/anacrolix/torrent v1.21.0
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common

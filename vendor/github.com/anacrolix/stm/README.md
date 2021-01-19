@@ -15,9 +15,6 @@ this is not entirely possible due to Go's type system; we are forced to use
 `interface{}` and type assertions. Furthermore, Haskell can enforce at compile
 time that STM variables are not modified outside the STM monad. This is not
 possible in Go, so be especially careful when using pointers in your STM code.
-Another significant departure is that `stm.Atomically` does not return a value.
-This shortens transaction code a bit, but I'm not 100% it's the right decision.
-(The alternative would be for every transaction function to return an `interface{}`.)
 
 Unlike Haskell, data in Go is not immutable by default, which means you have
 to be careful when using STM to manage pointers. If two goroutines have access
@@ -27,9 +24,12 @@ this, either use immutable data structures, or replace pointers with STM
 variables. A more concrete example is given below.
 
 It remains to be seen whether this style of concurrency has practical
-applications in Go. If you find this package useful, please tell me about it!
+applications in Go. If you find this package useful, please tell us about it!
 
 ## Examples
+
+Note that `Operation` now returns a value of type `interface{}`, which isn't included in the examples
+throughout the documentation yet. See the type signatures for `Atomically` and `Operation`.
 
 Here's some example code that demonstrates how to perform common operations:
 

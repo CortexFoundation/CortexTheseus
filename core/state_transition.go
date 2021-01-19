@@ -18,12 +18,13 @@ package core
 
 import (
 	"errors"
-	math2 "github.com/CortexFoundation/CortexTheseus/common/math"
+	"fmt"
 	"math"
 	"math/big"
 
-	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	math2 "github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/CortexFoundation/CortexTheseus/config"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -313,11 +314,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		return nil, 0, 0, false, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
 
-	if st.cvm.Context.BlockNumber.Cmp(big.NewInt(3148935)) > 0 {
-		if BadAddrs[msg.From()] {
-			log.Debug("Bad address encounter!!")
-			return nil, 0, 0, false, errors.New("Bad address encounter")
-		}
+	if blocked, num := config.IsBlocked(msg.From()); blocked && st.cvm.Context.BlockNumber.Cmp(big.NewInt(num)) >= 0 {
+		log.Debug("Bad address encounter!!", "addr", msg.From(), "number", num)
+		return nil, 0, 0, false, fmt.Errorf("%w: address %v", errors.New("Bad address encounter"), msg.From().Hex())
 	}
 
 	var (
