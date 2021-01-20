@@ -61,6 +61,7 @@ var (
 		utils.BootnodesV4Flag,
 		// utils.BootnodesV5Flag,
 		utils.DataDirFlag,
+		utils.MinFreeDiskSpaceFlag,
 		utils.KeyStoreDirFlag,
 		utils.ExternalSignerFlag,
 		// utils.NoUSBFlag,
@@ -337,7 +338,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	debug.Memsize.Add("node", stack)
 
 	// Start up the node itself
-	utils.StartNode(stack)
+	utils.StartNode(ctx, stack)
 	var unlocks []string
 	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
 	for _, input := range inputs {

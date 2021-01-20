@@ -69,6 +69,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			configFileFlag,
 			utils.DataDirFlag,
+			utils.MinFreeDiskSpaceFlag,
 			utils.KeyStoreDirFlag,
 			// utils.NoUSBFlag,
 			utils.NetworkIdFlag,
