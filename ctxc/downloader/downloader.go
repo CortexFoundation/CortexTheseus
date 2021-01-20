@@ -425,14 +425,14 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 			d.mux.Post(DoneEvent{latest})
 		}
 	}()
-	if p.version < 62 {
-		return errTooOld
+	if p.version < 64 {
+		return fmt.Errorf("%w: advertized %d < required %d", errTooOld, p.version, 64)
 	}
 	mode := d.getMode()
 
 	log.Debug("Synchronising with the network", "peer", p.id, "ctxc", p.version, "head", hash, "td", td, "mode", mode)
 	defer func(start time.Time) {
-		log.Debug("Synchronisation terminated", "elapsed", time.Since(start))
+		log.Debug("Synchronisation terminated", "elapsed", common.PrettyDuration(time.Since(start)))
 	}(time.Now())
 
 	// Look up the sync boundaries: the common ancestor and the target block
