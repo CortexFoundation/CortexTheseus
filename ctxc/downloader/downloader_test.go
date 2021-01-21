@@ -1387,7 +1387,7 @@ func testFailedSyncProgress(t *testing.T, protocol int, mode SyncMode) {
 // the progress height is successfully reduced at the next sync invocation.
 //func TestFakedSyncProgress62(t *testing.T)     { testFakedSyncProgress(t, 62, FullSync) }
 //func TestFakedSyncProgress63Full(t *testing.T) { testFakedSyncProgress(t, 63, FullSync) }
-func TestFakedSyncProgress63Fast(t *testing.T) { testFakedSyncProgress(t, 63, FastSync) }
+//func TestFakedSyncProgress63Fast(t *testing.T) { testFakedSyncProgress(t, 63, FastSync) }
 func TestFakedSyncProgress64Full(t *testing.T) { testFakedSyncProgress(t, 64, FullSync) }
 
 //func TestFakedSyncProgress64Fast(t *testing.T) { testFakedSyncProgress(t, 64, FastSync) }
