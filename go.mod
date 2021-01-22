@@ -7,7 +7,6 @@ require (
 	github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86
 	github.com/CortexFoundation/torrentfs v1.0.23-0.20210122033342-46f576a49bfc
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
-	github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go v1.31.0
 	github.com/btcsuite/btcd v0.20.1-beta
