@@ -968,7 +968,6 @@ func (bc *BlockChain) GetUnclesInChain(block *types.Block, length int) []*types.
 // TrieNode retrieves a blob of data associated with a trie node
 // either from ephemeral in-memory cache, or from persistent storage.
 func (bc *BlockChain) TrieNode(hash common.Hash) ([]byte, error) {
-	log.Warn("TrieNode update", "hash", hash)
 	return bc.stateCache.TrieDB().Node(hash)
 }
 

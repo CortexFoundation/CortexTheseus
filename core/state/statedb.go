@@ -705,7 +705,7 @@ func (s *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
 // createObject creates a new state object. If there is an existing account with
 // the given address, it is overwritten and returned as the second return value.
 func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) {
-	prev = s.getStateObject(addr)
+	prev = s.getDeletedStateObject(addr) // Note, prev might have been deleted, we need that!
 
 	var prevdestruct bool
 	if s.snap != nil && prev != nil {
@@ -1075,4 +1075,39 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		s.snap, s.snapDestructs, s.snapAccounts, s.snapStorage = nil, nil, nil, nil
 	}
 	return root, err
+}
+
+// AddAddressToAccessList adds the given address to the access list
+func (s *StateDB) AddAddressToAccessList(addr common.Address) {
+	if s.accessList.AddAddress(addr) {
+		s.journal.append(accessListAddAccountChange{&addr})
+	}
+}
+
+// AddSlotToAccessList adds the given (address, slot)-tuple to the access list
+func (s *StateDB) AddSlotToAccessList(addr common.Address, slot common.Hash) {
+	addrMod, slotMod := s.accessList.AddSlot(addr, slot)
+	if addrMod {
+		// In practice, this should not happen, since there is no way to enter the
+		// scope of 'address' without having the 'address' become already added
+		// to the access list (via call-variant, create, etc).
+		// Better safe than sorry, though
+		s.journal.append(accessListAddAccountChange{&addr})
+	}
+	if slotMod {
+		s.journal.append(accessListAddSlotChange{
+			address: &addr,
+			slot:    &slot,
+		})
+	}
+}
+
+// AddressInAccessList returns true if the given address is in the access list.
+func (s *StateDB) AddressInAccessList(addr common.Address) bool {
+	return s.accessList.ContainsAddress(addr)
+}
+
+// SlotInAccessList returns true if the given (address, slot)-tuple is in the access list.
+func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
+	return s.accessList.Contains(addr, slot)
 }
