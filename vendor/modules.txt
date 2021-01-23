@@ -13,7 +13,7 @@ github.com/CortexFoundation/cvm-runtime/kernel
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210119015245-ae2a4c2c966c
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210122033342-46f576a49bfc
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -70,7 +70,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.21.0
+# github.com/anacrolix/torrent v1.21.1-0.20210121225353-03b1abafb974
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -91,9 +91,6 @@ github.com/anacrolix/torrent/webtorrent
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 github.com/anacrolix/utp
-# github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
-## explicit
-github.com/aristanetworks/goarista/monotime
 # github.com/arsham/figurine v1.0.1
 ## explicit
 github.com/arsham/figurine/figurine
