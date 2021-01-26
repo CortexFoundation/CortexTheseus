@@ -436,9 +436,6 @@ github.com/ucwong/tsdb/fileutil
 github.com/willf/bitset
 # github.com/willf/bloom v2.0.3+incompatible
 github.com/willf/bloom
-# github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
-## explicit
-github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.6-0.20200807205753-f6be82302843
 go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad

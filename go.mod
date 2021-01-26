@@ -50,7 +50,6 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
-	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78
