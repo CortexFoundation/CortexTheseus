@@ -904,7 +904,7 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 // setBootstrapNodesV5 creates a list of bootstrap nodes from the command line
 // flags, reverting to pre-configured ones if none have been specified.
 func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
-	urls := params.MainnetBootnodes
+	urls := params.V5Bootnodes
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV5Flag.Name):
 		if ctx.GlobalIsSet(BootnodesV5Flag.Name) {
@@ -912,10 +912,10 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = splitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
 		}
-	case ctx.GlobalBool(BernardFlag.Name):
-		urls = params.BernardBootnodes
-	case ctx.GlobalBool(DoloresFlag.Name):
-		urls = params.BernardBootnodes
+	//case ctx.GlobalBool(BernardFlag.Name):
+	//	urls = params.BernardBootnodes
+	//case ctx.GlobalBool(DoloresFlag.Name):
+	//	urls = params.BernardBootnodes
 	case cfg.BootstrapNodesV5 != nil:
 		return // already set, don't apply defaults.
 	}
