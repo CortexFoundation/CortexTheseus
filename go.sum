@@ -49,16 +49,20 @@ github.com/CortexFoundation/CortexTheseus v1.9.56/go.mod h1:MkF8L4FF1jb8K8V6gDDQ
 github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200624034846-46f8f368cbee/go.mod h1:S/ekN5n18+CtbVTy4l8G5kmDn3xTFKVrcMUBymY7JwQ=
 github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200704025058-f0885ec2bd83/go.mod h1:++9X1TLZ+XbAFxrQO5Cl9T/5/OW6JaLlvVnDsEH0qkA=
 github.com/CortexFoundation/CortexTheseus v1.10.8/go.mod h1:BxMcNBe5UuA9WWMLBdHP5JqpFKyCBZza+6FLSMx7Nhk=
+github.com/CortexFoundation/CortexTheseus v1.10.17/go.mod h1:BwFbjqs4a31m8WC/lqlE0WTc/7q+xX1Abjrtvw+fpoI=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a h1:ZGM/JiLEEaE0gxmUnCR0M3SSh+z56oMXHW8Q5ghQncM=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a/go.mod h1:oLEQaJbHT0SAIVjY90BYPYVikGylXHrPyf1yTPS7HZg=
 github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86 h1:gRoRU8nG06S13M6qP5TSIA918Z7o3Bwf6yKnZhUeQE4=
 github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86/go.mod h1:uioLPDl9WVs5BELuGw1SNzrsLYNDfjmzb25q4wTpHLk=
+github.com/CortexFoundation/merkletree v0.0.0-20210126095158-8b60aec1c2e6 h1:LVrY4rwKZBvrzbDeM2D4c6XHOpkrjpsLZGFgjhbtjbo=
+github.com/CortexFoundation/merkletree v0.0.0-20210126095158-8b60aec1c2e6/go.mod h1:bhgAz9m3BKhTJN1930Wyg9K0MA3S1Wd8pTiXKv4pssw=
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
 github.com/CortexFoundation/torrentfs v1.0.22-0.20201126093427-f455d2481b9b/go.mod h1:lcAYtGEoWAeIhWH/JpXno34eNA17xslgwg6UBBd769U=
-github.com/CortexFoundation/torrentfs v1.0.23-0.20210125072637-56b3ce15c024 h1:9kHOKP6Bvi0fuscbrQ0CqXlqc9WvIIvawf8Hf20aBW0=
-github.com/CortexFoundation/torrentfs v1.0.23-0.20210125072637-56b3ce15c024/go.mod h1:lItQnxI6P1+f+p/N9nMN1uZ2av11HBk9aPDjpCP1cVI=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20210119015245-ae2a4c2c966c/go.mod h1:iyTtPicpVt2NTVGDyhQ1LurDZFB/uR0R2dK22Pv3M1g=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20210126095944-aa8c338f1b1b h1:p8xoAOFT4lSSeT/dEa6AI/1C03CGFlXWNwBz0l0wWG8=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20210126095944-aa8c338f1b1b/go.mod h1:zR2HbP1+2Jdx4gtrcnoXXJQXPP3yycSvBY5iMAV2uf0=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -179,6 +183,7 @@ github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5/go.mod h1:QlO
 github.com/anacrolix/torrent v1.15.1-0.20200619022403-dd51e99b88cc/go.mod h1:wuopQPC5+/M+zHYvhcA2vp5UCTm9rUc+VqjyBa882Q8=
 github.com/anacrolix/torrent v1.15.1-0.20200715061614-dd906f8fa72e/go.mod h1:XWo/fJN1oKgcjgxM+pUZpvalHfqHDs27BY5mBZjIQWo=
 github.com/anacrolix/torrent v1.18.1-0.20201121024423-388e6899a15b/go.mod h1:nhOLTTTOcr5WnvNKJzHGKzyz5D8mujPIgdbRU2818v8=
+github.com/anacrolix/torrent v1.21.0/go.mod h1:3/BQux1sn5l887GdTw7AYSAmaZn+e7AXAZWFCsqh1bA=
 github.com/anacrolix/torrent v1.21.1-0.20210125045437-7440ef92d242 h1:yDmv6HJnBwFUlZK4+1+EHNwkT3cRMlJZFOLabOoenbA=
 github.com/anacrolix/torrent v1.21.1-0.20210125045437-7440ef92d242/go.mod h1:PvPlxSt9yYWqrXvDhE9py0sAAQfIQDCnyJ0aeIZNhL4=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
@@ -439,6 +444,7 @@ github.com/google/pprof v0.0.0-20191218002539-d4f498aebedc/go.mod h1:ZgVRPoUq/hf
 github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.1.5 h1:kxhtnfFVi+rYdOALN0B3k9UT86zVJKfBimRaciULW4I=
 github.com/google/uuid v1.1.5/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/googleapis/gax-go v2.0.0+incompatible/go.mod h1:SFVmujtThgffbyetf+mdk2eWhX2bMyUtNHzFKcPA9HY=
@@ -775,6 +781,7 @@ github.com/pion/transport v0.6.0/go.mod h1:iWZ07doqOosSLMhZ+FXUTq+TamDoXSllxpbGc
 github.com/pion/transport v0.8.10/go.mod h1:tBmha/UCjpum5hqTWhfAEs3CO4/tHSg0MYRhSzR+CZ8=
 github.com/pion/transport v0.10.0/go.mod h1:BnHnUipd0rZQyTVB2SBGojFHT9CBt5C5TcsJSQGkvSE=
 github.com/pion/transport v0.10.1/go.mod h1:PBis1stIILMiis0PewDw91WJeLJkyIMcEk+DwKOzf4A=
+github.com/pion/transport v0.12.0/go.mod h1:N3+vZQD9HlDP5GWkZ85LohxNsDcNgofQmyL6ojX5d8Q=
 github.com/pion/transport v0.12.2 h1:WYEjhloRHt1R86LhUKjC5y+P52Y11/QqEUalvtzVoys=
 github.com/pion/transport v0.12.2/go.mod h1:N3+vZQD9HlDP5GWkZ85LohxNsDcNgofQmyL6ojX5d8Q=
 github.com/pion/turn/v2 v2.0.3/go.mod h1:kl1hmT3NxcLynpXVnwJgObL8C9NaCyPTeqI2DcCpSZs=
@@ -1040,6 +1047,8 @@ golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
+golang.org/x/crypto v0.0.0-20201217014255-9d1352758620/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
 golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad h1:DN0cp81fZ3njFcrLCytUHRSUkqBjfTo4Tx9RJTWs0EY=
 golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
@@ -1122,6 +1131,7 @@ golang.org/x/net v0.0.0-20200822124328-c89045814202/go.mod h1:/O7V0waA8r7cgGh81R
 golang.org/x/net v0.0.0-20201021035429-f5854403a974/go.mod h1:sp8m0HH+o8qH0wwXwYZr8TS3Oi6o0r6Gce1SSxlDquU=
 golang.org/x/net v0.0.0-20201031054903-ff519b6c9102/go.mod h1:sp8m0HH+o8qH0wwXwYZr8TS3Oi6o0r6Gce1SSxlDquU=
 golang.org/x/net v0.0.0-20201201195509-5d6afe98e0b7/go.mod h1:sp8m0HH+o8qH0wwXwYZr8TS3Oi6o0r6Gce1SSxlDquU=
+golang.org/x/net v0.0.0-20201209123823-ac852fbbde11/go.mod h1:m0MpNAwzfU5UDzcl9v0D8zg8gWTRqZa9RBIspLL5mdg=
 golang.org/x/net v0.0.0-20201224014010-6772e930b67b h1:iFwSg7t5GZmB/Q5TjiEAsdoLDrdJRC1RiF2WhuV29Qw=
 golang.org/x/net v0.0.0-20201224014010-6772e930b67b/go.mod h1:m0MpNAwzfU5UDzcl9v0D8zg8gWTRqZa9RBIspLL5mdg=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
@@ -1205,6 +1215,7 @@ golang.org/x/sys v0.0.0-20200916030750-2334cc1a136f/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 h1:nVuTkr9L6Bq62qpUqKo/RnZCFfzDBL0bYo6w9OJUqZY=
 golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
