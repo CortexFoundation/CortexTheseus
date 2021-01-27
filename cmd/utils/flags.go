@@ -54,7 +54,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/CortexTheseus/p2p/discv5"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
@@ -921,10 +920,10 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 		return // already set, don't apply defaults.
 	}
 
-	cfg.BootstrapNodesV5 = make([]*discv5.Node, 0, len(urls))
+	cfg.BootstrapNodesV5 = make([]*enode.Node, 0, len(urls))
 	for _, url := range urls {
 		if url != "" {
-			node, err := discv5.ParseNode(url)
+			node, err := enode.Parse(enode.ValidSchemes, url)
 			if err != nil {
 				log.Error("Bootstrap URL invalid", "enode", url, "err", err)
 				continue
