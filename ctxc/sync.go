@@ -63,7 +63,7 @@ func (pm *ProtocolManager) syncTransactions(p *peer) {
 	// The ctxc/65 protocol introduces proper transaction announcements, so instead
 	// of dripping transactions across multiple peers, just send the entire list as
 	// an announcement and let the remote side decide what they need (likely nothing).
-	if p.version >= ctxc65 {
+	if p.Version() >= ctxc65 {
 		hashes := make([]common.Hash, len(txs))
 		for i, tx := range txs {
 			hashes[i] = tx.Hash()
@@ -94,7 +94,7 @@ func (pm *ProtocolManager) txsyncLoop64() {
 
 	// send starts a sending a pack of transactions from the sync.
 	send := func(s *txsync) {
-		if s.p.version >= ctxc65 {
+		if s.p.Version() >= ctxc65 {
 			panic("initial transaction syncer running on ctxc/65+")
 		}
 		// Fill pack with transactions up to the target size.

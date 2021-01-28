@@ -1,4 +1,4 @@
-// Copyright 2016 The CortexTheseus Authors
+// Copyright 2021 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -14,30 +14,25 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-// +build go1.4,nacl,faketime_simulation
-
-package discv5
+package utils
 
 import (
-	"os"
-	"runtime"
-	"testing"
-	"unsafe"
+	"fmt"
+
+	"golang.org/x/sys/windows"
 )
 
-// Enable fake time mode in the runtime, like on the go playground.
-// There is a slight chance that this won't work because some go code
-// might have executed before the variable is set.
+func getFreeDiskSpace(path string) (uint64, error) {
 
-//go:linkname faketime runtime.faketime
-var faketime = 1
+	cwd, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return 0, fmt.Errorf("failed to call UTF16PtrFromString: %v", err)
+	}
 
-func TestMain(m *testing.M) {
-	// We need to use unsafe somehow in order to get access to go:linkname.
-	_ = unsafe.Sizeof(0)
+	var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
+	if err := windows.GetDiskFreeSpaceEx(cwd, &freeBytesAvailableToCaller, &totalNumberOfBytes, &totalNumberOfFreeBytes); err != nil {
+		return 0, fmt.Errorf("failed to call GetDiskFreeSpaceEx: %v", err)
+	}
 
-	// Run the actual test. runWithPlaygroundTime ensures that the only test
-	// that runs is the one calling it.
-	runtime.GOMAXPROCS(8)
-	os.Exit(m.Run())
+	return freeBytesAvailableToCaller, nil
 }

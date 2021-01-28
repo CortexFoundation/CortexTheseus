@@ -28,7 +28,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
-	"github.com/CortexFoundation/CortexTheseus/p2p/discv5"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
@@ -128,25 +127,16 @@ func main() {
 
 	db, _ := enode.OpenDB("")
 	ln := enode.NewLocalNode(db, nodeKey)
-
-	var unhandled chan discover.ReadPacket
-	var sconn *sharedUDPConn
-	if *runv5 {
-		unhandled = make(chan discover.ReadPacket, 100)
-		sconn = &sharedUDPConn{conn, unhandled}
-	}
 	cfg := discover.Config{
 		PrivateKey:  nodeKey,
 		NetRestrict: restrictList,
-		Unhandled:   unhandled,
 	}
-
-	if _, err := discover.ListenUDP(conn, ln, cfg); err != nil {
-		utils.Fatalf("%v", err)
-	}
-
 	if *runv5 {
-		if _, err = discv5.ListenUDP(nodeKey, sconn, "", restrictList); err != nil {
+		if _, err := discover.ListenV5(conn, ln, cfg); err != nil {
+			utils.Fatalf("%v", err)
+		}
+	} else {
+		if _, err := discover.ListenUDP(conn, ln, cfg); err != nil {
 			utils.Fatalf("%v", err)
 		}
 	}

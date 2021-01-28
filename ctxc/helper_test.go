@@ -22,7 +22,6 @@ package ctxc
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
-	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
@@ -194,26 +193,13 @@ func newTestPeer(name string, version int, pm *ProtocolManager, shake bool) (*te
 // remote side as we are simulating locally.
 func (p *testPeer) handshake(t *testing.T, td *big.Int, head common.Hash, genesis common.Hash, forkID forkid.ID, forkFilter forkid.Filter) {
 	var msg interface{}
-	switch {
-	case p.version == ctxc63:
-		msg = &statusData63{
-			ProtocolVersion: uint32(p.version),
-			NetworkId:       DefaultConfig.NetworkId,
-			TD:              td,
-			CurrentBlock:    head,
-			GenesisBlock:    genesis,
-		}
-	case p.version >= ctxc64:
-		msg = &statusData{
-			ProtocolVersion: uint32(p.version),
-			NetworkID:       DefaultConfig.NetworkId,
-			TD:              td,
-			Head:            head,
-			Genesis:         genesis,
-			ForkID:          forkID,
-		}
-	default:
-		panic(fmt.Sprintf("unsupported eth protocol version: %d", p.version))
+	msg = &statusData{
+		ProtocolVersion: uint32(p.version),
+		NetworkID:       DefaultConfig.NetworkId,
+		TD:              td,
+		Head:            head,
+		Genesis:         genesis,
+		ForkID:          forkID,
 	}
 	if err := p2p.ExpectMsg(p.app, StatusMsg, msg); err != nil {
 		t.Fatalf("status recv: %v", err)

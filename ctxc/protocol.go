@@ -31,8 +31,8 @@ import (
 
 // Constants to match up protocol versions and messages
 const (
-	ctxc62 = 62
-	ctxc63 = 63
+	//ctxc62 = 62
+	//ctxc63 = 63
 	ctxc64 = 64
 	ctxc65 = 65
 )
@@ -41,10 +41,10 @@ const (
 var protocolName = "ctxc"
 
 // ProtocolVersions are the upported versions of the ctxc protocol (first is primary).
-var ProtocolVersions = []uint{ctxc65, ctxc64, ctxc63} //, ctxc62}
+var ProtocolVersions = []uint{ctxc65, ctxc64} //, ctxc63} //, ctxc62}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{ctxc65: 17, ctxc64: 17, ctxc63: 17, ctxc62: 8}
+var protocolLengths = map[uint]uint64{ctxc65: 17, ctxc64: 17} //, ctxc63: 17, ctxc62: 8}
 
 const protocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 

@@ -1,4 +1,4 @@
-# crawshaw.io/sqlite v0.3.2
+# crawshaw.io/sqlite v0.3.3-0.20201116044518-95be3f88ee0f
 crawshaw.io/sqlite
 crawshaw.io/sqlite/c
 crawshaw.io/sqlite/sqlitex
@@ -13,11 +13,12 @@ github.com/CortexFoundation/cvm-runtime/kernel
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210119015245-ae2a4c2c966c
+# github.com/CortexFoundation/merkletree v0.0.0-20210126095158-8b60aec1c2e6
+github.com/CortexFoundation/merkletree
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210126095944-aa8c338f1b1b
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
-github.com/CortexFoundation/torrentfs/merkletree
 github.com/CortexFoundation/torrentfs/params
 github.com/CortexFoundation/torrentfs/types
 # github.com/RoaringBitmap/roaring v0.5.5
@@ -33,7 +34,7 @@ github.com/allegro/bigcache/v2/queue
 # github.com/anacrolix/dht/v2 v2.7.1
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
-# github.com/anacrolix/go-libutp v1.0.3
+# github.com/anacrolix/go-libutp v1.0.4
 github.com/anacrolix/go-libutp
 # github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d
 github.com/anacrolix/log
@@ -70,7 +71,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.21.0
+# github.com/anacrolix/torrent v1.21.1-0.20210125045437-7440ef92d242
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -91,9 +92,6 @@ github.com/anacrolix/torrent/webtorrent
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 github.com/anacrolix/utp
-# github.com/aristanetworks/goarista v0.0.0-20200513152637-638451432ae4
-## explicit
-github.com/aristanetworks/goarista/monotime
 # github.com/arsham/figurine v1.0.1
 ## explicit
 github.com/arsham/figurine/figurine
@@ -219,7 +217,7 @@ github.com/google/btree
 # github.com/google/gofuzz v1.0.0
 ## explicit
 github.com/google/gofuzz
-# github.com/google/uuid v1.1.2
+# github.com/google/uuid v1.1.5
 github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 ## explicit
@@ -233,7 +231,7 @@ github.com/hashicorp/golang-lru/simplelru
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.3.2
 github.com/huandu/xstrings
-# github.com/huin/goupnp v1.0.0
+# github.com/huin/goupnp v1.0.1-0.20200620063722-49508fba0031
 ## explicit
 github.com/huin/goupnp
 github.com/huin/goupnp/dcps/internetgateway1
@@ -341,7 +339,7 @@ github.com/pion/quic/internal/wrapper
 github.com/pion/randutil
 # github.com/pion/rtcp v1.2.6
 github.com/pion/rtcp
-# github.com/pion/rtp v1.6.1
+# github.com/pion/rtp v1.6.2
 github.com/pion/rtp
 github.com/pion/rtp/codecs
 # github.com/pion/sctp v1.7.11
@@ -353,7 +351,7 @@ github.com/pion/srtp
 # github.com/pion/stun v0.3.5
 github.com/pion/stun
 github.com/pion/stun/internal/hmac
-# github.com/pion/transport v0.12.0
+# github.com/pion/transport v0.12.2
 github.com/pion/transport/deadline
 github.com/pion/transport/packetio
 github.com/pion/transport/replaydetector
@@ -438,9 +436,6 @@ github.com/ucwong/tsdb/fileutil
 github.com/willf/bitset
 # github.com/willf/bloom v2.0.3+incompatible
 github.com/willf/bloom
-# github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
-## explicit
-github.com/wsddn/go-ecdh
 # go.etcd.io/bbolt v1.3.6-0.20200807205753-f6be82302843
 go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
@@ -467,7 +462,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20201209123823-ac852fbbde11
+# golang.org/x/net v0.0.0-20201224014010-6772e930b67b
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
 golang.org/x/net/html
@@ -481,9 +476,10 @@ golang.org/x/net/ipv4
 golang.org/x/net/publicsuffix
 # golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 ## explicit
+golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d
+# golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

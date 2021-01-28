@@ -353,6 +353,8 @@ func (cuckoo *Cuckoo) CalcDifficulty(chain consensus.ChainHeaderReader, time uin
 func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Header) *big.Int {
 	next := new(big.Int).Add(parent.Number, big1)
 	switch {
+	case config.IsIstanbul(next):
+		return calcDifficultyIstanbul(time, parent)
 	case config.IsConstantinople(next):
 		return calcDifficultyConstantinople(time, parent)
 	case config.IsByzantium(next):
@@ -403,6 +405,10 @@ var (
 	bigMinus9     = big.NewInt(-9)
 	bigMinus99    = big.NewInt(-99)
 )
+
+func calcDifficultyIstanbul(time uint64, parent *types.Header) *big.Int {
+	return calcDifficultyConstantinople(time, parent)
+}
 
 func calcDifficultyConstantinople(time uint64, parent *types.Header) *big.Int {
 	return calcDifficultyByzantium(time, parent)
