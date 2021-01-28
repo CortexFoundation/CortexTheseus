@@ -2071,7 +2071,7 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 		log.Info("Sidechain written to disk", "start", it.first().NumberU64(), "end", it.previous().Number, "sidetd", externTd, "localtd", localTd)
 		return it.index, err
 	} else {
-		log.Warn("Regenerate the required state", "start", it.first().NumberU64(), "end", it.previous().Number, "sidetd", externTd, "localtd", localTd)
+		//log.Warn("Regenerate the required state", "start", it.first().NumberU64(), "end", it.previous().Number, "sidetd", externTd, "localtd", localTd)
 	}
 	// Gather all the sidechain hashes (full blocks may be memory heavy)
 	var (
