@@ -1,4 +1,4 @@
-# crawshaw.io/sqlite v0.3.3-0.20201116044518-95be3f88ee0f
+# crawshaw.io/sqlite v0.3.3-0.20210127221821-98b1f83c5508
 crawshaw.io/sqlite
 crawshaw.io/sqlite/c
 crawshaw.io/sqlite/sqlitex
@@ -15,7 +15,7 @@ github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20210126095158-8b60aec1c2e6
 github.com/CortexFoundation/merkletree
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210126095944-aa8c338f1b1b
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210201023308-88318e8b35ac
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -31,12 +31,14 @@ github.com/VictoriaMetrics/fastcache
 # github.com/allegro/bigcache/v2 v2.2.5
 github.com/allegro/bigcache/v2
 github.com/allegro/bigcache/v2/queue
-# github.com/anacrolix/dht/v2 v2.7.1
+# github.com/anacrolix/dht/v2 v2.8.0
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/krpc
+# github.com/anacrolix/envpprof v1.1.0
+github.com/anacrolix/envpprof
 # github.com/anacrolix/go-libutp v1.0.4
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d
+# github.com/anacrolix/log v0.8.0
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.2.1
 github.com/anacrolix/missinggo
@@ -71,11 +73,12 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.21.1-0.20210125045437-7440ef92d242
+# github.com/anacrolix/torrent v1.22.1-0.20210130042349-0cdb33ede000
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
 github.com/anacrolix/torrent/internal/limiter
+github.com/anacrolix/torrent/internal/testutil
 github.com/anacrolix/torrent/internal/tmproot
 github.com/anacrolix/torrent/iplist
 github.com/anacrolix/torrent/logonce
@@ -90,7 +93,7 @@ github.com/anacrolix/torrent/webseed
 github.com/anacrolix/torrent/webtorrent
 # github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425
 github.com/anacrolix/upnp
-# github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
+# github.com/anacrolix/utp v0.1.0
 github.com/anacrolix/utp
 # github.com/arsham/figurine v1.0.1
 ## explicit
@@ -217,7 +220,7 @@ github.com/google/btree
 # github.com/google/gofuzz v1.0.0
 ## explicit
 github.com/google/gofuzz
-# github.com/google/uuid v1.1.5
+# github.com/google/uuid v1.2.0
 github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 ## explicit
@@ -462,7 +465,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20201224014010-6772e930b67b
+# golang.org/x/net v0.0.0-20210119194325-5f4716e94777
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
 golang.org/x/net/html
@@ -479,7 +482,7 @@ golang.org/x/net/publicsuffix
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78
+# golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

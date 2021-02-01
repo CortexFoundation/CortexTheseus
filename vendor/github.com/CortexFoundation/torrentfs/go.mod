@@ -8,10 +8,10 @@ require (
 	github.com/CortexFoundation/merkletree v0.0.0-20210126095158-8b60aec1c2e6
 	github.com/allegro/bigcache/v2 v2.2.5
 	github.com/anacrolix/envpprof v1.1.0
-	github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d
+	github.com/anacrolix/log v0.8.0
 	github.com/anacrolix/missinggo/v2 v2.5.0
 	github.com/anacrolix/tagflag v1.1.1-0.20200411025953-9bb5209d56c2
-	github.com/anacrolix/torrent v1.21.1-0.20210125045437-7440ef92d242
+	github.com/anacrolix/torrent v1.22.1-0.20210130042349-0cdb33ede000
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dustin/go-humanize v1.0.0
