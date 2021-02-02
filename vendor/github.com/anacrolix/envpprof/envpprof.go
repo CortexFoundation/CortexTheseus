@@ -33,9 +33,14 @@ func writeHeapProfile() {
 	log.Printf("wrote heap profile to %q", f.Name())
 }
 
+// Stop ends CPU profiling, waiting for writes to complete. If heap profiling is enabled, it also
+// writes the heap profile to a file. Stop should be deferred from main if cpu or heap profiling
+// are to be used through envpprof.
 func Stop() {
+	// Should we check if CPU profiling was initiated through this package?
 	pprof.StopCPUProfile()
 	if heap {
+		// Can or should we do this concurrently with stopping CPU profiling?
 		writeHeapProfile()
 	}
 }

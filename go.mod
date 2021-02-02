@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20210201023308-88318e8b35ac
+	github.com/CortexFoundation/torrentfs v1.0.23-0.20210202064457-4771107e5d0f
 	github.com/VictoriaMetrics/fastcache v1.5.8-0.20200305212624-8835719dc76c
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go v1.31.0
