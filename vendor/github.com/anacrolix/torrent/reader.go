@@ -144,7 +144,7 @@ func (r *reader) ReadContext(ctx context.Context, b []byte) (n int, err error) {
 	defer r.opMu.Unlock()
 	n, err = r.readOnceAt(b, r.pos, &ctxErr)
 	if n == 0 {
-		if err == nil {
+		if err == nil && len(b) > 0 {
 			panic("expected error")
 		} else {
 			return
@@ -185,7 +185,7 @@ func (r *reader) waitAvailable(pos, wanted int64, ctxErr *error, wait bool) (ava
 			err = errors.New("downloading disabled and data not already available")
 			return
 		}
-		if !wait {
+		if !wait || wanted == 0 {
 			return
 		}
 		r.waitReadable(pos)
@@ -224,8 +224,11 @@ func (r *reader) readOnceAt(b []byte, pos int64, ctxErr *error) (n int, err erro
 		r.log(log.Fstr("error reading torrent %s piece %d offset %d, %d bytes: %v",
 			r.t.infoHash.HexString(), firstPieceIndex, firstPieceOffset, len(b1), err))
 		if !r.t.updatePieceCompletion(firstPieceIndex) {
-			r.log(log.Fstr("piece %d completion unchanged", firstPieceIndex))
+			r.log(log.Fstr("piece %d completion unchanged (%+v)", firstPieceIndex, r.t.piece(firstPieceIndex).completion()))
 		}
+		r.t.iterPeers(func(c *Peer) {
+			c.updateRequests()
+		})
 		// Update the rest of the piece completions in the readahead window, without alerting to
 		// changes (since only the first piece, the one above, could have generated the read error
 		// we're currently handling).

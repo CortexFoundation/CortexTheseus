@@ -26,6 +26,7 @@ import (
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
+	"github.com/anacrolix/missinggo/iter"
 	"github.com/anacrolix/missinggo/perf"
 	"github.com/anacrolix/missinggo/pubsub"
 	"github.com/anacrolix/missinggo/slices"
@@ -144,7 +145,7 @@ type Torrent struct {
 	connPieceInclinationPool sync.Pool
 
 	// Count of each request across active connections.
-	pendingRequests map[request]int
+	pendingRequests map[Request]int
 
 	pex pexState
 }
@@ -424,7 +425,7 @@ func (t *Torrent) onSetInfo() {
 	t.cl.event.Broadcast()
 	t.gotMetainfo.Set()
 	t.updateWantPeersEvent()
-	t.pendingRequests = make(map[request]int)
+	t.pendingRequests = make(map[Request]int)
 	t.tryCreateMorePieceHashers()
 }
 
@@ -744,13 +745,13 @@ func (t *Torrent) close() (err error) {
 	return
 }
 
-func (t *Torrent) requestOffset(r request) int64 {
+func (t *Torrent) requestOffset(r Request) int64 {
 	return torrentRequestOffset(*t.length, int64(t.usualPieceSize()), r)
 }
 
 // Return the request that would include the given offset into the torrent data. Returns !ok if
 // there is no such request.
-func (t *Torrent) offsetRequest(off int64) (req request, ok bool) {
+func (t *Torrent) offsetRequest(off int64) (req Request, ok bool) {
 	return torrentOffsetRequest(*t.length, t.info.PieceLength, int64(t.chunkSize), off)
 }
 
@@ -846,7 +847,7 @@ func (t *Torrent) maybeDropMutuallyCompletePeer(
 	p.drop()
 }
 
-func (t *Torrent) haveChunk(r request) (ret bool) {
+func (t *Torrent) haveChunk(r Request) (ret bool) {
 	// defer func() {
 	// 	log.Println("have chunk", r, ret)
 	// }()
@@ -857,10 +858,10 @@ func (t *Torrent) haveChunk(r request) (ret bool) {
 		return true
 	}
 	p := &t.pieces[r.Index]
-	return !p.pendingChunk(r.chunkSpec, t.chunkSize)
+	return !p.pendingChunk(r.ChunkSpec, t.chunkSize)
 }
 
-func chunkIndex(cs chunkSpec, chunkSize pp.Integer) int {
+func chunkIndex(cs ChunkSpec, chunkSize pp.Integer) int {
 	return int(cs.Begin / chunkSize)
 }
 
@@ -1073,8 +1074,8 @@ func (t *Torrent) piecePriority(piece pieceIndex) piecePriority {
 	return ret
 }
 
-func (t *Torrent) pendRequest(req request) {
-	ci := chunkIndex(req.chunkSpec, t.chunkSize)
+func (t *Torrent) pendRequest(req Request) {
+	ci := chunkIndex(req.ChunkSpec, t.chunkSize)
 	t.pieces[req.Index].pendChunkIndex(ci)
 }
 
@@ -1759,13 +1760,14 @@ func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
 			c._stats.incrementPiecesDirtiedGood()
 		}
 		t.clearPieceTouchers(piece)
+		p.incrementPendingWrites()
 		t.cl.unlock()
 		err := p.Storage().MarkComplete()
 		if err != nil {
 			t.logger.Printf("%T: error marking piece complete %d: %s", t.storage, piece, err)
 		}
 		t.cl.lock()
-
+		p.decrementPendingWrites()
 		if t.closed.IsSet() {
 			return
 		}
@@ -2012,8 +2014,8 @@ type torrentRequestStrategyCallbacks struct {
 	t *Torrent
 }
 
-func (cb torrentRequestStrategyCallbacks) requestTimedOut(r request) {
-	torrent.Add("request timeouts", 1)
+func (cb torrentRequestStrategyCallbacks) requestTimedOut(r Request) {
+	torrent.Add("Request timeouts", 1)
 	cb.t.cl.lock()
 	defer cb.t.cl.unlock()
 	cb.t.iterPeers(func(cn *Peer) {
@@ -2098,6 +2100,10 @@ func (t *Torrent) iterPeers(f func(*Peer)) {
 	}
 }
 
+func (t *Torrent) callbacks() *Callbacks {
+	return &t.cl.config.Callbacks
+}
+
 func (t *Torrent) addWebSeed(url string) {
 	if t.cl.config.DisableWebseeds {
 		return
@@ -2113,14 +2119,24 @@ func (t *Torrent) addWebSeed(url string) {
 			Network:                  "http",
 			reconciledHandshakeStats: true,
 			peerSentHaveAll:          true,
-			PeerMaxRequests:          maxRequests,
-			RemoteAddr:               remoteAddrFromUrl(url),
+			// TODO: Raise this limit, and instead limit concurrent fetches.
+			PeerMaxRequests: 32,
+			RemoteAddr:      remoteAddrFromUrl(url),
+			callbacks:       t.callbacks(),
 		},
 		client: webseed.Client{
+			// Consider a MaxConnsPerHost in the transport for this, possibly in a global Client.
 			HttpClient: http.DefaultClient,
 			Url:        url,
 		},
-		requests: make(map[request]webseed.Request, maxRequests),
+		activeRequests: make(map[Request]webseed.Request, maxRequests),
+	}
+	ws.requesterCond.L = t.cl.locker()
+	for range iter.N(maxRequests) {
+		go ws.requester()
+	}
+	for _, f := range t.callbacks().NewPeer {
+		f(&ws.peer)
 	}
 	ws.peer.logger = t.logger.WithContextValue(&ws)
 	ws.peer.peerImpl = &ws
