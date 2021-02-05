@@ -2096,7 +2096,7 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 			log.Warn("Heavy side chain deteced, manual operation is needed", "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
 			return it.index, errors.New("Heavy side chain detected")
 		} else {
-			log.Info("Heavey chain import for starting", "offset", time.Now().Unix()-bc.utcNow, "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
+			log.Info("Heavey chain import for blockchain protection", "offset", time.Now().Unix()-bc.utcNow, "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
 		}
 	}
 
