@@ -1982,6 +1982,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 
 		dirty, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, it.index, dirty)
+
+		if time.Now().Unix() <= bc.utcNow+params.PROTECT_TIME && len(chain) == 1 {
+			log.Info("Blockchain is in protect time", "left", params.PROTECT_TIME-time.Now().Unix()+bc.utcNow, "chain", len(chain), "index", it.index, "dirty", dirty)
+		}
 	}
 	// Any blocks remaining here? The only ones we care about are the future ones
 	if block != nil && errors.Is(err, consensus.ErrFutureBlock) {
@@ -2092,7 +2096,7 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 	}
 
 	if len(hashes) > 256 {
-		if time.Now().Unix() > bc.utcNow+int64(300) {
+		if time.Now().Unix() > bc.utcNow+params.PROTECT_TIME {
 			//log.Warn("Heavy side chain deteced, manual operation is needed", "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
 			return it.index, errors.New("Heavy side chain detected")
 		} else {
