@@ -196,4 +196,5 @@ const (
 	BLOCK_QUOTA         = 65536       // Upon the generation of a new valid block, 64kB file quota is added to the network. Empty blocks also count.
 	Bernard_BLOCK_QUOTA = 65536       // for bernard
 	Dolores_BLOCK_QUOTA = 65536 * 128 // for dolores
+	PROTECT_TIME        = int64(180)
 )

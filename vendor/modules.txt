@@ -15,7 +15,7 @@ github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20210126095158-8b60aec1c2e6
 github.com/CortexFoundation/merkletree
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210202064457-4771107e5d0f
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210205081321-66786f974a0f
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -73,7 +73,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.23.0
+# github.com/anacrolix/torrent v1.24.0
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
