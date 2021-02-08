@@ -59,6 +59,8 @@ const (
 	maxQueuedBlockAnns = 4
 
 	handshakeTimeout = 5 * time.Second
+
+	maxTxPacketSize = 100 * 1024
 )
 
 // max is a helper function which returns the larger of the two given integers.
@@ -96,14 +98,13 @@ type peer struct {
 	td   *big.Int
 	lock sync.RWMutex
 
-	knownBlocks     mapset.Set        // Set of block hashes known to be known by this peer
-	queuedBlocks    chan *propEvent   // Queue of blocks to broadcast to the peer
-	queuedBlockAnns chan *types.Block // Queue of blocks to announce to the peer
-
-	knownTxs    mapset.Set                           // Set of transaction hashes known to be known by this peer
-	txBroadcast chan []common.Hash                   // Channel used to queue transaction propagation requests
-	txAnnounce  chan []common.Hash                   // Channel used to queue transaction announcement requests
-	getPooledTx func(common.Hash) *types.Transaction // Callback used to retrieve transaction from txpool
+	knownBlocks     mapset.Set                           // Set of block hashes known to be known by this peer
+	queuedBlocks    chan *propEvent                      // Queue of blocks to broadcast to the peer
+	queuedBlockAnns chan *types.Block                    // Queue of blocks to announce to the peer
+	knownTxs        mapset.Set                           // Set of transaction hashes known to be known by this peer
+	txBroadcast     chan []common.Hash                   // Channel used to queue transaction propagation requests
+	txAnnounce      chan []common.Hash                   // Channel used to queue transaction announcement requests
+	getPooledTx     func(common.Hash) *types.Transaction // Callback used to retrieve transaction from txpool
 
 	term chan struct{} // Termination channel to stop the broadcaster
 }
@@ -228,18 +229,17 @@ func (p *peer) announceTransactions(removePeer func(string)) {
 		if done == nil && len(queue) > 0 {
 			// Pile transaction hashes until we reach our allowed network limit
 			var (
-				hashes  []common.Hash
+				count   int
 				pending []common.Hash
 				size    common.StorageSize
 			)
-			for i := 0; i < len(queue) && size < txsyncPackSize; i++ {
-				if p.getPooledTx(queue[i]) != nil {
-					pending = append(pending, queue[i])
+			for count = 0; count < len(queue) && size < maxTxPacketSize; count++ {
+				if p.getPooledTx(queue[count]) != nil {
+					pending = append(pending, queue[count])
 					size += common.HashLength
 				}
-				hashes = append(hashes, queue[i])
 			}
-			queue = queue[:copy(queue, queue[len(hashes):])]
+			queue = queue[:copy(queue, queue[count:])]
 
 			// If there's anything available to transfer, fire up an async writer
 			if len(pending) > 0 {

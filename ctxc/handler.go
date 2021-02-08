@@ -861,42 +861,46 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 
 // BroadcastTxs will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
-func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions, propagate bool) {
+func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions) {
 	var (
-		txset = make(map[*peer][]common.Hash)
-		annos = make(map[*peer][]common.Hash)
+		annoCount   int // Count of announcements made
+		annoPeers   int
+		directCount int // Count of the txs sent directly to peers
+		directPeers int // Count of the peers that were sent transactions directly
+
+		txset = make(map[*peer][]common.Hash) // Set peer->hash to transfer directly
+		annos = make(map[*peer][]common.Hash) // Set peer->hash to announce
 	)
 	// Broadcast transactions to a batch of peers not knowing about it
-	if propagate {
-		for _, tx := range txs {
-			peers := pm.peers.PeersWithoutTx(tx.Hash())
-
-			// Send the block to a subset of our peers
-			transfer := peers[:int(math.Sqrt(float64(len(peers))))]
-			for _, peer := range transfer {
-				txset[peer] = append(txset[peer], tx.Hash())
-			}
-			log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
-		}
-		for peer, hashes := range txset {
-			peer.AsyncSendTransactions(hashes)
-		}
-		return
-	}
-	// Otherwise only broadcast the announcement to peers
 	for _, tx := range txs {
 		peers := pm.peers.PeersWithoutTx(tx.Hash())
-		for _, peer := range peers {
+		// Send the tx unconditionally to a subset of our peers
+		numDirect := int(math.Sqrt(float64(len(peers))))
+		for _, peer := range peers[:numDirect] {
+			txset[peer] = append(txset[peer], tx.Hash())
+		}
+		// For the remaining peers, send announcement only
+		for _, peer := range peers[numDirect:] {
 			annos[peer] = append(annos[peer], tx.Hash())
 		}
 	}
+	for peer, hashes := range txset {
+		directPeers++
+		directCount += len(hashes)
+		peer.AsyncSendTransactions(hashes)
+	}
 	for peer, hashes := range annos {
+		annoPeers++
+		annoCount += len(hashes)
 		if peer.version >= ctxc65 {
 			peer.AsyncSendPooledTransactionHashes(hashes)
 		} else {
 			peer.AsyncSendTransactions(hashes)
 		}
 	}
+	log.Warn("Transaction broadcast", "txs", len(txs),
+		"announce packs", annoPeers, "announced hashes", annoCount,
+		"tx packs", directPeers, "broadcast txs", directCount)
 }
 
 // Mined broadcast loop
@@ -917,14 +921,7 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 	for {
 		select {
 		case event := <-pm.txsCh:
-			// For testing purpose only, disable propagation
-			if pm.broadcastTxAnnouncesOnly {
-				pm.BroadcastTransactions(event.Txs, false)
-				continue
-			}
-			pm.BroadcastTransactions(event.Txs, true)  // First propagate transactions to peers
-			pm.BroadcastTransactions(event.Txs, false) // Only then announce to the rest
-
+			pm.BroadcastTransactions(event.Txs)
 		case <-pm.txsSub.Err():
 			return
 		}
