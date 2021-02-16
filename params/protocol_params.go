@@ -197,4 +197,5 @@ const (
 	Bernard_BLOCK_QUOTA = 65536       // for bernard
 	Dolores_BLOCK_QUOTA = 65536 * 128 // for dolores
 	PROTECT_TIME        = int64(180)
+	HEAVY_CHAIN_LIMIT   = 256
 )

@@ -2106,7 +2106,7 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 		return it.index, errors.New("missing parent")
 	}
 
-	if len(hashes) > 256 {
+	if len(hashes) > params.HEAVY_CHAIN_LIMIT {
 		if time.Now().Unix() > bc.utcNow+params.PROTECT_TIME {
 			//log.Warn("Heavy side chain deteced, manual operation is needed", "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
 			return it.index, errors.New("Heavy side chain detected")
