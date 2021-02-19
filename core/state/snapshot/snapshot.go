@@ -234,6 +234,39 @@ func (t *Tree) Snapshot(blockRoot common.Hash) Snapshot {
 	return t.layers[blockRoot]
 }
 
+// Snapshots returns all visited layers from the topmost layer with specific
+// root and traverses downward. The layer amount is limited by the given number.
+// If nodisk is set, then disk layer is excluded.
+func (t *Tree) Snapshots(root common.Hash, limits int, nodisk bool) []Snapshot {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+
+	if limits == 0 {
+		return nil
+	}
+	layer := t.layers[root]
+	if layer == nil {
+		return nil
+	}
+	var ret []Snapshot
+	for {
+		if _, isdisk := layer.(*diskLayer); isdisk && nodisk {
+			break
+		}
+		ret = append(ret, layer)
+		limits -= 1
+		if limits == 0 {
+			break
+		}
+		parent := layer.Parent()
+		if parent == nil {
+			break
+		}
+		layer = parent
+	}
+	return ret
+}
+
 // Update adds a new snapshot into the tree, if that can be linked to an existing
 // old parent. It is disallowed to insert a disk layer (the origin of all).
 func (t *Tree) Update(blockRoot common.Hash, parentRoot common.Hash, destructs map[common.Hash]struct{}, accounts map[common.Hash][]byte, storage map[common.Hash]map[common.Hash][]byte) error {
