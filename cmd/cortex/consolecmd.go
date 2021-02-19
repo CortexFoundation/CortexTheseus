@@ -216,7 +216,7 @@ func ephemeralConsole(ctx *cli.Context) error {
 
 	go func() {
 		<-abort
-		os.Exit(0)
+		console.Stop(false)
 	}()
 	console.Stop(true)
 
