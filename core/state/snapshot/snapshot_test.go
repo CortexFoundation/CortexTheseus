@@ -17,6 +17,7 @@
 package snapshot
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math/big"
 	"math/rand"
