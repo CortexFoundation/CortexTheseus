@@ -1,6 +1,6 @@
 module github.com/CortexFoundation/CortexTheseus
 
-go 1.15
+go 1.16
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
