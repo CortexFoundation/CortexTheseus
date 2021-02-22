@@ -2108,16 +2108,12 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 
 	if len(hashes) > params.HEAVY_CHAIN_LIMIT {
 		if time.Now().Unix() > bc.utcNow+params.PROTECT_TIME {
-			//log.Warn("Heavy side chain deteced, manual operation is needed", "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
 			return it.index, errors.New("Heavy side chain detected")
 		} else {
 			log.Info("Heavey chain import for blockchain protection", "offset", time.Now().Unix()-bc.utcNow, "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
 		}
 	}
 
-	if len(hashes) > 0 {
-		log.Info("Sidechain will be imported", "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
-	}
 	// Import all the pruned blocks to make the state available
 	var (
 		blocks []*types.Block
