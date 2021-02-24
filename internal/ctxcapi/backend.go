@@ -46,6 +46,7 @@ type Backend interface {
 	AccountManager() *accounts.Manager
 	RPCGasCap() uint64    // global gas cap for ctxc_call over rpc: DoS protection
 	RPCTxFeeCap() float64 // global tx fee cap for all transaction related APIs
+	UnprotectedAllowed() bool
 	// BlockChain API
 	SetHead(number uint64)
 	HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error)

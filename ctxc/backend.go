@@ -215,7 +215,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	ctxc.miner = miner.New(ctxc, &config.Miner, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, ctxc.isLocalBlock)
 	ctxc.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
-	ctxc.APIBackend = &CortexAPIBackend{ctxc, nil}
+	ctxc.APIBackend = &CortexAPIBackend{ctx.Config.AllowUnprotectedTxs, ctxc, nil}
+	if ctxc.APIBackend.allowUnprotectedTxs {
+		log.Info("Unprotected transactions allowed")
+	}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice
