@@ -40,8 +40,9 @@ import (
 
 // CortexAPIBackend implements ctxcapi.Backend for full nodes
 type CortexAPIBackend struct {
-	ctxc *Cortex
-	gpo  *gasprice.Oracle
+	allowUnprotectedTxs bool
+	ctxc                *Cortex
+	gpo                 *gasprice.Oracle
 }
 
 // ChainConfig returns the active chain configuration.
@@ -254,6 +255,11 @@ func (b *CortexAPIBackend) EventMux() *event.TypeMux {
 func (b *CortexAPIBackend) AccountManager() *accounts.Manager {
 	return b.ctxc.AccountManager()
 }
+
+func (b *CortexAPIBackend) UnprotectedAllowed() bool {
+	return b.allowUnprotectedTxs
+}
+
 func (b *CortexAPIBackend) RPCGasCap() uint64 {
 	return b.ctxc.config.RPCGasCap
 }
