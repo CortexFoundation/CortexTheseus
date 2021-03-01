@@ -8,9 +8,11 @@ import (
 	"io"
 	"net"
 	"runtime/pprof"
+	"strings"
 	"text/tabwriter"
 	"time"
 
+	peer_store "github.com/anacrolix/dht/v2/peer-store"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/v2/conntrack"
@@ -58,7 +60,7 @@ type sendLimiter interface {
 
 func (s *Server) numGoodNodes() (num int) {
 	s.table.forNodes(func(n *node) bool {
-		if n.IsGood() {
+		if s.IsGood(n) {
 			num++
 		}
 		return true
@@ -85,13 +87,26 @@ func (s *Server) WriteStatus(w io.Writer) {
 	fmt.Fprintf(w, "Server node ID: %x\n", s.id.Bytes())
 	fmt.Fprintln(w)
 	tw := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
-	fmt.Fprintf(tw, "b#\tnode id\taddr\tanntok\tlast query\tlast response\tcf\n")
+	fmt.Fprintf(tw, "b#\tnode id\taddr\tanntok\tlast query\tlast response\trecv\tcf\tflags\n")
 	for i, b := range s.table.buckets {
 		b.EachNode(func(n *node) bool {
-			fmt.Fprintf(tw, "%d\t%x\t%s\t%v\t%s\t%s\t%d\n",
+			var flags []string
+			if n.readOnly {
+				flags = append(flags, "ro")
+			}
+			if s.IsQuestionable(n) {
+				flags = append(flags, "q10e")
+			}
+			if s.nodeIsBad(n) {
+				flags = append(flags, "bad")
+			}
+			if s.IsGood(n) {
+				flags = append(flags, "good")
+			}
+			fmt.Fprintf(tw, "%d\t%x\t%s\t%v\t%s\t%s\t%d\t%v\t%v\n",
 				i,
-				n.id.Bytes(),
-				n.addr,
+				n.Id.Bytes(),
+				n.Addr,
 				func() int {
 					if n.announceToken == nil {
 						return -1
@@ -100,7 +115,9 @@ func (s *Server) WriteStatus(w io.Writer) {
 				}(),
 				prettySince(n.lastGotQuery),
 				prettySince(n.lastGotResponse),
+				n.numReceivesFrom,
 				n.consecutiveFailures,
+				strings.Join(flags, ","),
 			)
 			return true
 		})
@@ -190,6 +207,7 @@ func NewServer(c *ServerConfig) (s *Server, err error) {
 	if s.resendDelay == nil {
 		s.resendDelay = defaultQueryResendDelay
 	}
+	go s.questionableNodePinger()
 	go s.serveUntilClosed()
 	return
 }
@@ -261,13 +279,6 @@ func (s *Server) processPacket(b []byte, addr Addr) {
 	if s.closed.IsSet() {
 		return
 	}
-	var n *node
-	if sid := d.SenderID(); sid != nil {
-		n, _ = s.getNode(addr, int160FromByteArray(*sid), !d.ReadOnly)
-		if n != nil && d.ReadOnly {
-			n.readOnly = true
-		}
-	}
 	if d.Y == "q" {
 		expvars.Add("received queries", 1)
 		s.logger().Printf("received query %q from %v", d.Q, addr)
@@ -285,11 +296,13 @@ func (s *Server) processPacket(b []byte, addr Addr) {
 	}
 	//s.logger().Printf("received response for transaction %q from %v", d.T, addr)
 	go t.handleResponse(d)
-	if n != nil {
+	s.updateNode(addr, d.SenderID(), true, func(n *node) {
 		n.lastGotResponse = time.Now()
 		n.consecutiveFailures = 0
-	}
-	// Ensure we don't send more than one response.
+		n.readOnly = d.ReadOnly
+		n.numReceivesFrom++
+	})
+	// Ensure we don't provide more than one response to a transaction.
 	s.deleteTransaction(tk)
 }
 
@@ -334,8 +347,7 @@ func (s *Server) AddNode(ni krpc.NodeInfo) error {
 	if id.IsZero() {
 		return s.Ping(ni.Addr.UDP(), nil)
 	}
-	_, err := s.getNode(NewAddr(ni.Addr.UDP()), int160FromByteArray(ni.ID), true)
-	return err
+	return s.updateNode(NewAddr(ni.Addr.UDP()), (*krpc.ID)(&ni.ID), true, func(*node) {})
 }
 
 func wantsContain(ws []krpc.Want, w krpc.Want) bool {
@@ -351,6 +363,7 @@ func shouldReturnNodes(queryWants []krpc.Want, querySource net.IP) bool {
 	if len(queryWants) != 0 {
 		return wantsContain(queryWants, krpc.WantNodes)
 	}
+	// Is it possible to be over IPv6 with IPv4 endpoints?
 	return querySource.To4() != nil
 }
 
@@ -368,6 +381,37 @@ func (s *Server) makeReturnNodes(target int160, filter func(krpc.NodeAddr) bool)
 var krpcErrMissingArguments = krpc.Error{
 	Code: krpc.ErrorCodeProtocolError,
 	Msg:  "missing arguments dict",
+}
+
+// Filters peers per BEP 32 to return in the values field to a get_peers query.
+func filterPeers(querySourceIp net.IP, queryWants []krpc.Want, allPeers []krpc.NodeAddr) (filtered []krpc.NodeAddr) {
+	// The logic here is common with nodes, see BEP 32.
+	retain4 := shouldReturnNodes(queryWants, querySourceIp)
+	retain6 := shouldReturnNodes6(queryWants, querySourceIp)
+	for _, peer := range allPeers {
+		if ip, ok := func(ip net.IP) (net.IP, bool) {
+			as4 := peer.IP.To4()
+			as16 := peer.IP.To16()
+			switch {
+			case retain4 && len(ip) == net.IPv4len:
+				return ip, true
+			case retain6 && len(ip) == net.IPv6len:
+				return ip, true
+			case retain4 && as4 != nil:
+				// Is it possible that we're converting to an IPv4 address when the transport in use
+				// is IPv6?
+				return as4, true
+			case retain6 && as16 != nil:
+				// Couldn't any IPv4 address be converted to IPv6, but isn't listening over IPv6?
+				return as16, true
+			default:
+				return nil, false
+			}
+		}(peer.IP); ok {
+			filtered = append(filtered, krpc.NodeAddr{ip, peer.Port})
+		}
+	}
+	return
 }
 
 func (s *Server) setReturnNodes(r *krpc.Return, queryMsg krpc.Msg, querySource Addr) *krpc.Error {
@@ -396,11 +440,11 @@ func (s *Server) handleQuery(source Addr, m krpc.Msg) {
 			}
 		}
 	}()
-	if m.SenderID() != nil {
-		if n, _ := s.getNode(source, int160FromByteArray(*m.SenderID()), !m.ReadOnly); n != nil {
-			n.lastGotQuery = time.Now()
-		}
-	}
+	s.updateNode(source, m.SenderID(), true, func(n *node) {
+		n.lastGotQuery = time.Now()
+		n.readOnly = m.ReadOnly
+		n.numReceivesFrom++
+	})
 	if s.config.OnQuery != nil {
 		propagate := s.config.OnQuery(&m, source.Raw())
 		if !propagate {
@@ -417,12 +461,23 @@ func (s *Server) handleQuery(source Addr, m krpc.Msg) {
 	case "ping":
 		s.reply(source, m.T, krpc.Return{})
 	case "get_peers":
-		var r krpc.Return
-		// TODO: Return values.
-		if err := s.setReturnNodes(&r, m, source); err != nil {
-			s.sendError(source, m.T, *err)
+		// Check for the naked m.A.Want deref below.
+		if m.A == nil {
+			s.sendError(source, m.T, krpcErrMissingArguments)
 			break
 		}
+		var r krpc.Return
+		if ps := s.config.PeerStore; ps != nil {
+			r.Values = filterPeers(source.IP(), m.A.Want, ps.GetPeers(peer_store.InfoHash(args.InfoHash)))
+		}
+		if len(r.Values) == 0 {
+			if err := s.setReturnNodes(&r, m, source); err != nil {
+				s.sendError(source, m.T, *err)
+				break
+			}
+		}
+		// I wonder if we could choose not to return a token here, if we don't want an announce_peer
+		// from the querier.
 		r.Token = func() *string {
 			t := s.createToken(source)
 			return &t
@@ -437,24 +492,37 @@ func (s *Server) handleQuery(source Addr, m krpc.Msg) {
 		s.reply(source, m.T, r)
 	case "announce_peer":
 		readAnnouncePeer.Add(1)
+
 		if !s.validToken(args.Token, source) {
 			expvars.Add("received announce_peer with invalid token", 1)
 			return
 		}
 		expvars.Add("received announce_peer with valid token", 1)
+
+		var port int
+		portOk := false
+		if args.Port != nil {
+			port = *args.Port
+			portOk = true
+		}
+		if args.ImpliedPort {
+			port = source.Port()
+			portOk = true
+		}
+		if !portOk {
+			expvars.Add("received announce_peer with no derivable port", 1)
+		}
+
 		if h := s.config.OnAnnouncePeer; h != nil {
-			var port int
-			portOk := false
-			if args.Port != nil {
-				port = *args.Port
-				portOk = true
-			}
-			if args.ImpliedPort {
-				port = source.Port()
-				portOk = true
-			}
 			go h(metainfo.Hash(args.InfoHash), source.IP(), port, portOk)
 		}
+		if ps := s.config.PeerStore; ps != nil {
+			go ps.AddPeer(
+				peer_store.InfoHash(args.InfoHash),
+				krpc.NodeAddr{source.IP(), port},
+			)
+		}
+
 		s.reply(source, m.T, krpc.Return{})
 	default:
 		s.sendError(source, m.T, krpc.ErrorMethodUnknown)
@@ -500,25 +568,9 @@ func (s *Server) reply(addr Addr, t string, r krpc.Return) {
 	}
 }
 
-// Returns the node if it's in the routing table, adding it if appropriate.
-func (s *Server) getNode(addr Addr, id int160, tryAdd bool) (*node, error) {
-	if n := s.table.getNode(addr, id); n != nil {
-		return n, nil
-	}
-	n := &node{nodeKey: nodeKey{
-		id:   id,
-		addr: addr,
-	}}
-	// Check that the node would be good to begin with. (It might have a bad
-	// ID or banned address, or we fucked up the initial node field
-	// invariant.)
-	if err := s.nodeErr(n); err != nil {
-		return nil, err
-	}
-	if !tryAdd {
-		return nil, errors.New("node not present and add flag false")
-	}
-	b := s.table.bucketForID(id)
+// Adds a node if appropriate.
+func (s *Server) addNode(n *node) error {
+	b := s.table.bucketForID(n.Id)
 	if b.Len() >= s.table.k {
 		if b.EachNode(func(n *node) bool {
 			if s.nodeIsBad(n) {
@@ -526,13 +578,40 @@ func (s *Server) getNode(addr Addr, id int160, tryAdd bool) (*node, error) {
 			}
 			return b.Len() >= s.table.k
 		}) {
-			return nil, errors.New("no room in bucket")
+			return errors.New("no room in bucket")
 		}
 	}
 	if err := s.table.addNode(n); err != nil {
 		panic(fmt.Sprintf("expected to add node: %s", err))
 	}
-	return n, nil
+	return nil
+}
+
+// Updates the node, adding it if appropriate.
+func (s *Server) updateNode(addr Addr, id *krpc.ID, tryAdd bool, update func(*node)) error {
+	if id == nil {
+		return errors.New("id is nil")
+	}
+	int160Id := int160FromByteArray(*id)
+	n := s.table.getNode(addr, int160Id)
+	missing := n == nil
+	if missing {
+		if !tryAdd {
+			return errors.New("node not present and add flag false")
+		}
+		if int160Id == s.id {
+			return errors.New("can't store own id in routing table")
+		}
+		n = &node{nodeKey: nodeKey{
+			Id:   int160Id,
+			Addr: addr,
+		}}
+	}
+	update(n)
+	if !missing {
+		return nil
+	}
+	return s.addNode(n)
 }
 
 func (s *Server) nodeIsBad(n *node) bool {
@@ -540,17 +619,17 @@ func (s *Server) nodeIsBad(n *node) bool {
 }
 
 func (s *Server) nodeErr(n *node) error {
-	if n.id == s.id {
+	if n.Id == s.id {
 		return errors.New("is self")
 	}
-	if n.id.IsZero() {
+	if n.Id.IsZero() {
 		return errors.New("has zero id")
 	}
 	if !s.config.NoSecurity && !n.IsSecure() {
 		return errors.New("not secure")
 	}
-	if n.IsGood() {
-		return nil
+	if n.readOnly {
+		return errors.New("is read-only")
 	}
 	if n.consecutiveFailures >= 3 {
 		return fmt.Errorf("has %d consecutive failures", n.consecutiveFailures)
@@ -774,6 +853,8 @@ func (s *Server) Query(ctx context.Context, addr Addr, q string, input QueryInpu
 	s.deleteTransaction(tk)
 	if ret.Err != nil {
 		for _, n := range s.table.addrNodes(addr) {
+			// TODO: What kind of failures? Failures to respond at all, or error responses, or
+			// context cancellations?
 			n.consecutiveFailures++
 		}
 	}
@@ -809,7 +890,6 @@ func (s *Server) transactionQuerySender(
 	case <-time.After(s.resendDelay()):
 		return errors.New("timed out")
 	}
-
 }
 
 // Sends a ping query to the address given.
@@ -856,7 +936,7 @@ func (s *Server) addResponseNodes(d krpc.Msg) {
 		return
 	}
 	d.R.ForAllNodes(func(ni krpc.NodeInfo) {
-		s.getNode(NewAddr(ni.Addr.UDP()), int160FromByteArray(ni.ID), true)
+		s.updateNode(NewAddr(ni.Addr.UDP()), (*krpc.ID)(&ni.ID), true, func(*node) {})
 	})
 }
 
@@ -890,8 +970,8 @@ func (s *Server) Nodes() (nis []krpc.NodeInfo) {
 	defer s.mu.Unlock()
 	s.table.forNodes(func(n *node) bool {
 		nis = append(nis, krpc.NodeInfo{
-			Addr: n.addr.KRPC(),
-			ID:   n.id.AsByteArray(),
+			Addr: n.Addr.KRPC(),
+			ID:   n.Id.AsByteArray(),
 		})
 		return true
 	})
@@ -931,10 +1011,10 @@ func (s *Server) GetPeers(ctx context.Context, addr Addr, infoHash int160, scrap
 		} else {
 			expvars.Add("get_peers responses with token", 1)
 		}
-		if m.SenderID() != nil && m.R.Token != nil {
-			if n, _ := s.getNode(addr, int160FromByteArray(*m.SenderID()), false); n != nil {
+		if m.R.Token != nil {
+			s.updateNode(addr, m.SenderID(), false, func(n *node) {
 				n.announceToken = m.R.Token
-			}
+			})
 		}
 	}
 	return
@@ -948,7 +1028,7 @@ func (s *Server) closestGoodNodeInfos(
 	ret []krpc.NodeInfo,
 ) {
 	for _, n := range s.closestNodes(k, targetID, func(n *node) bool {
-		return n.IsGood() && filter(n.NodeInfo().Addr)
+		return s.IsGood(n) && filter(n.NodeInfo().Addr)
 	}) {
 		ret = append(ret, n.NodeInfo())
 	}
@@ -962,7 +1042,7 @@ func (s *Server) closestNodes(k int, target int160, filter func(*node) bool) []*
 func (s *Server) traversalStartingNodes() (nodes []addrMaybeId, err error) {
 	s.mu.RLock()
 	s.table.forNodes(func(n *node) bool {
-		nodes = append(nodes, addrMaybeId{n.addr.KRPC(), &n.id})
+		nodes = append(nodes, addrMaybeId{n.Addr.KRPC(), &n.Id})
 		return true
 	})
 	s.mu.RUnlock()
@@ -1007,3 +1087,63 @@ func (s *Server) AddNodesFromFile(fileName string) (added int, err error) {
 func (s *Server) logger() log.Logger {
 	return s.config.Logger
 }
+
+func (s *Server) PeerStore() peer_store.Interface {
+	return s.config.PeerStore
+}
+
+func (s *Server) getQuestionableNode() (ret *node) {
+	s.table.forNodes(func(n *node) bool {
+		if s.IsQuestionable(n) {
+			ret = n
+			return false
+		}
+		return true
+	})
+	return
+}
+
+func (s *Server) questionableNodePinger() {
+tryPing:
+	for {
+		s.mu.RLock()
+		n := s.getQuestionableNode()
+		if n != nil {
+			addr := n.Addr.Raw().(*net.UDPAddr)
+			s.mu.RUnlock()
+			done := make(chan struct{})
+			err := s.Ping(addr, func(krpc.Msg, error) {
+				close(done)
+			})
+			if err == nil {
+				<-done
+				goto tryPing
+			}
+			s.logger().Printf("error pinging questionable node: %v", err)
+		} else {
+			s.mu.RUnlock()
+		}
+		select {
+		case <-time.After(time.Second):
+		case <-s.closed.LockedChan(&s.mu):
+		}
+	}
+}
+
+func (s *Server) newTraversal(targetId int160) (t traversal, err error) {
+	startAddrs, err := s.traversalStartingNodes()
+	if err != nil {
+		return
+	}
+	t = newTraversal(targetId)
+	t.shouldContact = s.shouldContact
+	t.serverBeginQuery = s.beginQuery
+	for _, addr := range startAddrs {
+		stm.Atomically(t.pendContact(addr))
+	}
+	return
+}
+
+//func (s *Server) refreshBucket(bucketIndex int) {
+//	targetId := s.table.randomIdForBucket(bucketIndex)
+//}

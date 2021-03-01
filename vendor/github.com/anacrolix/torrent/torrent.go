@@ -674,6 +674,13 @@ func (t *Torrent) newMetaInfo() metainfo.MetaInfo {
 				return nil
 			}
 		}(),
+		UrlList: func() []string {
+			ret := make([]string, 0, len(t.webSeeds))
+			for url := range t.webSeeds {
+				ret = append(ret, url)
+			}
+			return ret
+		}(),
 	}
 }
 
@@ -735,9 +742,9 @@ func (t *Torrent) close() (err error) {
 		t.storage.Close()
 		t.storageLock.Unlock()
 	}
-	for conn := range t.conns {
-		conn.close()
-	}
+	t.iterPeers(func(p *Peer) {
+		p.close()
+	})
 	t.pex.Reset()
 	t.cl.event.Broadcast()
 	t.pieceStateChanges.Close()
@@ -2103,6 +2110,12 @@ func (t *Torrent) callbacks() *Callbacks {
 	return &t.cl.config.Callbacks
 }
 
+var WebseedHttpClient = &http.Client{
+	Transport: &http.Transport{
+		MaxConnsPerHost: 10,
+	},
+}
+
 func (t *Torrent) addWebSeed(url string) {
 	if t.cl.config.DisableWebseeds {
 		return
@@ -2125,7 +2138,7 @@ func (t *Torrent) addWebSeed(url string) {
 		},
 		client: webseed.Client{
 			// Consider a MaxConnsPerHost in the transport for this, possibly in a global Client.
-			HttpClient: http.DefaultClient,
+			HttpClient: WebseedHttpClient,
 			Url:        url,
 		},
 		activeRequests: make(map[Request]webseed.Request, maxRequests),
