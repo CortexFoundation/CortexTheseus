@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"sync"
 	"time"
 
+	"github.com/pion/dtls/v2/pkg/crypto/signaturehash"
+	"github.com/pion/dtls/v2/pkg/protocol/alert"
+	"github.com/pion/dtls/v2/pkg/protocol/handshake"
 	"github.com/pion/logging"
 )
 
@@ -45,8 +47,6 @@ import (
 //                 +---+
 //              Read retransmit
 //           Retransmit last flight
-
-var errInvalidFSMTransition = errors.New("invalid state machine transition")
 
 type handshakeState uint8
 
@@ -88,10 +88,10 @@ type handshakeFSM struct {
 type handshakeConfig struct {
 	localPSKCallback            PSKCallback
 	localPSKIdentityHint        []byte
-	localCipherSuites           []cipherSuite            // Available CipherSuites
-	localSignatureSchemes       []signatureHashAlgorithm // Available signature schemes
-	extendedMasterSecret        ExtendedMasterSecretType // Policy for the Extended Master Support extension
-	localSRTPProtectionProfiles []SRTPProtectionProfile  // Available SRTPProtectionProfiles, if empty no SRTP support
+	localCipherSuites           []CipherSuite             // Available CipherSuites
+	localSignatureSchemes       []signaturehash.Algorithm // Available signature schemes
+	extendedMasterSecret        ExtendedMasterSecretType  // Policy for the Extended Master Support extension
+	localSRTPProtectionProfiles []SRTPProtectionProfile   // Available SRTPProtectionProfiles, if empty no SRTP support
 	serverName                  string
 	clientAuth                  ClientAuthType // If we are a client should we request a client certificate
 	localCertificates           []tls.Certificate
@@ -101,6 +101,7 @@ type handshakeConfig struct {
 	rootCAs                     *x509.CertPool
 	clientCAs                   *x509.CertPool
 	retransmitInterval          time.Duration
+	customCipherSuites          func() []CipherSuite
 
 	onFlightState func(flightVal, handshakeState)
 	log           logging.LeveledLogger
@@ -111,7 +112,7 @@ type handshakeConfig struct {
 }
 
 type flightConn interface {
-	notify(ctx context.Context, level alertLevel, desc alertDescription) error
+	notify(ctx context.Context, level alert.Level, desc alert.Description) error
 	writePackets(context.Context, []*packet) error
 	recvHandshake() <-chan chan struct{}
 	setLocalEpoch(epoch uint16)
@@ -175,20 +176,20 @@ func (s *handshakeFSM) prepare(ctx context.Context, c flightConn) (handshakeStat
 	s.flights = nil
 	// Prepare flights
 	var (
-		a    *alert
+		a    *alert.Alert
 		err  error
 		pkts []*packet
 	)
 	gen, retransmit, errFlight := s.currentFlight.getFlightGenerator()
 	if errFlight != nil {
 		err = errFlight
-		a = &alert{alertLevelFatal, alertInternalError}
+		a = &alert.Alert{Level: alert.Fatal, Description: alert.InternalError}
 	} else {
 		pkts, a, err = gen(c, s.state, s.cache, s.cfg)
 		s.retransmit = retransmit
 	}
 	if a != nil {
-		if alertErr := c.notify(ctx, a.alertLevel, a.alertDescription); alertErr != nil {
+		if alertErr := c.notify(ctx, a.Level, a.Description); alertErr != nil {
 			if err != nil {
 				err = alertErr
 			}
@@ -202,12 +203,12 @@ func (s *handshakeFSM) prepare(ctx context.Context, c flightConn) (handshakeStat
 	epoch := s.cfg.initialEpoch
 	nextEpoch := epoch
 	for _, p := range s.flights {
-		p.record.recordLayerHeader.epoch += epoch
-		if p.record.recordLayerHeader.epoch > nextEpoch {
-			nextEpoch = p.record.recordLayerHeader.epoch
+		p.record.Header.Epoch += epoch
+		if p.record.Header.Epoch > nextEpoch {
+			nextEpoch = p.record.Header.Epoch
 		}
-		if h, ok := p.record.content.(*handshake); ok {
-			h.handshakeHeader.messageSequence = uint16(s.state.handshakeSendSequence)
+		if h, ok := p.record.Content.(*handshake.Handshake); ok {
+			h.Header.MessageSequence = uint16(s.state.handshakeSendSequence)
 			s.state.handshakeSendSequence++
 		}
 	}
@@ -233,7 +234,7 @@ func (s *handshakeFSM) send(ctx context.Context, c flightConn) (handshakeState, 
 func (s *handshakeFSM) wait(ctx context.Context, c flightConn) (handshakeState, error) { //nolint:gocognit
 	parse, errFlight := s.currentFlight.getFlightParser()
 	if errFlight != nil {
-		if alertErr := c.notify(ctx, alertLevelFatal, alertInternalError); alertErr != nil {
+		if alertErr := c.notify(ctx, alert.Fatal, alert.InternalError); alertErr != nil {
 			if errFlight != nil {
 				return handshakeErrored, alertErr
 			}
@@ -248,7 +249,7 @@ func (s *handshakeFSM) wait(ctx context.Context, c flightConn) (handshakeState, 
 			nextFlight, alert, err := parse(ctx, c, s.state, s.cache, s.cfg)
 			close(done)
 			if alert != nil {
-				if alertErr := c.notify(ctx, alert.alertLevel, alert.alertDescription); alertErr != nil {
+				if alertErr := c.notify(ctx, alert.Level, alert.Description); alertErr != nil {
 					if err != nil {
 						err = alertErr
 					}
@@ -281,7 +282,7 @@ func (s *handshakeFSM) wait(ctx context.Context, c flightConn) (handshakeState, 
 func (s *handshakeFSM) finish(ctx context.Context, c flightConn) (handshakeState, error) {
 	parse, errFlight := s.currentFlight.getFlightParser()
 	if errFlight != nil {
-		if alertErr := c.notify(ctx, alertLevelFatal, alertInternalError); alertErr != nil {
+		if alertErr := c.notify(ctx, alert.Fatal, alert.InternalError); alertErr != nil {
 			if errFlight != nil {
 				return handshakeErrored, alertErr
 			}
@@ -295,7 +296,7 @@ func (s *handshakeFSM) finish(ctx context.Context, c flightConn) (handshakeState
 		nextFlight, alert, err := parse(ctx, c, s.state, s.cache, s.cfg)
 		close(done)
 		if alert != nil {
-			if alertErr := c.notify(ctx, alert.alertLevel, alert.alertDescription); alertErr != nil {
+			if alertErr := c.notify(ctx, alert.Level, alert.Description); alertErr != nil {
 				if err != nil {
 					err = alertErr
 				}

@@ -1,7 +1,10 @@
 package torrent
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -10,7 +13,6 @@ import (
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	"github.com/anacrolix/torrent/segments"
 	"github.com/anacrolix/torrent/webseed"
-	"github.com/pkg/errors"
 )
 
 type webseedPeer struct {
@@ -64,9 +66,11 @@ func (ws *webseedPeer) request(r Request) bool {
 func (ws *webseedPeer) doRequest(r Request) {
 	webseedRequest := ws.client.NewRequest(ws.intoSpec(r))
 	ws.activeRequests[r] = webseedRequest
-	ws.requesterCond.L.Unlock()
-	ws.requestResultHandler(r, webseedRequest)
-	ws.requesterCond.L.Lock()
+	func() {
+		ws.requesterCond.L.Unlock()
+		defer ws.requesterCond.L.Lock()
+		ws.requestResultHandler(r, webseedRequest)
+	}()
 	delete(ws.activeRequests, r)
 }
 
@@ -99,6 +103,10 @@ func (ws *webseedPeer) updateRequests() {
 }
 
 func (ws *webseedPeer) onClose() {
+	ws.peer.logger.Print("closing")
+	for _, r := range ws.activeRequests {
+		r.Cancel()
+	}
 	ws.requesterCond.Broadcast()
 }
 
@@ -107,12 +115,21 @@ func (ws *webseedPeer) requestResultHandler(r Request, webseedRequest webseed.Re
 	ws.peer.t.cl.lock()
 	defer ws.peer.t.cl.unlock()
 	if result.Err != nil {
-		ws.peer.logger.Printf("Request %v rejected: %v", r, result.Err)
-		// Always close for now. We need to filter out temporary errors, but this is a nightmare in
-		// Go. Currently a bad webseed URL can starve out the good ones due to the chunk selection
-		// algorithm.
+		if !errors.Is(result.Err, context.Canceled) {
+			ws.peer.logger.Printf("Request %v rejected: %v", r, result.Err)
+		}
+		// We need to filter out temporary errors, but this is a nightmare in Go. Currently a bad
+		// webseed URL can starve out the good ones due to the chunk selection algorithm.
 		const closeOnAllErrors = false
-		if closeOnAllErrors || strings.Contains(errors.Cause(result.Err).Error(), "unsupported protocol scheme") {
+		if closeOnAllErrors ||
+			strings.Contains(result.Err.Error(), "unsupported protocol scheme") ||
+			func() bool {
+				var err webseed.ErrBadResponse
+				if !errors.As(result.Err, &err) {
+					return false
+				}
+				return err.Response.StatusCode == http.StatusNotFound
+			}() {
 			ws.peer.close()
 		} else {
 			ws.peer.remoteRejectedRequest(r)

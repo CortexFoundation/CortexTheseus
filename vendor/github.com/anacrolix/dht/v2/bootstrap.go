@@ -4,64 +4,27 @@ import (
 	"sync/atomic"
 
 	"github.com/anacrolix/stm"
-
-	"github.com/anacrolix/dht/v2/krpc"
 )
 
 // Populates the node table.
 func (s *Server) Bootstrap() (ts TraversalStats, err error) {
-	initialAddrs, err := s.traversalStartingNodes()
+	traversal, err := s.newTraversal(s.id)
 	if err != nil {
 		return
 	}
-	traversal := newTraversal(s.id)
-	for _, addr := range initialAddrs {
-		stm.Atomically(traversal.pendContact(addr))
+	traversal.reason = "dht bootstrap find_node"
+	traversal.doneVar = stm.NewVar(false)
+	traversal.stopTraversal = func(*stm.Tx, addrMaybeId) bool {
+		return false
 	}
-	outstanding := stm.NewVar(0)
-	for {
-		type txResT struct {
-			done bool
-			io   func()
+	traversal.query = func(addr Addr) QueryResult {
+		atomic.AddInt64(&ts.NumAddrsTried, 1)
+		res := s.FindNode(addr, s.id, QueryRateLimiting{NotFirst: true})
+		if res.Err == nil {
+			atomic.AddInt64(&ts.NumResponses, 1)
 		}
-		txRes := stm.Atomically(stm.Select(
-			func(tx *stm.Tx) interface{} {
-				addr, ok := traversal.popNextContact(tx)
-				tx.Assert(ok)
-				dhtAddr := NewAddr(addr.Addr.UDP())
-				tx.Set(outstanding, tx.Get(outstanding).(int)+1)
-				return txResT{
-					io: s.beginQuery(dhtAddr, "dht bootstrap find_node", func() numWrites {
-						atomic.AddInt64(&ts.NumAddrsTried, 1)
-						res := s.FindNode(dhtAddr, s.id, QueryRateLimiting{NotFirst: true})
-						if res.Err == nil {
-							atomic.AddInt64(&ts.NumResponses, 1)
-						}
-						if r := res.Reply.R; r != nil {
-							r.ForAllNodes(func(ni krpc.NodeInfo) {
-								id := int160FromByteArray(ni.ID)
-								stm.Atomically(traversal.pendContact(addrMaybeId{
-									Addr: ni.Addr,
-									Id:   &id,
-								}))
-							})
-						}
-						stm.Atomically(stm.VoidOperation(func(tx *stm.Tx) {
-							tx.Set(outstanding, tx.Get(outstanding).(int)-1)
-						}))
-						return res.writes
-					})(tx).(func()),
-				}
-			},
-			func(tx *stm.Tx) interface{} {
-				tx.Assert(tx.Get(outstanding).(int) == 0)
-				return txResT{done: true}
-			},
-		)).(txResT)
-		if txRes.done {
-			break
-		}
-		go txRes.io()
+		return res
 	}
+	traversal.run()
 	return
 }

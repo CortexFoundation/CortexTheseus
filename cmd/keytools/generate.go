@@ -26,7 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -82,7 +82,10 @@ If you want to encrypt an existing private key, it can be specified by setting
 		}
 
 		// Create the keyfile object with a random UUID.
-		id := uuid.NewRandom()
+		id, err := uuid.NewRandom()
+		if err != nil {
+			utils.Fatalf("Can't create uuid: %v", err)
+		}
 		key := &keystore.Key{
 			Id:         id,
 			Address:    crypto.PubkeyToAddress(privateKey.PublicKey),

@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 	bolt "go.etcd.io/bbolt"
 	"os"
 	"path/filepath"
@@ -560,7 +560,11 @@ func (fs *ChainDB) initID() error {
 		if err != nil {
 			return err
 		}
-		id := binary.LittleEndian.Uint64([]byte(uuid.NewRandom()))
+		uid, err := uuid.NewRandom()
+		if err != nil {
+			return err
+		}
+		id := binary.LittleEndian.Uint64([]byte(uid[:]))
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(id, 16)))
 		fs.id = id //binary.LittleEndian.Uint64([]byte(id[:]))//uint64(id[:])
 
