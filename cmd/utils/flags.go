@@ -1365,6 +1365,10 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	//CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 	CheckExclusive(ctx, GCModeFlag, "archive", TxLookupLimitFlag)
 
+	if ctx.GlobalString(GCModeFlag.Name) == "archive" && ctx.GlobalUint64(TxLookupLimitFlag.Name) != 0 {
+		ctx.GlobalSet(TxLookupLimitFlag.Name, "0")
+		log.Warn("Disable transaction unindexing for archive node")
+	}
 	var ks *keystore.KeyStore
 	if keystores := stack.AccountManager().Backends(keystore.KeyStoreType); len(keystores) > 0 {
 		ks = keystores[0].(*keystore.KeyStore)
