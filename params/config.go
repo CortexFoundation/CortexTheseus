@@ -62,8 +62,8 @@ var (
 var (
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "mainnet",
-		SectionIndex: 98,
-		SectionHead:  common.HexToHash("0xf6f1d89fb84ee53f78cd6646062cb6a4f2deee69277ea6a4dc52653b001cd3a2"),
+		SectionIndex: 101,
+		SectionHead:  common.HexToHash("0x0ff361a1537c177c752b4c032484f071eaaae813012617e6b16ce4c5577ad0a8"),
 	}
 
 	DoloresTrustedCheckpoint = &TrustedCheckpoint{
@@ -101,7 +101,7 @@ var (
 		//CortexBlock:	     big.NewInt(8409600),
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(3230000),
+		IstanbulBlock:       big.NewInt(3_230_000),
 		Cuckoo:              new(CuckooConfig),
 	}
 
