@@ -165,14 +165,14 @@ var (
 
 	// For Mainnet
 	// |CTXC_TOP|:    Total Amount of Cortex Coin(CTXC) is lightspeed in vacuum: 299792458 m/s
-	CTXC_TOP = big.NewInt(0).Mul(big.NewInt(299792458), big.NewInt(1000000000000000000))
+	CTXC_TOP = big.NewInt(0).Mul(big.NewInt(299_792_458), big.NewInt(1000000000000000000))
 	// |CTXC_INIT|:   For Pre-Allocated CTXCs before Mainnet launch
-	CTXC_INIT = big.NewInt(0).Mul(big.NewInt(149792458), big.NewInt(1000000000000000000))
+	CTXC_INIT = big.NewInt(0).Mul(big.NewInt(149_792_458), big.NewInt(1000000000000000000))
 	// |CTXC_MINING|: For mining
-	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150000000), big.NewInt(1000000000000000000))
+	CTXC_MINING = big.NewInt(0).Mul(big.NewInt(150_000_000), big.NewInt(1000000000000000000))
 
-	CTXC_F1 = big.NewInt(0).Mul(big.NewInt(20486540), big.NewInt(1000000000000000000))
-	CTXC_F2 = big.NewInt(0).Mul(big.NewInt(21285544), big.NewInt(1000000000000000000))
+	CTXC_F1 = big.NewInt(0).Mul(big.NewInt(20_486_540), big.NewInt(1000000000000000000))
+	CTXC_F2 = big.NewInt(0).Mul(big.NewInt(21_285_544), big.NewInt(1000000000000000000))
 )
 
 const (

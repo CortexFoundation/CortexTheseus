@@ -160,7 +160,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.RPCVirtualHostsFlag,
 			utils.RPCGlobalGasCapFlag,
 			utils.RPCGlobalTxFeeCapFlag,
-			utils.AllowUnprotectedTxs,
+			//utils.AllowUnprotectedTxs,
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
