@@ -54,9 +54,9 @@ type TrustedCheckpoint struct {
 }
 
 var (
-	CortexBlockRewardPeriod  = big.NewInt(8409600) // Halving every four years: 365 days*24 hours*60 minutes*4 blocks*4 years=8409600
-	BernardBlockRewardPeriod = big.NewInt(8409600) // TESTING: for testnet Bernard
-	DoloresBlockRewardPeriod = big.NewInt(1000000) // TESTING: for testnet Dolores
+	CortexBlockRewardPeriod  = big.NewInt(8_409_600) // Halving every four years: 365 days*24 hours*60 minutes*4 blocks*4 years=8409600
+	BernardBlockRewardPeriod = big.NewInt(8_409_600) // TESTING: for testnet Bernard
+	DoloresBlockRewardPeriod = big.NewInt(1_000_000) // TESTING: for testnet Dolores
 )
 
 var (
