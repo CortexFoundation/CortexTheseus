@@ -692,15 +692,15 @@ func (tm *TorrentManager) pendingLoop() {
 						}
 					}*/
 				} else if tm.boost && (t.loop > 60 || (t.start == 0 && t.bytesRequested > 0)) {
-					log.Info("Boost seed", "ih", ih, "loop", t.loop, "request", t.bytesRequested, "start", t.start)
+					log.Trace("Boost seed", "ih", ih, "loop", t.loop, "request", t.bytesRequested, "start", t.start)
 					t.loop = 0
+					t.start = mclock.Now()
 					if data, err := tm.boostFetcher.FetchTorrent(ih); err == nil {
 						if t.Torrent.Info() != nil {
 							continue
 						}
 						if err := t.ReloadTorrent(data, tm); err == nil {
 							tm.setTorrent(ih, t)
-							t.start = mclock.Now()
 						}
 					}
 				} else {
