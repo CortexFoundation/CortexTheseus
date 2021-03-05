@@ -24,10 +24,10 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	math2 "github.com/CortexFoundation/CortexTheseus/common/math"
-	"github.com/CortexFoundation/CortexTheseus/config"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/security"
 	"github.com/CortexFoundation/inference/synapse"
 	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
@@ -314,7 +314,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		return nil, 0, 0, false, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
 
-	if blocked, num := config.IsBlocked(msg.From()); blocked && st.cvm.Context.BlockNumber.Cmp(big.NewInt(num)) >= 0 {
+	if blocked, num := security.IsBlocked(msg.From()); blocked && st.cvm.Context.BlockNumber.Cmp(big.NewInt(num)) >= 0 {
 		log.Debug("Bad address encounter!!", "addr", msg.From(), "number", num)
 		return nil, 0, 0, false, fmt.Errorf("%w: address %v", errors.New("Bad address encounter"), msg.From().Hex())
 	}
