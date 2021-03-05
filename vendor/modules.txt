@@ -15,7 +15,7 @@ github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20210226031755-94f6423532ee
 github.com/CortexFoundation/merkletree
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210304034407-a9e6b635113b
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210305025313-bffb68379c28
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -430,7 +430,7 @@ github.com/ucwong/tsdb/fileutil
 github.com/willf/bitset
 # github.com/willf/bloom v2.0.3+incompatible
 github.com/willf/bloom
-# go.etcd.io/bbolt v1.3.6-0.20200807205753-f6be82302843
+# go.etcd.io/bbolt v1.3.6-0.20210304170446-8f715c091730
 go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 ## explicit
