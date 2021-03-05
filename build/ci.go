@@ -136,16 +136,17 @@ var (
 	// Note: artful is unsupported because it was officially deprecated on Launchpad.
 	// Note: cosmic is unsupported because it was officially deprecated on Launchpad.
 	debDistroGoBoots = map[string]string{
-		"trusty": "golang-1.14",
+		"trusty": "golang-1.15",
 		"xenial": "golang-go",
 		"bionic": "golang-go",
 		"eoan":   "golang-go",
 		"focal":  "golang-go",
 		"groovy": "golang-go",
+		"hirsute": "golang-go",
 	}
 
 	debGoBootPaths = map[string]string{
-		"golang-1.14": "/usr/lib/go-1.14",
+		"golang-1.15": "/usr/lib/go-1.15",
 		"golang-go":   "/usr/lib/go",
 	}
 )
@@ -213,7 +214,7 @@ func doInstall(cmdline []string) {
 
 		if minor < 14 {
 			log.Println("You have Go version", runtime.Version())
-			log.Println("CortexTheseus requires at least Go version 1.14 and cannot")
+			log.Println("CortexTheseus requires at least Go version 1.15 and cannot")
 			log.Println("be compiled with an earlier version. Please upgrade your Go installation.")
 			os.Exit(1)
 		}
