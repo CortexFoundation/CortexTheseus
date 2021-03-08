@@ -34,8 +34,6 @@ func EnableEIP(eipNum int, jt *JumpTable) error {
 		enable1884(jt)
 	case 1344:
 		enable1344(jt)
-	case 2315:
-		enable2315(jt)
 	default:
 		return fmt.Errorf("undefined eip %d", eipNum)
 	}
@@ -90,35 +88,4 @@ func opChainID(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 func enable2200(jt *JumpTable) {
 	jt[SLOAD].gasCost = constGasFunc(params.SloadGasEIP2200)
 	jt[SSTORE].gasCost = gasSStoreEIP2200
-}
-
-// enable2315 applies EIP-2315 (Simple Subroutines)
-// - Adds opcodes that jump to and return from subroutines
-func enable2315(jt *JumpTable) {
-	// New opcode
-	jt[BEGINSUB] = &operation{
-		execute: opBeginSub,
-		gasCost: constGasFunc(GasQuickStep),
-		//minStack:    minStack(0, 0),
-		//maxStack:    maxStack(0, 0),
-		validateStack: makeStackFunc(0, 0),
-	}
-	// New opcode
-	jt[JUMPSUB] = &operation{
-		execute: opJumpSub,
-		gasCost: constGasFunc(GasSlowStep),
-		//minStack:    minStack(1, 0),
-		//maxStack:    maxStack(1, 0),
-		validateStack: makeStackFunc(1, 0),
-		jumps:         true,
-	}
-	// New opcode
-	jt[RETURNSUB] = &operation{
-		execute: opReturnSub,
-		gasCost: constGasFunc(GasFastStep),
-		//minStack:    minStack(0, 0),
-		//maxStack:    maxStack(0, 0),
-		validateStack: makeStackFunc(0, 0),
-		jumps:         true,
-	}
 }
