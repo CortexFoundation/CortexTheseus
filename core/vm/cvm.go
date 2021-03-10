@@ -53,15 +53,15 @@ type (
 )
 
 func (cvm *CVM) IsCode(code []byte) bool {
-	return len(code) >= 2 && code[0] == 0 && code[1] == 0
+	return len(code) >= 2 && code[0] == 0x00 && code[1] == 0x00
 }
 
 func (cvm *CVM) IsModel(code []byte) bool {
-	return len(code) >= 2 && code[0] == 0 && code[1] == 1
+	return len(code) >= 2 && code[0] == 0x00 && code[1] == 0x01
 }
 
 func (cvm *CVM) IsInput(code []byte) bool {
-	return len(code) >= 2 && code[0] == 0 && code[1] == 2
+	return len(code) >= 2 && code[0] == 0x00 && code[1] == 0x02
 }
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
