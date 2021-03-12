@@ -1,30 +1,32 @@
 package dht
 
 import (
-	"sync/atomic"
-
 	"github.com/anacrolix/stm"
 )
 
 // Populates the node table.
-func (s *Server) Bootstrap() (ts TraversalStats, err error) {
-	traversal, err := s.newTraversal(s.id)
+func (s *Server) Bootstrap() (_ TraversalStats, err error) {
+	t, err := s.newTraversal(s.id)
 	if err != nil {
 		return
 	}
-	traversal.reason = "dht bootstrap find_node"
-	traversal.doneVar = stm.NewVar(false)
-	traversal.stopTraversal = func(*stm.Tx, addrMaybeId) bool {
-		return false
+	t.reason = "dht bootstrap find_node"
+	t.doneVar = stm.NewVar(false)
+	// Track number of responses, for STM use. (It's available via atomic in TraversalStats but that
+	// won't let wake up STM transactions that are observing the value.)
+	numResponseStm := stm.NewBuiltinEqVar(0)
+	t.stopTraversal = func(tx *stm.Tx, _ addrMaybeId) bool {
+		return tx.Get(numResponseStm).(int) >= 100
 	}
-	traversal.query = func(addr Addr) QueryResult {
-		atomic.AddInt64(&ts.NumAddrsTried, 1)
+	t.query = func(addr Addr) QueryResult {
 		res := s.FindNode(addr, s.id, QueryRateLimiting{NotFirst: true})
 		if res.Err == nil {
-			atomic.AddInt64(&ts.NumResponses, 1)
+			stm.Atomically(stm.VoidOperation(func(tx *stm.Tx) {
+				tx.Set(numResponseStm, tx.Get(numResponseStm).(int)+1)
+			}))
 		}
 		return res
 	}
-	traversal.run()
-	return
+	t.run()
+	return t.stats, nil
 }

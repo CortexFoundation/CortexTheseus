@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/anacrolix/dht/v2/int160"
 	peer_store "github.com/anacrolix/dht/v2/peer-store"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo"
@@ -36,7 +37,7 @@ import (
 // is unable to function properly. Use `NewServer(nil)` to initialize a
 // default node.
 type Server struct {
-	id          int160
+	id          int160.T
 	socket      net.PacketConn
 	resendDelay func() time.Duration
 
@@ -103,6 +104,9 @@ func (s *Server) WriteStatus(w io.Writer) {
 			if s.IsGood(n) {
 				flags = append(flags, "good")
 			}
+			if n.IsSecure() {
+				flags = append(flags, "sec")
+			}
 			fmt.Fprintf(tw, "%d\t%x\t%s\t%v\t%s\t%s\t%d\t%v\t%v\n",
 				i,
 				n.Id.Bytes(),
@@ -160,6 +164,17 @@ func NewDefaultServerConfig() *ServerConfig {
 	}
 }
 
+// If the NodeId hasn't been specified, generate one and secure it against the PublicIP if
+// NoSecurity is not set.
+func (c *ServerConfig) InitNodeId() {
+	if missinggo.IsZeroValue(c.NodeId) {
+		c.NodeId = RandomNodeID()
+		if !c.NoSecurity && c.PublicIP != nil {
+			SecureNodeId(&c.NodeId, c.PublicIP)
+		}
+	}
+}
+
 // NewServer initializes a new DHT node server.
 func NewServer(c *ServerConfig) (s *Server, err error) {
 	if c == nil {
@@ -168,12 +183,7 @@ func NewServer(c *ServerConfig) (s *Server, err error) {
 	if c.Conn == nil {
 		return nil, errors.New("non-nil Conn required")
 	}
-	if missinggo.IsZeroValue(c.NodeId) {
-		c.NodeId = RandomNodeID()
-		if !c.NoSecurity && c.PublicIP != nil {
-			SecureNodeId(&c.NodeId, c.PublicIP)
-		}
-	}
+	c.InitNodeId()
 	// If Logger is empty, emulate the old behaviour: Everything is logged to the default location,
 	// and there are no debug messages.
 	if c.Logger.LoggerImpl == nil {
@@ -201,7 +211,7 @@ func NewServer(c *ServerConfig) (s *Server, err error) {
 	}
 	rand.Read(s.tokenServer.secret)
 	s.socket = c.Conn
-	s.id = int160FromByteArray(c.NodeId)
+	s.id = int160.FromByteArray(c.NodeId)
 	s.table.rootID = s.id
 	s.resendDelay = s.config.QueryResendDelay
 	if s.resendDelay == nil {
@@ -226,7 +236,7 @@ func (s *Server) serveUntilClosed() {
 
 // Returns a description of the Server.
 func (s *Server) String() string {
-	return fmt.Sprintf("dht server on %s", s.socket.LocalAddr())
+	return fmt.Sprintf("dht server on %s (node id %v)", s.socket.LocalAddr(), s.id)
 }
 
 // Packets to and from any address matching a range in the list are dropped.
@@ -343,9 +353,10 @@ func (s *Server) ipBlocked(ip net.IP) (blocked bool) {
 
 // Adds directly to the node table.
 func (s *Server) AddNode(ni krpc.NodeInfo) error {
-	id := int160FromByteArray(ni.ID)
+	id := int160.FromByteArray(ni.ID)
 	if id.IsZero() {
-		return s.Ping(ni.Addr.UDP(), nil)
+		go s.Ping(ni.Addr.UDP())
+		return nil
 	}
 	return s.updateNode(NewAddr(ni.Addr.UDP()), (*krpc.ID)(&ni.ID), true, func(*node) {})
 }
@@ -374,7 +385,7 @@ func shouldReturnNodes6(queryWants []krpc.Want, querySource net.IP) bool {
 	return querySource.To4() == nil
 }
 
-func (s *Server) makeReturnNodes(target int160, filter func(krpc.NodeAddr) bool) []krpc.NodeInfo {
+func (s *Server) makeReturnNodes(target int160.T, filter func(krpc.NodeAddr) bool) []krpc.NodeInfo {
 	return s.closestGoodNodeInfos(8, target, filter)
 }
 
@@ -418,7 +429,7 @@ func (s *Server) setReturnNodes(r *krpc.Return, queryMsg krpc.Msg, querySource A
 	if queryMsg.A == nil {
 		return &krpcErrMissingArguments
 	}
-	target := int160FromByteArray(queryMsg.A.InfoHash)
+	target := int160.FromByteArray(queryMsg.A.InfoHash)
 	if shouldReturnNodes(queryMsg.A.Want, querySource.IP()) {
 		r.Nodes = s.makeReturnNodes(target, func(na krpc.NodeAddr) bool { return na.IP.To4() != nil })
 	}
@@ -506,6 +517,7 @@ func (s *Server) handleQuery(source Addr, m krpc.Msg) {
 			portOk = true
 		}
 		if args.ImpliedPort {
+			expvars.Add("received announce_peer with implied_port", 1)
 			port = source.Port()
 			portOk = true
 		}
@@ -592,7 +604,7 @@ func (s *Server) updateNode(addr Addr, id *krpc.ID, tryAdd bool, update func(*no
 	if id == nil {
 		return errors.New("id is nil")
 	}
-	int160Id := int160FromByteArray(*id)
+	int160Id := int160.FromByteArray(*id)
 	n := s.table.getNode(addr, int160Id)
 	missing := n == nil
 	if missing {
@@ -736,23 +748,13 @@ func (s *Server) beginQuery(addr Addr, reason string, f func() numWrites) stm.Op
 	}
 }
 
-func (s *Server) query(addr Addr, q string, a krpc.MsgArgs, callback func(krpc.Msg, error)) error {
-	if callback == nil {
-		callback = func(krpc.Msg, error) {}
+func finalizeCteh(cteh *conntrack.EntryHandle, writes numWrites) {
+	if writes == 0 {
+		cteh.Forget()
+		// TODO: panic("how to reverse rate limit?")
+	} else {
+		cteh.Done()
 	}
-	go func() {
-		stm.Atomically(
-			s.beginQuery(addr, fmt.Sprintf("send dht query %q", q),
-				func() numWrites {
-					res := s.Query(context.Background(), addr, q, QueryInput{
-						MsgArgs: a, RateLimiting: QueryRateLimiting{NotFirst: true}})
-					callback(res.Reply, res.Err)
-					return res.writes
-				},
-			),
-		).(func())()
-	}()
-	return nil
 }
 
 func (s *Server) makeQueryBytes(q string, a krpc.MsgArgs, t string) []byte {
@@ -893,16 +895,11 @@ func (s *Server) transactionQuerySender(
 }
 
 // Sends a ping query to the address given.
-func (s *Server) Ping(node *net.UDPAddr, callback func(krpc.Msg, error)) error {
-	return s.ping(node, callback)
+func (s *Server) Ping(node *net.UDPAddr) QueryResult {
+	return s.Query(context.TODO(), NewAddr(node), "ping", QueryInput{})
 }
 
-// This method is old, and probably needs a new signature.
-func (s *Server) ping(node *net.UDPAddr, callback func(krpc.Msg, error)) error {
-	return s.query(NewAddr(node), "ping", krpc.MsgArgs{}, callback)
-}
-
-func (s *Server) announcePeer(node Addr, infoHash int160, port int, token string, impliedPort bool, rl QueryRateLimiting) (ret QueryResult) {
+func (s *Server) announcePeer(node Addr, infoHash int160.T, port int, token string, impliedPort bool, rl QueryRateLimiting) (ret QueryResult) {
 	if port == 0 && !impliedPort {
 		ret.Err = errors.New("no port specified")
 		return
@@ -942,7 +939,7 @@ func (s *Server) addResponseNodes(d krpc.Msg) {
 
 // Sends a find_node query to addr. targetID is the node we're looking for. The Server makes use of
 // some of the response fields.
-func (s *Server) FindNode(addr Addr, targetID int160, rl QueryRateLimiting) (ret QueryResult) {
+func (s *Server) FindNode(addr Addr, targetID int160.T, rl QueryRateLimiting) (ret QueryResult) {
 	ret = s.Query(context.TODO(), addr, "find_node", QueryInput{
 		MsgArgs: krpc.MsgArgs{
 			Target: targetID.AsByteArray(),
@@ -986,7 +983,7 @@ func (s *Server) Close() {
 	s.socket.Close()
 }
 
-func (s *Server) GetPeers(ctx context.Context, addr Addr, infoHash int160, scrape bool, rl QueryRateLimiting) (ret QueryResult) {
+func (s *Server) GetPeers(ctx context.Context, addr Addr, infoHash int160.T, scrape bool, rl QueryRateLimiting) (ret QueryResult) {
 	args := krpc.MsgArgs{
 		InfoHash: infoHash.AsByteArray(),
 		// TODO: Maybe IPv4-only Servers won't want IPv6 nodes?
@@ -1022,7 +1019,7 @@ func (s *Server) GetPeers(ctx context.Context, addr Addr, infoHash int160, scrap
 
 func (s *Server) closestGoodNodeInfos(
 	k int,
-	targetID int160,
+	targetID int160.T,
 	filter func(krpc.NodeAddr) bool,
 ) (
 	ret []krpc.NodeInfo,
@@ -1035,7 +1032,7 @@ func (s *Server) closestGoodNodeInfos(
 	return
 }
 
-func (s *Server) closestNodes(k int, target int160, filter func(*node) bool) []*node {
+func (s *Server) closestNodes(k int, target int160.T, filter func(*node) bool) []*node {
 	return s.table.closestNodes(k, target, filter)
 }
 
@@ -1105,21 +1102,32 @@ func (s *Server) getQuestionableNode() (ret *node) {
 
 func (s *Server) questionableNodePinger() {
 tryPing:
+	logger := s.logger().WithDefaultLevel(log.Info)
 	for {
 		s.mu.RLock()
 		n := s.getQuestionableNode()
 		if n != nil {
-			addr := n.Addr.Raw().(*net.UDPAddr)
+			target := n.nodeKey
 			s.mu.RUnlock()
-			done := make(chan struct{})
-			err := s.Ping(addr, func(krpc.Msg, error) {
-				close(done)
-			})
-			if err == nil {
-				<-done
+			n = nil // We should not touch this anymore, it belongs to the Server.
+			expvars.Add("questionable node pings", 1)
+			logger.Printf("pinging questionable node %v", target)
+			addr := target.Addr.Raw().(*net.UDPAddr)
+			res := s.Ping(addr)
+			if res.Err == nil {
+				if psid := res.Reply.SenderID(); psid == nil || int160.FromByteArray(*psid) != target.Id {
+					logger.Printf("questionable node %v responded with different id: %v", target, psid)
+					s.mu.Lock()
+					if n := s.table.getNode(target.Addr, target.Id); n != nil {
+						n.consecutiveFailures++
+					} else {
+						logger.Printf("questionable node %v no longer in routing table", target)
+					}
+					s.mu.Unlock()
+				}
 				goto tryPing
 			}
-			s.logger().Printf("error pinging questionable node: %v", err)
+			logger.Printf("questionable node %v failed to respond: %v", target, res.Err)
 		} else {
 			s.mu.RUnlock()
 		}
@@ -1130,7 +1138,7 @@ tryPing:
 	}
 }
 
-func (s *Server) newTraversal(targetId int160) (t traversal, err error) {
+func (s *Server) newTraversal(targetId int160.T) (t traversal, err error) {
 	startAddrs, err := s.traversalStartingNodes()
 	if err != nil {
 		return
@@ -1142,6 +1150,29 @@ func (s *Server) newTraversal(targetId int160) (t traversal, err error) {
 		stm.Atomically(t.pendContact(addr))
 	}
 	return
+}
+
+func (a *Server) shouldContact(addr krpc.NodeAddr, tx *stm.Tx) bool {
+	if !validNodeAddr(addr.UDP()) {
+		return false
+	}
+	if a.ipBlocked(addr.IP) {
+		return false
+	}
+	return true
+}
+
+func validNodeAddr(addr net.Addr) bool {
+	// At least for UDP addresses, we know what doesn't work.
+	ua := addr.(*net.UDPAddr)
+	if ua.Port == 0 {
+		return false
+	}
+	if ip4 := ua.IP.To4(); ip4 != nil && ip4[0] == 0 {
+		// Why?
+		return false
+	}
+	return true
 }
 
 //func (s *Server) refreshBucket(bucketIndex int) {

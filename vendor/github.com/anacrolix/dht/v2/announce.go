@@ -5,15 +5,13 @@ package dht
 import (
 	"context"
 	"fmt"
-	"net"
 	"sync/atomic"
 
 	"github.com/anacrolix/log"
-	"github.com/anacrolix/missinggo/v2/conntrack"
 	"github.com/anacrolix/stm"
 	"github.com/anacrolix/stm/stmutil"
-	"github.com/benbjohnson/immutable"
 
+	"github.com/anacrolix/dht/v2/int160"
 	"github.com/anacrolix/dht/v2/krpc"
 )
 
@@ -28,11 +26,8 @@ type Announce struct {
 	done   <-chan struct{}
 	cancel func()
 
-	pending  *stm.Var // How many transactions are still ongoing (int).
 	server   *Server
-	infoHash int160 // Target
-	// Count of (probably) distinct addresses we've sent get_peers requests to.
-	numGetPeers int64
+	infoHash int160.T // Target
 	// The torrent port that we're announcing.
 	announcePort int
 	// The torrent port should be determined by the receiver in case we're
@@ -51,14 +46,9 @@ func (a *Announce) String() string {
 	return fmt.Sprintf("%[1]T %[1]p of %v on %v", a, a.infoHash, a.server)
 }
 
-type pendingAnnouncePeer struct {
-	addrMaybeId
-	token string
-}
-
 // Returns the number of distinct remote addresses the announce has queried.
 func (a *Announce) NumContacted() int64 {
-	return atomic.LoadInt64(&a.numGetPeers)
+	return atomic.LoadInt64(&a.traversal.stats.NumAddrsTried)
 }
 
 type AnnounceOpt *struct{}
@@ -71,7 +61,7 @@ func Scrape() AnnounceOpt { return scrape }
 // caller, and announcing the local node to each responding node if port is non-zero or impliedPort
 // is true.
 func (s *Server) Announce(infoHash [20]byte, port int, impliedPort bool, opts ...AnnounceOpt) (*Announce, error) {
-	infoHashInt160 := int160FromByteArray(infoHash)
+	infoHashInt160 := int160.FromByteArray(infoHash)
 	traversal, err := s.newTraversal(infoHashInt160)
 	if err != nil {
 		return nil, err
@@ -84,7 +74,6 @@ func (s *Server) Announce(infoHash [20]byte, port int, impliedPort bool, opts ..
 		infoHash:             infoHashInt160,
 		announcePort:         port,
 		announcePortImplied:  impliedPort,
-		pending:              stm.NewVar(0),
 		pendingAnnouncePeers: stm.NewVar(newPendingAnnouncePeers(infoHashInt160)),
 		traversal:            traversal,
 	}
@@ -119,35 +108,8 @@ func (s *Server) Announce(infoHash [20]byte, port int, impliedPort bool, opts ..
 	return a, nil
 }
 
-func validNodeAddr(addr net.Addr) bool {
-	// At least for UDP addresses, we know what doesn't work.
-	ua := addr.(*net.UDPAddr)
-	if ua.Port == 0 {
-		return false
-	}
-	if ip4 := ua.IP.To4(); ip4 != nil && ip4[0] == 0 {
-		// Why?
-		return false
-	}
-	return true
-}
-
-func (a *Server) shouldContact(addr krpc.NodeAddr, tx *stm.Tx) bool {
-	if !validNodeAddr(addr.UDP()) {
-		return false
-	}
-	if a.ipBlocked(addr.IP) {
-		return false
-	}
-	return true
-}
-
-func (a *traversal) responseNode(node krpc.NodeInfo) {
-	i := int160FromByteArray(node.ID)
-	stm.Atomically(a.pendContact(addrMaybeId{node.Addr, &i}))
-}
-
-// Store a potential peer announce.
+// Store a potential peer announce. I think it's okay to have no peer ID here, as any next contact
+// candidate will be closer than the "farthest" potential announce peer.
 func (a *Announce) maybeAnnouncePeer(to Addr, token *string, peerId *krpc.ID) {
 	if token == nil {
 		return
@@ -155,17 +117,17 @@ func (a *Announce) maybeAnnouncePeer(to Addr, token *string, peerId *krpc.ID) {
 	if !a.server.config.NoSecurity && (peerId == nil || !NodeIdSecure(*peerId, to.IP())) {
 		return
 	}
-	stm.Atomically(stm.VoidOperation(func(tx *stm.Tx) {
-		x := pendingAnnouncePeer{
-			token: *token,
-		}
-		x.Addr = to.KRPC()
-		if peerId != nil {
-			id := int160FromByteArray(*peerId)
-			x.Id = &id
-		}
-		tx.Set(a.pendingAnnouncePeers, tx.Get(a.pendingAnnouncePeers).(pendingAnnouncePeers).Push(x))
-	}))
+	x := pendingAnnouncePeer{
+		token: *token,
+	}
+	x.Addr = to.KRPC()
+	if peerId != nil {
+		id := int160.FromByteArray(*peerId)
+		x.Id = &id
+	}
+	stm.AtomicModify(a.pendingAnnouncePeers, func(v pendingAnnouncePeers) pendingAnnouncePeers {
+		return v.Push(x)
+	})
 }
 
 func (a *Announce) announcePeer(peer pendingAnnouncePeer) numWrites {
@@ -185,15 +147,6 @@ func (a *Announce) beginAnnouncePeer(tx *stm.Tx) interface{} {
 	})(tx).(func())
 }
 
-func finalizeCteh(cteh *conntrack.EntryHandle, writes numWrites) {
-	if writes == 0 {
-		cteh.Forget()
-		// TODO: panic("how to reverse rate limit?")
-	} else {
-		cteh.Done()
-	}
-}
-
 func (a *Announce) getPeers(addr Addr) QueryResult {
 	res := a.server.GetPeers(context.TODO(), addr, a.infoHash, a.scrape, QueryRateLimiting{
 		// This is paid for in earlier in a call to Server.beginQuery.
@@ -202,31 +155,19 @@ func (a *Announce) getPeers(addr Addr) QueryResult {
 	m := res.Reply
 	// Register suggested nodes closer to the target info-hash.
 	if r := m.R; r != nil {
-		id := &r.ID
 		select {
 		case a.values <- PeersValues{
 			Peers: r.Values,
 			NodeInfo: krpc.NodeInfo{
 				Addr: addr.KRPC(),
-				ID:   *id,
+				ID:   r.ID,
 			},
 			Return: *r,
 		}:
 		case <-a.done:
 		}
-		a.maybeAnnouncePeer(addr, r.Token, id)
-	}
-	return res
-}
-
-func (a *traversal) doQuery(addr Addr) QueryResult {
-	res := a.query(addr)
-	m := res.Reply
-	// Register suggested nodes closer to the target info-hash.
-	if r := m.R; r != nil {
-		expvars.Add("traversal response nodes values", int64(len(r.Nodes)))
-		expvars.Add("traversal response nodes6 values", int64(len(r.Nodes6)))
-		r.ForAllNodes(a.responseNode)
+		// TODO: We're not distinguishing here for missing IDs. Those would be zero values?
+		a.maybeAnnouncePeer(addr, r.Token, &r.ID)
 	}
 	return res
 }
@@ -249,21 +190,6 @@ func (a *Announce) close() {
 	a.cancel()
 }
 
-type txResT struct {
-	done bool
-	run  func()
-}
-
-func wrapRun(f stm.Operation) stm.Operation {
-	return func(tx *stm.Tx) interface{} {
-		return txResT{run: f(tx).(func())}
-	}
-}
-
-func (a *traversal) getPending(tx *stm.Tx) int {
-	return tx.Get(a.pending).(int)
-}
-
 func (a *Announce) farthestAnnouncePeer(tx *stm.Tx) (pendingAnnouncePeer, bool) {
 	pending := a.getPendingAnnouncePeers(tx)
 	if pending.Len() < pending.k {
@@ -280,32 +206,6 @@ func (a *Announce) getPendingAnnouncePeers(tx *stm.Tx) pendingAnnouncePeers {
 func (a *Announce) stopTraversal(tx *stm.Tx, next addrMaybeId) bool {
 	farthest, ok := a.farthestAnnouncePeer(tx)
 	return ok && farthest.closerThan(next, a.infoHash)
-}
-
-func (a *traversal) run() {
-	for {
-		txRes := stm.Atomically(func(tx *stm.Tx) interface{} {
-			if tx.Get(a.doneVar).(bool) {
-				return txResT{done: true}
-			}
-			if next, ok := a.popNextContact(tx); ok {
-				if !a.stopTraversal(tx, next) {
-					tx.Assert(a.getPending(tx) < 3)
-					dhtAddr := NewAddr(next.Addr.UDP())
-					return wrapRun(a.beginQuery(dhtAddr, a.reason, func() numWrites {
-						return a.doQuery(dhtAddr).writes
-					}))(tx)
-				}
-			}
-			tx.Assert(a.getPending(tx) == 0)
-			return txResT{done: true}
-		}).(txResT)
-		if txRes.done {
-			break
-		}
-		go txRes.run()
-	}
-
 }
 
 func (a *Announce) run() {
@@ -329,93 +229,6 @@ func (a *Announce) run() {
 	}
 }
 
-//
-//func (a *Announce) beginGetPeers(tx *stm.Tx) interface{} {
-//}
-
-func (a *traversal) beginQuery(addr Addr, reason string, f func() numWrites) stm.Operation {
-	return func(tx *stm.Tx) interface{} {
-		pending := tx.Get(a.pending).(int)
-		tx.Set(a.pending, pending+1)
-		return a.serverBeginQuery(addr, reason, func() numWrites {
-			defer stm.Atomically(stm.VoidOperation(func(tx *stm.Tx) { tx.Set(a.pending, tx.Get(a.pending).(int)-1) }))
-			return f()
-		})(tx)
-	}
-}
-
 func (a *Announce) logger() log.Logger {
 	return a.server.logger()
-}
-
-type pendingAnnouncePeers struct {
-	inner *immutable.SortedMap
-	k     int
-}
-
-func newPendingAnnouncePeers(target int160) pendingAnnouncePeers {
-	return pendingAnnouncePeers{
-		k: 8,
-		inner: immutable.NewSortedMap(comparer{less: func(l, r interface{}) bool {
-			return l.(pendingAnnouncePeer).addrMaybeId.closerThan(r.(pendingAnnouncePeer).addrMaybeId, target)
-		}}),
-	}
-}
-
-func (me *pendingAnnouncePeers) Range(f func(interface{})) {
-	iter := me.inner.Iterator()
-	for !iter.Done() {
-		key, _ := iter.Next()
-		f(key)
-	}
-}
-
-func (me pendingAnnouncePeers) Len() int {
-	return me.inner.Len()
-}
-
-func (me pendingAnnouncePeers) Push(x pendingAnnouncePeer) pendingAnnouncePeers {
-	me.inner = me.inner.Set(x, nil)
-	for me.inner.Len() > me.k {
-		iter := me.inner.Iterator()
-		iter.Last()
-		key, _ := iter.Next()
-		me.inner = me.inner.Delete(key)
-	}
-	return me
-}
-
-func (me pendingAnnouncePeers) Pop(tx *stm.Tx) (pendingAnnouncePeers, pendingAnnouncePeer) {
-	iter := me.inner.Iterator()
-	x, _ := iter.Next()
-	me.inner = me.inner.Delete(x)
-	return me, x.(pendingAnnouncePeer)
-}
-
-func (me pendingAnnouncePeers) Farthest() (value pendingAnnouncePeer, ok bool) {
-	iter := me.inner.Iterator()
-	iter.Last()
-	if iter.Done() {
-		return
-	}
-	key, _ := iter.Next()
-	value = key.(pendingAnnouncePeer)
-	ok = true
-	return
-}
-
-type lessFunc func(l, r interface{}) bool
-
-type comparer struct {
-	less lessFunc
-}
-
-func (me comparer) Compare(i, j interface{}) int {
-	if me.less(i, j) {
-		return -1
-	} else if me.less(j, i) {
-		return 1
-	} else {
-		return 0
-	}
 }
