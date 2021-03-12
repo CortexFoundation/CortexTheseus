@@ -2,6 +2,7 @@ package stm
 
 import (
 	"math/rand"
+	"reflect"
 	"runtime/pprof"
 	"sync"
 	"time"
@@ -161,4 +162,16 @@ func VoidOperation(f func(*Tx)) Operation {
 		f(tx)
 		return nil
 	}
+}
+
+func AtomicModify(v *Var, f interface{}) {
+	r := reflect.ValueOf(f)
+	Atomically(VoidOperation(func(tx *Tx) {
+		cur := reflect.ValueOf(tx.Get(v))
+		out := r.Call([]reflect.Value{cur})
+		if lenOut := len(out); lenOut != 1 {
+			panic(lenOut)
+		}
+		tx.Set(v, out[0].Interface())
+	}))
 }

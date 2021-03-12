@@ -46,7 +46,15 @@ func (me Computation) Int64(l, r int64) Computation {
 	return me.EagerSameLess(l == r, l < r)
 }
 
+func (me Computation) Int(l, r int) Computation {
+	return me.EagerSameLess(l == r, l < r)
+}
+
 func (me Computation) CmpInt64(i int64) Computation {
+	return me.EagerSameLess(i == 0, i < 0)
+}
+
+func (me Computation) Cmp(i int) Computation {
 	return me.EagerSameLess(i == 0, i < 0)
 }
 
@@ -60,4 +68,12 @@ func (me Computation) Less() bool {
 
 func (me Computation) LessOk() (less, ok bool) {
 	return me.less, me.ok
+}
+
+func (me Computation) MustLess() bool {
+	less, ok := me.LessOk()
+	if !ok {
+		panic("computation has not differentiated yet")
+	}
+	return less
 }
