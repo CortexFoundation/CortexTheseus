@@ -15,6 +15,9 @@ github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20210226031755-94f6423532ee
 github.com/CortexFoundation/merkletree
+# github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
+## explicit
+github.com/CortexFoundation/statik
 # github.com/CortexFoundation/torrentfs v1.0.23-0.20210312032424-2ec30f482b4f
 ## explicit
 github.com/CortexFoundation/torrentfs
@@ -372,7 +375,6 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/rakyll/statik v0.1.7
-## explicit
 github.com/rakyll/statik/fs
 # github.com/rjeczalik/notify v0.9.2
 ## explicit

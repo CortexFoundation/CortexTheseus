@@ -29,7 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/node"
-	_ "github.com/CortexFoundation/CortexTheseus/statik"
+	_ "github.com/CortexFoundation/statik"
 	"github.com/arsham/figurine/figurine"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	cli "gopkg.in/urfave/cli.v1"
