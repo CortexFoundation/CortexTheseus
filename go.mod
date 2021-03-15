@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86
+	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 	github.com/CortexFoundation/torrentfs v1.0.23-0.20210312032424-2ec30f482b4f
 	github.com/VictoriaMetrics/fastcache v1.5.8
 	github.com/arsham/figurine v1.0.1
@@ -39,7 +40,6 @@ require (
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.5-0.20200416053754-163badb3bac6
 	github.com/peterh/liner v1.2.0
-	github.com/rakyll/statik v0.1.7
 	github.com/rjeczalik/notify v0.9.2
 	github.com/rs/cors v1.7.0
 	github.com/shirou/gopsutil v3.20.12-0.20201210134652-afe0c04c5d5a+incompatible
