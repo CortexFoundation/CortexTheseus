@@ -106,7 +106,7 @@ plugins/libcvm_runtime.so: submodule
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
-clib: plugins/cuda_helper_for_node.so plugins/libcvm_runtime.so
+clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
 clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
