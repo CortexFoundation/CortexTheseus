@@ -883,7 +883,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		timestamp = int64(parent.Time() + 1)
 	}
 	num := parent.Number()
-	if num.Uint64() <= w.checkpoint && w.checkpoint > 0 {
+	if num.Uint64() <= w.checkpoint && w.checkpoint > 32767 {
 		return
 	}
 

@@ -221,7 +221,7 @@ func (cuckoo *Cuckoo) InitOnce() error {
 
 			if mem, err := gopsutil.VirtualMemory(); err == nil {
 				allowance := int(mem.Total / 1024 / 1024 / 3)
-				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance, "cuda", cuckoo.config.UseCuda, "device", cuckoo.config.StrDeviceIds, "threads", cuckoo.config.Threads, "algo", cuckoo.config.Algorithm, "mine", cuckoo.config.Mine)
+				log.Warn("Memory status", "total", mem.Total/1024/1024, "allowance", allowance, "cuda", cuckoo.config.UseCuda, "device", cuckoo.config.StrDeviceIds, "threads", cuckoo.config.Threads, "algo", cuckoo.config.Algorithm)
 			}
 
 			err = errc

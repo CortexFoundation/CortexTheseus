@@ -9,7 +9,10 @@ require (
 	github.com/CortexFoundation/torrentfs v1.0.23-0.20210312032424-2ec30f482b4f
 	github.com/VictoriaMetrics/fastcache v1.5.8
 	github.com/arsham/figurine v1.0.1
-	github.com/aws/aws-sdk-go v1.31.0
+	github.com/aws/aws-sdk-go-v2 v1.3.0
+	github.com/aws/aws-sdk-go-v2/config v1.1.3
+	github.com/aws/aws-sdk-go-v2/credentials v1.1.3
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.2.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.12.1
