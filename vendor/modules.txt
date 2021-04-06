@@ -458,7 +458,7 @@ github.com/willf/bitset
 github.com/willf/bloom
 # go.etcd.io/bbolt v1.3.6-0.20210304170446-8f715c091730
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+# golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 ## explicit
 golang.org/x/crypto/cast5
 golang.org/x/crypto/cryptobyte
@@ -497,7 +497,7 @@ golang.org/x/net/publicsuffix
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20210309074719-68d13333faf2
+# golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -507,7 +507,7 @@ golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 # golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 golang.org/x/term
-# golang.org/x/text v0.3.6-0.20210227105805-e3aa4adf54f6
+# golang.org/x/text v0.3.6
 ## explicit
 golang.org/x/text/cases
 golang.org/x/text/collate
