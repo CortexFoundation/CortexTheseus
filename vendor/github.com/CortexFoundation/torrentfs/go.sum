@@ -93,6 +93,8 @@ github.com/allegro/bigcache/v2 v2.2.2/go.mod h1:FppZsIO+IZk7gCuj5FiIDHGygD9xvWQc
 github.com/allegro/bigcache/v2 v2.2.3/go.mod h1:FppZsIO+IZk7gCuj5FiIDHGygD9xvWQcqg1uIPMb6tY=
 github.com/allegro/bigcache/v2 v2.2.5 h1:mRc8r6GQjuJsmSKQNPsR5jQVXc8IJ1xsW5YXUYMLfqI=
 github.com/allegro/bigcache/v2 v2.2.5/go.mod h1:FppZsIO+IZk7gCuj5FiIDHGygD9xvWQcqg1uIPMb6tY=
+github.com/allegro/bigcache/v3 v3.0.0 h1:5Hxq+GTy8gHEeQccCZZDCfZRTydUfErdUf0iVDcMAFg=
+github.com/allegro/bigcache/v3 v3.0.0/go.mod h1:t5TAJn1B9qvf/VlJrSM1r6NlFAYoFDubYUsCuIO9nUQ=
 github.com/anacrolix/confluence v1.7.1-0.20210221224747-9cb14aa2c53a/go.mod h1:T0JHvSaf9UfoiUdCtCOUuRroHm/tauUJTbLc6/vd5YA=
 github.com/anacrolix/confluence v1.7.1-0.20210221225853-90405640e928 h1:x1v8Cyl/ueO0lnJdZGQ+x6yM9PMd8DYVYp9oY0fXplQ=
 github.com/anacrolix/confluence v1.7.1-0.20210221225853-90405640e928/go.mod h1:NoLcfoRet+kYttjLXJRmh4qBVrylJsfIItik5GGj21A=
@@ -191,8 +193,8 @@ github.com/anacrolix/torrent v1.22.0/go.mod h1:GWTwQkOAilf0LR3C6A74XEkWPg0ejfFD9
 github.com/anacrolix/torrent v1.23.0/go.mod h1:737rU+al1LBWEs3IHBystZvsbg24iSP+8Gb25Vc/s5U=
 github.com/anacrolix/torrent v1.25.1-0.20210221061757-051093ca31f5/go.mod h1:737rU+al1LBWEs3IHBystZvsbg24iSP+8Gb25Vc/s5U=
 github.com/anacrolix/torrent v1.25.1-0.20210224024805-693c30dd889e/go.mod h1:d4V6QqkInfQidWVk8b8hMv8mtciswNitI1A2BiRSQV0=
-github.com/anacrolix/torrent v1.26.0-alpha.1 h1:IRQifRcf7chyGoZIX49zj2du9Y63w2OHu1PVSspTTQE=
-github.com/anacrolix/torrent v1.26.0-alpha.1/go.mod h1:jknzk3AZgfPXXuvkcYZI/4dQxS/yj5qDBu+P1i/1Oy0=
+github.com/anacrolix/torrent v1.26.0-alpha.1.0.20210324225604-615ac41ae3e0 h1:AqJ0arZhJYDOw1KpIxdRYYf/U5JKl/DK93voYchmezc=
+github.com/anacrolix/torrent v1.26.0-alpha.1.0.20210324225604-615ac41ae3e0/go.mod h1:jknzk3AZgfPXXuvkcYZI/4dQxS/yj5qDBu+P1i/1Oy0=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425 h1:/Wi6l2ONI1FUFWN4cBwHOO90V4ylp4ud/eov6GUcVFk=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425/go.mod h1:Pz94W3kl8rf+wxH3IbCa9Sq+DTJr8OSbV2Q3/y51vYs=

@@ -18,7 +18,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210312032424-2ec30f482b4f
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210407094604-a6cc411aa895
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -31,9 +31,9 @@ github.com/StackExchange/wmi
 # github.com/VictoriaMetrics/fastcache v1.5.8
 ## explicit
 github.com/VictoriaMetrics/fastcache
-# github.com/allegro/bigcache/v2 v2.2.5
-github.com/allegro/bigcache/v2
-github.com/allegro/bigcache/v2/queue
+# github.com/allegro/bigcache/v3 v3.0.0
+github.com/allegro/bigcache/v3
+github.com/allegro/bigcache/v3/queue
 # github.com/anacrolix/confluence v1.7.1-0.20210221225853-90405640e928
 github.com/anacrolix/confluence/debug-writer
 # github.com/anacrolix/dht/v2 v2.8.1-0.20210311003418-13622df072ae
@@ -80,7 +80,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.26.0-alpha.1
+# github.com/anacrolix/torrent v1.26.0-alpha.1.0.20210324225604-615ac41ae3e0
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
