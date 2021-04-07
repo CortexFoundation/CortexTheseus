@@ -31,12 +31,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	_ "github.com/CortexFoundation/statik"
 	"github.com/arsham/figurine/figurine"
-	gopsutil "github.com/shirou/gopsutil/mem"
 	cli "gopkg.in/urfave/cli.v1"
-	"math"
 	"math/big"
 	"os"
-	godebug "runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -302,28 +299,6 @@ func prepare(ctx *cli.Context) {
 		log.Info("Bumping default cache on mainnet", "provided", ctx.GlobalInt(utils.CacheFlag.Name), "updated", 4096)
 		ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(4096))
 	}
-	// Cap the cache allowance and tune the garbage collector
-	mem, err := gopsutil.VirtualMemory()
-	// Workaround until OpenBSD support lands into gosigar
-	// Check https://github.com/elastic/gosigar#supported-platforms
-	if err == nil {
-		if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
-			log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
-			mem.Total = 2 * 1024 * 1024 * 1024
-		}
-		allowance := int(mem.Total / 1024 / 1024 / 3)
-		if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
-			log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
-			ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
-		}
-	}
-	// Ensure Go's GC ignores the database cache for trigger percentage
-	cache := ctx.GlobalInt(utils.CacheFlag.Name)
-	gogc := math.Max(20, math.Min(100, 100/(float64(cache)/1024)))
-
-	log.Info("Sanitizing Go's GC trigger", "percent", int(gogc), "cache", cache)
-	godebug.SetGCPercent(int(gogc))
-
 	// Start metrics export if enabled
 	utils.SetupMetrics(ctx)
 
