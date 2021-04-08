@@ -38,6 +38,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/compress"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
+	"github.com/ucwong/golang-kv"
 
 	"github.com/allegro/bigcache/v3"
 	"github.com/bradfitz/iter"
@@ -116,6 +117,7 @@ type TorrentManager struct {
 	Updates time.Duration
 
 	hotCache *lru.Cache
+	ssd      kv.Bucket
 }
 
 func (tm *TorrentManager) getLimitation(value int64) int64 {
@@ -161,8 +163,12 @@ func (tm *TorrentManager) Close() error {
 	if tm.fileCache != nil {
 		tm.fileCache.Reset()
 	}
-
-	tm.hotCache.Purge()
+	if tm.hotCache != nil {
+		tm.hotCache.Purge()
+	}
+	if tm.ssd != nil {
+		tm.ssd.Close()
+	}
 	log.Info("Fs Download Manager Closed")
 	return nil
 }
@@ -494,6 +500,8 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 
 	hotSize := config.MaxSeedingNum/64 + 1
 	torrentManager.hotCache, _ = lru.New(hotSize)
+	//torrentManager.ssd = kv.HA(filepath.Join(config.DataDir, ".ssd"), 0)
+	torrentManager.ssd = kv.Badger(filepath.Join(config.DataDir, ".ssd"))
 	log.Info("Hot cache created", "size", hotSize)
 
 	if len(config.DefaultTrackers) > 0 {
@@ -539,10 +547,12 @@ func (tm *TorrentManager) seedingLoop() {
 			}
 			if s {
 				//if active, ok := GoodFiles[t.InfoHash()]; tm.cache && ok && active {
-				//	for _, file := range t.Files() {
-				//		log.Trace("Precache file", "ih", t.InfoHash(), "ok", ok, "active", active)
-				//		go tm.getFile(t.InfoHash(), file.Path())
-				//	}
+				for _, file := range t.Files() {
+					//log.Trace("Precache file", "ih", t.InfoHash(), "ok", ok, "active", active)
+					//go tm.getFile(t.InfoHash(), file.Path())
+					//tm.ssd.Set([]byte(filepath.Join(t.InfoHash(), file.Path())))
+					tm.getFile(t.InfoHash(), file.Path())
+				}
 				//}
 				tm.hotCache.Add(t.Torrent.InfoHash(), true)
 				if len(tm.seedingTorrents) > params.LimitSeeding {
@@ -551,6 +561,8 @@ func (tm *TorrentManager) seedingLoop() {
 					tm.maxSeedTask++
 					tm.graceSeeding(tm.slot)
 				}
+
+				//TODO
 			}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
@@ -1032,6 +1044,14 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 			}
 		}
 
+		if tm.ssd != nil {
+			ss := tm.ssd.Get([]byte(key))
+			if ss != nil {
+				//log.Warn("SSD out", "key", key, "size", len(ss))
+				return ss, uint64(torrent.BytesCompleted()), nil
+			}
+		}
+
 		tm.fileLock.Lock()
 		defer tm.fileLock.Unlock()
 		diskReadMeter.Mark(1)
@@ -1053,6 +1073,11 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 							tm.fileCache.Set(key, c)
 							memcacheMissMeter.Mark(1)
 							memcacheWriteMeter.Mark(int64(len(c)))
+						}
+
+						if tm.ssd != nil {
+							//log.Warn("SSD in", "key", key, "size", len(c))
+							tm.ssd.Set([]byte(key), c)
 						}
 					}
 				}
