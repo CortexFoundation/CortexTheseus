@@ -39,7 +39,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 
-	"github.com/allegro/bigcache/v2"
+	"github.com/allegro/bigcache/v3"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	lru "github.com/hashicorp/golang-lru"
