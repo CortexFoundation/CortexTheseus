@@ -294,8 +294,13 @@ func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction,
 // events.
 func (f *Fetcher) loop() {
 	// Iterate the block fetching until a quit is requested
-	fetchTimer := time.NewTimer(0)
-	completeTimer := time.NewTimer(0)
+	var (
+		fetchTimer    = time.NewTimer(0)
+		completeTimer = time.NewTimer(0)
+	)
+	<-fetchTimer.C // clear out the channel
+	<-completeTimer.C
+
 	defer fetchTimer.Stop()
 	defer completeTimer.Stop()
 
