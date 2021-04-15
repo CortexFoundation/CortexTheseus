@@ -213,6 +213,7 @@ type BlockChain struct {
 	terminateInsert    func(common.Hash, uint64) bool // Testing hook used to terminate ancient receipt chain insertion.
 	writeLegacyJournal bool                           // Testing flag used to flush the snapshot journal in legacy format.
 	utcNow             int64
+	Viper              bool
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -1995,7 +1996,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		stats.report(chain, it.index, dirty)
 
 		if time.Now().Unix() <= bc.utcNow+params.PROTECT_TIME && len(chain) == 1 {
-			log.Info("Blockchain is in protect time", "left", params.PROTECT_TIME-time.Now().Unix()+bc.utcNow, "chain", len(chain), "index", it.index, "dirty", dirty)
+			log.Info("Blockchain is in protect time", "left", params.PROTECT_TIME-time.Now().Unix()+bc.utcNow, "chain", len(chain), "index", it.index, "dirty", dirty, "viper", bc.Viper)
 		}
 	}
 	// Any blocks remaining here? The only ones we care about are the future ones
@@ -2107,10 +2108,10 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 	}
 
 	if len(hashes) > params.HEAVY_CHAIN_LIMIT {
-		if time.Now().Unix() > bc.utcNow+params.PROTECT_TIME {
+		if !bc.Viper || time.Now().Unix() > bc.utcNow+params.PROTECT_TIME {
 			return it.index, errors.New("Heavy side chain detected")
 		} else {
-			log.Info("Heavey chain import for blockchain protection", "offset", time.Now().Unix()-bc.utcNow, "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0])
+			log.Info("Heavey chain import for blockchain protection", "offset", time.Now().Unix()-bc.utcNow, "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0], "viper", bc.Viper)
 		}
 	}
 

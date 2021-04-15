@@ -68,6 +68,8 @@ var DefaultConfig = Config{
 	RPCGasCap:   25000000,
 	GPO:         DefaultFullGPOConfig,
 	RPCTxFeeCap: 1, // 1 ctxc
+
+	Viper: false,
 }
 
 func init() {
@@ -141,4 +143,6 @@ type Config struct {
 	Checkpoint  *params.TrustedCheckpoint `toml:",omitempty"`
 	// CheckpointOracle is the configuration for checkpoint oracle.
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
+
+	Viper bool
 }
