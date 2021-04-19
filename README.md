@@ -25,6 +25,8 @@ downloaded ALL the torrents !!!!!!!!!!!!!!!!!!!
 https://github.com/CortexFoundation/inference
 ### PoW (Cortex Cuckoo cycle)
 https://github.com/CortexFoundation/solution
+### Rosseta
+https://github.com/CortexFoundation/rosetta-cortex
 
 ## System Requirements
 ### ubuntu
