@@ -94,7 +94,7 @@ func (cuckoo *CuckooFakeForTest) VerifyHeaders(chain consensus.ChainHeaderReader
 	abort := make(chan struct{})
 	errorsOut := make(chan error, len(headers))
 	go func() {
-		for _, _ = range headers {
+		for range headers {
 			errorsOut <- nil
 		}
 	}()
