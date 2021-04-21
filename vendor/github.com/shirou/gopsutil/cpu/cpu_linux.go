@@ -6,28 +6,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/shirou/gopsutil/internal/common"
+	"github.com/tklauser/go-sysconf"
 )
 
 var ClocksPerSec = float64(100)
 
 func init() {
-	getconf, err := exec.LookPath("getconf")
-	if err != nil {
-		return
-	}
-	out, err := invoke.CommandWithContext(context.Background(), getconf, "CLK_TCK")
+	clkTck, err := sysconf.Sysconf(sysconf.SC_CLK_TCK)
 	// ignore errors
 	if err == nil {
-		i, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
-		if err == nil {
-			ClocksPerSec = i
-		}
+		ClocksPerSec = float64(clkTck)
 	}
 }
 
@@ -293,8 +286,11 @@ func CountsWithContext(ctx context.Context, logical bool) (int, error) {
 		if err == nil {
 			for _, line := range lines {
 				line = strings.ToLower(line)
-				if strings.HasPrefix(line, "processor") {
-					ret++
+				if strings.HasPrefix(line, "processor")  {
+					_, err = strconv.Atoi(strings.TrimSpace(line[strings.IndexByte(line, ':')+1:]))
+					if err == nil {
+						ret++
+					}
 				}
 			}
 		}
