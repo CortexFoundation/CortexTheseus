@@ -167,7 +167,7 @@ var (
 
 	ViperFlag = cli.BoolFlag{
 		Name:  "viper",
-		Usage: "Sync block with 180s local protect time",
+		Usage: "Sync block with 180s local sprout time",
 	}
 	// DeveloperFlag = cli.BoolFlag{
 	// 	Name:  "dev",
@@ -1503,6 +1503,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 
 	if ctx.GlobalIsSet(ViperFlag.Name) {
+		log.Warn("Viper mode is ON", "sprout", "180s")
 		cfg.Viper = true
 	}
 
