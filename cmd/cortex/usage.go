@@ -82,6 +82,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.WhitelistFlag,
 			// utils.CortexStatsURLFlag,
 			utils.IdentityFlag,
+			utils.ViperFlag,
 		},
 	},
 	// {

@@ -190,6 +190,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve, &config.TxLookupLimit)
+	ctxc.blockchain.Viper = config.Viper
+	log.Warn("Block chain viper mode", "viper", config.Viper)
 	if err != nil {
 		return nil, err
 	}
