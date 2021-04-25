@@ -2115,6 +2115,10 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 		}
 	}
 
+	if bc.Viper {
+		//TODO
+	}
+
 	// Import all the pruned blocks to make the state available
 	var (
 		blocks []*types.Block
