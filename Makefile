@@ -24,8 +24,7 @@ endif
 
 ifeq ($(OS), Darwin)
 endif
-
-cortex: cpu
+cortex: format cpu
 
 all: cortex bootnode abigen devp2p keytools rlpdump wnode
 
@@ -34,6 +33,9 @@ gpu: cortex_gpu
 cpu: cortex_cpu
 
 mine: cortex_mine
+
+format:
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*/generated/*" | xargs gofmt -w -s
 
 submodule:
 	build/env.sh
