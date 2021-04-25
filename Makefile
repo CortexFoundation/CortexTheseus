@@ -24,6 +24,8 @@ endif
 
 ifeq ($(OS), Darwin)
 endif
+format:
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*/generated/*" | xargs gofmt -w -s
 
 cortex: cpu
 
