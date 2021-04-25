@@ -1996,7 +1996,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		stats.report(chain, it.index, dirty)
 
 		if time.Now().Unix() <= bc.utcNow+params.SPROUT_TIME && len(chain) == 1 {
-			log.Info("Blockchain is in protect time", "left", params.SPROUT_TIME-time.Now().Unix()+bc.utcNow, "chain", len(chain), "index", it.index, "dirty", dirty, "viper", bc.Viper)
+			log.Info("Blockchain is in sprout time", "left", params.SPROUT_TIME-time.Now().Unix()+bc.utcNow, "chain", len(chain), "index", it.index, "dirty", dirty, "viper", bc.Viper)
 		}
 	}
 	// Any blocks remaining here? The only ones we care about are the future ones
