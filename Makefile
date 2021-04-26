@@ -24,7 +24,7 @@ endif
 
 ifeq ($(OS), Darwin)
 endif
-cortex: format cpu
+cortex: cpu
 
 all: cortex bootnode abigen devp2p keytools rlpdump wnode
 
