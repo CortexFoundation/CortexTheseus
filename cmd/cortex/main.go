@@ -93,6 +93,7 @@ var (
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxPendingPeersFlag,
+		utils.ViperFlag,
 		utils.MiningEnabledFlag,
 		utils.MinerThreadsFlag,
 		//utils.MinerNotifyFlag,

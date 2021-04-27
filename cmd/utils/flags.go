@@ -164,6 +164,11 @@ var (
 		Name:  "dolores",
 		Usage: "Dolores network: pre-configured cortex test network",
 	}
+
+	ViperFlag = cli.BoolFlag{
+		Name:  "viper",
+		Usage: "Sync block with 180s local sprout time",
+	}
 	// DeveloperFlag = cli.BoolFlag{
 	// 	Name:  "dev",
 	// 	Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
@@ -1496,6 +1501,12 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
 		//cfg.Cuckoo.Mine = true
 	}
+
+	if ctx.GlobalIsSet(ViperFlag.Name) {
+		log.Warn("Viper mode is ON", "sprout", "180s")
+		cfg.Viper = true
+	}
+
 	if ctx.GlobalIsSet(MinerCudaFlag.Name) {
 		cfg.Miner.Cuda = ctx.Bool(MinerCudaFlag.Name)
 		cfg.Cuckoo.UseCuda = cfg.Miner.Cuda
