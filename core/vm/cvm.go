@@ -500,12 +500,14 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 
 	// check whether the max code size has been exceeded
-	maxCodeSizeExceeded := cvm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize
+	if err == nil && cvm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize {
+		err = errMaxCodeSizeExceeded
+	}
 	// if the contract creation ran successfully and no errors were returned
 	// calculate the gas required to store the code. If the code could not
 	// be stored due to not enough gas set an error and let it be handled
 	// by the error checking condition below.
-	if err == nil && !maxCodeSizeExceeded {
+	if err == nil {
 		createDataGas := uint64(len(ret)) * params.CreateDataGas
 		if contract.UseGas(createDataGas) {
 			cvm.StateDB.SetCode(address, ret)
@@ -517,21 +519,16 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
-	if maxCodeSizeExceeded || (err != nil && (cvm.chainRules.IsHomestead || err != ErrCodeStoreOutOfGas)) {
+	if err != nil && (cvm.chainRules.IsHomestead || err != ErrCodeStoreOutOfGas) {
 		cvm.StateDB.RevertToSnapshot(snapshot)
 		if err != ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
-	// Assign err if contract code size exceeds the max while the err is still empty.
-	if maxCodeSizeExceeded && err == nil {
-		err = errMaxCodeSizeExceeded
-	}
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
 		cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 	}
 	return ret, address, contract.Gas, contract.ModelGas, err
-
 }
 
 // Create creates a new contract using code as deployment code.
