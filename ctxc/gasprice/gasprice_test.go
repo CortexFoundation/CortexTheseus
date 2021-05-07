@@ -1,5 +1,5 @@
 // Copyright 2020 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.package gasprice
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package gasprice
 
@@ -87,6 +87,14 @@ func newTestBackend(t *testing.T) *testBackend {
 	}
 	chain.InsertChain(blocks)
 	return &testBackend{chain: chain}
+}
+
+func (b *testBackend) CurrentHeader() *types.Header {
+	return b.chain.CurrentHeader()
+}
+
+func (b *testBackend) GetBlockByNumber(number uint64) *types.Block {
+	return b.chain.GetBlockByNumber(number)
 }
 
 func TestSuggestPrice(t *testing.T) {
