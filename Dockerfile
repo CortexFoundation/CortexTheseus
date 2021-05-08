@@ -1,4 +1,3 @@
-#FROM golang:1.16-alpine as builder
 FROM ubuntu:18.04 as golang-builder
 RUN apt-get update && apt-get install -y curl make gcc g++ git python3 cmake supervisor
 ENV GOLANG_VERSION 1.16.4
@@ -15,13 +14,11 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 RUN mkdir -p /work/src
 
-run mkdir -p /work/bin
+RUN mkdir -p /work/bin
 RUN cd /work/src && git clone https://github.com/CortexFoundation/CortexTheseus.git \
   && cd CortexTheseus \
-  && git checkout 35e9f755f9033d901dc9835c0a748ad9a2a64a12 \
+  && git checkout 94accbb786a1d95399450c21eb59da6cabe64638 \
   && make
-
-#RUN cd /src/CortexTheseus && make -j8
 
 RUN cp -r /work/src/CortexTheseus/build/bin/cortex /work/bin/
 RUN cp -r /work/src/CortexTheseus/plugins /work/bin
@@ -30,21 +27,10 @@ WORKDIR /work/bin
 
 RUN ls /work/bin
 
-run cp /work/src/CortexTheseus/node.conf /etc/supervisor/conf.d/
-#run cat /etc/supervisor/conf.d/node.conf
-#run cat /etc/supervisor/supervisord.conf
-
-#run ls /etc/supervisor
-#run ls /etc/supervisor/conf.d
+RUN cp /work/src/CortexTheseus/node.conf /etc/supervisor/conf.d/
 
 RUN rm -rf /work/src/CortexTheseus
-#"update and restart supervisorctl"
-cmd supervisord -n -c /etc/supervisor/supervisord.conf
-#CMD ["service supervisor start"]
-#cmd supervisorctl reread
-#cmd supervisorctl update
-#cmd supervisorctl restart all
+
+CMD supervisord -n -c /etc/supervisor/supervisord.conf
 
 EXPOSE 8545 8546 8547 40404 40404/udp 40401 40401/udp
-#ENTRYPOINT ["cortex"]
-#CMD ["/usr/local/bin/cortex", "run"]
