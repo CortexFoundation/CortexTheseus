@@ -31,14 +31,19 @@ WORKDIR /work/bin
 RUN ls /work/bin
 
 run cp /work/src/CortexTheseus/node.conf /etc/supervisor/conf.d/
-run cat /etc/supervisor/conf.d/node.conf
+#run cat /etc/supervisor/conf.d/node.conf
+#run cat /etc/supervisor/supervisord.conf
+
+#run ls /etc/supervisor
+#run ls /etc/supervisor/conf.d
 
 RUN rm -rf /work/src/CortexTheseus
 #"update and restart supervisorctl"
-run service supervisor start
-cmd supervisorctl reread
-cmd supervisorctl update
-cmd supervisorctl restart all
+cmd supervisord -n -c /etc/supervisor/supervisord.conf
+#CMD ["service supervisor start"]
+#cmd supervisorctl reread
+#cmd supervisorctl update
+#cmd supervisorctl restart all
 
 EXPOSE 8545 8546 8547 40404 40404/udp 40401 40401/udp
 #ENTRYPOINT ["cortex"]
