@@ -18,7 +18,7 @@ RUN mkdir -p /work/src
 run mkdir -p /work/bin
 RUN cd /work/src && git clone https://github.com/CortexFoundation/CortexTheseus.git \
   && cd CortexTheseus \
-  && git checkout d1ebbd8c6e5f6d83a89fe302da2f16acfc608a80 \
+  && git checkout ba6484c79bfeaef0229c1197cbd6d351db3f6ce0 \
   && make
 
 #RUN cd /src/CortexTheseus && make -j8
@@ -26,14 +26,14 @@ RUN cd /work/src && git clone https://github.com/CortexFoundation/CortexTheseus.
 RUN cp -r /work/src/CortexTheseus/build/bin/cortex /work/bin/
 RUN cp -r /work/src/CortexTheseus/plugins /work/bin
 
-RUN rm -rf /work/src/CortexTheseus
-
 WORKDIR /work/bin
 
 RUN ls /work/bin
 
 run cp /work/src/CortexTheseus/node.conf /etc/supervisor/conf.d/
 run cat /etc/supervisor/conf.d/node.conf
+
+RUN rm -rf /work/src/CortexTheseus
 #"update and restart supervisorctl"
 run service supervisor start
 cmd supervisorctl reread
