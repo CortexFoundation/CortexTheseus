@@ -18,7 +18,7 @@ RUN mkdir -p /work/src
 run mkdir -p /work/bin
 RUN cd /work/src && git clone https://github.com/CortexFoundation/CortexTheseus.git \
   && cd CortexTheseus \
-  && git checkout ba6484c79bfeaef0229c1197cbd6d351db3f6ce0 \
+  && git checkout 35e9f755f9033d901dc9835c0a748ad9a2a64a12 \
   && make
 
 #RUN cd /src/CortexTheseus && make -j8
