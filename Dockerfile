@@ -17,7 +17,7 @@ RUN mkdir -p /work/src
 RUN mkdir -p /work/bin
 RUN cd /work/src && git clone https://github.com/CortexFoundation/CortexTheseus.git \
   && cd CortexTheseus \
-  && git checkout 94accbb786a1d95399450c21eb59da6cabe64638 \
+  && git checkout master \
   && make
 
 RUN cp -r /work/src/CortexTheseus/build/bin/cortex /work/bin/
@@ -27,7 +27,7 @@ WORKDIR /work/bin
 
 RUN ls /work/bin
 
-RUN cp /work/src/CortexTheseus/node.conf /etc/supervisor/conf.d/
+RUN cp /work/src/CortexTheseus/docker/node.conf /etc/supervisor/conf.d/
 
 RUN rm -rf /work/src/CortexTheseus
 
