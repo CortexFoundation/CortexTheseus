@@ -17,7 +17,7 @@ RUN mkdir -p /work/src
 RUN mkdir -p /work/bin/plugins
 RUN cd /work/src && git clone https://github.com/CortexFoundation/CortexTheseus.git \
   && cd CortexTheseus \
-  && git checkout e24bfeaacc5fd87b95cbae8272de2d6453dc7220 \
+  && git checkout 40a34a38581124a164acd38178f09f9afb240554 \
   && make all
 
 RUN cp -r /work/src/CortexTheseus/build/bin/cortex /work/bin/
@@ -33,4 +33,4 @@ RUN rm -rf /work/src/CortexTheseus
 
 CMD supervisord -n -c /etc/supervisor/supervisord.conf
 
-EXPOSE 8545 8546 8547 40404 40404/udp 40401 40401/udp
+EXPOSE 5008 8545 8546 8547 37566 40404 40404/udp 40401 40401/udp
