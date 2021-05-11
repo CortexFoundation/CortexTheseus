@@ -715,7 +715,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx)
 	if inputError != nil {
 		return nil, inputError
 	}
-	inputSize := uint256.NewInt().SetUint64(uint64(len(inputBuff)))
+	inputSize := uint256.NewInt(uint64(len(inputBuff)))
 	modelAddr := common.Address(_modelAddr.Bytes20())
 	// log.Debug(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
