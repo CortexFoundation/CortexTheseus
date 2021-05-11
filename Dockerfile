@@ -18,7 +18,7 @@ RUN mkdir -p /work/bin
 RUN cd /work/src && git clone https://github.com/CortexFoundation/CortexTheseus.git \
   && cd CortexTheseus \
   && git checkout master \
-  && make
+  && make all
 
 RUN cp -r /work/src/CortexTheseus/build/bin/cortex /work/bin/
 RUN cp -r /work/src/CortexTheseus/plugins /work/bin
