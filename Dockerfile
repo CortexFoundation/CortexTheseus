@@ -14,14 +14,14 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 RUN mkdir -p /work/src
 
-RUN mkdir -p /work/bin
+RUN mkdir -p /work/bin/plugins
 RUN cd /work/src && git clone https://github.com/CortexFoundation/CortexTheseus.git \
   && cd CortexTheseus \
-  && git checkout a3eda887989b901787779a052df79264945a76f5 \
+  && git checkout e24bfeaacc5fd87b95cbae8272de2d6453dc7220 \
   && make all
 
 RUN cp -r /work/src/CortexTheseus/build/bin/cortex /work/bin/
-RUN cp -r /work/src/CortexTheseus/plugins /work/bin
+RUN cp /work/src/CortexTheseus/plugins/* /work/bin/plugins
 
 WORKDIR /work/bin
 
