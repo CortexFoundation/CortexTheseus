@@ -123,7 +123,7 @@ func (m *Memory) Print() {
 }
 
 func (m *Memory) GetSolidityBytes(slot int64) ([]byte, error) {
-	bigLen := uint256.NewInt()
+	bigLen := new(uint256.Int)
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
 	buff := m.GetPtr(slot+32, int64(bigLen.Uint64()))
@@ -145,11 +145,11 @@ func (m* Memory) GetLengthOfSolidityUint256Array(slot int64) (uint64, error) {
 }*/
 
 func (m *Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
-	bigLen := uint256.NewInt()
+	bigLen := new(uint256.Int)
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
 	// uint256 has 32 bytes
-	bigLen.Mul(bigLen, uint256.NewInt().SetUint64(32))
+	bigLen.Mul(bigLen, uint256.NewInt(32))
 	if int64(len(data)) > int64(bigLen.Uint64()) {
 		return errors.New(fmt.Sprintf("solidity memory bytes length not match %d != %d", len(data), bigLen.Uint64()))
 	}
@@ -158,10 +158,10 @@ func (m *Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
 }
 
 func (m *Memory) GetSolidityUint256(slot int64) ([]byte, error) {
-	bigLen := uint256.NewInt()
+	bigLen := new(uint256.Int)
 	length_buff := m.GetPtr(slot, 32)
 	bigLen.SetBytes(length_buff)
-	bigLen.Mul(bigLen, uint256.NewInt().SetUint64(32))
+	bigLen.Mul(bigLen, uint256.NewInt(32))
 	buff := m.GetPtr(slot+32, int64(bigLen.Uint64()))
 	return buff, nil
 }
