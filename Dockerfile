@@ -25,8 +25,6 @@ RUN cp -r /work/src/CortexTheseus/plugins /work/bin
 
 WORKDIR /work/bin
 
-RUN ls /work/bin
-
 RUN cp /work/src/CortexTheseus/docker/node.conf /etc/supervisor/conf.d/
 
 RUN rm -rf /work/src/CortexTheseus
