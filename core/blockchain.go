@@ -1995,8 +1995,15 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		dirty, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, it.index, dirty)
 
-		if time.Now().Unix() <= bc.utcNow+params.SPROUT_TIME && len(chain) == 1 && bc.Viper {
-			log.Info("Blockchain is in sprout time", "left", params.SPROUT_TIME-time.Now().Unix()+bc.utcNow, "chain", len(chain), "index", it.index, "dirty", dirty, "viper", bc.Viper)
+		//if time.Now().Unix() <= bc.utcNow+params.SPROUT_TIME && bc.Viper {
+		//	log.Info("Blockchain is in sprout time", "left", params.SPROUT_TIME-time.Now().Unix()+bc.utcNow, "chain", len(chain), "index", it.index, "dirty", dirty, "viper", bc.Viper)
+		//}
+	}
+
+	offset := time.Now().Unix() - bc.utcNow
+	if offset <= params.SPROUT_TIME && bc.Viper {
+		if time.Now().Unix()%3 == 0 {
+			log.Info("Blockchain sprout time", "left", params.SPROUT_TIME-offset, "viper", bc.Viper)
 		}
 	}
 	// Any blocks remaining here? The only ones we care about are the future ones
