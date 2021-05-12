@@ -2000,9 +2000,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		//}
 	}
 
-	if time.Now().Unix() <= bc.utcNow+params.SPROUT_TIME && bc.Viper {
-		if time.Now().Unix()%5 == 0 {
-			log.Info("Blockchain is in sprout time", "left", params.SPROUT_TIME-time.Now().Unix()+bc.utcNow, "viper", bc.Viper)
+	offset := time.Now().Unix() - bc.utcNow
+	if offset <= params.SPROUT_TIME && bc.Viper {
+		if time.Now().Unix()%3 == 0 {
+			log.Info("Blockchain sprout time", "left", params.SPROUT_TIME-offset, "viper", bc.Viper)
 		}
 	}
 	// Any blocks remaining here? The only ones we care about are the future ones
